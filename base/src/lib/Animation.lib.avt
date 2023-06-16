@@ -1,0 +1,90 @@
+export interface AnimationOptions {
+    animate?: Function,
+    stopped?: Function,
+    fps?: number;
+}
+
+export class Animation {
+    /**
+     * Default FPS for all Animation if not set inside options
+     */
+    public static FPS_DEFAULT: number = 60;
+
+    private options: AnimationOptions;
+    private nextFrame: number;
+    private fpsInterval: number;
+    private continueAnimation: boolean = false;
+
+    constructor(options: AnimationOptions) {
+        if(!options.animate) {
+            options.animate = () => { };
+        }
+        if(!options.stopped) {
+            options.stopped = () => { };
+        }
+        if(!options.fps) {
+            options.fps = Animation.FPS_DEFAULT;
+        }
+        this.options = options;
+        this.fpsInterval = 1000 / this.options.fps;
+    }
+
+    private animate(): void {
+        let now = window.performance.now();
+        let elapsed = now - this.nextFrame;
+        if(elapsed <= this.fpsInterval) {
+            requestAnimationFrame(() => this.animate());
+            return;
+        }
+        this.nextFrame = now - (elapsed % this.fpsInterval);
+
+        setTimeout(() => {
+            this.options.animate();
+        }, 0);
+        if(this.continueAnimation) {
+            requestAnimationFrame(() => this.animate());
+        }
+        else {
+            this.options.stopped();
+        }
+    }
+    /**
+     * Start the of animation
+     */
+    public start(): void {
+        if(this.continueAnimation == false) {
+            this.continueAnimation = true;
+            this.nextFrame = window.performance.now();
+            this.animate();
+        }
+    }
+
+    /**
+     * Stop the animation
+     */
+    public stop(): void {
+        this.continueAnimation = false;
+    }
+
+    /**
+     * Get the FPS
+     */
+    public getFPS(): number {
+        return this.options.fps;
+    }
+
+    /**
+     * Set the FPS
+     */
+    public setFPS(fps: number): void {
+        this.options.fps = fps;
+        this.fpsInterval = 1000 / this.options.fps;
+    }
+
+    /**
+     * Get the animation status (true if animation is running)
+     */
+    public isStarted(): boolean {
+        return this.continueAnimation;
+    }
+}

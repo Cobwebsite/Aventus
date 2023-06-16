@@ -1,0 +1,66 @@
+import { RouterStateManager } from "../../../lib/RouterStateManager.lib.avt";
+
+namespace Navigation {
+    export class RouterLink extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+        //#region static
+
+        //#endregion
+
+
+        //#region props
+        @Attribute()
+        public state: string = "";
+
+        /**
+         * If set define when active class is added otherwhise class active is added when state define is active
+         */
+        @Attribute()
+        public active_state: string = "";
+        //#endregion
+
+
+        //#region variables
+
+        //#endregion
+
+
+        //#region constructor
+
+        //#endregion
+
+
+        //#region methods
+        public onActiveChange: Aventus.Callback<(isActive: boolean) => void> = new Aventus.Callback();
+        protected addClickEvent() {
+            new Aventus.PressManager({
+                element: this,
+                onPress: () => {
+                    Aventus.State.activate(this.state, Aventus.Instance.get(RouterStateManager));
+                }
+            });
+        }
+        protected registerActiveStateListener() {
+            let activeState = this.state;
+            if(this.active_state) {
+                activeState = this.active_state;
+            }
+            Aventus.Instance.get(RouterStateManager).subscribe(activeState, {
+                active: () => {
+                    this.classList.add("active");
+                    this.onActiveChange.trigger([true]);
+                },
+                inactive: () => {
+                    this.classList.remove("active");
+                    this.onActiveChange.trigger([false]);
+                }
+            });
+        }
+        protected override postCreation(): void {
+            this.registerActiveStateListener();
+            this.addClickEvent();
+        }
+        //#endregion
+
+    }
+}

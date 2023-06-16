@@ -1,0 +1,3 @@
+<slot name="before"></slot>
+<div class="content" @element="contentEl"></div>
+<slot name="after"></slot>

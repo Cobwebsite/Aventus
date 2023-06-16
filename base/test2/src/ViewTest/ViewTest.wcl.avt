@@ -1,0 +1,77 @@
+@Debugger({
+    writeCompiled: true
+})
+export class ViewTest extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+    //#region static
+
+    //#endregion
+
+
+    //#region props
+    @Property()
+    public my_prop: string = "myProp";
+
+    @Watch((target: ViewTest) => {
+        console.log("in");
+    })
+    public data: {
+        lvl1: string,
+        lvl2: {
+            lvl21: string,
+            lvl22: string,
+        };
+    } = {
+            lvl1: "lvl1",
+            lvl2: {
+                lvl21: "lvl2.1",
+                lvl22: "lvl2.2",
+            }
+        };
+
+    @Watch()
+    public dataLoop: { name: string, colors: string[]; }[] = [
+        {
+            name: "Maxime",
+            colors: ["red", "blue"]
+        },
+        {
+            name: "Benjamin",
+            colors: ["yellow", "green"]
+        }
+    ];
+    //#endregion
+
+
+    //#region variables
+    @ViewElement()
+    protected itemEl: HTMLDivElement[];
+
+    @ViewElement()
+    protected titleEl: HTMLHeadingElement;
+
+    //#endregion
+
+
+    //#region states
+
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+
+    //#region methods
+
+    /**
+     * 
+     */
+    protected fctTest() {
+        throw new Error("Method not implemented.2");
+    }
+
+    //#endregion
+
+}

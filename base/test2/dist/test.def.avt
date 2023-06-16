@@ -1,0 +1,58 @@
+// version 1.0.0
+//#region js def //
+declare global {
+	declare namespace test{
+class ViewTest extends Aventus.WebComponent implements Aventus.DefaultComponent {
+    @Property()
+	my_prop: string;
+    @Watch((target: ViewTest) => {
+        console.log("in");
+    })
+	data: {
+        lvl1: string;
+        lvl2: {
+            lvl21: string;
+            lvl22: string;
+        };
+    };
+    @Watch()
+	dataLoop: {
+        name: string;
+        colors: string[];
+    }[];
+    @ViewElement()
+	protected itemEl: HTMLDivElement[];
+    @ViewElement()
+	protected titleEl: HTMLHeadingElement;
+    /**
+     *
+     */
+    protected fctTest(): void;
+}
+
+class Input extends Aventus.WebComponent implements Aventus.DefaultComponent {
+    @Property((target: Input) => {
+        target.inputEl.value = target.val;
+    })
+	val: string;
+    @ViewElement()
+	protected inputEl: HTMLInputElement;
+    customChange: Aventus.CallbackManager<(val: string) => void>;
+    /**
+     *
+     */
+    protected triggerChange(): void;
+}
+
+	}
+}
+//#endregion js def //
+//#region js src //
+{"namespace":"test","available":[{"code":"class ViewTest extends Aventus.WebComponent {\n    static get observedAttributes() {return [\"my_prop\"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}\n    get 'my_prop'() {\n                    return this.getAttribute('my_prop');\n                }\n                set 'my_prop'(val) {\n                    if(val === undefined || val === null){this.removeAttribute('my_prop')}\n                    else{this.setAttribute('my_prop',val)}\n                }\r    get 'data'() {\n\t\t\t\t\t\treturn this.__watch[\"data\"];\n\t\t\t\t\t}\n\t\t\t\t\tset 'data'(val) {\n\t\t\t\t\t\tthis.__watch[\"data\"] = val;\n\t\t\t\t\t}\rget 'dataLoop'() {\n\t\t\t\t\t\treturn this.__watch[\"dataLoop\"];\n\t\t\t\t\t}\n\t\t\t\t\tset 'dataLoop'(val) {\n\t\t\t\t\t\tthis.__watch[\"dataLoop\"] = val;\n\t\t\t\t\t}\r    __registerWatchesActions() {\n                this.__addWatchesActions(\"data\", ((target) => {\n    console.log(\"in\");\n}));\rthis.__addWatchesActions(\"dataLoop\");\r                super.__registerWatchesActions();\n            }\n    static __style = ``;\n    __getStatic() {\n        return ViewTest;\n    }\n    __getStyle() {\n        let arrStyle = super.__getStyle();\n        arrStyle.push(ViewTest.__style);\n        return arrStyle;\n    }\n    __getHtml() {\n    this.__getStatic().__template.setHTML({\n        blocks: { 'default':`<h1 _id=\"viewtest_0\"></h1><div _id=\"viewtest_1\"></div><input _id=\"viewtest_2\" /><av-input _id=\"viewtest_3\"></av-input><div class=\"list\"><template _id=\"viewtest_5\"></template></div>` }\n    });\n}\n    get itemEl () { var list = Array.from(this.shadowRoot.querySelectorAll('[_id=\"viewtest_4\"]')); return list; }\r    __registerTemplateAction() { super.__registerTemplateAction();\rthis.__getStatic().__template.setActions({\n  \"elements\": [\n    {\n      \"name\": \"titleEl\",\n      \"ids\": [\n        \"viewtest_0\"\n      ]\n    }\n  ],\n  \"content\": {\n    \"my_prop\": [\n      {\n        \"id\": \"viewtest_0\",\n        \"attrName\": \"label\",\n        \"render\": (c) => `${c.my_prop}`\n      },\n      {\n        \"id\": \"viewtest_0\",\n        \"attrName\": \"@HTML\",\n        \"render\": (c) => `Test - ${c.my_prop} - ${c.data.lvl1}`\n      }\n    ],\n    \"data\": [\n      {\n        \"id\": \"viewtest_0\",\n        \"attrName\": \"@HTML\",\n        \"render\": (c) => `Test - ${c.my_prop} - ${c.data.lvl1}`,\n        \"path\": \"data\"\n      }\n    ]\n  },\n  \"injection\": {\n    \"my_prop\": [\n      {\n        \"id\": \"viewtest_1\",\n        \"injectionName\": \"data3\",\n        \"inject\": (c) => c.my_prop\n      }\n    ],\n    \"data\": [\n      {\n        \"id\": \"viewtest_1\",\n        \"injectionName\": \"data4\",\n        \"inject\": (c) => c.data.lvl1,\n        \"path\": \"data.lvl1\"\n      }\n    ]\n  },\n  \"bindings\": {\n    \"my_prop\": [\n      {\n        \"id\": \"viewtest_2\",\n        \"valueName\": \"value\",\n        \"eventNames\": [\n          \"change\",\n          \"input\"\n        ]\n      }\n    ],\n    \"data\": [\n      {\n        \"id\": \"viewtest_3\",\n        \"valueName\": \"val\",\n        \"eventNames\": [\n          \"customChange\"\n        ],\n        \"path\": \"data.lvl1\",\n        \"isCallback\": true\n      }\n    ]\n  },\n  \"events\": [\n    {\n      \"eventName\": \"click\",\n      \"id\": \"viewtest_0\",\n      \"fct\": (e) => this.fctTest(e)\n    }\n  ],\n  \"pressEvents\": [\n    {\n      \"id\": \"viewtest_0\",\n      \"onPress\": (e, pressInstance) => { this.fctTest(e, pressInstance); }\n    }\n  ]\n});\rthis.__getStatic().__template.setSchema({globals:[\"my_prop\",\"data\",\"dataLoop\"]});\rconst templ1 = new Aventus.WebComponentTemplate(this);\rtempl1.setTemplate(`<div class=\"list-item\" _id=\"viewtest_4\"><div _id=\"viewtest_6\"></div><template _id=\"viewtest_8\"></template></div>`);\rtempl1.setActions({\n  \"content\": {\n    \"my_prop\": [\n      {\n        \"id\": \"viewtest_4\",\n        \"attrName\": \"label2\",\n        \"render\": (c) => `${c.my_prop}`\n      },\n      {\n        \"id\": \"viewtest_6\",\n        \"attrName\": \"label\",\n        \"render\": (c) => `${c.my_prop}`\n      }\n    ],\n    \"item\": [\n      {\n        \"id\": \"viewtest_6\",\n        \"attrName\": \"@HTML\",\n        \"render\": (c) => `My name \"&dollar;{s}\" is ${c.item.name}`,\n        \"path\": \"item\"\n      }\n    ]\n  },\n  \"injection\": {\n    \"item\": [\n      {\n        \"id\": \"viewtest_6\",\n        \"injectionName\": \"data\",\n        \"inject\": (c) => c.item,\n        \"path\": \"item\"\n      }\n    ]\n  }\n});\rthis.__getStatic().__template.addLoop({\n                        anchorId: 'viewtest_5',\n                        data: 'dataLoop',\n                        index: 'index_viewtest_5',\n                        item: 'item',\n                        template: templ1\n                    });\rconst templ2 = new Aventus.WebComponentTemplate(this);\rtempl2.setTemplate(`<div _id=\"viewtest_7\"></div>`);\rtempl2.setActions({\n  \"content\": {\n    \"index\": [\n      {\n        \"id\": \"viewtest_7\",\n        \"attrName\": \"@HTML\",\n        \"render\": (c) => `${c.index}.${c.item.name} - ${c.color}`,\n        \"path\": \"index\"\n      }\n    ],\n    \"item\": [\n      {\n        \"id\": \"viewtest_7\",\n        \"attrName\": \"@HTML\",\n        \"render\": (c) => `${c.index}.${c.item.name} - ${c.color}`,\n        \"path\": \"item\"\n      }\n    ],\n    \"color\": [\n      {\n        \"id\": \"viewtest_7\",\n        \"attrName\": \"@HTML\",\n        \"render\": (c) => `${c.index}.${c.item.name} - ${c.color}`,\n        \"path\": \"color\"\n      }\n    ]\n  }\n});\rtempl1.addLoop({\n                        anchorId: 'viewtest_8',\n                        data: 'item.colors',\n                        index: 'index',\n                        item: 'color',\n                        template: templ2\n                    });\r }\n    getClassName() {\n        return \"ViewTest\";\n    }\n    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('my_prop')){ this['my_prop'] = \"myProp\"; }\rif(!this[\"data\"]){ this[\"data\"] = {\"lvl1\":\"lvl1\",\"lvl2\":{\"lvl21\":\"lvl2.1\",\"lvl22\":\"lvl2.2\"}};}\rif(!this[\"dataLoop\"]){ this[\"dataLoop\"] = [{\"name\":\"Maxime\",\"colors\":[\"red\",\"blue\"]},{\"name\":\"Benjamin\",\"colors\":[\"yellow\",\"green\"]}];}\r }\n    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('my_prop');\r }\n    fctTest() {\n        throw new Error(\"Method not implemented.2\");\n    }\n}\nwindow.customElements.define('av-view-test', ViewTest);Aventus.WebComponentInstance.registerDefinition(ViewTest);\n","dependances":[{"fullName":"Aventus.WebComponent","isStrong":true},{"fullName":"Aventus.DefaultComponent","isStrong":true},{"fullName":"HTMLDivElement","isStrong":false},{"fullName":"HTMLHeadingElement","isStrong":false},{"fullName":"Input","isStrong":false}],"fullName":"test.ViewTest","required":false},{"code":"class Input extends Aventus.WebComponent {\n    static get observedAttributes() {return [\"val\"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}\n    get 'val'() {\n                    return this.getAttribute('val');\n                }\n                set 'val'(val) {\n                    if(val === undefined || val === null){this.removeAttribute('val')}\n                    else{this.setAttribute('val',val)}\n                }\r    customChange = new Aventus.CallbackManager();\n    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions(\"val\", ((target) => {\n    target.inputEl.value = target.val;\n}));\r }\n    static __style = ``;\n    __getStatic() {\n        return Input;\n    }\n    __getStyle() {\n        let arrStyle = super.__getStyle();\n        arrStyle.push(Input.__style);\n        return arrStyle;\n    }\n    __getHtml() {\n    this.__getStatic().__template.setHTML({\n        blocks: { 'default':`<input _id=\"input_0\" />` }\n    });\n}\n    __registerTemplateAction() { super.__registerTemplateAction();\rthis.__getStatic().__template.setActions({\n  \"elements\": [\n    {\n      \"name\": \"inputEl\",\n      \"ids\": [\n        \"input_0\"\n      ]\n    }\n  ],\n  \"events\": [\n    {\n      \"eventName\": \"input\",\n      \"id\": \"input_0\",\n      \"fct\": (e) => this.triggerChange(e)\n    }\n  ]\n});\r }\n    getClassName() {\n        return \"Input\";\n    }\n    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('val')){ this['val'] = \"\"; }\r }\n    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('val');\r }\n    triggerChange() {\n        this.val = this.inputEl.value;\n        this.customChange.trigger([this.val]);\n        this.dispatchEvent(new CustomEvent(\"bla\"));\n    }\n}\nwindow.customElements.define('av-input', Input);Aventus.WebComponentInstance.registerDefinition(Input);\n","dependances":[{"fullName":"Aventus.WebComponent","isStrong":true},{"fullName":"Aventus.DefaultComponent","isStrong":true},{"fullName":"HTMLInputElement","isStrong":false},{"fullName":"Aventus.CallbackManager","isStrong":false}],"fullName":"test.Input","required":false}],"existing":[]}
+//#endregion js src //
+//#region css //
+{"av-input":[],"av-view-test":[]}
+//#endregion css //
+//#region html //
+{"av-view-test":{"class":"test.ViewTest","name":"av-view-test","description":"","attributes":{"my_prop":{"name":"my_prop","description":"","type":"string","values":[]}}},"av-input":{"class":"test.Input","name":"av-input","description":"","attributes":{"val":{"name":"val","description":"","type":"string","values":[]}}}}
+//#endregion html //

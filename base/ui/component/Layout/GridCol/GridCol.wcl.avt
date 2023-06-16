@@ -1,0 +1,38 @@
+namespace Layout {
+    export class GridCol extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+        //#region static
+
+        //#endregion
+
+
+        //#region props
+        @Attribute()
+        public column: string;
+
+		@Attribute()
+        public row: string;
+
+		@Attribute()
+		private c_start:number;
+		@Attribute()
+		private c_end:number;
+        //#endregion
+
+
+        //#region variables
+
+        //#endregion
+
+
+        //#region constructor
+
+        //#endregion
+
+
+        //#region methods
+
+        //#endregion
+
+    }
+}

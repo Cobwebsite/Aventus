@@ -1,0 +1,50 @@
+import { Router } from "../Router/Router.wcl.avt";
+
+namespace Navigation {
+    export abstract class Page extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+        //#region static
+
+        //#endregion
+
+
+        //#region props
+        @Property((target: Page) => {
+            if(target.visible) {
+                target.onShow();
+            }
+            else {
+                target.onHide();
+            }
+        })
+        public visible: boolean;
+
+        public currentRouter: Router;
+        //#endregion
+
+
+        //#region variables
+
+        //#endregion
+
+
+        //#region constructor
+
+        //#endregion
+
+
+        //#region methods
+        public abstract pageTitle(): string;
+
+        public async show(){
+            this.visible = true;
+        }
+        public async hide(){
+            this.visible = false;
+        }
+        public abstract onShow();
+        public abstract onHide();
+        //#endregion
+
+    }
+}

@@ -1,0 +1,51 @@
+@Debugger({
+    writeCompiled: true
+})
+export class Input extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+    //#region static
+
+    //#endregion
+
+
+    //#region props
+    @Property((target: Input) => {
+        target.inputEl.value = target.val;
+    })
+    public val: string = "";
+    //#endregion
+
+
+    //#region variables
+    @ViewElement()
+    protected inputEl: HTMLInputElement;
+    //#endregion
+
+
+    //#region states
+
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+
+    //#region methods
+
+    public customChange: Aventus.Callback<(val: string) => void> = new Aventus.Callback();
+
+
+    /**
+     * 
+     */
+    protected triggerChange() {
+        this.val = this.inputEl.value;
+        this.customChange.trigger([this.val]);
+
+        this.dispatchEvent(new CustomEvent("bla"));
+    }
+    //#endregion
+
+}

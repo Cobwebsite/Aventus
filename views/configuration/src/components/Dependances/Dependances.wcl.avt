@@ -1,0 +1,52 @@
+type Dependance = {
+    name: string;
+    version: string;
+    uri: string;
+};
+
+@Debugger({
+    writeCompiled: true
+})
+export class Dependances extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+    //#region static
+
+    //#endregion
+
+
+    //#region props
+    @Attribute()
+    public no_deps: boolean;
+
+    @Watch((target: Dependances) => {
+        target.no_deps = target.dependances.length == 0;
+    })
+    private dependances: Dependance[] = [{
+        name: "AventusUI",
+        version: "1.0.0",
+        uri: "https://aventusjs.com/aventusUI.def.avt"
+    }, {
+        name: "AventusUI2",
+        version: "1.0.0",
+        uri: "https://aventusjs.com/aventusUI.def.avt"
+    }];
+    //#endregion
+
+
+    //#region variables
+
+    @ViewElement()
+    protected temp: HTMLElement[];
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+
+    //#region methods
+
+    //#endregion
+
+}

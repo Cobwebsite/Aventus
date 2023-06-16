@@ -1,0 +1,13 @@
+{
+	"module": "${{name}}",
+	"componentPrefix": "${{componentPrefix}}",
+	"build": [
+		{
+			"name": "Main",
+			"inputPath": [
+				"./src/*"
+			],
+			"outputFile": "./dist/${{name}}.js"
+		}
+	]
+}

@@ -1,0 +1,182 @@
+
+export interface ResourceLoaderOptions {
+    url: string;
+    type: 'js' | 'css' | 'img' | 'svg';
+}
+export interface ResourceLoaderHeadOptions {
+    url: string;
+    type: 'js' | 'css';
+}
+export class ResourceLoader {
+
+    //#region head loading
+    private static headerLoaded: { [url: string]: boolean; } = {};
+    private static headerWaiting: { [url: string]: ((result: boolean) => void)[]; } = {};
+    /**
+     * Load the resource inside the head tag
+     */
+    public static async loadInHead(options: ResourceLoaderHeadOptions | string): Promise<boolean> {
+        const _options = this.prepareOptions(options);
+        if(this.headerLoaded[_options.url]) {
+            return true;
+        }
+        else if(this.headerWaiting.hasOwnProperty(_options.url)) {
+            return await this.awaitFctHead(_options.url);
+        }
+        else {
+            this.headerWaiting[_options.url] = [];
+            let tagEl: HTMLElement;
+            if(_options.type == "js") {
+                tagEl = document.createElement("SCRIPT");
+            }
+            else if(_options.type == "css") {
+                tagEl = document.createElement("LINK");
+                tagEl.setAttribute("rel", "stylesheet");
+            }
+            else {
+                throw "unknow type " + _options.type + " to append into head";
+            }
+            document.head.appendChild(tagEl);
+            let result = await this.loadTag(tagEl, _options.url);
+            this.headerLoaded[_options.url] = true;
+            this.releaseAwaitFctHead(_options.url, result);
+            return result;
+        }
+    }
+
+    private static loadTag(tagEl: HTMLElement, url: string): Promise<boolean> {
+        return new Promise((resolve, reject) => {
+            tagEl.addEventListener("load", (e) => {
+                resolve(true);
+            });
+            tagEl.addEventListener("error", (e) => {
+                resolve(false);
+            });
+            if(tagEl instanceof HTMLLinkElement) {
+                tagEl.setAttribute("href", url);
+            }
+            else {
+                tagEl.setAttribute('src', url);
+            }
+        });
+    }
+    private static releaseAwaitFctHead(url: string, result: boolean) {
+        if(this.headerWaiting[url]) {
+            for(let i = 0; i < this.headerWaiting[url].length; i++) {
+                this.headerWaiting[url][i](result);
+            }
+            delete this.headerWaiting[url];
+        }
+    }
+    private static awaitFctHead(url: string): Promise<boolean> {
+        return new Promise((resolve) => {
+            this.headerWaiting[url].push((result) => {
+                resolve(result);
+            });
+        });
+    }
+    //#endregion
+
+    //#region loading content result
+    private static requestLoaded: { [url: string]: string; } = {};
+    private static requestWaiting: { [url: string]: (() => void)[]; } = {};
+
+    /** 
+     * 
+    */
+    public static async load(options: ResourceLoaderOptions | string): Promise<string> {
+        options = this.prepareOptions(options);
+        if(this.requestLoaded[options.url]) {
+            return this.requestLoaded[options.url];
+        }
+        else if(this.requestWaiting.hasOwnProperty(options.url)) {
+            await this.awaitFct(options.url);
+            return this.requestLoaded[options.url];
+        }
+        else {
+            this.requestWaiting[options.url] = [];
+            let blob = false;
+            if(options.type == "img") {
+                blob = true;
+            }
+            let content = await this.fetching(options.url, blob);
+            this.requestLoaded[options.url] = content;
+            this.releaseAwaitFct(options.url);
+            return content;
+        }
+    }
+
+    private static releaseAwaitFct(url: string) {
+        if(this.requestWaiting[url]) {
+            for(let i = 0; i < this.requestWaiting[url].length; i++) {
+                this.requestWaiting[url][i]();
+            }
+            delete this.requestWaiting[url];
+        }
+    }
+    private static awaitFct(url: string) {
+        return new Promise((resolve) => {
+            this.requestWaiting[url].push(() => {
+                resolve('');
+            });
+        });
+    }
+
+    private static async fetching(url: string, useBlob = false): Promise<string> {
+        if(useBlob) {
+            let result = await fetch(url, {
+                headers: {
+                    responseType: 'blob'
+                }
+            });
+            let blob = await result.blob();
+            return await this.readFile(blob);
+        }
+        else {
+            let result = await fetch(url);
+            return await result.text();
+        }
+    }
+    private static readFile(blob: Blob): Promise<string> {
+        return new Promise((resolve) => {
+            var reader = new FileReader();
+            reader.onloadend = function () {
+                resolve(reader.result as string);
+            };
+            reader.readAsDataURL(blob);
+        });
+    }
+    //#endregion
+    private static imgExtensions: string[] = ["png", "jpg", "jpeg", "gif"];
+    private static prepareOptions(options: ResourceLoaderOptions | ResourceLoaderHeadOptions | string): ResourceLoaderOptions {
+        let result: ResourceLoaderOptions;
+        if(typeof options === 'string' || options instanceof String) {
+            result = {
+                url: options as string,
+                type: 'js'
+            };
+            let splittedURI = result.url.split('.');
+            let extension = splittedURI[splittedURI.length - 1];
+            extension = extension.split("?")[0];
+            if(extension == "svg") {
+                result.type = 'svg';
+            }
+            else if(extension == "js") {
+                result.type = 'js';
+            }
+            else if(extension == "css") {
+                result.type = 'css';
+            }
+            else if(this.imgExtensions.indexOf(extension) != -1) {
+                result.type = 'img';
+            }
+            else {
+                throw 'unknow extension found :' + extension + ". Please define your extension inside options";
+            }
+        }
+        else {
+            result = options;
+        }
+        return result;
+    }
+}

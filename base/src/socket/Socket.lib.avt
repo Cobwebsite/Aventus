@@ -1,0 +1,320 @@
+import { SocketOptions, SocketMessage, SocketRoute, ISocket } from './ISocket.lib.avt';
+
+export abstract class Socket implements ISocket {
+    private options: SocketOptions;
+    private waitingList: { [uuid: string]: { [key: string]: (data: any) => void; }; } = {};
+    private multipltWaitingList: { [uuid: string]: { [key: string]: (data: any) => void; }; } = {};
+    private timeoutError: number;
+    private memoryBeforeOpen: {
+        channelName: string,
+        data: any,
+        options: {};
+    }[] = [];
+    private socket: WebSocket;
+
+    protected constructor() {
+        this._configure(this.configure({}));
+    }
+
+    /**
+     * Define the configuration for your websocket
+     */
+    protected abstract configure(options: SocketOptions): SocketOptions;
+    /**
+     * Configure a new Websocket
+     */
+    private _configure(options: SocketOptions = {}) {
+
+        if(!options.host) {
+            options.host = window.location.hostname;
+        }
+        if(!options.hasOwnProperty('useHttps')) {
+            options.useHttps = window.location.protocol == "https:";
+        }
+        if(!options.port) {
+            if(window.location.port) {
+                options.port = parseInt(window.location.port);
+            }
+            else {
+                options.port = options.useHttps ? 443 : 80;
+            }
+        }
+        if(!options.routes) {
+            options.routes = {};
+        }
+        if(!options.socketName) {
+            options.socketName = "";
+        }
+
+        this.options = options;
+    }
+
+
+
+
+    /**
+     * Add a new route to listen to the websocket
+     */
+    public addRoute(newRoute: SocketRoute) {
+        if(!this.options.routes.hasOwnProperty(newRoute.channel)) {
+            this.options.routes[newRoute.channel] = [];
+        }
+        this.options.routes[newRoute.channel].push(newRoute);
+    }
+
+    /**
+     * The route to remove
+     * @param route - The route to remove
+     */
+    public removeRoute(route: SocketRoute) {
+        let index = this.options.routes[route.channel].indexOf(route);
+        if(index != -1) {
+            this.options.routes[route.channel].splice(index, 1);
+        }
+    }
+
+    private openCallback: (isOpen: boolean) => void;
+    /**
+     * Try to open the websocket
+     */
+    public open(): Promise<boolean> {
+        return new Promise<boolean>((resolve) => {
+            try {
+                if(this.socket) {
+                    this.socket.close();
+                }
+                let protocol = "ws";
+                if(this.options.useHttps) {
+                    protocol = "wss";
+                }
+                let url = protocol + "://" + this.options.host + ":" + this.options.port + "/ws/" + this.options.socketName;
+                this.log(url);
+                this.openCallback = (isOpen) => {
+                    resolve(isOpen);
+                };
+                this.socket = new WebSocket(url);
+                this.socket.onopen = this._onOpen.bind(this);
+                this.socket.onclose = this._onClose.bind(this);
+                this.socket.onerror = this._onError.bind(this);
+                this.socket.onmessage = this.onMessage.bind(this);
+            } catch(e) {
+                console.log(e);
+                resolve(false);
+            }
+        });
+    }
+
+    private jsonReplacer(key: string, value: any) {
+        if(this[key] instanceof Date && this[key].getFullYear() < 100) {
+            return "0001-01-01T00:00:00";
+        }
+        return value;
+    }
+
+    /**
+     * Send a message though the websocket
+     * @param channelName The channel on which the message is sent
+     * @param data The data to send
+     * @param options the options to add to the message (typically the uid)
+     */
+    public sendMessage<T>(channelName: string, data: T = null, options = {}) {
+        if(this.socket && this.socket.readyState == 1) {
+            let message: SocketMessage = {
+                channel: channelName,
+            };
+            for(let key in options) {
+                message[key] = options[key];
+            }
+            if(data) {
+                message.data = data;
+                this.log(message);
+                if(typeof data != 'string') {
+                    message.data = JSON.stringify(data, this.jsonReplacer);
+                }
+            } else {
+                this.log(message);
+            }
+
+            this.socket.send(JSON.stringify(message));
+        } else {
+            this.log('Socket not ready ! Please ensure that it is open and ready to send message');
+            this.memoryBeforeOpen.push({
+                channelName: channelName,
+                data: data,
+                options: options
+            });
+        }
+    }
+
+    /**
+     * Send a message though the websocket and wait one answer give in parameters callbacks
+     * @param channelName The channel on which the message is sent
+     * @param data The data to send
+     * @param callbacks The callbacks to call. With the channel as key and the callback function as value
+     */
+    public sendMessageAndWait<T>(channelName: string, data: T, callbacks: { [key: string]: (data: any) => void; }) {
+        let uid = '_' + Math.random().toString(36).substr(2, 9);
+        this.waitingList[uid] = callbacks;
+        this.sendMessage(channelName, data, {
+            uid: uid
+        });
+    };
+
+    /**
+     * Send a message though the websocket and wait answer give in parameters callbacks
+     * @param channelName The channel on which the message is sent
+     * @param data The data to send
+     * @param callbacks The callbacks to call. With the channel as key and the callback function as value
+     */
+    public sendMessageAndWaitMultiple<T>(channelName: string, data: T[], callbacks: { [key: string]: (data: any) => void; }) {
+        let uid = '_' + Math.random().toString(36).substr(2, 9);
+        this.multipltWaitingList[uid] = callbacks;
+        this.sendMessage(channelName, data, {
+            uid: uid
+        });
+    }
+
+    /**
+     * Check if socket is ready
+     */
+    public isReady(): boolean {
+        if(this.socket && this.socket.readyState == 1) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Callback when the websocket connection is open
+     */
+    protected onOpen() {
+
+    }
+    private _onOpen() {
+        if(this.socket && this.socket.readyState == 1) {
+            if(this.openCallback) {
+                this.openCallback(true);
+                this.openCallback = null;
+            }
+            this.log('Connection successfully established !' + this.options.host + ":" + this.options.port);
+            window.clearTimeout(this.timeoutError);
+            this.onOpen();
+
+            for(let i = 0; i < this.memoryBeforeOpen.length; i++) {
+                this.sendMessage(this.memoryBeforeOpen[i].channelName, this.memoryBeforeOpen[i].data, this.memoryBeforeOpen[i].options);
+            }
+            this.memoryBeforeOpen = [];
+        }
+        else {
+            if(this.openCallback) {
+                this.openCallback(false);
+                this.openCallback = null;
+            }
+        }
+    }
+
+    private errorOccur: boolean;
+    /**
+     * Callback called when the socket as an error
+     */
+    protected onError(event: Event) {
+
+    }
+    private _onError(event: Event) {
+        this.errorOccur = true;
+        if(this.openCallback) {
+            this.openCallback(false);
+            this.openCallback = null;
+            return;
+        }
+        this.log('An error has occured');
+        this.onError(event);
+    }
+
+    /**
+     * Callback called when the connection closed without calling the close function
+     * By default the socket will try to reconnect each 5000ms
+     */
+    public onClose(event: Event) {
+        let reopenInterval = setInterval(async () => {
+            console.warn("try reopen socket ");
+            if(await this.open()) {
+                clearInterval(reopenInterval);
+            }
+        }, 5000);
+    }
+    private _onClose(event: Event) {
+        if(this.errorOccur) {
+            this.errorOccur = false;
+            return;
+        }
+        this.log('Closing connection');
+        this.onClose(event);
+    }
+
+    /**
+     * Close the current connection
+     */
+    public close() {
+        if(this.socket) {
+            this.socket.onclose = null;
+            this.socket.onerror = null;
+            this.socket.onmessage = null;
+            this.socket.onopen = null;
+            this.socket.close();
+            delete this.socket;
+        }
+    }
+
+    private onMessage(event: MessageEvent<any>) {
+        let response = JSON.parse(event.data);
+        this.log(response);
+        response.data = JSON.parse(response.data);
+        if(this.options.routes.hasOwnProperty(response.channel)) {
+            this.options.routes[response.channel].forEach(element => {
+                element.callback(response.data);
+            });
+        }
+        if(response.uid) {
+            if(this.waitingList.hasOwnProperty(response.uid)) {
+                let group = this.waitingList[response.uid];
+                if(group.hasOwnProperty(response.channel)) {
+                    group[response.channel](response.data);
+                }
+                delete this.waitingList[response.uid];
+            } else if(this.multipltWaitingList.hasOwnProperty(response.uid)) {
+                let group = this.multipltWaitingList[response.uid];
+                if(group.hasOwnProperty(response.channel)) {
+                    try {
+                        group[response.channel](response.data);
+                    }
+                    catch(e) {
+                        console.error(e);
+                    }
+                }
+                delete this.multipltWaitingList[response.uid];
+            }
+        }
+    }
+    /**
+     * Print a msg inside the console
+     */
+    protected log(message: {} | string) {
+        if(this.options.log) {
+            const now = new Date();
+            const hours = (now.getHours()).toLocaleString(undefined, { minimumIntegerDigits: 2 });
+            const minutes = (now.getMinutes()).toLocaleString(undefined, { minimumIntegerDigits: 2 });
+            const seconds = (now.getSeconds()).toLocaleString(undefined, { minimumIntegerDigits: 2 });
+            if(message instanceof Object) {
+                let cloneMessage = JSON.parse(JSON.stringify(message, this.jsonReplacer));
+                if(cloneMessage.data && typeof cloneMessage.data == 'string') {
+                    cloneMessage.data = JSON.parse(cloneMessage.data);
+                }
+                console.log(`[WEBSOCKET] [${hours}:${minutes}:${seconds}]: `, cloneMessage);
+            }
+            else {
+                console.log(`[WEBSOCKET] [${hours}:${minutes}:${seconds}]: `, message);
+            }
+        }
+    }
+}

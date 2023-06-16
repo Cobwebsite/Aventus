@@ -1,0 +1,11 @@
+:host {
+	display: flex;
+	margin-left: 400px;
+	margin-top: 200px;
+
+	av-input {
+		// --input-font-size: 30px;
+		// --input-label-font-size: 24px;
+		// --input-label-spacing: 10px;
+	}
+}

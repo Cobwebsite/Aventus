@@ -1,0 +1,36 @@
+:host {
+    display: flex;
+    flex-direction: column;
+    padding: 0 10px;
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+}
+:host([nobreak]) {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+:host([center]) {
+    text-align: center;
+}
+
+@for $i from 0 through 12 {
+    $size: 0;
+    @if $i != 0 {
+        $size: calc(100 / 12) * $i;
+    }
+
+    :host([size="#{$i}"]) {
+        width: #{$size + "%"};
+        display: flex;
+    }
+
+    :host([offset="#{$i}"]) {
+        margin-left: #{$size + "%"};
+    }
+
+    :host([offset-right="#{$i}"]) {
+        margin-right: #{$size + "%"};
+    }
+}

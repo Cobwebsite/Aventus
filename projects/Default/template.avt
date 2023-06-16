@@ -1,0 +1,30 @@
+{
+	"name": "Default",
+	"description": "A basic template",
+	"version": "1.0.0",
+	"variables": {
+		"name": {
+			"question": "Provide a name for your project",
+			"type": "input",
+			"defaultValue": "${{folderName}}",
+			"validation": [
+				{
+					"pattern": "^[a-zA-Z0-9_]+$"
+				}
+			]
+		},
+		"componentPrefix": {
+			"question": "Provide a component prefix",
+			"type": "input",
+			"defaultValue": "av",
+			"validation": [
+				{
+					"pattern": "^[a-z]{2,}$"
+				}
+			]
+		}
+	},
+	"filesToOpen": [
+        "/aventus\\.conf\\.avt$/"
+    ]
+}

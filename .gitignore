@@ -1,0 +1,10 @@
+node_modules
+base/test
+base/*.js
+base/*.html
+example/**/compiled.js
+cli/out
+client/out
+server/out
+*package-lock.json
+*.vsix

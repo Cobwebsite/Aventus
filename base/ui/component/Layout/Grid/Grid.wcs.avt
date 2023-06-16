@@ -1,0 +1,35 @@
+:host {
+	display: grid;
+}
+
+@for $j from 1 through 12 {
+
+	:host([cols="#{j}"]) {
+		grid-template-columns: repeat(#{$j}, minmax(0, 1fr));
+	}
+}
+
+
+@for $i from 1 through length($sizes) {
+    $sizeMax: nth($sizes, $i);
+    $label: nth($labels, $i);
+
+    @for $j from 0 through 12 {
+        $size: 0;
+        @if $j != 0 {
+            $size: calc(100 / 12) * $j;
+        }
+
+		@media screen and (max-width:100px) {
+			::slotted(av-grid-col[offset_#{$label}="#{$j}"]) {
+                margin-left: #{$size + "%"};
+            }
+            ::slotted(av-grid-col[offset_right_#{$label}="#{$j}"]) {
+                margin-right: #{$size + "%"};
+            }
+            ::slotted(av-grid-col[size_#{$label}="#{$j}"]) {
+                width: #{$size + "%"};
+            }
+		}
+    }
+}

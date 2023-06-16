@@ -1,0 +1,24 @@
+{
+	"module": "${{name}}",
+	"componentPrefix": "${{componentPrefix}}",
+	"build": [
+		{
+			"name": "Main",
+			"inputPath": [
+				"./src/components/*",
+				"./src/data/*",
+				"./src/lib/*",
+				"./src/ram/*",
+				"./src/socket/*"
+			],
+			"outputFile": "./dist/${{name}}.js"
+		}
+	],
+	"static": [
+		{
+			"name": "Main",
+			"inputPath": "./src/static/*",
+			"outputPath": "./dist/"
+		}
+	]
+}

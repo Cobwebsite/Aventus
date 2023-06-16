@@ -1,0 +1,21 @@
+<div class="scroll-main-container" @element="mainContainer">
+    <div class="content-zoom" @element="contentZoom">
+        <div class="content-hidder" @element="contentHidder">
+            <div class="content-wrapper" @element="contentWrapper">
+                <slot></slot>
+            </div>
+        </div>
+    </div>
+    <div class="scroller-wrapper">
+        <div class="container-scroller vertical" @element="verticalScrollerContainer">
+            <div class="shadow-scroller">
+                <div class="scroller" @element="verticalScroller"></div>
+            </div>
+        </div>
+        <div class="container-scroller horizontal" @element="horizontalScrollerContainer">
+            <div class="shadow-scroller">
+                <div class="scroller" @element="horizontalScroller"></div>
+            </div>
+        </div>
+    </div>
+</div>

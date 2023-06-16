@@ -1,0 +1,39 @@
+export class Mutex {
+	private waitingList: (() => void)[] = [];
+	private isLocked: boolean = false;
+	/**
+	 * Wait the mutex to be free then get it
+	 */
+	public waitOne() {
+		return new Promise<void>((resolve) => {
+			if (this.isLocked) {
+				this.waitingList.push(() => {
+					resolve();
+				})
+			}
+			else {
+				this.isLocked = true;
+				resolve();
+			}
+		})
+	}
+	/**
+	 * Release the mutex
+	 */
+	public release() {
+		let nextFct = this.waitingList.shift();
+		if (nextFct) {
+			nextFct();
+		}
+		else {
+			this.isLocked = false;
+		}
+	}
+	/**
+	 * Clear mutex
+	 */
+	public dispose() {
+		this.waitingList = [];
+		this.isLocked = false;
+	}
+}

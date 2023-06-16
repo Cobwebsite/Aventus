@@ -1,0 +1,63 @@
+
+export interface SocketMessage {
+    channel: string;
+    data?: any;
+}
+export interface SocketRoute {
+    channel: string;
+    callback: (data: any) => void;
+}
+export interface SocketOptions {
+    /** Enable or disable log */
+    log?: boolean,
+    /** Determine the host for the ws connection. By default it's the same as your current url  */
+    host?: string,
+    /** Determine the port for the ws connection. By default 80 or 443 depends of http or https */
+    port?: number,
+    /** Determine if the https must be used. The default value depend of the current http connection */
+    useHttps?: boolean,
+    /** Define a list of predefined routes to use */
+    routes?: { [key: string]: SocketRoute[]; };
+    /**
+     * Define the name for the websocket
+     * It ll open the ws connection on /ws/${socketName}
+     */
+    socketName?: string,
+}
+
+export interface ISocket {
+    
+    addRoute(newRoute: SocketRoute);
+    /**
+     * The route to remove
+     * @param route - The route to remove
+     */
+    removeRoute(route: SocketRoute) ;
+
+    open(done: () => void, error: () => void);
+
+    /**
+     * 
+     * @param channelName The channel on which the message is sent
+     * @param data The data to send
+     * @param options the options to add to the message (typically the uid)
+     */
+    sendMessage<T>(channelName: string, data: T, options);
+
+    /**
+     *
+     * @param channelName The channel on which the message is sent
+     * @param data The data to send
+     * @param callbacks The callbacks to call. With the channel as key and the callback function as value
+     */
+    sendMessageAndWait<T>(channelName: string, data: T, callbacks: { [key: string]: (data: any) => void; });
+    /**
+     * 
+     * @param channelName The channel on which the message is sent
+     * @param data The data to send
+     * @param callbacks The callbacks to call. With the channel as key and the callback function as value
+     */
+    sendMessageAndWaitMultiple(channelName: string, data: {}, callbacks: {});
+
+    isReady(): boolean;
+}

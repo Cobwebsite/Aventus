@@ -1,0 +1,42 @@
+<h3>Dependances</h3>
+<p class="no-dependances-txt">Your project has no dependance</p>
+<vscode-data-grid aria-label="Default">
+	<vscode-data-grid-row row-type="header">
+		<vscode-data-grid-cell cell-type="columnheader" grid-column="1">
+			Name
+		</vscode-data-grid-cell>
+		<vscode-data-grid-cell cell-type="columnheader" grid-column="2">
+			Version
+		</vscode-data-grid-cell>
+		<vscode-data-grid-cell cell-type="columnheader" grid-column="3">
+			Url
+		</vscode-data-grid-cell>
+		<vscode-data-grid-cell cell-type="columnheader" grid-column="4">
+			Action
+		</vscode-data-grid-cell>
+	</vscode-data-grid-row>
+	<vscode-data-grid-row @for="dep in dependances" @element="temp">
+		<vscode-data-grid-cell grid-column="1">
+			{{dep.name}}
+		</vscode-data-grid-cell>
+		<vscode-data-grid-cell grid-column="2">
+			{{dep.version}}
+		</vscode-data-grid-cell>
+		<vscode-data-grid-cell grid-column="3">
+			<a href="{{dep.uri}}" target="_blank">
+				{{dep.uri}}
+			</a>
+		</vscode-data-grid-cell>
+		<vscode-data-grid-cell grid-column="4">
+			<av-icon class="trash"></av-icon>
+		</vscode-data-grid-cell>
+	</vscode-data-grid-row>
+	<vscode-data-grid-row class="add-row">
+		<vscode-data-grid-cell grid-column="1"></vscode-data-grid-cell>
+		<vscode-data-grid-cell grid-column="2"></vscode-data-grid-cell>
+		<vscode-data-grid-cell grid-column="3"></vscode-data-grid-cell>
+		<vscode-data-grid-cell grid-column="4">
+			<vscode-button>Add</vscode-button>
+		</vscode-data-grid-cell>
+	</vscode-data-grid-row>
+</vscode-data-grid>

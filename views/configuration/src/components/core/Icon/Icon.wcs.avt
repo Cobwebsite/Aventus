@@ -1,0 +1,2106 @@
+:host {
+	display: inline-block;
+	font: normal normal normal 16px/1 codicon;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	text-align: center;
+	text-decoration: none;
+	text-rendering: auto;
+	-webkit-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+
+	
+}
+
+:host(.add) span::before {
+	content: "\ea60";
+}
+
+:host(.plus) span::before {
+	content: "\ea60";
+}
+
+:host(.gist-new) span::before {
+	content: "\ea60";
+}
+
+:host(.repo-create) span::before {
+	content: "\ea60";
+}
+
+:host(.lightbulb) span::before {
+	content: "\ea61";
+}
+
+:host(.light-bulb) span::before {
+	content: "\ea61";
+}
+
+:host(.repo) span::before {
+	content: "\ea62";
+}
+
+:host(.repo-delete) span::before {
+	content: "\ea62";
+}
+
+:host(.gist-fork) span::before {
+	content: "\ea63";
+}
+
+:host(.repo-forked) span::before {
+	content: "\ea63";
+}
+
+:host(.git-pull-request) span::before {
+	content: "\ea64";
+}
+
+:host(.git-pull-request-abandoned) span::before {
+	content: "\ea64";
+}
+
+:host(.record-keys) span::before {
+	content: "\ea65";
+}
+
+:host(.keyboard) span::before {
+	content: "\ea65";
+}
+
+:host(.tag) span::before {
+	content: "\ea66";
+}
+
+:host(.tag-add) span::before {
+	content: "\ea66";
+}
+
+:host(.tag-remove) span::before {
+	content: "\ea66";
+}
+
+:host(.person) span::before {
+	content: "\ea67";
+}
+
+:host(.person-follow) span::before {
+	content: "\ea67";
+}
+
+:host(.person-outline) span::before {
+	content: "\ea67";
+}
+
+:host(.person-filled) span::before {
+	content: "\ea67";
+}
+
+:host(.git-branch) span::before {
+	content: "\ea68";
+}
+
+:host(.git-branch-create) span::before {
+	content: "\ea68";
+}
+
+:host(.git-branch-delete) span::before {
+	content: "\ea68";
+}
+
+:host(.source-control) span::before {
+	content: "\ea68";
+}
+
+:host(.mirror) span::before {
+	content: "\ea69";
+}
+
+:host(.mirror-public) span::before {
+	content: "\ea69";
+}
+
+:host(.star) span::before {
+	content: "\ea6a";
+}
+
+:host(.star-add) span::before {
+	content: "\ea6a";
+}
+
+:host(.star-delete) span::before {
+	content: "\ea6a";
+}
+
+:host(.star-empty) span::before {
+	content: "\ea6a";
+}
+
+:host(.comment) span::before {
+	content: "\ea6b";
+}
+
+:host(.comment-add) span::before {
+	content: "\ea6b";
+}
+
+:host(.alert) span::before {
+	content: "\ea6c";
+}
+
+:host(.warning) span::before {
+	content: "\ea6c";
+}
+
+:host(.search) span::before {
+	content: "\ea6d";
+}
+
+:host(.search-save) span::before {
+	content: "\ea6d";
+}
+
+:host(.log-out) span::before {
+	content: "\ea6e";
+}
+
+:host(.sign-out) span::before {
+	content: "\ea6e";
+}
+
+:host(.log-in) span::before {
+	content: "\ea6f";
+}
+
+:host(.sign-in) span::before {
+	content: "\ea6f";
+}
+
+:host(.eye) span::before {
+	content: "\ea70";
+}
+
+:host(.eye-unwatch) span::before {
+	content: "\ea70";
+}
+
+:host(.eye-watch) span::before {
+	content: "\ea70";
+}
+
+:host(.circle-filled) span::before {
+	content: "\ea71";
+}
+
+:host(.primitive-dot) span::before {
+	content: "\ea71";
+}
+
+:host(.close-dirty) span::before {
+	content: "\ea71";
+}
+
+:host(.debug-breakpoint) span::before {
+	content: "\ea71";
+}
+
+:host(.debug-breakpoint-disabled) span::before {
+	content: "\ea71";
+}
+
+:host(.debug-hint) span::before {
+	content: "\ea71";
+}
+
+:host(.terminal-decoration-success) span::before {
+	content: "\ea71";
+}
+
+:host(.primitive-square) span::before {
+	content: "\ea72";
+}
+
+:host(.edit) span::before {
+	content: "\ea73";
+}
+
+:host(.pencil) span::before {
+	content: "\ea73";
+}
+
+:host(.info) span::before {
+	content: "\ea74";
+}
+
+:host(.issue-opened) span::before {
+	content: "\ea74";
+}
+
+:host(.gist-private) span::before {
+	content: "\ea75";
+}
+
+:host(.git-fork-private) span::before {
+	content: "\ea75";
+}
+
+:host(.lock) span::before {
+	content: "\ea75";
+}
+
+:host(.mirror-private) span::before {
+	content: "\ea75";
+}
+
+:host(.close) span::before {
+	content: "\ea76";
+}
+
+:host(.remove-close) span::before {
+	content: "\ea76";
+}
+
+:host(.x) span::before {
+	content: "\ea76";
+}
+
+:host(.repo-sync) span::before {
+	content: "\ea77";
+}
+
+:host(.sync) span::before {
+	content: "\ea77";
+}
+
+:host(.clone) span::before {
+	content: "\ea78";
+}
+
+:host(.desktop-download) span::before {
+	content: "\ea78";
+}
+
+:host(.beaker) span::before {
+	content: "\ea79";
+}
+
+:host(.microscope) span::before {
+	content: "\ea79";
+}
+
+:host(.vm) span::before {
+	content: "\ea7a";
+}
+
+:host(.device-desktop) span::before {
+	content: "\ea7a";
+}
+
+:host(.file) span::before {
+	content: "\ea7b";
+}
+
+:host(.file-text) span::before {
+	content: "\ea7b";
+}
+
+:host(.more) span::before {
+	content: "\ea7c";
+}
+
+:host(.ellipsis) span::before {
+	content: "\ea7c";
+}
+
+:host(.kebab-horizontal) span::before {
+	content: "\ea7c";
+}
+
+:host(.mail-reply) span::before {
+	content: "\ea7d";
+}
+
+:host(.reply) span::before {
+	content: "\ea7d";
+}
+
+:host(.organization) span::before {
+	content: "\ea7e";
+}
+
+:host(.organization-filled) span::before {
+	content: "\ea7e";
+}
+
+:host(.organization-outline) span::before {
+	content: "\ea7e";
+}
+
+:host(.new-file) span::before {
+	content: "\ea7f";
+}
+
+:host(.file-add) span::before {
+	content: "\ea7f";
+}
+
+:host(.new-folder) span::before {
+	content: "\ea80";
+}
+
+:host(.file-directory-create) span::before {
+	content: "\ea80";
+}
+
+:host(.trash) span::before {
+	content: "\ea81";
+}
+
+:host(.trashcan) span::before {
+	content: "\ea81";
+}
+
+:host(.history) span::before {
+	content: "\ea82";
+}
+
+:host(.clock) span::before {
+	content: "\ea82";
+}
+
+:host(.folder) span::before {
+	content: "\ea83";
+}
+
+:host(.file-directory) span::before {
+	content: "\ea83";
+}
+
+:host(.symbol-folder) span::before {
+	content: "\ea83";
+}
+
+:host(.logo-github) span::before {
+	content: "\ea84";
+}
+
+:host(.mark-github) span::before {
+	content: "\ea84";
+}
+
+:host(.github) span::before {
+	content: "\ea84";
+}
+
+:host(.terminal) span::before {
+	content: "\ea85";
+}
+
+:host(.console) span::before {
+	content: "\ea85";
+}
+
+:host(.repl) span::before {
+	content: "\ea85";
+}
+
+:host(.zap) span::before {
+	content: "\ea86";
+}
+
+:host(.symbol-event) span::before {
+	content: "\ea86";
+}
+
+:host(.error) span::before {
+	content: "\ea87";
+}
+
+:host(.stop) span::before {
+	content: "\ea87";
+}
+
+:host(.variable) span::before {
+	content: "\ea88";
+}
+
+:host(.symbol-variable) span::before {
+	content: "\ea88";
+}
+
+:host(.array) span::before {
+	content: "\ea8a";
+}
+
+:host(.symbol-array) span::before {
+	content: "\ea8a";
+}
+
+:host(.symbol-module) span::before {
+	content: "\ea8b";
+}
+
+:host(.symbol-package) span::before {
+	content: "\ea8b";
+}
+
+:host(.symbol-namespace) span::before {
+	content: "\ea8b";
+}
+
+:host(.symbol-object) span::before {
+	content: "\ea8b";
+}
+
+:host(.symbol-method) span::before {
+	content: "\ea8c";
+}
+
+:host(.symbol-function) span::before {
+	content: "\ea8c";
+}
+
+:host(.symbol-constructor) span::before {
+	content: "\ea8c";
+}
+
+:host(.symbol-boolean) span::before {
+	content: "\ea8f";
+}
+
+:host(.symbol-null) span::before {
+	content: "\ea8f";
+}
+
+:host(.symbol-numeric) span::before {
+	content: "\ea90";
+}
+
+:host(.symbol-number) span::before {
+	content: "\ea90";
+}
+
+:host(.symbol-structure) span::before {
+	content: "\ea91";
+}
+
+:host(.symbol-struct) span::before {
+	content: "\ea91";
+}
+
+:host(.symbol-parameter) span::before {
+	content: "\ea92";
+}
+
+:host(.symbol-type-parameter) span::before {
+	content: "\ea92";
+}
+
+:host(.symbol-key) span::before {
+	content: "\ea93";
+}
+
+:host(.symbol-text) span::before {
+	content: "\ea93";
+}
+
+:host(.symbol-reference) span::before {
+	content: "\ea94";
+}
+
+:host(.go-to-file) span::before {
+	content: "\ea94";
+}
+
+:host(.symbol-enum) span::before {
+	content: "\ea95";
+}
+
+:host(.symbol-value) span::before {
+	content: "\ea95";
+}
+
+:host(.symbol-ruler) span::before {
+	content: "\ea96";
+}
+
+:host(.symbol-unit) span::before {
+	content: "\ea96";
+}
+
+:host(.activate-breakpoints) span::before {
+	content: "\ea97";
+}
+
+:host(.archive) span::before {
+	content: "\ea98";
+}
+
+:host(.arrow-both) span::before {
+	content: "\ea99";
+}
+
+:host(.arrow-down) span::before {
+	content: "\ea9a";
+}
+
+:host(.arrow-left) span::before {
+	content: "\ea9b";
+}
+
+:host(.arrow-right) span::before {
+	content: "\ea9c";
+}
+
+:host(.arrow-small-down) span::before {
+	content: "\ea9d";
+}
+
+:host(.arrow-small-left) span::before {
+	content: "\ea9e";
+}
+
+:host(.arrow-small-right) span::before {
+	content: "\ea9f";
+}
+
+:host(.arrow-small-up) span::before {
+	content: "\eaa0";
+}
+
+:host(.arrow-up) span::before {
+	content: "\eaa1";
+}
+
+:host(.bell) span::before {
+	content: "\eaa2";
+}
+
+:host(.bold) span::before {
+	content: "\eaa3";
+}
+
+:host(.book) span::before {
+	content: "\eaa4";
+}
+
+:host(.bookmark) span::before {
+	content: "\eaa5";
+}
+
+:host(.debug-breakpoint-conditional-unverified) span::before {
+	content: "\eaa6";
+}
+
+:host(.debug-breakpoint-conditional) span::before {
+	content: "\eaa7";
+}
+
+:host(.debug-breakpoint-conditional-disabled) span::before {
+	content: "\eaa7";
+}
+
+:host(.debug-breakpoint-data-unverified) span::before {
+	content: "\eaa8";
+}
+
+:host(.debug-breakpoint-data) span::before {
+	content: "\eaa9";
+}
+
+:host(.debug-breakpoint-data-disabled) span::before {
+	content: "\eaa9";
+}
+
+:host(.debug-breakpoint-log-unverified) span::before {
+	content: "\eaaa";
+}
+
+:host(.debug-breakpoint-log) span::before {
+	content: "\eaab";
+}
+
+:host(.debug-breakpoint-log-disabled) span::before {
+	content: "\eaab";
+}
+
+:host(.briefcase) span::before {
+	content: "\eaac";
+}
+
+:host(.broadcast) span::before {
+	content: "\eaad";
+}
+
+:host(.browser) span::before {
+	content: "\eaae";
+}
+
+:host(.bug) span::before {
+	content: "\eaaf";
+}
+
+:host(.calendar) span::before {
+	content: "\eab0";
+}
+
+:host(.case-sensitive) span::before {
+	content: "\eab1";
+}
+
+:host(.check) span::before {
+	content: "\eab2";
+}
+
+:host(.checklist) span::before {
+	content: "\eab3";
+}
+
+:host(.chevron-down) span::before {
+	content: "\eab4";
+}
+
+:host(.chevron-left) span::before {
+	content: "\eab5";
+}
+
+:host(.chevron-right) span::before {
+	content: "\eab6";
+}
+
+:host(.chevron-up) span::before {
+	content: "\eab7";
+}
+
+:host(.chrome-close) span::before {
+	content: "\eab8";
+}
+
+:host(.chrome-maximize) span::before {
+	content: "\eab9";
+}
+
+:host(.chrome-minimize) span::before {
+	content: "\eaba";
+}
+
+:host(.chrome-restore) span::before {
+	content: "\eabb";
+}
+
+:host(.circle-outline) span::before {
+	content: "\eabc";
+}
+
+:host(.circle) span::before {
+	content: "\eabc";
+}
+
+:host(.debug-breakpoint-unverified) span::before {
+	content: "\eabc";
+}
+
+:host(.terminal-decoration-incomplete) span::before {
+	content: "\eabc";
+}
+
+:host(.circle-slash) span::before {
+	content: "\eabd";
+}
+
+:host(.circuit-board) span::before {
+	content: "\eabe";
+}
+
+:host(.clear-all) span::before {
+	content: "\eabf";
+}
+
+:host(.clippy) span::before {
+	content: "\eac0";
+}
+
+:host(.close-all) span::before {
+	content: "\eac1";
+}
+
+:host(.cloud-download) span::before {
+	content: "\eac2";
+}
+
+:host(.cloud-upload) span::before {
+	content: "\eac3";
+}
+
+:host(.code) span::before {
+	content: "\eac4";
+}
+
+:host(.collapse-all) span::before {
+	content: "\eac5";
+}
+
+:host(.color-mode) span::before {
+	content: "\eac6";
+}
+
+:host(.comment-discussion) span::before {
+	content: "\eac7";
+}
+
+:host(.credit-card) span::before {
+	content: "\eac9";
+}
+
+:host(.dash) span::before {
+	content: "\eacc";
+}
+
+:host(.dashboard) span::before {
+	content: "\eacd";
+}
+
+:host(.database) span::before {
+	content: "\eace";
+}
+
+:host(.debug-continue) span::before {
+	content: "\eacf";
+}
+
+:host(.debug-disconnect) span::before {
+	content: "\ead0";
+}
+
+:host(.debug-pause) span::before {
+	content: "\ead1";
+}
+
+:host(.debug-restart) span::before {
+	content: "\ead2";
+}
+
+:host(.debug-start) span::before {
+	content: "\ead3";
+}
+
+:host(.debug-step-into) span::before {
+	content: "\ead4";
+}
+
+:host(.debug-step-out) span::before {
+	content: "\ead5";
+}
+
+:host(.debug-step-over) span::before {
+	content: "\ead6";
+}
+
+:host(.debug-stop) span::before {
+	content: "\ead7";
+}
+
+:host(.debug) span::before {
+	content: "\ead8";
+}
+
+:host(.device-camera-video) span::before {
+	content: "\ead9";
+}
+
+:host(.device-camera) span::before {
+	content: "\eada";
+}
+
+:host(.device-mobile) span::before {
+	content: "\eadb";
+}
+
+:host(.diff-added) span::before {
+	content: "\eadc";
+}
+
+:host(.diff-ignored) span::before {
+	content: "\eadd";
+}
+
+:host(.diff-modified) span::before {
+	content: "\eade";
+}
+
+:host(.diff-removed) span::before {
+	content: "\eadf";
+}
+
+:host(.diff-renamed) span::before {
+	content: "\eae0";
+}
+
+:host(.diff) span::before {
+	content: "\eae1";
+}
+
+:host(.discard) span::before {
+	content: "\eae2";
+}
+
+:host(.editor-layout) span::before {
+	content: "\eae3";
+}
+
+:host(.empty-window) span::before {
+	content: "\eae4";
+}
+
+:host(.exclude) span::before {
+	content: "\eae5";
+}
+
+:host(.extensions) span::before {
+	content: "\eae6";
+}
+
+:host(.eye-closed) span::before {
+	content: "\eae7";
+}
+
+:host(.file-binary) span::before {
+	content: "\eae8";
+}
+
+:host(.file-code) span::before {
+	content: "\eae9";
+}
+
+:host(.file-media) span::before {
+	content: "\eaea";
+}
+
+:host(.file-pdf) span::before {
+	content: "\eaeb";
+}
+
+:host(.file-submodule) span::before {
+	content: "\eaec";
+}
+
+:host(.file-symlink-directory) span::before {
+	content: "\eaed";
+}
+
+:host(.file-symlink-file) span::before {
+	content: "\eaee";
+}
+
+:host(.file-zip) span::before {
+	content: "\eaef";
+}
+
+:host(.files) span::before {
+	content: "\eaf0";
+}
+
+:host(.filter) span::before {
+	content: "\eaf1";
+}
+
+:host(.flame) span::before {
+	content: "\eaf2";
+}
+
+:host(.fold-down) span::before {
+	content: "\eaf3";
+}
+
+:host(.fold-up) span::before {
+	content: "\eaf4";
+}
+
+:host(.fold) span::before {
+	content: "\eaf5";
+}
+
+:host(.folder-active) span::before {
+	content: "\eaf6";
+}
+
+:host(.folder-opened) span::before {
+	content: "\eaf7";
+}
+
+:host(.gear) span::before {
+	content: "\eaf8";
+}
+
+:host(.gift) span::before {
+	content: "\eaf9";
+}
+
+:host(.gist-secret) span::before {
+	content: "\eafa";
+}
+
+:host(.gist) span::before {
+	content: "\eafb";
+}
+
+:host(.git-commit) span::before {
+	content: "\eafc";
+}
+
+:host(.git-compare) span::before {
+	content: "\eafd";
+}
+
+:host(.compare-changes) span::before {
+	content: "\eafd";
+}
+
+:host(.git-merge) span::before {
+	content: "\eafe";
+}
+
+:host(.github-action) span::before {
+	content: "\eaff";
+}
+
+:host(.github-alt) span::before {
+	content: "\eb00";
+}
+
+:host(.globe) span::before {
+	content: "\eb01";
+}
+
+:host(.grabber) span::before {
+	content: "\eb02";
+}
+
+:host(.graph) span::before {
+	content: "\eb03";
+}
+
+:host(.gripper) span::before {
+	content: "\eb04";
+}
+
+:host(.heart) span::before {
+	content: "\eb05";
+}
+
+:host(.home) span::before {
+	content: "\eb06";
+}
+
+:host(.horizontal-rule) span::before {
+	content: "\eb07";
+}
+
+:host(.hubot) span::before {
+	content: "\eb08";
+}
+
+:host(.inbox) span::before {
+	content: "\eb09";
+}
+
+:host(.issue-reopened) span::before {
+	content: "\eb0b";
+}
+
+:host(.issues) span::before {
+	content: "\eb0c";
+}
+
+:host(.italic) span::before {
+	content: "\eb0d";
+}
+
+:host(.jersey) span::before {
+	content: "\eb0e";
+}
+
+:host(.json) span::before {
+	content: "\eb0f";
+}
+
+:host(.kebab-vertical) span::before {
+	content: "\eb10";
+}
+
+:host(.key) span::before {
+	content: "\eb11";
+}
+
+:host(.law) span::before {
+	content: "\eb12";
+}
+
+:host(.lightbulb-autofix) span::before {
+	content: "\eb13";
+}
+
+:host(.link-external) span::before {
+	content: "\eb14";
+}
+
+:host(.link) span::before {
+	content: "\eb15";
+}
+
+:host(.list-ordered) span::before {
+	content: "\eb16";
+}
+
+:host(.list-unordered) span::before {
+	content: "\eb17";
+}
+
+:host(.live-share) span::before {
+	content: "\eb18";
+}
+
+:host(.loading) span::before {
+	content: "\eb19";
+}
+
+:host(.location) span::before {
+	content: "\eb1a";
+}
+
+:host(.mail-read) span::before {
+	content: "\eb1b";
+}
+
+:host(.mail) span::before {
+	content: "\eb1c";
+}
+
+:host(.markdown) span::before {
+	content: "\eb1d";
+}
+
+:host(.megaphone) span::before {
+	content: "\eb1e";
+}
+
+:host(.mention) span::before {
+	content: "\eb1f";
+}
+
+:host(.milestone) span::before {
+	content: "\eb20";
+}
+
+:host(.mortar-board) span::before {
+	content: "\eb21";
+}
+
+:host(.move) span::before {
+	content: "\eb22";
+}
+
+:host(.multiple-windows) span::before {
+	content: "\eb23";
+}
+
+:host(.mute) span::before {
+	content: "\eb24";
+}
+
+:host(.no-newline) span::before {
+	content: "\eb25";
+}
+
+:host(.note) span::before {
+	content: "\eb26";
+}
+
+:host(.octoface) span::before {
+	content: "\eb27";
+}
+
+:host(.open-preview) span::before {
+	content: "\eb28";
+}
+
+:host(.package) span::before {
+	content: "\eb29";
+}
+
+:host(.paintcan) span::before {
+	content: "\eb2a";
+}
+
+:host(.pin) span::before {
+	content: "\eb2b";
+}
+
+:host(.play) span::before {
+	content: "\eb2c";
+}
+
+:host(.run) span::before {
+	content: "\eb2c";
+}
+
+:host(.plug) span::before {
+	content: "\eb2d";
+}
+
+:host(.preserve-case) span::before {
+	content: "\eb2e";
+}
+
+:host(.preview) span::before {
+	content: "\eb2f";
+}
+
+:host(.project) span::before {
+	content: "\eb30";
+}
+
+:host(.pulse) span::before {
+	content: "\eb31";
+}
+
+:host(.question) span::before {
+	content: "\eb32";
+}
+
+:host(.quote) span::before {
+	content: "\eb33";
+}
+
+:host(.radio-tower) span::before {
+	content: "\eb34";
+}
+
+:host(.reactions) span::before {
+	content: "\eb35";
+}
+
+:host(.references) span::before {
+	content: "\eb36";
+}
+
+:host(.refresh) span::before {
+	content: "\eb37";
+}
+
+:host(.regex) span::before {
+	content: "\eb38";
+}
+
+:host(.remote-explorer) span::before {
+	content: "\eb39";
+}
+
+:host(.remote) span::before {
+	content: "\eb3a";
+}
+
+:host(.remove) span::before {
+	content: "\eb3b";
+}
+
+:host(.replace-all) span::before {
+	content: "\eb3c";
+}
+
+:host(.replace) span::before {
+	content: "\eb3d";
+}
+
+:host(.repo-clone) span::before {
+	content: "\eb3e";
+}
+
+:host(.repo-force-push) span::before {
+	content: "\eb3f";
+}
+
+:host(.repo-pull) span::before {
+	content: "\eb40";
+}
+
+:host(.repo-push) span::before {
+	content: "\eb41";
+}
+
+:host(.report) span::before {
+	content: "\eb42";
+}
+
+:host(.request-changes) span::before {
+	content: "\eb43";
+}
+
+:host(.rocket) span::before {
+	content: "\eb44";
+}
+
+:host(.root-folder-opened) span::before {
+	content: "\eb45";
+}
+
+:host(.root-folder) span::before {
+	content: "\eb46";
+}
+
+:host(.rss) span::before {
+	content: "\eb47";
+}
+
+:host(.ruby) span::before {
+	content: "\eb48";
+}
+
+:host(.save-all) span::before {
+	content: "\eb49";
+}
+
+:host(.save-as) span::before {
+	content: "\eb4a";
+}
+
+:host(.save) span::before {
+	content: "\eb4b";
+}
+
+:host(.screen-full) span::before {
+	content: "\eb4c";
+}
+
+:host(.screen-normal) span::before {
+	content: "\eb4d";
+}
+
+:host(.search-stop) span::before {
+	content: "\eb4e";
+}
+
+:host(.server) span::before {
+	content: "\eb50";
+}
+
+:host(.settings-gear) span::before {
+	content: "\eb51";
+}
+
+:host(.settings) span::before {
+	content: "\eb52";
+}
+
+:host(.shield) span::before {
+	content: "\eb53";
+}
+
+:host(.smiley) span::before {
+	content: "\eb54";
+}
+
+:host(.sort-precedence) span::before {
+	content: "\eb55";
+}
+
+:host(.split-horizontal) span::before {
+	content: "\eb56";
+}
+
+:host(.split-vertical) span::before {
+	content: "\eb57";
+}
+
+:host(.squirrel) span::before {
+	content: "\eb58";
+}
+
+:host(.star-full) span::before {
+	content: "\eb59";
+}
+
+:host(.star-half) span::before {
+	content: "\eb5a";
+}
+
+:host(.symbol-class) span::before {
+	content: "\eb5b";
+}
+
+:host(.symbol-color) span::before {
+	content: "\eb5c";
+}
+
+:host(.symbol-constant) span::before {
+	content: "\eb5d";
+}
+
+:host(.symbol-enum-member) span::before {
+	content: "\eb5e";
+}
+
+:host(.symbol-field) span::before {
+	content: "\eb5f";
+}
+
+:host(.symbol-file) span::before {
+	content: "\eb60";
+}
+
+:host(.symbol-interface) span::before {
+	content: "\eb61";
+}
+
+:host(.symbol-keyword) span::before {
+	content: "\eb62";
+}
+
+:host(.symbol-misc) span::before {
+	content: "\eb63";
+}
+
+:host(.symbol-operator) span::before {
+	content: "\eb64";
+}
+
+:host(.symbol-property) span::before {
+	content: "\eb65";
+}
+
+:host(.wrench) span::before {
+	content: "\eb65";
+}
+
+:host(.wrench-subaction) span::before {
+	content: "\eb65";
+}
+
+:host(.symbol-snippet) span::before {
+	content: "\eb66";
+}
+
+:host(.tasklist) span::before {
+	content: "\eb67";
+}
+
+:host(.telescope) span::before {
+	content: "\eb68";
+}
+
+:host(.text-size) span::before {
+	content: "\eb69";
+}
+
+:host(.three-bars) span::before {
+	content: "\eb6a";
+}
+
+:host(.thumbsdown) span::before {
+	content: "\eb6b";
+}
+
+:host(.thumbsup) span::before {
+	content: "\eb6c";
+}
+
+:host(.tools) span::before {
+	content: "\eb6d";
+}
+
+:host(.triangle-down) span::before {
+	content: "\eb6e";
+}
+
+:host(.triangle-left) span::before {
+	content: "\eb6f";
+}
+
+:host(.triangle-right) span::before {
+	content: "\eb70";
+}
+
+:host(.triangle-up) span::before {
+	content: "\eb71";
+}
+
+:host(.twitter) span::before {
+	content: "\eb72";
+}
+
+:host(.unfold) span::before {
+	content: "\eb73";
+}
+
+:host(.unlock) span::before {
+	content: "\eb74";
+}
+
+:host(.unmute) span::before {
+	content: "\eb75";
+}
+
+:host(.unverified) span::before {
+	content: "\eb76";
+}
+
+:host(.verified) span::before {
+	content: "\eb77";
+}
+
+:host(.versions) span::before {
+	content: "\eb78";
+}
+
+:host(.vm-active) span::before {
+	content: "\eb79";
+}
+
+:host(.vm-outline) span::before {
+	content: "\eb7a";
+}
+
+:host(.vm-running) span::before {
+	content: "\eb7b";
+}
+
+:host(.watch) span::before {
+	content: "\eb7c";
+}
+
+:host(.whitespace) span::before {
+	content: "\eb7d";
+}
+
+:host(.whole-word) span::before {
+	content: "\eb7e";
+}
+
+:host(.window) span::before {
+	content: "\eb7f";
+}
+
+:host(.word-wrap) span::before {
+	content: "\eb80";
+}
+
+:host(.zoom-in) span::before {
+	content: "\eb81";
+}
+
+:host(.zoom-out) span::before {
+	content: "\eb82";
+}
+
+:host(.list-filter) span::before {
+	content: "\eb83";
+}
+
+:host(.list-flat) span::before {
+	content: "\eb84";
+}
+
+:host(.list-selection) span::before {
+	content: "\eb85";
+}
+
+:host(.selection) span::before {
+	content: "\eb85";
+}
+
+:host(.list-tree) span::before {
+	content: "\eb86";
+}
+
+:host(.debug-breakpoint-function-unverified) span::before {
+	content: "\eb87";
+}
+
+:host(.debug-breakpoint-function) span::before {
+	content: "\eb88";
+}
+
+:host(.debug-breakpoint-function-disabled) span::before {
+	content: "\eb88";
+}
+
+:host(.debug-stackframe-active) span::before {
+	content: "\eb89";
+}
+
+:host(.circle-small-filled) span::before {
+	content: "\eb8a";
+}
+
+:host(.debug-stackframe-dot) span::before {
+	content: "\eb8a";
+}
+
+:host(.terminal-decoration-mark) span::before {
+	content: "\eb8a";
+}
+
+:host(.debug-stackframe) span::before {
+	content: "\eb8b";
+}
+
+:host(.debug-stackframe-focused) span::before {
+	content: "\eb8b";
+}
+
+:host(.debug-breakpoint-unsupported) span::before {
+	content: "\eb8c";
+}
+
+:host(.symbol-string) span::before {
+	content: "\eb8d";
+}
+
+:host(.debug-reverse-continue) span::before {
+	content: "\eb8e";
+}
+
+:host(.debug-step-back) span::before {
+	content: "\eb8f";
+}
+
+:host(.debug-restart-frame) span::before {
+	content: "\eb90";
+}
+
+:host(.debug-alt) span::before {
+	content: "\eb91";
+}
+
+:host(.call-incoming) span::before {
+	content: "\eb92";
+}
+
+:host(.call-outgoing) span::before {
+	content: "\eb93";
+}
+
+:host(.menu) span::before {
+	content: "\eb94";
+}
+
+:host(.expand-all) span::before {
+	content: "\eb95";
+}
+
+:host(.feedback) span::before {
+	content: "\eb96";
+}
+
+:host(.group-by-ref-type) span::before {
+	content: "\eb97";
+}
+
+:host(.ungroup-by-ref-type) span::before {
+	content: "\eb98";
+}
+
+:host(.account) span::before {
+	content: "\eb99";
+}
+
+:host(.bell-dot) span::before {
+	content: "\eb9a";
+}
+
+:host(.debug-console) span::before {
+	content: "\eb9b";
+}
+
+:host(.library) span::before {
+	content: "\eb9c";
+}
+
+:host(.output) span::before {
+	content: "\eb9d";
+}
+
+:host(.run-all) span::before {
+	content: "\eb9e";
+}
+
+:host(.sync-ignored) span::before {
+	content: "\eb9f";
+}
+
+:host(.pinned) span::before {
+	content: "\eba0";
+}
+
+:host(.github-inverted) span::before {
+	content: "\eba1";
+}
+
+:host(.server-process) span::before {
+	content: "\eba2";
+}
+
+:host(.server-environment) span::before {
+	content: "\eba3";
+}
+
+:host(.pass) span::before {
+	content: "\eba4";
+}
+
+:host(.issue-closed) span::before {
+	content: "\eba4";
+}
+
+:host(.stop-circle) span::before {
+	content: "\eba5";
+}
+
+:host(.play-circle) span::before {
+	content: "\eba6";
+}
+
+:host(.record) span::before {
+	content: "\eba7";
+}
+
+:host(.debug-alt-small) span::before {
+	content: "\eba8";
+}
+
+:host(.vm-connect) span::before {
+	content: "\eba9";
+}
+
+:host(.cloud) span::before {
+	content: "\ebaa";
+}
+
+:host(.merge) span::before {
+	content: "\ebab";
+}
+
+:host(.export) span::before {
+	content: "\ebac";
+}
+
+:host(.graph-left) span::before {
+	content: "\ebad";
+}
+
+:host(.magnet) span::before {
+	content: "\ebae";
+}
+
+:host(.notebook) span::before {
+	content: "\ebaf";
+}
+
+:host(.redo) span::before {
+	content: "\ebb0";
+}
+
+:host(.check-all) span::before {
+	content: "\ebb1";
+}
+
+:host(.pinned-dirty) span::before {
+	content: "\ebb2";
+}
+
+:host(.pass-filled) span::before {
+	content: "\ebb3";
+}
+
+:host(.circle-large-filled) span::before {
+	content: "\ebb4";
+}
+
+:host(.circle-large) span::before {
+	content: "\ebb5";
+}
+
+:host(.circle-large-outline) span::before {
+	content: "\ebb5";
+}
+
+:host(.combine) span::before {
+	content: "\ebb6";
+}
+
+:host(.gather) span::before {
+	content: "\ebb6";
+}
+
+:host(.table) span::before {
+	content: "\ebb7";
+}
+
+:host(.variable-group) span::before {
+	content: "\ebb8";
+}
+
+:host(.type-hierarchy) span::before {
+	content: "\ebb9";
+}
+
+:host(.type-hierarchy-sub) span::before {
+	content: "\ebba";
+}
+
+:host(.type-hierarchy-super) span::before {
+	content: "\ebbb";
+}
+
+:host(.git-pull-request-create) span::before {
+	content: "\ebbc";
+}
+
+:host(.run-above) span::before {
+	content: "\ebbd";
+}
+
+:host(.run-below) span::before {
+	content: "\ebbe";
+}
+
+:host(.notebook-template) span::before {
+	content: "\ebbf";
+}
+
+:host(.debug-rerun) span::before {
+	content: "\ebc0";
+}
+
+:host(.workspace-trusted) span::before {
+	content: "\ebc1";
+}
+
+:host(.workspace-untrusted) span::before {
+	content: "\ebc2";
+}
+
+:host(.workspace-unknown) span::before {
+	content: "\ebc3";
+}
+
+:host(.terminal-cmd) span::before {
+	content: "\ebc4";
+}
+
+:host(.terminal-debian) span::before {
+	content: "\ebc5";
+}
+
+:host(.terminal-linux) span::before {
+	content: "\ebc6";
+}
+
+:host(.terminal-powershell) span::before {
+	content: "\ebc7";
+}
+
+:host(.terminal-tmux) span::before {
+	content: "\ebc8";
+}
+
+:host(.terminal-ubuntu) span::before {
+	content: "\ebc9";
+}
+
+:host(.terminal-bash) span::before {
+	content: "\ebca";
+}
+
+:host(.arrow-swap) span::before {
+	content: "\ebcb";
+}
+
+:host(.copy) span::before {
+	content: "\ebcc";
+}
+
+:host(.person-add) span::before {
+	content: "\ebcd";
+}
+
+:host(.filter-filled) span::before {
+	content: "\ebce";
+}
+
+:host(.wand) span::before {
+	content: "\ebcf";
+}
+
+:host(.debug-line-by-line) span::before {
+	content: "\ebd0";
+}
+
+:host(.inspect) span::before {
+	content: "\ebd1";
+}
+
+:host(.layers) span::before {
+	content: "\ebd2";
+}
+
+:host(.layers-dot) span::before {
+	content: "\ebd3";
+}
+
+:host(.layers-active) span::before {
+	content: "\ebd4";
+}
+
+:host(.compass) span::before {
+	content: "\ebd5";
+}
+
+:host(.compass-dot) span::before {
+	content: "\ebd6";
+}
+
+:host(.compass-active) span::before {
+	content: "\ebd7";
+}
+
+:host(.azure) span::before {
+	content: "\ebd8";
+}
+
+:host(.issue-draft) span::before {
+	content: "\ebd9";
+}
+
+:host(.git-pull-request-closed) span::before {
+	content: "\ebda";
+}
+
+:host(.git-pull-request-draft) span::before {
+	content: "\ebdb";
+}
+
+:host(.debug-all) span::before {
+	content: "\ebdc";
+}
+
+:host(.debug-coverage) span::before {
+	content: "\ebdd";
+}
+
+:host(.run-errors) span::before {
+	content: "\ebde";
+}
+
+:host(.folder-library) span::before {
+	content: "\ebdf";
+}
+
+:host(.debug-continue-small) span::before {
+	content: "\ebe0";
+}
+
+:host(.beaker-stop) span::before {
+	content: "\ebe1";
+}
+
+:host(.graph-line) span::before {
+	content: "\ebe2";
+}
+
+:host(.graph-scatter) span::before {
+	content: "\ebe3";
+}
+
+:host(.pie-chart) span::before {
+	content: "\ebe4";
+}
+
+:host(.bracket) span::before {
+	content: "\eb0f";
+}
+
+:host(.bracket-dot) span::before {
+	content: "\ebe5";
+}
+
+:host(.bracket-error) span::before {
+	content: "\ebe6";
+}
+
+:host(.lock-small) span::before {
+	content: "\ebe7";
+}
+
+:host(.azure-devops) span::before {
+	content: "\ebe8";
+}
+
+:host(.verified-filled) span::before {
+	content: "\ebe9";
+}
+
+:host(.newline) span::before {
+	content: "\ebea";
+}
+
+:host(.layout) span::before {
+	content: "\ebeb";
+}
+
+:host(.layout-activitybar-left) span::before {
+	content: "\ebec";
+}
+
+:host(.layout-activitybar-right) span::before {
+	content: "\ebed";
+}
+
+:host(.layout-panel-left) span::before {
+	content: "\ebee";
+}
+
+:host(.layout-panel-center) span::before {
+	content: "\ebef";
+}
+
+:host(.layout-panel-justify) span::before {
+	content: "\ebf0";
+}
+
+:host(.layout-panel-right) span::before {
+	content: "\ebf1";
+}
+
+:host(.layout-panel) span::before {
+	content: "\ebf2";
+}
+
+:host(.layout-sidebar-left) span::before {
+	content: "\ebf3";
+}
+
+:host(.layout-sidebar-right) span::before {
+	content: "\ebf4";
+}
+
+:host(.layout-statusbar) span::before {
+	content: "\ebf5";
+}
+
+:host(.layout-menubar) span::before {
+	content: "\ebf6";
+}
+
+:host(.layout-centered) span::before {
+	content: "\ebf7";
+}
+
+:host(.target) span::before {
+	content: "\ebf8";
+}
+
+:host(.indent) span::before {
+	content: "\ebf9";
+}
+
+:host(.record-small) span::before {
+	content: "\ebfa";
+}
+
+:host(.error-small) span::before {
+	content: "\ebfb";
+}
+
+:host(.terminal-decoration-error) span::before {
+	content: "\ebfb";
+}
+
+:host(.arrow-circle-down) span::before {
+	content: "\ebfc";
+}
+
+:host(.arrow-circle-left) span::before {
+	content: "\ebfd";
+}
+
+:host(.arrow-circle-right) span::before {
+	content: "\ebfe";
+}
+
+:host(.arrow-circle-up) span::before {
+	content: "\ebff";
+}
+
+:host(.layout-sidebar-right-off) span::before {
+	content: "\ec00";
+}
+
+:host(.layout-panel-off) span::before {
+	content: "\ec01";
+}
+
+:host(.layout-sidebar-left-off) span::before {
+	content: "\ec02";
+}
+
+:host(.blank) span::before {
+	content: "\ec03";
+}
+
+:host(.heart-filled) span::before {
+	content: "\ec04";
+}
+
+:host(.map) span::before {
+	content: "\ec05";
+}
+
+:host(.map-filled) span::before {
+	content: "\ec06";
+}
+
+:host(.circle-small) span::before {
+	content: "\ec07";
+}
+
+:host(.bell-slash) span::before {
+	content: "\ec08";
+}
+
+:host(.bell-slash-dot) span::before {
+	content: "\ec09";
+}
+
+:host(.comment-unresolved) span::before {
+	content: "\ec0a";
+}
+
+:host(.git-pull-request-go-to-changes) span::before {
+	content: "\ec0b";
+}
+
+:host(.git-pull-request-new-changes) span::before {
+	content: "\ec0c";
+}
+
+:host(.search-fuzzy) span::before {
+	content: "\ec0d";
+}
+
+:host(.comment-draft) span::before {
+	content: "\ec0e";
+}
+
+:host(.send) span::before {
+	content: "\ec0f";
+}
+
+:host(.sparkle) span::before {
+	content: "\ec10";
+}
+
+:host(.insert) span::before {
+	content: "\ec11";
+}

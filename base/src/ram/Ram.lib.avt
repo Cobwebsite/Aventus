@@ -1,0 +1,736 @@
+import { RamError, RamErrorCode, ResultRamWithError } from "./Error.lib.avt";
+import { IData } from "../data/IData.data.avt";
+import { DataManager } from "../data/DataManager.lib.avt";
+
+export interface IRam { }
+export type KeysObject<T> = { [Key in keyof T]?: any; };
+export interface IRamAction<T> {
+    update(newData: KeysObject<T>): Promise<this>;
+    onUpdate(callback: (item: this) => void);
+    offUpdate(callback: (item: this) => void);
+    delete(): Promise<void>;
+    onDelete(callback: (item: this) => void);
+    offDelete(callback: (item: this) => void);
+}
+
+export type RamItem<T extends IData> = T & IRamAction<T>;
+interface RamSubscribers<T> {
+    created: ((item: T) => void)[];
+    updated: ((item: T) => void)[];
+    deleted: ((item: T) => void)[];
+}
+
+export abstract class GenericRam<Index, T extends IData> implements IRam {
+    /**
+     * The current namespace
+     */
+    public static get Namespace(): string { return ""; }
+    /**
+     * Get the unique type for the data. Define it as the namespace + class name
+     */
+    public static get Fullname(): string { return this.Namespace + "." + this.name; }
+
+
+    private subscribers: RamSubscribers<RamItem<T>> = {
+        created: [],
+        updated: [],
+        deleted: [],
+    };
+    private recordsSubscribers: Map<Index, RamSubscribers<RamItem<T>>> = new Map();
+    /**
+     * List of stored item by index key
+     */
+    protected records: Map<Index, RamItem<T>> = new Map();
+
+    protected constructor() {
+        if(this.constructor == GenericRam) {
+            throw "can't instanciate an abstract class";
+        }
+    }
+
+    //#region index key
+    /**
+     * Define the field where the index key is location
+     * Example : 'id';
+     */
+    public abstract defineIndexKey(): keyof T;
+
+    /**
+     * Get item id
+     */
+    public getIdWithError(item: KeysObject<T> | T): ResultRamWithError<Index> {
+        let action: ResultRamWithError<Index> = new ResultRamWithError();
+        let idTemp = item[this.defineIndexKey()];
+        if(idTemp !== undefined) {
+            action.result = idTemp;
+        }
+        else {
+            action.errors.push(new RamError(RamErrorCode.noId, "no key found for item"));
+        }
+        return action;
+    }
+    /**
+     * Get item id
+     */
+    public getId(item: KeysObject<T> | T): Index | null {
+        let result = this.getIdWithError(item);
+        if(result.success) {
+            return result.result;
+        }
+        return null;
+    }
+    //#endregion	
+
+    //#region tool
+
+    /**
+     * Add function update, onUpdate, offUpdate, delete, onDelete, offDelete
+     */
+    protected addRamAction<B extends new (...args: any[]) => IData>(Base: B) {
+        let that = this;
+        return class ActionClass extends Base implements IRamAction<T> {
+            public async update(newData: KeysObject<T> = {}): Promise<this> {
+                let id = that.getId(this);
+                let oldData = that.records.get(id);
+                if(oldData) {
+                    that.mergeObject(oldData, newData);
+                    let result = await that.update(oldData);
+                    return result as any as this;
+                }
+                return undefined;
+            }
+            public onUpdate(callback) {
+                let id = that.getId(this);
+                if(!that.recordsSubscribers.has(id)) {
+                    that.recordsSubscribers.set(id, {
+                        created: [],
+                        updated: [],
+                        deleted: []
+                    });
+                }
+                if(!that.recordsSubscribers.get(id).updated.includes(callback)) {
+                    that.recordsSubscribers.get(id).updated.push(callback);
+                }
+            }
+            public offUpdate(callback) {
+                let id = that.getId(this);
+                if(that.recordsSubscribers.has(id)) {
+                    let index = that.recordsSubscribers.get(id).updated.indexOf(callback);
+                    if(index != -1) {
+                        that.recordsSubscribers.get(id).updated.splice(index, 1);
+                    }
+                }
+            }
+            public async delete(): Promise<void> {
+                let id = that.getId(this);
+                await that.deleteById(id);
+            }
+            public onDelete(callback) {
+                let id = that.getId(this);
+                if(!that.recordsSubscribers.has(id)) {
+                    that.recordsSubscribers.set(id, {
+                        created: [],
+                        updated: [],
+                        deleted: []
+                    });
+                }
+                if(!that.recordsSubscribers.get(id).deleted.includes(callback)) {
+                    that.recordsSubscribers.get(id).deleted.push(callback);
+                }
+            }
+            public offDelete(callback) {
+                let id = that.getId(this);
+                if(that.recordsSubscribers.has(id)) {
+                    let index = that.recordsSubscribers.get(id).deleted.indexOf(callback);
+                    if(index != -1) {
+                        that.recordsSubscribers.get(id).deleted.splice(index, 1);
+                    }
+                }
+            }
+        };
+    }
+
+    protected abstract getTypeForData(objJson: KeysObject<T> | T): new () => T;
+    /**
+     * Transform the object into the object stored inside Ram
+     */
+    protected getObjectForRam(objJson: KeysObject<T> | T): RamItem<T> {
+        let T = this.addRamAction(this.getTypeForData(objJson));
+        let item = new T();
+        this.mergeObject(item, objJson);
+        return item;
+    }
+
+    /**
+     * Add element inside Ram or update it. The instance inside the ram is unique and ll never be replaced
+     */
+    protected addOrUpdateData(item: KeysObject<T>, result: ResultRamWithError<RamItem<T>>): void {
+        try {
+            let idWithError = this.getIdWithError(item);
+            if(idWithError.success) {
+                let id = idWithError.result;
+                if(this.records.has(id)) {
+                    this.mergeObject(this.records.get(id), item);
+                }
+                else {
+                    let realObject = this.getObjectForRam(item);
+                    this.records.set(id, realObject);
+                }
+                result.result = this.records.get(id);
+            }
+            else {
+                result.errors = [...result.errors, ...idWithError.errors];
+            }
+        }
+        catch(e) {
+            result.errors.push(new RamError(RamErrorCode.unknow, e));
+        }
+    }
+    /**
+     * Merge object and create real instance of class
+     */
+    protected mergeObject(item: T, objJson: KeysObject<T> | T) {
+        let realObject = DataManager.createObject(objJson);
+        let props = Object.getOwnPropertyNames(item);
+        for(let prop of props) {
+            if(realObject[prop] !== undefined) {
+                let propInfo = Object.getOwnPropertyDescriptor(item, prop);
+                if(propInfo.writable) {
+                    item[prop] = realObject[prop];
+                }
+            }
+        }
+    }
+    //#endregion
+
+    //#region listener
+    protected publish(type: 'created' | 'updated' | 'deleted', data: RamItem<T>) {
+        [...this.subscribers[type]].forEach(callback => callback(data));
+        if(this.recordsSubscribers.has(this.getId(data))) {
+            [...this.recordsSubscribers.get(this.getId(data))[type]].forEach(callback => callback(data));
+        }
+    }
+    private subscribe(type: 'created' | 'updated' | 'deleted', cb: (item: RamItem<T>) => void) {
+        if(!this.subscribers[type].includes(cb)) {
+            this.subscribers[type].push(cb);
+        }
+    }
+    private unsubscribe(type: 'created' | 'updated' | 'deleted', cb: (item: RamItem<T>) => void) {
+        let index = this.subscribers[type].indexOf(cb);
+        if(index != -1) {
+            this.subscribers[type].splice(index, 1);
+        }
+    }
+    /**
+    * Add a callback that ll be triggered when a new item is stored
+    */
+    public onCreated(cb: (item: RamItem<T>) => void) {
+        this.subscribe('created', cb);
+    }
+    /**
+     * Remove a created callback
+     */
+    public offCreated(cb: (item: RamItem<T>) => void) {
+        this.unsubscribe('created', cb);
+    }
+    /**
+     * Add a callback that ll be triggered when an item is updated
+     */
+    public onUpdated(cb: (item: RamItem<T>) => void) {
+        this.subscribe('updated', cb);
+    }
+    /**
+     * Remove an updated callback
+     */
+    public offUpdated(cb: (item: RamItem<T>) => void) {
+        this.unsubscribe('updated', cb);
+    }
+    /**
+     * Add a callback that ll be triggered when an item is deleted
+     */
+    public onDeleted(cb: (item: RamItem<T>) => void) {
+        this.subscribe('deleted', cb);
+    }
+    /**
+     * Remove an deleted callback
+     */
+    public offDeleted(cb: (item: RamItem<T>) => void) {
+        this.unsubscribe('deleted', cb);
+    }
+
+    //#endregion
+
+    //#region get
+    /**
+     * Get an item by id if exist (alias for getById)
+     */
+    public async get(id: Index): Promise<RamItem<T> | undefined> {
+        return await this.getById(id);
+    };
+    /**
+     * Get an item by id if exist (alias for getById)
+     */
+    public async getWithError(id: Index): Promise<ResultRamWithError<RamItem<T>>> {
+        return await this.getByIdWithError(id);
+    };
+    /**
+     * Get an item by id if exist
+     */
+    public async getById(id: Index): Promise<RamItem<T> | undefined> {
+        let action = await this.getByIdWithError(id);
+        if(action.success) {
+            return action.result;
+        }
+        return undefined;
+    }
+    /**
+     * Get an item by id if exist
+     */
+    public async getByIdWithError(id: Index): Promise<ResultRamWithError<RamItem<T>>> {
+        let action: ResultRamWithError<RamItem<T>> = new ResultRamWithError();
+        await this.beforeGetById(id, action);
+        if(action.success) {
+            if(this.records.has(id)) {
+                action.result = this.records.get(id);
+                await this.afterGetById(action);
+            }
+            else {
+                action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't find the item " + id + " inside ram"));
+            }
+        }
+        return action;
+    }
+    /**
+     * Trigger before getting an item by id
+     */
+    protected async beforeGetById(id: Index, result: ResultRamWithError<RamItem<T>>): Promise<void> { };
+    /**
+     * Trigger after getting an item by id
+     */
+    protected async afterGetById(result: ResultRamWithError<RamItem<T>>): Promise<void> { };
+
+    /**
+     * Get multiple items by ids
+     */
+    public async getByIds(ids: Index[]): Promise<RamItem<T>[]> {
+        let result = await this.getByIdsWithError(ids);
+        if(result.success) {
+            return result.result;
+        }
+        return [];
+    };
+    /**
+     * Get multiple items by ids
+     */
+    public async getByIdsWithError(ids: Index[]): Promise<ResultRamWithError<RamItem<T>[]>> {
+        let action: ResultRamWithError<RamItem<T>[]> = new ResultRamWithError();
+        action.result = [];
+        await this.beforeGetByIds(ids, action);
+        if(action.success) {
+            for(let id of ids) {
+                if(this.records.has(id)) {
+                    action.result.push(this.records.get(id));
+                }
+                else {
+                    action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't find the item " + id + " inside ram"));
+                }
+            }
+            if(action.success) {
+                await this.afterGetByIds(action);
+            }
+        }
+        return action;
+    };
+    /**
+     * Trigger before getting a list of items by id
+     */
+    protected async beforeGetByIds(ids: Index[], result: ResultRamWithError<RamItem<T>[]>): Promise<void> { };
+    /**
+     * Trigger after getting a list of items by id
+     */
+    protected async afterGetByIds(result: ResultRamWithError<RamItem<T>[]>): Promise<void> { };
+
+    /**
+     * Get all elements inside the Ram
+     */
+    public async getAll(): Promise<Map<Index, RamItem<T>>> {
+        let result = await this.getAllWithError();
+        if(result.success) {
+            return result.result;
+        }
+        return new Map();
+    };
+    /**
+     * Get all elements inside the Ram
+     */
+    public async getAllWithError(): Promise<ResultRamWithError<Map<Index, RamItem<T>>>> {
+        let action: ResultRamWithError<Map<Index, RamItem<T>>> = new ResultRamWithError();
+        action.result = new Map();
+        await this.beforeGetAll(action);
+        if(action.success) {
+            action.result = this.records;
+            await this.afterGetAll(action);
+        }
+
+        return action;
+    };
+    /**
+     * Trigger before getting all items inside Ram
+     */
+    protected async beforeGetAll(result: ResultRamWithError<Map<Index, RamItem<T>>>): Promise<void> { };
+    /**
+     * Trigger after getting all items inside Ram
+     */
+    protected async afterGetAll(result: ResultRamWithError<Map<Index, RamItem<T>>>): Promise<void> { };
+    /**
+     * Get all elements inside the Ram 
+     */
+    public async getList(): Promise<RamItem<T>[]> {
+        let data = await this.getAll();
+        return Array.from(data.values());
+    };
+    /**
+     * Get all elements inside the Ram 
+     */
+    public async getListWithError(): Promise<ResultRamWithError<RamItem<T>[]>> {
+        let action: ResultRamWithError<RamItem<T>[]> = new ResultRamWithError();
+        action.result = [];
+        let result = await this.getAllWithError();
+        if(result.success) {
+            action.result = Object.values(result.result);
+        }
+        else {
+            action.errors = result.errors;
+        }
+        return action;
+    }
+    //#endregion
+
+    //#region create
+    /**
+     * Create a list of items inside ram
+     */
+    public async createList(list: T[]): Promise<RamItem<T>[]> {
+        let result = await this.createListWithError(list);
+        return result.result;
+    }
+    /**
+     * Create a list of items inside ram
+     */
+    public async createListWithError(list: T[]): Promise<ResultRamWithError<RamItem<T>[]>> {
+        let action: ResultRamWithError<RamItem<T>[]> = new ResultRamWithError();
+        action.result = [];
+        await this.beforeCreateList(list, action);
+        if(action.success) {
+            if(action.result.length > 0) {
+                list = action.result;
+            }
+            for(let item of list) {
+                let resultItem = await this._create(item, true);
+                if(resultItem.success) {
+                    action.result.push(resultItem.result);
+                }
+                else {
+                    action.errors = [...action.errors, ...resultItem.errors];
+                }
+            }
+            if(action.success) {
+                await this.afterCreateList(action);
+            }
+        }
+
+        return action;
+    }
+    /**
+     * Create an item inside ram
+     */
+    public async create(item: T, ...args: any[]): Promise<RamItem<T> | undefined> {
+        let action = await this.createWithError(item, args);
+        if(action.success) {
+            return action.result;
+        }
+        return undefined;
+    }
+    /**
+     * Create an item inside ram
+     */
+    public async createWithError(item: T, ...args: any[]): Promise<ResultRamWithError<RamItem<T>>> {
+        return await this._create(item, false);
+    }
+    private async _create(item: T, fromList: boolean): Promise<ResultRamWithError<RamItem<T>>> {
+        let action: ResultRamWithError<RamItem<T>> = new ResultRamWithError();
+        await this.beforeCreateItem(item, fromList, action);
+        if(action.success) {
+            if(action.result) { item = action.result; }
+            let resultTemp = this.getIdWithError(item);
+            if(resultTemp.success) {
+                this.addOrUpdateData(item, action);
+                if(!action.success) {
+                    return action;
+                }
+                await this.afterCreateItem(action, fromList);
+                if(!action.success) {
+                    action.result = null;
+                }
+                else {
+                    this.publish('created', action.result);
+                }
+            }
+            else {
+                action.errors = resultTemp.errors;
+            }
+        }
+        return action;
+    }
+    /**
+     * Trigger before creating a list of items
+     */
+    protected async beforeCreateList(list: T[], result: ResultRamWithError<RamItem<T>[]>): Promise<void> {
+    };
+    /**
+     * Trigger before creating an item
+     */
+    protected async beforeCreateItem(item: T, fromList: boolean, result: ResultRamWithError<RamItem<T>>): Promise<void> {
+    };
+    /**
+     * Trigger after creating an item
+     */
+    protected async afterCreateItem(result: ResultRamWithError<RamItem<T>>, fromList: boolean): Promise<void> {
+    };
+    /**
+     * Trigger after creating a list of items
+     */
+    protected async afterCreateList(result: ResultRamWithError<RamItem<T>[]>): Promise<void> {
+    };
+
+    //#endregion
+
+    //#region update
+    /**
+     * Update a list of items inside ram
+     */
+    public async updateList(list: T[]): Promise<RamItem<T>[]> {
+        let result = await this.updateListWithError(list);
+        return result.result;
+    };
+    /**
+     * Update a list of items inside ram
+     */
+    public async updateListWithError(list: T[]): Promise<ResultRamWithError<RamItem<T>[]>> {
+        let action: ResultRamWithError<RamItem<T>[]> = new ResultRamWithError();
+        action.result = [];
+        await this.beforeUpdateList(list, action);
+        if(action.success) {
+            if(action.result.length > 0) {
+                list = action.result;
+            }
+            for(let item of list) {
+                let resultItem = await this._update(item, true);
+                if(resultItem.success) {
+                    action.result.push(resultItem.result);
+                }
+                else {
+                    action.errors = [...action.errors, ...resultItem.errors];
+                }
+            }
+            if(action.success) {
+                await this.afterUpdateList(action);
+            }
+        }
+        return action;
+    };
+    /**
+     * Update an item inside ram
+     */
+    public async update(item: T, ...args: any[]): Promise<RamItem<T> | undefined> {
+        let action = await this.updateWithError(item, args);
+        if(action.success) {
+            return action.result;
+        }
+        return undefined;
+    }
+    /**
+     * Update an item inside ram
+     */
+    public async updateWithError(item: T, ...args: any[]): Promise<ResultRamWithError<RamItem<T>>> {
+        return await this._update(item, false);
+    }
+    private async _update(item: T, fromList: boolean): Promise<ResultRamWithError<RamItem<T>>> {
+        let action: ResultRamWithError<RamItem<T>> = new ResultRamWithError();
+        let resultTemp = await this.getIdWithError(item);
+        if(resultTemp.success) {
+            let key = resultTemp.result;
+            if(this.records.has(key)) {
+                await this.beforeUpdateItem(item, fromList, action);
+                if(!action.success) {
+                    return action;
+                }
+                if(action.result) {
+                    item = action.result;
+                }
+                this.addOrUpdateData(item, action);
+                if(!action.success) {
+                    return action;
+                }
+                await this.afterUpdateItem(action, fromList);
+                if(!action.success) {
+                    action.result = null;
+                }
+                else {
+                    this.publish('updated', action.result);
+                }
+            }
+            else {
+                action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't update the item " + key + " because it wasn't found inside ram"));
+            }
+        }
+        else {
+            action.errors = resultTemp.errors;
+        }
+
+        return action;
+    };
+    /**
+     * Trigger before updating a list of items
+     */
+    protected async beforeUpdateList(list: T[], result: ResultRamWithError<RamItem<T>[]>): Promise<void> {
+    };
+    /**
+    * Trigger before updating an item
+    */
+    protected async beforeUpdateItem(item: T, fromList: boolean, result: ResultRamWithError<RamItem<T>>): Promise<void> {
+    };
+    /**
+     * Trigger after updating an item
+     */
+    protected async afterUpdateItem(result: ResultRamWithError<RamItem<T>>, fromList: boolean): Promise<void> {
+    };
+    /**
+     * Trigger after updating a list of items
+     */
+    protected async afterUpdateList(result: ResultRamWithError<RamItem<T>[]>): Promise<void> {
+    };
+
+
+    //#endregion
+
+    //#region delete
+    /**
+     * Delete a list of items inside ram
+     */
+    public async deleteList(list: T[]): Promise<RamItem<T>[]> {
+        let result = await this.deleteListWithError(list);
+        return result.result;
+    };
+    /**
+     * Delete a list of items inside ram
+     */
+    public async deleteListWithError(list: T[]): Promise<ResultRamWithError<RamItem<T>[]>> {
+        let action: ResultRamWithError<RamItem<T>[]> = new ResultRamWithError();
+        action.result = [];
+        await this.beforeDeleteList(list, action);
+        for(let item of list) {
+            let resultItem = await this._delete(item, true);
+            if(resultItem.success) {
+                action.result.push(resultItem.result);
+            }
+            else {
+                action.errors = [...action.errors, ...resultItem.errors];
+            }
+        }
+        if(action.success) {
+            await this.afterDeleteList(action);
+        }
+        return action;
+    };
+    /**
+     * Delete an item inside ram
+     */
+    public async delete(item: T, ...args: any[]): Promise<RamItem<T> | undefined> {
+        let action = await this.deleteWithError(item, args);
+        if(action.success) {
+            return action.result;
+        }
+        return undefined;
+    };
+    /**
+    * Delete an item inside ram
+    */
+    public async deleteWithError(item: T, ...args: any[]): Promise<ResultRamWithError<RamItem<T>>> {
+        return await this._delete(item, false);
+    };
+    /**
+     * Delete an item by id inside ram
+     */
+    public async deleteById(id: Index): Promise<RamItem<T> | undefined> {
+        let action = await this.deleteByIdWithError(id);
+        if(action.success) {
+            return action.result;
+        }
+        return undefined;
+    }
+    /**
+    * Delete an item by id inside ram
+    */
+    public async deleteByIdWithError(id: Index): Promise<ResultRamWithError<RamItem<T>>> {
+        if(this.records.has(id)) {
+            let item = this.records.get(id);
+            return await this._delete(item, false);
+        }
+        let result: ResultRamWithError<RamItem<T>> = new ResultRamWithError();
+        result.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't update the item " + id + " because it wasn't found inside ram"));
+        return result;
+    }
+    private async _delete(item: T, fromList: boolean): Promise<ResultRamWithError<RamItem<T>>> {
+        let action: ResultRamWithError<RamItem<T>> = new ResultRamWithError();
+        let resultTemp = await this.getIdWithError(item);
+        if(resultTemp.success) {
+            let key = resultTemp.result;
+            if(this.records.has(key)) {
+                let oldItem = this.records.get(key);
+                await this.beforeDeleteItem(oldItem, fromList, action);
+                if(!action.success) {
+                    return action;
+                }
+                this.records.delete(key);
+                action.result = oldItem;
+                await this.afterDeleteItem(action, fromList);
+                if(!action.success) {
+                    action.result = null;
+                }
+                else {
+                    this.publish('deleted', action.result);
+                }
+            }
+            else {
+                action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't update the item " + key + " because it wasn't found inside ram"));
+            }
+        }
+        else {
+            action.errors = resultTemp.errors;
+        }
+        return action;
+    }
+    /**
+     * Trigger before deleting a list of items
+     */
+    protected async beforeDeleteList(list: T[], result: ResultRamWithError<RamItem<T>[]>): Promise<void> { };
+    /**
+     * Trigger before deleting an item
+     */
+    protected async beforeDeleteItem(item: T, fromList: boolean, result: ResultRamWithError<RamItem<T>>): Promise<void> { };
+    /**
+     * Trigger after deleting an item
+     */
+    protected async afterDeleteItem(result: ResultRamWithError<RamItem<T>>, fromList: boolean): Promise<void> { };
+    /**
+     * Trigger after deleting a list of items
+     */
+    protected async afterDeleteList(result: ResultRamWithError<RamItem<T>[]>): Promise<void> { }
+    //#endregion
+
+}
+
+export abstract class Ram<T extends IData> extends GenericRam<number, T> {
+
+}

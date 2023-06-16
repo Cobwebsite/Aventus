@@ -1,0 +1,34 @@
+
+export class GenericError<T extends number> {
+    /**
+     * Code for the error
+     */
+    public code: T;
+    /**
+     * Description of the error
+     */
+    public message: string;
+
+    public constructor(code: T, message: string) {
+        this.code = code;
+        this.message = message;
+    }
+}
+
+export class ResultWithError<T, U extends GenericError<any>> {
+
+	/**
+	 * Determine if the action is a success
+	 */
+    public get success(): boolean {
+        return this.errors.length == 0;
+    }
+	/**
+	 * Result
+	 */
+	public result:T;
+	/**
+	 * List of errors
+	 */
+    public errors: U[] = [];
+}

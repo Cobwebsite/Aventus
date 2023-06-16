@@ -1,0 +1,19 @@
+<h1>Configuration editor</h1>
+<vscode-panels>
+	<vscode-panel-tab id="tab-1">General</vscode-panel-tab>
+	<vscode-panel-tab id="tab-2">Dependances</vscode-panel-tab>
+	<vscode-panel-tab id="tab-3">Builds</vscode-panel-tab>
+	<vscode-panel-tab id="tab-4">Statics</vscode-panel-tab>
+	<vscode-panel-view id="view-1">
+		<av-general-information></av-general-information>
+	</vscode-panel-view>
+	<vscode-panel-view id="view-2">
+		<av-dependances></av-dependances>
+	</vscode-panel-view>
+	<vscode-panel-view id="view-3">
+		Debug Console Content
+	</vscode-panel-view>
+	<vscode-panel-view id="view-4">
+		Terminal Content
+	</vscode-panel-view>
+</vscode-panels>

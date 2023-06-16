@@ -1,0 +1,14 @@
+export class Message {
+    public static init() {
+        window.addEventListener('message', event => {
+            const message = event.data;
+            console.log(message);
+        });
+    }
+
+    public static send(data: any) {
+        window['vscode'].postMessage({
+            type: 'add'
+        });
+    }
+}

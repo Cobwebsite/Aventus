@@ -1,0 +1,10 @@
+<h1 label="{{my_prop}}" @element="titleEl" @click="fctTest" @press="fctTest">Test - {{my_prop}} - {{data.lvl1}}</h1>
+<div :data3="my_prop" :data4="data.lvl1"></div>
+<input @bind="my_prop" />
+<av-input @bind_customChange:val="data.lvl1"></av-input>
+<div class="list">
+    <div class="list-item" @for="item in dataLoop" @element="itemEl" label2="{{my_prop}}">
+        <div :data="item" label="{{my_prop}}">My name "${s}" is {{item.name}}</div>
+        <div @for="color, index in item.colors">{{index}}.{{item.name}} - {{color}}</div>
+    </div>
+</div> 

@@ -1,0 +1,34 @@
+namespace Form {
+	export class Form extends Aventus.WebComponent implements Aventus.DefaultComponent {
+	
+		//#region static
+		
+		//#endregion
+		
+		
+		//#region props
+		
+		//#endregion
+		
+		
+		//#region variables
+		
+		//#endregion
+		
+		
+		//#region states
+		
+		//#endregion
+		
+		
+		//#region constructor
+		
+		//#endregion
+		
+		
+		//#region methods
+		
+		//#endregion
+		
+	}
+}

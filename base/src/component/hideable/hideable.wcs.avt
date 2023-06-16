@@ -1,0 +1,17 @@
+:host {
+	display: none;
+	height: 0;
+	left: 0;
+	overflow: visible;
+	top: 0;
+	width: 0;
+	z-index: 1000;
+}
+
+::slotted(.context-menu .context-menu-item) {
+	background-color: red;
+}
+
+:host {
+	--inserted: "here";
+}

@@ -1,0 +1,62 @@
+import { DataManager } from "./DataManager.lib.avt";
+
+export interface IData {
+    /**
+     * Get the unique type for the data. Define it as the fullnamespace + class name
+     */
+    get $type(): string;
+}
+
+@Dependances([{
+    type: DataManager,
+    strong: true
+}])
+export abstract class Data implements IData {
+    /**
+     * The schema for the class
+     */
+    public static get $schema(): { [prop: string]: string; } { return {}; }
+    /**
+     * The current namespace
+     */
+    public static get Namespace(): string { return ""; }
+    /**
+     * Get the unique type for the data. Define it as the namespace + class name
+     */
+    public static get Fullname(): string { return this.Namespace + "." + this.name; }
+
+    /**
+     * The current namespace
+     */
+    public get namespace(): string {
+        return this.constructor['Namespace'];
+    }
+    /**
+     * Get the unique type for the data. Define it as the namespace + class name
+     */
+    public get $type(): string {
+        return this.constructor['Fullname'];
+    }
+    /**
+     * Get the name of the class
+     */
+    public get className(): string {
+        return this.constructor.name;
+    }
+
+    /**
+     * Get a JSON for the current object
+     */
+    public toJSON() {
+        let result = { $type: this.$type };
+        let props = Object.getOwnPropertyNames(this);
+        for(let prop of props) {
+            let propInfo = Object.getOwnPropertyDescriptor(this, prop);
+            if(propInfo.writable) {
+                result[prop] = this[prop];
+            }
+        }
+
+        return result;
+    }
+}

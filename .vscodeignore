@@ -1,0 +1,16 @@
+.vscode/**
+base/**
+cli/**
+client/**
+!client/out
+example/**
+node_modules
+!node_modules/typescript
+!node_modules/@types
+server/**
+!server/out
+.gitignore
+.vscodeignore
+jsconfig.json
+package-lock.json
+shared.webpack.config.js

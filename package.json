@@ -1,0 +1,597 @@
+{
+	"name": "aventus",
+	"displayName": "Aventus",
+	"description": "This extension allows compilation of Aventus Framework",
+	"version": "1.0.0",
+	"license": "MIT",
+	"icon": "icons/logo.png",
+	"author": {
+		"name": "Cobwebsite",
+		"email": "info@cobwebsite.ch",
+		"url": "https://cobwesbite.ch"
+	},
+	"publisher": "Cobwebsite",
+	"engines": {
+		"vscode": "^1.68.0"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/Cobwebsite/Aventus"
+	},
+	"categories": [
+		"Other"
+	],
+	"activationEvents": [
+		"*"
+	],
+	"main": "./client/out/index",
+	"contributes": {
+		"languages": [
+			{
+				"id": "Aventus HTML",
+				"extensions": [
+					".wcv.avt"
+				],
+				"configuration": "./syntaxes/html-language-configuration.json",
+				"icon": {
+					"light": "./icons/aventus-view.png",
+					"dark": "./icons/aventus-view.png"
+				}
+			},
+			{
+				"id": "Aventus SCSS",
+				"extensions": [
+					".wcs.avt",
+					".gwcs.avt",
+					".gs.avt"
+				],
+				"configuration": "./syntaxes/scss-language-configuration.json",
+				"icon": {
+					"light": "./icons/aventus-style.png",
+					"dark": "./icons/aventus-style.png"
+				}
+			},
+			{
+				"id": "Aventus WebComponent",
+				"extensions": [
+					".wc.avt"
+				],
+				"configuration": "./syntaxes/html-language-configuration.json",
+				"icon": {
+					"light": "./icons/icon.png",
+					"dark": "./icons/icon.png"
+				}
+			},
+			{
+				"id": "Aventus Ts",
+				"extensions": [
+					".wcl.avt",
+					".data.avt",
+					".lib.avt",
+					".ram.avt",
+					".socket.avt",
+					".state.avt",
+					".static.avt",
+					".def.avt"
+				],
+				"configuration": "./syntaxes/ts-language-configuration.json",
+				"filenames": [
+					"aventus.conf.avt",
+					"template.avt"
+				],
+				"icon": {
+					"light": "./icons/icon.png",
+					"dark": "./icons/icon.png"
+				}
+			},
+			{
+				"id": "Aventus Package",
+				"extensions": [
+					".package.avt"
+				],
+				"configuration": "./syntaxes/ts-language-configuration.json",
+				"icon": {
+					"light": "./icons/icon.png",
+					"dark": "./icons/icon.png"
+				}
+			}
+		],
+		"grammars": [
+			{
+				"language": "Aventus Ts",
+				"scopeName": "source.js",
+				"path": "./syntaxes/javascript.tmLanguage.json"
+			},
+			{
+				"language": "Aventus HTML",
+				"scopeName": "text.html1.basic",
+				"path": "./syntaxes/html.tmLanguage.json"
+			},
+			{
+				"language": "Aventus SCSS",
+				"scopeName": "source.css.scss",
+				"path": "./syntaxes/scss.tmLanguage.json"
+			},
+			{
+				"language": "Aventus WebComponent",
+				"scopeName": "text.wc.avt",
+				"path": "./syntaxes/wc.tmLanguage.json",
+				"embeddedLanguages": {
+					"source.css.scss": "Aventus SCSS",
+					"source.js": "Aventus Ts",
+					"text.html1.basic": "Aventus HTML"
+				}
+			},
+			{
+				"language": "Aventus Package",
+				"scopeName": "source.js",
+				"path": "./syntaxes/javascript.tmLanguage.json"
+			}
+		],
+		"configuration": {
+			"type": "object",
+			"title": "Aventus",
+			"order": 20,
+			"properties": {
+				"aventus.liveserver": {
+					"type": "object",
+					"title": "Live server",
+					"additionalProperties": false,
+					"properties": {
+						"host": {
+							"type": "string",
+							"default": "0.0.0.0",
+							"description": "Choose the host for the live server",
+							"format": "ipv4"
+						},
+						"port": {
+							"type": "number",
+							"default": 8080,
+							"description": "Choose the port for the live server"
+						},
+						"rootFolder": {
+							"type": "string",
+							"default": "./dist",
+							"description": "Choose the folder to serve"
+						},
+						"indexFile": {
+							"type": "string",
+							"default": "index.html",
+							"description": "Choose the index file to serve"
+						},
+						"delay": {
+							"type": "number",
+							"default": 200,
+							"description": "Delay to wait before sending live reload command"
+						},
+						"launch_browser": {
+							"type": "boolean",
+							"default": true,
+							"description": "Start a browser"
+						},
+						"browser": {
+							"type": "string",
+							"default": "chrome",
+							"description": "Choose the browser to use. If empty, it ll use the default browser"
+						},
+						"auto_close": {
+							"type": "boolean",
+							"default": true,
+							"description": "Define if you browser tab need to be closed when server stop"
+						}
+					}
+				},
+				"aventus.updateImportOnRename": {
+					"type": "boolean",
+					"title": "Update import path on rename",
+					"default": true
+				}
+			}
+		},
+		"configurationDefaults": {
+			"editor.tokenColorCustomizations": {
+				"textMateRules": [
+					{
+						"scope": "aventus.css.tag",
+						"settings": {
+							"foreground": "#E066DC"
+						}
+					},
+					{
+						"scope": "aventus.js.tag",
+						"settings": {
+							"foreground": "#E5540E"
+						}
+					},
+					{
+						"scope": "aventus.html.tag",
+						"settings": {
+							"foreground": "#22AAEE"
+						}
+					},
+					{
+						"scope": "aventus.wcv.attribute",
+						"settings": {
+							"foreground": "#f18086"
+						}
+					},
+					{
+						"scope": "aventus.wcv.propvalue",
+						"settings": {
+							"foreground": "#4EC9B0"
+						}
+					},
+					{
+						"scope": "aventus.wcv.fctvalue",
+						"settings": {
+							"foreground": "#DCDCAA"
+						}
+					},
+					{
+						"scope": "aventus.wcv.changingtext",
+						"settings": {
+							"foreground": "#4EC9B0"
+						}
+					},
+					{
+						"scope": "aventus.wcv.changingstart",
+						"settings": {
+							"foreground": "#8e8686"
+						}
+					},
+					{
+						"scope": "aventus.wcv.changingstop",
+						"settings": {
+							"foreground": "#8e8686"
+						}
+					}
+				]
+			},
+			"[Aventus HTML]": {
+				"editor.snippetSuggestions": "top"
+			},
+			"emmet.includeLanguages": {
+				"Aventus HTML": "html",
+				"Aventus WebComponent": "html"
+			}
+		},
+		"commands": [
+			{
+				"command": "aventus.create",
+				"title": "Aventus : Create..."
+			},
+			{
+				"command": "aventus.rename",
+				"title": "Aventus : Rename"
+			},
+			{
+				"command": "aventus.restart",
+				"title": "Aventus : Restart"
+			},
+			{
+				"command": "aventus.compile",
+				"title": "Aventus : Compile"
+			},
+			{
+				"command": "aventus.liveserver.start",
+				"title": "Aventus : Start live server"
+			},
+			{
+				"command": "aventus.liveserver.stop",
+				"title": "Aventus : Stop live server"
+			},
+			{
+				"command": "aventus.liveserver.toggle",
+				"title": "Aventus : Toggle live server"
+			},
+			{
+				"command": "aventus.static",
+				"title": "Aventus : Copy static"
+			},
+			{
+				"command": "aventus.component.merge",
+				"title": "Aventus : Merge component in a single file"
+			},
+			{
+				"command": "aventus.component.split",
+				"title": "Aventus : Split component in multiple files"
+			},
+			{
+				"command": "aventus.component.rename",
+				"title": "Aventus : Rename component"
+			},
+			{
+				"command": "aventus.addConfigSection",
+				"title": "Aventus : Add Config Section"
+			},
+			{
+				"command": "aventus.wc.create.attribute",
+				"title": "Aventus : Create attribute"
+			},
+			{
+				"command": "aventus.wc.create.property",
+				"title": "Aventus : Create property"
+			},
+			{
+				"command": "aventus.wc.create.watch",
+				"title": "Aventus : Create watch"
+			},
+			{
+				"command": "aventus.wc.import.viewElement",
+				"title": "Aventus : Import view element"
+			},
+			{
+				"command": "aventus.wc.import.viewMethod",
+				"title": "Aventus : Import view method"
+			},
+			{
+				"command": "aventus.filesystem.created",
+				"title": "Aventus : File created"
+			},
+			{
+				"command": "aventus.filesystem.updated",
+				"title": "Aventus : File updated"
+			},
+			{
+				"command": "aventus.filesystem.deleted",
+				"title": "Aventus : File deleted"
+			},
+			{
+				"command": "aventus.filesystem.openAventus",
+				"title": "Aventus : Open storage"
+			},
+			{
+				"command": "aventus.template.import",
+				"title": "Aventus : Import template"
+			},
+			{
+				"command": "aventus.getNamespace",
+				"title": "Aventus : Get namespace for a path"
+			},
+			{
+				"command": "aventus.dependances.show",
+				"title": "Aventus : show webview"
+			}
+		],
+		"menus": {
+			"explorer/context": [
+				{
+					"when": "explorerResourceIsFolder",
+					"command": "aventus.create",
+					"group": "navigation@-50"
+				},
+				{
+					"when": "resourceFilename =~ /^.*\\.(wcl|wcs|wcv).avt/",
+					"command": "aventus.component.rename",
+					"group": "navigation@-50"
+				},
+				{
+					"when": "resourceFilename =~ /^.*\\.wc.avt/",
+					"command": "aventus.component.split",
+					"group": "navigation@-50"
+				},
+				{
+					"when": "resourceFilename =~ /^.*\\.(wcl|wcs|wcv).avt/",
+					"command": "aventus.component.merge",
+					"group": "navigation@-50"
+				},
+				{
+					"when": "resourceFilename == aventus.conf.avt",
+					"command": "aventus.addConfigSection",
+					"group": "navigation@-50"
+				}
+			],
+			"editor/context": [
+				{
+					"when": "resourceFilename =~ /^.*\\.(wcl|wc).avt/",
+					"command": "aventus.wc.create.attribute"
+				},
+				{
+					"when": "resourceFilename =~ /^.*\\.(wcl|wc).avt/",
+					"command": "aventus.wc.create.property"
+				},
+				{
+					"when": "resourceFilename =~ /^.*\\.(wcl|wc).avt/",
+					"command": "aventus.wc.create.watch"
+				},
+				{
+					"when": "resourceFilename =~ /^.*\\.(wcl|wc).avt/",
+					"command": "aventus.wc.import.viewElement"
+				},
+				{
+					"when": "resourceFilename =~ /^.*\\.(wcl|wc).avt/",
+					"command": "aventus.wc.import.viewMethod"
+				}
+			],
+			"commandPalette": [
+				{
+					"command": "aventus.restart",
+					"when": "false"
+				},
+				{
+					"command": "aventus.create",
+					"when": "false"
+				},
+				{
+					"command": "aventus.rename",
+					"when": "false"
+				},
+				{
+					"command": "aventus.component.merge",
+					"when": "false"
+				},
+				{
+					"command": "aventus.liveserver.start",
+					"when": "false"
+				},
+				{
+					"command": "aventus.liveserver.stop",
+					"when": "false"
+				},
+				{
+					"command": "aventus.liveserver.toggle",
+					"when": "false"
+				},
+				{
+					"command": "aventus.component.rename",
+					"when": "false"
+				},
+				{
+					"command": "aventus.component.split",
+					"when": "false"
+				},
+				{
+					"command": "aventus.addConfigSection",
+					"when": "editorTextFocus && resourceFilename == aventus.conf.avt"
+				},
+				{
+					"command": "aventus.wc.create.attribute",
+					"when": "editorTextFocus && resourceFilename =~ /^.*\\.(wcl|wc).avt/"
+				},
+				{
+					"command": "aventus.wc.create.property",
+					"when": "editorTextFocus && resourceFilename =~ /^.*\\.(wcl|wc).avt/"
+				},
+				{
+					"command": "aventus.wc.create.watch",
+					"when": "editorTextFocus && resourceFilename =~ /^.*\\.(wcl|wc).avt/"
+				},
+				{
+					"command": "aventus.wc.import.viewElement",
+					"when": "editorTextFocus && resourceFilename =~ /^.*\\.(wcl|wc).avt/"
+				},
+				{
+					"command": "aventus.wc.import.viewMethod",
+					"when": "editorTextFocus && resourceFilename =~ /^.*\\.(wcl|wc).avt/"
+				},
+				{
+					"command": "aventus.filesystem.created",
+					"when": "false"
+				},
+				{
+					"command": "aventus.filesystem.updated",
+					"when": "false"
+				},
+				{
+					"command": "aventus.filesystem.deleted",
+					"when": "false"
+				},
+				{
+					"command": "aventus.getNamespace",
+					"when": "false"
+				},
+				{
+					"command": "aventus.dependances.show",
+					"when": "false"
+				}
+			]
+		},
+		"keybindings": [
+			{
+				"command": "aventus.liveserver.toggle",
+				"key": "f5",
+				"mac": "f5",
+				"when": "editorTextFocus && resourceFilename =~ /^.*\\.avt/"
+			},
+			{
+				"command": "aventus.wc.create.attribute",
+				"key": "ctrl+k ctrl+numpad1",
+				"mac": "cmd+f1",
+				"when": "editorTextFocus && resourceFilename =~ /^.*\\.(wcl|wc).avt/"
+			},
+			{
+				"command": "aventus.wc.create.property",
+				"key": "ctrl+k ctrl+numpad2",
+				"mac": "cmd+f2",
+				"when": "editorTextFocus && resourceFilename =~ /^.*\\.(wcl|wc).avt/"
+			},
+			{
+				"command": "aventus.wc.create.watch",
+				"key": "ctrl+k ctrl+numpad3",
+				"mac": "cmd+f3",
+				"when": "editorTextFocus && resourceFilename =~ /^.*\\.(wcl|wc).avt/"
+			},
+			{
+				"command": "aventus.wc.import.viewElement",
+				"key": "ctrl+k ctrl+numpad4",
+				"mac": "cmd+f4",
+				"when": "editorTextFocus && resourceFilename =~ /^.*\\.(wcl|wc).avt/"
+			},
+			{
+				"command": "aventus.wc.import.viewMethod",
+				"key": "ctrl+k ctrl+numpad5",
+				"mac": "cmd+f5",
+				"when": "editorTextFocus && resourceFilename =~ /^.*\\.(wcl|wc).avt/"
+			}
+		]
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run webpack",
+		"compile": "npm run clean && npm run compile:client && npm run compile:server",
+		"compile:client": "tsc -b ./client/",
+		"compile:server": "tsc -b ./server/",
+		"dev": "rimraf server/out && tsc -b -w ./server/",
+		"dev:client": "rimraf client/out && tsc -b -w ./client/",
+		"webpack": "npm run clean && webpack --mode production --config ./client/webpack.config.js && webpack --mode production --config ./server/webpack.config.js",
+		"clean": "rimraf client/out && rimraf server/out",
+		"package": "npx vsce package --allow-star-activation",
+		"publish": "npx vsce publish --allow-star-activation",
+		"package:cli": "rimraf cli/out && webpack --mode production --config ./cli/webpack.config.js",
+		"test": "jest",
+		"watch": "concurrently \"npm run dev:client\" \"npm run dev\" -n \"client,server\""
+	},
+	"devDependencies": {
+		"@babel/core": "^7.19.0",
+		"@babel/preset-env": "^7.19.0",
+		"@babel/preset-typescript": "^7.18.6",
+		"@types/connect": "^3.4.35",
+		"@types/event-stream": "^4.0.0",
+		"@types/jest": "^29.0.0",
+		"@types/send": "^0.17.1",
+		"@types/vscode": "^1.68.0",
+		"@types/ws": "^8.5.3",
+		"babel-jest": "^29.0.2",
+		"concurrently": "^7.6.0",
+		"jest": "^29.0.2",
+		"merge-options": "^3.0.4",
+		"ts-jest": "^29.0.1",
+		"ts-loader": "^9.3.1",
+		"vsce": "^2.9.2",
+		"webpack": "^5.74.0",
+		"webpack-cli": "^4.10.0"
+	},
+	"dependencies": {
+		"@rollup/plugin-commonjs": "^25.0.0",
+		"@rollup/plugin-node-resolve": "^15.1.0",
+		"@rollup/plugin-terser": "^0.4.3",
+		"@rollup/plugin-virtual": "^3.0.1",
+		"@types/estree": "^1.0.0",
+		"@types/node": "^18.11.17",
+		"@types/serve-index": "^1.9.1",
+		"babel-minify": "^0.5.2",
+		"chokidar": "^3.5.3",
+		"connect": "^3.7.0",
+		"event-stream": "^4.0.1",
+		"md5": "^2.3.0",
+		"open": "^8.4.0",
+		"parse-color": "^1.0.0",
+		"postcss": "^8.4.17",
+		"postcss-scss": "^4.0.5",
+		"postcss-sorting": "^7.0.1",
+		"rollup": "^3.23.0",
+		"sass": "^1.53.0",
+		"send": "^0.18.0",
+		"serve-index": "^1.9.1",
+		"typescript": "^5.0.2",
+		"uglify-js": "^3.17.1",
+		"url": "^0.11.0",
+		"uuid": "^9.0.0",
+		"vscode-css-languageservice": "^6.0.1",
+		"vscode-html-languageservice": "^5.0.0",
+		"vscode-json-languageservice": "^5.0.0",
+		"vscode-languageclient": "^6.1.3",
+		"vscode-languageserver": "^7.0.0",
+		"vscode-languageserver-textdocument": "^1.0.7",
+		"ws": "^8.12.0"
+	}
+}

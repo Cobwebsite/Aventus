@@ -1,0 +1,24 @@
+{
+    "module": "Aventus",
+    "componentPrefix": "av",
+    "build": [
+        {
+            "name": "Main",
+            "hideWarnings": true,
+            "inputPath": [
+                "./data/",
+                "./lib/",
+                "./ram/",
+                "./socket/",
+                "./state/",
+                "./tools/",
+                "./webcomponent/"
+            ],
+            "outsideModulePath": [
+                "./attributes/",
+                "./extension/"
+            ],
+            "outputPackage": "../../lib/Aventus@Main.package.avt"
+        }
+    ]
+}

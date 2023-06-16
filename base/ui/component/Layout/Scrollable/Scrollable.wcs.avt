@@ -1,0 +1,187 @@
+:host {
+	--internal-scrollbar-container-color: var(--scrollbar-container-color, transparent);
+	--internal-scrollbar-color: var(--scrollbar-color, #757575);
+	--internal-scrollbar-active-color: var(--scrollbar-active-color, #858585);
+
+
+	--internal-scroller-width: var(--scroller-width, 6px);
+	--internal-scroller-top: var(--scroller-top, 3px);
+	--internal-scroller-bottom: var(--scroller-bottom, 3px);
+	--internal-scroller-right: var(--scroller-right, 3px);
+	--internal-scroller-left: var(--scroller-left, 3px);
+
+
+	--internal-scroller-transition: var(--scroller-transition, 0.5s);
+}
+
+:host {
+	display: block;
+	height: 100%;
+	overflow: hidden;
+	position: relative;
+	-webkit-user-drag: none;
+	-khtml-user-drag: none;
+	-moz-user-drag: none;
+	-o-user-drag: none;
+	width: 100%;
+
+
+	.scroll-main-container {
+		display: block;
+		height: 100%;
+		position: relative;
+		width: 100%;
+
+
+		.content-zoom {
+			display: block;
+			height: 100%;
+			position: relative;
+			transform-origin: 0 0;
+			width: 100%;
+			z-index: 4;
+
+			.content-hidder {
+				display: block;
+				height: 100%;
+				overflow: hidden;
+				position: relative;
+				width: 100%;
+
+				.content-wrapper {
+					display: inline-block;
+					height: auto;
+					min-width: 100%;
+					position: relative;
+					transition: transform var(--internal-scroller-transition);
+					width: 100%;
+				}
+			}
+
+
+		}
+
+		.scroller-wrapper {
+			.container-scroller {
+				display: none;
+				overflow: hidden;
+				position: absolute;
+				z-index: 5;
+
+				.shadow-scroller {
+					background-color: var(--internal-scrollbar-container-color);
+					border-radius: 5px;
+
+					.scroller {
+						background-color: var(--internal-scrollbar-color);
+						border-radius: 5px;
+						cursor: pointer;
+						position: absolute;
+						-webkit-tap-highlight-color: transparent;
+						touch-action: none;
+						z-index: 5;
+					}
+				}
+
+				.scroller.active {
+					background-color: var(--internal-scrollbar-active-color);
+					transition: none !important;
+				}
+			}
+
+			.container-scroller.vertical {
+				height: calc(100% - var(--internal-scroller-bottom) * 2 - var(--internal-scroller-width));
+				padding-left: var(--internal-scroller-left);
+				right: var(--internal-scroller-right);
+				top: var(--internal-scroller-bottom);
+				transform: 0;
+				transition: transform 0.2s ease-in-out;
+				width: calc(var(--internal-scroller-width) + var(--internal-scroller-left));
+
+				&.hide {
+					transform: translateX(calc(var(--internal-scroller-width) + var(--internal-scroller-left)));
+				}
+
+				.shadow-scroller {
+					height: 100%;
+
+					.scroller {
+						transition: top var(--internal-scroller-transition) linear;
+						width: calc(100% - var(--internal-scroller-left));
+					}
+				}
+			}
+
+			.container-scroller.horizontal {
+				bottom: var(--internal-scroller-bottom);
+				height: calc(var(--internal-scroller-width) + var(--internal-scroller-top));
+				left: var(--internal-scroller-right);
+				padding-top: var(--internal-scroller-top);
+				transform: 0;
+				transition: transform 0.2s ease-in-out;
+				width: calc(100% - var(--internal-scroller-right) * 2 - var(--internal-scroller-width));
+
+				&.hide {
+					transform: translateY(calc(var(--internal-scroller-width) + var(--internal-scroller-top)));
+				}
+
+				.shadow-scroller {
+					height: 100%;
+
+					.scroller {
+						height: calc(100% - var(--internal-scroller-top));
+						transition: left var(--internal-scroller-transition) linear;
+					}
+				}
+			}
+		}
+
+	}
+}
+
+
+:host([allow_x_scroll]) {
+	.scroll-main-container {
+		.content-zoom {
+			.content-hidder {
+				.content-wrapper {
+					width: auto;
+				}
+			}
+		}
+	}
+}
+
+:host([y_scroll_visible]) {
+	.scroll-main-container {
+		.scroller-wrapper {
+			.container-scroller.vertical {
+				display: block;
+			}
+		}
+	}
+}
+
+:host([x_scroll_visible]) {
+	.scroll-main-container {
+		.scroller-wrapper {
+			.container-scroller.horizontal {
+				display: block;
+			}
+		}
+	}
+}
+
+:host([no_transition]) {
+	--internal-scroller-transition: 0ms;
+}
+
+:host([no_user_select]) {
+	.content-wrapper * {
+		user-select: none;
+	}
+
+	::slotted {
+		user-select: none;
+	}
+}

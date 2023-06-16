@@ -1,0 +1,230 @@
+export class ElementExtension {
+    /**
+     * Find a parent by tagname if exist Static.findParentByTag(this, "av-img")
+     */
+    public static findParentByTag<T>(element: Element, tagname: string | string[], untilNode?: Element): T | null {
+        let el: Node | ShadowRoot = element;
+        if(Array.isArray(tagname)) {
+            for(let i = 0; i < tagname.length; i++) {
+                tagname[i] = tagname[i].toLowerCase();
+            }
+        } else {
+            tagname = [tagname.toLowerCase()];
+        }
+        let checkFunc = (el) => {
+            return tagname.indexOf((el.nodeName || el.tagName).toLowerCase()) != -1;
+        };
+
+        if(el) {
+            if(el instanceof ShadowRoot) {
+                el = el.host;
+            } else {
+                el = el.parentNode;
+            }
+        }
+        while(el) {
+            if(checkFunc(el)) {
+                return el as T;
+            }
+
+            if(el instanceof ShadowRoot) {
+                el = el.host;
+            } else {
+                el = el.parentNode;
+            }
+            if(el == untilNode) {
+                break;
+            }
+        }
+        return null;
+    }
+    /**
+     * Find a parent by class name if exist Static.findParentByClass(this, "my-class-img") = querySelector('.my-class-img')
+     */
+    public static findParentByClass<T>(element: Element, classname: string | string[], untilNode?: Element): T | null {
+        let el: Node | ShadowRoot = element;
+        if(!Array.isArray(classname)) {
+            classname = [classname];
+        }
+        if(el) {
+            if(el instanceof ShadowRoot) {
+                el = el.host;
+            } else {
+                el = el.parentNode;
+            }
+        }
+        while(el) {
+            for(let classnameTemp of classname) {
+                if(el['classList'] && el['classList'].contains(classnameTemp)) {
+                    return el as T;
+                }
+            }
+
+
+            if(el instanceof ShadowRoot) {
+                el = el.host;
+            } else {
+                el = el.parentNode;
+            }
+            if(el == untilNode) {
+                break;
+            }
+        }
+
+        return null;
+    }
+    /**
+     * Find a parent by type if exist Static.findParentyType(this, Aventus.Img)
+     */
+    public static findParentByType<T>(element: Element, type: { prototype: T; }, untilNode?: Element): T | null {
+        let el: Node | ShadowRoot = element;
+        let checkFunc = (el) => {
+            return false;
+        };
+        if(typeof type == "function" && type['prototype']['constructor']) {
+            checkFunc = (el) => {
+                if(el instanceof type) {
+                    return true;
+                }
+                return false;
+            };
+
+        }
+        else {
+            console.error("you must provide a class inside this function");
+            return null;
+        }
+
+        if(el) {
+            if(el instanceof ShadowRoot) {
+                el = el.host;
+            } else {
+                el = el.parentNode;
+            }
+        }
+        while(el) {
+            if(checkFunc(el)) {
+                return el as T;
+            }
+
+            if(el instanceof ShadowRoot) {
+                el = el.host;
+            } else {
+                el = el.parentNode;
+            }
+            if(el == untilNode) {
+                break;
+            }
+        }
+        return null;
+    }
+    /**
+     * Find list of parents by tagname
+     */
+    public static findParents<T>(element: Element, tagname: string | string[], untilNode?: Element): T[] {
+        let el: Node | ShadowRoot = element;
+        if(Array.isArray(tagname)) {
+            for(let i = 0; i < tagname.length; i++) {
+                tagname[i] = tagname[i].toLowerCase();
+            }
+        } else {
+            tagname = [tagname.toLowerCase()];
+        }
+        let result: T[] = [];
+        if(el) {
+            if(el instanceof ShadowRoot) {
+                el = el.host;
+            } else {
+                el = el.parentNode;
+            }
+        }
+        while(el) {
+            if(tagname.indexOf((el.nodeName || el['tagName']).toLowerCase()) != -1) {
+                result.push(el as T);
+            }
+
+            if(el instanceof ShadowRoot) {
+                el = el.host;
+            } else {
+                el = el.parentNode;
+            }
+            if(el == untilNode) {
+                break;
+            }
+        }
+
+        return result;
+    }
+    /**
+     * Check if element contains a child
+     */
+    public static containsChild(element: Element, child: Element): boolean {
+        var rootScope = element.getRootNode();
+        var elScope = child.getRootNode();
+        while(elScope != rootScope) {
+            if(!elScope['host']) {
+                return false;
+            }
+            child = elScope['host'];
+            elScope = elScope['host'].getRootNode();
+        }
+        return element.contains(child);
+    }
+    /**
+     * Get element inside slot
+     */
+    public static getElementsInSlot(element: Element, slotName: string = null): HTMLElement[] {
+        if(element.shadowRoot) {
+            let slotEl: HTMLSlotElement;
+            if(slotName) {
+                slotEl = element.shadowRoot.querySelector('slot[name="' + slotName + '"]');
+            }
+            else {
+                slotEl = element.shadowRoot.querySelector("slot");
+            }
+            while(true) {
+                if(!slotEl) {
+                    return [];
+                }
+                var listChild = Array.from(slotEl.assignedElements());
+                if(!listChild) {
+                    return [];
+                }
+                let slotFound = false;
+                for(let i = 0; i < listChild.length; i++) {
+                    if(listChild[i].nodeName == "SLOT") {
+                        slotEl = listChild[i] as HTMLSlotElement;
+                        slotFound = true;
+                        break;
+                    }
+                }
+                if(!slotFound) {
+                    return listChild as HTMLElement[];
+                }
+            }
+        }
+        return [];
+    }
+
+    /**
+     * Get deeper element inside dom at the position X and Y
+     */
+    public static getElementAtPosition(x: number, y: number, startFrom: Element = null) {
+        var _realTarget = (el: Element, i = 0) => {
+            if(i == 50) {
+                debugger;
+            }
+            if(el.shadowRoot && x !== undefined && y !== undefined) {
+                var newEl = el.shadowRoot.elementFromPoint(x, y);
+                if(newEl && newEl != el) {
+                    return _realTarget(newEl, i + 1);
+                }
+            }
+            return el;
+        };
+        if(startFrom == null) {
+            startFrom = document.body;
+        }
+        return _realTarget(startFrom);
+    }
+}

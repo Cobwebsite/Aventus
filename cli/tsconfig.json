@@ -1,0 +1,15 @@
+{
+	"compilerOptions": {
+		"target": "ESNext",
+		"lib": ["es2020", "dom"],
+		"module": "commonjs",
+		"moduleResolution": "node",
+		"sourceMap": true,
+		"strict": true,
+		"outDir": "out",
+		"rootDir": "../",
+		"noImplicitAny": false,
+	},
+	"include": ["src", "../server/src", "../server/server.ts", "../server/lib"],
+	"exclude": ["node_modules", ".vscode-test"]
+}

@@ -1,0 +1,46 @@
+import { StateManager, StateSlug } from "./StateManager.lib.avt";
+
+export abstract class State {
+    /**
+     * Activate a custom state inside a specific manager
+     * It ll be a generic state with no information inside exept name
+     */
+    public static async activate(stateName: string, manager: StateManager): Promise<boolean> {
+        return await new EmptyState(stateName).activate(manager);
+    }
+
+    public abstract get name(): string;
+    /**
+     * Activate this state inside a specific manager
+     */
+    public async activate(manager: StateManager): Promise<boolean> {
+        return await manager.setState(this);
+    }
+
+
+    public onActivate() {
+
+    }
+    public onInactivate(nextState: State) {
+
+    }
+    public async askChange(state: State, nextState: State) : Promise<boolean> {
+        return true;
+    }
+}
+
+export class EmptyState extends State {
+
+    private localName: string;
+    public constructor(stateName: string) {
+        super();
+        this.localName = stateName;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public override get name(): string {
+        return this.localName;
+    }
+}

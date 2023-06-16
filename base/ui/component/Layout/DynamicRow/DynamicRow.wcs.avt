@@ -1,0 +1,54 @@
+:host {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+    width: 100%;
+}
+
+$sizes: 300, 540, 720, 960, 1140;
+$labels: xs, sm, md, lg, xl;
+
+@for $j from 0 through 12 {
+    $size: 0;
+    @if $j != 0 {
+        $size: calc(100 / 12) * $j;
+    }
+
+    :host([max_width=""]) {
+        ::slotted(av-dynamic-col[offset_xs="#{$j}"]) {
+            margin-left: #{$size + "%"};
+        }
+
+        ::slotted(av-dynamic-col[offset_right_xs="#{$j}"]) {
+            margin-right: #{$size + "%"};
+        }
+
+        ::slotted(av-dynamic-col[size_xs="#{$j}"]) {
+            width: #{$size + "%"};
+        }
+    }
+}
+
+@for $i from 1 through length($sizes) {
+    $sizeMax: nth($sizes, $i);
+    $label: nth($labels, $i);
+
+    @for $j from 0 through 12 {
+        $size: 0;
+        @if $j != 0 {
+            $size: calc(100 / 12) * $j;
+        }
+
+        :host([max_width~="#{$label}"]) {
+            ::slotted(av-dynamic-col[offset_#{$label}="#{$j}"]) {
+                margin-left: #{$size + "%"};
+            }
+            ::slotted(av-dynamic-col[offset_right_#{$label}="#{$j}"]) {
+                margin-right: #{$size + "%"};
+            }
+            ::slotted(av-dynamic-col[size_#{$label}="#{$j}"]) {
+                width: #{$size + "%"};
+            }
+        }
+    }
+}

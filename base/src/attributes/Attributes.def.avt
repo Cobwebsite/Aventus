@@ -1,0 +1,82 @@
+declare global {
+    type Constructor<T> = Function & { prototype: T; };
+
+    interface DebuggerConfig {
+        /** Write the compiled file inside ./compiled.js */
+        writeCompiled?: boolean,
+        /** Enable history for watch property and add a function getWatchHistory on this component*/
+        enableWatchHistory?: boolean,
+    }
+
+    interface OverrideViewConfig {
+        /** if set the component ll do a query selector else the component is the one loaded on first render */
+        removeViewVariables?: string[];
+    }
+
+    interface ViewElementConfig {
+        /** if set the component ll do a query selector else the component is the one loaded on first render */
+        useLive?: boolean;
+    }
+
+    interface DependanceConfig {
+        /** The type to load */
+        type: any,
+        /** The type must be loaded before the current class */
+        strong?: boolean;
+    }
+
+    /**
+     * Add an attribute inside on your component
+     */
+    function Attribute();
+    /**
+     * Add an attribute inside on your component with changes analyze
+     */
+    function Property();
+    /**
+     * Add an attribute inside on your component with changes analyze
+     */
+    function Property<T>(onChange: (component: T) => void);
+    /**
+     * Add a property inside a watcher to be notify of changing
+     */
+    function Watch();
+    /**
+     * Add a property inside a watcher to be notify of changing
+     */
+    function Watch<T>(onChange: (component: T, action: Aventus.WatchAction, path: string, value: any) => void);
+    /**
+     * Signal that this variable is a link to your shadowroot
+     */
+    function ViewElement(config?: ViewElementConfig);
+    /**
+     * Add foreign key reference
+     */
+    function ForeignKey(ref: Constructor<Aventus.IData>);
+
+    function StateActive(stateName: string, manager: Constructor<Aventus.StateManager> | Aventus.StateManager): (target: any, propertyKey: string, descriptor: TypedPropertyDescriptor<((state: Aventus.State, slugs: Aventus.StateSlug) => void)>) => void;
+    function DefaultStateActive(manager: Constructor<Aventus.StateManager> | Aventus.StateManager);
+    function StateInactive(stateName: string, manager: Constructor<Aventus.StateManager> | Aventus.StateManager): (target: any, propertyKey: string, descriptor: TypedPropertyDescriptor<((state: Aventus.State, nextState: Aventus.State, slugs: Aventus.StateSlug) => void)>) => void;
+    function DefaultStateInactive(manager: Constructor<Aventus.StateManager> | Aventus.StateManager);
+    function StateChange(stateName: string, manager: Constructor<Aventus.StateManager> | Aventus.StateManager): (target: any, propertyKey: string, descriptor: TypedPropertyDescriptor<((state: Aventus.State, nextState: Aventus.State, slugs: Aventus.StateSlug) => boolean | Promise<boolean>)>) => void;
+
+    /**
+     * Clear parent view and use your
+     */
+    function OverrideView(config?: OverrideViewConfig): (<T extends Constructor<Aventus.WebComponent>> (constructor: T) => T);
+    /**
+     * use a custom TagName
+     */
+    function TagName(name: string): (<T extends Constructor<Aventus.WebComponent>> (constructor: T) => T);
+    /**
+     * Force to be required inside export
+     */
+    function Required(): (constructor: Function) => void;
+    /**
+     * Add debbuger action function for your component
+     */
+    function Debugger(config: DebuggerConfig): (constructor: Function) => void;
+
+
+    function Dependances(info: DependanceConfig[]): (constructor: Function) => void;
+}

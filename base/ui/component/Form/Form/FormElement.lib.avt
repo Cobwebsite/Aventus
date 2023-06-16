@@ -1,0 +1,16 @@
+namespace form {
+    export interface FormElement<T> extends Aventus.DefaultComponent {
+        /**
+         * The current value of the form element
+         */
+        value: T;
+        /**
+         * Validate if the form element is correct or not
+         */
+        validate(): boolean;
+        /**
+         * Add listener to be triggered when value changed
+         */
+        onChange: Aventus.Callback<(value: T) => void>;
+    }
+}

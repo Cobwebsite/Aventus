@@ -1,0 +1,22 @@
+{
+	"module": "dependances",
+	"componentPrefix": "av",
+	"build": [
+		{
+			"name": "Main",
+			"hideWarnings": true,
+			"inputPath": [
+				"./src/components/*",
+				"./src/libs/*"
+			],
+			"outputFile": "../../client/view/js/index.js"
+		}
+	],
+	"static": [
+		{
+			"name": "Main",
+			"inputPath": "./src/static/",
+			"outputPath": "../../client/view/"
+		}
+	]
+}

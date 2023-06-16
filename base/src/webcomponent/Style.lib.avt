@@ -1,0 +1,61 @@
+export class Style {
+    private static instance: Style;
+    private static defaultStyleSheets: { [name: string]: string; } = {
+        "@general": `:host{display:inline-block;box-sizing:border-box}:host *{box-sizing:border-box}`
+    };
+
+    public static store(name: string, content: string) {
+        this.getInstance().store(name, content);
+    }
+    public static get(name: string): CSSStyleSheet {
+        return this.getInstance().get(name);
+    }
+    public static load(name: string, url: string): Promise<void> {
+        return this.getInstance().load(name, url);
+    }
+
+    private static getInstance(): Style {
+        if(!this.instance) {
+            this.instance = new Style();
+        }
+        return this.instance;
+    }
+
+    private constructor() {
+        for(let name in Style.defaultStyleSheets) {
+            this.store(name, Style.defaultStyleSheets[name]);
+        }
+    }
+
+
+    private stylesheets: Map<string, CSSStyleSheet> = new Map();
+
+    public async load(name: string, url: string): Promise<void> {
+        try {
+            if(!this.stylesheets.has(name) || this.stylesheets.get(name).cssRules.length == 0) {
+                let txt = await (await fetch(url)).text();
+                this.store(name, txt);
+            }
+        }
+        catch(e) {
+
+        }
+    }
+
+    public store(name: string, content: string) {
+        if(!this.stylesheets.has(name)) {
+            const sheet = new CSSStyleSheet();
+            sheet.replaceSync(content);
+            this.stylesheets.set(name, sheet);
+        }
+        else {
+            this.stylesheets.get(name).replaceSync(content);
+        }
+    }
+    public get(name: string): CSSStyleSheet {
+        if(!this.stylesheets.has(name)) {
+            this.store(name, "");
+        }
+        return this.stylesheets.get(name);
+    }
+}

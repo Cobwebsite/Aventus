@@ -1,0 +1,529 @@
+namespace Layout {
+    export class Scrollable extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+        //#region static
+
+        //#endregion
+
+
+        //#region props
+        /**
+         * Set the zoom to apply for the container
+         */
+        @Property((target: Scrollable) => {
+            target.changeZoom();
+        })
+        public zoom: number = 1;
+
+        @Attribute()
+        private y_scroll_visible: boolean;
+
+        @Attribute()
+        private x_scroll_visible: boolean;
+
+        /**
+         * Current scroller position in x
+         */
+        @Attribute()
+        public x: number;
+
+        /**
+         * Current scroller position in y
+         */
+        @Attribute()
+        public y: number;
+
+
+        /**
+         * Determine if scrollbar will be floating or not
+         */
+        @Attribute()
+        public floating_scroll: boolean;
+
+        /**
+         * Determine if x scroll is allowed
+         */
+        @Attribute()
+        public allow_x_scroll: boolean;
+
+        /**
+         * If true, the scrollers will hide if they're not in use
+         */
+        @Attribute()
+        public auto_hide: boolean;
+
+        @Attribute()
+        private no_transition: boolean;
+        @Attribute()
+        private no_user_select: boolean;
+        //#endregion
+
+
+        //#region variables
+
+        @ViewElement()
+        private contentWrapper: HTMLDivElement;
+
+        @ViewElement()
+        private contentZoom: HTMLDivElement;
+
+        @ViewElement()
+        private mainContainer: HTMLDivElement;
+
+        @ViewElement()
+        private contentHidder: HTMLDivElement;
+
+        @ViewElement()
+        private verticalScrollerContainer: HTMLDivElement;
+
+        @ViewElement()
+        private verticalScroller: HTMLDivElement;
+
+        @ViewElement()
+        private horizontalScrollerContainer: HTMLDivElement;
+
+        @ViewElement()
+        private horizontalScroller: HTMLDivElement;
+
+
+
+        private observer: Aventus.ResizeObserver;
+
+        private displayWidth: number = 0;
+        private displayHeight: number = 0;
+
+
+        private maxX: number = 0;
+        private marginX: number = 0;
+        private maxY: number = 0;
+        private marginY: number = 0;
+        private hideDelayX: number;
+        private hideDelayY: number;
+        //#endregion
+
+
+        //#region constructor
+        constructor() {
+            super();
+            this.wheelAction = this.wheelAction.bind(this);
+            this.touchWheelAction = this.touchWheelAction.bind(this);
+        }
+        //#endregion
+
+
+        //#region methods
+
+        //#region scroll action
+        private correctVerticalScrollValue(value: number): number {
+            if(value < 0) {
+                value = 0;
+            }
+            else if(value > this.maxY) {
+                value = this.maxY;
+            }
+            return value;
+        }
+        private scrollVerticalScrollbar(percentValue: number) {
+            let verticalValue = percentValue / 100 * this.contentWrapper.offsetHeight;
+            this.scrollY(verticalValue);
+        }
+        /**
+         * Scroll the container vertically
+         */
+        public scrollY(value: number) {
+            if(this.maxY != 0) {
+                this.y = this.correctVerticalScrollValue(value);
+            }
+            else {
+                this.y = 0;
+            }
+            let scrollPosition = this.y / this.contentWrapper.offsetHeight * 100;
+            if(this.auto_hide) {
+                this.verticalScrollerContainer.classList.remove("hide");
+                clearTimeout(this.hideDelayY);
+                this.hideDelayY = setTimeout(() => {
+                    this.verticalScrollerContainer.classList.add("hide");
+                }, 1000);
+            }
+            this.verticalScroller.style.top = `${scrollPosition}%`;
+            this.contentWrapper.style.transform = `translate3d(${-1 * this.x}px, ${-1 * this.y}px, 0)`;
+        }
+
+        private correctHorizontalScrollValue(value: number): number {
+            if(value < 0) {
+                value = 0;
+            }
+            else if(value > this.maxX) {
+                value = this.maxX;
+            }
+            return value;
+        }
+        private scrollHorizontalScrollbar(percentValue: number) {
+            let value = percentValue / 100 * this.contentWrapper.offsetWidth;
+            this.scrollX(value);
+        }
+        /**
+         * Scroll the container horizontally
+         */
+        public scrollX(value: number) {
+            if(this.maxX != 0) {
+                this.x = this.correctHorizontalScrollValue(value);
+            }
+            else {
+                this.x = 0;
+            }
+            let scrollPosition = this.x / this.contentWrapper.offsetWidth * 100;
+            if(this.auto_hide) {
+                this.horizontalScrollerContainer.classList.remove("hide");
+                clearTimeout(this.hideDelayX);
+                this.hideDelayX = setTimeout(() => {
+                    this.horizontalScrollerContainer.classList.add("hide");
+                }, 1000);
+            }
+            this.horizontalScroller.style.left = `${scrollPosition}%`;
+            this.contentWrapper.style.transform = `translate3d(${-1 * this.x}px, ${-1 * this.y}px, 0)`;
+        }
+
+        /**
+         * Shortcut for functions scrollX and scrollY
+         */
+        public scrollToPosition(x: number, y: number) {
+            this.scrollX(x);
+            this.scrollY(y);
+        }
+        //#endregion
+
+        //#region events
+        private addAction() {
+            this.addEventListener("wheel", this.wheelAction);
+            this.addEventListener("touchstart", this.touchWheelAction);
+            this.addVerticalScrollDrag();
+            this.addHorizontalScrollDrag();
+        }
+        private addVerticalScrollDrag() {
+            this.verticalScroller.addEventListener("touchstart", (e) => {
+                e.stopPropagation();
+            });
+            new Aventus.DragAndDrop({
+                element: this.verticalScroller,
+                applyDrag: false,
+                usePercent: true,
+                offsetDrag: 0,
+                onStart: (e) => {
+                    this.no_transition = true;
+                    this.no_user_select = true;
+                    this.verticalScroller.classList.add("active");
+                },
+                onMove: (e, position) => {
+                    this.scrollVerticalScrollbar(position.y);
+                },
+                onStop: () => {
+                    this.no_transition = false;
+                    this.no_user_select = false;
+                    this.verticalScroller.classList.remove("active");
+
+                },
+            });
+        }
+        private addHorizontalScrollDrag() {
+            this.horizontalScroller.addEventListener("touchstart", (e) => {
+                e.stopPropagation();
+            });
+            new Aventus.DragAndDrop({
+                element: this.horizontalScroller,
+                applyDrag: false,
+                usePercent: true,
+                offsetDrag: 0,
+                onStart: (e) => {
+                    this.no_transition = true;
+                    this.no_user_select = true;
+                    this.horizontalScroller.classList.add("active");
+                },
+                onMove: (e, position) => {
+                    this.scrollHorizontalScrollbar(position.x);
+                },
+                onStop: () => {
+                    this.no_transition = false;
+                    this.no_user_select = false;
+                    this.horizontalScroller.classList.remove("active");
+
+                },
+            });
+        }
+        private wheelAction(e: WheelEvent) {
+            if(e.altKey) {
+                if(this.x_scroll_visible) {
+                    let triggerEvent = (this.x == 0 && e.deltaY < 0) || (this.x == this.maxX && e.deltaY > 0);
+                    this.scrollX(this.x + e.deltaY);
+                    if(!triggerEvent) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }
+                }
+            }
+            else {
+                if(this.y_scroll_visible) {
+                    let triggerEvent = (this.y == 0 && e.deltaY < 0) || (this.y == this.maxY && e.deltaY > 0);
+                    this.scrollY(this.y + e.deltaY);
+                    if(!triggerEvent) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }
+                }
+            }
+        }
+        private touchWheelAction(e: TouchEvent) {
+            let startX = e.touches[0].pageX;
+            let startY = e.touches[0].pageY;
+            let startHorizontal = this.x;
+            let startVertical = this.y;
+            this.no_transition = true;
+            let inertiaArrayY: Map<Date, number> = new Map();
+            let inertiaArrayX: Map<Date, number> = new Map();
+            let averageY: number = 0;
+            let averageX: number = 0;
+            let lastDiffY = 0;
+            let lastDiffX = 0;
+            let touchMove = (e: TouchEvent) => {
+                let diffX = startX - e.touches[0].pageX;
+                let diffY = startY - e.touches[0].pageY;
+                // inertia
+                if(inertiaArrayY.size == 5) {
+                    inertiaArrayY.delete(inertiaArrayY.keys()[0]);
+                }
+                if(inertiaArrayX.size == 5) {
+                    inertiaArrayX.delete(inertiaArrayX.keys()[0]);
+                }
+                inertiaArrayX.set(new Date(), diffX - lastDiffX);
+                inertiaArrayY.set(new Date(), diffY - lastDiffY);
+                lastDiffX = diffX;
+                lastDiffY = diffY;
+                this.scrollX(startHorizontal + diffX);
+                this.scrollY(startVertical + diffY);
+            };
+            let touchEnd = (e: TouchEvent) => {
+                window.removeEventListener("touchmove", touchMove);
+                window.removeEventListener("touchend", touchEnd);
+                let date = new Date();
+                let totX = 0;
+                let totY = 0;
+                let inertiaXRunning = false;
+                let inertiaYRunning = false;
+                for(let [dateEvent, value] of inertiaArrayX) {
+                    let factor = (1000) - (date.getTime() - dateEvent.getTime());
+                    if(factor < 0) {
+                        factor = 0;
+                    }
+                    factor /= 1000;
+                    totX += value * factor;
+                }
+                for(let [dateEvent, value] of inertiaArrayY) {
+                    let factor = (1000) - (date.getTime() - dateEvent.getTime());
+                    if(factor < 0) {
+                        factor = 0;
+                    }
+                    factor /= 1000;
+                    totY += value * factor;
+                }
+                if(inertiaArrayX.size > 0) {
+                    inertiaXRunning = true;
+                    averageX = Math.round(totX / inertiaArrayX.size);
+                    let breakX = averageX > 0 ? 1 : -1;
+                    let checkX = averageX > 0 ? () => averageX <= 0 : () => averageX >= 0;
+                    let intervalInertia = new Aventus.Animation({
+                        animate: () => {
+                            if(checkX()) {
+                                intervalInertia.stop();
+                            }
+                            else {
+                                averageX -= breakX;
+                                lastDiffX += averageX;
+                                this.scrollX(startHorizontal + lastDiffX);
+                            }
+                        },
+                        stopped: () => {
+                            inertiaXRunning = false;
+                            if(!inertiaXRunning && !inertiaYRunning) {
+                                this.no_transition = false;
+                            }
+                        },
+                        fps: 60,
+                    });
+                    intervalInertia.start();
+                }
+                if(inertiaArrayY.size > 0) {
+                    inertiaYRunning = true;
+                    averageY = Math.round(totY / inertiaArrayY.size);
+                    let breakY = averageY > 0 ? 1 : -1;
+                    let checkY = averageY > 0 ? () => averageY <= 0 : () => averageY >= 0;
+                    let intervalInertia = new Aventus.Animation({
+                        animate: () => {
+                            if(checkY()) {
+                                intervalInertia.stop();
+                            }
+                            else {
+                                averageY -= breakY;
+                                lastDiffY += averageY;
+                                this.scrollY(startVertical + lastDiffY);
+                            }
+                        },
+                        stopped: () => {
+                            inertiaYRunning = false;
+                            if(!inertiaXRunning && !inertiaYRunning) {
+                                this.no_transition = false;
+                            }
+                        },
+                        fps: 60,
+                    });
+                    intervalInertia.start();
+                }
+                if(!inertiaXRunning && !inertiaYRunning) {
+                    this.no_transition = false;
+                }
+            };
+            window.addEventListener("touchmove", touchMove);
+            window.addEventListener("touchend", touchEnd);
+        }
+        //#endregion
+
+        //#region position
+        private calculateRealSize() {
+            const currentOffsetWidth = this.contentZoom.offsetWidth;
+            const currentOffsetHeight = this.contentZoom.offsetHeight;
+
+            if(this.zoom < 1) {
+                // scale the container for zoom
+                this.contentZoom.style.width = this.mainContainer.offsetWidth / this.zoom + 'px';
+                this.contentZoom.style.height = this.mainContainer.offsetHeight / this.zoom + 'px';
+                this.displayHeight = currentOffsetHeight;
+                this.displayWidth = currentOffsetWidth;
+            }
+            else {
+                this.displayHeight = currentOffsetHeight / this.zoom;
+                this.displayWidth = currentOffsetWidth / this.zoom;
+            }
+        }
+
+        private calculatePositionHorizontalScrollerContainer() {
+            const topMissing = this.mainContainer.offsetHeight - this.horizontalScrollerContainer.offsetTop;
+            if(topMissing > 0 && this.x_scroll_visible && !this.floating_scroll) {
+                this.contentHidder.style.height = 'calc(100% - ' + topMissing + 'px)';
+                this.contentHidder.style.marginBottom = topMissing + 'px';
+                this.marginX = topMissing;
+            }
+            else {
+                this.contentHidder.style.height = '';
+                this.contentHidder.style.marginBottom = '';
+                this.marginX = 0;
+            }
+        }
+        private calculateSizeHorizontalScroller() {
+            const horizontalScrollerHeight = ((this.displayWidth - this.marginX) / this.contentWrapper.offsetWidth * 100);
+            this.horizontalScroller.style.width = horizontalScrollerHeight + '%';
+
+            let maxScrollContent = this.contentWrapper.offsetWidth - this.displayWidth;
+            if(maxScrollContent < 0) {
+                maxScrollContent = 0;
+            }
+            this.maxX = maxScrollContent + this.marginX;
+
+        }
+        private calculatePositionVerticalScrollerContainer() {
+            const leftMissing = this.mainContainer.offsetWidth - this.verticalScrollerContainer.offsetLeft;
+            if(leftMissing > 0 && this.y_scroll_visible && !this.floating_scroll) {
+                this.contentHidder.style.width = 'calc(100% - ' + leftMissing + 'px)';
+                this.contentHidder.style.marginRight = leftMissing + 'px';
+                this.marginY = leftMissing;
+
+            }
+            else {
+                this.contentHidder.style.width = '';
+                this.contentHidder.style.marginRight = '';
+                this.marginY = 0;
+            }
+        }
+        private calculateSizeVerticalScroller() {
+            const verticalScrollerHeight = ((this.displayHeight - this.marginY) / this.contentWrapper.offsetHeight * 100);
+            this.verticalScroller.style.height = verticalScrollerHeight + '%';
+
+            let maxScrollContent = this.contentWrapper.offsetHeight - this.displayHeight;
+            if(maxScrollContent < 0) {
+                maxScrollContent = 0;
+            }
+            this.maxY = maxScrollContent + this.marginY;
+
+        }
+        //#endregion
+
+        private changeZoom() {
+            this.contentZoom.style.transform = 'scale(' + this.zoom + ')';
+            this.dimensionRefreshed();
+        }
+
+        private dimensionRefreshed() {
+            this.calculateRealSize();
+
+            if(this.contentWrapper.offsetHeight - this.displayHeight > 0) {
+                if(!this.y_scroll_visible) {
+                    this.y_scroll_visible = true;
+                    this.calculatePositionVerticalScrollerContainer();
+                }
+                this.calculateSizeVerticalScroller();
+                this.scrollY(this.y);
+            }
+            else if(this.y_scroll_visible) {
+                this.y_scroll_visible = false;
+                // clear space created by scrollbar
+                this.contentHidder.style.width = '';
+                this.contentHidder.style.marginRight = '';
+                this.scrollY(0);
+            }
+
+            if(this.contentWrapper.offsetWidth - this.displayWidth > 0) {
+                if(!this.x_scroll_visible) {
+                    this.x_scroll_visible = true;
+                    this.calculatePositionHorizontalScrollerContainer();
+                }
+                this.calculateSizeHorizontalScroller();
+                this.scrollX(this.x);
+            }
+            else if(this.x_scroll_visible) {
+                this.x_scroll_visible = false;
+                // clear space created by scrollbar
+                this.contentHidder.style.height = '';
+                this.contentHidder.style.marginBottom = '';
+                this.scrollX(0);
+            }
+
+        }
+        private createResizeObserver() {
+            let inProgress = false;
+            this.observer = new Aventus.ResizeObserver({
+                callback: entries => {
+                    if(inProgress) {
+                        return;
+                    }
+                    inProgress = true;
+                    this.dimensionRefreshed();
+                    inProgress = false;
+                },
+                fps: 30
+            });
+
+        }
+        private addResizeObserver() {
+            if(this.observer == undefined) {
+                this.createResizeObserver();
+            }
+            this.observer.observe(this.contentWrapper);
+            this.observer.observe(this);
+        }
+        protected override postCreation(): void {
+            this.addResizeObserver();
+            this.addAction();
+            window['temp1'] = this;
+        }
+        //#endregion
+
+    }
+}

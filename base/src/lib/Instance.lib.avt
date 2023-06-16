@@ -1,0 +1,27 @@
+
+
+export class Instance {
+    private static elements: Map<{ prototype: any; }, any> = new Map();
+    public static get<X>(type: Function & { prototype: X; }): X {
+        let result = this.elements.get(type);
+        if(!result) {
+            let cst = type.prototype['constructor'] as any;
+            result = new cst();
+            this.elements.set(type, result);
+        }
+        return result;
+    }
+    public static set<X>(el: X): boolean {
+        let cst = el.constructor;
+        if(this.elements.get(cst)){
+            return false;
+        }
+        this.elements.set(cst, el);
+        return true;
+    }
+
+    public static destroy<X>(el: X): boolean {
+        let cst = el.constructor;
+        return this.elements.delete(cst);
+    }
+}

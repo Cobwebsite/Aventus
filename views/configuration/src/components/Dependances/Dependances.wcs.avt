@@ -1,0 +1,22 @@
+:host {
+	.no-dependances-txt {
+		display: none;
+	}
+	vscode-data-grid-row {
+		text-align: center;
+	}
+
+	av-icon.trash {
+		color: var(--vscode-errorForeground);
+	}
+
+	.add-row {
+		margin-top: 16px;
+	}
+}
+
+:host([no_deps]) {
+	.no-dependances-txt {
+		display: block;
+	}
+}

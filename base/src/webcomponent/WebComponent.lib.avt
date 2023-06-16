@@ -1,0 +1,539 @@
+import { WebComponentTemplate, WebComponentTemplateInstance } from "./WebComponentTemplate.lib.avt";
+import { Style } from "./Style.lib.avt";
+import { PressManager } from "../lib/PressManager.lib.avt";
+import { State } from "../state/State.lib.avt";
+import { StateManager, StateSlug } from "../state/StateManager.lib.avt";
+import { ElementExtension } from "./ElementExtension.lib.avt";
+import { Instance } from "../lib/Instance.lib.avt";
+import { WatchAction, Watcher } from "../lib/Watcher.lib.avt";
+
+
+export interface DebuggerConfig {
+    writeCompiled?: boolean;
+}
+
+export interface DefaultComponent {
+    [key: string]: any; // index signature to remove error
+}
+
+export class WebComponentInstance {
+    private static __allDefinitions: (new () => WebComponent)[] = [];
+    private static __allInstances: WebComponent[] = [];
+    /**
+     * Last definition insert datetime
+     */
+    public static lastDefinition: number = 0;
+    private static registerDefinition(def: new () => WebComponent) {
+        WebComponentInstance.lastDefinition = Date.now();
+        WebComponentInstance.__allDefinitions.push(def);
+    }
+    /**
+     * Get all sub classes of type
+     */
+    public static getAllClassesOf<T>(type: typeof WebComponent): (new () => WebComponent)[] {
+        let result: (new () => WebComponent)[] = [];
+        for(let def of WebComponentInstance.__allDefinitions) {
+            if(def.prototype instanceof type) {
+                result.push(def);
+            }
+        }
+        return result;
+    }
+    /**
+     * Get all registered definitions
+     */
+    public static getAllDefinitions(): (new () => WebComponent)[] {
+        return WebComponentInstance.__allDefinitions;
+    }
+
+    // only for debug
+    public static addInstance(instance: WebComponent) {
+        this.__allInstances.push(instance);
+    }
+    public static removeInstance(instance: WebComponent) {
+        let index = this.__allInstances.indexOf(instance);
+        if(index > -1) {
+            this.__allInstances.splice(index, 1);
+        }
+    }
+    public static getAllInstances(type: new () => WebComponent) {
+        let result = [];
+        for(let instance of this.__allInstances) {
+            if(instance instanceof type) {
+                result.push(instance);
+            }
+        }
+        return result;
+    }
+}
+
+@Dependances([{
+    type: WebComponentInstance,
+    strong: true
+}])
+export abstract class WebComponent extends HTMLElement implements DefaultComponent {
+    /**
+     * Add attributes informations
+     */
+    public static get observedAttributes(): string[] {
+        return [];
+    }
+
+
+    private _first: boolean;
+    private _isReady: boolean;
+
+    /**
+     * Determine if the component is ready (postCreation done)
+     */
+    public get isReady(): boolean {
+        return this._isReady;
+    }
+    /**
+     * The current namespace
+     */
+    public static get Namespace(): string { return ""; }
+    /**
+     * Get the unique type for the data. Define it as the namespace + class name
+     */
+    public static get Fullname(): string { return this.Namespace + "." + this.name; }
+
+    /**
+     * The current namespace
+     */
+    public get namespace(): string {
+        return this.constructor['Namespace'];
+    }
+    /**
+     * Get the name of the component class
+     */
+    public getClassName(): string {
+        return this.constructor.name;
+    }
+
+    /**
+    * Get the unique type for the data. Define it as the namespace + class name
+    */
+    public get $type(): string {
+        return this.constructor['Fullname'];
+    }
+
+    private __onChangeFct: { [key: string]: ((path: string) => void)[]; } = {};
+
+    private __watch: any;
+    private __watchActions: { [key: string]: ((target: WebComponent, action: WatchAction, path: string, value: any) => void)[]; } = {};
+    private __watchActionsCb: { [key: string]: (type: WatchAction, path: string, element: any) => void; } = {};
+    private __pressManagers: PressManager[] = [];
+
+    private __isDefaultState: boolean = true;
+    private __defaultActiveState: Map<StateManager, (() => void)[]> = new Map();
+    private __defaultInactiveState: Map<StateManager, (() => void)[]> = new Map();
+
+    private __statesList: {
+        [statePattern: string]: Map<StateManager, {
+            active: ((state: State, slugs: StateSlug) => void)[],
+            inactive: ((state: State, nextState: State, slugs: StateSlug) => void)[],
+            askChange: ((state: State, nextState: State, slugs: StateSlug) => Promise<boolean>)[],
+        }>;
+    } = {};
+
+    public constructor() {
+        super();
+        if(this.constructor == WebComponent) {
+            throw "can't instanciate an abstract class";
+        }
+        this._first = true;
+        this._isReady = false;
+        this.__renderTemplate();
+        this.__registerWatchesActions();
+        this.__registerPropertiesActions();
+        this.__createStates();
+        this.__subscribeState();
+    }
+    /**
+     * Remove all listeners
+     * State + press
+     */
+    public destructor() {
+        WebComponentInstance.removeInstance(this);
+        this.__unsubscribeState();
+        for(let press of this.__pressManagers) {
+            press.destroy();
+        }
+        // TODO add missing info for destructor();
+    }
+    private __addWatchesActions(name: string, fct?: () => void) {
+        if(!this.__watchActions[name]) {
+            this.__watchActions[name] = [];
+            this.__watchActionsCb[name] = (action, path, value) => {
+                for(let fct of this.__watchActions[name]) {
+                    fct(this, action, path, value);
+                }
+                if(this.__onChangeFct[name]) {
+                    for(let fct of this.__onChangeFct[name]) {
+                        fct(path);
+                    }
+                }
+            };
+        }
+        if(fct) {
+            this.__watchActions[name].push(fct);
+        }
+    }
+    private __registerWatchesActions() {
+        if(Object.keys(this.__watchActions).length > 0) {
+            if(!this.__watch) {
+                this.__watch = Watcher.get({}, (type, path, element) => {
+                    let action = this.__watchActionsCb[path.split(".")[0]] || this.__watchActionsCb[path.split("[")[0]];
+                    action(type, path, element);
+                });
+            }
+        }
+    }
+
+    private __addPropertyActions(name: string, fct?: (target: HTMLElement) => void) {
+        if(!this.__onChangeFct[name]) {
+            this.__onChangeFct[name] = [];
+        }
+        if(fct) {
+            this.__onChangeFct[name].push(() => {
+                fct(this);
+            });
+        }
+    }
+    private __registerPropertiesActions() { }
+    //#region template
+    private static __style: string = ``;
+    private static __template: WebComponentTemplate;
+    private __templateInstance: WebComponentTemplateInstance;
+    protected styleBefore(): string[] {
+        return ["@general"];
+    }
+    protected styleAfter(): string[] {
+        return [];
+    }
+    private __getStyle() {
+        return [WebComponent.__style];
+    }
+    private __getHtml() { }
+
+    private __getStatic() {
+        return WebComponent;
+    }
+
+    private static __styleSheets: { [name: string]: CSSStyleSheet; } = {};
+    private __renderStyles() {
+        let sheets: { [name: string]: CSSStyleSheet; } = {};
+        let befores = this.styleBefore();
+        for(let before of befores) {
+            let sheet = Style.get(before);
+            if(sheet) {
+                sheets[before] = sheet;
+            }
+        }
+        let localStyle = new CSSStyleSheet();
+        let styleTxt = this.__getStyle().join("\r\n");
+        if(styleTxt.length > 0) {
+            localStyle.replace(styleTxt);
+            sheets['@local'] = localStyle;
+        }
+        let afters = this.styleAfter();
+        for(let after of afters) {
+            let sheet = Style.get(after);
+            if(sheet) {
+                sheets[after] = sheet;
+            }
+        }
+        return sheets;
+    }
+    private __renderTemplate() {
+
+        let staticInstance = this.__getStatic();
+        if(!staticInstance.__template) {
+            staticInstance.__template = new WebComponentTemplate();
+            this.__getHtml();
+            this.__registerTemplateAction();
+            staticInstance.__template.generateTemplate();
+            staticInstance.__styleSheets = this.__renderStyles();
+        }
+
+        this.__templateInstance = staticInstance.__template.createInstance(this);
+        let shadowRoot = this.attachShadow({ mode: 'open' });
+        shadowRoot.adoptedStyleSheets = Object.values(staticInstance.__styleSheets);
+        this.shadowRoot.appendChild(this.__templateInstance.content);
+        customElements.upgrade(this.shadowRoot);
+    }
+
+    private __registerTemplateAction() {
+
+    }
+    //#endregion
+
+
+
+
+    //#region select element
+
+    //#endregion
+
+
+    private connectedCallback() {
+        if(this._first) {
+            WebComponentInstance.addInstance(this);
+            this._first = false;
+            this.__defaultValues();
+            this.__upgradeAttributes();
+            this.__templateInstance.render();
+
+            setTimeout(() => {
+                this.postCreation();
+                this._isReady = true;
+                this.dispatchEvent(new CustomEvent('postCreationDone'));
+            });
+        }
+    }
+    private __defaultValues() { }
+    private __upgradeAttributes() { }
+    private __listBoolProps() {
+        return [];
+    }
+    private __upgradeProperty(prop) {
+        let boolProps = this.__listBoolProps();
+        if(boolProps.indexOf(prop) != -1) {
+            if(this.hasAttribute(prop) && (this.getAttribute(prop) === "true" || this.getAttribute(prop) === "")) {
+                let value = this.getAttribute(prop);
+                delete this[prop];
+                this[prop] = value;
+            }
+            else {
+                this.removeAttribute(prop);
+                this[prop] = false;
+            }
+        }
+        else {
+            if(this.hasAttribute(prop)) {
+                let value = this.getAttribute(prop);
+                delete this[prop];
+                this[prop] = value;
+            }
+        }
+    }
+
+    //#region state
+    private __getStateManager(managerClass: new () => StateManager | StateManager) {
+        let mClass: StateManager;
+        if(managerClass instanceof StateManager) {
+            mClass = managerClass;
+        }
+        else {
+            mClass = Instance.get(managerClass);
+        }
+        return mClass;
+    }
+    private __addActiveDefState(managerClass: new () => StateManager | StateManager, cb: () => void) {
+        let mClass = this.__getStateManager(managerClass);
+        if(!this.__defaultActiveState.has(mClass)) {
+            this.__defaultActiveState.set(mClass, []);
+        }
+        this.__defaultActiveState.get(mClass).push(cb);
+    }
+    private __addInactiveDefState(managerClass: new () => StateManager | StateManager, cb: () => void) {
+        let mClass = this.__getStateManager(managerClass);
+        if(!this.__defaultInactiveState.has(mClass)) {
+            this.__defaultInactiveState.set(mClass, []);
+        }
+        this.__defaultInactiveState.get(mClass).push(cb);
+    }
+    private __addActiveState(statePattern: string, managerClass: new () => StateManager | StateManager, cb: (state: State, slugs: StateSlug) => void) {
+        let mClass = this.__getStateManager(managerClass);
+        this.__statesList[statePattern].get(mClass).active.push(cb);
+    }
+    private __addInactiveState(statePattern: string, managerClass: new () => StateManager | StateManager, cb: (state: State, nextState: State, slugs: StateSlug) => void) {
+        let mClass = this.__getStateManager(managerClass);
+        this.__statesList[statePattern].get(mClass).inactive.push(cb);
+    }
+    private __addAskChangeState(statePattern: string, managerClass: new () => StateManager | StateManager, cb: (state: State, nextState: State, slugs: StateSlug) => Promise<boolean>) {
+        let mClass = this.__getStateManager(managerClass);
+        this.__statesList[statePattern].get(mClass).askChange.push(cb);
+    }
+    private __createStates() { }
+    private __createStatesList(statePattern: string, managerClass: new () => StateManager | StateManager) {
+        if(!this.__statesList[statePattern]) {
+            this.__statesList[statePattern] = new Map();
+        }
+        let mClass = this.__getStateManager(managerClass);
+
+        if(!this.__statesList[statePattern].has(mClass)) {
+            this.__statesList[statePattern].set(mClass, {
+                active: [],
+                inactive: [],
+                askChange: []
+            });
+        }
+    }
+    private __inactiveDefaultState(managerClass: new () => StateManager | StateManager) {
+        if(this.__isDefaultState) {
+            this.__isDefaultState = false;
+            let mClass = this.__getStateManager(managerClass);
+            if(this.__defaultInactiveState.has(mClass)) {
+                let fcts = this.__defaultInactiveState.get(mClass);
+                for(let fct of fcts) {
+                    fct.bind(this)();
+                }
+            }
+
+        }
+    }
+    private __activeDefaultState(nextStep: string, managerClass: new () => StateManager | StateManager) {
+        if(!this.__isDefaultState) {
+            for(let pattern in this.__statesList) {
+                if(StateManager.canBeActivate(pattern, nextStep)) {
+                    let mClass = this.__getStateManager(managerClass);
+                    if(this.__statesList[pattern].has(mClass)) {
+                        return;
+                    }
+                }
+            }
+            this.__isDefaultState = true;
+            let mClass = this.__getStateManager(managerClass);
+            if(this.__defaultActiveState.has(mClass)) {
+                let fcts = this.__defaultActiveState.get(mClass);
+                for(let fct of fcts) {
+                    fct.bind(this)();
+                }
+            }
+        }
+    }
+    private __subscribeState() {
+        if(!this.isReady && this.__stateCleared) {
+            // prevent to load state on delete element
+            return;
+        }
+        for(let route in this.__statesList) {
+            for(const managerClass of this.__statesList[route].keys()) {
+                managerClass.subscribe(route, this.__statesList[route].get(managerClass));
+            }
+        }
+    }
+    private __stateCleared: boolean;
+    private __unsubscribeState() {
+        for(let route in this.__statesList) {
+            for(const managerClass of this.__statesList[route].keys()) {
+                managerClass.unsubscribe(route, this.__statesList[route].get(managerClass));
+            }
+        }
+        this.__stateCleared = true;
+    }
+    //#endregion
+
+    //#region date
+    protected dateToString(d: Date): string | null {
+        if(d instanceof Date) {
+            return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split("T")[0];
+        }
+        return null;
+    }
+    protected dateTimeToString(dt: Date): string | null {
+        if(dt instanceof Date) {
+            return new Date(dt.getTime() - (dt.getTimezoneOffset() * 60000)).toISOString().slice(0, -1);
+        }
+        return null;
+    }
+    protected stringToDate(s: string): Date {
+        let td = new Date(s);
+        let d = new Date(td.getTime() + (td.getTimezoneOffset() * 60000)) as any;
+        if(isNaN(d)) {
+            return null;
+        }
+        return d;
+    }
+    protected stringToDateTime(s: string): Date {
+        let td = new Date(s);
+        let d = new Date(td.getTime() + (td.getTimezoneOffset() * 60000)) as any;
+        if(isNaN(d)) {
+            return null;
+        }
+        return d;
+    }
+    //#endregion
+
+    //#region boolean
+    protected getBoolean(val: any): boolean {
+        if(val === true || val === 1 || val === 'true' || val === '') {
+            return true;
+        }
+        else if(val === false || val === 0 || val === 'false' || val === null || val === undefined) {
+            return false;
+        }
+        console.error("error parsing boolean value " + val);
+        return false;
+    }
+    //#endregion
+
+    private attributeChangedCallback(name, oldValue, newValue) {
+        if(oldValue !== newValue || !this.isReady) {
+            if(this.__onChangeFct.hasOwnProperty(name)) {
+                for(let fct of this.__onChangeFct[name]) {
+                    fct('');
+                }
+            }
+        }
+    }
+
+    /** @inheritdoc */
+    public override remove(): void {
+        super.remove();
+        this.postDestruction();
+    }
+
+    /**
+     * Function triggered when the component is removed from the DOM
+     */
+    protected postDestruction(): void { }
+
+    /**
+     * Function triggered the first time the component is rendering inside DOM
+     */
+    protected postCreation(): void { }
+
+    //#region tools
+
+    /**
+     * Find a parent by tagname if exist
+     */
+    public findParentByTag<T>(tagname: string | string[], untilNode?: Element): T | null {
+        return ElementExtension.findParentByTag(this, tagname, untilNode);
+    }
+    /**
+     * Find a parent by class name if exist
+     */
+    public findParentByClass<T>(classname: string | string[], untilNode?: Element): T | null {
+        return ElementExtension.findParentByClass(this, classname, untilNode);
+    }
+    /**
+     * Find a parent by type if exist
+     */
+    public findParentByType<T>(type: { prototype: T; }, untilNode?: Element): T | null {
+        return ElementExtension.findParentByType(this, type, untilNode);
+    }
+    /**
+     * Find list of parents by tagname
+     */
+    public findParents<T>(tagname: string | string[], untilNode?: Element): T[] {
+        return ElementExtension.findParents(this, tagname, untilNode);
+    }
+    /**
+     * Check if element contains a child
+     */
+    public containsChild(el: Element): boolean {
+        return ElementExtension.containsChild(this, el);
+    }
+    /**
+     * Get element inside slot
+     */
+    public getElementsInSlot(slotName: string = null) {
+        return ElementExtension.getElementsInSlot(this, slotName);
+    }
+    //#endregion
+}
+

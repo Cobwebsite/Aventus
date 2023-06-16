@@ -1,0 +1,53 @@
+:host {
+    --internal-img-color: var(--img-color);
+    --internal-img-stroke-color: var(--img-stroke-color, var(--internal-img-color));
+    --internal-img-fill-color: var(--img-fill-color, var(--internal-img-color));
+
+    --internal-img-color-transition: var(--img-color-transition, none);
+}
+
+
+:host {
+    // Your style here
+    display: inline-block;
+    overflow: hidden;
+    font-size: 0;
+    * {
+        box-sizing: border-box;
+    }
+    img {
+        opacity: 0;
+        transition: filter 0.3s linear;
+    }
+
+    .svg {
+        display: none;
+        height: 100%;
+        width: 100%;
+        svg {
+            height: 100%;
+            width: 100%;
+        }
+    }
+}
+:host([src$=".svg"]) {
+    img {
+        display: none;
+    }
+    .svg {
+        display: flex;
+        svg {
+            transition: var(--internal-img-color-transition);
+            stroke: var(--internal-img-stroke-color);
+            fill: var(--internal-img-fill-color);
+        }
+    }
+}
+:host([display_bigger]) {
+    img {
+        cursor: pointer;
+    }
+    img:hover {
+        filter: brightness(50%);
+    }
+}

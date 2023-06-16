@@ -1,0 +1,26 @@
+{
+	"module": "${{name}}",
+	"componentPrefix": "${{componentPrefix}}",
+	"build": [
+		{
+			"name": "Main",
+			"inputPath": [
+				"./src/components/*"
+			],
+			"outputFile": "./dist/${{name}}.js",
+			"componentStyle": [
+				{
+					"name": "@TailwindCss",
+					"path": "./src/styles/tailwind.gwcs.avt"
+				}
+			]
+		}
+	],
+	"static": [
+		{
+			"name": "Main",
+			"inputPath": "./static/",
+			"outputPath": "./dist/"
+		}
+	]
+}

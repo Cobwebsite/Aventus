@@ -1,0 +1,81 @@
+export class CallbackGroup<U extends (...args: any) => void> {
+    private callbacks: { [group: string]: U[]; } = {};
+    /**
+     * Clear all callbacks
+     */
+    public clearAll() {
+        this.callbacks = {};
+    }
+    /**
+     * Clear all callbacks for a specific group
+     */
+    public clear(group: string | number) {
+        delete this.callbacks[group];
+    }
+    /**
+     * Add a callback for a group
+     */
+    public add(group: string | number, cb: U): void {
+        if(!this.callbacks[group]) {
+            this.callbacks[group] = [];
+        }
+        this.callbacks[group].push(cb);
+    }
+    /**
+     * Remove a callback for a group
+     */
+    public remove(group: string | number, cb: U): void {
+        if(this.callbacks[group]) {
+            let index = this.callbacks[group].indexOf(cb);
+            if(index != -1) {
+                this.callbacks[group].splice(index, 1);
+            }
+        }
+    }
+    /**
+     * Trigger all callbacks inside a group
+     */
+    public trigger(group: string | number, args: Parameters<U>): void {
+        if(this.callbacks[group]) {
+            for(let callback of this.callbacks[group]) {
+                callback.apply(null, args);
+            }
+        }
+    }
+}
+
+export class Callback<U extends (...args: any) => T, T = void> {
+    private callbacks: U[] = [];
+    /**
+     * Clear all callbacks
+     */
+    public clear() {
+        this.callbacks = [];
+    }
+    /**
+     * Add a callback
+     */
+    public add(cb: U): void {
+        this.callbacks.push(cb);
+    }
+    /**
+     * Remove a callback
+     */
+    public remove(cb: U): void {
+        let index = this.callbacks.indexOf(cb);
+        if(index != -1) {
+            this.callbacks.splice(index, 1);
+        }
+    }
+    /**
+     * Trigger all callbacks
+     */
+    public trigger(args: Parameters<U>): T[] {
+        let result: T[] = [];
+        for(let callback of this.callbacks) {
+            result.push(callback.apply(null, args));
+        }
+        return result;
+    }
+}
+

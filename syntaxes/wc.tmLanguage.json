@@ -1,0 +1,137 @@
+{
+	"information_for_contributors": [
+		"This file has been converted from https://github.com/microsoft/vscode-markdown-tm-grammar/blob/master/syntaxes/markdown.tmLanguage",
+		"If you want to provide a fix or improvement, please create a pull request against the original repository.",
+		"Once accepted there, we are happy to receive an update request."
+	],
+	"version": "https://github.com/microsoft/vscode-markdown-tm-grammar/commit/97f2f8d38f10d3febd77d85b745945dc60fe334e",
+	"name": "Aventus WebComponent",
+	"scopeName": "text.wc.avt",
+	"patterns": [
+		{
+			"include": "#csscode"
+		},
+		{
+			"include": "#htmlcode"
+		},
+		{
+			"include": "#jscode"
+		}
+	],
+	"repository": {
+		"csscode": {
+			"begin": "(<)(style)(>)",
+			"end": "(</)(style)(>)",
+			"name": "aventus.css.code",
+			"beginCaptures": {
+				"1": {
+					"name": "punctuation.definition.tag.begin.html"
+				},
+				"2": {
+					"name": "aventus.css.tag"
+				},
+				"3": {
+					"name": "punctuation.definition.tag.end.html"
+				}
+			},
+			"endCaptures": {
+				"1": {
+					"name": "punctuation.definition.tag.begin.html"
+				},
+				"2": {
+					"name": "aventus.css.tag"
+				},
+				"3": {
+					"name": "punctuation.definition.tag.end.html"
+				}
+			},
+			"patterns": [
+				{
+					"begin": "(^|\\G)(\\s*)(.*)",
+					"end": "(?=</(?i:style))",
+					"patterns": [
+						{
+							"include": "source.css.scss"
+						}
+					]
+				}
+			]
+		},
+		"jscode": {
+			"begin": "(<)(script)(>)",
+			"end": "(</)(script)(>)",
+			"name": "aventus.js.code",
+			"beginCaptures": {
+				"1": {
+					"name": "punctuation.definition.tag.begin.html"
+				},
+				"2": {
+					"name": "aventus.js.tag"
+				},
+				"3": {
+					"name": "punctuation.definition.tag.end.html"
+				}
+			},
+			"endCaptures": {
+				"1": {
+					"name": "punctuation.definition.tag.begin.html"
+				},
+				"2": {
+					"name": "aventus.js.tag"
+				},
+				"3": {
+					"name": "punctuation.definition.tag.end.html"
+				}
+			},
+			"patterns": [
+				{
+					"begin": "(^|\\G)(\\s*)(.*)",
+					"end": "(?=</(?i:script))",
+					"patterns": [
+						{
+							"include": "source.js"
+						}
+					]
+				}
+			]
+		},
+		"htmlcode": {
+			"begin": "(<)(template)(>)",
+			"end": "(</)(template)(>)",
+			"name": "aventus.html.code",
+			"beginCaptures": {
+				"1": {
+					"name": "punctuation.definition.tag.begin.html"
+				},
+				"2": {
+					"name": "aventus.html.tag"
+				},
+				"3": {
+					"name": "punctuation.definition.tag.end.html"
+				}
+			},
+			"endCaptures": {
+				"1": {
+					"name": "punctuation.definition.tag.begin.html"
+				},
+				"2": {
+					"name": "aventus.html.tag"
+				},
+				"3": {
+					"name": "punctuation.definition.tag.end.html"
+				}
+			},
+			"patterns": [
+				{
+					"begin": "(^|\\G)(\\s*)(.*)",
+					"end": "(?=</(?i:template))",
+					"patterns": [
+						{
+							"include": "text.html1.basic"
+						}
+					]
+				}
+			]
+		}
+	}
+}

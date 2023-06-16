@@ -1,0 +1,25 @@
+{
+    "module": "Aventus",
+    "componentPrefix": "av",
+    "build": [
+        {
+            "name": "UI",
+            "inputPath": [
+                "./component/",
+                "./lib/",
+                "./test/"
+            ],
+            "namespaceStrategy": "followFolders",
+            "namespaceRoot": "./component/",
+            "outputPackage": "../../lib/Aventus@UI.package.avt",
+            "outputFile": "../dist/aventus.ui.js"
+        }
+    ],
+    "static": [
+        {
+            "name": "static",
+            "inputPath": "./static/",
+            "outputPath": "../dist/"
+        }
+    ]
+}

@@ -1,0 +1,365 @@
+import { EmptyState, State } from "./State.lib.avt";
+
+export type StateSlug = { [slugName: string]: string | number; };
+type StateActivationFct = (state: State, slugs: StateSlug) => void;
+type StateInactivationFct = (state: State, nextState: State, slugs: StateSlug) => void;
+type StateAskChangeFct = (state: State, nextState: State, slugs: StateSlug) => Promise<boolean>;
+export interface StateAction {
+    active?: StateActivationFct | StateActivationFct[];
+    inactive?: StateInactivationFct | StateInactivationFct[];
+    askChange?: StateAskChangeFct | StateAskChangeFct[];
+}
+
+type Subscriber = {
+    regex: RegExp,
+    params: { name: string, type: "number" | "string", position: number; }[],
+    isActive: boolean,
+    callbacks: {
+        active: StateActivationFct[],
+        inactive: StateInactivationFct[],
+        askChange: StateAskChangeFct[],
+    };
+};
+
+
+@Dependances([{ type: EmptyState, strong: false }])
+export abstract class StateManager {
+    protected subscribers: { [statePattern: string]: Subscriber; } = {};
+
+    public static canBeActivate(statePattern: string, stateName: string): boolean {
+        let stateInfo = this.prepareStateString(statePattern);
+        return stateInfo.regex.test(stateName);
+    }
+
+    protected activeState: State;
+
+    /**
+     * Subscribe actions for a state or a state list
+     */
+    public subscribe(statePatterns: string | string[], callbacks: StateAction) {
+        if(!callbacks.active && !callbacks.inactive && !callbacks.askChange) {
+            this._log(`Trying to subscribe to state : ${statePatterns} with no callbacks !`, "warning");
+            return;
+        }
+        if(!Array.isArray(statePatterns)) {
+            statePatterns = [statePatterns];
+        }
+        for(let statePattern of statePatterns) {
+
+            // We have test that the state is present in the state list
+            if(!this.subscribers.hasOwnProperty(statePattern)) {
+                let res = StateManager.prepareStateString(statePattern);
+
+                // The route doesn't exist, so we create the default architecture
+                let isActive = this.activeState !== undefined && res.regex.test(this.activeState.name);
+                this.subscribers[statePattern] = {
+                    "regex": res.regex,
+                    "params": res.params,
+                    "callbacks": {
+                        "active": [],
+                        "inactive": [],
+                        "askChange": [],
+                    },
+                    "isActive": isActive,
+                };
+            }
+            // Now, we're sure the route exist so we can add the callbacks
+            if(callbacks.active) {
+                if(!Array.isArray(callbacks.active)) {
+                    callbacks.active = [callbacks.active];
+                }
+                for(let activeFct of callbacks.active) {
+                    this.subscribers[statePattern].callbacks.active.push(activeFct);
+                    if(this.subscribers[statePattern].isActive) {
+                        let slugs = this.getInternalStateSlugs(this.subscribers[statePattern], this.activeState.name);
+                        activeFct(this.activeState, slugs);
+                    }
+                }
+            }
+            if(callbacks.inactive) {
+                if(!Array.isArray(callbacks.inactive)) {
+                    callbacks.inactive = [callbacks.inactive];
+                }
+                for(let inactiveFct of callbacks.inactive) {
+                    this.subscribers[statePattern].callbacks.inactive.push(inactiveFct);
+                }
+            }
+            if(callbacks.askChange) {
+                if(!Array.isArray(callbacks.askChange)) {
+                    callbacks.askChange = [callbacks.askChange];
+                }
+                for(let askChangeFct of callbacks.askChange) {
+                    this.subscribers[statePattern].callbacks.askChange.push(askChangeFct);
+                }
+            }
+
+        }
+    }
+    /**
+     * Unsubscribe actions for a state or a state list
+     */
+    public unsubscribe(statePatterns: string | string[], callbacks: StateAction) {
+        if(!callbacks.active && !callbacks.inactive && !callbacks.askChange) {
+            this._log(`Trying to unsubscribe to state : ${statePatterns} with no callbacks !`, "warning");
+            return;
+        }
+        if(!Array.isArray(statePatterns)) {
+            statePatterns = [statePatterns];
+        }
+        for(let statePattern of statePatterns) {
+            if(this.subscribers[statePattern]) {
+                if(callbacks.active) {
+                    if(!Array.isArray(callbacks.active)) {
+                        callbacks.active = [callbacks.active];
+                    }
+                    for(let activeFct of callbacks.active) {
+                        let index = this.subscribers[statePattern].callbacks.active.indexOf(activeFct);
+                        if(index !== -1) {
+                            this.subscribers[statePattern].callbacks.active.splice(index, 1);
+                        }
+                    }
+                }
+                if(callbacks.inactive) {
+                    if(!Array.isArray(callbacks.inactive)) {
+                        callbacks.inactive = [callbacks.inactive];
+                    }
+                    for(let inactiveFct of callbacks.inactive) {
+                        let index = this.subscribers[statePattern].callbacks.inactive.indexOf(inactiveFct);
+                        if(index !== -1) {
+                            this.subscribers[statePattern].callbacks.inactive.splice(index, 1);
+                        }
+                    }
+                }
+                if(callbacks.askChange) {
+                    if(!Array.isArray(callbacks.askChange)) {
+                        callbacks.askChange = [callbacks.askChange];
+                    }
+                    for(let askChangeFct of callbacks.askChange) {
+                        let index = this.subscribers[statePattern].callbacks.askChange.indexOf(askChangeFct);
+                        if(index !== -1) {
+                            this.subscribers[statePattern].callbacks.askChange.splice(index, 1);
+                        }
+                    }
+                }
+
+                if(
+                    this.subscribers[statePattern].callbacks.active.length === 0 &&
+                    this.subscribers[statePattern].callbacks.inactive.length === 0 &&
+                    this.subscribers[statePattern].callbacks.askChange.length === 0
+                ) {
+                    // There is no more callbacks linked to this route, we need to remove it
+                    delete this.subscribers[statePattern];
+                }
+            }
+        }
+    }
+    protected static prepareStateString(stateName: string) {
+        let params: { name: string, type: "number" | "string", position: number; }[] = [];
+        let i = 0;
+        let regexState = stateName.replace(/{.*?}/g, (group, position) => {
+            group = group.slice(1, -1);
+            let splitted = group.split(":");
+            let name = splitted[0].trim();
+            let type: "number" | "string" = "string";
+            let result = "([^\\/]+)";
+            i++;
+
+            if(splitted.length > 1) {
+                if(splitted[1].trim() == "number") {
+                    result = "([0-9]+)";
+                    type = "number";
+                }
+            }
+
+            params.push({
+                name,
+                type,
+                position: i
+            });
+            return result;
+        });
+        regexState = regexState.replace(/\*/g, ".*?");
+        regexState = "^" + regexState + '$';
+
+        return {
+            regex: new RegExp(regexState),
+            params
+        };
+    }
+
+    /**
+     * Activate a current state
+     */
+    public async setState(state: State | string): Promise<boolean> {
+        let stateToUse: State;
+        if(typeof state == "string") {
+            stateToUse = new EmptyState(state);
+        }
+        else {
+            stateToUse = state;
+        }
+        if(!stateToUse) {
+            this._log("state is undefined", "error");
+            return false;
+        }
+        let canChange = true;
+        if(this.activeState) {
+            let activeToInactive: Subscriber[] = [];
+            let inactiveToActive: { subscriber: Subscriber, params: StateSlug; }[] = [];
+            let triggerActive: { subscriber: Subscriber, params: StateSlug; }[] = [];
+            canChange = await this.activeState.askChange(this.activeState, stateToUse);
+            if(canChange) {
+                for(let statePattern in this.subscribers) {
+                    let subscriber = this.subscribers[statePattern];
+                    if(subscriber.isActive) {
+                        // ask change
+                        // We clone all the callbacks
+                        let clone = [...subscriber.callbacks.askChange];
+                        let currentSlug = this.getInternalStateSlugs(subscriber, this.activeState.name);
+                        for(let i = 0; i < clone.length; i++) {
+                            let askChange = clone[i];
+                            // If the askChange callback returns false, we can't change, but we continue to call all the others askChange callbacks
+                            if(!await askChange(this.activeState, stateToUse, currentSlug)) {
+                                canChange = false;
+                                break;
+                            }
+                        }
+
+                        // And the subscriber does not match on the next state
+                        let slugs = this.getInternalStateSlugs(subscriber, stateToUse.name);
+                        if(slugs === null) {
+                            // We need to pass it from active to inactive -> trigger the askChange callback before
+                            // We push the current subscriber to the list to trigger
+                            activeToInactive.push(subscriber);
+                        } else {
+                            // If it's already active and it will match on the next state. We want to trigger the activeCallback
+                            triggerActive.push({
+                                subscriber: subscriber,
+                                params: slugs
+                            });
+                        }
+                    }
+                    else {
+                        // If the state is not active and it will match on the next state, we want to trigger the activeCallback
+                        let slugs = this.getInternalStateSlugs(subscriber, stateToUse.name);
+                        if(slugs) {
+                            // We need to pass it from inactive to active
+                            inactiveToActive.push({
+                                subscriber,
+                                params: slugs
+                            });
+                        }
+                    }
+                    if(!canChange) {
+                        break;
+                    }
+                }
+            }
+            if(canChange) {
+                // We can change -> reset active params / slug, then triggers all inactive callbacks and then triggers all active callbacks
+                const oldState = this.activeState;
+                this.activeState = stateToUse;
+                oldState.onInactivate(stateToUse);
+
+                for(let subscriber of activeToInactive) {
+                    // We pass the subscriber to inactive
+                    subscriber.isActive = false;
+                    // We clone all the callbacks in order to avoid the callback to modify the array
+                    let oldSlug = this.getInternalStateSlugs(subscriber, oldState.name);
+                    [...subscriber.callbacks.inactive].forEach(callback => {
+                        callback(oldState, stateToUse, oldSlug);
+                    });
+                }
+
+                // Now we trigger all the subscriber that were already active -> so no need to modify active property
+                for(let trigger of triggerActive) {
+                    // We clone the callbacks in order to avoid the callback to modify the array
+                    [...trigger.subscriber.callbacks.active].forEach(callback => {
+                        callback(stateToUse, trigger.params);
+                    });
+                }
+
+                // We trigger all the inactive to active callbacks
+                for(let trigger of inactiveToActive) {
+                    // we set the subscriber to active
+                    trigger.subscriber.isActive = true;
+                    // We clone the callbacks in order to avoid the callback to modify the array
+                    [...trigger.subscriber.callbacks.active].forEach(callback => {
+                        callback(stateToUse, trigger.params);
+                    });
+                }
+                stateToUse.onActivate();
+            }
+        }
+        else {
+            this.activeState = stateToUse;
+            for(let key in this.subscribers) {
+                // If the subscriber match on the next state, we want to trigger the activeCallback
+                let slugs = this.getInternalStateSlugs(this.subscribers[key], stateToUse.name);
+                if(slugs) {
+                    this.subscribers[key].isActive = true;
+                    [...this.subscribers[key].callbacks.active].forEach(callback => {
+                        callback(stateToUse, slugs);
+                    });
+                }
+            }
+            stateToUse.onActivate();
+        }
+        return true;
+    }
+    public getState(): State | undefined {
+        return this.activeState;
+    }
+    protected getInternalStateSlugs(subscriber: Subscriber, stateName: string) {
+        let matches = subscriber.regex.exec(stateName);
+        if(matches) {
+            let slugs: StateSlug = {};
+            for(let param of subscriber.params) {
+                if(param.type == "number") {
+                    slugs[param.name] = Number(matches[param.position]);
+                }
+                else {
+                    slugs[param.name] = matches[param.position];
+                }
+            }
+            return slugs;
+        }
+        return null;
+    }
+
+    /**
+     * Check if a state is in the subscribers and active, return true if it is, false otherwise
+     */
+    public isStateActive(statePattern: string): boolean {
+        return StateManager.prepareStateString(statePattern).regex.test(this.activeState.name);
+    }
+    /**
+     * Get slugs information for the current state, return null if state isn't active
+     */
+    public getStateSlugs(statePattern: string) {
+        let prepared = StateManager.prepareStateString(statePattern);
+        return this.getInternalStateSlugs({
+            regex: prepared.regex,
+            params: prepared.params,
+            isActive: false,
+            callbacks: {
+                active: [],
+                inactive: [],
+                askChange: [],
+            }
+        }, this.activeState.name);
+    }
+    // 0 = error only / 1 = errors and warning / 2 = error, warning and logs (not implemented)
+    protected logLevel() {
+        return 0;
+    }
+    protected _log(msg: string, type: "error" | "warning" | "info") {
+        if(type === "error") {
+            console.error(msg);
+        } else if(type === "warning" && this.logLevel() > 0) {
+            console.warn(msg);
+        } else if(type === "info" && this.logLevel() > 1) {
+            console.log(msg);
+        }
+    }
+}

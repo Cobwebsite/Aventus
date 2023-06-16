@@ -1,0 +1,5 @@
+export class RouterStateManager extends Aventus.StateManager {
+    public static getInstance(): RouterStateManager {
+        return Aventus.Instance.get(RouterStateManager);
+    }
+}
