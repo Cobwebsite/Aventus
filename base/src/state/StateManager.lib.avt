@@ -1,3 +1,4 @@
+import { Callback } from "../lib/Callback.lib.avt";
 import { EmptyState, State } from "./State.lib.avt";
 
 export type StateSlug = { [slugName: string]: string | number; };
@@ -32,6 +33,8 @@ export abstract class StateManager {
     }
 
     protected activeState: State;
+
+    private afterStateChanged: Callback<() => void> = new Callback();
 
     /**
      * Subscribe actions for a state or a state list
@@ -153,6 +156,14 @@ export abstract class StateManager {
             }
         }
     }
+
+    public onAfterStateChanged(cb: () => void) {
+        this.afterStateChanged.add(cb);
+    }
+    public offAfterStateChanged(cb: () => void) {
+        this.afterStateChanged.remove(cb);
+    }
+
     protected static prepareStateString(stateName: string) {
         let params: { name: string, type: "number" | "string", position: number; }[] = [];
         let i = 0;
@@ -305,6 +316,7 @@ export abstract class StateManager {
             }
             stateToUse.onActivate();
         }
+        this.afterStateChanged.trigger([]);
         return true;
     }
     public getState(): State | undefined {
