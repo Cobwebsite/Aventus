@@ -771,6 +771,41 @@ class WebComponent extends HTMLElement {
     }
 }
 
+class Callback {
+    callbacks = [];
+    /**
+     * Clear all callbacks
+     */
+    clear() {
+        this.callbacks = [];
+    }
+    /**
+     * Add a callback
+     */
+    add(cb) {
+        this.callbacks.push(cb);
+    }
+    /**
+     * Remove a callback
+     */
+    remove(cb) {
+        let index = this.callbacks.indexOf(cb);
+        if (index != -1) {
+            this.callbacks.splice(index, 1);
+        }
+    }
+    /**
+     * Trigger all callbacks
+     */
+    trigger(args) {
+        let result = [];
+        for (let callback of this.callbacks) {
+            result.push(callback.apply(null, args));
+        }
+        return result;
+    }
+}
+
 class StateManager {
     subscribers = {};
     static canBeActivate(statePattern, stateName) {
@@ -778,6 +813,7 @@ class StateManager {
         return stateInfo.regex.test(stateName);
     }
     activeState;
+    afterStateChanged = new Callback();
     /**
      * Subscribe actions for a state or a state list
      */
@@ -887,6 +923,12 @@ class StateManager {
                 }
             }
         }
+    }
+    onAfterStateChanged(cb) {
+        this.afterStateChanged.add(cb);
+    }
+    offAfterStateChanged(cb) {
+        this.afterStateChanged.remove(cb);
     }
     static prepareStateString(stateName) {
         let params = [];
@@ -1015,6 +1057,7 @@ class StateManager {
             }
             stateToUse.onActivate();
         }
+        this.afterStateChanged.trigger([]);
         return true;
     }
     getState() {
@@ -2544,6 +2587,8 @@ Style.Namespace='Aventus';
 Aventus.Style=Style;
 WebComponent.Namespace='Aventus';
 Aventus.WebComponent=WebComponent;
+Callback.Namespace='Aventus';
+Aventus.Callback=Callback;
 StateManager.Namespace='Aventus';
 Aventus.StateManager=StateManager;
 WatchAction.Namespace='Aventus';

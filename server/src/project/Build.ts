@@ -616,7 +616,9 @@ export class Build {
          */
         const loadAndOrderInfo = (info: { fullName: string; isStrong: boolean }, isLocal: boolean, indexByUri: { [uri: string]: number }, alreadyLooked: { [name: string]: boolean }): { [uri: string]: number } => {
             const fullName = info.fullName.replace("$namespace$", '');
-           
+            if (fullName == "State") {
+                console.log("in")
+            }
 
             let calculateDependances = true;
             if (alreadyLooked[fullName] !== undefined) {
@@ -692,8 +694,7 @@ export class Build {
                         }
                     }
                     if (loadedInfoInternal.indexOf(fullName) != -1) {
-                        console.log("double dependances found for " + fullName);
-                        result[localUri] = -1;
+                        result[localUri] = loadedInfoInternal.indexOf(fullName);
                         return indexByUri;
                     }
 
@@ -736,8 +737,7 @@ export class Build {
                     }
 
                     if (loadedInfoExternal[infoExternal.uri].includes(fullName)) {
-                        console.log("double dependances found for " + fullName);
-                        indexByUri[infoExternal.uri] = -1;
+                        indexByUri[infoExternal.uri] = loadedInfoExternal[infoExternal.uri].indexOf(fullName);
                         return indexByUri;
                     }
 
