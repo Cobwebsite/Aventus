@@ -21,7 +21,8 @@ export interface AventusConfigBuild {
 		name: string,
 		path: string,
 		outputFile?: string,
-	}[]
+	}[],
+	compressed: boolean
 }
 export type IncludeType = 'none' | 'need' | 'full';
 

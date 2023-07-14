@@ -336,7 +336,8 @@ export class AventusJSONLanguageService {
             namespaceRoot: './',
             dependances: [],
             avoidParsingInsideTags: [...config.avoidParsingInsideTags],
-            componentStyle: []
+            componentStyle: [],
+            compressed: false
         }
     }
 
