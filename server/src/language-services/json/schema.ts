@@ -162,6 +162,9 @@ export const AventusConfigSchema: JSONSchema = {
                             required: ["name", "path"]
                         },
                         description: "Indicate the global style to load"
+                    },
+                    "compressed": {
+                        type: "boolean"
                     }
                 },
                 required: ["name", "inputPath"],

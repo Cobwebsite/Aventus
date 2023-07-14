@@ -4,7 +4,7 @@ import { rollup } from 'rollup';
 import commonjs from '@rollup/plugin-commonjs';
 import virtual from '@rollup/plugin-virtual';
 import nodeResolve from '@rollup/plugin-node-resolve';
-import terser from '@rollup/plugin-terser';
+import { minify } from 'terser';
 
 export type NpmDependances = {
 	[module_uri: string]: {
@@ -95,12 +95,6 @@ export class BuildNpm {
 					nodeResolve({
 						rootDir: rootDir
 					}),
-					terser({
-						compress: false,
-						format: {
-							comments: false,
-						}
-					})
 				]
 			})
 			let result = await res.generate({
@@ -110,8 +104,19 @@ export class BuildNpm {
 				resultTxt += chunk['code'];
 			}
 		} catch (e) {
-			console.log(e);
+			//console.log(e);
 		}
+
+		var code = {
+			"file1.js": resultTxt
+		}
+		const resultTemp = await minify(code, {
+			compress: false,
+			format: {
+				comments: false,
+			}
+		})
+		return resultTemp.code || '';
 		return resultTxt;
 	}
 

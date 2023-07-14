@@ -2,7 +2,7 @@
 	"name": "aventus",
 	"displayName": "Aventus",
 	"description": "This extension allows compilation of Aventus Framework",
-	"version": "1.0.100",
+	"version": "1.0.101",
 	"license": "MIT",
 	"icon": "icons/logo.png",
 	"author": {
@@ -563,7 +563,6 @@
 	"dependencies": {
 		"@rollup/plugin-commonjs": "^25.0.0",
 		"@rollup/plugin-node-resolve": "^15.1.0",
-		"@rollup/plugin-terser": "^0.4.3",
 		"@rollup/plugin-virtual": "^3.0.1",
 		"@types/estree": "^1.0.0",
 		"@types/node": "^18.11.17",
@@ -582,6 +581,7 @@
 		"sass": "^1.53.0",
 		"send": "^0.18.0",
 		"serve-index": "^1.9.1",
+		"terser": "^5.19.0",
 		"typescript": "^5.0.2",
 		"uglify-js": "^3.17.1",
 		"url": "^0.11.0",

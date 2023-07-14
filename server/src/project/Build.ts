@@ -30,6 +30,7 @@ import { AventusPackageFile, AventusPackageTsFileExport, AventusPackageTsFileExp
 import { BuildNpm, NpmDependances } from './BuildNpm';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AventusGlobalComponentSCSSFile } from '../language-services/scss/GlobalComponentFile';
+import { minify } from 'terser';
 
 export class Build {
     public project: Project;
@@ -179,7 +180,7 @@ export class Build {
         let compilationInfo = this.buildOrderCompilationInfo();
         let result = await this.buildLocalCode(compilationInfo.toCompile, this.buildConfig.module, compilationInfo.npmNeeded);
 
-        this.writeBuildCode(result, compilationInfo.libSrc);
+        await this.writeBuildCode(result, compilationInfo.libSrc);
         let srcInfo = {
             namespace: this.buildConfig.module,
             available: result.codeRenderInJs,
@@ -256,7 +257,7 @@ export class Build {
     /**
      * Write the code inside the exported .js
      */
-    private writeBuildCode(localCode: {
+    private async writeBuildCode(localCode: {
         code: string[], codeNoNamespaceBefore: string[], codeNoNamespaceAfter: string[], classesName: string[], classesNameData: string[], stylesheets: { [name: string]: string }
     }, libSrc: string) {
         if (this.buildConfig.outputFile) {
@@ -279,6 +280,22 @@ export class Build {
             let folderPath = getFolder(this.buildConfig.outputFile.replace(/\\/g, "/"));
             if (!existsSync(folderPath)) {
                 mkdirSync(folderPath, { recursive: true });
+            }
+            if (this.buildConfig.compressed) {
+                try {
+                    
+                    const resultTemp = await minify({
+                        "file1.js" : finalTxt
+                    }, {
+                        compress: false,
+                        format: {
+                            comments: false,
+                        }
+                    })
+                    finalTxt = resultTemp.code ?? '';
+                } catch (e) {
+                    console.log(e);
+                }
             }
             writeFileSync(this.buildConfig.outputFile, finalTxt);
         }
