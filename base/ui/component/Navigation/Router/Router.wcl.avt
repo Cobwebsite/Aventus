@@ -2,11 +2,11 @@ import { RouterStateManager } from "../../../lib/RouterStateManager.lib.avt";
 import { Page } from "../Page/Page.wcl.avt";
 
 namespace Navigation {
-	export type RouteAsyncOption = {
-		route: string,
-		scriptUrl: string,
-		render: () => new () => Page;
-	};
+    export type RouteAsyncOption = {
+        route: string,
+        scriptUrl: string,
+        render: () => new () => Page;
+    };
     export abstract class Router extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
         //#region static
@@ -26,100 +26,134 @@ namespace Navigation {
 
         private allRoutes: { [key: string]: RouteAsyncOption; } = {};
         private activePath: string = "";
+        private oneStateActive: boolean = false;
         //#endregion
 
 
         //#region constructor
-
+        constructor() {
+            super();
+            this.validError404 = this.validError404.bind(this);
+        }
         //#endregion
 
 
         //#region methods
-		/**
-		 * Add all your routes inside this function (addRoute or addRouteAsync)
-		 */
-		protected abstract defineRoutes(): void;
-		protected get stateManager() : Aventus.StateManager {
-			return Aventus.Instance.get(RouterStateManager);
-		}
+        /**
+         * Add all your routes inside this function (addRoute or addRouteAsync)
+         */
+        protected abstract defineRoutes(): void;
+        protected get stateManager(): Aventus.StateManager {
+            return Aventus.Instance.get(RouterStateManager);
+        }
 
-		protected addRouteAsync<T extends Page>(options: RouteAsyncOption) {
-			this.allRoutes[options.route] = options;
-		}
-		protected addRoute(route: string, elementCtr: new () => Page) {
-			this.allRoutes[route] = {
-				route: route,
-				scriptUrl: '',
-				render: () => elementCtr
-			};
-		}
-	
-		private register(): void {
-			try {
-				this.defineRoutes();
-	
-				for(let key in this.allRoutes) {
-					this.initRoute(key);
-				}
-			} catch(e) {
-				console.log(e);
-			}
-		}
-		private initRoute(path: string) {
-			let element: Page = undefined;
-			let allRoutes = this.allRoutes;
-			this.stateManager.subscribe(path, {
-				active: async (currentState) => {
-					if(!element) {
-						let options = allRoutes[path];
-						if(options.scriptUrl != "") {
-							await Aventus.ResourceLoader.loadInHead(options.scriptUrl);
-						}
-	
-						let constructor = options.render();
-						element = new constructor;
-						element.currentRouter = this;
-						this.contentEl.appendChild(element);
-					}
-					if(this.oldPage && this.oldPage != element) {
-						await this.oldPage.hide();
-					}
-	
-					let oldPage = this.oldPage;
-					let oldUrl = this.activePath;
-					await element.show();
-					this.oldPage = element;
-					this.activePath = path;
-					if(window.location.pathname != currentState.name) {
-						let newUrl = window.location.origin + currentState.name;
-						document.title = element.pageTitle();
-						window.history.pushState({}, element.pageTitle(), newUrl);
-					}
-					this.onNewPage(oldUrl, oldPage, path, element);
-				}
-			});
-		}
-		protected onNewPage(oldUrl: string, oldPage: Page, newUrl: string, newPage: Page) {
-	
-		}
-		public getSlugs() {
-			return this.stateManager.getStateSlugs(this.activePath);
-		}
-		protected override postCreation(): void {
-			this.register();
-			if(window.localStorage.getItem("navigation_url")) {
-				Aventus.State.activate(window.localStorage.getItem("navigation_url"), this.stateManager);
-				window.localStorage.removeItem("navigation_url");
-			}
-			else {
-				Aventus.State.activate(window.location.pathname, this.stateManager);
-			}
-			window.onpopstate = (e) => {
-				if(window.location.pathname != this.stateManager.getState().name) {
-					Aventus.State.activate(window.location.pathname, this.stateManager);
-				}
-			};
-		}
+        protected addRouteAsync<T extends Page>(options: RouteAsyncOption) {
+            this.allRoutes[options.route] = options;
+        }
+        protected addRoute(route: string, elementCtr: new () => Page) {
+            this.allRoutes[route] = {
+                route: route,
+                scriptUrl: '',
+                render: () => elementCtr
+            };
+        }
+
+        private register(): void {
+            try {
+                this.defineRoutes();
+                this.stateManager.onAfterStateChanged(this.validError404);
+                for(let key in this.allRoutes) {
+                    this.initRoute(key);
+                }
+            } catch(e) {
+                console.log(e);
+            }
+        }
+        private initRoute(path: string) {
+            let element: Page = undefined;
+            let allRoutes = this.allRoutes;
+            this.stateManager.subscribe(path, {
+                active: (currentState) => {
+                    this.oneStateActive = true;
+                    const showPage = async () => {
+                        if(!element) {
+                            let options = allRoutes[path];
+                            if(options.scriptUrl != "") {
+                                await Aventus.ResourceLoader.loadInHead(options.scriptUrl);
+                            }
+
+                            let constructor = options.render();
+                            element = new constructor;
+                            element.currentRouter = this;
+                            this.contentEl.appendChild(element);
+                        }
+                        if(this.oldPage && this.oldPage != element) {
+                            await this.oldPage.hide();
+                        }
+
+                        let oldPage = this.oldPage;
+                        let oldUrl = this.activePath;
+                        await element.show();
+                        this.oldPage = element;
+                        this.activePath = path;
+                        if(window.location.pathname != currentState.name) {
+                            let newUrl = window.location.origin + currentState.name;
+                            document.title = element.pageTitle();
+                            window.history.pushState({}, element.pageTitle(), newUrl);
+                        }
+                        this.onNewPage(oldUrl, oldPage, path, element);
+                    };
+					showPage();
+                },
+                inactive: () => {
+                    this.oneStateActive = false;
+                }
+            });
+        }
+
+        protected page404: Page;
+        protected async validError404() {
+            if(!this.oneStateActive) {
+                let Page404 = this.error404(this.stateManager.getState());
+                if(Page404) {
+                    if(!this.page404) {
+                        this.page404 = new Page404();
+                        this.page404.currentRouter = this;
+                        this.contentEl.appendChild(this.page404);
+                    }
+                    if(this.oldPage && this.oldPage != this.page404) {
+                        await this.oldPage.hide();
+                    }
+                    await this.page404.show();
+                    this.oldPage = this.page404;
+                    this.activePath = '';
+                }
+            }
+        }
+        protected error404(state: Aventus.State): null | (new () => Page) {
+            return null;
+        }
+        protected onNewPage(oldUrl: string, oldPage: Page, newUrl: string, newPage: Page) {
+
+        }
+        public getSlugs() {
+            return this.stateManager.getStateSlugs(this.activePath);
+        }
+        protected override postCreation(): void {
+            this.register();
+            if(window.localStorage.getItem("navigation_url")) {
+                Aventus.State.activate(window.localStorage.getItem("navigation_url"), this.stateManager);
+                window.localStorage.removeItem("navigation_url");
+            }
+            else {
+                Aventus.State.activate(window.location.pathname, this.stateManager);
+            }
+            window.onpopstate = (e) => {
+                if(window.location.pathname != this.stateManager.getState().name) {
+                    Aventus.State.activate(window.location.pathname, this.stateManager);
+                }
+            };
+        }
         //#endregion
 
     }

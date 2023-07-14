@@ -54,7 +54,7 @@ export class BuildNpm {
 							ClientConnection.getInstance().showErrorMessage("Something went wrong with the npm export");
 						}
 					}
-					toCompileImport += `import { ${Object.keys(parts).join(", ")} } from "${uri}";` + EOL;
+					toCompileImport += `import { ${Object.values(parts).join(", ")} } from "${uri}";` + EOL;
 				}
 			}
 

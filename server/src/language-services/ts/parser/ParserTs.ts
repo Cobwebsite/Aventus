@@ -179,6 +179,51 @@ export class ParserTs {
     }
 
 
+    private importLocal(moduleName: string, localName: string) {
+        let moduleUri = pathToUri(normalize(getFolder(uriToPath(this.document.uri)) + '/' + moduleName));
+        if (!ParserTs.parsedDoc[moduleUri]) {
+            let file = FilesManager.getInstance().getByUri(moduleUri);
+            if (file) {
+                ParserTs.parse(file.document, false);
+            }
+            else {
+                let modulePath = uriToPath(moduleUri);
+                let content = existsSync(modulePath) ? readFileSync(modulePath, 'utf8') : ''
+                ParserTs.parse(TextDocument.create(moduleUri, AventusLanguageId.TypeScript, 1, content), false);
+            }
+        }
+        if (ParserTs.parsedDoc[moduleUri].result.isReady) {
+            let baseInfoLinked = ParserTs.parsedDoc[moduleUri].result.getBaseInfo(localName);
+            if (baseInfoLinked) {
+                this.imports[localName] = baseInfoLinked
+            }
+            else {
+                console.log("Can't load " + moduleUri + " " + localName + " from " + this.document.uri);
+            }
+        }
+        else {
+            ParserTs.parsedDoc[moduleUri].result.onReady(() => {
+                let baseInfoLinked = ParserTs.parsedDoc[moduleUri].result.getBaseInfo(localName);
+                if (baseInfoLinked) {
+                    this.imports[localName] = baseInfoLinked
+                    for (let className in this.classes) {
+                        let _class = this.classes[className]
+                        for (let dependance of _class.dependances) {
+                            if (dependance.uri == "@external" && dependance.fullName == localName) {
+                                dependance.uri = "@local";
+                                dependance.fullName = "$namespace$" + baseInfoLinked.fullName;
+                                dependance.isStrong = false;
+                            }
+                        }
+                    }
+                }
+                else {
+                    console.log("Can't load " + moduleUri + " " + localName + " from " + this.document.uri);
+                }
+            })
+        }
+    }
+
     private loadImport(node: ImportDeclaration) {
         if (node.importClause) {
             if (node.importClause.namedBindings) {
@@ -216,53 +261,11 @@ export class ParserTs {
                             }
                             else {
                                 let localName = element.name.getText();
-                                let moduleUri = pathToUri(normalize(getFolder(uriToPath(this.document.uri)) + '/' + moduleName));
-                                if (!ParserTs.parsedDoc[moduleUri]) {
-                                    let file = FilesManager.getInstance().getByUri(moduleUri);
-                                    if (file) {
-                                        ParserTs.parse(file.document, false);
-                                    }
-                                    else {
-                                        let modulePath = uriToPath(moduleUri);
-                                        let content = existsSync(modulePath) ? readFileSync(modulePath, 'utf8') : ''
-                                        ParserTs.parse(TextDocument.create(moduleUri, AventusLanguageId.TypeScript, 1, content), false);
-                                    }
-                                }
-                                if (ParserTs.parsedDoc[moduleUri].result.isReady) {
-                                    let baseInfoLinked = ParserTs.parsedDoc[moduleUri].result.getBaseInfo(localName);
-                                    if (baseInfoLinked) {
-                                        this.imports[localName] = baseInfoLinked
-                                    }
-                                    else {
-                                        console.log("Can't load " + moduleUri + " " + localName + " from " + this.document.uri);
-                                    }
-                                }
-                                else {
-                                    ParserTs.parsedDoc[moduleUri].result.onReady(() => {
-                                        let baseInfoLinked = ParserTs.parsedDoc[moduleUri].result.getBaseInfo(localName);
-                                        if (baseInfoLinked) {
-                                            this.imports[localName] = baseInfoLinked
-                                            for (let className in this.classes) {
-                                                let _class = this.classes[className]
-                                                for (let dependance of _class.dependances) {
-                                                    if (dependance.uri == "@external" && dependance.fullName == localName) {
-                                                        dependance.uri = "@local";
-                                                        dependance.fullName = "$namespace$" + baseInfoLinked.fullName;
-                                                        dependance.isStrong = false;
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        else {
-                                            console.log("Can't load " + moduleUri + " " + localName + " from " + this.document.uri);
-                                        }
-                                    })
-                                }
+                                this.importLocal(moduleName, localName);
                             }
                         }
                     }
                     else {
-
                         for (let element of node.importClause.namedBindings.elements) {
                             let name = element.name.getText();
                             let nameInsideLib = name;
@@ -276,6 +279,19 @@ export class ParserTs {
 
                         }
                     }
+                }
+            }
+            else if (node.importClause.name) {
+                let moduleName = node.moduleSpecifier.getText().replace(/"/g, "").replace(/'/g, "");
+                let name = node.importClause.name.getText();
+                if (moduleName.startsWith(".")) {
+                    this.importLocal(moduleName, name);
+                }
+                else {
+                    this.npmImports[name] = {
+                        uri: moduleName,
+                        nameInsideLib: name
+                    };
                 }
             }
         }
