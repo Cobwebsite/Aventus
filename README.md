@@ -13,4 +13,4 @@ To learn Aventus go to the offical website at [aventusjs.com](https://aventusjs.
 
 [MIT](https://opensource.org/licenses/MIT)
 
-Copyright (c) 2013-present, Cobwebsite
+Copyright (c) 2023-present, Cobwebsite

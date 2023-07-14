@@ -1,9 +1,8 @@
 # Change Log
 
-All notable changes to the "aventus" extension will be documented in this file.
+## 1.0.100 (2023-07-14)
 
-Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
+### Bug Fixes
 
-## [Unreleased]
-
-- Initial release
+ - Correct double dependances error ([#3](https://github.com/Cobwebsite/Aventus/issues/3))
+ - Correct import from npm ([#4](https://github.com/Cobwebsite/Aventus/issues/4))
