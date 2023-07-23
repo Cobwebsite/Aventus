@@ -60,6 +60,10 @@ export class AventusPackageFile extends AventusBaseFile {
 		this.prepareFile();
 	}
 
+	public loadWebComponents() {
+		this.tsDef?.loadWebComponents();
+	}
+
 	private prepareFile() {
 		let result = this.separeSection();
 		if (result) {
@@ -249,10 +253,9 @@ export class AventusPackageFileTs extends AventusTsFile {
 
 	public constructor(file: AventusFile, build: Build) {
 		super(file, build);
-		this.loadWebComponents();
 	}
 
-	private loadWebComponents() {
+	public loadWebComponents() {
 		try {
 			this.refreshFileParsed(true);
 			let structJs = this.fileParsed;

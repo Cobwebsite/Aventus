@@ -86,17 +86,21 @@ export class DependanceManager {
 
 		for (let name of orderedName) {
 			let current = loopResult[name];
-			// insert first place | TODO check if we need reverse
-			result.dependanceUris.push(current.uri);
+			current.file.loadWebComponents();
 			result.files.push(current.file);
 			let nameTemp = includeNames[name] ? name : "*";
 			if (includeNames[nameTemp]) {
 				if (includeNames[nameTemp] == "full") {
 					result.dependanceFullUris.push(current.uri);
+					result.dependanceUris.push(current.uri);
 				}
 				else if (includeNames[nameTemp] == "need") {
 					result.dependanceNeedUris.push(current.uri);
+					result.dependanceUris.push(current.uri);
 				}
+			}
+			else {
+				result.dependanceUris.push(current.uri);
 			}
 		}
 		return result;
