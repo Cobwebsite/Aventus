@@ -1,0 +1,63 @@
+
+type StringLiteral<T> = T extends string ? string extends T ? never : T : never;
+type BaseTypeAddRoute = (abstract new (...args: any[]) => any) & { options: BaseRouteOptions; };
+type RouteType = new (options: BaseRouteOptions) => any;
+type MixinProperty<B extends BaseTypeAddRoute, R extends RouteType, S extends string = null> = InstanceType<B> & Unflatten<Record<S, InstanceType<R>>>;
+type ResultTypeAddRouteWithPath<B extends BaseTypeAddRoute, R extends RouteType, S extends string = null> = (
+    (abstract new (...args: any) => MixinProperty<B, R, S>) & {
+        prototype: MixinProperty<B, R, S>;
+    }) & B;
+type ResultTypeAddRouteNoPath<B extends BaseTypeAddRoute, R extends RouteType, S extends string = null> = (
+    (abstract new (...args: any) => InstanceType<B> & InstanceType<R>) & {
+        prototype: InstanceType<B> & InstanceType<R>;
+    }) & B;
+type AddRouteResult<B extends BaseTypeAddRoute, R extends RouteType, S extends string = null> = S extends null ? ResultTypeAddRouteNoPath<B, R, S> : S extends "" ? ResultTypeAddRouteNoPath<B, R, S> : ResultTypeAddRouteWithPath<B, R, S>;
+
+
+export function AddRoute<B extends (abstract new (...args: any[]) => any) & { options: BaseRouteOptions; }, R extends new (options: BaseRouteOptions) => any, S extends string = null>(Base: B, Route: R, name: StringLiteral<S> | null = null) {
+    abstract class Temp extends Base {
+        constructor(...args: any) {
+            super(...args);
+            if(!name) {
+                const splitted = name.split(".");
+                let current = this as any;
+                for(let i = 0; i < splitted.length - 1; i++) {
+                    if(!current[splitted[i]]) {
+                        current[splitted[i]] = {};
+                    }
+                    current = current.splitted[i];
+                }
+                current[splitted[splitted.length - 1]] = new Route(Base.options);
+            }
+            else {
+                let routeTemp = new Route(Base.options);
+                let props = Object.getOwnPropertyNames(routeTemp);
+                let current = this as any;
+                for(let prop of props) {
+                    current[prop] = routeTemp[prop];
+                }
+            }
+        }
+    }
+
+    return Temp as AddRouteResult<B, R, S>;
+}
+
+type Split<S extends string, Sep extends string = "", R extends string[] = []> =
+    S extends "" ? R : S extends `${infer A}${Sep}${infer B}`
+    ? Split<B, Sep, [...R, A]> : [...R, S];
+
+type Join<S extends string[], Sep extends string = "", R extends string = ""> =
+    S["length"] extends 0
+    ? R
+    : S extends [infer A extends string, ...infer B extends string[]]
+    ? Join<B, Sep, `${R}${R extends "" ? "" : Sep}${A}`>
+    : R;
+
+type Unflatten<T> = T extends object ? {
+    [K in keyof T & string as Split<K, ".">[0]]: [K] extends [`${string}.${string}`]
+    ? Unflatten<{
+        [P in Split<K, "."> extends [any, ...infer Rest extends string[]] ? Join<Rest, "."> : never]: T[`${Split<K, ".">[0]}.${P}` & keyof T]
+    }>
+    : T[K];
+} : T;
