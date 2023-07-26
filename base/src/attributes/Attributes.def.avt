@@ -1,5 +1,5 @@
 declare global {
-    type Constructor<T> = Function & { prototype: T; };
+    type ConstructorConstraint<T> = Function & { prototype: T; };
 
     interface DebuggerConfig {
         /** Write the compiled file inside ./compiled.js */
@@ -52,31 +52,31 @@ declare global {
     /**
      * Add foreign key reference
      */
-    function ForeignKey(ref: Constructor<Aventus.IData>);
+    function ForeignKey(ref: ConstructorConstraint<Aventus.IData>);
 
-    function StateActive(stateName: string, manager: Constructor<Aventus.StateManager> | Aventus.StateManager): (target: any, propertyKey: string, descriptor: TypedPropertyDescriptor<((state: Aventus.State, slugs: Aventus.StateSlug) => void)>) => void;
-    function DefaultStateActive(manager: Constructor<Aventus.StateManager> | Aventus.StateManager);
-    function StateInactive(stateName: string, manager: Constructor<Aventus.StateManager> | Aventus.StateManager): (target: any, propertyKey: string, descriptor: TypedPropertyDescriptor<((state: Aventus.State, nextState: Aventus.State, slugs: Aventus.StateSlug) => void)>) => void;
-    function DefaultStateInactive(manager: Constructor<Aventus.StateManager> | Aventus.StateManager);
-    function StateChange(stateName: string, manager: Constructor<Aventus.StateManager> | Aventus.StateManager): (target: any, propertyKey: string, descriptor: TypedPropertyDescriptor<((state: Aventus.State, nextState: Aventus.State, slugs: Aventus.StateSlug) => boolean | Promise<boolean>)>) => void;
+    function StateActive(stateName: string, manager: ConstructorConstraint<Aventus.StateManager> | Aventus.StateManager): (target: any, propertyKey: string, descriptor: TypedPropertyDescriptor<((state: Aventus.State, slugs: Aventus.StateSlug) => void)>) => void;
+    function DefaultStateActive(manager: ConstructorConstraint<Aventus.StateManager> | Aventus.StateManager);
+    function StateInactive(stateName: string, manager: ConstructorConstraint<Aventus.StateManager> | Aventus.StateManager): (target: any, propertyKey: string, descriptor: TypedPropertyDescriptor<((state: Aventus.State, nextState: Aventus.State, slugs: Aventus.StateSlug) => void)>) => void;
+    function DefaultStateInactive(manager: ConstructorConstraint<Aventus.StateManager> | Aventus.StateManager);
+    function StateChange(stateName: string, manager: ConstructorConstraint<Aventus.StateManager> | Aventus.StateManager): (target: any, propertyKey: string, descriptor: TypedPropertyDescriptor<((state: Aventus.State, nextState: Aventus.State, slugs: Aventus.StateSlug) => boolean | Promise<boolean>)>) => void;
 
     /**
      * Clear parent view and use your
      */
-    function OverrideView(config?: OverrideViewConfig): (<T extends Constructor<Aventus.WebComponent>> (constructor: T) => T);
+    function OverrideView(config?: OverrideViewConfig): (<T extends ConstructorConstraint<Aventus.WebComponent>> (ConstructorConstraint: T) => T);
     /**
      * use a custom TagName
      */
-    function TagName(name: string): (<T extends Constructor<Aventus.WebComponent>> (constructor: T) => T);
+    function TagName(name: string): (<T extends ConstructorConstraint<Aventus.WebComponent>> (ConstructorConstraint: T) => T);
     /**
      * Force to be required inside export
      */
-    function Required(): (constructor: Function) => void;
+    function Required(): (ConstructorConstraint: Function) => void;
     /**
      * Add debbuger action function for your component
      */
-    function Debugger(config: DebuggerConfig): (constructor: Function) => void;
+    function Debugger(config: DebuggerConfig): (ConstructorConstraint: Function) => void;
 
 
-    function Dependances(info: DependanceConfig[]): (constructor: Function) => void;
+    function Dependances(info: DependanceConfig[]): (ConstructorConstraint: Function) => void;
 }

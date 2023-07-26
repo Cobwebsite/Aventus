@@ -1,3 +1,4 @@
+import { Mutex } from "../tools/Mutex.lib.avt";
 import { Callback } from "../lib/Callback.lib.avt";
 import { EmptyState, State } from "./State.lib.avt";
 
@@ -33,6 +34,7 @@ export abstract class StateManager {
     }
 
     protected activeState: State;
+    protected changeStateMutex: Mutex = new Mutex();
 
     private afterStateChanged: Callback<() => void> = new Callback();
 
@@ -202,122 +204,126 @@ export abstract class StateManager {
      * Activate a current state
      */
     public async setState(state: State | string): Promise<boolean> {
-        let stateToUse: State;
-        if(typeof state == "string") {
-            stateToUse = new EmptyState(state);
-        }
-        else {
-            stateToUse = state;
-        }
-        if(!stateToUse) {
-            this._log("state is undefined", "error");
-            return false;
-        }
-        let canChange = true;
-        if(this.activeState) {
-            let activeToInactive: Subscriber[] = [];
-            let inactiveToActive: { subscriber: Subscriber, params: StateSlug; }[] = [];
-            let triggerActive: { subscriber: Subscriber, params: StateSlug; }[] = [];
-            canChange = await this.activeState.askChange(this.activeState, stateToUse);
-            if(canChange) {
-                for(let statePattern in this.subscribers) {
-                    let subscriber = this.subscribers[statePattern];
-                    if(subscriber.isActive) {
-                        // ask change
-                        // We clone all the callbacks
-                        let clone = [...subscriber.callbacks.askChange];
-                        let currentSlug = this.getInternalStateSlugs(subscriber, this.activeState.name);
-                        for(let i = 0; i < clone.length; i++) {
-                            let askChange = clone[i];
-                            // If the askChange callback returns false, we can't change, but we continue to call all the others askChange callbacks
-                            if(!await askChange(this.activeState, stateToUse, currentSlug)) {
-                                canChange = false;
-                                break;
+        return await this.changeStateMutex.safeRunLastAsync<boolean>(async ()  => {
+            let stateToUse: State;
+            if(typeof state == "string") {
+                stateToUse = new EmptyState(state);
+            }
+            else {
+                stateToUse = state;
+            }
+            if(!stateToUse) {
+                this._log("state is undefined", "error");
+                this.changeStateMutex.release();
+                return false;
+            }
+            let canChange = true;
+            if(this.activeState) {
+                let activeToInactive: Subscriber[] = [];
+                let inactiveToActive: { subscriber: Subscriber, params: StateSlug; }[] = [];
+                let triggerActive: { subscriber: Subscriber, params: StateSlug; }[] = [];
+                canChange = await this.activeState.askChange(this.activeState, stateToUse);
+                if(canChange) {
+                    for(let statePattern in this.subscribers) {
+                        let subscriber = this.subscribers[statePattern];
+                        if(subscriber.isActive) {
+                            // ask change
+                            // We clone all the callbacks
+                            let clone = [...subscriber.callbacks.askChange];
+                            let currentSlug = this.getInternalStateSlugs(subscriber, this.activeState.name);
+                            for(let i = 0; i < clone.length; i++) {
+                                let askChange = clone[i];
+                                // If the askChange callback returns false, we can't change, but we continue to call all the others askChange callbacks
+                                if(!await askChange(this.activeState, stateToUse, currentSlug)) {
+                                    canChange = false;
+                                    break;
+                                }
+                            }
+    
+                            // And the subscriber does not match on the next state
+                            let slugs = this.getInternalStateSlugs(subscriber, stateToUse.name);
+                            if(slugs === null) {
+                                // We need to pass it from active to inactive -> trigger the askChange callback before
+                                // We push the current subscriber to the list to trigger
+                                activeToInactive.push(subscriber);
+                            } else {
+                                // If it's already active and it will match on the next state. We want to trigger the activeCallback
+                                triggerActive.push({
+                                    subscriber: subscriber,
+                                    params: slugs
+                                });
                             }
                         }
-
-                        // And the subscriber does not match on the next state
-                        let slugs = this.getInternalStateSlugs(subscriber, stateToUse.name);
-                        if(slugs === null) {
-                            // We need to pass it from active to inactive -> trigger the askChange callback before
-                            // We push the current subscriber to the list to trigger
-                            activeToInactive.push(subscriber);
-                        } else {
-                            // If it's already active and it will match on the next state. We want to trigger the activeCallback
-                            triggerActive.push({
-                                subscriber: subscriber,
-                                params: slugs
-                            });
+                        else {
+                            // If the state is not active and it will match on the next state, we want to trigger the activeCallback
+                            let slugs = this.getInternalStateSlugs(subscriber, stateToUse.name);
+                            if(slugs) {
+                                // We need to pass it from inactive to active
+                                inactiveToActive.push({
+                                    subscriber,
+                                    params: slugs
+                                });
+                            }
+                        }
+                        if(!canChange) {
+                            break;
                         }
                     }
-                    else {
-                        // If the state is not active and it will match on the next state, we want to trigger the activeCallback
-                        let slugs = this.getInternalStateSlugs(subscriber, stateToUse.name);
-                        if(slugs) {
-                            // We need to pass it from inactive to active
-                            inactiveToActive.push({
-                                subscriber,
-                                params: slugs
-                            });
-                        }
+                }
+                if(canChange) {
+                    // We can change -> reset active params / slug, then triggers all inactive callbacks and then triggers all active callbacks
+                    const oldState = this.activeState;
+                    this.activeState = stateToUse;
+                    oldState.onInactivate(stateToUse);
+    
+                    for(let subscriber of activeToInactive) {
+                        // We pass the subscriber to inactive
+                        subscriber.isActive = false;
+                        // We clone all the callbacks in order to avoid the callback to modify the array
+                        let oldSlug = this.getInternalStateSlugs(subscriber, oldState.name);
+                        [...subscriber.callbacks.inactive].forEach(callback => {
+                            callback(oldState, stateToUse, oldSlug);
+                        });
                     }
-                    if(!canChange) {
-                        break;
+    
+                    // Now we trigger all the subscriber that were already active -> so no need to modify active property
+                    for(let trigger of triggerActive) {
+                        // We clone the callbacks in order to avoid the callback to modify the array
+                        [...trigger.subscriber.callbacks.active].forEach(callback => {
+                            callback(stateToUse, trigger.params);
+                        });
                     }
+    
+                    // We trigger all the inactive to active callbacks
+                    for(let trigger of inactiveToActive) {
+                        // we set the subscriber to active
+                        trigger.subscriber.isActive = true;
+                        // We clone the callbacks in order to avoid the callback to modify the array
+                        [...trigger.subscriber.callbacks.active].forEach(callback => {
+                            callback(stateToUse, trigger.params);
+                        });
+                    }
+                    stateToUse.onActivate();
                 }
             }
-            if(canChange) {
-                // We can change -> reset active params / slug, then triggers all inactive callbacks and then triggers all active callbacks
-                const oldState = this.activeState;
+            else {
                 this.activeState = stateToUse;
-                oldState.onInactivate(stateToUse);
-
-                for(let subscriber of activeToInactive) {
-                    // We pass the subscriber to inactive
-                    subscriber.isActive = false;
-                    // We clone all the callbacks in order to avoid the callback to modify the array
-                    let oldSlug = this.getInternalStateSlugs(subscriber, oldState.name);
-                    [...subscriber.callbacks.inactive].forEach(callback => {
-                        callback(oldState, stateToUse, oldSlug);
-                    });
-                }
-
-                // Now we trigger all the subscriber that were already active -> so no need to modify active property
-                for(let trigger of triggerActive) {
-                    // We clone the callbacks in order to avoid the callback to modify the array
-                    [...trigger.subscriber.callbacks.active].forEach(callback => {
-                        callback(stateToUse, trigger.params);
-                    });
-                }
-
-                // We trigger all the inactive to active callbacks
-                for(let trigger of inactiveToActive) {
-                    // we set the subscriber to active
-                    trigger.subscriber.isActive = true;
-                    // We clone the callbacks in order to avoid the callback to modify the array
-                    [...trigger.subscriber.callbacks.active].forEach(callback => {
-                        callback(stateToUse, trigger.params);
-                    });
+                for(let key in this.subscribers) {
+                    // If the subscriber match on the next state, we want to trigger the activeCallback
+                    let slugs = this.getInternalStateSlugs(this.subscribers[key], stateToUse.name);
+                    if(slugs) {
+                        this.subscribers[key].isActive = true;
+                        [...this.subscribers[key].callbacks.active].forEach(callback => {
+                            callback(stateToUse, slugs);
+                        });
+                    }
                 }
                 stateToUse.onActivate();
             }
-        }
-        else {
-            this.activeState = stateToUse;
-            for(let key in this.subscribers) {
-                // If the subscriber match on the next state, we want to trigger the activeCallback
-                let slugs = this.getInternalStateSlugs(this.subscribers[key], stateToUse.name);
-                if(slugs) {
-                    this.subscribers[key].isActive = true;
-                    [...this.subscribers[key].callbacks.active].forEach(callback => {
-                        callback(stateToUse, slugs);
-                    });
-                }
-            }
-            stateToUse.onActivate();
-        }
-        this.afterStateChanged.trigger([]);
-        return true;
+            this.afterStateChanged.trigger([]);
+            return true;
+        })
+        
     }
     public getState(): State | undefined {
         return this.activeState;

@@ -9,26 +9,28 @@ export class GenericError<T extends number> {
      */
     public message: string;
 
+    public details: any[] = [];
+
     public constructor(code: T, message: string) {
         this.code = code;
         this.message = message;
     }
 }
 
-export class ResultWithError<T, U extends GenericError<any>> {
+export class ResultWithError<T extends GenericError<any>, U> {
 
-	/**
-	 * Determine if the action is a success
-	 */
+    /**
+     * Determine if the action is a success
+     */
     public get success(): boolean {
         return this.errors.length == 0;
     }
-	/**
-	 * Result
-	 */
-	public result:T;
-	/**
-	 * List of errors
-	 */
-    public errors: U[] = [];
+    /**
+     * Result
+     */
+    public result: U | undefined;
+    /**
+     * List of errors
+     */
+    public errors: T[] = [];
 }

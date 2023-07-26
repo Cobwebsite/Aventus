@@ -27,6 +27,7 @@ namespace Navigation {
         private allRoutes: { [key: string]: RouteAsyncOption; } = {};
         private activePath: string = "";
         private oneStateActive: boolean = false;
+        private showPageMutex:Aventus.Mutex = new Aventus.Mutex();
         //#endregion
 
 
@@ -75,7 +76,7 @@ namespace Navigation {
             this.stateManager.subscribe(path, {
                 active: (currentState) => {
                     this.oneStateActive = true;
-                    const showPage = async () => {
+                    this.showPageMutex.safeRunLastAsync(async () => {
                         if(!element) {
                             let options = allRoutes[path];
                             if(options.scriptUrl != "") {
@@ -102,8 +103,7 @@ namespace Navigation {
                             window.history.pushState({}, element.pageTitle(), newUrl);
                         }
                         this.onNewPage(oldUrl, oldPage, path, element);
-                    };
-					showPage();
+                    })
                 },
                 inactive: () => {
                     this.oneStateActive = false;

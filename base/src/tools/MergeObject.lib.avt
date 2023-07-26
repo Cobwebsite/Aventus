@@ -1,0 +1,16 @@
+import { KeysObject } from "../ram/Ram.lib.avt";
+
+/**
+ * Merge object and create real instance of class
+ */
+export function mergeObject<T>(item: T, objJson: KeysObject<T> | T) {
+	let props = Object.getOwnPropertyNames(item);
+	for(let prop of props) {
+		if(objJson[prop] !== undefined) {
+			let propInfo = Object.getOwnPropertyDescriptor(item, prop);
+			if(propInfo.writable) {
+				item[prop] = objJson[prop];
+			}
+		}
+	}
+}

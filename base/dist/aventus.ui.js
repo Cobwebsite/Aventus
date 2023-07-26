@@ -806,6 +806,108 @@ class Callback {
     }
 }
 
+class Mutex {
+    waitingList = [];
+    isLocked = false;
+    /**
+     * Wait the mutex to be free then get it
+     */
+    waitOne() {
+        return new Promise((resolve) => {
+            if (this.isLocked) {
+                this.waitingList.push((run) => {
+                    resolve(run);
+                });
+            }
+            else {
+                this.isLocked = true;
+                resolve(true);
+            }
+        });
+    }
+    /**
+     * Release the mutex
+     */
+    release() {
+        let nextFct = this.waitingList.shift();
+        if (nextFct) {
+            nextFct(true);
+        }
+        else {
+            this.isLocked = false;
+        }
+    }
+    /**
+     * Release the mutex
+     */
+    releaseOnlyLast() {
+        if (this.waitingList.length > 0) {
+            let lastFct = this.waitingList.pop();
+            for (let fct of this.waitingList) {
+                fct(false);
+            }
+            this.waitingList = [];
+            lastFct(true);
+        }
+        else {
+            this.isLocked = false;
+        }
+    }
+    /**
+     * Clear mutex
+     */
+    dispose() {
+        this.waitingList = [];
+        this.isLocked = false;
+    }
+    async safeRun(cb) {
+        let result = null;
+        await this.waitOne();
+        try {
+            result = cb.apply(null, []);
+        }
+        catch (e) {
+        }
+        await this.release();
+        return result;
+    }
+    async safeRunAsync(cb) {
+        let result = null;
+        await this.waitOne();
+        try {
+            result = await cb.apply(null, []);
+        }
+        catch (e) {
+        }
+        await this.release();
+        return result;
+    }
+    async safeRunLast(cb) {
+        let result = null;
+        if (await this.waitOne()) {
+            try {
+                result = cb.apply(null, []);
+            }
+            catch (e) {
+            }
+            await this.releaseOnlyLast();
+        }
+        return result;
+    }
+    async safeRunLastAsync(cb) {
+        let result = null;
+        if (await this.waitOne()) {
+            try {
+                result = await cb.apply(null, []);
+            }
+            catch (e) {
+            }
+            await this.releaseOnlyLast();
+        }
+        return result;
+    }
+}
+
 class StateManager {
     subscribers = {};
     static canBeActivate(statePattern, stateName) {
@@ -813,6 +915,7 @@ class StateManager {
         return stateInfo.regex.test(stateName);
     }
     activeState;
+    changeStateMutex = new Mutex();
     afterStateChanged = new Callback();
     /**
      * Subscribe actions for a state or a state list
@@ -964,101 +1067,104 @@ class StateManager {
      * Activate a current state
      */
     async setState(state) {
-        let stateToUse;
-        if (typeof state == "string") {
-            stateToUse = new EmptyState(state);
-        }
-        else {
-            stateToUse = state;
-        }
-        if (!stateToUse) {
-            this._log("state is undefined", "error");
-            return false;
-        }
-        let canChange = true;
-        if (this.activeState) {
-            let activeToInactive = [];
-            let inactiveToActive = [];
-            let triggerActive = [];
-            canChange = await this.activeState.askChange(this.activeState, stateToUse);
-            if (canChange) {
-                for (let statePattern in this.subscribers) {
-                    let subscriber = this.subscribers[statePattern];
-                    if (subscriber.isActive) {
-                        let clone = [...subscriber.callbacks.askChange];
-                        let currentSlug = this.getInternalStateSlugs(subscriber, this.activeState.name);
-                        for (let i = 0; i < clone.length; i++) {
-                            let askChange = clone[i];
-                            if (!await askChange(this.activeState, stateToUse, currentSlug)) {
-                                canChange = false;
-                                break;
+        return await this.changeStateMutex.safeRunLastAsync(async () => {
+            let stateToUse;
+            if (typeof state == "string") {
+                stateToUse = new EmptyState(state);
+            }
+            else {
+                stateToUse = state;
+            }
+            if (!stateToUse) {
+                this._log("state is undefined", "error");
+                this.changeStateMutex.release();
+                return false;
+            }
+            let canChange = true;
+            if (this.activeState) {
+                let activeToInactive = [];
+                let inactiveToActive = [];
+                let triggerActive = [];
+                canChange = await this.activeState.askChange(this.activeState, stateToUse);
+                if (canChange) {
+                    for (let statePattern in this.subscribers) {
+                        let subscriber = this.subscribers[statePattern];
+                        if (subscriber.isActive) {
+                            let clone = [...subscriber.callbacks.askChange];
+                            let currentSlug = this.getInternalStateSlugs(subscriber, this.activeState.name);
+                            for (let i = 0; i < clone.length; i++) {
+                                let askChange = clone[i];
+                                if (!await askChange(this.activeState, stateToUse, currentSlug)) {
+                                    canChange = false;
+                                    break;
+                                }
+                            }
+                            let slugs = this.getInternalStateSlugs(subscriber, stateToUse.name);
+                            if (slugs === null) {
+                                activeToInactive.push(subscriber);
+                            }
+                            else {
+                                triggerActive.push({
+                                    subscriber: subscriber,
+                                    params: slugs
+                                });
                             }
                         }
-                        let slugs = this.getInternalStateSlugs(subscriber, stateToUse.name);
-                        if (slugs === null) {
-                            activeToInactive.push(subscriber);
-                        }
                         else {
-                            triggerActive.push({
-                                subscriber: subscriber,
-                                params: slugs
-                            });
+                            let slugs = this.getInternalStateSlugs(subscriber, stateToUse.name);
+                            if (slugs) {
+                                inactiveToActive.push({
+                                    subscriber,
+                                    params: slugs
+                                });
+                            }
+                        }
+                        if (!canChange) {
+                            break;
                         }
                     }
-                    else {
-                        let slugs = this.getInternalStateSlugs(subscriber, stateToUse.name);
-                        if (slugs) {
-                            inactiveToActive.push({
-                                subscriber,
-                                params: slugs
-                            });
-                        }
+                }
+                if (canChange) {
+                    const oldState = this.activeState;
+                    this.activeState = stateToUse;
+                    oldState.onInactivate(stateToUse);
+                    for (let subscriber of activeToInactive) {
+                        subscriber.isActive = false;
+                        let oldSlug = this.getInternalStateSlugs(subscriber, oldState.name);
+                        [...subscriber.callbacks.inactive].forEach(callback => {
+                            callback(oldState, stateToUse, oldSlug);
+                        });
                     }
-                    if (!canChange) {
-                        break;
+                    for (let trigger of triggerActive) {
+                        [...trigger.subscriber.callbacks.active].forEach(callback => {
+                            callback(stateToUse, trigger.params);
+                        });
                     }
+                    for (let trigger of inactiveToActive) {
+                        trigger.subscriber.isActive = true;
+                        [...trigger.subscriber.callbacks.active].forEach(callback => {
+                            callback(stateToUse, trigger.params);
+                        });
+                    }
+                    stateToUse.onActivate();
                 }
             }
-            if (canChange) {
-                const oldState = this.activeState;
+            else {
                 this.activeState = stateToUse;
-                oldState.onInactivate(stateToUse);
-                for (let subscriber of activeToInactive) {
-                    subscriber.isActive = false;
-                    let oldSlug = this.getInternalStateSlugs(subscriber, oldState.name);
-                    [...subscriber.callbacks.inactive].forEach(callback => {
-                        callback(oldState, stateToUse, oldSlug);
-                    });
-                }
-                for (let trigger of triggerActive) {
-                    [...trigger.subscriber.callbacks.active].forEach(callback => {
-                        callback(stateToUse, trigger.params);
-                    });
-                }
-                for (let trigger of inactiveToActive) {
-                    trigger.subscriber.isActive = true;
-                    [...trigger.subscriber.callbacks.active].forEach(callback => {
-                        callback(stateToUse, trigger.params);
-                    });
+                for (let key in this.subscribers) {
+                    let slugs = this.getInternalStateSlugs(this.subscribers[key], stateToUse.name);
+                    if (slugs) {
+                        this.subscribers[key].isActive = true;
+                        [...this.subscribers[key].callbacks.active].forEach(callback => {
+                            callback(stateToUse, slugs);
+                        });
+                    }
                 }
                 stateToUse.onActivate();
             }
-        }
-        else {
-            this.activeState = stateToUse;
-            for (let key in this.subscribers) {
-                let slugs = this.getInternalStateSlugs(this.subscribers[key], stateToUse.name);
-                if (slugs) {
-                    this.subscribers[key].isActive = true;
-                    [...this.subscribers[key].callbacks.active].forEach(callback => {
-                        callback(stateToUse, slugs);
-                    });
-                }
-            }
-            stateToUse.onActivate();
-        }
-        this.afterStateChanged.trigger([]);
-        return true;
+            this.afterStateChanged.trigger([]);
+            return true;
+        });
     }
     getState() {
         return this.activeState;
@@ -3218,6 +3324,8 @@ WebComponent.Namespace='Aventus';
 Aventus.WebComponent=WebComponent;
 Callback.Namespace='Aventus';
 Aventus.Callback=Callback;
+Mutex.Namespace='Aventus';
+Aventus.Mutex=Mutex;
 StateManager.Namespace='Aventus';
 Aventus.StateManager=StateManager;
 WatchAction.Namespace='Aventus';
@@ -3348,6 +3456,7 @@ class Router extends Aventus.WebComponent {
     allRoutes = {};
     activePath = "";
     oneStateActive = false;
+    showPageMutex = new Aventus.Mutex();
     get stateManager() {
         return Aventus.Instance.get(RouterStateManager);
     }
@@ -3409,7 +3518,7 @@ class Router extends Aventus.WebComponent {
         this.stateManager.subscribe(path, {
             active: (currentState) => {
                 this.oneStateActive = true;
-                const showPage = async () => {
+                this.showPageMutex.safeRunLastAsync(async () => {
                     if (!element) {
                         let options = allRoutes[path];
                         if (options.scriptUrl != "") {
@@ -3434,8 +3543,7 @@ class Router extends Aventus.WebComponent {
                         window.history.pushState({}, element.pageTitle(), newUrl);
                     }
                     this.onNewPage(oldUrl, oldPage, path, element);
-                };
-                showPage();
+                });
             },
             inactive: () => {
                 this.oneStateActive = false;
