@@ -1,4 +1,4 @@
-import { ArrayTypeNode, ExpressionWithTypeArguments, FunctionTypeNode, IndexSignatureDeclaration, LiteralTypeNode, ParenthesizedTypeNode, PropertySignature, SyntaxKind, TypeLiteralNode, TypeNode, TypeReferenceNode, UnionTypeNode } from 'typescript';
+import { ArrayTypeNode, CallExpression, ExpressionWithTypeArguments, FunctionTypeNode, IndexSignatureDeclaration, LiteralTypeNode, ParenthesizedTypeNode, PropertySignature, SyntaxKind, TypeLiteralNode, TypeNode, TypeReferenceNode, UnionTypeNode } from 'typescript';
 
 type TypeInfoKind = "string" | 'number' | 'boolean' | 'null' | 'any' | 'void' | 'type' | 'literal' | 'union' | 'mock' | 'function' | 'typeLiteral';
 
@@ -9,7 +9,7 @@ export class TypeInfo {
 	public genericValue: TypeInfo[] = [];
 	public nested: TypeInfo[] = [];
 	public start: number = 0;
-    public end: number = 0;
+	public end: number = 0;
 
 	constructor(node: TypeNode | null) {
 		if (!node) {
@@ -17,7 +17,7 @@ export class TypeInfo {
 			return;
 		}
 		this.start = node.getStart();
-        this.end = node.getEnd();
+		this.end = node.getEnd();
 		if (node.kind == SyntaxKind.StringKeyword) {
 			this.kind = "string";
 		}
@@ -44,6 +44,11 @@ export class TypeInfo {
 			this.kind = "type";
 			let typeRef = node as TypeReferenceNode;
 			this.value = typeRef.typeName.getText();
+			if (this.value == "const") {
+				this.value = "";
+				this.kind = "mock";
+				return;
+			}
 			if (typeRef.typeArguments) {
 				for (let arg of typeRef.typeArguments) {
 					this.genericValue.push(new TypeInfo(arg));
@@ -103,13 +108,13 @@ export class TypeInfo {
 			this.value = temp.value;
 			this.isArray = temp.isArray;
 		}
-		else if(node.kind == SyntaxKind.FunctionType){
+		else if (node.kind == SyntaxKind.FunctionType) {
 			let fctType = node as FunctionTypeNode;
 			this.kind = "function";
 			this.value = node.getText();
-			
-			for(let param of fctType.parameters){
-				if(param.type){
+
+			for (let param of fctType.parameters) {
+				if (param.type) {
 					this.nested.push(new TypeInfo(param.type));
 				}
 			}

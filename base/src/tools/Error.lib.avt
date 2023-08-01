@@ -34,3 +34,7 @@ export class ResultWithError<T extends GenericError<any>, U> {
      */
     public errors: T[] = [];
 }
+
+export class GenericResultWithError<U> extends ResultWithError<GenericError<any>, U> {
+    
+}

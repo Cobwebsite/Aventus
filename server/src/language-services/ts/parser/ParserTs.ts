@@ -15,7 +15,10 @@ import {
     InterfaceDeclaration,
     TypeAliasDeclaration,
     FunctionDeclaration,
-    NamespaceImport
+    NamespaceImport,
+    Identifier,
+    VariableStatement,
+    VariableDeclaration
 } from "typescript";
 import { Diagnostic, DiagnosticSeverity, Range } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -29,6 +32,7 @@ import { EnumInfo } from './EnumInfo';
 import { NamespaceInfo } from './NamespaceInfo';
 import { hasFlag } from "./tools";
 import { FunctionInfo } from './FunctionInfo';
+import { VariableInfo } from './VariableInfo';
 
 
 export class ParserTs {
@@ -67,22 +71,25 @@ export class ParserTs {
     }
     public static getBaseInfo(name: string): BaseInfo | null {
         for (let uri in this.parsedDoc) {
-            if (this.parsedDoc[uri].result.classes[name]) {
-                return this.parsedDoc[uri].result.classes[name];
-            }
-            if (this.parsedDoc[uri].result.aliases[name]) {
-                return this.parsedDoc[uri].result.aliases[name];
-            }
-            if (this.parsedDoc[uri].result.enums[name]) {
-                return this.parsedDoc[uri].result.enums[name];
-            }
-            if (this.parsedDoc[uri].result.functions[name]) {
-                return this.parsedDoc[uri].result.functions[name];
+            let temp = this.parsedDoc[uri].result.getBaseInfo(name);
+            if (temp) {
+                return temp;
             }
         }
         return null;
     }
-
+    public static hasImport(name: string): boolean {
+        if (!ParserTs.currentParsingDoc) {
+            return false;
+        }
+        if (ParserTs.currentParsingDoc.imports[name]) {
+            return true;
+        }
+        if (ParserTs.currentParsingDoc.waitingImports[name]) {
+            return true;
+        }
+        return false;
+    }
 
     private content: string;
     public errors: Diagnostic[] = [];
@@ -102,7 +109,9 @@ export class ParserTs {
             uri: string,
         }
     } = {};
+    public waitingImports: { [localName: string]: string } = {};
     public aliases: { [shortName: string]: AliasInfo } = {};
+    public variables: { [shortName: string]: VariableInfo } = {};
     public isLib: boolean = false;
     public isReady: boolean = false;
 
@@ -153,13 +162,8 @@ export class ParserTs {
             else if (x.kind == SyntaxKind.FunctionDeclaration) {
                 this.loadFunction(x as FunctionDeclaration);
             }
-            else if (x.kind == SyntaxKind.VariableDeclaration) {
-                this.errors.push({
-                    range: Range.create(this.document.positionAt(x.getStart()), this.document.positionAt(x.getEnd())),
-                    severity: DiagnosticSeverity.Error,
-                    source: AventusLanguageId.TypeScript,
-                    message: flattenDiagnosticMessageText("error => can't use a variable outside a class, create a static lib instead", '\n')
-                })
+            else if (x.kind == SyntaxKind.VariableStatement) {
+                this.loadVariableStatement(x as VariableStatement);
             }
             else if (x.kind == SyntaxKind.ModuleBlock) {
                 this.errors.push({
@@ -179,7 +183,8 @@ export class ParserTs {
     }
 
 
-    private importLocal(moduleName: string, localName: string) {
+    private importLocal(moduleName: string, identifier: Identifier) {
+        let localName = identifier.getText();
         let moduleUri = pathToUri(normalize(getFolder(uriToPath(this.document.uri)) + '/' + moduleName));
         if (!ParserTs.parsedDoc[moduleUri]) {
             let file = FilesManager.getInstance().getByUri(moduleUri);
@@ -198,27 +203,34 @@ export class ParserTs {
                 this.imports[localName] = baseInfoLinked
             }
             else {
-                console.log("Can't load " + moduleUri + " " + localName + " from " + this.document.uri);
+                ParserTs.addError(identifier.getStart(), identifier.getEnd(), "Can't load " + moduleUri + " " + localName + " from " + this.document.uri)
             }
         }
         else {
+            if (this.waitingImports[localName]) {
+                return;
+            }
+            this.waitingImports[localName] = moduleUri;
             ParserTs.parsedDoc[moduleUri].result.onReady(() => {
                 let baseInfoLinked = ParserTs.parsedDoc[moduleUri].result.getBaseInfo(localName);
                 if (baseInfoLinked) {
-                    this.imports[localName] = baseInfoLinked
-                    for (let className in this.classes) {
-                        let _class = this.classes[className]
-                        for (let dependance of _class.dependances) {
-                            if (dependance.uri == "@external" && dependance.fullName == localName) {
-                                dependance.uri = "@local";
-                                dependance.fullName = "$namespace$" + baseInfoLinked.fullName;
-                                dependance.isStrong = false;
+                    this.imports[localName] = baseInfoLinked;
+                    let types = [this.classes, this.enums, this.aliases, this.functions, this.variables];
+                    for (let type of types) {
+                        for (let name in type) {
+                            let _class = type[name]
+                            for (let dependance of _class.dependances) {
+                                if (dependance.uri == "@external" && dependance.fullName == localName) {
+                                    dependance.uri = "@local";
+                                    dependance.fullName = "$namespace$" + baseInfoLinked.fullName;
+                                    //dependance.isStrong = false;
+                                }
                             }
                         }
                     }
                 }
                 else {
-                    console.log("Can't load " + moduleUri + " " + localName + " from " + this.document.uri);
+                    ParserTs.addError(identifier.getStart(), identifier.getEnd(), "Can't load " + moduleUri + " " + localName + " from " + this.document.uri)
                 }
             })
         }
@@ -261,7 +273,7 @@ export class ParserTs {
                             }
                             else {
                                 let localName = element.name.getText();
-                                this.importLocal(moduleName, localName);
+                                this.importLocal(moduleName, element.name);
                             }
                         }
                     }
@@ -285,7 +297,7 @@ export class ParserTs {
                 let moduleName = node.moduleSpecifier.getText().replace(/"/g, "").replace(/'/g, "");
                 let name = node.importClause.name.getText();
                 if (moduleName.startsWith(".")) {
-                    this.importLocal(moduleName, name);
+                    this.importLocal(moduleName, node.importClause.name);
                 }
                 else {
                     this.npmImports[name] = {
@@ -330,6 +342,19 @@ export class ParserTs {
         this.aliases[aliasInfo.name] = aliasInfo;
     }
 
+    private loadVariableStatement(node: VariableStatement) {
+        let isExported = BaseInfo.isExported(node);
+        for (let declaration of node.declarationList.declarations) {
+            if (declaration.kind == SyntaxKind.VariableDeclaration) {
+                this.loadVariable(declaration as VariableDeclaration, isExported);
+            }
+        }
+    }
+    private loadVariable(node: VariableDeclaration, isExported: boolean) {
+        let variableInfo = new VariableInfo(node, this.currentNamespace, this, isExported);
+        this.variables[variableInfo.name] = variableInfo;
+    }
+
     public getBaseInfo(name: string): BaseInfo | null {
         if (this.classes[name]) {
             return this.classes[name];
@@ -339,6 +364,12 @@ export class ParserTs {
         }
         if (this.enums[name]) {
             return this.enums[name];
+        }
+        if (this.functions[name]) {
+            return this.functions[name];
+        }
+        if (this.variables[name]) {
+            return this.variables[name];
         }
         return null;
     }

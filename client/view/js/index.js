@@ -2713,11 +2713,19 @@ PressManager.Namespace='Aventus';
 Aventus.State=State;
 State.Namespace='Aventus';
 Aventus.EmptyState=EmptyState;
+<<<<<<< HEAD
 EmptyState.Namespace='Aventus';
 Aventus.WebComponentTemplateContext=WebComponentTemplateContext;
 WebComponentTemplateContext.Namespace='Aventus';
 Aventus.WebComponentTemplate=WebComponentTemplate;
 WebComponentTemplate.Namespace='Aventus';
+=======
+WebComponentTemplateContext.Namespace='Aventus';
+Aventus.WebComponentTemplateContext=WebComponentTemplateContext;
+WebComponentTemplate.Namespace='Aventus';
+Aventus.WebComponentTemplate=WebComponentTemplate;
+WebComponentTemplateInstance.Namespace='Aventus';
+>>>>>>> c2a618a (WIP)
 Aventus.WebComponentTemplateInstance=WebComponentTemplateInstance;
 WebComponentTemplateInstance.Namespace='Aventus';
 })(Aventus);

@@ -1,5 +1,5 @@
 import { ClassDeclaration, Expression, forEachChild, SyntaxKind, Node, MethodDeclaration, PropertyDeclaration, NewExpression, PropertyAccessExpression, HeritageClause, InterfaceDeclaration, ConstructorDeclaration, ExpressionWithTypeArguments, TypeNode, TypeReferenceNode, CallExpression, GetAccessorDeclaration, SetAccessorDeclaration } from "typescript";
-import { BaseInfo } from "./BaseInfo";
+import { BaseInfo, InfoType } from "./BaseInfo";
 import { BaseLibInfo } from './BaseLibInfo';
 import { DecoratorInfo } from "./DecoratorInfo";
 import { MethodInfo } from "./MethodInfo";
@@ -29,6 +29,7 @@ export class ClassInfo extends BaseInfo {
 		super(node, namespaces, parserInfo, false);
 
 		this.isInterface = node.kind == SyntaxKind.InterfaceDeclaration;
+		this.infoType = this.isInterface ? InfoType.interface : InfoType.class;
 		if (node.typeParameters) {
 			for (let param of node.typeParameters) {
 				this.parameters.push(param.name.getText());
@@ -41,7 +42,7 @@ export class ClassInfo extends BaseInfo {
 				}
 			}
 		}
-		
+
 		if (node.heritageClauses) {
 			for (let heritage of node.heritageClauses) {
 				this.getClassInheritance(heritage);
@@ -141,7 +142,6 @@ export class ClassInfo extends BaseInfo {
 	}
 	private getClassInheritance(node: HeritageClause) {
 		if (node.token == SyntaxKind.ExtendsKeyword) {
-
 			forEachChild(node, x => {
 				if (x.kind == SyntaxKind.ExpressionWithTypeArguments) {
 					let fullName = this.addDependance(x as ExpressionWithTypeArguments, true);
@@ -155,6 +155,7 @@ export class ClassInfo extends BaseInfo {
 							}
 						}
 					}
+					this.loadOnlyDependancesRecu(x, 0, true);
 				}
 			})
 		}

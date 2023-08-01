@@ -59,5 +59,7 @@ export enum AventusErrorCode {
     MissingImplementation,
     MissingMethod,
     FunctionNotAllowed,
-    MissingFullName
+    VariableNotAllowed,
+    MissingFullName,
+    SameNameFound,
 }

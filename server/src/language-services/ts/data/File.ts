@@ -21,20 +21,22 @@ export class AventusDataFile extends AventusTsFile {
         if (this.fileParsed) {
             this.diagnostics = this.diagnostics.concat(this.fileParsed.errors)
         }
-        const struct = this.fileParsed;
-
         if (this.build.isCoreBuild) {
             this.validateRules({
+                allow_variables: false,
                 allow_function: false,
                 class_implement: ['IData']
             })
         }
         else {
             this.validateRules({
+                allow_variables: false,
                 allow_function: false,
                 class_implement: ['Aventus.IData']
             })
         }
+
+        const struct = this.fileParsed;
         if (struct) {
 
             for (let className in struct.classes) {

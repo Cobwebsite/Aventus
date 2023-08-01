@@ -19,7 +19,7 @@ import { ClassInfo } from '../../parser/ClassInfo';
 import { OverrideViewDecorator } from '../../parser/decorators/OverrideViewDecorator';
 import { DebuggerDecorator } from '../../parser/decorators/DebuggerDecorator';
 import { TagNameDecorator } from '../../parser/decorators/TagNameDecorator';
-import { BaseInfo } from '../../parser/BaseInfo';
+import { BaseInfo, InfoType } from '../../parser/BaseInfo';
 import { PropertyInfo } from '../../parser/PropertyInfo';
 import { TypeInfo } from '../../parser/TypeInfo';
 import { PropertyDecorator } from '../../parser/decorators/PropertyDecorator';
@@ -102,7 +102,8 @@ export class AventusWebcomponentCompiler {
         debugTxt: "",
         uri: "",
         required: false,
-        isData: false
+        type: InfoType.class,
+        isExported: true,
     }
     private parentClassName: string = "";
     private overrideViewDecorator: OverrideViewDecorator | null = null;
@@ -207,6 +208,8 @@ export class AventusWebcomponentCompiler {
             this.componentResult.dependances = normalCompile.dependances;
             this.componentResult.docInvisible = normalCompile.docInvisible;
             this.componentResult.docVisible = normalCompile.docVisible;
+            this.componentResult.type = normalCompile.type;
+            this.componentResult.isExported = normalCompile.isExported;
             this.componentResult.uri = normalCompile.uri;
 
             this.prepareHTMLDocObject();

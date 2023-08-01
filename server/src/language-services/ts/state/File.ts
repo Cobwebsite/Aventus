@@ -21,16 +21,17 @@ export class AventusStateFile extends AventusTsFile {
         if (this.fileParsed) {
             this.diagnostics = this.diagnostics.concat(this.fileParsed.errors)
         }
-        const struct = this.fileParsed;
 
         if (this.build.isCoreBuild) {
             this.validateRules({
+                allow_variables: false,
                 allow_function: false,
                 class_implement: ['StateManager', 'State']
             })
         }
         else {
             this.validateRules({
+                allow_variables: false,
                 allow_function: false,
                 class_extend: ['Aventus.StateManager', 'Aventus.State']
             })

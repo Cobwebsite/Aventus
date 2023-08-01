@@ -1,0 +1,6 @@
+import { GenericError } from "../tools/Error.lib.avt";
+
+export enum HttpErrorCode {
+    unknow
+}
+export class HttpError extends GenericError<HttpErrorCode>{}

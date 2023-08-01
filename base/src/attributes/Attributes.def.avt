@@ -79,4 +79,7 @@ declare global {
 
 
     function Dependances(info: DependanceConfig[]): (ConstructorConstraint: Function) => void;
+
+    function RouteWrapper(): (target: any, propertyKey: string, descriptor: TypedPropertyDescriptor<(<S extends string>(path: Aventus.StringLiteral<S>) => void)>) => void;
+
 }

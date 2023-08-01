@@ -20,6 +20,7 @@ export function genericTsCompile(file: AventusTsFile): CompileTsResult[] {
         sectionCompile(Object.values(file.fileParsed.enums));
         sectionCompile(Object.values(file.fileParsed.aliases));
         sectionCompile(Object.values(file.fileParsed.functions));
+        sectionCompile(Object.values(file.fileParsed.variables));
     }
 
     let debugPath = file.file.path.replace(".avt", ".js");

@@ -21,12 +21,14 @@ export class AventusSocketFile extends AventusTsFile {
         }
         if (this.build.isCoreBuild) {
             this.validateRules({
+                allow_variables: false,
                 allow_function: false,
                 class_implement: ['ISocket']
             })
         }
         else {
             this.validateRules({
+                allow_variables: false,
                 allow_function: false,
                 class_implement: ['Aventus.ISocket']
             })

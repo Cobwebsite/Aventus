@@ -19,6 +19,9 @@ export abstract class AventusTsFile extends AventusBaseFile {
         return this._compileResult;
     }
     protected diagnostics: Diagnostic[] = [];
+    public getDiagnostics(): Diagnostic[] {
+        return [...this.diagnostics];
+    }
 
     protected abstract get extension(): string;
     public fileParsed: ParserTs | null = null;
@@ -57,13 +60,12 @@ export abstract class AventusTsFile extends AventusBaseFile {
         }
     }
 
-
     /**
      * check type for element inside file and add error into this.diagnostics
      * @param rules 
      * @returns 
      */
-    protected validateRules(rules: { allow_function: boolean, class_extend?: string[], class_implement?: string[], interface?: string[], enum?: string[], alias?: string[] }): void {
+    protected validateRules(rules: { allow_variables: boolean, allow_function: boolean, class_extend?: string[], class_implement?: string[], interface?: string[], enum?: string[], alias?: string[] }): void {
         const struct = this.fileParsed;
         if (!struct) {
             return;
@@ -72,6 +74,12 @@ export abstract class AventusTsFile extends AventusBaseFile {
             for (let fctName in struct.functions) {
                 let fct = struct.functions[fctName];
                 this.diagnostics.push(createErrorTsPos(this.file.document, `Function can only be used inside lib.avt file`, fct.nameStart, fct.nameEnd, AventusErrorCode.FunctionNotAllowed));
+            }
+        }
+        if (!rules.allow_variables) {
+            for (let varName in struct.variables) {
+                let varr = struct.variables[varName];
+                this.diagnostics.push(createErrorTsPos(this.file.document, `Variables can only be used inside lib.avt file`, varr.nameStart, varr.nameEnd, AventusErrorCode.VariableNotAllowed));
             }
         }
         if (rules.class_extend || rules.class_implement || rules.interface) {
@@ -159,12 +167,14 @@ export abstract class AventusTsFile extends AventusBaseFile {
     private oldFullSrc: { name: string, src: string }[] = [];
     private oldFullDocVisible = "";
     private oldFullDocInvisible = "";
+    private oldFullClassScript = "";
     protected setCompileResult(compileResult: CompileTsResult[]) {
         let triggerRebuild = false;
         let fullSrcInline = "";
         let fullSrc: { name: string, src: string }[] = [];
         let fullDocVisible = "";
         let fullDocInvisible = "";
+        let fullClassScript = "";
         for (let res of compileResult) {
             fullSrcInline += res.compiled;
             if (res.classScript != "") {
@@ -175,6 +185,7 @@ export abstract class AventusTsFile extends AventusBaseFile {
             }
             fullDocVisible += res.docVisible;
             fullDocInvisible += res.docInvisible;
+            fullClassScript += res.classScript + "#";
         }
 
         let oldSrcInline = "";
@@ -183,6 +194,9 @@ export abstract class AventusTsFile extends AventusBaseFile {
         }
 
         if (compileResult.length != this.compileResult.length) {
+            triggerRebuild = true;
+        }
+        else if(this.oldFullClassScript != fullClassScript){
             triggerRebuild = true;
         }
         else if (oldSrcInline != fullSrcInline) {
@@ -199,6 +213,7 @@ export abstract class AventusTsFile extends AventusBaseFile {
             this.oldFullDocInvisible = fullDocInvisible;
             this.oldFullDocVisible = fullDocVisible;
             this.oldFullSrc = fullSrc;
+            this.oldFullClassScript = fullClassScript;
         }
 
 
