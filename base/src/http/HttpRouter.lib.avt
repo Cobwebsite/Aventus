@@ -6,6 +6,7 @@ import { GenericResultWithError } from "../tools/Error.lib.avt";
 import { HttpError, HttpErrorCode } from "./HttpError.lib.avt";
 import { HttpRouterOptions } from "./HttpRouterOptions.lib.avt";
 import { HttpMethod } from "./HttpMethod.lib.avt";
+import { HttpRequest } from "./HttpRequest.lib.avt";
 
 export type JsonFormat<T> = T extends Array<infer U> ? KeysObject<U>[] : KeysObject<T>;
 
@@ -114,114 +115,31 @@ export abstract class HttpRouter {
 
     private defaultOptionsValue(): HttpRouterOptions {
         return {
-            url: ""
+            url: location.protocol + "//" + location.host
         };
     }
     protected defineOptions(options: HttpRouterOptions): HttpRouterOptions {
-        options.url = "http://aventus.com/api/";
         return options;
     }
-
-    public async request(url: string, options: RequestInit): Promise<GenericResultWithError<Response>> {
-        let result = new GenericResultWithError<Response>();
-        try {
-            result.result = await fetch(this.options.url + url, options);
-        } catch(e) {
-            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
-        }
-        return result;
-    }
-
-    public async requestJSON<T>(url: string, options: RequestInit): Promise<GenericResultWithError<JsonFormat<T>>> {
-
-        let resultTemp = await this.request(url, options);
-        let result = new GenericResultWithError<JsonFormat<T>>();
-        if(!resultTemp.success) {
-            result.errors = resultTemp.errors;
-            return result;
-        }
-        try {
-            let tempResult = await resultTemp.result.json();
-            if(tempResult.$type == "AventusSharp.Data.ResultWithError") {
-                for(let error of tempResult.Errors) {
-                    result.errors.push(error);
-                }
-                result.result = tempResult.Result;
-            }
-            else {
-                result.result = tempResult;
-            }
-        } catch(e) {
-            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
-        }
-        return result;
-    }
-
-    public async requestTxt(url: string, options: RequestInit): Promise<GenericResultWithError<string>> {
-        let resultTemp = await this.request(url, options);
-        let result = new GenericResultWithError<string>();
-        if(!resultTemp.success) {
-            result.errors = resultTemp.errors;
-            return result;
-        }
-        try {
-            result.result = await resultTemp.result.text();
-        } catch(e) {
-            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
-        }
-        return result;
-    }
-
-    protected prepareBody(data: { [key: string | number]: any; } | FormData = null): BodyInit {
-        if(!data) {
-            return null;
-        }
-        else if(data instanceof FormData) {
-            return data;
-        }
-        return JSON.stringify(data);
-    }
+    
 
     public async get<T>(url: string) {
-        let options: RequestInit = {
-            method: HttpMethod.GET
-        };
-        return await this.requestJSON<T>(url, options);
+        return await new HttpRequest(url).queryJSON<T>(this);
     }
 
     public async post<T>(url: string, data: { [key: string | number]: any; } | FormData = null) {
-        let body: BodyInit = this.prepareBody(data);
-        const options: RequestInit = {
-            method: HttpMethod.POST,
-            body: body
-        };
-        return await this.requestJSON<T>(url, options);
+        return await new HttpRequest(url, HttpMethod.POST, data).queryJSON<T>(this);
     }
 
     public async put<T>(url: string, data: { [key: string | number]: any; } | FormData = null) {
-        let body: BodyInit = this.prepareBody(data);
-        const options: RequestInit = {
-            method: HttpMethod.PUT,
-            body: body
-        };
-        return await this.requestJSON<T>(url, options);
+        return await new HttpRequest(url, HttpMethod.PUT, data).queryJSON<T>(this);
     }
 
     public async delete<T>(url: string, data: { [key: string | number]: any; } | FormData = null) {
-        let body: BodyInit = this.prepareBody(data);
-        const options: RequestInit = {
-            method: HttpMethod.DELETE,
-            body: body
-        };
-        return await this.requestJSON<T>(url, options);
+        return await new HttpRequest(url, HttpMethod.DELETE, data).queryJSON<T>(this);
     }
 
     public async option<T>(url: string, data: { [key: string | number]: any; } | FormData = null) {
-        let body: BodyInit = this.prepareBody(data);
-        const options: RequestInit = {
-            method: HttpMethod.OPTION,
-            body: body
-        };
-        return await this.requestJSON<T>(url, options);
+        return await new HttpRequest(url, HttpMethod.OPTION, data).queryJSON<T>(this);
     }
 }

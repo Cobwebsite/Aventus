@@ -68,7 +68,7 @@ export class AventusWebSCSSFile extends AventusBaseFile {
                 let arrMatch: RegExpExecArray | null = null;
                 while (arrMatch = regex.exec(textToSearch)) {
                     let importName = arrMatch[2];
-                    let fileDependance = this.resolvePath(importName, file.folderUri);
+                    let fileDependance = this.resolvePath(importName, file.folderPath);
                     if (fileDependance) {
                         let nesteadContent = _loadContent(fileDependance);
                         if (nesteadContent == errorMsgTxt) {
@@ -171,7 +171,7 @@ export class AventusWebSCSSFile extends AventusBaseFile {
         }
         while (arrMatch = regex.exec(textToSearch)) {
             let importName = arrMatch[2];
-            let fileDependance = this.resolvePath(importName, this.file.folderUri);
+            let fileDependance = this.resolvePath(importName, this.file.folderPath);
             if (!fileDependance) {
                 let start = text.indexOf(arrMatch[0]);
                 let end = start + arrMatch[0].length;

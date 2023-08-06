@@ -46,7 +46,13 @@ export class ParserTs {
         new ParserTs(document, isLib);
         return ParserTs.parsedDoc[document.uri].result;
     }
-    private static currentParsingDoc: ParserTs | null;
+    private static parsingDocs: ParserTs[] = [];
+    private static get currentParsingDoc(): ParserTs | null {
+        if (this.parsingDocs.length > 0) {
+            return this.parsingDocs[this.parsingDocs.length - 1];
+        }
+        return null;
+    }
     public static addError(start: number, end: number, msg: string) {
         if (this.currentParsingDoc && !this.currentParsingDoc.isLib) {
             let error = {
@@ -120,12 +126,12 @@ export class ParserTs {
             version: document.version,
             result: this,
         }
-        ParserTs.currentParsingDoc = this;
+        ParserTs.parsingDocs.push(this);
         this.content = document.getText();
         this._document = document;
         this.isLib = isLib;
         this.loadRoot(createSourceFile("sample.ts", this.content, ScriptTarget.ESNext, true));
-        ParserTs.currentParsingDoc = null;
+        ParserTs.parsingDocs.pop();
         this.isReady = true;
         for (let cb of this.readyCb) {
             cb();

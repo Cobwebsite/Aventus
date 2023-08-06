@@ -1,0 +1,52 @@
+import { HttpRoute } from "./HttpRoute.lib.avt";
+import { IData } from "../data/IData.data.avt";
+import { HttpMethod } from "./HttpMethod.lib.avt";
+
+export abstract class StorableRoute<T extends IData> extends HttpRoute {
+	public async GetAll() {
+		let options: RequestInit = {
+			method: HttpMethod.GET
+		};
+		let url = `/${this.StorableName()}`;
+		type TypeResult = T[];
+		return await this.router.requestJSON<TypeResult>(url, options)
+	}
+
+	public async Create(item: T) {
+		let options: RequestInit = {
+			method: HttpMethod.POST
+		};
+		let url = `/${this.StorableName()}`;
+		type TypeResult = T;
+		return await this.router.requestJSON<TypeResult>(url, options)
+	}
+
+	public async GetById(id: number) {
+		let options: RequestInit = {
+			method: HttpMethod.GET
+		};
+		let url = `/${this.StorableName()}/${id}`;
+		type TypeResult = T;
+		return await this.router.requestJSON<TypeResult>(url, options)
+	}
+
+	public async Update(id: number, body: T) {
+		let options: RequestInit = {
+			method: HttpMethod.PUT
+		};
+		let url = `/${this.StorableName()}/${id}`;
+		type TypeResult = T;
+		return await this.router.requestJSON<TypeResult>(url, options)
+	}
+
+	public async Delete(id: number) {
+		let options: RequestInit = {
+			method: HttpMethod.DELETE
+		};
+		let url = `/${this.StorableName()}/${id}`;
+		type TypeResult = T;
+		return await this.router.requestJSON<TypeResult>(url, options)
+	}
+
+	public abstract StorableName(): string;
+}

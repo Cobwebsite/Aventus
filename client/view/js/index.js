@@ -2695,6 +2695,7 @@ Aventus.WebComponent=WebComponent;
 WebComponent.Namespace='Aventus';
 Aventus.Callback=Callback;
 <<<<<<< HEAD
+<<<<<<< HEAD
 Mutex.Namespace='Aventus';
 Aventus.Mutex=Mutex;
 StateManager.Namespace='Aventus';
@@ -2703,6 +2704,11 @@ Callback.Namespace='Aventus';
 Aventus.Mutex=Mutex;
 Mutex.Namespace='Aventus';
 >>>>>>> 69d64e6 (Config to build all is ok - ready to dev)
+=======
+Callback.Namespace='Aventus';
+Aventus.Mutex=Mutex;
+Mutex.Namespace='Aventus';
+>>>>>>> e17c116 (WIP)
 Aventus.StateManager=StateManager;
 StateManager.Namespace='Aventus';
 Aventus.WatchAction=WatchAction;
@@ -2714,6 +2720,7 @@ Aventus.State=State;
 State.Namespace='Aventus';
 Aventus.EmptyState=EmptyState;
 <<<<<<< HEAD
+<<<<<<< HEAD
 EmptyState.Namespace='Aventus';
 Aventus.WebComponentTemplateContext=WebComponentTemplateContext;
 WebComponentTemplateContext.Namespace='Aventus';
@@ -2721,11 +2728,18 @@ Aventus.WebComponentTemplate=WebComponentTemplate;
 WebComponentTemplate.Namespace='Aventus';
 =======
 WebComponentTemplateContext.Namespace='Aventus';
+=======
+EmptyState.Namespace='Aventus';
+>>>>>>> e17c116 (WIP)
 Aventus.WebComponentTemplateContext=WebComponentTemplateContext;
-WebComponentTemplate.Namespace='Aventus';
+WebComponentTemplateContext.Namespace='Aventus';
 Aventus.WebComponentTemplate=WebComponentTemplate;
+<<<<<<< HEAD
 WebComponentTemplateInstance.Namespace='Aventus';
 >>>>>>> c2a618a (WIP)
+=======
+WebComponentTemplate.Namespace='Aventus';
+>>>>>>> e17c116 (WIP)
 Aventus.WebComponentTemplateInstance=WebComponentTemplateInstance;
 WebComponentTemplateInstance.Namespace='Aventus';
 })(Aventus);
@@ -2890,7 +2904,11 @@ class ConfigurationEditor extends Aventus.WebComponent {
         return "ConfigurationEditor";
     }
 }
+<<<<<<< HEAD
 if(!window.customElements.get('av-configuration-editor')){window.customElements.define('av-configuration-editor', ConfigurationEditor);Aventus.WebComponentInstance.registerDefinition(ConfigurationEditor);}
+=======
+window.customElements.define('av-configuration-editor', ConfigurationEditor);Aventus.WebComponentInstance.registerDefinition(ConfigurationEditor);
+>>>>>>> e17c116 (WIP)
 dependances.Message=Message;
 Message.Namespace='dependances';
 dependances.GeneralInformation=GeneralInformation;

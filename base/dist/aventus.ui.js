@@ -5004,7 +5004,11 @@ class Checkbox extends Aventus.WebComponent {
         });
     }
 }
+<<<<<<< HEAD
 if(!window.customElements.get('av-checkbox')){window.customElements.define('av-checkbox', Checkbox);Aventus.WebComponentInstance.registerDefinition(Checkbox);}
+=======
+window.customElements.define('av-checkbox', Checkbox);Aventus.WebComponentInstance.registerDefinition(Checkbox);
+>>>>>>> e17c116 (WIP)
 Aventus.App=App;
 App.Namespace='Aventus';
 (Aventus.Navigation||(Aventus.Navigation = {}));
