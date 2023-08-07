@@ -1,8 +1,8 @@
-import { ClientConnection } from '../Connection';
+import { GenericServer } from '../GenericServer';
 
 export class CloseFile {
 
 	public static send(uri: string) {
-		ClientConnection.getInstance().sendNotification("aventus/closefile", uri);
+		GenericServer.sendNotification("aventus/closefile", uri);
 	}
 }

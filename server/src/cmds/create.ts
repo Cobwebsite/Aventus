@@ -2,10 +2,9 @@ import { mkdirSync, writeFileSync } from 'fs';
 import { ExecuteCommandParams } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { EOL } from 'os';
-import { getFolder, getPathFromCommandArguments, pathToUri, uriToPath } from '../tools';
+import { getPathFromCommandArguments, pathToUri, uriToPath } from '../tools';
 import { AventusExtension, AventusLanguageId } from '../definition';
 import { ProjectManager } from '../project/ProjectManager';
-import { ClientConnection } from '../Connection';
 import { FilesManager } from '../files/FilesManager';
 import { OpenFile } from '../notification/OpenFile';
 

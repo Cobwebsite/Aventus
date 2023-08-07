@@ -8,8 +8,8 @@ import { pathToUri } from '../tools';
 import { AventusExtension, AventusLanguageId } from '../definition';
 import { AventusPackageFile } from '../language-services/ts/package/File';
 import { Build } from './Build';
-import { ClientConnection } from '../Connection';
 import { get } from 'http';
+import { GenericServer } from '../GenericServer';
 
 type DependanceLoopPart = {
 	file: AventusPackageFile,
@@ -37,7 +37,7 @@ export class DependanceManager {
 	}
 
 	private constructor() {
-		this.path = join(ClientConnection.getInstance().getFsPath(), "packages");
+		this.path = join(GenericServer.getFsPath(), "packages");
 		if (!existsSync(this.path)) {
 			mkdirSync(this.path, { recursive: true });
 		}
@@ -423,7 +423,7 @@ export class DependanceManager {
 				// error
 				let v1Txt = Object.values(v1).join(".");
 				let v2Txt = Object.values(v2).join(".");
-				ClientConnection.getInstance().showErrorMessage(`Can't resolve version for dependance ${name} between ${v1Txt} and ${v2Txt}`);
+				GenericServer.showErrorMessage(`Can't resolve version for dependance ${name} between ${v1Txt} and ${v2Txt}`);
 				return -1;
 			}
 		}

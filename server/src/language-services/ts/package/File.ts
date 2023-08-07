@@ -7,9 +7,9 @@ import { SCSSDoc } from '../../scss/helper/CSSNode';
 import { AventusTsFile } from '../File';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AventusExtension, AventusLanguageId } from '../../../definition';
-import { ClientConnection } from '../../../Connection';
 import { ClassInfo } from '../parser/ClassInfo';
 import { AventusConfigBuildDependance } from '../../json/definition';
+import { GenericServer } from '../../../GenericServer';
 
 
 export interface AventusPackageTsFileExport {
@@ -289,7 +289,7 @@ export class AventusPackageFileTs extends AventusTsFile {
 		} catch {
 			let splitted = this.file.uri.split("/");
 			let fileName = splitted[splitted.length - 1];
-			ClientConnection.getInstance().showErrorMessage("There is an error inside file :" + fileName);
+			GenericServer.showErrorMessage("There is an error inside file :" + fileName);
 		}
 	}
 	protected async onContentChange(): Promise<void> {

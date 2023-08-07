@@ -2052,6 +2052,110 @@ class EmptyState extends State {
     }
 }
 
+class WebComponentTemplateContext {
+    __changes = {};
+    component;
+    fctsToRemove = [];
+    c = {};
+    isRendered = false;
+    schema;
+    constructor(component, schema, locals) {
+        this.component = component;
+        this.schema = { ...schema };
+        this.schema.locals = [...this.schema.locals, ...locals];
+        5;
+        this.buildSchema();
+    }
+    destructor() {
+        for (let toRemove of this.fctsToRemove) {
+            let index = this.component['__onChangeFct'][toRemove.name].indexOf(toRemove.fct);
+            if (index != -1) {
+                this.component['__onChangeFct'][toRemove.name].splice(index, 1);
+            }
+        }
+    }
+    buildSchema() {
+        for (let global of this.schema.globals) {
+            this.createGlobal(global);
+        }
+        for (let loop of this.schema.loops) {
+            this.createLoop(loop);
+        }
+        for (let local of this.schema.locals) {
+            this.createLocal(local);
+        }
+    }
+    createGlobal(global) {
+        let comp = this.component;
+        Object.defineProperty(this.c, global, {
+            get() {
+                return WebComponentTemplate.getValueFromItem(global, comp);
+            },
+            set(value) {
+                WebComponentTemplate.setValueToItem(global, comp, value);
+            }
+        });
+        let name = global.split(".")[0];
+        this.__changes[name] = [];
+        if (!this.component['__onChangeFct'][name]) {
+            this.component['__onChangeFct'][name] = [];
+        }
+        let fct = (path) => {
+            if (this.isRendered) {
+                for (let change of this.__changes[name]) {
+                    change(path);
+                }
+            }
+        };
+        this.fctsToRemove.push({ name, fct });
+        this.component['__onChangeFct'][name].push(fct);
+    }
+    createLoop(loop) {
+        Object.defineProperty(this.c, loop.item, {
+            get() {
+                let indexValue = this[loop.index];
+                return WebComponentTemplate.getValueFromItem(loop.data, this)[indexValue];
+            }
+        });
+        let name = loop.data.split(".")[0];
+        this.__changes[loop.item] = [];
+        this.__changes[name].push((path) => {
+            if (this.isRendered) {
+                let currentPath = `${loop.data}[${this.c[loop.index]}]`;
+                if (path.startsWith(currentPath)) {
+                    let localPath = path.replace(currentPath, loop.item);
+                    for (let change of this.__changes[loop.item]) {
+                        change(localPath);
+                    }
+                }
+            }
+        });
+    }
+    createLocal(local) {
+        let localValue = local.value;
+        let changes = this.__changes;
+        Object.defineProperty(this.c, local.name, {
+            get() {
+                return localValue;
+            },
+            set(value) {
+                localValue = value;
+                if (changes[local.name]) {
+                    for (let change of changes[local.name]) {
+                        change(local.name);
+                    }
+                }
+            }
+        });
+    }
+    addChange(on, fct) {
+        if (!this.__changes[on]) {
+            this.__changes[on] = [];
+        }
+        this.__changes[on].push(fct);
+    }
+}
+
 class WebComponentTemplate {
     static setValueToItem(path, obj, value) {
         let splitted = path.split(".");
@@ -2206,110 +2310,6 @@ class WebComponentTemplate {
     }
     addLoop(loop) {
         this.loops.push(loop);
-    }
-}
-
-class WebComponentTemplateContext {
-    __changes = {};
-    component;
-    fctsToRemove = [];
-    c = {};
-    isRendered = false;
-    schema;
-    constructor(component, schema, locals) {
-        this.component = component;
-        this.schema = { ...schema };
-        this.schema.locals = [...this.schema.locals, ...locals];
-        5;
-        this.buildSchema();
-    }
-    destructor() {
-        for (let toRemove of this.fctsToRemove) {
-            let index = this.component['__onChangeFct'][toRemove.name].indexOf(toRemove.fct);
-            if (index != -1) {
-                this.component['__onChangeFct'][toRemove.name].splice(index, 1);
-            }
-        }
-    }
-    buildSchema() {
-        for (let global of this.schema.globals) {
-            this.createGlobal(global);
-        }
-        for (let loop of this.schema.loops) {
-            this.createLoop(loop);
-        }
-        for (let local of this.schema.locals) {
-            this.createLocal(local);
-        }
-    }
-    createGlobal(global) {
-        let comp = this.component;
-        Object.defineProperty(this.c, global, {
-            get() {
-                return WebComponentTemplate.getValueFromItem(global, comp);
-            },
-            set(value) {
-                WebComponentTemplate.setValueToItem(global, comp, value);
-            }
-        });
-        let name = global.split(".")[0];
-        this.__changes[name] = [];
-        if (!this.component['__onChangeFct'][name]) {
-            this.component['__onChangeFct'][name] = [];
-        }
-        let fct = (path) => {
-            if (this.isRendered) {
-                for (let change of this.__changes[name]) {
-                    change(path);
-                }
-            }
-        };
-        this.fctsToRemove.push({ name, fct });
-        this.component['__onChangeFct'][name].push(fct);
-    }
-    createLoop(loop) {
-        Object.defineProperty(this.c, loop.item, {
-            get() {
-                let indexValue = this[loop.index];
-                return WebComponentTemplate.getValueFromItem(loop.data, this)[indexValue];
-            }
-        });
-        let name = loop.data.split(".")[0];
-        this.__changes[loop.item] = [];
-        this.__changes[name].push((path) => {
-            if (this.isRendered) {
-                let currentPath = `${loop.data}[${this.c[loop.index]}]`;
-                if (path.startsWith(currentPath)) {
-                    let localPath = path.replace(currentPath, loop.item);
-                    for (let change of this.__changes[loop.item]) {
-                        change(localPath);
-                    }
-                }
-            }
-        });
-    }
-    createLocal(local) {
-        let localValue = local.value;
-        let changes = this.__changes;
-        Object.defineProperty(this.c, local.name, {
-            get() {
-                return localValue;
-            },
-            set(value) {
-                localValue = value;
-                if (changes[local.name]) {
-                    for (let change of changes[local.name]) {
-                        change(local.name);
-                    }
-                }
-            }
-        });
-    }
-    addChange(on, fct) {
-        if (!this.__changes[on]) {
-            this.__changes[on] = [];
-        }
-        this.__changes[on].push(fct);
     }
 }
 
@@ -2683,38 +2683,43 @@ class WebComponentTemplateInstance {
         });
     }
 }
-WebComponentInstance.Namespace='Aventus';
 Aventus.WebComponentInstance=WebComponentInstance;
-ElementExtension.Namespace='Aventus';
+WebComponentInstance.Namespace='Aventus';
 Aventus.ElementExtension=ElementExtension;
-Instance.Namespace='Aventus';
+ElementExtension.Namespace='Aventus';
 Aventus.Instance=Instance;
-Style.Namespace='Aventus';
+Instance.Namespace='Aventus';
 Aventus.Style=Style;
-WebComponent.Namespace='Aventus';
+Style.Namespace='Aventus';
 Aventus.WebComponent=WebComponent;
-Callback.Namespace='Aventus';
+WebComponent.Namespace='Aventus';
 Aventus.Callback=Callback;
+<<<<<<< HEAD
 Mutex.Namespace='Aventus';
 Aventus.Mutex=Mutex;
 StateManager.Namespace='Aventus';
+=======
+Callback.Namespace='Aventus';
+Aventus.Mutex=Mutex;
+Mutex.Namespace='Aventus';
+>>>>>>> 69d64e6 (Config to build all is ok - ready to dev)
 Aventus.StateManager=StateManager;
-WatchAction.Namespace='Aventus';
+StateManager.Namespace='Aventus';
 Aventus.WatchAction=WatchAction;
-Watcher.Namespace='Aventus';
 Aventus.Watcher=Watcher;
-PressManager.Namespace='Aventus';
+Watcher.Namespace='Aventus';
 Aventus.PressManager=PressManager;
-State.Namespace='Aventus';
+PressManager.Namespace='Aventus';
 Aventus.State=State;
-EmptyState.Namespace='Aventus';
+State.Namespace='Aventus';
 Aventus.EmptyState=EmptyState;
-WebComponentTemplate.Namespace='Aventus';
-Aventus.WebComponentTemplate=WebComponentTemplate;
-WebComponentTemplateContext.Namespace='Aventus';
+EmptyState.Namespace='Aventus';
 Aventus.WebComponentTemplateContext=WebComponentTemplateContext;
-WebComponentTemplateInstance.Namespace='Aventus';
+WebComponentTemplateContext.Namespace='Aventus';
+Aventus.WebComponentTemplate=WebComponentTemplate;
+WebComponentTemplate.Namespace='Aventus';
 Aventus.WebComponentTemplateInstance=WebComponentTemplateInstance;
+WebComponentTemplateInstance.Namespace='Aventus';
 })(Aventus);
 
 var dependances;
@@ -2878,14 +2883,14 @@ class ConfigurationEditor extends Aventus.WebComponent {
     }
 }
 window.customElements.define('av-configuration-editor', ConfigurationEditor);Aventus.WebComponentInstance.registerDefinition(ConfigurationEditor);
-Message.Namespace='dependances';
 dependances.Message=Message;
-GeneralInformation.Namespace='dependances';
+Message.Namespace='dependances';
 dependances.GeneralInformation=GeneralInformation;
-Dependances.Namespace='dependances';
+GeneralInformation.Namespace='dependances';
 dependances.Dependances=Dependances;
-Icon.Namespace='dependances';
+Dependances.Namespace='dependances';
 dependances.Icon=Icon;
-ConfigurationEditor.Namespace='dependances';
+Icon.Namespace='dependances';
 dependances.ConfigurationEditor=ConfigurationEditor;
+ConfigurationEditor.Namespace='dependances';
 })(dependances);

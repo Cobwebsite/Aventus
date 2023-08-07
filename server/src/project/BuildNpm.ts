@@ -1,10 +1,11 @@
 import { EOL } from 'os';
-import { ClientConnection } from '../Connection';
 import { rollup } from 'rollup';
 import commonjs from '@rollup/plugin-commonjs';
 import virtual from '@rollup/plugin-virtual';
 import nodeResolve from '@rollup/plugin-node-resolve';
 import { minify } from 'terser';
+import terser from '@rollup/plugin-terser';
+import { GenericServer } from '../GenericServer';
 
 export type NpmDependances = {
 	[module_uri: string]: {
@@ -37,7 +38,7 @@ export class BuildNpm {
 						}
 					}
 					else {
-						ClientConnection.getInstance().showErrorMessage("Something went wrong with the npm export");
+						GenericServer.showErrorMessage("Something went wrong with the npm export");
 					}
 				}
 				else {
@@ -51,7 +52,7 @@ export class BuildNpm {
 							}
 						}
 						else {
-							ClientConnection.getInstance().showErrorMessage("Something went wrong with the npm export");
+							GenericServer.showErrorMessage("Something went wrong with the npm export");
 						}
 					}
 					toCompileImport += `import { ${Object.values(parts).join(", ")} } from "${uri}";` + EOL;

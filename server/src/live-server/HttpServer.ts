@@ -12,7 +12,6 @@ import { ServerStart } from '../notification/httpServer/ServerStart';
 import { ServerStop } from '../notification/httpServer/ServerStop';
 import open = require('open');
 import { LiveServerSettings, SettingsManager } from '../settings/Settings';
-import { ClientConnection } from '../Connection';
 
 export class HttpServer {
 	private static instance: HttpServer;

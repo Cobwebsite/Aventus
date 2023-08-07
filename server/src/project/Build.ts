@@ -2,7 +2,6 @@ import { existsSync, mkdirSync, statSync, unlinkSync, writeFileSync } from "fs";
 import { EOL } from "os";
 import { join, normalize, sep } from "path";
 import { Diagnostic, DiagnosticSeverity, TextEdit } from 'vscode-languageserver';
-import { ClientConnection } from '../Connection';
 import { AventusExtension, AventusLanguageId } from "../definition";
 import { AventusFile } from '../files/AventusFile';
 import { FilesManager } from '../files/FilesManager';
@@ -31,6 +30,7 @@ import { BuildNpm, NpmDependances } from './BuildNpm';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AventusGlobalComponentSCSSFile } from '../language-services/scss/GlobalComponentFile';
 import { minify } from 'terser';
+import { GenericServer } from '../GenericServer';
 
 export class Build {
     public project: Project;
@@ -157,7 +157,8 @@ export class Build {
         await this.build();
     }
     public async build() {
-        if (ClientConnection.getInstance().isCLI()) {
+        let delay = GenericServer.delayBetweenBuild();
+        if(delay == 0){
             await this._build();
         }
         else {
@@ -166,7 +167,7 @@ export class Build {
             }
             this.timerBuild = setTimeout(async () => {
                 await this._build();
-            }, 300)
+            }, delay)
         }
     }
 
@@ -174,7 +175,7 @@ export class Build {
         if (!this.allowBuild) {
             return
         }
-        if (ClientConnection.getInstance().isDebug()) {
+        if (GenericServer.isDebug()) {
             console.log("building " + this.buildConfig.fullname);
         }
         let compilationInfo = this.buildOrderCompilationInfo();
@@ -919,7 +920,7 @@ export class Build {
             }
         }
 
-        if (ClientConnection.getInstance().isDebug()) {
+        if (GenericServer.isDebug()) {
             console.log("loaded all files needed");
         }
         this.allowBuild = true;
@@ -1212,7 +1213,7 @@ class ExternalPackageInformation {
 
             this.dataFullname = this.dataFullname.concat(defFile.classInfoDataFullname);
         }
-        ClientConnection.getInstance().sendDiagnostics({ uri: '@Import lib', diagnostics: errors })
+        GenericServer.sendDiagnostics({ uri: '@Import lib', diagnostics: errors })
     }
 
     public getExternalWebComponentDefinition(className: string): ClassInfo | undefined {

@@ -2,9 +2,9 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { CodeAction, CodeLens, CompletionItem, CompletionList, Definition, Diagnostic, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from "vscode-languageserver";
 import { v4 as randomUUID } from 'uuid';
 import { getFolder, uriToPath } from '../tools';
-import { ClientConnection } from '../Connection';
 import { Build } from '../project/Build';
 import { AventusLanguageId } from '../definition';
+import { GenericServer } from '../GenericServer';
 
 export type onValidateType = (document: AventusFile) => Promise<Diagnostic[]>;
 export type onContentChangeType = (document: AventusFile) => Promise<void>;
@@ -154,7 +154,7 @@ export class InternalAventusFile implements AventusFile {
             ]
         }
         if (sendDiagnostics) {
-            ClientConnection.getInstance().sendDiagnostics({ uri: this.uri, diagnostics: diagnostics })
+            GenericServer.sendDiagnostics({ uri: this.uri, diagnostics: diagnostics })
         }
         return diagnostics;
     }

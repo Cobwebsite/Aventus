@@ -1,11 +1,11 @@
-import { ClientConnection } from '../Connection';
 import { TextEdit } from 'vscode-languageserver';
+import { GenericServer } from '../GenericServer';
 
 
 export class EditFile {
 
 	public static send(uri: string, transformations: TextEdit[][]) {
-		ClientConnection.getInstance().sendNotification("aventus/editFile", {
+		GenericServer.sendNotification("aventus/editFile", {
 			uri,
 			transformations
 		})

@@ -2052,6 +2052,110 @@ class EmptyState extends State {
     }
 }
 
+class WebComponentTemplateContext {
+    __changes = {};
+    component;
+    fctsToRemove = [];
+    c = {};
+    isRendered = false;
+    schema;
+    constructor(component, schema, locals) {
+        this.component = component;
+        this.schema = { ...schema };
+        this.schema.locals = [...this.schema.locals, ...locals];
+        5;
+        this.buildSchema();
+    }
+    destructor() {
+        for (let toRemove of this.fctsToRemove) {
+            let index = this.component['__onChangeFct'][toRemove.name].indexOf(toRemove.fct);
+            if (index != -1) {
+                this.component['__onChangeFct'][toRemove.name].splice(index, 1);
+            }
+        }
+    }
+    buildSchema() {
+        for (let global of this.schema.globals) {
+            this.createGlobal(global);
+        }
+        for (let loop of this.schema.loops) {
+            this.createLoop(loop);
+        }
+        for (let local of this.schema.locals) {
+            this.createLocal(local);
+        }
+    }
+    createGlobal(global) {
+        let comp = this.component;
+        Object.defineProperty(this.c, global, {
+            get() {
+                return WebComponentTemplate.getValueFromItem(global, comp);
+            },
+            set(value) {
+                WebComponentTemplate.setValueToItem(global, comp, value);
+            }
+        });
+        let name = global.split(".")[0];
+        this.__changes[name] = [];
+        if (!this.component['__onChangeFct'][name]) {
+            this.component['__onChangeFct'][name] = [];
+        }
+        let fct = (path) => {
+            if (this.isRendered) {
+                for (let change of this.__changes[name]) {
+                    change(path);
+                }
+            }
+        };
+        this.fctsToRemove.push({ name, fct });
+        this.component['__onChangeFct'][name].push(fct);
+    }
+    createLoop(loop) {
+        Object.defineProperty(this.c, loop.item, {
+            get() {
+                let indexValue = this[loop.index];
+                return WebComponentTemplate.getValueFromItem(loop.data, this)[indexValue];
+            }
+        });
+        let name = loop.data.split(".")[0];
+        this.__changes[loop.item] = [];
+        this.__changes[name].push((path) => {
+            if (this.isRendered) {
+                let currentPath = `${loop.data}[${this.c[loop.index]}]`;
+                if (path.startsWith(currentPath)) {
+                    let localPath = path.replace(currentPath, loop.item);
+                    for (let change of this.__changes[loop.item]) {
+                        change(localPath);
+                    }
+                }
+            }
+        });
+    }
+    createLocal(local) {
+        let localValue = local.value;
+        let changes = this.__changes;
+        Object.defineProperty(this.c, local.name, {
+            get() {
+                return localValue;
+            },
+            set(value) {
+                localValue = value;
+                if (changes[local.name]) {
+                    for (let change of changes[local.name]) {
+                        change(local.name);
+                    }
+                }
+            }
+        });
+    }
+    addChange(on, fct) {
+        if (!this.__changes[on]) {
+            this.__changes[on] = [];
+        }
+        this.__changes[on].push(fct);
+    }
+}
+
 class WebComponentTemplate {
     static setValueToItem(path, obj, value) {
         let splitted = path.split(".");
@@ -2206,110 +2310,6 @@ class WebComponentTemplate {
     }
     addLoop(loop) {
         this.loops.push(loop);
-    }
-}
-
-class WebComponentTemplateContext {
-    __changes = {};
-    component;
-    fctsToRemove = [];
-    c = {};
-    isRendered = false;
-    schema;
-    constructor(component, schema, locals) {
-        this.component = component;
-        this.schema = { ...schema };
-        this.schema.locals = [...this.schema.locals, ...locals];
-        5;
-        this.buildSchema();
-    }
-    destructor() {
-        for (let toRemove of this.fctsToRemove) {
-            let index = this.component['__onChangeFct'][toRemove.name].indexOf(toRemove.fct);
-            if (index != -1) {
-                this.component['__onChangeFct'][toRemove.name].splice(index, 1);
-            }
-        }
-    }
-    buildSchema() {
-        for (let global of this.schema.globals) {
-            this.createGlobal(global);
-        }
-        for (let loop of this.schema.loops) {
-            this.createLoop(loop);
-        }
-        for (let local of this.schema.locals) {
-            this.createLocal(local);
-        }
-    }
-    createGlobal(global) {
-        let comp = this.component;
-        Object.defineProperty(this.c, global, {
-            get() {
-                return WebComponentTemplate.getValueFromItem(global, comp);
-            },
-            set(value) {
-                WebComponentTemplate.setValueToItem(global, comp, value);
-            }
-        });
-        let name = global.split(".")[0];
-        this.__changes[name] = [];
-        if (!this.component['__onChangeFct'][name]) {
-            this.component['__onChangeFct'][name] = [];
-        }
-        let fct = (path) => {
-            if (this.isRendered) {
-                for (let change of this.__changes[name]) {
-                    change(path);
-                }
-            }
-        };
-        this.fctsToRemove.push({ name, fct });
-        this.component['__onChangeFct'][name].push(fct);
-    }
-    createLoop(loop) {
-        Object.defineProperty(this.c, loop.item, {
-            get() {
-                let indexValue = this[loop.index];
-                return WebComponentTemplate.getValueFromItem(loop.data, this)[indexValue];
-            }
-        });
-        let name = loop.data.split(".")[0];
-        this.__changes[loop.item] = [];
-        this.__changes[name].push((path) => {
-            if (this.isRendered) {
-                let currentPath = `${loop.data}[${this.c[loop.index]}]`;
-                if (path.startsWith(currentPath)) {
-                    let localPath = path.replace(currentPath, loop.item);
-                    for (let change of this.__changes[loop.item]) {
-                        change(localPath);
-                    }
-                }
-            }
-        });
-    }
-    createLocal(local) {
-        let localValue = local.value;
-        let changes = this.__changes;
-        Object.defineProperty(this.c, local.name, {
-            get() {
-                return localValue;
-            },
-            set(value) {
-                localValue = value;
-                if (changes[local.name]) {
-                    for (let change of changes[local.name]) {
-                        change(local.name);
-                    }
-                }
-            }
-        });
-    }
-    addChange(on, fct) {
-        if (!this.__changes[on]) {
-            this.__changes[on] = [];
-        }
-        this.__changes[on].push(fct);
     }
 }
 
@@ -2770,6 +2770,10 @@ class ResourceLoader {
                 blob = true;
             }
             let content = await this.fetching(options.url, blob);
+            if (options.type == "img" && content.startsWith("data:text/html;")) {
+                console.error("Can't load img " + options.url);
+                content = "";
+            }
             this.requestLoaded[options.url] = content;
             this.releaseAwaitFct(options.url);
             return content;
@@ -3312,46 +3316,51 @@ class Animation {
         return this.continueAnimation;
     }
 }
-WebComponentInstance.Namespace='Aventus';
 Aventus.WebComponentInstance=WebComponentInstance;
-ElementExtension.Namespace='Aventus';
+WebComponentInstance.Namespace='Aventus';
 Aventus.ElementExtension=ElementExtension;
-Instance.Namespace='Aventus';
+ElementExtension.Namespace='Aventus';
 Aventus.Instance=Instance;
-Style.Namespace='Aventus';
+Instance.Namespace='Aventus';
 Aventus.Style=Style;
-WebComponent.Namespace='Aventus';
+Style.Namespace='Aventus';
 Aventus.WebComponent=WebComponent;
-Callback.Namespace='Aventus';
+WebComponent.Namespace='Aventus';
 Aventus.Callback=Callback;
+<<<<<<< HEAD
 Mutex.Namespace='Aventus';
 Aventus.Mutex=Mutex;
 StateManager.Namespace='Aventus';
+=======
+Callback.Namespace='Aventus';
+Aventus.Mutex=Mutex;
+Mutex.Namespace='Aventus';
+>>>>>>> 69d64e6 (Config to build all is ok - ready to dev)
 Aventus.StateManager=StateManager;
-WatchAction.Namespace='Aventus';
+StateManager.Namespace='Aventus';
 Aventus.WatchAction=WatchAction;
-Watcher.Namespace='Aventus';
 Aventus.Watcher=Watcher;
-PressManager.Namespace='Aventus';
+Watcher.Namespace='Aventus';
 Aventus.PressManager=PressManager;
-State.Namespace='Aventus';
+PressManager.Namespace='Aventus';
 Aventus.State=State;
-EmptyState.Namespace='Aventus';
+State.Namespace='Aventus';
 Aventus.EmptyState=EmptyState;
-WebComponentTemplate.Namespace='Aventus';
-Aventus.WebComponentTemplate=WebComponentTemplate;
-WebComponentTemplateContext.Namespace='Aventus';
+EmptyState.Namespace='Aventus';
 Aventus.WebComponentTemplateContext=WebComponentTemplateContext;
-WebComponentTemplateInstance.Namespace='Aventus';
+WebComponentTemplateContext.Namespace='Aventus';
+Aventus.WebComponentTemplate=WebComponentTemplate;
+WebComponentTemplate.Namespace='Aventus';
 Aventus.WebComponentTemplateInstance=WebComponentTemplateInstance;
-ResourceLoader.Namespace='Aventus';
+WebComponentTemplateInstance.Namespace='Aventus';
 Aventus.ResourceLoader=ResourceLoader;
-ResizeObserver.Namespace='Aventus';
+ResourceLoader.Namespace='Aventus';
 Aventus.ResizeObserver=ResizeObserver;
-DragAndDrop.Namespace='Aventus';
+ResizeObserver.Namespace='Aventus';
 Aventus.DragAndDrop=DragAndDrop;
-Animation.Namespace='Aventus';
+DragAndDrop.Namespace='Aventus';
 Aventus.Animation=Animation;
+Animation.Namespace='Aventus';
 })(Aventus);
 
 var Aventus;
@@ -3380,12 +3389,6 @@ class App extends Aventus.WebComponent {
     }
 }
 window.customElements.define('av-app', App);Aventus.WebComponentInstance.registerDefinition(App);
-
-class RouterStateManager extends Aventus.StateManager {
-    static getInstance() {
-        return Aventus.Instance.get(RouterStateManager);
-    }
-}
 
 class RouterLink extends Aventus.WebComponent {
     get 'state'() {
@@ -3450,6 +3453,12 @@ class RouterLink extends Aventus.WebComponent {
     }
 }
 window.customElements.define('av-router-link', RouterLink);Aventus.WebComponentInstance.registerDefinition(RouterLink);
+
+class RouterStateManager extends Aventus.StateManager {
+    static getInstance() {
+        return Aventus.Instance.get(RouterStateManager);
+    }
+}
 
 class Router extends Aventus.WebComponent {
     oldPage;
@@ -4997,35 +5006,35 @@ class Checkbox extends Aventus.WebComponent {
     }
 }
 window.customElements.define('av-checkbox', Checkbox);Aventus.WebComponentInstance.registerDefinition(Checkbox);
-App.Namespace='Aventus';
 Aventus.App=App;
-RouterStateManager.Namespace='Aventus';
-Aventus.RouterStateManager=RouterStateManager;
+App.Namespace='Aventus';
 (Aventus.Navigation||(Aventus.Navigation = {}));
-RouterLink.Namespace='Aventus.Navigation';
 Aventus.Navigation.RouterLink=RouterLink;
-Router.Namespace='Aventus.Navigation';
+RouterLink.Namespace='Aventus.Navigation';
+Aventus.RouterStateManager=RouterStateManager;
+RouterStateManager.Namespace='Aventus';
 Aventus.Navigation.Router=Router;
-Page.Namespace='Aventus.Navigation';
+Router.Namespace='Aventus.Navigation';
 Aventus.Navigation.Page=Page;
+Page.Namespace='Aventus.Navigation';
 (Aventus.Layout||(Aventus.Layout = {}));
-Scrollable.Namespace='Aventus.Layout';
 Aventus.Layout.Scrollable=Scrollable;
-GridCol.Namespace='Aventus.Layout';
+Scrollable.Namespace='Aventus.Layout';
 Aventus.Layout.GridCol=GridCol;
-Grid.Namespace='Aventus.Layout';
+GridCol.Namespace='Aventus.Layout';
 Aventus.Layout.Grid=Grid;
-DynamicRow.Namespace='Aventus.Layout';
+Grid.Namespace='Aventus.Layout';
 Aventus.Layout.DynamicRow=DynamicRow;
-DynamicCol.Namespace='Aventus.Layout';
+DynamicRow.Namespace='Aventus.Layout';
 Aventus.Layout.DynamicCol=DynamicCol;
-Img.Namespace='Aventus';
+DynamicCol.Namespace='Aventus.Layout';
 Aventus.Img=Img;
+Img.Namespace='Aventus';
 (Aventus.Form||(Aventus.Form = {}));
-Form.Namespace='Aventus.Form';
 Aventus.Form.Form=Form;
-Input.Namespace='Aventus.Form';
+Form.Namespace='Aventus.Form';
 Aventus.Form.Input=Input;
-Checkbox.Namespace='Aventus.Form';
+Input.Namespace='Aventus.Form';
 Aventus.Form.Checkbox=Checkbox;
+Checkbox.Namespace='Aventus.Form';
 })(Aventus);

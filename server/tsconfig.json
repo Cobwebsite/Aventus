@@ -4,12 +4,14 @@
 		"lib": ["es2020", "dom"],
 		"module": "commonjs",
 		"moduleResolution": "node",
+		"declaration": true,
 		"sourceMap": true,
 		"strict": true,
 		"outDir": "out",
 		"rootDir": "src",
 		"noImplicitAny": false,
 		"noImplicitReturns": true,
+		"composite": true
 		// "noUnusedLocals": true
 	},
 	"include": ["src"],

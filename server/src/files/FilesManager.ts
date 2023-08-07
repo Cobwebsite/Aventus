@@ -2,13 +2,13 @@ import { existsSync, lstatSync, readdirSync, readFileSync } from 'fs';
 import { Hover } from 'vscode-languageclient';
 import { CodeAction, CodeLens, CompletionItem, CompletionList, Definition, FormattingOptions, Location, Position, Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { ClientConnection } from '../Connection';
 import { AventusExtension, AventusLanguageId } from '../definition';
 import { getLanguageIdByUri, pathToUri, uriToPath } from '../tools';
 import { AventusFile, InternalAventusFile } from './AventusFile';
 import { v4 as randomUUID } from 'uuid';
 import { Build } from '../project/Build';
 import { InitStep } from '../notification/InitStep';
+import { GenericServer } from '../GenericServer';
 
 export class FilesManager {
     private static instance: FilesManager;
@@ -75,7 +75,7 @@ export class FilesManager {
 
     public async onDeletedUri(uri: string) {
         if (this.files[uri]) {
-            ClientConnection.getInstance().sendDiagnostics({ uri: uri, diagnostics: [] })
+            GenericServer.sendDiagnostics({ uri: uri, diagnostics: [] })
             await this.files[uri].triggerDelete();
             delete this.files[uri];
         }
@@ -130,7 +130,7 @@ export class FilesManager {
     }
 
     public async registerFile(document: TextDocument): Promise<void> {
-        if (ClientConnection.getInstance().isDebug()) {
+        if (GenericServer.isDebug()) {
             console.log("registering " + document.uri);
         }
         if (!this.files[document.uri]) {
@@ -159,7 +159,7 @@ export class FilesManager {
     public async onClose(document: TextDocument) {
         if (!existsSync(uriToPath(document.uri))) {
             if (this.files[document.uri]) {
-                ClientConnection.getInstance().sendDiagnostics({ uri: document.uri, diagnostics: [] })
+                GenericServer.sendDiagnostics({ uri: document.uri, diagnostics: [] })
                 await this.files[document.uri].triggerDelete();
                 delete this.files[document.uri];
             }
@@ -204,7 +204,7 @@ export class FilesManager {
         }
         return this.files[document.uri].getCodeAction(range);
     }
-    public async onReferences(document: TextDocument, position: Position): Promise<Location[] | undefined> {
+    public async onReferences(document: TextDocument, position: Position): Promise<Location[] | null> {
         if (!this.files[document.uri]) {
             return [];
         }
@@ -235,7 +235,7 @@ export class FilesManager {
     //#region event new file
     private onNewFileCb: { [uuid: string]: (document: AventusFile) => Promise<void> } = {};
     public async triggerOnNewFile(document: TextDocument): Promise<void> {
-        if (ClientConnection.getInstance().isDebug()) {
+        if (GenericServer.isDebug()) {
             console.log("triggerOnNewFile " + document.uri);
         }
         if (this.loadingInProgress && document.uri.endsWith(AventusExtension.Config)) {
