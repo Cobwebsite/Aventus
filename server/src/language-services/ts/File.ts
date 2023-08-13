@@ -6,6 +6,7 @@ import { createErrorTsPos } from '../../tools';
 import { AventusBaseFile } from "../BaseFile";
 import { CompileTsResult } from './LanguageService';
 import { ParserTs } from './parser/ParserTs';
+import { ClassInfo } from './parser/ClassInfo';
 
 
 
@@ -65,7 +66,16 @@ export abstract class AventusTsFile extends AventusBaseFile {
      * @param rules 
      * @returns 
      */
-    protected validateRules(rules: { allow_variables: boolean, allow_function: boolean, class_extend?: string[], class_implement?: string[], interface?: string[], enum?: string[], alias?: string[] }): void {
+    protected validateRules(rules: {
+        allow_variables?: boolean,
+        allow_function?: boolean,
+        class_extend?: string[],
+        class_implement?: string[],
+        customClassRules?: ((classinfo: ClassInfo) => void)[],
+        interface?: string[],
+        enum?: string[],
+        alias?: string[]
+    }): void {
         const struct = this.fileParsed;
         if (!struct) {
             return;
@@ -82,14 +92,19 @@ export abstract class AventusTsFile extends AventusBaseFile {
                 this.diagnostics.push(createErrorTsPos(this.file.document, `Variables can only be used inside lib.avt file`, varr.nameStart, varr.nameEnd, AventusErrorCode.VariableNotAllowed));
             }
         }
-        if (rules.class_extend || rules.class_implement || rules.interface) {
+        if (rules.class_extend || rules.class_implement || rules.interface || rules.customClassRules) {
 
             if (!rules.class_extend) { rules.class_extend = [] }
             if (!rules.class_implement) { rules.class_implement = [] }
             if (!rules.interface) { rules.interface = [] }
+            if (!rules.customClassRules) { rules.customClassRules = [] }
 
             for (let className in struct.classes) {
                 let classTemp = struct.classes[className];
+
+                for(let customClassRule of rules.customClassRules){
+                    customClassRule(classTemp);
+                }
                 if (classTemp.isInterface) {
                     let foundInterface = rules.interface.length == 0;
                     for (let extend of classTemp.extends) {
@@ -196,7 +211,7 @@ export abstract class AventusTsFile extends AventusBaseFile {
         if (compileResult.length != this.compileResult.length) {
             triggerRebuild = true;
         }
-        else if(this.oldFullClassScript != fullClassScript){
+        else if (this.oldFullClassScript != fullClassScript) {
             triggerRebuild = true;
         }
         else if (oldSrcInline != fullSrcInline) {

@@ -32,7 +32,16 @@ export class AventusDataFile extends AventusTsFile {
             this.validateRules({
                 allow_variables: false,
                 allow_function: false,
-                class_implement: ['Aventus.IData']
+                class_implement: ['Aventus.IData'],
+                customClassRules: [
+                    (classInfo) => {
+                        if (!classInfo.isInterface && classInfo.convertibleName) {
+                            if (!classInfo.hasStaticField(classInfo.convertibleName)) {
+                                this.diagnostics.push(createErrorTsPos(this.file.document, `Missing static property ${classInfo.convertibleName}`, classInfo.nameStart, classInfo.nameEnd, AventusErrorCode.MissingFullName));
+                            }
+                        }
+                    }
+                ]
             })
         }
 

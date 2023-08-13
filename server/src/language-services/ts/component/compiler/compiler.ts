@@ -104,6 +104,7 @@ export class AventusWebcomponentCompiler {
         required: false,
         type: InfoType.class,
         isExported: true,
+        convertibleName: '',
     }
     private parentClassName: string = "";
     private overrideViewDecorator: OverrideViewDecorator | null = null;
@@ -438,10 +439,10 @@ export class AventusWebcomponentCompiler {
         }
         else {
             if (this.build.isCoreBuild) {
-                this.writeFileReplaceVar("definition", "window.customElements.define('" + this.tagName + "', " + this.className + ");WebComponentInstance.registerDefinition(" + this.className + ");")
+                this.writeFileReplaceVar("definition", "if(!window.customElements.get('" + this.tagName + "')){window.customElements.define('" + this.tagName + "', " + this.className + ");WebComponentInstance.registerDefinition(" + this.className + ");}")
             }
             else {
-                this.writeFileReplaceVar("definition", "window.customElements.define('" + this.tagName + "', " + this.className + ");Aventus.WebComponentInstance.registerDefinition(" + this.className + ");")
+                this.writeFileReplaceVar("definition", "if(!window.customElements.get('" + this.tagName + "')){window.customElements.define('" + this.tagName + "', " + this.className + ");Aventus.WebComponentInstance.registerDefinition(" + this.className + ");}")
             }
         }
     }

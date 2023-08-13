@@ -1,9 +1,11 @@
 import { Position, CompletionList, CompletionItem, Hover, Definition, Range, FormattingOptions, TextEdit, CodeAction, Diagnostic, Location, CodeLens, WorkspaceEdit } from "vscode-languageserver";
-import { AventusExtension } from "../../../definition";
+import { AventusErrorCode, AventusExtension } from "../../../definition";
 import { AventusFile } from '../../../files/AventusFile';
 import { Build } from '../../../project/Build';
 import { genericTsCompile } from "../compiler";
 import { AventusTsFile } from "../File";
+import { ClassInfo } from '../parser/ClassInfo';
+import { createErrorTsPos } from '../../../tools';
 
 export class AventusLibFile extends AventusTsFile {
 
@@ -19,6 +21,19 @@ export class AventusLibFile extends AventusTsFile {
         if (this.fileParsed) {
             this.diagnostics = this.diagnostics.concat(this.fileParsed.errors)
         }
+        this.validateRules({
+            allow_variables: true,
+            allow_function: true,
+            customClassRules: [
+                (classInfo) => {
+                    if (!classInfo.isInterface && classInfo.convertibleName) {
+                        if (!classInfo.hasStaticField(classInfo.convertibleName)) {
+                            this.diagnostics.push(createErrorTsPos(this.file.document, `Missing static property ${classInfo.convertibleName}`, classInfo.nameStart, classInfo.nameEnd, AventusErrorCode.MissingFullName));
+                        }
+                    }
+                }
+            ]
+        });
         return this.diagnostics;
     }
     protected async onContentChange(): Promise<void> {

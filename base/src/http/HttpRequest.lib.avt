@@ -1,7 +1,8 @@
 import { HttpRouter, JsonFormat } from "./HttpRouter.lib.avt";
-import { GenericResultWithError } from "../tools/Error.lib.avt";
+import { ResultWithError, VoidWithError } from "../tools/Error.lib.avt";
 import { HttpMethod } from "./HttpMethod.lib.avt";
 import { HttpError, HttpErrorCode } from "./HttpError.lib.avt";
+import { Converter } from "../tools/Converter.lib.avt";
 
 export class HttpRequest {
     private request: RequestInit;
@@ -50,8 +51,8 @@ export class HttpRequest {
     }
 
 
-    public async query(router: HttpRouter) {
-        let result = new GenericResultWithError<Response>();
+    public async query(router: HttpRouter): Promise<ResultWithError<Response>> {
+        let result = new ResultWithError<Response>();
         try {
             result.result = await fetch(router.options.url + this.url, this.request);
         } catch(e) {
@@ -60,20 +61,43 @@ export class HttpRequest {
         return result;
     }
 
-    public async queryJSON<T>(router: HttpRouter): Promise<GenericResultWithError<JsonFormat<T>>> {
+    public async queryVoid<T>(router: HttpRouter): Promise<VoidWithError> {
         let resultTemp = await this.query(router);
-        let result = new GenericResultWithError<JsonFormat<T>>();
+        let result = new VoidWithError();
         if(!resultTemp.success) {
             result.errors = resultTemp.errors;
             return result;
         }
         try {
-            let tempResult = await resultTemp.result.json();
-            if(tempResult.$type == "AventusSharp.Data.ResultWithError") {
-                for(let error of tempResult.Errors) {
+            // try to parse json if has result
+            let tempResult = Converter.transform(await resultTemp.result.json());
+            if(tempResult instanceof VoidWithError) {
+                for(let error of tempResult.errors) {
                     result.errors.push(error);
                 }
-                result.result = tempResult.Result;
+            }
+        } catch(e) {
+
+        }
+        return result;
+    }
+
+    public async queryJSON<T>(router: HttpRouter): Promise<ResultWithError<JsonFormat<T>>> {
+        let resultTemp = await this.query(router);
+        let result = new ResultWithError<JsonFormat<T>>();
+        if(!resultTemp.success) {
+            result.errors = resultTemp.errors;
+            return result;
+        }
+        try {
+            let tempResult = Converter.transform(await resultTemp.result.json());
+            if(tempResult instanceof VoidWithError) {
+                for(let error of tempResult.errors) {
+                    result.errors.push(error);
+                }
+                if(tempResult instanceof ResultWithError) {
+                    result.result = tempResult.result;
+                }
             }
             else {
                 result.result = tempResult;
@@ -84,9 +108,9 @@ export class HttpRequest {
         return result;
     }
 
-    public async queryTxt(router: HttpRouter): Promise<GenericResultWithError<string>> {
+    public async queryTxt(router: HttpRouter): Promise<ResultWithError<string>> {
         let resultTemp = await this.query(router);
-        let result = new GenericResultWithError<string>();
+        let result = new ResultWithError<string>();
         if(!resultTemp.success) {
             result.errors = resultTemp.errors;
             return result;
@@ -98,4 +122,5 @@ export class HttpRequest {
         }
         return result;
     }
+
 }

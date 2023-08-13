@@ -6,4 +6,4 @@ export enum RamErrorCode {
     noItemInsideRam
 }
 export class RamError extends GenericError<RamErrorCode>{}
-export class ResultRamWithError<T> extends ResultWithError<RamError, T>{ }
+export class ResultRamWithError<T> extends ResultWithError<T, RamError>{ }

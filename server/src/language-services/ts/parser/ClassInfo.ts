@@ -7,6 +7,7 @@ import { ParserTs } from "./ParserTs";
 import { PropertyInfo } from "./PropertyInfo";
 import { syntaxName } from "./tools";
 import { TypeInfo } from './TypeInfo';
+import { ConvertibleDecorator } from './decorators/ConvertibleDecorator';
 
 
 export class ClassInfo extends BaseInfo {
@@ -23,7 +24,7 @@ export class ClassInfo extends BaseInfo {
 	public constructorBody: string = "";
 	public parameters: string[] = [];
 	private methodParameters: string[] = [];
-
+	public convertibleName: string = '';
 
 	constructor(node: ClassDeclaration | InterfaceDeclaration, namespaces: string[], parserInfo: ParserTs) {
 		super(node, namespaces, parserInfo, false);
@@ -137,6 +138,12 @@ export class ClassInfo extends BaseInfo {
 			}
 		});
 
+		for (let decorator of this.decorators) {
+			let temp = ConvertibleDecorator.is(decorator);
+			if (temp) {
+				this.convertibleName = temp.name;
+			}
+		}
 		this.loadDependancesDecorator();
 
 	}
@@ -176,5 +183,16 @@ export class ClassInfo extends BaseInfo {
 			return false;
 		}
 		return true;
+	}
+
+	public hasStaticField(name: string): boolean {
+		let classToSearch: ClassInfo | null = this;
+		while (classToSearch != null) {
+			if (classToSearch.propertiesStatic[name] != undefined) {
+				return true;
+			}
+			classToSearch = classToSearch.parentClass;
+		}
+		return false;
 	}
 }

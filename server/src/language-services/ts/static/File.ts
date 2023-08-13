@@ -39,7 +39,8 @@ export class AventusStaticFile extends AventusTsFile {
             uri: this.file.uri,
             required: true,
             type: InfoType.none,
-            isExported: false // actually its exported if written correctly
+            isExported: false, // actually its exported if written correctly
+            convertibleName: ''
         }]);
     }
     protected async onCompletion(document: AventusFile, position: Position): Promise<CompletionList> {

@@ -80,6 +80,9 @@ declare global {
 
     function Dependances(info: DependanceConfig[]): (ConstructorConstraint: Function) => void;
 
-    function RouteWrapper(): (target: any, propertyKey: string, descriptor: TypedPropertyDescriptor<(<S extends string>(path: Aventus.StringLiteral<S>) => void)>) => void;
-
+    /**
+     * Register the element inside the Converter instance
+     * Your object must have a static type named as the parameter
+     */
+    function Convertible(name: string = "Fullname"): (ConstructorConstraint: Function) => void;
 }

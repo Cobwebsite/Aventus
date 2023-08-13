@@ -226,6 +226,9 @@ export class DependanceManager {
 
 	private loadLocal(localName: string, build: Build) {
 		let uri = pathToUri(join(this.path, "@locals", localName))
+		if(!uri.endsWith(AventusExtension.Package)){
+			uri += AventusExtension.Package;
+		}
 		let file = FilesWatcher.getInstance().registerFile(uri, AventusLanguageId.Package);
 		return {
 			uri,

@@ -842,7 +842,8 @@ export class AventusTsLanguageService {
             uri: file.file.uri,
             required: false,
             type: element.infoType,
-            isExported: element.isExported
+            isExported: element.isExported,
+            convertibleName: ''
         }
         try {
             let additionContent = "";
@@ -855,6 +856,7 @@ export class AventusTsLanguageService {
                     additionalDecorator.push("ForeignKey");
                     result.type = InfoType.classData;
                 }
+                result.convertibleName = element.convertibleName
             }
             txt = this.removeDecoratorFromContent(txt, element.decorators, additionalDecorator);
             txt = this.removeComments(txt);
@@ -976,6 +978,7 @@ export type CompileTsResult = {
     required: boolean,
     type: InfoType,
     isExported: boolean,
+    convertibleName: string
 }
 
 const JS_WORD_REGEX = /(-?\d*\.\d\w*)|([^\`\~\!\@\#\%\^\&\*\(\)\-\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\?\s]+)/g;

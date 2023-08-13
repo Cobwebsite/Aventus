@@ -231,7 +231,7 @@ export class Build {
         }
         this.emitDiagnostics();
     }
-    private _buildStringModule(namespace: string, codeBefore: string[], code: string[], classesName: { [name: string]: { type: InfoType, isExported: boolean } }, codeAfter: string[], stylesheets: string[]) {
+    private _buildStringModule(namespace: string, codeBefore: string[], code: string[], classesName: { [name: string]: { type: InfoType, isExported: boolean, convertibleName: string } }, codeAfter: string[], stylesheets: string[]) {
         let finalTxt = '';
         let splittedNames = namespace.split(".");
         finalTxt += codeBefore.join(EOL) + EOL;
@@ -288,6 +288,10 @@ export class Build {
                         finalTxt += finalName + ".Namespace='" + namespace + currentNamespaceWithDot + "';" + EOL;
                         finalTxt += "Aventus.DataManager.register(" + finalName + ".Fullname, " + finalName + ");" + EOL;
                     }
+
+                    if (classesName[className].convertibleName) {
+                        finalTxt += "Aventus.Converter.register(" + finalName + "." + classesName[className].convertibleName + ", " + finalName + ");" + EOL;
+                    }
                 }
             }
             finalTxt += "})(" + splittedNames[0] + ");" + EOL;
@@ -301,7 +305,7 @@ export class Build {
      * Write the code inside the exported .js
      */
     private async writeBuildCode(localCode: {
-        code: string[], codeNoNamespaceBefore: string[], codeNoNamespaceAfter: string[], classesName: { [name: string]: { type: InfoType, isExported: boolean } }, stylesheets: { [name: string]: string }
+        code: string[], codeNoNamespaceBefore: string[], codeNoNamespaceAfter: string[], classesName: { [name: string]: { type: InfoType, isExported: boolean, convertibleName: string } }, stylesheets: { [name: string]: string }
     }, libSrc: string) {
         if (this.buildConfig.outputFile) {
             let finalTxt = '';
@@ -412,7 +416,7 @@ export class Build {
             doc: string[],
             docNoNamespace: string[],
             docInvisible: string[],
-            classesName: { [className: string]: { type: InfoType, isExported: boolean } },
+            classesName: { [className: string]: { type: InfoType, isExported: boolean, convertibleName: string } },
 
             stylesheets: { [name: string]: string },
 
@@ -517,6 +521,7 @@ export class Build {
                                 noNamespace: "after",
                                 type: info.type,
                                 isExported: info.isExported,
+                                convertibleName: info.convertibleName,
                             };
                         }
                     }
@@ -531,6 +536,7 @@ export class Build {
                                 noNamespace: "before",
                                 type: info.type,
                                 isExported: info.isExported,
+                                convertibleName: info.convertibleName,
                             }
                         }
                     }
@@ -562,7 +568,8 @@ export class Build {
                 if (info.classScript != "" && !info.classScript.startsWith("!staticClass_")) {
                     result.classesName[info.classScript] = {
                         type: info.type,
-                        isExported: info.isExported
+                        isExported: info.isExported,
+                        convertibleName: info.convertibleName
                     }
                 }
 
@@ -577,6 +584,7 @@ export class Build {
                             required: info.required,
                             type: info.type,
                             isExported: info.isExported,
+                            convertibleName: info.convertibleName
                         }
                     }
                 }
@@ -882,7 +890,7 @@ export class Build {
         // build code for each lib
         let libSrc: string[] = []
         for (let libUri of this.dependanceUris) {
-            let libInfo: { namespace: string, code: string[], before: string[], after: string[], classesName: { [name: string]: { type: InfoType, isExported: boolean } } } = {
+            let libInfo: { namespace: string, code: string[], before: string[], after: string[], classesName: { [name: string]: { type: InfoType, isExported: boolean, convertibleName: string } } } = {
                 namespace: this.externalPackageInformation.getNamespaceByUri(libUri),
                 before: [],
                 code: [],
@@ -901,7 +909,8 @@ export class Build {
                         let fullNameTemp = infoExternal.content.fullName.replace(regex, "");
                         libInfo.classesName[fullNameTemp] = {
                             type: infoExternal.content.type,
-                            isExported: infoExternal.content.isExported
+                            isExported: infoExternal.content.isExported,
+                            convertibleName: infoExternal.content.convertibleName,
                         }
                     }
                     else if (infoExternal.content.noNamespace == 'before') {

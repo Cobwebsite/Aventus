@@ -1,7 +1,6 @@
 import { FunctionDeclaration, SyntaxKind, forEachChild } from 'typescript';
 import { BaseInfo, InfoType } from './BaseInfo';
 import { ParserTs } from './ParserTs';
-import { RouteWrapperDecorator } from './decorators/RouteWrapperDecorator';
 
 
 export class FunctionInfo extends BaseInfo {
@@ -23,17 +22,9 @@ export class FunctionInfo extends BaseInfo {
 			}
 		}
 
-		let isWrapper = false;
-		for (let decorator of this.decorators) {
-			let temp = RouteWrapperDecorator.is(decorator);
-			if (temp) {
-				isWrapper = true;
-			}
-		}
-
 		forEachChild(node, x => {
 			if (x.kind == SyntaxKind.Block) {
-				this.loadOnlyDependancesRecu(x, 0, isWrapper);
+				this.loadOnlyDependancesRecu(x, 0, false);
 			}
 		})
 

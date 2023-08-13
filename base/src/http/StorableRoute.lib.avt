@@ -1,51 +1,39 @@
 import { HttpRoute } from "./HttpRoute.lib.avt";
 import { IData } from "../data/IData.data.avt";
 import { HttpMethod } from "./HttpMethod.lib.avt";
+import { HttpRequest } from "./HttpRequest.lib.avt";
 
 export abstract class StorableRoute<T extends IData> extends HttpRoute {
 	public async GetAll() {
-		let options: RequestInit = {
-			method: HttpMethod.GET
-		};
-		let url = `/${this.StorableName()}`;
+		const request = new HttpRequest(`/${this.StorableName()}`, HttpMethod.GET);
 		type TypeResult = T[];
-		return await this.router.requestJSON<TypeResult>(url, options)
+		return await request.queryJSON<TypeResult>(this.router);
 	}
 
-	public async Create(item: T) {
-		let options: RequestInit = {
-			method: HttpMethod.POST
-		};
-		let url = `/${this.StorableName()}`;
+	public async Create(body: { item: T } | FormData) {
+		const request = new HttpRequest(`/${this.StorableName()}`, HttpMethod.POST);
+		request.setBody(body);
 		type TypeResult = T;
-		return await this.router.requestJSON<TypeResult>(url, options)
+		return await request.queryJSON<TypeResult>(this.router);
 	}
 
 	public async GetById(id: number) {
-		let options: RequestInit = {
-			method: HttpMethod.GET
-		};
-		let url = `/${this.StorableName()}/${id}`;
+		const request = new HttpRequest(`/${this.StorableName()}/${id}`, HttpMethod.GET);
 		type TypeResult = T;
-		return await this.router.requestJSON<TypeResult>(url, options)
+		return await request.queryJSON<TypeResult>(this.router);
 	}
 
-	public async Update(id: number, body: T) {
-		let options: RequestInit = {
-			method: HttpMethod.PUT
-		};
-		let url = `/${this.StorableName()}/${id}`;
+	public async Update(id: number, body: { body: T } | FormData) {
+		const request = new HttpRequest(`/${this.StorableName()}/${id}`, HttpMethod.PUT);
+		request.setBody(body);
 		type TypeResult = T;
-		return await this.router.requestJSON<TypeResult>(url, options)
+		return await request.queryJSON<TypeResult>(this.router);
 	}
 
 	public async Delete(id: number) {
-		let options: RequestInit = {
-			method: HttpMethod.DELETE
-		};
-		let url = `/${this.StorableName()}/${id}`;
+		const request = new HttpRequest(`/${this.StorableName()}/${id}`, HttpMethod.DELETE);
 		type TypeResult = T;
-		return await this.router.requestJSON<TypeResult>(url, options)
+		return await request.queryJSON<TypeResult>(this.router);
 	}
 
 	public abstract StorableName(): string;

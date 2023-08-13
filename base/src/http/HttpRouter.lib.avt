@@ -2,8 +2,6 @@ import { HttpRoute } from "./HttpRoute.lib.avt";
 import { MixProto } from "../tools/MergePrototype.lib.avt";
 import { RouteType, MergeRoutesType } from "./type.lib.avt";
 import { KeysObject } from "../ram/Ram.lib.avt";
-import { GenericResultWithError } from "../tools/Error.lib.avt";
-import { HttpError, HttpErrorCode } from "./HttpError.lib.avt";
 import { HttpRouterOptions } from "./HttpRouterOptions.lib.avt";
 import { HttpMethod } from "./HttpMethod.lib.avt";
 import { HttpRequest } from "./HttpRequest.lib.avt";
