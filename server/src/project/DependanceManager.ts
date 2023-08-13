@@ -37,7 +37,7 @@ export class DependanceManager {
 	}
 
 	private constructor() {
-		this.path = join(GenericServer.getFsPath(), "packages");
+		this.path = join(GenericServer.savePath, "packages");
 		if (!existsSync(this.path)) {
 			mkdirSync(this.path, { recursive: true });
 		}

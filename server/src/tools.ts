@@ -1,6 +1,6 @@
 import { sep } from "path";
 import { flattenDiagnosticMessageText } from 'typescript';
-import { Diagnostic, DiagnosticSeverity, ExecuteCommandParams, Position, Range } from "vscode-languageserver";
+import { Diagnostic, DiagnosticSeverity, Position, Range } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { AventusErrorCode, AventusExtension, AventusLanguageId } from "./definition";
 import { SectionType } from './language-services/ts/LanguageService';
@@ -21,6 +21,13 @@ export function uriToPath(uri: string): string {
         return decodeURIComponent(uri.replace("file://", ""));
     }
     return decodeURIComponent(uri.replace("file:///", ""));
+}
+export function reorderList<T>(list: T[], selected: T) {
+    let indexResult = list.indexOf(selected);
+    if (indexResult > -1) {
+        list.splice(indexResult, 1);
+    }
+    list.splice(0, 0, selected);
 }
 
 type AventusExtensionKeys = keyof typeof AventusExtension;
@@ -120,14 +127,6 @@ export function convertRange(document: TextDocument, span: { start: number | und
     const startPosition = document.positionAt(span.start);
     const endPosition = document.positionAt(span.start + (span.length || 0));
     return Range.create(startPosition, endPosition);
-}
-
-export function getPathFromCommandArguments(params: ExecuteCommandParams): string {
-    let path = "";
-    if (params.arguments) {
-        path = "file://" + params.arguments[0].path.replace(":", "%3A");
-    }
-    return path;
 }
 
 export function checkTxtBefore(file: AventusFile, position: Position, textToSearch: string) {

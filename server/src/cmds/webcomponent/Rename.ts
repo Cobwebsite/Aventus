@@ -1,4 +1,3 @@
-import { ExecuteCommandParams } from 'vscode-languageserver';
 import { AventusExtension } from '../../definition';
 import { InternalAventusFile } from '../../files/AventusFile';
 import { FilesManager } from '../../files/FilesManager';
@@ -7,19 +6,33 @@ import { ProjectManager } from '../../project/ProjectManager';
 import { getLanguageIdByUri, uriToPath } from '../../tools';
 import { CloseFile } from '../../notification/CloseFile';
 import { TextDocument } from 'vscode-languageserver-textdocument';
+import { GenericServer } from '../../GenericServer';
 
 export class Rename {
 	static cmd: string = "aventus.component.rename";
-
-	constructor(params: ExecuteCommandParams) {
-		if (params.arguments && params.arguments.length > 1) {
-			let uri: string = params.arguments[0];
-			let newName: string = params.arguments[1];
-			this.run(uri, newName);
+	
+	public static async run(uri: string) {
+		if (!uri) {
+			return;
 		}
-	}
+		uri = uri.toString().replace(/\.wcv\.avt$/, ".wcl.avt").replace(/\.wcs\.avt$/, ".wcl.avt");
+		let splitted = uri.split("/");
+		let oldName = splitted[splitted.length - 1].replace(".wcl.avt", "");
 
-	private async run(uri: string, newName: string) {
+		let newName = await GenericServer.Input({
+			title: "New name",
+			value: oldName,
+			async validateInput(value) {
+				if (!value.match(/^[_A-Za-z0-9\-]+$/g)) {
+					return 'Your name isn\'t valid';
+				}
+				return null;
+			},
+		})
+		if (!newName) {
+			return;
+		}
+
 		let logicalFile = FilesManager.getInstance().getByUri(uri);
 		if (logicalFile && logicalFile instanceof InternalAventusFile) {
 			let filesManager = FilesManager.getInstance();

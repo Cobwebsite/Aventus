@@ -4,7 +4,7 @@ export class FileDeleted {
 	static cmd: string = "aventus.filesystem.deleted";
 
 	public static async middleware(args: any[]): Promise<any[]> {
-		return args;
+		return [args[0].toString()];
 	}
 
 	public static execute(uri: string) {

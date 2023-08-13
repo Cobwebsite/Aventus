@@ -1,15 +1,17 @@
 import { createConnection, ProposedFeatures, PublishDiagnosticsParams, _, _Connection, CompletionList, Definition, FormattingOptions, Hover, Position, TextEdit, InitializeParams, TextDocumentSyncKind, CodeActionKind, TextDocuments, CodeLens, Color, ColorInformation, ColorPresentation, ExecuteCommandParams, Range, WorkspaceEdit, Location } from 'vscode-languageserver/node';
-import { AvInitializeParams, IConnection } from '../IConnection';
+import { AvInitializeParams, IConnection, InputOptions, SelectItem, SelectOptions } from '../IConnection';
 import { Commands } from '../cmds';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { CodeAction, CompletionItem } from 'vscode-css-languageservice';
 import { GenericServer } from '../GenericServer';
+import { AskInput } from '../notification/AskInput';
+import { AskSelect } from '../notification/AskSelect';
+import { AskSelectMultiple } from '../notification/AskSelectMultiple';
+import { Popup } from '../notification/Popup';
 
 export class VsCodeConnection implements IConnection {
 	private _connection: _Connection<_, _, _, _, _, _, _>;
 	private documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
-
-	private setFsPathCb: (name: string) => void = () => {};
 
 	public constructor() {
 		this._connection = createConnection(ProposedFeatures.all);
@@ -31,7 +33,7 @@ export class VsCodeConnection implements IConnection {
 			section: "aventus",
 		})
 	}
-	public sendNotification(cmd: string, params: any): void {
+	public sendNotification(cmd: string, ...params: any): void {
 		this._connection.sendNotification(cmd, params);
 	}
 	public showErrorMessage(msg: string): void {
@@ -42,9 +44,10 @@ export class VsCodeConnection implements IConnection {
 	}
 	public onInitialize(cb: (params: AvInitializeParams) => void) {
 		this._connection.onInitialize((params: InitializeParams) => {
-			this.setFsPath(params.initializationOptions.fsPath)
 			cb({
-				workspaceFolders: params.workspaceFolders
+				workspaceFolders: params.workspaceFolders,
+				savePath: params.initializationOptions.savePath,
+				extensionPath: params.initializationOptions.extensionPath
 			})
 			return {
 				capabilities: {
@@ -77,9 +80,7 @@ export class VsCodeConnection implements IConnection {
 			};
 		})
 	}
-	public setFsPath(cb: (path: string) => void) {
-		this.setFsPathCb = cb;
-	}
+
 	public onInitialized(cb: () => Promise<void>) {
 		this._connection.onInitialized(async () => {
 			await cb();
@@ -169,5 +170,19 @@ export class VsCodeConnection implements IConnection {
 		this._connection.onDidChangeConfiguration(async (params) => {
 			await cb();
 		});
+	}
+
+
+	public async Input(options: InputOptions): Promise<string | null> {
+		return await AskInput.send(options);
+	}
+	public async Select(items: SelectItem[], options: SelectOptions): Promise<SelectItem | null> {
+		return await AskSelect.send(items, options);
+	}
+	public async SelectMultiple(items: SelectItem[], options: SelectOptions): Promise<SelectItem[] | null> {
+		return await AskSelectMultiple.send(items, options);
+	}
+	public async Popup(text: string, ...choices: string[]): Promise<string | null> {
+		return await Popup.send(text, ...choices);
 	}
 }

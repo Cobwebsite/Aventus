@@ -10,7 +10,6 @@ export class Interaction {
 		this._prompt = createPromptModule();
 	}
 	public static async select<T extends readonly { value: string, name: string }[]>(question: string, choices: T) {
-		let choicesToSend = [];
 		let response = await this.prompt([{
 			name: "temp",
 			type: "list",

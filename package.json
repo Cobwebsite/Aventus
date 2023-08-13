@@ -27,7 +27,7 @@
 	"activationEvents": [
 		"*"
 	],
-	"main": "./client/out/index",
+	"main": "./client/out/index.js",
 	"contributes": {
 		"languages": [
 			{

@@ -17,7 +17,6 @@ export class ImportViewElement {
 
 			if (uri != "") {
 				result.push(uri);
-
 				let activeEditor = window.activeTextEditor;
 				let document = activeEditor.document;
 				let curPos = activeEditor.selection.active;

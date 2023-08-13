@@ -3388,7 +3388,7 @@ class App extends Aventus.WebComponent {
         return "App";
     }
 }
-window.customElements.define('av-app', App);Aventus.WebComponentInstance.registerDefinition(App);
+if(!window.customElements.get('av-app')){window.customElements.define('av-app', App);Aventus.WebComponentInstance.registerDefinition(App);}
 
 class RouterLink extends Aventus.WebComponent {
     get 'state'() {
@@ -3452,7 +3452,7 @@ class RouterLink extends Aventus.WebComponent {
         this.addClickEvent();
     }
 }
-window.customElements.define('av-router-link', RouterLink);Aventus.WebComponentInstance.registerDefinition(RouterLink);
+if(!window.customElements.get('av-router-link')){window.customElements.define('av-router-link', RouterLink);Aventus.WebComponentInstance.registerDefinition(RouterLink);}
 
 class RouterStateManager extends Aventus.StateManager {
     static getInstance() {
@@ -4206,7 +4206,7 @@ class Scrollable extends Aventus.WebComponent {
         window['temp1'] = this;
     }
 }
-window.customElements.define('av-scrollable', Scrollable);Aventus.WebComponentInstance.registerDefinition(Scrollable);
+if(!window.customElements.get('av-scrollable')){window.customElements.define('av-scrollable', Scrollable);Aventus.WebComponentInstance.registerDefinition(Scrollable);}
 
 class GridCol extends Aventus.WebComponent {
     get 'column'() {
@@ -4253,7 +4253,7 @@ class GridCol extends Aventus.WebComponent {
     }
     __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('column')){ this['column'] = undefined; }if(!this.hasAttribute('row')){ this['row'] = undefined; }if(!this.hasAttribute('c_start')){ this['c_start'] = undefined; }if(!this.hasAttribute('c_end')){ this['c_end'] = undefined; } }
 }
-window.customElements.define('av-grid-col', GridCol);Aventus.WebComponentInstance.registerDefinition(GridCol);
+if(!window.customElements.get('av-grid-col')){window.customElements.define('av-grid-col', GridCol);Aventus.WebComponentInstance.registerDefinition(GridCol);}
 
 class Grid extends Aventus.WebComponent {
     static get observedAttributes() {return ["cols"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
@@ -4284,7 +4284,7 @@ class Grid extends Aventus.WebComponent {
     __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('cols')){ this['cols'] = 12; } }
     __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('cols'); }
 }
-window.customElements.define('av-grid', Grid);Aventus.WebComponentInstance.registerDefinition(Grid);
+if(!window.customElements.get('av-grid')){window.customElements.define('av-grid', Grid);Aventus.WebComponentInstance.registerDefinition(Grid);}
 
 class DynamicRow extends Aventus.WebComponent {
     get 'max_width'() {
@@ -4334,7 +4334,7 @@ class DynamicRow extends Aventus.WebComponent {
         }).observe(this);
     }
 }
-window.customElements.define('av-dynamic-row', DynamicRow);Aventus.WebComponentInstance.registerDefinition(DynamicRow);
+if(!window.customElements.get('av-dynamic-row')){window.customElements.define('av-dynamic-row', DynamicRow);Aventus.WebComponentInstance.registerDefinition(DynamicRow);}
 
 class DynamicCol extends Aventus.WebComponent {
     get 'size'() {
@@ -4486,7 +4486,7 @@ class DynamicCol extends Aventus.WebComponent {
     __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('size')){ this['size'] = undefined; }if(!this.hasAttribute('size_xs')){ this['size_xs'] = undefined; }if(!this.hasAttribute('size_sm')){ this['size_sm'] = undefined; }if(!this.hasAttribute('size_md')){ this['size_md'] = undefined; }if(!this.hasAttribute('size_lg')){ this['size_lg'] = undefined; }if(!this.hasAttribute('size_xl')){ this['size_xl'] = undefined; }if(!this.hasAttribute('offset')){ this['offset'] = undefined; }if(!this.hasAttribute('offset_xs')){ this['offset_xs'] = undefined; }if(!this.hasAttribute('offset_sm')){ this['offset_sm'] = undefined; }if(!this.hasAttribute('offset_md')){ this['offset_md'] = undefined; }if(!this.hasAttribute('offset_lg')){ this['offset_lg'] = undefined; }if(!this.hasAttribute('offset_xl')){ this['offset_xl'] = undefined; }if(!this.hasAttribute('offset_right')){ this['offset_right'] = undefined; }if(!this.hasAttribute('offset_right_xs')){ this['offset_right_xs'] = undefined; }if(!this.hasAttribute('offset_right_sm')){ this['offset_right_sm'] = undefined; }if(!this.hasAttribute('offset_right_md')){ this['offset_right_md'] = undefined; }if(!this.hasAttribute('offset_right_lg')){ this['offset_right_lg'] = undefined; }if(!this.hasAttribute('offset_right_xl')){ this['offset_right_xl'] = undefined; }if(!this.hasAttribute('nobreak')) { this.attributeChangedCallback('nobreak', false, false); }if(!this.hasAttribute('center')) { this.attributeChangedCallback('center', false, false); } }
     __listBoolProps() { return ["nobreak","center"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
 }
-window.customElements.define('av-dynamic-col', DynamicCol);Aventus.WebComponentInstance.registerDefinition(DynamicCol);
+if(!window.customElements.get('av-dynamic-col')){window.customElements.define('av-dynamic-col', DynamicCol);Aventus.WebComponentInstance.registerDefinition(DynamicCol);}
 
 class Img extends Aventus.WebComponent {
     static get observedAttributes() {return ["src", "mode"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
@@ -4662,7 +4662,7 @@ class Img extends Aventus.WebComponent {
         }
     }
 }
-window.customElements.define('av-img', Img);Aventus.WebComponentInstance.registerDefinition(Img);
+if(!window.customElements.get('av-img')){window.customElements.define('av-img', Img);Aventus.WebComponentInstance.registerDefinition(Img);}
 
 class Form extends Aventus.WebComponent {
     static __style = ``;
@@ -4684,7 +4684,7 @@ class Form extends Aventus.WebComponent {
         return "Form";
     }
 }
-window.customElements.define('av-form', Form);Aventus.WebComponentInstance.registerDefinition(Form);
+if(!window.customElements.get('av-form')){window.customElements.define('av-form', Form);Aventus.WebComponentInstance.registerDefinition(Form);}
 
 class Input extends Aventus.WebComponent {
     static get observedAttributes() {return ["value", "label"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
@@ -4886,7 +4886,7 @@ class Input extends Aventus.WebComponent {
         return this.errors.length == 0;
     }
 }
-window.customElements.define('av-input', Input);Aventus.WebComponentInstance.registerDefinition(Input);
+if(!window.customElements.get('av-input')){window.customElements.define('av-input', Input);Aventus.WebComponentInstance.registerDefinition(Input);}
 
 class Checkbox extends Aventus.WebComponent {
     static get observedAttributes() {return ["label", "checked"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
@@ -5005,7 +5005,7 @@ class Checkbox extends Aventus.WebComponent {
         });
     }
 }
-window.customElements.define('av-checkbox', Checkbox);Aventus.WebComponentInstance.registerDefinition(Checkbox);
+if(!window.customElements.get('av-checkbox')){window.customElements.define('av-checkbox', Checkbox);Aventus.WebComponentInstance.registerDefinition(Checkbox);}
 Aventus.App=App;
 App.Namespace='Aventus';
 (Aventus.Navigation||(Aventus.Navigation = {}));

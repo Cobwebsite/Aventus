@@ -3,19 +3,22 @@ import { PublishDiagnosticsParams, Position, CompletionList, CompletionItem, Hov
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AvInitializeParams, IConnection } from '../../server/src/IConnection';
 import { Notifications } from './notification';
+import { pathToUri } from '@server/tools'
 
 export class CliConnection implements IConnection {
 
+	public _connection: FakeConnection;
 	public constructor() {
-
+		this._connection = new FakeConnection();
 	}
-	open() {
-		
+
+	async open() {
+		this._connection.open();
 	}
 	delayBetweenBuild(): number {
 		return 0;
 	}
-	sendNotification(cmd: string, params: any): void {
+	sendNotification(cmd: string, ...params: any): void {
 		if (Notifications.allNotifications[cmd]) {
 			let fct = Notifications.allNotifications[cmd].action as any;
 			fct.call(null, params);
@@ -26,23 +29,35 @@ export class CliConnection implements IConnection {
 	}
 	sendDiagnostics(params: PublishDiagnosticsParams): void {
 		for (let diagnostic of params.diagnostics) {
-			console.log("[error] : " + diagnostic.message + " on "+params.uri+":"+diagnostic.range.start.line);
+			console.log("[error] : " + diagnostic.message + " on " + params.uri + ":" + diagnostic.range.start.line);
 		}
 	}
 	onInitialize(cb: (params: AvInitializeParams) => void) {
-		console.log("Aventus starting");
+		this._connection.onInitialize(() => {
+			cb({
+				workspaceFolders: [{
+					name: "",
+					uri: pathToUri(process.cwd())
+				}]
+			})
+		})
+
 	}
 	onInitialized(cb: () => Promise<void>) {
-		console.log("Aventus started");
+		this._connection.onInitialized(() => {
+			cb();
+		})
 	}
 	onShutdown(cb: () => Promise<void>) {
-		console.log("Aventus stopped");
+		this._connection.onShutdown(() => {
+			cb();
+		})
 	}
 	async getSettings(): Promise<any> {
 		return {};
 	}
 	async onCompletion(cb: (document: TextDocument | undefined, position: Position) => Promise<CompletionList | null>) {
-		
+
 	}
 	async onCompletionResolve(cb: (document: TextDocument | undefined, completionItem: CompletionItem) => Promise<CompletionItem>) {
 	}
@@ -71,4 +86,37 @@ export class CliConnection implements IConnection {
 	setFsPath(cb: (path: string) => void): void {
 	}
 
+}
+
+
+export class FakeConnection {
+	public open() {
+		this.run(this.onInitializeCb);
+		this.run(this.onInitializedCb);
+	}
+
+	private onInitializeCb: (() => void)[] = [];
+	public onInitialize(cb: () => void) {
+		this.onInitializeCb.push(cb);
+	}
+
+	private onInitializedCb: (() => void)[] = [];
+	public onInitialized(cb: () => void) {
+		this.onInitializedCb.push(cb);
+	}
+
+	public stop() {
+		this.run(this.onShutdownCb);
+	}
+	private onShutdownCb: (() => void)[] = [];
+	public onShutdown(cb: () => void) {
+		this.onShutdownCb.push(cb);
+	}
+
+
+	private run(cbs: (() => void)[]) {
+		for (let cb of cbs) {
+			cb();
+		}
+	}
 }

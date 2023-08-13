@@ -128,6 +128,13 @@ export class Project {
 
     //#endregion
 
+    public getBuildsName(): string[] {
+        let result: string[] = [];
+        for (let build of this.builds) {
+            result.push(build.fullname);
+        }
+        return result;
+    }
     public getBuild(name: string): Build | undefined {
         for (let build of this.builds) {
             if (build.fullname == name) {
@@ -142,6 +149,13 @@ export class Project {
             if (build.isFileInside(uri)) {
                 result.push(build);
             }
+        }
+        return result;
+    }
+    public getStaticsName(): string[] {
+        let result: string[] = [];
+        for (let build of this.statics) {
+            result.push(build.name);
         }
         return result;
     }

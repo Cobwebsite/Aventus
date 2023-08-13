@@ -1,5 +1,5 @@
 import { Color, CompletionItem, ExecuteCommandParams, FormattingOptions, Position, PublishDiagnosticsParams, Range } from 'vscode-languageserver';
-import { AvInitializeParams, IConnection } from './IConnection';
+import { AvInitializeParams, IConnection, InputOptions, SelectItem, SelectOptions } from './IConnection';
 import { FilesManager } from './files/FilesManager';
 import { FilesWatcher } from './files/FilesWatcher';
 import { TemplateManager } from './language-services/json/TemplateManager';
@@ -10,6 +10,9 @@ import { AventusExtension } from './definition';
 import { ColorPicker } from './color-picker/ColorPicker';
 import { Commands } from './cmds';
 import { join } from 'path';
+import { LocalTemplateManager } from './files/LocalTemplate';
+import { TemplateManager as TemplateFileManager } from './files/Template';
+
 
 
 export class GenericServer {
@@ -21,7 +24,7 @@ export class GenericServer {
 	public static isDebug() {
 		return this.instance.isDebug;
 	}
-	public static sendNotification(cmd: string, params: any) {
+	public static sendNotification(cmd: string, ...params: any) {
 		this.instance.connection.sendNotification(cmd, params);
 	}
 	public static showErrorMessage(msg: string) {
@@ -30,24 +33,52 @@ export class GenericServer {
 	public static sendDiagnostics(params: PublishDiagnosticsParams) {
 		this.instance.connection.sendDiagnostics(params);
 	}
-	public static getFsPath(): string {
-		return this.instance._fsPath;
+	public static Input(options: InputOptions) {
+		return this.instance.connection.Input(options);
 	}
-
+	public static Select(items: SelectItem[], options: SelectOptions) {
+		return this.instance.connection.Select(items, options);
+	}
+	public static SelectMultiple(items: SelectItem[], options: SelectOptions) {
+		return this.instance.connection.SelectMultiple(items, options);
+	}
+	public static Popup(text: string, ...choices: string[]) {
+		return this.instance.connection.Popup(text, ...choices);
+	}
+	public static get savePath(): string {
+		return this.instance._savePath;
+	}
+	public static get extensionPath(): string {
+		return this.instance._extensionPath;
+	}
+	public static getWorkspaceUri() {
+		return this.instance.workspaces[0] ?? ''
+	}
+	public static get templateManager() {
+		return this.instance._template;
+	}
+	public static get localTemplateManager() {
+		return this.instance._localTemplate;
+	}
 
 
 	protected connection: IConnection;
 
 	protected workspaces: string[] = [];
 	protected isLoading: boolean = true;
-	protected isDebug = false;
+	protected isDebug = true;
 	private appData = process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + "/.local/share");
-	private _fsPath: string = join(this.appData, "aventus");
+	private _savePath: string = join(this.appData, "aventus");
+	private _extensionPath: string = "";
+	private _template: TemplateFileManager | undefined;
+	private _localTemplate: LocalTemplateManager | undefined;
 
 	public constructor(connection: IConnection) {
 		this.connection = connection;
 		this.bindEvent();
+
 	}
+
 
 	public start() {
 		GenericServer.instance = this;
@@ -102,9 +133,6 @@ export class GenericServer {
 		this.connection.onDidChangeConfiguration(async () => {
 			return await this.onDidChangeConfiguration();
 		})
-		this.connection.setFsPath((path: string) => {
-			this._fsPath = path;
-		})
 	}
 
 	protected onInitialize(params: AvInitializeParams) {
@@ -113,6 +141,10 @@ export class GenericServer {
 				this.workspaces.push(workspaceFolder.uri);
 			}
 		}
+		this._savePath = params.savePath;
+		this._extensionPath = params.extensionPath;
+		this._template = new TemplateFileManager();
+		this._localTemplate = new LocalTemplateManager(this._template);
 	}
 	protected async onInitialized() {
 		await this.loadSettings();
@@ -191,7 +223,7 @@ export class GenericServer {
 		return null;
 	}
 	protected async onExecuteCommand(params: ExecuteCommandParams) {
-		return Commands.execute(params);
+		Commands.execute(params);
 	}
 	protected async onDidChangeConfiguration() {
 		this.loadSettings();

@@ -5,7 +5,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 export interface IConnection {
 	open();
 	delayBetweenBuild(): number;
-	sendNotification(cmd: string, params: any): void;
+	sendNotification(cmd: string, ...params: any): void;
 	showErrorMessage(msg: string): void;
 	sendDiagnostics(params: PublishDiagnosticsParams): void;
 
@@ -27,13 +27,34 @@ export interface IConnection {
 	onColorPresentation(cb: (document: TextDocument | undefined, range: Range, color: Color) => Promise<ColorPresentation[] | null>);
 	onExecuteCommand(cb: (params: ExecuteCommandParams) => void): void;
 	onDidChangeConfiguration(cb: () => void): void;
-	setFsPath(cb: (path: string) => void): void;
+
+	Input(options: InputOptions): Promise<string | null>;
+	Select(items: SelectItem[], options: SelectOptions): Promise<SelectItem | null>;
+	SelectMultiple(items: SelectItem[], options: SelectOptions): Promise<SelectItem[] | null>;
+	Popup(text: string, ...choices: string[]): Promise<string | null>;
 }
 
-
+export interface InputOptions {
+	title: string,
+	value?: string,
+	validateInput?: (value: string) => Promise<string | null>,
+}
 
 
 
 export interface AvInitializeParams {
 	workspaceFolders: WorkspaceFolder[] | null;
+	savePath: string,
+	extensionPath: string
+}
+
+export interface SelectOptions {
+	placeHolder?: string,
+	title?: string,
+}
+
+export interface SelectItem {
+	label: string,
+	detail?: string,
+	picked?: boolean,
 }

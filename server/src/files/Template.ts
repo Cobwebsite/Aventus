@@ -1,12 +1,14 @@
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, rmdirSync, statSync, writeFileSync } from 'fs';
 import { join, normalize, sep } from 'path';
 import { pathToFileURL } from 'url';
-import { ExtensionContext, QuickPickItem, QuickPickItemKind, Uri, commands, window, workspace } from 'vscode';
 
-import { OpenFile } from '../notification/OpenFile';
 import { ExecSyncOptionsWithBufferEncoding, execSync } from 'child_process';
-import { pathToUri } from '../tool';
-import { FileCreated } from '../cmds/file-system/FileCreated';
+import { pathToUri, uriToPath } from '../tools';
+import { ProjectManager } from '../project/ProjectManager';
+import { FilesManager } from './FilesManager';
+import { GenericServer } from '../GenericServer';
+import { SelectItem } from '../IConnection';
+
 
 export interface TemplateConfigVariable {
 	question: string,
@@ -53,7 +55,7 @@ export class Template {
 				let uris = this.moveFiles(path);
 				await this.runCmds();
 				for (let uri of uris) {
-					FileCreated.execute(uri);
+					FilesManager.getInstance().onCreatedUri(uri);
 				}
 				this.openFiles();
 			}
@@ -79,8 +81,15 @@ export class Template {
 		let folderSplitted = path.split(sep);
 		this.setVar('folderName', folderSplitted[folderSplitted.length - 1]);
 		this.setVar('path', path);
-		let namespace: string = await commands.executeCommand<string>("aventus.getNamespace", path);
-		this.setVar('namespace', namespace);
+		this.setVar('namespace', this.getNamespace(path));
+	}
+	private getNamespace(path: string) {
+		let uri: string = pathToUri(path);
+		let builds = ProjectManager.getInstance().getMatchingBuildsByUri(uri);
+		if (builds.length > 0) {
+			return builds[0].getNamespaceForUri(uri, false);
+		}
+		return "";
 	}
 	private async prepareNeededVars() {
 		for (let variableName in this.currentConfig.variables) {
@@ -118,11 +127,12 @@ export class Template {
 						return null;
 					}
 				}
-				const resultInput = await window.showInputBox({
+				const resultInput = await GenericServer.Input({
 					title: currentVar.question,
 					value: defaultValue,
 					validateInput: isValid,
-				});
+				})
+
 				if (!resultInput) {
 					return false;
 				}
@@ -211,16 +221,16 @@ export class Template {
 
 	private openFiles() {
 		for (let path of this.filesToOpen) {
-			OpenFile.action(pathToFileURL(path).toString());
+			GenericServer.sendNotification("aventus/openfile", pathToFileURL(path).toString());
 		}
 	}
 
 	private comparePath(path: string, query: string) {
 		let pathsToTest: string[] = [path];
-		if (workspace.workspaceFolders && workspace.workspaceFolders.length > 0) {
-			let localPath = "." + path.replace(workspace.workspaceFolders[0].uri.fsPath, "").replace(/\\/g, "/")
-			pathsToTest.push(localPath);
-		}
+		let workspacePath = uriToPath(GenericServer.getWorkspaceUri());
+		let localPath = "." + path.replace(workspacePath, "").replace(/\\/g, "/")
+		pathsToTest.push(localPath);
+
 		if (query.match(/\/\S+\/g?m?s?i?x?s?u?/g)) {
 			let splitted = query.split("/");
 			let reg = new RegExp(splitted[1], splitted[2]);
@@ -258,16 +268,14 @@ export class Template {
 		return new Promise<void>((resolve) => {
 			setTimeout(() => {
 				let params: ExecSyncOptionsWithBufferEncoding = {};
-				if (workspace.workspaceFolders && workspace.workspaceFolders.length > 0) {
-					params.cwd = workspace.workspaceFolders[0].uri.fsPath;
-				}
+				params.cwd = uriToPath(GenericServer.getWorkspaceUri());
 				if (this.currentConfig.cmdsAfter) {
 					for (let cmd of this.currentConfig.cmdsAfter) {
 						try {
 							execSync(cmd, params)
 						} catch (e) {
 							console.log(e);
-							window.showErrorMessage("The command " + cmd + " failed");
+							GenericServer.showErrorMessage("The command " + cmd + " failed");
 						}
 					}
 				}
@@ -278,7 +286,6 @@ export class Template {
 }
 
 export class TemplateManager {
-	private context: ExtensionContext;
 	private templatePath: string;
 	private projectPath: string;
 
@@ -289,17 +296,34 @@ export class TemplateManager {
 		return this.loadedTemplates;
 	}
 
-	public constructor(context: ExtensionContext) {
-		this.context = context;
-		let storageUri = context.globalStorageUri;
+	public constructor() {
+		let storagePath = GenericServer.savePath;
 		// if (existsSync(storageUri.fsPath)) {
 		// 	rmSync(storageUri.fsPath, { recursive: true, force: true })
 		// }
-		if (!existsSync(storageUri.fsPath)) {
-			mkdirSync(storageUri.fsPath);
+		if (!existsSync(storagePath)) {
+			mkdirSync(storagePath);
 		}
-		this.templatePath = storageUri.fsPath + sep + "templates";
-		this.projectPath = storageUri.fsPath + sep + "projects";
+		this.templatePath = storagePath + sep + "templates";
+		this.projectPath = storagePath + sep + "projects";
+		if (!existsSync(this.templatePath)) {
+			mkdirSync(this.templatePath);
+		}
+		if (!existsSync(this.projectPath)) {
+			mkdirSync(this.projectPath);
+			this.askTemplate();
+		}
+		this.loadedTemplates = this.readTemplates(this.templatePath);
+		this.loadedProjects = this.readTemplates(this.projectPath);
+	}
+
+	public loadTemplates() {
+		let storagePath = GenericServer.savePath;
+		if (!existsSync(storagePath)) {
+			mkdirSync(storagePath);
+		}
+		this.templatePath = storagePath + sep + "templates";
+		this.projectPath = storagePath + sep + "projects";
 		if (!existsSync(this.templatePath)) {
 			mkdirSync(this.templatePath);
 		}
@@ -312,27 +336,27 @@ export class TemplateManager {
 	}
 
 	public async createProject(path: string) {
-		let quickPicksTemplate: Map<QuickPickItem, Template> = new Map();
+		let quickPicksTemplate: Map<SelectItem, Template> = new Map();
 		if (this.loadedProjects.length == 0) {
-			let result = await window.showErrorMessage("You have no template!! Do you want to load some?", 'Yes', 'No');
+			let result = await GenericServer.Popup("You have no template!! Do you want to load some?", 'Yes', 'No');
 			if (result == 'Yes') {
 				this.selectTemplateToImport();
 			}
 			return;
 		}
 		for (let template of this.loadedProjects) {
-			let quickPick: QuickPickItem = {
+			let quickPick: SelectItem = {
 				label: template.config.name,
 				detail: template.config.description ?? "",
 			}
 			quickPicksTemplate.set(quickPick, template);
 		}
-		const resultFormat = await window.showQuickPick(Array.from(quickPicksTemplate.keys()), {
+		const resultFormat = await GenericServer.Select(Array.from(quickPicksTemplate.keys()), {
 			placeHolder: 'Choose a template',
-			canPickMany: false,
 		});
+
 		if (resultFormat) {
-			let resultPick = quickPicksTemplate.get(resultFormat);
+			let resultPick = this.getSelectItem(quickPicksTemplate, resultFormat);
 			if (resultPick) {
 				await resultPick.init(path);
 			}
@@ -341,50 +365,48 @@ export class TemplateManager {
 
 	public readTemplates(pathToRead: string) {
 		let templates: Template[] = [];
-		if (workspace.workspaceFolders) {
 
-			const readRecu = (currentFolder) => {
-				let templateFolders = readdirSync(currentFolder);
-				for (let templateFolder of templateFolders) {
-					try {
-						let folder = join(currentFolder, templateFolder);
-						if (statSync(folder).isDirectory()) {
-							let configPath = join(folder, "template.avt");
-							if (existsSync(configPath)) {
-								try {
-									let config = JSON.parse(readFileSync(configPath, 'utf-8'));
+		const readRecu = (currentFolder) => {
+			let templateFolders = readdirSync(currentFolder);
+			for (let templateFolder of templateFolders) {
+				try {
+					let folder = join(currentFolder, templateFolder);
+					if (statSync(folder).isDirectory()) {
+						let configPath = join(folder, "template.avt");
+						if (existsSync(configPath)) {
+							try {
+								let config = JSON.parse(readFileSync(configPath, 'utf-8'));
 
-									let template = new Template(config, folder);
-									templates.push(template);
-								} catch { }
-							}
-							else {
-								readRecu(folder);
-							}
+								let template = new Template(config, folder);
+								templates.push(template);
+							} catch { }
 						}
-					} catch (e) {
-						console.log(e);
+						else {
+							readRecu(folder);
+						}
 					}
+				} catch (e) {
+					console.log(e);
 				}
 			}
-			if (existsSync(pathToRead)) {
-				readRecu(pathToRead);
-			}
-
 		}
+		if (existsSync(pathToRead)) {
+			readRecu(pathToRead);
+		}
+
 		return templates;
 	}
 
 	private async askTemplate() {
-		let result = await window.showInformationMessage('Do you want to install project templates (recommended)', 'Yes', 'No');
-		if (result == 'Yes') {
-			this.selectTemplateToImport();
-		}
+		// let result = await window.showInformationMessage('Do you want to install project templates (recommended)', 'Yes', 'No');
+		// if (result == 'Yes') {
+		this.selectTemplateToImport();
+		// }
 	}
 	public async selectTemplateToImport() {
-		let projectsFolder = this.context.extensionPath + sep + "projects";
+		let projectsFolder = GenericServer.extensionPath + sep + "projects";
 		let folders = readdirSync(projectsFolder);
-		let quickPicks: Map<QuickPickItem, string> = new Map<QuickPickItem, string>();
+		let quickPicks: Map<SelectItem, string> = new Map<SelectItem, string>();
 		for (let folder of folders) {
 			let folderPath = projectsFolder + sep + folder;
 			if (statSync(folderPath).isDirectory()) {
@@ -392,7 +414,7 @@ export class TemplateManager {
 				if (existsSync(confPath)) {
 					try {
 						let config = JSON.parse(readFileSync(confPath, 'utf-8'));
-						let quickPick: QuickPickItem = {
+						let quickPick: SelectItem = {
 							label: config.name,
 							detail: config.description ?? "",
 							picked: true,
@@ -403,13 +425,12 @@ export class TemplateManager {
 			}
 		}
 
-		let result = await window.showQuickPick(Array.from(quickPicks.keys()), {
-			canPickMany: true,
+		let result = await GenericServer.SelectMultiple(Array.from(quickPicks.keys()), {
 			title: "Select templates to import",
 		});
 		if (result) {
 			for (let item of result) {
-				let path = quickPicks.get(item);
+				let path = this.getSelectItem(quickPicks, item);
 				if (path) {
 					let folderName = path.split(sep).pop();
 					let destPath = this.projectPath + sep + folderName;
@@ -422,6 +443,16 @@ export class TemplateManager {
 			this.loadedProjects = this.readTemplates(this.projectPath);
 		}
 
+	}
+
+
+	private getSelectItem<T>(map: Map<SelectItem, T>, item: SelectItem) {
+		for (let key of map.keys()) {
+			if (key.label == item.label) {
+				return map.get(key) as T;
+			}
+		}
+		return null;
 	}
 }
 
