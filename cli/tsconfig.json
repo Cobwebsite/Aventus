@@ -7,11 +7,13 @@
 		],
 		"module": "CommonJS",
 		"moduleResolution": "Node",
-		"sourceMap": false,
-		"strict": true,
+		"sourceMap": true,
+		"strict": false,
 		"outDir": "out",
 		"rootDir": "src",
 		"noImplicitAny": false,
+		"esModuleInterop": true,
+		"allowJs": true,
 		"paths": {
 			"@server/*": [
 				"../server/out/*"

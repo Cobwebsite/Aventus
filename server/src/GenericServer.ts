@@ -12,6 +12,7 @@ import { Commands } from './cmds';
 import { join } from 'path';
 import { LocalTemplateManager } from './files/LocalTemplate';
 import { TemplateManager as TemplateFileManager } from './files/Template';
+import { loadTypescriptLib } from './language-services/ts/libLoader';
 
 
 
@@ -24,8 +25,12 @@ export class GenericServer {
 	public static isDebug() {
 		return this.instance.isDebug;
 	}
+	public static get isIDE() {
+		return this.instance.isIDE;
+	}
+	
 	public static sendNotification(cmd: string, ...params: any) {
-		this.instance.connection.sendNotification(cmd, params);
+		this.instance.connection.sendNotification(cmd, ...params);
 	}
 	public static showErrorMessage(msg: string) {
 		this.instance.connection.showErrorMessage(msg);
@@ -41,6 +46,9 @@ export class GenericServer {
 	}
 	public static SelectMultiple(items: SelectItem[], options: SelectOptions) {
 		return this.instance.connection.SelectMultiple(items, options);
+	}
+	public static SelectFolder(text:string, path: string) {
+		return this.instance.connection.SelectFolder(text, path);
 	}
 	public static Popup(text: string, ...choices: string[]) {
 		return this.instance.connection.Popup(text, ...choices);
@@ -66,9 +74,10 @@ export class GenericServer {
 
 	protected workspaces: string[] = [];
 	protected isLoading: boolean = true;
-	protected isDebug = true;
-	private appData = process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + "/.local/share");
-	private _savePath: string = join(this.appData, "aventus");
+	protected isDebug = false;
+	private isIDE = false;
+
+	private _savePath: string = "";
 	private _extensionPath: string = "";
 	private _template: TemplateFileManager | undefined;
 	private _localTemplate: LocalTemplateManager | undefined;
@@ -141,6 +150,11 @@ export class GenericServer {
 				this.workspaces.push(workspaceFolder.uri);
 			}
 		}
+		if (!params.savePath) {
+			let appData = process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + "/.local/share");
+			params.savePath = join(appData, "aventus");
+		}
+		this.isIDE = params.isIDE;
 		this._savePath = params.savePath;
 		this._extensionPath = params.extensionPath;
 		this._template = new TemplateFileManager();

@@ -8,6 +8,7 @@ import { AskInput } from '../notification/AskInput';
 import { AskSelect } from '../notification/AskSelect';
 import { AskSelectMultiple } from '../notification/AskSelectMultiple';
 import { Popup } from '../notification/Popup';
+import { dirname } from 'path';
 
 export class VsCodeConnection implements IConnection {
 	private _connection: _Connection<_, _, _, _, _, _, _>;
@@ -43,11 +44,13 @@ export class VsCodeConnection implements IConnection {
 		this._connection.sendDiagnostics(params)
 	}
 	public onInitialize(cb: (params: AvInitializeParams) => void) {
+		
 		this._connection.onInitialize((params: InitializeParams) => {
 			cb({
 				workspaceFolders: params.workspaceFolders,
 				savePath: params.initializationOptions.savePath,
-				extensionPath: params.initializationOptions.extensionPath
+				extensionPath: params.initializationOptions.extensionPath,
+				isIDE: true,
 			})
 			return {
 				capabilities: {
@@ -184,5 +187,8 @@ export class VsCodeConnection implements IConnection {
 	}
 	public async Popup(text: string, ...choices: string[]): Promise<string | null> {
 		return await Popup.send(text, ...choices);
+	}
+	public async SelectFolder(text: string, path: string): Promise<string | null> {
+		return null
 	}
 }

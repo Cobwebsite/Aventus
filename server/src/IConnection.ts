@@ -32,6 +32,7 @@ export interface IConnection {
 	Select(items: SelectItem[], options: SelectOptions): Promise<SelectItem | null>;
 	SelectMultiple(items: SelectItem[], options: SelectOptions): Promise<SelectItem[] | null>;
 	Popup(text: string, ...choices: string[]): Promise<string | null>;
+	SelectFolder(text: string, path: string): Promise<string | null>;
 }
 
 export interface InputOptions {
@@ -44,8 +45,9 @@ export interface InputOptions {
 
 export interface AvInitializeParams {
 	workspaceFolders: WorkspaceFolder[] | null;
-	savePath: string,
-	extensionPath: string
+	savePath?: string,
+	extensionPath: string,
+	isIDE: boolean,
 }
 
 export interface SelectOptions {

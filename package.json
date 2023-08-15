@@ -569,6 +569,7 @@
 		"webpack-cli": "^4.10.0"
 	},
 	"dependencies": {
+		"@inquirer/core": "^3.1.1",
 		"@rollup/plugin-commonjs": "^25.0.0",
 		"@rollup/plugin-node-resolve": "^15.1.0",
 		"@rollup/plugin-virtual": "^3.0.1",
@@ -579,6 +580,7 @@
 		"connect": "^3.7.0",
 		"event-stream": "^4.0.1",
 		"inquirer": "^9.2.10",
+		"inquirer-file-tree-selection-prompt": "^2.0.5",
 		"md5": "^2.3.0",
 		"open": "^8.4.0",
 		"parse-color": "^1.0.0",

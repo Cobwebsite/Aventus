@@ -44,8 +44,8 @@ export class DependanceManager {
 	}
 
 	private predefinedPaths = {
-		"@Aventus": AVENTUS_DEF_BASE_PATH,
-		"@AventusUI": AVENTUS_DEF_UI_PATH,
+		"@Aventus": AVENTUS_DEF_BASE_PATH(),
+		"@AventusUI": AVENTUS_DEF_UI_PATH(),
 	}
 	private aventusLoaded: boolean = false;
 	public async loadDependancesFromBuild(config: AventusConfigBuild, build: Build): Promise<{ files: AventusPackageFile[], dependanceNeedUris: string[], dependanceFullUris: string[], dependanceUris: string[] }> {
@@ -67,7 +67,7 @@ export class DependanceManager {
 		}
 
 		if (!this.aventusLoaded) {
-			let uri = pathToUri(AVENTUS_DEF_BASE_PATH);
+			let uri = pathToUri(AVENTUS_DEF_BASE_PATH());
 			let avFile = this.loadByUri(build, uri)
 			loopResult["Aventus"] = {
 				dependances: [],

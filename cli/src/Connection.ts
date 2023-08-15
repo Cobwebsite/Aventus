@@ -1,16 +1,21 @@
 import { CodeAction } from 'vscode-css-languageservice';
-import { PublishDiagnosticsParams, Position, CompletionList, CompletionItem, Hover, Definition, FormattingOptions, TextEdit, Range, CodeLens, Location, WorkspaceEdit, ColorInformation, Color, ColorPresentation, ExecuteCommandParams } from 'vscode-languageserver';
+import { PublishDiagnosticsParams, Position, CompletionList, CompletionItem, Hover, Definition, FormattingOptions, TextEdit, Range, CodeLens, Location, WorkspaceEdit, ColorInformation, Color, ColorPresentation, ExecuteCommandParams, DiagnosticSeverity } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { AvInitializeParams, IConnection } from '../../server/src/IConnection';
-import { Notifications } from './notification';
+import { AvInitializeParams, IConnection, InputOptions, SelectItem, SelectOptions } from '../../server/src/IConnection';
+import { Notifications } from './notification/index';
 import { pathToUri } from '@server/tools'
+import { Interaction } from './Interaction';
+import { dirname, join } from 'path';
 
 export class CliConnection implements IConnection {
 
+	public errorsByFile: { [uri: string]: string[] } = {};
+	public cbErrors: ((errors: string[]) => void)[] = [];
 	public _connection: FakeConnection;
 	public constructor() {
 		this._connection = new FakeConnection();
 	}
+
 
 	async open() {
 		this._connection.open();
@@ -21,24 +26,77 @@ export class CliConnection implements IConnection {
 	sendNotification(cmd: string, ...params: any): void {
 		if (Notifications.allNotifications[cmd]) {
 			let fct = Notifications.allNotifications[cmd].action as any;
-			fct.call(null, params);
+			fct.call(Notifications.allNotifications[cmd], ...params);
 		}
 	}
 	showErrorMessage(msg: string): void {
 		console.log("[error] : " + msg);
 	}
-	sendDiagnostics(params: PublishDiagnosticsParams): void {
-		for (let diagnostic of params.diagnostics) {
-			console.log("[error] : " + diagnostic.message + " on " + params.uri + ":" + diagnostic.range.start.line);
+	public subscribeErrors(cb: (errors: string[]) => void) {
+		this.cbErrors.push(cb);
+	}
+	public unsubscribeErrors(cb: (errors: string[]) => void) {
+		let index = this.cbErrors.indexOf(cb);
+		if (index > -1) {
+			this.cbErrors.splice(index, 1);
 		}
 	}
+	public emitErrors() {
+		let result: string[] = [];
+		for (let uri in this.errorsByFile) {
+			for (let error of this.errorsByFile[uri]) {
+				result.push(error);
+			}
+		}
+		if (result.length == 0) {
+			result.push("No error");
+		}
+		for (let cb of this.cbErrors) {
+			cb(result);
+		}
+	}
+	sendDiagnostics(params: PublishDiagnosticsParams): void {
+		if (params.diagnostics && params.diagnostics.length > 0) {
+			this.errorsByFile[params.uri] = [];
+			for (let diagnostic of params.diagnostics) {
+				let sev = "";
+				if (diagnostic.severity == DiagnosticSeverity.Error) {
+					sev = "\x1b[31m[error]\x1b[0m";
+				}
+				else if (diagnostic.severity == DiagnosticSeverity.Warning) {
+					sev = "\x1b[33m[warning]\x1b[0m";
+				}
+				else if (diagnostic.severity == DiagnosticSeverity.Information) {
+					sev = "\x1b[34m[info]\x1b[0m";
+				}
+				else if (diagnostic.severity == DiagnosticSeverity.Hint) {
+					sev = "\x1b[90m[hint]\x1b[0m";
+					continue;
+				}
+				this.errorsByFile[params.uri].push(sev + " : " + diagnostic.message + " on " + params.uri + ":" + (diagnostic.range.start.line + 1));
+			}
+		}
+		else {
+			if (this.errorsByFile[params.uri]) {
+				delete this.errorsByFile[params.uri];
+			}
+		}
+		this.emitErrors();
+	}
 	onInitialize(cb: (params: AvInitializeParams) => void) {
+		let extensionPath = dirname(__dirname);
+		if (extensionPath.endsWith("src")) {
+			// dev
+			extensionPath = dirname(dirname(__dirname));
+		}
 		this._connection.onInitialize(() => {
 			cb({
 				workspaceFolders: [{
 					name: "",
 					uri: pathToUri(process.cwd())
-				}]
+				}],
+				extensionPath: extensionPath,
+				isIDE: false
 			})
 		})
 
@@ -83,9 +141,109 @@ export class CliConnection implements IConnection {
 	}
 	onDidChangeConfiguration(cb: () => void): void {
 	}
-	setFsPath(cb: (path: string) => void): void {
-	}
 
+
+	async Input(options: InputOptions): Promise<string | null> {
+		if (options.validateInput) {
+			let check = options.validateInput;
+			let fct = async (value: string) => {
+				let err = await check(value);
+				if (!err) {
+					return true;
+				}
+				return err;
+			}
+			return await Interaction.input(options.title, options.value, fct);
+		}
+		else {
+			return await Interaction.input(options.title, options.value);
+		}
+	}
+	async Select(items: SelectItem[], options: SelectOptions): Promise<SelectItem | null> {
+		let title = "";
+		if (options.title) {
+			title += options.title;
+		}
+		if (options.placeHolder) {
+			if (title != "") {
+				title += " - ";
+			}
+			title += options.placeHolder;
+		}
+		let values: { value: string, name: string, checked?: boolean }[] = [];
+		for (let item of items) {
+			let detail = item.detail ? item.label + " - " + item.detail : item.label;
+			values.push({
+				value: item.label,
+				name: detail,
+				checked: item.picked ?? false
+			})
+		}
+
+		let result = await Interaction.select(title, values);
+
+		for (let item of items) {
+			if (item.label == result) {
+				return item;
+			}
+		}
+		return null;
+	}
+	async SelectMultiple(items: SelectItem[], options: SelectOptions): Promise<SelectItem[] | null> {
+		let title = "";
+		if (options.title) {
+			title += options.title;
+		}
+		if (options.placeHolder) {
+			if (title != "") {
+				title += " - ";
+			}
+			title += options.placeHolder;
+		}
+		let values: { value: string, name: string, checked: boolean }[] = [];
+		for (let item of items) {
+			let detail = item.detail ? item.label + " - " + item.detail : item.label;
+			values.push({
+				value: item.label,
+				name: detail,
+				checked: item.picked ?? false
+			})
+		}
+
+		let results = await Interaction.selectMultiple(title, values);
+		if (!results) {
+			return null;
+		}
+		let ret: SelectItem[] = [];
+		for (let result of results) {
+			for (let item of items) {
+				if (item.label == result) {
+					ret.push(item);
+				}
+			}
+		}
+		return ret.length > 0 ? ret : null;
+	}
+	async Popup(text: string, ...choices: string[]): Promise<string | null> {
+		if (choices.length > 0) {
+			let values: { value: string, name: string, checked: boolean }[] = [];
+			for (let choice of choices) {
+				values.push({
+					value: choice,
+					name: choice,
+					checked: false
+				})
+			}
+			return await Interaction.select(text, values);
+		}
+		else {
+			console.log(text);
+			return null;
+		}
+	}
+	public async SelectFolder(text: string, path: string): Promise<string | null> {
+		return await Interaction.tree(text, path)
+	}
 }
 
 

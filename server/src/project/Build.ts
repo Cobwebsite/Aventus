@@ -158,7 +158,7 @@ export class Build {
     }
     public async build() {
         let delay = GenericServer.delayBetweenBuild();
-        if(delay == 0){
+        if (delay == 0) {
             await this._build();
         }
         else {
@@ -634,9 +634,6 @@ export class Build {
          */
         const loadAndOrderInfo = (info: { fullName: string; isStrong: boolean }, isLocal: boolean, indexByUri: { [uri: string]: number }, alreadyLooked: { [name: string]: boolean }): { [uri: string]: number } => {
             const fullName = info.fullName.replace("$namespace$", '');
-            if (fullName == "State") {
-                console.log("in")
-            }
 
             let calculateDependances = true;
             if (alreadyLooked[fullName] !== undefined) {

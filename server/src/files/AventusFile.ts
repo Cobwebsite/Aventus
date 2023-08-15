@@ -558,9 +558,9 @@ export class InternalAventusFile implements AventusFile {
         }
         let promsResult = await Promise.all(proms);
         for (let promResult of promsResult) {
-            if(promResult) {
+            if (promResult) {
                 return promResult
-            }            
+            }
         }
         return null;
     }

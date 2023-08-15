@@ -30,14 +30,24 @@ export class Create {
 	]
 
 	static cmd: string = "aventus.create";
-	
+
 	public static async run(uri: string) {
 		if (!uri) {
 			return;
 		}
 		let path = uriToPath(uri);
 		
+
 		if (Create.checkIfProject(uri)) {
+			if(!GenericServer.isIDE){
+				let resultTemp = await GenericServer.SelectFolder("Select where to create", path);
+				if(!resultTemp){
+					return;
+				}
+				uri = resultTemp;
+				path = uriToPath(uri);
+			}
+			
 			const result = await GenericServer.Select(Create.createOptions, {
 				placeHolder: 'What do you want to create?',
 			});
@@ -112,6 +122,7 @@ export class Create {
 					this.createState(name, path, stateType.label);
 				}
 			}
+
 		}
 		else {
 			const result = await GenericServer.Select([{
@@ -121,7 +132,7 @@ export class Create {
 				placeHolder: 'What do you want to create?',
 			});
 			if (result) {
-				GenericServer.templateManager?.createProject(path);
+				await GenericServer.templateManager?.createProject(path);
 			}
 		}
 	}
@@ -339,8 +350,8 @@ export class LoginSocket extends Aventus.Socket implements Aventus.ISocket {
 	//#region tools
 	private static checkIfProject(uri: string) {
 		let uris = ProjectManager.getInstance().getAllConfigFiles();
+		let norm = uri.replace(/\\/g, "/");
 		for (let uriTemp of uris) {
-			let norm = uri.replace(/\\/g, "/");
 			if (norm.startsWith(uriTemp.replace("/aventus.conf.avt", ""))) {
 				return true;
 			}
