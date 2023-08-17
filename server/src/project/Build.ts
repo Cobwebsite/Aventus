@@ -106,6 +106,9 @@ export class Build {
     public getAvoidParsingTags() {
         return this.buildConfig.avoidParsingInsideTags;
     }
+    public getAliases(): { [alias: string]: string } {
+        return this.project.getConfig()?.aliases ?? {};
+    }
     public isFileInside(uri: string): boolean {
         return uriToPath(uri).match(this.buildConfig.inputPathRegex) != null;
     }

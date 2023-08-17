@@ -40,7 +40,7 @@ export abstract class AventusTsFile extends AventusBaseFile {
     }
 
     protected refreshFileParsed(isLib: boolean = false): void {
-        this.fileParsed = ParserTs.parse(this.file.document, isLib);
+        this.fileParsed = ParserTs.parse(this.file, isLib, this.build);
         this._contentForLanguageService = this.file.document.getText();
         if (!isLib) {
             for (let _namespace of this.fileParsed.namespaces) {

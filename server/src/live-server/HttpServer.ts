@@ -33,7 +33,7 @@ export class HttpServer {
 		this.config = SettingsManager.getInstance().settings.liveserver;
 	}
 
-	public toggle(){
+	public toggle() {
 		if (this.server && this.server.listening) {
 			this.stop();
 		}
@@ -103,7 +103,7 @@ export class HttpServer {
 	public updateComponent(js: string, element: string, children: string[]) {
 		this.send("update_component", { js, element, children });
 	}
-	public updateGlobalCSS(name:string, css: string) {
+	public updateGlobalCSS(name: string, css: string) {
 		this.send("update_global_css", { name, css });
 	}
 	public reload() {
@@ -150,6 +150,33 @@ export class HttpServer {
 			var hasNoOrigin = !req.headers.origin;
 			var injectCandidates = [new RegExp("</head>", "i"), new RegExp("</body>", "i")];
 			var injectTag: string | null = null;
+
+			if (req.url?.startsWith("/?get_injected_code")) {
+				// /?get_injected_code&host=123
+				let host = req.headers.host;
+				if (!host) {
+					host = this.config.host;
+					let splited = req.url.split("&");
+					if (splited.length > 1) {
+						host = splited[1].replace("host=", '');
+					}
+					if (host == "0.0.0.0") {
+						host = "127.0.0.1";
+					}
+					host += ":" + this.config.port;
+				}
+				
+				let newUrl = 'ws://' + host + '/ws';
+				let manualCode = INJECTED_CODE.replace('<script type="text/javascript">', '');
+				manualCode = manualCode.replace("var address = protocol + window.location.host + window.location.pathname + '/ws';", "var address = '" + newUrl + "';")
+				manualCode = manualCode.replace('</script>', '');
+				res.setHeader('Content-Length', manualCode.length);
+				res.setHeader('Content-type', 'text/javascript');
+				res.setHeader('Access-Control-Allow-Origin', '*');
+				res.write(manualCode, 'utf8');
+				res.end();
+				return;
+			}
 
 			const directory = () => {
 				var pathname = url.parse(req.originalUrl || '').pathname;

@@ -2905,10 +2905,14 @@ class ConfigurationEditor extends Aventus.WebComponent {
     }
 }
 <<<<<<< HEAD
+<<<<<<< HEAD
 if(!window.customElements.get('av-configuration-editor')){window.customElements.define('av-configuration-editor', ConfigurationEditor);Aventus.WebComponentInstance.registerDefinition(ConfigurationEditor);}
 =======
 window.customElements.define('av-configuration-editor', ConfigurationEditor);Aventus.WebComponentInstance.registerDefinition(ConfigurationEditor);
 >>>>>>> e17c116 (WIP)
+=======
+if(!window.customElements.get('av-configuration-editor')){window.customElements.define('av-configuration-editor', ConfigurationEditor);Aventus.WebComponentInstance.registerDefinition(ConfigurationEditor);}
+>>>>>>> 9a06fc0 (Add remote live-server + add alias for import)
 dependances.Message=Message;
 Message.Namespace='dependances';
 dependances.GeneralInformation=GeneralInformation;

@@ -33,17 +33,19 @@ import { NamespaceInfo } from './NamespaceInfo';
 import { hasFlag } from "./tools";
 import { FunctionInfo } from './FunctionInfo';
 import { VariableInfo } from './VariableInfo';
+import { Build } from '../../../project/Build';
+import { AventusFile, InternalAventusFile } from '../../../files/AventusFile';
 
 
 export class ParserTs {
     private static parsedDoc: { [uri: string]: { version: number, result: ParserTs } } = {};
-    public static parse(document: TextDocument, isLib: boolean): ParserTs {
+    public static parse(document: AventusFile, isLib: boolean, build: Build): ParserTs {
         if (ParserTs.parsedDoc[document.uri]) {
             if (this.parsedDoc[document.uri].version == document.version) {
                 return this.parsedDoc[document.uri].result;
             }
         }
-        new ParserTs(document, isLib);
+        new ParserTs(document, isLib, build);
         return ParserTs.parsedDoc[document.uri].result;
     }
     private static parsingDocs: ParserTs[] = [];
@@ -120,15 +122,19 @@ export class ParserTs {
     public variables: { [shortName: string]: VariableInfo } = {};
     public isLib: boolean = false;
     public isReady: boolean = false;
+    private build: Build;
+    private file: AventusFile;
 
-    private constructor(document: TextDocument, isLib: boolean) {
-        ParserTs.parsedDoc[document.uri] = {
-            version: document.version,
+    private constructor(file: AventusFile, isLib: boolean, build: Build) {
+        this.build = build;
+        this.file = file;
+        ParserTs.parsedDoc[file.uri] = {
+            version: file.version,
             result: this,
         }
         ParserTs.parsingDocs.push(this);
-        this.content = document.getText();
-        this._document = document;
+        this.content = file.document.getText();
+        this._document = file.document;
         this.isLib = isLib;
         this.loadRoot(createSourceFile("sample.ts", this.content, ScriptTarget.ESNext, true));
         ParserTs.parsingDocs.pop();
@@ -195,12 +201,13 @@ export class ParserTs {
         if (!ParserTs.parsedDoc[moduleUri]) {
             let file = FilesManager.getInstance().getByUri(moduleUri);
             if (file) {
-                ParserTs.parse(file.document, false);
+                ParserTs.parse(file, false, this.build);
             }
             else {
                 let modulePath = uriToPath(moduleUri);
-                let content = existsSync(modulePath) ? readFileSync(modulePath, 'utf8') : ''
-                ParserTs.parse(TextDocument.create(moduleUri, AventusLanguageId.TypeScript, 1, content), false);
+                let content = existsSync(modulePath) ? readFileSync(modulePath, 'utf8') : '';
+                let avFile = new InternalAventusFile(TextDocument.create(moduleUri, AventusLanguageId.TypeScript, 1, content));
+                ParserTs.parse(avFile, false, this.build);
             }
         }
         if (ParserTs.parsedDoc[moduleUri].result.isReady) {
@@ -247,6 +254,7 @@ export class ParserTs {
             if (node.importClause.namedBindings) {
                 if (node.importClause.namedBindings.kind == SyntaxKind.NamespaceImport) {
                     let moduleName = node.moduleSpecifier.getText().replace(/"/g, "").replace(/'/g, "");
+                    moduleName = this.build.project.resolveAlias(moduleName, this.file);
                     if (moduleName.startsWith(".")) {
                         this.errors.push({
                             range: Range.create(this.document.positionAt(node.getStart()), this.document.positionAt(node.getEnd())),
@@ -265,6 +273,7 @@ export class ParserTs {
                 }
                 else if (node.importClause.namedBindings.kind == SyntaxKind.NamedImports) {
                     let moduleName = node.moduleSpecifier.getText().replace(/"/g, "").replace(/'/g, "");
+                    moduleName = this.build.project.resolveAlias(moduleName, this.file);
                     // it's a local import
                     if (moduleName.startsWith(".")) {
                         for (let element of node.importClause.namedBindings.elements) {
@@ -278,7 +287,6 @@ export class ParserTs {
                                 })
                             }
                             else {
-                                let localName = element.name.getText();
                                 this.importLocal(moduleName, element.name);
                             }
                         }
@@ -301,6 +309,7 @@ export class ParserTs {
             }
             else if (node.importClause.name) {
                 let moduleName = node.moduleSpecifier.getText().replace(/"/g, "").replace(/'/g, "");
+                moduleName = this.build.project.resolveAlias(moduleName, this.file);
                 let name = node.importClause.name.getText();
                 if (moduleName.startsWith(".")) {
                     this.importLocal(moduleName, node.importClause.name);

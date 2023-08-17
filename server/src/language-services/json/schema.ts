@@ -202,6 +202,9 @@ export const AventusConfigSchema: JSONSchema = {
                 pattern: "^[a-z\-]+$",
             },
             description: "List of html tag that mustn't be parsed by the html compiler"
+        },
+        "aliases": {
+            type: "object"
         }
     },
     "required": ["build", "componentPrefix", "module"]

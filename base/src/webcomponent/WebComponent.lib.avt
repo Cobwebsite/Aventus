@@ -206,11 +206,10 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
     private static __style: string = ``;
     private static __template: WebComponentTemplate;
     private __templateInstance: WebComponentTemplateInstance;
-    protected styleBefore(): string[] {
-        return ["@general"];
+    protected styleBefore(addStyle: (name: string) => void): void {
+        addStyle("@general");
     }
-    protected styleAfter(): string[] {
-        return [];
+    protected styleAfter(addStyle: (name: string) => void): void {
     }
     private __getStyle() {
         return [WebComponent.__style];
@@ -222,28 +221,24 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
     }
 
     private static __styleSheets: { [name: string]: CSSStyleSheet; } = {};
+
     private __renderStyles() {
         let sheets: { [name: string]: CSSStyleSheet; } = {};
-        let befores = this.styleBefore();
-        for(let before of befores) {
-            let sheet = Style.get(before);
+        const addStyle = (name: string) => {
+            let sheet = Style.get(name);
             if(sheet) {
-                sheets[before] = sheet;
+                sheets[name] = sheet;
             }
-        }
+        };
+        this.styleBefore(addStyle);
         let localStyle = new CSSStyleSheet();
         let styleTxt = this.__getStyle().join("\r\n");
         if(styleTxt.length > 0) {
             localStyle.replace(styleTxt);
             sheets['@local'] = localStyle;
         }
-        let afters = this.styleAfter();
-        for(let after of afters) {
-            let sheet = Style.get(after);
-            if(sheet) {
-                sheets[after] = sheet;
-            }
-        }
+        this.styleAfter(addStyle);
+        
         return sheets;
     }
     private __renderTemplate() {

@@ -39,6 +39,7 @@ export class AventusTsLanguageService {
     }
 
     private createHostNamespace(): LanguageServiceHost {
+        const that = this;
         const host: LanguageServiceHost = {
             getCompilationSettings: () => compilerOptionsRead,
             getScriptFileNames: () => {
@@ -90,7 +91,11 @@ export class AventusTsLanguageService {
             },
             resolveModuleNames(moduleNames, containingFile, reusedNames, redirectedReference, options, containingSourceFile?) {
                 const resolvedModules: ResolvedModule[] = [];
-                for (const moduleName of moduleNames) {
+                for (let moduleName of moduleNames) {
+                    let file = FilesManager.getInstance().getByUri(containingFile);
+                    if (file) {
+                        moduleName = that.build.project.resolveAlias(moduleName, file);
+                    }
                     let result = resolveModuleName(moduleName, containingFile, compilerOptionsRead, this)
                     if (result.resolvedModule) {
                         if (result.resolvedModule.resolvedFileName.endsWith(".avt.ts")) {
@@ -112,6 +117,7 @@ export class AventusTsLanguageService {
         return host;
     }
     private createHost(): LanguageServiceHost {
+        const that = this;
         const host: LanguageServiceHost = {
             getCompilationSettings: () => compilerOptionsRead,
             getScriptFileNames: () => {
@@ -163,7 +169,11 @@ export class AventusTsLanguageService {
             },
             resolveModuleNames(moduleNames, containingFile, reusedNames, redirectedReference, options, containingSourceFile?) {
                 const resolvedModules: ResolvedModule[] = [];
-                for (const moduleName of moduleNames) {
+                for (let moduleName of moduleNames) {
+                    let file = FilesManager.getInstance().getByUri(containingFile);
+                    if (file) {
+                        moduleName = that.build.project.resolveAlias(moduleName, file);
+                    }
                     let result = resolveModuleName(moduleName, containingFile, compilerOptionsRead, this)
                     if (result.resolvedModule) {
                         if (result.resolvedModule.resolvedFileName.endsWith(".avt.ts")) {
@@ -463,7 +473,7 @@ export class AventusTsLanguageService {
 
         let result: CodeAction[] = [];
         try {
-            let parsedFile = ParserTs.parse(file.document, false);
+            let parsedFile = ParserTs.parse(file, false, this.build);
             let document = file.document;
             const syntaxDiagnostics: DiagnosticTs[] = this.languageService.getSyntacticDiagnostics(document.uri);
             const semanticDiagnostics: DiagnosticTs[] = this.languageService.getSemanticDiagnostics(document.uri);

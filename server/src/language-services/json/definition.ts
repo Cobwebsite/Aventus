@@ -48,5 +48,8 @@ export interface AventusConfig {
 	module: string;
 	build: AventusConfigBuild[],
 	static: AventusConfigStatic[],
-	avoidParsingInsideTags: string[]
+	avoidParsingInsideTags: string[],
+	aliases: {
+		[alias: string]: string
+	}
 }

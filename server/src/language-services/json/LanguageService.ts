@@ -314,6 +314,7 @@ export class AventusJSONLanguageService {
             build: [],
             static: [],
             avoidParsingInsideTags: [],
+            aliases: {}
         }
     }
     private defaultConfigBuildValue(config: AventusConfig): AventusConfigBuild {

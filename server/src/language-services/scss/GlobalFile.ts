@@ -208,6 +208,7 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 	}
 
 	private resolvePath(loadingPath: string, currentFolder: string): AventusFile | undefined {
+		loadingPath = this.project.resolveAlias(loadingPath, this.file);
 		loadingPath = normalize(currentFolder + "/" + loadingPath);
 		let result: AventusFile | undefined = FilesManager.getInstance().getByPath(loadingPath);
 		if (result) {
