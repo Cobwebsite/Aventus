@@ -14,6 +14,13 @@ class WebComponentInstance {
         WebComponentInstance.lastDefinition = Date.now();
         WebComponentInstance.__allDefinitions.push(def);
     }
+    static removeDefinition(def) {
+        WebComponentInstance.lastDefinition = Date.now();
+        let index = WebComponentInstance.__allDefinitions.indexOf(def);
+        if (index > -1) {
+            WebComponentInstance.__allDefinitions.splice(index, 1);
+        }
+    }
     /**
      * Get all sub classes of type
      */
@@ -478,11 +485,10 @@ class WebComponent extends HTMLElement {
     static __style = ``;
     static __template;
     __templateInstance;
-    styleBefore() {
-        return ["@general"];
+    styleBefore(addStyle) {
+        addStyle("@general");
     }
-    styleAfter() {
-        return [];
+    styleAfter(addStyle) {
     }
     __getStyle() {
         return [WebComponent.__style];
@@ -494,32 +500,26 @@ class WebComponent extends HTMLElement {
     static __styleSheets = {};
     __renderStyles() {
         let sheets = {};
-        let befores = this.styleBefore();
-        for (let before of befores) {
-            let sheet = Style.get(before);
+        const addStyle = (name) => {
+            let sheet = Style.get(name);
             if (sheet) {
-                sheets[before] = sheet;
+                sheets[name] = sheet;
             }
-        }
+        };
+        this.styleBefore(addStyle);
         let localStyle = new CSSStyleSheet();
         let styleTxt = this.__getStyle().join("\r\n");
         if (styleTxt.length > 0) {
             localStyle.replace(styleTxt);
             sheets['@local'] = localStyle;
         }
-        let afters = this.styleAfter();
-        for (let after of afters) {
-            let sheet = Style.get(after);
-            if (sheet) {
-                sheets[after] = sheet;
-            }
-        }
+        this.styleAfter(addStyle);
         return sheets;
     }
     __renderTemplate() {
         let staticInstance = this.__getStatic();
-        if (!staticInstance.__template) {
-            staticInstance.__template = new WebComponentTemplate();
+        if (!staticInstance.__template || staticInstance.__template.cst != staticInstance) {
+            staticInstance.__template = new WebComponentTemplate(staticInstance);
             this.__getHtml();
             this.__registerTemplateAction();
             staticInstance.__template.generateTemplate();
@@ -2184,6 +2184,10 @@ class WebComponentTemplate {
             return true;
         }
         return false;
+    }
+    cst;
+    constructor(component) {
+        this.cst = component;
     }
     htmlParts = [];
     setHTML(data) {

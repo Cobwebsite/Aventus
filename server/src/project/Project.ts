@@ -46,16 +46,16 @@ export class Project {
             let pathSplitted = path.split("/");
             let alias = pathSplitted[0];
             let value = this.config?.aliases[alias]
-            if(value){
-                let basePath = normalize(this.configFile.folderPath+"/"+value);
+            if (value) {
+                let basePath = normalize(this.configFile.folderPath + "/" + value);
                 let filePath = normalize(file.folderPath);
-                if(basePath.endsWith(sep)){
+                if (basePath.endsWith(sep)) {
                     basePath = basePath.substring(0, basePath.length - 1);
                 }
-                if(filePath.endsWith(sep)){
-                    filePath = filePath.substring(0,  filePath.length - 1);
+                if (filePath.endsWith(sep)) {
+                    filePath = filePath.substring(0, filePath.length - 1);
                 }
-                
+
 
                 let basePathSplitted = basePath.split(sep);
                 let filePathSplitted = filePath.split(sep);
@@ -148,6 +148,9 @@ export class Project {
         this.config = newConfig;
         if (this.config) {
             for (let build of this.config.build) {
+                if (build.disabled) {
+                    continue;
+                }
                 let newBuild = new Build(this, build);
                 this.builds.push(newBuild);
                 await newBuild.init()

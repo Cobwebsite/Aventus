@@ -145,18 +145,21 @@ export class InternalAventusFile implements AventusFile {
 
     private onValidateCb: { [uuid: string]: onValidateType } = {};
     public async validate(sendDiagnostics: boolean = true): Promise<Diagnostic[]> {
-        let diagnostics: Diagnostic[] = [];
+        let diagnostics: { [key: string]: Diagnostic } = {};
         for (let uuid in this.onValidateCb) {
-            let diagTemp = await this.onValidateCb[uuid](this);
-            diagnostics = [
-                ...diagnostics,
-                ...diagTemp
-            ]
+            let diagTemps = await this.onValidateCb[uuid](this);
+
+            for (let diagTemp of diagTemps) {
+                let key = diagTemp.message + "**" + diagTemp.range.start.line + ":" + diagTemp.range.start.character + "," + diagTemp.range.end.line + ":" + diagTemp.range.end.character;
+                if (!diagnostics[key]) {
+                    diagnostics[key] = diagTemp;
+                }
+            }
         }
         if (sendDiagnostics) {
             GenericServer.sendDiagnostics({ uri: this.uri, diagnostics: diagnostics })
         }
-        return diagnostics;
+        return Object.values(diagnostics);
     }
     public onValidate(cb: onValidateType): string {
         let uuid = randomUUID();
@@ -299,9 +302,17 @@ export class InternalAventusFile implements AventusFile {
             proms.push(this.onCompletionCb[uuid](this, position));
         }
         let promsResult = await Promise.all(proms);
+        let items: { [key: string]: CompletionItem } = {};
         for (let promResult of promsResult) {
-            result.items = [...result.items, ...promResult.items];
+            for (let item of promResult.items) {
+                let key = JSON.stringify(item);
+                if (!items[key]) {
+                    items[key] = item;
+                }
+            }
+
         }
+        result.items = Object.values(items);
         return result;
     }
 
@@ -428,7 +439,7 @@ export class InternalAventusFile implements AventusFile {
     private onFormattingCb: { [uuid: string]: onFormattingType } = {};
 
     public async getFormatting(options: FormattingOptions): Promise<TextEdit[]> {
-        let result: TextEdit[] = [];
+        let result: { [key: string]: TextEdit } = {};
         let proms: Promise<TextEdit[]>[] = [];
         let range = {
             start: this.document.positionAt(0),
@@ -439,9 +450,14 @@ export class InternalAventusFile implements AventusFile {
         }
         let promsResult = await Promise.all(proms);
         for (let promResult of promsResult) {
-            result = [...result, ...promResult];
+            for(let textEdit of promResult){
+                let key = JSON.stringify(textEdit);
+                if(!result[key]){
+                    result[key] = textEdit;
+                }
+            }
         }
-        return result;
+        return Object.values(result);
     }
 
     public onFormatting(cb: onFormattingType): string {

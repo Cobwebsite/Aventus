@@ -207,6 +207,10 @@ export class WebComponentTemplate {
         return false;
     }
 
+    public cst: typeof WebComponent;
+    public constructor(component: typeof WebComponent) {
+        this.cst = component;
+    }
 
     //#region only used for main template
     private htmlParts: WebComponentTemplateHTML[] = [];

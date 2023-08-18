@@ -27,6 +27,15 @@ export class WebComponentInstance {
         WebComponentInstance.lastDefinition = Date.now();
         WebComponentInstance.__allDefinitions.push(def);
     }
+
+    private static removeDefinition(def: new () => WebComponent) {
+        WebComponentInstance.lastDefinition = Date.now();
+        let index = WebComponentInstance.__allDefinitions.indexOf(def);
+        if(index > -1) {
+            WebComponentInstance.__allDefinitions.splice(index, 1);
+        }
+
+    }
     /**
      * Get all sub classes of type
      */
@@ -238,14 +247,14 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
             sheets['@local'] = localStyle;
         }
         this.styleAfter(addStyle);
-        
+
         return sheets;
     }
     private __renderTemplate() {
 
         let staticInstance = this.__getStatic();
-        if(!staticInstance.__template) {
-            staticInstance.__template = new WebComponentTemplate();
+        if(!staticInstance.__template || staticInstance.__template.cst != staticInstance) {
+            staticInstance.__template = new WebComponentTemplate(staticInstance);
             this.__getHtml();
             this.__registerTemplateAction();
             staticInstance.__template.generateTemplate();

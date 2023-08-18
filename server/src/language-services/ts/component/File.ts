@@ -142,6 +142,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         }
         if (!this.build.reloadPage && reloadComp && classInfo) {
             srcToUpdate = srcToUpdate.replace(/if\(\!window\.customElements\.get\(.*$/gm, '');
+            
             // TODO check side effects => maybe use real position instead of regex
             for (let dependance of classInfo.dependances) {
                 if (dependance.uri == "@local") {

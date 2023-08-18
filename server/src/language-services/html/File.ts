@@ -10,9 +10,10 @@ export class AventusHTMLFile extends AventusBaseFile {
 
     public fileParsed: ParserHtml | undefined;
     public tsErrors: Diagnostic[] = [];
+    private version: number = 0;
 
     public get compiledVersion() {
-        return ParserHtml.getVersion(this.file.document)
+        return this.version;
     }
     public get tsFile(): AventusWebComponentLogicalFile | null {
         let tsFile = this.build.tsFiles[this.file.uri.replace(AventusExtension.ComponentView, AventusExtension.ComponentLogic)];
@@ -29,10 +30,10 @@ export class AventusHTMLFile extends AventusBaseFile {
      * return true if doc changed
      */
     protected refreshFileParsed(): boolean {
-        let oldVersion = ParserHtml.getVersion(this.file.document);
         this.fileParsed = ParserHtml.parse(this.file.document, this.build);
         let newVersion = ParserHtml.getVersion(this.file.document);
-        if (oldVersion != newVersion) {
+        if (this.version != newVersion) {
+            this.version = newVersion;
             this.file.validate();
             return true;
         }

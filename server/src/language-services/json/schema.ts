@@ -41,6 +41,11 @@ export const AventusConfigSchema: JSONSchema = {
                         pattern: "^[0-9]+\.[0-9]+\.[0-9]+$",
                         description: "Version for this build (x.x.x)"
                     },
+                    "disabled": {
+                        type: "boolean",
+                        description: "Disable auto-build",
+                        default: true
+                    },
                     "hideWarnings": {
                         type: "boolean",
                         description: "Hide warnings for this build"

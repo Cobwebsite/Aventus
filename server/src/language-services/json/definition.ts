@@ -2,6 +2,7 @@ export interface AventusConfigBuild {
 	fullname: string,
 	name: string,
 	version: string,
+	disabled: boolean,
 	hideWarnings: boolean,
 	inputPath: string[],
 	inputPathRegex: RegExp,

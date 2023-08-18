@@ -322,6 +322,7 @@ export class AventusJSONLanguageService {
             fullname: '',
             name: '',
             version: config.version,
+            disabled: false,
             hideWarnings: config.hideWarnings,
             inputPath: [],
             inputPathRegex: new RegExp('(?!)'),
