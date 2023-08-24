@@ -8,7 +8,7 @@ export interface AventusConfigBuild {
 	inputPathRegex: RegExp,
 	outsideModulePath: string[],
 	outsideModulePathRegex: RegExp,
-	outputFile: string,
+	outputFile: string[],
 	outputPackage: string,
 	module: string,
 	componentPrefix: string,
@@ -39,8 +39,8 @@ export interface AventusConfigStatic {
 	name: string,
 	inputPath: string,
 	inputPathFolder: string,
-	outputPath: string
-	outputPathFolder: string,
+	outputPath: string[]
+	outputPathFolder: string[],
 }
 export interface AventusConfig {
 	version: string,

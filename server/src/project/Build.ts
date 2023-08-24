@@ -22,7 +22,7 @@ import { HttpServer } from '../live-server/HttpServer';
 import { Compiled } from '../notification/Compiled';
 import { RegisterBuild } from '../notification/RegisterBuild';
 import { UnregisterBuild } from '../notification/UnregisterBuild';
-import { createErrorTsPos, getFolder, pathToUri, uriToPath } from "../tools";
+import { createErrorTsPos, getFolder, pathToUri, replaceNotImportAliases, uriToPath } from "../tools";
 import { Project } from "./Project";
 import { AventusGlobalSCSSLanguageService } from '../language-services/scss/GlobalLanguageService';
 import { DependanceManager } from './DependanceManager';
@@ -310,7 +310,7 @@ export class Build {
     private async writeBuildCode(localCode: {
         code: string[], codeNoNamespaceBefore: string[], codeNoNamespaceAfter: string[], classesName: { [name: string]: { type: InfoType, isExported: boolean, convertibleName: string } }, stylesheets: { [name: string]: string }
     }, libSrc: string) {
-        if (this.buildConfig.outputFile) {
+        if (this.buildConfig.outputFile && this.buildConfig.outputFile.length > 0) {
             let finalTxt = '';
             finalTxt += libSrc + EOL;
             let stylesheets: string[] = [];
@@ -326,27 +326,29 @@ export class Build {
                 stylesheets
             );
 
-            let folderPath = getFolder(this.buildConfig.outputFile.replace(/\\/g, "/"));
-            if (!existsSync(folderPath)) {
-                mkdirSync(folderPath, { recursive: true });
-            }
-            if (this.buildConfig.compressed) {
-                try {
-
-                    const resultTemp = await minify({
-                        "file1.js": finalTxt
-                    }, {
-                        compress: false,
-                        format: {
-                            comments: false,
-                        }
-                    })
-                    finalTxt = resultTemp.code ?? '';
-                } catch (e) {
-                    console.log(e);
+            for (let outputFile of this.buildConfig.outputFile) {
+                let folderPath = getFolder(outputFile.replace(/\\/g, "/"));
+                if (!existsSync(folderPath)) {
+                    mkdirSync(folderPath, { recursive: true });
                 }
+                if (this.buildConfig.compressed) {
+                    try {
+
+                        const resultTemp = await minify({
+                            "file1.js": finalTxt
+                        }, {
+                            compress: false,
+                            format: {
+                                comments: false,
+                            }
+                        })
+                        finalTxt = resultTemp.code ?? '';
+                    } catch (e) {
+                        console.log(e);
+                    }
+                }
+                writeFileSync(outputFile, finalTxt);
             }
-            writeFileSync(this.buildConfig.outputFile, finalTxt);
         }
     }
     /**
@@ -517,7 +519,7 @@ export class Build {
                         result.codeNoNamespaceAfter.push(info.compiled)
                         if (!renderInJsByFullname[info.classScript]) {
                             renderInJsByFullname[info.classScript] = {
-                                code: info.compiled,
+                                code: replaceNotImportAliases(info.compiled, this.project.getConfig()),
                                 dependances: prepareDependances(info.dependances, info.uri),
                                 fullName: info.classScript,
                                 required: info.required,
@@ -532,7 +534,7 @@ export class Build {
                         result.codeNoNamespaceBefore.push(info.compiled);
                         if (!renderInJsByFullname[info.classScript]) {
                             renderInJsByFullname[info.classScript] = {
-                                code: info.compiled,
+                                code: replaceNotImportAliases(info.compiled, this.project.getConfig()),
                                 dependances: prepareDependances(info.dependances, info.uri),
                                 fullName: info.classScript,
                                 required: info.required,
@@ -577,11 +579,11 @@ export class Build {
                 }
 
                 if (info.compiled != "") {
-                    result.code.push(info.compiled)
+                    result.code.push(replaceNotImportAliases(info.compiled, this.project.getConfig()))
                     let exportName = namespaceWithDot + info.classScript;
                     if (!renderInJsByFullname[exportName]) {
                         renderInJsByFullname[exportName] = {
-                            code: info.compiled,
+                            code: replaceNotImportAliases(info.compiled, this.project.getConfig()),
                             dependances: prepareDependances(info.dependances, info.uri),
                             fullName: exportName,
                             required: info.required,
@@ -869,6 +871,9 @@ export class Build {
         // add required code for lib
         for (let libUri of this.dependanceNeedUris) {
             let requiredInfos = this.externalPackageInformation.getInformationsRequired(libUri);
+            if(!loadedInfoExternal[libUri]) {
+                loadedInfoExternal[libUri] = [];
+            }
             for (let requiredInfo of requiredInfos) {
                 if (!loadedInfoExternal[libUri].includes(requiredInfo.fullName)) {
                     loadAndOrderInfo({
@@ -879,6 +884,9 @@ export class Build {
             }
         }
         for (let libUri of this.dependanceFullUris) {
+            if(!loadedInfoExternal[libUri]) {
+                loadedInfoExternal[libUri] = [];
+            }
             let fullInfos = this.externalPackageInformation.getFullInformations(libUri);
             for (let fullInfo of fullInfos) {
                 if (!loadedInfoExternal[libUri].includes(fullInfo.fullName)) {
@@ -906,8 +914,9 @@ export class Build {
             for (let fullname of loadedInfoExternal[libUri]) {
                 let infoExternal = this.externalPackageInformation.getByFullName(fullname);
                 if (infoExternal.content != 'noCode') {
+                    let code = replaceNotImportAliases(infoExternal.content.code, this.project.getConfig());
                     if (!infoExternal.content.noNamespace) {
-                        libInfo.code.push(infoExternal.content.code);
+                        libInfo.code.push(code);
                         let regex = new RegExp('^' + this.externalPackageInformation.getNamespaceByUri(infoExternal.uri) + "\.");
                         let fullNameTemp = infoExternal.content.fullName.replace(regex, "");
                         libInfo.classesName[fullNameTemp] = {
@@ -917,10 +926,10 @@ export class Build {
                         }
                     }
                     else if (infoExternal.content.noNamespace == 'before') {
-                        libInfo.before.push(infoExternal.content.code);
+                        libInfo.before.push(code);
                     }
                     else if (infoExternal.content.noNamespace == 'after') {
-                        libInfo.after.push(infoExternal.content.code);
+                        libInfo.after.push(code);
                     }
 
                 }

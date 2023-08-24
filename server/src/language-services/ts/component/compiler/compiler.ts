@@ -279,10 +279,14 @@ export class AventusWebcomponentCompiler {
     private getClassName(classInfo: ClassInfo) {
         let splittedName = classInfo.name.match(/([A-Z][a-z]*)|([0-9][a-z]*)/g);
         if (splittedName) {
-            let componentPrefix = this.build.getComponentPrefix();
-            if (componentPrefix.length > 0 && splittedName[0].toLowerCase() != componentPrefix.toLowerCase()) {
-                // no special tag => add one
-                splittedName.splice(0, 0, componentPrefix.toLowerCase());
+            let componentPrefixes = this.build.getComponentPrefix().split("-");
+            for (let i = 0;i<componentPrefixes.length;i++) {
+                let componentPrefix = componentPrefixes[i];
+                if (componentPrefix.length > 0 && splittedName[i].toLowerCase() != componentPrefix.toLowerCase()) {
+                    // no special tag => add one
+                    splittedName.splice(0, 0, componentPrefixes.join("-").toLowerCase());
+                    break;
+                }
             }
             if (this.tagName == "") {
                 this.tagName = splittedName.join("-").toLowerCase();

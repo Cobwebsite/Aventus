@@ -24,7 +24,7 @@ export const AventusConfigSchema: JSONSchema = {
         "componentPrefix": {
             type: "string",
             description: "Identifier to prefix all your components (in lower case)",
-            pattern: "^[a-z]{2,}$",
+            pattern: "^[a-z\-]{2,}$",
         },
         "build": {
             type: "array",
@@ -53,7 +53,7 @@ export const AventusConfigSchema: JSONSchema = {
                     "componentPrefix": {
                         type: "string",
                         description: "Identifier to prefix all your components (in lower case)",
-                        pattern: "^[a-z]{2,}$",
+                        pattern: "^[a-z\-]{2,}$",
                     },
                     "inputPath": {
                         type: "array",
@@ -66,7 +66,11 @@ export const AventusConfigSchema: JSONSchema = {
                         description: "List of all pathes to import outside the module"
                     },
                     "outputFile": {
-                        type: "string",
+                        type: ["string", "array"],
+                        items: {
+                            type: "string",
+                            pattern: "^\\S+\\.js",
+                        },
                         pattern: "^\\S+\\.js",
                         description: "The script file generated path"
                     },
@@ -192,7 +196,10 @@ export const AventusConfigSchema: JSONSchema = {
                         description: "Input path to watch to export as static files"
                     },
                     "outputPath": {
-                        type: "string",
+                        type: ["string", "array"],
+                        items: {
+                            type: "string",
+                        },
                         description: "Define where to export static files"
                     }
                 },

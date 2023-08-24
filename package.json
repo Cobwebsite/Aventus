@@ -538,8 +538,8 @@
 		"dev:cli": "rimraf cli/out && tspc -b -w ./cli/",
 		"webpack": "npm run clean && webpack --mode production --config ./client/webpack.config.js && webpack --mode production --config ./server/webpack.config.js",
 		"clean": "rimraf client/out && rimraf server/out",
-		"package": "npx vsce package --allow-star-activation",
-		"publish": "npx vsce publish --allow-star-activation",
+		"package": "npx vsce package --allow-star-activation && npx node-notifier-cli notify -t \"Packaging done\" -m \"The aventus extension has been packaged\" -i \"./icons/icon.png\"",
+		"publish": "npx vsce publish --allow-star-activation && npx node-notifier-cli notify -t \"Publish done\" -m \"The aventus extension has been published\" -i \"./icons/icon.png\"",
 		"package:cli": "rimraf cli/out && webpack --mode production --config ./cli/webpack.config.js",
 		"test": "jest",
 		"watch": "concurrently \"npm run dev:client\" \"npm run dev\" -n \"client,server\""
@@ -561,6 +561,7 @@
 		"jest": "^29.0.2",
 		"merge-options": "^3.0.4",
 		"module-alias": "^2.2.3",
+		"node-notifier-cli": "^2.0.0",
 		"ts-jest": "^29.0.1",
 		"ts-loader": "^9.3.1",
 		"tsc-alias": "^1.8.7",

@@ -3,6 +3,7 @@ import { Position, CompletionList, CompletionItem, Hover, Definition, Range, For
 import { AventusExtension } from "../../../definition";
 import { AventusFile } from '../../../files/AventusFile';
 import { AventusTsFile } from "../File";
+import md5 from 'md5';
 import { v4 as randomUUID } from 'uuid';
 import { InfoType } from '../parser/BaseInfo';
 
