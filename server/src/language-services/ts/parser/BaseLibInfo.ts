@@ -5,7 +5,7 @@ import { TYPESCRIPT_LIB_SOURCE } from '../libLoader';
 export class BaseLibInfo {
     private static libInfo: string[] = [];
     private static init() {
-        let prog = createProgram([join(TYPESCRIPT_LIB_SOURCE, "lib.es2022.full.d.ts")], {});
+        let prog = createProgram([join(TYPESCRIPT_LIB_SOURCE(), "lib.es2022.full.d.ts")], {});
         let files = prog.getSourceFiles();
         for (let file of files) {
             if (file.statements) {

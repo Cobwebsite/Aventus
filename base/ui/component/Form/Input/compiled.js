@@ -198,5 +198,5 @@ class Input extends Aventus.WebComponent {
         return this.errors.length == 0;
     }
 }
-window.customElements.define('av-input', Input);Aventus.WebComponentInstance.registerDefinition(Input);
+if(!window.customElements.get('av-input')){window.customElements.define('av-input', Input);Aventus.WebComponentInstance.registerDefinition(Input);}
 

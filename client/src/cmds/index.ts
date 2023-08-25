@@ -15,6 +15,12 @@ import { CreateProperty } from './webcomponent/CreateProperty';
 import { CreateWatch } from './webcomponent/CreateWatch';
 import { ImportViewElement } from './webcomponent/ImportViewElement';
 import { ImportViewMethod } from './webcomponent/ImportViewMethod';
+import { ReceiveSelect } from './ReceiveSelect';
+import { ReceiveInput } from './ReceiveInput';
+import { PopupResponse } from './PopupResponse';
+import { ReceiveSelectMultiple } from './ReceiveSelectMultiple';
+import { MergeComponent } from './MergeComponent';
+import { SplitComponent } from './SplitComponent';
 
 
 export const Commands = {
@@ -35,6 +41,12 @@ export const Commands = {
         [FileDeleted.cmd]: FileDeleted,
         [TemplateImport.cmd]: TemplateImport,
         [ShowDependances.cmd]: ShowDependances,
-        [OpenAventusFolder.cmd]: OpenAventusFolder
+        [OpenAventusFolder.cmd]: OpenAventusFolder,
+        [ReceiveInput.cmd]: ReceiveInput,
+        [ReceiveSelect.cmd]: ReceiveSelect,
+        [ReceiveSelectMultiple.cmd]: ReceiveSelectMultiple,
+        [PopupResponse.cmd]: PopupResponse,
+        [MergeComponent.cmd]: MergeComponent,
+        [SplitComponent.cmd]: SplitComponent,
     },
 }

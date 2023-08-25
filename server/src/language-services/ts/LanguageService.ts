@@ -7,7 +7,7 @@ import { AventusFile, InternalAventusFile } from '../../files/AventusFile';
 import { Build } from '../../project/Build';
 import { convertRange, uriToPath } from '../../tools';
 import { AventusTsFile } from './File';
-import { loadLibrary } from './libLoader';
+import { loadLibrary, loadTypescriptLib } from './libLoader';
 import { BaseInfo } from './parser/BaseInfo';
 import { ClassInfo } from './parser/ClassInfo';
 import { DecoratorInfo } from './parser/DecoratorInfo';
@@ -32,6 +32,7 @@ export class AventusTsLanguageService {
 
     public constructor(build: Build) {
         this.build = build;
+        loadTypescriptLib();
         this.languageService = createLanguageService(this.createHost());
         this.languageServiceNamespace = createLanguageService(this.createHostNamespace());
     }

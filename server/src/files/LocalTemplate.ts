@@ -1,4 +1,7 @@
-import { QuickPickItem, window, workspace } from 'vscode';
+import open = require('open');
+import { GenericServer } from '../GenericServer';
+import { SelectItem } from '../IConnection';
+import { uriToPath } from '../tools';
 import { Template, TemplateManager } from './Template';
 
 export class LocalTemplateManager {
@@ -7,25 +10,25 @@ export class LocalTemplateManager {
 		this.templateManager = templateManager;
 	}
 	public async createTemplate(path: string) {
-		let quickPicksTemplate: Map<QuickPickItem, Template> = new Map();
+		let quickPicksTemplate: Map<SelectItem, Template> = new Map();
 		let loadedTemplates = this.readTemplates().concat(this.templateManager.getGeneralTemplates());
 		if (loadedTemplates.length == 0) {
-			let result = await window.showErrorMessage("You have no custom template!!", 'Open documentation');
+			GenericServer.showErrorMessage("You have no custom template!!");
+			let result = await GenericServer.Popup("You have no custom template!!", 'Open documentation');
 			if (result == "Open documentation") {
 				open("https://aventusjs.com/docs/advanced/template");
 			}
 			return;
 		}
 		for (let template of loadedTemplates) {
-			let quickPick: QuickPickItem = {
+			let quickPick: SelectItem = {
 				label: template.config.name,
 				detail: template.config.description ?? "",
 			}
 			quickPicksTemplate.set(quickPick, template);
 		}
-		const resultFormat = await window.showQuickPick(Array.from(quickPicksTemplate.keys()), {
+		const resultFormat = await GenericServer.Select(Array.from(quickPicksTemplate.keys()), {
 			placeHolder: 'Choose a template',
-			canPickMany: false,
 		});
 		if (resultFormat) {
 			let resultPick = quickPicksTemplate.get(resultFormat);
@@ -36,8 +39,9 @@ export class LocalTemplateManager {
 	}
 
 	private readTemplates() {
-		if (workspace.workspaceFolders) {
-			let aventusFolder = workspace.workspaceFolders[0].uri.fsPath + '/.aventus/templates';
+		let uri = GenericServer.getWorkspaceUri()
+		if (uri) {
+			let aventusFolder = uriToPath(uri) + '/.aventus/templates';
 			return this.templateManager.readTemplates(aventusFolder);
 		}
 		return [];

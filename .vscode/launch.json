@@ -55,7 +55,8 @@
 			"type": "node",
 			"request": "launch",
 			"name": "Launch CLI Test",
-			"program": "${workspaceFolder}/cli/src/main.ts",
+			"program": "${workspaceFolder}/cli/out/main.js",
+			"cwd": "C:/Users/maxim/Desktop/test3/",
 			"outFiles": [
 				"${workspaceFolder}/cli/out/**/*.js"
 			]

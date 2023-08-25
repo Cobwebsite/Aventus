@@ -1,0 +1,23 @@
+{
+  "name": "aventusjs",
+  "displayName": "Aventus CLI",
+  "description": "This official CLI to compile Aventus Framework",
+  "version": "1.0.5",
+  "icon": "icons/logo.png",
+  "bin": {  
+    "aventus": "./out/cli.js"  
+  },
+  "repository": {
+		"type": "git",
+		"url": "https://github.com/Cobwebsite/Aventus"
+	},
+  "author": {
+		"name": "Cobwebsite",
+		"email": "info@cobwebsite.ch",
+		"url": "https://cobwesbite.ch"
+	},
+  "license": "MIT",
+  "dependencies": {
+    "typescript": "^5.0.2"
+  }
+}

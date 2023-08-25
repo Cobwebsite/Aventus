@@ -1,14 +1,29 @@
-import { ExecuteCommandParams } from "vscode-languageserver/node";
 import { ProjectManager } from '../project/ProjectManager';
-import { pathToUri } from "../tools";
+import { GenericServer } from "../GenericServer";
+import { SelectItem } from "../IConnection";
 
 
 export class BuildProject {
 	static cmd: string = "aventus.compile";
-	constructor(params: ExecuteCommandParams) {
-		if (params.arguments && params.arguments[0]) {
-			let uri: string = pathToUri(params.arguments[0].detail);
-			let name: string = params.arguments[0].label;
+	
+	public static async run() {
+		let items: SelectItem[] = [];
+		let builds = ProjectManager.getInstance().getAllBuilds();
+
+		for (let build of builds) {
+			items.push({
+				label: build.name,
+				detail: build.uri
+			})
+		}
+
+		let result = await GenericServer.Select(items, {
+			placeHolder: 'Project to compile'
+		})
+
+		if(result) {
+			let uri = result.detail ?? "";
+			let name = result.label;
 			ProjectManager.getInstance().getProjectByUri(uri)?.getBuild(name)?.build();
 		}
 	}

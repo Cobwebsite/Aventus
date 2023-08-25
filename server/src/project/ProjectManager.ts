@@ -77,4 +77,40 @@ export class ProjectManager {
         }
         return result;
     }
+
+    public getAllConfigFiles(): string[] {
+        let result: string[] = [];
+        for (let uri in this.projects) {
+            result.push(this.projects[uri].getConfigFile().uri)
+        }
+        return result;
+    }
+    public getAllBuilds(): { name: string, uri: string }[] {
+        let result: { name: string, uri: string }[] = [];
+        for (let uri in this.projects) {
+            let project = this.projects[uri];
+            let builds = project.getBuildsName();
+            for (let build of builds) {
+                result.push({
+                    name: build,
+                    uri: project.getConfigFile().uri
+                })
+            }
+        }
+        return result;
+    }
+    public getAllStatics(): { name: string, uri: string }[] {
+        let result: { name: string, uri: string }[] = [];
+        for (let uri in this.projects) {
+            let project = this.projects[uri];
+            let builds = project.getBuildsName();
+            for (let build of builds) {
+                result.push({
+                    name: build,
+                    uri: project.getConfigFile().uri
+                })
+            }
+        }
+        return result;
+    }
 }

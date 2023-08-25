@@ -1,24 +1,29 @@
 import { ExecuteCommandParams } from "vscode-languageserver";
-import { AddConfigSection } from './addConfigSection';
-import { BuildProject } from "./buildProject";
-import { Create } from "./create";
+import { AddConfigSection } from './AddConfigSection';
+import { BuildProject } from "./BuildProject";
+import { Create } from "./Create";
 import { FileCreated } from './file-system/FileCreated';
 import { FileDeleted } from './file-system/FileDeleted';
 import { FileUpdated } from './file-system/FileUpdated';
-import { MergeComponent } from "./mergeComponent";
-import { SplitComponent } from "./splitComponent";
-import { StartServer } from './live-server/startServer';
-import { ToggleServer } from './live-server/toggleServer';
-import { StaticExport } from "./staticExport";
-import { StopServer } from './live-server/stopServer';
+import { MergeComponent } from "./MergeComponent";
+import { SplitComponent } from "./SplitComponent";
+import { StartServer } from './live-server/StartServer';
+import { ToggleServer } from './live-server/ToggleServer';
+import { StaticExport } from "./StaticExport";
+import { StopServer } from './live-server/StopServer';
 import { CreateAttribute } from './webcomponent/CreateAttribute';
 import { CreateProperty } from './webcomponent/CreateProperty';
 import { CreateWatch } from './webcomponent/CreateWatch';
 import { ImportViewElement } from './webcomponent/ImportViewElement';
 import { ImportViewMethod } from './webcomponent/ImportViewMethod';
-import { GetNamespace } from './getNamespace';
-import { Rename } from './rename';
+import { Rename } from './Rename';
 import { Rename as RenameComp } from './webcomponent/Rename';
+import { OpenAventusFolder } from './file-system/OpenAventusFolder';
+import { PopupResponse } from "./PopupResponse";
+import { ReceiveInput } from "./ReceiveInput";
+import { ReceiveSelect } from "./ReceiveSelect";
+import { ReceiveSelectMultiple } from "./ReceiveSelectMultiple";
+import { ImportTemplate } from "./file-system/ImportTemplate";
 
 export const Commands = {
     allCommandes: {
@@ -41,12 +46,18 @@ export const Commands = {
         [FileCreated.cmd]: FileCreated,
         [FileUpdated.cmd]: FileUpdated,
         [FileDeleted.cmd]: FileDeleted,
-        [GetNamespace.cmd]: GetNamespace
+        [OpenAventusFolder.cmd]: OpenAventusFolder,
+        [PopupResponse.cmd]: PopupResponse,
+        [ReceiveInput.cmd]: ReceiveInput,
+        [ReceiveSelect.cmd]: ReceiveSelect,
+        [ReceiveSelectMultiple.cmd]: ReceiveSelectMultiple,
+        [ImportTemplate.cmd]: ImportTemplate,
     },
     execute: function (params: ExecuteCommandParams) {
         let cmd = this.allCommandes[params.command];
         if (cmd) {
-            new cmd(params);
+            let args = params.arguments ?? [];
+            (cmd.run as any).call(cmd, ...args);
         }
     }
 }

@@ -1,4 +1,3 @@
-import { ExecuteCommandParams } from 'vscode-languageserver';
 import { pathToUri, uriToPath } from '../tools';
 import { existsSync, readdirSync, statSync, writeFileSync } from 'fs';
 import { join } from 'path';
@@ -10,19 +9,18 @@ import { InternalAventusFile } from '../files/AventusFile';
 
 export class Rename {
 	static cmd: string = "aventus.rename";
-	constructor(params: ExecuteCommandParams) {
+
+	public static async run(changes: { oldUri: string, newUri: string }[]) {
 		if (!SettingsManager.getInstance().settings.updateImportOnRename) {
 			return;
 		}
-		if (params.arguments && params.arguments[0]) {
-			this.run(params.arguments[0])
+		if (!changes) {
+			return
 		}
-	}
-	public async run(changes: any) {
 		let changesToSend: { oldUri: string, newUri: string }[] = [];
 		for (let change of changes) {
-			let oldUri = change.oldUri.external;
-			let newUri = change.newUri.external;
+			let newUri = change.newUri;
+			let oldUri = change.oldUri;
 			let newPath = uriToPath(newUri);
 			let oldPath = uriToPath(oldUri);
 			let pathToUse: string;

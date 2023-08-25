@@ -8,8 +8,8 @@ import { pathToUri } from '../tools';
 import { AventusExtension, AventusLanguageId } from '../definition';
 import { AventusPackageFile } from '../language-services/ts/package/File';
 import { Build } from './Build';
-import { ClientConnection } from '../Connection';
 import { get } from 'http';
+import { GenericServer } from '../GenericServer';
 
 type DependanceLoopPart = {
 	file: AventusPackageFile,
@@ -37,15 +37,15 @@ export class DependanceManager {
 	}
 
 	private constructor() {
-		this.path = join(ClientConnection.getInstance().getFsPath(), "packages");
+		this.path = join(GenericServer.savePath, "packages");
 		if (!existsSync(this.path)) {
 			mkdirSync(this.path, { recursive: true });
 		}
 	}
 
 	private predefinedPaths = {
-		"@Aventus": AVENTUS_DEF_BASE_PATH,
-		"@AventusUI": AVENTUS_DEF_UI_PATH,
+		"@Aventus": AVENTUS_DEF_BASE_PATH(),
+		"@AventusUI": AVENTUS_DEF_UI_PATH(),
 	}
 	private aventusLoaded: boolean = false;
 	public async loadDependancesFromBuild(config: AventusConfigBuild, build: Build): Promise<{ files: AventusPackageFile[], dependanceNeedUris: string[], dependanceFullUris: string[], dependanceUris: string[] }> {
@@ -67,7 +67,7 @@ export class DependanceManager {
 		}
 
 		if (!this.aventusLoaded) {
-			let uri = pathToUri(AVENTUS_DEF_BASE_PATH);
+			let uri = pathToUri(AVENTUS_DEF_BASE_PATH());
 			let avFile = this.loadByUri(build, uri)
 			loopResult["Aventus"] = {
 				dependances: [],
@@ -423,7 +423,7 @@ export class DependanceManager {
 				// error
 				let v1Txt = Object.values(v1).join(".");
 				let v2Txt = Object.values(v2).join(".");
-				ClientConnection.getInstance().showErrorMessage(`Can't resolve version for dependance ${name} between ${v1Txt} and ${v2Txt}`);
+				GenericServer.showErrorMessage(`Can't resolve version for dependance ${name} between ${v1Txt} and ${v2Txt}`);
 				return -1;
 			}
 		}

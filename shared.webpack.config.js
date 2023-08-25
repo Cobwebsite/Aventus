@@ -41,7 +41,8 @@ module.exports = function withDefaults(/**@type WebpackConfig*/extConfig) {
 					options: {
 						compilerOptions: {
 							"sourceMap": true,
-						}
+						},
+						projectReferences: true
 					}
 				}]
 			}]

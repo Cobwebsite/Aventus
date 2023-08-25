@@ -1,4 +1,4 @@
-import { ExecuteCommandParams, TextEdit } from 'vscode-languageserver';
+import { TextEdit } from 'vscode-languageserver';
 import { FilesManager } from '../../files/FilesManager';
 import { AventusWebComponentLogicalFile } from '../../language-services/ts/component/File';
 import { EOL } from 'os';
@@ -6,22 +6,48 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AventusLanguageId } from '../../definition';
 import { InternalAventusFile } from '../../files/AventusFile';
 import { EditFile } from '../../notification/EditFile';
+import { GenericServer } from '../../GenericServer';
 
 export class CreateWatch {
 	static cmd: string = "aventus.wc.create.watch";
 
-	constructor(params: ExecuteCommandParams) {
-		if (params.arguments && params.arguments.length == 5) {
-			let uri = params.arguments[0];
-			let name: string = params.arguments[1];
-			let type: string = params.arguments[2];
-			let cb: boolean = params.arguments[3];
-			let position: number = params.arguments[4];
-			this.run(uri, name, type, cb, position);
+	public static async run(uri: string, position: number, prefillName: string) {
+		if (!uri) {
+			return;
 		}
-	}
+		if (!position) {
+			return;
+		}
+		const name = await GenericServer.Input({
+			title: "Provide a name for your Property",
+			async validateInput(value) {
+				if (!value.match(/^[_a-z0-9]+$/g)) {
+					return 'A property must be with lowercase, number or _';
+				}
+				return null;
+			},
+			value: prefillName
+		});
+		if (!name) {
+			return;
+		}
 
-	private async run(uri: string, name: string, type: string, needCb: boolean, position: number) {
+		const type = await GenericServer.Input({
+			title: "Provide a type for your Watch",
+		});
+		if (!type) { return }
+		
+		const needCbResult = await GenericServer.Select([
+			{ label: "Yes" }, { label: "No" }
+		], {
+			placeHolder: 'Do you need a callback function?',
+		});
+
+		if (!needCbResult) {
+			return;
+		}
+		let needCb = needCbResult.label == "Yes";
+
 		let file = FilesManager.getInstance().getByUri(uri);
 		if (file) {
 			let oldEnd = file.document.positionAt(file.content.length);
@@ -64,4 +90,5 @@ export class CreateWatch {
 
 		}
 	}
+
 }
