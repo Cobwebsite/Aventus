@@ -18,6 +18,7 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 
 	private diagnostics: Diagnostic[] = [];
 	private compiledTxt: string = "";
+	private savedOnce: boolean = false;
 
 	private outPaths: string[] = [];
 
@@ -29,7 +30,6 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 	public constructor(file: AventusFile, project: Project) {
 		super(file, project);
 		this.loadDependances();
-		this.compile();
 		this.project.globalSCSSLanguageService.loadVariables(this, this.file.uri);
 	}
 	protected async onContentChange(): Promise<void> {
@@ -41,6 +41,7 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 		return this.diagnostics;
 	}
 	protected async onSave(): Promise<void> {
+		this.savedOnce = true;
 		this.compileRoot();
 		this.project.globalSCSSLanguageService.loadVariables(this, this.file.uri);
 	}
@@ -144,9 +145,17 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 	}
 
 	public addOutPath(path: string) {
+		if (this.file.shortname.startsWith("_")) {
+			return;
+		}
 		if (!this.outPaths.includes(path)) {
 			this.outPaths.push(path);
-			this.export();
+			if (!this.savedOnce) {
+				this.onSave();
+			}
+			else {
+				this.export();
+			}
 		}
 	}
 
@@ -164,7 +173,7 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 		}
 	}
 
-	
+
 
 	//#region dependances
 	private loadDependances() {
@@ -200,7 +209,7 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 			this.dependances[fileDependance.uri] = this.project.scssFiles[fileDependance.uri];
 			this.project.scssFiles[fileDependance.uri].usedBy[this.file.uri] = this;
 		}
-		else {
+		else if (fileDependance.uri.endsWith(AventusExtension.GlobalStyle)) {
 			this.project.scssFiles[fileDependance.uri] = new AventusGlobalSCSSFile(fileDependance, this.project);
 			this.dependances[fileDependance.uri] = this.project.scssFiles[fileDependance.uri];
 			this.project.scssFiles[fileDependance.uri].usedBy[this.file.uri] = this;

@@ -20,6 +20,7 @@ export const AventusLanguageId = {
 export const AventusExtension = {
     Base: ".avt",
     Config: "aventus.conf.avt",
+    CsharpConfig: "aventus.sharp.avt",
     ComponentLogic: ".wcl.avt",
     ComponentView: ".wcv.avt",
     ComponentStyle: ".wcs.avt",

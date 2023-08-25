@@ -5,7 +5,7 @@ import { AventusErrorCode, AventusExtension } from "../../definition";
 import { AventusFile } from '../../files/AventusFile';
 import { createErrorTs, getFolder, uriToPath } from "../../tools";
 import { AventusConfig, AventusConfigBuild, AventusConfigBuildDependance, AventusConfigStatic } from "./definition";
-import { AventusConfigSchema, AventusTemplateSchema } from "./schema";
+import { AventusConfigSchema, AventusSharpSchema, AventusTemplateSchema } from "./schema";
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { env } from 'process';
 
@@ -38,6 +38,11 @@ export class AventusJSONLanguageService {
                     fileMatch: ["**" + AventusExtension.Template],
                     uri: AventusTemplateSchema.$schema ?? '',
                     schema: AventusTemplateSchema
+                },
+                {
+                    fileMatch: ["**" + AventusExtension.CsharpConfig],
+                    uri: AventusSharpSchema.$schema ?? '',
+                    schema: AventusSharpSchema
                 }
             ]
         });

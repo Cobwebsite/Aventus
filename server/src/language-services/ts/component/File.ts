@@ -13,6 +13,7 @@ import { AventusTsFile } from "../File";
 import { AventusWebcomponentCompiler } from "./compiler/compiler";
 import { CompileComponentResult } from "./compiler/def";
 import { ClassInfo } from '../parser/ClassInfo';
+import { replaceNotImportAliases } from '../../../tools';
 
 export class AventusWebComponentLogicalFile extends AventusTsFile {
     private _compilationResult: CompileComponentResult | undefined;
@@ -102,7 +103,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
             this.setCompileResult([]);
         }
         if (this.compilationResult?.writeCompiled) {
-            writeFileSync(this.file.folderPath + '/compiled.js', this.compilationResult.debug);
+            writeFileSync(this.file.folderPath + '/compiled.js', replaceNotImportAliases(this.compilationResult.debug, this.build.project.getConfig()));
         }
         else if (existsSync(this.file.folderPath + '/compiled.js')) {
             unlinkSync(this.file.folderPath + '/compiled.js')

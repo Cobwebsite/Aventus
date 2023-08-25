@@ -277,3 +277,38 @@ export const AventusTemplateSchema: JSONSchema = {
     },
     "required": ["name", "description", "version", "variables"]
 }
+
+
+export const AventusSharpSchema: JSONSchema = {
+    "$schema": "foo://aventus/conf.json",
+    "title": "JSON Schema for Aventus",
+    "description": "JSON Schema for Aventus",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "csProj": {
+            type: "string",
+            pattern: "^\\S+\\.csproj",
+        },
+        "outputpath": {
+            type: "string",
+        },
+        "exportEnumByDefault": {
+            type: "boolean",
+            default: false
+        },
+        "exportStorableByDefault": {
+            type: "boolean",
+            default: true
+        },
+        "exportHttpRouteByDefault": {
+            type: "boolean",
+            default: true
+        },
+        "exportErrorsByDefault": {
+            type: "boolean",
+            default: true
+        }
+    },
+    "required": ["csProj", "outputPath"]
+}

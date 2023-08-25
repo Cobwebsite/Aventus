@@ -80,6 +80,7 @@
 				"configuration": "./syntaxes/ts-language-configuration.json",
 				"filenames": [
 					"aventus.conf.avt",
+					"aventus.sharp.avt",
 					"template.avt"
 				],
 				"icon": {
@@ -354,6 +355,10 @@
 			{
 				"command": "aventus.dependances.show",
 				"title": "Aventus : show webview"
+			},
+			{
+				"command": "aventus.sharp.export",
+				"title": "Aventus : Export sharp"
 			}
 		],
 		"menus": {
@@ -382,6 +387,11 @@
 					"when": "resourceFilename == aventus.conf.avt",
 					"command": "aventus.addConfigSection",
 					"group": "navigation@-50"
+				},
+				{
+					"when": "resourceFilename == aventus.sharp.avt",
+					"command": "aventus.sharp.export",
+					"group": "navigation@-50"
 				}
 			],
 			"editor/context": [
@@ -404,6 +414,16 @@
 				{
 					"when": "resourceFilename =~ /^.*\\.(wcl|wc).avt/",
 					"command": "aventus.wc.import.viewMethod"
+				},
+				{
+					"when": "resourceFilename == aventus.conf.avt",
+					"command": "aventus.addConfigSection",
+					"group": "navigation@-50"
+				},
+				{
+					"when": "resourceFilename == aventus.sharp.avt",
+					"command": "aventus.sharp.export",
+					"group": "navigation@-50"
 				}
 			],
 			"commandPalette": [
@@ -485,6 +505,10 @@
 				},
 				{
 					"command": "aventus.dependances.show",
+					"when": "false"
+				},
+				{
+					"command": "aventus.sharp.export",
 					"when": "false"
 				}
 			]

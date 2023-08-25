@@ -194,7 +194,7 @@ export class AventusWebSCSSFile extends AventusBaseFile {
             this.dependances[fileDependance.uri] = this.build.scssFiles[fileDependance.uri];
             this.build.scssFiles[fileDependance.uri].usedBy[this.file.uri] = this;
         }
-        else {
+        else if(fileDependance.uri.endsWith(AventusExtension.ComponentStyle)) {
             this.build.scssFiles[fileDependance.uri] = new AventusWebSCSSFile(fileDependance, this.build);
             this.dependances[fileDependance.uri] = this.build.scssFiles[fileDependance.uri];
             this.build.scssFiles[fileDependance.uri].usedBy[this.file.uri] = this;
