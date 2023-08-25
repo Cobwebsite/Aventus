@@ -9,7 +9,7 @@ export interface AventusConfigBuild {
 	outsideModulePath: string[],
 	outsideModulePathRegex: RegExp,
 	outputFile: string[],
-	outputPackage: string,
+	outputPackage: string[],
 	module: string,
 	componentPrefix: string,
 	namespaceStrategy: 'manual' | 'followFolders' | 'rules'

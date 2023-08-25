@@ -557,7 +557,7 @@
 		"compile": "npm run clean && npm run compile:client && npm run compile:server",
 		"compile:client": "tsc -b ./client/",
 		"compile:server": "tsc -b ./server/",
-		"dev": "rimraf server/out && tsc -b -w ./server/",
+		"dev:server": "rimraf server/out && tsc -b -w ./server/",
 		"dev:client": "rimraf client/out && tsc -b -w ./client/",
 		"dev:cli": "rimraf cli/out && tspc -b -w ./cli/",
 		"webpack": "npm run clean && webpack --mode production --config ./client/webpack.config.js && webpack --mode production --config ./server/webpack.config.js",
@@ -566,12 +566,13 @@
 		"publish": "npx vsce publish --allow-star-activation && npx node-notifier-cli notify -t \"Publish done\" -m \"The aventus extension has been published\" -i \"./icons/icon.png\"",
 		"package:cli": "rimraf cli/out && webpack --mode production --config ./cli/webpack.config.js",
 		"test": "jest",
-		"watch": "concurrently \"npm run dev:client\" \"npm run dev\" -n \"client,server\""
+		"watch": "concurrently \"npm run dev:client\" \"npm run dev:server\" -n \"client,server\""
 	},
 	"devDependencies": {
 		"@babel/core": "^7.19.0",
 		"@babel/preset-env": "^7.19.0",
 		"@babel/preset-typescript": "^7.18.6",
+		"@types/command-exists": "^1.2.0",
 		"@types/connect": "^3.4.35",
 		"@types/event-stream": "^4.0.0",
 		"@types/inquirer": "^9.0.3",
@@ -602,6 +603,7 @@
 		"@types/serve-index": "^1.9.1",
 		"babel-minify": "^0.5.2",
 		"chokidar": "^3.5.3",
+		"command-exists": "^1.2.9",
 		"connect": "^3.7.0",
 		"event-stream": "^4.0.1",
 		"inquirer": "^9.2.10",

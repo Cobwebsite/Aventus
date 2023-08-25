@@ -157,7 +157,7 @@ export class InternalAventusFile implements AventusFile {
             }
         }
         if (sendDiagnostics) {
-            GenericServer.sendDiagnostics({ uri: this.uri, diagnostics: diagnostics })
+            GenericServer.sendDiagnostics({ uri: this.uri, diagnostics: Object.values(diagnostics) })
         }
         return Object.values(diagnostics);
     }
@@ -180,7 +180,7 @@ export class InternalAventusFile implements AventusFile {
     //#region content change
 
     private onContentChangeCb: { [uuid: string]: onContentChangeType } = {};
-    private delayValidate: NodeJS.Timer | undefined;
+    private delayValidate: NodeJS.Timeout | undefined;
 
     public async triggerContentChange(document: TextDocument) {
         this.document = document;

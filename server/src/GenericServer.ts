@@ -13,6 +13,8 @@ import { join } from 'path';
 import { LocalTemplateManager } from './files/LocalTemplate';
 import { TemplateManager as TemplateFileManager } from './files/Template';
 import { loadTypescriptLib } from './language-services/ts/libLoader';
+import { randomUUID } from 'crypto';
+import { CSharpManager } from './language-services/json/CSharpManager';
 
 
 
@@ -28,12 +30,18 @@ export class GenericServer {
 	public static get isIDE() {
 		return this.instance.isIDE;
 	}
-	
+
 	public static sendNotification(cmd: string, ...params: any) {
-		this.instance.connection.sendNotification(cmd, ...params);
+		this.instance.connection.sendNotification(cmd, params);
 	}
 	public static showErrorMessage(msg: string) {
 		this.instance.connection.showErrorMessage(msg);
+	}
+	public static showWarningMessage(msg: string) {
+		this.instance.connection.showWarningMessage(msg);
+	}
+	public static showInformationMessage(msg: string) {
+		this.instance.connection.showInformationMessage(msg);
 	}
 	public static sendDiagnostics(params: PublishDiagnosticsParams) {
 		this.instance.connection.sendDiagnostics(params);
@@ -47,7 +55,7 @@ export class GenericServer {
 	public static SelectMultiple(items: SelectItem[], options: SelectOptions) {
 		return this.instance.connection.SelectMultiple(items, options);
 	}
-	public static SelectFolder(text:string, path: string) {
+	public static SelectFolder(text: string, path: string) {
 		return this.instance.connection.SelectFolder(text, path);
 	}
 	public static Popup(text: string, ...choices: string[]) {
@@ -168,6 +176,7 @@ export class GenericServer {
 		await FilesWatcher.getInstance().destroy();
 		ProjectManager.getInstance().destroyAll();
 		TemplateManager.getInstance().destroy();
+		CSharpManager.getInstance().destroy();
 		await FilesManager.getInstance().onShutdown();
 	}
 	protected async onCompletion(document: TextDocument | undefined, position: Position) {
@@ -276,6 +285,7 @@ export class GenericServer {
 	protected async startServer() {
 
 		TemplateManager.getInstance();
+		CSharpManager.getInstance();
 		ProjectManager.getInstance();
 		await FilesManager.getInstance().loadAllAventusFiles(this.workspaces);
 		this.isLoading = false;

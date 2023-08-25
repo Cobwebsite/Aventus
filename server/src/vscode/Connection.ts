@@ -34,12 +34,19 @@ export class VsCodeConnection implements IConnection {
 			section: "aventus",
 		})
 	}
-	public sendNotification(cmd: string, ...params: any): void {
+	public sendNotification(cmd: string, params: any): void {
 		this._connection.sendNotification(cmd, params);
 	}
 	public showErrorMessage(msg: string): void {
 		this._connection.window.showErrorMessage(msg);
 	}
+	public showWarningMessage(msg: string): void {
+		this._connection.window.showWarningMessage(msg);
+	}
+	public showInformationMessage(msg: string): void {
+		this._connection.window.showInformationMessage(msg);
+	}
+
 	public sendDiagnostics(params: PublishDiagnosticsParams): void {
 		this._connection.sendDiagnostics(params)
 	}

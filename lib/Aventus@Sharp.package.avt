@@ -1,0 +1,147 @@
+// AventusSharp@Main:1.0.0
+//#region js def //
+declare global {
+	declare namespace AventusSharp{
+namespace Routes {
+abstract class StorableRoute<T extends Aventus.IData> extends Aventus.HttpRoute {
+    GetAll(): unknown;
+    Create(body: {
+        item: T;
+    } | FormData): unknown;
+    GetById(id: number): unknown;
+    Update(id: number, body: {
+        body: T;
+    } | FormData): unknown;
+    Delete(id: number): unknown;
+    abstract StorableName(): string;
+}
+}
+
+namespace Routes {
+enum RouteErrorCode {
+    UnknowError = 0,
+    FormContentTypeUnknown = 1,
+    CantGetValueFromBody = 2
+}
+}
+
+namespace Tools {
+interface IWithError {
+}
+}
+
+namespace Tools {
+interface IResultWithError extends Tools.IWithError {
+}
+}
+
+namespace Data {
+enum DataErrorCode {
+    DefaultDMGenericType = 0,
+    DMOnlyForceInherit = 1,
+    TypeNotStorable = 2,
+    TypeTooMuchStorable = 3,
+    GenericNotAbstract = 4,
+    ParentNotAbstract = 5,
+    InfiniteLoop = 6,
+    InterfaceNotUnique = 7,
+    SelfReferecingDependance = 8,
+    DMNotExist = 9,
+    DMAlreadyExist = 10,
+    MethodNotFound = 11,
+    StorageDisconnected = 12,
+    StorageNotFound = 13,
+    NoConnectionInsideStorage = 14,
+    TypeNotExistInsideStorage = 15,
+    UnknowError = 16,
+    NoItemProvided = 17,
+    NoTransactionInProgress = 18,
+    WrongType = 19,
+    NoTypeIdentifierFoundInsideQuery = 20,
+    ItemNoExistInsideStorage = 21,
+    ItemAlreadyExist = 22,
+    ValidationError = 23,
+    GetAllNotAllowed = 24,
+    GetByIdNotAllowed = 25,
+    GetByIdsNotAllowed = 26,
+    WhereNotAllowed = 27,
+    CreateNotAllowed = 28,
+    UpdateNotAllowed = 29,
+    DeleteNotAllowed = 30
+}
+}
+
+namespace Data {
+@Convertible()
+class DataError extends Aventus.GenericError<Data.DataErrorCode> {
+    static get Fullname(): string;
+}
+}
+
+namespace Tools {
+@Convertible()
+class VoidWithError<T extends Aventus.GenericError = Aventus.GenericError> extends Aventus.VoidWithError<T> implements Tools.IWithError {
+    static get Fullname(): string;
+}
+}
+
+namespace Data {
+@Convertible()
+class VoidWithDataError extends VoidWithError<Data.DataError> {
+    static get Fullname(): string;
+}
+}
+
+namespace Tools {
+@Convertible()
+class ResultWithError<T, U extends Aventus.GenericError = Aventus.GenericError> extends Aventus.ResultWithError<T, U> implements Tools.IResultWithError {
+    static get Fullname(): string;
+}
+}
+
+namespace Data {
+@Convertible()
+class ResultWithDataError<T> extends ResultWithError<T, Data.DataError> {
+    static get Fullname(): string;
+}
+}
+
+namespace Routes {
+@Convertible()
+class RouteError extends Aventus.GenericError<Routes.RouteErrorCode> {
+    static get Fullname(): string;
+}
+}
+
+namespace Routes {
+@Convertible()
+class ResultWithRouteError<T> extends ResultWithError<T, Routes.RouteError> {
+    static get Fullname(): string;
+}
+}
+
+namespace Routes {
+@Convertible()
+class VoidWithRouteError extends VoidWithError<Routes.RouteError> {
+    static get Fullname(): string;
+}
+}
+
+	}
+}
+//#endregion js def //
+//#region js src //
+{"namespace":"AventusSharp","available":[{"code":"class StorableRoute extends Aventus.HttpRoute {\n    async GetAll() {\n        const request = new Aventus.HttpRequest(`/${this.StorableName()}`, Aventus.HttpMethod.GET);\n        return await request.queryJSON(this.router);\n    }\n    async Create(body) {\n        const request = new Aventus.HttpRequest(`/${this.StorableName()}`, Aventus.HttpMethod.POST);\n        request.setBody(body);\n        return await request.queryJSON(this.router);\n    }\n    async GetById(id) {\n        const request = new Aventus.HttpRequest(`/${this.StorableName()}/${id}`, Aventus.HttpMethod.GET);\n        return await request.queryJSON(this.router);\n    }\n    async Update(id, body) {\n        const request = new Aventus.HttpRequest(`/${this.StorableName()}/${id}`, Aventus.HttpMethod.PUT);\n        request.setBody(body);\n        return await request.queryJSON(this.router);\n    }\n    async Delete(id) {\n        const request = new Aventus.HttpRequest(`/${this.StorableName()}/${id}`, Aventus.HttpMethod.DELETE);\n        return await request.queryJSON(this.router);\n    }\n}\n","dependances":[{"fullName":"Aventus.HttpRoute","isStrong":true},{"fullName":"Aventus.HttpRequest","isStrong":false},{"fullName":"Aventus.HttpMethod","isStrong":false},{"fullName":"AventusSharp.Data.ResultWithDataError","isStrong":false},{"fullName":"TypeResult","isStrong":false},{"fullName":"FormData","isStrong":false}],"fullName":"AventusSharp.Routes.StorableRoute","required":false,"type":1,"isExported":true,"convertibleName":""},{"code":"var RouteErrorCode;\n(function (RouteErrorCode) {\n    RouteErrorCode[RouteErrorCode[\"UnknowError\"] = 0] = \"UnknowError\";\n    RouteErrorCode[RouteErrorCode[\"FormContentTypeUnknown\"] = 1] = \"FormContentTypeUnknown\";\n    RouteErrorCode[RouteErrorCode[\"CantGetValueFromBody\"] = 2] = \"CantGetValueFromBody\";\n})(RouteErrorCode || (RouteErrorCode = {}));\n","dependances":[],"fullName":"AventusSharp.Routes.RouteErrorCode","required":false,"type":6,"isExported":true,"convertibleName":""},{"code":"var DataErrorCode;\n(function (DataErrorCode) {\n    DataErrorCode[DataErrorCode[\"DefaultDMGenericType\"] = 0] = \"DefaultDMGenericType\";\n    DataErrorCode[DataErrorCode[\"DMOnlyForceInherit\"] = 1] = \"DMOnlyForceInherit\";\n    DataErrorCode[DataErrorCode[\"TypeNotStorable\"] = 2] = \"TypeNotStorable\";\n    DataErrorCode[DataErrorCode[\"TypeTooMuchStorable\"] = 3] = \"TypeTooMuchStorable\";\n    DataErrorCode[DataErrorCode[\"GenericNotAbstract\"] = 4] = \"GenericNotAbstract\";\n    DataErrorCode[DataErrorCode[\"ParentNotAbstract\"] = 5] = \"ParentNotAbstract\";\n    DataErrorCode[DataErrorCode[\"InfiniteLoop\"] = 6] = \"InfiniteLoop\";\n    DataErrorCode[DataErrorCode[\"InterfaceNotUnique\"] = 7] = \"InterfaceNotUnique\";\n    DataErrorCode[DataErrorCode[\"SelfReferecingDependance\"] = 8] = \"SelfReferecingDependance\";\n    DataErrorCode[DataErrorCode[\"DMNotExist\"] = 9] = \"DMNotExist\";\n    DataErrorCode[DataErrorCode[\"DMAlreadyExist\"] = 10] = \"DMAlreadyExist\";\n    DataErrorCode[DataErrorCode[\"MethodNotFound\"] = 11] = \"MethodNotFound\";\n    DataErrorCode[DataErrorCode[\"StorageDisconnected\"] = 12] = \"StorageDisconnected\";\n    DataErrorCode[DataErrorCode[\"StorageNotFound\"] = 13] = \"StorageNotFound\";\n    DataErrorCode[DataErrorCode[\"NoConnectionInsideStorage\"] = 14] = \"NoConnectionInsideStorage\";\n    DataErrorCode[DataErrorCode[\"TypeNotExistInsideStorage\"] = 15] = \"TypeNotExistInsideStorage\";\n    DataErrorCode[DataErrorCode[\"UnknowError\"] = 16] = \"UnknowError\";\n    DataErrorCode[DataErrorCode[\"NoItemProvided\"] = 17] = \"NoItemProvided\";\n    DataErrorCode[DataErrorCode[\"NoTransactionInProgress\"] = 18] = \"NoTransactionInProgress\";\n    DataErrorCode[DataErrorCode[\"WrongType\"] = 19] = \"WrongType\";\n    DataErrorCode[DataErrorCode[\"NoTypeIdentifierFoundInsideQuery\"] = 20] = \"NoTypeIdentifierFoundInsideQuery\";\n    DataErrorCode[DataErrorCode[\"ItemNoExistInsideStorage\"] = 21] = \"ItemNoExistInsideStorage\";\n    DataErrorCode[DataErrorCode[\"ItemAlreadyExist\"] = 22] = \"ItemAlreadyExist\";\n    DataErrorCode[DataErrorCode[\"ValidationError\"] = 23] = \"ValidationError\";\n    DataErrorCode[DataErrorCode[\"GetAllNotAllowed\"] = 24] = \"GetAllNotAllowed\";\n    DataErrorCode[DataErrorCode[\"GetByIdNotAllowed\"] = 25] = \"GetByIdNotAllowed\";\n    DataErrorCode[DataErrorCode[\"GetByIdsNotAllowed\"] = 26] = \"GetByIdsNotAllowed\";\n    DataErrorCode[DataErrorCode[\"WhereNotAllowed\"] = 27] = \"WhereNotAllowed\";\n    DataErrorCode[DataErrorCode[\"CreateNotAllowed\"] = 28] = \"CreateNotAllowed\";\n    DataErrorCode[DataErrorCode[\"UpdateNotAllowed\"] = 29] = \"UpdateNotAllowed\";\n    DataErrorCode[DataErrorCode[\"DeleteNotAllowed\"] = 30] = \"DeleteNotAllowed\";\n})(DataErrorCode || (DataErrorCode = {}));\n","dependances":[],"fullName":"AventusSharp.Data.DataErrorCode","required":false,"type":6,"isExported":true,"convertibleName":""},{"code":"class DataError extends Aventus.GenericError {\n    static get Fullname() { return \"AventusSharp.Data.DataError, AventusSharp\"; }\n}\n","dependances":[{"fullName":"Aventus.GenericError","isStrong":true},{"fullName":"AventusSharp.Data.DataErrorCode","isStrong":true}],"fullName":"AventusSharp.Data.DataError","required":false,"type":1,"isExported":true,"convertibleName":"Fullname"},{"code":"class VoidWithError extends Aventus.VoidWithError {\n    static get Fullname() { return \"AventusSharp.Tools.VoidWithError, AventusSharp\"; }\n}\n","dependances":[{"fullName":"Aventus.VoidWithError","isStrong":true},{"fullName":"AventusSharp.Tools.IWithError","isStrong":true}],"fullName":"AventusSharp.Tools.VoidWithError","required":false,"type":1,"isExported":true,"convertibleName":"Fullname"},{"code":"class VoidWithDataError extends VoidWithError {\n    static get Fullname() { return \"AventusSharp.Data.VoidWithDataError, AventusSharp\"; }\n}\n","dependances":[{"fullName":"AventusSharp.Tools.VoidWithError","isStrong":true},{"fullName":"AventusSharp.Data.DataError","isStrong":true}],"fullName":"AventusSharp.Data.VoidWithDataError","required":false,"type":1,"isExported":true,"convertibleName":"Fullname"},{"code":"class ResultWithError extends Aventus.ResultWithError {\n    static get Fullname() { return \"AventusSharp.Tools.ResultWithError, AventusSharp\"; }\n}\n","dependances":[{"fullName":"Aventus.ResultWithError","isStrong":true},{"fullName":"AventusSharp.Tools.IResultWithError","isStrong":true}],"fullName":"AventusSharp.Tools.ResultWithError","required":false,"type":1,"isExported":true,"convertibleName":"Fullname"},{"code":"class ResultWithDataError extends ResultWithError {\n    static get Fullname() { return \"AventusSharp.Data.ResultWithDataError, AventusSharp\"; }\n}\n","dependances":[{"fullName":"AventusSharp.Tools.ResultWithError","isStrong":true},{"fullName":"AventusSharp.Data.DataError","isStrong":true}],"fullName":"AventusSharp.Data.ResultWithDataError","required":false,"type":1,"isExported":true,"convertibleName":"Fullname"},{"code":"class RouteError extends Aventus.GenericError {\n    static get Fullname() { return \"AventusSharp.Routes.RouteError, AventusSharp\"; }\n}\n","dependances":[{"fullName":"Aventus.GenericError","isStrong":true},{"fullName":"AventusSharp.Routes.RouteErrorCode","isStrong":true}],"fullName":"AventusSharp.Routes.RouteError","required":false,"type":1,"isExported":true,"convertibleName":"Fullname"},{"code":"class ResultWithRouteError extends ResultWithError {\n    static get Fullname() { return \"AventusSharp.Routes.ResultWithRouteError, AventusSharp\"; }\n}\n","dependances":[{"fullName":"AventusSharp.Tools.ResultWithError","isStrong":true},{"fullName":"AventusSharp.Routes.RouteError","isStrong":true}],"fullName":"AventusSharp.Routes.ResultWithRouteError","required":false,"type":1,"isExported":true,"convertibleName":"Fullname"},{"code":"class VoidWithRouteError extends VoidWithError {\n    static get Fullname() { return \"AventusSharp.Routes.VoidWithRouteError, AventusSharp\"; }\n}\n","dependances":[{"fullName":"AventusSharp.Tools.VoidWithError","isStrong":true},{"fullName":"AventusSharp.Routes.RouteError","isStrong":true}],"fullName":"AventusSharp.Routes.VoidWithRouteError","required":false,"type":1,"isExported":true,"convertibleName":"Fullname"}],"existing":[{"fullName":"AventusSharp.Tools.IWithError","dependances":[]},{"fullName":"AventusSharp.Tools.IResultWithError","dependances":[{"fullName":"AventusSharp.Tools.IWithError","isStrong":true}]}]}
+//#endregion js src //
+//#region css def //
+{}
+//#endregion css def //
+//#region css //
+{}
+//#endregion css //
+//#region html //
+{}
+//#endregion html //
+//#region dependances //
+[]
+//#endregion dependances //

@@ -2,7 +2,7 @@ import { createReadStream, createWriteStream, existsSync, mkdirSync, readFileSyn
 import { AventusConfigBuild, AventusConfigBuildDependance, IncludeType } from '../language-services/json/definition';
 import * as md5 from 'md5';
 import { join, normalize } from 'path';
-import { AVENTUS_DEF_BASE_PATH, AVENTUS_DEF_UI_PATH } from '../language-services/ts/libLoader';
+import { AVENTUS_DEF_BASE_PATH, AVENTUS_DEF_SHARP_PATH, AVENTUS_DEF_UI_PATH } from '../language-services/ts/libLoader';
 import { FilesWatcher } from '../files/FilesWatcher';
 import { pathToUri } from '../tools';
 import { AventusExtension, AventusLanguageId } from '../definition';
@@ -46,6 +46,9 @@ export class DependanceManager {
 	private predefinedPaths = {
 		"@Aventus": AVENTUS_DEF_BASE_PATH(),
 		"@AventusUI": AVENTUS_DEF_UI_PATH(),
+		"Aventus@UI": AVENTUS_DEF_UI_PATH(),
+		"@AventusSharp": AVENTUS_DEF_SHARP_PATH(),
+		"Aventus@Sharp": AVENTUS_DEF_SHARP_PATH(),
 	}
 	private aventusLoaded: boolean = false;
 	public async loadDependancesFromBuild(config: AventusConfigBuild, build: Build): Promise<{ files: AventusPackageFile[], dependanceNeedUris: string[], dependanceFullUris: string[], dependanceUris: string[] }> {

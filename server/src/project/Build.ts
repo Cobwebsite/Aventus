@@ -2,7 +2,6 @@ import { existsSync, mkdirSync, statSync, unlinkSync, writeFileSync } from "fs";
 import { EOL } from "os";
 import { join, normalize, sep } from "path";
 import { Diagnostic, DiagnosticSeverity, TextEdit } from 'vscode-languageserver';
-import { ClientConnection } from '../Connection';
 import { AventusErrorCode, AventusExtension, AventusLanguageId } from "../definition";
 import { AventusFile } from '../files/AventusFile';
 import { FilesManager } from '../files/FilesManager';
@@ -33,6 +32,7 @@ import { AventusGlobalComponentSCSSFile } from '../language-services/scss/Global
 import { minify } from 'terser';
 import { InfoType } from '../language-services/ts/parser/BaseInfo';
 import { AventusBaseFile } from '../language-services/BaseFile';
+import { GenericServer } from '../GenericServer';
 
 export class Build {
     public project: Project;
@@ -91,8 +91,8 @@ export class Build {
         this.htmlLanguageService = new AventusHTMLLanguageService(this);
 
         this._outputPathes = [join(DependanceManager.getInstance().getPath(), "@locals", this.buildConfig.fullname + AventusExtension.Package).replace(/\\/g, '/')];
-        if (buildConfig.outputPackage) {
-            this._outputPathes.push(buildConfig.outputPackage.replace(/\\/g, '/'));
+        for(let outputPackage of buildConfig.outputPackage){
+            this._outputPathes.push(outputPackage.replace(/\\/g, '/'));
         }
         RegisterBuild.send(project.getConfigFile().path, buildConfig.fullname);
     }
@@ -186,7 +186,7 @@ export class Build {
     private clearDiagnostics() {
         for (let [file, errors] of this.diagnostics.entries()) {
             if (file instanceof AventusTsFile) {
-                ClientConnection.getInstance().sendDiagnostics({
+                GenericServer.sendDiagnostics({
                     uri: file.file.uri,
                     diagnostics: file.getDiagnostics()
                 })
@@ -201,7 +201,7 @@ export class Build {
                 if (this.hideWarnings) {
                     finalErrors = finalErrors.filter(p => p.severity != DiagnosticSeverity.Warning)
                 }
-                ClientConnection.getInstance().sendDiagnostics({
+                GenericServer.sendDiagnostics({
                     uri: file.file.uri,
                     diagnostics: finalErrors
                 })
@@ -225,7 +225,9 @@ export class Build {
             available: result.codeRenderInJs,
             existing: result.codeNotRenderInJs
         }
-        this.writeBuildDocumentation(this.buildConfig.outputPackage, result, srcInfo)
+        for (let outputPackage of this.buildConfig.outputPackage) {
+            this.writeBuildDocumentation(outputPackage, result, srcInfo)
+        }
 
         Compiled.send(this.buildConfig.fullname);
         if (this.reloadPage) {
@@ -871,7 +873,7 @@ export class Build {
         // add required code for lib
         for (let libUri of this.dependanceNeedUris) {
             let requiredInfos = this.externalPackageInformation.getInformationsRequired(libUri);
-            if(!loadedInfoExternal[libUri]) {
+            if (!loadedInfoExternal[libUri]) {
                 loadedInfoExternal[libUri] = [];
             }
             for (let requiredInfo of requiredInfos) {
@@ -884,7 +886,7 @@ export class Build {
             }
         }
         for (let libUri of this.dependanceFullUris) {
-            if(!loadedInfoExternal[libUri]) {
+            if (!loadedInfoExternal[libUri]) {
                 loadedInfoExternal[libUri] = [];
             }
             let fullInfos = this.externalPackageInformation.getFullInformations(libUri);

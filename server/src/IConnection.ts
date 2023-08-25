@@ -5,8 +5,10 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 export interface IConnection {
 	open();
 	delayBetweenBuild(): number;
-	sendNotification(cmd: string, ...params: any): void;
+	sendNotification(cmd: string, params: any[]): void;
+	showWarningMessage(msg: string): void;
 	showErrorMessage(msg: string): void;
+	showInformationMessage(msg: string): void;
 	sendDiagnostics(params: PublishDiagnosticsParams): void;
 
 	onInitialize(cb: (params: AvInitializeParams) => void);

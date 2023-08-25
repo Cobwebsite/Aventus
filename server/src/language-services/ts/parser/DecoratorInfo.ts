@@ -2,7 +2,7 @@ import { CallExpression, SyntaxKind, Node, canHaveDecorators, getDecorators, Has
 import { ParserTs } from './ParserTs';
 import { ArgType, getArg } from "./tools";
 import { FunctionDeclaration } from '../../scss/helper/CSSNode';
-import { ClientConnection } from '../../../Connection';
+import { GenericServer } from '../../../GenericServer';
 
 export class DecoratorInfo {
     public name: string = "";
@@ -39,7 +39,7 @@ export class DecoratorInfo {
                 }
             }
         } catch (e) {
-            ClientConnection.getInstance().showErrorMessage(e);
+            GenericServer.showErrorMessage(e+"");
         }
         return result;
     }

@@ -4,7 +4,6 @@ import commonjs from '@rollup/plugin-commonjs';
 import virtual from '@rollup/plugin-virtual';
 import nodeResolve from '@rollup/plugin-node-resolve';
 import { minify } from 'terser';
-import terser from '@rollup/plugin-terser';
 import { GenericServer } from '../GenericServer';
 
 export type NpmDependances = {

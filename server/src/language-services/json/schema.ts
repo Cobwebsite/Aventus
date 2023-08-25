@@ -75,7 +75,11 @@ export const AventusConfigSchema: JSONSchema = {
                         description: "The script file generated path"
                     },
                     "outputPackage": {
-                        type: "string",
+                        type: ["string", "array"],
+                        items: {
+                            type: "string",
+                            pattern: "^\\S+\\.package\\.avt",
+                        },
                         pattern: "^\\S+\\.package\\.avt",
                         description: "The package file generated path (for lib)"
                     },
@@ -280,7 +284,7 @@ export const AventusTemplateSchema: JSONSchema = {
 
 
 export const AventusSharpSchema: JSONSchema = {
-    "$schema": "foo://aventus/conf.json",
+    "$schema": "foo://aventus/sharp.json",
     "title": "JSON Schema for Aventus",
     "description": "JSON Schema for Aventus",
     "type": "object",
@@ -290,7 +294,7 @@ export const AventusSharpSchema: JSONSchema = {
             type: "string",
             pattern: "^\\S+\\.csproj",
         },
-        "outputpath": {
+        "outputPath": {
             type: "string",
         },
         "exportEnumByDefault": {

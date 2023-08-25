@@ -191,12 +191,28 @@ export class AventusJSONLanguageService {
             }
         }
 
-        build.outputPackage = build.outputPackage.trim();
-        if (build.outputPackage.length > 0) {
-            if (!build.outputPackage.startsWith("/")) {
-                build.outputPackage = "/" + build.outputPackage;
+        if (!Array.isArray(build.outputPackage)) {
+            build.outputPackage = [build.outputPackage];
+        }
+        for (let i = 0; i < build.outputPackage.length; i++) {
+            build.outputPackage[i] = build.outputPackage[i].trim();
+            if (build.outputPackage[i].length > 0) {
+                let regexEnvVar = /%(.*?)%/gm;
+                let result: RegExpExecArray | null;
+                while (result = regexEnvVar.exec(build.outputPackage[i])) {
+                    let varName = result[1];
+                    let varValue = env[varName] ?? 'undefined';
+                    build.outputPackage[i] = build.outputPackage[i].replace(result[0], varValue);
+                }
+                let windowDisk = /^[a-zA-Z]:/gm
+                if (!build.outputPackage[i].startsWith("/") && !windowDisk.test(build.outputPackage[i])) {
+                    build.outputPackage[i] = "/" + build.outputPackage[i];
+                    build.outputPackage[i] = normalize(uriToPath(baseDir) + build.outputPackage[i]);
+                }
+                else {
+                    build.outputPackage[i] = normalize(build.outputPackage[i]);
+                }
             }
-            build.outputPackage = normalize(uriToPath(baseDir) + build.outputPackage);
         }
 
         // component style
@@ -372,7 +388,7 @@ export class AventusJSONLanguageService {
             outsideModulePath: [],
             outsideModulePathRegex: new RegExp('(?!)'),
             outputFile: [],
-            outputPackage: '',
+            outputPackage: [],
             module: config.module,
             componentPrefix: config.componentPrefix,
             namespaceStrategy: 'manual',
