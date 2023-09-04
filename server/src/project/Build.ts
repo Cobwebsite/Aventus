@@ -130,8 +130,10 @@ export class Build {
     }
     //#region build
     private timerBuild: NodeJS.Timeout | undefined = undefined;
+    public insideRebuildAll:boolean = false;
     public async rebuildAll() {
         this.allowBuild = false;
+        this.insideRebuildAll = true;
         // validate
         for (let uri in this.scssFiles) {
             await this.scssFiles[uri].validate();
@@ -158,7 +160,7 @@ export class Build {
         for (let uri in this.tsFiles) {
             this.tsFiles[uri].triggerSave();
         }
-
+        this.insideRebuildAll = false;
         this.allowBuild = true;
         await this.build();
     }

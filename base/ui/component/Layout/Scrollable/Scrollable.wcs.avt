@@ -11,7 +11,6 @@
 	--internal-scroller-left: var(--scroller-left, 3px);
 
 
-	--internal-scroller-transition: var(--scroller-transition, 0.5s);
 }
 
 :host {
@@ -50,10 +49,10 @@
 
 				.content-wrapper {
 					display: inline-block;
-					height: auto;
+					height: 100%;
+					min-height: 100%;
 					min-width: 100%;
 					position: relative;
-					transition: transform var(--internal-scroller-transition);
 					width: 100%;
 				}
 			}
@@ -85,7 +84,6 @@
 
 				.scroller.active {
 					background-color: var(--internal-scrollbar-active-color);
-					transition: none !important;
 				}
 			}
 
@@ -95,7 +93,6 @@
 				right: var(--internal-scroller-right);
 				top: var(--internal-scroller-bottom);
 				transform: 0;
-				transition: transform 0.2s ease-in-out;
 				width: calc(var(--internal-scroller-width) + var(--internal-scroller-left));
 
 				&.hide {
@@ -106,7 +103,6 @@
 					height: 100%;
 
 					.scroller {
-						transition: top var(--internal-scroller-transition) linear;
 						width: calc(100% - var(--internal-scroller-left));
 					}
 				}
@@ -118,7 +114,6 @@
 				left: var(--internal-scroller-right);
 				padding-top: var(--internal-scroller-top);
 				transform: 0;
-				transition: transform 0.2s ease-in-out;
 				width: calc(100% - var(--internal-scroller-right) * 2 - var(--internal-scroller-width));
 
 				&.hide {
@@ -130,7 +125,6 @@
 
 					.scroller {
 						height: calc(100% - var(--internal-scroller-top));
-						transition: left var(--internal-scroller-transition) linear;
 					}
 				}
 			}
@@ -140,7 +134,18 @@
 }
 
 
-:host([allow_x_scroll]) {
+:host([y_scroll]) {
+	.scroll-main-container {
+		.content-zoom {
+			.content-hidder {
+				.content-wrapper {
+					height: auto;
+				}
+			}
+		}
+	}
+}
+:host([x_scroll]) {
 	.scroll-main-container {
 		.content-zoom {
 			.content-hidder {
@@ -172,9 +177,6 @@
 	}
 }
 
-:host([no_transition]) {
-	--internal-scroller-transition: 0ms;
-}
 
 :host([no_user_select]) {
 	.content-wrapper * {

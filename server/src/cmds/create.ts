@@ -8,6 +8,7 @@ import { FilesManager } from '../files/FilesManager';
 import { OpenFile } from '../notification/OpenFile';
 import { GenericServer } from '../GenericServer';
 import { SelectItem } from '../IConnection';
+import { normalize } from 'path';
 
 
 export class Create {
@@ -35,7 +36,7 @@ export class Create {
 		if (!uri) {
 			return;
 		}
-		let path = uriToPath(uri);
+		let path = normalize(uriToPath(uri));
 		
 
 		if (Create.checkIfProject(uri)) {

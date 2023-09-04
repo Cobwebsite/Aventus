@@ -799,8 +799,9 @@ class Callback {
      */
     trigger(args) {
         let result = [];
-        for (let callback of this.callbacks) {
-            result.push(callback.apply(null, args));
+        let cbs = [...this.callbacks];
+        for (let cb of cbs) {
+            result.push(cb.apply(null, args));
         }
         return result;
     }
@@ -2340,9 +2341,9 @@ class WebComponentTemplateInstance {
         this.lastChild = content.lastChild;
         this.transformActionsListening();
         this.selectElements();
-        this.bindEvents();
     }
     render() {
+        this.bindEvents();
         for (let cb of this.firstRenderCb) {
             cb();
         }
@@ -2982,6 +2983,92 @@ class ResourceLoader {
     }
 }
 
+class Animation {
+    /**
+     * Default FPS for all Animation if not set inside options
+     */
+    static FPS_DEFAULT = 60;
+    options;
+    nextFrame;
+    fpsInterval;
+    continueAnimation = false;
+    frame_id = 0;
+    constructor(options) {
+        if (!options.animate) {
+            options.animate = () => { };
+        }
+        if (!options.stopped) {
+            options.stopped = () => { };
+        }
+        if (!options.fps) {
+            options.fps = Animation.FPS_DEFAULT;
+        }
+        this.options = options;
+        this.fpsInterval = 1000 / this.options.fps;
+    }
+    animate() {
+        let now = window.performance.now();
+        let elapsed = now - this.nextFrame;
+        if (elapsed <= this.fpsInterval) {
+            this.frame_id = requestAnimationFrame(() => this.animate());
+            return;
+        }
+        this.nextFrame = now - (elapsed % this.fpsInterval);
+        setTimeout(() => {
+            this.options.animate();
+        }, 0);
+        if (this.continueAnimation) {
+            this.frame_id = requestAnimationFrame(() => this.animate());
+        }
+        else {
+            this.options.stopped();
+        }
+    }
+    /**
+     * Start the of animation
+     */
+    start() {
+        if (this.continueAnimation == false) {
+            this.continueAnimation = true;
+            this.nextFrame = window.performance.now();
+            this.animate();
+        }
+    }
+    /**
+     * Stop the animation
+     */
+    stop() {
+        this.continueAnimation = false;
+    }
+    /**
+     * Stop the animation
+     */
+    immediateStop() {
+        cancelAnimationFrame(this.frame_id);
+        this.continueAnimation = false;
+        this.options.stopped();
+    }
+    /**
+     * Get the FPS
+     */
+    getFPS() {
+        return this.options.fps;
+    }
+    /**
+     * Set the FPS
+     */
+    setFPS(fps) {
+        this.options.fps = fps;
+        this.fpsInterval = 1000 / this.options.fps;
+    }
+    /**
+     * Get the animation status (true if animation is running)
+     */
+    isStarted() {
+        return this.continueAnimation;
+    }
+}
+
 class DragAndDrop {
     /**
      * Default offset before drag element
@@ -3244,83 +3331,6 @@ class DragAndDrop {
         this.pressManager.destroy();
     }
 }
-
-class Animation {
-    /**
-     * Default FPS for all Animation if not set inside options
-     */
-    static FPS_DEFAULT = 60;
-    options;
-    nextFrame;
-    fpsInterval;
-    continueAnimation = false;
-    constructor(options) {
-        if (!options.animate) {
-            options.animate = () => { };
-        }
-        if (!options.stopped) {
-            options.stopped = () => { };
-        }
-        if (!options.fps) {
-            options.fps = Animation.FPS_DEFAULT;
-        }
-        this.options = options;
-        this.fpsInterval = 1000 / this.options.fps;
-    }
-    animate() {
-        let now = window.performance.now();
-        let elapsed = now - this.nextFrame;
-        if (elapsed <= this.fpsInterval) {
-            requestAnimationFrame(() => this.animate());
-            return;
-        }
-        this.nextFrame = now - (elapsed % this.fpsInterval);
-        setTimeout(() => {
-            this.options.animate();
-        }, 0);
-        if (this.continueAnimation) {
-            requestAnimationFrame(() => this.animate());
-        }
-        else {
-            this.options.stopped();
-        }
-    }
-    /**
-     * Start the of animation
-     */
-    start() {
-        if (this.continueAnimation == false) {
-            this.continueAnimation = true;
-            this.nextFrame = window.performance.now();
-            this.animate();
-        }
-    }
-    /**
-     * Stop the animation
-     */
-    stop() {
-        this.continueAnimation = false;
-    }
-    /**
-     * Get the FPS
-     */
-    getFPS() {
-        return this.options.fps;
-    }
-    /**
-     * Set the FPS
-     */
-    setFPS(fps) {
-        this.options.fps = fps;
-        this.fpsInterval = 1000 / this.options.fps;
-    }
-    /**
-     * Get the animation status (true if animation is running)
-     */
-    isStarted() {
-        return this.continueAnimation;
-    }
-}
 Aventus.WebComponentInstance=WebComponentInstance;
 WebComponentInstance.Namespace='Aventus';
 Aventus.ElementExtension=ElementExtension;
@@ -3356,10 +3366,10 @@ Aventus.ResizeObserver=ResizeObserver;
 ResizeObserver.Namespace='Aventus';
 Aventus.ResourceLoader=ResourceLoader;
 ResourceLoader.Namespace='Aventus';
-Aventus.DragAndDrop=DragAndDrop;
-DragAndDrop.Namespace='Aventus';
 Aventus.Animation=Animation;
 Animation.Namespace='Aventus';
+Aventus.DragAndDrop=DragAndDrop;
+DragAndDrop.Namespace='Aventus';
 })(Aventus);
 
 var Aventus;
@@ -3369,7 +3379,7 @@ const moduleName = `Aventus`;
 
 
 class App extends Aventus.WebComponent {
-    static __style = `:host{display:flex;margin-left:400px;margin-top:200px}`;
+    static __style = `:host{height:100%;width:100%;margin:0;padding:0;overflow:hidden}:host .part{height:500px;width:100%}`;
     __getStatic() {
         return App;
     }
@@ -3380,11 +3390,29 @@ class App extends Aventus.WebComponent {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<av-checkbox label="My checkbox"></av-checkbox>` }
+        blocks: { 'default':`<av-scrollable>	<div class="content" _id="app_0"></div></av-scrollable>` }
     });
 }
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "elements": [
+    {
+      "name": "content",
+      "ids": [
+        "app_0"
+      ]
+    }
+  ]
+}); }
     getClassName() {
         return "App";
+    }
+    postCreation() {
+        for (let i = 0; i <= 8000; i += 500) {
+            let div = document.createElement("DIV");
+            div.classList.add("part");
+            div.style.backgroundColor = "#" + Math.floor(Math.random() * 16777215).toString(16);
+            this.content.appendChild(div);
+        }
     }
 }
 if(!window.customElements.get('av-app')){window.customElements.define('av-app', App);Aventus.WebComponentInstance.registerDefinition(App);}
@@ -3674,19 +3702,7 @@ class Scrollable extends Aventus.WebComponent {
                 } else{
                     this.removeAttribute('x_scroll_visible');
                 }
-            }get 'x'() {
-                    return Number(this.getAttribute('x'));
-                }
-                set 'x'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('x')}
-                    else{this.setAttribute('x',val)}
-                }get 'y'() {
-                    return Number(this.getAttribute('y'));
-                }
-                set 'y'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('y')}
-                    else{this.setAttribute('y',val)}
-                }get 'floating_scroll'() {
+            }get 'floating_scroll'() {
                 return this.hasAttribute('floating_scroll');
             }
             set 'floating_scroll'(val) {
@@ -3696,15 +3712,25 @@ class Scrollable extends Aventus.WebComponent {
                 } else{
                     this.removeAttribute('floating_scroll');
                 }
-            }get 'allow_x_scroll'() {
-                return this.hasAttribute('allow_x_scroll');
+            }get 'x_scroll'() {
+                return this.hasAttribute('x_scroll');
             }
-            set 'allow_x_scroll'(val) {
+            set 'x_scroll'(val) {
                 val = this.getBoolean(val);
                 if (val) {
-                    this.setAttribute('allow_x_scroll', 'true');
+                    this.setAttribute('x_scroll', 'true');
                 } else{
-                    this.removeAttribute('allow_x_scroll');
+                    this.removeAttribute('x_scroll');
+                }
+            }get 'y_scroll'() {
+                return this.hasAttribute('y_scroll');
+            }
+            set 'y_scroll'(val) {
+                val = this.getBoolean(val);
+                if (val) {
+                    this.setAttribute('y_scroll', 'true');
+                } else{
+                    this.removeAttribute('y_scroll');
                 }
             }get 'auto_hide'() {
                 return this.hasAttribute('auto_hide');
@@ -3716,15 +3742,21 @@ class Scrollable extends Aventus.WebComponent {
                 } else{
                     this.removeAttribute('auto_hide');
                 }
-            }get 'no_transition'() {
-                return this.hasAttribute('no_transition');
+            }get 'break'() {
+                    return Number(this.getAttribute('break'));
+                }
+                set 'break'(val) {
+                    if(val === undefined || val === null){this.removeAttribute('break')}
+                    else{this.setAttribute('break',val)}
+                }get 'disable'() {
+                return this.hasAttribute('disable');
             }
-            set 'no_transition'(val) {
+            set 'disable'(val) {
                 val = this.getBoolean(val);
                 if (val) {
-                    this.setAttribute('no_transition', 'true');
+                    this.setAttribute('disable', 'true');
                 } else{
-                    this.removeAttribute('no_transition');
+                    this.removeAttribute('disable');
                 }
             }get 'no_user_select'() {
                 return this.hasAttribute('no_user_select');
@@ -3743,19 +3775,46 @@ class Scrollable extends Aventus.WebComponent {
                     if(val === undefined || val === null){this.removeAttribute('zoom')}
                     else{this.setAttribute('zoom',val)}
                 }    observer;
-    displayWidth = 0;
-    displayHeight = 0;
-    maxX = 0;
-    marginX = 0;
-    maxY = 0;
-    marginY = 0;
-    hideDelayX;
-    hideDelayY;
+    display = { x: 0, y: 0 };
+    max = {
+        x: 0,
+        y: 0
+    };
+    margin = {
+        x: 0,
+        y: 0
+    };
+    position = {
+        x: 0,
+        y: 0
+    };
+    momentum = { x: 0, y: 0 };
+    contentWrapperSize = { x: 0, y: 0 };
+    scroller = {
+        x: () => this.horizontalScroller,
+        y: () => this.verticalScroller,
+    };
+    scrollerContainer = {
+        x: () => this.horizontalScrollerContainer,
+        y: () => this.verticalScrollerContainer,
+    };
+    hideDelay = { x: 0, y: 0 };
+    touchRecord;
+    pointerCount = 0;
+    savedBreak = 1;
+    get x() {
+        return this.position.x;
+    }
+    get y() {
+        return this.position.y;
+    }
+    onScrollChange = new Aventus.Callback();
+    renderAnimation;
     __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("zoom", ((target) => {
     target.changeZoom();
 })); }
-    static __style = `:host{--internal-scrollbar-container-color: var(--scrollbar-container-color, transparent);--internal-scrollbar-color: var(--scrollbar-color, #757575);--internal-scrollbar-active-color: var(--scrollbar-active-color, #858585);--internal-scroller-width: var(--scroller-width, 6px);--internal-scroller-top: var(--scroller-top, 3px);--internal-scroller-bottom: var(--scroller-bottom, 3px);--internal-scroller-right: var(--scroller-right, 3px);--internal-scroller-left: var(--scroller-left, 3px);--internal-scroller-transition: var(--scroller-transition, 0.5s)}:host{display:block;height:100%;overflow:hidden;position:relative;-webkit-user-drag:none;-khtml-user-drag:none;-moz-user-drag:none;-o-user-drag:none;width:100%}:host .scroll-main-container{display:block;height:100%;position:relative;width:100%}:host .scroll-main-container .content-zoom{display:block;height:100%;position:relative;transform-origin:0 0;width:100%;z-index:4}:host .scroll-main-container .content-zoom .content-hidder{display:block;height:100%;overflow:hidden;position:relative;width:100%}:host .scroll-main-container .content-zoom .content-hidder .content-wrapper{display:inline-block;height:auto;min-width:100%;position:relative;transition:transform var(--internal-scroller-transition);width:100%}:host .scroll-main-container .scroller-wrapper .container-scroller{display:none;overflow:hidden;position:absolute;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller{background-color:var(--internal-scrollbar-container-color);border-radius:5px}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller .scroller{background-color:var(--internal-scrollbar-color);border-radius:5px;cursor:pointer;position:absolute;-webkit-tap-highlight-color:rgba(0,0,0,0);touch-action:none;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .scroller.active{background-color:var(--internal-scrollbar-active-color);transition:none !important}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical{height:calc(100% - var(--internal-scroller-bottom)*2 - var(--internal-scroller-width));padding-left:var(--internal-scroller-left);right:var(--internal-scroller-right);top:var(--internal-scroller-bottom);transform:0;transition:transform .2s ease-in-out;width:calc(var(--internal-scroller-width) + var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical.hide{transform:translateX(calc(var(--internal-scroller-width) + var(--internal-scroller-left)))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller .scroller{transition:top var(--internal-scroller-transition) linear;width:calc(100% - var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal{bottom:var(--internal-scroller-bottom);height:calc(var(--internal-scroller-width) + var(--internal-scroller-top));left:var(--internal-scroller-right);padding-top:var(--internal-scroller-top);transform:0;transition:transform .2s ease-in-out;width:calc(100% - var(--internal-scroller-right)*2 - var(--internal-scroller-width))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal.hide{transform:translateY(calc(var(--internal-scroller-width) + var(--internal-scroller-top)))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller .scroller{height:calc(100% - var(--internal-scroller-top));transition:left var(--internal-scroller-transition) linear}:host([allow_x_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{width:auto}:host([y_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.vertical{display:block}:host([x_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.horizontal{display:block}:host([no_transition]){--internal-scroller-transition: 0ms}:host([no_user_select]) .content-wrapper *{user-select:none}:host([no_user_select]) ::slotted{user-select:none}`;
-    constructor() {            super();            this.wheelAction = this.wheelAction.bind(this);            this.touchWheelAction = this.touchWheelAction.bind(this);        }
+    static __style = `:host{--internal-scrollbar-container-color: var(--scrollbar-container-color, transparent);--internal-scrollbar-color: var(--scrollbar-color, #757575);--internal-scrollbar-active-color: var(--scrollbar-active-color, #858585);--internal-scroller-width: var(--scroller-width, 6px);--internal-scroller-top: var(--scroller-top, 3px);--internal-scroller-bottom: var(--scroller-bottom, 3px);--internal-scroller-right: var(--scroller-right, 3px);--internal-scroller-left: var(--scroller-left, 3px)}:host{display:block;height:100%;overflow:hidden;position:relative;-webkit-user-drag:none;-khtml-user-drag:none;-moz-user-drag:none;-o-user-drag:none;width:100%}:host .scroll-main-container{display:block;height:100%;position:relative;width:100%}:host .scroll-main-container .content-zoom{display:block;height:100%;position:relative;transform-origin:0 0;width:100%;z-index:4}:host .scroll-main-container .content-zoom .content-hidder{display:block;height:100%;overflow:hidden;position:relative;width:100%}:host .scroll-main-container .content-zoom .content-hidder .content-wrapper{display:inline-block;height:100%;min-height:100%;min-width:100%;position:relative;width:100%}:host .scroll-main-container .scroller-wrapper .container-scroller{display:none;overflow:hidden;position:absolute;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller{background-color:var(--internal-scrollbar-container-color);border-radius:5px}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller .scroller{background-color:var(--internal-scrollbar-color);border-radius:5px;cursor:pointer;position:absolute;-webkit-tap-highlight-color:rgba(0,0,0,0);touch-action:none;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .scroller.active{background-color:var(--internal-scrollbar-active-color)}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical{height:calc(100% - var(--internal-scroller-bottom)*2 - var(--internal-scroller-width));padding-left:var(--internal-scroller-left);right:var(--internal-scroller-right);top:var(--internal-scroller-bottom);transform:0;width:calc(var(--internal-scroller-width) + var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical.hide{transform:translateX(calc(var(--internal-scroller-width) + var(--internal-scroller-left)))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller .scroller{width:calc(100% - var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal{bottom:var(--internal-scroller-bottom);height:calc(var(--internal-scroller-width) + var(--internal-scroller-top));left:var(--internal-scroller-right);padding-top:var(--internal-scroller-top);transform:0;width:calc(100% - var(--internal-scroller-right)*2 - var(--internal-scroller-width))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal.hide{transform:translateY(calc(var(--internal-scroller-width) + var(--internal-scroller-top)))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller .scroller{height:calc(100% - var(--internal-scroller-top))}:host([y_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{height:auto}:host([x_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{width:auto}:host([y_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.vertical{display:block}:host([x_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.horizontal{display:block}:host([no_user_select]) .content-wrapper *{user-select:none}:host([no_user_select]) ::slotted{user-select:none}`;
+    constructor() {            super();            this.createAnimation();            this.onWheel = this.onWheel.bind(this);            this.onTouchStart = this.onTouchStart.bind(this);            this.onTouchMove = this.onTouchMove.bind(this);            this.onTouchEnd = this.onTouchEnd.bind(this);            this.touchRecord = new TouchRecord();        }
     __getStatic() {
         return Scrollable;
     }
@@ -3825,321 +3884,230 @@ class Scrollable extends Aventus.WebComponent {
     getClassName() {
         return "Scrollable";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('y_scroll_visible')) { this.attributeChangedCallback('y_scroll_visible', false, false); }if(!this.hasAttribute('x_scroll_visible')) { this.attributeChangedCallback('x_scroll_visible', false, false); }if(!this.hasAttribute('x')){ this['x'] = undefined; }if(!this.hasAttribute('y')){ this['y'] = undefined; }if(!this.hasAttribute('floating_scroll')) { this.attributeChangedCallback('floating_scroll', false, false); }if(!this.hasAttribute('allow_x_scroll')) { this.attributeChangedCallback('allow_x_scroll', false, false); }if(!this.hasAttribute('auto_hide')) { this.attributeChangedCallback('auto_hide', false, false); }if(!this.hasAttribute('no_transition')) { this.attributeChangedCallback('no_transition', false, false); }if(!this.hasAttribute('no_user_select')) { this.attributeChangedCallback('no_user_select', false, false); }if(!this.hasAttribute('zoom')){ this['zoom'] = 1; } }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('y_scroll_visible')) { this.attributeChangedCallback('y_scroll_visible', false, false); }if(!this.hasAttribute('x_scroll_visible')) { this.attributeChangedCallback('x_scroll_visible', false, false); }if(!this.hasAttribute('floating_scroll')) { this.attributeChangedCallback('floating_scroll', false, false); }if(!this.hasAttribute('x_scroll')) { this.attributeChangedCallback('x_scroll', false, false); }if(!this.hasAttribute('y_scroll')) {this.setAttribute('y_scroll' ,'true'); }if(!this.hasAttribute('auto_hide')) { this.attributeChangedCallback('auto_hide', false, false); }if(!this.hasAttribute('break')){ this['break'] = 0.1; }if(!this.hasAttribute('disable')) { this.attributeChangedCallback('disable', false, false); }if(!this.hasAttribute('no_user_select')) { this.attributeChangedCallback('no_user_select', false, false); }if(!this.hasAttribute('zoom')){ this['zoom'] = 1; } }
     __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('zoom'); }
-    __listBoolProps() { return ["y_scroll_visible","x_scroll_visible","floating_scroll","allow_x_scroll","auto_hide","no_transition","no_user_select"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
-    correctVerticalScrollValue(value) {
+    __listBoolProps() { return ["y_scroll_visible","x_scroll_visible","floating_scroll","x_scroll","y_scroll","auto_hide","disable","no_user_select"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    createAnimation() {
+        this.renderAnimation = new Aventus.Animation({
+            fps: 60,
+            animate: () => {
+                const nextX = this.nextPosition('x');
+                const nextY = this.nextPosition('y');
+                this.momentum.x = nextX.momentum;
+                this.momentum.y = nextY.momentum;
+                this.scrollDirection('x', nextX.position);
+                this.scrollDirection('y', nextY.position);
+                if (!this.momentum.x && !this.momentum.y) {
+                    this.renderAnimation.stop();
+                }
+            },
+            stopped: () => {
+                if (this.momentum.x || this.momentum.y) {
+                    this.renderAnimation.start();
+                }
+            }
+        });
+    }
+    nextPosition(direction) {
+        const current = this.position[direction];
+        const remain = this.momentum[direction];
+        let result = {
+            momentum: 0,
+            position: 0,
+        };
+        if (Math.abs(remain) <= 0.1) {
+            result.position = current + remain;
+        }
+        else {
+            let nextMomentum = remain * (1 - this.break);
+            nextMomentum |= 0;
+            result.momentum = nextMomentum;
+            result.position = current + remain - nextMomentum;
+        }
+        let correctPosition = this.correctScrollValue(result.position, direction);
+        if (correctPosition != result.position) {
+            result.position = correctPosition;
+            result.momentum = 0;
+        }
+        return result;
+    }
+    scrollDirection(direction, value) {
+        const max = this.max[direction];
+        if (max != 0) {
+            this.position[direction] = this.correctScrollValue(value, direction);
+        }
+        else {
+            this.position[direction] = 0;
+        }
+        let container = this.scrollerContainer[direction]();
+        let scroller = this.scroller[direction]();
+        if (this.auto_hide) {
+            container.classList.remove("hide");
+            clearTimeout(this.hideDelay[direction]);
+            this.hideDelay[direction] = setTimeout(() => {
+                container.classList.add("hide");
+            }, 1000);
+        }
+        let containerSize = direction == 'y' ? container.offsetHeight : container.offsetWidth;
+        let scrollPosition = this.position[direction] / this.contentWrapperSize[direction] * containerSize;
+        scroller.style.transform = `translate${direction.toUpperCase()}(${scrollPosition}px)`;
+        this.contentWrapper.style.transform = `translate3d(${-1 * this.x}px, ${-1 * this.y}px, 0)`;
+        this.triggerScrollChange();
+    }
+    correctScrollValue(value, direction) {
         if (value < 0) {
             value = 0;
         }
-        else if (value > this.maxY) {
-            value = this.maxY;
+        else if (value > this.max[direction]) {
+            value = this.max[direction];
         }
         return value;
     }
-    scrollVerticalScrollbar(percentValue) {
-        let verticalValue = percentValue / 100 * this.contentWrapper.offsetHeight;
-        this.scrollY(verticalValue);
-    }
-    scrollY(value) {
-        if (this.maxY != 0) {
-            this.y = this.correctVerticalScrollValue(value);
-        }
-        else {
-            this.y = 0;
-        }
-        let scrollPosition = this.y / this.contentWrapper.offsetHeight * 100;
-        if (this.auto_hide) {
-            this.verticalScrollerContainer.classList.remove("hide");
-            clearTimeout(this.hideDelayY);
-            this.hideDelayY = setTimeout(() => {
-                this.verticalScrollerContainer.classList.add("hide");
-            }, 1000);
-        }
-        this.verticalScroller.style.top = `${scrollPosition}%`;
-        this.contentWrapper.style.transform = `translate3d(${-1 * this.x}px, ${-1 * this.y}px, 0)`;
-    }
-    correctHorizontalScrollValue(value) {
-        if (value < 0) {
-            value = 0;
-        }
-        else if (value > this.maxX) {
-            value = this.maxX;
-        }
-        return value;
-    }
-    scrollHorizontalScrollbar(percentValue) {
-        let value = percentValue / 100 * this.contentWrapper.offsetWidth;
-        this.scrollX(value);
-    }
-    scrollX(value) {
-        if (this.maxX != 0) {
-            this.x = this.correctHorizontalScrollValue(value);
-        }
-        else {
-            this.x = 0;
-        }
-        let scrollPosition = this.x / this.contentWrapper.offsetWidth * 100;
-        if (this.auto_hide) {
-            this.horizontalScrollerContainer.classList.remove("hide");
-            clearTimeout(this.hideDelayX);
-            this.hideDelayX = setTimeout(() => {
-                this.horizontalScrollerContainer.classList.add("hide");
-            }, 1000);
-        }
-        this.horizontalScroller.style.left = `${scrollPosition}%`;
-        this.contentWrapper.style.transform = `translate3d(${-1 * this.x}px, ${-1 * this.y}px, 0)`;
+    triggerScrollChange() {
+        this.onScrollChange.trigger([this.x, this.y]);
     }
     scrollToPosition(x, y) {
-        this.scrollX(x);
-        this.scrollY(y);
+        this.scrollDirection('x', x);
+        this.scrollDirection('y', y);
     }
     addAction() {
-        this.addEventListener("wheel", this.wheelAction);
-        this.addEventListener("touchstart", this.touchWheelAction);
-        this.addVerticalScrollDrag();
-        this.addHorizontalScrollDrag();
+        document.addEventListener("wheel", this.onWheel);
+        document.addEventListener("touchstart", this.onTouchStart);
+        document.addEventListener("touchmove", this.onTouchMove);
+        document.addEventListener("touchcancel", this.onTouchEnd);
+        document.addEventListener("touchend", this.onTouchEnd);
+        this.addScrollDrag('x');
+        this.addScrollDrag('y');
     }
-    addVerticalScrollDrag() {
-        this.verticalScroller.addEventListener("touchstart", (e) => {
+    addScrollDrag(direction) {
+        let scroller = this.scroller[direction]();
+        scroller.addEventListener("touchstart", (e) => {
             e.stopPropagation();
         });
+        let startPosition = 0;
         new Aventus.DragAndDrop({
-            element: this.verticalScroller,
+            element: scroller,
             applyDrag: false,
             usePercent: true,
             offsetDrag: 0,
+            isDragEnable: () => !this.disable,
             onStart: (e) => {
-                this.no_transition = true;
                 this.no_user_select = true;
-                this.verticalScroller.classList.add("active");
+                scroller.classList.add("active");
+                startPosition = this.position[direction];
             },
             onMove: (e, position) => {
-                this.scrollVerticalScrollbar(position.y);
+                let delta = position[direction] / 100 * this.contentWrapperSize[direction];
+                let value = startPosition + delta;
+                this.scrollDirection(direction, value);
             },
             onStop: () => {
-                this.no_transition = false;
                 this.no_user_select = false;
-                this.verticalScroller.classList.remove("active");
-            },
-        });
-    }
-    addHorizontalScrollDrag() {
-        this.horizontalScroller.addEventListener("touchstart", (e) => {
-            e.stopPropagation();
-        });
-        new Aventus.DragAndDrop({
-            element: this.horizontalScroller,
-            applyDrag: false,
-            usePercent: true,
-            offsetDrag: 0,
-            onStart: (e) => {
-                this.no_transition = true;
-                this.no_user_select = true;
-                this.horizontalScroller.classList.add("active");
-            },
-            onMove: (e, position) => {
-                this.scrollHorizontalScrollbar(position.x);
-            },
-            onStop: () => {
-                this.no_transition = false;
-                this.no_user_select = false;
-                this.horizontalScroller.classList.remove("active");
-            },
-        });
-    }
-    wheelAction(e) {
-        if (e.altKey) {
-            if (this.x_scroll_visible) {
-                let triggerEvent = (this.x == 0 && e.deltaY < 0) || (this.x == this.maxX && e.deltaY > 0);
-                this.scrollX(this.x + e.deltaY);
-                if (!triggerEvent) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                }
+                scroller.classList.remove("active");
             }
+        });
+    }
+    addDelta(delta) {
+        if (this.disable) {
+            return;
         }
-        else {
-            if (this.y_scroll_visible) {
-                let triggerEvent = (this.y == 0 && e.deltaY < 0) || (this.y == this.maxY && e.deltaY > 0);
-                this.scrollY(this.y + e.deltaY);
-                if (!triggerEvent) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                }
-            }
-        }
+        this.momentum.x += delta.x;
+        this.momentum.y += delta.y;
+        this.renderAnimation.start();
     }
-    touchWheelAction(e) {
-        let startX = e.touches[0].pageX;
-        let startY = e.touches[0].pageY;
-        let startHorizontal = this.x;
-        let startVertical = this.y;
-        this.no_transition = true;
-        let inertiaArrayY = new Map();
-        let inertiaArrayX = new Map();
-        let averageY = 0;
-        let averageX = 0;
-        let lastDiffY = 0;
-        let lastDiffX = 0;
-        let touchMove = (e) => {
-            let diffX = startX - e.touches[0].pageX;
-            let diffY = startY - e.touches[0].pageY;
-            // inertia
-            if (inertiaArrayY.size == 5) {
-                inertiaArrayY.delete(inertiaArrayY.keys()[0]);
-            }
-            if (inertiaArrayX.size == 5) {
-                inertiaArrayX.delete(inertiaArrayX.keys()[0]);
-            }
-            inertiaArrayX.set(new Date(), diffX - lastDiffX);
-            inertiaArrayY.set(new Date(), diffY - lastDiffY);
-            lastDiffX = diffX;
-            lastDiffY = diffY;
-            this.scrollX(startHorizontal + diffX);
-            this.scrollY(startVertical + diffY);
+    onWheel(e) {
+        const DELTA_MODE = [1.0, 28.0, 500.0];
+        const mode = DELTA_MODE[e.deltaMode] || DELTA_MODE[0];
+        this.addDelta({
+            x: e.deltaX * mode,
+            y: e.deltaY * mode,
+        });
+    }
+    onTouchStart(e) {
+        this.touchRecord.track(e);
+        this.momentum = {
+            x: 0,
+            y: 0
         };
-        let touchEnd = (e) => {
-            window.removeEventListener("touchmove", touchMove);
-            window.removeEventListener("touchend", touchEnd);
-            let date = new Date();
-            let totX = 0;
-            let totY = 0;
-            let inertiaXRunning = false;
-            let inertiaYRunning = false;
-            for (let [dateEvent, value] of inertiaArrayX) {
-                let factor = (1000) - (date.getTime() - dateEvent.getTime());
-                if (factor < 0) {
-                    factor = 0;
-                }
-                factor /= 1000;
-                totX += value * factor;
-            }
-            for (let [dateEvent, value] of inertiaArrayY) {
-                let factor = (1000) - (date.getTime() - dateEvent.getTime());
-                if (factor < 0) {
-                    factor = 0;
-                }
-                factor /= 1000;
-                totY += value * factor;
-            }
-            if (inertiaArrayX.size > 0) {
-                inertiaXRunning = true;
-                averageX = Math.round(totX / inertiaArrayX.size);
-                let breakX = averageX > 0 ? 1 : -1;
-                let checkX = averageX > 0 ? () => averageX <= 0 : () => averageX >= 0;
-                let intervalInertia = new Aventus.Animation({
-                    animate: () => {
-                        if (checkX()) {
-                            intervalInertia.stop();
-                        }
-                        else {
-                            averageX -= breakX;
-                            lastDiffX += averageX;
-                            this.scrollX(startHorizontal + lastDiffX);
-                        }
-                    },
-                    stopped: () => {
-                        inertiaXRunning = false;
-                        if (!inertiaXRunning && !inertiaYRunning) {
-                            this.no_transition = false;
-                        }
-                    },
-                    fps: 60,
-                });
-                intervalInertia.start();
-            }
-            if (inertiaArrayY.size > 0) {
-                inertiaYRunning = true;
-                averageY = Math.round(totY / inertiaArrayY.size);
-                let breakY = averageY > 0 ? 1 : -1;
-                let checkY = averageY > 0 ? () => averageY <= 0 : () => averageY >= 0;
-                let intervalInertia = new Aventus.Animation({
-                    animate: () => {
-                        if (checkY()) {
-                            intervalInertia.stop();
-                        }
-                        else {
-                            averageY -= breakY;
-                            lastDiffY += averageY;
-                            this.scrollY(startVertical + lastDiffY);
-                        }
-                    },
-                    stopped: () => {
-                        inertiaYRunning = false;
-                        if (!inertiaXRunning && !inertiaYRunning) {
-                            this.no_transition = false;
-                        }
-                    },
-                    fps: 60,
-                });
-                intervalInertia.start();
-            }
-            if (!inertiaXRunning && !inertiaYRunning) {
-                this.no_transition = false;
-            }
-        };
-        window.addEventListener("touchmove", touchMove);
-        window.addEventListener("touchend", touchEnd);
+        if (this.pointerCount === 0) {
+            this.savedBreak = this.break;
+            this.break = Math.max(this.break, 0.5); // less frames on touchmove
+        }
+        this.pointerCount++;
+    }
+    onTouchMove(e) {
+        this.touchRecord.update(e);
+        const delta = this.touchRecord.getDelta();
+        this.addDelta(delta);
+    }
+    onTouchEnd(e) {
+        const delta = this.touchRecord.getEasingDistance(this.savedBreak);
+        this.addDelta(delta);
+        this.pointerCount--;
+        if (this.pointerCount === 0) {
+            this.break = this.savedBreak;
+        }
+        this.touchRecord.release(e);
     }
     calculateRealSize() {
         const currentOffsetWidth = this.contentZoom.offsetWidth;
         const currentOffsetHeight = this.contentZoom.offsetHeight;
+        this.contentWrapperSize.x = this.contentWrapper.offsetWidth;
+        this.contentWrapperSize.y = this.contentWrapper.offsetHeight;
         if (this.zoom < 1) {
             // scale the container for zoom
             this.contentZoom.style.width = this.mainContainer.offsetWidth / this.zoom + 'px';
             this.contentZoom.style.height = this.mainContainer.offsetHeight / this.zoom + 'px';
-            this.displayHeight = currentOffsetHeight;
-            this.displayWidth = currentOffsetWidth;
+            this.display.y = currentOffsetHeight;
+            this.display.x = currentOffsetWidth;
         }
         else {
-            this.displayHeight = currentOffsetHeight / this.zoom;
-            this.displayWidth = currentOffsetWidth / this.zoom;
+            this.display.y = currentOffsetHeight / this.zoom;
+            this.display.x = currentOffsetWidth / this.zoom;
         }
     }
-    calculatePositionHorizontalScrollerContainer() {
+    calculatePositionScrollerContainer(direction) {
+        if (direction == 'y') {
+            this.calculatePositionScrollerContainerY();
+        }
+        else {
+            this.calculatePositionScrollerContainerX();
+        }
+    }
+    calculatePositionScrollerContainerY() {
         const topMissing = this.mainContainer.offsetHeight - this.horizontalScrollerContainer.offsetTop;
         if (topMissing > 0 && this.x_scroll_visible && !this.floating_scroll) {
             this.contentHidder.style.height = 'calc(100% - ' + topMissing + 'px)';
             this.contentHidder.style.marginBottom = topMissing + 'px';
-            this.marginX = topMissing;
+            this.margin.x = topMissing;
         }
         else {
             this.contentHidder.style.height = '';
             this.contentHidder.style.marginBottom = '';
-            this.marginX = 0;
+            this.margin.x = 0;
         }
     }
-    calculateSizeHorizontalScroller() {
-        const horizontalScrollerHeight = ((this.displayWidth - this.marginX) / this.contentWrapper.offsetWidth * 100);
-        this.horizontalScroller.style.width = horizontalScrollerHeight + '%';
-        let maxScrollContent = this.contentWrapper.offsetWidth - this.displayWidth;
-        if (maxScrollContent < 0) {
-            maxScrollContent = 0;
-        }
-        this.maxX = maxScrollContent + this.marginX;
-    }
-    calculatePositionVerticalScrollerContainer() {
+    calculatePositionScrollerContainerX() {
         const leftMissing = this.mainContainer.offsetWidth - this.verticalScrollerContainer.offsetLeft;
         if (leftMissing > 0 && this.y_scroll_visible && !this.floating_scroll) {
             this.contentHidder.style.width = 'calc(100% - ' + leftMissing + 'px)';
             this.contentHidder.style.marginRight = leftMissing + 'px';
-            this.marginY = leftMissing;
+            this.margin.y = leftMissing;
         }
         else {
             this.contentHidder.style.width = '';
             this.contentHidder.style.marginRight = '';
-            this.marginY = 0;
+            this.margin.y = 0;
         }
     }
-    calculateSizeVerticalScroller() {
-        const verticalScrollerHeight = ((this.displayHeight - this.marginY) / this.contentWrapper.offsetHeight * 100);
-        this.verticalScroller.style.height = verticalScrollerHeight + '%';
-        let maxScrollContent = this.contentWrapper.offsetHeight - this.displayHeight;
+    calculateSizeScroller(direction) {
+        const scrollerSize = ((this.display[direction] - this.margin[direction]) / this.contentWrapperSize[direction] * 100);
+        this.scroller[direction]().style.height = scrollerSize + '%';
+        let maxScrollContent = this.contentWrapperSize[direction] - this.display[direction];
         if (maxScrollContent < 0) {
             maxScrollContent = 0;
         }
-        this.maxY = maxScrollContent + this.marginY;
+        this.max[direction] = maxScrollContent + this.margin[direction];
     }
     changeZoom() {
         this.contentZoom.style.transform = 'scale(' + this.zoom + ')';
@@ -4147,35 +4115,35 @@ class Scrollable extends Aventus.WebComponent {
     }
     dimensionRefreshed() {
         this.calculateRealSize();
-        if (this.contentWrapper.offsetHeight - this.displayHeight > 0) {
+        if (this.contentWrapperSize.y - this.display.y > 0) {
             if (!this.y_scroll_visible) {
                 this.y_scroll_visible = true;
-                this.calculatePositionVerticalScrollerContainer();
+                this.calculatePositionScrollerContainer('y');
             }
-            this.calculateSizeVerticalScroller();
-            this.scrollY(this.y);
+            this.calculateSizeScroller('y');
+            this.scrollDirection('y', this.y);
         }
         else if (this.y_scroll_visible) {
             this.y_scroll_visible = false;
             // clear space created by scrollbar
             this.contentHidder.style.width = '';
             this.contentHidder.style.marginRight = '';
-            this.scrollY(0);
+            this.scrollDirection('y', 0);
         }
-        if (this.contentWrapper.offsetWidth - this.displayWidth > 0) {
+        if (this.contentWrapperSize.x - this.display.x > 0) {
             if (!this.x_scroll_visible) {
                 this.x_scroll_visible = true;
-                this.calculatePositionHorizontalScrollerContainer();
+                this.calculatePositionScrollerContainer('x');
             }
-            this.calculateSizeHorizontalScroller();
-            this.scrollX(this.x);
+            this.calculateSizeScroller('x');
+            this.scrollDirection('x', this.x);
         }
         else if (this.x_scroll_visible) {
             this.x_scroll_visible = false;
             // clear space created by scrollbar
             this.contentHidder.style.height = '';
             this.contentHidder.style.marginBottom = '';
-            this.scrollX(0);
+            this.scrollDirection('x', 0);
         }
     }
     createResizeObserver() {
@@ -4202,10 +4170,136 @@ class Scrollable extends Aventus.WebComponent {
     postCreation() {
         this.addResizeObserver();
         this.addAction();
-        window['temp1'] = this;
     }
 }
 if(!window.customElements.get('av-scrollable')){window.customElements.define('av-scrollable', Scrollable);Aventus.WebComponentInstance.registerDefinition(Scrollable);}
+
+class TouchRecord {
+    _activeTouchID;
+    _touchList = {};
+    get _primitiveValue() {
+        return { x: 0, y: 0 };
+    }
+    isActive() {
+        return this._activeTouchID !== undefined;
+    }
+    getDelta() {
+        const tracker = this._getActiveTracker();
+        if (!tracker) {
+            return this._primitiveValue;
+        }
+        return { ...tracker.delta };
+    }
+    getVelocity() {
+        const tracker = this._getActiveTracker();
+        if (!tracker) {
+            return this._primitiveValue;
+        }
+        return { ...tracker.velocity };
+    }
+    getEasingDistance(damping) {
+        const deAcceleration = 1 - damping;
+        let distance = {
+            x: 0,
+            y: 0,
+        };
+        const vel = this.getVelocity();
+        Object.keys(vel).forEach(dir => {
+            let v = Math.abs(vel[dir]) <= 10 ? 0 : vel[dir];
+            while (v !== 0) {
+                distance[dir] += v;
+                v = (v * deAcceleration) | 0;
+            }
+        });
+        return distance;
+    }
+    track(evt) {
+        const { targetTouches, } = evt;
+        Array.from(targetTouches).forEach(touch => {
+            this._add(touch);
+        });
+        return this._touchList;
+    }
+    update(evt) {
+        const { touches, changedTouches, } = evt;
+        Array.from(touches).forEach(touch => {
+            this._renew(touch);
+        });
+        this._setActiveID(changedTouches);
+        return this._touchList;
+    }
+    release(evt) {
+        delete this._activeTouchID;
+        Array.from(evt.changedTouches).forEach(touch => {
+            this._delete(touch);
+        });
+    }
+    _add(touch) {
+        if (this._has(touch)) {
+            this._delete(touch);
+        }
+        const tracker = new Tracker(touch);
+        this._touchList[touch.identifier] = tracker;
+    }
+    _renew(touch) {
+        if (!this._has(touch)) {
+            return;
+        }
+        const tracker = this._touchList[touch.identifier];
+        tracker.update(touch);
+    }
+    _delete(touch) {
+        delete this._touchList[touch.identifier];
+    }
+    _has(touch) {
+        return this._touchList.hasOwnProperty(touch.identifier);
+    }
+    _setActiveID(touches) {
+        this._activeTouchID = touches[touches.length - 1].identifier;
+    }
+    _getActiveTracker() {
+        const { _touchList, _activeTouchID, } = this;
+        return _touchList[_activeTouchID];
+    }
+}
+
+class Tracker {
+    velocityMultiplier = window.devicePixelRatio;
+    updateTime = Date.now();
+    delta = { x: 0, y: 0 };
+    velocity = { x: 0, y: 0 };
+    lastPosition = { x: 0, y: 0 };
+    constructor(touch) {
+        this.lastPosition = this.getPosition(touch);
+    }
+    update(touch) {
+        const { velocity, updateTime, lastPosition, } = this;
+        const now = Date.now();
+        const position = this.getPosition(touch);
+        const delta = {
+            x: -(position.x - lastPosition.x),
+            y: -(position.y - lastPosition.y),
+        };
+        const duration = (now - updateTime) || 16.7;
+        const vx = delta.x / duration * 16.7;
+        const vy = delta.y / duration * 16.7;
+        velocity.x = vx * this.velocityMultiplier;
+        velocity.y = vy * this.velocityMultiplier;
+        this.delta = delta;
+        this.updateTime = now;
+        this.lastPosition = position;
+    }
+    getPointerData(evt) {
+        return evt.touches ? evt.touches[evt.touches.length - 1] : evt;
+    }
+    getPosition(evt) {
+        const data = this.getPointerData(evt);
+        return {
+            x: data.clientX,
+            y: data.clientY,
+        };
+    }
+}
 
 class GridCol extends Aventus.WebComponent {
     get 'column'() {
@@ -5033,6 +5127,10 @@ Page.Namespace='Aventus.Navigation';
 (Aventus.Layout||(Aventus.Layout = {}));
 Aventus.Layout.Scrollable=Scrollable;
 Scrollable.Namespace='Aventus.Layout';
+Aventus.TouchRecord=TouchRecord;
+TouchRecord.Namespace='Aventus';
+Aventus.Tracker=Tracker;
+Tracker.Namespace='Aventus';
 Aventus.Layout.GridCol=GridCol;
 GridCol.Namespace='Aventus.Layout';
 Aventus.Layout.Grid=Grid;

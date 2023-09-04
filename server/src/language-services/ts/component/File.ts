@@ -47,7 +47,8 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         return new Promise<void>((resolve) => {
             let version = AventusWebcomponentCompiler.getVersion(this, this.build);
             let mergedVersion = version.ts + '_' + version.scss + '_' + version.html;
-            if (mergedVersion == this.version) {
+            let force = this.build.insideRebuildAll;
+            if (mergedVersion == this.version && !force) {
                 resolve();
             }
             else {

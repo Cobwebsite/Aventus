@@ -1217,7 +1217,7 @@ this.clearWatchHistory = () => {
                             let type = definition.class.properties[eventName].type.value
                             if (ListCallbacks.includes(type)) {
                                 temp.isCallback = true;
-                                temp.fct = `@_@(c, ...args) => c.component.${event.fct}.apply(null, args)@_@`;
+                                temp.fct = `@_@(c, ...args) => c.component.${event.fct}.apply(c.component, args)@_@`;
                             }
                         }
                     }

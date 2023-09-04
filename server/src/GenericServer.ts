@@ -79,9 +79,8 @@ export class GenericServer {
 
 
 	protected connection: IConnection;
-
-	protected workspaces: string[] = [];
 	protected isLoading: boolean = true;
+	protected workspaces: string[] = [];
 	protected isDebug = false;
 	private isIDE = false;
 
@@ -253,8 +252,11 @@ export class GenericServer {
 	}
 
 
-	protected isAllowed(document: TextDocument) {
-		if (this.isLoading) {
+	public isAllowed(document: TextDocument) {
+		return GenericServer.isAllowed(document);
+	}
+	public static isAllowed(document: TextDocument) {
+		if (this.instance.isLoading) {
 			return false;
 		}
 		if (document.uri.endsWith(AventusExtension.Base) || document.uri.endsWith(AventusExtension.Config)) {

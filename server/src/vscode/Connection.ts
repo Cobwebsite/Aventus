@@ -9,13 +9,36 @@ import { AskSelect } from '../notification/AskSelect';
 import { AskSelectMultiple } from '../notification/AskSelectMultiple';
 import { Popup } from '../notification/Popup';
 import { dirname } from 'path';
+import { FilesManager } from '../files/FilesManager';
 
 export class VsCodeConnection implements IConnection {
+	
 	private _connection: _Connection<_, _, _, _, _, _, _>;
 	private documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
 	public constructor() {
 		this._connection = createConnection(ProposedFeatures.all);
+		this.addDocumentsAction();
+	}
+
+	private addDocumentsAction() {
+		this.documents.onDidChangeContent(e => {
+			if (GenericServer.isAllowed(e.document)) {
+				FilesManager.getInstance().onContentChange(e.document);
+			}
+		});
+
+		this.documents.onDidSave((e) => {
+			if (GenericServer.isAllowed(e.document)) {
+				FilesManager.getInstance().preventUpdateUri(e.document.uri);
+				FilesManager.getInstance().onSave(e.document);
+			}
+		})
+		this.documents.onDidClose(e => {
+			if (GenericServer.isAllowed(e.document)) {
+				FilesManager.getInstance().onClose(e.document);
+			}
+		});
 	}
 
 	public open() {
@@ -51,7 +74,7 @@ export class VsCodeConnection implements IConnection {
 		this._connection.sendDiagnostics(params)
 	}
 	public onInitialize(cb: (params: AvInitializeParams) => void) {
-		
+
 		this._connection.onInitialize((params: InitializeParams) => {
 			cb({
 				workspaceFolders: params.workspaceFolders,

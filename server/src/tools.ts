@@ -1,4 +1,4 @@
-import { sep } from "path";
+import { normalize, sep } from "path";
 import { flattenDiagnosticMessageText } from 'typescript';
 import { Diagnostic, DiagnosticSeverity, Position, Range } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
