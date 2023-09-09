@@ -23,7 +23,7 @@ export class CliConnection implements IConnection {
 	delayBetweenBuild(): number {
 		return 0;
 	}
-	sendNotification(cmd: string, ...params: any): void {
+	sendNotification(cmd: string, params: any[]): void {
 		if (Notifications.allNotifications[cmd]) {
 			let fct = Notifications.allNotifications[cmd].action as any;
 			fct.call(Notifications.allNotifications[cmd], ...params);
@@ -31,6 +31,12 @@ export class CliConnection implements IConnection {
 	}
 	showErrorMessage(msg: string): void {
 		console.log("[error] : " + msg);
+	}
+	showWarningMessage(msg: string): void {
+		console.log("[warning] : " + msg);
+	}
+	showInformationMessage(msg: string): void {
+		console.log("[info] : " + msg);
 	}
 	public subscribeErrors(cb: (errors: string[]) => void) {
 		this.cbErrors.push(cb);

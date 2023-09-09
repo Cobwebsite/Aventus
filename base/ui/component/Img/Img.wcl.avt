@@ -34,6 +34,7 @@ export class Img extends Aventus.WebComponent implements Aventus.DefaultComponen
     private isCalculing: boolean;
     private maxCalculateSize: number = 10;
     private ratio: number = 1;
+    private resizeObserver:Aventus.ResizeObserver;
     //#endregion
 
 
@@ -158,6 +159,20 @@ export class Img extends Aventus.WebComponent implements Aventus.DefaultComponen
         }
     }
 
+    protected override postDestruction(): void {
+        this.resizeObserver.disconnect();
+        this.resizeObserver = null;
+    }
+
+    protected override postCreation(): void {
+        this.resizeObserver = new Aventus.ResizeObserver({
+            fps: 10,
+            callback: () => {
+                this.calculateSize();
+            }
+        });
+        this.resizeObserver.observe(this);
+    }
     //#endregion
 
 }

@@ -13,6 +13,7 @@ import { AventusTsFile } from "../File";
 import { AventusWebcomponentCompiler } from "./compiler/compiler";
 import { CompileComponentResult } from "./compiler/def";
 import { ClassInfo } from '../parser/ClassInfo';
+import { replaceNotImportAliases } from '../../../tools';
 
 export class AventusWebComponentLogicalFile extends AventusTsFile {
     private _compilationResult: CompileComponentResult | undefined;
@@ -46,7 +47,8 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         return new Promise<void>((resolve) => {
             let version = AventusWebcomponentCompiler.getVersion(this, this.build);
             let mergedVersion = version.ts + '_' + version.scss + '_' + version.html;
-            if (mergedVersion == this.version) {
+            let force = this.build.insideRebuildAll;
+            if (mergedVersion == this.version && !force) {
                 resolve();
             }
             else {
@@ -102,7 +104,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
             this.setCompileResult([]);
         }
         if (this.compilationResult?.writeCompiled) {
-            writeFileSync(this.file.folderPath + '/compiled.js', this.compilationResult.debug);
+            writeFileSync(this.file.folderPath + '/compiled.js', replaceNotImportAliases(this.compilationResult.debug, this.build.project.getConfig()));
         }
         else if (existsSync(this.file.folderPath + '/compiled.js')) {
             unlinkSync(this.file.folderPath + '/compiled.js')
@@ -141,7 +143,8 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
             }
         }
         if (!this.build.reloadPage && reloadComp && classInfo) {
-            srcToUpdate = srcToUpdate.replace(/window\.customElements\.define\(.*$/gm, '');
+            srcToUpdate = srcToUpdate.replace(/if\(\!window\.customElements\.get\(.*$/gm, '');
+            
             // TODO check side effects => maybe use real position instead of regex
             for (let dependance of classInfo.dependances) {
                 if (dependance.uri == "@local") {

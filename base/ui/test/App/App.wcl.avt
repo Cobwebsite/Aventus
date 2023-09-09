@@ -1,32 +1,40 @@
 export class App extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
-	//#region static
-	
-	//#endregion
-	
-	
-	//#region props
-	
-	//#endregion
-	
-	
-	//#region variables
-	
-	//#endregion
-	
-	
-	//#region states
-	
-	//#endregion
-	
-	
-	//#region constructor
-	
-	//#endregion
-	
-	
-	//#region methods
-	
-	//#endregion
-	
+    //#region static
+
+    //#endregion
+
+
+    //#region props
+
+    //#endregion
+
+
+    //#region variables
+    @ViewElement()
+    protected content: HTMLDivElement;
+    //#endregion
+
+
+    //#region states
+
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+
+    //#region methods
+    protected override postCreation(): void {
+        for(let i = 0; i <= 8000; i+= 500) {
+            let div = document.createElement("DIV");
+            div.classList.add("part");
+			div.style.backgroundColor =  "#"+Math.floor(Math.random() * 16777215).toString(16);
+            this.content.appendChild(div);
+        }
+    }
+    //#endregion
+
 }

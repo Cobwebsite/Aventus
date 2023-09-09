@@ -19,7 +19,7 @@ export class CreateWatch {
 			return;
 		}
 		const name = await GenericServer.Input({
-			title: "Provide a name for your Property",
+			title: "Provide a name for your Watch variable",
 			async validateInput(value) {
 				if (!value.match(/^[_a-z0-9]+$/g)) {
 					return 'A property must be with lowercase, number or _';

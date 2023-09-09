@@ -3,7 +3,9 @@ import { Position, CompletionList, CompletionItem, Hover, Definition, Range, For
 import { AventusExtension } from "../../../definition";
 import { AventusFile } from '../../../files/AventusFile';
 import { AventusTsFile } from "../File";
+import md5 from 'md5';
 import { v4 as randomUUID } from 'uuid';
+import { InfoType } from '../parser/BaseInfo';
 
 export class AventusStaticFile extends AventusTsFile {
 
@@ -37,7 +39,9 @@ export class AventusStaticFile extends AventusTsFile {
             dependances: [],
             uri: this.file.uri,
             required: true,
-            isData: false
+            type: InfoType.none,
+            isExported: false, // actually its exported if written correctly
+            convertibleName: ''
         }]);
     }
     protected async onCompletion(document: AventusFile, position: Position): Promise<CompletionList> {

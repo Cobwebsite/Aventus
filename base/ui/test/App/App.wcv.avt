@@ -1,1 +1,3 @@
-<av-checkbox label="My checkbox"></av-checkbox>
+<av-scrollable>
+	<div class="content" @element="content"></div>
+</av-scrollable>

@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, statSync, unlinkSync, writeFileSync } from "fs";
 import { EOL } from "os";
 import { join, normalize, sep } from "path";
 import { Diagnostic, DiagnosticSeverity, TextEdit } from 'vscode-languageserver';
-import { AventusExtension, AventusLanguageId } from "../definition";
+import { AventusErrorCode, AventusExtension, AventusLanguageId } from "../definition";
 import { AventusFile } from '../files/AventusFile';
 import { FilesManager } from '../files/FilesManager';
 import { FilesWatcher } from '../files/FilesWatcher';
@@ -21,7 +21,7 @@ import { HttpServer } from '../live-server/HttpServer';
 import { Compiled } from '../notification/Compiled';
 import { RegisterBuild } from '../notification/RegisterBuild';
 import { UnregisterBuild } from '../notification/UnregisterBuild';
-import { getFolder, pathToUri, uriToPath } from "../tools";
+import { createErrorTsPos, getFolder, pathToUri, replaceNotImportAliases, uriToPath } from "../tools";
 import { Project } from "./Project";
 import { AventusGlobalSCSSLanguageService } from '../language-services/scss/GlobalLanguageService';
 import { DependanceManager } from './DependanceManager';
@@ -30,6 +30,8 @@ import { BuildNpm, NpmDependances } from './BuildNpm';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AventusGlobalComponentSCSSFile } from '../language-services/scss/GlobalComponentFile';
 import { minify } from 'terser';
+import { InfoType } from '../language-services/ts/parser/BaseInfo';
+import { AventusBaseFile } from '../language-services/BaseFile';
 import { GenericServer } from '../GenericServer';
 
 export class Build {
@@ -52,6 +54,7 @@ export class Build {
     private dependanceFullUris: string[] = [];
     // order uri file to parse inside build
     private dependanceUris: string[] = [];
+    public diagnostics: Map<AventusBaseFile, Diagnostic[]> = new Map();
 
 
     public tsLanguageService: AventusTsLanguageService;
@@ -88,8 +91,8 @@ export class Build {
         this.htmlLanguageService = new AventusHTMLLanguageService(this);
 
         this._outputPathes = [join(DependanceManager.getInstance().getPath(), "@locals", this.buildConfig.fullname + AventusExtension.Package).replace(/\\/g, '/')];
-        if (buildConfig.outputPackage) {
-            this._outputPathes.push(buildConfig.outputPackage.replace(/\\/g, '/'));
+        for(let outputPackage of buildConfig.outputPackage){
+            this._outputPathes.push(outputPackage.replace(/\\/g, '/'));
         }
         RegisterBuild.send(project.getConfigFile().path, buildConfig.fullname);
     }
@@ -102,6 +105,9 @@ export class Build {
     }
     public getAvoidParsingTags() {
         return this.buildConfig.avoidParsingInsideTags;
+    }
+    public getAliases(): { [alias: string]: string } {
+        return this.project.getConfig()?.aliases ?? {};
     }
     public isFileInside(uri: string): boolean {
         return uriToPath(uri).match(this.buildConfig.inputPathRegex) != null;
@@ -124,8 +130,10 @@ export class Build {
     }
     //#region build
     private timerBuild: NodeJS.Timeout | undefined = undefined;
+    public insideRebuildAll:boolean = false;
     public async rebuildAll() {
         this.allowBuild = false;
+        this.insideRebuildAll = true;
         // validate
         for (let uri in this.scssFiles) {
             await this.scssFiles[uri].validate();
@@ -152,7 +160,7 @@ export class Build {
         for (let uri in this.tsFiles) {
             this.tsFiles[uri].triggerSave();
         }
-
+        this.insideRebuildAll = false;
         this.allowBuild = true;
         await this.build();
     }
@@ -171,6 +179,37 @@ export class Build {
         }
     }
 
+    private addDiagnostic(file: AventusTsFile, diagnostic: Diagnostic) {
+        if (!this.diagnostics.has(file)) {
+            this.diagnostics.set(file, []);
+        }
+        this.diagnostics.get(file)?.push(diagnostic);
+    }
+    private clearDiagnostics() {
+        for (let [file, errors] of this.diagnostics.entries()) {
+            if (file instanceof AventusTsFile) {
+                GenericServer.sendDiagnostics({
+                    uri: file.file.uri,
+                    diagnostics: file.getDiagnostics()
+                })
+            }
+        }
+        this.diagnostics.clear();
+    }
+    private emitDiagnostics() {
+        for (let [file, errors] of this.diagnostics.entries()) {
+            if (file instanceof AventusTsFile) {
+                let finalErrors = [...errors, ...file.getDiagnostics()];
+                if (this.hideWarnings) {
+                    finalErrors = finalErrors.filter(p => p.severity != DiagnosticSeverity.Warning)
+                }
+                GenericServer.sendDiagnostics({
+                    uri: file.file.uri,
+                    diagnostics: finalErrors
+                })
+            }
+        }
+    }
     private async _build() {
         if (!this.allowBuild) {
             return
@@ -178,6 +217,7 @@ export class Build {
         if (GenericServer.isDebug()) {
             console.log("building " + this.buildConfig.fullname);
         }
+        this.clearDiagnostics();
         let compilationInfo = this.buildOrderCompilationInfo();
         let result = await this.buildLocalCode(compilationInfo.toCompile, this.buildConfig.module, compilationInfo.npmNeeded);
 
@@ -187,15 +227,18 @@ export class Build {
             available: result.codeRenderInJs,
             existing: result.codeNotRenderInJs
         }
-        this.writeBuildDocumentation(this.buildConfig.outputPackage, result, srcInfo)
+        for (let outputPackage of this.buildConfig.outputPackage) {
+            this.writeBuildDocumentation(outputPackage, result, srcInfo)
+        }
 
         Compiled.send(this.buildConfig.fullname);
         if (this.reloadPage) {
             this.reloadPage = false;
             HttpServer.getInstance().reload();
         }
+        this.emitDiagnostics();
     }
-    private _buildStringModule(namespace: string, codeBefore: string[], code: string[], classesName: string[], classesNameData: string[], codeAfter: string[], stylesheets: string[]) {
+    private _buildStringModule(namespace: string, codeBefore: string[], code: string[], classesName: { [name: string]: { type: InfoType, isExported: boolean, convertibleName: string } }, codeAfter: string[], stylesheets: string[]) {
         let finalTxt = '';
         let splittedNames = namespace.split(".");
         finalTxt += codeBefore.join(EOL) + EOL;
@@ -215,8 +258,9 @@ export class Build {
             finalTxt += code.join(EOL) + EOL;
             finalTxt = finalTxt.trim() + EOL;
             let subNamespace: string[] = [];
-            for (let className of classesName) {
+            for (let className in classesName) {
                 if (className != "") {
+                    let type = classesName[className].type;
                     let classNameSplitted = className.split(".");
                     let currentNamespace = "";
                     for (let i = 0; i < classNameSplitted.length - 1; i++) {
@@ -237,15 +281,24 @@ export class Build {
                     if (currentNamespace) {
                         currentNamespaceWithDot = "." + currentNamespace
                     }
-                    finalTxt += finalName + ".Namespace='" + namespace + currentNamespaceWithDot + "';" + EOL;
-                    finalTxt += namespace + "." + className + "=" + finalName + ";" + EOL;
-                }
-            }
-            for (let className of classesNameData) {
-                if (className != "") {
-                    let classNameSplitted = className.split(".");
-                    let finalName = classNameSplitted[classNameSplitted.length - 1];
-                    finalTxt += "Aventus.DataManager.register(" + finalName + ".Fullname, " + finalName + ");" + EOL;
+
+                    if (classesName[className].isExported) {
+                        finalTxt += namespace + "." + className + "=" + finalName + ";" + EOL;
+                    }
+
+                    if (type == InfoType.class) {
+                        finalTxt += finalName + ".Namespace='" + namespace + currentNamespaceWithDot + "';" + EOL;
+                    }
+                    else if (type == InfoType.classData) {
+                        let classNameSplitted = className.split(".");
+                        let finalName = classNameSplitted[classNameSplitted.length - 1];
+                        finalTxt += finalName + ".Namespace='" + namespace + currentNamespaceWithDot + "';" + EOL;
+                        finalTxt += "Aventus.DataManager.register(" + finalName + ".Fullname, " + finalName + ");" + EOL;
+                    }
+
+                    if (classesName[className].convertibleName) {
+                        finalTxt += "Aventus.Converter.register(" + finalName + "." + classesName[className].convertibleName + ", " + finalName + ");" + EOL;
+                    }
                 }
             }
             finalTxt += "})(" + splittedNames[0] + ");" + EOL;
@@ -259,9 +312,9 @@ export class Build {
      * Write the code inside the exported .js
      */
     private async writeBuildCode(localCode: {
-        code: string[], codeNoNamespaceBefore: string[], codeNoNamespaceAfter: string[], classesName: string[], classesNameData: string[], stylesheets: { [name: string]: string }
+        code: string[], codeNoNamespaceBefore: string[], codeNoNamespaceAfter: string[], classesName: { [name: string]: { type: InfoType, isExported: boolean, convertibleName: string } }, stylesheets: { [name: string]: string }
     }, libSrc: string) {
-        if (this.buildConfig.outputFile) {
+        if (this.buildConfig.outputFile && this.buildConfig.outputFile.length > 0) {
             let finalTxt = '';
             finalTxt += libSrc + EOL;
             let stylesheets: string[] = [];
@@ -273,32 +326,33 @@ export class Build {
                 localCode.codeNoNamespaceBefore,
                 localCode.code,
                 localCode.classesName,
-                localCode.classesNameData,
                 localCode.codeNoNamespaceAfter,
                 stylesheets
             );
 
-            let folderPath = getFolder(this.buildConfig.outputFile.replace(/\\/g, "/"));
-            if (!existsSync(folderPath)) {
-                mkdirSync(folderPath, { recursive: true });
-            }
-            if (this.buildConfig.compressed) {
-                try {
-                    
-                    const resultTemp = await minify({
-                        "file1.js" : finalTxt
-                    }, {
-                        compress: false,
-                        format: {
-                            comments: false,
-                        }
-                    })
-                    finalTxt = resultTemp.code ?? '';
-                } catch (e) {
-                    console.log(e);
+            for (let outputFile of this.buildConfig.outputFile) {
+                let folderPath = getFolder(outputFile.replace(/\\/g, "/"));
+                if (!existsSync(folderPath)) {
+                    mkdirSync(folderPath, { recursive: true });
                 }
+                if (this.buildConfig.compressed) {
+                    try {
+
+                        const resultTemp = await minify({
+                            "file1.js": finalTxt
+                        }, {
+                            compress: false,
+                            format: {
+                                comments: false,
+                            }
+                        })
+                        finalTxt = resultTemp.code ?? '';
+                    } catch (e) {
+                        console.log(e);
+                    }
+                }
+                writeFileSync(outputFile, finalTxt);
             }
-            writeFileSync(this.buildConfig.outputFile, finalTxt);
         }
     }
     /**
@@ -371,8 +425,7 @@ export class Build {
             doc: string[],
             docNoNamespace: string[],
             docInvisible: string[],
-            classesName: string[],
-            classesNameData: string[],
+            classesName: { [className: string]: { type: InfoType, isExported: boolean, convertibleName: string } },
 
             stylesheets: { [name: string]: string },
 
@@ -387,8 +440,7 @@ export class Build {
             doc: [],
             docNoNamespace: [],
             docInvisible: [],
-            classesName: [],
-            classesNameData: [],
+            classesName: {},
             stylesheets: {},
             codeRenderInJs: [],
             codeNotRenderInJs: [],
@@ -471,11 +523,14 @@ export class Build {
                         result.codeNoNamespaceAfter.push(info.compiled)
                         if (!renderInJsByFullname[info.classScript]) {
                             renderInJsByFullname[info.classScript] = {
-                                code: info.compiled,
+                                code: replaceNotImportAliases(info.compiled, this.project.getConfig()),
                                 dependances: prepareDependances(info.dependances, info.uri),
                                 fullName: info.classScript,
                                 required: info.required,
                                 noNamespace: "after",
+                                type: info.type,
+                                isExported: info.isExported,
+                                convertibleName: info.convertibleName,
                             };
                         }
                     }
@@ -483,11 +538,14 @@ export class Build {
                         result.codeNoNamespaceBefore.push(info.compiled);
                         if (!renderInJsByFullname[info.classScript]) {
                             renderInJsByFullname[info.classScript] = {
-                                code: info.compiled,
+                                code: replaceNotImportAliases(info.compiled, this.project.getConfig()),
                                 dependances: prepareDependances(info.dependances, info.uri),
                                 fullName: info.classScript,
                                 required: info.required,
                                 noNamespace: "before",
+                                type: info.type,
+                                isExported: info.isExported,
+                                convertibleName: info.convertibleName,
                             }
                         }
                     }
@@ -517,21 +575,25 @@ export class Build {
             else {
                 moduleCodeStarted = true;
                 if (info.classScript != "" && !info.classScript.startsWith("!staticClass_")) {
-                    if (info.isData) {
-                        result.classesNameData.push(info.classScript);
+                    result.classesName[info.classScript] = {
+                        type: info.type,
+                        isExported: info.isExported,
+                        convertibleName: info.convertibleName
                     }
-                    result.classesName.push(info.classScript);
                 }
 
                 if (info.compiled != "") {
-                    result.code.push(info.compiled)
+                    result.code.push(replaceNotImportAliases(info.compiled, this.project.getConfig()))
                     let exportName = namespaceWithDot + info.classScript;
                     if (!renderInJsByFullname[exportName]) {
                         renderInJsByFullname[exportName] = {
-                            code: info.compiled,
+                            code: replaceNotImportAliases(info.compiled, this.project.getConfig()),
                             dependances: prepareDependances(info.dependances, info.uri),
                             fullName: exportName,
                             required: info.required,
+                            type: info.type,
+                            isExported: info.isExported,
+                            convertibleName: info.convertibleName
                         }
                     }
                 }
@@ -578,11 +640,36 @@ export class Build {
         let result: { toCompile: CompileTsResult[], libSrc: string, npmNeeded: { inside: NpmDependances, outside: NpmDependances } } = { toCompile: [], libSrc: '', npmNeeded: { inside: {}, outside: {} } };
         // map local information by fullname
         let localClassByFullName: { [fullName: string]: CompileTsResult } = {};
+        let localClass: { [name: string]: CompileTsResult } = {};
         for (let fileUri in this.tsFiles) {
             let currentFile = this.tsFiles[fileUri];
             for (let compileInfo of currentFile.compileResult) {
                 if (compileInfo.classScript !== "") {
-                    localClassByFullName[compileInfo.classScript] = compileInfo;
+                    let nameSplitted = compileInfo.classScript.split(".");
+                    let lastName = nameSplitted[nameSplitted.length - 1];
+                    if (localClass[lastName]) {
+                        let txt = "The name " + compileInfo.classScript + " is registered more than once.";
+                        let info = currentFile.fileParsed?.getBaseInfo(compileInfo.classScript);
+                        if (info) {
+                            this.addDiagnostic(currentFile, createErrorTsPos(currentFile.file.document, txt, info.nameStart, info.nameEnd, AventusErrorCode.SameNameFound));
+                        }
+                        else {
+                            throw 'Please contact the support its an unknow case'
+                        }
+
+                        let oldFile = this.tsFiles[localClass[lastName].uri]
+                        info = oldFile.fileParsed?.getBaseInfo(compileInfo.classScript);
+                        if (info) {
+                            this.addDiagnostic(oldFile, createErrorTsPos(oldFile.file.document, txt, info.nameStart, info.nameEnd, AventusErrorCode.SameNameFound));
+                        }
+                        else {
+                            throw 'Please contact the support its an unknow case'
+                        }
+                    }
+                    else {
+                        localClassByFullName[compileInfo.classScript] = compileInfo;
+                        localClass[lastName] = compileInfo;
+                    }
                 }
                 // in case script and doc are different
                 if (compileInfo.classDoc !== "" && !localClassByFullName[compileInfo.classDoc]) {
@@ -788,6 +875,9 @@ export class Build {
         // add required code for lib
         for (let libUri of this.dependanceNeedUris) {
             let requiredInfos = this.externalPackageInformation.getInformationsRequired(libUri);
+            if (!loadedInfoExternal[libUri]) {
+                loadedInfoExternal[libUri] = [];
+            }
             for (let requiredInfo of requiredInfos) {
                 if (!loadedInfoExternal[libUri].includes(requiredInfo.fullName)) {
                     loadAndOrderInfo({
@@ -798,6 +888,9 @@ export class Build {
             }
         }
         for (let libUri of this.dependanceFullUris) {
+            if (!loadedInfoExternal[libUri]) {
+                loadedInfoExternal[libUri] = [];
+            }
             let fullInfos = this.externalPackageInformation.getFullInformations(libUri);
             for (let fullInfo of fullInfos) {
                 if (!loadedInfoExternal[libUri].includes(fullInfo.fullName)) {
@@ -812,13 +905,12 @@ export class Build {
         // build code for each lib
         let libSrc: string[] = []
         for (let libUri of this.dependanceUris) {
-            let libInfo: { namespace: string, code: string[], before: string[], after: string[], classesName: string[], classesNameData: string[] } = {
+            let libInfo: { namespace: string, code: string[], before: string[], after: string[], classesName: { [name: string]: { type: InfoType, isExported: boolean, convertibleName: string } } } = {
                 namespace: this.externalPackageInformation.getNamespaceByUri(libUri),
                 before: [],
                 code: [],
                 after: [],
-                classesName: [],
-                classesNameData: []
+                classesName: {},
             }
             if (!loadedInfoExternal[libUri]) {
                 continue;
@@ -826,19 +918,22 @@ export class Build {
             for (let fullname of loadedInfoExternal[libUri]) {
                 let infoExternal = this.externalPackageInformation.getByFullName(fullname);
                 if (infoExternal.content != 'noCode') {
+                    let code = replaceNotImportAliases(infoExternal.content.code, this.project.getConfig());
                     if (!infoExternal.content.noNamespace) {
-                        libInfo.code.push(infoExternal.content.code);
+                        libInfo.code.push(code);
                         let regex = new RegExp('^' + this.externalPackageInformation.getNamespaceByUri(infoExternal.uri) + "\.");
-                        if (this.externalPackageInformation.fullNameIsData(fullname)) {
-                            libInfo.classesNameData.push(infoExternal.content.fullName.replace(regex, ""));
+                        let fullNameTemp = infoExternal.content.fullName.replace(regex, "");
+                        libInfo.classesName[fullNameTemp] = {
+                            type: infoExternal.content.type,
+                            isExported: infoExternal.content.isExported,
+                            convertibleName: infoExternal.content.convertibleName,
                         }
-                        libInfo.classesName.push(infoExternal.content.fullName.replace(regex, ""));
                     }
                     else if (infoExternal.content.noNamespace == 'before') {
-                        libInfo.before.push(infoExternal.content.code);
+                        libInfo.before.push(code);
                     }
                     else if (infoExternal.content.noNamespace == 'after') {
-                        libInfo.after.push(infoExternal.content.code);
+                        libInfo.after.push(code);
                     }
 
                 }
@@ -849,7 +944,7 @@ export class Build {
             for (let name in stylesheetsInfo) {
                 stylesheets.push(`Aventus.Style.store("${name}", \`${stylesheetsInfo[name]}\`)`);
             }
-            let codeModule = this._buildStringModule(libInfo.namespace, libInfo.before, libInfo.code, libInfo.classesName, libInfo.classesNameData, libInfo.after, stylesheets);
+            let codeModule = this._buildStringModule(libInfo.namespace, libInfo.before, libInfo.code, libInfo.classesName, libInfo.after, stylesheets);
             libSrc.push(codeModule);
 
         }
@@ -1114,7 +1209,6 @@ class ExternalPackageInformation {
     private informations: { [fullname: string]: { content: AventusPackageTsFileExport | 'noCode', uri: string } } = {};
     private informationsRequired: { [uri: string]: AventusPackageTsFileExport[] } = {};
     private webComponentByName: { [name: string]: ClassInfo } = {}
-    private dataFullname: string[] = [];
 
     public init(files: AventusPackageFile[]) {
         for (let file of files) {
@@ -1136,11 +1230,6 @@ class ExternalPackageInformation {
         return this.files[uri]?.srcInfo.available || []
     }
 
-    public fullNameIsData(fullName: string) {
-        return this.dataFullname.includes(fullName);
-    }
-
-
     public getStyleByUri(uri: string): { [name: string]: string } {
         if (this.files[uri]) {
             return this.files[uri].externalCSS;
@@ -1151,7 +1240,6 @@ class ExternalPackageInformation {
     public rebuild() {
         this.informations = {};
         this.webComponentByName = {};
-        this.dataFullname = [];
         let errors: Diagnostic[] = [];
         for (let uri in this.files) {
             let defFile = this.files[uri];
@@ -1207,8 +1295,6 @@ class ExternalPackageInformation {
                 ...this.webComponentByName,
                 ...defFile.classInfoByName
             }
-
-            this.dataFullname = this.dataFullname.concat(defFile.classInfoDataFullname);
         }
         GenericServer.sendDiagnostics({ uri: '@Import lib', diagnostics: errors })
     }

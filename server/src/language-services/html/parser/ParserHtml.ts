@@ -185,8 +185,8 @@ export class ParserHtml {
 			version: document.version,
 			result: this,
 		}
-		let antiParsedContent = document.getText().replace(/\\\{\{(.*?)\}\}/g, "&#123;&#123;$1&#125;&#125;");
-		this.document = TextDocument.create(document.uri, document.languageId, document.version, antiParsedContent);
+		let fileContent = this.getFileContent(document);
+		this.document = TextDocument.create(document.uri, document.languageId, document.version, fileContent);
 		ParserHtml.currentParsingDoc = this;
 		this.uri = document.uri;
 		this.parse(this.document);
@@ -195,6 +195,13 @@ export class ParserHtml {
 		for (let cb of this.readyCb) {
 			cb();
 		}
+	}
+
+	private getFileContent(document: TextDocument) {
+		let txt = document.getText();
+		// prevent to parse element that is escaped
+		txt = txt.replace(/\\\{\{(.*?)\}\}/g, "&#123;&#123;$1&#125;&#125;");
+		return txt;
 	}
 
 	private readyCb: (() => void)[] = [];
@@ -240,7 +247,7 @@ export class ParserHtml {
 					if (currentTags.length > 0) {
 						let lastTag = currentTags[currentTags.length - 1];
 						lastTag.validateAllProps();
-						if(lastTag.selfClosing){
+						if (lastTag.selfClosing) {
 							currentTags.pop();
 							lastTag.afterClose(scanner.getTokenOffset(), scanner.getTokenEnd());
 						}

@@ -14,6 +14,13 @@ class WebComponentInstance {
         WebComponentInstance.lastDefinition = Date.now();
         WebComponentInstance.__allDefinitions.push(def);
     }
+    static removeDefinition(def) {
+        WebComponentInstance.lastDefinition = Date.now();
+        let index = WebComponentInstance.__allDefinitions.indexOf(def);
+        if (index > -1) {
+            WebComponentInstance.__allDefinitions.splice(index, 1);
+        }
+    }
     /**
      * Get all sub classes of type
      */
@@ -478,11 +485,10 @@ class WebComponent extends HTMLElement {
     static __style = ``;
     static __template;
     __templateInstance;
-    styleBefore() {
-        return ["@general"];
+    styleBefore(addStyle) {
+        addStyle("@general");
     }
-    styleAfter() {
-        return [];
+    styleAfter(addStyle) {
     }
     __getStyle() {
         return [WebComponent.__style];
@@ -494,32 +500,26 @@ class WebComponent extends HTMLElement {
     static __styleSheets = {};
     __renderStyles() {
         let sheets = {};
-        let befores = this.styleBefore();
-        for (let before of befores) {
-            let sheet = Style.get(before);
+        const addStyle = (name) => {
+            let sheet = Style.get(name);
             if (sheet) {
-                sheets[before] = sheet;
+                sheets[name] = sheet;
             }
-        }
+        };
+        this.styleBefore(addStyle);
         let localStyle = new CSSStyleSheet();
         let styleTxt = this.__getStyle().join("\r\n");
         if (styleTxt.length > 0) {
             localStyle.replace(styleTxt);
             sheets['@local'] = localStyle;
         }
-        let afters = this.styleAfter();
-        for (let after of afters) {
-            let sheet = Style.get(after);
-            if (sheet) {
-                sheets[after] = sheet;
-            }
-        }
+        this.styleAfter(addStyle);
         return sheets;
     }
     __renderTemplate() {
         let staticInstance = this.__getStatic();
-        if (!staticInstance.__template) {
-            staticInstance.__template = new WebComponentTemplate();
+        if (!staticInstance.__template || staticInstance.__template.cst != staticInstance) {
+            staticInstance.__template = new WebComponentTemplate(staticInstance);
             this.__getHtml();
             this.__registerTemplateAction();
             staticInstance.__template.generateTemplate();
@@ -799,8 +799,9 @@ class Callback {
      */
     trigger(args) {
         let result = [];
-        for (let callback of this.callbacks) {
-            result.push(callback.apply(null, args));
+        let cbs = [...this.callbacks];
+        for (let cb of cbs) {
+            result.push(cb.apply(null, args));
         }
         return result;
     }
@@ -2185,6 +2186,10 @@ class WebComponentTemplate {
         }
         return false;
     }
+    cst;
+    constructor(component) {
+        this.cst = component;
+    }
     htmlParts = [];
     setHTML(data) {
         this.htmlParts.push(data);
@@ -2336,9 +2341,9 @@ class WebComponentTemplateInstance {
         this.lastChild = content.lastChild;
         this.transformActionsListening();
         this.selectElements();
-        this.bindEvents();
     }
     render() {
+        this.bindEvents();
         for (let cb of this.firstRenderCb) {
             cb();
         }
@@ -2694,15 +2699,9 @@ Style.Namespace='Aventus';
 Aventus.WebComponent=WebComponent;
 WebComponent.Namespace='Aventus';
 Aventus.Callback=Callback;
-<<<<<<< HEAD
-Mutex.Namespace='Aventus';
-Aventus.Mutex=Mutex;
-StateManager.Namespace='Aventus';
-=======
 Callback.Namespace='Aventus';
 Aventus.Mutex=Mutex;
 Mutex.Namespace='Aventus';
->>>>>>> 69d64e6 (Config to build all is ok - ready to dev)
 Aventus.StateManager=StateManager;
 StateManager.Namespace='Aventus';
 Aventus.WatchAction=WatchAction;
@@ -2742,26 +2741,26 @@ class Message {
     }
 }
 
-class GeneralInformation extends Aventus.WebComponent {
-    static __style = `:host>div{margin:16px 0}`;
+class ConfigurationEditor extends Aventus.WebComponent {
+    static __style = ``;
     __getStatic() {
-        return GeneralInformation;
+        return ConfigurationEditor;
     }
     __getStyle() {
         let arrStyle = super.__getStyle();
-        arrStyle.push(GeneralInformation.__style);
+        arrStyle.push(ConfigurationEditor.__style);
         return arrStyle;
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<h3>General informations</h3><div>	<vscode-text-field>Module name</vscode-text-field></div><div>	<vscode-text-field>Version</vscode-text-field></div><div>	<vscode-text-field>Webcomponent prefix</vscode-text-field></div><div>	<vscode-checkbox>Hide warnings</vscode-checkbox></div><div>	<vscode-text-field>Avoid parsing tags</vscode-text-field></div><div>	<vscode-button>Save</vscode-button></div>` }
+        blocks: { 'default':`<h1>Configuration editor</h1><vscode-panels>	<vscode-panel-tab id="tab-1">General</vscode-panel-tab>	<vscode-panel-tab id="tab-2">Dependances</vscode-panel-tab>	<vscode-panel-tab id="tab-3">Builds</vscode-panel-tab>	<vscode-panel-tab id="tab-4">Statics</vscode-panel-tab>	<vscode-panel-view id="view-1">		<av-general-information></av-general-information>	</vscode-panel-view>	<vscode-panel-view id="view-2">		<av-dependances></av-dependances>	</vscode-panel-view>	<vscode-panel-view id="view-3">		Debug Console Content	</vscode-panel-view>	<vscode-panel-view id="view-4">		Terminal Content	</vscode-panel-view></vscode-panels>` }
     });
 }
     getClassName() {
-        return "GeneralInformation";
+        return "ConfigurationEditor";
     }
 }
-if(!window.customElements.get('av-general-information')){window.customElements.define('av-general-information', GeneralInformation);Aventus.WebComponentInstance.registerDefinition(GeneralInformation);}
+if(!window.customElements.get('av-configuration-editor')){window.customElements.define('av-configuration-editor', ConfigurationEditor);Aventus.WebComponentInstance.registerDefinition(ConfigurationEditor);}
 
 class Dependances extends Aventus.WebComponent {
     get 'no_deps'() {
@@ -2863,34 +2862,34 @@ class Icon extends Aventus.WebComponent {
 }
 if(!window.customElements.get('av-icon')){window.customElements.define('av-icon', Icon);Aventus.WebComponentInstance.registerDefinition(Icon);}
 
-class ConfigurationEditor extends Aventus.WebComponent {
-    static __style = ``;
+class GeneralInformation extends Aventus.WebComponent {
+    static __style = `:host>div{margin:16px 0}`;
     __getStatic() {
-        return ConfigurationEditor;
+        return GeneralInformation;
     }
     __getStyle() {
         let arrStyle = super.__getStyle();
-        arrStyle.push(ConfigurationEditor.__style);
+        arrStyle.push(GeneralInformation.__style);
         return arrStyle;
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<h1>Configuration editor</h1><vscode-panels>	<vscode-panel-tab id="tab-1">General</vscode-panel-tab>	<vscode-panel-tab id="tab-2">Dependances</vscode-panel-tab>	<vscode-panel-tab id="tab-3">Builds</vscode-panel-tab>	<vscode-panel-tab id="tab-4">Statics</vscode-panel-tab>	<vscode-panel-view id="view-1">		<av-general-information></av-general-information>	</vscode-panel-view>	<vscode-panel-view id="view-2">		<av-dependances></av-dependances>	</vscode-panel-view>	<vscode-panel-view id="view-3">		Debug Console Content	</vscode-panel-view>	<vscode-panel-view id="view-4">		Terminal Content	</vscode-panel-view></vscode-panels>` }
+        blocks: { 'default':`<h3>General informations</h3><div>	<vscode-text-field>Module name</vscode-text-field></div><div>	<vscode-text-field>Version</vscode-text-field></div><div>	<vscode-text-field>Webcomponent prefix</vscode-text-field></div><div>	<vscode-checkbox>Hide warnings</vscode-checkbox></div><div>	<vscode-text-field>Avoid parsing tags</vscode-text-field></div><div>	<vscode-button>Save</vscode-button></div>` }
     });
 }
     getClassName() {
-        return "ConfigurationEditor";
+        return "GeneralInformation";
     }
 }
-if(!window.customElements.get('av-configuration-editor')){window.customElements.define('av-configuration-editor', ConfigurationEditor);Aventus.WebComponentInstance.registerDefinition(ConfigurationEditor);}
+if(!window.customElements.get('av-general-information')){window.customElements.define('av-general-information', GeneralInformation);Aventus.WebComponentInstance.registerDefinition(GeneralInformation);}
 dependances.Message=Message;
 Message.Namespace='dependances';
-dependances.GeneralInformation=GeneralInformation;
-GeneralInformation.Namespace='dependances';
+dependances.ConfigurationEditor=ConfigurationEditor;
+ConfigurationEditor.Namespace='dependances';
 dependances.Dependances=Dependances;
 Dependances.Namespace='dependances';
 dependances.Icon=Icon;
 Icon.Namespace='dependances';
-dependances.ConfigurationEditor=ConfigurationEditor;
-ConfigurationEditor.Namespace='dependances';
+dependances.GeneralInformation=GeneralInformation;
+GeneralInformation.Namespace='dependances';
 })(dependances);

@@ -19,7 +19,7 @@ import { ClassInfo } from '../../parser/ClassInfo';
 import { OverrideViewDecorator } from '../../parser/decorators/OverrideViewDecorator';
 import { DebuggerDecorator } from '../../parser/decorators/DebuggerDecorator';
 import { TagNameDecorator } from '../../parser/decorators/TagNameDecorator';
-import { BaseInfo } from '../../parser/BaseInfo';
+import { BaseInfo, InfoType } from '../../parser/BaseInfo';
 import { PropertyInfo } from '../../parser/PropertyInfo';
 import { TypeInfo } from '../../parser/TypeInfo';
 import { PropertyDecorator } from '../../parser/decorators/PropertyDecorator';
@@ -102,7 +102,9 @@ export class AventusWebcomponentCompiler {
         debugTxt: "",
         uri: "",
         required: false,
-        isData: false
+        type: InfoType.class,
+        isExported: true,
+        convertibleName: '',
     }
     private parentClassName: string = "";
     private overrideViewDecorator: OverrideViewDecorator | null = null;
@@ -207,6 +209,8 @@ export class AventusWebcomponentCompiler {
             this.componentResult.dependances = normalCompile.dependances;
             this.componentResult.docInvisible = normalCompile.docInvisible;
             this.componentResult.docVisible = normalCompile.docVisible;
+            this.componentResult.type = normalCompile.type;
+            this.componentResult.isExported = normalCompile.isExported;
             this.componentResult.uri = normalCompile.uri;
 
             this.prepareHTMLDocObject();
@@ -275,10 +279,14 @@ export class AventusWebcomponentCompiler {
     private getClassName(classInfo: ClassInfo) {
         let splittedName = classInfo.name.match(/([A-Z][a-z]*)|([0-9][a-z]*)/g);
         if (splittedName) {
-            let componentPrefix = this.build.getComponentPrefix();
-            if (componentPrefix.length > 0 && splittedName[0].toLowerCase() != componentPrefix.toLowerCase()) {
-                // no special tag => add one
-                splittedName.splice(0, 0, componentPrefix.toLowerCase());
+            let componentPrefixes = this.build.getComponentPrefix().split("-");
+            for (let i = 0;i<componentPrefixes.length;i++) {
+                let componentPrefix = componentPrefixes[i];
+                if (componentPrefix.length > 0 && splittedName[i].toLowerCase() != componentPrefix.toLowerCase()) {
+                    // no special tag => add one
+                    splittedName.splice(0, 0, componentPrefixes.join("-").toLowerCase());
+                    break;
+                }
             }
             if (this.tagName == "") {
                 this.tagName = splittedName.join("-").toLowerCase();
@@ -435,10 +443,10 @@ export class AventusWebcomponentCompiler {
         }
         else {
             if (this.build.isCoreBuild) {
-                this.writeFileReplaceVar("definition", "window.customElements.define('" + this.tagName + "', " + this.className + ");WebComponentInstance.registerDefinition(" + this.className + ");")
+                this.writeFileReplaceVar("definition", "if(!window.customElements.get('" + this.tagName + "')){window.customElements.define('" + this.tagName + "', " + this.className + ");WebComponentInstance.registerDefinition(" + this.className + ");}")
             }
             else {
-                this.writeFileReplaceVar("definition", "window.customElements.define('" + this.tagName + "', " + this.className + ");Aventus.WebComponentInstance.registerDefinition(" + this.className + ");")
+                this.writeFileReplaceVar("definition", "if(!window.customElements.get('" + this.tagName + "')){window.customElements.define('" + this.tagName + "', " + this.className + ");Aventus.WebComponentInstance.registerDefinition(" + this.className + ");}")
             }
         }
     }
@@ -1209,7 +1217,7 @@ this.clearWatchHistory = () => {
                             let type = definition.class.properties[eventName].type.value
                             if (ListCallbacks.includes(type)) {
                                 temp.isCallback = true;
-                                temp.fct = `@_@(c, ...args) => c.component.${event.fct}.apply(null, args)@_@`;
+                                temp.fct = `@_@(c, ...args) => c.component.${event.fct}.apply(c.component, args)@_@`;
                             }
                         }
                     }

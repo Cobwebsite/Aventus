@@ -177,6 +177,7 @@ export class DragAndDrop {
     // #endregion
 
     private init() {
+        this.options.elementTrigger.style.touchAction = 'none';
         this.pressManager = new PressManager({
             element: this.options.elementTrigger,
             onPressStart: this.onPressStart.bind(this),

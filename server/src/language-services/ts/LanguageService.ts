@@ -8,7 +8,7 @@ import { Build } from '../../project/Build';
 import { convertRange, uriToPath } from '../../tools';
 import { AventusTsFile } from './File';
 import { loadLibrary, loadTypescriptLib } from './libLoader';
-import { BaseInfo } from './parser/BaseInfo';
+import { BaseInfo, InfoType } from './parser/BaseInfo';
 import { ClassInfo } from './parser/ClassInfo';
 import { DecoratorInfo } from './parser/DecoratorInfo';
 import { DebuggerDecorator } from './parser/decorators/DebuggerDecorator';
@@ -20,6 +20,7 @@ import { ParserTs } from './parser/ParserTs';
 import { existsSync, writeFileSync } from 'fs';
 import { FilesManager } from '../../files/FilesManager';
 import { EditFile } from '../../notification/EditFile';
+import { VariableInfo } from './parser/VariableInfo';
 
 
 
@@ -38,6 +39,7 @@ export class AventusTsLanguageService {
     }
 
     private createHostNamespace(): LanguageServiceHost {
+        const that = this;
         const host: LanguageServiceHost = {
             getCompilationSettings: () => compilerOptionsRead,
             getScriptFileNames: () => {
@@ -89,7 +91,11 @@ export class AventusTsLanguageService {
             },
             resolveModuleNames(moduleNames, containingFile, reusedNames, redirectedReference, options, containingSourceFile?) {
                 const resolvedModules: ResolvedModule[] = [];
-                for (const moduleName of moduleNames) {
+                for (let moduleName of moduleNames) {
+                    let file = FilesManager.getInstance().getByUri(containingFile);
+                    if (file) {
+                        moduleName = that.build.project.resolveAlias(moduleName, file);
+                    }
                     let result = resolveModuleName(moduleName, containingFile, compilerOptionsRead, this)
                     if (result.resolvedModule) {
                         if (result.resolvedModule.resolvedFileName.endsWith(".avt.ts")) {
@@ -111,6 +117,7 @@ export class AventusTsLanguageService {
         return host;
     }
     private createHost(): LanguageServiceHost {
+        const that = this;
         const host: LanguageServiceHost = {
             getCompilationSettings: () => compilerOptionsRead,
             getScriptFileNames: () => {
@@ -162,7 +169,11 @@ export class AventusTsLanguageService {
             },
             resolveModuleNames(moduleNames, containingFile, reusedNames, redirectedReference, options, containingSourceFile?) {
                 const resolvedModules: ResolvedModule[] = [];
-                for (const moduleName of moduleNames) {
+                for (let moduleName of moduleNames) {
+                    let file = FilesManager.getInstance().getByUri(containingFile);
+                    if (file) {
+                        moduleName = that.build.project.resolveAlias(moduleName, file);
+                    }
                     let result = resolveModuleName(moduleName, containingFile, compilerOptionsRead, this)
                     if (result.resolvedModule) {
                         if (result.resolvedModule.resolvedFileName.endsWith(".avt.ts")) {
@@ -207,6 +218,7 @@ export class AventusTsLanguageService {
             const semanticDiagnostics: DiagnosticTs[] = this.languageService.getSemanticDiagnostics(file.uri);
             const allNormalDiagnostics: DiagnosticTs[] = syntaxDiagnostics.concat(semanticDiagnostics);
             for (let diag of allNormalDiagnostics) {
+                if (diag.code == 1206) { continue; } // Decorators not valid
                 let msg = `${flattenDiagnosticMessageText(diag.messageText, '\n')}`
                 if (diag.reportsUnnecessary) {
                     result.push({
@@ -461,7 +473,7 @@ export class AventusTsLanguageService {
 
         let result: CodeAction[] = [];
         try {
-            let parsedFile = ParserTs.parse(file.document, false);
+            let parsedFile = ParserTs.parse(file, false, this.build);
             let document = file.document;
             const syntaxDiagnostics: DiagnosticTs[] = this.languageService.getSyntacticDiagnostics(document.uri);
             const semanticDiagnostics: DiagnosticTs[] = this.languageService.getSemanticDiagnostics(document.uri);
@@ -470,7 +482,7 @@ export class AventusTsLanguageService {
                 codes.push(diag.code)
             }
             for (let diag of semanticDiagnostics) {
-                if(diag.code != 6133) { // 6133 = unused code
+                if (diag.code != 6133) { // 6133 = unused code
                     codes.push(diag.code)
                 }
             }
@@ -839,26 +851,32 @@ export class AventusTsLanguageService {
             debugTxt: "",
             uri: file.file.uri,
             required: false,
-            isData: false
+            type: element.infoType,
+            isExported: element.isExported,
+            convertibleName: ''
         }
         try {
             let additionContent = "";
             // prepare content
             let txt = element.content;
+            let additionalDecorator: string[] = [];
             if (element instanceof ClassInfo) {
-                let additionalDecorator: string[] = [];
                 if (element.implements.includes('Aventus.IData')) {
-                    result.isData = true;
                     additionContent += element.name + ".$schema=" + this.prepareDataSchema(element) + ";";
                     additionalDecorator.push("ForeignKey");
+                    result.type = InfoType.classData;
                 }
-                txt = this.removeDecoratorFromContent(txt, element.decorators, additionalDecorator);
+                result.convertibleName = element.convertibleName
             }
+            txt = this.removeDecoratorFromContent(txt, element.decorators, additionalDecorator);
             txt = this.removeComments(txt);
             txt = this.replaceFirstExport(txt);
 
 
             result.compiled = transpile(txt, compilerOptionsCompile) + additionContent;
+            if (element instanceof VariableInfo) {
+                result.compiled = element.type + " " + result.compiled;
+            }
             let doc = DefinitionCorrector.correct(this.compileDocTs(txt), element);
 
             let namespaceTxt = element.namespace;
@@ -883,15 +901,14 @@ export class AventusTsLanguageService {
                 result.classDoc = element.fullName;
             }
 
-            if (element instanceof ClassInfo) {
-                for (let decorator of element.decorators) {
-                    let debugInfo = DebuggerDecorator.is(decorator);
-                    if (debugInfo && debugInfo.writeCompiled) {
-                        result.debugTxt = result.compiled
-                    }
-                    if (RequiredDecorator.is(decorator)) {
-                        result.required = true;
-                    }
+
+            for (let decorator of element.decorators) {
+                let debugInfo = DebuggerDecorator.is(decorator);
+                if (debugInfo && debugInfo.writeCompiled) {
+                    result.debugTxt = result.compiled
+                }
+                if (RequiredDecorator.is(decorator)) {
+                    result.required = true;
                 }
             }
         } catch (e) {
@@ -969,7 +986,9 @@ export type CompileTsResult = {
     debugTxt: string,
     uri: string,
     required: boolean,
-    isData: boolean,
+    type: InfoType,
+    isExported: boolean,
+    convertibleName: string
 }
 
 const JS_WORD_REGEX = /(-?\d*\.\d\w*)|([^\`\~\!\@\#\%\^\&\*\(\)\-\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\?\s]+)/g;

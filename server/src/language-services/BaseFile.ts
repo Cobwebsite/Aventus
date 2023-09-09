@@ -90,7 +90,8 @@ export abstract class AventusBaseFile {
     }
     protected abstract onContentChange(): Promise<void>;
     private async _onValidate(): Promise<Diagnostic[]> {
-        let result = await this.onValidate();
+        let result = this._build.diagnostics.get(this) ?? [];
+        result = [...result, ...await this.onValidate()];
         if (this.build && this.build.hideWarnings) {
             result = result.filter(p => p.severity != DiagnosticSeverity.Warning)
         }

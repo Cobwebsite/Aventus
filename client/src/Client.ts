@@ -117,7 +117,7 @@ export class Client {
         if (this.client) {
             for (let cmdName in Notifications.allNotifications) {
                 this.client.onNotification(cmdName, (params) => {
-                    (Notifications.allNotifications[cmdName].action as any).call(null, ...params[0])
+                    (Notifications.allNotifications[cmdName].action as any).call(Notifications.allNotifications[cmdName], ...params)
                 });
             }
         }

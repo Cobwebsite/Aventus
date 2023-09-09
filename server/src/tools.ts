@@ -1,10 +1,11 @@
-import { sep } from "path";
+import { normalize, sep } from "path";
 import { flattenDiagnosticMessageText } from 'typescript';
 import { Diagnostic, DiagnosticSeverity, Position, Range } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { AventusErrorCode, AventusExtension, AventusLanguageId } from "./definition";
 import { SectionType } from './language-services/ts/LanguageService';
 import { AventusFile } from './files/AventusFile';
+import { AventusConfig } from './language-services/json/definition';
 
 export function pathToUri(path: string): string {
     if (path.startsWith("file://")) {
@@ -175,4 +176,21 @@ export function checkTxtAfter(file: AventusFile, position: Position, textToSearc
         return false;
     }
     return false;
+}
+
+export function replaceNotImportAliases(content: string, config: AventusConfig | null) {
+    if (!config) {
+        return content;
+    }
+    // replace aliases not starting with @
+    let aliases = config.aliases;
+    for (let alias in aliases) {
+        if (!alias.startsWith("@")) {
+            // we replace all alias not preceded by \
+            let aliasEscaped = alias.replace(/[\\^$*+?.()|[\]{}]/g, '\\$&')
+            let reg = new RegExp("(?<!\\\\)" + aliasEscaped, "g");
+            content = content.replace(reg, aliases[alias]);
+        }
+    }
+    return content;
 }

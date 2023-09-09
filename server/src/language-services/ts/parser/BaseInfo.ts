@@ -1,4 +1,4 @@
-import { Node, CallExpression, ClassDeclaration, EnumDeclaration, FunctionDeclaration, InterfaceDeclaration, SyntaxKind, TypeAliasDeclaration, TypeNode, TypeReferenceNode, forEachChild, ExpressionWithTypeArguments, NewExpression, PropertyAccessExpression } from "typescript";
+import { Node, CallExpression, ClassDeclaration, EnumDeclaration, FunctionDeclaration, InterfaceDeclaration, SyntaxKind, TypeAliasDeclaration, TypeNode, TypeReferenceNode, forEachChild, ExpressionWithTypeArguments, NewExpression, PropertyAccessExpression, VariableStatement, VariableDeclaration } from "typescript";
 import { ParserTs } from './ParserTs';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { BaseLibInfo } from './BaseLibInfo';
@@ -6,6 +6,17 @@ import { TypeInfo } from './TypeInfo';
 import { syntaxName } from './tools';
 import { DecoratorInfo } from './DecoratorInfo';
 import { DependancesDecorator } from './decorators/DependancesDecorator';
+
+
+export enum InfoType {
+    none,
+    class,
+    classData,
+    interface,
+    function,
+    variable,
+    enum
+}
 
 export abstract class BaseInfo {
     private static infoByShortName: { [shortName: string]: BaseInfo } = {};
@@ -15,6 +26,17 @@ export abstract class BaseInfo {
     }
     public static getInfoByFullName(fullName: string): BaseInfo | undefined {
         return this.infoByFullName[fullName];
+    }
+
+    public static isExported(node: ClassDeclaration | EnumDeclaration | InterfaceDeclaration | TypeAliasDeclaration | FunctionDeclaration | VariableStatement) {
+        if (node.modifiers) {
+            for (let modifier of node.modifiers) {
+                if (modifier.kind == SyntaxKind.ExportKeyword) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     public name: string = "";
@@ -43,13 +65,15 @@ export abstract class BaseInfo {
     public debug: boolean = false;
     public document: TextDocument;
     private dependanceNameLoaded: string[] = [];
+    private dependancePrevented: string[] = [];
     private dependancesLocations: { [name: string]: { start: number, end: number }[] } = {};
+    public infoType: InfoType = InfoType.none;
 
     public get parserInfo() {
         return this._parserInfo;
     }
 
-    constructor(node: ClassDeclaration | EnumDeclaration | InterfaceDeclaration | TypeAliasDeclaration | FunctionDeclaration, namespaces: string[], parserInfo: ParserTs, autoLoadDepDecorator: boolean = true) {
+    constructor(node: ClassDeclaration | EnumDeclaration | InterfaceDeclaration | TypeAliasDeclaration | FunctionDeclaration | VariableDeclaration, namespaces: string[], parserInfo: ParserTs, autoLoadDepDecorator: boolean = true) {
         this._parserInfo = parserInfo;
         this.document = parserInfo.document;
         this.decorators = DecoratorInfo.buildDecorator(node);
@@ -72,12 +96,8 @@ export abstract class BaseInfo {
                     this.documentation.push(jsDoc.comment);
                 }
             }
-            if (node.modifiers) {
-                for (let modifier of node.modifiers) {
-                    if (modifier.kind == SyntaxKind.ExportKeyword) {
-                        this.isExported = true;
-                    }
-                }
+            if (node.kind != SyntaxKind.VariableDeclaration) {
+                this.isExported = BaseInfo.isExported(node);
             }
             BaseInfo.infoByFullName[this.fullName] = this;
         }
@@ -99,7 +119,13 @@ export abstract class BaseInfo {
         }
     }
 
-    protected loadOnlyDependancesRecu(node: Node, depth: number = 0) {
+    protected preventDependanceAdd(name: string) {
+        if (!this.dependancePrevented.includes(name)) {
+            this.dependancePrevented.push(name);
+        }
+    }
+
+    protected loadOnlyDependancesRecu(node: Node, depth: number = 0, isStrongDependance: boolean = false) {
         if (this.parserInfo.isLib) {
             return
         }
@@ -109,7 +135,7 @@ export abstract class BaseInfo {
                 console.log(syntaxName[x.kind]);
             }
             if (x.kind == SyntaxKind.ExpressionWithTypeArguments) {
-                this.addDependance(x as ExpressionWithTypeArguments, false);
+                this.addDependance(x as ExpressionWithTypeArguments, isStrongDependance);
             }
             else if (x.kind == SyntaxKind.NewExpression) {
                 let exp = (x as NewExpression);
@@ -122,29 +148,49 @@ export abstract class BaseInfo {
                 if (baseInfo) {
                     // when static call on external class
                     if (exp.expression.getText() + "." + txt == baseInfo.fullName) {
-                        this.addDependanceName(baseInfo.fullName, false, exp.expression.getStart(), exp.expression.getEnd());
+                        this.addDependanceName(baseInfo.fullName, isStrongDependance, exp.expression.getStart(), exp.expression.getEnd());
                     }
                 }
                 else {
                     // when static call on local class
                     let localClassName = exp.expression.getText();
                     if (localClassName != 'this' && !localClassName.includes('.')) {
-                        let localClass = this.parserInfo.imports[localClassName];
-                        if (localClass) {
-                            this.addDependanceName(localClassName, false, exp.expression.getStart(), exp.expression.getEnd());
+                        if (ParserTs.hasImport(localClassName)) {
+                            this.addDependanceName(localClassName, isStrongDependance, exp.expression.getStart(), exp.expression.getEnd());
                         }
                     }
                 }
                 loadExpression(exp.expression, depth2 + 1);
             }
+            else if (x.kind == SyntaxKind.Identifier) {
+                if (x.parent.kind == SyntaxKind.PropertyAccessExpression) {
+                    return;
+                }
+                else if (x.parent.kind >= SyntaxKind.VariableDeclaration && x.parent.kind <= SyntaxKind.JsxExpression) {
+                    return;
+                }
+                let localClassName = x.getText();
+                if (localClassName != 'this' && !localClassName.includes('.')) {
+                    let baseInfo = ParserTs.getBaseInfo(localClassName);
+                    if (baseInfo) {
+                        this.addDependanceName(localClassName, isStrongDependance, x.getStart(), x.getEnd());
+                    }
+                    else {
+                        if (ParserTs.hasImport(localClassName)) {
+                            this.addDependanceName(localClassName, isStrongDependance, x.getStart(), x.getEnd());
+                        }
+                    }
+                }
+            }
             else if (x.kind == SyntaxKind.CallExpression) {
                 let exp = (x as CallExpression);
                 loadExpression(exp.expression, depth2 + 1);
             }
+
         }
         forEachChild(node, x => {
             if (x.kind == SyntaxKind.TypeReference) {
-                this.addDependance(x as TypeReferenceNode, false);
+                this.addDependance(x as TypeReferenceNode, isStrongDependance);
                 return;
             }
             else {
@@ -155,7 +201,7 @@ export abstract class BaseInfo {
                 console.log("***" + depth + ". " + x.getText());
                 console.log(syntaxName[x.kind]);
             }
-            this.loadOnlyDependancesRecu(x, depth + 1);
+            this.loadOnlyDependancesRecu(x, depth + 1, isStrongDependance);
         })
     }
     /**
@@ -223,6 +269,9 @@ export abstract class BaseInfo {
         if (!this.addDependanceNameCustomCheck(name)) {
             return null;
         }
+        if (this.dependancePrevented.includes(name)) {
+            return null;
+        }
         if (this.dependanceNameLoaded.includes(name)) {
             return null;
         }
@@ -237,28 +286,21 @@ export abstract class BaseInfo {
             });
             return name;
         }
-        // import name or local name or lib name
-        if (this.parserInfo.classes[name]) {
-            // it's a class inside the same file
-            let fullName = this.parserInfo.classes[name].fullName
-            this.dependances.push({
-                fullName: "$namespace$" + fullName,
-                uri: '@local',
-                isStrong: isStrongDependance
-            });
+        let types = [this.parserInfo.classes, this.parserInfo.enums, this.parserInfo.aliases, this.parserInfo.functions, this.parserInfo.variables];
+        for (let type of types) {
+            if (type[name]) {
+                // it's a class inside the same file
+                let fullName = type[name].fullName
+                this.dependances.push({
+                    fullName: "$namespace$" + fullName,
+                    uri: '@local',
+                    isStrong: isStrongDependance
+                });
 
-            return fullName;
+                return fullName;
+            }
         }
-        if (this.parserInfo.enums[name]) {
-            // it's an enum inside the same file
-            let fullName = this.parserInfo.enums[name].fullName
-            this.dependances.push({
-                fullName: "$namespace$" + fullName,
-                uri: '@local',
-                isStrong: isStrongDependance
-            });
-            return fullName;
-        }
+
         if (this.parserInfo.imports[name]) {
             // it's an imported class
             let fullName = this.parserInfo.imports[name].fullName
@@ -269,15 +311,9 @@ export abstract class BaseInfo {
             });
             return fullName;
         }
-        if (this.parserInfo.aliases[name]) {
-            // it's an alias
-            let fullName = this.parserInfo.aliases[name].fullName
-            this.dependances.push({
-                fullName: "$namespace$" + fullName,
-                uri: "@local",
-                isStrong: isStrongDependance
-            });
-            return fullName;
+        else if (this.parserInfo.waitingImports[name]) {
+            // TODO maybe return a specific value to parsed after file is ready
+
         }
 
 
@@ -293,4 +329,6 @@ export abstract class BaseInfo {
     protected addDependanceNameCustomCheck(name: string): boolean {
         return true;
     }
+
+
 }

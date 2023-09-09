@@ -1,12 +1,15 @@
 import { CodeAction } from 'vscode-css-languageservice';
 import { CodeLens, Color, ColorInformation, ColorPresentation, CompletionItem, CompletionList, Definition, ExecuteCommandParams, FormattingOptions, Hover, Location, Position, PublishDiagnosticsParams, Range, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
+import { GenericServer } from './GenericServer';
 
 export interface IConnection {
 	open();
 	delayBetweenBuild(): number;
-	sendNotification(cmd: string, ...params: any): void;
+	sendNotification(cmd: string, params: any[]): void;
+	showWarningMessage(msg: string): void;
 	showErrorMessage(msg: string): void;
+	showInformationMessage(msg: string): void;
 	sendDiagnostics(params: PublishDiagnosticsParams): void;
 
 	onInitialize(cb: (params: AvInitializeParams) => void);

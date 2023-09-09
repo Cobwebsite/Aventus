@@ -7,6 +7,8 @@ import { EditFile } from './EditFile';
 import { ServerStart } from './httpServer/ServerStart';
 import { ServerStop } from './httpServer/ServerStop';
 import { InitStep } from './InitStep';
+import { LoadingStart } from './LoadingStart';
+import { LoadingStop } from './LoadingStop';
 import { OpenFile } from "./OpenFile";
 import { OpenPreview } from "./OpenPreview";
 import { Popup } from './Popup';
@@ -38,5 +40,7 @@ export const Notifications = {
         [AskSelect.cmd]: AskSelect,
         [AskSelectMultiple.cmd]: AskSelectMultiple,
         [Popup.cmd]: Popup,
+        [LoadingStart.cmd]: LoadingStart,
+        [LoadingStop.cmd]: LoadingStop
     },
 }

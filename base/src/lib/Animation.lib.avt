@@ -14,6 +14,7 @@ export class Animation {
     private nextFrame: number;
     private fpsInterval: number;
     private continueAnimation: boolean = false;
+    private frame_id: number = 0;
 
     constructor(options: AnimationOptions) {
         if(!options.animate) {
@@ -33,7 +34,7 @@ export class Animation {
         let now = window.performance.now();
         let elapsed = now - this.nextFrame;
         if(elapsed <= this.fpsInterval) {
-            requestAnimationFrame(() => this.animate());
+            this.frame_id = requestAnimationFrame(() => this.animate());
             return;
         }
         this.nextFrame = now - (elapsed % this.fpsInterval);
@@ -42,7 +43,7 @@ export class Animation {
             this.options.animate();
         }, 0);
         if(this.continueAnimation) {
-            requestAnimationFrame(() => this.animate());
+            this.frame_id = requestAnimationFrame(() => this.animate());
         }
         else {
             this.options.stopped();
@@ -64,6 +65,15 @@ export class Animation {
      */
     public stop(): void {
         this.continueAnimation = false;
+    }
+
+    /**
+     * Stop the animation
+     */
+    public immediateStop(): void {
+        cancelAnimationFrame(this.frame_id);
+        this.continueAnimation = false;
+        this.options.stopped();
     }
 
     /**

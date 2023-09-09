@@ -1,5 +1,5 @@
 import { ClassDeclaration, Expression, forEachChild, SyntaxKind, Node, MethodDeclaration, PropertyDeclaration, NewExpression, PropertyAccessExpression, HeritageClause, InterfaceDeclaration, ConstructorDeclaration, ExpressionWithTypeArguments, TypeNode, TypeReferenceNode, CallExpression, GetAccessorDeclaration, SetAccessorDeclaration } from "typescript";
-import { BaseInfo } from "./BaseInfo";
+import { BaseInfo, InfoType } from "./BaseInfo";
 import { BaseLibInfo } from './BaseLibInfo';
 import { DecoratorInfo } from "./DecoratorInfo";
 import { MethodInfo } from "./MethodInfo";
@@ -7,6 +7,7 @@ import { ParserTs } from "./ParserTs";
 import { PropertyInfo } from "./PropertyInfo";
 import { syntaxName } from "./tools";
 import { TypeInfo } from './TypeInfo';
+import { ConvertibleDecorator } from './decorators/ConvertibleDecorator';
 
 
 export class ClassInfo extends BaseInfo {
@@ -23,12 +24,13 @@ export class ClassInfo extends BaseInfo {
 	public constructorBody: string = "";
 	public parameters: string[] = [];
 	private methodParameters: string[] = [];
-
+	public convertibleName: string = '';
 
 	constructor(node: ClassDeclaration | InterfaceDeclaration, namespaces: string[], parserInfo: ParserTs) {
 		super(node, namespaces, parserInfo, false);
 
 		this.isInterface = node.kind == SyntaxKind.InterfaceDeclaration;
+		this.infoType = this.isInterface ? InfoType.interface : InfoType.class;
 		if (node.typeParameters) {
 			for (let param of node.typeParameters) {
 				this.parameters.push(param.name.getText());
@@ -41,7 +43,7 @@ export class ClassInfo extends BaseInfo {
 				}
 			}
 		}
-		
+
 		if (node.heritageClauses) {
 			for (let heritage of node.heritageClauses) {
 				this.getClassInheritance(heritage);
@@ -136,12 +138,17 @@ export class ClassInfo extends BaseInfo {
 			}
 		});
 
+		for (let decorator of this.decorators) {
+			let temp = ConvertibleDecorator.is(decorator);
+			if (temp) {
+				this.convertibleName = temp.name;
+			}
+		}
 		this.loadDependancesDecorator();
 
 	}
 	private getClassInheritance(node: HeritageClause) {
 		if (node.token == SyntaxKind.ExtendsKeyword) {
-
 			forEachChild(node, x => {
 				if (x.kind == SyntaxKind.ExpressionWithTypeArguments) {
 					let fullName = this.addDependance(x as ExpressionWithTypeArguments, true);
@@ -155,6 +162,7 @@ export class ClassInfo extends BaseInfo {
 							}
 						}
 					}
+					this.loadOnlyDependancesRecu(x, 0, true);
 				}
 			})
 		}
@@ -175,5 +183,16 @@ export class ClassInfo extends BaseInfo {
 			return false;
 		}
 		return true;
+	}
+
+	public hasStaticField(name: string): boolean {
+		let classToSearch: ClassInfo | null = this;
+		while (classToSearch != null) {
+			if (classToSearch.propertiesStatic[name] != undefined) {
+				return true;
+			}
+			classToSearch = classToSearch.parentClass;
+		}
+		return false;
 	}
 }

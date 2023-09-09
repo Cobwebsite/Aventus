@@ -207,6 +207,10 @@ export class WebComponentTemplate {
         return false;
     }
 
+    public cst: typeof WebComponent;
+    public constructor(component: typeof WebComponent) {
+        this.cst = component;
+    }
 
     //#region only used for main template
     private htmlParts: WebComponentTemplateHTML[] = [];
@@ -370,10 +374,10 @@ export class WebComponentTemplateInstance {
         this.lastChild = content.lastChild as HTMLElement;
         this.transformActionsListening();
         this.selectElements();
-        this.bindEvents();
     }
 
     public render() {
+        this.bindEvents();
         for(let cb of this.firstRenderCb) {
             cb();
         }

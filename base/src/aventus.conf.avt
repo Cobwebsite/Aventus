@@ -9,6 +9,7 @@
                 "./data/",
                 "./lib/",
                 "./ram/",
+                "./http/",
                 "./socket/",
                 "./state/",
                 "./tools/",
