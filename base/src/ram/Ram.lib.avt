@@ -1,6 +1,8 @@
 import { RamError, RamErrorCode, ResultRamWithError } from "./Error.lib.avt";
 import { IData } from "../data/IData.data.avt";
 import { DataManager } from "../data/DataManager.lib.avt";
+import { Converter } from "../tools/Converter.lib.avt";
+import { VoidWithError } from "../tools/Error.lib.avt";
 
 export interface IRam { }
 export type KeysObject<T> = { [Key in keyof T]?: any; };
@@ -86,9 +88,15 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
     /**
      * Add function update, onUpdate, offUpdate, delete, onDelete, offDelete
      */
-    protected addRamAction<B extends new (...args: any[]) => IData>(Base: B) {
+    protected addRamAction<B extends (new (...args: any[]) => IData) & { className?: string; }>(Base: B) {
         let that = this;
         return class ActionClass extends Base implements IRamAction<T> {
+            public static override get className(): string {
+                return Base.className || Base.name;
+            }
+            public get className(): string {
+                return Base.className || Base.name;
+            }
             public async update(newData: KeysObject<T> = {}): Promise<this> {
                 let id = that.getId(this);
                 let oldData = that.records.get(id);
@@ -190,7 +198,7 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
      * Merge object and create real instance of class
      */
     protected mergeObject(item: T, objJson: KeysObject<T> | T) {
-        let realObject = DataManager.createObject(objJson);
+        let realObject = Converter.transform(objJson);
         let props = Object.getOwnPropertyNames(item);
         for(let prop of props) {
             if(realObject[prop] !== undefined) {
@@ -628,7 +636,11 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
     public async deleteListWithError(list: T[]): Promise<ResultRamWithError<RamItem<T>[]>> {
         let action: ResultRamWithError<RamItem<T>[]> = new ResultRamWithError();
         action.result = [];
-        await this.beforeDeleteList(list, action);
+        let deleteResult = new VoidWithError();
+        await this.beforeDeleteList(list, deleteResult);
+        if(!deleteResult.success) {
+            action.errors = deleteResult.errors;
+        }
         for(let item of list) {
             let resultItem = await this._delete(item, true);
             if(resultItem.success) {
@@ -688,8 +700,10 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
             let key = resultTemp.result;
             if(this.records.has(key)) {
                 let oldItem = this.records.get(key);
-                await this.beforeDeleteItem(oldItem, fromList, action);
-                if(!action.success) {
+                let deleteResult = new VoidWithError();
+                await this.beforeDeleteItem(oldItem, fromList, deleteResult);
+                if(!deleteResult.success) {
+                    action.errors = deleteResult.errors;
                     return action;
                 }
                 this.records.delete(key);
@@ -714,11 +728,11 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
     /**
      * Trigger before deleting a list of items
      */
-    protected async beforeDeleteList(list: T[], result: ResultRamWithError<RamItem<T>[]>): Promise<void> { };
+    protected async beforeDeleteList(list: T[], result: VoidWithError): Promise<void> { };
     /**
      * Trigger before deleting an item
      */
-    protected async beforeDeleteItem(item: T, fromList: boolean, result: ResultRamWithError<RamItem<T>>): Promise<void> { };
+    protected async beforeDeleteItem(item: T, fromList: boolean, result: VoidWithError): Promise<void> { };
     /**
      * Trigger after deleting an item
      */

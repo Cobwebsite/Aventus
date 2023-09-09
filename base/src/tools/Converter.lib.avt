@@ -1,4 +1,6 @@
 
+
+// export type JsonFormat<T> = T extends Array<infer U> ? KeysObject<U>[] : KeysObject<T>;
 type SchemaType = 'string' | 'number' | 'boolean' | 'date' | string;
 export interface Schema {
     [key: string]: SchemaType;

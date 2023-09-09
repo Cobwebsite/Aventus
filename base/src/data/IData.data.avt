@@ -19,7 +19,7 @@ export abstract class Data implements IData {
     /**
      * The current namespace
      */
-    public static get Namespace(): string { return ""; }
+    public static readonly Namespace: string  = "";
     /**
      * Get the unique type for the data. Define it as the namespace + class name
      */

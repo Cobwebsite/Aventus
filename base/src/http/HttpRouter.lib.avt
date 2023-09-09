@@ -1,12 +1,10 @@
 import { HttpRoute } from "./HttpRoute.lib.avt";
 import { MixProto } from "../tools/MergePrototype.lib.avt";
 import { RouteType, MergeRoutesType } from "./type.lib.avt";
-import { KeysObject } from "../ram/Ram.lib.avt";
 import { HttpRouterOptions } from "./HttpRouterOptions.lib.avt";
 import { HttpMethod } from "./HttpMethod.lib.avt";
 import { HttpRequest } from "./HttpRequest.lib.avt";
 
-export type JsonFormat<T> = T extends Array<infer U> ? KeysObject<U>[] : KeysObject<T>;
 
 export abstract class HttpRouter {
     private _routes: any;

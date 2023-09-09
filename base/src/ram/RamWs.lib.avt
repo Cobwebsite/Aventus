@@ -3,6 +3,7 @@ import { IData } from "../data/IData.data.avt";
 import { RamError, RamErrorCode, ResultRamWithError } from "./Error.lib.avt";
 import { Socket } from "../socket/Socket.lib.avt";
 import { SocketRoute } from "../socket/ISocket.lib.avt";
+import { VoidWithError } from "../tools/Error.lib.avt";
 
 
 export interface RamWsRoutes {
@@ -370,7 +371,7 @@ export abstract class GenericRamWs<Index, T extends IData> extends GenericRam<In
     //#endregion
 
     //#region delete
-    protected override beforeDeleteItem(item: T, fromList: boolean, result: ResultRamWithError<RamItem<T>>): Promise<void> {
+    protected override beforeDeleteItem(item: T, fromList: boolean, result: VoidWithError): Promise<void> {
         return new Promise<void>((resolve, reject) => {
             if(!fromList) {
                 this.sendMsg(this.wsRoutes.delete.request, item, {
@@ -388,7 +389,7 @@ export abstract class GenericRamWs<Index, T extends IData> extends GenericRam<In
             }
         });
     }
-    protected override beforeDeleteList(list: T[], result: ResultRamWithError<RamItem<T>[]>): Promise<void> {
+    protected override beforeDeleteList(list: T[], result: VoidWithError): Promise<void> {
         return new Promise<void>((resolve, reject) => {
             this.sendMsg(this.wsRoutes.delete.multiple, list, {
                 [this.wsRoutes.delete.success]: (response: { deleted: KeysObject<T>[]; }) => {
