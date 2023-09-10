@@ -8,6 +8,9 @@ import { Build } from "../../project/Build";
 import { createErrorScssPos } from "../../tools";
 import { AventusBaseFile } from "../BaseFile";
 import { AventusWebComponentLogicalFile } from '../ts/component/File';
+import { SCSSParsedRule } from './LanguageService';
+import { AventusHTMLFile } from '../html/File';
+import { ParserHtml } from '../html/parser/ParserHtml';
 const nodeSass = require('sass');
 
 export class AventusWebSCSSFile extends AventusBaseFile {
@@ -18,9 +21,21 @@ export class AventusWebSCSSFile extends AventusBaseFile {
     private diagnostics: Diagnostic[] = [];
     private compiledTxt: string = "";
     private namespace: string = "";
+    private _rules: SCSSParsedRule = new Map();
 
     public get compileResult() {
         return this.compiledTxt;
+    }
+
+    public get rules() {
+        return this._rules;
+    }
+    public get htmlFile(): AventusHTMLFile | null {
+        let file = this.build.htmlFiles[this.file.uri.replace(AventusExtension.ComponentStyle, AventusExtension.ComponentView)];
+        if (file instanceof AventusHTMLFile) {
+            return file;
+        }
+        return null;
     }
 
     public constructor(file: AventusFile, build: Build) {
@@ -33,7 +48,6 @@ export class AventusWebSCSSFile extends AventusBaseFile {
     protected async onValidate(): Promise<Diagnostic[]> {
         this.diagnostics = await this.build.scssLanguageService.doValidation(this.file);
         this.loadDependances();
-
         return this.diagnostics;
     }
     protected async onContentChange(): Promise<void> {
@@ -110,6 +124,14 @@ export class AventusWebSCSSFile extends AventusBaseFile {
                         HttpServer.getInstance().updateCSS(this.compiledTxt, namespace + tsFile.compilationResult.componentName, [])
                     }
                 }
+
+
+            }
+            
+            this._rules = this.build.scssLanguageService.getRules(this.file);
+            let htmlFile = this.build.htmlFiles[this.file.uri.replace(AventusExtension.ComponentStyle, AventusExtension.ComponentView)];
+            if (htmlFile instanceof AventusHTMLFile) {
+                ParserHtml.refreshStyle(htmlFile, this._build);
             }
         } catch (e) {
             console.error(e);
@@ -147,7 +169,9 @@ export class AventusWebSCSSFile extends AventusBaseFile {
         return this.build.scssLanguageService.doCodeAction(document, range);
     }
     protected async onReferences(document: AventusFile, position: Position): Promise<Location[]> {
-        return await this.build.scssLanguageService.onReferences(document, position);
+        let result = await this.build.scssLanguageService.onReferences(document, position);
+        result = [...result, ...this.build.scssLanguageService.getLinkToHtml(this, position)]
+        return result;
     }
     protected async onCodeLens(document: AventusFile): Promise<CodeLens[]> {
         return []
@@ -194,7 +218,7 @@ export class AventusWebSCSSFile extends AventusBaseFile {
             this.dependances[fileDependance.uri] = this.build.scssFiles[fileDependance.uri];
             this.build.scssFiles[fileDependance.uri].usedBy[this.file.uri] = this;
         }
-        else if(fileDependance.uri.endsWith(AventusExtension.ComponentStyle)) {
+        else if (fileDependance.uri.endsWith(AventusExtension.ComponentStyle)) {
             this.build.scssFiles[fileDependance.uri] = new AventusWebSCSSFile(fileDependance, this.build);
             this.dependances[fileDependance.uri] = this.build.scssFiles[fileDependance.uri];
             this.build.scssFiles[fileDependance.uri].usedBy[this.file.uri] = this;

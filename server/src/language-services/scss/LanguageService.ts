@@ -7,8 +7,10 @@ import { Build } from '../../project/Build';
 import { getNodePath, SCSSDoc, Node, NodeType, CustomCssProperty } from './helper/CSSNode';
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { AventusFile } from '../../files/AventusFile';
+import { TagInfo } from '../html/parser/TagInfo';
+import { AventusWebSCSSFile } from './File';
 
-
+export type SCSSParsedRule = Map<(tagInfo: TagInfo) => boolean, { start: number, end: number }>;
 
 export class AventusSCSSLanguageService {
     private languageService: LanguageService;
@@ -209,6 +211,27 @@ export class AventusSCSSLanguageService {
     }
     //#endregion
 
+    public getLinkToHtml(file: AventusWebSCSSFile, position: Position): Location[] {
+        let result: Location[] = [];
+        let offset = file.file.document.offsetAt(position);
+        let htmlFile = file.htmlFile;
+        if (htmlFile && htmlFile.fileParsed) {
+            for (let points of htmlFile.fileParsed.styleLinks) {
+                let point = points[1]
+                if (offset >= point.start && offset <= point.end) {
+                    result.push({
+                        uri: htmlFile.file.uri,
+                        range: {
+                            start: htmlFile.file.document.positionAt(points[0].start),
+                            end: htmlFile.file.document.positionAt(points[0].end)
+                        }
+                    });
+                }
+            }
+        }
+        return result;
+    }
+
     private getTree(file: AventusFile, position: Position): string[] {
         let result: string[] = [];
         if (this.languageService) {
@@ -226,6 +249,120 @@ export class AventusSCSSLanguageService {
             }
         }
         return result;
+    }
+
+    public getRules(file: AventusFile) {
+        let rules: SCSSParsedRule = new Map();
+        let doc = this.languageService.parseStylesheet(file.document);
+
+        const _createRuleClass = (selector: Node) => {
+            return (tagInfo: TagInfo) => {
+                let selectorTxt = selector.getText().replace(".", "");
+                let regex = new RegExp("((?:^|\\W))(" + selectorTxt + ")(?:$|\\W)", "gi")
+                if (tagInfo.attributes["class"]?.value?.match(regex)) {
+                    return true;
+                }
+                return false;
+            }
+
+        }
+        const _createRuleElementName = (selector: Node) => {
+            return (tagInfo: TagInfo) => {
+                let selectorTxt = selector.getText();
+                if (tagInfo.tagName == selectorTxt) {
+                    return true;
+                }
+                return false;
+            }
+        }
+        const _createCheck = (parentCheck: ((tagInfo: TagInfo) => boolean) | null = null, checks: ((tagInfo: TagInfo) => boolean)[]) => {
+            return (tagInfo: TagInfo) => {
+                if (parentCheck) {
+                    let oneIsMatching = false;
+                    let parent = tagInfo.parent;
+                    while (parent) {
+                        if (parentCheck(parent)) {
+                            oneIsMatching = true;
+                            break;
+                        }
+                        parent = parent.parent;
+                    }
+                    if (!oneIsMatching) return false;
+                }
+
+                for (let check of checks) {
+                    if (!check(tagInfo)) {
+                        return false;
+                    }
+                }
+                return true;
+            };
+        }
+
+        const _loadRules = (node: Node, parentCheck: ((tagInfo: TagInfo) => boolean) | null = null) => {
+            if (node.type == NodeType.Ruleset) {
+                let hasContent = false;
+                for (let decl of node.getChildren()[1].getChildren()) {
+                    if (decl.type == NodeType.Declaration || decl.type == NodeType.CustomPropertyDeclaration || decl.type == NodeType.MixinDeclaration || decl.type == NodeType.FunctionDeclaration || decl.type == NodeType.VariableDeclaration) {
+                        hasContent = true;
+                        break;
+                    }
+                }
+                let realNode = node.getChildren()[0]?.getChildren()[0];
+                let position: { start: number, end: number } | null = null;
+                if (realNode) {
+                    for (let childNode of realNode.getChildren()) {
+                        if (childNode.type == NodeType.SimpleSelector) {
+                            if(!position){
+                                position = {
+                                    start: childNode.offset,
+                                    end: childNode.offset + childNode.length,
+                                };
+                            }
+                            else if(position.start > childNode.offset) {
+                                position.start = childNode.offset;
+                            }
+                            else if(position.end < childNode.offset+ childNode.length) {
+                                position.end = childNode.offset+ childNode.length;
+                            }
+                            let checks: ((tagInfo: TagInfo) => boolean)[] = [];
+                            for (let selector of childNode.getChildren()) {
+                                if (selector.type == NodeType.ClassSelector) {
+                                    checks.push(_createRuleClass(selector));
+                                }
+                                else if (selector.type == NodeType.ElementNameSelector) {
+                                    checks.push(_createRuleElementName(selector))
+                                }
+                            }
+                            if (checks.length > 0) {
+                                parentCheck = _createCheck(parentCheck, checks);
+
+                            }
+                        }
+                        else {
+                            console.log("to debug");
+                        }
+                    }
+                    if (parentCheck && position) {
+                        rules.set(parentCheck, position)
+                    }
+                }
+            }
+            else if (node.type == NodeType.Property) {
+                return;
+            }
+
+            if (node.hasChildren()) {
+                for (let childNode of node.getChildren()) {
+                    _loadRules(childNode, parentCheck);
+                }
+            }
+        }
+        let path = getNodePath(doc as Node, 0);
+        if (path.length > 0) {
+            _loadRules(path[0]);
+        }
+        return rules;
     }
 
     private getElementAtPosition(file: AventusFile, position: Position): Node | null {
