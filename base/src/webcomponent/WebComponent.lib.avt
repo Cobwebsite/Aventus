@@ -74,6 +74,22 @@ export class WebComponentInstance {
         }
         return result;
     }
+    public static create<T>(type: string): T | null {
+        let _class = customElements.get(type);
+        if(_class) {
+            return new _class() as T;
+        }
+
+        let splitted = type.split(".");
+        let current: any = window;
+        for(let part of splitted) {
+            current = current[part];
+        }
+        if(current && current.prototype instanceof Aventus.WebComponent) {
+            return new current();
+        }
+        return null;
+    }
 }
 
 @Dependances([{
@@ -101,7 +117,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
     /**
      * The current namespace
      */
-    public static get Namespace(): string { return ""; }
+    public static readonly Namespace: string  = "";
     /**
      * Get the unique type for the data. Define it as the namespace + class name
      */

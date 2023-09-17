@@ -1,7 +1,7 @@
 export class Style {
     private static instance: Style;
     private static defaultStyleSheets: { [name: string]: string; } = {
-        "@general": `:host{display:inline-block;box-sizing:border-box}:host *{box-sizing:border-box}`
+        "@general": `:host{display:inline-block;box-sizing:border-box}:host *{box-sizing:border-box}`,
     };
 
     public static store(name: string, content: string) {

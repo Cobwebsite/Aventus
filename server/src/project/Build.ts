@@ -91,7 +91,7 @@ export class Build {
         this.htmlLanguageService = new AventusHTMLLanguageService(this);
 
         this._outputPathes = [join(DependanceManager.getInstance().getPath(), "@locals", this.buildConfig.fullname + AventusExtension.Package).replace(/\\/g, '/')];
-        for(let outputPackage of buildConfig.outputPackage){
+        for (let outputPackage of buildConfig.outputPackage) {
             this._outputPathes.push(outputPackage.replace(/\\/g, '/'));
         }
         RegisterBuild.send(project.getConfigFile().path, buildConfig.fullname);
@@ -130,7 +130,7 @@ export class Build {
     }
     //#region build
     private timerBuild: NodeJS.Timeout | undefined = undefined;
-    public insideRebuildAll:boolean = false;
+    public insideRebuildAll: boolean = false;
     public async rebuildAll() {
         this.allowBuild = false;
         this.insideRebuildAll = true;
@@ -716,12 +716,16 @@ export class Build {
         let loadedInfoInternal: string[] = [];
         let loadedInfoExternal: { [uri: string]: string[] } = {};
         let localUri = '@local';
+        let first = true;
         /**
          * Load information for a class and the dependances needed
          */
         const loadAndOrderInfo = (info: { fullName: string; isStrong: boolean }, isLocal: boolean, indexByUri: { [uri: string]: number }, alreadyLooked: { [name: string]: boolean }): { [uri: string]: number } => {
             const fullName = info.fullName.replace("$namespace$", '');
-
+            if (fullName.includes("BottomBar") && first) {
+                console.log("in");
+                first = false;
+            }
             let calculateDependances = true;
             if (alreadyLooked[fullName] !== undefined) {
                 calculateDependances = false;
@@ -734,6 +738,7 @@ export class Build {
                 if (info.isStrong) {
                     alreadyLooked[fullName] = info.isStrong;
                 }
+                return indexByUri;
 
             }
             else {
@@ -1159,6 +1164,9 @@ export class Build {
             let namespaceTxt = path.replace(this.buildConfig.namespaceRoot, "").replace(/\//g, '.');
             if (namespaceTxt.endsWith(".")) {
                 namespaceTxt = namespaceTxt.slice(0, -1);
+            }
+            if (namespaceTxt.startsWith(".")) {
+                namespaceTxt = namespaceTxt.slice(1);
             }
             if (namespaceTxt.includes(":")) {
                 // TODO add error

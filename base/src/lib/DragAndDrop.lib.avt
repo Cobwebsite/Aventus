@@ -47,6 +47,8 @@ export interface DragAndDropOptions {
     onStop?: (e: PointerEvent) => void;
     /** Trigger after drop if at least one target found; Element is the shadow or the target*/
     onDrop?: (element: HTMLElement, targets: HTMLElement[]) => void;
+    /** correct the position if you need */
+    correctPosition?: (position: Coordinate) => Coordinate;
 }
 
 interface Coordinate {
@@ -85,6 +87,7 @@ export class DragAndDrop {
         onMove: (e: PointerEvent, position: Coordinate) => void;
         onStop: (e: PointerEvent) => void;
         onDrop: (element: HTMLElement, targets: HTMLElement[]) => void;
+        correctPosition: (position: Coordinate) => Coordinate;
     };
     private startCursorPosition: Coordinate;
     private startElementPosition: Coordinate;
@@ -121,7 +124,8 @@ export class DragAndDrop {
             onStart: (e: PointerEvent) => { },
             onMove: (e: PointerEvent) => { },
             onStop: (e: PointerEvent) => { },
-            onDrop: (element: HTMLElement, targets: HTMLElement[]) => { }
+            onDrop: (element: HTMLElement, targets: HTMLElement[]) => { },
+            correctPosition: (position: Coordinate) => position
         };
     }
     private mergeProperties(options: DragAndDropOptions) {
@@ -168,6 +172,7 @@ export class DragAndDrop {
         this.defaultMerge(options, "onMove");
         this.defaultMerge(options, "onStop");
         this.defaultMerge(options, "onDrop");
+        this.defaultMerge(options, "correctPosition");
     }
     private defaultMerge(options: DragAndDropOptions, name: string) {
         if(options[name] !== void 0) {
@@ -181,7 +186,7 @@ export class DragAndDrop {
         this.pressManager = new PressManager({
             element: this.options.elementTrigger,
             onPressStart: this.onPressStart.bind(this),
-            onPressEnd:this.onPressEnd.bind(this),
+            onPressEnd: this.onPressEnd.bind(this),
             onDragStart: this.onDragStart.bind(this),
             onDrag: this.onDrag.bind(this),
             onDragEnd: this.onDragEnd.bind(this),
@@ -221,7 +226,7 @@ export class DragAndDrop {
             if(this.options.applyDrag) {
                 this.draggableElement.style.position = "absolute";
                 this.draggableElement.style.top = this.positionShadowRelativeToElement.y + this.options.getOffsetY() + 'px';
-                this.draggableElement.style.left =  this.positionShadowRelativeToElement.x + this.options.getOffsetX() + 'px';
+                this.draggableElement.style.left = this.positionShadowRelativeToElement.x + this.options.getOffsetX() + 'px';
             }
             this.options.shadow.transform(this.draggableElement);
             this.options.shadow.container.appendChild(this.draggableElement);
@@ -240,7 +245,7 @@ export class DragAndDrop {
         if(this.options.shadow.enable) {
             diff = {
                 x: (e.pageX - this.startCursorPosition.x) + this.positionShadowRelativeToElement.x + this.options.getOffsetX(),
-                y:  (e.pageY - this.startCursorPosition.y) + this.positionShadowRelativeToElement.y + this.options.getOffsetY(),
+                y: (e.pageY - this.startCursorPosition.y) + this.positionShadowRelativeToElement.y + this.options.getOffsetY(),
             };
         }
         else {
@@ -269,18 +274,19 @@ export class DragAndDrop {
     private setPosition(position: Coordinate): Coordinate {
         if(this.options.usePercent) {
             let elementParent = this.draggableElement.offsetParent as HTMLElement;
-            const percentLeft = (position.x / elementParent.offsetWidth) * 100;
-            const percentTop = (position.y / elementParent.offsetHeight) * 100;
-            if(this.options.applyDrag) {
-                this.draggableElement.style.left = percentLeft + '%';
-                this.draggableElement.style.top = percentTop + '%';
-            }
-            return {
-                x: percentLeft,
-                y: percentTop
+            let percentPosition = {
+                x: (position.x / elementParent.offsetWidth) * 100,
+                y: (position.y / elementParent.offsetHeight) * 100
             };
+            percentPosition = this.options.correctPosition(percentPosition);
+            if(this.options.applyDrag) {
+                this.draggableElement.style.left = percentPosition.x + '%';
+                this.draggableElement.style.top = percentPosition.y + '%';
+            }
+            return percentPosition;
         }
         else {
+            position = this.options.correctPosition(position);
             if(this.options.applyDrag) {
                 this.draggableElement.style.left = position.x + 'px';
                 this.draggableElement.style.top = position.y + 'px';

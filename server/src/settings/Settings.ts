@@ -1,6 +1,7 @@
 
 export type LiveServerSettings = {
 	host: string,
+	autoIncrementPort: boolean
 	port: number,
 	rootFolder: string,
 	indexFile: string,
@@ -12,12 +13,15 @@ export type LiveServerSettings = {
 
 export interface Settings {
 	liveserver: LiveServerSettings,
-	updateImportOnRename: boolean
+	updateImportOnRename: boolean,
+	projectPath: string[],
+	templatePath: string[],
 }
 
 const defaultSettings: Settings = {
 	liveserver: {
 		host: "0.0.0.0",
+		autoIncrementPort: true,
 		port: 8080,
 		rootFolder: "./dist",
 		indexFile: "index.html",
@@ -27,6 +31,8 @@ const defaultSettings: Settings = {
 		auto_close: true,
 	},
 	updateImportOnRename: true,
+	templatePath: [],
+	projectPath: []
 }
 
 export class SettingsManager {
@@ -49,6 +55,15 @@ export class SettingsManager {
 
 	public setSettings(newSettings: any) {
 		this.mergeDeep(this._settings, newSettings);
+		let cbs = [...this.cbOnSettingsChange];
+		for (let cb of cbs) {
+			cb();
+		}
+	}
+
+	private cbOnSettingsChange: (() => void)[] = []
+	public onSettingsChange(cb: () => void) {
+		this.cbOnSettingsChange.push(cb);
 	}
 
 	private isObject(item) {

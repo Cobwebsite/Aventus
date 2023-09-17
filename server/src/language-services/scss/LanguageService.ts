@@ -311,6 +311,7 @@ export class AventusSCSSLanguageService {
                 let realNode = node.getChildren()[0]?.getChildren()[0];
                 let position: { start: number, end: number } | null = null;
                 if (realNode) {
+                    let oldParentCheck = parentCheck;
                     for (let childNode of realNode.getChildren()) {
                         if (childNode.type == NodeType.SimpleSelector) {
                             if(!position){
@@ -340,6 +341,7 @@ export class AventusSCSSLanguageService {
                             }
                         }
                         else {
+                            let txt = childNode.getText();
                             console.log("to debug");
                         }
                     }

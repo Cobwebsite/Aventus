@@ -11,7 +11,7 @@ import { ColorPicker } from './color-picker/ColorPicker';
 import { Commands } from './cmds';
 import { join } from 'path';
 import { LocalTemplateManager } from './files/LocalTemplate';
-import { TemplateManager as TemplateFileManager } from './files/Template';
+import { TemplateManager as TemplateFileManager } from './files/TemplateManager';
 import { loadTypescriptLib } from './language-services/ts/libLoader';
 import { randomUUID } from 'crypto';
 import { CSharpManager } from './language-services/json/CSharpManager';

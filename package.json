@@ -148,6 +148,11 @@
 							"description": "Choose the host for the live server",
 							"format": "ipv4"
 						},
+						"autoIncrementPort": {
+							"type": "boolean",
+							"default": true,
+							"description": "Choose if the port must increase if it uses"
+						},
 						"port": {
 							"type": "number",
 							"default": 8080,
@@ -189,6 +194,22 @@
 					"type": "boolean",
 					"title": "Update import path on rename",
 					"default": true
+				},
+				"aventus.projectPath": {
+					"type": "array",
+					"title": "Define path containing project templates",
+					"default": [],
+					"items": {
+						"type": "string"
+					}
+				},
+				"aventus.templatePath": {
+					"type": "array",
+					"title": "Define path containing element templates",
+					"default": [],
+					"items": {
+						"type": "string"
+					}
 				}
 			}
 		},

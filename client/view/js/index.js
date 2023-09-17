@@ -57,6 +57,21 @@ class WebComponentInstance {
         }
         return result;
     }
+    static create(type) {
+        let _class = customElements.get(type);
+        if (_class) {
+            return new _class();
+        }
+        let splitted = type.split(".");
+        let current = window;
+        for (let part of splitted) {
+            current = current[part];
+        }
+        if (current && current.prototype instanceof Aventus.WebComponent) {
+            return new current();
+        }
+        return null;
+    }
 }
 
 class ElementExtension {
@@ -317,7 +332,8 @@ class Instance {
 class Style {
     static instance;
     static defaultStyleSheets = {
-        "@general": `:host{display:inline-block;box-sizing:border-box}:host *{box-sizing:border-box}`
+        "@general": `:host{display:inline-block;box-sizing:border-box}:host *{box-sizing:border-box}`,
+        "@noAnimationOnLoad": `:host, :host *{-webkit-transition: none !important;-moz-transition: none !important;-ms-transition: none !important;-o-transition: none !important;transition: none !important;}`
     };
     static store(name, content) {
         this.getInstance().store(name, content);
@@ -365,409 +381,6 @@ class Style {
             this.store(name, "");
         }
         return this.stylesheets.get(name);
-    }
-}
-
-class WebComponent extends HTMLElement {
-    /**
-     * Add attributes informations
-     */
-    static get observedAttributes() {
-        return [];
-    }
-    _first;
-    _isReady;
-    /**
-     * Determine if the component is ready (postCreation done)
-     */
-    get isReady() {
-        return this._isReady;
-    }
-    /**
-     * The current namespace
-     */
-    static get Namespace() { return ""; }
-    /**
-     * Get the unique type for the data. Define it as the namespace + class name
-     */
-    static get Fullname() { return this.Namespace + "." + this.name; }
-    /**
-     * The current namespace
-     */
-    get namespace() {
-        return this.constructor['Namespace'];
-    }
-    /**
-     * Get the name of the component class
-     */
-    getClassName() {
-        return this.constructor.name;
-    }
-    /**
-    * Get the unique type for the data. Define it as the namespace + class name
-    */
-    get $type() {
-        return this.constructor['Fullname'];
-    }
-    __onChangeFct = {};
-    __watch;
-    __watchActions = {};
-    __watchActionsCb = {};
-    __pressManagers = [];
-    __isDefaultState = true;
-    __defaultActiveState = new Map();
-    __defaultInactiveState = new Map();
-    __statesList = {};
-    constructor() {
-        super();
-        if (this.constructor == WebComponent) {
-            throw "can't instanciate an abstract class";
-        }
-        this._first = true;
-        this._isReady = false;
-        this.__renderTemplate();
-        this.__registerWatchesActions();
-        this.__registerPropertiesActions();
-        this.__createStates();
-        this.__subscribeState();
-    }
-    /**
-     * Remove all listeners
-     * State + press
-     */
-    destructor() {
-        WebComponentInstance.removeInstance(this);
-        this.__unsubscribeState();
-        for (let press of this.__pressManagers) {
-            press.destroy();
-        }
-        // TODO add missing info for destructor();
-    }
-    __addWatchesActions(name, fct) {
-        if (!this.__watchActions[name]) {
-            this.__watchActions[name] = [];
-            this.__watchActionsCb[name] = (action, path, value) => {
-                for (let fct of this.__watchActions[name]) {
-                    fct(this, action, path, value);
-                }
-                if (this.__onChangeFct[name]) {
-                    for (let fct of this.__onChangeFct[name]) {
-                        fct(path);
-                    }
-                }
-            };
-        }
-        if (fct) {
-            this.__watchActions[name].push(fct);
-        }
-    }
-    __registerWatchesActions() {
-        if (Object.keys(this.__watchActions).length > 0) {
-            if (!this.__watch) {
-                this.__watch = Watcher.get({}, (type, path, element) => {
-                    let action = this.__watchActionsCb[path.split(".")[0]] || this.__watchActionsCb[path.split("[")[0]];
-                    action(type, path, element);
-                });
-            }
-        }
-    }
-    __addPropertyActions(name, fct) {
-        if (!this.__onChangeFct[name]) {
-            this.__onChangeFct[name] = [];
-        }
-        if (fct) {
-            this.__onChangeFct[name].push(() => {
-                fct(this);
-            });
-        }
-    }
-    __registerPropertiesActions() { }
-    static __style = ``;
-    static __template;
-    __templateInstance;
-    styleBefore(addStyle) {
-        addStyle("@general");
-    }
-    styleAfter(addStyle) {
-    }
-    __getStyle() {
-        return [WebComponent.__style];
-    }
-    __getHtml() { }
-    __getStatic() {
-        return WebComponent;
-    }
-    static __styleSheets = {};
-    __renderStyles() {
-        let sheets = {};
-        const addStyle = (name) => {
-            let sheet = Style.get(name);
-            if (sheet) {
-                sheets[name] = sheet;
-            }
-        };
-        this.styleBefore(addStyle);
-        let localStyle = new CSSStyleSheet();
-        let styleTxt = this.__getStyle().join("\r\n");
-        if (styleTxt.length > 0) {
-            localStyle.replace(styleTxt);
-            sheets['@local'] = localStyle;
-        }
-        this.styleAfter(addStyle);
-        return sheets;
-    }
-    __renderTemplate() {
-        let staticInstance = this.__getStatic();
-        if (!staticInstance.__template || staticInstance.__template.cst != staticInstance) {
-            staticInstance.__template = new WebComponentTemplate(staticInstance);
-            this.__getHtml();
-            this.__registerTemplateAction();
-            staticInstance.__template.generateTemplate();
-            staticInstance.__styleSheets = this.__renderStyles();
-        }
-        this.__templateInstance = staticInstance.__template.createInstance(this);
-        let shadowRoot = this.attachShadow({ mode: 'open' });
-        shadowRoot.adoptedStyleSheets = Object.values(staticInstance.__styleSheets);
-        this.shadowRoot.appendChild(this.__templateInstance.content);
-        customElements.upgrade(this.shadowRoot);
-    }
-    __registerTemplateAction() {
-    }
-    connectedCallback() {
-        if (this._first) {
-            WebComponentInstance.addInstance(this);
-            this._first = false;
-            this.__defaultValues();
-            this.__upgradeAttributes();
-            this.__templateInstance.render();
-            setTimeout(() => {
-                this.postCreation();
-                this._isReady = true;
-                this.dispatchEvent(new CustomEvent('postCreationDone'));
-            });
-        }
-    }
-    __defaultValues() { }
-    __upgradeAttributes() { }
-    __listBoolProps() {
-        return [];
-    }
-    __upgradeProperty(prop) {
-        let boolProps = this.__listBoolProps();
-        if (boolProps.indexOf(prop) != -1) {
-            if (this.hasAttribute(prop) && (this.getAttribute(prop) === "true" || this.getAttribute(prop) === "")) {
-                let value = this.getAttribute(prop);
-                delete this[prop];
-                this[prop] = value;
-            }
-            else {
-                this.removeAttribute(prop);
-                this[prop] = false;
-            }
-        }
-        else {
-            if (this.hasAttribute(prop)) {
-                let value = this.getAttribute(prop);
-                delete this[prop];
-                this[prop] = value;
-            }
-        }
-    }
-    __getStateManager(managerClass) {
-        let mClass;
-        if (managerClass instanceof StateManager) {
-            mClass = managerClass;
-        }
-        else {
-            mClass = Instance.get(managerClass);
-        }
-        return mClass;
-    }
-    __addActiveDefState(managerClass, cb) {
-        let mClass = this.__getStateManager(managerClass);
-        if (!this.__defaultActiveState.has(mClass)) {
-            this.__defaultActiveState.set(mClass, []);
-        }
-        this.__defaultActiveState.get(mClass).push(cb);
-    }
-    __addInactiveDefState(managerClass, cb) {
-        let mClass = this.__getStateManager(managerClass);
-        if (!this.__defaultInactiveState.has(mClass)) {
-            this.__defaultInactiveState.set(mClass, []);
-        }
-        this.__defaultInactiveState.get(mClass).push(cb);
-    }
-    __addActiveState(statePattern, managerClass, cb) {
-        let mClass = this.__getStateManager(managerClass);
-        this.__statesList[statePattern].get(mClass).active.push(cb);
-    }
-    __addInactiveState(statePattern, managerClass, cb) {
-        let mClass = this.__getStateManager(managerClass);
-        this.__statesList[statePattern].get(mClass).inactive.push(cb);
-    }
-    __addAskChangeState(statePattern, managerClass, cb) {
-        let mClass = this.__getStateManager(managerClass);
-        this.__statesList[statePattern].get(mClass).askChange.push(cb);
-    }
-    __createStates() { }
-    __createStatesList(statePattern, managerClass) {
-        if (!this.__statesList[statePattern]) {
-            this.__statesList[statePattern] = new Map();
-        }
-        let mClass = this.__getStateManager(managerClass);
-        if (!this.__statesList[statePattern].has(mClass)) {
-            this.__statesList[statePattern].set(mClass, {
-                active: [],
-                inactive: [],
-                askChange: []
-            });
-        }
-    }
-    __inactiveDefaultState(managerClass) {
-        if (this.__isDefaultState) {
-            this.__isDefaultState = false;
-            let mClass = this.__getStateManager(managerClass);
-            if (this.__defaultInactiveState.has(mClass)) {
-                let fcts = this.__defaultInactiveState.get(mClass);
-                for (let fct of fcts) {
-                    fct.bind(this)();
-                }
-            }
-        }
-    }
-    __activeDefaultState(nextStep, managerClass) {
-        if (!this.__isDefaultState) {
-            for (let pattern in this.__statesList) {
-                if (StateManager.canBeActivate(pattern, nextStep)) {
-                    let mClass = this.__getStateManager(managerClass);
-                    if (this.__statesList[pattern].has(mClass)) {
-                        return;
-                    }
-                }
-            }
-            this.__isDefaultState = true;
-            let mClass = this.__getStateManager(managerClass);
-            if (this.__defaultActiveState.has(mClass)) {
-                let fcts = this.__defaultActiveState.get(mClass);
-                for (let fct of fcts) {
-                    fct.bind(this)();
-                }
-            }
-        }
-    }
-    __subscribeState() {
-        if (!this.isReady && this.__stateCleared) {
-            return;
-        }
-        for (let route in this.__statesList) {
-            for (const managerClass of this.__statesList[route].keys()) {
-                managerClass.subscribe(route, this.__statesList[route].get(managerClass));
-            }
-        }
-    }
-    __stateCleared;
-    __unsubscribeState() {
-        for (let route in this.__statesList) {
-            for (const managerClass of this.__statesList[route].keys()) {
-                managerClass.unsubscribe(route, this.__statesList[route].get(managerClass));
-            }
-        }
-        this.__stateCleared = true;
-    }
-    dateToString(d) {
-        if (d instanceof Date) {
-            return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split("T")[0];
-        }
-        return null;
-    }
-    dateTimeToString(dt) {
-        if (dt instanceof Date) {
-            return new Date(dt.getTime() - (dt.getTimezoneOffset() * 60000)).toISOString().slice(0, -1);
-        }
-        return null;
-    }
-    stringToDate(s) {
-        let td = new Date(s);
-        let d = new Date(td.getTime() + (td.getTimezoneOffset() * 60000));
-        if (isNaN(d)) {
-            return null;
-        }
-        return d;
-    }
-    stringToDateTime(s) {
-        let td = new Date(s);
-        let d = new Date(td.getTime() + (td.getTimezoneOffset() * 60000));
-        if (isNaN(d)) {
-            return null;
-        }
-        return d;
-    }
-    getBoolean(val) {
-        if (val === true || val === 1 || val === 'true' || val === '') {
-            return true;
-        }
-        else if (val === false || val === 0 || val === 'false' || val === null || val === undefined) {
-            return false;
-        }
-        console.error("error parsing boolean value " + val);
-        return false;
-    }
-    attributeChangedCallback(name, oldValue, newValue) {
-        if (oldValue !== newValue || !this.isReady) {
-            if (this.__onChangeFct.hasOwnProperty(name)) {
-                for (let fct of this.__onChangeFct[name]) {
-                    fct('');
-                }
-            }
-        }
-    }
-    remove() {
-        super.remove();
-        this.postDestruction();
-    }
-    /**
-     * Function triggered when the component is removed from the DOM
-     */
-    postDestruction() { }
-    /**
-     * Function triggered the first time the component is rendering inside DOM
-     */
-    postCreation() { }
-    /**
-     * Find a parent by tagname if exist
-     */
-    findParentByTag(tagname, untilNode) {
-        return ElementExtension.findParentByTag(this, tagname, untilNode);
-    }
-    /**
-     * Find a parent by class name if exist
-     */
-    findParentByClass(classname, untilNode) {
-        return ElementExtension.findParentByClass(this, classname, untilNode);
-    }
-    /**
-     * Find a parent by type if exist
-     */
-    findParentByType(type, untilNode) {
-        return ElementExtension.findParentByType(this, type, untilNode);
-    }
-    /**
-     * Find list of parents by tagname
-     */
-    findParents(tagname, untilNode) {
-        return ElementExtension.findParents(this, tagname, untilNode);
-    }
-    /**
-     * Check if element contains a child
-     */
-    containsChild(el) {
-        return ElementExtension.containsChild(this, el);
-    }
-    /**
-     * Get element inside slot
-     */
-    getElementsInSlot(slotName = null) {
-        return ElementExtension.getElementsInSlot(this, slotName);
     }
 }
 
@@ -909,319 +522,40 @@ class Mutex {
     }
 }
 
-class StateManager {
-    subscribers = {};
-    static canBeActivate(statePattern, stateName) {
-        let stateInfo = this.prepareStateString(statePattern);
-        return stateInfo.regex.test(stateName);
-    }
-    activeState;
-    changeStateMutex = new Mutex();
-    afterStateChanged = new Callback();
+class State {
     /**
-     * Subscribe actions for a state or a state list
+     * Activate a custom state inside a specific manager
+     * It ll be a generic state with no information inside exept name
      */
-    subscribe(statePatterns, callbacks) {
-        if (!callbacks.active && !callbacks.inactive && !callbacks.askChange) {
-            this._log(`Trying to subscribe to state : ${statePatterns} with no callbacks !`, "warning");
-            return;
-        }
-        if (!Array.isArray(statePatterns)) {
-            statePatterns = [statePatterns];
-        }
-        for (let statePattern of statePatterns) {
-            if (!this.subscribers.hasOwnProperty(statePattern)) {
-                let res = StateManager.prepareStateString(statePattern);
-                let isActive = this.activeState !== undefined && res.regex.test(this.activeState.name);
-                this.subscribers[statePattern] = {
-                    "regex": res.regex,
-                    "params": res.params,
-                    "callbacks": {
-                        "active": [],
-                        "inactive": [],
-                        "askChange": [],
-                    },
-                    "isActive": isActive,
-                };
-            }
-            if (callbacks.active) {
-                if (!Array.isArray(callbacks.active)) {
-                    callbacks.active = [callbacks.active];
-                }
-                for (let activeFct of callbacks.active) {
-                    this.subscribers[statePattern].callbacks.active.push(activeFct);
-                    if (this.subscribers[statePattern].isActive) {
-                        let slugs = this.getInternalStateSlugs(this.subscribers[statePattern], this.activeState.name);
-                        activeFct(this.activeState, slugs);
-                    }
-                }
-            }
-            if (callbacks.inactive) {
-                if (!Array.isArray(callbacks.inactive)) {
-                    callbacks.inactive = [callbacks.inactive];
-                }
-                for (let inactiveFct of callbacks.inactive) {
-                    this.subscribers[statePattern].callbacks.inactive.push(inactiveFct);
-                }
-            }
-            if (callbacks.askChange) {
-                if (!Array.isArray(callbacks.askChange)) {
-                    callbacks.askChange = [callbacks.askChange];
-                }
-                for (let askChangeFct of callbacks.askChange) {
-                    this.subscribers[statePattern].callbacks.askChange.push(askChangeFct);
-                }
-            }
-        }
+    static async activate(stateName, manager) {
+        return await new EmptyState(stateName).activate(manager);
     }
     /**
-     * Unsubscribe actions for a state or a state list
+     * Activate this state inside a specific manager
      */
-    unsubscribe(statePatterns, callbacks) {
-        if (!callbacks.active && !callbacks.inactive && !callbacks.askChange) {
-            this._log(`Trying to unsubscribe to state : ${statePatterns} with no callbacks !`, "warning");
-            return;
-        }
-        if (!Array.isArray(statePatterns)) {
-            statePatterns = [statePatterns];
-        }
-        for (let statePattern of statePatterns) {
-            if (this.subscribers[statePattern]) {
-                if (callbacks.active) {
-                    if (!Array.isArray(callbacks.active)) {
-                        callbacks.active = [callbacks.active];
-                    }
-                    for (let activeFct of callbacks.active) {
-                        let index = this.subscribers[statePattern].callbacks.active.indexOf(activeFct);
-                        if (index !== -1) {
-                            this.subscribers[statePattern].callbacks.active.splice(index, 1);
-                        }
-                    }
-                }
-                if (callbacks.inactive) {
-                    if (!Array.isArray(callbacks.inactive)) {
-                        callbacks.inactive = [callbacks.inactive];
-                    }
-                    for (let inactiveFct of callbacks.inactive) {
-                        let index = this.subscribers[statePattern].callbacks.inactive.indexOf(inactiveFct);
-                        if (index !== -1) {
-                            this.subscribers[statePattern].callbacks.inactive.splice(index, 1);
-                        }
-                    }
-                }
-                if (callbacks.askChange) {
-                    if (!Array.isArray(callbacks.askChange)) {
-                        callbacks.askChange = [callbacks.askChange];
-                    }
-                    for (let askChangeFct of callbacks.askChange) {
-                        let index = this.subscribers[statePattern].callbacks.askChange.indexOf(askChangeFct);
-                        if (index !== -1) {
-                            this.subscribers[statePattern].callbacks.askChange.splice(index, 1);
-                        }
-                    }
-                }
-                if (this.subscribers[statePattern].callbacks.active.length === 0 &&
-                    this.subscribers[statePattern].callbacks.inactive.length === 0 &&
-                    this.subscribers[statePattern].callbacks.askChange.length === 0) {
-                    delete this.subscribers[statePattern];
-                }
-            }
-        }
+    async activate(manager) {
+        return await manager.setState(this);
     }
-    onAfterStateChanged(cb) {
-        this.afterStateChanged.add(cb);
+    onActivate() {
     }
-    offAfterStateChanged(cb) {
-        this.afterStateChanged.remove(cb);
+    onInactivate(nextState) {
     }
-    static prepareStateString(stateName) {
-        let params = [];
-        let i = 0;
-        let regexState = stateName.replace(/{.*?}/g, (group, position) => {
-            group = group.slice(1, -1);
-            let splitted = group.split(":");
-            let name = splitted[0].trim();
-            let type = "string";
-            let result = "([^\\/]+)";
-            i++;
-            if (splitted.length > 1) {
-                if (splitted[1].trim() == "number") {
-                    result = "([0-9]+)";
-                    type = "number";
-                }
-            }
-            params.push({
-                name,
-                type,
-                position: i
-            });
-            return result;
-        });
-        regexState = regexState.replace(/\*/g, ".*?");
-        regexState = "^" + regexState + '$';
-        return {
-            regex: new RegExp(regexState),
-            params
-        };
+    async askChange(state, nextState) {
+        return true;
+    }
+}
+
+class EmptyState extends State {
+    localName;
+    constructor(stateName) {
+        super();
+        this.localName = stateName;
     }
     /**
-     * Activate a current state
+     * @inheritdoc
      */
-    async setState(state) {
-        return await this.changeStateMutex.safeRunLastAsync(async () => {
-            let stateToUse;
-            if (typeof state == "string") {
-                stateToUse = new EmptyState(state);
-            }
-            else {
-                stateToUse = state;
-            }
-            if (!stateToUse) {
-                this._log("state is undefined", "error");
-                this.changeStateMutex.release();
-                return false;
-            }
-            let canChange = true;
-            if (this.activeState) {
-                let activeToInactive = [];
-                let inactiveToActive = [];
-                let triggerActive = [];
-                canChange = await this.activeState.askChange(this.activeState, stateToUse);
-                if (canChange) {
-                    for (let statePattern in this.subscribers) {
-                        let subscriber = this.subscribers[statePattern];
-                        if (subscriber.isActive) {
-                            let clone = [...subscriber.callbacks.askChange];
-                            let currentSlug = this.getInternalStateSlugs(subscriber, this.activeState.name);
-                            for (let i = 0; i < clone.length; i++) {
-                                let askChange = clone[i];
-                                if (!await askChange(this.activeState, stateToUse, currentSlug)) {
-                                    canChange = false;
-                                    break;
-                                }
-                            }
-                            let slugs = this.getInternalStateSlugs(subscriber, stateToUse.name);
-                            if (slugs === null) {
-                                activeToInactive.push(subscriber);
-                            }
-                            else {
-                                triggerActive.push({
-                                    subscriber: subscriber,
-                                    params: slugs
-                                });
-                            }
-                        }
-                        else {
-                            let slugs = this.getInternalStateSlugs(subscriber, stateToUse.name);
-                            if (slugs) {
-                                inactiveToActive.push({
-                                    subscriber,
-                                    params: slugs
-                                });
-                            }
-                        }
-                        if (!canChange) {
-                            break;
-                        }
-                    }
-                }
-                if (canChange) {
-                    const oldState = this.activeState;
-                    this.activeState = stateToUse;
-                    oldState.onInactivate(stateToUse);
-                    for (let subscriber of activeToInactive) {
-                        subscriber.isActive = false;
-                        let oldSlug = this.getInternalStateSlugs(subscriber, oldState.name);
-                        [...subscriber.callbacks.inactive].forEach(callback => {
-                            callback(oldState, stateToUse, oldSlug);
-                        });
-                    }
-                    for (let trigger of triggerActive) {
-                        [...trigger.subscriber.callbacks.active].forEach(callback => {
-                            callback(stateToUse, trigger.params);
-                        });
-                    }
-                    for (let trigger of inactiveToActive) {
-                        trigger.subscriber.isActive = true;
-                        [...trigger.subscriber.callbacks.active].forEach(callback => {
-                            callback(stateToUse, trigger.params);
-                        });
-                    }
-                    stateToUse.onActivate();
-                }
-            }
-            else {
-                this.activeState = stateToUse;
-                for (let key in this.subscribers) {
-                    let slugs = this.getInternalStateSlugs(this.subscribers[key], stateToUse.name);
-                    if (slugs) {
-                        this.subscribers[key].isActive = true;
-                        [...this.subscribers[key].callbacks.active].forEach(callback => {
-                            callback(stateToUse, slugs);
-                        });
-                    }
-                }
-                stateToUse.onActivate();
-            }
-            this.afterStateChanged.trigger([]);
-            return true;
-        });
-    }
-    getState() {
-        return this.activeState;
-    }
-    getInternalStateSlugs(subscriber, stateName) {
-        let matches = subscriber.regex.exec(stateName);
-        if (matches) {
-            let slugs = {};
-            for (let param of subscriber.params) {
-                if (param.type == "number") {
-                    slugs[param.name] = Number(matches[param.position]);
-                }
-                else {
-                    slugs[param.name] = matches[param.position];
-                }
-            }
-            return slugs;
-        }
-        return null;
-    }
-    /**
-     * Check if a state is in the subscribers and active, return true if it is, false otherwise
-     */
-    isStateActive(statePattern) {
-        return StateManager.prepareStateString(statePattern).regex.test(this.activeState.name);
-    }
-    /**
-     * Get slugs information for the current state, return null if state isn't active
-     */
-    getStateSlugs(statePattern) {
-        let prepared = StateManager.prepareStateString(statePattern);
-        return this.getInternalStateSlugs({
-            regex: prepared.regex,
-            params: prepared.params,
-            isActive: false,
-            callbacks: {
-                active: [],
-                inactive: [],
-                askChange: [],
-            }
-        }, this.activeState.name);
-    }
-    // 0 = error only / 1 = errors and warning / 2 = error, warning and logs (not implemented)
-    logLevel() {
-        return 0;
-    }
-    _log(msg, type) {
-        if (type === "error") {
-            console.error(msg);
-        }
-        else if (type === "warning" && this.logLevel() > 0) {
-            console.warn(msg);
-        }
-        else if (type === "info" && this.logLevel() > 1) {
-            console.log(msg);
-        }
+    get name() {
+        return this.localName;
     }
 }
 
@@ -1388,6 +722,18 @@ class Watcher {
                 else if (prop == "__getTarget" && onlyDuringInit) {
                     return () => {
                         return target;
+                    };
+                }
+                else if (prop == "toJSON") {
+                    return () => {
+                        let result = {};
+                        for (let key of Object.keys(target)) {
+                            if (key == "__path" || key == "__proxyData") {
+                                continue;
+                            }
+                            result[key] = target[key];
+                        }
+                        return result;
                     };
                 }
                 return undefined;
@@ -2016,40 +1362,319 @@ class PressManager {
     }
 }
 
-class State {
+class StateManager {
+    subscribers = {};
+    static canBeActivate(statePattern, stateName) {
+        let stateInfo = this.prepareStateString(statePattern);
+        return stateInfo.regex.test(stateName);
+    }
+    activeState;
+    changeStateMutex = new Mutex();
+    afterStateChanged = new Callback();
     /**
-     * Activate a custom state inside a specific manager
-     * It ll be a generic state with no information inside exept name
+     * Subscribe actions for a state or a state list
      */
-    static async activate(stateName, manager) {
-        return await new EmptyState(stateName).activate(manager);
+    subscribe(statePatterns, callbacks) {
+        if (!callbacks.active && !callbacks.inactive && !callbacks.askChange) {
+            this._log(`Trying to subscribe to state : ${statePatterns} with no callbacks !`, "warning");
+            return;
+        }
+        if (!Array.isArray(statePatterns)) {
+            statePatterns = [statePatterns];
+        }
+        for (let statePattern of statePatterns) {
+            if (!this.subscribers.hasOwnProperty(statePattern)) {
+                let res = StateManager.prepareStateString(statePattern);
+                let isActive = this.activeState !== undefined && res.regex.test(this.activeState.name);
+                this.subscribers[statePattern] = {
+                    "regex": res.regex,
+                    "params": res.params,
+                    "callbacks": {
+                        "active": [],
+                        "inactive": [],
+                        "askChange": [],
+                    },
+                    "isActive": isActive,
+                };
+            }
+            if (callbacks.active) {
+                if (!Array.isArray(callbacks.active)) {
+                    callbacks.active = [callbacks.active];
+                }
+                for (let activeFct of callbacks.active) {
+                    this.subscribers[statePattern].callbacks.active.push(activeFct);
+                    if (this.subscribers[statePattern].isActive) {
+                        let slugs = this.getInternalStateSlugs(this.subscribers[statePattern], this.activeState.name);
+                        activeFct(this.activeState, slugs);
+                    }
+                }
+            }
+            if (callbacks.inactive) {
+                if (!Array.isArray(callbacks.inactive)) {
+                    callbacks.inactive = [callbacks.inactive];
+                }
+                for (let inactiveFct of callbacks.inactive) {
+                    this.subscribers[statePattern].callbacks.inactive.push(inactiveFct);
+                }
+            }
+            if (callbacks.askChange) {
+                if (!Array.isArray(callbacks.askChange)) {
+                    callbacks.askChange = [callbacks.askChange];
+                }
+                for (let askChangeFct of callbacks.askChange) {
+                    this.subscribers[statePattern].callbacks.askChange.push(askChangeFct);
+                }
+            }
+        }
     }
     /**
-     * Activate this state inside a specific manager
+     * Unsubscribe actions for a state or a state list
      */
-    async activate(manager) {
-        return await manager.setState(this);
+    unsubscribe(statePatterns, callbacks) {
+        if (!callbacks.active && !callbacks.inactive && !callbacks.askChange) {
+            this._log(`Trying to unsubscribe to state : ${statePatterns} with no callbacks !`, "warning");
+            return;
+        }
+        if (!Array.isArray(statePatterns)) {
+            statePatterns = [statePatterns];
+        }
+        for (let statePattern of statePatterns) {
+            if (this.subscribers[statePattern]) {
+                if (callbacks.active) {
+                    if (!Array.isArray(callbacks.active)) {
+                        callbacks.active = [callbacks.active];
+                    }
+                    for (let activeFct of callbacks.active) {
+                        let index = this.subscribers[statePattern].callbacks.active.indexOf(activeFct);
+                        if (index !== -1) {
+                            this.subscribers[statePattern].callbacks.active.splice(index, 1);
+                        }
+                    }
+                }
+                if (callbacks.inactive) {
+                    if (!Array.isArray(callbacks.inactive)) {
+                        callbacks.inactive = [callbacks.inactive];
+                    }
+                    for (let inactiveFct of callbacks.inactive) {
+                        let index = this.subscribers[statePattern].callbacks.inactive.indexOf(inactiveFct);
+                        if (index !== -1) {
+                            this.subscribers[statePattern].callbacks.inactive.splice(index, 1);
+                        }
+                    }
+                }
+                if (callbacks.askChange) {
+                    if (!Array.isArray(callbacks.askChange)) {
+                        callbacks.askChange = [callbacks.askChange];
+                    }
+                    for (let askChangeFct of callbacks.askChange) {
+                        let index = this.subscribers[statePattern].callbacks.askChange.indexOf(askChangeFct);
+                        if (index !== -1) {
+                            this.subscribers[statePattern].callbacks.askChange.splice(index, 1);
+                        }
+                    }
+                }
+                if (this.subscribers[statePattern].callbacks.active.length === 0 &&
+                    this.subscribers[statePattern].callbacks.inactive.length === 0 &&
+                    this.subscribers[statePattern].callbacks.askChange.length === 0) {
+                    delete this.subscribers[statePattern];
+                }
+            }
+        }
     }
-    onActivate() {
+    onAfterStateChanged(cb) {
+        this.afterStateChanged.add(cb);
     }
-    onInactivate(nextState) {
+    offAfterStateChanged(cb) {
+        this.afterStateChanged.remove(cb);
     }
-    async askChange(state, nextState) {
-        return true;
-    }
-}
-
-class EmptyState extends State {
-    localName;
-    constructor(stateName) {
-        super();
-        this.localName = stateName;
+    static prepareStateString(stateName) {
+        let params = [];
+        let i = 0;
+        let regexState = stateName.replace(/{.*?}/g, (group, position) => {
+            group = group.slice(1, -1);
+            let splitted = group.split(":");
+            let name = splitted[0].trim();
+            let type = "string";
+            let result = "([^\\/]+)";
+            i++;
+            if (splitted.length > 1) {
+                if (splitted[1].trim() == "number") {
+                    result = "([0-9]+)";
+                    type = "number";
+                }
+            }
+            params.push({
+                name,
+                type,
+                position: i
+            });
+            return result;
+        });
+        regexState = regexState.replace(/\*/g, ".*?");
+        regexState = "^" + regexState + '$';
+        return {
+            regex: new RegExp(regexState),
+            params
+        };
     }
     /**
-     * @inheritdoc
+     * Activate a current state
      */
-    get name() {
-        return this.localName;
+    async setState(state) {
+        return await this.changeStateMutex.safeRunLastAsync(async () => {
+            let stateToUse;
+            if (typeof state == "string") {
+                stateToUse = new EmptyState(state);
+            }
+            else {
+                stateToUse = state;
+            }
+            if (!stateToUse) {
+                this._log("state is undefined", "error");
+                this.changeStateMutex.release();
+                return false;
+            }
+            let canChange = true;
+            if (this.activeState) {
+                let activeToInactive = [];
+                let inactiveToActive = [];
+                let triggerActive = [];
+                canChange = await this.activeState.askChange(this.activeState, stateToUse);
+                if (canChange) {
+                    for (let statePattern in this.subscribers) {
+                        let subscriber = this.subscribers[statePattern];
+                        if (subscriber.isActive) {
+                            let clone = [...subscriber.callbacks.askChange];
+                            let currentSlug = this.getInternalStateSlugs(subscriber, this.activeState.name);
+                            for (let i = 0; i < clone.length; i++) {
+                                let askChange = clone[i];
+                                if (!await askChange(this.activeState, stateToUse, currentSlug)) {
+                                    canChange = false;
+                                    break;
+                                }
+                            }
+                            let slugs = this.getInternalStateSlugs(subscriber, stateToUse.name);
+                            if (slugs === null) {
+                                activeToInactive.push(subscriber);
+                            }
+                            else {
+                                triggerActive.push({
+                                    subscriber: subscriber,
+                                    params: slugs
+                                });
+                            }
+                        }
+                        else {
+                            let slugs = this.getInternalStateSlugs(subscriber, stateToUse.name);
+                            if (slugs) {
+                                inactiveToActive.push({
+                                    subscriber,
+                                    params: slugs
+                                });
+                            }
+                        }
+                        if (!canChange) {
+                            break;
+                        }
+                    }
+                }
+                if (canChange) {
+                    const oldState = this.activeState;
+                    this.activeState = stateToUse;
+                    oldState.onInactivate(stateToUse);
+                    for (let subscriber of activeToInactive) {
+                        subscriber.isActive = false;
+                        let oldSlug = this.getInternalStateSlugs(subscriber, oldState.name);
+                        [...subscriber.callbacks.inactive].forEach(callback => {
+                            callback(oldState, stateToUse, oldSlug);
+                        });
+                    }
+                    for (let trigger of triggerActive) {
+                        [...trigger.subscriber.callbacks.active].forEach(callback => {
+                            callback(stateToUse, trigger.params);
+                        });
+                    }
+                    for (let trigger of inactiveToActive) {
+                        trigger.subscriber.isActive = true;
+                        [...trigger.subscriber.callbacks.active].forEach(callback => {
+                            callback(stateToUse, trigger.params);
+                        });
+                    }
+                    stateToUse.onActivate();
+                }
+            }
+            else {
+                this.activeState = stateToUse;
+                for (let key in this.subscribers) {
+                    let slugs = this.getInternalStateSlugs(this.subscribers[key], stateToUse.name);
+                    if (slugs) {
+                        this.subscribers[key].isActive = true;
+                        [...this.subscribers[key].callbacks.active].forEach(callback => {
+                            callback(stateToUse, slugs);
+                        });
+                    }
+                }
+                stateToUse.onActivate();
+            }
+            this.afterStateChanged.trigger([]);
+            return true;
+        });
+    }
+    getState() {
+        return this.activeState;
+    }
+    getInternalStateSlugs(subscriber, stateName) {
+        let matches = subscriber.regex.exec(stateName);
+        if (matches) {
+            let slugs = {};
+            for (let param of subscriber.params) {
+                if (param.type == "number") {
+                    slugs[param.name] = Number(matches[param.position]);
+                }
+                else {
+                    slugs[param.name] = matches[param.position];
+                }
+            }
+            return slugs;
+        }
+        return null;
+    }
+    /**
+     * Check if a state is in the subscribers and active, return true if it is, false otherwise
+     */
+    isStateActive(statePattern) {
+        return StateManager.prepareStateString(statePattern).regex.test(this.activeState.name);
+    }
+    /**
+     * Get slugs information for the current state, return null if state isn't active
+     */
+    getStateSlugs(statePattern) {
+        let prepared = StateManager.prepareStateString(statePattern);
+        return this.getInternalStateSlugs({
+            regex: prepared.regex,
+            params: prepared.params,
+            isActive: false,
+            callbacks: {
+                active: [],
+                inactive: [],
+                askChange: [],
+            }
+        }, this.activeState.name);
+    }
+    // 0 = error only / 1 = errors and warning / 2 = error, warning and logs (not implemented)
+    logLevel() {
+        return 0;
+    }
+    _log(msg, type) {
+        if (type === "error") {
+            console.error(msg);
+        }
+        else if (type === "warning" && this.logLevel() > 0) {
+            console.warn(msg);
+        }
+        else if (type === "info" && this.logLevel() > 1) {
+            console.log(msg);
+        }
     }
 }
 
@@ -2063,8 +1688,9 @@ class WebComponentTemplateContext {
     constructor(component, schema, locals) {
         this.component = component;
         this.schema = { ...schema };
-        this.schema.locals = [...this.schema.locals, ...locals];
-        5;
+        for (let key in locals) {
+            this.schema.locals[key] = locals[key];
+        }
         this.buildSchema();
     }
     destructor() {
@@ -2079,11 +1705,11 @@ class WebComponentTemplateContext {
         for (let global of this.schema.globals) {
             this.createGlobal(global);
         }
-        for (let loop of this.schema.loops) {
-            this.createLoop(loop);
+        for (let item in this.schema.loops) {
+            this.createLoop(item, this.schema.loops[item].index, this.schema.loops[item].data);
         }
-        for (let local of this.schema.locals) {
-            this.createLocal(local);
+        for (let key in this.schema.locals) {
+            this.createLocal(key, this.schema.locals[key]);
         }
     }
     createGlobal(global) {
@@ -2111,39 +1737,38 @@ class WebComponentTemplateContext {
         this.fctsToRemove.push({ name, fct });
         this.component['__onChangeFct'][name].push(fct);
     }
-    createLoop(loop) {
-        Object.defineProperty(this.c, loop.item, {
+    createLoop(item, index, data) {
+        Object.defineProperty(this.c, item, {
             get() {
-                let indexValue = this[loop.index];
-                return WebComponentTemplate.getValueFromItem(loop.data, this)[indexValue];
+                let indexValue = this[index];
+                return WebComponentTemplate.getValueFromItem(data, this)[indexValue];
             }
         });
-        let name = loop.data.split(".")[0];
-        this.__changes[loop.item] = [];
+        let name = data.split(".")[0];
+        this.__changes[item] = [];
         this.__changes[name].push((path) => {
             if (this.isRendered) {
-                let currentPath = `${loop.data}[${this.c[loop.index]}]`;
+                let currentPath = `${data}[${this.c[index]}]`;
                 if (path.startsWith(currentPath)) {
-                    let localPath = path.replace(currentPath, loop.item);
-                    for (let change of this.__changes[loop.item]) {
+                    let localPath = path.replace(currentPath, item);
+                    for (let change of this.__changes[item]) {
                         change(localPath);
                     }
                 }
             }
         });
     }
-    createLocal(local) {
-        let localValue = local.value;
+    createLocal(key, value) {
         let changes = this.__changes;
-        Object.defineProperty(this.c, local.name, {
+        Object.defineProperty(this.c, key, {
             get() {
-                return localValue;
+                return value;
             },
             set(value) {
-                localValue = value;
-                if (changes[local.name]) {
-                    for (let change of changes[local.name]) {
-                        change(local.name);
+                value = value;
+                if (changes[key]) {
+                    for (let change of changes[key]) {
+                        change(key);
                     }
                 }
             }
@@ -2219,8 +1844,8 @@ class WebComponentTemplate {
     }
     contextSchema = {
         globals: [],
-        locals: [],
-        loops: []
+        locals: {},
+        loops: {}
     };
     template;
     actions = {};
@@ -2258,7 +1883,7 @@ class WebComponentTemplate {
                             this.actions.content[contextProp] = actions.content[contextProp];
                         }
                         else {
-                            this.actions.content[contextProp] = { ...actions.content[contextProp], ...this.actions.content[contextProp] };
+                            this.actions.content[contextProp] = [...actions.content[contextProp], ...this.actions.content[contextProp]];
                         }
                     }
                 }
@@ -2297,13 +1922,21 @@ class WebComponentTemplate {
     }
     setSchema(contextSchema) {
         if (contextSchema.globals) {
-            this.contextSchema.globals = [...this.contextSchema.globals, ...contextSchema.globals];
+            for (let glob of contextSchema.globals) {
+                if (!this.contextSchema.globals.includes(glob)) {
+                    this.contextSchema.globals.push(glob);
+                }
+            }
         }
         if (contextSchema.locals) {
-            this.contextSchema.locals = [...this.contextSchema.locals, ...contextSchema.locals];
+            for (let key in contextSchema.locals) {
+                this.contextSchema.locals[key] = contextSchema.locals[key];
+            }
         }
         if (contextSchema.loops) {
-            this.contextSchema.loops = [...this.contextSchema.loops, ...contextSchema.loops];
+            for (let key in contextSchema.loops) {
+                this.contextSchema.loops[key] = contextSchema.loops[key];
+            }
         }
     }
     createInstance(component) {
@@ -2610,11 +2243,10 @@ class WebComponentTemplateInstance {
     renderSubTemplate() {
         for (let loop of this.loops) {
             let localContext = JSON.parse(JSON.stringify(this.context.schema));
-            localContext.loops.push({
+            localContext.loops[loop.item] = {
                 data: loop.data,
                 index: loop.index,
-                item: loop.item
-            });
+            };
             this.renderLoop(loop, localContext);
             this.registerLoopWatchEvent(loop, localContext);
         }
@@ -2688,6 +2320,409 @@ class WebComponentTemplateInstance {
         });
     }
 }
+
+class WebComponent extends HTMLElement {
+    /**
+     * Add attributes informations
+     */
+    static get observedAttributes() {
+        return [];
+    }
+    _first;
+    _isReady;
+    /**
+     * Determine if the component is ready (postCreation done)
+     */
+    get isReady() {
+        return this._isReady;
+    }
+    /**
+     * The current namespace
+     */
+    static Namespace = "";
+    /**
+     * Get the unique type for the data. Define it as the namespace + class name
+     */
+    static get Fullname() { return this.Namespace + "." + this.name; }
+    /**
+     * The current namespace
+     */
+    get namespace() {
+        return this.constructor['Namespace'];
+    }
+    /**
+     * Get the name of the component class
+     */
+    getClassName() {
+        return this.constructor.name;
+    }
+    /**
+    * Get the unique type for the data. Define it as the namespace + class name
+    */
+    get $type() {
+        return this.constructor['Fullname'];
+    }
+    __onChangeFct = {};
+    __watch;
+    __watchActions = {};
+    __watchActionsCb = {};
+    __pressManagers = [];
+    __isDefaultState = true;
+    __defaultActiveState = new Map();
+    __defaultInactiveState = new Map();
+    __statesList = {};
+    constructor() {
+        super();
+        if (this.constructor == WebComponent) {
+            throw "can't instanciate an abstract class";
+        }
+        this._first = true;
+        this._isReady = false;
+        this.__renderTemplate();
+        this.__registerWatchesActions();
+        this.__registerPropertiesActions();
+        this.__createStates();
+        this.__subscribeState();
+    }
+    /**
+     * Remove all listeners
+     * State + press
+     */
+    destructor() {
+        WebComponentInstance.removeInstance(this);
+        this.__unsubscribeState();
+        for (let press of this.__pressManagers) {
+            press.destroy();
+        }
+        // TODO add missing info for destructor();
+    }
+    __addWatchesActions(name, fct) {
+        if (!this.__watchActions[name]) {
+            this.__watchActions[name] = [];
+            this.__watchActionsCb[name] = (action, path, value) => {
+                for (let fct of this.__watchActions[name]) {
+                    fct(this, action, path, value);
+                }
+                if (this.__onChangeFct[name]) {
+                    for (let fct of this.__onChangeFct[name]) {
+                        fct(path);
+                    }
+                }
+            };
+        }
+        if (fct) {
+            this.__watchActions[name].push(fct);
+        }
+    }
+    __registerWatchesActions() {
+        if (Object.keys(this.__watchActions).length > 0) {
+            if (!this.__watch) {
+                this.__watch = Watcher.get({}, (type, path, element) => {
+                    let action = this.__watchActionsCb[path.split(".")[0]] || this.__watchActionsCb[path.split("[")[0]];
+                    action(type, path, element);
+                });
+            }
+        }
+    }
+    __addPropertyActions(name, fct) {
+        if (!this.__onChangeFct[name]) {
+            this.__onChangeFct[name] = [];
+        }
+        if (fct) {
+            this.__onChangeFct[name].push(() => {
+                fct(this);
+            });
+        }
+    }
+    __registerPropertiesActions() { }
+    static __style = ``;
+    static __template;
+    __templateInstance;
+    styleBefore(addStyle) {
+        addStyle("@general");
+    }
+    styleAfter(addStyle) {
+    }
+    __getStyle() {
+        return [WebComponent.__style];
+    }
+    __getHtml() { }
+    __getStatic() {
+        return WebComponent;
+    }
+    static __styleSheets = {};
+    __renderStyles() {
+        let sheets = {};
+        const addStyle = (name) => {
+            let sheet = Style.get(name);
+            if (sheet) {
+                sheets[name] = sheet;
+            }
+        };
+        this.styleBefore(addStyle);
+        let localStyle = new CSSStyleSheet();
+        let styleTxt = this.__getStyle().join("\r\n");
+        if (styleTxt.length > 0) {
+            localStyle.replace(styleTxt);
+            sheets['@local'] = localStyle;
+        }
+        this.styleAfter(addStyle);
+        return sheets;
+    }
+    __renderTemplate() {
+        let staticInstance = this.__getStatic();
+        if (!staticInstance.__template || staticInstance.__template.cst != staticInstance) {
+            staticInstance.__template = new WebComponentTemplate(staticInstance);
+            this.__getHtml();
+            this.__registerTemplateAction();
+            staticInstance.__template.generateTemplate();
+            staticInstance.__styleSheets = this.__renderStyles();
+        }
+        this.__templateInstance = staticInstance.__template.createInstance(this);
+        let shadowRoot = this.attachShadow({ mode: 'open' });
+        shadowRoot.adoptedStyleSheets = Object.values(staticInstance.__styleSheets);
+        this.shadowRoot.appendChild(this.__templateInstance.content);
+        customElements.upgrade(this.shadowRoot);
+    }
+    __registerTemplateAction() {
+    }
+    connectedCallback() {
+        if (this._first) {
+            WebComponentInstance.addInstance(this);
+            this._first = false;
+            this.__defaultValues();
+            this.__upgradeAttributes();
+            this.__templateInstance.render();
+            setTimeout(() => {
+                this.postCreation();
+                this._isReady = true;
+                this.dispatchEvent(new CustomEvent('postCreationDone'));
+            });
+        }
+    }
+    __defaultValues() { }
+    __upgradeAttributes() { }
+    __listBoolProps() {
+        return [];
+    }
+    __upgradeProperty(prop) {
+        let boolProps = this.__listBoolProps();
+        if (boolProps.indexOf(prop) != -1) {
+            if (this.hasAttribute(prop) && (this.getAttribute(prop) === "true" || this.getAttribute(prop) === "")) {
+                let value = this.getAttribute(prop);
+                delete this[prop];
+                this[prop] = value;
+            }
+            else {
+                this.removeAttribute(prop);
+                this[prop] = false;
+            }
+        }
+        else {
+            if (this.hasAttribute(prop)) {
+                let value = this.getAttribute(prop);
+                delete this[prop];
+                this[prop] = value;
+            }
+        }
+    }
+    __getStateManager(managerClass) {
+        let mClass;
+        if (managerClass instanceof StateManager) {
+            mClass = managerClass;
+        }
+        else {
+            mClass = Instance.get(managerClass);
+        }
+        return mClass;
+    }
+    __addActiveDefState(managerClass, cb) {
+        let mClass = this.__getStateManager(managerClass);
+        if (!this.__defaultActiveState.has(mClass)) {
+            this.__defaultActiveState.set(mClass, []);
+        }
+        this.__defaultActiveState.get(mClass).push(cb);
+    }
+    __addInactiveDefState(managerClass, cb) {
+        let mClass = this.__getStateManager(managerClass);
+        if (!this.__defaultInactiveState.has(mClass)) {
+            this.__defaultInactiveState.set(mClass, []);
+        }
+        this.__defaultInactiveState.get(mClass).push(cb);
+    }
+    __addActiveState(statePattern, managerClass, cb) {
+        let mClass = this.__getStateManager(managerClass);
+        this.__statesList[statePattern].get(mClass).active.push(cb);
+    }
+    __addInactiveState(statePattern, managerClass, cb) {
+        let mClass = this.__getStateManager(managerClass);
+        this.__statesList[statePattern].get(mClass).inactive.push(cb);
+    }
+    __addAskChangeState(statePattern, managerClass, cb) {
+        let mClass = this.__getStateManager(managerClass);
+        this.__statesList[statePattern].get(mClass).askChange.push(cb);
+    }
+    __createStates() { }
+    __createStatesList(statePattern, managerClass) {
+        if (!this.__statesList[statePattern]) {
+            this.__statesList[statePattern] = new Map();
+        }
+        let mClass = this.__getStateManager(managerClass);
+        if (!this.__statesList[statePattern].has(mClass)) {
+            this.__statesList[statePattern].set(mClass, {
+                active: [],
+                inactive: [],
+                askChange: []
+            });
+        }
+    }
+    __inactiveDefaultState(managerClass) {
+        if (this.__isDefaultState) {
+            this.__isDefaultState = false;
+            let mClass = this.__getStateManager(managerClass);
+            if (this.__defaultInactiveState.has(mClass)) {
+                let fcts = this.__defaultInactiveState.get(mClass);
+                for (let fct of fcts) {
+                    fct.bind(this)();
+                }
+            }
+        }
+    }
+    __activeDefaultState(nextStep, managerClass) {
+        if (!this.__isDefaultState) {
+            for (let pattern in this.__statesList) {
+                if (StateManager.canBeActivate(pattern, nextStep)) {
+                    let mClass = this.__getStateManager(managerClass);
+                    if (this.__statesList[pattern].has(mClass)) {
+                        return;
+                    }
+                }
+            }
+            this.__isDefaultState = true;
+            let mClass = this.__getStateManager(managerClass);
+            if (this.__defaultActiveState.has(mClass)) {
+                let fcts = this.__defaultActiveState.get(mClass);
+                for (let fct of fcts) {
+                    fct.bind(this)();
+                }
+            }
+        }
+    }
+    __subscribeState() {
+        if (!this.isReady && this.__stateCleared) {
+            return;
+        }
+        for (let route in this.__statesList) {
+            for (const managerClass of this.__statesList[route].keys()) {
+                managerClass.subscribe(route, this.__statesList[route].get(managerClass));
+            }
+        }
+    }
+    __stateCleared;
+    __unsubscribeState() {
+        for (let route in this.__statesList) {
+            for (const managerClass of this.__statesList[route].keys()) {
+                managerClass.unsubscribe(route, this.__statesList[route].get(managerClass));
+            }
+        }
+        this.__stateCleared = true;
+    }
+    dateToString(d) {
+        if (d instanceof Date) {
+            return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split("T")[0];
+        }
+        return null;
+    }
+    dateTimeToString(dt) {
+        if (dt instanceof Date) {
+            return new Date(dt.getTime() - (dt.getTimezoneOffset() * 60000)).toISOString().slice(0, -1);
+        }
+        return null;
+    }
+    stringToDate(s) {
+        let td = new Date(s);
+        let d = new Date(td.getTime() + (td.getTimezoneOffset() * 60000));
+        if (isNaN(d)) {
+            return null;
+        }
+        return d;
+    }
+    stringToDateTime(s) {
+        let td = new Date(s);
+        let d = new Date(td.getTime() + (td.getTimezoneOffset() * 60000));
+        if (isNaN(d)) {
+            return null;
+        }
+        return d;
+    }
+    getBoolean(val) {
+        if (val === true || val === 1 || val === 'true' || val === '') {
+            return true;
+        }
+        else if (val === false || val === 0 || val === 'false' || val === null || val === undefined) {
+            return false;
+        }
+        console.error("error parsing boolean value " + val);
+        return false;
+    }
+    attributeChangedCallback(name, oldValue, newValue) {
+        if (oldValue !== newValue || !this.isReady) {
+            if (this.__onChangeFct.hasOwnProperty(name)) {
+                for (let fct of this.__onChangeFct[name]) {
+                    fct('');
+                }
+            }
+        }
+    }
+    remove() {
+        super.remove();
+        this.postDestruction();
+    }
+    /**
+     * Function triggered when the component is removed from the DOM
+     */
+    postDestruction() { }
+    /**
+     * Function triggered the first time the component is rendering inside DOM
+     */
+    postCreation() { }
+    /**
+     * Find a parent by tagname if exist
+     */
+    findParentByTag(tagname, untilNode) {
+        return ElementExtension.findParentByTag(this, tagname, untilNode);
+    }
+    /**
+     * Find a parent by class name if exist
+     */
+    findParentByClass(classname, untilNode) {
+        return ElementExtension.findParentByClass(this, classname, untilNode);
+    }
+    /**
+     * Find a parent by type if exist
+     */
+    findParentByType(type, untilNode) {
+        return ElementExtension.findParentByType(this, type, untilNode);
+    }
+    /**
+     * Find list of parents by tagname
+     */
+    findParents(tagname, untilNode) {
+        return ElementExtension.findParents(this, tagname, untilNode);
+    }
+    /**
+     * Check if element contains a child
+     */
+    containsChild(el) {
+        return ElementExtension.containsChild(this, el);
+    }
+    /**
+     * Get element inside slot
+     */
+    getElementsInSlot(slotName = null) {
+        return ElementExtension.getElementsInSlot(this, slotName);
+    }
+}
 Aventus.WebComponentInstance=WebComponentInstance;
 WebComponentInstance.Namespace='Aventus';
 Aventus.ElementExtension=ElementExtension;
@@ -2696,29 +2731,29 @@ Aventus.Instance=Instance;
 Instance.Namespace='Aventus';
 Aventus.Style=Style;
 Style.Namespace='Aventus';
-Aventus.WebComponent=WebComponent;
-WebComponent.Namespace='Aventus';
 Aventus.Callback=Callback;
 Callback.Namespace='Aventus';
 Aventus.Mutex=Mutex;
 Mutex.Namespace='Aventus';
-Aventus.StateManager=StateManager;
-StateManager.Namespace='Aventus';
+Aventus.State=State;
+State.Namespace='Aventus';
+Aventus.EmptyState=EmptyState;
+EmptyState.Namespace='Aventus';
 Aventus.WatchAction=WatchAction;
 Aventus.Watcher=Watcher;
 Watcher.Namespace='Aventus';
 Aventus.PressManager=PressManager;
 PressManager.Namespace='Aventus';
-Aventus.State=State;
-State.Namespace='Aventus';
-Aventus.EmptyState=EmptyState;
-EmptyState.Namespace='Aventus';
+Aventus.StateManager=StateManager;
+StateManager.Namespace='Aventus';
 Aventus.WebComponentTemplateContext=WebComponentTemplateContext;
 WebComponentTemplateContext.Namespace='Aventus';
 Aventus.WebComponentTemplate=WebComponentTemplate;
 WebComponentTemplate.Namespace='Aventus';
 Aventus.WebComponentTemplateInstance=WebComponentTemplateInstance;
 WebComponentTemplateInstance.Namespace='Aventus';
+Aventus.WebComponent=WebComponent;
+WebComponent.Namespace='Aventus';
 })(Aventus);
 
 var dependances;
