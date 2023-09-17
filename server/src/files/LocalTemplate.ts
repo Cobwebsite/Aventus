@@ -2,7 +2,8 @@ import open = require('open');
 import { GenericServer } from '../GenericServer';
 import { SelectItem } from '../IConnection';
 import { uriToPath } from '../tools';
-import { Template, TemplateManager } from './Template';
+import { Template } from './Template';
+import { TemplateManager } from './TemplateManager';
 
 export class LocalTemplateManager {
 	private templateManager: TemplateManager;
@@ -42,7 +43,7 @@ export class LocalTemplateManager {
 		let uri = GenericServer.getWorkspaceUri()
 		if (uri) {
 			let aventusFolder = uriToPath(uri) + '/.aventus/templates';
-			return this.templateManager.readTemplates(aventusFolder);
+			return this.templateManager.readTemplates([aventusFolder]);
 		}
 		return [];
 	}

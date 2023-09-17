@@ -223,7 +223,7 @@ export const AventusConfigSchema: JSONSchema = {
             type: "object"
         }
     },
-    "required": ["build", "componentPrefix", "module"]
+    "required": ["build", "module"]
 };
 
 export const AventusTemplateSchema: JSONSchema = {

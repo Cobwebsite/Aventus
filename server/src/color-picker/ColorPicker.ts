@@ -15,30 +15,31 @@ interface Match {
 
 export class ColorPicker {
 
+	private static colorTxtList: string[] = [];
 	private static parseColorString(color: string) {
 
 		try {
-			
+
 			const p = parseColor(color);
 			if (!p) { throw new Error('invalid color string'); }
-				const r = p.rgba[0];
-				const g = p.rgba[1];
-				const b = p.rgba[2];
-				const a = p.rgba[3];
-	
-				return Color.create(r / 255, g / 255, b / 255, a);
-			
-	
+			const r = p.rgba[0];
+			const g = p.rgba[1];
+			const b = p.rgba[2];
+			const a = p.rgba[3];
+
+			return Color.create(r / 255, g / 255, b / 255, a);
+
+
 		} catch (e) {
 			console.log(e);
 			return null;
 		}
-	
+
 	}
 	private static getPos(text: string, index: number): Position {
 
 		const nMatches = Array.from(text.slice(0, index).matchAll(/\n/g));
-	
+
 		const lineNumber = nMatches.length;
 		let lastMatch = nMatches[lineNumber - 1];
 		let indexMatch = 0;
@@ -46,8 +47,8 @@ export class ColorPicker {
 			indexMatch = lastMatch.index;
 		}
 		const characterIndex = index - indexMatch;
-	
-	
+
+
 		return Position.create(
 			lineNumber,
 			characterIndex - 1
@@ -56,7 +57,7 @@ export class ColorPicker {
 
 	static getMatches(text: string): Match[] {
 		let result: Match[] = [];
-		const matches = text.matchAll(/(#(?:[\da-f]{3,4}){2}|rgb\((?:\d{1,3},\s*){2}\d{1,3}\)|rgba\((?:\d{1,3},\s*){3}\d*\.?\d+\)|hsl\(\d{1,3}(?:,\s*\d{1,3}%){2}\)|hsla\(\d{1,3}(?:,\s*\d{1,3}%){2},\s*\d*\.?\d+\))/gi);
+		const matches = text.matchAll(/(#(?:[\da-f]{3,4}){2}|#(?:[\da-f]{3})|rgb\((?:\d{1,3},\s*){2}\d{1,3}\)|rgba\((?:\d{1,3},\s*){3}\d*\.?\d+\)|hsl\(\d{1,3}(?:,\s*\d{1,3}%){2}\)|hsla\(\d{1,3}(?:,\s*\d{1,3}%){2},\s*\d*\.?\d+\))/gi);
 		if (matches) {
 			for (let match of matches) {
 				const t = match[0];
@@ -89,6 +90,46 @@ export class ColorPicker {
 				}
 			}
 		}
+
+		if (this.colorTxtList.length == 0) {
+			let colorsProps = Object.getOwnPropertyNames(ColorInfo.Colors)
+			let colors: string[] = [];
+			for (let prop of colorsProps) {
+				if (prop != 'name' && prop != 'length' && prop != 'prototype') {
+					colors.push(prop);
+				}
+			}
+			this.colorTxtList = colors;
+		}
+		let regex = new RegExp("((?:^|\\W))(" + this.colorTxtList.join("|") + ")(?:$|\\W)", "gi")
+		const matchesNamed = text.matchAll(regex);
+		if (matchesNamed) {
+			for (let match of matchesNamed) {
+				const t = match[2];
+				if (!match.index) {
+					continue;
+				}
+				const length = t.length;
+				let type: string = "hex";
+
+				const range = Range.create(
+					this.getPos(text, match.index + match[1].length),
+					this.getPos(text, match.index + match[1].length + t.length)
+				);
+
+				const col = this.parseColorString(ColorInfo.fromName(t).toHex());
+
+				if (col) {
+					result.push({
+						color: col,
+						type,
+						length,
+						range
+					} as Match);
+				}
+			}
+		}
+
 		return result;
 	}
 
@@ -112,9 +153,9 @@ export class ColorPicker {
 		const presentationHex = ColorPresentation.create(c.toString('hex'));
 		const presentationHexa = ColorPresentation.create(c.toString('hexa'));
 		const presentationHsl = ColorPresentation.create(c.toString('hsl'));
-		const presentationHsla =  ColorPresentation.create(c.toString('hsla'));
-		const presentationRgb =  ColorPresentation.create(c.toString('rgb'));
-		const presentationRgba =  ColorPresentation.create(c.toString('rgba'));
+		const presentationHsla = ColorPresentation.create(c.toString('hsla'));
+		const presentationRgb = ColorPresentation.create(c.toString('rgb'));
+		const presentationRgba = ColorPresentation.create(c.toString('rgba'));
 
 		let hasAlpha = false;
 		if (t.startsWith('#') && (t.length === 9)) {

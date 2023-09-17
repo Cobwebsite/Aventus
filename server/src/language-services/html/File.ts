@@ -5,6 +5,7 @@ import { Build } from '../../project/Build';
 import { AventusBaseFile } from "../BaseFile";
 import { AventusWebComponentLogicalFile } from '../ts/component/File';
 import { ParserHtml } from './parser/ParserHtml';
+import { AventusWebSCSSFile } from '../scss/File';
 
 export class AventusHTMLFile extends AventusBaseFile {
 
@@ -22,6 +23,13 @@ export class AventusHTMLFile extends AventusBaseFile {
         }
         return null;
     }
+    public get scssFile(): AventusWebSCSSFile | null {
+        let file = this.build.scssFiles[this.file.uri.replace(AventusExtension.ComponentView, AventusExtension.ComponentStyle)];
+        if (file instanceof AventusWebSCSSFile) {
+            return file;
+        }
+        return null;
+    }
     constructor(file: AventusFile, build: Build) {
         super(file, build);
         this.compile(false);
@@ -30,8 +38,8 @@ export class AventusHTMLFile extends AventusBaseFile {
      * return true if doc changed
      */
     protected refreshFileParsed(): boolean {
-        this.fileParsed = ParserHtml.parse(this.file.document, this.build);
-        let newVersion = ParserHtml.getVersion(this.file.document);
+        this.fileParsed = ParserHtml.parse(this, this.build);
+        let newVersion = ParserHtml.getVersion(this);
         if (this.version != newVersion) {
             this.version = newVersion;
             this.file.validate();
@@ -88,7 +96,7 @@ export class AventusHTMLFile extends AventusBaseFile {
         return [];
     }
     protected async onReferences(document: AventusFile, position: Position): Promise<Location[]> {
-        return [];
+        return this.build.htmlLanguageService.getLinkToStyle(this, position);
     }
     protected async onCodeLens(document: AventusFile): Promise<CodeLens[]> {
         return [];

@@ -950,7 +950,7 @@ export class ColorInfo {
 	 * @param {string} colorName 
 	 * @returns {ThisType} 
 	 */
-	static fromName(colorName) {
+	static fromName(colorName): ColorInfo {
 		colorName = this.tc(colorName, "string")
 		const color = this.Colors[colorName.toUpperCase()];
 		if (!color) throw new Error('Invalid Color name');

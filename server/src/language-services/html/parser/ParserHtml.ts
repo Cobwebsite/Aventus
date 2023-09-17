@@ -5,26 +5,28 @@ import { LanguageService, TokenType, getLanguageService } from 'vscode-html-lang
 import { AttributeInfo, ContentInfo, TagInfo } from './TagInfo';
 import { Build } from '../../../project/Build';
 import { HtmlTemplateResult, InterestPoint } from './definition';
+import { AventusHTMLFile } from '../File';
+import { SCSSParsedRule } from '../../scss/LanguageService';
 
 
 export class ParserHtml {
 	//#region static
 	private static languageService: LanguageService = getLanguageService();
 	private static parsedDoc: { [uri: string]: { version: number, result: ParserHtml } } = {};
-	public static getVersion(document: TextDocument): number {
-		if (ParserHtml.parsedDoc[document.uri]) {
-			return this.parsedDoc[document.uri].version;
+	public static getVersion(document: AventusHTMLFile): number {
+		if (ParserHtml.parsedDoc[document.file.uri]) {
+			return this.parsedDoc[document.file.uri].version;
 		}
 		return 0;
 	}
-	public static parse(document: TextDocument, build: Build): ParserHtml {
-		if (ParserHtml.parsedDoc[document.uri]) {
-			if (this.parsedDoc[document.uri].version == document.version) {
-				return this.parsedDoc[document.uri].result;
+	public static parse(document: AventusHTMLFile, build: Build): ParserHtml {
+		if (ParserHtml.parsedDoc[document.file.uri]) {
+			if (this.parsedDoc[document.file.uri].version == document.file.version) {
+				return this.parsedDoc[document.file.uri].result;
 			}
 		}
 		new ParserHtml(document, build);
-		return ParserHtml.parsedDoc[document.uri].result;
+		return ParserHtml.parsedDoc[document.file.uri].result;
 	}
 	private static currentParsingDoc: ParserHtml | null;
 	public static addError(start: number, end: number, msg: string) {
@@ -138,6 +140,32 @@ export class ParserHtml {
 			this.currentParsingDoc.interestPoints.push(point);
 		}
 	}
+	public static addStyleLink(point: [{ start: number, end: number }, { start: number, end: number }]) {
+		if (this.currentParsingDoc) {
+			this.currentParsingDoc.styleLinks.push(point);
+		}
+	}
+	public static getRules(): SCSSParsedRule {
+		if (this.currentParsingDoc) {
+			return this.currentParsingDoc.rules;
+		}
+		return new Map();
+	}
+	public static refreshStyle(document: AventusHTMLFile, build: Build) {
+		if (ParserHtml.parsedDoc[document.file.uri]) {
+			if (this.parsedDoc[document.file.uri].version == document.file.version) {
+				let doc = this.parsedDoc[document.file.uri];
+				doc.result.styleLinks = [];
+				doc.result.rules = document.scssFile?.rules ?? new Map();
+				for(let tag of doc.result.tags) {
+					tag.checkStyle(doc.result.rules, (point) => {
+						doc.result.styleLinks.push(point)
+					});
+				}
+			}
+		}
+		this.parse(document, build);
+	}
 	public static idElement = 0;
 	public static idLoop = 0;
 	public static loopsInfo: TagInfo[] = [];
@@ -157,6 +185,8 @@ export class ParserHtml {
 	public globalVars: string[] = [];
 	public resultsByClassName: { [className: string]: HtmlTemplateResult } = {};
 	public interestPoints: InterestPoint[] = []
+	public rules: SCSSParsedRule;
+	public styleLinks: [{ start: number, end: number }, { start: number, end: number }][] = []
 
 
 	public getBlocksInfoTxt(className: string) {
@@ -179,16 +209,17 @@ export class ParserHtml {
 	public isReady: boolean = false;
 	private build: Build;
 
-	private constructor(document: TextDocument, build: Build) {
+	private constructor(document: AventusHTMLFile, build: Build) {
 		this.build = build;
-		ParserHtml.parsedDoc[document.uri] = {
-			version: document.version,
+		ParserHtml.parsedDoc[document.file.uri] = {
+			version: document.file.version,
 			result: this,
 		}
-		let fileContent = this.getFileContent(document);
-		this.document = TextDocument.create(document.uri, document.languageId, document.version, fileContent);
+		let fileContent = this.getFileContent(document.file.document);
+		this.rules = document.scssFile?.rules ?? new Map();
+		this.document = TextDocument.create(document.file.uri, document.file.document.languageId, document.file.version, fileContent);
 		ParserHtml.currentParsingDoc = this;
-		this.uri = document.uri;
+		this.uri = document.file.uri;
 		this.parse(this.document);
 		ParserHtml.currentParsingDoc = null;
 		this.isReady = true;
@@ -246,7 +277,7 @@ export class ParserHtml {
 				else if (scanner.getTokenType() == TokenType.StartTagClose) {
 					if (currentTags.length > 0) {
 						let lastTag = currentTags[currentTags.length - 1];
-						lastTag.validateAllProps();
+						lastTag.validateAllProps(scanner.getTokenOffset());
 						if (lastTag.selfClosing) {
 							currentTags.pop();
 							lastTag.afterClose(scanner.getTokenOffset(), scanner.getTokenEnd());
@@ -259,7 +290,7 @@ export class ParserHtml {
 				else if (scanner.getTokenType() == TokenType.StartTagSelfClose) {
 					let lastTag = currentTags.pop();
 					if (lastTag) {
-						lastTag.validateAllProps();
+						lastTag.validateAllProps(scanner.getTokenOffset());
 						lastTag.afterClose(scanner.getTokenOffset(), scanner.getTokenEnd());
 					}
 				}

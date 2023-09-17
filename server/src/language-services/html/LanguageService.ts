@@ -199,6 +199,8 @@ export class AventusHTMLLanguageService {
                 }
             }
         }
+
+        
         return null;
     }
     //#endregion
@@ -245,8 +247,27 @@ export class AventusHTMLLanguageService {
             }
         }
         return null;
+    }
 
-
+    public getLinkToStyle(file: AventusHTMLFile, position: Position): Location[] {
+        let result: Location[] = [];
+        let offset = file.file.document.offsetAt(position);
+        let scssFile = file.scssFile;
+        if (scssFile && file.fileParsed) {
+            for (let points of file.fileParsed.styleLinks) {
+                let point = points[0]
+                if (offset >= point.start && offset <= point.end) {
+                    result.push({
+                        uri: scssFile.file.uri,
+                        range: {
+                            start: scssFile.file.document.positionAt(points[1].start),
+                            end: scssFile.file.document.positionAt(points[1].end)
+                        }
+                    });
+                }
+            }
+        }
+        return result;
     }
 
     //#region custom definition

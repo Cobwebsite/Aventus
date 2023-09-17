@@ -160,12 +160,25 @@ export class Watcher {
                         return target;
                     };
                 }
+                else if(prop == "toJSON") {
+                    return () => {
+                        let result = {};
+                        for(let key of Object.keys(target)) {
+                            if(key == "__path" || key == "__proxyData") {
+                                continue;
+                            }
+                            result[key] = target[key];
+                        }
+                        return result;
+                    };
+                }
                 return undefined;
             },
             get(target, prop, receiver) {
                 if(prop == "__proxyData") {
                     return target[prop];
                 }
+                
 
                 let customResult = this.tryCustomFunction(target, prop, receiver);
                 if(customResult !== undefined) {

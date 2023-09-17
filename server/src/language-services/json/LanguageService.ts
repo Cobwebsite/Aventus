@@ -118,6 +118,15 @@ export class AventusJSONLanguageService {
             ...this.defaultConfigValue(),
             ...config
         };
+        if (config.componentPrefix == "") {
+            let splittedName = config.module.match(/([A-Z][a-z]*)|([0-9][a-z]*)/g);
+            if (splittedName) {
+                config.componentPrefix = splittedName.join("-").toLowerCase()
+            }
+            else {
+                config.componentPrefix = 'av';
+            }
+        }
         let builds: AventusConfigBuild[] = [];
         for (let build of config.build) {
             builds.push(this.prepareBuild(uri, build, config));
@@ -369,7 +378,7 @@ export class AventusJSONLanguageService {
             module: '',
             hideWarnings: false,
             version: '1.0.0',
-            componentPrefix: 'av',
+            componentPrefix: '',
             build: [],
             static: [],
             avoidParsingInsideTags: [],

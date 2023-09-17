@@ -6,7 +6,7 @@ export class ServerStart {
     public static action(info: string) {
         if (Singleton.client.components) {
             Singleton.client.components.runningServer.text = "$(notebook-stop)";
-            Singleton.client.components.runningServer.tooltip = "Aventus : Stop live reload";
+            Singleton.client.components.runningServer.tooltip = "Current address : "+info+"\r\nAventus : Stop live reload";
             Singleton.client.components.runningServer.command = "aventus.liveserver.stop";
         }
     }

@@ -2,6 +2,7 @@ import * as connect from 'connect';
 import * as send from 'send';
 import * as url from 'url';
 import { createServer, Server, ServerResponse } from 'http';
+import { createServer as testPortServer } from 'net';
 import { extname } from 'path';
 import { readFileSync } from 'fs';
 import { replace } from 'event-stream';
@@ -12,6 +13,7 @@ import { ServerStart } from '../notification/httpServer/ServerStart';
 import { ServerStop } from '../notification/httpServer/ServerStop';
 import open = require('open');
 import { LiveServerSettings, SettingsManager } from '../settings/Settings';
+import { GenericServer } from '../GenericServer';
 
 export class HttpServer {
 	private static instance: HttpServer;
@@ -28,6 +30,7 @@ export class HttpServer {
 	private wss: WebSocketServer | undefined;
 	private reloadTimeout;
 	private clients: WebSocket[] = [];
+	private port: number = 8080;
 
 	private constructor() {
 		this.config = SettingsManager.getInstance().settings.liveserver;
@@ -45,6 +48,7 @@ export class HttpServer {
 		if (!this.server || !this.server.listening) {
 
 			this.config = SettingsManager.getInstance().settings.liveserver;
+			this.port = this.config.port;
 			var app = connect();
 			let staticServer = this.createStaticServer();
 			app.use(staticServer)
@@ -52,19 +56,24 @@ export class HttpServer {
 				.use(serveIndex(this.config.rootFolder, { icons: true }) as any);
 			this.server = createServer(app);
 
+
 			this.server.addListener('listening', (/*e*/) => {
 				let host = this.config.host
 				if (host == "0.0.0.0") {
 					host = "127.0.0.1";
 				}
-				ServerStart.send(host, this.config.port);
+				ServerStart.send(host, this.port);
 				if (this.config.launch_browser) {
 					let config: open.Options = {};
 					if (this.config.browser) {
 						config = { app: { name: this.config.browser } }
 					}
 
-					open(`http://${host}:${this.config.port}`, config)
+					open(`http://${host}:${this.port}`, config)
+				}
+				else {
+					let openend = `http://${this.config.host}:${this.port}`
+					GenericServer.showInformationMessage("Liver server started on " + openend)
 				}
 			})
 			this.clients = [];
@@ -78,7 +87,19 @@ export class HttpServer {
 				this.clients.push(ws);
 			})
 
-			this.server.listen(this.config.port, this.config.host);
+			if (this.config.autoIncrementPort) {
+				while (await this.portInUse(this.config.host, this.port)) {
+					this.port++;
+				}
+			}
+			else {
+				if (await this.portInUse(this.config.host, this.port)) {
+					GenericServer.showErrorMessage("The port " + this.port + " is already in use");
+					return;
+				}
+			}
+
+			this.server.listen(this.port, this.config.host);
 		}
 	}
 	public stop() {
@@ -95,6 +116,25 @@ export class HttpServer {
 			this.wss = undefined;
 		}
 		ServerStop.send();
+	}
+	public portInUse(address: string, port: number) {
+		return new Promise<boolean>((resolve, reject) => {
+			var server = testPortServer(function (socket) {
+				socket.write('Echo server\r\n');
+				socket.pipe(socket);
+			});
+
+			server.on('error', function (e) {
+				resolve(true);
+			});
+			server.on('listening', function (e) {
+				server.close();
+				resolve(false);
+			});
+
+			server.listen(port, address);
+		})
+
 	}
 
 	public updateCSS(css: string, element: string, children: string[]) {
@@ -163,9 +203,9 @@ export class HttpServer {
 					if (host == "0.0.0.0") {
 						host = "127.0.0.1";
 					}
-					host += ":" + this.config.port;
+					host += ":" + this.port;
 				}
-				
+
 				let newUrl = 'ws://' + host + '/ws';
 				let manualCode = INJECTED_CODE.replace('<script type="text/javascript">', '');
 				manualCode = manualCode.replace("var address = protocol + window.location.host + window.location.pathname + '/ws';", "var address = '" + newUrl + "';")

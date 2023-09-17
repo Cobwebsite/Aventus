@@ -5,8 +5,8 @@ import { WebComponent } from "./WebComponent.lib.avt";
 type WebComponentTemplateHTML = { slots: { [name: string]: string; }, blocks: { [name: string]: string; }; };
 type ContextSchema = {
     globals: string[],
-    loops: { item: string, index: string, data: string; }[],
-    locals: { name: string, value: any; }[];
+    loops: { [item: string]: { index: string, data: string; }; },
+    locals: { [name: string]: any; };
 };
 
 type ActionChange = {
@@ -69,10 +69,12 @@ export class WebComponentTemplateContext {
     public isRendered: boolean = false;
     public schema: ContextSchema;
 
-    constructor(component: WebComponent, schema: ContextSchema, locals: { name: string, value: any; }[]) {
+    constructor(component: WebComponent, schema: ContextSchema, locals: { [name: string]: any; }) {
         this.component = component;
         this.schema = { ...schema };
-        this.schema.locals = [...this.schema.locals, ...locals]; 5;
+        for(let key in locals) {
+            this.schema.locals[key] = locals[key];
+        }
         this.buildSchema();
     }
     public destructor() {
@@ -87,12 +89,12 @@ export class WebComponentTemplateContext {
         for(let global of this.schema.globals) {
             this.createGlobal(global);
         }
-        for(let loop of this.schema.loops) {
-            this.createLoop(loop);
+        for(let item in this.schema.loops) {
+            this.createLoop(item, this.schema.loops[item].index, this.schema.loops[item].data);
         }
 
-        for(let local of this.schema.locals) {
-            this.createLocal(local);
+        for(let key in this.schema.locals) {
+            this.createLocal(key, this.schema.locals[key]);
         }
     }
 
@@ -121,26 +123,22 @@ export class WebComponentTemplateContext {
         this.fctsToRemove.push({ name, fct });
         this.component['__onChangeFct'][name].push(fct);
     }
-    private createLoop(loop: {
-        item: string;
-        index: string;
-        data: string;
-    }) {
-        Object.defineProperty(this.c, loop.item, {
+    private createLoop(item: string, index: string, data: string) {
+        Object.defineProperty(this.c, item, {
             get() {
-                let indexValue = this[loop.index];
-                return WebComponentTemplate.getValueFromItem(loop.data, this)[indexValue];
+                let indexValue = this[index];
+                return WebComponentTemplate.getValueFromItem(data, this)[indexValue];
             }
         });
-        let name = loop.data.split(".")[0];
-        this.__changes[loop.item] = [];
+        let name = data.split(".")[0];
+        this.__changes[item] = [];
         // transform update path inside loop
         this.__changes[name].push((path) => {
             if(this.isRendered) {
-                let currentPath = `${loop.data}[${this.c[loop.index]}]`;
+                let currentPath = `${data}[${this.c[index]}]`;
                 if(path.startsWith(currentPath)) {
-                    let localPath = path.replace(currentPath, loop.item);
-                    for(let change of this.__changes[loop.item]) {
+                    let localPath = path.replace(currentPath, item);
+                    for(let change of this.__changes[item]) {
                         change(localPath);
                     }
                 }
@@ -149,21 +147,17 @@ export class WebComponentTemplateContext {
 
     }
 
-    private createLocal(local: {
-        name: string;
-        value: any;
-    }) {
-        let localValue = local.value;
+    private createLocal(key: string, value: any) {
         let changes = this.__changes;
-        Object.defineProperty(this.c, local.name, {
+        Object.defineProperty(this.c, key, {
             get() {
-                return localValue;
+                return value;
             },
             set(value) {
-                localValue = value;
-                if(changes[local.name]) {
-                    for(let change of changes[local.name]) {
-                        change(local.name);
+                value = value;
+                if(changes[key]) {
+                    for(let change of changes[key]) {
+                        change(key);
                     }
                 }
             }
@@ -245,8 +239,8 @@ export class WebComponentTemplate {
 
     private contextSchema: ContextSchema = {
         globals: [],
-        locals: [],
-        loops: []
+        locals: {},
+        loops: {}
     };
     public template: HTMLTemplateElement;
     public actions: Actions = {};
@@ -281,7 +275,7 @@ export class WebComponentTemplate {
                             this.actions.content[contextProp] = actions.content[contextProp];
                         }
                         else {
-                            this.actions.content[contextProp] = { ...actions.content[contextProp], ...this.actions.content[contextProp] };
+                            this.actions.content[contextProp] = [ ...actions.content[contextProp], ...this.actions.content[contextProp] ];
                         }
                     }
                 }
@@ -323,13 +317,21 @@ export class WebComponentTemplate {
 
     public setSchema(contextSchema: ContextSchema) {
         if(contextSchema.globals) {
-            this.contextSchema.globals = [...this.contextSchema.globals, ...contextSchema.globals];
+            for(let glob of contextSchema.globals) {
+                if(!this.contextSchema.globals.includes(glob)) {
+                    this.contextSchema.globals.push(glob);
+                }
+            }
         }
         if(contextSchema.locals) {
-            this.contextSchema.locals = [...this.contextSchema.locals, ...contextSchema.locals];
+            for(let key in contextSchema.locals) {
+                this.contextSchema.locals[key] = contextSchema.locals[key];
+            }
         }
         if(contextSchema.loops) {
-            this.contextSchema.loops = [...this.contextSchema.loops, ...contextSchema.loops];
+            for(let key in contextSchema.loops) {
+                this.contextSchema.loops[key] = contextSchema.loops[key];
+            }
         }
     }
 
@@ -659,12 +661,11 @@ export class WebComponentTemplateInstance {
 
     private renderSubTemplate() {
         for(let loop of this.loops) {
-            let localContext = JSON.parse(JSON.stringify(this.context.schema));
-            localContext.loops.push({
+            let localContext = JSON.parse(JSON.stringify(this.context.schema)) as ContextSchema;
+            localContext.loops[loop.item] = {
                 data: loop.data,
                 index: loop.index,
-                item: loop.item
-            });
+            };
             this.renderLoop(loop, localContext);
             this.registerLoopWatchEvent(loop, localContext);
         }
