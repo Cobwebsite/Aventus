@@ -39,25 +39,25 @@ class Dependances extends Aventus.WebComponent {
       {
         "id": "dependances_2",
         "attrName": "@HTML",
-        "render": (c) => `\r\n\t\t\t${c.dep.name}\r\n\t\t`,
+        "render": (c) => `\r\n\t\t\t${c.__P(c.dep.name)}\r\n\t\t`,
         "path": "dep"
       },
       {
         "id": "dependances_3",
         "attrName": "@HTML",
-        "render": (c) => `\r\n\t\t\t${c.dep.version}\r\n\t\t`,
+        "render": (c) => `\r\n\t\t\t${c.__P(c.dep.version)}\r\n\t\t`,
         "path": "dep"
       },
       {
         "id": "dependances_4",
         "attrName": "href",
-        "render": (c) => `${c.dep.uri}`,
+        "render": (c) => `${c.__P(c.dep.uri)}`,
         "path": "dep"
       },
       {
         "id": "dependances_4",
         "attrName": "@HTML",
-        "render": (c) => `\r\n\t\t\t\t${c.dep.uri}\r\n\t\t\t`,
+        "render": (c) => `\r\n\t\t\t\t${c.__P(c.dep.uri)}\r\n\t\t\t`,
         "path": "dep"
       }
     ]
@@ -73,6 +73,7 @@ class Dependances extends Aventus.WebComponent {
         return "Dependances";
     }
     __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('no_deps')) { this.attributeChangedCallback('no_deps', false, false); }if(!this["dependances"]){ this["dependances"] = [{        name: "AventusUI",        version: "1.0.0",        uri: "https://aventusjs.com/aventusUI.def.avt"    }, {        name: "AventusUI2",        version: "1.0.0",        uri: "https://aventusjs.com/aventusUI.def.avt"    }];} }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('no_deps'); }
     __listBoolProps() { return ["no_deps"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
 }
 if(!window.customElements.get('av-dependances')){window.customElements.define('av-dependances', Dependances);Aventus.WebComponentInstance.registerDefinition(Dependances);}

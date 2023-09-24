@@ -7,6 +7,7 @@ import { Build } from '../../../project/Build';
 import { HtmlTemplateResult, InterestPoint } from './definition';
 import { AventusHTMLFile } from '../File';
 import { SCSSParsedRule } from '../../scss/LanguageService';
+import { createErrorHTMLPos } from '../../../tools';
 
 
 export class ParserHtml {
@@ -157,7 +158,7 @@ export class ParserHtml {
 				let doc = this.parsedDoc[document.file.uri];
 				doc.result.styleLinks = [];
 				doc.result.rules = document.scssFile?.rules ?? new Map();
-				for(let tag of doc.result.tags) {
+				for (let tag of doc.result.tags) {
 					tag.checkStyle(doc.result.rules, (point) => {
 						doc.result.styleLinks.push(point)
 					});
@@ -250,133 +251,140 @@ export class ParserHtml {
 		let scanner = ParserHtml.languageService.createScanner(document.getText(), 0);
 		let currentTags: TagInfo[] = [];
 		let currentAttribute: AttributeInfo | null = null;
-		while (scanner.scan() != TokenType.EOS) {
-			if (isInAvoidTagStart.length > 0) {
-				if (scanner.getTokenType() == TokenType.EndTagClose && removeNextClose) {
-					removeNextClose = false;
-					let lastTag = currentTags.pop();
-					let lastIndex = isInAvoidTagStart.pop();
-					if (lastTag && lastIndex) {
-						let end = scanner.getTokenEnd();
-						let txt = document.getText().slice(lastIndex, end);
-						lastTag.addContent(new ContentInfo(txt, lastIndex, end, lastTag, false));
+		try {
+			while (scanner.scan() != TokenType.EOS) {
+				if (isInAvoidTagStart.length > 0) {
+					if (scanner.getTokenType() == TokenType.EndTagClose && removeNextClose) {
+						removeNextClose = false;
+						let lastTag = currentTags.pop();
+						let lastIndex = isInAvoidTagStart.pop();
+						if (lastTag && lastIndex) {
+							let end = scanner.getTokenEnd();
+							let txt = document.getText().slice(lastIndex, end);
+							lastTag.addContent(new ContentInfo(txt, lastIndex, end, lastTag, false));
+						}
 					}
-				}
-				else if (scanner.getTokenType() == TokenType.EndTag) {
-					let tagName = scanner.getTokenText();
-					let lastTag = currentTags[currentTags.length - 1];
-					if (lastTag && lastTag.tagName == tagName) {
-						removeNextClose = true;
-						lastTag.afterClose(scanner.getTokenOffset(), scanner.getTokenEnd());
-					}
-				}
-			}
-			else {
-				if (scanner.getTokenType() == TokenType.StartTagOpen) {
-				}
-				else if (scanner.getTokenType() == TokenType.StartTagClose) {
-					if (currentTags.length > 0) {
+					else if (scanner.getTokenType() == TokenType.EndTag) {
+						let tagName = scanner.getTokenText();
 						let lastTag = currentTags[currentTags.length - 1];
-						lastTag.validateAllProps(scanner.getTokenOffset());
-						if (lastTag.selfClosing) {
-							currentTags.pop();
+						if (lastTag && lastTag.tagName == tagName) {
+							removeNextClose = true;
 							lastTag.afterClose(scanner.getTokenOffset(), scanner.getTokenEnd());
 						}
-						if (this.build.getAvoidParsingTags().includes(lastTag.tagName)) {
-							isInAvoidTagStart.push(scanner.getTokenEnd());
+					}
+				}
+				else {
+					if (scanner.getTokenType() == TokenType.StartTagOpen) {
+					}
+					else if (scanner.getTokenType() == TokenType.StartTagClose) {
+						if (currentTags.length > 0) {
+							let lastTag = currentTags[currentTags.length - 1];
+							lastTag.validateAllProps(scanner.getTokenOffset());
+							if (lastTag.selfClosing) {
+								currentTags.pop();
+								lastTag.afterClose(scanner.getTokenOffset(), scanner.getTokenEnd());
+							}
+							if (this.build.getAvoidParsingTags().includes(lastTag.tagName)) {
+								isInAvoidTagStart.push(scanner.getTokenEnd());
+							}
 						}
 					}
-				}
-				else if (scanner.getTokenType() == TokenType.StartTagSelfClose) {
-					let lastTag = currentTags.pop();
-					if (lastTag) {
-						lastTag.validateAllProps(scanner.getTokenOffset());
-						lastTag.afterClose(scanner.getTokenOffset(), scanner.getTokenEnd());
+					else if (scanner.getTokenType() == TokenType.StartTagSelfClose) {
+						let lastTag = currentTags.pop();
+						if (lastTag) {
+							lastTag.validateAllProps(scanner.getTokenOffset());
+							lastTag.afterClose(scanner.getTokenOffset(), scanner.getTokenEnd());
+						}
 					}
-				}
-				else if (scanner.getTokenType() == TokenType.StartTag) {
-					let tagName = scanner.getTokenText();
-					let start = scanner.getTokenOffset();
-					let end = scanner.getTokenEnd();
-					let newTag = new TagInfo(this, tagName, start, end);
-
-					if (currentTags.length > 0) {
-						let lastTag = currentTags[currentTags.length - 1];
-						lastTag.addChild(newTag);
-					}
-					else {
-						this.rootTags.push(newTag);
-					}
-					this.tags.push(newTag);
-					currentTags.push(newTag);
-				}
-				else if (scanner.getTokenType() == TokenType.EndTagOpen) {
-				}
-				else if (scanner.getTokenType() == TokenType.EndTagClose) {
-				}
-				else if (scanner.getTokenType() == TokenType.EndTag) {
-					let tagName = scanner.getTokenText();
-					let lastTag = currentTags.pop();
-					if (lastTag && lastTag.tagName == tagName) {
-						lastTag.afterClose(scanner.getTokenOffset(), scanner.getTokenEnd());
-					}
-					else {
-						return;
-					}
-				}
-				else if (scanner.getTokenType() == TokenType.DelimiterAssign) { // =
-				}
-				else if (scanner.getTokenType() == TokenType.AttributeName) {
-					let name = scanner.getTokenText();
-
-					if (currentTags.length > 0) {
-						let tag = currentTags[currentTags.length - 1];
+					else if (scanner.getTokenType() == TokenType.StartTag) {
+						let tagName = scanner.getTokenText();
 						let start = scanner.getTokenOffset();
 						let end = scanner.getTokenEnd();
-						currentAttribute = new AttributeInfo(name, start, end, tag);
-						tag.addAttribute(currentAttribute);
-					}
+						let newTag = new TagInfo(this, tagName, start, end);
 
-				}
-				else if (scanner.getTokenType() == TokenType.AttributeValue) {
-					if (currentAttribute) {
-						let value = scanner.getTokenText();
-						let start = scanner.getTokenOffset();
-						let end = scanner.getTokenEnd();
-						currentAttribute.setValue(value, start, end);
-						currentAttribute = null;
+						if (currentTags.length > 0) {
+							let lastTag = currentTags[currentTags.length - 1];
+							lastTag.addChild(newTag);
+						}
+						else {
+							this.rootTags.push(newTag);
+						}
+						this.tags.push(newTag);
+						currentTags.push(newTag);
 					}
-				}
-				else if (scanner.getTokenType() == TokenType.Content) {
-					if (currentTags.length > 0) {
-						let tag = currentTags[currentTags.length - 1];
-						let value = scanner.getTokenText();
-						let start = scanner.getTokenOffset();
-						let end = scanner.getTokenEnd();
-						tag.addContent(new ContentInfo(value, start, end, tag));
+					else if (scanner.getTokenType() == TokenType.EndTagOpen) {
 					}
-				}
-				else if (scanner.getTokenType() == TokenType.Whitespace) {
-				}
-				else if (scanner.getTokenType() == TokenType.Unknown) {
-					debugger;
-				}
-				else if (scanner.getTokenType() == TokenType.Script) {
-					// ParserHtml.addError(scanner.getTokenOffset(), scanner.getTokenEnd(), "You can't use script inside")
-					debugger;
-				}
-				else if (scanner.getTokenType() == TokenType.Styles) {
-					debugger;
+					else if (scanner.getTokenType() == TokenType.EndTagClose) {
+					}
+					else if (scanner.getTokenType() == TokenType.EndTag) {
+						let tagName = scanner.getTokenText();
+						let lastTag = currentTags.pop();
+						if (lastTag && lastTag.tagName == tagName) {
+							lastTag.afterClose(scanner.getTokenOffset(), scanner.getTokenEnd());
+						}
+						else {
+							if (lastTag) {
+								this.errors.push(createErrorHTMLPos(document, "The tag " + lastTag?.tagName + " isn't correctly closed", lastTag?.start, lastTag?.end))
+							}
+							else {
+								this.errors.push(createErrorHTMLPos(document, "No opening tag found for "+tagName, scanner.getTokenOffset(), scanner.getTokenEnd()))
+							}
+							return;
+						}
+					}
+					else if (scanner.getTokenType() == TokenType.DelimiterAssign) { // =
+					}
+					else if (scanner.getTokenType() == TokenType.AttributeName) {
+						let name = scanner.getTokenText();
+
+						if (currentTags.length > 0) {
+							let tag = currentTags[currentTags.length - 1];
+							let start = scanner.getTokenOffset();
+							let end = scanner.getTokenEnd();
+							currentAttribute = new AttributeInfo(name, start, end, tag);
+							tag.addAttribute(currentAttribute);
+						}
+
+					}
+					else if (scanner.getTokenType() == TokenType.AttributeValue) {
+						if (currentAttribute) {
+							let value = scanner.getTokenText();
+							let start = scanner.getTokenOffset();
+							let end = scanner.getTokenEnd();
+							currentAttribute.setValue(value, start, end);
+							currentAttribute = null;
+						}
+					}
+					else if (scanner.getTokenType() == TokenType.Content) {
+						if (currentTags.length > 0) {
+							let tag = currentTags[currentTags.length - 1];
+							let value = scanner.getTokenText();
+							let start = scanner.getTokenOffset();
+							let end = scanner.getTokenEnd();
+							tag.addContent(new ContentInfo(value, start, end, tag));
+						}
+					}
+					else if (scanner.getTokenType() == TokenType.Whitespace) {
+					}
+					else if (scanner.getTokenType() == TokenType.Unknown) {
+						debugger;
+					}
+					else if (scanner.getTokenType() == TokenType.Script) {
+						// ParserHtml.addError(scanner.getTokenOffset(), scanner.getTokenEnd(), "You can't use script inside")
+						debugger;
+					}
+					else if (scanner.getTokenType() == TokenType.Styles) {
+						debugger;
+					}
 				}
 			}
+		} catch (e) {
+			console.log(e);
 		}
 
 		let finalTxt = "";
 		for (let tag of this.rootTags) {
 			finalTxt += tag.render();
-		}
-		if (document.uri == "file:///d%3A/404/5_Prog_SVN/5_Templates/Vscode_Extension/AventusDoc/src/pages/Page/Page.wcv.avt") {
-			debugger;
 		}
 		this.manageSlotAndBlock(finalTxt);
 	}
@@ -421,7 +429,7 @@ export class ParserHtml {
 			removeBody = removeBody.replace(result[0], '');
 		}
 		removeBody = removeBody.trim();
-		if (removeBody.length > 0) {
+		if (removeBody.length > 0 || finalTxt.trim().length == 0) {
 			this.blocksInfo['default'] = removeBody;
 		}
 

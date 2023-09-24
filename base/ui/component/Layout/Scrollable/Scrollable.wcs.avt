@@ -66,6 +66,7 @@
 				overflow: hidden;
 				position: absolute;
 				z-index: 5;
+				transition: transform 0.2s linear;
 
 				.shadow-scroller {
 					background-color: var(--internal-scrollbar-container-color);

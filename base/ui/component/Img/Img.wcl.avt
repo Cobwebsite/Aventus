@@ -8,7 +8,7 @@ export class Img extends Aventus.WebComponent implements Aventus.DefaultComponen
 
     //#region props
     @Attribute()
-    public no_save: boolean;
+    public cache: boolean;
 
     @Property((target: Img) => {
         target.onSrcChanged();
@@ -34,7 +34,7 @@ export class Img extends Aventus.WebComponent implements Aventus.DefaultComponen
     private isCalculing: boolean;
     private maxCalculateSize: number = 10;
     private ratio: number = 1;
-    private resizeObserver:Aventus.ResizeObserver;
+    private resizeObserver: Aventus.ResizeObserver;
     //#endregion
 
 
@@ -143,13 +143,19 @@ export class Img extends Aventus.WebComponent implements Aventus.DefaultComponen
         this.isCalculing = false;
     }
     private async onSrcChanged() {
+        if(!this.src) {
+            return;
+        }
         if(this.src.endsWith(".svg")) {
             let svgContent = await Aventus.ResourceLoader.load(this.src);
             this.svgEl.innerHTML = svgContent;
             this.calculateSize();
         }
-        else if(this.src != "" && !this.no_save) {
-            let base64 = await Aventus.ResourceLoader.load(this.src);
+        else if(this.cache) {
+            let base64 = await Aventus.ResourceLoader.load({
+                url: this.src,
+                type: 'img'
+            });
             this.imgEl.setAttribute("src", base64);
             this.calculateSize();
         }

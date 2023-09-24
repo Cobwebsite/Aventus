@@ -90,7 +90,7 @@ class Input extends Aventus.WebComponent {
       {
         "id": "input_1",
         "attrName": "@HTML",
-        "render": (c) => `${c.label}`
+        "render": (c) => `${c.__P(c.label)}`
       }
     ]
   },
@@ -116,7 +116,7 @@ class Input extends Aventus.WebComponent {
         return "Input";
     }
     __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('required')) { this.attributeChangedCallback('required', false, false); }if(!this.hasAttribute('disabled')) { this.attributeChangedCallback('disabled', false, false); }if(!this.hasAttribute('min_length')){ this['min_length'] = undefined; }if(!this.hasAttribute('max_length')){ this['max_length'] = undefined; }if(!this.hasAttribute('pattern')){ this['pattern'] = undefined; }if(!this.hasAttribute('value')){ this['value'] = ""; }if(!this.hasAttribute('label')){ this['label'] = ""; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('value');this.__upgradeProperty('label'); }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('required');this.__upgradeProperty('disabled');this.__upgradeProperty('min_length');this.__upgradeProperty('max_length');this.__upgradeProperty('pattern');this.__upgradeProperty('value');this.__upgradeProperty('label'); }
     __listBoolProps() { return ["required","disabled"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     onAttrChange() {
         if (this.inputEl.value != this.value) {

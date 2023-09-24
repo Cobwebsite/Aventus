@@ -237,9 +237,11 @@ namespace Layout {
                 }, 1000);
             }
             let containerSize = direction == 'y' ? container.offsetHeight : container.offsetWidth;
-            let scrollPosition = this.position[direction] / this.contentWrapperSize[direction] * containerSize;
-            scroller.style.transform = `translate${direction.toUpperCase()}(${scrollPosition}px)`;
-            this.contentWrapper.style.transform = `translate3d(${-1 * this.x}px, ${-1 * this.y}px, 0)`;
+            if(this.contentWrapperSize[direction] != 0) {
+                let scrollPosition = this.position[direction] / this.contentWrapperSize[direction] * containerSize;
+                scroller.style.transform = `translate${direction.toUpperCase()}(${scrollPosition}px)`;
+                this.contentWrapper.style.transform = `translate3d(${-1 * this.x}px, ${-1 * this.y}px, 0)`;
+            }
             this.triggerScrollChange();
         }
 
@@ -265,15 +267,28 @@ namespace Layout {
             this.scrollDirection('x', x);
             this.scrollDirection('y', y);
         }
+        /**
+         * Scroll left - right
+         */
+        public scrollX(x: number) {
+            this.scrollDirection('x', x);
+        }
+        /**
+         * Scroll bottom - top
+         */
+        public scrollY(y: number) {
+            this.scrollDirection('y', y);
+        }
+
         //#endregion
 
         //#region events
         private addAction() {
-            document.addEventListener("wheel", this.onWheel);
-            document.addEventListener("touchstart", this.onTouchStart);
-            document.addEventListener("touchmove", this.onTouchMove);
-            document.addEventListener("touchcancel", this.onTouchEnd);
-            document.addEventListener("touchend", this.onTouchEnd);
+            this.addEventListener("wheel", this.onWheel);
+            this.addEventListener("touchstart", this.onTouchStart);
+            this.addEventListener("touchmove", this.onTouchMove);
+            this.addEventListener("touchcancel", this.onTouchEnd);
+            this.addEventListener("touchend", this.onTouchEnd);
             this.addScrollDrag('x');
             this.addScrollDrag('y');
         }
@@ -389,38 +404,42 @@ namespace Layout {
             }
         }
         private calculatePositionScrollerContainerY() {
-            const topMissing = this.mainContainer.offsetHeight - this.horizontalScrollerContainer.offsetTop;
-            if(topMissing > 0 && this.x_scroll_visible && !this.floating_scroll) {
-                this.contentHidder.style.height = 'calc(100% - ' + topMissing + 'px)';
-                this.contentHidder.style.marginBottom = topMissing + 'px';
-                this.margin.x = topMissing;
-            }
-            else {
-                this.contentHidder.style.height = '';
-                this.contentHidder.style.marginBottom = '';
-                this.margin.x = 0;
-            }
-        }
-
-        private calculatePositionScrollerContainerX() {
             const leftMissing = this.mainContainer.offsetWidth - this.verticalScrollerContainer.offsetLeft;
             if(leftMissing > 0 && this.y_scroll_visible && !this.floating_scroll) {
                 this.contentHidder.style.width = 'calc(100% - ' + leftMissing + 'px)';
                 this.contentHidder.style.marginRight = leftMissing + 'px';
-                this.margin.y = leftMissing;
+                this.margin.x = leftMissing;
 
             }
             else {
                 this.contentHidder.style.width = '';
                 this.contentHidder.style.marginRight = '';
+                this.margin.x = 0;
+            }
+        }
+
+        private calculatePositionScrollerContainerX() {
+            const topMissing = this.mainContainer.offsetHeight - this.horizontalScrollerContainer.offsetTop;
+            if(topMissing > 0 && this.x_scroll_visible && !this.floating_scroll) {
+                this.contentHidder.style.height = 'calc(100% - ' + topMissing + 'px)';
+                this.contentHidder.style.marginBottom = topMissing + 'px';
+                this.margin.y = topMissing;
+            }
+            else {
+                this.contentHidder.style.height = '';
+                this.contentHidder.style.marginBottom = '';
                 this.margin.y = 0;
             }
         }
 
         private calculateSizeScroller(direction: 'x' | 'y') {
             const scrollerSize = ((this.display[direction] - this.margin[direction]) / this.contentWrapperSize[direction] * 100);
-            this.scroller[direction]().style.height = scrollerSize + '%';
-
+            if(direction == "y") {
+                this.scroller[direction]().style.height = scrollerSize + '%';
+            }
+            else {
+                this.scroller[direction]().style.width = scrollerSize + '%';
+            }
             let maxScrollContent = this.contentWrapperSize[direction] - this.display[direction];
             if(maxScrollContent < 0) {
                 maxScrollContent = 0;
@@ -448,9 +467,7 @@ namespace Layout {
             }
             else if(this.y_scroll_visible) {
                 this.y_scroll_visible = false;
-                // clear space created by scrollbar
-                this.contentHidder.style.width = '';
-                this.contentHidder.style.marginRight = '';
+                this.calculatePositionScrollerContainer('y');
                 this.scrollDirection('y', 0);
             }
 
@@ -464,9 +481,7 @@ namespace Layout {
             }
             else if(this.x_scroll_visible) {
                 this.x_scroll_visible = false;
-                // clear space created by scrollbar
-                this.contentHidder.style.height = '';
-                this.contentHidder.style.marginBottom = '';
+                this.calculatePositionScrollerContainer('x');
                 this.scrollDirection('x', 0);
             }
 

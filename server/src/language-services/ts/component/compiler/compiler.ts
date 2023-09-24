@@ -34,6 +34,7 @@ import { ParserHtml } from '../../../html/parser/ParserHtml';
 import { ActionBindings, ActionChange, ActionElement, ActionEvent, ActionInjection, ActionLoop, ActionPressEvent, HtmlTemplateResult, pressEventMap } from '../../../html/parser/definition';
 import { DefaultStateActiveDecorator } from '../../parser/decorators/DefaultStateActiveDecorator';
 import { DefaultStateInactiveDecorator } from '../../parser/decorators/DefaultStateInactiveDecorator';
+import { BindThisDecorator } from '../../parser/decorators/BindThisDecorator';
 
 
 export class AventusWebcomponentCompiler {
@@ -109,6 +110,7 @@ export class AventusWebcomponentCompiler {
     private parentClassName: string = "";
     private overrideViewDecorator: OverrideViewDecorator | null = null;
     private debuggerDecorator: DebuggerDecorator | null = null;
+    private extraConstructorCode: string[] = [];
 
     private AventusWebComponent: string = "Aventus.WebComponent";
     private AventusDefaultComponent: string = "Aventus.DefaultComponent";
@@ -280,7 +282,7 @@ export class AventusWebcomponentCompiler {
         let splittedName = classInfo.name.match(/([A-Z][a-z]*)|([0-9][a-z]*)/g);
         if (splittedName) {
             let componentPrefixes = this.build.getComponentPrefix().split("-");
-            for (let i = 0;i<componentPrefixes.length;i++) {
+            for (let i = 0; i < componentPrefixes.length; i++) {
                 let componentPrefix = componentPrefixes[i];
                 if (componentPrefix.length > 0 && splittedName[i].toLowerCase() != componentPrefix.toLowerCase()) {
                     // no special tag => add one
@@ -428,9 +430,9 @@ export class AventusWebcomponentCompiler {
         this.writeFileName();
         this.writeFileTemplateHtml();
         this.writeFileReplaceVar("style", this.scssTxt);
-        this.writeFileConstructor();
         this.writeFileFields();
         this.writeFileMethods();
+        this.writeFileConstructor();
         this.template = this.template.replace(/\|\!\*(.*?)\*\!\|/g, "{{$1}}");
         this.template = this.removeWhiteSpaceLines(this.template);
     }
@@ -498,6 +500,18 @@ export class AventusWebcomponentCompiler {
                     constructorBodyTxt = 'constructor() { super(); if (this.constructor == ' + this.className + ') { throw "can\'t instanciate an abstract class"; } }';
                 }
             }
+
+            if (this.extraConstructorCode.length > 0) {
+                if (constructorBodyTxt.length > 0) {
+                    constructorBodyTxt = constructorBodyTxt.slice(0, constructorBodyTxt.length - 1);
+                    constructorBodyTxt += EOL + this.extraConstructorCode.join(EOL);
+                    constructorBodyTxt += ' }'
+                }
+                else {
+                    constructorBodyTxt = 'constructor() { super(); ' + EOL + this.extraConstructorCode.join(EOL) + ' }';
+                }
+            }
+
             this.writeFileReplaceVar("constructor", constructorBodyTxt);
 
         }
@@ -505,6 +519,7 @@ export class AventusWebcomponentCompiler {
 
     //#region field
     private viewsElements: { [name: string]: CustomFieldModel } = {};
+    private upgradeAttributes = "";
     private writeFileFields() {
         let simpleVariables: CustomFieldModel[] = [];
         let attributes: CustomFieldModel[] = [];
@@ -514,7 +529,8 @@ export class AventusWebcomponentCompiler {
 
         for (let fieldName in this.allFields) {
             let field = this.allFields[fieldName];
-            if (field.inParent && this.overrideViewDecorator === null) {
+            // if (field.inParent && this.overrideViewDecorator === null) {
+            if (field.inParent) {
                 continue;
             }
             if (field.propType == "Attribute") {
@@ -556,6 +572,11 @@ export class AventusWebcomponentCompiler {
         this.writeFileFieldsAttribute(attributes);
         this.writeFileFieldsProperty(properties);
         this.writeFileFieldsWatch(watches);
+
+        if (this.upgradeAttributes.length > 0) {
+            this.upgradeAttributes = `__upgradeAttributes() { super.__upgradeAttributes(); ${this.upgradeAttributes} }`
+        }
+        this.writeFileReplaceVar("upgradeAttributes", this.upgradeAttributes);
 
 
         if (this.htmlParsedResult) {
@@ -696,6 +717,8 @@ export class AventusWebcomponentCompiler {
             _createDefaultValue(field, type);
             _createGetterSetter(field, type);
             this.createHtmlDoc(field, type);
+
+            this.upgradeAttributes += 'this.__upgradeProperty(\'' + field.name.toLowerCase() + '\');' + EOL;
         }
 
         if (defaultValue.length > 0) {
@@ -707,7 +730,6 @@ export class AventusWebcomponentCompiler {
     private writeFileFieldsProperty(properties: { field: CustomFieldModel, fctTxt: string | null }[]) {
         let defaultValue = "";
         let getterSetter = "";
-        let upgradeAttributes = "";
         let onChange = "";
         let variablesWatched: string[] = [];
         var _createDefaultValue = (field: CustomFieldModel, type: TypeInfo) => {
@@ -812,7 +834,7 @@ export class AventusWebcomponentCompiler {
             _createGetterSetter(field, type);
             this.createHtmlDoc(field, type);
 
-            upgradeAttributes += 'this.__upgradeProperty(\'' + field.name.toLowerCase() + '\');' + EOL;
+            this.upgradeAttributes += 'this.__upgradeProperty(\'' + field.name.toLowerCase() + '\');' + EOL;
             variablesWatched.push(field.name.toLowerCase());
 
             if (property.fctTxt) {
@@ -826,10 +848,7 @@ export class AventusWebcomponentCompiler {
         }
         this.writeFileReplaceVar("getterSetterProp", getterSetter);
 
-        if (upgradeAttributes.length > 0) {
-            upgradeAttributes = `__upgradeAttributes() { super.__upgradeAttributes(); ${upgradeAttributes} }`
-        }
-        this.writeFileReplaceVar("upgradeAttributes", upgradeAttributes);
+
 
         if (onChange.length > 0) {
             onChange = `__registerPropertiesActions() { super.__registerPropertiesActions(); ${onChange} }`
@@ -1528,6 +1547,12 @@ this.clearWatchHistory = () => {
                 let method = this.classInfo.methods[methodName];
                 fullTxt += AventusTsLanguageService.removeDecoratorFromContent(method.content, method.decorators) + EOL;
                 for (let decorator of method.decorators) {
+                    if (BindThisDecorator.is(decorator)) {
+                        this.extraConstructorCode.push(`this.${methodName}=this.${methodName}.bind(this)`);
+                        continue;
+                    }
+
+                    // gestion des states
                     let basicState: StateChangeDecorator | StateActiveDecorator | StateInactiveDecorator | null = null;
                     let tempChange = StateChangeDecorator.is(decorator);
                     if (tempChange) {

@@ -716,16 +716,11 @@ export class Build {
         let loadedInfoInternal: string[] = [];
         let loadedInfoExternal: { [uri: string]: string[] } = {};
         let localUri = '@local';
-        let first = true;
         /**
          * Load information for a class and the dependances needed
          */
         const loadAndOrderInfo = (info: { fullName: string; isStrong: boolean }, isLocal: boolean, indexByUri: { [uri: string]: number }, alreadyLooked: { [name: string]: boolean }): { [uri: string]: number } => {
             const fullName = info.fullName.replace("$namespace$", '');
-            if (fullName.includes("BottomBar") && first) {
-                console.log("in");
-                first = false;
-            }
             let calculateDependances = true;
             if (alreadyLooked[fullName] !== undefined) {
                 calculateDependances = false;

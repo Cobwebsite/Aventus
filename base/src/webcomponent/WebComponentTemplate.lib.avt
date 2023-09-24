@@ -65,7 +65,11 @@ export class WebComponentTemplateContext {
     private __changes: { [name: string]: ((path: string) => void)[]; } = {};
     private component: WebComponent;
     private fctsToRemove: { name: string, fct: (path: string) => void; }[] = [];
-    public c: ContextValues = {};
+    public c: ContextValues = {
+        __P: (value: any) => {
+            return value === null ? "" : value + "";
+        }
+    };
     public isRendered: boolean = false;
     public schema: ContextSchema;
 
@@ -275,7 +279,7 @@ export class WebComponentTemplate {
                             this.actions.content[contextProp] = actions.content[contextProp];
                         }
                         else {
-                            this.actions.content[contextProp] = [ ...actions.content[contextProp], ...this.actions.content[contextProp] ];
+                            this.actions.content[contextProp] = [...actions.content[contextProp], ...this.actions.content[contextProp]];
                         }
                     }
                 }
@@ -336,7 +340,7 @@ export class WebComponentTemplate {
     }
 
     public createInstance(component: WebComponent) {
-        let context = new WebComponentTemplateContext(component, this.contextSchema, []);
+        let context = new WebComponentTemplateContext(component, this.contextSchema, {});
         let content = this.template.content.cloneNode(true) as HTMLElement;
         let actions = this.actions;
         let instance = new WebComponentTemplateInstance(context, content, actions, component, this.loops);
@@ -374,8 +378,8 @@ export class WebComponentTemplateInstance {
         this.loops = loops;
         this.firstChild = content.firstChild as HTMLElement;
         this.lastChild = content.lastChild as HTMLElement;
-        this.transformActionsListening();
         this.selectElements();
+        this.transformActionsListening();
     }
 
     public render() {
@@ -423,7 +427,7 @@ export class WebComponentTemplateInstance {
                 if(element.isArray) {
                     WebComponentTemplate.setValueToItem(element.name, this.component, components);
                 }
-                else {
+                else if(components[0]) {
                     WebComponentTemplate.setValueToItem(element.name, this.component, components[0]);
                 }
             }
@@ -444,6 +448,9 @@ export class WebComponentTemplateInstance {
         }
     }
     private bindEvent(event: ActionEvent) {
+        if(!this._components[event.id]) {
+            return;
+        }
         if(event.isCallback) {
             for(let el of this._components[event.id]) {
                 let cb = WebComponentTemplate.getValueFromItem(event.eventName, el);
@@ -461,7 +468,7 @@ export class WebComponentTemplateInstance {
     }
     private bindPressEvent(event: PressManagerOptions) {
         let id = event['id'];
-        if(id) {
+        if(id && this._components[id]) {
             let clone: any = {};
             for(let temp in event) {
                 if(temp != 'id') {
@@ -503,6 +510,7 @@ export class WebComponentTemplateInstance {
     }
 
     private transformChangeAction(name: string, change: ActionChange) {
+        if(!this._components[change.id]) return;
         let key = change.id + "_" + change.attrName;
         if(change.attrName == "@HTML") {
             if(change.path) {
@@ -585,6 +593,7 @@ export class WebComponentTemplateInstance {
     }
 
     private transformInjectionAction(name: string, injection: ActionInjection) {
+        if(!this._components[injection.id]) return;
         if(injection.path) {
             this.context.addChange(name, (path) => {
                 if(WebComponentTemplate.validatePath(path, injection.path)) {
@@ -609,6 +618,7 @@ export class WebComponentTemplateInstance {
     }
 
     private transformBindigAction(name: string, binding: ActionBindings) {
+        if(!this._components[binding.id]) return;
         if(binding.path) {
             this.context.addChange(name, (path) => {
                 if(WebComponentTemplate.validatePath(path, binding.path)) {
@@ -681,7 +691,7 @@ export class WebComponentTemplateInstance {
         let result: any[] = WebComponentTemplate.getValueFromItem(loop.data, this.context.c);
         let anchor = this._components[loop.anchorId][0];
         for(let i = 0; i < result.length; i++) {
-            let context = new WebComponentTemplateContext(this.component, localContext, [{ name: loop.index, value: i }]);
+            let context = new WebComponentTemplateContext(this.component, localContext, { [loop.index]: i });
             let content = loop.template.template.content.cloneNode(true) as HTMLElement;
             let actions = loop.template.actions;
             let instance = new WebComponentTemplateInstance(context, content, actions, this.component, loop.template.loops);
@@ -710,7 +720,7 @@ export class WebComponentTemplateInstance {
                 let registry = this.loopRegisteries[loop.anchorId];
                 let index = Number(result[1]);
                 if(action == WatchAction.CREATED) {
-                    let context = new WebComponentTemplateContext(this.component, localContext, [{ name: loop.index, value: index }]);
+                    let context = new WebComponentTemplateContext(this.component, localContext, { [loop.index]: index });
                     let content = loop.template.template.content.cloneNode(true) as HTMLElement;
                     let actions = loop.template.actions;
                     let instance = new WebComponentTemplateInstance(context, content, actions, this.component, loop.template.loops);

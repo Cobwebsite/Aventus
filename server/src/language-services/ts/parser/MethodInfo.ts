@@ -3,6 +3,7 @@ import { DecoratorInfo } from "./DecoratorInfo";
 import { ParserTs } from './ParserTs';
 
 export class MethodInfo {
+    public start: number = 0;
     public name: string = "";
     public nameStart: number = 0;
     public nameEnd: number = 0;
@@ -11,6 +12,7 @@ export class MethodInfo {
     public decorators: DecoratorInfo[] = [];
 
     constructor(method: MethodDeclaration) {
+        this.start = method.getFullStart();
         this.name = method.name.getText();
         this.nameStart = method.name.getStart();
         this.nameEnd = method.name.getEnd();

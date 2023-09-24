@@ -101,11 +101,11 @@ export class ColorPicker {
 			}
 			this.colorTxtList = colors;
 		}
-		let regex = new RegExp("((?:^|\\W))(" + this.colorTxtList.join("|") + ")(?:$|\\W)", "gi")
+		let regex = new RegExp("(?<![\\w\\d.\"'&$-])("+ this.colorTxtList.join("|") +")(?![\\w\\d])", "gi");
 		const matchesNamed = text.matchAll(regex);
 		if (matchesNamed) {
 			for (let match of matchesNamed) {
-				const t = match[2];
+				const t = match[0];
 				if (!match.index) {
 					continue;
 				}
@@ -113,8 +113,8 @@ export class ColorPicker {
 				let type: string = "hex";
 
 				const range = Range.create(
-					this.getPos(text, match.index + match[1].length),
-					this.getPos(text, match.index + match[1].length + t.length)
+					this.getPos(text, match.index),
+					this.getPos(text, match.index + t.length)
 				);
 
 				const col = this.parseColorString(ColorInfo.fromName(t).toHex());

@@ -21,6 +21,7 @@ import { existsSync, writeFileSync } from 'fs';
 import { FilesManager } from '../../files/FilesManager';
 import { EditFile } from '../../notification/EditFile';
 import { VariableInfo } from './parser/VariableInfo';
+import { BindThisDecorator } from './parser/decorators/BindThisDecorator';
 
 
 
@@ -840,6 +841,37 @@ export class AventusTsLanguageService {
         }
         return JSON.stringify(template).replace(/\\"/g, '"');
     }
+
+    private static addBindThis(element:ClassInfo, txt:string) {
+        let extraConstructorCode: string[] = [];
+        for (let methodName in element.methods) {
+            for (let deco of element.methods[methodName].decorators) {
+                if (BindThisDecorator.is(deco)) {
+                    extraConstructorCode.push(`this.${methodName}=this.${methodName}.bind(this)`);
+                }
+            }
+        }
+
+        if (extraConstructorCode.length > 0) {
+            if (element.constructorBody.length > 0) {
+                let constructorBodyTxt = element.constructorBody;
+                constructorBodyTxt = constructorBodyTxt.slice(0, constructorBodyTxt.length - 1);
+                constructorBodyTxt += EOL + extraConstructorCode.join(EOL);
+                constructorBodyTxt += ' }'
+
+                txt = txt.replace(element.constructorBody, constructorBodyTxt);
+            }
+            else {
+                let start = Object.values(element.methods)[0].start;
+                let part = txt.slice(0, start) + EOL;
+                part += 'constructor() { super(); ' + EOL + extraConstructorCode.join(EOL) + ' }'
+                part += txt.slice(start);
+                txt = part;
+            }
+        }
+
+        return txt;
+    }
     public static compileTs(element: BaseInfo, file: AventusTsFile): CompileTsResult {
         let result: CompileTsResult = {
             compiled: "",
@@ -866,7 +898,9 @@ export class AventusTsLanguageService {
                     additionalDecorator.push("ForeignKey");
                     result.type = InfoType.classData;
                 }
-                result.convertibleName = element.convertibleName
+                result.convertibleName = element.convertibleName;
+
+                txt = this.addBindThis(element, txt);
             }
             txt = this.removeDecoratorFromContent(txt, element.decorators, additionalDecorator);
             txt = this.removeComments(txt);

@@ -333,7 +333,6 @@ class Style {
     static instance;
     static defaultStyleSheets = {
         "@general": `:host{display:inline-block;box-sizing:border-box}:host *{box-sizing:border-box}`,
-        "@noAnimationOnLoad": `:host, :host *{-webkit-transition: none !important;-moz-transition: none !important;-ms-transition: none !important;-o-transition: none !important;transition: none !important;}`
     };
     static store(name, content) {
         this.getInstance().store(name, content);
@@ -1682,7 +1681,11 @@ class WebComponentTemplateContext {
     __changes = {};
     component;
     fctsToRemove = [];
-    c = {};
+    c = {
+        __P: (value) => {
+            return value === null ? "" : value + "";
+        }
+    };
     isRendered = false;
     schema;
     constructor(component, schema, locals) {
@@ -1972,8 +1975,8 @@ class WebComponentTemplateInstance {
         this.loops = loops;
         this.firstChild = content.firstChild;
         this.lastChild = content.lastChild;
-        this.transformActionsListening();
         this.selectElements();
+        this.transformActionsListening();
     }
     render() {
         this.bindEvents();
@@ -2017,7 +2020,7 @@ class WebComponentTemplateInstance {
                 if (element.isArray) {
                     WebComponentTemplate.setValueToItem(element.name, this.component, components);
                 }
-                else {
+                else if (components[0]) {
                     WebComponentTemplate.setValueToItem(element.name, this.component, components[0]);
                 }
             }
@@ -2036,6 +2039,9 @@ class WebComponentTemplateInstance {
         }
     }
     bindEvent(event) {
+        if (!this._components[event.id]) {
+            return;
+        }
         if (event.isCallback) {
             for (let el of this._components[event.id]) {
                 let cb = WebComponentTemplate.getValueFromItem(event.eventName, el);
@@ -2052,7 +2058,7 @@ class WebComponentTemplateInstance {
     }
     bindPressEvent(event) {
         let id = event['id'];
-        if (id) {
+        if (id && this._components[id]) {
             let clone = {};
             for (let temp in event) {
                 if (temp != 'id') {
@@ -2092,6 +2098,8 @@ class WebComponentTemplateInstance {
         }
     }
     transformChangeAction(name, change) {
+        if (!this._components[change.id])
+            return;
         let key = change.id + "_" + change.attrName;
         if (change.attrName == "@HTML") {
             if (change.path) {
@@ -2169,6 +2177,8 @@ class WebComponentTemplateInstance {
         }
     }
     transformInjectionAction(name, injection) {
+        if (!this._components[injection.id])
+            return;
         if (injection.path) {
             this.context.addChange(name, (path) => {
                 if (WebComponentTemplate.validatePath(path, injection.path)) {
@@ -2192,6 +2202,8 @@ class WebComponentTemplateInstance {
         });
     }
     transformBindigAction(name, binding) {
+        if (!this._components[binding.id])
+            return;
         if (binding.path) {
             this.context.addChange(name, (path) => {
                 if (WebComponentTemplate.validatePath(path, binding.path)) {
@@ -2838,25 +2850,25 @@ class Dependances extends Aventus.WebComponent {
       {
         "id": "dependances_2",
         "attrName": "@HTML",
-        "render": (c) => `\r\n\t\t\t${c.dep.name}\r\n\t\t`,
+        "render": (c) => `\r\n\t\t\t${c.__P(c.dep.name)}\r\n\t\t`,
         "path": "dep"
       },
       {
         "id": "dependances_3",
         "attrName": "@HTML",
-        "render": (c) => `\r\n\t\t\t${c.dep.version}\r\n\t\t`,
+        "render": (c) => `\r\n\t\t\t${c.__P(c.dep.version)}\r\n\t\t`,
         "path": "dep"
       },
       {
         "id": "dependances_4",
         "attrName": "href",
-        "render": (c) => `${c.dep.uri}`,
+        "render": (c) => `${c.__P(c.dep.uri)}`,
         "path": "dep"
       },
       {
         "id": "dependances_4",
         "attrName": "@HTML",
-        "render": (c) => `\r\n\t\t\t\t${c.dep.uri}\r\n\t\t\t`,
+        "render": (c) => `\r\n\t\t\t\t${c.__P(c.dep.uri)}\r\n\t\t\t`,
         "path": "dep"
       }
     ]
@@ -2872,6 +2884,7 @@ class Dependances extends Aventus.WebComponent {
         return "Dependances";
     }
     __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('no_deps')) { this.attributeChangedCallback('no_deps', false, false); }if(!this["dependances"]){ this["dependances"] = [{        name: "AventusUI",        version: "1.0.0",        uri: "https://aventusjs.com/aventusUI.def.avt"    }, {        name: "AventusUI2",        version: "1.0.0",        uri: "https://aventusjs.com/aventusUI.def.avt"    }];} }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('no_deps'); }
     __listBoolProps() { return ["no_deps"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
 }
 if(!window.customElements.get('av-dependances')){window.customElements.define('av-dependances', Dependances);Aventus.WebComponentInstance.registerDefinition(Dependances);}

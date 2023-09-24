@@ -592,7 +592,7 @@ function parseTxt(value: string, valueStart: number) {
 			result.errors.push("Code execution ll be implemented soon, right now you can only use variables");
 			//ParserHtml.addError(this.valueStart, this.valueEnd, "Code execution ll be implemented soon, right now you can only use variables");
 		}
-		finalValue = finalValue.replace(m[0], '${c.' + fullVariablePath + '}');
+		finalValue = finalValue.replace(m[0], '${c.__P(c.' + fullVariablePath + ')}');
 
 		let variableName = fullVariablePath.split(".")[0];
 		if (!result.variables.includes(variableName)) {

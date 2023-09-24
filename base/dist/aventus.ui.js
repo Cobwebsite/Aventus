@@ -333,7 +333,6 @@ class Style {
     static instance;
     static defaultStyleSheets = {
         "@general": `:host{display:inline-block;box-sizing:border-box}:host *{box-sizing:border-box}`,
-        "@noAnimationOnLoad": `:host, :host *{-webkit-transition: none !important;-moz-transition: none !important;-ms-transition: none !important;-o-transition: none !important;transition: none !important;}`
     };
     static store(name, content) {
         this.getInstance().store(name, content);
@@ -1682,7 +1681,11 @@ class WebComponentTemplateContext {
     __changes = {};
     component;
     fctsToRemove = [];
-    c = {};
+    c = {
+        __P: (value) => {
+            return value === null ? "" : value + "";
+        }
+    };
     isRendered = false;
     schema;
     constructor(component, schema, locals) {
@@ -1972,8 +1975,8 @@ class WebComponentTemplateInstance {
         this.loops = loops;
         this.firstChild = content.firstChild;
         this.lastChild = content.lastChild;
-        this.transformActionsListening();
         this.selectElements();
+        this.transformActionsListening();
     }
     render() {
         this.bindEvents();
@@ -2017,7 +2020,7 @@ class WebComponentTemplateInstance {
                 if (element.isArray) {
                     WebComponentTemplate.setValueToItem(element.name, this.component, components);
                 }
-                else {
+                else if (components[0]) {
                     WebComponentTemplate.setValueToItem(element.name, this.component, components[0]);
                 }
             }
@@ -2036,6 +2039,9 @@ class WebComponentTemplateInstance {
         }
     }
     bindEvent(event) {
+        if (!this._components[event.id]) {
+            return;
+        }
         if (event.isCallback) {
             for (let el of this._components[event.id]) {
                 let cb = WebComponentTemplate.getValueFromItem(event.eventName, el);
@@ -2052,7 +2058,7 @@ class WebComponentTemplateInstance {
     }
     bindPressEvent(event) {
         let id = event['id'];
-        if (id) {
+        if (id && this._components[id]) {
             let clone = {};
             for (let temp in event) {
                 if (temp != 'id') {
@@ -2092,6 +2098,8 @@ class WebComponentTemplateInstance {
         }
     }
     transformChangeAction(name, change) {
+        if (!this._components[change.id])
+            return;
         let key = change.id + "_" + change.attrName;
         if (change.attrName == "@HTML") {
             if (change.path) {
@@ -2169,6 +2177,8 @@ class WebComponentTemplateInstance {
         }
     }
     transformInjectionAction(name, injection) {
+        if (!this._components[injection.id])
+            return;
         if (injection.path) {
             this.context.addChange(name, (path) => {
                 if (WebComponentTemplate.validatePath(path, injection.path)) {
@@ -2192,6 +2202,8 @@ class WebComponentTemplateInstance {
         });
     }
     transformBindigAction(name, binding) {
+        if (!this._components[binding.id])
+            return;
         if (binding.path) {
             this.context.addChange(name, (path) => {
                 if (WebComponentTemplate.validatePath(path, binding.path)) {
@@ -3488,6 +3500,7 @@ class RouterLink extends Aventus.WebComponent {
         return "RouterLink";
     }
     __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('state')){ this['state'] = ""; }if(!this.hasAttribute('active_state')){ this['active_state'] = ""; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('state');this.__upgradeProperty('active_state'); }
     addClickEvent() {
         new Aventus.PressManager({
             element: this,
@@ -3851,7 +3864,7 @@ class Scrollable extends Aventus.WebComponent {
     __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("zoom", ((target) => {
     target.changeZoom();
 })); }
-    static __style = `:host{--internal-scrollbar-container-color: var(--scrollbar-container-color, transparent);--internal-scrollbar-color: var(--scrollbar-color, #757575);--internal-scrollbar-active-color: var(--scrollbar-active-color, #858585);--internal-scroller-width: var(--scroller-width, 6px);--internal-scroller-top: var(--scroller-top, 3px);--internal-scroller-bottom: var(--scroller-bottom, 3px);--internal-scroller-right: var(--scroller-right, 3px);--internal-scroller-left: var(--scroller-left, 3px)}:host{display:block;height:100%;overflow:hidden;position:relative;-webkit-user-drag:none;-khtml-user-drag:none;-moz-user-drag:none;-o-user-drag:none;width:100%}:host .scroll-main-container{display:block;height:100%;position:relative;width:100%}:host .scroll-main-container .content-zoom{display:block;height:100%;position:relative;transform-origin:0 0;width:100%;z-index:4}:host .scroll-main-container .content-zoom .content-hidder{display:block;height:100%;overflow:hidden;position:relative;width:100%}:host .scroll-main-container .content-zoom .content-hidder .content-wrapper{display:inline-block;height:100%;min-height:100%;min-width:100%;position:relative;width:100%}:host .scroll-main-container .scroller-wrapper .container-scroller{display:none;overflow:hidden;position:absolute;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller{background-color:var(--internal-scrollbar-container-color);border-radius:5px}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller .scroller{background-color:var(--internal-scrollbar-color);border-radius:5px;cursor:pointer;position:absolute;-webkit-tap-highlight-color:rgba(0,0,0,0);touch-action:none;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .scroller.active{background-color:var(--internal-scrollbar-active-color)}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical{height:calc(100% - var(--internal-scroller-bottom)*2 - var(--internal-scroller-width));padding-left:var(--internal-scroller-left);right:var(--internal-scroller-right);top:var(--internal-scroller-bottom);transform:0;width:calc(var(--internal-scroller-width) + var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical.hide{transform:translateX(calc(var(--internal-scroller-width) + var(--internal-scroller-left)))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller .scroller{width:calc(100% - var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal{bottom:var(--internal-scroller-bottom);height:calc(var(--internal-scroller-width) + var(--internal-scroller-top));left:var(--internal-scroller-right);padding-top:var(--internal-scroller-top);transform:0;width:calc(100% - var(--internal-scroller-right)*2 - var(--internal-scroller-width))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal.hide{transform:translateY(calc(var(--internal-scroller-width) + var(--internal-scroller-top)))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller .scroller{height:calc(100% - var(--internal-scroller-top))}:host([y_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{height:auto}:host([x_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{width:auto}:host([y_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.vertical{display:block}:host([x_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.horizontal{display:block}:host([no_user_select]) .content-wrapper *{user-select:none}:host([no_user_select]) ::slotted{user-select:none}`;
+    static __style = `:host{--internal-scrollbar-container-color: var(--scrollbar-container-color, transparent);--internal-scrollbar-color: var(--scrollbar-color, #757575);--internal-scrollbar-active-color: var(--scrollbar-active-color, #858585);--internal-scroller-width: var(--scroller-width, 6px);--internal-scroller-top: var(--scroller-top, 3px);--internal-scroller-bottom: var(--scroller-bottom, 3px);--internal-scroller-right: var(--scroller-right, 3px);--internal-scroller-left: var(--scroller-left, 3px)}:host{display:block;height:100%;overflow:hidden;position:relative;-webkit-user-drag:none;-khtml-user-drag:none;-moz-user-drag:none;-o-user-drag:none;width:100%}:host .scroll-main-container{display:block;height:100%;position:relative;width:100%}:host .scroll-main-container .content-zoom{display:block;height:100%;position:relative;transform-origin:0 0;width:100%;z-index:4}:host .scroll-main-container .content-zoom .content-hidder{display:block;height:100%;overflow:hidden;position:relative;width:100%}:host .scroll-main-container .content-zoom .content-hidder .content-wrapper{display:inline-block;height:100%;min-height:100%;min-width:100%;position:relative;width:100%}:host .scroll-main-container .scroller-wrapper .container-scroller{display:none;overflow:hidden;position:absolute;z-index:5;transition:transform .2s linear}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller{background-color:var(--internal-scrollbar-container-color);border-radius:5px}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller .scroller{background-color:var(--internal-scrollbar-color);border-radius:5px;cursor:pointer;position:absolute;-webkit-tap-highlight-color:rgba(0,0,0,0);touch-action:none;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .scroller.active{background-color:var(--internal-scrollbar-active-color)}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical{height:calc(100% - var(--internal-scroller-bottom)*2 - var(--internal-scroller-width));padding-left:var(--internal-scroller-left);right:var(--internal-scroller-right);top:var(--internal-scroller-bottom);transform:0;width:calc(var(--internal-scroller-width) + var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical.hide{transform:translateX(calc(var(--internal-scroller-width) + var(--internal-scroller-left)))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller .scroller{width:calc(100% - var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal{bottom:var(--internal-scroller-bottom);height:calc(var(--internal-scroller-width) + var(--internal-scroller-top));left:var(--internal-scroller-right);padding-top:var(--internal-scroller-top);transform:0;width:calc(100% - var(--internal-scroller-right)*2 - var(--internal-scroller-width))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal.hide{transform:translateY(calc(var(--internal-scroller-width) + var(--internal-scroller-top)))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller .scroller{height:calc(100% - var(--internal-scroller-top))}:host([y_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{height:auto}:host([x_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{width:auto}:host([y_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.vertical{display:block}:host([x_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.horizontal{display:block}:host([no_user_select]) .content-wrapper *{user-select:none}:host([no_user_select]) ::slotted{user-select:none}`;
     constructor() {            super();            this.createAnimation();            this.onWheel = this.onWheel.bind(this);            this.onTouchStart = this.onTouchStart.bind(this);            this.onTouchMove = this.onTouchMove.bind(this);            this.onTouchEnd = this.onTouchEnd.bind(this);            this.touchRecord = new TouchRecord();        }
     __getStatic() {
         return Scrollable;
@@ -3923,7 +3936,7 @@ class Scrollable extends Aventus.WebComponent {
         return "Scrollable";
     }
     __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('y_scroll_visible')) { this.attributeChangedCallback('y_scroll_visible', false, false); }if(!this.hasAttribute('x_scroll_visible')) { this.attributeChangedCallback('x_scroll_visible', false, false); }if(!this.hasAttribute('floating_scroll')) { this.attributeChangedCallback('floating_scroll', false, false); }if(!this.hasAttribute('x_scroll')) { this.attributeChangedCallback('x_scroll', false, false); }if(!this.hasAttribute('y_scroll')) {this.setAttribute('y_scroll' ,'true'); }if(!this.hasAttribute('auto_hide')) { this.attributeChangedCallback('auto_hide', false, false); }if(!this.hasAttribute('break')){ this['break'] = 0.1; }if(!this.hasAttribute('disable')) { this.attributeChangedCallback('disable', false, false); }if(!this.hasAttribute('no_user_select')) { this.attributeChangedCallback('no_user_select', false, false); }if(!this.hasAttribute('zoom')){ this['zoom'] = 1; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('zoom'); }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('y_scroll_visible');this.__upgradeProperty('x_scroll_visible');this.__upgradeProperty('floating_scroll');this.__upgradeProperty('x_scroll');this.__upgradeProperty('y_scroll');this.__upgradeProperty('auto_hide');this.__upgradeProperty('break');this.__upgradeProperty('disable');this.__upgradeProperty('no_user_select');this.__upgradeProperty('zoom'); }
     __listBoolProps() { return ["y_scroll_visible","x_scroll_visible","floating_scroll","x_scroll","y_scroll","auto_hide","disable","no_user_select"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     createAnimation() {
         this.renderAnimation = new Aventus.Animation({
@@ -3987,9 +4000,11 @@ class Scrollable extends Aventus.WebComponent {
             }, 1000);
         }
         let containerSize = direction == 'y' ? container.offsetHeight : container.offsetWidth;
-        let scrollPosition = this.position[direction] / this.contentWrapperSize[direction] * containerSize;
-        scroller.style.transform = `translate${direction.toUpperCase()}(${scrollPosition}px)`;
-        this.contentWrapper.style.transform = `translate3d(${-1 * this.x}px, ${-1 * this.y}px, 0)`;
+        if (this.contentWrapperSize[direction] != 0) {
+            let scrollPosition = this.position[direction] / this.contentWrapperSize[direction] * containerSize;
+            scroller.style.transform = `translate${direction.toUpperCase()}(${scrollPosition}px)`;
+            this.contentWrapper.style.transform = `translate3d(${-1 * this.x}px, ${-1 * this.y}px, 0)`;
+        }
         this.triggerScrollChange();
     }
     correctScrollValue(value, direction) {
@@ -4008,12 +4023,18 @@ class Scrollable extends Aventus.WebComponent {
         this.scrollDirection('x', x);
         this.scrollDirection('y', y);
     }
+    scrollX(x) {
+        this.scrollDirection('x', x);
+    }
+    scrollY(y) {
+        this.scrollDirection('y', y);
+    }
     addAction() {
-        document.addEventListener("wheel", this.onWheel);
-        document.addEventListener("touchstart", this.onTouchStart);
-        document.addEventListener("touchmove", this.onTouchMove);
-        document.addEventListener("touchcancel", this.onTouchEnd);
-        document.addEventListener("touchend", this.onTouchEnd);
+        this.addEventListener("wheel", this.onWheel);
+        this.addEventListener("touchstart", this.onTouchStart);
+        this.addEventListener("touchmove", this.onTouchMove);
+        this.addEventListener("touchcancel", this.onTouchEnd);
+        this.addEventListener("touchend", this.onTouchEnd);
         this.addScrollDrag('x');
         this.addScrollDrag('y');
     }
@@ -4113,34 +4134,39 @@ class Scrollable extends Aventus.WebComponent {
         }
     }
     calculatePositionScrollerContainerY() {
-        const topMissing = this.mainContainer.offsetHeight - this.horizontalScrollerContainer.offsetTop;
-        if (topMissing > 0 && this.x_scroll_visible && !this.floating_scroll) {
-            this.contentHidder.style.height = 'calc(100% - ' + topMissing + 'px)';
-            this.contentHidder.style.marginBottom = topMissing + 'px';
-            this.margin.x = topMissing;
-        }
-        else {
-            this.contentHidder.style.height = '';
-            this.contentHidder.style.marginBottom = '';
-            this.margin.x = 0;
-        }
-    }
-    calculatePositionScrollerContainerX() {
         const leftMissing = this.mainContainer.offsetWidth - this.verticalScrollerContainer.offsetLeft;
         if (leftMissing > 0 && this.y_scroll_visible && !this.floating_scroll) {
             this.contentHidder.style.width = 'calc(100% - ' + leftMissing + 'px)';
             this.contentHidder.style.marginRight = leftMissing + 'px';
-            this.margin.y = leftMissing;
+            this.margin.x = leftMissing;
         }
         else {
             this.contentHidder.style.width = '';
             this.contentHidder.style.marginRight = '';
+            this.margin.x = 0;
+        }
+    }
+    calculatePositionScrollerContainerX() {
+        const topMissing = this.mainContainer.offsetHeight - this.horizontalScrollerContainer.offsetTop;
+        if (topMissing > 0 && this.x_scroll_visible && !this.floating_scroll) {
+            this.contentHidder.style.height = 'calc(100% - ' + topMissing + 'px)';
+            this.contentHidder.style.marginBottom = topMissing + 'px';
+            this.margin.y = topMissing;
+        }
+        else {
+            this.contentHidder.style.height = '';
+            this.contentHidder.style.marginBottom = '';
             this.margin.y = 0;
         }
     }
     calculateSizeScroller(direction) {
         const scrollerSize = ((this.display[direction] - this.margin[direction]) / this.contentWrapperSize[direction] * 100);
-        this.scroller[direction]().style.height = scrollerSize + '%';
+        if (direction == "y") {
+            this.scroller[direction]().style.height = scrollerSize + '%';
+        }
+        else {
+            this.scroller[direction]().style.width = scrollerSize + '%';
+        }
         let maxScrollContent = this.contentWrapperSize[direction] - this.display[direction];
         if (maxScrollContent < 0) {
             maxScrollContent = 0;
@@ -4163,9 +4189,7 @@ class Scrollable extends Aventus.WebComponent {
         }
         else if (this.y_scroll_visible) {
             this.y_scroll_visible = false;
-            // clear space created by scrollbar
-            this.contentHidder.style.width = '';
-            this.contentHidder.style.marginRight = '';
+            this.calculatePositionScrollerContainer('y');
             this.scrollDirection('y', 0);
         }
         if (this.contentWrapperSize.x - this.display.x > 0) {
@@ -4178,9 +4202,7 @@ class Scrollable extends Aventus.WebComponent {
         }
         else if (this.x_scroll_visible) {
             this.x_scroll_visible = false;
-            // clear space created by scrollbar
-            this.contentHidder.style.height = '';
-            this.contentHidder.style.marginBottom = '';
+            this.calculatePositionScrollerContainer('x');
             this.scrollDirection('x', 0);
         }
     }
@@ -4383,6 +4405,7 @@ class GridCol extends Aventus.WebComponent {
         return "GridCol";
     }
     __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('column')){ this['column'] = undefined; }if(!this.hasAttribute('row')){ this['row'] = undefined; }if(!this.hasAttribute('c_start')){ this['c_start'] = undefined; }if(!this.hasAttribute('c_end')){ this['c_end'] = undefined; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('column');this.__upgradeProperty('row');this.__upgradeProperty('c_start');this.__upgradeProperty('c_end'); }
 }
 if(!window.customElements.get('av-grid-col')){window.customElements.define('av-grid-col', GridCol);Aventus.WebComponentInstance.registerDefinition(GridCol);}
 
@@ -4444,6 +4467,7 @@ class DynamicRow extends Aventus.WebComponent {
         return "DynamicRow";
     }
     __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('max_width')){ this['max_width'] = undefined; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('max_width'); }
     calculateWidth() {
         let size = this.offsetWidth;
         let labels = [];
@@ -4615,21 +4639,22 @@ class DynamicCol extends Aventus.WebComponent {
         return "DynamicCol";
     }
     __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('size')){ this['size'] = undefined; }if(!this.hasAttribute('size_xs')){ this['size_xs'] = undefined; }if(!this.hasAttribute('size_sm')){ this['size_sm'] = undefined; }if(!this.hasAttribute('size_md')){ this['size_md'] = undefined; }if(!this.hasAttribute('size_lg')){ this['size_lg'] = undefined; }if(!this.hasAttribute('size_xl')){ this['size_xl'] = undefined; }if(!this.hasAttribute('offset')){ this['offset'] = undefined; }if(!this.hasAttribute('offset_xs')){ this['offset_xs'] = undefined; }if(!this.hasAttribute('offset_sm')){ this['offset_sm'] = undefined; }if(!this.hasAttribute('offset_md')){ this['offset_md'] = undefined; }if(!this.hasAttribute('offset_lg')){ this['offset_lg'] = undefined; }if(!this.hasAttribute('offset_xl')){ this['offset_xl'] = undefined; }if(!this.hasAttribute('offset_right')){ this['offset_right'] = undefined; }if(!this.hasAttribute('offset_right_xs')){ this['offset_right_xs'] = undefined; }if(!this.hasAttribute('offset_right_sm')){ this['offset_right_sm'] = undefined; }if(!this.hasAttribute('offset_right_md')){ this['offset_right_md'] = undefined; }if(!this.hasAttribute('offset_right_lg')){ this['offset_right_lg'] = undefined; }if(!this.hasAttribute('offset_right_xl')){ this['offset_right_xl'] = undefined; }if(!this.hasAttribute('nobreak')) { this.attributeChangedCallback('nobreak', false, false); }if(!this.hasAttribute('center')) { this.attributeChangedCallback('center', false, false); } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('size');this.__upgradeProperty('size_xs');this.__upgradeProperty('size_sm');this.__upgradeProperty('size_md');this.__upgradeProperty('size_lg');this.__upgradeProperty('size_xl');this.__upgradeProperty('offset');this.__upgradeProperty('offset_xs');this.__upgradeProperty('offset_sm');this.__upgradeProperty('offset_md');this.__upgradeProperty('offset_lg');this.__upgradeProperty('offset_xl');this.__upgradeProperty('offset_right');this.__upgradeProperty('offset_right_xs');this.__upgradeProperty('offset_right_sm');this.__upgradeProperty('offset_right_md');this.__upgradeProperty('offset_right_lg');this.__upgradeProperty('offset_right_xl');this.__upgradeProperty('nobreak');this.__upgradeProperty('center'); }
     __listBoolProps() { return ["nobreak","center"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
 }
 if(!window.customElements.get('av-dynamic-col')){window.customElements.define('av-dynamic-col', DynamicCol);Aventus.WebComponentInstance.registerDefinition(DynamicCol);}
 
 class Img extends Aventus.WebComponent {
     static get observedAttributes() {return ["src", "mode"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
-    get 'no_save'() {
-                return this.hasAttribute('no_save');
+    get 'cache'() {
+                return this.hasAttribute('cache');
             }
-            set 'no_save'(val) {
+            set 'cache'(val) {
                 val = this.getBoolean(val);
                 if (val) {
-                    this.setAttribute('no_save', 'true');
+                    this.setAttribute('cache', 'true');
                 } else{
-                    this.removeAttribute('no_save');
+                    this.removeAttribute('cache');
                 }
             }    get 'src'() {
                     return this.getAttribute('src');
@@ -4687,9 +4712,9 @@ class Img extends Aventus.WebComponent {
     getClassName() {
         return "Img";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('no_save')) { this.attributeChangedCallback('no_save', false, false); }if(!this.hasAttribute('src')){ this['src'] = undefined; }if(!this.hasAttribute('mode')){ this['mode'] = "contains"; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('src');this.__upgradeProperty('mode'); }
-    __listBoolProps() { return ["no_save"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('cache')) { this.attributeChangedCallback('cache', false, false); }if(!this.hasAttribute('src')){ this['src'] = undefined; }if(!this.hasAttribute('mode')){ this['mode'] = "contains"; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('cache');this.__upgradeProperty('src');this.__upgradeProperty('mode'); }
+    __listBoolProps() { return ["cache"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     calculateSize(attempt = 0) {
         if (this.isCalculing) {
             return;
@@ -4778,13 +4803,19 @@ class Img extends Aventus.WebComponent {
         this.isCalculing = false;
     }
     async onSrcChanged() {
+        if (!this.src) {
+            return;
+        }
         if (this.src.endsWith(".svg")) {
             let svgContent = await Aventus.ResourceLoader.load(this.src);
             this.svgEl.innerHTML = svgContent;
             this.calculateSize();
         }
-        else if (this.src != "" && !this.no_save) {
-            let base64 = await Aventus.ResourceLoader.load(this.src);
+        else if (this.cache) {
+            let base64 = await Aventus.ResourceLoader.load({
+                url: this.src,
+                type: 'img'
+            });
             this.imgEl.setAttribute("src", base64);
             this.calculateSize();
         }
@@ -4923,7 +4954,7 @@ class Input extends Aventus.WebComponent {
       {
         "id": "input_1",
         "attrName": "@HTML",
-        "render": (c) => `${c.label}`
+        "render": (c) => `${c.__P(c.label)}`
       }
     ]
   },
@@ -4949,7 +4980,7 @@ class Input extends Aventus.WebComponent {
         return "Input";
     }
     __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('required')) { this.attributeChangedCallback('required', false, false); }if(!this.hasAttribute('disabled')) { this.attributeChangedCallback('disabled', false, false); }if(!this.hasAttribute('min_length')){ this['min_length'] = undefined; }if(!this.hasAttribute('max_length')){ this['max_length'] = undefined; }if(!this.hasAttribute('pattern')){ this['pattern'] = undefined; }if(!this.hasAttribute('value')){ this['value'] = ""; }if(!this.hasAttribute('label')){ this['label'] = ""; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('value');this.__upgradeProperty('label'); }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('required');this.__upgradeProperty('disabled');this.__upgradeProperty('min_length');this.__upgradeProperty('max_length');this.__upgradeProperty('pattern');this.__upgradeProperty('value');this.__upgradeProperty('label'); }
     __listBoolProps() { return ["required","disabled"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     onAttrChange() {
         if (this.inputEl.value != this.value) {
@@ -5113,7 +5144,7 @@ class Checkbox extends Aventus.WebComponent {
       {
         "id": "checkbox_1",
         "attrName": "@HTML",
-        "render": (c) => `${c.label}`
+        "render": (c) => `${c.__P(c.label)}`
       }
     ]
   }
@@ -5122,7 +5153,7 @@ class Checkbox extends Aventus.WebComponent {
         return "Checkbox";
     }
     __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('disabled')) { this.attributeChangedCallback('disabled', false, false); }if(!this.hasAttribute('reverse')) { this.attributeChangedCallback('reverse', false, false); }if(!this.hasAttribute('label')){ this['label'] = ""; }if(!this.hasAttribute('checked')) { this.attributeChangedCallback('checked', false, false); }if(!this["value"]){ this["value"] = false;} }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('label');this.__upgradeProperty('checked'); }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('disabled');this.__upgradeProperty('reverse');this.__upgradeProperty('label');this.__upgradeProperty('checked'); }
     __listBoolProps() { return ["disabled","reverse","checked"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     syncValue(master) {
         if (this.checked != this.value) {

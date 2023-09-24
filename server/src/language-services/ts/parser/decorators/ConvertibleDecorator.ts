@@ -1,11 +1,5 @@
 import { DecoratorInfo } from '../DecoratorInfo';
 
-type DebuggerConfig = {
-	/** Write the compiled file inside ./compiled.js */
-	writeCompiled?: boolean,
-	/** Enable history for watch property and add a function getWatchHistory on this component*/
-	enableWatchHistory?: boolean,
-}
 export class ConvertibleDecorator {
 	public name: string = "Fullname";
 
