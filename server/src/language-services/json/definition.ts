@@ -12,7 +12,7 @@ export interface AventusConfigBuild {
 	outputPackage: string[],
 	module: string,
 	componentPrefix: string,
-	namespaceStrategy: 'manual' | 'followFolders' | 'rules'
+	namespaceStrategy: 'manual' | 'followFolders' | 'followFoldersCamelCase' | 'rules'
 	namespaceRules: { [namespace: string]: string[] },
 	namespaceRulesRegex: { [namespace: string]: RegExp },
 	namespaceRoot: string,

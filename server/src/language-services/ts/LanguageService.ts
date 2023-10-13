@@ -842,7 +842,7 @@ export class AventusTsLanguageService {
         return JSON.stringify(template).replace(/\\"/g, '"');
     }
 
-    private static addBindThis(element:ClassInfo, txt:string) {
+    private static addBindThis(element: ClassInfo, txt: string) {
         let extraConstructorCode: string[] = [];
         for (let methodName in element.methods) {
             for (let deco of element.methods[methodName].decorators) {
@@ -1041,7 +1041,8 @@ const compilerOptionsRead: CompilerOptions = {
     noImplicitOverride: true,
     strictPropertyInitialization: true,
     noImplicitReturns: true,
-    noUnusedLocals: true
+    noUnusedLocals: true,
+    strictNullChecks: true
 };
 const compilerOptionsCompile: CompilerOptions = {
     allowNonTsExtensions: true,
@@ -1057,6 +1058,7 @@ const compilerOptionsCompile: CompilerOptions = {
     noImplicitOverride: true,
     strictPropertyInitialization: true,
     noImplicitReturns: true,
+    strictNullChecks: true
 };
 const completionOptions: GetCompletionsAtPositionOptions = {
     includeExternalModuleExports: true,

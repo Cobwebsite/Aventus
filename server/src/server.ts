@@ -2,7 +2,7 @@ import { GenericServer } from './GenericServer';
 import { VsCodeConnection } from './vscode/Connection';
 
 let i = 0;
-process.on('uncaughtException', function (error) {
+process.on('uncaughtException', function (error, origin) {
     console.error(error.stack);
     i++;
     if (error.message) {

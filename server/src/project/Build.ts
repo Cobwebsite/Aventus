@@ -174,7 +174,12 @@ export class Build {
                 clearTimeout(this.timerBuild);
             }
             this.timerBuild = setTimeout(async () => {
-                await this._build();
+                try {
+                    await this._build();
+                }
+                catch (e) {
+                    console.log(e);
+                }
             }, delay)
         }
     }
@@ -1148,7 +1153,7 @@ export class Build {
                 }
             }
         }
-        else if (this.buildConfig.namespaceStrategy == "followFolders") {
+        else if (this.buildConfig.namespaceStrategy == "followFolders" || this.buildConfig.namespaceStrategy == "followFoldersCamelCase") {
             let path = uriToPath(uri);
             let splittedPath = path.split("/");
             splittedPath.pop();
@@ -1167,8 +1172,17 @@ export class Build {
                 // TODO add error
                 return "";
             }
+            if (this.buildConfig.namespaceStrategy == "followFoldersCamelCase") {
+                return namespaceTxt.toLowerCase().replace(/(([-_\.]|^)[a-z])/g, (group) =>
+                    group
+                        .toUpperCase()
+                        .replace('-', '')
+                        .replace('_', '')
+                );
+            }
             return namespaceTxt;
         }
+
         return "";
     }
 

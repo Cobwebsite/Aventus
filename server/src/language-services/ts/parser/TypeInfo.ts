@@ -1,6 +1,6 @@
 import { ArrayTypeNode, CallExpression, ExpressionWithTypeArguments, FunctionTypeNode, IndexSignatureDeclaration, LiteralTypeNode, ParenthesizedTypeNode, PropertySignature, SyntaxKind, TypeLiteralNode, TypeNode, TypeReferenceNode, UnionTypeNode } from 'typescript';
 
-type TypeInfoKind = "string" | 'number' | 'boolean' | 'null' | 'any' | 'void' | 'type' | 'literal' | 'union' | 'mock' | 'function' | 'typeLiteral';
+export type TypeInfoKind = "string" | 'number' | 'boolean' | 'null' | 'undefined' | 'any' | 'void' | 'type' | 'literal' | 'union' | 'mock' | 'function' | 'typeLiteral';
 
 export class TypeInfo {
 	public kind: TypeInfoKind = 'mock';
@@ -29,6 +29,9 @@ export class TypeInfo {
 		}
 		else if (node.kind === SyntaxKind.NullKeyword) {
 			this.kind = "null";
+		}
+		else if (node.kind === SyntaxKind.UndefinedKeyword) {
+			this.kind = "undefined";
 		}
 		else if (node.kind === SyntaxKind.AnyKeyword) {
 			this.kind = "any";

@@ -312,7 +312,7 @@ export class AventusJSONLanguageService {
                 build.namespaceRulesRegex[namespace] = new RegExp(regexJoin);
             }
         }
-        else if (build.namespaceStrategy == "followFolders") {
+        else if (build.namespaceStrategy == "followFolders" || build.namespaceStrategy == "followFoldersCamelCase") {
             let slash = "";
             if (!build.namespaceRoot.startsWith("/")) {
                 slash = "/";

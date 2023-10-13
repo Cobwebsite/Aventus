@@ -33,7 +33,7 @@ export abstract class StateManager {
         return stateInfo.regex.test(stateName);
     }
 
-    protected activeState: State;
+    protected activeState?: State;
     protected changeStateMutex: Mutex = new Mutex();
 
     private afterStateChanged: Callback<() => void> = new Callback();
@@ -75,9 +75,11 @@ export abstract class StateManager {
                 }
                 for(let activeFct of callbacks.active) {
                     this.subscribers[statePattern].callbacks.active.push(activeFct);
-                    if(this.subscribers[statePattern].isActive) {
+                    if(this.subscribers[statePattern].isActive && this.activeState) {
                         let slugs = this.getInternalStateSlugs(this.subscribers[statePattern], this.activeState.name);
-                        activeFct(this.activeState, slugs);
+                        if(slugs) {
+                            activeFct(this.activeState, slugs);
+                        }
                     }
                 }
             }
@@ -204,7 +206,7 @@ export abstract class StateManager {
      * Activate a current state
      */
     public async setState(state: State | string): Promise<boolean> {
-        return await this.changeStateMutex.safeRunLastAsync<boolean>(async ()  => {
+        let result = await this.changeStateMutex.safeRunLastAsync<boolean>(async () => {
             let stateToUse: State;
             if(typeof state == "string") {
                 stateToUse = new EmptyState(state);
@@ -231,15 +233,17 @@ export abstract class StateManager {
                             // We clone all the callbacks
                             let clone = [...subscriber.callbacks.askChange];
                             let currentSlug = this.getInternalStateSlugs(subscriber, this.activeState.name);
-                            for(let i = 0; i < clone.length; i++) {
-                                let askChange = clone[i];
-                                // If the askChange callback returns false, we can't change, but we continue to call all the others askChange callbacks
-                                if(!await askChange(this.activeState, stateToUse, currentSlug)) {
-                                    canChange = false;
-                                    break;
+                            if(currentSlug) {
+                                for(let i = 0; i < clone.length; i++) {
+                                    let askChange = clone[i];
+                                    // If the askChange callback returns false, we can't change, but we continue to call all the others askChange callbacks
+                                    if(!await askChange(this.activeState, stateToUse, currentSlug)) {
+                                        canChange = false;
+                                        break;
+                                    }
                                 }
                             }
-    
+
                             // And the subscriber does not match on the next state
                             let slugs = this.getInternalStateSlugs(subscriber, stateToUse.name);
                             if(slugs === null) {
@@ -275,17 +279,20 @@ export abstract class StateManager {
                     const oldState = this.activeState;
                     this.activeState = stateToUse;
                     oldState.onInactivate(stateToUse);
-    
+
                     for(let subscriber of activeToInactive) {
                         // We pass the subscriber to inactive
                         subscriber.isActive = false;
                         // We clone all the callbacks in order to avoid the callback to modify the array
                         let oldSlug = this.getInternalStateSlugs(subscriber, oldState.name);
-                        [...subscriber.callbacks.inactive].forEach(callback => {
-                            callback(oldState, stateToUse, oldSlug);
-                        });
+                        if(oldSlug) {
+                            let oldSlugNotNull = oldSlug;
+                            [...subscriber.callbacks.inactive].forEach(callback => {
+                                callback(oldState, stateToUse, oldSlugNotNull);
+                            });
+                        }
                     }
-    
+
                     // Now we trigger all the subscriber that were already active -> so no need to modify active property
                     for(let trigger of triggerActive) {
                         // We clone the callbacks in order to avoid the callback to modify the array
@@ -293,7 +300,7 @@ export abstract class StateManager {
                             callback(stateToUse, trigger.params);
                         });
                     }
-    
+
                     // We trigger all the inactive to active callbacks
                     for(let trigger of inactiveToActive) {
                         // we set the subscriber to active
@@ -312,9 +319,10 @@ export abstract class StateManager {
                     // If the subscriber match on the next state, we want to trigger the activeCallback
                     let slugs = this.getInternalStateSlugs(this.subscribers[key], stateToUse.name);
                     if(slugs) {
+                        let slugsNotNull = slugs;
                         this.subscribers[key].isActive = true;
                         [...this.subscribers[key].callbacks.active].forEach(callback => {
-                            callback(stateToUse, slugs);
+                            callback(stateToUse, slugsNotNull);
                         });
                     }
                 }
@@ -322,13 +330,13 @@ export abstract class StateManager {
             }
             this.afterStateChanged.trigger([]);
             return true;
-        })
-        
+        });
+        return result ?? false;
     }
     public getState(): State | undefined {
         return this.activeState;
     }
-    protected getInternalStateSlugs(subscriber: Subscriber, stateName: string) {
+    protected getInternalStateSlugs(subscriber: Subscriber, stateName: string): StateSlug | null {
         let matches = subscriber.regex.exec(stateName);
         if(matches) {
             let slugs: StateSlug = {};
@@ -349,13 +357,14 @@ export abstract class StateManager {
      * Check if a state is in the subscribers and active, return true if it is, false otherwise
      */
     public isStateActive(statePattern: string): boolean {
-        return StateManager.prepareStateString(statePattern).regex.test(this.activeState.name);
+        return StateManager.prepareStateString(statePattern).regex.test(this.activeState?.name ?? '');
     }
     /**
      * Get slugs information for the current state, return null if state isn't active
      */
     public getStateSlugs(statePattern: string) {
         let prepared = StateManager.prepareStateString(statePattern);
+        let name = this.activeState?.name ?? '';
         return this.getInternalStateSlugs({
             regex: prepared.regex,
             params: prepared.params,
@@ -365,7 +374,7 @@ export abstract class StateManager {
                 inactive: [],
                 askChange: [],
             }
-        }, this.activeState.name);
+        }, name);
     }
     // 0 = error only / 1 = errors and warning / 2 = error, warning and logs (not implemented)
     protected logLevel() {

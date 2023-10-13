@@ -8,7 +8,7 @@ export function mergeObject<T>(item: T, objJson: KeysObject<T> | T) {
 	for(let prop of props) {
 		if(objJson[prop] !== undefined) {
 			let propInfo = Object.getOwnPropertyDescriptor(item, prop);
-			if(propInfo.writable) {
+			if(propInfo?.writable) {
 				item[prop] = objJson[prop];
 			}
 		}

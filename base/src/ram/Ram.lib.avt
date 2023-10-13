@@ -7,7 +7,7 @@ import { VoidWithError } from "../tools/Error.lib.avt";
 export interface IRam { }
 export type KeysObject<T> = { [Key in keyof T]?: any; };
 export interface IRamAction<T> {
-    update(newData: KeysObject<T>): Promise<this>;
+    update(newData: KeysObject<T>): Promise<this | undefined>;
     onUpdate(callback: (item: this) => void);
     offUpdate(callback: (item: this) => void);
     delete(): Promise<void>;
@@ -74,12 +74,12 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
     /**
      * Get item id
      */
-    public getId(item: KeysObject<T> | T): Index | null {
+    public getId(item: KeysObject<T> | T): Index {
         let result = this.getIdWithError(item);
         if(result.success) {
-            return result.result;
+            return result.result as Index;
         }
-        return null;
+        throw 'no key found for item';
     }
     //#endregion	
 
@@ -97,7 +97,7 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
             public get className(): string {
                 return Base.className || Base.name;
             }
-            public async update(newData: KeysObject<T> = {}): Promise<this> {
+            public async update(newData: KeysObject<T> = {}): Promise<this | undefined> {
                 let id = that.getId(this);
                 let oldData = that.records.get(id);
                 if(oldData) {
@@ -116,16 +116,18 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
                         deleted: []
                     });
                 }
-                if(!that.recordsSubscribers.get(id).updated.includes(callback)) {
-                    that.recordsSubscribers.get(id).updated.push(callback);
+                let sub = that.recordsSubscribers.get(id);
+                if(sub && !sub.updated.includes(callback)) {
+                    sub.updated.push(callback);
                 }
             }
             public offUpdate(callback) {
                 let id = that.getId(this);
-                if(that.recordsSubscribers.has(id)) {
-                    let index = that.recordsSubscribers.get(id).updated.indexOf(callback);
+                let sub = that.recordsSubscribers.get(id);
+                if(sub) {
+                    let index = sub.updated.indexOf(callback);
                     if(index != -1) {
-                        that.recordsSubscribers.get(id).updated.splice(index, 1);
+                        sub.updated.splice(index, 1);
                     }
                 }
             }
@@ -142,16 +144,18 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
                         deleted: []
                     });
                 }
-                if(!that.recordsSubscribers.get(id).deleted.includes(callback)) {
-                    that.recordsSubscribers.get(id).deleted.push(callback);
+                let sub = that.recordsSubscribers.get(id);
+                if(sub && !sub.deleted.includes(callback)) {
+                    sub.deleted.push(callback);
                 }
             }
             public offDelete(callback) {
                 let id = that.getId(this);
-                if(that.recordsSubscribers.has(id)) {
-                    let index = that.recordsSubscribers.get(id).deleted.indexOf(callback);
+                let sub = that.recordsSubscribers.get(id);
+                if(sub) {
+                    let index = sub.deleted.indexOf(callback);
                     if(index != -1) {
-                        that.recordsSubscribers.get(id).deleted.splice(index, 1);
+                        sub.deleted.splice(index, 1);
                     }
                 }
             }
@@ -175,7 +179,7 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
     protected addOrUpdateData(item: KeysObject<T>, result: ResultRamWithError<RamItem<T>>): void {
         try {
             let idWithError = this.getIdWithError(item);
-            if(idWithError.success) {
+            if(idWithError.success && idWithError.result !== undefined) {
                 let id = idWithError.result;
                 if(this.records.has(id)) {
                     this.mergeObject(this.records.get(id), item);
@@ -197,13 +201,16 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
     /**
      * Merge object and create real instance of class
      */
-    protected mergeObject(item: T, objJson: KeysObject<T> | T) {
+    protected mergeObject(item: T | undefined, objJson: KeysObject<T> | T) {
+        if(!item) {
+            return;
+        }
         let realObject = Converter.transform(objJson);
         let props = Object.getOwnPropertyNames(item);
         for(let prop of props) {
             if(realObject[prop] !== undefined) {
                 let propInfo = Object.getOwnPropertyDescriptor(item, prop);
-                if(propInfo.writable) {
+                if(propInfo?.writable) {
                     item[prop] = realObject[prop];
                 }
             }
@@ -214,8 +221,9 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
     //#region listener
     protected publish(type: 'created' | 'updated' | 'deleted', data: RamItem<T>) {
         [...this.subscribers[type]].forEach(callback => callback(data));
-        if(this.recordsSubscribers.has(this.getId(data))) {
-            [...this.recordsSubscribers.get(this.getId(data))[type]].forEach(callback => callback(data));
+        let sub = this.recordsSubscribers.has(this.getId(data));
+        if(sub) {
+            [...sub[type]].forEach(callback => callback(data));
         }
     }
     private subscribe(type: 'created' | 'updated' | 'deleted', cb: (item: RamItem<T>) => void) {
@@ -323,7 +331,7 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
     public async getByIds(ids: Index[]): Promise<RamItem<T>[]> {
         let result = await this.getByIdsWithError(ids);
         if(result.success) {
-            return result.result;
+            return result.result ?? [];
         }
         return [];
     };
@@ -336,8 +344,9 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
         await this.beforeGetByIds(ids, action);
         if(action.success) {
             for(let id of ids) {
-                if(this.records.has(id)) {
-                    action.result.push(this.records.get(id));
+                let rec = this.records.get(id);
+                if(rec) {
+                    action.result.push(rec);
                 }
                 else {
                     action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't find the item " + id + " inside ram"));
@@ -364,7 +373,7 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
     public async getAll(): Promise<Map<Index, RamItem<T>>> {
         let result = await this.getAllWithError();
         if(result.success) {
-            return result.result;
+            return result.result ?? new Map();
         }
         return new Map();
     };
@@ -405,7 +414,12 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
         action.result = [];
         let result = await this.getAllWithError();
         if(result.success) {
-            action.result = Object.values(result.result);
+            if(result.result) {
+                action.result = Object.values(result.result);
+            }
+            else {
+                action.result = [];
+            }
         }
         else {
             action.errors = result.errors;
@@ -420,7 +434,7 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
      */
     public async createList(list: T[]): Promise<RamItem<T>[]> {
         let result = await this.createListWithError(list);
-        return result.result;
+        return result.result ?? [];
     }
     /**
      * Create a list of items inside ram
@@ -435,7 +449,7 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
             }
             for(let item of list) {
                 let resultItem = await this._create(item, true);
-                if(resultItem.success) {
+                if(resultItem.success && resultItem.result) {
                     action.result.push(resultItem.result);
                 }
                 else {
@@ -478,9 +492,9 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
                 }
                 await this.afterCreateItem(action, fromList);
                 if(!action.success) {
-                    action.result = null;
+                    action.result = undefined;
                 }
-                else {
+                else if(action.result) {
                     this.publish('created', action.result);
                 }
             }
@@ -519,7 +533,7 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
      */
     public async updateList(list: T[]): Promise<RamItem<T>[]> {
         let result = await this.updateListWithError(list);
-        return result.result;
+        return result.result ?? [];
     };
     /**
      * Update a list of items inside ram
@@ -534,7 +548,7 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
             }
             for(let item of list) {
                 let resultItem = await this._update(item, true);
-                if(resultItem.success) {
+                if(resultItem.success && resultItem.result) {
                     action.result.push(resultItem.result);
                 }
                 else {
@@ -566,7 +580,7 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
     private async _update(item: T, fromList: boolean): Promise<ResultRamWithError<RamItem<T>>> {
         let action: ResultRamWithError<RamItem<T>> = new ResultRamWithError();
         let resultTemp = await this.getIdWithError(item);
-        if(resultTemp.success) {
+        if(resultTemp.success && resultTemp.result !== undefined) {
             let key = resultTemp.result;
             if(this.records.has(key)) {
                 await this.beforeUpdateItem(item, fromList, action);
@@ -582,9 +596,9 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
                 }
                 await this.afterUpdateItem(action, fromList);
                 if(!action.success) {
-                    action.result = null;
+                    action.result = undefined;
                 }
-                else {
+                else if(action.result) {
                     this.publish('updated', action.result);
                 }
             }
@@ -628,7 +642,7 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
      */
     public async deleteList(list: T[]): Promise<RamItem<T>[]> {
         let result = await this.deleteListWithError(list);
-        return result.result;
+        return result.result ?? [];
     };
     /**
      * Delete a list of items inside ram
@@ -643,7 +657,7 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
         }
         for(let item of list) {
             let resultItem = await this._delete(item, true);
-            if(resultItem.success) {
+            if(resultItem.success && resultItem.result) {
                 action.result.push(resultItem.result);
             }
             else {
@@ -685,8 +699,8 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
     * Delete an item by id inside ram
     */
     public async deleteByIdWithError(id: Index): Promise<ResultRamWithError<RamItem<T>>> {
-        if(this.records.has(id)) {
-            let item = this.records.get(id);
+        let item = this.records.get(id);
+        if(item) {
             return await this._delete(item, false);
         }
         let result: ResultRamWithError<RamItem<T>> = new ResultRamWithError();
@@ -696,10 +710,10 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
     private async _delete(item: T, fromList: boolean): Promise<ResultRamWithError<RamItem<T>>> {
         let action: ResultRamWithError<RamItem<T>> = new ResultRamWithError();
         let resultTemp = await this.getIdWithError(item);
-        if(resultTemp.success) {
+        if(resultTemp.success && resultTemp.result) {
             let key = resultTemp.result;
-            if(this.records.has(key)) {
-                let oldItem = this.records.get(key);
+            let oldItem = this.records.get(key);
+            if(oldItem) {
                 let deleteResult = new VoidWithError();
                 await this.beforeDeleteItem(oldItem, fromList, deleteResult);
                 if(!deleteResult.success) {
@@ -710,7 +724,7 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
                 action.result = oldItem;
                 await this.afterDeleteItem(action, fromList);
                 if(!action.success) {
-                    action.result = null;
+                    action.result = undefined;
                 }
                 else {
                     this.publish('deleted', action.result);

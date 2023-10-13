@@ -11,7 +11,7 @@ export class DataManager {
     /**
      * Get the contructor for the unique string type
      */
-    public static getConstructor($type: string): (new () => Data | null) {
+    public static getConstructor($type: string): (new () => Data) | null {
         let result = this.info.get($type);
         if(result) {
             return result;
@@ -34,7 +34,7 @@ export class DataManager {
                 return data;
             }
             if(Array.isArray(data)) {
-                let result = [];
+                let result: any[] = [];
                 for(let element of data) {
                     // TODO impossible to know if its a date or not => find a solution
                     // maybe use a schema
@@ -51,7 +51,7 @@ export class DataManager {
                     for(let prop of props) {
                         if(data[prop] !== undefined) {
                             let propInfo = Object.getOwnPropertyDescriptor(obj, prop);
-                            if(propInfo.writable) {
+                            if(propInfo?.writable) {
                                 if(obj[prop] instanceof Date) {
                                     obj[prop] = this.createObject(data[prop], true);
                                 }

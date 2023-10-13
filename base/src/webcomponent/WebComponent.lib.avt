@@ -66,7 +66,7 @@ export class WebComponentInstance {
         }
     }
     public static getAllInstances(type: new () => WebComponent) {
-        let result = [];
+        let result: WebComponent[] = [];
         for(let instance of this.__allInstances) {
             if(instance instanceof type) {
                 result.push(instance);
@@ -117,7 +117,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
     /**
      * The current namespace
      */
-    public static readonly Namespace: string  = "";
+    public static readonly Namespace: string = "";
     /**
      * Get the unique type for the data. Define it as the namespace + class name
      */
@@ -162,10 +162,15 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
         }>;
     } = {};
 
+
     public constructor() {
         super();
         if(this.constructor == WebComponent) {
             throw "can't instanciate an abstract class";
+        }
+        this.__removeNoAnimations = this.__removeNoAnimations.bind(this);
+        if(document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", this.__removeNoAnimations);
         }
         this._first = true;
         this._isReady = false;
@@ -230,7 +235,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
     //#region template
     private static __style: string = ``;
     private static __template: WebComponentTemplate;
-    private __templateInstance: WebComponentTemplateInstance;
+    private __templateInstance?: WebComponentTemplateInstance;
     protected styleBefore(addStyle: (name: string) => void): void {
         addStyle("@general");
     }
@@ -279,9 +284,10 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
 
         this.__templateInstance = staticInstance.__template.createInstance(this);
         let shadowRoot = this.attachShadow({ mode: 'open' });
-        shadowRoot.adoptedStyleSheets = Object.values(staticInstance.__styleSheets);
-        this.shadowRoot.appendChild(this.__templateInstance.content);
-        customElements.upgrade(this.shadowRoot);
+        shadowRoot.adoptedStyleSheets = [...Object.values(staticInstance.__styleSheets), Style.noAnimation];
+        shadowRoot.appendChild(this.__templateInstance.content);
+        customElements.upgrade(shadowRoot);
+        return shadowRoot;
     }
 
     private __registerTemplateAction() {
@@ -303,21 +309,28 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
             this._first = false;
             this.__defaultValues();
             this.__upgradeAttributes();
-            this.__templateInstance.render();
-
+            this.__templateInstance?.render();
+            this.__removeNoAnimations();
+        }
+    }
+    private __removeNoAnimations() {
+        if(document.readyState !== "loading") {
+            this.offsetWidth;
             setTimeout(() => {
                 this.postCreation();
                 this._isReady = true;
                 this.dispatchEvent(new CustomEvent('postCreationDone'));
-            });
+                this.shadowRoot!.adoptedStyleSheets = Object.values(this.__getStatic().__styleSheets);
+                document.removeEventListener("DOMContentLoaded", this.__removeNoAnimations);
+            }, 50);
         }
     }
     private __defaultValues() { }
     private __upgradeAttributes() { }
-    private __listBoolProps() {
+    private __listBoolProps(): string[] {
         return [];
     }
-    private __upgradeProperty(prop) {
+    private __upgradeProperty(prop: string) {
         let boolProps = this.__listBoolProps();
         if(boolProps.indexOf(prop) != -1) {
             if(this.hasAttribute(prop) && (this.getAttribute(prop) === "true" || this.getAttribute(prop) === "")) {
@@ -355,26 +368,26 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
         if(!this.__defaultActiveState.has(mClass)) {
             this.__defaultActiveState.set(mClass, []);
         }
-        this.__defaultActiveState.get(mClass).push(cb);
+        this.__defaultActiveState.get(mClass)?.push(cb);
     }
     private __addInactiveDefState(managerClass: new () => StateManager | StateManager, cb: () => void) {
         let mClass = this.__getStateManager(managerClass);
         if(!this.__defaultInactiveState.has(mClass)) {
             this.__defaultInactiveState.set(mClass, []);
         }
-        this.__defaultInactiveState.get(mClass).push(cb);
+        this.__defaultInactiveState.get(mClass)?.push(cb);
     }
     private __addActiveState(statePattern: string, managerClass: new () => StateManager | StateManager, cb: (state: State, slugs: StateSlug) => void) {
         let mClass = this.__getStateManager(managerClass);
-        this.__statesList[statePattern].get(mClass).active.push(cb);
+        this.__statesList[statePattern].get(mClass)?.active.push(cb);
     }
     private __addInactiveState(statePattern: string, managerClass: new () => StateManager | StateManager, cb: (state: State, nextState: State, slugs: StateSlug) => void) {
         let mClass = this.__getStateManager(managerClass);
-        this.__statesList[statePattern].get(mClass).inactive.push(cb);
+        this.__statesList[statePattern].get(mClass)?.inactive.push(cb);
     }
     private __addAskChangeState(statePattern: string, managerClass: new () => StateManager | StateManager, cb: (state: State, nextState: State, slugs: StateSlug) => Promise<boolean>) {
         let mClass = this.__getStateManager(managerClass);
-        this.__statesList[statePattern].get(mClass).askChange.push(cb);
+        this.__statesList[statePattern].get(mClass)?.askChange.push(cb);
     }
     private __createStates() { }
     private __createStatesList(statePattern: string, managerClass: new () => StateManager | StateManager) {
@@ -396,7 +409,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
             this.__isDefaultState = false;
             let mClass = this.__getStateManager(managerClass);
             if(this.__defaultInactiveState.has(mClass)) {
-                let fcts = this.__defaultInactiveState.get(mClass);
+                let fcts = this.__defaultInactiveState.get(mClass) ?? [];
                 for(let fct of fcts) {
                     fct.bind(this)();
                 }
@@ -417,7 +430,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
             this.__isDefaultState = true;
             let mClass = this.__getStateManager(managerClass);
             if(this.__defaultActiveState.has(mClass)) {
-                let fcts = this.__defaultActiveState.get(mClass);
+                let fcts = this.__defaultActiveState.get(mClass) ?? [];
                 for(let fct of fcts) {
                     fct.bind(this)();
                 }
@@ -431,15 +444,21 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
         }
         for(let route in this.__statesList) {
             for(const managerClass of this.__statesList[route].keys()) {
-                managerClass.subscribe(route, this.__statesList[route].get(managerClass));
+                let el = this.__statesList[route].get(managerClass);
+                if(el) {
+                    managerClass.subscribe(route, el);
+                }
             }
         }
     }
-    private __stateCleared: boolean;
+    private __stateCleared: boolean = false;
     private __unsubscribeState() {
         for(let route in this.__statesList) {
             for(const managerClass of this.__statesList[route].keys()) {
-                managerClass.unsubscribe(route, this.__statesList[route].get(managerClass));
+                let el = this.__statesList[route].get(managerClass);
+                if(el) {
+                    managerClass.unsubscribe(route, el);
+                }
             }
         }
         this.__stateCleared = true;
@@ -459,7 +478,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
         }
         return null;
     }
-    protected stringToDate(s: string): Date {
+    protected stringToDate(s: string): Date | null {
         let td = new Date(s);
         let d = new Date(td.getTime() + (td.getTimezoneOffset() * 60000)) as any;
         if(isNaN(d)) {
@@ -467,7 +486,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
         }
         return d;
     }
-    protected stringToDateTime(s: string): Date {
+    protected stringToDateTime(s: string): Date | null {
         let td = new Date(s);
         let d = new Date(td.getTime() + (td.getTimezoneOffset() * 60000)) as any;
         if(isNaN(d)) {
@@ -551,7 +570,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
     /**
      * Get element inside slot
      */
-    public getElementsInSlot(slotName: string = null) {
+    public getElementsInSlot(slotName?: string) {
         return ElementExtension.getElementsInSlot(this, slotName);
     }
     //#endregion

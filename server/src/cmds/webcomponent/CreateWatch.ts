@@ -66,7 +66,7 @@ export class CreateWatch {
 			if (needCb) {
 				cb = '(target: ' + componentName + ', action: Aventus.WatchAction, path: string, value: any) => {' + EOL + EOL + '}';
 			}
-			let newTxt = '@Watch(' + cb + ')' + EOL + 'public ' + name + ':' + type + ';' + EOL;
+			let newTxt = '@Watch(' + cb + ')' + EOL + 'public ' + name + '!:' + type + ';' + EOL;
 			let begin = file.content.slice(0, position);
 			let end = file.content.slice(position + 1, file.content.length);
 			let txt = begin + newTxt + end;

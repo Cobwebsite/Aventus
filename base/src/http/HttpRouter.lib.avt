@@ -8,7 +8,7 @@ import { HttpRequest } from "./HttpRequest.lib.avt";
 
 export abstract class HttpRouter {
     private _routes: any;
-    public options: HttpRouterOptions;
+    protected options: HttpRouterOptions;
 
     public static WithRoute<const T extends readonly ({ type: RouteType, path: string; } | RouteType)[]>(options: T) {
         abstract class Router extends HttpRouter {
@@ -59,7 +59,7 @@ export abstract class HttpRouter {
                                     }
                                 }
                                 let routeInstance = new routeClass(that);
-                                let keyFromChild = [];
+                                let keyFromChild: string[] = [];
                                 while(routeClass.prototype) {
                                     let keys = Object.getOwnPropertyNames(routeClass.prototype);
                                     for(let key of keys) {
@@ -117,25 +117,25 @@ export abstract class HttpRouter {
     protected defineOptions(options: HttpRouterOptions): HttpRouterOptions {
         return options;
     }
-    
+
 
     public async get<T>(url: string) {
         return await new HttpRequest(url).queryJSON<T>(this);
     }
 
-    public async post<T>(url: string, data: { [key: string | number]: any; } | FormData = null) {
+    public async post<T>(url: string, data?: { [key: string | number]: any; } | FormData) {
         return await new HttpRequest(url, HttpMethod.POST, data).queryJSON<T>(this);
     }
 
-    public async put<T>(url: string, data: { [key: string | number]: any; } | FormData = null) {
+    public async put<T>(url: string, data?: { [key: string | number]: any; } | FormData) {
         return await new HttpRequest(url, HttpMethod.PUT, data).queryJSON<T>(this);
     }
 
-    public async delete<T>(url: string, data: { [key: string | number]: any; } | FormData = null) {
+    public async delete<T>(url: string, data?: { [key: string | number]: any; } | FormData) {
         return await new HttpRequest(url, HttpMethod.DELETE, data).queryJSON<T>(this);
     }
 
-    public async option<T>(url: string, data: { [key: string | number]: any; } | FormData = null) {
+    public async option<T>(url: string, data?: { [key: string | number]: any; } | FormData) {
         return await new HttpRequest(url, HttpMethod.OPTION, data).queryJSON<T>(this);
     }
 }

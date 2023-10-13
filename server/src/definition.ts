@@ -63,5 +63,7 @@ export enum AventusErrorCode {
     VariableNotAllowed,
     MissingFullName,
     SameNameFound,
-    ConvertionImpossible
+    ConvertionImpossible,
+    ExclamationMarkMissing,
+    QuestionMarkMissing,
 }

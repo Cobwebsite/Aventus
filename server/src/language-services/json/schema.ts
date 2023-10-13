@@ -130,7 +130,7 @@ export const AventusConfigSchema: JSONSchema = {
                     },
                     "namespaceStrategy": {
                         type: "string",
-                        enum: ["manual", "followFolders", "rules"],
+                        enum: ["manual", "followFolders", "followFoldersCamelCase", "rules"],
                         description: "Stragety to generate namespace",
                         default: "manual"
                     },

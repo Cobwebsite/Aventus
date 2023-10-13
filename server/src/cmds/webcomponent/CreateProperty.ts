@@ -21,7 +21,7 @@ export class CreateProperty {
 		{ label: "Custom", detail: "" },
 	];
 
-	
+
 
 	public static async run(uri: string, position: number, prefillName: string) {
 		if (!uri) {
@@ -80,7 +80,11 @@ export class CreateProperty {
 			if (needCb) {
 				cb = '(target: ' + componentName + ') => {' + EOL + EOL + '}';
 			}
-			let newTxt = '@Property(' + cb + ')' + EOL + 'public ' + name + ':' + type + ';' + EOL;
+			let nullable = "?";
+			if (type == "boolean" || type == "number") {
+				nullable = "!"
+			}
+			let newTxt = '@Property(' + cb + ')' + EOL + 'public ' + name + nullable + ':' + type + ';' + EOL;
 			let begin = file.content.slice(0, position);
 			let end = file.content.slice(position + 1, file.content.length);
 			let txt = begin + newTxt + end;

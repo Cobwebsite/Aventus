@@ -40,7 +40,9 @@ export class Mutex {
                 fct(false);
             }
             this.waitingList = [];
-            lastFct(true);
+            if(lastFct) {
+                lastFct(true);
+            }
         }
         else {
             this.isLocked = false;
@@ -94,8 +96,8 @@ export class Mutex {
         }
         return result;
     }
-    public async safeRunLastAsync<T = void>(cb: () => Promise<T>): Promise<T | null> {
-        let result: T | null = null;
+    public async safeRunLastAsync<T = void>(cb: () => Promise<T>): Promise<T | undefined> {
+        let result: T | undefined;
         if(await this.waitOne()) {
             try {
                 result = await cb.apply(null, []);

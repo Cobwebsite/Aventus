@@ -249,7 +249,7 @@ class ElementExtension {
     /**
      * Get element inside slot
      */
-    static getElementsInSlot(element, slotName = null) {
+    static getElementsInSlot(element, slotName) {
         if (element.shadowRoot) {
             let slotEl;
             if (slotName) {
@@ -284,7 +284,7 @@ class ElementExtension {
     /**
      * Get deeper element inside dom at the position X and Y
      */
-    static getElementAtPosition(x, y, startFrom = null) {
+    static getElementAtPosition(x, y, startFrom) {
         var _realTarget = (el, i = 0) => {
             if (i == 50) {
                 debugger;
@@ -331,6 +331,7 @@ class Instance {
 
 class Style {
     static instance;
+    static noAnimation;
     static defaultStyleSheets = {
         "@general": `:host{display:inline-block;box-sizing:border-box}:host *{box-sizing:border-box}`,
     };
@@ -353,11 +354,14 @@ class Style {
         for (let name in Style.defaultStyleSheets) {
             this.store(name, Style.defaultStyleSheets[name]);
         }
+        Style.noAnimation = new CSSStyleSheet();
+        Style.noAnimation.replaceSync(`:host{-webkit-transition: none !important;-moz-transition: none !important;-ms-transition: none !important;-o-transition: none !important;transition: none !important;}:host *{-webkit-transition: none !important;-moz-transition: none !important;-ms-transition: none !important;-o-transition: none !important;transition: none !important;}`);
     }
     stylesheets = new Map();
     async load(name, url) {
         try {
-            if (!this.stylesheets.has(name) || this.stylesheets.get(name).cssRules.length == 0) {
+            let style = this.stylesheets.get(name);
+            if (!style || style.cssRules.length == 0) {
                 let txt = await (await fetch(url)).text();
                 this.store(name, txt);
             }
@@ -366,20 +370,24 @@ class Style {
         }
     }
     store(name, content) {
-        if (!this.stylesheets.has(name)) {
+        let style = this.stylesheets.get(name);
+        if (!style) {
             const sheet = new CSSStyleSheet();
             sheet.replaceSync(content);
             this.stylesheets.set(name, sheet);
+            return sheet;
         }
         else {
-            this.stylesheets.get(name).replaceSync(content);
+            style.replaceSync(content);
+            return style;
         }
     }
     get(name) {
-        if (!this.stylesheets.has(name)) {
-            this.store(name, "");
+        let style = this.stylesheets.get(name);
+        if (!style) {
+            style = this.store(name, "");
         }
-        return this.stylesheets.get(name);
+        return style;
     }
 }
 
@@ -460,7 +468,9 @@ class Mutex {
                 fct(false);
             }
             this.waitingList = [];
-            lastFct(true);
+            if (lastFct) {
+                lastFct(true);
+            }
         }
         else {
             this.isLocked = false;
@@ -508,7 +518,7 @@ class Mutex {
         return result;
     }
     async safeRunLastAsync(cb) {
-        let result = null;
+        let result;
         if (await this.waitOne()) {
             try {
                 result = await cb.apply(null, []);
@@ -623,7 +633,7 @@ class Watcher {
             else
                 return value;
         };
-        let currentTrace = new Error().stack.split("\n");
+        let currentTrace = new Error().stack?.split("\n") ?? [];
         currentTrace.shift();
         currentTrace.shift();
         let onlyDuringInit = true;
@@ -958,7 +968,7 @@ class Watcher {
             }
             if (proxyData.id == receiverId) {
                 let stacks = [];
-                let allStacks = new Error().stack.split("\n");
+                let allStacks = new Error().stack?.split("\n") ?? [];
                 for (let i = allStacks.length - 1; i >= 0; i--) {
                     let current = allStacks[i].trim().replace("at ", "");
                     if (current.startsWith("Object.set") || current.startsWith("Proxy.result")) {
@@ -1012,9 +1022,22 @@ class Watcher {
 }
 
 class PressManager {
+    static create(options) {
+        if (Array.isArray(options.element)) {
+            let result = [];
+            for (let el of options.element) {
+                let cloneOpt = { ...options };
+                cloneOpt.element = el;
+                result.push(new PressManager(cloneOpt));
+            }
+            return result;
+        }
+        else {
+            return new PressManager(options);
+        }
+    }
     options;
     element;
-    subPressManager = [];
     delayDblPress = 150;
     delayLongPress = 700;
     nbPress = 0;
@@ -1054,20 +1077,11 @@ class PressManager {
         if (options.element === void 0) {
             throw 'You must provide an element';
         }
-        if (Array.isArray(options.element)) {
-            for (let el of options.element) {
-                let cloneOpt = { ...options };
-                cloneOpt.element = el;
-                this.subPressManager.push(new PressManager(cloneOpt));
-            }
-        }
-        else {
-            this.element = options.element;
-            this.checkDragConstraint(options);
-            this.assignValueOption(options);
-            this.options = options;
-            this.init();
-        }
+        this.element = options.element;
+        this.checkDragConstraint(options);
+        this.assignValueOption(options);
+        this.options = options;
+        this.init();
     }
     /**
      * Get the current element focused by the PressManager
@@ -1243,7 +1257,7 @@ class PressManager {
             let xDist = e.pageX - this.startPosition.x;
             let yDist = e.pageY - this.startPosition.y;
             let distance = Math.sqrt(xDist * xDist + yDist * yDist);
-            if (distance > this.offsetDrag) {
+            if (distance > this.offsetDrag && this.downEventSaved) {
                 this.state.oneActionTriggered = true;
                 if (this.options.onDragStart) {
                     this.state.isMoving = true;
@@ -1326,7 +1340,7 @@ class PressManager {
             this.triggerEventToParent(this.actionsName.drag, e.detail.realEvent);
         }
     }
-    emitTriggerFunction(action, e, el = null) {
+    emitTriggerFunction(action, e, el) {
         let ev = new CustomEvent("trigger_pointer_" + action, {
             bubbles: true,
             cancelable: true,
@@ -1346,9 +1360,6 @@ class PressManager {
      * Destroy the Press instance byremoving all events
      */
     destroy() {
-        for (let sub of this.subPressManager) {
-            sub.destroy();
-        }
         if (this.element) {
             this.element.removeEventListener("pointerdown", this.functionsBinded.downAction);
             this.element.removeEventListener("trigger_pointer_press", this.functionsBinded.childPress);
@@ -1402,9 +1413,11 @@ class StateManager {
                 }
                 for (let activeFct of callbacks.active) {
                     this.subscribers[statePattern].callbacks.active.push(activeFct);
-                    if (this.subscribers[statePattern].isActive) {
+                    if (this.subscribers[statePattern].isActive && this.activeState) {
                         let slugs = this.getInternalStateSlugs(this.subscribers[statePattern], this.activeState.name);
-                        activeFct(this.activeState, slugs);
+                        if (slugs) {
+                            activeFct(this.activeState, slugs);
+                        }
                     }
                 }
             }
@@ -1520,7 +1533,7 @@ class StateManager {
      * Activate a current state
      */
     async setState(state) {
-        return await this.changeStateMutex.safeRunLastAsync(async () => {
+        let result = await this.changeStateMutex.safeRunLastAsync(async () => {
             let stateToUse;
             if (typeof state == "string") {
                 stateToUse = new EmptyState(state);
@@ -1545,11 +1558,13 @@ class StateManager {
                         if (subscriber.isActive) {
                             let clone = [...subscriber.callbacks.askChange];
                             let currentSlug = this.getInternalStateSlugs(subscriber, this.activeState.name);
-                            for (let i = 0; i < clone.length; i++) {
-                                let askChange = clone[i];
-                                if (!await askChange(this.activeState, stateToUse, currentSlug)) {
-                                    canChange = false;
-                                    break;
+                            if (currentSlug) {
+                                for (let i = 0; i < clone.length; i++) {
+                                    let askChange = clone[i];
+                                    if (!await askChange(this.activeState, stateToUse, currentSlug)) {
+                                        canChange = false;
+                                        break;
+                                    }
                                 }
                             }
                             let slugs = this.getInternalStateSlugs(subscriber, stateToUse.name);
@@ -1584,9 +1599,12 @@ class StateManager {
                     for (let subscriber of activeToInactive) {
                         subscriber.isActive = false;
                         let oldSlug = this.getInternalStateSlugs(subscriber, oldState.name);
-                        [...subscriber.callbacks.inactive].forEach(callback => {
-                            callback(oldState, stateToUse, oldSlug);
-                        });
+                        if (oldSlug) {
+                            let oldSlugNotNull = oldSlug;
+                            [...subscriber.callbacks.inactive].forEach(callback => {
+                                callback(oldState, stateToUse, oldSlugNotNull);
+                            });
+                        }
                     }
                     for (let trigger of triggerActive) {
                         [...trigger.subscriber.callbacks.active].forEach(callback => {
@@ -1607,9 +1625,10 @@ class StateManager {
                 for (let key in this.subscribers) {
                     let slugs = this.getInternalStateSlugs(this.subscribers[key], stateToUse.name);
                     if (slugs) {
+                        let slugsNotNull = slugs;
                         this.subscribers[key].isActive = true;
                         [...this.subscribers[key].callbacks.active].forEach(callback => {
-                            callback(stateToUse, slugs);
+                            callback(stateToUse, slugsNotNull);
                         });
                     }
                 }
@@ -1618,6 +1637,7 @@ class StateManager {
             this.afterStateChanged.trigger([]);
             return true;
         });
+        return result ?? false;
     }
     getState() {
         return this.activeState;
@@ -1642,13 +1662,14 @@ class StateManager {
      * Check if a state is in the subscribers and active, return true if it is, false otherwise
      */
     isStateActive(statePattern) {
-        return StateManager.prepareStateString(statePattern).regex.test(this.activeState.name);
+        return StateManager.prepareStateString(statePattern).regex.test(this.activeState?.name ?? '');
     }
     /**
      * Get slugs information for the current state, return null if state isn't active
      */
     getStateSlugs(statePattern) {
         let prepared = StateManager.prepareStateString(statePattern);
+        let name = this.activeState?.name ?? '';
         return this.getInternalStateSlugs({
             regex: prepared.regex,
             params: prepared.params,
@@ -1658,7 +1679,7 @@ class StateManager {
                 inactive: [],
                 askChange: [],
             }
-        }, this.activeState.name);
+        }, name);
     }
     // 0 = error only / 1 = errors and warning / 2 = error, warning and logs (not implemented)
     logLevel() {
@@ -1683,7 +1704,7 @@ class WebComponentTemplateContext {
     fctsToRemove = [];
     c = {
         __P: (value) => {
-            return value === null ? "" : value + "";
+            return value == null ? "" : value + "";
         }
     };
     isRendered = false;
@@ -1943,8 +1964,8 @@ class WebComponentTemplate {
         }
     }
     createInstance(component) {
-        let context = new WebComponentTemplateContext(component, this.contextSchema, []);
-        let content = this.template.content.cloneNode(true);
+        let context = new WebComponentTemplateContext(component, this.contextSchema, {});
+        let content = this.template?.content.cloneNode(true);
         let actions = this.actions;
         let instance = new WebComponentTemplateInstance(context, content, actions, component, this.loops);
         return instance;
@@ -1959,7 +1980,7 @@ class WebComponentTemplateInstance {
     content;
     actions;
     component;
-    _components;
+    _components = {};
     firstRenderUniqueCb = {};
     firstRenderCb = [];
     fctsToRemove = [];
@@ -2071,7 +2092,7 @@ class WebComponentTemplateInstance {
                 }
             }
             clone.element = this._components[id];
-            new PressManager(clone);
+            PressManager.create(clone);
         }
     }
     transformActionsListening() {
@@ -2104,7 +2125,7 @@ class WebComponentTemplateInstance {
         if (change.attrName == "@HTML") {
             if (change.path) {
                 this.context.addChange(name, (path) => {
-                    if (WebComponentTemplate.validatePath(path, change.path)) {
+                    if (WebComponentTemplate.validatePath(path, change.path ?? '')) {
                         for (const el of this._components[change.id]) {
                             el.innerHTML = change.render(this.context.c);
                         }
@@ -2153,7 +2174,7 @@ class WebComponentTemplateInstance {
         else {
             if (change.path) {
                 this.context.addChange(name, (path) => {
-                    if (WebComponentTemplate.validatePath(path, change.path)) {
+                    if (WebComponentTemplate.validatePath(path, change.path ?? '')) {
                         for (const el of this._components[change.id]) {
                             el.setAttribute(change.attrName, change.render(this.context.c));
                         }
@@ -2181,7 +2202,7 @@ class WebComponentTemplateInstance {
             return;
         if (injection.path) {
             this.context.addChange(name, (path) => {
-                if (WebComponentTemplate.validatePath(path, injection.path)) {
+                if (WebComponentTemplate.validatePath(path, injection.path ?? '')) {
                     for (const el of this._components[injection.id]) {
                         el[injection.injectionName] = injection.inject(this.context.c);
                     }
@@ -2206,8 +2227,9 @@ class WebComponentTemplateInstance {
             return;
         if (binding.path) {
             this.context.addChange(name, (path) => {
-                if (WebComponentTemplate.validatePath(path, binding.path)) {
-                    let valueToSet = WebComponentTemplate.getValueFromItem(binding.path, this.context.c);
+                let bindingPath = binding.path ?? '';
+                if (WebComponentTemplate.validatePath(path, bindingPath)) {
+                    let valueToSet = WebComponentTemplate.getValueFromItem(bindingPath, this.context.c);
                     for (const el of this._components[binding.id]) {
                         WebComponentTemplate.setValueToItem(binding.valueName, el, valueToSet);
                     }
@@ -2217,7 +2239,7 @@ class WebComponentTemplateInstance {
         else {
             binding.path = name;
             this.context.addChange(name, (path) => {
-                let valueToSet = WebComponentTemplate.getValueFromItem(binding.path, this.context.c);
+                let valueToSet = WebComponentTemplate.getValueFromItem(name, this.context.c);
                 for (const el of this._components[binding.id]) {
                     WebComponentTemplate.setValueToItem(binding.valueName, el, valueToSet);
                 }
@@ -2229,10 +2251,10 @@ class WebComponentTemplateInstance {
                     for (let fct of binding.eventNames) {
                         let cb = WebComponentTemplate.getValueFromItem(fct, el);
                         cb?.add((value) => {
-                            WebComponentTemplate.setValueToItem(binding.path, this.context.c, value);
+                            WebComponentTemplate.setValueToItem(binding.path ?? '', this.context.c, value);
                         });
                     }
-                    let valueToSet = WebComponentTemplate.getValueFromItem(binding.path, this.context.c);
+                    let valueToSet = WebComponentTemplate.getValueFromItem(binding.path ?? '', this.context.c);
                     WebComponentTemplate.setValueToItem(binding.valueName, el, valueToSet);
                 }
             });
@@ -2243,10 +2265,10 @@ class WebComponentTemplateInstance {
                     for (let fct of binding.eventNames) {
                         el.addEventListener(fct, (e) => {
                             let valueToSet = WebComponentTemplate.getValueFromItem(binding.valueName, e.target);
-                            WebComponentTemplate.setValueToItem(binding.path, this.context.c, valueToSet);
+                            WebComponentTemplate.setValueToItem(binding.path ?? '', this.context.c, valueToSet);
                         });
                     }
-                    let valueToSet = WebComponentTemplate.getValueFromItem(binding.path, this.context.c);
+                    let valueToSet = WebComponentTemplate.getValueFromItem(binding.path ?? '', this.context.c);
                     WebComponentTemplate.setValueToItem(binding.valueName, el, valueToSet);
                 }
             });
@@ -2273,12 +2295,12 @@ class WebComponentTemplateInstance {
         let result = WebComponentTemplate.getValueFromItem(loop.data, this.context.c);
         let anchor = this._components[loop.anchorId][0];
         for (let i = 0; i < result.length; i++) {
-            let context = new WebComponentTemplateContext(this.component, localContext, [{ name: loop.index, value: i }]);
-            let content = loop.template.template.content.cloneNode(true);
+            let context = new WebComponentTemplateContext(this.component, localContext, { [loop.index]: i });
+            let content = loop.template.template?.content.cloneNode(true);
             let actions = loop.template.actions;
             let instance = new WebComponentTemplateInstance(context, content, actions, this.component, loop.template.loops);
             instance.render();
-            anchor.parentNode.insertBefore(instance.content, anchor);
+            anchor.parentNode?.insertBefore(instance.content, anchor);
             this.loopRegisteries[loop.anchorId].push(instance);
         }
     }
@@ -2300,8 +2322,8 @@ class WebComponentTemplateInstance {
                 let registry = this.loopRegisteries[loop.anchorId];
                 let index = Number(result[1]);
                 if (action == WatchAction.CREATED) {
-                    let context = new WebComponentTemplateContext(this.component, localContext, [{ name: loop.index, value: index }]);
-                    let content = loop.template.template.content.cloneNode(true);
+                    let context = new WebComponentTemplateContext(this.component, localContext, { [loop.index]: index });
+                    let content = loop.template.template?.content.cloneNode(true);
                     let actions = loop.template.actions;
                     let instance = new WebComponentTemplateInstance(context, content, actions, this.component, loop.template.loops);
                     instance.render();
@@ -2312,7 +2334,7 @@ class WebComponentTemplateInstance {
                     else {
                         anchor = this._components[loop.anchorId][0];
                     }
-                    anchor.parentNode.insertBefore(instance.content, anchor);
+                    anchor.parentNode?.insertBefore(instance.content, anchor);
                     registry.splice(index, 0, instance);
                     for (let i = index + 1; i < registry.length; i++) {
                         registry[i].context.c[loop.index] = registry[i].context.c[loop.index] + 1;
@@ -2387,6 +2409,10 @@ class WebComponent extends HTMLElement {
         super();
         if (this.constructor == WebComponent) {
             throw "can't instanciate an abstract class";
+        }
+        this.__removeNoAnimations = this.__removeNoAnimations.bind(this);
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", this.__removeNoAnimations);
         }
         this._first = true;
         this._isReady = false;
@@ -2492,9 +2518,10 @@ class WebComponent extends HTMLElement {
         }
         this.__templateInstance = staticInstance.__template.createInstance(this);
         let shadowRoot = this.attachShadow({ mode: 'open' });
-        shadowRoot.adoptedStyleSheets = Object.values(staticInstance.__styleSheets);
-        this.shadowRoot.appendChild(this.__templateInstance.content);
-        customElements.upgrade(this.shadowRoot);
+        shadowRoot.adoptedStyleSheets = [...Object.values(staticInstance.__styleSheets), Style.noAnimation];
+        shadowRoot.appendChild(this.__templateInstance.content);
+        customElements.upgrade(shadowRoot);
+        return shadowRoot;
     }
     __registerTemplateAction() {
     }
@@ -2504,12 +2531,20 @@ class WebComponent extends HTMLElement {
             this._first = false;
             this.__defaultValues();
             this.__upgradeAttributes();
-            this.__templateInstance.render();
+            this.__templateInstance?.render();
+            this.__removeNoAnimations();
+        }
+    }
+    __removeNoAnimations() {
+        if (document.readyState !== "loading") {
+            this.offsetWidth;
             setTimeout(() => {
                 this.postCreation();
                 this._isReady = true;
                 this.dispatchEvent(new CustomEvent('postCreationDone'));
-            });
+                this.shadowRoot.adoptedStyleSheets = Object.values(this.__getStatic().__styleSheets);
+                document.removeEventListener("DOMContentLoaded", this.__removeNoAnimations);
+            }, 50);
         }
     }
     __defaultValues() { }
@@ -2553,26 +2588,26 @@ class WebComponent extends HTMLElement {
         if (!this.__defaultActiveState.has(mClass)) {
             this.__defaultActiveState.set(mClass, []);
         }
-        this.__defaultActiveState.get(mClass).push(cb);
+        this.__defaultActiveState.get(mClass)?.push(cb);
     }
     __addInactiveDefState(managerClass, cb) {
         let mClass = this.__getStateManager(managerClass);
         if (!this.__defaultInactiveState.has(mClass)) {
             this.__defaultInactiveState.set(mClass, []);
         }
-        this.__defaultInactiveState.get(mClass).push(cb);
+        this.__defaultInactiveState.get(mClass)?.push(cb);
     }
     __addActiveState(statePattern, managerClass, cb) {
         let mClass = this.__getStateManager(managerClass);
-        this.__statesList[statePattern].get(mClass).active.push(cb);
+        this.__statesList[statePattern].get(mClass)?.active.push(cb);
     }
     __addInactiveState(statePattern, managerClass, cb) {
         let mClass = this.__getStateManager(managerClass);
-        this.__statesList[statePattern].get(mClass).inactive.push(cb);
+        this.__statesList[statePattern].get(mClass)?.inactive.push(cb);
     }
     __addAskChangeState(statePattern, managerClass, cb) {
         let mClass = this.__getStateManager(managerClass);
-        this.__statesList[statePattern].get(mClass).askChange.push(cb);
+        this.__statesList[statePattern].get(mClass)?.askChange.push(cb);
     }
     __createStates() { }
     __createStatesList(statePattern, managerClass) {
@@ -2593,7 +2628,7 @@ class WebComponent extends HTMLElement {
             this.__isDefaultState = false;
             let mClass = this.__getStateManager(managerClass);
             if (this.__defaultInactiveState.has(mClass)) {
-                let fcts = this.__defaultInactiveState.get(mClass);
+                let fcts = this.__defaultInactiveState.get(mClass) ?? [];
                 for (let fct of fcts) {
                     fct.bind(this)();
                 }
@@ -2613,7 +2648,7 @@ class WebComponent extends HTMLElement {
             this.__isDefaultState = true;
             let mClass = this.__getStateManager(managerClass);
             if (this.__defaultActiveState.has(mClass)) {
-                let fcts = this.__defaultActiveState.get(mClass);
+                let fcts = this.__defaultActiveState.get(mClass) ?? [];
                 for (let fct of fcts) {
                     fct.bind(this)();
                 }
@@ -2626,15 +2661,21 @@ class WebComponent extends HTMLElement {
         }
         for (let route in this.__statesList) {
             for (const managerClass of this.__statesList[route].keys()) {
-                managerClass.subscribe(route, this.__statesList[route].get(managerClass));
+                let el = this.__statesList[route].get(managerClass);
+                if (el) {
+                    managerClass.subscribe(route, el);
+                }
             }
         }
     }
-    __stateCleared;
+    __stateCleared = false;
     __unsubscribeState() {
         for (let route in this.__statesList) {
             for (const managerClass of this.__statesList[route].keys()) {
-                managerClass.unsubscribe(route, this.__statesList[route].get(managerClass));
+                let el = this.__statesList[route].get(managerClass);
+                if (el) {
+                    managerClass.unsubscribe(route, el);
+                }
             }
         }
         this.__stateCleared = true;
@@ -2731,7 +2772,7 @@ class WebComponent extends HTMLElement {
     /**
      * Get element inside slot
      */
-    getElementsInSlot(slotName = null) {
+    getElementsInSlot(slotName) {
         return ElementExtension.getElementsInSlot(this, slotName);
     }
 }

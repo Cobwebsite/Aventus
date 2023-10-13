@@ -12,7 +12,7 @@ export class App extends Aventus.WebComponent implements Aventus.DefaultComponen
 
     //#region variables
     @ViewElement()
-    protected content: HTMLDivElement;
+    protected content!: HTMLDivElement;
     //#endregion
 
 

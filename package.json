@@ -527,10 +527,6 @@
 				{
 					"command": "aventus.dependances.show",
 					"when": "false"
-				},
-				{
-					"command": "aventus.sharp.export",
-					"when": "false"
 				}
 			]
 		},
@@ -641,7 +637,7 @@
 		"serve-index": "^1.9.1",
 		"terser": "^5.19.0",
 		"ts-patch": "^3.0.2",
-		"typescript": "^5.0.2",
+		"typescript": "^5.2.2",
 		"typescript-transform-paths": "^3.4.6",
 		"uglify-js": "^3.17.1",
 		"url": "^0.11.0",

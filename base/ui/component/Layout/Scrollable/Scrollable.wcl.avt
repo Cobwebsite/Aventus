@@ -18,22 +18,22 @@ namespace Layout {
         public zoom: number = 1;
 
         @Attribute()
-        private y_scroll_visible: boolean;
+        private y_scroll_visible!: boolean;
 
         @Attribute()
-        private x_scroll_visible: boolean;
+        private x_scroll_visible!: boolean;
 
         /**
          * Determine if scrollbar will be floating or not
          */
         @Attribute()
-        public floating_scroll: boolean;
+        public floating_scroll!: boolean;
 
         /**
          * Determine if x scroll is allowed
          */
         @Attribute()
-        public x_scroll: boolean;
+        public x_scroll!: boolean;
 
         /**
          * Determine if x scroll is allowed
@@ -45,7 +45,7 @@ namespace Layout {
          * If true, the scrollers will hide if they're not in use
          */
         @Attribute()
-        public auto_hide: boolean;
+        public auto_hide!: boolean;
 
         @Attribute()
         public break: number = 0.1;
@@ -54,10 +54,10 @@ namespace Layout {
          * Disable user action
          */
         @Attribute()
-        public disable: boolean;
+        public disable!: boolean;
 
         @Attribute()
-        private no_user_select: boolean;
+        private no_user_select!: boolean;
 
         //#endregion
 
@@ -65,32 +65,32 @@ namespace Layout {
         //#region variables
 
         @ViewElement()
-        private contentWrapper: HTMLDivElement;
+        private contentWrapper!: HTMLDivElement;
 
         @ViewElement()
-        private contentZoom: HTMLDivElement;
+        private contentZoom!: HTMLDivElement;
 
         @ViewElement()
-        private mainContainer: HTMLDivElement;
+        private mainContainer!: HTMLDivElement;
 
         @ViewElement()
-        private contentHidder: HTMLDivElement;
+        private contentHidder!: HTMLDivElement;
 
         @ViewElement()
-        private verticalScrollerContainer: HTMLDivElement;
+        private verticalScrollerContainer!: HTMLDivElement;
 
         @ViewElement()
-        private verticalScroller: HTMLDivElement;
+        private verticalScroller!: HTMLDivElement;
 
         @ViewElement()
-        private horizontalScrollerContainer: HTMLDivElement;
+        private horizontalScrollerContainer!: HTMLDivElement;
 
         @ViewElement()
-        private horizontalScroller: HTMLDivElement;
+        private horizontalScroller!: HTMLDivElement;
 
 
 
-        private observer: Aventus.ResizeObserver;
+        private observer?: Aventus.ResizeObserver;
 
         private display: { x: number, y: number; } = { x: 0, y: 0 };
         private max: { x: number, y: number; } = {
@@ -113,16 +113,36 @@ namespace Layout {
             x: () => HTMLDivElement,
             y: () => HTMLDivElement,
         } = {
-                x: () => this.horizontalScroller,
-                y: () => this.verticalScroller,
+                x: () => {
+                    if(!this.horizontalScroller) {
+                        throw 'can\'t find the horizontalScroller';
+                    }
+                    return this.horizontalScroller;
+                },
+                y: () => {
+                    if(!this.verticalScroller) {
+                        throw 'can\'t find the verticalScroller';
+                    }
+                    return this.verticalScroller;
+                }
             };
 
         private scrollerContainer: {
             x: () => HTMLDivElement,
             y: () => HTMLDivElement,
         } = {
-                x: () => this.horizontalScrollerContainer,
-                y: () => this.verticalScrollerContainer,
+                x: () => {
+                    if(!this.horizontalScrollerContainer) {
+                        throw 'can\'t find the horizontalScrollerContainer';
+                    }
+                    return this.horizontalScrollerContainer;
+                },
+                y: () => {
+                    if(!this.verticalScrollerContainer) {
+                        throw 'can\'t find the verticalScrollerContainer';
+                    }
+                    return this.verticalScrollerContainer;
+                }
             };
 
         private hideDelay: { x: number, y: number; } = { x: 0, y: 0 };
@@ -144,7 +164,7 @@ namespace Layout {
         //#region constructor
         constructor() {
             super();
-            this.createAnimation();
+            this.renderAnimation = this.createAnimation();
             this.onWheel = this.onWheel.bind(this);
             this.onTouchStart = this.onTouchStart.bind(this);
             this.onTouchMove = this.onTouchMove.bind(this);
@@ -163,8 +183,8 @@ namespace Layout {
 
         //#region render
         private renderAnimation: Aventus.Animation;
-        private createAnimation() {
-            this.renderAnimation = new Aventus.Animation({
+        private createAnimation(): Aventus.Animation {
+            return new Aventus.Animation({
                 fps: 60,
                 animate: () => {
                     const nextX = this.nextPosition('x');
@@ -240,7 +260,7 @@ namespace Layout {
             if(this.contentWrapperSize[direction] != 0) {
                 let scrollPosition = this.position[direction] / this.contentWrapperSize[direction] * containerSize;
                 scroller.style.transform = `translate${direction.toUpperCase()}(${scrollPosition}px)`;
-                this.contentWrapper.style.transform = `translate3d(${-1 * this.x}px, ${-1 * this.y}px, 0)`;
+                this.contentWrapper!.style.transform = `translate3d(${-1 * this.x}px, ${-1 * this.y}px, 0)`;
             }
             this.triggerScrollChange();
         }
@@ -329,7 +349,7 @@ namespace Layout {
             }
             this.momentum.x += delta.x;
             this.momentum.y += delta.y;
-            this.renderAnimation.start();
+            this.renderAnimation?.start();
         }
         private onWheel(e: WheelEvent) {
             const DELTA_MODE = [1.0, 28.0, 500.0];
@@ -376,6 +396,9 @@ namespace Layout {
 
         //#region position
         private calculateRealSize() {
+            if(!this.contentZoom || !this.mainContainer || !this.contentWrapper) {
+                return;
+            }
             const currentOffsetWidth = this.contentZoom.offsetWidth;
             const currentOffsetHeight = this.contentZoom.offsetHeight;
 
@@ -488,7 +511,7 @@ namespace Layout {
         }
         private createResizeObserver() {
             let inProgress = false;
-            this.observer = new Aventus.ResizeObserver({
+            return new Aventus.ResizeObserver({
                 callback: entries => {
                     if(inProgress) {
                         return;
@@ -503,7 +526,7 @@ namespace Layout {
         }
         private addResizeObserver() {
             if(this.observer == undefined) {
-                this.createResizeObserver();
+                this.observer = this.createResizeObserver();
             }
             this.observer.observe(this.contentWrapper);
             this.observer.observe(this);

@@ -6,6 +6,7 @@ import { AventusTsFile } from "../File";
 import md5 from 'md5';
 import { v4 as randomUUID } from 'uuid';
 import { InfoType } from '../parser/BaseInfo';
+import { createHash } from 'crypto';
 
 export class AventusStaticFile extends AventusTsFile {
 
@@ -29,9 +30,10 @@ export class AventusStaticFile extends AventusTsFile {
         if (definitionPath.endsWith(AventusExtension.Definition) && existsSync(definitionPath)) {
             docVisible = readFileSync(definitionPath, 'utf8').replace(/declare global \{((\s|\S)*)\}/gm, '$1');
         }
+        let hash = createHash('md5').update(this.file.content).digest('hex');
         this.setCompileResult([{
             classDoc: '',
-            classScript: '!staticClass_' + randomUUID(),
+            classScript: '!staticClass_' + hash,
             compiled: this.file.content,
             docVisible: docVisible,
             docInvisible: '',

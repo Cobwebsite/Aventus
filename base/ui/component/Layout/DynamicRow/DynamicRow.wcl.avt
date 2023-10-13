@@ -8,13 +8,13 @@ namespace Layout {
 
         //#region props
         @Attribute()
-		public max_width: string;
+        public max_width?: string;
 
         //#endregion
 
 
         //#region variables
-		private sizes: any = { "xs": 300, "sm": 540, "md": 720, "lg": 960, "xl": 1140 };
+        private sizes: { "xs": 300, "sm": 540, "md": 720, "lg": 960, "xl": 1140; } = { "xs": 300, "sm": 540, "md": 720, "lg": 960, "xl": 1140 };
         //#endregion
 
 
@@ -24,26 +24,26 @@ namespace Layout {
 
 
         //#region methods
-		private calculateWidth() {
-			let size = this.offsetWidth;
-			let labels = [];
-			for(let key in this.sizes) {
-				let value = this.sizes[key];
-				if(size > value) {
-					labels.push(key);
-				} else {
-					break;
-				}
-			}
-			this.max_width = labels.join(" ");
-		}
+        private calculateWidth() {
+            let size = this.offsetWidth;
+            let labels: string[] = [];
+            for(let key in this.sizes) {
+                let value = this.sizes[key];
+                if(size > value) {
+                    labels.push(key);
+                } else {
+                    break;
+                }
+            }
+            this.max_width = labels.join(" ");
+        }
 
-		protected override postCreation(): void {
-			this.calculateWidth();
-			new Aventus.ResizeObserver(entries => {
-				this.calculateWidth();
-			}).observe(this);
-		}
+        protected override postCreation(): void {
+            this.calculateWidth();
+            new Aventus.ResizeObserver(entries => {
+                this.calculateWidth();
+            }).observe(this);
+        }
         //#endregion
 
     }

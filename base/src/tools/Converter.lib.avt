@@ -12,7 +12,7 @@ export class Converter {
     /**
      * Register a unique string type for any class
      */
-    public static register($type: string, cst: new () => any, schema: Schema = null) {
+    public static register($type: string, cst: new () => any, schema?: Schema) {
         this.info.set($type, cst);
         if(schema) {
             this.schema.set($type, schema);
@@ -28,7 +28,7 @@ export class Converter {
             return data;
         }
         if(Array.isArray(data)) {
-            let result = [];
+            let result: any[] = [];
             for(let element of data) {
                 result.push(this.transformLoop(element));
             }
@@ -45,11 +45,11 @@ export class Converter {
                     let obj = new cst();
                     let props = Object.getOwnPropertyNames(obj);
                     for(let prop of props) {
-						let propUpperFirst = prop[0].toUpperCase() + prop.slice(1);
-						let value = data[prop] === undefined ? data[propUpperFirst] : data[prop];
+                        let propUpperFirst = prop[0].toUpperCase() + prop.slice(1);
+                        let value = data[prop] === undefined ? data[propUpperFirst] : data[prop];
                         if(value !== undefined) {
                             let propInfo = Object.getOwnPropertyDescriptor(obj, prop);
-                            if(propInfo.writable) {
+                            if(propInfo?.writable) {
                                 if(obj[prop] instanceof Date) {
                                     obj[prop] = value ? new Date(value) : null;
                                 }

@@ -284,7 +284,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         if (this.compilationResult) {
             position = this.compilationResult?.missingViewElements.position;
             for (let name in this.compilationResult.missingViewElements.elements) {
-                result += "@ViewElement()" + EOL + "protected " + name + ": " + this.compilationResult.missingViewElements.elements[name] + ";" + EOL
+                result += "@ViewElement()" + EOL + "protected " + name + "!: " + this.compilationResult.missingViewElements.elements[name] + ";" + EOL
             }
         }
         if (result != "") {

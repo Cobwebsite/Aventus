@@ -60,7 +60,7 @@ export class Watcher {
             else if(key == "__proxyData") return undefined;
             else return value;
         };
-        let currentTrace = new Error().stack.split("\n");
+        let currentTrace = new Error().stack?.split("\n") ?? [];
         currentTrace.shift();
         currentTrace.shift();
         let onlyDuringInit = true;
@@ -178,7 +178,7 @@ export class Watcher {
                 if(prop == "__proxyData") {
                     return target[prop];
                 }
-                
+
 
                 let customResult = this.tryCustomFunction(target, prop, receiver);
                 if(customResult !== undefined) {
@@ -410,8 +410,8 @@ export class Watcher {
                 receiverId = receiver.__proxyId;
             }
             if(proxyData.id == receiverId) {
-                let stacks = [];
-                let allStacks = new Error().stack.split("\n");
+                let stacks: string[] = [];
+                let allStacks = new Error().stack?.split("\n") ?? [];
                 for(let i = allStacks.length - 1; i >= 0; i--) {
                     let current = allStacks[i].trim().replace("at ", "");
                     if(current.startsWith("Object.set") || current.startsWith("Proxy.result")) {

@@ -249,7 +249,7 @@ class ElementExtension {
     /**
      * Get element inside slot
      */
-    static getElementsInSlot(element, slotName = null) {
+    static getElementsInSlot(element, slotName) {
         if (element.shadowRoot) {
             let slotEl;
             if (slotName) {
@@ -284,7 +284,7 @@ class ElementExtension {
     /**
      * Get deeper element inside dom at the position X and Y
      */
-    static getElementAtPosition(x, y, startFrom = null) {
+    static getElementAtPosition(x, y, startFrom) {
         var _realTarget = (el, i = 0) => {
             if (i == 50) {
                 debugger;
@@ -331,6 +331,7 @@ class Instance {
 
 class Style {
     static instance;
+    static noAnimation;
     static defaultStyleSheets = {
         "@general": `:host{display:inline-block;box-sizing:border-box}:host *{box-sizing:border-box}`,
     };
@@ -353,11 +354,14 @@ class Style {
         for (let name in Style.defaultStyleSheets) {
             this.store(name, Style.defaultStyleSheets[name]);
         }
+        Style.noAnimation = new CSSStyleSheet();
+        Style.noAnimation.replaceSync(`:host{-webkit-transition: none !important;-moz-transition: none !important;-ms-transition: none !important;-o-transition: none !important;transition: none !important;}:host *{-webkit-transition: none !important;-moz-transition: none !important;-ms-transition: none !important;-o-transition: none !important;transition: none !important;}`);
     }
     stylesheets = new Map();
     async load(name, url) {
         try {
-            if (!this.stylesheets.has(name) || this.stylesheets.get(name).cssRules.length == 0) {
+            let style = this.stylesheets.get(name);
+            if (!style || style.cssRules.length == 0) {
                 let txt = await (await fetch(url)).text();
                 this.store(name, txt);
             }
@@ -366,20 +370,24 @@ class Style {
         }
     }
     store(name, content) {
-        if (!this.stylesheets.has(name)) {
+        let style = this.stylesheets.get(name);
+        if (!style) {
             const sheet = new CSSStyleSheet();
             sheet.replaceSync(content);
             this.stylesheets.set(name, sheet);
+            return sheet;
         }
         else {
-            this.stylesheets.get(name).replaceSync(content);
+            style.replaceSync(content);
+            return style;
         }
     }
     get(name) {
-        if (!this.stylesheets.has(name)) {
-            this.store(name, "");
+        let style = this.stylesheets.get(name);
+        if (!style) {
+            style = this.store(name, "");
         }
-        return this.stylesheets.get(name);
+        return style;
     }
 }
 
@@ -460,7 +468,9 @@ class Mutex {
                 fct(false);
             }
             this.waitingList = [];
-            lastFct(true);
+            if (lastFct) {
+                lastFct(true);
+            }
         }
         else {
             this.isLocked = false;
@@ -508,7 +518,7 @@ class Mutex {
         return result;
     }
     async safeRunLastAsync(cb) {
-        let result = null;
+        let result;
         if (await this.waitOne()) {
             try {
                 result = await cb.apply(null, []);
@@ -623,7 +633,7 @@ class Watcher {
             else
                 return value;
         };
-        let currentTrace = new Error().stack.split("\n");
+        let currentTrace = new Error().stack?.split("\n") ?? [];
         currentTrace.shift();
         currentTrace.shift();
         let onlyDuringInit = true;
@@ -958,7 +968,7 @@ class Watcher {
             }
             if (proxyData.id == receiverId) {
                 let stacks = [];
-                let allStacks = new Error().stack.split("\n");
+                let allStacks = new Error().stack?.split("\n") ?? [];
                 for (let i = allStacks.length - 1; i >= 0; i--) {
                     let current = allStacks[i].trim().replace("at ", "");
                     if (current.startsWith("Object.set") || current.startsWith("Proxy.result")) {
@@ -1012,9 +1022,22 @@ class Watcher {
 }
 
 class PressManager {
+    static create(options) {
+        if (Array.isArray(options.element)) {
+            let result = [];
+            for (let el of options.element) {
+                let cloneOpt = { ...options };
+                cloneOpt.element = el;
+                result.push(new PressManager(cloneOpt));
+            }
+            return result;
+        }
+        else {
+            return new PressManager(options);
+        }
+    }
     options;
     element;
-    subPressManager = [];
     delayDblPress = 150;
     delayLongPress = 700;
     nbPress = 0;
@@ -1054,20 +1077,11 @@ class PressManager {
         if (options.element === void 0) {
             throw 'You must provide an element';
         }
-        if (Array.isArray(options.element)) {
-            for (let el of options.element) {
-                let cloneOpt = { ...options };
-                cloneOpt.element = el;
-                this.subPressManager.push(new PressManager(cloneOpt));
-            }
-        }
-        else {
-            this.element = options.element;
-            this.checkDragConstraint(options);
-            this.assignValueOption(options);
-            this.options = options;
-            this.init();
-        }
+        this.element = options.element;
+        this.checkDragConstraint(options);
+        this.assignValueOption(options);
+        this.options = options;
+        this.init();
     }
     /**
      * Get the current element focused by the PressManager
@@ -1243,7 +1257,7 @@ class PressManager {
             let xDist = e.pageX - this.startPosition.x;
             let yDist = e.pageY - this.startPosition.y;
             let distance = Math.sqrt(xDist * xDist + yDist * yDist);
-            if (distance > this.offsetDrag) {
+            if (distance > this.offsetDrag && this.downEventSaved) {
                 this.state.oneActionTriggered = true;
                 if (this.options.onDragStart) {
                     this.state.isMoving = true;
@@ -1326,7 +1340,7 @@ class PressManager {
             this.triggerEventToParent(this.actionsName.drag, e.detail.realEvent);
         }
     }
-    emitTriggerFunction(action, e, el = null) {
+    emitTriggerFunction(action, e, el) {
         let ev = new CustomEvent("trigger_pointer_" + action, {
             bubbles: true,
             cancelable: true,
@@ -1346,9 +1360,6 @@ class PressManager {
      * Destroy the Press instance byremoving all events
      */
     destroy() {
-        for (let sub of this.subPressManager) {
-            sub.destroy();
-        }
         if (this.element) {
             this.element.removeEventListener("pointerdown", this.functionsBinded.downAction);
             this.element.removeEventListener("trigger_pointer_press", this.functionsBinded.childPress);
@@ -1402,9 +1413,11 @@ class StateManager {
                 }
                 for (let activeFct of callbacks.active) {
                     this.subscribers[statePattern].callbacks.active.push(activeFct);
-                    if (this.subscribers[statePattern].isActive) {
+                    if (this.subscribers[statePattern].isActive && this.activeState) {
                         let slugs = this.getInternalStateSlugs(this.subscribers[statePattern], this.activeState.name);
-                        activeFct(this.activeState, slugs);
+                        if (slugs) {
+                            activeFct(this.activeState, slugs);
+                        }
                     }
                 }
             }
@@ -1520,7 +1533,7 @@ class StateManager {
      * Activate a current state
      */
     async setState(state) {
-        return await this.changeStateMutex.safeRunLastAsync(async () => {
+        let result = await this.changeStateMutex.safeRunLastAsync(async () => {
             let stateToUse;
             if (typeof state == "string") {
                 stateToUse = new EmptyState(state);
@@ -1545,11 +1558,13 @@ class StateManager {
                         if (subscriber.isActive) {
                             let clone = [...subscriber.callbacks.askChange];
                             let currentSlug = this.getInternalStateSlugs(subscriber, this.activeState.name);
-                            for (let i = 0; i < clone.length; i++) {
-                                let askChange = clone[i];
-                                if (!await askChange(this.activeState, stateToUse, currentSlug)) {
-                                    canChange = false;
-                                    break;
+                            if (currentSlug) {
+                                for (let i = 0; i < clone.length; i++) {
+                                    let askChange = clone[i];
+                                    if (!await askChange(this.activeState, stateToUse, currentSlug)) {
+                                        canChange = false;
+                                        break;
+                                    }
                                 }
                             }
                             let slugs = this.getInternalStateSlugs(subscriber, stateToUse.name);
@@ -1584,9 +1599,12 @@ class StateManager {
                     for (let subscriber of activeToInactive) {
                         subscriber.isActive = false;
                         let oldSlug = this.getInternalStateSlugs(subscriber, oldState.name);
-                        [...subscriber.callbacks.inactive].forEach(callback => {
-                            callback(oldState, stateToUse, oldSlug);
-                        });
+                        if (oldSlug) {
+                            let oldSlugNotNull = oldSlug;
+                            [...subscriber.callbacks.inactive].forEach(callback => {
+                                callback(oldState, stateToUse, oldSlugNotNull);
+                            });
+                        }
                     }
                     for (let trigger of triggerActive) {
                         [...trigger.subscriber.callbacks.active].forEach(callback => {
@@ -1607,9 +1625,10 @@ class StateManager {
                 for (let key in this.subscribers) {
                     let slugs = this.getInternalStateSlugs(this.subscribers[key], stateToUse.name);
                     if (slugs) {
+                        let slugsNotNull = slugs;
                         this.subscribers[key].isActive = true;
                         [...this.subscribers[key].callbacks.active].forEach(callback => {
-                            callback(stateToUse, slugs);
+                            callback(stateToUse, slugsNotNull);
                         });
                     }
                 }
@@ -1618,6 +1637,7 @@ class StateManager {
             this.afterStateChanged.trigger([]);
             return true;
         });
+        return result ?? false;
     }
     getState() {
         return this.activeState;
@@ -1642,13 +1662,14 @@ class StateManager {
      * Check if a state is in the subscribers and active, return true if it is, false otherwise
      */
     isStateActive(statePattern) {
-        return StateManager.prepareStateString(statePattern).regex.test(this.activeState.name);
+        return StateManager.prepareStateString(statePattern).regex.test(this.activeState?.name ?? '');
     }
     /**
      * Get slugs information for the current state, return null if state isn't active
      */
     getStateSlugs(statePattern) {
         let prepared = StateManager.prepareStateString(statePattern);
+        let name = this.activeState?.name ?? '';
         return this.getInternalStateSlugs({
             regex: prepared.regex,
             params: prepared.params,
@@ -1658,7 +1679,7 @@ class StateManager {
                 inactive: [],
                 askChange: [],
             }
-        }, this.activeState.name);
+        }, name);
     }
     // 0 = error only / 1 = errors and warning / 2 = error, warning and logs (not implemented)
     logLevel() {
@@ -1683,7 +1704,7 @@ class WebComponentTemplateContext {
     fctsToRemove = [];
     c = {
         __P: (value) => {
-            return value === null ? "" : value + "";
+            return value == null ? "" : value + "";
         }
     };
     isRendered = false;
@@ -1943,8 +1964,8 @@ class WebComponentTemplate {
         }
     }
     createInstance(component) {
-        let context = new WebComponentTemplateContext(component, this.contextSchema, []);
-        let content = this.template.content.cloneNode(true);
+        let context = new WebComponentTemplateContext(component, this.contextSchema, {});
+        let content = this.template?.content.cloneNode(true);
         let actions = this.actions;
         let instance = new WebComponentTemplateInstance(context, content, actions, component, this.loops);
         return instance;
@@ -1959,7 +1980,7 @@ class WebComponentTemplateInstance {
     content;
     actions;
     component;
-    _components;
+    _components = {};
     firstRenderUniqueCb = {};
     firstRenderCb = [];
     fctsToRemove = [];
@@ -2071,7 +2092,7 @@ class WebComponentTemplateInstance {
                 }
             }
             clone.element = this._components[id];
-            new PressManager(clone);
+            PressManager.create(clone);
         }
     }
     transformActionsListening() {
@@ -2104,7 +2125,7 @@ class WebComponentTemplateInstance {
         if (change.attrName == "@HTML") {
             if (change.path) {
                 this.context.addChange(name, (path) => {
-                    if (WebComponentTemplate.validatePath(path, change.path)) {
+                    if (WebComponentTemplate.validatePath(path, change.path ?? '')) {
                         for (const el of this._components[change.id]) {
                             el.innerHTML = change.render(this.context.c);
                         }
@@ -2153,7 +2174,7 @@ class WebComponentTemplateInstance {
         else {
             if (change.path) {
                 this.context.addChange(name, (path) => {
-                    if (WebComponentTemplate.validatePath(path, change.path)) {
+                    if (WebComponentTemplate.validatePath(path, change.path ?? '')) {
                         for (const el of this._components[change.id]) {
                             el.setAttribute(change.attrName, change.render(this.context.c));
                         }
@@ -2181,7 +2202,7 @@ class WebComponentTemplateInstance {
             return;
         if (injection.path) {
             this.context.addChange(name, (path) => {
-                if (WebComponentTemplate.validatePath(path, injection.path)) {
+                if (WebComponentTemplate.validatePath(path, injection.path ?? '')) {
                     for (const el of this._components[injection.id]) {
                         el[injection.injectionName] = injection.inject(this.context.c);
                     }
@@ -2206,8 +2227,9 @@ class WebComponentTemplateInstance {
             return;
         if (binding.path) {
             this.context.addChange(name, (path) => {
-                if (WebComponentTemplate.validatePath(path, binding.path)) {
-                    let valueToSet = WebComponentTemplate.getValueFromItem(binding.path, this.context.c);
+                let bindingPath = binding.path ?? '';
+                if (WebComponentTemplate.validatePath(path, bindingPath)) {
+                    let valueToSet = WebComponentTemplate.getValueFromItem(bindingPath, this.context.c);
                     for (const el of this._components[binding.id]) {
                         WebComponentTemplate.setValueToItem(binding.valueName, el, valueToSet);
                     }
@@ -2217,7 +2239,7 @@ class WebComponentTemplateInstance {
         else {
             binding.path = name;
             this.context.addChange(name, (path) => {
-                let valueToSet = WebComponentTemplate.getValueFromItem(binding.path, this.context.c);
+                let valueToSet = WebComponentTemplate.getValueFromItem(name, this.context.c);
                 for (const el of this._components[binding.id]) {
                     WebComponentTemplate.setValueToItem(binding.valueName, el, valueToSet);
                 }
@@ -2229,10 +2251,10 @@ class WebComponentTemplateInstance {
                     for (let fct of binding.eventNames) {
                         let cb = WebComponentTemplate.getValueFromItem(fct, el);
                         cb?.add((value) => {
-                            WebComponentTemplate.setValueToItem(binding.path, this.context.c, value);
+                            WebComponentTemplate.setValueToItem(binding.path ?? '', this.context.c, value);
                         });
                     }
-                    let valueToSet = WebComponentTemplate.getValueFromItem(binding.path, this.context.c);
+                    let valueToSet = WebComponentTemplate.getValueFromItem(binding.path ?? '', this.context.c);
                     WebComponentTemplate.setValueToItem(binding.valueName, el, valueToSet);
                 }
             });
@@ -2243,10 +2265,10 @@ class WebComponentTemplateInstance {
                     for (let fct of binding.eventNames) {
                         el.addEventListener(fct, (e) => {
                             let valueToSet = WebComponentTemplate.getValueFromItem(binding.valueName, e.target);
-                            WebComponentTemplate.setValueToItem(binding.path, this.context.c, valueToSet);
+                            WebComponentTemplate.setValueToItem(binding.path ?? '', this.context.c, valueToSet);
                         });
                     }
-                    let valueToSet = WebComponentTemplate.getValueFromItem(binding.path, this.context.c);
+                    let valueToSet = WebComponentTemplate.getValueFromItem(binding.path ?? '', this.context.c);
                     WebComponentTemplate.setValueToItem(binding.valueName, el, valueToSet);
                 }
             });
@@ -2273,12 +2295,12 @@ class WebComponentTemplateInstance {
         let result = WebComponentTemplate.getValueFromItem(loop.data, this.context.c);
         let anchor = this._components[loop.anchorId][0];
         for (let i = 0; i < result.length; i++) {
-            let context = new WebComponentTemplateContext(this.component, localContext, [{ name: loop.index, value: i }]);
-            let content = loop.template.template.content.cloneNode(true);
+            let context = new WebComponentTemplateContext(this.component, localContext, { [loop.index]: i });
+            let content = loop.template.template?.content.cloneNode(true);
             let actions = loop.template.actions;
             let instance = new WebComponentTemplateInstance(context, content, actions, this.component, loop.template.loops);
             instance.render();
-            anchor.parentNode.insertBefore(instance.content, anchor);
+            anchor.parentNode?.insertBefore(instance.content, anchor);
             this.loopRegisteries[loop.anchorId].push(instance);
         }
     }
@@ -2300,8 +2322,8 @@ class WebComponentTemplateInstance {
                 let registry = this.loopRegisteries[loop.anchorId];
                 let index = Number(result[1]);
                 if (action == WatchAction.CREATED) {
-                    let context = new WebComponentTemplateContext(this.component, localContext, [{ name: loop.index, value: index }]);
-                    let content = loop.template.template.content.cloneNode(true);
+                    let context = new WebComponentTemplateContext(this.component, localContext, { [loop.index]: index });
+                    let content = loop.template.template?.content.cloneNode(true);
                     let actions = loop.template.actions;
                     let instance = new WebComponentTemplateInstance(context, content, actions, this.component, loop.template.loops);
                     instance.render();
@@ -2312,7 +2334,7 @@ class WebComponentTemplateInstance {
                     else {
                         anchor = this._components[loop.anchorId][0];
                     }
-                    anchor.parentNode.insertBefore(instance.content, anchor);
+                    anchor.parentNode?.insertBefore(instance.content, anchor);
                     registry.splice(index, 0, instance);
                     for (let i = index + 1; i < registry.length; i++) {
                         registry[i].context.c[loop.index] = registry[i].context.c[loop.index] + 1;
@@ -2387,6 +2409,10 @@ class WebComponent extends HTMLElement {
         super();
         if (this.constructor == WebComponent) {
             throw "can't instanciate an abstract class";
+        }
+        this.__removeNoAnimations = this.__removeNoAnimations.bind(this);
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", this.__removeNoAnimations);
         }
         this._first = true;
         this._isReady = false;
@@ -2492,9 +2518,10 @@ class WebComponent extends HTMLElement {
         }
         this.__templateInstance = staticInstance.__template.createInstance(this);
         let shadowRoot = this.attachShadow({ mode: 'open' });
-        shadowRoot.adoptedStyleSheets = Object.values(staticInstance.__styleSheets);
-        this.shadowRoot.appendChild(this.__templateInstance.content);
-        customElements.upgrade(this.shadowRoot);
+        shadowRoot.adoptedStyleSheets = [...Object.values(staticInstance.__styleSheets), Style.noAnimation];
+        shadowRoot.appendChild(this.__templateInstance.content);
+        customElements.upgrade(shadowRoot);
+        return shadowRoot;
     }
     __registerTemplateAction() {
     }
@@ -2504,12 +2531,20 @@ class WebComponent extends HTMLElement {
             this._first = false;
             this.__defaultValues();
             this.__upgradeAttributes();
-            this.__templateInstance.render();
+            this.__templateInstance?.render();
+            this.__removeNoAnimations();
+        }
+    }
+    __removeNoAnimations() {
+        if (document.readyState !== "loading") {
+            this.offsetWidth;
             setTimeout(() => {
                 this.postCreation();
                 this._isReady = true;
                 this.dispatchEvent(new CustomEvent('postCreationDone'));
-            });
+                this.shadowRoot.adoptedStyleSheets = Object.values(this.__getStatic().__styleSheets);
+                document.removeEventListener("DOMContentLoaded", this.__removeNoAnimations);
+            }, 50);
         }
     }
     __defaultValues() { }
@@ -2553,26 +2588,26 @@ class WebComponent extends HTMLElement {
         if (!this.__defaultActiveState.has(mClass)) {
             this.__defaultActiveState.set(mClass, []);
         }
-        this.__defaultActiveState.get(mClass).push(cb);
+        this.__defaultActiveState.get(mClass)?.push(cb);
     }
     __addInactiveDefState(managerClass, cb) {
         let mClass = this.__getStateManager(managerClass);
         if (!this.__defaultInactiveState.has(mClass)) {
             this.__defaultInactiveState.set(mClass, []);
         }
-        this.__defaultInactiveState.get(mClass).push(cb);
+        this.__defaultInactiveState.get(mClass)?.push(cb);
     }
     __addActiveState(statePattern, managerClass, cb) {
         let mClass = this.__getStateManager(managerClass);
-        this.__statesList[statePattern].get(mClass).active.push(cb);
+        this.__statesList[statePattern].get(mClass)?.active.push(cb);
     }
     __addInactiveState(statePattern, managerClass, cb) {
         let mClass = this.__getStateManager(managerClass);
-        this.__statesList[statePattern].get(mClass).inactive.push(cb);
+        this.__statesList[statePattern].get(mClass)?.inactive.push(cb);
     }
     __addAskChangeState(statePattern, managerClass, cb) {
         let mClass = this.__getStateManager(managerClass);
-        this.__statesList[statePattern].get(mClass).askChange.push(cb);
+        this.__statesList[statePattern].get(mClass)?.askChange.push(cb);
     }
     __createStates() { }
     __createStatesList(statePattern, managerClass) {
@@ -2593,7 +2628,7 @@ class WebComponent extends HTMLElement {
             this.__isDefaultState = false;
             let mClass = this.__getStateManager(managerClass);
             if (this.__defaultInactiveState.has(mClass)) {
-                let fcts = this.__defaultInactiveState.get(mClass);
+                let fcts = this.__defaultInactiveState.get(mClass) ?? [];
                 for (let fct of fcts) {
                     fct.bind(this)();
                 }
@@ -2613,7 +2648,7 @@ class WebComponent extends HTMLElement {
             this.__isDefaultState = true;
             let mClass = this.__getStateManager(managerClass);
             if (this.__defaultActiveState.has(mClass)) {
-                let fcts = this.__defaultActiveState.get(mClass);
+                let fcts = this.__defaultActiveState.get(mClass) ?? [];
                 for (let fct of fcts) {
                     fct.bind(this)();
                 }
@@ -2626,15 +2661,21 @@ class WebComponent extends HTMLElement {
         }
         for (let route in this.__statesList) {
             for (const managerClass of this.__statesList[route].keys()) {
-                managerClass.subscribe(route, this.__statesList[route].get(managerClass));
+                let el = this.__statesList[route].get(managerClass);
+                if (el) {
+                    managerClass.subscribe(route, el);
+                }
             }
         }
     }
-    __stateCleared;
+    __stateCleared = false;
     __unsubscribeState() {
         for (let route in this.__statesList) {
             for (const managerClass of this.__statesList[route].keys()) {
-                managerClass.unsubscribe(route, this.__statesList[route].get(managerClass));
+                let el = this.__statesList[route].get(managerClass);
+                if (el) {
+                    managerClass.unsubscribe(route, el);
+                }
             }
         }
         this.__stateCleared = true;
@@ -2731,7 +2772,7 @@ class WebComponent extends HTMLElement {
     /**
      * Get element inside slot
      */
-    getElementsInSlot(slotName = null) {
+    getElementsInSlot(slotName) {
         return ElementExtension.getElementsInSlot(this, slotName);
     }
 }
@@ -2739,7 +2780,7 @@ class WebComponent extends HTMLElement {
 class ResizeObserver {
     callback;
     targets;
-    fpsInterval;
+    fpsInterval = -1;
     nextFrame;
     entriesChangedEvent;
     willTrigger;
@@ -3036,7 +3077,7 @@ class Animation {
      */
     static FPS_DEFAULT = 60;
     options;
-    nextFrame;
+    nextFrame = 0;
     fpsInterval;
     continueAnimation = false;
     frame_id = 0;
@@ -3051,7 +3092,7 @@ class Animation {
             options.fps = Animation.FPS_DEFAULT;
         }
         this.options = options;
-        this.fpsInterval = 1000 / this.options.fps;
+        this.fpsInterval = 1000 / options.fps;
     }
     animate() {
         let now = window.performance.now();
@@ -3123,20 +3164,29 @@ class DragAndDrop {
     static defaultOffsetDrag = 20;
     pressManager;
     options;
-    startCursorPosition;
-    startElementPosition;
+    startCursorPosition = { x: 0, y: 0 };
+    startElementPosition = { x: 0, y: 0 };
     isEnable = true;
     constructor(options) {
-        this.options = this.getDefaultOptions();
+        this.options = this.getDefaultOptions(options.element);
         this.mergeProperties(options);
         this.mergeFunctions(options);
-        this.init();
+        this.options.elementTrigger.style.touchAction = 'none';
+        this.pressManager = new PressManager({
+            element: this.options.elementTrigger,
+            onPressStart: this.onPressStart.bind(this),
+            onPressEnd: this.onPressEnd.bind(this),
+            onDragStart: this.onDragStart.bind(this),
+            onDrag: this.onDrag.bind(this),
+            onDragEnd: this.onDragEnd.bind(this),
+            offsetDrag: this.options.offsetDrag
+        });
     }
-    getDefaultOptions() {
+    getDefaultOptions(element) {
         return {
             applyDrag: true,
-            element: null,
-            elementTrigger: null,
+            element: element,
+            elementTrigger: element,
             offsetDrag: DragAndDrop.defaultOffsetDrag,
             shadow: {
                 enable: false,
@@ -3210,20 +3260,7 @@ class DragAndDrop {
             this.options[name] = options[name];
         }
     }
-    init() {
-        this.options.elementTrigger.style.touchAction = 'none';
-        this.pressManager = new PressManager({
-            element: this.options.elementTrigger,
-            onPressStart: this.onPressStart.bind(this),
-            onPressEnd: this.onPressEnd.bind(this),
-            onDragStart: this.onDragStart.bind(this),
-            onDrag: this.onDrag.bind(this),
-            onDragEnd: this.onDragEnd.bind(this),
-            offsetDrag: this.options.offsetDrag
-        });
-    }
-    draggableElement;
-    positionShadowRelativeToElement;
+    positionShadowRelativeToElement = { x: 0, y: 0 };
     onPressStart(e) {
         this.options.onPointerDown(e);
     }
@@ -3235,17 +3272,17 @@ class DragAndDrop {
         if (!this.isEnable) {
             return;
         }
-        this.draggableElement = this.options.element;
+        let draggableElement = this.options.element;
         this.startCursorPosition = {
             x: e.pageX,
             y: e.pageY
         };
         this.startElementPosition = {
-            x: this.draggableElement.offsetLeft,
-            y: this.draggableElement.offsetTop
+            x: draggableElement.offsetLeft,
+            y: draggableElement.offsetTop
         };
         if (this.options.shadow.enable) {
-            this.draggableElement = this.options.element.cloneNode(true);
+            draggableElement = this.options.element.cloneNode(true);
             let elBox = this.options.element.getBoundingClientRect();
             let containerBox = this.options.shadow.container.getBoundingClientRect();
             this.positionShadowRelativeToElement = {
@@ -3253,12 +3290,12 @@ class DragAndDrop {
                 y: elBox.y - containerBox.y
             };
             if (this.options.applyDrag) {
-                this.draggableElement.style.position = "absolute";
-                this.draggableElement.style.top = this.positionShadowRelativeToElement.y + this.options.getOffsetY() + 'px';
-                this.draggableElement.style.left = this.positionShadowRelativeToElement.x + this.options.getOffsetX() + 'px';
+                draggableElement.style.position = "absolute";
+                draggableElement.style.top = this.positionShadowRelativeToElement.y + this.options.getOffsetY() + 'px';
+                draggableElement.style.left = this.positionShadowRelativeToElement.x + this.options.getOffsetX() + 'px';
             }
-            this.options.shadow.transform(this.draggableElement);
-            this.options.shadow.container.appendChild(this.draggableElement);
+            this.options.shadow.transform(draggableElement);
+            this.options.shadow.container.appendChild(draggableElement);
         }
         this.options.onStart(e);
     }
@@ -3291,33 +3328,35 @@ class DragAndDrop {
             return;
         }
         let targets = this.getMatchingTargets();
+        let draggableElement = this.options.element;
         if (this.options.shadow.enable && this.options.shadow.removeOnStop) {
-            this.draggableElement.parentNode?.removeChild(this.draggableElement);
+            draggableElement.parentNode?.removeChild(draggableElement);
         }
         if (targets.length > 0) {
-            this.options.onDrop(this.draggableElement, targets);
+            this.options.onDrop(draggableElement, targets);
         }
         this.options.onStop(e);
     }
     setPosition(position) {
+        let draggableElement = this.options.element;
         if (this.options.usePercent) {
-            let elementParent = this.draggableElement.offsetParent;
+            let elementParent = draggableElement.offsetParent;
             let percentPosition = {
                 x: (position.x / elementParent.offsetWidth) * 100,
                 y: (position.y / elementParent.offsetHeight) * 100
             };
             percentPosition = this.options.correctPosition(percentPosition);
             if (this.options.applyDrag) {
-                this.draggableElement.style.left = percentPosition.x + '%';
-                this.draggableElement.style.top = percentPosition.y + '%';
+                draggableElement.style.left = percentPosition.x + '%';
+                draggableElement.style.top = percentPosition.y + '%';
             }
             return percentPosition;
         }
         else {
             position = this.options.correctPosition(position);
             if (this.options.applyDrag) {
-                this.draggableElement.style.left = position.x + 'px';
-                this.draggableElement.style.top = position.y + 'px';
+                draggableElement.style.left = position.x + 'px';
+                draggableElement.style.top = position.y + 'px';
             }
         }
         return position;
@@ -3326,9 +3365,10 @@ class DragAndDrop {
      * Get targets within the current element position is matching
      */
     getMatchingTargets() {
+        let draggableElement = this.options.element;
         let matchingTargets = [];
         for (let target of this.options.targets) {
-            const elementCoordinates = this.draggableElement.getBoundingClientRect();
+            const elementCoordinates = draggableElement.getBoundingClientRect();
             const targetCoordinates = target.getBoundingClientRect();
             let offsetX = this.options.getOffsetX();
             let offsetY = this.options.getOffsetY();
@@ -3366,7 +3406,7 @@ class DragAndDrop {
      * Get element currently dragging
      */
     getElementDrag() {
-        return this.draggableElement;
+        return this.options.element;
     }
     /**
      * Set targets where to drop
@@ -3469,13 +3509,13 @@ if(!window.customElements.get('av-app')){window.customElements.define('av-app', 
 
 class RouterLink extends Aventus.WebComponent {
     get 'state'() {
-                    return this.getAttribute('state');
+                    return this.getAttribute('state') ?? undefined;
                 }
                 set 'state'(val) {
                     if(val === undefined || val === null){this.removeAttribute('state')}
                     else{this.setAttribute('state',val)}
                 }get 'active_state'() {
-                    return this.getAttribute('active_state');
+                    return this.getAttribute('active_state') ?? undefined;
                 }
                 set 'active_state'(val) {
                     if(val === undefined || val === null){this.removeAttribute('active_state')}
@@ -3665,15 +3705,16 @@ class Router extends Aventus.WebComponent {
     }
     postCreation() {
         this.register();
-        if (window.localStorage.getItem("navigation_url")) {
-            Aventus.State.activate(window.localStorage.getItem("navigation_url"), this.stateManager);
+        let oldUrl = window.localStorage.getItem("navigation_url");
+        if (oldUrl !== null) {
+            Aventus.State.activate(oldUrl, this.stateManager);
             window.localStorage.removeItem("navigation_url");
         }
         else {
             Aventus.State.activate(window.location.pathname, this.stateManager);
         }
         window.onpopstate = (e) => {
-            if (window.location.pathname != this.stateManager.getState().name) {
+            if (window.location.pathname != this.stateManager.getState()?.name) {
                 Aventus.State.activate(window.location.pathname, this.stateManager);
             }
         };
@@ -3842,12 +3883,32 @@ class Scrollable extends Aventus.WebComponent {
     momentum = { x: 0, y: 0 };
     contentWrapperSize = { x: 0, y: 0 };
     scroller = {
-        x: () => this.horizontalScroller,
-        y: () => this.verticalScroller,
+        x: () => {
+            if (!this.horizontalScroller) {
+                throw 'can\'t find the horizontalScroller';
+            }
+            return this.horizontalScroller;
+        },
+        y: () => {
+            if (!this.verticalScroller) {
+                throw 'can\'t find the verticalScroller';
+            }
+            return this.verticalScroller;
+        }
     };
     scrollerContainer = {
-        x: () => this.horizontalScrollerContainer,
-        y: () => this.verticalScrollerContainer,
+        x: () => {
+            if (!this.horizontalScrollerContainer) {
+                throw 'can\'t find the horizontalScrollerContainer';
+            }
+            return this.horizontalScrollerContainer;
+        },
+        y: () => {
+            if (!this.verticalScrollerContainer) {
+                throw 'can\'t find the verticalScrollerContainer';
+            }
+            return this.verticalScrollerContainer;
+        }
     };
     hideDelay = { x: 0, y: 0 };
     touchRecord;
@@ -3865,7 +3926,7 @@ class Scrollable extends Aventus.WebComponent {
     target.changeZoom();
 })); }
     static __style = `:host{--internal-scrollbar-container-color: var(--scrollbar-container-color, transparent);--internal-scrollbar-color: var(--scrollbar-color, #757575);--internal-scrollbar-active-color: var(--scrollbar-active-color, #858585);--internal-scroller-width: var(--scroller-width, 6px);--internal-scroller-top: var(--scroller-top, 3px);--internal-scroller-bottom: var(--scroller-bottom, 3px);--internal-scroller-right: var(--scroller-right, 3px);--internal-scroller-left: var(--scroller-left, 3px)}:host{display:block;height:100%;overflow:hidden;position:relative;-webkit-user-drag:none;-khtml-user-drag:none;-moz-user-drag:none;-o-user-drag:none;width:100%}:host .scroll-main-container{display:block;height:100%;position:relative;width:100%}:host .scroll-main-container .content-zoom{display:block;height:100%;position:relative;transform-origin:0 0;width:100%;z-index:4}:host .scroll-main-container .content-zoom .content-hidder{display:block;height:100%;overflow:hidden;position:relative;width:100%}:host .scroll-main-container .content-zoom .content-hidder .content-wrapper{display:inline-block;height:100%;min-height:100%;min-width:100%;position:relative;width:100%}:host .scroll-main-container .scroller-wrapper .container-scroller{display:none;overflow:hidden;position:absolute;z-index:5;transition:transform .2s linear}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller{background-color:var(--internal-scrollbar-container-color);border-radius:5px}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller .scroller{background-color:var(--internal-scrollbar-color);border-radius:5px;cursor:pointer;position:absolute;-webkit-tap-highlight-color:rgba(0,0,0,0);touch-action:none;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .scroller.active{background-color:var(--internal-scrollbar-active-color)}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical{height:calc(100% - var(--internal-scroller-bottom)*2 - var(--internal-scroller-width));padding-left:var(--internal-scroller-left);right:var(--internal-scroller-right);top:var(--internal-scroller-bottom);transform:0;width:calc(var(--internal-scroller-width) + var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical.hide{transform:translateX(calc(var(--internal-scroller-width) + var(--internal-scroller-left)))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller .scroller{width:calc(100% - var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal{bottom:var(--internal-scroller-bottom);height:calc(var(--internal-scroller-width) + var(--internal-scroller-top));left:var(--internal-scroller-right);padding-top:var(--internal-scroller-top);transform:0;width:calc(100% - var(--internal-scroller-right)*2 - var(--internal-scroller-width))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal.hide{transform:translateY(calc(var(--internal-scroller-width) + var(--internal-scroller-top)))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller .scroller{height:calc(100% - var(--internal-scroller-top))}:host([y_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{height:auto}:host([x_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{width:auto}:host([y_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.vertical{display:block}:host([x_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.horizontal{display:block}:host([no_user_select]) .content-wrapper *{user-select:none}:host([no_user_select]) ::slotted{user-select:none}`;
-    constructor() {            super();            this.createAnimation();            this.onWheel = this.onWheel.bind(this);            this.onTouchStart = this.onTouchStart.bind(this);            this.onTouchMove = this.onTouchMove.bind(this);            this.onTouchEnd = this.onTouchEnd.bind(this);            this.touchRecord = new TouchRecord();        }
+    constructor() {            super();            this.renderAnimation = this.createAnimation();            this.onWheel = this.onWheel.bind(this);            this.onTouchStart = this.onTouchStart.bind(this);            this.onTouchMove = this.onTouchMove.bind(this);            this.onTouchEnd = this.onTouchEnd.bind(this);            this.touchRecord = new TouchRecord();        }
     __getStatic() {
         return Scrollable;
     }
@@ -3939,7 +4000,7 @@ class Scrollable extends Aventus.WebComponent {
     __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('y_scroll_visible');this.__upgradeProperty('x_scroll_visible');this.__upgradeProperty('floating_scroll');this.__upgradeProperty('x_scroll');this.__upgradeProperty('y_scroll');this.__upgradeProperty('auto_hide');this.__upgradeProperty('break');this.__upgradeProperty('disable');this.__upgradeProperty('no_user_select');this.__upgradeProperty('zoom'); }
     __listBoolProps() { return ["y_scroll_visible","x_scroll_visible","floating_scroll","x_scroll","y_scroll","auto_hide","disable","no_user_select"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     createAnimation() {
-        this.renderAnimation = new Aventus.Animation({
+        return new Aventus.Animation({
             fps: 60,
             animate: () => {
                 const nextX = this.nextPosition('x');
@@ -4072,7 +4133,7 @@ class Scrollable extends Aventus.WebComponent {
         }
         this.momentum.x += delta.x;
         this.momentum.y += delta.y;
-        this.renderAnimation.start();
+        this.renderAnimation?.start();
     }
     onWheel(e) {
         const DELTA_MODE = [1.0, 28.0, 500.0];
@@ -4109,6 +4170,9 @@ class Scrollable extends Aventus.WebComponent {
         this.touchRecord.release(e);
     }
     calculateRealSize() {
+        if (!this.contentZoom || !this.mainContainer || !this.contentWrapper) {
+            return;
+        }
         const currentOffsetWidth = this.contentZoom.offsetWidth;
         const currentOffsetHeight = this.contentZoom.offsetHeight;
         this.contentWrapperSize.x = this.contentWrapper.offsetWidth;
@@ -4208,7 +4272,7 @@ class Scrollable extends Aventus.WebComponent {
     }
     createResizeObserver() {
         let inProgress = false;
-        this.observer = new Aventus.ResizeObserver({
+        return new Aventus.ResizeObserver({
             callback: entries => {
                 if (inProgress) {
                     return;
@@ -4222,7 +4286,7 @@ class Scrollable extends Aventus.WebComponent {
     }
     addResizeObserver() {
         if (this.observer == undefined) {
-            this.createResizeObserver();
+            this.observer = this.createResizeObserver();
         }
         this.observer.observe(this.contentWrapper);
         this.observer.observe(this);
@@ -4319,7 +4383,10 @@ class TouchRecord {
     }
     _getActiveTracker() {
         const { _touchList, _activeTouchID, } = this;
-        return _touchList[_activeTouchID];
+        if (_activeTouchID !== undefined) {
+            return _touchList[_activeTouchID];
+        }
+        return undefined;
     }
 }
 
@@ -4363,13 +4430,13 @@ class Tracker {
 
 class GridCol extends Aventus.WebComponent {
     get 'column'() {
-                    return this.getAttribute('column');
+                    return this.getAttribute('column') ?? undefined;
                 }
                 set 'column'(val) {
                     if(val === undefined || val === null){this.removeAttribute('column')}
                     else{this.setAttribute('column',val)}
                 }get 'row'() {
-                    return this.getAttribute('row');
+                    return this.getAttribute('row') ?? undefined;
                 }
                 set 'row'(val) {
                     if(val === undefined || val === null){this.removeAttribute('row')}
@@ -4442,7 +4509,7 @@ if(!window.customElements.get('av-grid')){window.customElements.define('av-grid'
 
 class DynamicRow extends Aventus.WebComponent {
     get 'max_width'() {
-                    return this.getAttribute('max_width');
+                    return this.getAttribute('max_width') ?? undefined;
                 }
                 set 'max_width'(val) {
                     if(val === undefined || val === null){this.removeAttribute('max_width')}
@@ -4657,13 +4724,13 @@ class Img extends Aventus.WebComponent {
                     this.removeAttribute('cache');
                 }
             }    get 'src'() {
-                    return this.getAttribute('src');
+                    return this.getAttribute('src') ?? undefined;
                 }
                 set 'src'(val) {
                     if(val === undefined || val === null){this.removeAttribute('src')}
                     else{this.setAttribute('src',val)}
                 }get 'mode'() {
-                    return this.getAttribute('mode');
+                    return this.getAttribute('mode') ?? undefined;
                 }
                 set 'mode'(val) {
                     if(val === undefined || val === null){this.removeAttribute('mode')}
@@ -4716,7 +4783,7 @@ class Img extends Aventus.WebComponent {
     __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('cache');this.__upgradeProperty('src');this.__upgradeProperty('mode'); }
     __listBoolProps() { return ["cache"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     calculateSize(attempt = 0) {
-        if (this.isCalculing) {
+        if (this.isCalculing || !this.imgEl || !this.svgEl) {
             return;
         }
         if (this.src == "") {
@@ -4731,7 +4798,7 @@ class Img extends Aventus.WebComponent {
             return;
         }
         let element = this.imgEl;
-        if (this.src.endsWith(".svg")) {
+        if (this.src?.endsWith(".svg")) {
             element = this.svgEl;
         }
         this.style.width = '';
@@ -4803,7 +4870,7 @@ class Img extends Aventus.WebComponent {
         this.isCalculing = false;
     }
     async onSrcChanged() {
-        if (!this.src) {
+        if (!this.src || !this.svgEl || !this.imgEl) {
             return;
         }
         if (this.src.endsWith(".svg")) {
@@ -4825,8 +4892,8 @@ class Img extends Aventus.WebComponent {
         }
     }
     postDestruction() {
-        this.resizeObserver.disconnect();
-        this.resizeObserver = null;
+        this.resizeObserver?.disconnect();
+        this.resizeObserver = undefined;
     }
     postCreation() {
         this.resizeObserver = new Aventus.ResizeObserver({
@@ -4897,19 +4964,19 @@ class Input extends Aventus.WebComponent {
                     if(val === undefined || val === null){this.removeAttribute('max_length')}
                     else{this.setAttribute('max_length',val)}
                 }get 'pattern'() {
-                    return this.getAttribute('pattern');
+                    return this.getAttribute('pattern') ?? undefined;
                 }
                 set 'pattern'(val) {
                     if(val === undefined || val === null){this.removeAttribute('pattern')}
                     else{this.setAttribute('pattern',val)}
                 }    get 'value'() {
-                    return this.getAttribute('value');
+                    return this.getAttribute('value') ?? undefined;
                 }
                 set 'value'(val) {
                     if(val === undefined || val === null){this.removeAttribute('value')}
                     else{this.setAttribute('value',val)}
                 }get 'label'() {
-                    return this.getAttribute('label');
+                    return this.getAttribute('label') ?? undefined;
                 }
                 set 'label'(val) {
                     if(val === undefined || val === null){this.removeAttribute('label')}
@@ -4983,14 +5050,14 @@ class Input extends Aventus.WebComponent {
     __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('required');this.__upgradeProperty('disabled');this.__upgradeProperty('min_length');this.__upgradeProperty('max_length');this.__upgradeProperty('pattern');this.__upgradeProperty('value');this.__upgradeProperty('label'); }
     __listBoolProps() { return ["required","disabled"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     onAttrChange() {
-        if (this.inputEl.value != this.value) {
+        if (this.inputEl && this.inputEl.value != this.value) {
             this.inputEl.value = this.value;
         }
         this.validate();
     }
     inputChange() {
         this.validate();
-        if (this.inputEl.value != this.value) {
+        if (this.inputEl && this.inputEl.value != this.value) {
             this.value = this.inputEl.value;
             this.onChange.trigger([this.value]);
         }
@@ -5014,7 +5081,9 @@ class Input extends Aventus.WebComponent {
         this.printErrors();
     }
     printErrors() {
-        this.errorEl.innerHTML = this.errors.join("<br />");
+        if (this.errorEl) {
+            this.errorEl.innerHTML = this.errors.join("<br />");
+        }
     }
     validate() {
         this.errors = [];
@@ -5087,7 +5156,7 @@ class Checkbox extends Aventus.WebComponent {
                     this.removeAttribute('reverse');
                 }
             }    get 'label'() {
-                    return this.getAttribute('label');
+                    return this.getAttribute('label') ?? undefined;
                 }
                 set 'label'(val) {
                     if(val === undefined || val === null){this.removeAttribute('label')}
@@ -5158,14 +5227,14 @@ class Checkbox extends Aventus.WebComponent {
     syncValue(master) {
         if (this.checked != this.value) {
             if (master == 'checked') {
-                this.value = this.checked;
+                this.value = this.checked ?? false;
             }
             else {
                 this.checked = this.value;
             }
         }
-        if (this.checkboxEl.checked != this.checked) {
-            this.checkboxEl.checked = this.checked;
+        if (this.checkboxEl && this.checkboxEl?.checked != this.checked) {
+            this.checkboxEl.checked = this.checked ?? false;
         }
     }
     validate() {

@@ -33,19 +33,19 @@ class Input extends Aventus.WebComponent {
                     if(val === undefined || val === null){this.removeAttribute('max_length')}
                     else{this.setAttribute('max_length',val)}
                 }get 'pattern'() {
-                    return this.getAttribute('pattern');
+                    return this.getAttribute('pattern') ?? undefined;
                 }
                 set 'pattern'(val) {
                     if(val === undefined || val === null){this.removeAttribute('pattern')}
                     else{this.setAttribute('pattern',val)}
                 }    get 'value'() {
-                    return this.getAttribute('value');
+                    return this.getAttribute('value') ?? undefined;
                 }
                 set 'value'(val) {
                     if(val === undefined || val === null){this.removeAttribute('value')}
                     else{this.setAttribute('value',val)}
                 }get 'label'() {
-                    return this.getAttribute('label');
+                    return this.getAttribute('label') ?? undefined;
                 }
                 set 'label'(val) {
                     if(val === undefined || val === null){this.removeAttribute('label')}
@@ -119,14 +119,14 @@ class Input extends Aventus.WebComponent {
     __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('required');this.__upgradeProperty('disabled');this.__upgradeProperty('min_length');this.__upgradeProperty('max_length');this.__upgradeProperty('pattern');this.__upgradeProperty('value');this.__upgradeProperty('label'); }
     __listBoolProps() { return ["required","disabled"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     onAttrChange() {
-        if (this.inputEl.value != this.value) {
+        if (this.inputEl && this.inputEl.value != this.value) {
             this.inputEl.value = this.value;
         }
         this.validate();
     }
     inputChange() {
         this.validate();
-        if (this.inputEl.value != this.value) {
+        if (this.inputEl && this.inputEl.value != this.value) {
             this.value = this.inputEl.value;
             this.onChange.trigger([this.value]);
         }
@@ -150,7 +150,9 @@ class Input extends Aventus.WebComponent {
         this.printErrors();
     }
     printErrors() {
-        this.errorEl.innerHTML = this.errors.join("<br />");
+        if (this.errorEl) {
+            this.errorEl.innerHTML = this.errors.join("<br />");
+        }
     }
     validate() {
         this.errors = [];

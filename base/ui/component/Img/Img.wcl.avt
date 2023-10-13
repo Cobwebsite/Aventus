@@ -8,12 +8,12 @@ export class Img extends Aventus.WebComponent implements Aventus.DefaultComponen
 
     //#region props
     @Attribute()
-    public cache: boolean;
+    public cache!: boolean;
 
     @Property((target: Img) => {
         target.onSrcChanged();
     })
-    public src: string;
+    public src?: string;
 
     @Property((target: Img) => {
         if(target.src != "") {
@@ -27,14 +27,14 @@ export class Img extends Aventus.WebComponent implements Aventus.DefaultComponen
     //#region variables
 
     @ViewElement()
-    protected imgEl: HTMLImageElement;
+    protected imgEl!: HTMLImageElement;
     @ViewElement()
-    protected svgEl: HTMLDivElement;
+    protected svgEl!: HTMLDivElement;
 
-    private isCalculing: boolean;
+    private isCalculing?: boolean;
     private maxCalculateSize: number = 10;
     private ratio: number = 1;
-    private resizeObserver: Aventus.ResizeObserver;
+    private resizeObserver?: Aventus.ResizeObserver;
     //#endregion
 
 
@@ -50,7 +50,7 @@ export class Img extends Aventus.WebComponent implements Aventus.DefaultComponen
 
     //#region methods
     private calculateSize(attempt = 0) {
-        if(this.isCalculing) {
+        if(this.isCalculing || !this.imgEl || !this.svgEl) {
             return;
         }
         if(this.src == "") {
@@ -66,7 +66,7 @@ export class Img extends Aventus.WebComponent implements Aventus.DefaultComponen
         }
 
         let element: HTMLImageElement | HTMLDivElement = this.imgEl;
-        if(this.src.endsWith(".svg")) {
+        if(this.src?.endsWith(".svg")) {
             element = this.svgEl;
         }
         this.style.width = '';
@@ -143,7 +143,7 @@ export class Img extends Aventus.WebComponent implements Aventus.DefaultComponen
         this.isCalculing = false;
     }
     private async onSrcChanged() {
-        if(!this.src) {
+        if(!this.src || !this.svgEl || !this.imgEl) {
             return;
         }
         if(this.src.endsWith(".svg")) {
@@ -166,8 +166,8 @@ export class Img extends Aventus.WebComponent implements Aventus.DefaultComponen
     }
 
     protected override postDestruction(): void {
-        this.resizeObserver.disconnect();
-        this.resizeObserver = null;
+        this.resizeObserver?.disconnect();
+        this.resizeObserver = undefined;
     }
 
     protected override postCreation(): void {

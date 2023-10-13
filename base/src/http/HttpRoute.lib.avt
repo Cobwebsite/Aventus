@@ -33,7 +33,7 @@ export class HttpRoute {
         return result as ExtendRoutesType<T, U>;
     }
 
-    public router: HttpRouter;
+    protected router: HttpRouter;
     public constructor(router: HttpRouter) {
         this.router = router;
     }

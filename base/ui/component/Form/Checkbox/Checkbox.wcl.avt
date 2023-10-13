@@ -15,7 +15,7 @@ namespace Form {
         @Property((target: Checkbox) => {
             target.syncValue('checked');
         })
-        public checked: boolean;
+        public checked!: boolean;
         /**
          * @inheritdoc
          */
@@ -27,15 +27,15 @@ namespace Form {
          * Determine if the fields is disabled
          */
         @Attribute()
-        public disabled: boolean;
+        public disabled!: boolean;
         @Attribute()
-        public reverse: boolean;
+        public reverse!: boolean;
         //#endregion
 
 
         //#region variables
         @ViewElement()
-        protected checkboxEl: HTMLInputElement;
+        protected checkboxEl!: HTMLInputElement;
         //#endregion
 
 
@@ -58,15 +58,15 @@ namespace Form {
         public syncValue(master: 'checked' | 'value') {
             if(this.checked != this.value) {
                 if(master == 'checked') {
-                    this.value = this.checked;
+                    this.value = this.checked ?? false;
                 }
                 else {
                     this.checked = this.value;
                 }
             }
 
-            if(this.checkboxEl.checked != this.checked) {
-                this.checkboxEl.checked = this.checked;
+            if(this.checkboxEl && this.checkboxEl?.checked != this.checked) {
+                this.checkboxEl.checked = this.checked ?? false;
             }
         }
 

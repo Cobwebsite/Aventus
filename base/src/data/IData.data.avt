@@ -52,7 +52,7 @@ export abstract class Data implements IData {
         let props = Object.getOwnPropertyNames(this);
         for(let prop of props) {
             let propInfo = Object.getOwnPropertyDescriptor(this, prop);
-            if(propInfo.writable) {
+            if(propInfo?.writable) {
                 result[prop] = this[prop];
             }
         }

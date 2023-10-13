@@ -7,7 +7,7 @@ import { Converter } from "../tools/Converter.lib.avt";
 export class HttpRequest {
     private request: RequestInit;
     private url: string;
-    public constructor(url: string, method: HttpMethod = HttpMethod.GET, body: { [key: string | number]: any; } | FormData = null) {
+    public constructor(url: string, method: HttpMethod = HttpMethod.GET, body?: { [key: string | number]: any; } | FormData) {
         this.url = url;
         this.request = {};
         this.setMethod(method);
@@ -30,7 +30,7 @@ export class HttpRequest {
         this.request.method = method;
     }
 
-    private prepareBody(data: { [key: string | number]: any; } | FormData = null) {
+    private prepareBody(data?: { [key: string | number]: any; } | FormData) {
         if(!data) {
             return;
         }
@@ -54,7 +54,7 @@ export class HttpRequest {
     public async query(router: HttpRouter): Promise<ResultWithError<Response>> {
         let result = new ResultWithError<Response>();
         try {
-            result.result = await fetch(router.options.url + this.url, this.request);
+            result.result = await fetch(router['options'].url + this.url, this.request);
         } catch(e) {
             result.errors.push(new HttpError(HttpErrorCode.unknow, e));
         }
@@ -69,11 +69,16 @@ export class HttpRequest {
             return result;
         }
         try {
+            if(!resultTemp.result) {
+                return result;
+            }
             // try to parse json if has result
-            let tempResult = Converter.transform(await resultTemp.result.json());
-            if(tempResult instanceof VoidWithError) {
-                for(let error of tempResult.errors) {
-                    result.errors.push(error);
+            if(resultTemp.result.status != 204) {
+                let tempResult = Converter.transform(await resultTemp.result.json());
+                if(tempResult instanceof VoidWithError) {
+                    for(let error of tempResult.errors) {
+                        result.errors.push(error);
+                    }
                 }
             }
         } catch(e) {
@@ -90,6 +95,9 @@ export class HttpRequest {
             return result;
         }
         try {
+            if(!resultTemp.result) {
+                return result;
+            }
             let tempResult = Converter.transform(await resultTemp.result.json());
             if(tempResult instanceof VoidWithError) {
                 for(let error of tempResult.errors) {
@@ -116,6 +124,9 @@ export class HttpRequest {
             return result;
         }
         try {
+            if(!resultTemp.result) {
+                return result;
+            }
             result.result = await resultTemp.result.text();
         } catch(e) {
             result.errors.push(new HttpError(HttpErrorCode.unknow, e));

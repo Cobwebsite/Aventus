@@ -21,7 +21,7 @@ import { DebuggerDecorator } from '../../parser/decorators/DebuggerDecorator';
 import { TagNameDecorator } from '../../parser/decorators/TagNameDecorator';
 import { BaseInfo, InfoType } from '../../parser/BaseInfo';
 import { PropertyInfo } from '../../parser/PropertyInfo';
-import { TypeInfo } from '../../parser/TypeInfo';
+import { TypeInfo, TypeInfoKind } from '../../parser/TypeInfo';
 import { PropertyDecorator } from '../../parser/decorators/PropertyDecorator';
 import { ViewElementDecorator } from '../../parser/decorators/ViewElementDecorator';
 import { StateChangeDecorator } from '../../parser/decorators/StateChangeDecorator';
@@ -562,6 +562,9 @@ export class AventusWebcomponentCompiler {
             }
             else if (field.propType == "ViewElement") {
                 viewsElements[field.name] = field;
+                if(!field.overrideNullable) {
+                    this.result.diagnostics.push(createErrorTsPos(this.document, "You must add ! after the name to avoid undefined value", field.nameStart, field.nameEnd, AventusErrorCode.ExclamationMarkMissing));
+                }
             }
             else if (field.propType == "Simple") {
                 simpleVariables.push(field);
@@ -647,7 +650,7 @@ export class AventusWebcomponentCompiler {
             let key = field.name;
             if (type.kind == "string" || type.kind == "literal" || type.kind == "union") {
                 getterSetter += `get '${key}'() {
-                    return this.getAttribute('${key}');
+                    return this.getAttribute('${key}') ?? undefined;
                 }
                 set '${key}'(val) {
                     if(val === undefined || val === null){this.removeAttribute('${key}')}
@@ -764,7 +767,7 @@ export class AventusWebcomponentCompiler {
             let key = field.name;
             if (type.kind == "string" || type.kind == "literal" || type.kind == "union") {
                 getterSetter += `get '${key}'() {
-                    return this.getAttribute('${key}');
+                    return this.getAttribute('${key}') ?? undefined;
                 }
                 set '${key}'(val) {
                     if(val === undefined || val === null){this.removeAttribute('${key}')}
@@ -1705,15 +1708,28 @@ this.clearWatchHistory = () => {
             return type;
         }
         else if (type.kind == "union") {
-            let allLiteral = true;
+            let firstNested: TypeInfo | undefined;
             for (let nested of type.nested) {
-                if (nested.kind != 'literal') {
-                    allLiteral = false;
-                    this.result.diagnostics.push(createErrorTsPos(currentDoc, "You can only use literal inside an union type", field.nameStart, field.nameEnd, AventusErrorCode.WrongTypeDefinition));
+                if(nested.kind == 'undefined') {
+                    field.isNullable = true;
+                }
+                if (!firstNested) {
+                    if (nested.kind != 'undefined') {
+                        firstNested = nested;
+                    }
+                }
+                else if (nested.kind != firstNested.kind && nested.kind != 'undefined') {
+                    firstNested = undefined;
+                    break;
                 }
             }
-            if (allLiteral) {
-                return type;
+            if (firstNested) {
+                if (firstNested.kind == 'literal') {
+                    return type;
+                }
+                else {
+                    return this._validateTypeForProp(currentDoc, field, firstNested);
+                }
             }
         }
         this.result.diagnostics.push(createErrorTsPos(currentDoc, "can't use the the type " + type.kind + "(" + type.value + ")" + " as attribute / property", field.nameStart, field.nameEnd, AventusErrorCode.WrongTypeDefinition));
@@ -1724,6 +1740,18 @@ this.clearWatchHistory = () => {
             this.result.diagnostics.push(createErrorTsPos(this.document, "an attribute must be in lower case", field.nameStart, field.nameEnd, AventusErrorCode.AttributeLower));
         }
         let type = this._validateTypeForProp(currentDoc, field, field.type);
+        if (type) {
+            if (type.kind == "boolean" || type.kind == "number") {
+                if (!field.overrideNullable && field.defaultValue === null) {
+                    this.result.diagnostics.push(createErrorTsPos(this.document, "You must add ! after the name to avoid undefined value", field.nameStart, field.nameEnd, AventusErrorCode.ExclamationMarkMissing));
+                }
+            }
+            else {
+                if (!field.isNullable && field.defaultValue === null) {
+                    this.result.diagnostics.push(createErrorTsPos(this.document, "You must add ? after the name to allow undefined value", field.nameStart, field.nameEnd, AventusErrorCode.QuestionMarkMissing));
+                }
+            }
+        }
         return type;
     }
     private removeWhiteSpaceLines(txt: string) {

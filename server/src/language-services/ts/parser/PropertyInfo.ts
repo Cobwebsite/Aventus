@@ -1,7 +1,6 @@
 import { ExpressionWithTypeArguments, GetAccessorDeclaration, PropertyDeclaration, SetAccessorDeclaration, SyntaxKind } from "typescript";
 import { DecoratorInfo } from "./DecoratorInfo";
 import { ParserTs } from './ParserTs';
-import { getArg } from './tools';
 import { TypeInfo } from './TypeInfo';
 
 type PropType = PropertyDeclaration | GetAccessorDeclaration | SetAccessorDeclaration;
@@ -23,6 +22,8 @@ export class PropertyInfo {
     public isStatic: boolean = false;
     public fullStart: number = 0;
     public fullEnd: number = 0;
+    public isNullable: boolean = false;
+    public overrideNullable: boolean = false;
 
     constructor(prop: PropType, isInsideInterface: boolean) {
         this.isInsideInterface = isInsideInterface;
@@ -48,13 +49,19 @@ export class PropertyInfo {
                 this.documentation.push(jsDoc.comment);
             }
         }
+        if (prop.questionToken) {
+            this.isNullable = true;
+        }
+        if (prop.exclamationToken) {
+            this.overrideNullable = true;
+        }
         this.loadAccessibilityModifier(prop);
         this.type = this.loadType(prop);
         this.loadInitializer(prop);
     }
 
     private loadAccessibilityModifier(prop: PropType) {
-        if(this.isInsideInterface){
+        if (this.isInsideInterface) {
             // we can't have accessility modifier inside interface
             return
         }
@@ -82,6 +89,7 @@ export class PropertyInfo {
                 else if (modifier.kind == SyntaxKind.StaticKeyword) {
                     this.isStatic = true;
                 }
+
             }
 
         }

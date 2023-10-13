@@ -178,12 +178,8 @@ export class ParserTs {
                 this.loadVariableStatement(x as VariableStatement);
             }
             else if (x.kind == SyntaxKind.ModuleBlock) {
-                this.errors.push({
-                    range: Range.create(this.document.positionAt(x.getStart()), this.document.positionAt(x.getEnd())),
-                    severity: DiagnosticSeverity.Error,
-                    source: AventusLanguageId.TypeScript,
-                    message: flattenDiagnosticMessageText("error => can't use a module, use namespace instead", '\n')
-                })
+                this.loadRoot(x);
+                
             }
             else if (x.kind == SyntaxKind.EndOfFileToken) {
 
@@ -328,11 +324,19 @@ export class ParserTs {
         if (hasFlag(node.flags, NodeFlags.Namespace) && node.body) {
             this.namespaces.push(new NamespaceInfo(node));
             this.currentNamespace.push(node.name.getText());
-            this.loadRoot(node.body);
+            this.loadRoot(node);
             this.currentNamespace.splice(this.currentNamespace.length - 1, 1);
         }
         else if (hasFlag(node.flags, NodeFlags.GlobalAugmentation) && node.body) {
-            this.loadRoot(node.body);
+            this.loadRoot(node);
+        }
+        else {
+            this.errors.push({
+                range: Range.create(this.document.positionAt(node.getStart()), this.document.positionAt(node.getEnd())),
+                severity: DiagnosticSeverity.Error,
+                source: AventusLanguageId.TypeScript,
+                message: flattenDiagnosticMessageText("Can't use a module, use namespace instead", '\n')
+            })
         }
     }
 

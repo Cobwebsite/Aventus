@@ -52,7 +52,7 @@ export class Tracker {
 }
 
 export class TouchRecord {
-    private _activeTouchID: number;
+    private _activeTouchID?: number;
     private _touchList: { [id: number]: Tracker; } = {};
 
     private get _primitiveValue(): { x: number, y: number; } {
@@ -174,12 +174,14 @@ export class TouchRecord {
         this._activeTouchID = touches[touches.length - 1].identifier;
     }
 
-    private _getActiveTracker(): Tracker {
+    private _getActiveTracker(): Tracker | undefined {
         const {
             _touchList,
             _activeTouchID,
         } = this;
-
-        return _touchList[_activeTouchID];
+        if(_activeTouchID !== undefined) {
+            return _touchList[_activeTouchID];
+        }
+        return undefined;
     }
 }

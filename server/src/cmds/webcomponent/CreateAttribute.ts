@@ -20,7 +20,7 @@ export class CreateAttribute {
 		{ label: "Custom", detail: "" },
 	];
 
-	
+
 	public static async run(uri: string, position: number) {
 		if (!uri) {
 			return;
@@ -49,8 +49,12 @@ export class CreateAttribute {
 
 		let file = FilesManager.getInstance().getByUri(uri);
 		if (file) {
+			let nullable = "?";
+			if (type == "boolean" || type == "number") {
+				nullable = "!"
+			}
 			let oldEnd = file.document.positionAt(file.content.length);
-			let newTxt = '@Attribute()' + EOL + 'public ' + name + ':' + type + ';' + EOL;
+			let newTxt = '@Attribute()' + EOL + 'public ' + name + nullable + ':' + type + ';' + EOL;
 			let begin = file.content.slice(0, position);
 			let end = file.content.slice(position + 1, file.content.length);
 			let txt = begin + newTxt + end;
