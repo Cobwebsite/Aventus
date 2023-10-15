@@ -2,8 +2,10 @@ var Aventus;
 (Aventus||(Aventus = {}));
 (function (Aventus) {
 const moduleName = `Aventus`;
+const _ = {};
 
-class WebComponentInstance {
+
+const WebComponentInstance=class WebComponentInstance {
     static __allDefinitions = [];
     static __allInstances = [];
     /**
@@ -73,8 +75,9 @@ class WebComponentInstance {
         return null;
     }
 }
-
-class ElementExtension {
+WebComponentInstance.Namespace=`${moduleName}`;
+_.WebComponentInstance=WebComponentInstance;
+const ElementExtension=class ElementExtension {
     /**
      * Find a parent by tagname if exist Static.findParentByTag(this, "av-img")
      */
@@ -303,8 +306,9 @@ class ElementExtension {
         return _realTarget(startFrom);
     }
 }
-
-class Instance {
+ElementExtension.Namespace=`${moduleName}`;
+_.ElementExtension=ElementExtension;
+const Instance=class Instance {
     static elements = new Map();
     static get(type) {
         let result = this.elements.get(type);
@@ -328,8 +332,9 @@ class Instance {
         return this.elements.delete(cst);
     }
 }
-
-class Style {
+Instance.Namespace=`${moduleName}`;
+_.Instance=Instance;
+const Style=class Style {
     static instance;
     static noAnimation;
     static defaultStyleSheets = {
@@ -390,8 +395,9 @@ class Style {
         return style;
     }
 }
-
-class Callback {
+Style.Namespace=`${moduleName}`;
+_.Style=Style;
+const Callback=class Callback {
     callbacks = [];
     /**
      * Clear all callbacks
@@ -426,8 +432,9 @@ class Callback {
         return result;
     }
 }
-
-class Mutex {
+Callback.Namespace=`${moduleName}`;
+_.Callback=Callback;
+const Mutex=class Mutex {
     waitingList = [];
     isLocked = false;
     /**
@@ -530,8 +537,9 @@ class Mutex {
         return result;
     }
 }
-
-class State {
+Mutex.Namespace=`${moduleName}`;
+_.Mutex=Mutex;
+const State=class State {
     /**
      * Activate a custom state inside a specific manager
      * It ll be a generic state with no information inside exept name
@@ -553,8 +561,9 @@ class State {
         return true;
     }
 }
-
-class EmptyState extends State {
+State.Namespace=`${moduleName}`;
+_.State=State;
+const EmptyState=class EmptyState extends State {
     localName;
     constructor(stateName) {
         super();
@@ -567,7 +576,8 @@ class EmptyState extends State {
         return this.localName;
     }
 }
-
+EmptyState.Namespace=`${moduleName}`;
+_.EmptyState=EmptyState;
 var WatchAction;
 (function (WatchAction) {
     WatchAction[WatchAction["CREATED"] = 0] = "CREATED";
@@ -575,7 +585,8 @@ var WatchAction;
     WatchAction[WatchAction["DELETED"] = 2] = "DELETED";
 })(WatchAction || (WatchAction = {}));
 
-class Watcher {
+_.WatchAction=WatchAction;
+const Watcher=class Watcher {
     static __maxProxyData = 0;
     /**
      * Transform object into a watcher
@@ -1020,8 +1031,9 @@ class Watcher {
         return realProxy;
     }
 }
-
-class PressManager {
+Watcher.Namespace=`${moduleName}`;
+_.Watcher=Watcher;
+const PressManager=class PressManager {
     static create(options) {
         if (Array.isArray(options.element)) {
             let result = [];
@@ -1371,8 +1383,9 @@ class PressManager {
         }
     }
 }
-
-class StateManager {
+PressManager.Namespace=`${moduleName}`;
+_.PressManager=PressManager;
+const StateManager=class StateManager {
     subscribers = {};
     static canBeActivate(statePattern, stateName) {
         let stateInfo = this.prepareStateString(statePattern);
@@ -1697,8 +1710,9 @@ class StateManager {
         }
     }
 }
-
-class WebComponentTemplateContext {
+StateManager.Namespace=`${moduleName}`;
+_.StateManager=StateManager;
+const WebComponentTemplateContext=class WebComponentTemplateContext {
     __changes = {};
     component;
     fctsToRemove = [];
@@ -1805,8 +1819,9 @@ class WebComponentTemplateContext {
         this.__changes[on].push(fct);
     }
 }
-
-class WebComponentTemplate {
+WebComponentTemplateContext.Namespace=`${moduleName}`;
+_.WebComponentTemplateContext=WebComponentTemplateContext;
+const WebComponentTemplate=class WebComponentTemplate {
     static setValueToItem(path, obj, value) {
         let splitted = path.split(".");
         for (let i = 0; i < splitted.length - 1; i++) {
@@ -1974,8 +1989,9 @@ class WebComponentTemplate {
         this.loops.push(loop);
     }
 }
-
-class WebComponentTemplateInstance {
+WebComponentTemplate.Namespace=`${moduleName}`;
+_.WebComponentTemplate=WebComponentTemplate;
+const WebComponentTemplateInstance=class WebComponentTemplateInstance {
     context;
     content;
     actions;
@@ -2354,8 +2370,9 @@ class WebComponentTemplateInstance {
         });
     }
 }
-
-class WebComponent extends HTMLElement {
+WebComponentTemplateInstance.Namespace=`${moduleName}`;
+_.WebComponentTemplateInstance=WebComponentTemplateInstance;
+const WebComponent=class WebComponent extends HTMLElement {
     /**
      * Add attributes informations
      */
@@ -2776,46 +2793,21 @@ class WebComponent extends HTMLElement {
         return ElementExtension.getElementsInSlot(this, slotName);
     }
 }
-Aventus.WebComponentInstance=WebComponentInstance;
-WebComponentInstance.Namespace='Aventus';
-Aventus.ElementExtension=ElementExtension;
-ElementExtension.Namespace='Aventus';
-Aventus.Instance=Instance;
-Instance.Namespace='Aventus';
-Aventus.Style=Style;
-Style.Namespace='Aventus';
-Aventus.Callback=Callback;
-Callback.Namespace='Aventus';
-Aventus.Mutex=Mutex;
-Mutex.Namespace='Aventus';
-Aventus.State=State;
-State.Namespace='Aventus';
-Aventus.EmptyState=EmptyState;
-EmptyState.Namespace='Aventus';
-Aventus.WatchAction=WatchAction;
-Aventus.Watcher=Watcher;
-Watcher.Namespace='Aventus';
-Aventus.PressManager=PressManager;
-PressManager.Namespace='Aventus';
-Aventus.StateManager=StateManager;
-StateManager.Namespace='Aventus';
-Aventus.WebComponentTemplateContext=WebComponentTemplateContext;
-WebComponentTemplateContext.Namespace='Aventus';
-Aventus.WebComponentTemplate=WebComponentTemplate;
-WebComponentTemplate.Namespace='Aventus';
-Aventus.WebComponentTemplateInstance=WebComponentTemplateInstance;
-WebComponentTemplateInstance.Namespace='Aventus';
-Aventus.WebComponent=WebComponent;
-WebComponent.Namespace='Aventus';
+WebComponent.Namespace=`${moduleName}`;
+_.WebComponent=WebComponent;
+
+for(let key in _) { Aventus[key] = _[key] }
 })(Aventus);
 
 var dependances;
 (dependances||(dependances = {}));
 (function (dependances) {
 const moduleName = `dependances`;
+const _ = {};
 
 
-class Message {
+
+const Message=class Message {
     static init() {
         window.addEventListener('message', event => {
             const message = event.data;
@@ -2828,8 +2820,9 @@ class Message {
         });
     }
 }
-
-class ConfigurationEditor extends Aventus.WebComponent {
+Message.Namespace=`${moduleName}`;
+_.Message=Message;
+const ConfigurationEditor = class ConfigurationEditor extends Aventus.WebComponent {
     static __style = ``;
     __getStatic() {
         return ConfigurationEditor;
@@ -2848,9 +2841,11 @@ class ConfigurationEditor extends Aventus.WebComponent {
         return "ConfigurationEditor";
     }
 }
+ConfigurationEditor.Namespace=`${moduleName}`;
+_.ConfigurationEditor=ConfigurationEditor;
 if(!window.customElements.get('av-configuration-editor')){window.customElements.define('av-configuration-editor', ConfigurationEditor);Aventus.WebComponentInstance.registerDefinition(ConfigurationEditor);}
 
-class Dependances extends Aventus.WebComponent {
+const Dependances = class Dependances extends Aventus.WebComponent {
     get 'no_deps'() {
                 return this.hasAttribute('no_deps');
             }
@@ -2928,9 +2923,11 @@ class Dependances extends Aventus.WebComponent {
     __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('no_deps'); }
     __listBoolProps() { return ["no_deps"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
 }
+Dependances.Namespace=`${moduleName}`;
+_.Dependances=Dependances;
 if(!window.customElements.get('av-dependances')){window.customElements.define('av-dependances', Dependances);Aventus.WebComponentInstance.registerDefinition(Dependances);}
 
-class Icon extends Aventus.WebComponent {
+const Icon = class Icon extends Aventus.WebComponent {
     static __style = `:host{display:inline-block;font:normal normal normal 16px/1 codicon;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-align:center;text-decoration:none;text-rendering:auto;-webkit-user-select:none;-ms-user-select:none;user-select:none}:host(.add) span::before{content:""}:host(.plus) span::before{content:""}:host(.gist-new) span::before{content:""}:host(.repo-create) span::before{content:""}:host(.lightbulb) span::before{content:""}:host(.light-bulb) span::before{content:""}:host(.repo) span::before{content:""}:host(.repo-delete) span::before{content:""}:host(.gist-fork) span::before{content:""}:host(.repo-forked) span::before{content:""}:host(.git-pull-request) span::before{content:""}:host(.git-pull-request-abandoned) span::before{content:""}:host(.record-keys) span::before{content:""}:host(.keyboard) span::before{content:""}:host(.tag) span::before{content:""}:host(.tag-add) span::before{content:""}:host(.tag-remove) span::before{content:""}:host(.person) span::before{content:""}:host(.person-follow) span::before{content:""}:host(.person-outline) span::before{content:""}:host(.person-filled) span::before{content:""}:host(.git-branch) span::before{content:""}:host(.git-branch-create) span::before{content:""}:host(.git-branch-delete) span::before{content:""}:host(.source-control) span::before{content:""}:host(.mirror) span::before{content:""}:host(.mirror-public) span::before{content:""}:host(.star) span::before{content:""}:host(.star-add) span::before{content:""}:host(.star-delete) span::before{content:""}:host(.star-empty) span::before{content:""}:host(.comment) span::before{content:""}:host(.comment-add) span::before{content:""}:host(.alert) span::before{content:""}:host(.warning) span::before{content:""}:host(.search) span::before{content:""}:host(.search-save) span::before{content:""}:host(.log-out) span::before{content:""}:host(.sign-out) span::before{content:""}:host(.log-in) span::before{content:""}:host(.sign-in) span::before{content:""}:host(.eye) span::before{content:""}:host(.eye-unwatch) span::before{content:""}:host(.eye-watch) span::before{content:""}:host(.circle-filled) span::before{content:""}:host(.primitive-dot) span::before{content:""}:host(.close-dirty) span::before{content:""}:host(.debug-breakpoint) span::before{content:""}:host(.debug-breakpoint-disabled) span::before{content:""}:host(.debug-hint) span::before{content:""}:host(.terminal-decoration-success) span::before{content:""}:host(.primitive-square) span::before{content:""}:host(.edit) span::before{content:""}:host(.pencil) span::before{content:""}:host(.info) span::before{content:""}:host(.issue-opened) span::before{content:""}:host(.gist-private) span::before{content:""}:host(.git-fork-private) span::before{content:""}:host(.lock) span::before{content:""}:host(.mirror-private) span::before{content:""}:host(.close) span::before{content:""}:host(.remove-close) span::before{content:""}:host(.x) span::before{content:""}:host(.repo-sync) span::before{content:""}:host(.sync) span::before{content:""}:host(.clone) span::before{content:""}:host(.desktop-download) span::before{content:""}:host(.beaker) span::before{content:""}:host(.microscope) span::before{content:""}:host(.vm) span::before{content:""}:host(.device-desktop) span::before{content:""}:host(.file) span::before{content:""}:host(.file-text) span::before{content:""}:host(.more) span::before{content:""}:host(.ellipsis) span::before{content:""}:host(.kebab-horizontal) span::before{content:""}:host(.mail-reply) span::before{content:""}:host(.reply) span::before{content:""}:host(.organization) span::before{content:""}:host(.organization-filled) span::before{content:""}:host(.organization-outline) span::before{content:""}:host(.new-file) span::before{content:""}:host(.file-add) span::before{content:""}:host(.new-folder) span::before{content:""}:host(.file-directory-create) span::before{content:""}:host(.trash) span::before{content:""}:host(.trashcan) span::before{content:""}:host(.history) span::before{content:""}:host(.clock) span::before{content:""}:host(.folder) span::before{content:""}:host(.file-directory) span::before{content:""}:host(.symbol-folder) span::before{content:""}:host(.logo-github) span::before{content:""}:host(.mark-github) span::before{content:""}:host(.github) span::before{content:""}:host(.terminal) span::before{content:""}:host(.console) span::before{content:""}:host(.repl) span::before{content:""}:host(.zap) span::before{content:""}:host(.symbol-event) span::before{content:""}:host(.error) span::before{content:""}:host(.stop) span::before{content:""}:host(.variable) span::before{content:""}:host(.symbol-variable) span::before{content:""}:host(.array) span::before{content:""}:host(.symbol-array) span::before{content:""}:host(.symbol-module) span::before{content:""}:host(.symbol-package) span::before{content:""}:host(.symbol-namespace) span::before{content:""}:host(.symbol-object) span::before{content:""}:host(.symbol-method) span::before{content:""}:host(.symbol-function) span::before{content:""}:host(.symbol-constructor) span::before{content:""}:host(.symbol-boolean) span::before{content:""}:host(.symbol-null) span::before{content:""}:host(.symbol-numeric) span::before{content:""}:host(.symbol-number) span::before{content:""}:host(.symbol-structure) span::before{content:""}:host(.symbol-struct) span::before{content:""}:host(.symbol-parameter) span::before{content:""}:host(.symbol-type-parameter) span::before{content:""}:host(.symbol-key) span::before{content:""}:host(.symbol-text) span::before{content:""}:host(.symbol-reference) span::before{content:""}:host(.go-to-file) span::before{content:""}:host(.symbol-enum) span::before{content:""}:host(.symbol-value) span::before{content:""}:host(.symbol-ruler) span::before{content:""}:host(.symbol-unit) span::before{content:""}:host(.activate-breakpoints) span::before{content:""}:host(.archive) span::before{content:""}:host(.arrow-both) span::before{content:""}:host(.arrow-down) span::before{content:""}:host(.arrow-left) span::before{content:""}:host(.arrow-right) span::before{content:""}:host(.arrow-small-down) span::before{content:""}:host(.arrow-small-left) span::before{content:""}:host(.arrow-small-right) span::before{content:""}:host(.arrow-small-up) span::before{content:""}:host(.arrow-up) span::before{content:""}:host(.bell) span::before{content:""}:host(.bold) span::before{content:""}:host(.book) span::before{content:""}:host(.bookmark) span::before{content:""}:host(.debug-breakpoint-conditional-unverified) span::before{content:""}:host(.debug-breakpoint-conditional) span::before{content:""}:host(.debug-breakpoint-conditional-disabled) span::before{content:""}:host(.debug-breakpoint-data-unverified) span::before{content:""}:host(.debug-breakpoint-data) span::before{content:""}:host(.debug-breakpoint-data-disabled) span::before{content:""}:host(.debug-breakpoint-log-unverified) span::before{content:""}:host(.debug-breakpoint-log) span::before{content:""}:host(.debug-breakpoint-log-disabled) span::before{content:""}:host(.briefcase) span::before{content:""}:host(.broadcast) span::before{content:""}:host(.browser) span::before{content:""}:host(.bug) span::before{content:""}:host(.calendar) span::before{content:""}:host(.case-sensitive) span::before{content:""}:host(.check) span::before{content:""}:host(.checklist) span::before{content:""}:host(.chevron-down) span::before{content:""}:host(.chevron-left) span::before{content:""}:host(.chevron-right) span::before{content:""}:host(.chevron-up) span::before{content:""}:host(.chrome-close) span::before{content:""}:host(.chrome-maximize) span::before{content:""}:host(.chrome-minimize) span::before{content:""}:host(.chrome-restore) span::before{content:""}:host(.circle-outline) span::before{content:""}:host(.circle) span::before{content:""}:host(.debug-breakpoint-unverified) span::before{content:""}:host(.terminal-decoration-incomplete) span::before{content:""}:host(.circle-slash) span::before{content:""}:host(.circuit-board) span::before{content:""}:host(.clear-all) span::before{content:""}:host(.clippy) span::before{content:""}:host(.close-all) span::before{content:""}:host(.cloud-download) span::before{content:""}:host(.cloud-upload) span::before{content:""}:host(.code) span::before{content:""}:host(.collapse-all) span::before{content:""}:host(.color-mode) span::before{content:""}:host(.comment-discussion) span::before{content:""}:host(.credit-card) span::before{content:""}:host(.dash) span::before{content:""}:host(.dashboard) span::before{content:""}:host(.database) span::before{content:""}:host(.debug-continue) span::before{content:""}:host(.debug-disconnect) span::before{content:""}:host(.debug-pause) span::before{content:""}:host(.debug-restart) span::before{content:""}:host(.debug-start) span::before{content:""}:host(.debug-step-into) span::before{content:""}:host(.debug-step-out) span::before{content:""}:host(.debug-step-over) span::before{content:""}:host(.debug-stop) span::before{content:""}:host(.debug) span::before{content:""}:host(.device-camera-video) span::before{content:""}:host(.device-camera) span::before{content:""}:host(.device-mobile) span::before{content:""}:host(.diff-added) span::before{content:""}:host(.diff-ignored) span::before{content:""}:host(.diff-modified) span::before{content:""}:host(.diff-removed) span::before{content:""}:host(.diff-renamed) span::before{content:""}:host(.diff) span::before{content:""}:host(.discard) span::before{content:""}:host(.editor-layout) span::before{content:""}:host(.empty-window) span::before{content:""}:host(.exclude) span::before{content:""}:host(.extensions) span::before{content:""}:host(.eye-closed) span::before{content:""}:host(.file-binary) span::before{content:""}:host(.file-code) span::before{content:""}:host(.file-media) span::before{content:""}:host(.file-pdf) span::before{content:""}:host(.file-submodule) span::before{content:""}:host(.file-symlink-directory) span::before{content:""}:host(.file-symlink-file) span::before{content:""}:host(.file-zip) span::before{content:""}:host(.files) span::before{content:""}:host(.filter) span::before{content:""}:host(.flame) span::before{content:""}:host(.fold-down) span::before{content:""}:host(.fold-up) span::before{content:""}:host(.fold) span::before{content:""}:host(.folder-active) span::before{content:""}:host(.folder-opened) span::before{content:""}:host(.gear) span::before{content:""}:host(.gift) span::before{content:""}:host(.gist-secret) span::before{content:""}:host(.gist) span::before{content:""}:host(.git-commit) span::before{content:""}:host(.git-compare) span::before{content:""}:host(.compare-changes) span::before{content:""}:host(.git-merge) span::before{content:""}:host(.github-action) span::before{content:""}:host(.github-alt) span::before{content:""}:host(.globe) span::before{content:""}:host(.grabber) span::before{content:""}:host(.graph) span::before{content:""}:host(.gripper) span::before{content:""}:host(.heart) span::before{content:""}:host(.home) span::before{content:""}:host(.horizontal-rule) span::before{content:""}:host(.hubot) span::before{content:""}:host(.inbox) span::before{content:""}:host(.issue-reopened) span::before{content:""}:host(.issues) span::before{content:""}:host(.italic) span::before{content:""}:host(.jersey) span::before{content:""}:host(.json) span::before{content:""}:host(.kebab-vertical) span::before{content:""}:host(.key) span::before{content:""}:host(.law) span::before{content:""}:host(.lightbulb-autofix) span::before{content:""}:host(.link-external) span::before{content:""}:host(.link) span::before{content:""}:host(.list-ordered) span::before{content:""}:host(.list-unordered) span::before{content:""}:host(.live-share) span::before{content:""}:host(.loading) span::before{content:""}:host(.location) span::before{content:""}:host(.mail-read) span::before{content:""}:host(.mail) span::before{content:""}:host(.markdown) span::before{content:""}:host(.megaphone) span::before{content:""}:host(.mention) span::before{content:""}:host(.milestone) span::before{content:""}:host(.mortar-board) span::before{content:""}:host(.move) span::before{content:""}:host(.multiple-windows) span::before{content:""}:host(.mute) span::before{content:""}:host(.no-newline) span::before{content:""}:host(.note) span::before{content:""}:host(.octoface) span::before{content:""}:host(.open-preview) span::before{content:""}:host(.package) span::before{content:""}:host(.paintcan) span::before{content:""}:host(.pin) span::before{content:""}:host(.play) span::before{content:""}:host(.run) span::before{content:""}:host(.plug) span::before{content:""}:host(.preserve-case) span::before{content:""}:host(.preview) span::before{content:""}:host(.project) span::before{content:""}:host(.pulse) span::before{content:""}:host(.question) span::before{content:""}:host(.quote) span::before{content:""}:host(.radio-tower) span::before{content:""}:host(.reactions) span::before{content:""}:host(.references) span::before{content:""}:host(.refresh) span::before{content:""}:host(.regex) span::before{content:""}:host(.remote-explorer) span::before{content:""}:host(.remote) span::before{content:""}:host(.remove) span::before{content:""}:host(.replace-all) span::before{content:""}:host(.replace) span::before{content:""}:host(.repo-clone) span::before{content:""}:host(.repo-force-push) span::before{content:""}:host(.repo-pull) span::before{content:""}:host(.repo-push) span::before{content:""}:host(.report) span::before{content:""}:host(.request-changes) span::before{content:""}:host(.rocket) span::before{content:""}:host(.root-folder-opened) span::before{content:""}:host(.root-folder) span::before{content:""}:host(.rss) span::before{content:""}:host(.ruby) span::before{content:""}:host(.save-all) span::before{content:""}:host(.save-as) span::before{content:""}:host(.save) span::before{content:""}:host(.screen-full) span::before{content:""}:host(.screen-normal) span::before{content:""}:host(.search-stop) span::before{content:""}:host(.server) span::before{content:""}:host(.settings-gear) span::before{content:""}:host(.settings) span::before{content:""}:host(.shield) span::before{content:""}:host(.smiley) span::before{content:""}:host(.sort-precedence) span::before{content:""}:host(.split-horizontal) span::before{content:""}:host(.split-vertical) span::before{content:""}:host(.squirrel) span::before{content:""}:host(.star-full) span::before{content:""}:host(.star-half) span::before{content:""}:host(.symbol-class) span::before{content:""}:host(.symbol-color) span::before{content:""}:host(.symbol-constant) span::before{content:""}:host(.symbol-enum-member) span::before{content:""}:host(.symbol-field) span::before{content:""}:host(.symbol-file) span::before{content:""}:host(.symbol-interface) span::before{content:""}:host(.symbol-keyword) span::before{content:""}:host(.symbol-misc) span::before{content:""}:host(.symbol-operator) span::before{content:""}:host(.symbol-property) span::before{content:""}:host(.wrench) span::before{content:""}:host(.wrench-subaction) span::before{content:""}:host(.symbol-snippet) span::before{content:""}:host(.tasklist) span::before{content:""}:host(.telescope) span::before{content:""}:host(.text-size) span::before{content:""}:host(.three-bars) span::before{content:""}:host(.thumbsdown) span::before{content:""}:host(.thumbsup) span::before{content:""}:host(.tools) span::before{content:""}:host(.triangle-down) span::before{content:""}:host(.triangle-left) span::before{content:""}:host(.triangle-right) span::before{content:""}:host(.triangle-up) span::before{content:""}:host(.twitter) span::before{content:""}:host(.unfold) span::before{content:""}:host(.unlock) span::before{content:""}:host(.unmute) span::before{content:""}:host(.unverified) span::before{content:""}:host(.verified) span::before{content:""}:host(.versions) span::before{content:""}:host(.vm-active) span::before{content:""}:host(.vm-outline) span::before{content:""}:host(.vm-running) span::before{content:""}:host(.watch) span::before{content:""}:host(.whitespace) span::before{content:""}:host(.whole-word) span::before{content:""}:host(.window) span::before{content:""}:host(.word-wrap) span::before{content:""}:host(.zoom-in) span::before{content:""}:host(.zoom-out) span::before{content:""}:host(.list-filter) span::before{content:""}:host(.list-flat) span::before{content:""}:host(.list-selection) span::before{content:""}:host(.selection) span::before{content:""}:host(.list-tree) span::before{content:""}:host(.debug-breakpoint-function-unverified) span::before{content:""}:host(.debug-breakpoint-function) span::before{content:""}:host(.debug-breakpoint-function-disabled) span::before{content:""}:host(.debug-stackframe-active) span::before{content:""}:host(.circle-small-filled) span::before{content:""}:host(.debug-stackframe-dot) span::before{content:""}:host(.terminal-decoration-mark) span::before{content:""}:host(.debug-stackframe) span::before{content:""}:host(.debug-stackframe-focused) span::before{content:""}:host(.debug-breakpoint-unsupported) span::before{content:""}:host(.symbol-string) span::before{content:""}:host(.debug-reverse-continue) span::before{content:""}:host(.debug-step-back) span::before{content:""}:host(.debug-restart-frame) span::before{content:""}:host(.debug-alt) span::before{content:""}:host(.call-incoming) span::before{content:""}:host(.call-outgoing) span::before{content:""}:host(.menu) span::before{content:""}:host(.expand-all) span::before{content:""}:host(.feedback) span::before{content:""}:host(.group-by-ref-type) span::before{content:""}:host(.ungroup-by-ref-type) span::before{content:""}:host(.account) span::before{content:""}:host(.bell-dot) span::before{content:""}:host(.debug-console) span::before{content:""}:host(.library) span::before{content:""}:host(.output) span::before{content:""}:host(.run-all) span::before{content:""}:host(.sync-ignored) span::before{content:""}:host(.pinned) span::before{content:""}:host(.github-inverted) span::before{content:""}:host(.server-process) span::before{content:""}:host(.server-environment) span::before{content:""}:host(.pass) span::before{content:""}:host(.issue-closed) span::before{content:""}:host(.stop-circle) span::before{content:""}:host(.play-circle) span::before{content:""}:host(.record) span::before{content:""}:host(.debug-alt-small) span::before{content:""}:host(.vm-connect) span::before{content:""}:host(.cloud) span::before{content:""}:host(.merge) span::before{content:""}:host(.export) span::before{content:""}:host(.graph-left) span::before{content:""}:host(.magnet) span::before{content:""}:host(.notebook) span::before{content:""}:host(.redo) span::before{content:""}:host(.check-all) span::before{content:""}:host(.pinned-dirty) span::before{content:""}:host(.pass-filled) span::before{content:""}:host(.circle-large-filled) span::before{content:""}:host(.circle-large) span::before{content:""}:host(.circle-large-outline) span::before{content:""}:host(.combine) span::before{content:""}:host(.gather) span::before{content:""}:host(.table) span::before{content:""}:host(.variable-group) span::before{content:""}:host(.type-hierarchy) span::before{content:""}:host(.type-hierarchy-sub) span::before{content:""}:host(.type-hierarchy-super) span::before{content:""}:host(.git-pull-request-create) span::before{content:""}:host(.run-above) span::before{content:""}:host(.run-below) span::before{content:""}:host(.notebook-template) span::before{content:""}:host(.debug-rerun) span::before{content:""}:host(.workspace-trusted) span::before{content:""}:host(.workspace-untrusted) span::before{content:""}:host(.workspace-unknown) span::before{content:""}:host(.terminal-cmd) span::before{content:""}:host(.terminal-debian) span::before{content:""}:host(.terminal-linux) span::before{content:""}:host(.terminal-powershell) span::before{content:""}:host(.terminal-tmux) span::before{content:""}:host(.terminal-ubuntu) span::before{content:""}:host(.terminal-bash) span::before{content:""}:host(.arrow-swap) span::before{content:""}:host(.copy) span::before{content:""}:host(.person-add) span::before{content:""}:host(.filter-filled) span::before{content:""}:host(.wand) span::before{content:""}:host(.debug-line-by-line) span::before{content:""}:host(.inspect) span::before{content:""}:host(.layers) span::before{content:""}:host(.layers-dot) span::before{content:""}:host(.layers-active) span::before{content:""}:host(.compass) span::before{content:""}:host(.compass-dot) span::before{content:""}:host(.compass-active) span::before{content:""}:host(.azure) span::before{content:""}:host(.issue-draft) span::before{content:""}:host(.git-pull-request-closed) span::before{content:""}:host(.git-pull-request-draft) span::before{content:""}:host(.debug-all) span::before{content:""}:host(.debug-coverage) span::before{content:""}:host(.run-errors) span::before{content:""}:host(.folder-library) span::before{content:""}:host(.debug-continue-small) span::before{content:""}:host(.beaker-stop) span::before{content:""}:host(.graph-line) span::before{content:""}:host(.graph-scatter) span::before{content:""}:host(.pie-chart) span::before{content:""}:host(.bracket) span::before{content:""}:host(.bracket-dot) span::before{content:""}:host(.bracket-error) span::before{content:""}:host(.lock-small) span::before{content:""}:host(.azure-devops) span::before{content:""}:host(.verified-filled) span::before{content:""}:host(.newline) span::before{content:""}:host(.layout) span::before{content:""}:host(.layout-activitybar-left) span::before{content:""}:host(.layout-activitybar-right) span::before{content:""}:host(.layout-panel-left) span::before{content:""}:host(.layout-panel-center) span::before{content:""}:host(.layout-panel-justify) span::before{content:""}:host(.layout-panel-right) span::before{content:""}:host(.layout-panel) span::before{content:""}:host(.layout-sidebar-left) span::before{content:""}:host(.layout-sidebar-right) span::before{content:""}:host(.layout-statusbar) span::before{content:""}:host(.layout-menubar) span::before{content:""}:host(.layout-centered) span::before{content:""}:host(.target) span::before{content:""}:host(.indent) span::before{content:""}:host(.record-small) span::before{content:""}:host(.error-small) span::before{content:""}:host(.terminal-decoration-error) span::before{content:""}:host(.arrow-circle-down) span::before{content:""}:host(.arrow-circle-left) span::before{content:""}:host(.arrow-circle-right) span::before{content:""}:host(.arrow-circle-up) span::before{content:""}:host(.layout-sidebar-right-off) span::before{content:""}:host(.layout-panel-off) span::before{content:""}:host(.layout-sidebar-left-off) span::before{content:""}:host(.blank) span::before{content:""}:host(.heart-filled) span::before{content:""}:host(.map) span::before{content:""}:host(.map-filled) span::before{content:""}:host(.circle-small) span::before{content:""}:host(.bell-slash) span::before{content:""}:host(.bell-slash-dot) span::before{content:""}:host(.comment-unresolved) span::before{content:""}:host(.git-pull-request-go-to-changes) span::before{content:""}:host(.git-pull-request-new-changes) span::before{content:""}:host(.search-fuzzy) span::before{content:""}:host(.comment-draft) span::before{content:""}:host(.send) span::before{content:""}:host(.sparkle) span::before{content:""}:host(.insert) span::before{content:""}`;
     __getStatic() {
         return Icon;
@@ -2949,9 +2946,11 @@ class Icon extends Aventus.WebComponent {
         return "Icon";
     }
 }
+Icon.Namespace=`${moduleName}`;
+_.Icon=Icon;
 if(!window.customElements.get('av-icon')){window.customElements.define('av-icon', Icon);Aventus.WebComponentInstance.registerDefinition(Icon);}
 
-class GeneralInformation extends Aventus.WebComponent {
+const GeneralInformation = class GeneralInformation extends Aventus.WebComponent {
     static __style = `:host>div{margin:16px 0}`;
     __getStatic() {
         return GeneralInformation;
@@ -2970,15 +2969,10 @@ class GeneralInformation extends Aventus.WebComponent {
         return "GeneralInformation";
     }
 }
+GeneralInformation.Namespace=`${moduleName}`;
+_.GeneralInformation=GeneralInformation;
 if(!window.customElements.get('av-general-information')){window.customElements.define('av-general-information', GeneralInformation);Aventus.WebComponentInstance.registerDefinition(GeneralInformation);}
-dependances.Message=Message;
-Message.Namespace='dependances';
-dependances.ConfigurationEditor=ConfigurationEditor;
-ConfigurationEditor.Namespace='dependances';
-dependances.Dependances=Dependances;
-Dependances.Namespace='dependances';
-dependances.Icon=Icon;
-Icon.Namespace='dependances';
-dependances.GeneralInformation=GeneralInformation;
-GeneralInformation.Namespace='dependances';
+
+
+for(let key in _) { dependances[key] = _[key] }
 })(dependances);

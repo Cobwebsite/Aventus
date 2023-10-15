@@ -83,8 +83,8 @@ namespace Navigation {
                                 await Aventus.ResourceLoader.loadInHead(options.scriptUrl);
                             }
 
-                            let constructor = options.render();
-                            element = new constructor;
+                            let cst = options.render();
+                            element = new cst;
                             element.currentRouter = this;
                             this.contentEl.appendChild(element);
                         }

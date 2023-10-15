@@ -69,6 +69,7 @@ export class AventusWebcomponentCompiler {
     private fileParsed: ParserTs | null;
     private classInfo: ClassInfo | undefined;
     private className: string = "";
+    private fullName: string = "";
     private tagName: string = "";
     private htmlParsed: ParserHtml | undefined;
     private htmlParsedResult: HtmlTemplateResult | undefined;
@@ -294,6 +295,7 @@ export class AventusWebcomponentCompiler {
                 this.tagName = splittedName.join("-").toLowerCase();
             }
             this.className = classInfo.name;
+            this.fullName = classInfo.fullName;
             this.parentClassName = 'Aventus.WebComponent';
             if (classInfo.extends.length > 0 && classInfo.extends[0]) {
                 this.parentClassName = classInfo.extends[0];
@@ -334,7 +336,7 @@ export class AventusWebcomponentCompiler {
         for (let propName in classInfo.properties) {
             let property = classInfo.properties[propName];
             let found = false;
-            let cloneProp = new CustomFieldModel(property.prop, property.isInsideInterface);
+            let cloneProp = new CustomFieldModel(property.prop, property.isInsideInterface, classInfo);
             for (let decorator of property.decorators) {
                 if (decorator.name == "Attribute") {
                     cloneProp.propType = 'Attribute';
@@ -440,15 +442,30 @@ export class AventusWebcomponentCompiler {
     private writeFileName() {
         this.writeFileReplaceVar("classname", this.className)
         this.writeFileReplaceVar("parentClass", this.parentClassName);
+        if (this.fullName.includes(".")) {
+            this.writeFileReplaceVar("fullname", this.fullName);
+            let currentNamespaceWithDot = "." + this.classInfo?.namespace;
+            this.writeFileReplaceVar("namespace", this.fullName + ".Namespace=`${moduleName}" + currentNamespaceWithDot + "`;");
+        }
+        else {
+            this.writeFileReplaceVar("fullname", "const " + this.fullName);
+            this.writeFileReplaceVar("namespace", this.fullName + ".Namespace=`${moduleName}`;");
+        }
+        if(this.classInfo?.isExported) {
+            this.writeFileReplaceVar("exported", "_." + this.fullName + "=" + this.fullName+";");
+        }
+        else {
+            this.writeFileReplaceVar("exported", "");
+        }
         if (this.classInfo?.isAbstract) {
             this.writeFileReplaceVar("definition", "")
         }
         else {
             if (this.build.isCoreBuild) {
-                this.writeFileReplaceVar("definition", "if(!window.customElements.get('" + this.tagName + "')){window.customElements.define('" + this.tagName + "', " + this.className + ");WebComponentInstance.registerDefinition(" + this.className + ");}")
+                this.writeFileReplaceVar("definition", "if(!window.customElements.get('" + this.tagName + "')){window.customElements.define('" + this.tagName + "', " + this.fullName + ");WebComponentInstance.registerDefinition(" + this.fullName + ");}")
             }
             else {
-                this.writeFileReplaceVar("definition", "if(!window.customElements.get('" + this.tagName + "')){window.customElements.define('" + this.tagName + "', " + this.className + ");Aventus.WebComponentInstance.registerDefinition(" + this.className + ");}")
+                this.writeFileReplaceVar("definition", "if(!window.customElements.get('" + this.tagName + "')){window.customElements.define('" + this.tagName + "', " + this.fullName + ");Aventus.WebComponentInstance.registerDefinition(" + this.fullName + ");}")
             }
         }
     }
@@ -562,7 +579,7 @@ export class AventusWebcomponentCompiler {
             }
             else if (field.propType == "ViewElement") {
                 viewsElements[field.name] = field;
-                if(!field.overrideNullable) {
+                if (!field.overrideNullable) {
                     this.result.diagnostics.push(createErrorTsPos(this.document, "You must add ! after the name to avoid undefined value", field.nameStart, field.nameEnd, AventusErrorCode.ExclamationMarkMissing));
                 }
             }
@@ -601,11 +618,11 @@ export class AventusWebcomponentCompiler {
         if (this.classInfo) {
             for (let fieldName in this.classInfo.propertiesStatic) {
                 let field = this.classInfo.propertiesStatic[fieldName];
-                fullTxt += AventusTsLanguageService.removeDecoratorFromContent(field.content, field.decorators) + EOL;
+                fullTxt += AventusTsLanguageService.removeDecoratorFromContent(field.compiledContent, field.decorators) + EOL;
             }
         }
         for (let field of fields) {
-            fullTxt += AventusTsLanguageService.removeDecoratorFromContent(field.content, field.decorators) + EOL;
+            fullTxt += AventusTsLanguageService.removeDecoratorFromContent(field.compiledContent, field.decorators) + EOL;
         }
         let fullClassFields = `class MyCompilationClassAventus {${fullTxt}}`;
         let fieldsCompiled = transpile(fullClassFields, AventusTsLanguageService.getCompilerOptionsCompile());
@@ -1512,7 +1529,7 @@ this.clearWatchHistory = () => {
                         "Can't find the variable " + name + " inside the view",
                         field.nameStart,
                         field.nameEnd, AventusErrorCode.viewElementNotFound,
-                        { start: field.fullStart, end: field.fullEnd }
+                        { start: field.start, end: field.end }
                     )
                 );
             }
@@ -1523,7 +1540,7 @@ this.clearWatchHistory = () => {
                 "Can't find the variable " + name + " inside the view",
                 field.nameStart,
                 field.nameEnd, AventusErrorCode.viewElementNotFound,
-                { start: field.fullStart, end: field.fullEnd }
+                { start: field.start, end: field.end }
             ));
         }
     }
@@ -1548,7 +1565,7 @@ this.clearWatchHistory = () => {
             let fullTxt = ""
             for (let methodName in this.classInfo.methods) {
                 let method = this.classInfo.methods[methodName];
-                fullTxt += AventusTsLanguageService.removeDecoratorFromContent(method.content, method.decorators) + EOL;
+                fullTxt += AventusTsLanguageService.removeDecoratorFromContent(method.compiledContent, method.decorators) + EOL;
                 for (let decorator of method.decorators) {
                     if (BindThisDecorator.is(decorator)) {
                         this.extraConstructorCode.push(`this.${methodName}=this.${methodName}.bind(this)`);
@@ -1671,14 +1688,7 @@ this.clearWatchHistory = () => {
         }
         return methodTxt;
     }
-    private transpileMethod(methodTxt, paramsName: any[] = []) {
-        methodTxt = this.prepareMethodToTranspile(methodTxt);
-        let method = transpile(methodTxt, AventusTsLanguageService.getCompilerOptionsCompile()).trim();
-        method = method.substring(0, method.length - 1);
-        method = "(" + method + ")(" + paramsName.join(",") + ")";
-        // method = minify(method, { mangle: false }).code;
-        return method;
-    }
+    
     private transpileMethodNoRun(methodTxt) {
         methodTxt = this.prepareMethodToTranspile(methodTxt);
         let method = transpile(methodTxt, AventusTsLanguageService.getCompilerOptionsCompile()).trim();
@@ -1710,7 +1720,7 @@ this.clearWatchHistory = () => {
         else if (type.kind == "union") {
             let firstNested: TypeInfo | undefined;
             for (let nested of type.nested) {
-                if(nested.kind == 'undefined') {
+                if (nested.kind == 'undefined') {
                     field.isNullable = true;
                 }
                 if (!firstNested) {

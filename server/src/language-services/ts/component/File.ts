@@ -143,22 +143,23 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
             }
         }
         if (!this.build.reloadPage && reloadComp && classInfo) {
+            srcToUpdate = srcToUpdate.slice(srcToUpdate.indexOf("="));
             srcToUpdate = srcToUpdate.replace(/if\(\!window\.customElements\.get\(.*$/gm, '');
             
             // TODO check side effects => maybe use real position instead of regex
-            for (let dependance of classInfo.dependances) {
-                if (dependance.uri == "@local") {
-                    let fullName = dependance.fullName.replace("$namespace$", this.buildNamespace);
-                    let regexp = new RegExp("(" + dependance.fullName.replace("$namespace$", "") + ")(\\(|\\.|,|;| )", 'g');
-                    srcToUpdate = srcToUpdate.replace(regexp, fullName + "$2");
-                }
-                else if (dependance.uri != "@external") {
-                    let namespace = this.build.getNamespace(dependance.uri);
-                    let fullName = dependance.fullName.replace("$namespace$", namespace);
-                    let regexp = new RegExp("(" + dependance.fullName.replace("$namespace$", "") + ")(\\(|\\.|,|;| )", 'g');
-                    srcToUpdate = srcToUpdate.replace(regexp, fullName + "$2");
-                }
-            }
+            // for (let dependance of classInfo.dependances) {
+            //     if (dependance.uri == "@local") {
+            //         let fullName = dependance.fullName.replace("$namespace$", this.buildNamespace);
+            //         let regexp = new RegExp("(" + dependance.fullName.replace("$namespace$", "") + ")(\\(|\\.|,|;| )", 'g');
+            //         srcToUpdate = srcToUpdate.replace(regexp, fullName + "$2");
+            //     }
+            //     else if (dependance.uri != "@external") {
+            //         let namespace = this.build.getNamespace(dependance.uri);
+            //         let fullName = dependance.fullName.replace("$namespace$", namespace);
+            //         let regexp = new RegExp("(" + dependance.fullName.replace("$namespace$", "") + ")(\\(|\\.|,|;| )", 'g');
+            //         srcToUpdate = srcToUpdate.replace(regexp, fullName + "$2");
+            //     }
+            // }
             let namespace = this.buildNamespace;
             if (classInfo.namespace) {
                 namespace += classInfo.namespace;
