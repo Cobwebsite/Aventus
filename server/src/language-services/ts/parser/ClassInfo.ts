@@ -64,7 +64,7 @@ export class ClassInfo extends BaseInfo {
 				})
 			}
 			else if (x.kind == SyntaxKind.PropertyDeclaration) {
-				let propInfo = new PropertyInfo(x as PropertyDeclaration, this.isInterface);
+				let propInfo = new PropertyInfo(x as PropertyDeclaration, this.isInterface, this);
 				if (propInfo.isStatic) {
 					this.propertiesStatic[propInfo.name] = propInfo;
 				}
@@ -81,7 +81,7 @@ export class ClassInfo extends BaseInfo {
 			}
 			else if (x.kind == SyntaxKind.GetAccessor) {
 				let prop = x as GetAccessorDeclaration;
-				let propInfo = new PropertyInfo(prop, this.isInterface);
+				let propInfo = new PropertyInfo(prop, this.isInterface, this);
 				if (propInfo.isStatic) {
 					this.propertiesStatic[propInfo.name] = propInfo;
 				}
@@ -97,7 +97,7 @@ export class ClassInfo extends BaseInfo {
 			}
 			else if (x.kind == SyntaxKind.SetAccessor) {
 				let prop = x as SetAccessorDeclaration;
-				let propInfo = new PropertyInfo(prop, this.isInterface);
+				let propInfo = new PropertyInfo(prop, this.isInterface, this);
 				if (propInfo.isStatic) {
 					this.propertiesStatic[propInfo.name] = propInfo;
 				}
@@ -123,12 +123,15 @@ export class ClassInfo extends BaseInfo {
 						this.addDependance(param.type, false);
 					}
 				}
+				if(this.name == "AppList") {
+					console.log("in");
+				}
 				forEachChild(x, y => {
 					if (y.kind == SyntaxKind.Block) {
 						this.loadOnlyDependancesRecu(y);
 					}
 				})
-				let methodInfo = new MethodInfo(x as MethodDeclaration)
+				let methodInfo = new MethodInfo(x as MethodDeclaration, this);
 				this.methods[methodInfo.name] = methodInfo;
 				this.methodParameters = [];
 			}
@@ -162,7 +165,9 @@ export class ClassInfo extends BaseInfo {
 							}
 						}
 					}
-					this.loadOnlyDependancesRecu(x, 0, true);
+					forEachChild(x, y => {
+						this.loadOnlyDependancesRecu(y, 0, true);
+					})
 				}
 			})
 		}

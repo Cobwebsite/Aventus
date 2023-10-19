@@ -1,4 +1,4 @@
-class Dependances extends Aventus.WebComponent {
+const Dependances = class Dependances extends Aventus.WebComponent {
     get 'no_deps'() {
                 return this.hasAttribute('no_deps');
             }
@@ -76,5 +76,7 @@ class Dependances extends Aventus.WebComponent {
     __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('no_deps'); }
     __listBoolProps() { return ["no_deps"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
 }
+Dependances.Namespace=`${moduleName}`;
+_.Dependances=Dependances;
 if(!window.customElements.get('av-dependances')){window.customElements.define('av-dependances', Dependances);Aventus.WebComponentInstance.registerDefinition(Dependances);}
 

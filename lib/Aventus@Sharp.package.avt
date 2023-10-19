@@ -10,6 +10,66 @@ abstract class Storable extends Aventus.Data implements Aventus.IData {
 }
 }
 
+type ExtendWsEventsType<T, U extends string> = T extends readonly ({
+    type: WsEventType;
+    path?: string;
+} | WsEventType)[] ? T extends readonly [infer T extends ({
+    type: WsEventType;
+    path?: string;
+} | WsEventType), ...infer R extends readonly ({
+    type: WsEventType;
+    path?: string;
+} | WsEventType)[]] ? T extends WsEventType ? [ExtendWsEventType<T, U, ''>, ...ExtendWsEventsType<R, U>] : T extends {
+    type: WsEventType;
+    path?: string;
+} ? [ExtendWsEventType<T['type'], U, T['path']>, ...ExtendWsEventsType<R, U>] : never : [] : never;
+
+type ExtendWsEventType<T, U extends string, V extends string | undefined> = T extends WsEventType ? U extends "" ? {
+    type: T;
+    path: V;
+} : V | undefined extends "" ? {
+    type: T;
+    path: "";
+} : {
+    type: T;
+    path: Aventus.Join<[U, V], ".">;
+} : never;
+
+type ExtendWsRoutesType<T, U extends string> = T extends readonly ({
+    type: WsRouteType;
+    path?: string;
+} | WsRouteType)[] ? T extends readonly [infer T extends ({
+    type: WsRouteType;
+    path?: string;
+} | WsRouteType), ...infer R extends readonly ({
+    type: WsRouteType;
+    path?: string;
+} | WsRouteType)[]] ? T extends WsRouteType ? [ExtendWsRouteType<T, U, ''>, ...ExtendWsRoutesType<R, U>] : T extends {
+    type: WsRouteType;
+    path?: string;
+} ? [ExtendWsRouteType<T['type'], U, T['path']>, ...ExtendWsRoutesType<R, U>] : never : [] : never;
+
+type ExtendWsRouteType<T, U extends string, V extends string | undefined> = T extends WsRouteType ? U extends "" ? {
+    type: T;
+    path: V;
+} : V | undefined extends "" ? {
+    type: T;
+    path: "";
+} : {
+    type: T;
+    path: Aventus.Join<[U, V], ".">;
+} : never;
+
+type WsEndPointType = (abstract new (...args: any[]) => WsEndPoint);
+
+type WsEventType = abstract new (...args: any[]) => WsEvent;
+
+type WsRouteType = abstract new (...args: any[]) => WsRoute;
+
+interface WsRouterOptions {
+    url: string;
+}
+
 namespace RAM {
 abstract class RamHttp<T extends Storable> extends Aventus.Ram<T> {
     protected getAllDone: boolean;
@@ -27,6 +87,87 @@ abstract class RamHttp<T extends Storable> extends Aventus.Ram<T> {
     protected beforeDeleteList(list: T[], result: Aventus.VoidWithError): Promise<void>;
 }
 }
+
+namespace WebSocket {
+enum WsErrorCode {
+    UnknowError = 0,
+    CantDefineAssembly = 1,
+    ConfigError = 2,
+    MultipleMainEndpoint = 3,
+    CantGetValueFromBody = 4,
+    NoConnection = 5
+}
+}
+
+namespace Socket {
+abstract class WsEvent<T extends any = any> {
+    protected endpoint: Socket.WsEndPoint;
+    protected abstract get path(): string;
+    onTrigger: Aventus.Callback<(item: T) => void>;
+    constructor(endpoint: WsEndPoint);
+    protected configure(): void;
+    protected onEvent(data: T): void;
+}
+}
+
+namespace Socket {
+class WsRoute {
+    protected endpoint: Socket.WsEndPoint;
+    constructor(endpoint: WsEndPoint);
+}
+}
+
+namespace Socket {
+abstract class WsEndPoint extends Aventus.Socket {
+    static With<const T extends {
+        routes: readonly {
+            type: WsRouteType;
+            path: string;
+        }[];
+        events: readonly {
+            type: WsEventType;
+            path: string;
+        }[];
+    }>(options: T): Aventus.MixProto<Aventus.MixProto<typeof WsEndPoint, MergeWsRoutesType<T["routes"]>, "routes">, MergeWsEventsType<T["events"]>, "events">;
+    private _routes;
+    private _events;
+    constructor();
+    private createProxy;
+    /**
+     * @inheritdoc
+     */
+    protected configure(options: Aventus.SocketOptions): Aventus.SocketOptions;
+    protected abstract get path(): string;
+}
+}
+
+type MergeWsEventsType<T> = T extends readonly ({
+    type: WsEventType;
+    path?: string;
+} | WsEventType)[] ? T extends readonly [infer T extends ({
+    type: WsEventType;
+    path?: string;
+} | WsEventType), ...infer R extends readonly ({
+    type: WsEventType;
+    path?: string;
+} | WsEventType)[]] ? T extends WsEventType ? Aventus.MixProto<MergeWsEventsType<R>, T, ''> : T extends {
+    type: WsEventType;
+    path?: string;
+} ? T['path'] extends string ? Aventus.MixProto<MergeWsEventsType<R>, T['type'], T['path']> : Aventus.MixProto<MergeWsEventsType<R>, T['type'], ''> : never : typeof WsEvent : never;
+
+type MergeWsRoutesType<T> = T extends readonly ({
+    type: WsRouteType;
+    path?: string;
+} | WsRouteType)[] ? T extends readonly [infer T extends ({
+    type: WsRouteType;
+    path?: string;
+} | WsRouteType), ...infer R extends readonly ({
+    type: WsRouteType;
+    path?: string;
+} | WsRouteType)[]] ? T extends WsRouteType ? Aventus.MixProto<MergeWsRoutesType<R>, T, ''> : T extends {
+    type: WsRouteType;
+    path?: string;
+} ? T['path'] extends string ? Aventus.MixProto<MergeWsRoutesType<R>, T['type'], T['path']> : Aventus.MixProto<MergeWsRoutesType<R>, T['type'], ''> : never : typeof WsRoute : never;
 
 namespace Routes {
 abstract class StorableRoute<T extends Aventus.IData> extends Aventus.HttpRoute {
@@ -102,7 +243,8 @@ enum DataErrorCode {
     WhereNotAllowed = 27,
     CreateNotAllowed = 28,
     UpdateNotAllowed = 29,
-    DeleteNotAllowed = 30
+    DeleteNotAllowed = 30,
+    NumberOfItemsNotMatching = 31
 }
 }
 
@@ -122,7 +264,7 @@ class VoidWithError<T extends Aventus.GenericError = Aventus.GenericError> exten
 
 namespace Data {
 @Convertible()
-class VoidWithDataError extends VoidWithError<Data.DataError> {
+class VoidWithDataError extends Tools.VoidWithError<Data.DataError> {
     static get Fullname(): string;
 }
 }
@@ -136,8 +278,71 @@ class ResultWithError<T, U extends Aventus.GenericError = Aventus.GenericError> 
 
 namespace Data {
 @Convertible()
-class ResultWithDataError<T> extends ResultWithError<T, Data.DataError> {
+class ResultWithDataError<T> extends Tools.ResultWithError<T, Data.DataError> {
     static get Fullname(): string;
+}
+}
+
+namespace WebSocket {
+class StorableWsRoute_DeleteMany<T> extends Socket.WsEvent<Data.ResultWithDataError<T[]>> {
+    /**
+     * @inheritdoc
+     */
+    protected get path(): string;
+}
+}
+
+namespace WebSocket {
+class StorableWsRoute_Delete<T> extends Socket.WsEvent<Data.ResultWithDataError<T>> {
+    /**
+     * @inheritdoc
+     */
+    protected get path(): string;
+}
+}
+
+namespace WebSocket {
+class StorableWsRoute_UpdateMany<T> extends Socket.WsEvent<Data.ResultWithDataError<T[]>> {
+    /**
+     * @inheritdoc
+     */
+    protected get path(): string;
+}
+}
+
+namespace WebSocket {
+class StorableWsRoute_Update<T> extends Socket.WsEvent<Data.ResultWithDataError<T>> {
+    /**
+     * @inheritdoc
+     */
+    protected get path(): string;
+}
+}
+
+namespace WebSocket {
+class StorableWsRoute_GetById<T> extends Socket.WsEvent<Data.ResultWithDataError<T>> {
+    /**
+     * @inheritdoc
+     */
+    protected get path(): string;
+}
+}
+
+namespace WebSocket {
+class StorableWsRoute_CreateMany<T> extends Socket.WsEvent<Data.ResultWithDataError<T[]>> {
+    /**
+     * @inheritdoc
+     */
+    protected get path(): string;
+}
+}
+
+namespace WebSocket {
+class StorableWsRoute_Create<T> extends Socket.WsEvent<Data.ResultWithDataError<T>> {
+    /**
+     * @inheritdoc
+     */
+    protected get path(): string;
 }
 }
 
@@ -150,14 +355,79 @@ class RouteError extends Aventus.GenericError<Routes.RouteErrorCode> {
 
 namespace Routes {
 @Convertible()
-class ResultWithRouteError<T> extends ResultWithError<T, Routes.RouteError> {
+class ResultWithRouteError<T> extends Tools.ResultWithError<T, Routes.RouteError> {
     static get Fullname(): string;
 }
 }
 
 namespace Routes {
 @Convertible()
-class VoidWithRouteError extends VoidWithError<Routes.RouteError> {
+class VoidWithRouteError extends Tools.VoidWithError<Routes.RouteError> {
+    static get Fullname(): string;
+}
+}
+
+namespace WebSocket {
+abstract class StorableWsRoute<T extends Aventus.IData> extends Socket.WsRoute {
+    events: {
+        GetAll: StorableWsRoute_GetAll<T>;
+        Create: StorableWsRoute_Create<T>;
+        CreateMany: StorableWsRoute_CreateMany<T>;
+        GetById: StorableWsRoute_GetById<T>;
+        Update: StorableWsRoute_Update<T>;
+        UpdateMany: StorableWsRoute_UpdateMany<T>;
+        Delete: StorableWsRoute_Delete<T>;
+        DeleteMany: StorableWsRoute_DeleteMany<T>;
+    };
+    constructor(endpoint: WsEndPoint);
+    GetAll(): unknown;
+    Create(body: {
+        item: T;
+    } | FormData): unknown;
+    CreateMany(body: {
+        list: T[];
+    } | FormData): unknown;
+    GetById(id: number): unknown;
+    Update(id: number, body: {
+        item: T;
+    } | FormData): unknown;
+    UpdateMany(body: {
+        list: T[];
+    } | FormData): unknown;
+    Delete(id: number): unknown;
+    DeleteMany(body: {
+        ids: number[];
+    } | FormData): unknown;
+    abstract StorableName(): string;
+}
+}
+
+namespace WebSocket {
+class StorableWsRoute_GetAll<T> extends Socket.WsEvent<Data.ResultWithDataError<T[]>> {
+    /**
+     * @inheritdoc
+     */
+    protected get path(): string;
+}
+}
+
+namespace WebSocket {
+@Convertible()
+class WsError extends Aventus.GenericError<WebSocket.WsErrorCode> {
+    static get Fullname(): string;
+}
+}
+
+namespace WebSocket {
+@Convertible()
+class ResultWithWsError<T> extends Tools.ResultWithError<T, WebSocket.WsError> {
+    static get Fullname(): string;
+}
+}
+
+namespace WebSocket {
+@Convertible()
+class VoidWithWsError extends Tools.VoidWithError<WebSocket.WsError> {
     static get Fullname(): string;
 }
 }
@@ -166,7 +436,7 @@ class VoidWithRouteError extends VoidWithError<Routes.RouteError> {
 }
 //#endregion js def //
 //#region js src //
-{"namespace":"AventusSharp","available":[{"code":"class Storable extends Aventus.Data {\n    id = null;\n    createdDate = new Date();\n    updatedDate = new Date();\n}\nStorable.$schema={\"id\":\"number\",\"createdDate\":\"Date\",\"updatedDate\":\"Date\"};","dependances":[{"fullName":"Aventus.Data","isStrong":true},{"fullName":"Aventus.IData","isStrong":true},{"fullName":"Date","isStrong":false}],"fullName":"AventusSharp.Data.Storable","required":false,"type":2,"isExported":true,"convertibleName":""},{"code":"class RamHttp extends Aventus.Ram {\n    getAllDone = false;\n    routes;\n    constructor() {\n        super();\n        this.routes = this.defineRoutes();\n    }\n    async beforeGetAll(result) {\n        if (!this.getAllDone) {\n            let response = await this.routes.GetAll();\n            if (response.success) {\n                for (let item of response.result) {\n                    let resultTemp = new Aventus.ResultRamWithError();\n                    this.addOrUpdateData(item, resultTemp);\n                    if (!resultTemp.success) {\n                        result.errors = [...result.errors, ...resultTemp.errors];\n                    }\n                }\n            }\n            else {\n                result.errors = [...result.errors, ...response.errors];\n            }\n        }\n    }\n    async beforeGetById(id, result) {\n        if (this.records.has(id)) {\n            return;\n        }\n        else {\n            let response = await this.routes.GetById(id);\n            if (response.success) {\n                let resultTemp = new Aventus.ResultRamWithError();\n                this.addOrUpdateData(response.result, resultTemp);\n                if (!resultTemp.success) {\n                    result.errors = [...result.errors, ...resultTemp.errors];\n                }\n            }\n            else {\n                result.errors = [...result.errors, ...response.errors];\n            }\n        }\n    }\n    async beforeGetByIds(ids, result) {\n        let missingIds = [];\n        for (let id of ids) {\n            if (!this.records.has(id)) {\n                missingIds.push(id);\n            }\n        }\n        if (missingIds.length > 0) {\n            for (let id of missingIds) {\n                let resultTemp = new Aventus.ResultRamWithError();\n                await this.beforeGetById(id, resultTemp);\n                if (!resultTemp.success) {\n                    result.errors = [...result.errors, ...resultTemp.errors];\n                }\n            }\n        }\n    }\n    async beforeCreateItem(item, fromList, result) {\n        if (fromList) {\n            return;\n        }\n        let response = await this.routes.Create({ item });\n        if (response.success) {\n            result.result = this.getObjectForRam(response.result);\n        }\n        else {\n            result.errors = [...result.errors, ...response.errors];\n        }\n    }\n    async beforeCreateList(list, result) {\n        let response = await this.routes.CreateMany({ list });\n        if (response.success) {\n            result.result = [];\n            for (let element of response.result) {\n                result.result.push(this.getObjectForRam(element));\n            }\n        }\n        else {\n            result.errors = [...result.errors, ...response.errors];\n        }\n    }\n    async beforeUpdateItem(item, fromList, result) {\n        if (fromList) {\n            return;\n        }\n        let response = await this.routes.Update(item.id, { item });\n        if (response.success) {\n            result.result = this.getObjectForRam(response.result);\n        }\n        else {\n            result.errors = [...result.errors, ...response.errors];\n        }\n    }\n    async beforeUpdateList(list, result) {\n        let response = await this.routes.UpdateMany({ list });\n        if (response.success) {\n            result.result = [];\n            for (let element of response.result) {\n                result.result.push(this.getObjectForRam(element));\n            }\n        }\n        else {\n            result.errors = [...result.errors, ...response.errors];\n        }\n    }\n    async beforeDeleteItem(item, fromList, result) {\n        if (fromList) {\n            return;\n        }\n        let response = await this.routes.Delete(item.id);\n        if (!response.success) {\n            result.errors = [...result.errors, ...response.errors];\n        }\n    }\n    async beforeDeleteList(list, result) {\n        let response = await this.routes.DeleteMany({ ids: list.map(t => t.id) });\n        if (!response.success) {\n            result.errors = [...result.errors, ...response.errors];\n        }\n    }\n}\n","dependances":[{"fullName":"Aventus.Ram","isStrong":true},{"fullName":"AventusSharp.Routes.StorableRoute","isStrong":false},{"fullName":"Aventus.ResultRamWithError","isStrong":false},{"fullName":"Map","isStrong":false},{"fullName":"Aventus.RamItem","isStrong":false},{"fullName":"Aventus.VoidWithError","isStrong":false}],"fullName":"AventusSharp.RAM.RamHttp","required":false,"type":1,"isExported":true,"convertibleName":""},{"code":"class StorableRoute extends Aventus.HttpRoute {\n    async GetAll() {\n        const request = new Aventus.HttpRequest(`/${this.StorableName()}`, Aventus.HttpMethod.GET);\n        return await request.queryJSON(this.router);\n    }\n    async Create(body) {\n        const request = new Aventus.HttpRequest(`/${this.StorableName()}`, Aventus.HttpMethod.POST);\n        request.setBody(body);\n        return await request.queryJSON(this.router);\n    }\n    async CreateMany(body) {\n        const request = new Aventus.HttpRequest(`/${this.StorableName()}s`, Aventus.HttpMethod.POST);\n        request.setBody(body);\n        return await request.queryJSON(this.router);\n    }\n    async GetById(id) {\n        const request = new Aventus.HttpRequest(`/${this.StorableName()}/${id}`, Aventus.HttpMethod.GET);\n        return await request.queryJSON(this.router);\n    }\n    async Update(id, body) {\n        const request = new Aventus.HttpRequest(`/${this.StorableName()}/${id}`, Aventus.HttpMethod.PUT);\n        request.setBody(body);\n        return await request.queryJSON(this.router);\n    }\n    async UpdateMany(body) {\n        const request = new Aventus.HttpRequest(`/${this.StorableName()}s`, Aventus.HttpMethod.PUT);\n        request.setBody(body);\n        return await request.queryJSON(this.router);\n    }\n    async Delete(id) {\n        const request = new Aventus.HttpRequest(`/${this.StorableName()}/${id}`, Aventus.HttpMethod.DELETE);\n        return await request.queryJSON(this.router);\n    }\n    async DeleteMany(body) {\n        const request = new Aventus.HttpRequest(`/${this.StorableName()}s`, Aventus.HttpMethod.DELETE);\n        request.setBody(body);\n        return await request.queryJSON(this.router);\n    }\n}\n","dependances":[{"fullName":"Aventus.HttpRoute","isStrong":true},{"fullName":"Aventus.HttpRequest","isStrong":false},{"fullName":"Aventus.HttpMethod","isStrong":false},{"fullName":"TypeResult","isStrong":false},{"fullName":"FormData","isStrong":false}],"fullName":"AventusSharp.Routes.StorableRoute","required":false,"type":1,"isExported":true,"convertibleName":""},{"code":"var RouteErrorCode;\n(function (RouteErrorCode) {\n    RouteErrorCode[RouteErrorCode[\"UnknowError\"] = 0] = \"UnknowError\";\n    RouteErrorCode[RouteErrorCode[\"FormContentTypeUnknown\"] = 1] = \"FormContentTypeUnknown\";\n    RouteErrorCode[RouteErrorCode[\"CantGetValueFromBody\"] = 2] = \"CantGetValueFromBody\";\n})(RouteErrorCode || (RouteErrorCode = {}));\n","dependances":[],"fullName":"AventusSharp.Routes.RouteErrorCode","required":false,"type":6,"isExported":true,"convertibleName":""},{"code":"var DataErrorCode;\n(function (DataErrorCode) {\n    DataErrorCode[DataErrorCode[\"DefaultDMGenericType\"] = 0] = \"DefaultDMGenericType\";\n    DataErrorCode[DataErrorCode[\"DMOnlyForceInherit\"] = 1] = \"DMOnlyForceInherit\";\n    DataErrorCode[DataErrorCode[\"TypeNotStorable\"] = 2] = \"TypeNotStorable\";\n    DataErrorCode[DataErrorCode[\"TypeTooMuchStorable\"] = 3] = \"TypeTooMuchStorable\";\n    DataErrorCode[DataErrorCode[\"GenericNotAbstract\"] = 4] = \"GenericNotAbstract\";\n    DataErrorCode[DataErrorCode[\"ParentNotAbstract\"] = 5] = \"ParentNotAbstract\";\n    DataErrorCode[DataErrorCode[\"InfiniteLoop\"] = 6] = \"InfiniteLoop\";\n    DataErrorCode[DataErrorCode[\"InterfaceNotUnique\"] = 7] = \"InterfaceNotUnique\";\n    DataErrorCode[DataErrorCode[\"SelfReferecingDependance\"] = 8] = \"SelfReferecingDependance\";\n    DataErrorCode[DataErrorCode[\"DMNotExist\"] = 9] = \"DMNotExist\";\n    DataErrorCode[DataErrorCode[\"DMAlreadyExist\"] = 10] = \"DMAlreadyExist\";\n    DataErrorCode[DataErrorCode[\"MethodNotFound\"] = 11] = \"MethodNotFound\";\n    DataErrorCode[DataErrorCode[\"StorageDisconnected\"] = 12] = \"StorageDisconnected\";\n    DataErrorCode[DataErrorCode[\"StorageNotFound\"] = 13] = \"StorageNotFound\";\n    DataErrorCode[DataErrorCode[\"NoConnectionInsideStorage\"] = 14] = \"NoConnectionInsideStorage\";\n    DataErrorCode[DataErrorCode[\"TypeNotExistInsideStorage\"] = 15] = \"TypeNotExistInsideStorage\";\n    DataErrorCode[DataErrorCode[\"UnknowError\"] = 16] = \"UnknowError\";\n    DataErrorCode[DataErrorCode[\"NoItemProvided\"] = 17] = \"NoItemProvided\";\n    DataErrorCode[DataErrorCode[\"NoTransactionInProgress\"] = 18] = \"NoTransactionInProgress\";\n    DataErrorCode[DataErrorCode[\"WrongType\"] = 19] = \"WrongType\";\n    DataErrorCode[DataErrorCode[\"NoTypeIdentifierFoundInsideQuery\"] = 20] = \"NoTypeIdentifierFoundInsideQuery\";\n    DataErrorCode[DataErrorCode[\"ItemNoExistInsideStorage\"] = 21] = \"ItemNoExistInsideStorage\";\n    DataErrorCode[DataErrorCode[\"ItemAlreadyExist\"] = 22] = \"ItemAlreadyExist\";\n    DataErrorCode[DataErrorCode[\"ValidationError\"] = 23] = \"ValidationError\";\n    DataErrorCode[DataErrorCode[\"GetAllNotAllowed\"] = 24] = \"GetAllNotAllowed\";\n    DataErrorCode[DataErrorCode[\"GetByIdNotAllowed\"] = 25] = \"GetByIdNotAllowed\";\n    DataErrorCode[DataErrorCode[\"GetByIdsNotAllowed\"] = 26] = \"GetByIdsNotAllowed\";\n    DataErrorCode[DataErrorCode[\"WhereNotAllowed\"] = 27] = \"WhereNotAllowed\";\n    DataErrorCode[DataErrorCode[\"CreateNotAllowed\"] = 28] = \"CreateNotAllowed\";\n    DataErrorCode[DataErrorCode[\"UpdateNotAllowed\"] = 29] = \"UpdateNotAllowed\";\n    DataErrorCode[DataErrorCode[\"DeleteNotAllowed\"] = 30] = \"DeleteNotAllowed\";\n})(DataErrorCode || (DataErrorCode = {}));\n","dependances":[],"fullName":"AventusSharp.Data.DataErrorCode","required":false,"type":6,"isExported":true,"convertibleName":""},{"code":"class DataError extends Aventus.GenericError {\n    static get Fullname() { return \"AventusSharp.Data.DataError, AventusSharp\"; }\n}\n","dependances":[{"fullName":"Aventus.GenericError","isStrong":true},{"fullName":"AventusSharp.Data.DataErrorCode","isStrong":true}],"fullName":"AventusSharp.Data.DataError","required":false,"type":1,"isExported":true,"convertibleName":"Fullname"},{"code":"class VoidWithError extends Aventus.VoidWithError {\n    static get Fullname() { return \"AventusSharp.Tools.VoidWithError, AventusSharp\"; }\n}\n","dependances":[{"fullName":"Aventus.VoidWithError","isStrong":true},{"fullName":"AventusSharp.Tools.IWithError","isStrong":true}],"fullName":"AventusSharp.Tools.VoidWithError","required":false,"type":1,"isExported":true,"convertibleName":"Fullname"},{"code":"class VoidWithDataError extends VoidWithError {\n    static get Fullname() { return \"AventusSharp.Data.VoidWithDataError, AventusSharp\"; }\n}\n","dependances":[{"fullName":"AventusSharp.Tools.VoidWithError","isStrong":true},{"fullName":"AventusSharp.Data.DataError","isStrong":true}],"fullName":"AventusSharp.Data.VoidWithDataError","required":false,"type":1,"isExported":true,"convertibleName":"Fullname"},{"code":"class ResultWithError extends Aventus.ResultWithError {\n    static get Fullname() { return \"AventusSharp.Tools.ResultWithError, AventusSharp\"; }\n}\n","dependances":[{"fullName":"Aventus.ResultWithError","isStrong":true},{"fullName":"AventusSharp.Tools.IResultWithError","isStrong":true}],"fullName":"AventusSharp.Tools.ResultWithError","required":false,"type":1,"isExported":true,"convertibleName":"Fullname"},{"code":"class ResultWithDataError extends ResultWithError {\n    static get Fullname() { return \"AventusSharp.Data.ResultWithDataError, AventusSharp\"; }\n}\n","dependances":[{"fullName":"AventusSharp.Tools.ResultWithError","isStrong":true},{"fullName":"AventusSharp.Data.DataError","isStrong":true}],"fullName":"AventusSharp.Data.ResultWithDataError","required":false,"type":1,"isExported":true,"convertibleName":"Fullname"},{"code":"class RouteError extends Aventus.GenericError {\n    static get Fullname() { return \"AventusSharp.Routes.RouteError, AventusSharp\"; }\n}\n","dependances":[{"fullName":"Aventus.GenericError","isStrong":true},{"fullName":"AventusSharp.Routes.RouteErrorCode","isStrong":true}],"fullName":"AventusSharp.Routes.RouteError","required":false,"type":1,"isExported":true,"convertibleName":"Fullname"},{"code":"class ResultWithRouteError extends ResultWithError {\n    static get Fullname() { return \"AventusSharp.Routes.ResultWithRouteError, AventusSharp\"; }\n}\n","dependances":[{"fullName":"AventusSharp.Tools.ResultWithError","isStrong":true},{"fullName":"AventusSharp.Routes.RouteError","isStrong":true}],"fullName":"AventusSharp.Routes.ResultWithRouteError","required":false,"type":1,"isExported":true,"convertibleName":"Fullname"},{"code":"class VoidWithRouteError extends VoidWithError {\n    static get Fullname() { return \"AventusSharp.Routes.VoidWithRouteError, AventusSharp\"; }\n}\n","dependances":[{"fullName":"AventusSharp.Tools.VoidWithError","isStrong":true},{"fullName":"AventusSharp.Routes.RouteError","isStrong":true}],"fullName":"AventusSharp.Routes.VoidWithRouteError","required":false,"type":1,"isExported":true,"convertibleName":"Fullname"}],"existing":[{"fullName":"AventusSharp.Tools.IWithError","dependances":[]},{"fullName":"AventusSharp.Tools.IResultWithError","dependances":[{"fullName":"AventusSharp.Tools.IWithError","isStrong":true}]}]}
+{"namespace":"AventusSharp","available":[{"code":"Data.Storable=class Storable extends Aventus.Data {\n    id = 0;\n    createdDate = new Date();\n    updatedDate = new Date();\n}\nData.Storable.$schema={\"id\":\"number\",\"createdDate\":\"Date\",\"updatedDate\":\"Date\"};Aventus.DataManager.register(\"\");Aventus.DataManager.register(Data.Storable.Fullname, Data.Storable);Data.Storable.Namespace=`${moduleName}.Data`;\r\n_.Data.Storable=Data.Storable;","dependances":[{"fullName":"Aventus.Data","isStrong":true},{"fullName":"Aventus.IData","isStrong":true},{"fullName":"Date","isStrong":false}],"fullName":"AventusSharp.Data.Storable","required":false,"type":2,"isExported":true,"convertibleName":""},{"code":"RAM.RamHttp=class RamHttp extends Aventus.Ram {\n    getAllDone = false;\n    routes;\n    constructor() {\n        super();\n        this.routes = this.defineRoutes();\n    }\n    async beforeGetAll(result) {\n        if (!this.getAllDone) {\n            let response = await this.routes.GetAll();\n            if (response.success && response.result) {\n                for (let item of response.result) {\n                    let resultTemp = new Aventus.ResultRamWithError();\n                    this.addOrUpdateData(item, resultTemp);\n                    if (!resultTemp.success) {\n                        result.errors = [...result.errors, ...resultTemp.errors];\n                    }\n                }\n            }\n            else {\n                result.errors = [...result.errors, ...response.errors];\n            }\n        }\n    }\n    async beforeGetById(id, result) {\n        if (this.records.has(id)) {\n            return;\n        }\n        else {\n            let response = await this.routes.GetById(id);\n            if (response.success && response.result) {\n                let resultTemp = new Aventus.ResultRamWithError();\n                this.addOrUpdateData(response.result, resultTemp);\n                if (!resultTemp.success) {\n                    result.errors = [...result.errors, ...resultTemp.errors];\n                }\n            }\n            else {\n                result.errors = [...result.errors, ...response.errors];\n            }\n        }\n    }\n    async beforeGetByIds(ids, result) {\n        let missingIds = [];\n        for (let id of ids) {\n            if (!this.records.has(id)) {\n                missingIds.push(id);\n            }\n        }\n        if (missingIds.length > 0) {\n            for (let id of missingIds) {\n                let resultTemp = new Aventus.ResultRamWithError();\n                await this.beforeGetById(id, resultTemp);\n                if (!resultTemp.success) {\n                    result.errors = [...result.errors, ...resultTemp.errors];\n                }\n            }\n        }\n    }\n    async beforeCreateItem(item, fromList, result) {\n        if (fromList) {\n            return;\n        }\n        let response = await this.routes.Create({ item });\n        if (response.success && response.result) {\n            result.result = this.getObjectForRam(response.result);\n        }\n        else {\n            result.errors = [...result.errors, ...response.errors];\n        }\n    }\n    async beforeCreateList(list, result) {\n        let response = await this.routes.CreateMany({ list });\n        if (response.success && response.result) {\n            result.result = [];\n            for (let element of response.result) {\n                result.result.push(this.getObjectForRam(element));\n            }\n        }\n        else {\n            result.errors = [...result.errors, ...response.errors];\n        }\n    }\n    async beforeUpdateItem(item, fromList, result) {\n        if (fromList) {\n            return;\n        }\n        let response = await this.routes.Update(item.id, { item });\n        if (response.success && response.result) {\n            result.result = this.getObjectForRam(response.result);\n        }\n        else {\n            result.errors = [...result.errors, ...response.errors];\n        }\n    }\n    async beforeUpdateList(list, result) {\n        let response = await this.routes.UpdateMany({ list });\n        if (response.success && response.result) {\n            result.result = [];\n            for (let element of response.result) {\n                result.result.push(this.getObjectForRam(element));\n            }\n        }\n        else {\n            result.errors = [...result.errors, ...response.errors];\n        }\n    }\n    async beforeDeleteItem(item, fromList, result) {\n        if (fromList) {\n            return;\n        }\n        let response = await this.routes.Delete(item.id);\n        if (!response.success) {\n            result.errors = [...result.errors, ...response.errors];\n        }\n    }\n    async beforeDeleteList(list, result) {\n        let response = await this.routes.DeleteMany({ ids: list.map(t => t.id) });\n        if (!response.success) {\n            result.errors = [...result.errors, ...response.errors];\n        }\n    }\n}\nRAM.RamHttp.Namespace=`${moduleName}.RAM`;\r\n_.RAM.RamHttp=RAM.RamHttp;","dependances":[{"fullName":"Aventus.Ram","isStrong":true},{"fullName":"AventusSharp.Routes.StorableRoute","isStrong":false},{"fullName":"Aventus.ResultRamWithError","isStrong":false},{"fullName":"Map","isStrong":false},{"fullName":"Aventus.RamItem","isStrong":false},{"fullName":"Aventus.VoidWithError","isStrong":false}],"fullName":"AventusSharp.RAM.RamHttp","required":false,"type":1,"isExported":true,"convertibleName":""},{"code":"(function (WsErrorCode) {\n    WsErrorCode[WsErrorCode[\"UnknowError\"] = 0] = \"UnknowError\";\n    WsErrorCode[WsErrorCode[\"CantDefineAssembly\"] = 1] = \"CantDefineAssembly\";\n    WsErrorCode[WsErrorCode[\"ConfigError\"] = 2] = \"ConfigError\";\n    WsErrorCode[WsErrorCode[\"MultipleMainEndpoint\"] = 3] = \"MultipleMainEndpoint\";\n    WsErrorCode[WsErrorCode[\"CantGetValueFromBody\"] = 4] = \"CantGetValueFromBody\";\n    WsErrorCode[WsErrorCode[\"NoConnection\"] = 5] = \"NoConnection\";\n})(WebSocket.WsErrorCode || (WebSocket.WsErrorCode = {}));\n\r\n_.WebSocket.WsErrorCode=WebSocket.WsErrorCode;","dependances":[],"fullName":"AventusSharp.WebSocket.WsErrorCode","required":false,"type":6,"isExported":true,"convertibleName":""},{"code":"Socket.WsEvent=class WsEvent {\n    endpoint;\n    onTrigger = new Aventus.Callback();\n    constructor(endpoint) {\n        this.endpoint = endpoint;\n        this.onEvent = this.onEvent.bind(this);\n    }\n    configure() {\n        this.endpoint.addRoute({\n            channel: this.path,\n            callback: this.onEvent\n        });\n    }\n    onEvent(data) {\n        this.onTrigger.trigger([data]);\n    }\n}\nSocket.WsEvent.Namespace=`${moduleName}.Socket`;\r\n_.Socket.WsEvent=Socket.WsEvent;","dependances":[{"fullName":"AventusSharp.Socket.WsEndPoint","isStrong":false},{"fullName":"Aventus.Callback","isStrong":false}],"fullName":"AventusSharp.Socket.WsEvent","required":false,"type":1,"isExported":true,"convertibleName":""},{"code":"Socket.WsRoute=class WsRoute {\n    endpoint;\n    constructor(endpoint) {\n        this.endpoint = endpoint;\n    }\n}\nSocket.WsRoute.Namespace=`${moduleName}.Socket`;\r\n_.Socket.WsRoute=Socket.WsRoute;","dependances":[{"fullName":"AventusSharp.Socket.WsEndPoint","isStrong":false}],"fullName":"AventusSharp.Socket.WsRoute","required":false,"type":1,"isExported":true,"convertibleName":""},{"code":"Socket.WsEndPoint=class WsEndPoint extends Aventus.Socket {\n    static With(options) {\n        class EndPoint extends WsEndPoint {\n            constructor() {\n                super();\n                for (let route of options.routes) {\n                    if (typeof route == \"function\") {\n                        this._routes.addRoute(route);\n                    }\n                    else {\n                        this._routes.addRoute(route.type, route.path);\n                    }\n                }\n                for (let _event of options.events) {\n                    if (typeof _event == \"function\") {\n                        this._events.addEvent(_event);\n                    }\n                    else {\n                        this._events.addEvent(_event.type, _event.path);\n                    }\n                }\n            }\n        }\n        return EndPoint;\n    }\n    _routes;\n    _events;\n    constructor() {\n        super();\n        Object.defineProperty(this, \"routes\", {\n            get: () => { return this._routes; }\n        });\n        Object.defineProperty(this, \"events\", {\n            get: () => { return this._events; }\n        });\n        this.createProxy();\n    }\n    createProxy() {\n        if (!this._routes) {\n            let that = this;\n            let proxyData = {\n                routePath: {},\n                get(target, prop, receiver) {\n                    if (prop == \"addRoute\") {\n                        return (routeClass, path) => {\n                            try {\n                                if (!path) {\n                                    path = \"\";\n                                }\n                                let splitted = path.split(\".\");\n                                let current = this.routePath;\n                                for (let part of splitted) {\n                                    if (part != \"\") {\n                                        if (!current[part]) {\n                                            current[part] = {};\n                                        }\n                                        current = current[part];\n                                    }\n                                }\n                                let routeInstance = new routeClass(that);\n                                let keyFromChild = [];\n                                while (routeClass.prototype) {\n                                    let keys = Object.getOwnPropertyNames(routeClass.prototype);\n                                    for (let key of keys) {\n                                        if (key != \"constructor\" && !keyFromChild.includes(key)) {\n                                            keyFromChild.push(key);\n                                            current[key] = routeInstance[key].bind(routeInstance);\n                                        }\n                                    }\n                                    routeClass = Object.getPrototypeOf(routeClass);\n                                }\n                            }\n                            catch (e) {\n                                console.error(e);\n                            }\n                        };\n                    }\n                    else if (prop == \"allRoutes\") {\n                        return (flat) => {\n                            if (!flat) {\n                                return this.routePath;\n                            }\n                            else {\n                                let result = {};\n                                let load = (current, pathes) => {\n                                    for (let key in current) {\n                                        pathes.push(key);\n                                        if (typeof current[key] == \"function\") {\n                                            result[pathes.join(\".\")] = current[key];\n                                        }\n                                        else {\n                                            load(current[key], pathes);\n                                        }\n                                        pathes.pop();\n                                    }\n                                };\n                                load(this.routePath, []);\n                                return result;\n                            }\n                        };\n                    }\n                    else if (this.routePath[prop]) {\n                        return this.routePath[prop];\n                    }\n                    return null;\n                }\n            };\n            this._routes = new Proxy({}, proxyData);\n        }\n        if (!this._events) {\n            let that = this;\n            let proxyData = {\n                eventPath: {},\n                get(target, prop, receiver) {\n                    if (prop == \"addEvent\") {\n                        return (eventClass, path) => {\n                            try {\n                                if (!path) {\n                                    path = \"\";\n                                }\n                                let splitted = path.split(\".\");\n                                let current = this.eventPath;\n                                for (let part of splitted) {\n                                    if (part != \"\") {\n                                        if (!current[part]) {\n                                            current[part] = {};\n                                        }\n                                        current = current[part];\n                                    }\n                                }\n                                let routeInstance = new eventClass(that);\n                                routeInstance['configure']();\n                                let keyFromChild = [];\n                                while (eventClass.prototype) {\n                                    let keys = Object.getOwnPropertyNames(eventClass.prototype);\n                                    for (let key of keys) {\n                                        if (key != \"constructor\" && !keyFromChild.includes(key)) {\n                                            keyFromChild.push(key);\n                                            current[key] = routeInstance[key].bind(routeInstance);\n                                        }\n                                    }\n                                    eventClass = Object.getPrototypeOf(eventClass);\n                                }\n                            }\n                            catch (e) {\n                                console.error(e);\n                            }\n                        };\n                    }\n                    else if (prop == \"allEvents\") {\n                        return (flat) => {\n                            if (!flat) {\n                                return this.eventPath;\n                            }\n                            else {\n                                let result = {};\n                                let load = (current, pathes) => {\n                                    for (let key in current) {\n                                        pathes.push(key);\n                                        if (typeof current[key] == \"function\") {\n                                            result[pathes.join(\".\")] = current[key];\n                                        }\n                                        else {\n                                            load(current[key], pathes);\n                                        }\n                                        pathes.pop();\n                                    }\n                                };\n                                load(this.eventPath, []);\n                                return result;\n                            }\n                        };\n                    }\n                    else if (this.eventPath[prop]) {\n                        return this.eventPath[prop];\n                    }\n                    return null;\n                }\n            };\n            this._events = new Proxy({}, proxyData);\n        }\n    }\n    /**\n     * @inheritdoc\n     */\n    configure(options) {\n        options.socketName = this.path;\n        return options;\n    }\n}\nSocket.WsEndPoint.Namespace=`${moduleName}.Socket`;\r\n_.Socket.WsEndPoint=Socket.WsEndPoint;","dependances":[{"fullName":"Aventus.Socket","isStrong":true},{"fullName":"WsEndPoint","isStrong":false},{"fullName":"Aventus.MixProto","isStrong":false},{"fullName":"AventusSharp.MergeWsRoutesType","isStrong":false},{"fullName":"AventusSharp.MergeWsEventsType","isStrong":false},{"fullName":"AventusSharp.WsRoute","isStrong":false},{"fullName":"AventusSharp.WsEvent","isStrong":false},{"fullName":"Aventus.SocketOptions","isStrong":false}],"fullName":"AventusSharp.Socket.WsEndPoint","required":false,"type":1,"isExported":true,"convertibleName":""},{"code":"Routes.StorableRoute=class StorableRoute extends Aventus.HttpRoute {\n    async GetAll() {\n        const request = new Aventus.HttpRequest(`/${this.StorableName()}`, Aventus.HttpMethod.GET);\n        return await request.queryJSON(this.router);\n    }\n    async Create(body) {\n        const request = new Aventus.HttpRequest(`/${this.StorableName()}`, Aventus.HttpMethod.POST);\n        request.setBody(body);\n        return await request.queryJSON(this.router);\n    }\n    async CreateMany(body) {\n        const request = new Aventus.HttpRequest(`/${this.StorableName()}s`, Aventus.HttpMethod.POST);\n        request.setBody(body);\n        return await request.queryJSON(this.router);\n    }\n    async GetById(id) {\n        const request = new Aventus.HttpRequest(`/${this.StorableName()}/${id}`, Aventus.HttpMethod.GET);\n        return await request.queryJSON(this.router);\n    }\n    async Update(id, body) {\n        const request = new Aventus.HttpRequest(`/${this.StorableName()}/${id}`, Aventus.HttpMethod.PUT);\n        request.setBody(body);\n        return await request.queryJSON(this.router);\n    }\n    async UpdateMany(body) {\n        const request = new Aventus.HttpRequest(`/${this.StorableName()}s`, Aventus.HttpMethod.PUT);\n        request.setBody(body);\n        return await request.queryJSON(this.router);\n    }\n    async Delete(id) {\n        const request = new Aventus.HttpRequest(`/${this.StorableName()}/${id}`, Aventus.HttpMethod.DELETE);\n        return await request.queryJSON(this.router);\n    }\n    async DeleteMany(body) {\n        const request = new Aventus.HttpRequest(`/${this.StorableName()}s`, Aventus.HttpMethod.DELETE);\n        request.setBody(body);\n        return await request.queryJSON(this.router);\n    }\n}\nRoutes.StorableRoute.Namespace=`${moduleName}.Routes`;\r\n_.Routes.StorableRoute=Routes.StorableRoute;","dependances":[{"fullName":"Aventus.HttpRoute","isStrong":true},{"fullName":"Aventus.HttpRequest","isStrong":false},{"fullName":"Aventus.HttpMethod","isStrong":false},{"fullName":"TypeResult","isStrong":false},{"fullName":"FormData","isStrong":false}],"fullName":"AventusSharp.Routes.StorableRoute","required":false,"type":1,"isExported":true,"convertibleName":""},{"code":"(function (RouteErrorCode) {\n    RouteErrorCode[RouteErrorCode[\"UnknowError\"] = 0] = \"UnknowError\";\n    RouteErrorCode[RouteErrorCode[\"FormContentTypeUnknown\"] = 1] = \"FormContentTypeUnknown\";\n    RouteErrorCode[RouteErrorCode[\"CantGetValueFromBody\"] = 2] = \"CantGetValueFromBody\";\n})(Routes.RouteErrorCode || (Routes.RouteErrorCode = {}));\n\r\n_.Routes.RouteErrorCode=Routes.RouteErrorCode;","dependances":[],"fullName":"AventusSharp.Routes.RouteErrorCode","required":false,"type":6,"isExported":true,"convertibleName":""},{"code":"(function (DataErrorCode) {\n    DataErrorCode[DataErrorCode[\"DefaultDMGenericType\"] = 0] = \"DefaultDMGenericType\";\n    DataErrorCode[DataErrorCode[\"DMOnlyForceInherit\"] = 1] = \"DMOnlyForceInherit\";\n    DataErrorCode[DataErrorCode[\"TypeNotStorable\"] = 2] = \"TypeNotStorable\";\n    DataErrorCode[DataErrorCode[\"TypeTooMuchStorable\"] = 3] = \"TypeTooMuchStorable\";\n    DataErrorCode[DataErrorCode[\"GenericNotAbstract\"] = 4] = \"GenericNotAbstract\";\n    DataErrorCode[DataErrorCode[\"ParentNotAbstract\"] = 5] = \"ParentNotAbstract\";\n    DataErrorCode[DataErrorCode[\"InfiniteLoop\"] = 6] = \"InfiniteLoop\";\n    DataErrorCode[DataErrorCode[\"InterfaceNotUnique\"] = 7] = \"InterfaceNotUnique\";\n    DataErrorCode[DataErrorCode[\"SelfReferecingDependance\"] = 8] = \"SelfReferecingDependance\";\n    DataErrorCode[DataErrorCode[\"DMNotExist\"] = 9] = \"DMNotExist\";\n    DataErrorCode[DataErrorCode[\"DMAlreadyExist\"] = 10] = \"DMAlreadyExist\";\n    DataErrorCode[DataErrorCode[\"MethodNotFound\"] = 11] = \"MethodNotFound\";\n    DataErrorCode[DataErrorCode[\"StorageDisconnected\"] = 12] = \"StorageDisconnected\";\n    DataErrorCode[DataErrorCode[\"StorageNotFound\"] = 13] = \"StorageNotFound\";\n    DataErrorCode[DataErrorCode[\"NoConnectionInsideStorage\"] = 14] = \"NoConnectionInsideStorage\";\n    DataErrorCode[DataErrorCode[\"TypeNotExistInsideStorage\"] = 15] = \"TypeNotExistInsideStorage\";\n    DataErrorCode[DataErrorCode[\"UnknowError\"] = 16] = \"UnknowError\";\n    DataErrorCode[DataErrorCode[\"NoItemProvided\"] = 17] = \"NoItemProvided\";\n    DataErrorCode[DataErrorCode[\"NoTransactionInProgress\"] = 18] = \"NoTransactionInProgress\";\n    DataErrorCode[DataErrorCode[\"WrongType\"] = 19] = \"WrongType\";\n    DataErrorCode[DataErrorCode[\"NoTypeIdentifierFoundInsideQuery\"] = 20] = \"NoTypeIdentifierFoundInsideQuery\";\n    DataErrorCode[DataErrorCode[\"ItemNoExistInsideStorage\"] = 21] = \"ItemNoExistInsideStorage\";\n    DataErrorCode[DataErrorCode[\"ItemAlreadyExist\"] = 22] = \"ItemAlreadyExist\";\n    DataErrorCode[DataErrorCode[\"ValidationError\"] = 23] = \"ValidationError\";\n    DataErrorCode[DataErrorCode[\"GetAllNotAllowed\"] = 24] = \"GetAllNotAllowed\";\n    DataErrorCode[DataErrorCode[\"GetByIdNotAllowed\"] = 25] = \"GetByIdNotAllowed\";\n    DataErrorCode[DataErrorCode[\"GetByIdsNotAllowed\"] = 26] = \"GetByIdsNotAllowed\";\n    DataErrorCode[DataErrorCode[\"WhereNotAllowed\"] = 27] = \"WhereNotAllowed\";\n    DataErrorCode[DataErrorCode[\"CreateNotAllowed\"] = 28] = \"CreateNotAllowed\";\n    DataErrorCode[DataErrorCode[\"UpdateNotAllowed\"] = 29] = \"UpdateNotAllowed\";\n    DataErrorCode[DataErrorCode[\"DeleteNotAllowed\"] = 30] = \"DeleteNotAllowed\";\n    DataErrorCode[DataErrorCode[\"NumberOfItemsNotMatching\"] = 31] = \"NumberOfItemsNotMatching\";\n})(Data.DataErrorCode || (Data.DataErrorCode = {}));\n\r\n_.Data.DataErrorCode=Data.DataErrorCode;","dependances":[],"fullName":"AventusSharp.Data.DataErrorCode","required":false,"type":6,"isExported":true,"convertibleName":""},{"code":"Data.DataError=class DataError extends Aventus.GenericError {\n    static get Fullname() { return \"AventusSharp.Data.DataError, AventusSharp\"; }\n}\nData.DataError.Namespace=`${moduleName}.Data`;Aventus.Converter.register(Data.DataError.Fullname, Data.DataError);\r\n_.Data.DataError=Data.DataError;","dependances":[{"fullName":"Aventus.GenericError","isStrong":true},{"fullName":"AventusSharp.Data.DataErrorCode","isStrong":true}],"fullName":"AventusSharp.Data.DataError","required":false,"type":1,"isExported":true,"convertibleName":"Fullname"},{"code":"Tools.VoidWithError=class VoidWithError extends Aventus.VoidWithError {\n    static get Fullname() { return \"AventusSharp.Tools.VoidWithError, AventusSharp\"; }\n}\nTools.VoidWithError.Namespace=`${moduleName}.Tools`;Aventus.Converter.register(Tools.VoidWithError.Fullname, Tools.VoidWithError);\r\n_.Tools.VoidWithError=Tools.VoidWithError;","dependances":[{"fullName":"Aventus.VoidWithError","isStrong":true},{"fullName":"AventusSharp.Tools.IWithError","isStrong":true}],"fullName":"AventusSharp.Tools.VoidWithError","required":false,"type":1,"isExported":true,"convertibleName":"Fullname"},{"code":"Data.VoidWithDataError=class VoidWithDataError extends Tools.VoidWithError {\n    static get Fullname() { return \"AventusSharp.Data.VoidWithDataError, AventusSharp\"; }\n}\nData.VoidWithDataError.Namespace=`${moduleName}.Data`;Aventus.Converter.register(Data.VoidWithDataError.Fullname, Data.VoidWithDataError);\r\n_.Data.VoidWithDataError=Data.VoidWithDataError;","dependances":[{"fullName":"AventusSharp.Tools.VoidWithError","isStrong":true},{"fullName":"AventusSharp.Data.DataError","isStrong":true}],"fullName":"AventusSharp.Data.VoidWithDataError","required":false,"type":1,"isExported":true,"convertibleName":"Fullname"},{"code":"Tools.ResultWithError=class ResultWithError extends Aventus.ResultWithError {\n    static get Fullname() { return \"AventusSharp.Tools.ResultWithError, AventusSharp\"; }\n}\nTools.ResultWithError.Namespace=`${moduleName}.Tools`;Aventus.Converter.register(Tools.ResultWithError.Fullname, Tools.ResultWithError);\r\n_.Tools.ResultWithError=Tools.ResultWithError;","dependances":[{"fullName":"Aventus.ResultWithError","isStrong":true},{"fullName":"AventusSharp.Tools.IResultWithError","isStrong":true}],"fullName":"AventusSharp.Tools.ResultWithError","required":false,"type":1,"isExported":true,"convertibleName":"Fullname"},{"code":"Data.ResultWithDataError=class ResultWithDataError extends Tools.ResultWithError {\n    static get Fullname() { return \"AventusSharp.Data.ResultWithDataError, AventusSharp\"; }\n}\nData.ResultWithDataError.Namespace=`${moduleName}.Data`;Aventus.Converter.register(Data.ResultWithDataError.Fullname, Data.ResultWithDataError);\r\n_.Data.ResultWithDataError=Data.ResultWithDataError;","dependances":[{"fullName":"AventusSharp.Tools.ResultWithError","isStrong":true},{"fullName":"AventusSharp.Data.DataError","isStrong":true}],"fullName":"AventusSharp.Data.ResultWithDataError","required":false,"type":1,"isExported":true,"convertibleName":"Fullname"},{"code":"WebSocket.StorableWsRoute_DeleteMany=class StorableWsRoute_DeleteMany extends Socket.WsEvent {\n    /**\n     * @inheritdoc\n     */\n    get path() {\n        return \"/${this.StorableName()}s\";\n    }\n}\nWebSocket.StorableWsRoute_DeleteMany.Namespace=`${moduleName}.WebSocket`;\r\n_.WebSocket.StorableWsRoute_DeleteMany=WebSocket.StorableWsRoute_DeleteMany;","dependances":[{"fullName":"AventusSharp.Socket.WsEvent","isStrong":true},{"fullName":"AventusSharp.Data.ResultWithDataError","isStrong":true}],"fullName":"AventusSharp.WebSocket.StorableWsRoute_DeleteMany","required":false,"type":1,"isExported":true,"convertibleName":""},{"code":"WebSocket.StorableWsRoute_Delete=class StorableWsRoute_Delete extends Socket.WsEvent {\n    /**\n     * @inheritdoc\n     */\n    get path() {\n        return \"/${this.StorableName()}/${id}\";\n    }\n}\nWebSocket.StorableWsRoute_Delete.Namespace=`${moduleName}.WebSocket`;\r\n_.WebSocket.StorableWsRoute_Delete=WebSocket.StorableWsRoute_Delete;","dependances":[{"fullName":"AventusSharp.Socket.WsEvent","isStrong":true},{"fullName":"AventusSharp.Data.ResultWithDataError","isStrong":true}],"fullName":"AventusSharp.WebSocket.StorableWsRoute_Delete","required":false,"type":1,"isExported":true,"convertibleName":""},{"code":"WebSocket.StorableWsRoute_UpdateMany=class StorableWsRoute_UpdateMany extends Socket.WsEvent {\n    /**\n     * @inheritdoc\n     */\n    get path() {\n        return \"/${this.StorableName()}s\";\n    }\n}\nWebSocket.StorableWsRoute_UpdateMany.Namespace=`${moduleName}.WebSocket`;\r\n_.WebSocket.StorableWsRoute_UpdateMany=WebSocket.StorableWsRoute_UpdateMany;","dependances":[{"fullName":"AventusSharp.Socket.WsEvent","isStrong":true},{"fullName":"AventusSharp.Data.ResultWithDataError","isStrong":true}],"fullName":"AventusSharp.WebSocket.StorableWsRoute_UpdateMany","required":false,"type":1,"isExported":true,"convertibleName":""},{"code":"WebSocket.StorableWsRoute_Update=class StorableWsRoute_Update extends Socket.WsEvent {\n    /**\n     * @inheritdoc\n     */\n    get path() {\n        return \"/${this.StorableName()}/${id}\";\n    }\n}\nWebSocket.StorableWsRoute_Update.Namespace=`${moduleName}.WebSocket`;\r\n_.WebSocket.StorableWsRoute_Update=WebSocket.StorableWsRoute_Update;","dependances":[{"fullName":"AventusSharp.Socket.WsEvent","isStrong":true},{"fullName":"AventusSharp.Data.ResultWithDataError","isStrong":true}],"fullName":"AventusSharp.WebSocket.StorableWsRoute_Update","required":false,"type":1,"isExported":true,"convertibleName":""},{"code":"WebSocket.StorableWsRoute_GetById=class StorableWsRoute_GetById extends Socket.WsEvent {\n    /**\n     * @inheritdoc\n     */\n    get path() {\n        return \"/${this.StorableName()}/${id}\";\n    }\n}\nWebSocket.StorableWsRoute_GetById.Namespace=`${moduleName}.WebSocket`;\r\n_.WebSocket.StorableWsRoute_GetById=WebSocket.StorableWsRoute_GetById;","dependances":[{"fullName":"AventusSharp.Socket.WsEvent","isStrong":true},{"fullName":"AventusSharp.Data.ResultWithDataError","isStrong":true}],"fullName":"AventusSharp.WebSocket.StorableWsRoute_GetById","required":false,"type":1,"isExported":true,"convertibleName":""},{"code":"WebSocket.StorableWsRoute_CreateMany=class StorableWsRoute_CreateMany extends Socket.WsEvent {\n    /**\n     * @inheritdoc\n     */\n    get path() {\n        return \"/${this.StorableName()}s\";\n    }\n}\nWebSocket.StorableWsRoute_CreateMany.Namespace=`${moduleName}.WebSocket`;\r\n_.WebSocket.StorableWsRoute_CreateMany=WebSocket.StorableWsRoute_CreateMany;","dependances":[{"fullName":"AventusSharp.Socket.WsEvent","isStrong":true},{"fullName":"AventusSharp.Data.ResultWithDataError","isStrong":true}],"fullName":"AventusSharp.WebSocket.StorableWsRoute_CreateMany","required":false,"type":1,"isExported":true,"convertibleName":""},{"code":"WebSocket.StorableWsRoute_Create=class StorableWsRoute_Create extends Socket.WsEvent {\n    /**\n     * @inheritdoc\n     */\n    get path() {\n        return \"/${this.StorableName()}\";\n    }\n}\nWebSocket.StorableWsRoute_Create.Namespace=`${moduleName}.WebSocket`;\r\n_.WebSocket.StorableWsRoute_Create=WebSocket.StorableWsRoute_Create;","dependances":[{"fullName":"AventusSharp.Socket.WsEvent","isStrong":true},{"fullName":"AventusSharp.Data.ResultWithDataError","isStrong":true}],"fullName":"AventusSharp.WebSocket.StorableWsRoute_Create","required":false,"type":1,"isExported":true,"convertibleName":""},{"code":"Routes.RouteError=class RouteError extends Aventus.GenericError {\n    static get Fullname() { return \"AventusSharp.Routes.RouteError, AventusSharp\"; }\n}\nRoutes.RouteError.Namespace=`${moduleName}.Routes`;Aventus.Converter.register(Routes.RouteError.Fullname, Routes.RouteError);\r\n_.Routes.RouteError=Routes.RouteError;","dependances":[{"fullName":"Aventus.GenericError","isStrong":true},{"fullName":"AventusSharp.Routes.RouteErrorCode","isStrong":true}],"fullName":"AventusSharp.Routes.RouteError","required":false,"type":1,"isExported":true,"convertibleName":"Fullname"},{"code":"Routes.ResultWithRouteError=class ResultWithRouteError extends Tools.ResultWithError {\n    static get Fullname() { return \"AventusSharp.Routes.ResultWithRouteError, AventusSharp\"; }\n}\nRoutes.ResultWithRouteError.Namespace=`${moduleName}.Routes`;Aventus.Converter.register(Routes.ResultWithRouteError.Fullname, Routes.ResultWithRouteError);\r\n_.Routes.ResultWithRouteError=Routes.ResultWithRouteError;","dependances":[{"fullName":"AventusSharp.Tools.ResultWithError","isStrong":true},{"fullName":"AventusSharp.Routes.RouteError","isStrong":true}],"fullName":"AventusSharp.Routes.ResultWithRouteError","required":false,"type":1,"isExported":true,"convertibleName":"Fullname"},{"code":"Routes.VoidWithRouteError=class VoidWithRouteError extends Tools.VoidWithError {\n    static get Fullname() { return \"AventusSharp.Routes.VoidWithRouteError, AventusSharp\"; }\n}\nRoutes.VoidWithRouteError.Namespace=`${moduleName}.Routes`;Aventus.Converter.register(Routes.VoidWithRouteError.Fullname, Routes.VoidWithRouteError);\r\n_.Routes.VoidWithRouteError=Routes.VoidWithRouteError;","dependances":[{"fullName":"AventusSharp.Tools.VoidWithError","isStrong":true},{"fullName":"AventusSharp.Routes.RouteError","isStrong":true}],"fullName":"AventusSharp.Routes.VoidWithRouteError","required":false,"type":1,"isExported":true,"convertibleName":"Fullname"},{"code":"WebSocket.StorableWsRoute=class StorableWsRoute extends Socket.WsRoute {\n    events;\n    constructor(endpoint) {\n        super(endpoint);\n        this.events = {\n            GetAll: new StorableWsRoute_GetAll(endpoint),\n            Create: new StorableWsRoute_Create(endpoint),\n            CreateMany: new StorableWsRoute_CreateMany(endpoint),\n            GetById: new StorableWsRoute_GetById(endpoint),\n            Update: new StorableWsRoute_Update(endpoint),\n            UpdateMany: new StorableWsRoute_UpdateMany(endpoint),\n            Delete: new StorableWsRoute_Delete(endpoint),\n            DeleteMany: new StorableWsRoute_DeleteMany(endpoint),\n        };\n    }\n    async GetAll() {\n        return await this.endpoint.sendMessageAndWait(`/${this.StorableName()}`);\n    }\n    async Create(body) {\n        return await this.endpoint.sendMessageAndWait(`/${this.StorableName()}`, body);\n    }\n    async CreateMany(body) {\n        return await this.endpoint.sendMessageAndWait(`/${this.StorableName()}s`, body);\n    }\n    async GetById(id) {\n        return await this.endpoint.sendMessageAndWait(`/${this.StorableName()}/${id}`);\n    }\n    async Update(id, body) {\n        return await this.endpoint.sendMessageAndWait(`/${this.StorableName()}/${id}`, body);\n    }\n    async UpdateMany(body) {\n        return await this.endpoint.sendMessageAndWait(`/${this.StorableName()}s`, body);\n    }\n    async Delete(id) {\n        return await this.endpoint.sendMessageAndWait(`/${this.StorableName()}/${id}`);\n    }\n    async DeleteMany(body) {\n        return await this.endpoint.sendMessageAndWait(`/${this.StorableName()}s`, body);\n    }\n}\nWebSocket.StorableWsRoute.Namespace=`${moduleName}.WebSocket`;\r\n_.WebSocket.StorableWsRoute=WebSocket.StorableWsRoute;","dependances":[{"fullName":"AventusSharp.Socket.WsRoute","isStrong":true},{"fullName":"StorableWsRoute_GetAll","isStrong":false},{"fullName":"StorableWsRoute_Create","isStrong":false},{"fullName":"StorableWsRoute_CreateMany","isStrong":false},{"fullName":"StorableWsRoute_GetById","isStrong":false},{"fullName":"StorableWsRoute_Update","isStrong":false},{"fullName":"StorableWsRoute_UpdateMany","isStrong":false},{"fullName":"StorableWsRoute_Delete","isStrong":false},{"fullName":"StorableWsRoute_DeleteMany","isStrong":false},{"fullName":"AventusSharp.Data.ResultWithDataError","isStrong":false},{"fullName":"FormData","isStrong":false}],"fullName":"AventusSharp.WebSocket.StorableWsRoute","required":false,"type":1,"isExported":true,"convertibleName":""},{"code":"WebSocket.StorableWsRoute_GetAll=class StorableWsRoute_GetAll extends Socket.WsEvent {\n    /**\n     * @inheritdoc\n     */\n    get path() {\n        return \"/${this.StorableName()}\";\n    }\n}\nWebSocket.StorableWsRoute_GetAll.Namespace=`${moduleName}.WebSocket`;\r\n_.WebSocket.StorableWsRoute_GetAll=WebSocket.StorableWsRoute_GetAll;","dependances":[{"fullName":"AventusSharp.Socket.WsEvent","isStrong":true},{"fullName":"AventusSharp.Data.ResultWithDataError","isStrong":true}],"fullName":"AventusSharp.WebSocket.StorableWsRoute_GetAll","required":false,"type":1,"isExported":true,"convertibleName":""},{"code":"WebSocket.WsError=class WsError extends Aventus.GenericError {\n    static get Fullname() { return \"AventusSharp.WebSocket.WsError, AventusSharp\"; }\n}\nWebSocket.WsError.Namespace=`${moduleName}.WebSocket`;Aventus.Converter.register(WebSocket.WsError.Fullname, WebSocket.WsError);\r\n_.WebSocket.WsError=WebSocket.WsError;","dependances":[{"fullName":"Aventus.GenericError","isStrong":true},{"fullName":"AventusSharp.WebSocket.WsErrorCode","isStrong":true}],"fullName":"AventusSharp.WebSocket.WsError","required":false,"type":1,"isExported":true,"convertibleName":"Fullname"},{"code":"WebSocket.ResultWithWsError=class ResultWithWsError extends Tools.ResultWithError {\n    static get Fullname() { return \"AventusSharp.WebSocket.ResultWithWsError, AventusSharp\"; }\n}\nWebSocket.ResultWithWsError.Namespace=`${moduleName}.WebSocket`;Aventus.Converter.register(WebSocket.ResultWithWsError.Fullname, WebSocket.ResultWithWsError);\r\n_.WebSocket.ResultWithWsError=WebSocket.ResultWithWsError;","dependances":[{"fullName":"AventusSharp.Tools.ResultWithError","isStrong":true},{"fullName":"AventusSharp.WebSocket.WsError","isStrong":true}],"fullName":"AventusSharp.WebSocket.ResultWithWsError","required":false,"type":1,"isExported":true,"convertibleName":"Fullname"},{"code":"WebSocket.VoidWithWsError=class VoidWithWsError extends Tools.VoidWithError {\n    static get Fullname() { return \"AventusSharp.WebSocket.VoidWithWsError, AventusSharp\"; }\n}\nWebSocket.VoidWithWsError.Namespace=`${moduleName}.WebSocket`;Aventus.Converter.register(WebSocket.VoidWithWsError.Fullname, WebSocket.VoidWithWsError);\r\n_.WebSocket.VoidWithWsError=WebSocket.VoidWithWsError;","dependances":[{"fullName":"AventusSharp.Tools.VoidWithError","isStrong":true},{"fullName":"AventusSharp.WebSocket.WsError","isStrong":true}],"fullName":"AventusSharp.WebSocket.VoidWithWsError","required":false,"type":1,"isExported":true,"convertibleName":"Fullname"}],"existing":[{"fullName":"AventusSharp.ExtendWsEventsType","dependances":[]},{"fullName":"AventusSharp.ExtendWsEventType","dependances":[]},{"fullName":"AventusSharp.ExtendWsRoutesType","dependances":[]},{"fullName":"AventusSharp.ExtendWsRouteType","dependances":[]},{"fullName":"AventusSharp.WsEndPointType","dependances":[]},{"fullName":"AventusSharp.WsEventType","dependances":[]},{"fullName":"AventusSharp.WsRouteType","dependances":[]},{"fullName":"AventusSharp.WsRouterOptions","dependances":[]},{"fullName":"AventusSharp.MergeWsEventsType","dependances":[]},{"fullName":"AventusSharp.MergeWsRoutesType","dependances":[]},{"fullName":"AventusSharp.Tools.IWithError","dependances":[]},{"fullName":"AventusSharp.Tools.IResultWithError","dependances":[{"fullName":"AventusSharp.Tools.IWithError","isStrong":true}]}]}
 //#endregion js src //
 //#region css def //
 {}

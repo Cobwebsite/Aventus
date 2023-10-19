@@ -174,12 +174,7 @@ export class Build {
                 clearTimeout(this.timerBuild);
             }
             this.timerBuild = setTimeout(async () => {
-                try {
-                    await this._build();
-                }
-                catch (e) {
-                    console.log(e);
-                }
+                await this._build();
             }, delay)
         }
     }
@@ -257,15 +252,12 @@ export class Build {
 
                 finalTxt += '(' + baseName + '||(' + baseName + ' = {}));' + EOL
             }
-            finalTxt += "(function (" + splittedNames[0] + ") {" + EOL;
-            finalTxt += "const moduleName = `" + baseName + "`;" + EOL;
-            finalTxt += stylesheets.join(EOL) + EOL;
-            finalTxt += code.join(EOL) + EOL;
-            finalTxt = finalTxt.trim() + EOL;
+
+            let namespaces: string[] = [];
+            let afterCode: string[] = [];
             let subNamespace: string[] = [];
             for (let className in classesName) {
                 if (className != "") {
-                    let type = classesName[className].type;
                     let classNameSplitted = className.split(".");
                     let currentNamespace = "";
                     for (let i = 0; i < classNameSplitted.length - 1; i++) {
@@ -277,35 +269,50 @@ export class Build {
                         }
                         if (subNamespace.indexOf(currentNamespace) == -1) {
                             subNamespace.push(currentNamespace);
-                            let nameToCreate = namespace + "." + currentNamespace;
-                            finalTxt += '(' + nameToCreate + '||(' + nameToCreate + ' = {}));' + EOL
+                            if (currentNamespace.includes(".")) {
+                                namespaces.push(`${currentNamespace} = {};`)
+                            }
+                            else {
+                                namespaces.push(`const ${currentNamespace} = {};`)
+                            }
+                            namespaces.push(`_.${currentNamespace} = {};`)
                         }
                     }
-                    let finalName = classNameSplitted[classNameSplitted.length - 1];
-                    let currentNamespaceWithDot = "";
-                    if (currentNamespace) {
-                        currentNamespaceWithDot = "." + currentNamespace
-                    }
+                    // let finalName = classNameSplitted[classNameSplitted.length - 1];
+                    // let currentNamespaceWithDot = "";
+                    // if (currentNamespace) {
+                    //     currentNamespaceWithDot = "." + currentNamespace
+                    // }
 
-                    if (classesName[className].isExported) {
-                        finalTxt += namespace + "." + className + "=" + finalName + ";" + EOL;
-                    }
+                    // if (classesName[className].isExported) {
+                    //     finalTxt += namespace + "." + className + "=" + finalName + ";" + EOL;
+                    // }
 
-                    if (type == InfoType.class) {
-                        finalTxt += finalName + ".Namespace='" + namespace + currentNamespaceWithDot + "';" + EOL;
-                    }
-                    else if (type == InfoType.classData) {
-                        let classNameSplitted = className.split(".");
-                        let finalName = classNameSplitted[classNameSplitted.length - 1];
-                        finalTxt += finalName + ".Namespace='" + namespace + currentNamespaceWithDot + "';" + EOL;
-                        finalTxt += "Aventus.DataManager.register(" + finalName + ".Fullname, " + finalName + ");" + EOL;
-                    }
+                    // if (type == InfoType.class) {
+                    //     afterCode.push(finalName + ".Namespace='" + namespace + currentNamespaceWithDot + "';")
+                    // }
+                    // else if (type == InfoType.classData) {
+                    //     let classNameSplitted = className.split(".");
+                    //     let finalName = classNameSplitted[classNameSplitted.length - 1];
+                    //     afterCode.push(finalName + ".Namespace='" + namespace + currentNamespaceWithDot + "';");
+                    //     afterCode.push("Aventus.DataManager.register(" + finalName + ".Fullname, " + finalName + ");");
+                    // }
 
-                    if (classesName[className].convertibleName) {
-                        finalTxt += "Aventus.Converter.register(" + finalName + "." + classesName[className].convertibleName + ", " + finalName + ");" + EOL;
-                    }
+                    // if (classesName[className].convertibleName) {
+                    //     afterCode.push("Aventus.Converter.register(" + finalName + "." + classesName[className].convertibleName + ", " + finalName + ");")
+                    // }
                 }
             }
+
+            finalTxt += "(function (" + splittedNames[0] + ") {" + EOL;
+            finalTxt += "const moduleName = `" + baseName + "`;" + EOL;
+            finalTxt += "const _ = {};" + EOL;
+            finalTxt += stylesheets.join(EOL) + EOL;
+            finalTxt += namespaces.join(EOL) + EOL;
+            finalTxt += code.join(EOL) + EOL;
+            finalTxt += afterCode.join(EOL) + EOL;
+            finalTxt += `for(let key in _) { ${namespace}[key] = _[key] }`
+            finalTxt = finalTxt.trim() + EOL;
             finalTxt += "})(" + splittedNames[0] + ");" + EOL;
         }
         finalTxt += codeAfter.join(EOL) + EOL;
@@ -650,9 +657,7 @@ export class Build {
             let currentFile = this.tsFiles[fileUri];
             for (let compileInfo of currentFile.compileResult) {
                 if (compileInfo.classScript !== "") {
-                    let nameSplitted = compileInfo.classScript.split(".");
-                    let lastName = nameSplitted[nameSplitted.length - 1];
-                    if (localClass[lastName]) {
+                    if (localClass[compileInfo.classScript]) {
                         let txt = "The name " + compileInfo.classScript + " is registered more than once.";
                         let info = currentFile.fileParsed?.getBaseInfo(compileInfo.classScript);
                         if (info) {
@@ -662,7 +667,7 @@ export class Build {
                             throw 'Please contact the support its an unknow case'
                         }
 
-                        let oldFile = this.tsFiles[localClass[lastName].uri]
+                        let oldFile = this.tsFiles[localClass[compileInfo.classScript].uri]
                         info = oldFile.fileParsed?.getBaseInfo(compileInfo.classScript);
                         if (info) {
                             this.addDiagnostic(oldFile, createErrorTsPos(oldFile.file.document, txt, info.nameStart, info.nameEnd, AventusErrorCode.SameNameFound));
@@ -673,7 +678,7 @@ export class Build {
                     }
                     else {
                         localClassByFullName[compileInfo.classScript] = compileInfo;
-                        localClass[lastName] = compileInfo;
+                        localClass[compileInfo.classScript] = compileInfo;
                     }
                 }
                 // in case script and doc are different
@@ -865,7 +870,7 @@ export class Build {
                 if (compileInfo.classScript !== "") {
                     loadAndOrderInfo({
                         fullName: compileInfo.classScript,
-                        isStrong: true,
+                        isStrong: false,
                     }, true, {}, {});
                 }
                 if (compileInfo.classDoc !== "") {

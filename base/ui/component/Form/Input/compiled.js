@@ -1,4 +1,4 @@
-class Input extends Aventus.WebComponent {
+Form.Input = class Input extends Aventus.WebComponent {
     static get observedAttributes() {return ["value", "label"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'required'() {
                 return this.hasAttribute('required');
@@ -200,5 +200,7 @@ class Input extends Aventus.WebComponent {
         return this.errors.length == 0;
     }
 }
-if(!window.customElements.get('av-input')){window.customElements.define('av-input', Input);Aventus.WebComponentInstance.registerDefinition(Input);}
+Form.Input.Namespace=`${moduleName}.Form`;
+_.Form.Input=Form.Input;
+if(!window.customElements.get('av-input')){window.customElements.define('av-input', Form.Input);Aventus.WebComponentInstance.registerDefinition(Form.Input);}
 

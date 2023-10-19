@@ -10,6 +10,7 @@ export class TypeInfo {
 	public nested: TypeInfo[] = [];
 	public start: number = 0;
 	public end: number = 0;
+	public endNonGeneric: number = 0;
 
 	constructor(node: TypeNode | null) {
 		if (!node) {
@@ -18,6 +19,7 @@ export class TypeInfo {
 		}
 		this.start = node.getStart();
 		this.end = node.getEnd();
+		this.endNonGeneric = this.end;
 		if (node.kind == SyntaxKind.StringKeyword) {
 			this.kind = "string";
 		}
@@ -47,11 +49,13 @@ export class TypeInfo {
 			this.kind = "type";
 			let typeRef = node as TypeReferenceNode;
 			this.value = typeRef.typeName.getText();
+			this.endNonGeneric = typeRef.typeName.end;
 			if (this.value == "const") {
 				this.value = "";
 				this.kind = "mock";
 				return;
 			}
+			
 			if (typeRef.typeArguments) {
 				for (let arg of typeRef.typeArguments) {
 					this.genericValue.push(new TypeInfo(arg));
@@ -79,6 +83,7 @@ export class TypeInfo {
 			this.kind = "type";
 			// TODO this is wrong bc of generic type <,>
 			this.value = expression.getText();
+			
 			if (expression.typeArguments) {
 				for (let arg of expression.typeArguments) {
 					this.genericValue.push(new TypeInfo(arg));
@@ -123,5 +128,8 @@ export class TypeInfo {
 			}
 			this.nested.push(new TypeInfo(fctType.type));
 		}
+
+
+
 	}
 }

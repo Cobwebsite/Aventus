@@ -22,6 +22,7 @@ import { FilesManager } from '../../files/FilesManager';
 import { EditFile } from '../../notification/EditFile';
 import { VariableInfo } from './parser/VariableInfo';
 import { BindThisDecorator } from './parser/decorators/BindThisDecorator';
+import { EnumInfo } from './parser/EnumInfo';
 
 
 
@@ -842,7 +843,7 @@ export class AventusTsLanguageService {
         return JSON.stringify(template).replace(/\\"/g, '"');
     }
 
-    private static addBindThis(element: ClassInfo, txt: string) {
+    private static addBindThis(element: ClassInfo, txt: string, additionalDecorator: string[]) {
         let extraConstructorCode: string[] = [];
         for (let methodName in element.methods) {
             for (let deco of element.methods[methodName].decorators) {
@@ -853,6 +854,7 @@ export class AventusTsLanguageService {
         }
 
         if (extraConstructorCode.length > 0) {
+            additionalDecorator.push("BindThis");
             if (element.constructorBody.length > 0) {
                 let constructorBodyTxt = element.constructorBody;
                 constructorBodyTxt = constructorBodyTxt.slice(0, constructorBodyTxt.length - 1);
@@ -862,7 +864,7 @@ export class AventusTsLanguageService {
                 txt = txt.replace(element.constructorBody, constructorBodyTxt);
             }
             else {
-                let start = Object.values(element.methods)[0].start;
+                let start = Object.values(element.methods)[0].fullStart;
                 let part = txt.slice(0, start) + EOL;
                 part += 'constructor() { super(); ' + EOL + extraConstructorCode.join(EOL) + ' }'
                 part += txt.slice(start);
@@ -890,18 +892,29 @@ export class AventusTsLanguageService {
         try {
             let additionContent = "";
             // prepare content
-            let txt = element.content;
+            let txt = element.compiledContent;
             let additionalDecorator: string[] = [];
-            if (element instanceof ClassInfo) {
+            if (element instanceof ClassInfo && !element.isInterface) {
                 if (element.implements.includes('Aventus.IData')) {
-                    additionContent += element.name + ".$schema=" + this.prepareDataSchema(element) + ";";
+                    additionContent += element.fullName + ".$schema=" + this.prepareDataSchema(element) + ";";
+                    additionContent += `Aventus.DataManager.register("");`
+                    additionContent += "Aventus.DataManager.register(" + element.fullName + ".Fullname, " + element.fullName + ");";
                     additionalDecorator.push("ForeignKey");
                     result.type = InfoType.classData;
                 }
+                let currentNamespaceWithDot = "";
+                if (element.namespace) {
+                    currentNamespaceWithDot = "." + element.namespace
+                }
+                additionContent += element.fullName + ".Namespace=`${moduleName}" + currentNamespaceWithDot + "`;";
+                if (element.convertibleName) {
+                    additionContent += "Aventus.Converter.register(" + element.fullName + "." + element.convertibleName + ", " + element.fullName + ");"
+                }
                 result.convertibleName = element.convertibleName;
 
-                txt = this.addBindThis(element, txt);
+                txt = this.addBindThis(element, txt, additionalDecorator);
             }
+
             txt = this.removeDecoratorFromContent(txt, element.decorators, additionalDecorator);
             txt = this.removeComments(txt);
             txt = this.replaceFirstExport(txt);
@@ -928,8 +941,46 @@ export class AventusTsLanguageService {
                 }
             }
 
+            const wrapToNamespace = () => {
+                let finalCompiled = result.compiled;
+                if (element instanceof VariableInfo) {
+                    finalCompiled = finalCompiled.slice(finalCompiled.indexOf("=") + 1);
+                    if (element.fullName.includes(".")) {
+                        finalCompiled = element.fullName + "=" + finalCompiled;
+                    }
+                    else {
+                        finalCompiled = "const " + element.fullName + "=" + finalCompiled;
+                    }
+                }
+                else if (element instanceof EnumInfo) {
+                    let toReplace = `})(${element.name} || (${element.name} = {}))`
+                    let replacement = `})(${element.fullName} || (${element.fullName} = {}))`
+                    finalCompiled = finalCompiled.replaceAll(toReplace, replacement);
+                    if (element.fullName.includes(".")) {
+                        let splitted = finalCompiled.split("\n");
+                        splitted.splice(0, 1);
+                        finalCompiled = splitted.join("\n");
+                    }
+                }
+                else {
+                    finalCompiled = element.fullName + "=" + result.compiled;
+                    if (!element.fullName.includes(".")) {
+                        finalCompiled = `const ${finalCompiled}`;
+                    }
+
+                }
+
+                if (element.isExported) {
+                    finalCompiled += EOL;
+                    finalCompiled += "_." + element.fullName + "=" + element.fullName + ";";
+                }
+                return finalCompiled;
+            }
+
+            let debugTxt = result.compiled;
             if (result.compiled.length > 0) {
                 result.classScript = element.fullName;
+                result.compiled = wrapToNamespace();
             }
             if (result.docVisible.length > 0 || result.docInvisible.length > 0) {
                 result.classDoc = element.fullName;
@@ -939,7 +990,7 @@ export class AventusTsLanguageService {
             for (let decorator of element.decorators) {
                 let debugInfo = DebuggerDecorator.is(decorator);
                 if (debugInfo && debugInfo.writeCompiled) {
-                    result.debugTxt = result.compiled
+                    result.debugTxt = debugTxt
                 }
                 if (RequiredDecorator.is(decorator)) {
                     result.required = true;

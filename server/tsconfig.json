@@ -1,7 +1,7 @@
 {
 	"compilerOptions": {
 		"target": "ESNext",
-		"lib": ["es2020", "dom"],
+		"lib": ["ES2023", "dom"],
 		"module": "commonjs",
 		"moduleResolution": "node",
 		"declaration": true,

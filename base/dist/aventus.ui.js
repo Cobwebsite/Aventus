@@ -2,8 +2,10 @@ var Aventus;
 (Aventus||(Aventus = {}));
 (function (Aventus) {
 const moduleName = `Aventus`;
+const _ = {};
 
-class WebComponentInstance {
+
+const WebComponentInstance=class WebComponentInstance {
     static __allDefinitions = [];
     static __allInstances = [];
     /**
@@ -73,8 +75,9 @@ class WebComponentInstance {
         return null;
     }
 }
-
-class ElementExtension {
+WebComponentInstance.Namespace=`${moduleName}`;
+_.WebComponentInstance=WebComponentInstance;
+const ElementExtension=class ElementExtension {
     /**
      * Find a parent by tagname if exist Static.findParentByTag(this, "av-img")
      */
@@ -303,8 +306,9 @@ class ElementExtension {
         return _realTarget(startFrom);
     }
 }
-
-class Instance {
+ElementExtension.Namespace=`${moduleName}`;
+_.ElementExtension=ElementExtension;
+const Instance=class Instance {
     static elements = new Map();
     static get(type) {
         let result = this.elements.get(type);
@@ -328,8 +332,9 @@ class Instance {
         return this.elements.delete(cst);
     }
 }
-
-class Style {
+Instance.Namespace=`${moduleName}`;
+_.Instance=Instance;
+const Style=class Style {
     static instance;
     static noAnimation;
     static defaultStyleSheets = {
@@ -390,8 +395,9 @@ class Style {
         return style;
     }
 }
-
-class Callback {
+Style.Namespace=`${moduleName}`;
+_.Style=Style;
+const Callback=class Callback {
     callbacks = [];
     /**
      * Clear all callbacks
@@ -426,8 +432,9 @@ class Callback {
         return result;
     }
 }
-
-class Mutex {
+Callback.Namespace=`${moduleName}`;
+_.Callback=Callback;
+const Mutex=class Mutex {
     waitingList = [];
     isLocked = false;
     /**
@@ -530,8 +537,9 @@ class Mutex {
         return result;
     }
 }
-
-class State {
+Mutex.Namespace=`${moduleName}`;
+_.Mutex=Mutex;
+const State=class State {
     /**
      * Activate a custom state inside a specific manager
      * It ll be a generic state with no information inside exept name
@@ -553,8 +561,9 @@ class State {
         return true;
     }
 }
-
-class EmptyState extends State {
+State.Namespace=`${moduleName}`;
+_.State=State;
+const EmptyState=class EmptyState extends State {
     localName;
     constructor(stateName) {
         super();
@@ -567,7 +576,8 @@ class EmptyState extends State {
         return this.localName;
     }
 }
-
+EmptyState.Namespace=`${moduleName}`;
+_.EmptyState=EmptyState;
 var WatchAction;
 (function (WatchAction) {
     WatchAction[WatchAction["CREATED"] = 0] = "CREATED";
@@ -575,7 +585,8 @@ var WatchAction;
     WatchAction[WatchAction["DELETED"] = 2] = "DELETED";
 })(WatchAction || (WatchAction = {}));
 
-class Watcher {
+_.WatchAction=WatchAction;
+const Watcher=class Watcher {
     static __maxProxyData = 0;
     /**
      * Transform object into a watcher
@@ -1020,8 +1031,9 @@ class Watcher {
         return realProxy;
     }
 }
-
-class PressManager {
+Watcher.Namespace=`${moduleName}`;
+_.Watcher=Watcher;
+const PressManager=class PressManager {
     static create(options) {
         if (Array.isArray(options.element)) {
             let result = [];
@@ -1371,8 +1383,9 @@ class PressManager {
         }
     }
 }
-
-class StateManager {
+PressManager.Namespace=`${moduleName}`;
+_.PressManager=PressManager;
+const StateManager=class StateManager {
     subscribers = {};
     static canBeActivate(statePattern, stateName) {
         let stateInfo = this.prepareStateString(statePattern);
@@ -1697,8 +1710,9 @@ class StateManager {
         }
     }
 }
-
-class WebComponentTemplateContext {
+StateManager.Namespace=`${moduleName}`;
+_.StateManager=StateManager;
+const WebComponentTemplateContext=class WebComponentTemplateContext {
     __changes = {};
     component;
     fctsToRemove = [];
@@ -1805,8 +1819,9 @@ class WebComponentTemplateContext {
         this.__changes[on].push(fct);
     }
 }
-
-class WebComponentTemplate {
+WebComponentTemplateContext.Namespace=`${moduleName}`;
+_.WebComponentTemplateContext=WebComponentTemplateContext;
+const WebComponentTemplate=class WebComponentTemplate {
     static setValueToItem(path, obj, value) {
         let splitted = path.split(".");
         for (let i = 0; i < splitted.length - 1; i++) {
@@ -1974,8 +1989,9 @@ class WebComponentTemplate {
         this.loops.push(loop);
     }
 }
-
-class WebComponentTemplateInstance {
+WebComponentTemplate.Namespace=`${moduleName}`;
+_.WebComponentTemplate=WebComponentTemplate;
+const WebComponentTemplateInstance=class WebComponentTemplateInstance {
     context;
     content;
     actions;
@@ -2354,8 +2370,9 @@ class WebComponentTemplateInstance {
         });
     }
 }
-
-class WebComponent extends HTMLElement {
+WebComponentTemplateInstance.Namespace=`${moduleName}`;
+_.WebComponentTemplateInstance=WebComponentTemplateInstance;
+const WebComponent=class WebComponent extends HTMLElement {
     /**
      * Add attributes informations
      */
@@ -2776,8 +2793,9 @@ class WebComponent extends HTMLElement {
         return ElementExtension.getElementsInSlot(this, slotName);
     }
 }
-
-class ResizeObserver {
+WebComponent.Namespace=`${moduleName}`;
+_.WebComponent=WebComponent;
+const ResizeObserver=class ResizeObserver {
     callback;
     targets;
     fpsInterval = -1;
@@ -2902,8 +2920,9 @@ class ResizeObserver {
         }, 0);
     }
 }
-
-class ResourceLoader {
+ResizeObserver.Namespace=`${moduleName}`;
+_.ResizeObserver=ResizeObserver;
+const ResourceLoader=class ResourceLoader {
     static headerLoaded = {};
     static headerWaiting = {};
     /**
@@ -3070,8 +3089,9 @@ class ResourceLoader {
         return result;
     }
 }
-
-class Animation {
+ResourceLoader.Namespace=`${moduleName}`;
+_.ResourceLoader=ResourceLoader;
+const Animation=class Animation {
     /**
      * Default FPS for all Animation if not set inside options
      */
@@ -3156,8 +3176,9 @@ class Animation {
         return this.continueAnimation;
     }
 }
-
-class DragAndDrop {
+Animation.Namespace=`${moduleName}`;
+_.Animation=Animation;
+const DragAndDrop=class DragAndDrop {
     /**
      * Default offset before drag element
      */
@@ -3421,54 +3442,26 @@ class DragAndDrop {
         this.pressManager.destroy();
     }
 }
-Aventus.WebComponentInstance=WebComponentInstance;
-WebComponentInstance.Namespace='Aventus';
-Aventus.ElementExtension=ElementExtension;
-ElementExtension.Namespace='Aventus';
-Aventus.Instance=Instance;
-Instance.Namespace='Aventus';
-Aventus.Style=Style;
-Style.Namespace='Aventus';
-Aventus.Callback=Callback;
-Callback.Namespace='Aventus';
-Aventus.Mutex=Mutex;
-Mutex.Namespace='Aventus';
-Aventus.State=State;
-State.Namespace='Aventus';
-Aventus.EmptyState=EmptyState;
-EmptyState.Namespace='Aventus';
-Aventus.WatchAction=WatchAction;
-Aventus.Watcher=Watcher;
-Watcher.Namespace='Aventus';
-Aventus.PressManager=PressManager;
-PressManager.Namespace='Aventus';
-Aventus.StateManager=StateManager;
-StateManager.Namespace='Aventus';
-Aventus.WebComponentTemplateContext=WebComponentTemplateContext;
-WebComponentTemplateContext.Namespace='Aventus';
-Aventus.WebComponentTemplate=WebComponentTemplate;
-WebComponentTemplate.Namespace='Aventus';
-Aventus.WebComponentTemplateInstance=WebComponentTemplateInstance;
-WebComponentTemplateInstance.Namespace='Aventus';
-Aventus.WebComponent=WebComponent;
-WebComponent.Namespace='Aventus';
-Aventus.ResizeObserver=ResizeObserver;
-ResizeObserver.Namespace='Aventus';
-Aventus.ResourceLoader=ResourceLoader;
-ResourceLoader.Namespace='Aventus';
-Aventus.Animation=Animation;
-Animation.Namespace='Aventus';
-Aventus.DragAndDrop=DragAndDrop;
-DragAndDrop.Namespace='Aventus';
+DragAndDrop.Namespace=`${moduleName}`;
+_.DragAndDrop=DragAndDrop;
+
+for(let key in _) { Aventus[key] = _[key] }
 })(Aventus);
 
 var Aventus;
 (Aventus||(Aventus = {}));
 (function (Aventus) {
 const moduleName = `Aventus`;
+const _ = {};
 
+const Navigation = {};
+_.Navigation = {};
+const Layout = {};
+_.Layout = {};
+const Form = {};
+_.Form = {};
 
-class App extends Aventus.WebComponent {
+const App = class App extends Aventus.WebComponent {
     static __style = `:host{height:100%;width:100%;margin:0;padding:0;overflow:hidden}:host .part{height:500px;width:100%}`;
     __getStatic() {
         return App;
@@ -3505,9 +3498,11 @@ class App extends Aventus.WebComponent {
         }
     }
 }
+App.Namespace=`${moduleName}`;
+_.App=App;
 if(!window.customElements.get('av-app')){window.customElements.define('av-app', App);Aventus.WebComponentInstance.registerDefinition(App);}
 
-class RouterLink extends Aventus.WebComponent {
+Navigation.RouterLink = class RouterLink extends Aventus.WebComponent {
     get 'state'() {
                     return this.getAttribute('state') ?? undefined;
                 }
@@ -3570,15 +3565,18 @@ class RouterLink extends Aventus.WebComponent {
         this.addClickEvent();
     }
 }
-if(!window.customElements.get('av-router-link')){window.customElements.define('av-router-link', RouterLink);Aventus.WebComponentInstance.registerDefinition(RouterLink);}
+Navigation.RouterLink.Namespace=`${moduleName}.Navigation`;
+_.Navigation.RouterLink=Navigation.RouterLink;
+if(!window.customElements.get('av-router-link')){window.customElements.define('av-router-link', Navigation.RouterLink);Aventus.WebComponentInstance.registerDefinition(Navigation.RouterLink);}
 
-class RouterStateManager extends Aventus.StateManager {
+const RouterStateManager=class RouterStateManager extends Aventus.StateManager {
     static getInstance() {
         return Aventus.Instance.get(RouterStateManager);
     }
 }
-
-class Router extends Aventus.WebComponent {
+RouterStateManager.Namespace=`${moduleName}`;
+_.RouterStateManager=RouterStateManager;
+Navigation.Router = class Router extends Aventus.WebComponent {
     oldPage;
     allRoutes = {};
     activePath = "";
@@ -3651,8 +3649,8 @@ class Router extends Aventus.WebComponent {
                         if (options.scriptUrl != "") {
                             await Aventus.ResourceLoader.loadInHead(options.scriptUrl);
                         }
-                        let constructor = options.render();
-                        element = new constructor;
+                        let cst = options.render();
+                        element = new cst;
                         element.currentRouter = this;
                         this.contentEl.appendChild(element);
                     }
@@ -3720,8 +3718,10 @@ class Router extends Aventus.WebComponent {
         };
     }
 }
+Navigation.Router.Namespace=`${moduleName}.Navigation`;
+_.Navigation.Router=Navigation.Router;
 
-class Page extends Aventus.WebComponent {
+Navigation.Page = class Page extends Aventus.WebComponent {
     static get observedAttributes() {return ["visible"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'visible'() {
                 return this.hasAttribute('visible');
@@ -3771,8 +3771,10 @@ class Page extends Aventus.WebComponent {
         this.visible = false;
     }
 }
+Navigation.Page.Namespace=`${moduleName}.Navigation`;
+_.Navigation.Page=Navigation.Page;
 
-class Scrollable extends Aventus.WebComponent {
+Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
     static get observedAttributes() {return ["zoom"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'y_scroll_visible'() {
                 return this.hasAttribute('y_scroll_visible');
@@ -4296,9 +4298,11 @@ class Scrollable extends Aventus.WebComponent {
         this.addAction();
     }
 }
-if(!window.customElements.get('av-scrollable')){window.customElements.define('av-scrollable', Scrollable);Aventus.WebComponentInstance.registerDefinition(Scrollable);}
+Layout.Scrollable.Namespace=`${moduleName}.Layout`;
+_.Layout.Scrollable=Layout.Scrollable;
+if(!window.customElements.get('av-scrollable')){window.customElements.define('av-scrollable', Layout.Scrollable);Aventus.WebComponentInstance.registerDefinition(Layout.Scrollable);}
 
-class TouchRecord {
+const TouchRecord=class TouchRecord {
     _activeTouchID;
     _touchList = {};
     get _primitiveValue() {
@@ -4389,8 +4393,9 @@ class TouchRecord {
         return undefined;
     }
 }
-
-class Tracker {
+TouchRecord.Namespace=`${moduleName}`;
+_.TouchRecord=TouchRecord;
+const Tracker=class Tracker {
     velocityMultiplier = window.devicePixelRatio;
     updateTime = Date.now();
     delta = { x: 0, y: 0 };
@@ -4427,8 +4432,9 @@ class Tracker {
         };
     }
 }
-
-class GridCol extends Aventus.WebComponent {
+Tracker.Namespace=`${moduleName}`;
+_.Tracker=Tracker;
+Layout.GridCol = class GridCol extends Aventus.WebComponent {
     get 'column'() {
                     return this.getAttribute('column') ?? undefined;
                 }
@@ -4474,9 +4480,11 @@ class GridCol extends Aventus.WebComponent {
     __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('column')){ this['column'] = undefined; }if(!this.hasAttribute('row')){ this['row'] = undefined; }if(!this.hasAttribute('c_start')){ this['c_start'] = undefined; }if(!this.hasAttribute('c_end')){ this['c_end'] = undefined; } }
     __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('column');this.__upgradeProperty('row');this.__upgradeProperty('c_start');this.__upgradeProperty('c_end'); }
 }
-if(!window.customElements.get('av-grid-col')){window.customElements.define('av-grid-col', GridCol);Aventus.WebComponentInstance.registerDefinition(GridCol);}
+Layout.GridCol.Namespace=`${moduleName}.Layout`;
+_.Layout.GridCol=Layout.GridCol;
+if(!window.customElements.get('av-grid-col')){window.customElements.define('av-grid-col', Layout.GridCol);Aventus.WebComponentInstance.registerDefinition(Layout.GridCol);}
 
-class Grid extends Aventus.WebComponent {
+Layout.Grid = class Grid extends Aventus.WebComponent {
     static get observedAttributes() {return ["cols"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'cols'() {
                     return Number(this.getAttribute('cols'));
@@ -4505,9 +4513,11 @@ class Grid extends Aventus.WebComponent {
     __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('cols')){ this['cols'] = 12; } }
     __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('cols'); }
 }
-if(!window.customElements.get('av-grid')){window.customElements.define('av-grid', Grid);Aventus.WebComponentInstance.registerDefinition(Grid);}
+Layout.Grid.Namespace=`${moduleName}.Layout`;
+_.Layout.Grid=Layout.Grid;
+if(!window.customElements.get('av-grid')){window.customElements.define('av-grid', Layout.Grid);Aventus.WebComponentInstance.registerDefinition(Layout.Grid);}
 
-class DynamicRow extends Aventus.WebComponent {
+Layout.DynamicRow = class DynamicRow extends Aventus.WebComponent {
     get 'max_width'() {
                     return this.getAttribute('max_width') ?? undefined;
                 }
@@ -4556,9 +4566,11 @@ class DynamicRow extends Aventus.WebComponent {
         }).observe(this);
     }
 }
-if(!window.customElements.get('av-dynamic-row')){window.customElements.define('av-dynamic-row', DynamicRow);Aventus.WebComponentInstance.registerDefinition(DynamicRow);}
+Layout.DynamicRow.Namespace=`${moduleName}.Layout`;
+_.Layout.DynamicRow=Layout.DynamicRow;
+if(!window.customElements.get('av-dynamic-row')){window.customElements.define('av-dynamic-row', Layout.DynamicRow);Aventus.WebComponentInstance.registerDefinition(Layout.DynamicRow);}
 
-class DynamicCol extends Aventus.WebComponent {
+Layout.DynamicCol = class DynamicCol extends Aventus.WebComponent {
     get 'size'() {
                     return Number(this.getAttribute('size'));
                 }
@@ -4709,9 +4721,11 @@ class DynamicCol extends Aventus.WebComponent {
     __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('size');this.__upgradeProperty('size_xs');this.__upgradeProperty('size_sm');this.__upgradeProperty('size_md');this.__upgradeProperty('size_lg');this.__upgradeProperty('size_xl');this.__upgradeProperty('offset');this.__upgradeProperty('offset_xs');this.__upgradeProperty('offset_sm');this.__upgradeProperty('offset_md');this.__upgradeProperty('offset_lg');this.__upgradeProperty('offset_xl');this.__upgradeProperty('offset_right');this.__upgradeProperty('offset_right_xs');this.__upgradeProperty('offset_right_sm');this.__upgradeProperty('offset_right_md');this.__upgradeProperty('offset_right_lg');this.__upgradeProperty('offset_right_xl');this.__upgradeProperty('nobreak');this.__upgradeProperty('center'); }
     __listBoolProps() { return ["nobreak","center"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
 }
-if(!window.customElements.get('av-dynamic-col')){window.customElements.define('av-dynamic-col', DynamicCol);Aventus.WebComponentInstance.registerDefinition(DynamicCol);}
+Layout.DynamicCol.Namespace=`${moduleName}.Layout`;
+_.Layout.DynamicCol=Layout.DynamicCol;
+if(!window.customElements.get('av-dynamic-col')){window.customElements.define('av-dynamic-col', Layout.DynamicCol);Aventus.WebComponentInstance.registerDefinition(Layout.DynamicCol);}
 
-class Img extends Aventus.WebComponent {
+const Img = class Img extends Aventus.WebComponent {
     static get observedAttributes() {return ["src", "mode"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'cache'() {
                 return this.hasAttribute('cache');
@@ -4905,9 +4919,11 @@ class Img extends Aventus.WebComponent {
         this.resizeObserver.observe(this);
     }
 }
+Img.Namespace=`${moduleName}`;
+_.Img=Img;
 if(!window.customElements.get('av-img')){window.customElements.define('av-img', Img);Aventus.WebComponentInstance.registerDefinition(Img);}
 
-class Form extends Aventus.WebComponent {
+Form.Form = class Form extends Aventus.WebComponent {
     static __style = ``;
     __getStatic() {
         return Form;
@@ -4927,9 +4943,11 @@ class Form extends Aventus.WebComponent {
         return "Form";
     }
 }
-if(!window.customElements.get('av-form')){window.customElements.define('av-form', Form);Aventus.WebComponentInstance.registerDefinition(Form);}
+Form.Form.Namespace=`${moduleName}.Form`;
+_.Form.Form=Form.Form;
+if(!window.customElements.get('av-form')){window.customElements.define('av-form', Form.Form);Aventus.WebComponentInstance.registerDefinition(Form.Form);}
 
-class Input extends Aventus.WebComponent {
+Form.Input = class Input extends Aventus.WebComponent {
     static get observedAttributes() {return ["value", "label"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'required'() {
                 return this.hasAttribute('required');
@@ -5131,9 +5149,11 @@ class Input extends Aventus.WebComponent {
         return this.errors.length == 0;
     }
 }
-if(!window.customElements.get('av-input')){window.customElements.define('av-input', Input);Aventus.WebComponentInstance.registerDefinition(Input);}
+Form.Input.Namespace=`${moduleName}.Form`;
+_.Form.Input=Form.Input;
+if(!window.customElements.get('av-input')){window.customElements.define('av-input', Form.Input);Aventus.WebComponentInstance.registerDefinition(Form.Input);}
 
-class Checkbox extends Aventus.WebComponent {
+Form.Checkbox = class Checkbox extends Aventus.WebComponent {
     static get observedAttributes() {return ["label", "checked"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'disabled'() {
                 return this.hasAttribute('disabled');
@@ -5250,40 +5270,10 @@ class Checkbox extends Aventus.WebComponent {
         });
     }
 }
-if(!window.customElements.get('av-checkbox')){window.customElements.define('av-checkbox', Checkbox);Aventus.WebComponentInstance.registerDefinition(Checkbox);}
-Aventus.App=App;
-App.Namespace='Aventus';
-(Aventus.Navigation||(Aventus.Navigation = {}));
-Aventus.Navigation.RouterLink=RouterLink;
-RouterLink.Namespace='Aventus.Navigation';
-Aventus.RouterStateManager=RouterStateManager;
-RouterStateManager.Namespace='Aventus';
-Aventus.Navigation.Router=Router;
-Router.Namespace='Aventus.Navigation';
-Aventus.Navigation.Page=Page;
-Page.Namespace='Aventus.Navigation';
-(Aventus.Layout||(Aventus.Layout = {}));
-Aventus.Layout.Scrollable=Scrollable;
-Scrollable.Namespace='Aventus.Layout';
-Aventus.TouchRecord=TouchRecord;
-TouchRecord.Namespace='Aventus';
-Aventus.Tracker=Tracker;
-Tracker.Namespace='Aventus';
-Aventus.Layout.GridCol=GridCol;
-GridCol.Namespace='Aventus.Layout';
-Aventus.Layout.Grid=Grid;
-Grid.Namespace='Aventus.Layout';
-Aventus.Layout.DynamicRow=DynamicRow;
-DynamicRow.Namespace='Aventus.Layout';
-Aventus.Layout.DynamicCol=DynamicCol;
-DynamicCol.Namespace='Aventus.Layout';
-Aventus.Img=Img;
-Img.Namespace='Aventus';
-(Aventus.Form||(Aventus.Form = {}));
-Aventus.Form.Form=Form;
-Form.Namespace='Aventus.Form';
-Aventus.Form.Input=Input;
-Input.Namespace='Aventus.Form';
-Aventus.Form.Checkbox=Checkbox;
-Checkbox.Namespace='Aventus.Form';
+Form.Checkbox.Namespace=`${moduleName}.Form`;
+_.Form.Checkbox=Form.Checkbox;
+if(!window.customElements.get('av-checkbox')){window.customElements.define('av-checkbox', Form.Checkbox);Aventus.WebComponentInstance.registerDefinition(Form.Checkbox);}
+
+
+for(let key in _) { Aventus[key] = _[key] }
 })(Aventus);
