@@ -1,8 +1,0 @@
-import { WsEndPoint } from "./WsEndPoint.lib.avt";
-
-export class WsRoute {
-	protected endpoint: WsEndPoint;
-    public constructor(endpoint: WsEndPoint) {
-        this.endpoint = endpoint;
-    }
-}

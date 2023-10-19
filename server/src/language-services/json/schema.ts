@@ -312,7 +312,79 @@ export const AventusSharpSchema: JSONSchema = {
         "exportErrorsByDefault": {
             type: "boolean",
             default: true
+        },
+        "exportWsEndPointByDefault": {
+            type: "boolean",
+            default: true
+        },
+        "exportWsEventByDefault": {
+            type: "boolean",
+            default: true
+        },
+        "exportWsRouteByDefault": {
+            type: "boolean",
+            default: true
+        },
+        "replacer": {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+                "all": { "$ref": "#/$defs/replacerPart" },
+                "genericError": { "$ref": "#/$defs/replacerPart" },
+                "httpRouter": { "$ref": "#/$defs/replacerPart" },
+                "normalClass": { "$ref": "#/$defs/replacerPart" },
+                "storable": { "$ref": "#/$defs/replacerPart" },
+                "withError": { "$ref": "#/$defs/replacerPart" },
+                "wsEndPoint": { "$ref": "#/$defs/replacerPart" },
+                "wsEvent": { "$ref": "#/$defs/replacerPart" },
+                "wsRouter": { "$ref": "#/$defs/replacerPart" }
+            }
         }
     },
-    "required": ["csProj", "outputPath"]
+    "required": ["csProj", "outputPath"],
+    "$defs": {
+        "replacerPart": {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+                "type": {
+                    type: "object",
+                    patternProperties: {
+                        "^\\S+$": {
+                            type: "object",
+                            additionalProperties: false,
+                            properties: {
+                                "result": {
+                                    type: "string"
+                                },
+                                "file": {
+                                    type: "string"
+                                },
+                            },
+                            required: ["result"]
+                        }
+                    }
+                },
+                "result": {
+                    type: "object",
+                    patternProperties: {
+                        "^\\S+$": {
+                            type: "object",
+                            additionalProperties: false,
+                            properties: {
+                                "result": {
+                                    type: "string"
+                                },
+                                "file": {
+                                    type: "string"
+                                },
+                            },
+                            required: ["result"]
+                        }
+                    }
+                }
+            },
+
+        }
+    }
 }
