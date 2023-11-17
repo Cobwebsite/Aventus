@@ -855,13 +855,14 @@ export class AventusTsLanguageService {
 
         if (extraConstructorCode.length > 0) {
             additionalDecorator.push("BindThis");
-            if (element.constructorBody.length > 0) {
-                let constructorBodyTxt = element.constructorBody;
+            let constructorBody = element.constructorContent;
+            if (constructorBody.length > 0) {
+                let constructorBodyTxt = constructorBody;
                 constructorBodyTxt = constructorBodyTxt.slice(0, constructorBodyTxt.length - 1);
                 constructorBodyTxt += EOL + extraConstructorCode.join(EOL);
                 constructorBodyTxt += ' }'
 
-                txt = txt.replace(element.constructorBody, constructorBodyTxt);
+                txt = txt.replace(constructorBody, constructorBodyTxt);
             }
             else {
                 let start = Object.values(element.methods)[0].fullStart;
@@ -897,7 +898,6 @@ export class AventusTsLanguageService {
             if (element instanceof ClassInfo && !element.isInterface) {
                 if (element.implements.includes('Aventus.IData')) {
                     additionContent += element.fullName + ".$schema=" + this.prepareDataSchema(element) + ";";
-                    additionContent += `Aventus.DataManager.register("");`
                     additionContent += "Aventus.DataManager.register(" + element.fullName + ".Fullname, " + element.fullName + ");";
                     additionalDecorator.push("ForeignKey");
                     result.type = InfoType.classData;
@@ -942,6 +942,12 @@ export class AventusTsLanguageService {
             }
 
             const wrapToNamespace = () => {
+                let resultWithNamespace = "";
+                let hasNamespace = file.build.namespaces.includes(element.fullName);
+                if (hasNamespace) {
+                    resultWithNamespace += '_n = ' + element.fullName + ';' + EOL
+                }
+
                 let finalCompiled = result.compiled;
                 if (element instanceof VariableInfo) {
                     finalCompiled = finalCompiled.slice(finalCompiled.indexOf("=") + 1);
@@ -969,12 +975,17 @@ export class AventusTsLanguageService {
                     }
 
                 }
-
                 if (element.isExported) {
                     finalCompiled += EOL;
                     finalCompiled += "_." + element.fullName + "=" + element.fullName + ";";
                 }
-                return finalCompiled;
+
+                resultWithNamespace += finalCompiled;
+
+                if (hasNamespace) {
+                    resultWithNamespace += EOL + 'Object.assign(' + element.fullName + ', _n);' + EOL
+                }
+                return resultWithNamespace;
             }
 
             let debugTxt = result.compiled;

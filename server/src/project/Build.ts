@@ -48,6 +48,8 @@ export class Build {
     public htmlFiles: { [uri: string]: AventusHTMLFile } = {}
     public wcFiles: { [uri: string]: AventusWebComponentSingleFile } = {};
 
+    public namespaces: string[] = [];
+
     public externalPackageInformation: ExternalPackageInformation = new ExternalPackageInformation();
 
     private dependanceNeedUris: string[] = [];
@@ -218,7 +220,7 @@ export class Build {
             console.log("building " + this.buildConfig.fullname);
         }
         this.clearDiagnostics();
-        let compilationInfo = this.buildOrderCompilationInfo();
+        let compilationInfo = await this.buildOrderCompilationInfo();
         let result = await this.buildLocalCode(compilationInfo.toCompile, this.buildConfig.module, compilationInfo.npmNeeded);
 
         await this.writeBuildCode(result, compilationInfo.libSrc);
@@ -278,29 +280,6 @@ export class Build {
                             namespaces.push(`_.${currentNamespace} = {};`)
                         }
                     }
-                    // let finalName = classNameSplitted[classNameSplitted.length - 1];
-                    // let currentNamespaceWithDot = "";
-                    // if (currentNamespace) {
-                    //     currentNamespaceWithDot = "." + currentNamespace
-                    // }
-
-                    // if (classesName[className].isExported) {
-                    //     finalTxt += namespace + "." + className + "=" + finalName + ";" + EOL;
-                    // }
-
-                    // if (type == InfoType.class) {
-                    //     afterCode.push(finalName + ".Namespace='" + namespace + currentNamespaceWithDot + "';")
-                    // }
-                    // else if (type == InfoType.classData) {
-                    //     let classNameSplitted = className.split(".");
-                    //     let finalName = classNameSplitted[classNameSplitted.length - 1];
-                    //     afterCode.push(finalName + ".Namespace='" + namespace + currentNamespaceWithDot + "';");
-                    //     afterCode.push("Aventus.DataManager.register(" + finalName + ".Fullname, " + finalName + ");");
-                    // }
-
-                    // if (classesName[className].convertibleName) {
-                    //     afterCode.push("Aventus.Converter.register(" + finalName + "." + classesName[className].convertibleName + ", " + finalName + ");")
-                    // }
                 }
             }
 
@@ -309,6 +288,7 @@ export class Build {
             finalTxt += "const _ = {};" + EOL;
             finalTxt += stylesheets.join(EOL) + EOL;
             finalTxt += namespaces.join(EOL) + EOL;
+            finalTxt += 'let _n;' + EOL;
             finalTxt += code.join(EOL) + EOL;
             finalTxt += afterCode.join(EOL) + EOL;
             finalTxt += `for(let key in _) { ${namespace}[key] = _[key] }`
@@ -648,7 +628,7 @@ export class Build {
         return result;
     }
 
-    private buildOrderCompilationInfo(): { toCompile: CompileTsResult[], libSrc: string, npmNeeded: { inside: NpmDependances, outside: NpmDependances } } {
+    private async buildOrderCompilationInfo(): Promise<{ toCompile: CompileTsResult[], libSrc: string, npmNeeded: { inside: NpmDependances, outside: NpmDependances } }> {
         let result: { toCompile: CompileTsResult[], libSrc: string, npmNeeded: { inside: NpmDependances, outside: NpmDependances } } = { toCompile: [], libSrc: '', npmNeeded: { inside: {}, outside: {} } };
         // map local information by fullname
         let localClassByFullName: { [fullName: string]: CompileTsResult } = {};
@@ -721,6 +701,7 @@ export class Build {
             }
         }
 
+        let allProms: Promise<{ [uri: string]: string }>[] = [];
 
         // load
         let loadedInfoInternal: string[] = [];
@@ -729,138 +710,252 @@ export class Build {
         /**
          * Load information for a class and the dependances needed
          */
-        const loadAndOrderInfo = (info: { fullName: string; isStrong: boolean }, isLocal: boolean, indexByUri: { [uri: string]: number }, alreadyLooked: { [name: string]: boolean }): { [uri: string]: number } => {
+        const loadAndOrderInfo = (info: { fullName: string; isStrong: boolean }, isLocal: boolean, indexByUri: { [uri: string]: number }, alreadyLooked: { [name: string]: (() => void)[] }, alreadyLookedStrong: { [name: string]: boolean }): { [uri: string]: number } | Promise<{ [uri: string]: string }> => {
             const fullName = info.fullName.replace("$namespace$", '');
-            let calculateDependances = true;
-            if (alreadyLooked[fullName] !== undefined) {
-                calculateDependances = false;
-                // loop on a strong dependance => infinite loop
-                if (info.isStrong && alreadyLooked[fullName]) {
-                    console.log("error impossible");
-                    return indexByUri;
-                }
-
-                if (info.isStrong) {
-                    alreadyLooked[fullName] = info.isStrong;
-                }
-                return indexByUri;
-
+            let uri = "";
+            let infoExternal: null | {
+                content: AventusPackageTsFileExport | "noCode";
+                uri: string;
+            } = null;
+            if (isLocal) {
+                uri = localUri;
             }
             else {
-                alreadyLooked[fullName] = info.isStrong;
+                infoExternal = this.externalPackageInformation.getByFullName(fullName);
+                if (!infoExternal) {
+                    // it s an error
+                    return indexByUri;
+                }
+                uri = infoExternal.uri;
             }
-            const calculate = () => {
+
+            if (alreadyLooked[fullName] !== undefined) {
+
+                if (info.isStrong) {
+                    // loop on a strong dependance => infinite loop 
+                    if (alreadyLookedStrong[fullName] !== undefined) {
+                        console.log("error impossible");
+                        return indexByUri;
+                    }
+
+                    const prom = new Promise<{ [uri: string]: string }>((resolve) => {
+                        alreadyLooked[fullName].push(() => {
+                            resolve({ [uri]: fullName });
+                        })
+                    })
+                    allProms.push(prom);
+                    return prom;
+                }
+                return indexByUri;
+            }
+            else {
+                alreadyLooked[fullName] = [];
+            }
+            if (info.isStrong) {
+                alreadyLookedStrong[fullName] = true;
+            }
+            const promises: Promise<{ [uri: string]: string }>[] = [];
+            const calculate: () => void = () => {
                 if (isLocal) {
                     if (!localClassByFullName[fullName]) {
-                        if (indexByUri[localUri] === undefined) {
-                            indexByUri[localUri] = -1;
+                        if (indexByUri[uri] === undefined) {
+                            indexByUri[uri] = -1;
                         }
                         return;
                     }
 
                     let previousIndex = loadedInfoInternal.indexOf(fullName);
                     if (previousIndex != -1) {
-                        if (indexByUri[localUri] === undefined) {
-                            indexByUri[localUri] = previousIndex + 1;
+                        if (indexByUri[uri] === undefined) {
+                            indexByUri[uri] = previousIndex + 1;
                         }
                         return;
                     }
 
                     let infoInternal = localClassByFullName[fullName];
                     let insertIndex = 0;
-                    if (calculateDependances) {
-                        for (let dependance of infoInternal.dependances) {
-                            let cloneBeforeLoop = { ...indexByUri };
-                            // load info to force insert before
-                            if (dependance.isStrong) {
-                                if (dependance.uri == "@external") {
-                                    indexByUri = loadAndOrderInfo(dependance, false, indexByUri, alreadyLooked);
-                                }
-                                else {
-                                    let fullNameDep = dependance.fullName.replace("$namespace$", '');
-                                    if (fullNameDep != fullName) {
-                                        indexByUri = loadAndOrderInfo(dependance, true, indexByUri, alreadyLooked);
-                                        if (indexByUri[localUri] && indexByUri[localUri] >= 0 && indexByUri[localUri] > insertIndex) {
-                                            insertIndex = indexByUri[localUri];
-                                        }
-                                    }
+                    for (let dependance of infoInternal.dependances) {
+                        let cloneBeforeLoop = { ...indexByUri };
+                        // load info to force insert before
+                        if (dependance.uri == "@external") {
+                            const resultTemp = loadAndOrderInfo(dependance, false, indexByUri, alreadyLooked, {});
+                            if (resultTemp instanceof Promise) {
+                                if (dependance.isStrong) {
+                                    promises.push(resultTemp);
                                 }
                             }
                             else {
-                                if (dependance.uri == "@external") {
-                                    indexByUri = loadAndOrderInfo(dependance, false, indexByUri, alreadyLooked);
-                                }
-                                else {
-                                    let oldLength = result.toCompile.length;
-                                    indexByUri = loadAndOrderInfo(dependance, true, indexByUri, alreadyLooked);
-                                    let newLength = result.toCompile.length;
-                                    if (indexByUri[localUri] && indexByUri[localUri] >= 0 && indexByUri[localUri] > insertIndex) {
-                                        if (insertIndex > 0) {
-                                            insertIndex += (newLength - oldLength);
+                                indexByUri = resultTemp
+                            }
+                        }
+                        else {
+                            if (dependance.isStrong) {
+                                let fullNameDep = dependance.fullName.replace("$namespace$", '');
+                                if (fullNameDep != fullName) {
+
+                                    const resultTemp = loadAndOrderInfo(dependance, true, indexByUri, alreadyLooked, alreadyLookedStrong);
+                                    if (resultTemp instanceof Promise) {
+                                        promises.push(resultTemp);
+                                    }
+                                    else {
+                                        indexByUri = resultTemp
+                                        if (indexByUri[uri] && indexByUri[uri] >= 0 && indexByUri[uri] > insertIndex) {
+                                            insertIndex = indexByUri[uri];
                                         }
                                     }
                                 }
 
                             }
-                            indexByUri = cloneBeforeLoop;
+                            else {
+                                let oldLength = result.toCompile.length;
+                                const resultTemp = loadAndOrderInfo(dependance, true, indexByUri, alreadyLooked, {});
+                                if (!(resultTemp instanceof Promise)) {
+                                    indexByUri = resultTemp
+                                    if (indexByUri[uri] && indexByUri[uri] >= 0 && indexByUri[uri] > insertIndex) {
+                                        insertIndex = indexByUri[uri];
+                                    }
+                                }
+                                let newLength = result.toCompile.length;
+                                if (indexByUri[uri] && indexByUri[uri] >= 0 && indexByUri[uri] > insertIndex) {
+                                    if (insertIndex > 0) {
+                                        insertIndex += (newLength - oldLength);
+                                    }
+                                }
+
+                            }
                         }
+                        indexByUri = cloneBeforeLoop;
                     }
                     if (loadedInfoInternal.indexOf(fullName) != -1) {
-                        result[localUri] = loadedInfoInternal.indexOf(fullName);
-                        return indexByUri;
+                        result[uri] = loadedInfoInternal.indexOf(fullName);
+                        return;
                     }
 
-                    result.toCompile.splice(insertIndex, 0, infoInternal);
-                    loadedInfoInternal.splice(insertIndex, 0, fullName);
-                    indexByUri[localUri] = result.toCompile.length
-                    return indexByUri;
+                    if (promises.length == 0) {
+                        result.toCompile.splice(insertIndex, 0, infoInternal);
+                        loadedInfoInternal.splice(insertIndex, 0, fullName);
+                        for (const cb of alreadyLooked[fullName]) {
+                            cb()
+                        }
+                        alreadyLooked[fullName] = [];
+                    }
+                    indexByUri[uri] = result.toCompile.length
+                    return;
                 }
                 else {
-                    let infoExternal = this.externalPackageInformation.getByFullName(fullName);
                     if (!infoExternal) {
                         // it s an error
-                        return indexByUri;
+                        return;
                     }
-                    if (!this.dependanceUris.includes(infoExternal.uri)) {
+                    if (!this.dependanceUris.includes(uri)) {
                         // don't need to load the lib because not include inside build (care change this if want to load dependance of depenande not included)
-                        return indexByUri;
+                        return;
                     }
-                    if (!loadedInfoExternal[infoExternal.uri]) {
-                        loadedInfoExternal[infoExternal.uri] = [];
+                    if (!loadedInfoExternal[uri]) {
+                        loadedInfoExternal[uri] = [];
                     }
-                    let previousIndex = loadedInfoExternal[infoExternal.uri].indexOf(fullName);
+                    let previousIndex = loadedInfoExternal[uri].indexOf(fullName);
                     if (previousIndex != -1) {
-                        indexByUri[infoExternal.uri] = previousIndex + 1;
-                        return indexByUri;
+                        indexByUri[uri] = previousIndex + 1;
+                        return;
                     }
 
                     let insertIndex = 0;
                     if (infoExternal.content != 'noCode') {
-                        if (calculateDependances) {
-                            for (let dependance of infoExternal.content.dependances) {
-                                let cloneBeforeLoop = { ...indexByUri };
-                                indexByUri = loadAndOrderInfo(dependance, false, indexByUri, alreadyLooked);
-                                if (indexByUri[infoExternal.uri] && indexByUri[infoExternal.uri] >= 0 && indexByUri[infoExternal.uri] > insertIndex) {
-                                    insertIndex = indexByUri[infoExternal.uri];
+                        for (let dependance of infoExternal.content.dependances) {
+
+                            let cloneBeforeLoop = { ...indexByUri };
+                            let strongDep = dependance.isStrong ? alreadyLookedStrong : {};
+                            const resultTemp = loadAndOrderInfo(dependance, false, indexByUri, alreadyLooked, strongDep);
+                            if (resultTemp instanceof Promise) {
+                                if (dependance.isStrong) {
+                                    promises.push(resultTemp);
                                 }
-                                indexByUri = cloneBeforeLoop;
+                            }
+                            else {
+                                indexByUri = resultTemp;
+                                if (indexByUri[uri] && indexByUri[uri] >= 0 && indexByUri[uri] > insertIndex) {
+                                    insertIndex = indexByUri[uri];
+                                }
+                            }
+                            indexByUri = cloneBeforeLoop;
+
+                        }
+                    }
+
+                    if (loadedInfoExternal[uri].includes(fullName)) {
+                        indexByUri[uri] = loadedInfoExternal[uri].indexOf(fullName);
+                        return;
+                    }
+
+                    if (promises.length == 0) {
+                        loadedInfoExternal[uri].splice(insertIndex, 0, fullName);
+                        indexByUri[uri] = loadedInfoExternal[uri].length;
+                        if (fullName.includes("TableCellString")) {
+                            console.log("in");
+                        }
+                        for (const cb of alreadyLooked[fullName]) {
+                            cb()
+                        }
+                        alreadyLooked[fullName] = [];
+                    }
+                    return;
+                }
+            }
+            if (fullName.includes("TableCellString")) {
+                console.log("in");
+            }
+            calculate();
+            if (info.isStrong) {
+                delete alreadyLookedStrong[fullName];
+            }
+
+            if (promises.length == 0) {
+                if (alreadyLooked[fullName] && alreadyLooked[fullName].length == 0) {
+                    delete alreadyLooked[fullName];
+                }
+                return indexByUri;
+            }
+            else {
+                const prom =  new Promise<{ [uri: string]: string }>(async (resolve) => {
+                    const asyncResults = await Promise.all(promises);
+                    let insertIndex = indexByUri[uri] ?? 0;
+                    for (const result of asyncResults) {
+                        if(result[uri]) {
+                            let fullnameTemp = result[uri];
+                            if(isLocal) {
+                                let indexTemp = loadedInfoInternal.indexOf(fullnameTemp) + 1
+                                if(indexTemp > insertIndex) {
+                                    insertIndex = indexTemp;
+                                }
+                            }
+                            else {
+                                let indexTemp = loadedInfoExternal[uri].indexOf(fullnameTemp) + 1
+                                if(indexTemp > insertIndex) {
+                                    insertIndex = indexTemp;
+                                }
                             }
                         }
                     }
 
-                    if (loadedInfoExternal[infoExternal.uri].includes(fullName)) {
-                        indexByUri[infoExternal.uri] = loadedInfoExternal[infoExternal.uri].indexOf(fullName);
-                        return indexByUri;
+                    if (isLocal) {
+                        let infoInternal = localClassByFullName[fullName];
+                        result.toCompile.splice(insertIndex, 0, infoInternal);
+                        loadedInfoInternal.splice(insertIndex, 0, fullName);
                     }
-
-                    loadedInfoExternal[infoExternal.uri].splice(insertIndex, 0, fullName);
-                    indexByUri[infoExternal.uri] = loadedInfoExternal[infoExternal.uri].length;
-                    return indexByUri;
-                }
+                    else {
+                        loadedInfoExternal[uri].splice(insertIndex, 0, fullName);
+                    }
+                    for (const cb of alreadyLooked[fullName]) {
+                        cb()
+                    }
+                    delete alreadyLooked[fullName];
+                    resolve({ [uri]: fullName });
+                });
+                allProms.push(prom);
+                return prom;
             }
-            calculate();
-            delete alreadyLooked[fullName];
-            return indexByUri;
+
         }
 
         // load internal file
@@ -870,18 +965,19 @@ export class Build {
                 if (compileInfo.classScript !== "") {
                     loadAndOrderInfo({
                         fullName: compileInfo.classScript,
-                        isStrong: false,
-                    }, true, {}, {});
+                        isStrong: true,
+                    }, true, {}, {}, {});
                 }
                 if (compileInfo.classDoc !== "") {
                     loadAndOrderInfo({
                         fullName: compileInfo.classDoc,
                         isStrong: true,
-                    }, true, {}, {});
+                    }, true, {}, {}, {});
                 }
             }
         }
-
+        await Promise.all(allProms);
+        allProms = [];
         // add required code for lib
         for (let libUri of this.dependanceNeedUris) {
             let requiredInfos = this.externalPackageInformation.getInformationsRequired(libUri);
@@ -893,10 +989,14 @@ export class Build {
                     loadAndOrderInfo({
                         fullName: requiredInfo.fullName,
                         isStrong: true
-                    }, false, {}, {});
+                    }, false, {}, {}, {});
                 }
             }
         }
+
+        await Promise.all(allProms);
+        allProms = [];
+        
         for (let libUri of this.dependanceFullUris) {
             if (!loadedInfoExternal[libUri]) {
                 loadedInfoExternal[libUri] = [];
@@ -907,10 +1007,13 @@ export class Build {
                     loadAndOrderInfo({
                         fullName: fullInfo.fullName,
                         isStrong: true
-                    }, false, {}, {});
+                    }, false, {}, {}, {});
                 }
             }
         }
+
+        await Promise.all(allProms);
+        allProms = [];
 
         // build code for each lib
         let libSrc: string[] = []
@@ -960,6 +1063,8 @@ export class Build {
         }
 
         result.libSrc = libSrc.join(EOL);
+
+
 
         return result;
     }
@@ -1191,6 +1296,21 @@ export class Build {
         return "";
     }
 
+    public addNamespace(_namespace: string) {
+        if (!this.namespaces.includes(_namespace)) {
+            const splitted = _namespace.split(".");
+            let current = "";
+            for (let split of splitted) {
+                current += split;
+
+                if (!this.namespaces.includes(current)) {
+                    this.namespaces.push(current);
+                }
+
+                current += "."
+            }
+        }
+    }
 
     public async onRename(changes: { oldUri: string, newUri: string }[]): Promise<{ [uri: string]: TextEdit[] }> {
         for (let change of changes) {

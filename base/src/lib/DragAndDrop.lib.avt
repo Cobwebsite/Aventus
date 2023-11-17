@@ -27,6 +27,8 @@ export interface DragAndDropOptions {
     targets?: HTMLElement[];
     /** Use percent instead of pixel */
     usePercent?: boolean;
+    /** Stop Propagation */
+    stopPropagation?: boolean | (() => boolean);
 
     /** Determine if drag is active or not */
     isDragEnable?: () => boolean;
@@ -81,7 +83,8 @@ export class DragAndDrop {
             onDragStart: this.onDragStart.bind(this),
             onDrag: this.onDrag.bind(this),
             onDragEnd: this.onDragEnd.bind(this),
-            offsetDrag: this.options.offsetDrag
+            offsetDrag: this.options.offsetDrag,
+            stopPropagation: this.options.stopPropagation
         });
     }
     // #region merge params
@@ -100,6 +103,7 @@ export class DragAndDrop {
             strict: false,
             targets: [],
             usePercent: false,
+            stopPropagation: true,
 
             isDragEnable: () => true,
             getZoom: () => 1,
@@ -130,6 +134,7 @@ export class DragAndDrop {
         this.defaultMerge(options, "strict");
         this.defaultMerge(options, "targets");
         this.defaultMerge(options, "usePercent");
+        this.defaultMerge(options, "stopPropagation");
         if(options.shadow !== void 0) {
             this.options.shadow.enable = options.shadow.enable;
             if(options.shadow.container !== void 0) {

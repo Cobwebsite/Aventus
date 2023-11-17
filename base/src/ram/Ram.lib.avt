@@ -44,6 +44,8 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
      */
     protected records: Map<Index, RamItem<T>> = new Map();
 
+    protected getAllInPorgress: ((action: ResultRamWithError<Map<Index, RamItem<T>>>) => void)[] | undefined;
+
     protected constructor() {
         if(this.constructor == GenericRam) {
             throw "can't instanciate an abstract class";
@@ -382,15 +384,38 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
      */
     public async getAllWithError(): Promise<ResultRamWithError<Map<Index, RamItem<T>>>> {
         let action: ResultRamWithError<Map<Index, RamItem<T>>> = new ResultRamWithError();
-        action.result = new Map();
-        await this.beforeGetAll(action);
-        if(action.success) {
-            action.result = this.records;
-            await this.afterGetAll(action);
+        if(!this.getAllInPorgress) {
+            this.getAllInPorgress = [];
+            action.result = new Map();
+            await this.beforeGetAll(action);
+            if(action.success) {
+                action.result = this.records;
+                await this.afterGetAll(action);
+            }
+            for(let cb of this.getAllInPorgress) {
+                cb(action);
+            }
+            this.getAllInPorgress = undefined;
+        }
+        else {
+            action = await this.getAllWaiting();
         }
 
         return action;
     };
+
+    private getAllWaiting(): Promise<ResultRamWithError<Map<Index, RamItem<T>>>> {
+        return new Promise<ResultRamWithError<Map<Index, RamItem<T>>>>((resolve, reject) => {
+            if(this.getAllInPorgress) {
+                this.getAllInPorgress.push((action) => {
+                    let actionTemp: ResultRamWithError<Map<Index, RamItem<T>>> = new ResultRamWithError();
+                    actionTemp.result = action.result;
+                    actionTemp.errors = action.errors;
+                    resolve(action);
+                });
+            }
+        });
+    }
     /**
      * Trigger before getting all items inside Ram
      */

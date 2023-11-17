@@ -8,12 +8,13 @@ export function genericTsCompile(file: AventusTsFile): CompileTsResult[] {
     let debugTxt = "";
     let result: CompileTsResult[] = [];
 
-    let sectionCompile = (section: BaseInfo[]) => {
-        section.forEach((cls: BaseInfo) => {
-            let resultTemp = AventusTsLanguageService.compileTs(cls, file);
+    let sectionCompile = (sections: BaseInfo[]) => {
+        for(let section of sections) {
+            let resultTemp = AventusTsLanguageService.compileTs(section, file);
+            file.build.addNamespace(section.namespace);
             result.push(resultTemp);
             debugTxt += resultTemp.debugTxt;
-        });
+        }
     }
     if (file.fileParsed) {
         sectionCompile(Object.values(file.fileParsed.classes));

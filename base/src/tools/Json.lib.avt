@@ -1,0 +1,23 @@
+export function Stringify(obj: any): string {
+    const replacer = (key, value) => {
+        if(value instanceof Map) {
+            return Array.from(value.entries());
+        } else {
+            return value;
+        }
+    };
+    return JSON.stringify(obj, replacer);
+}
+
+export function Parse(txt: string) {
+    const reviver = (key, value) => {
+        if(typeof value === 'object' && value !== null) {
+            const values = [];
+            if(value.$type === 'AventusSharp.Map') {
+                return new Map(values);
+            }
+        }
+        return value;
+    };
+    return JSON.parse(txt, reviver);
+}

@@ -22,7 +22,7 @@ import {
 } from "typescript";
 import { Diagnostic, DiagnosticSeverity, Range } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { AventusLanguageId } from '../../../definition';
+import { AventusExtension, AventusLanguageId } from '../../../definition';
 import { FilesManager } from '../../../files/FilesManager';
 import { getFolder, pathToUri, uriToPath } from '../../../tools';
 import { AliasInfo } from './AliasInfo';
@@ -38,6 +38,7 @@ import { AventusFile, InternalAventusFile } from '../../../files/AventusFile';
 
 
 export class ParserTs {
+    private static waitingUri: { [uri: string]: (() => void)[] } = {};
     private static parsedDoc: { [uri: string]: { version: number, result: ParserTs } } = {};
     public static parse(document: AventusFile, isLib: boolean, build: Build): ParserTs {
         if (ParserTs.parsedDoc[document.uri]) {
@@ -98,6 +99,27 @@ export class ParserTs {
         }
         return false;
     }
+    public static hasLocal(name: string): boolean {
+        if (!ParserTs.currentParsingDoc) {
+            return false;
+        }
+        if (ParserTs.currentParsingDoc.enums[name]) {
+            return true;
+        }
+        if (ParserTs.currentParsingDoc.classes[name]) {
+            return true;
+        }
+        if (ParserTs.currentParsingDoc.aliases[name]) {
+            return true;
+        }
+        if (ParserTs.currentParsingDoc.functions[name]) {
+            return true;
+        }
+        if (ParserTs.currentParsingDoc.variables[name]) {
+            return true;
+        }
+        return false
+    }
 
     private content: string;
     public errors: Diagnostic[] = [];
@@ -117,7 +139,7 @@ export class ParserTs {
             uri: string,
         }
     } = {};
-    public waitingImports: { [localName: string]: string } = {};
+    public waitingImports: { [localName: string]: ((info: BaseInfo) => void)[] } = {};
     public aliases: { [shortName: string]: AliasInfo } = {};
     public variables: { [shortName: string]: VariableInfo } = {};
     public isLib: boolean = false;
@@ -141,6 +163,14 @@ export class ParserTs {
         this.isReady = true;
         for (let cb of this.readyCb) {
             cb();
+        }
+        this.readyCb = [];
+
+        if (ParserTs.waitingUri[file.uri]) {
+            for (let cb of ParserTs.waitingUri[file.uri]) {
+                cb();
+            }
+            delete ParserTs.waitingUri[file.uri];
         }
     }
 
@@ -179,7 +209,7 @@ export class ParserTs {
             }
             else if (x.kind == SyntaxKind.ModuleBlock) {
                 this.loadRoot(x);
-                
+
             }
             else if (x.kind == SyntaxKind.EndOfFileToken) {
 
@@ -191,9 +221,50 @@ export class ParserTs {
     }
 
 
+    private asyncImportLocal(moduleUri: string, localName: string, identifier: Identifier) {
+        let baseInfoLinked = ParserTs.parsedDoc[moduleUri].result.getBaseInfo(localName);
+        if (baseInfoLinked) {
+            this.imports[localName] = baseInfoLinked;
+            let types = [this.classes, this.enums, this.aliases, this.functions, this.variables];
+            for (let type of types) {
+                for (let name in type) {
+                    let _class = type[name]
+                    for (let dependance of _class.dependances) {
+                        if (dependance.uri == "@external" && dependance.fullName == localName) {
+                            dependance.uri = "@local";
+                            dependance.fullName = "$namespace$" + baseInfoLinked.fullName;
+                            //dependance.isStrong = false;
+                        }
+                    }
+                }
+            }
+            for (let cb of this.waitingImports[localName]) {
+                cb(baseInfoLinked);
+            }
+            delete this.waitingImports[localName]
+        }
+        else {
+            ParserTs.addError(identifier.getStart(), identifier.getEnd(), "Can't load " + moduleUri + " " + localName + " from " + this.document.uri)
+        }
+    }
     private importLocal(moduleName: string, identifier: Identifier) {
         let localName = identifier.getText();
         let moduleUri = pathToUri(normalize(getFolder(uriToPath(this.document.uri)) + '/' + moduleName));
+
+        if (moduleUri.endsWith(AventusExtension.Component)) {
+            if (this.waitingImports[localName]) {
+                return;
+            }
+            this.waitingImports[localName] = [];
+            if (!ParserTs.waitingUri[moduleUri]) {
+                ParserTs.waitingUri[moduleUri] = [];
+            }
+            ParserTs.waitingUri[moduleUri].push(() => {
+                this.asyncImportLocal(moduleUri, localName, identifier);
+            })
+            return;
+        }
+
         if (!ParserTs.parsedDoc[moduleUri]) {
             let file = FilesManager.getInstance().getByUri(moduleUri);
             if (file) {
@@ -206,7 +277,8 @@ export class ParserTs {
                 ParserTs.parse(avFile, false, this.build);
             }
         }
-        if (ParserTs.parsedDoc[moduleUri].result.isReady) {
+
+        if (ParserTs.parsedDoc[moduleUri]?.result.isReady) {
             let baseInfoLinked = ParserTs.parsedDoc[moduleUri].result.getBaseInfo(localName);
             if (baseInfoLinked) {
                 this.imports[localName] = baseInfoLinked
@@ -219,28 +291,9 @@ export class ParserTs {
             if (this.waitingImports[localName]) {
                 return;
             }
-            this.waitingImports[localName] = moduleUri;
+            this.waitingImports[localName] = [];
             ParserTs.parsedDoc[moduleUri].result.onReady(() => {
-                let baseInfoLinked = ParserTs.parsedDoc[moduleUri].result.getBaseInfo(localName);
-                if (baseInfoLinked) {
-                    this.imports[localName] = baseInfoLinked;
-                    let types = [this.classes, this.enums, this.aliases, this.functions, this.variables];
-                    for (let type of types) {
-                        for (let name in type) {
-                            let _class = type[name]
-                            for (let dependance of _class.dependances) {
-                                if (dependance.uri == "@external" && dependance.fullName == localName) {
-                                    dependance.uri = "@local";
-                                    dependance.fullName = "$namespace$" + baseInfoLinked.fullName;
-                                    //dependance.isStrong = false;
-                                }
-                            }
-                        }
-                    }
-                }
-                else {
-                    ParserTs.addError(identifier.getStart(), identifier.getEnd(), "Can't load " + moduleUri + " " + localName + " from " + this.document.uri)
-                }
+                this.asyncImportLocal(moduleUri, localName, identifier);
             })
         }
     }

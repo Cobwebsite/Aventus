@@ -40,6 +40,9 @@ export class Converter {
 
         if(typeof data === 'object' && !/^\s*class\s+/.test(data.toString())) {
             if(data.$type) {
+                if(data.$type == "AventusSharp.Map") {
+
+                }
                 let cst = this.info.get(data.$type);
                 if(cst) {
                     let obj = new cst();
@@ -52,6 +55,12 @@ export class Converter {
                             if(propInfo?.writable) {
                                 if(obj[prop] instanceof Date) {
                                     obj[prop] = value ? new Date(value) : null;
+                                }
+                                else if(obj[prop] instanceof Map) {
+                                    obj[prop].clear()
+                                    for(const keyValue of value) {
+                                        obj[prop].set(this.transformLoop(keyValue[0]), this.transformLoop(keyValue[1]));
+                                    }
                                 }
                                 else {
                                     obj[prop] = this.transformLoop(value);

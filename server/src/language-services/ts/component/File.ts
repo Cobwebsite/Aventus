@@ -360,7 +360,7 @@ interface AventusWebComponentSingleFileRegion<T extends AventusBaseFile> {
     end: number,
     file?: T,
 }
-export class AventusWebComponentSingleFile extends AventusTsFile {
+export class AventusWebComponentSingleFile extends AventusBaseFile {
     private regionLogic: AventusWebComponentSingleFileRegion<AventusWebComponentLogicalFile> = {
         start: 0,
         end: 0,
@@ -403,9 +403,7 @@ export class AventusWebComponentSingleFile extends AventusTsFile {
         return AventusExtension.Component;
     }
 
-    protected mustBeAddedToLanguageService(): boolean {
-        return false;
-    }
+    
 
     public constructor(file: AventusFile, build: Build) {
         super(file, build);
@@ -676,7 +674,6 @@ export class AventusWebComponentSingleFile extends AventusTsFile {
     }
 
     protected async onDelete(): Promise<void> {
-        await super.onDelete();
         delete this.build.tsFiles[this.file.uri];
     }
 
@@ -792,4 +789,7 @@ export class AventusWebComponentSingleFile extends AventusTsFile {
         return resultTxt;
     }
 
+    protected onGetBuild(): Build[] {
+        return [this.build]
+    }
 }

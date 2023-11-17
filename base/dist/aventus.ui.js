@@ -5,78 +5,7 @@ const moduleName = `Aventus`;
 const _ = {};
 
 
-const WebComponentInstance=class WebComponentInstance {
-    static __allDefinitions = [];
-    static __allInstances = [];
-    /**
-     * Last definition insert datetime
-     */
-    static lastDefinition = 0;
-    static registerDefinition(def) {
-        WebComponentInstance.lastDefinition = Date.now();
-        WebComponentInstance.__allDefinitions.push(def);
-    }
-    static removeDefinition(def) {
-        WebComponentInstance.lastDefinition = Date.now();
-        let index = WebComponentInstance.__allDefinitions.indexOf(def);
-        if (index > -1) {
-            WebComponentInstance.__allDefinitions.splice(index, 1);
-        }
-    }
-    /**
-     * Get all sub classes of type
-     */
-    static getAllClassesOf(type) {
-        let result = [];
-        for (let def of WebComponentInstance.__allDefinitions) {
-            if (def.prototype instanceof type) {
-                result.push(def);
-            }
-        }
-        return result;
-    }
-    /**
-     * Get all registered definitions
-     */
-    static getAllDefinitions() {
-        return WebComponentInstance.__allDefinitions;
-    }
-    static addInstance(instance) {
-        this.__allInstances.push(instance);
-    }
-    static removeInstance(instance) {
-        let index = this.__allInstances.indexOf(instance);
-        if (index > -1) {
-            this.__allInstances.splice(index, 1);
-        }
-    }
-    static getAllInstances(type) {
-        let result = [];
-        for (let instance of this.__allInstances) {
-            if (instance instanceof type) {
-                result.push(instance);
-            }
-        }
-        return result;
-    }
-    static create(type) {
-        let _class = customElements.get(type);
-        if (_class) {
-            return new _class();
-        }
-        let splitted = type.split(".");
-        let current = window;
-        for (let part of splitted) {
-            current = current[part];
-        }
-        if (current && current.prototype instanceof Aventus.WebComponent) {
-            return new current();
-        }
-        return null;
-    }
-}
-WebComponentInstance.Namespace=`${moduleName}`;
-_.WebComponentInstance=WebComponentInstance;
+let _n;
 const ElementExtension=class ElementExtension {
     /**
      * Find a parent by tagname if exist Static.findParentByTag(this, "av-img")
@@ -397,6 +326,78 @@ const Style=class Style {
 }
 Style.Namespace=`${moduleName}`;
 _.Style=Style;
+const WebComponentInstance=class WebComponentInstance {
+    static __allDefinitions = [];
+    static __allInstances = [];
+    /**
+     * Last definition insert datetime
+     */
+    static lastDefinition = 0;
+    static registerDefinition(def) {
+        WebComponentInstance.lastDefinition = Date.now();
+        WebComponentInstance.__allDefinitions.push(def);
+    }
+    static removeDefinition(def) {
+        WebComponentInstance.lastDefinition = Date.now();
+        let index = WebComponentInstance.__allDefinitions.indexOf(def);
+        if (index > -1) {
+            WebComponentInstance.__allDefinitions.splice(index, 1);
+        }
+    }
+    /**
+     * Get all sub classes of type
+     */
+    static getAllClassesOf(type) {
+        let result = [];
+        for (let def of WebComponentInstance.__allDefinitions) {
+            if (def.prototype instanceof type) {
+                result.push(def);
+            }
+        }
+        return result;
+    }
+    /**
+     * Get all registered definitions
+     */
+    static getAllDefinitions() {
+        return WebComponentInstance.__allDefinitions;
+    }
+    static addInstance(instance) {
+        this.__allInstances.push(instance);
+    }
+    static removeInstance(instance) {
+        let index = this.__allInstances.indexOf(instance);
+        if (index > -1) {
+            this.__allInstances.splice(index, 1);
+        }
+    }
+    static getAllInstances(type) {
+        let result = [];
+        for (let instance of this.__allInstances) {
+            if (instance instanceof type) {
+                result.push(instance);
+            }
+        }
+        return result;
+    }
+    static create(type) {
+        let _class = customElements.get(type);
+        if (_class) {
+            return new _class();
+        }
+        let splitted = type.split(".");
+        let current = window;
+        for (let part of splitted) {
+            current = current[part];
+        }
+        if (current && current.prototype instanceof Aventus.WebComponent) {
+            return new current();
+        }
+        return null;
+    }
+}
+WebComponentInstance.Namespace=`${moduleName}`;
+_.WebComponentInstance=WebComponentInstance;
 const Callback=class Callback {
     callbacks = [];
     /**
@@ -1070,6 +1071,7 @@ const PressManager=class PressManager {
         drag: "drag"
     };
     useDblPress = false;
+    stopPropagation = () => true;
     functionsBinded = {
         downAction: (e) => { },
         upAction: (e) => { },
@@ -1143,6 +1145,12 @@ const PressManager=class PressManager {
         if (options.forceDblPress) {
             this.useDblPress = true;
         }
+        if (typeof options.stopPropagation == 'function') {
+            this.stopPropagation = options.stopPropagation;
+        }
+        else if (options.stopPropagation === false) {
+            this.stopPropagation = () => false;
+        }
     }
     bindAllFunction() {
         this.functionsBinded.downAction = this.downAction.bind(this);
@@ -1167,7 +1175,9 @@ const PressManager=class PressManager {
     }
     downAction(e) {
         this.downEventSaved = e;
-        e.stopImmediatePropagation();
+        if (this.stopPropagation()) {
+            e.stopImmediatePropagation();
+        }
         this.customFcts = {};
         if (this.nbPress == 0) {
             this.state.oneActionTriggered = false;
@@ -1184,20 +1194,22 @@ const PressManager=class PressManager {
                     this.triggerEventToParent(this.actionsName.longPress, e);
                 }
                 else {
-                    this.emitTriggerFunction("longpress", e);
+                    this.emitTriggerFunction(this.actionsName.longPress, e);
                 }
             }
         }, this.delayLongPress);
         if (this.options.onPressStart) {
             this.options.onPressStart(e, this);
-            this.emitTriggerFunction("pressstart", e, this.element.parentElement);
+            this.emitTriggerFunctionParent("pressstart", e);
         }
         else {
             this.emitTriggerFunction("pressstart", e);
         }
     }
     upAction(e) {
-        e.stopImmediatePropagation();
+        if (this.stopPropagation()) {
+            e.stopImmediatePropagation();
+        }
         document.removeEventListener("pointerup", this.functionsBinded.upAction);
         document.removeEventListener("pointermove", this.functionsBinded.moveAction);
         clearTimeout(this.timeoutLongPress);
@@ -1222,7 +1234,7 @@ const PressManager=class PressManager {
                             this.triggerEventToParent(this.actionsName.dblPress, e);
                         }
                         else {
-                            this.emitTriggerFunction("dblpress", e);
+                            this.emitTriggerFunction(this.actionsName.dblPress, e);
                         }
                     }
                 }
@@ -1236,7 +1248,7 @@ const PressManager=class PressManager {
                                 this.triggerEventToParent(this.actionsName.press, e);
                             }
                             else {
-                                this.emitTriggerFunction("press", e);
+                                this.emitTriggerFunction(this.actionsName.press, e);
                             }
                         }
                     }, this.delayDblPress);
@@ -1257,7 +1269,7 @@ const PressManager=class PressManager {
         }
         if (this.options.onPressEnd) {
             this.options.onPressEnd(e, this);
-            this.emitTriggerFunction("pressend", e, this.element.parentElement);
+            this.emitTriggerFunctionParent("pressend", e);
         }
         else {
             this.emitTriggerFunction("pressend", e);
@@ -1265,7 +1277,9 @@ const PressManager=class PressManager {
     }
     moveAction(e) {
         if (!this.state.isMoving && !this.state.oneActionTriggered) {
-            e.stopImmediatePropagation();
+            if (this.stopPropagation()) {
+                e.stopImmediatePropagation();
+            }
             let xDist = e.pageX - this.startPosition.x;
             let yDist = e.pageY - this.startPosition.y;
             let distance = Math.sqrt(xDist * xDist + yDist * yDist);
@@ -1316,7 +1330,9 @@ const PressManager=class PressManager {
     }
     childPress(e) {
         if (this.options.onPress) {
-            e.stopImmediatePropagation();
+            if (this.stopPropagation()) {
+                e.stopImmediatePropagation();
+            }
             e.detail.state.oneActionTriggered = true;
             this.options.onPress(e.detail.realEvent, this);
             this.triggerEventToParent(this.actionsName.press, e.detail.realEvent);
@@ -1324,7 +1340,9 @@ const PressManager=class PressManager {
     }
     childDblPress(e) {
         if (this.options.onDblPress) {
-            e.stopImmediatePropagation();
+            if (this.stopPropagation()) {
+                e.stopImmediatePropagation();
+            }
             if (e.detail.state) {
                 e.detail.state.oneActionTriggered = true;
             }
@@ -1334,7 +1352,9 @@ const PressManager=class PressManager {
     }
     childLongPress(e) {
         if (this.options.onLongPress) {
-            e.stopImmediatePropagation();
+            if (this.stopPropagation()) {
+                e.stopImmediatePropagation();
+            }
             e.detail.state.oneActionTriggered = true;
             this.options.onLongPress(e.detail.realEvent, this);
             this.triggerEventToParent(this.actionsName.longPress, e.detail.realEvent);
@@ -1342,7 +1362,9 @@ const PressManager=class PressManager {
     }
     childDragStart(e) {
         if (this.options.onDragStart) {
-            e.stopImmediatePropagation();
+            if (this.stopPropagation()) {
+                e.stopImmediatePropagation();
+            }
             e.detail.state.isMoving = true;
             e.detail.customFcts.src = this;
             e.detail.customFcts.onDrag = this.options.onDrag;
@@ -1350,6 +1372,18 @@ const PressManager=class PressManager {
             e.detail.customFcts.offsetDrag = this.options.offsetDrag;
             this.options.onDragStart(e.detail.realEvent, this);
             this.triggerEventToParent(this.actionsName.drag, e.detail.realEvent);
+        }
+    }
+    emitTriggerFunctionParent(action, e) {
+        let el = this.element.parentElement;
+        if (el == null) {
+            let parentNode = this.element.parentNode;
+            if (parentNode instanceof ShadowRoot) {
+                this.emitTriggerFunction(action, e, parentNode.host);
+            }
+        }
+        else {
+            this.emitTriggerFunction(action, e, el);
         }
     }
     emitTriggerFunction(action, e, el) {
@@ -3200,7 +3234,8 @@ const DragAndDrop=class DragAndDrop {
             onDragStart: this.onDragStart.bind(this),
             onDrag: this.onDrag.bind(this),
             onDragEnd: this.onDragEnd.bind(this),
-            offsetDrag: this.options.offsetDrag
+            offsetDrag: this.options.offsetDrag,
+            stopPropagation: this.options.stopPropagation
         });
     }
     getDefaultOptions(element) {
@@ -3218,6 +3253,7 @@ const DragAndDrop=class DragAndDrop {
             strict: false,
             targets: [],
             usePercent: false,
+            stopPropagation: true,
             isDragEnable: () => true,
             getZoom: () => 1,
             getOffsetX: () => 0,
@@ -3247,6 +3283,7 @@ const DragAndDrop=class DragAndDrop {
         this.defaultMerge(options, "strict");
         this.defaultMerge(options, "targets");
         this.defaultMerge(options, "usePercent");
+        this.defaultMerge(options, "stopPropagation");
         if (options.shadow !== void 0) {
             this.options.shadow.enable = options.shadow.enable;
             if (options.shadow.container !== void 0) {
@@ -3460,6 +3497,7 @@ const Layout = {};
 _.Layout = {};
 const Form = {};
 _.Form = {};
+let _n;
 
 const App = class App extends Aventus.WebComponent {
     static __style = `:host{height:100%;width:100%;margin:0;padding:0;overflow:hidden}:host .part{height:500px;width:100%}`;
@@ -3569,13 +3607,6 @@ Navigation.RouterLink.Namespace=`${moduleName}.Navigation`;
 _.Navigation.RouterLink=Navigation.RouterLink;
 if(!window.customElements.get('av-router-link')){window.customElements.define('av-router-link', Navigation.RouterLink);Aventus.WebComponentInstance.registerDefinition(Navigation.RouterLink);}
 
-const RouterStateManager=class RouterStateManager extends Aventus.StateManager {
-    static getInstance() {
-        return Aventus.Instance.get(RouterStateManager);
-    }
-}
-RouterStateManager.Namespace=`${moduleName}`;
-_.RouterStateManager=RouterStateManager;
 Navigation.Router = class Router extends Aventus.WebComponent {
     oldPage;
     allRoutes = {};
@@ -3721,6 +3752,13 @@ Navigation.Router = class Router extends Aventus.WebComponent {
 Navigation.Router.Namespace=`${moduleName}.Navigation`;
 _.Navigation.Router=Navigation.Router;
 
+const RouterStateManager=class RouterStateManager extends Aventus.StateManager {
+    static getInstance() {
+        return Aventus.Instance.get(RouterStateManager);
+    }
+}
+RouterStateManager.Namespace=`${moduleName}`;
+_.RouterStateManager=RouterStateManager;
 Navigation.Page = class Page extends Aventus.WebComponent {
     static get observedAttributes() {return ["visible"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'visible'() {

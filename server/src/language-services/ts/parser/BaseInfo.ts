@@ -3,7 +3,6 @@ import { ParserTs } from './ParserTs';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { BaseLibInfo } from './BaseLibInfo';
 import { TypeInfo } from './TypeInfo';
-import { syntaxName } from './tools';
 import { DecoratorInfo } from './DecoratorInfo';
 import { DependancesDecorator } from './decorators/DependancesDecorator';
 
@@ -24,8 +23,12 @@ export abstract class BaseInfo {
     public static getInfoByShortName(shortName: string): BaseInfo | undefined {
         return this.infoByShortName[shortName];
     }
-    public static getInfoByFullName(fullName: string): BaseInfo | undefined {
-        return this.infoByFullName[fullName];
+    public static getInfoByFullName(fullName: string, from: BaseInfo): BaseInfo | undefined {
+        let result = this.infoByFullName[fullName];
+        if (!result) {
+            result = this.infoByFullName[from.fullName.split('.')[0] + "." + fullName];
+        }
+        return result
     }
 
     public static isExported(node: ClassDeclaration | EnumDeclaration | InterfaceDeclaration | TypeAliasDeclaration | FunctionDeclaration | VariableStatement | MethodDeclaration) {
@@ -155,7 +158,7 @@ export abstract class BaseInfo {
     private loadExpression(x: Node, depth2: number = 0, isStrongDependance: boolean = false) {
         if (this.debug) {
             console.log("***" + depth2 + ". " + x.getText());
-            console.log(syntaxName[x.kind]);
+            console.log(SyntaxKind[x.kind]);
         }
         if (x.kind == SyntaxKind.ExpressionWithTypeArguments) {
             this.addDependance(x as ExpressionWithTypeArguments, isStrongDependance);
@@ -178,7 +181,10 @@ export abstract class BaseInfo {
                 // when static call on local class
                 let localClassName = exp.expression.getText();
                 if (localClassName != 'this' && !localClassName.includes('.')) {
-                    if (ParserTs.hasImport(localClassName)) {
+                    if(ParserTs.hasLocal(localClassName)) {
+                        this.addDependanceName(localClassName, isStrongDependance, exp.expression.getStart(), exp.expression.getEnd());
+                    }
+                    else if (ParserTs.hasImport(localClassName)) {
                         this.addDependanceName(localClassName, isStrongDependance, exp.expression.getStart(), exp.expression.getEnd());
                     }
                 }
@@ -223,10 +229,7 @@ export abstract class BaseInfo {
                 this.loadExpression(x, depth, isStrongDependance);
             }
 
-            if (this.debug) {
-                console.log("***" + depth + ". " + x.getText());
-                console.log(syntaxName[x.kind]);
-            }
+            
             this.loadOnlyDependancesRecu(x, depth + 1, isStrongDependance);
         })
     }
@@ -365,6 +368,11 @@ export abstract class BaseInfo {
             if (this.debug) {
                 console.log("add dependance " + name + " : but waiting import file");
             }
+            this.parserInfo.waitingImports[name].push((info) => {
+                let fullName = this.parserInfo.imports[name].fullName
+                if (this.dependancesLocations[name])
+                    this.dependancesLocations[name].replacement = fullName;
+            })
         }
 
 

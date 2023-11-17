@@ -32,6 +32,7 @@ export interface PressManagerOptions {
     delayLongPress?: number;
     /** Force double press to be triggered (callback or dispatch to parent) */
     forceDblPress?: boolean;
+    stopPropagation?: boolean | (() => boolean);
 }
 export interface PressManagerState {
     oneActionTriggered: boolean,
@@ -80,6 +81,7 @@ export class PressManager {
         drag: "drag"
     };
     private useDblPress: boolean = false;
+    private stopPropagation: () => boolean = () => true;
 
     private functionsBinded: {
         downAction: (e: PointerEvent) => void,
@@ -166,6 +168,12 @@ export class PressManager {
         if(options.forceDblPress) {
             this.useDblPress = true;
         }
+        if(typeof options.stopPropagation == 'function') {
+            this.stopPropagation = options.stopPropagation;
+        }
+        else if(options.stopPropagation === false) {
+            this.stopPropagation = () => false;
+        }
     }
     private bindAllFunction() {
         this.functionsBinded.downAction = this.downAction.bind(this);
@@ -193,7 +201,9 @@ export class PressManager {
     // #region current Event
     private downAction(e: PointerEvent) {
         this.downEventSaved = e;
-        e.stopImmediatePropagation();
+        if(this.stopPropagation()) {
+            e.stopImmediatePropagation();
+        }
         this.customFcts = {};
         if(this.nbPress == 0) {
             this.state.oneActionTriggered = false;
@@ -211,21 +221,23 @@ export class PressManager {
                     this.triggerEventToParent(this.actionsName.longPress, e);
                 }
                 else {
-                    this.emitTriggerFunction("longpress", e);
+                    this.emitTriggerFunction(this.actionsName.longPress, e);
                 }
             }
 
         }, this.delayLongPress);
         if(this.options.onPressStart) {
             this.options.onPressStart(e, this);
-            this.emitTriggerFunction("pressstart", e, this.element.parentElement);
+            this.emitTriggerFunctionParent("pressstart", e);
         }
         else {
             this.emitTriggerFunction("pressstart", e);
         }
     }
     private upAction(e: PointerEvent) {
-        e.stopImmediatePropagation();
+        if(this.stopPropagation()) {
+            e.stopImmediatePropagation();
+        }
         document.removeEventListener("pointerup", this.functionsBinded.upAction);
         document.removeEventListener("pointermove", this.functionsBinded.moveAction);
 
@@ -252,7 +264,7 @@ export class PressManager {
                             this.triggerEventToParent(this.actionsName.dblPress, e);
                         }
                         else {
-                            this.emitTriggerFunction("dblpress", e);
+                            this.emitTriggerFunction(this.actionsName.dblPress, e);
                         }
                     }
                 }
@@ -266,7 +278,7 @@ export class PressManager {
                                 this.triggerEventToParent(this.actionsName.press, e);
                             }
                             else {
-                                this.emitTriggerFunction("press", e);
+                                this.emitTriggerFunction(this.actionsName.press, e);
                             }
                         }
                     }, this.delayDblPress);
@@ -288,7 +300,7 @@ export class PressManager {
 
         if(this.options.onPressEnd) {
             this.options.onPressEnd(e, this);
-            this.emitTriggerFunction("pressend", e, this.element.parentElement);
+            this.emitTriggerFunctionParent("pressend", e);
         }
         else {
             this.emitTriggerFunction("pressend", e);
@@ -296,7 +308,9 @@ export class PressManager {
     }
     private moveAction(e: PointerEvent) {
         if(!this.state.isMoving && !this.state.oneActionTriggered) {
-            e.stopImmediatePropagation();
+            if(this.stopPropagation()) {
+                e.stopImmediatePropagation();
+            }
             let xDist = e.pageX - this.startPosition.x;
             let yDist = e.pageY - this.startPosition.y;
             let distance = Math.sqrt(xDist * xDist + yDist * yDist);
@@ -350,7 +364,9 @@ export class PressManager {
     }
     private childPress(e: InternalPointerEvent) {
         if(this.options.onPress) {
-            e.stopImmediatePropagation();
+            if(this.stopPropagation()) {
+                e.stopImmediatePropagation();
+            }
             e.detail.state.oneActionTriggered = true;
             this.options.onPress(e.detail.realEvent, this);
             this.triggerEventToParent(this.actionsName.press, e.detail.realEvent);
@@ -358,7 +374,9 @@ export class PressManager {
     }
     private childDblPress(e: InternalPointerEvent) {
         if(this.options.onDblPress) {
-            e.stopImmediatePropagation();
+            if(this.stopPropagation()) {
+                e.stopImmediatePropagation();
+            }
             if(e.detail.state) {
                 e.detail.state.oneActionTriggered = true;
             }
@@ -368,7 +386,9 @@ export class PressManager {
     }
     private childLongPress(e: InternalPointerEvent) {
         if(this.options.onLongPress) {
-            e.stopImmediatePropagation();
+            if(this.stopPropagation()) {
+                e.stopImmediatePropagation();
+            }
             e.detail.state.oneActionTriggered = true;
             this.options.onLongPress(e.detail.realEvent, this);
             this.triggerEventToParent(this.actionsName.longPress, e.detail.realEvent);
@@ -376,7 +396,9 @@ export class PressManager {
     }
     private childDragStart(e: InternalPointerEvent) {
         if(this.options.onDragStart) {
-            e.stopImmediatePropagation();
+            if(this.stopPropagation()) {
+                e.stopImmediatePropagation();
+            }
             e.detail.state.isMoving = true;
             e.detail.customFcts.src = this;
             e.detail.customFcts.onDrag = this.options.onDrag;
@@ -387,7 +409,18 @@ export class PressManager {
         }
     }
     // #endregion
-
+    private emitTriggerFunctionParent(action: string, e: PointerEvent) {
+        let el = this.element.parentElement;
+        if(el == null) {
+            let parentNode = this.element.parentNode;
+            if(parentNode instanceof ShadowRoot) {
+                this.emitTriggerFunction(action, e, parentNode.host);
+            }
+        }
+        else {
+            this.emitTriggerFunction(action, e, el);
+        }
+    }
     private emitTriggerFunction(action: string, e: PointerEvent, el?: Element | null) {
         let ev = new CustomEvent("trigger_pointer_" + action, {
             bubbles: true,

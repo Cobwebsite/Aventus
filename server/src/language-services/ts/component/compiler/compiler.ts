@@ -177,6 +177,7 @@ export class AventusWebcomponentCompiler {
         }
 
         if (this.classInfo) {
+            this.logicalFile.build.addNamespace(this.classInfo.namespace);
             this.compileComponentClassInfo();
             this.result.htmlDoc = this.htmlDoc ?? {};
             this.result.scssDoc = this.prepareDocSCSS();
@@ -318,9 +319,8 @@ export class AventusWebcomponentCompiler {
 
         if (classInfo.extends.length > 0 && classInfo.extends[0] != this.AventusWebComponent) {
             // search parent inside local import
-            let nameToUse = classInfo.extends[0];
-            let parent = BaseInfo.getInfoByFullName(nameToUse);
-            if (parent && parent instanceof ClassInfo) {
+            let parent = classInfo.parentClass;
+            if (parent) {
                 this.loadParent(parent, false);
             }
             else {
@@ -451,6 +451,14 @@ export class AventusWebcomponentCompiler {
             this.writeFileReplaceVar("fullname", "const " + this.fullName);
             this.writeFileReplaceVar("namespace", this.fullName + ".Namespace=`${moduleName}`;");
         }
+        if(this.build.namespaces.includes(this.fullName)) {
+            this.writeFileReplaceVar("namespaceStart", '_n = ' + this.fullName + ';' + EOL);
+            this.writeFileReplaceVar("namespaceEnd", EOL + 'Object.assign(' + this.fullName + ', _n);' + EOL);
+        }
+        else {
+            this.writeFileReplaceVar("namespaceStart", '');
+            this.writeFileReplaceVar("namespaceEnd", '');
+        }
         if(this.classInfo?.isExported) {
             this.writeFileReplaceVar("exported", "_." + this.fullName + "=" + this.fullName+";");
         }
@@ -502,7 +510,7 @@ export class AventusWebcomponentCompiler {
     private writeFileConstructor() {
         if (this.classInfo) {
             let constructorBodyTxt = "";
-            let constructorBody = this.classInfo.constructorBody;
+            let constructorBody = this.classInfo.constructorContent;
             if (constructorBody.length > 0) {
                 constructorBodyTxt = `constructor() ` + constructorBody
             }
