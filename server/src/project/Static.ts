@@ -3,7 +3,7 @@ import { Project } from "./Project";
 import { FSWatcher, watch } from "chokidar";
 import { normalize, sep } from "path";
 import { copyFileSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "fs";
-const nodeSass = require('sass');
+import { compile } from 'sass';
 import { HttpServer } from '../live-server/HttpServer';
 import { AventusExtension } from '../definition';
 import { pathToUri, uriToPath } from '../tools';
@@ -66,7 +66,7 @@ export class Static {
                     }
                     if (filename.endsWith(".scss")) {
                         if (!filename.startsWith("_")) {
-                            let style = nodeSass.compile(pathFile, {
+                            let style = compile(pathFile, {
                                 style: 'compressed',
                             }).css.toString().trim();
                             writeFileSync(pathOut.replace(".scss", ".css"), style);

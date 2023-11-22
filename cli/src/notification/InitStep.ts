@@ -6,7 +6,6 @@ export class InitStep {
     private static doneTxt = "Aventus : Done";
     public static action(txt: string) {
         txt = txt.replace("$(loading~spin)", "◌");
-        console.log(txt);
         if (txt == this.doneTxt) {
             Server.started();
         }

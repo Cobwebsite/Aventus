@@ -1,7 +1,7 @@
 import { ColorInfo } from './ColorInfo';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Color, ColorInformation, ColorPresentation, Position, Range } from 'vscode-languageserver';
-import parseColor = require('parse-color');
+import parseColor from 'parse-color'
 
 interface Match {
 	color: Color;

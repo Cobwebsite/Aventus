@@ -177,6 +177,7 @@ export abstract class AventusTsFile extends AventusBaseFile {
         if (this.mustBeAddedToLanguageService()) {
             this.tsLanguageService.removeFile(this);
         }
+        this.build.npmBuilder.unregister(this.file.uri);
     }
 
     private oldFullSrc: { name: string, src: string }[] = [];

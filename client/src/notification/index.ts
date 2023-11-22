@@ -3,6 +3,7 @@ import { AskSelect } from './AskSelect';
 import { AskSelectMultiple } from './AskSelectMultiple';
 import { CloseFile } from "./CloseFile";
 import { Compiled } from "./Compiled";
+import { CompiledPart } from "./CompiledPart";
 import { EditFile } from './EditFile';
 import { ServerStart } from './httpServer/ServerStart';
 import { ServerStop } from './httpServer/ServerStop';
@@ -24,6 +25,7 @@ export const Notifications = {
     allNotifications: {
         [CloseFile.cmd]: CloseFile,
         [Compiled.cmd]: Compiled,
+        [CompiledPart.cmd]: CompiledPart,
         [ServerStart.cmd]: ServerStart,
         [ServerStop.cmd]: ServerStop,
         [OpenFile.cmd]: OpenFile,

@@ -224,6 +224,30 @@ export class AventusJSONLanguageService {
             }
         }
 
+        // node_modules
+        build.nodeModulesDir = build.nodeModulesDir.trim();
+
+        if (build.nodeModulesDir == "") {
+            build.nodeModulesDir = normalize(uriToPath(baseDir) + "/node_modules");
+        }
+        else {
+            let regexEnvVar = /%(.*?)%/gm;
+            let result: RegExpExecArray | null;
+            while (result = regexEnvVar.exec(build.nodeModulesDir)) {
+                let varName = result[1];
+                let varValue = env[varName] ?? 'undefined';
+                build.nodeModulesDir = build.nodeModulesDir.replace(result[0], varValue);
+            }
+            let windowDisk = /^[a-zA-Z]:/gm
+            if (!build.nodeModulesDir.startsWith("/") && !windowDisk.test(build.nodeModulesDir)) {
+                build.nodeModulesDir = "/" + build.nodeModulesDir;
+                build.nodeModulesDir = normalize(uriToPath(baseDir) + build.nodeModulesDir);
+            }
+            else {
+                build.nodeModulesDir = normalize(build.nodeModulesDir);
+            }
+        }
+
         // component style
         for (let styleInfo of build.componentStyle) {
             if (styleInfo.path.length > 0) {
@@ -407,7 +431,8 @@ export class AventusJSONLanguageService {
             dependances: [],
             avoidParsingInsideTags: [...config.avoidParsingInsideTags],
             componentStyle: [],
-            compressed: false
+            compressed: false,
+            nodeModulesDir: ''
         }
     }
 

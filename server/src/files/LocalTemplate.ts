@@ -1,4 +1,4 @@
-import open = require('open');
+import * as open from 'open'
 import { GenericServer } from '../GenericServer';
 import { SelectItem } from '../IConnection';
 import { uriToPath } from '../tools';

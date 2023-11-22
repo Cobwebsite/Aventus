@@ -8,7 +8,7 @@ import { AventusExtension } from '../../definition';
 import { createErrorScssPos } from '../../tools';
 import { Project } from '../../project/Project';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
-const nodeSass = require('sass');
+import { compileString } from 'sass';
 
 
 export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
@@ -87,7 +87,7 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 			}
 			let oneFileContent = _loadContent(this.file);
 			if (oneFileContent != "|error|") {
-				let compiled = nodeSass.compileString(oneFileContent, {
+				let compiled = compileString(oneFileContent, {
 					style: 'compressed'
 				}).css.toString().trim();
 				newCompiledTxt = compiled;

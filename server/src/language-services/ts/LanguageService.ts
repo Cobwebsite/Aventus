@@ -1,6 +1,6 @@
 import { EOL } from 'os';
 import { normalize, sep } from 'path';
-import { CodeFixAction, CompilerOptions, CompletionInfo, createLanguageService, Diagnostic as DiagnosticTs, displayPartsToString, Extension, flattenDiagnosticMessageText, FormatCodeSettings, GetCompletionsAtPositionOptions, IndentStyle, JsxEmit, LanguageService, LanguageServiceHost, ModuleDetectionKind, ModuleResolutionKind, RenameInfo, ResolvedModule, ResolvedModuleFull, resolveModuleName, ScriptKind, ScriptTarget, SemicolonPreference, transpile, WithMetadata } from 'typescript';
+import { CodeFixAction, CompilerOptions, CompletionInfo, createLanguageService, Diagnostic as DiagnosticTs, displayPartsToString, Extension, flattenDiagnosticMessageText, FormatCodeSettings, GetCompletionsAtPositionOptions, ImportsNotUsedAsValues, IndentStyle, JsxEmit, LanguageService, LanguageServiceHost, ModuleDetectionKind, ModuleResolutionKind, RenameInfo, ResolvedModule, ResolvedModuleFull, resolveModuleName, ScriptKind, ScriptTarget, SemicolonPreference, transpile, WithMetadata } from 'typescript';
 import { CodeAction, CodeLens, CompletionItem, CompletionItemKind, CompletionList, Definition, Diagnostic, DiagnosticSeverity, DiagnosticTag, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver';
 import { AventusExtension, AventusLanguageId } from '../../definition';
 import { AventusFile, InternalAventusFile } from '../../files/AventusFile';
@@ -1104,7 +1104,8 @@ const compilerOptionsRead: CompilerOptions = {
     strictPropertyInitialization: true,
     noImplicitReturns: true,
     noUnusedLocals: true,
-    strictNullChecks: true
+    strictNullChecks: true,
+    verbatimModuleSyntax: true
 };
 const compilerOptionsCompile: CompilerOptions = {
     allowNonTsExtensions: true,
@@ -1120,7 +1121,8 @@ const compilerOptionsCompile: CompilerOptions = {
     noImplicitOverride: true,
     strictPropertyInitialization: true,
     noImplicitReturns: true,
-    strictNullChecks: true
+    strictNullChecks: true,
+    verbatimModuleSyntax: true
 };
 const completionOptions: GetCompletionsAtPositionOptions = {
     includeExternalModuleExports: true,

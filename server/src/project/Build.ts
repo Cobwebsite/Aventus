@@ -26,13 +26,13 @@ import { Project } from "./Project";
 import { AventusGlobalSCSSLanguageService } from '../language-services/scss/GlobalLanguageService';
 import { DependanceManager } from './DependanceManager';
 import { AventusPackageFile, AventusPackageTsFileExport, AventusPackageTsFileExportNoCode } from '../language-services/ts/package/File';
-import { BuildNpm, NpmDependances } from './BuildNpm';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AventusGlobalComponentSCSSFile } from '../language-services/scss/GlobalComponentFile';
 import { minify } from 'terser';
 import { InfoType } from '../language-services/ts/parser/BaseInfo';
 import { AventusBaseFile } from '../language-services/BaseFile';
 import { GenericServer } from '../GenericServer';
+import { NpmBuilder } from './BuildNpm';
 
 export class Build {
     public project: Project;
@@ -66,9 +66,12 @@ export class Build {
     public scssLanguageService: AventusSCSSLanguageService;
     public htmlLanguageService: AventusHTMLLanguageService;
     private allowBuild: boolean = true;
+    private initDone: boolean = false;
 
     public reloadPage: boolean = false;
     private _outputPathes: string[] = [];
+
+    public readonly npmBuilder: NpmBuilder;
 
     public get fullname() {
         return this.buildConfig.fullname;
@@ -78,6 +81,9 @@ export class Build {
     }
     public get hideWarnings() {
         return this.buildConfig.hideWarnings;
+    }
+    public get nodeModulesDir(): string {
+        return this.buildConfig.nodeModulesDir
     }
 
     public get outputPathes(): string[] {
@@ -96,10 +102,12 @@ export class Build {
         for (let outputPackage of buildConfig.outputPackage) {
             this._outputPathes.push(outputPackage.replace(/\\/g, '/'));
         }
+        this.npmBuilder = new NpmBuilder(this);
         RegisterBuild.send(project.getConfigFile().path, buildConfig.fullname);
     }
     public async init() {
         await this.loadFiles();
+        this.initDone = true;
     }
 
     public getComponentPrefix() {
@@ -130,6 +138,9 @@ export class Build {
     public disableBuild() {
         this.allowBuild = false;
     }
+    public get isBuildAllowed() {
+        return this.allowBuild;
+    }
     //#region build
     private timerBuild: NodeJS.Timeout | undefined = undefined;
     public insideRebuildAll: boolean = false;
@@ -151,22 +162,31 @@ export class Build {
         }
 
         for (let uri in this.scssFiles) {
-            this.scssFiles[uri].triggerSave();
+            await this.scssFiles[uri].triggerSave();
         }
         for (let uri in this.htmlFiles) {
-            this.htmlFiles[uri].triggerSave();
+            await this.htmlFiles[uri].triggerSave();
         }
         for (let uri in this.wcFiles) {
-            this.wcFiles[uri].triggerSave();
+            await this.wcFiles[uri].triggerSave();
         }
         for (let uri in this.tsFiles) {
-            this.tsFiles[uri].triggerSave();
+            await this.tsFiles[uri].triggerSave();
         }
         this.insideRebuildAll = false;
         this.allowBuild = true;
-        await this.build();
+        this.npmBuilder.rebuildInfo();
+        if (this.initDone) {
+            await this.build();
+        }
+        else {
+            await this._build();
+        }
     }
     public async build() {
+        if(!this.initDone) {
+            return;
+        }
         let delay = GenericServer.delayBetweenBuild();
         if (delay == 0) {
             await this._build();
@@ -221,7 +241,7 @@ export class Build {
         }
         this.clearDiagnostics();
         let compilationInfo = await this.buildOrderCompilationInfo();
-        let result = await this.buildLocalCode(compilationInfo.toCompile, this.buildConfig.module, compilationInfo.npmNeeded);
+        let result = await this.buildLocalCode(compilationInfo.toCompile, this.buildConfig.module);
 
         await this.writeBuildCode(result, compilationInfo.libSrc);
         let srcInfo = {
@@ -308,6 +328,7 @@ export class Build {
     }, libSrc: string) {
         if (this.buildConfig.outputFile && this.buildConfig.outputFile.length > 0) {
             let finalTxt = '';
+            finalTxt += await this.npmBuilder.compile();
             finalTxt += libSrc + EOL;
             let stylesheets: string[] = [];
             for (let name in localCode.stylesheets) {
@@ -409,7 +430,7 @@ export class Build {
     /**
      * Build the code for the current project after order
      */
-    private async buildLocalCode(toCompile: CompileTsResult[], namespace: string, npmNeeded: { inside: NpmDependances, outside: NpmDependances }) {
+    private async buildLocalCode(toCompile: CompileTsResult[], namespace: string) {
         let result: {
             codeNoNamespaceBefore: string[],
             code: string[],
@@ -450,12 +471,7 @@ export class Build {
             namespaceWithDot = namespace + '.'
         }
 
-        result.code.push(await new BuildNpm().build(npmNeeded.inside, this.project.getConfigFile().folderPath));
-        result.codeNoNamespaceBefore.push(await new BuildNpm().build(npmNeeded.outside, this.project.getConfigFile().folderPath));
-
-
-
-        /** Prepare the right dependances for a class (local, external and uri) */
+        /** Prepare the right dependances for a class (local, external, npm and uri) */
         const prepareDependances = (deps: { fullName: string; uri: string; isStrong: boolean }[], currentUri: string): { fullName: string; isStrong: boolean }[] => {
             let result: { fullName: string; isStrong: boolean }[] = [];
             for (let dep of deps) {
@@ -468,7 +484,7 @@ export class Build {
                         depName = dep.fullName.replace("$namespace$", namespaceWithDot);
                     }
                 }
-                else if (dep.uri == "@external") {
+                else if (dep.uri == "@external" || dep.uri == "@npm") {
                     depName = dep.fullName;
                 }
                 else {
@@ -628,8 +644,8 @@ export class Build {
         return result;
     }
 
-    private async buildOrderCompilationInfo(): Promise<{ toCompile: CompileTsResult[], libSrc: string, npmNeeded: { inside: NpmDependances, outside: NpmDependances } }> {
-        let result: { toCompile: CompileTsResult[], libSrc: string, npmNeeded: { inside: NpmDependances, outside: NpmDependances } } = { toCompile: [], libSrc: '', npmNeeded: { inside: {}, outside: {} } };
+    private async buildOrderCompilationInfo(): Promise<{ toCompile: CompileTsResult[], libSrc: string }> {
+        let result: { toCompile: CompileTsResult[], libSrc: string } = { toCompile: [], libSrc: '' };
         // map local information by fullname
         let localClassByFullName: { [fullName: string]: CompileTsResult } = {};
         let localClass: { [name: string]: CompileTsResult } = {};
@@ -664,39 +680,6 @@ export class Build {
                 // in case script and doc are different
                 if (compileInfo.classDoc !== "" && !localClassByFullName[compileInfo.classDoc]) {
                     localClassByFullName[compileInfo.classDoc] = compileInfo;
-                }
-            }
-
-
-            if (currentFile.fileParsed) {
-                for (let name in currentFile.fileParsed.npmImports) {
-                    let current = currentFile.fileParsed.npmImports[name];
-                    let uri = current.uri;
-                    let npmNeededSelected: NpmDependances;
-                    // TODO add manage between inside and outside to compile module only once (outisde > inside)
-                    if (this.noNamespaceUri[currentFile.file.uri]) {
-                        npmNeededSelected = result.npmNeeded.outside;
-                    }
-                    else {
-                        npmNeededSelected = result.npmNeeded.inside;
-                    }
-                    if (!npmNeededSelected[uri]) {
-                        npmNeededSelected[uri] = { parts: {} };
-                    }
-                    if (current.nameInsideLib == "*") {
-                        npmNeededSelected[uri].isGlobal = name;
-                    }
-                    else {
-
-                        if (!npmNeededSelected[uri].parts[current.nameInsideLib]) {
-                            npmNeededSelected[uri].parts[current.nameInsideLib] = []
-                        }
-
-                        if (!npmNeededSelected[uri].parts[current.nameInsideLib].includes(name)) {
-                            npmNeededSelected[uri].parts[current.nameInsideLib].push(name);
-                        }
-                    }
-
                 }
             }
         }
@@ -775,6 +758,10 @@ export class Build {
                     let infoInternal = localClassByFullName[fullName];
                     let insertIndex = 0;
                     for (let dependance of infoInternal.dependances) {
+                        if (dependance.uri == "@npm") {
+                            continue;
+                        }
+
                         let cloneBeforeLoop = { ...indexByUri };
                         // load info to force insert before
                         if (dependance.uri == "@external") {
@@ -863,7 +850,6 @@ export class Build {
                     let insertIndex = 0;
                     if (infoExternal.content != 'noCode') {
                         for (let dependance of infoExternal.content.dependances) {
-
                             let cloneBeforeLoop = { ...indexByUri };
                             let strongDep = dependance.isStrong ? alreadyLookedStrong : {};
                             const resultTemp = loadAndOrderInfo(dependance, false, indexByUri, alreadyLooked, strongDep);
@@ -891,9 +877,6 @@ export class Build {
                     if (promises.length == 0) {
                         loadedInfoExternal[uri].splice(insertIndex, 0, fullName);
                         indexByUri[uri] = loadedInfoExternal[uri].length;
-                        if (fullName.includes("TableCellString")) {
-                            console.log("in");
-                        }
                         for (const cb of alreadyLooked[fullName]) {
                             cb()
                         }
@@ -901,9 +884,6 @@ export class Build {
                     }
                     return;
                 }
-            }
-            if (fullName.includes("TableCellString")) {
-                console.log("in");
             }
             calculate();
             if (info.isStrong) {
@@ -917,21 +897,21 @@ export class Build {
                 return indexByUri;
             }
             else {
-                const prom =  new Promise<{ [uri: string]: string }>(async (resolve) => {
+                const prom = new Promise<{ [uri: string]: string }>(async (resolve) => {
                     const asyncResults = await Promise.all(promises);
                     let insertIndex = indexByUri[uri] ?? 0;
                     for (const result of asyncResults) {
-                        if(result[uri]) {
+                        if (result[uri]) {
                             let fullnameTemp = result[uri];
-                            if(isLocal) {
+                            if (isLocal) {
                                 let indexTemp = loadedInfoInternal.indexOf(fullnameTemp) + 1
-                                if(indexTemp > insertIndex) {
+                                if (indexTemp > insertIndex) {
                                     insertIndex = indexTemp;
                                 }
                             }
                             else {
                                 let indexTemp = loadedInfoExternal[uri].indexOf(fullnameTemp) + 1
-                                if(indexTemp > insertIndex) {
+                                if (indexTemp > insertIndex) {
                                     insertIndex = indexTemp;
                                 }
                             }
@@ -940,10 +920,12 @@ export class Build {
 
                     if (isLocal) {
                         let infoInternal = localClassByFullName[fullName];
-                        result.toCompile.splice(insertIndex, 0, infoInternal);
-                        loadedInfoInternal.splice(insertIndex, 0, fullName);
+                        if (!loadedInfoInternal.includes(fullName)) {
+                            result.toCompile.splice(insertIndex, 0, infoInternal);
+                            loadedInfoInternal.splice(insertIndex, 0, fullName);
+                        }
                     }
-                    else {
+                    else if (!loadedInfoExternal[uri].includes(fullName)) {
                         loadedInfoExternal[uri].splice(insertIndex, 0, fullName);
                     }
                     for (const cb of alreadyLooked[fullName]) {
@@ -996,7 +978,7 @@ export class Build {
 
         await Promise.all(allProms);
         allProms = [];
-        
+
         for (let libUri of this.dependanceFullUris) {
             if (!loadedInfoExternal[libUri]) {
                 loadedInfoExternal[libUri] = [];
@@ -1137,22 +1119,25 @@ export class Build {
      * Register one file inside this build
      * @param file 
      */
-    private registerFile(file: AventusFile) {
+    private async registerFile(file: AventusFile) {
         if (file.uri.endsWith(AventusExtension.ComponentStyle)) {
             if (!this.scssFiles[file.uri]) {
                 this.scssFiles[file.uri] = new AventusWebSCSSFile(file, this);
+                await this.scssFiles[file.uri].init()
                 this.registerOnFileDelete(file);
             }
         }
         else if (file.uri.endsWith(AventusExtension.ComponentView)) {
             if (!this.htmlFiles[file.uri]) {
                 this.htmlFiles[file.uri] = new AventusHTMLFile(file, this);
+                await this.htmlFiles[file.uri].init()
                 this.registerOnFileDelete(file);
             }
         }
         else if (file.uri.endsWith(AventusExtension.Component)) {
             if (!this.wcFiles[file.uri]) {
                 this.wcFiles[file.uri] = new AventusWebComponentSingleFile(file, this);
+                await this.wcFiles[file.uri].init();
                 this.registerOnFileDelete(file);
             }
         }

@@ -1,5 +1,5 @@
-import { ExtendRoutesType, RouteType } from "./type.lib.avt";
-import { Join, StringLiteral } from "../tools/MergePrototype.lib.avt";
+import type { ExtendRoutesType, RouteType } from "./type.lib.avt";
+import type { Join, StringLiteral } from "../tools/MergePrototype.lib.avt";
 import { HttpRouter } from "./HttpRouter.lib.avt";
 
 

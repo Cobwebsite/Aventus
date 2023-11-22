@@ -1,4 +1,4 @@
-import { FormElement } from "../Form/FormElement.lib.avt";
+import type { FormElement } from "../Form/FormElement.lib.avt";
 
 namespace Form {
     @Debugger({

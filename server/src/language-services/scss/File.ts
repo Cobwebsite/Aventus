@@ -11,7 +11,7 @@ import { AventusWebComponentLogicalFile } from '../ts/component/File';
 import { SCSSParsedRule } from './LanguageService';
 import { AventusHTMLFile } from '../html/File';
 import { ParserHtml } from '../html/parser/ParserHtml';
-const nodeSass = require('sass');
+import { compileString } from 'sass';
 
 export class AventusWebSCSSFile extends AventusBaseFile {
     public compiledVersion = -1;
@@ -41,8 +41,11 @@ export class AventusWebSCSSFile extends AventusBaseFile {
     public constructor(file: AventusFile, build: Build) {
         super(file, build);
         this.namespace = this.build.getNamespace(file.uri);
-        this.loadDependances();
-        this.compile(false);
+    }
+
+    public async init(): Promise<void> {
+        await this.loadDependances();
+        await this.compile(false);
     }
 
     protected async onValidate(): Promise<Diagnostic[]> {
@@ -54,12 +57,12 @@ export class AventusWebSCSSFile extends AventusBaseFile {
 
     }
     protected async onSave() {
-        this.compileRoot();
+        await this.compileRoot();
     }
-    private compileRoot() {
+    private async compileRoot() {
         if (Object.values(this.usedBy).length == 0) {
             // it's a root file
-            this.compile();
+            await this.compile();
         }
         else {
             // it's a depend file like vars file
@@ -68,7 +71,7 @@ export class AventusWebSCSSFile extends AventusBaseFile {
             }
         }
     }
-    private compile(triggerSave = true) {
+    private async compile(triggerSave = true) {
         try {
             let newCompiledTxt = this.compiledTxt;
 
@@ -98,7 +101,7 @@ export class AventusWebSCSSFile extends AventusBaseFile {
             }
             let oneFileContent = _loadContent(this.file);
             if (oneFileContent != "|error|") {
-                let compiled = nodeSass.compileString(oneFileContent, {
+                let compiled = compileString(oneFileContent, {
                     style: 'compressed'
                 }).css.toString().trim();
                 newCompiledTxt = compiled;
@@ -111,7 +114,7 @@ export class AventusWebSCSSFile extends AventusBaseFile {
                 let tsFile = this.build.tsFiles[this.file.uri.replace(AventusExtension.ComponentStyle, AventusExtension.ComponentLogic)];
                 if (tsFile instanceof AventusWebComponentLogicalFile && triggerSave) {
                     tsFile.canUpdateComponent = false;
-                    tsFile.triggerSave();
+                    await tsFile.triggerSave();
                     if (tsFile.compilationResult) {
                         let namespace = this.namespace;
                         let namespaceFile = tsFile.fileParsed?.classes[tsFile.compilationResult.componentName].namespace;
@@ -127,7 +130,7 @@ export class AventusWebSCSSFile extends AventusBaseFile {
 
 
             }
-            
+
             this._rules = this.build.scssLanguageService.getRules(this.file);
             let htmlFile = this.build.htmlFiles[this.file.uri.replace(AventusExtension.ComponentStyle, AventusExtension.ComponentView)];
             if (htmlFile instanceof AventusHTMLFile) {
@@ -185,7 +188,7 @@ export class AventusWebSCSSFile extends AventusBaseFile {
 
 
     //#region dependances
-    private loadDependances() {
+    private async loadDependances() {
         let text = this.file.content;
         let textToSearch = text.replace(/\/\*[\s\S]*?\*\/|([^:]|^)\/\/.*$/gm, '$1')
         let regex = /@import *?('|")(\S*?)('|");?/g;
@@ -202,7 +205,7 @@ export class AventusWebSCSSFile extends AventusBaseFile {
                 this.diagnostics.push(createErrorScssPos(this.file.document, "Can't load this file", start, end));
             }
             else {
-                this.addDependance(fileDependance);
+                await this.addDependance(fileDependance);
             }
         }
     }
@@ -213,13 +216,14 @@ export class AventusWebSCSSFile extends AventusBaseFile {
             delete this.dependances[uri];
         }
     }
-    private addDependance(fileDependance: AventusFile): void {
+    private async addDependance(fileDependance: AventusFile): Promise<void> {
         if (this.build.scssFiles[fileDependance.uri]) {
             this.dependances[fileDependance.uri] = this.build.scssFiles[fileDependance.uri];
             this.build.scssFiles[fileDependance.uri].usedBy[this.file.uri] = this;
         }
         else if (fileDependance.uri.endsWith(AventusExtension.ComponentStyle)) {
             this.build.scssFiles[fileDependance.uri] = new AventusWebSCSSFile(fileDependance, this.build);
+            await this.build.scssFiles[fileDependance.uri].init();
             this.dependances[fileDependance.uri] = this.build.scssFiles[fileDependance.uri];
             this.build.scssFiles[fileDependance.uri].usedBy[this.file.uri] = this;
         }

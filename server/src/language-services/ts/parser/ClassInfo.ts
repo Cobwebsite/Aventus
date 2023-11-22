@@ -157,14 +157,8 @@ export class ClassInfo extends BaseInfo {
 					}
 				}
 				forEachChild(x, y => {
-					if(this.name.includes("TableRowHeader")) {
-						this.debug = true;
-					}
 					if (y.kind == SyntaxKind.Block) {
 						this.loadOnlyDependancesRecu(y);
-					}
-					if(this.name.includes("TableRowHeader")) {
-						this.debug = false;
 					}
 				})
 				let methodInfo = new MethodInfo(x as MethodDeclaration, this);

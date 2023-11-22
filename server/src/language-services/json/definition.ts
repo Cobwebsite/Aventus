@@ -23,7 +23,8 @@ export interface AventusConfigBuild {
 		path: string,
 		outputFile?: string,
 	}[],
-	compressed: boolean
+	compressed: boolean,
+	nodeModulesDir: string
 }
 export type IncludeType = 'none' | 'need' | 'full';
 

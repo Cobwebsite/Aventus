@@ -5,6 +5,7 @@ import { BaseLibInfo } from './BaseLibInfo';
 import { TypeInfo } from './TypeInfo';
 import { DecoratorInfo } from './DecoratorInfo';
 import { DependancesDecorator } from './decorators/DependancesDecorator';
+import * as md5 from 'md5';
 
 
 export enum InfoType {
@@ -54,7 +55,7 @@ export abstract class BaseInfo {
     // public dependancesFullName: string[] = [];
     public dependances: {
         fullName: string,
-        uri: string, // @local (same file), @external (lib), file uri (same build) 
+        uri: string, // @local (same file), @external (lib), @npm (npm), file uri (same build) 
         isStrong: boolean,
     }[] = []
     public compiled: string = "";
@@ -181,7 +182,7 @@ export abstract class BaseInfo {
                 // when static call on local class
                 let localClassName = exp.expression.getText();
                 if (localClassName != 'this' && !localClassName.includes('.')) {
-                    if(ParserTs.hasLocal(localClassName)) {
+                    if (ParserTs.hasLocal(localClassName)) {
                         this.addDependanceName(localClassName, isStrongDependance, exp.expression.getStart(), exp.expression.getEnd());
                     }
                     else if (ParserTs.hasImport(localClassName)) {
@@ -229,7 +230,7 @@ export abstract class BaseInfo {
                 this.loadExpression(x, depth, isStrongDependance);
             }
 
-            
+
             this.loadOnlyDependancesRecu(x, depth + 1, isStrongDependance);
         })
     }
@@ -375,7 +376,21 @@ export abstract class BaseInfo {
             })
         }
 
-
+        if (this.parserInfo.npmImports[name]) {
+            this.dependances.push({
+                fullName: name,
+                uri: "@npm",
+                isStrong: isStrongDependance
+            });
+            if (this.debug) {
+                console.log("add dependance " + name + " : npm");
+            }
+            if (this.dependancesLocations[name]) {
+                let md5uri = md5(this.parserInfo.npmImports[name].uri);
+                this.dependancesLocations[name].replacement = "npmCompilation['" + md5uri + "']." + name;
+            }
+            return name;
+        }
         // should be a lib dependances outside the module
         this.dependances.push({
             fullName: name,

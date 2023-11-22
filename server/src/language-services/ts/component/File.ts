@@ -146,20 +146,6 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
             srcToUpdate = srcToUpdate.slice(srcToUpdate.indexOf("="));
             srcToUpdate = srcToUpdate.replace(/if\(\!window\.customElements\.get\(.*$/gm, '');
             
-            // TODO check side effects => maybe use real position instead of regex
-            // for (let dependance of classInfo.dependances) {
-            //     if (dependance.uri == "@local") {
-            //         let fullName = dependance.fullName.replace("$namespace$", this.buildNamespace);
-            //         let regexp = new RegExp("(" + dependance.fullName.replace("$namespace$", "") + ")(\\(|\\.|,|;| )", 'g');
-            //         srcToUpdate = srcToUpdate.replace(regexp, fullName + "$2");
-            //     }
-            //     else if (dependance.uri != "@external") {
-            //         let namespace = this.build.getNamespace(dependance.uri);
-            //         let fullName = dependance.fullName.replace("$namespace$", namespace);
-            //         let regexp = new RegExp("(" + dependance.fullName.replace("$namespace$", "") + ")(\\(|\\.|,|;| )", 'g');
-            //         srcToUpdate = srcToUpdate.replace(regexp, fullName + "$2");
-            //     }
-            // }
             let namespace = this.buildNamespace;
             if (classInfo.namespace) {
                 namespace += classInfo.namespace;
@@ -378,25 +364,28 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
         if (this.regionLogic.file) {
             return this.regionLogic.file
         }
-        let fileTemp = this.getDocuments().ts;
-        this.regionLogic.file = fileTemp;
-        return fileTemp;
+        throw 'should not append'
+        // let fileTemp = this.getDocuments().ts;
+        // this.regionLogic.file = fileTemp;
+        // return fileTemp;
     }
     public get style(): AventusWebSCSSFile {
         if (this.regionStyle.file) {
             return this.regionStyle.file
         }
-        let fileTemp = this.getDocuments().scss;
-        this.regionStyle.file = fileTemp;
-        return fileTemp;
+        throw 'should not append'
+        // let fileTemp = this.getDocuments().scss;
+        // this.regionStyle.file = fileTemp;
+        // return fileTemp;
     }
     public get view(): AventusHTMLFile {
         if (this.regionView.file) {
             return this.regionView.file
         }
-        let fileTemp = this.getDocuments().html;
-        this.regionView.file = fileTemp;
-        return fileTemp;
+        throw 'should not append'
+        // let fileTemp = this.getDocuments().html;
+        // this.regionView.file = fileTemp;
+        // return fileTemp;
     }
 
     protected get extension(): string {
@@ -407,7 +396,10 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
 
     public constructor(file: AventusFile, build: Build) {
         super(file, build);
-        let result = this.getDocuments();
+        
+    }
+    public async init() {
+        let result = await this.getDocuments();
         this.regionLogic.file = result.ts;
         this.build.tsFiles[result.ts.file.uri] = result.ts;
         this.regionStyle.file = result.scss;
@@ -688,18 +680,23 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
     }
 
 
-    private getDocuments() {
+    private async getDocuments() {
         let resultTxt = this.splitDocument();
 
         let htmlFileTemp = new InternalAventusFile(TextDocument.create(this.file.uri, AventusLanguageId.HTML, this.file.version, resultTxt.htmlText));
         let scssFileTemp = new InternalAventusFile(TextDocument.create(this.file.uri, AventusLanguageId.SCSS, this.file.version, resultTxt.cssText));
         let tsFileTemp = new InternalAventusFile(TextDocument.create(this.file.uri, AventusLanguageId.HTML, this.file.version, resultTxt.scriptText));
 
-        return {
+        const result = {
             html: new AventusHTMLFile(htmlFileTemp, this.build),
             scss: new AventusWebSCSSFile(scssFileTemp, this.build),
             ts: new AventusWebComponentLogicalFile(tsFileTemp, this.build)
         };
+
+        await result.html.init();
+        await result.scss.init();
+
+        return result;
     }
 
     private splitDocument() {

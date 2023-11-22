@@ -1,4 +1,4 @@
-import { SocketOptions, SocketMessage, SocketRoute } from './ISocket.lib.avt';
+import type { SocketOptions, SocketMessage, SocketRoute } from './ISocket.lib.avt';
 
 export abstract class Socket {
     private options: Required<SocketOptions>;

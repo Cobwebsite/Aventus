@@ -32,7 +32,10 @@ export class AventusHTMLFile extends AventusBaseFile {
     }
     constructor(file: AventusFile, build: Build) {
         super(file, build);
-        this.compile(false);
+    }
+
+    public async init(): Promise<void> {
+        await this.compile(false);
     }
     /**
      * return true if doc changed
@@ -59,15 +62,15 @@ export class AventusHTMLFile extends AventusBaseFile {
     protected async onContentChange(): Promise<void> {
     }
     protected async onSave() {
-        this.compile();
+        await this.compile();
     }
-    private compile(triggerSave = true) {
+    private async compile(triggerSave = true) {
         try {
             if (this.refreshFileParsed()) {
                 let tsFile = this.tsFile;
                 if (tsFile && triggerSave) {
-                    tsFile.validate();
-                    tsFile.triggerSave();
+                    await tsFile.validate();
+                    await tsFile.triggerSave();
                 }
             }
         } catch (e) {

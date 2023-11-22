@@ -3498,48 +3498,13 @@ _.Layout = {};
 const Form = {};
 _.Form = {};
 let _n;
-
-const App = class App extends Aventus.WebComponent {
-    static __style = `:host{height:100%;width:100%;margin:0;padding:0;overflow:hidden}:host .part{height:500px;width:100%}`;
-    __getStatic() {
-        return App;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(App.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<av-scrollable>	<div class="content" _id="app_0"></div></av-scrollable>` }
-    });
-}
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
-  "elements": [
-    {
-      "name": "content",
-      "ids": [
-        "app_0"
-      ]
-    }
-  ]
-}); }
-    getClassName() {
-        return "App";
-    }
-    postCreation() {
-        for (let i = 0; i <= 8000; i += 500) {
-            let div = document.createElement("DIV");
-            div.classList.add("part");
-            div.style.backgroundColor = "#" + Math.floor(Math.random() * 16777215).toString(16);
-            this.content.appendChild(div);
-        }
+const RouterStateManager=class RouterStateManager extends Aventus.StateManager {
+    static getInstance() {
+        return Aventus.Instance.get(RouterStateManager);
     }
 }
-App.Namespace=`${moduleName}`;
-_.App=App;
-if(!window.customElements.get('av-app')){window.customElements.define('av-app', App);Aventus.WebComponentInstance.registerDefinition(App);}
-
+RouterStateManager.Namespace=`${moduleName}`;
+_.RouterStateManager=RouterStateManager;
 Navigation.RouterLink = class RouterLink extends Aventus.WebComponent {
     get 'state'() {
                     return this.getAttribute('state') ?? undefined;
@@ -3607,158 +3572,6 @@ Navigation.RouterLink.Namespace=`${moduleName}.Navigation`;
 _.Navigation.RouterLink=Navigation.RouterLink;
 if(!window.customElements.get('av-router-link')){window.customElements.define('av-router-link', Navigation.RouterLink);Aventus.WebComponentInstance.registerDefinition(Navigation.RouterLink);}
 
-Navigation.Router = class Router extends Aventus.WebComponent {
-    oldPage;
-    allRoutes = {};
-    activePath = "";
-    oneStateActive = false;
-    showPageMutex = new Aventus.Mutex();
-    get stateManager() {
-        return Aventus.Instance.get(RouterStateManager);
-    }
-    page404;
-    static __style = `:host{display:block}`;
-    constructor() {            super();            this.validError404 = this.validError404.bind(this);if (this.constructor == Router) { throw "can't instanciate an abstract class"; } }
-    __getStatic() {
-        return Router;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(Router.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        slots: { 'before':`<slot name="before"></slot>`,'after':`<slot name="after"></slot>` }, 
-        blocks: { 'default':`<slot name="before"></slot><div class="content" _id="router_0"></div><slot name="after"></slot>` }
-    });
-}
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
-  "elements": [
-    {
-      "name": "contentEl",
-      "ids": [
-        "router_0"
-      ]
-    }
-  ]
-}); }
-    getClassName() {
-        return "Router";
-    }
-    addRouteAsync(options) {
-        this.allRoutes[options.route] = options;
-    }
-    addRoute(route, elementCtr) {
-        this.allRoutes[route] = {
-            route: route,
-            scriptUrl: '',
-            render: () => elementCtr
-        };
-    }
-    register() {
-        try {
-            this.defineRoutes();
-            this.stateManager.onAfterStateChanged(this.validError404);
-            for (let key in this.allRoutes) {
-                this.initRoute(key);
-            }
-        }
-        catch (e) {
-            console.log(e);
-        }
-    }
-    initRoute(path) {
-        let element = undefined;
-        let allRoutes = this.allRoutes;
-        this.stateManager.subscribe(path, {
-            active: (currentState) => {
-                this.oneStateActive = true;
-                this.showPageMutex.safeRunLastAsync(async () => {
-                    if (!element) {
-                        let options = allRoutes[path];
-                        if (options.scriptUrl != "") {
-                            await Aventus.ResourceLoader.loadInHead(options.scriptUrl);
-                        }
-                        let cst = options.render();
-                        element = new cst;
-                        element.currentRouter = this;
-                        this.contentEl.appendChild(element);
-                    }
-                    if (this.oldPage && this.oldPage != element) {
-                        await this.oldPage.hide();
-                    }
-                    let oldPage = this.oldPage;
-                    let oldUrl = this.activePath;
-                    await element.show();
-                    this.oldPage = element;
-                    this.activePath = path;
-                    if (window.location.pathname != currentState.name) {
-                        let newUrl = window.location.origin + currentState.name;
-                        document.title = element.pageTitle();
-                        window.history.pushState({}, element.pageTitle(), newUrl);
-                    }
-                    this.onNewPage(oldUrl, oldPage, path, element);
-                });
-            },
-            inactive: () => {
-                this.oneStateActive = false;
-            }
-        });
-    }
-    async validError404() {
-        if (!this.oneStateActive) {
-            let Page404 = this.error404(this.stateManager.getState());
-            if (Page404) {
-                if (!this.page404) {
-                    this.page404 = new Page404();
-                    this.page404.currentRouter = this;
-                    this.contentEl.appendChild(this.page404);
-                }
-                if (this.oldPage && this.oldPage != this.page404) {
-                    await this.oldPage.hide();
-                }
-                await this.page404.show();
-                this.oldPage = this.page404;
-                this.activePath = '';
-            }
-        }
-    }
-    error404(state) {
-        return null;
-    }
-    onNewPage(oldUrl, oldPage, newUrl, newPage) {
-    }
-    getSlugs() {
-        return this.stateManager.getStateSlugs(this.activePath);
-    }
-    postCreation() {
-        this.register();
-        let oldUrl = window.localStorage.getItem("navigation_url");
-        if (oldUrl !== null) {
-            Aventus.State.activate(oldUrl, this.stateManager);
-            window.localStorage.removeItem("navigation_url");
-        }
-        else {
-            Aventus.State.activate(window.location.pathname, this.stateManager);
-        }
-        window.onpopstate = (e) => {
-            if (window.location.pathname != this.stateManager.getState()?.name) {
-                Aventus.State.activate(window.location.pathname, this.stateManager);
-            }
-        };
-    }
-}
-Navigation.Router.Namespace=`${moduleName}.Navigation`;
-_.Navigation.Router=Navigation.Router;
-
-const RouterStateManager=class RouterStateManager extends Aventus.StateManager {
-    static getInstance() {
-        return Aventus.Instance.get(RouterStateManager);
-    }
-}
-RouterStateManager.Namespace=`${moduleName}`;
-_.RouterStateManager=RouterStateManager;
 Navigation.Page = class Page extends Aventus.WebComponent {
     static get observedAttributes() {return ["visible"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'visible'() {
@@ -3812,627 +3625,6 @@ Navigation.Page = class Page extends Aventus.WebComponent {
 Navigation.Page.Namespace=`${moduleName}.Navigation`;
 _.Navigation.Page=Navigation.Page;
 
-Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
-    static get observedAttributes() {return ["zoom"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
-    get 'y_scroll_visible'() {
-                return this.hasAttribute('y_scroll_visible');
-            }
-            set 'y_scroll_visible'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('y_scroll_visible', 'true');
-                } else{
-                    this.removeAttribute('y_scroll_visible');
-                }
-            }get 'x_scroll_visible'() {
-                return this.hasAttribute('x_scroll_visible');
-            }
-            set 'x_scroll_visible'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('x_scroll_visible', 'true');
-                } else{
-                    this.removeAttribute('x_scroll_visible');
-                }
-            }get 'floating_scroll'() {
-                return this.hasAttribute('floating_scroll');
-            }
-            set 'floating_scroll'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('floating_scroll', 'true');
-                } else{
-                    this.removeAttribute('floating_scroll');
-                }
-            }get 'x_scroll'() {
-                return this.hasAttribute('x_scroll');
-            }
-            set 'x_scroll'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('x_scroll', 'true');
-                } else{
-                    this.removeAttribute('x_scroll');
-                }
-            }get 'y_scroll'() {
-                return this.hasAttribute('y_scroll');
-            }
-            set 'y_scroll'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('y_scroll', 'true');
-                } else{
-                    this.removeAttribute('y_scroll');
-                }
-            }get 'auto_hide'() {
-                return this.hasAttribute('auto_hide');
-            }
-            set 'auto_hide'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('auto_hide', 'true');
-                } else{
-                    this.removeAttribute('auto_hide');
-                }
-            }get 'break'() {
-                    return Number(this.getAttribute('break'));
-                }
-                set 'break'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('break')}
-                    else{this.setAttribute('break',val)}
-                }get 'disable'() {
-                return this.hasAttribute('disable');
-            }
-            set 'disable'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('disable', 'true');
-                } else{
-                    this.removeAttribute('disable');
-                }
-            }get 'no_user_select'() {
-                return this.hasAttribute('no_user_select');
-            }
-            set 'no_user_select'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('no_user_select', 'true');
-                } else{
-                    this.removeAttribute('no_user_select');
-                }
-            }    get 'zoom'() {
-                    return Number(this.getAttribute('zoom'));
-                }
-                set 'zoom'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('zoom')}
-                    else{this.setAttribute('zoom',val)}
-                }    observer;
-    display = { x: 0, y: 0 };
-    max = {
-        x: 0,
-        y: 0
-    };
-    margin = {
-        x: 0,
-        y: 0
-    };
-    position = {
-        x: 0,
-        y: 0
-    };
-    momentum = { x: 0, y: 0 };
-    contentWrapperSize = { x: 0, y: 0 };
-    scroller = {
-        x: () => {
-            if (!this.horizontalScroller) {
-                throw 'can\'t find the horizontalScroller';
-            }
-            return this.horizontalScroller;
-        },
-        y: () => {
-            if (!this.verticalScroller) {
-                throw 'can\'t find the verticalScroller';
-            }
-            return this.verticalScroller;
-        }
-    };
-    scrollerContainer = {
-        x: () => {
-            if (!this.horizontalScrollerContainer) {
-                throw 'can\'t find the horizontalScrollerContainer';
-            }
-            return this.horizontalScrollerContainer;
-        },
-        y: () => {
-            if (!this.verticalScrollerContainer) {
-                throw 'can\'t find the verticalScrollerContainer';
-            }
-            return this.verticalScrollerContainer;
-        }
-    };
-    hideDelay = { x: 0, y: 0 };
-    touchRecord;
-    pointerCount = 0;
-    savedBreak = 1;
-    get x() {
-        return this.position.x;
-    }
-    get y() {
-        return this.position.y;
-    }
-    onScrollChange = new Aventus.Callback();
-    renderAnimation;
-    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("zoom", ((target) => {
-    target.changeZoom();
-})); }
-    static __style = `:host{--internal-scrollbar-container-color: var(--scrollbar-container-color, transparent);--internal-scrollbar-color: var(--scrollbar-color, #757575);--internal-scrollbar-active-color: var(--scrollbar-active-color, #858585);--internal-scroller-width: var(--scroller-width, 6px);--internal-scroller-top: var(--scroller-top, 3px);--internal-scroller-bottom: var(--scroller-bottom, 3px);--internal-scroller-right: var(--scroller-right, 3px);--internal-scroller-left: var(--scroller-left, 3px)}:host{display:block;height:100%;overflow:hidden;position:relative;-webkit-user-drag:none;-khtml-user-drag:none;-moz-user-drag:none;-o-user-drag:none;width:100%}:host .scroll-main-container{display:block;height:100%;position:relative;width:100%}:host .scroll-main-container .content-zoom{display:block;height:100%;position:relative;transform-origin:0 0;width:100%;z-index:4}:host .scroll-main-container .content-zoom .content-hidder{display:block;height:100%;overflow:hidden;position:relative;width:100%}:host .scroll-main-container .content-zoom .content-hidder .content-wrapper{display:inline-block;height:100%;min-height:100%;min-width:100%;position:relative;width:100%}:host .scroll-main-container .scroller-wrapper .container-scroller{display:none;overflow:hidden;position:absolute;z-index:5;transition:transform .2s linear}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller{background-color:var(--internal-scrollbar-container-color);border-radius:5px}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller .scroller{background-color:var(--internal-scrollbar-color);border-radius:5px;cursor:pointer;position:absolute;-webkit-tap-highlight-color:rgba(0,0,0,0);touch-action:none;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .scroller.active{background-color:var(--internal-scrollbar-active-color)}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical{height:calc(100% - var(--internal-scroller-bottom)*2 - var(--internal-scroller-width));padding-left:var(--internal-scroller-left);right:var(--internal-scroller-right);top:var(--internal-scroller-bottom);transform:0;width:calc(var(--internal-scroller-width) + var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical.hide{transform:translateX(calc(var(--internal-scroller-width) + var(--internal-scroller-left)))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller .scroller{width:calc(100% - var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal{bottom:var(--internal-scroller-bottom);height:calc(var(--internal-scroller-width) + var(--internal-scroller-top));left:var(--internal-scroller-right);padding-top:var(--internal-scroller-top);transform:0;width:calc(100% - var(--internal-scroller-right)*2 - var(--internal-scroller-width))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal.hide{transform:translateY(calc(var(--internal-scroller-width) + var(--internal-scroller-top)))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller .scroller{height:calc(100% - var(--internal-scroller-top))}:host([y_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{height:auto}:host([x_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{width:auto}:host([y_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.vertical{display:block}:host([x_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.horizontal{display:block}:host([no_user_select]) .content-wrapper *{user-select:none}:host([no_user_select]) ::slotted{user-select:none}`;
-    constructor() {            super();            this.renderAnimation = this.createAnimation();            this.onWheel = this.onWheel.bind(this);            this.onTouchStart = this.onTouchStart.bind(this);            this.onTouchMove = this.onTouchMove.bind(this);            this.onTouchEnd = this.onTouchEnd.bind(this);            this.touchRecord = new TouchRecord();        }
-    __getStatic() {
-        return Scrollable;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(Scrollable.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<div class="scroll-main-container" _id="scrollable_0">    <div class="content-zoom" _id="scrollable_1">        <div class="content-hidder" _id="scrollable_2">            <div class="content-wrapper" _id="scrollable_3">                <slot></slot>            </div>        </div>    </div>    <div class="scroller-wrapper">        <div class="container-scroller vertical" _id="scrollable_4">            <div class="shadow-scroller">                <div class="scroller" _id="scrollable_5"></div>            </div>        </div>        <div class="container-scroller horizontal" _id="scrollable_6">            <div class="shadow-scroller">                <div class="scroller" _id="scrollable_7"></div>            </div>        </div>    </div></div>` }
-    });
-}
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
-  "elements": [
-    {
-      "name": "mainContainer",
-      "ids": [
-        "scrollable_0"
-      ]
-    },
-    {
-      "name": "contentZoom",
-      "ids": [
-        "scrollable_1"
-      ]
-    },
-    {
-      "name": "contentHidder",
-      "ids": [
-        "scrollable_2"
-      ]
-    },
-    {
-      "name": "contentWrapper",
-      "ids": [
-        "scrollable_3"
-      ]
-    },
-    {
-      "name": "verticalScrollerContainer",
-      "ids": [
-        "scrollable_4"
-      ]
-    },
-    {
-      "name": "verticalScroller",
-      "ids": [
-        "scrollable_5"
-      ]
-    },
-    {
-      "name": "horizontalScrollerContainer",
-      "ids": [
-        "scrollable_6"
-      ]
-    },
-    {
-      "name": "horizontalScroller",
-      "ids": [
-        "scrollable_7"
-      ]
-    }
-  ]
-}); }
-    getClassName() {
-        return "Scrollable";
-    }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('y_scroll_visible')) { this.attributeChangedCallback('y_scroll_visible', false, false); }if(!this.hasAttribute('x_scroll_visible')) { this.attributeChangedCallback('x_scroll_visible', false, false); }if(!this.hasAttribute('floating_scroll')) { this.attributeChangedCallback('floating_scroll', false, false); }if(!this.hasAttribute('x_scroll')) { this.attributeChangedCallback('x_scroll', false, false); }if(!this.hasAttribute('y_scroll')) {this.setAttribute('y_scroll' ,'true'); }if(!this.hasAttribute('auto_hide')) { this.attributeChangedCallback('auto_hide', false, false); }if(!this.hasAttribute('break')){ this['break'] = 0.1; }if(!this.hasAttribute('disable')) { this.attributeChangedCallback('disable', false, false); }if(!this.hasAttribute('no_user_select')) { this.attributeChangedCallback('no_user_select', false, false); }if(!this.hasAttribute('zoom')){ this['zoom'] = 1; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('y_scroll_visible');this.__upgradeProperty('x_scroll_visible');this.__upgradeProperty('floating_scroll');this.__upgradeProperty('x_scroll');this.__upgradeProperty('y_scroll');this.__upgradeProperty('auto_hide');this.__upgradeProperty('break');this.__upgradeProperty('disable');this.__upgradeProperty('no_user_select');this.__upgradeProperty('zoom'); }
-    __listBoolProps() { return ["y_scroll_visible","x_scroll_visible","floating_scroll","x_scroll","y_scroll","auto_hide","disable","no_user_select"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
-    createAnimation() {
-        return new Aventus.Animation({
-            fps: 60,
-            animate: () => {
-                const nextX = this.nextPosition('x');
-                const nextY = this.nextPosition('y');
-                this.momentum.x = nextX.momentum;
-                this.momentum.y = nextY.momentum;
-                this.scrollDirection('x', nextX.position);
-                this.scrollDirection('y', nextY.position);
-                if (!this.momentum.x && !this.momentum.y) {
-                    this.renderAnimation.stop();
-                }
-            },
-            stopped: () => {
-                if (this.momentum.x || this.momentum.y) {
-                    this.renderAnimation.start();
-                }
-            }
-        });
-    }
-    nextPosition(direction) {
-        const current = this.position[direction];
-        const remain = this.momentum[direction];
-        let result = {
-            momentum: 0,
-            position: 0,
-        };
-        if (Math.abs(remain) <= 0.1) {
-            result.position = current + remain;
-        }
-        else {
-            let nextMomentum = remain * (1 - this.break);
-            nextMomentum |= 0;
-            result.momentum = nextMomentum;
-            result.position = current + remain - nextMomentum;
-        }
-        let correctPosition = this.correctScrollValue(result.position, direction);
-        if (correctPosition != result.position) {
-            result.position = correctPosition;
-            result.momentum = 0;
-        }
-        return result;
-    }
-    scrollDirection(direction, value) {
-        const max = this.max[direction];
-        if (max != 0) {
-            this.position[direction] = this.correctScrollValue(value, direction);
-        }
-        else {
-            this.position[direction] = 0;
-        }
-        let container = this.scrollerContainer[direction]();
-        let scroller = this.scroller[direction]();
-        if (this.auto_hide) {
-            container.classList.remove("hide");
-            clearTimeout(this.hideDelay[direction]);
-            this.hideDelay[direction] = setTimeout(() => {
-                container.classList.add("hide");
-            }, 1000);
-        }
-        let containerSize = direction == 'y' ? container.offsetHeight : container.offsetWidth;
-        if (this.contentWrapperSize[direction] != 0) {
-            let scrollPosition = this.position[direction] / this.contentWrapperSize[direction] * containerSize;
-            scroller.style.transform = `translate${direction.toUpperCase()}(${scrollPosition}px)`;
-            this.contentWrapper.style.transform = `translate3d(${-1 * this.x}px, ${-1 * this.y}px, 0)`;
-        }
-        this.triggerScrollChange();
-    }
-    correctScrollValue(value, direction) {
-        if (value < 0) {
-            value = 0;
-        }
-        else if (value > this.max[direction]) {
-            value = this.max[direction];
-        }
-        return value;
-    }
-    triggerScrollChange() {
-        this.onScrollChange.trigger([this.x, this.y]);
-    }
-    scrollToPosition(x, y) {
-        this.scrollDirection('x', x);
-        this.scrollDirection('y', y);
-    }
-    scrollX(x) {
-        this.scrollDirection('x', x);
-    }
-    scrollY(y) {
-        this.scrollDirection('y', y);
-    }
-    addAction() {
-        this.addEventListener("wheel", this.onWheel);
-        this.addEventListener("touchstart", this.onTouchStart);
-        this.addEventListener("touchmove", this.onTouchMove);
-        this.addEventListener("touchcancel", this.onTouchEnd);
-        this.addEventListener("touchend", this.onTouchEnd);
-        this.addScrollDrag('x');
-        this.addScrollDrag('y');
-    }
-    addScrollDrag(direction) {
-        let scroller = this.scroller[direction]();
-        scroller.addEventListener("touchstart", (e) => {
-            e.stopPropagation();
-        });
-        let startPosition = 0;
-        new Aventus.DragAndDrop({
-            element: scroller,
-            applyDrag: false,
-            usePercent: true,
-            offsetDrag: 0,
-            isDragEnable: () => !this.disable,
-            onStart: (e) => {
-                this.no_user_select = true;
-                scroller.classList.add("active");
-                startPosition = this.position[direction];
-            },
-            onMove: (e, position) => {
-                let delta = position[direction] / 100 * this.contentWrapperSize[direction];
-                let value = startPosition + delta;
-                this.scrollDirection(direction, value);
-            },
-            onStop: () => {
-                this.no_user_select = false;
-                scroller.classList.remove("active");
-            }
-        });
-    }
-    addDelta(delta) {
-        if (this.disable) {
-            return;
-        }
-        this.momentum.x += delta.x;
-        this.momentum.y += delta.y;
-        this.renderAnimation?.start();
-    }
-    onWheel(e) {
-        const DELTA_MODE = [1.0, 28.0, 500.0];
-        const mode = DELTA_MODE[e.deltaMode] || DELTA_MODE[0];
-        this.addDelta({
-            x: e.deltaX * mode,
-            y: e.deltaY * mode,
-        });
-    }
-    onTouchStart(e) {
-        this.touchRecord.track(e);
-        this.momentum = {
-            x: 0,
-            y: 0
-        };
-        if (this.pointerCount === 0) {
-            this.savedBreak = this.break;
-            this.break = Math.max(this.break, 0.5); // less frames on touchmove
-        }
-        this.pointerCount++;
-    }
-    onTouchMove(e) {
-        this.touchRecord.update(e);
-        const delta = this.touchRecord.getDelta();
-        this.addDelta(delta);
-    }
-    onTouchEnd(e) {
-        const delta = this.touchRecord.getEasingDistance(this.savedBreak);
-        this.addDelta(delta);
-        this.pointerCount--;
-        if (this.pointerCount === 0) {
-            this.break = this.savedBreak;
-        }
-        this.touchRecord.release(e);
-    }
-    calculateRealSize() {
-        if (!this.contentZoom || !this.mainContainer || !this.contentWrapper) {
-            return;
-        }
-        const currentOffsetWidth = this.contentZoom.offsetWidth;
-        const currentOffsetHeight = this.contentZoom.offsetHeight;
-        this.contentWrapperSize.x = this.contentWrapper.offsetWidth;
-        this.contentWrapperSize.y = this.contentWrapper.offsetHeight;
-        if (this.zoom < 1) {
-            // scale the container for zoom
-            this.contentZoom.style.width = this.mainContainer.offsetWidth / this.zoom + 'px';
-            this.contentZoom.style.height = this.mainContainer.offsetHeight / this.zoom + 'px';
-            this.display.y = currentOffsetHeight;
-            this.display.x = currentOffsetWidth;
-        }
-        else {
-            this.display.y = currentOffsetHeight / this.zoom;
-            this.display.x = currentOffsetWidth / this.zoom;
-        }
-    }
-    calculatePositionScrollerContainer(direction) {
-        if (direction == 'y') {
-            this.calculatePositionScrollerContainerY();
-        }
-        else {
-            this.calculatePositionScrollerContainerX();
-        }
-    }
-    calculatePositionScrollerContainerY() {
-        const leftMissing = this.mainContainer.offsetWidth - this.verticalScrollerContainer.offsetLeft;
-        if (leftMissing > 0 && this.y_scroll_visible && !this.floating_scroll) {
-            this.contentHidder.style.width = 'calc(100% - ' + leftMissing + 'px)';
-            this.contentHidder.style.marginRight = leftMissing + 'px';
-            this.margin.x = leftMissing;
-        }
-        else {
-            this.contentHidder.style.width = '';
-            this.contentHidder.style.marginRight = '';
-            this.margin.x = 0;
-        }
-    }
-    calculatePositionScrollerContainerX() {
-        const topMissing = this.mainContainer.offsetHeight - this.horizontalScrollerContainer.offsetTop;
-        if (topMissing > 0 && this.x_scroll_visible && !this.floating_scroll) {
-            this.contentHidder.style.height = 'calc(100% - ' + topMissing + 'px)';
-            this.contentHidder.style.marginBottom = topMissing + 'px';
-            this.margin.y = topMissing;
-        }
-        else {
-            this.contentHidder.style.height = '';
-            this.contentHidder.style.marginBottom = '';
-            this.margin.y = 0;
-        }
-    }
-    calculateSizeScroller(direction) {
-        const scrollerSize = ((this.display[direction] - this.margin[direction]) / this.contentWrapperSize[direction] * 100);
-        if (direction == "y") {
-            this.scroller[direction]().style.height = scrollerSize + '%';
-        }
-        else {
-            this.scroller[direction]().style.width = scrollerSize + '%';
-        }
-        let maxScrollContent = this.contentWrapperSize[direction] - this.display[direction];
-        if (maxScrollContent < 0) {
-            maxScrollContent = 0;
-        }
-        this.max[direction] = maxScrollContent + this.margin[direction];
-    }
-    changeZoom() {
-        this.contentZoom.style.transform = 'scale(' + this.zoom + ')';
-        this.dimensionRefreshed();
-    }
-    dimensionRefreshed() {
-        this.calculateRealSize();
-        if (this.contentWrapperSize.y - this.display.y > 0) {
-            if (!this.y_scroll_visible) {
-                this.y_scroll_visible = true;
-                this.calculatePositionScrollerContainer('y');
-            }
-            this.calculateSizeScroller('y');
-            this.scrollDirection('y', this.y);
-        }
-        else if (this.y_scroll_visible) {
-            this.y_scroll_visible = false;
-            this.calculatePositionScrollerContainer('y');
-            this.scrollDirection('y', 0);
-        }
-        if (this.contentWrapperSize.x - this.display.x > 0) {
-            if (!this.x_scroll_visible) {
-                this.x_scroll_visible = true;
-                this.calculatePositionScrollerContainer('x');
-            }
-            this.calculateSizeScroller('x');
-            this.scrollDirection('x', this.x);
-        }
-        else if (this.x_scroll_visible) {
-            this.x_scroll_visible = false;
-            this.calculatePositionScrollerContainer('x');
-            this.scrollDirection('x', 0);
-        }
-    }
-    createResizeObserver() {
-        let inProgress = false;
-        return new Aventus.ResizeObserver({
-            callback: entries => {
-                if (inProgress) {
-                    return;
-                }
-                inProgress = true;
-                this.dimensionRefreshed();
-                inProgress = false;
-            },
-            fps: 30
-        });
-    }
-    addResizeObserver() {
-        if (this.observer == undefined) {
-            this.observer = this.createResizeObserver();
-        }
-        this.observer.observe(this.contentWrapper);
-        this.observer.observe(this);
-    }
-    postCreation() {
-        this.addResizeObserver();
-        this.addAction();
-    }
-}
-Layout.Scrollable.Namespace=`${moduleName}.Layout`;
-_.Layout.Scrollable=Layout.Scrollable;
-if(!window.customElements.get('av-scrollable')){window.customElements.define('av-scrollable', Layout.Scrollable);Aventus.WebComponentInstance.registerDefinition(Layout.Scrollable);}
-
-const TouchRecord=class TouchRecord {
-    _activeTouchID;
-    _touchList = {};
-    get _primitiveValue() {
-        return { x: 0, y: 0 };
-    }
-    isActive() {
-        return this._activeTouchID !== undefined;
-    }
-    getDelta() {
-        const tracker = this._getActiveTracker();
-        if (!tracker) {
-            return this._primitiveValue;
-        }
-        return { ...tracker.delta };
-    }
-    getVelocity() {
-        const tracker = this._getActiveTracker();
-        if (!tracker) {
-            return this._primitiveValue;
-        }
-        return { ...tracker.velocity };
-    }
-    getEasingDistance(damping) {
-        const deAcceleration = 1 - damping;
-        let distance = {
-            x: 0,
-            y: 0,
-        };
-        const vel = this.getVelocity();
-        Object.keys(vel).forEach(dir => {
-            let v = Math.abs(vel[dir]) <= 10 ? 0 : vel[dir];
-            while (v !== 0) {
-                distance[dir] += v;
-                v = (v * deAcceleration) | 0;
-            }
-        });
-        return distance;
-    }
-    track(evt) {
-        const { targetTouches, } = evt;
-        Array.from(targetTouches).forEach(touch => {
-            this._add(touch);
-        });
-        return this._touchList;
-    }
-    update(evt) {
-        const { touches, changedTouches, } = evt;
-        Array.from(touches).forEach(touch => {
-            this._renew(touch);
-        });
-        this._setActiveID(changedTouches);
-        return this._touchList;
-    }
-    release(evt) {
-        delete this._activeTouchID;
-        Array.from(evt.changedTouches).forEach(touch => {
-            this._delete(touch);
-        });
-    }
-    _add(touch) {
-        if (this._has(touch)) {
-            this._delete(touch);
-        }
-        const tracker = new Tracker(touch);
-        this._touchList[touch.identifier] = tracker;
-    }
-    _renew(touch) {
-        if (!this._has(touch)) {
-            return;
-        }
-        const tracker = this._touchList[touch.identifier];
-        tracker.update(touch);
-    }
-    _delete(touch) {
-        delete this._touchList[touch.identifier];
-    }
-    _has(touch) {
-        return this._touchList.hasOwnProperty(touch.identifier);
-    }
-    _setActiveID(touches) {
-        this._activeTouchID = touches[touches.length - 1].identifier;
-    }
-    _getActiveTracker() {
-        const { _touchList, _activeTouchID, } = this;
-        if (_activeTouchID !== undefined) {
-            return _touchList[_activeTouchID];
-        }
-        return undefined;
-    }
-}
-TouchRecord.Namespace=`${moduleName}`;
-_.TouchRecord=TouchRecord;
 const Tracker=class Tracker {
     velocityMultiplier = window.devicePixelRatio;
     updateTime = Date.now();
@@ -5311,6 +4503,813 @@ Form.Checkbox = class Checkbox extends Aventus.WebComponent {
 Form.Checkbox.Namespace=`${moduleName}.Form`;
 _.Form.Checkbox=Form.Checkbox;
 if(!window.customElements.get('av-checkbox')){window.customElements.define('av-checkbox', Form.Checkbox);Aventus.WebComponentInstance.registerDefinition(Form.Checkbox);}
+
+const TouchRecord=class TouchRecord {
+    _activeTouchID;
+    _touchList = {};
+    get _primitiveValue() {
+        return { x: 0, y: 0 };
+    }
+    isActive() {
+        return this._activeTouchID !== undefined;
+    }
+    getDelta() {
+        const tracker = this._getActiveTracker();
+        if (!tracker) {
+            return this._primitiveValue;
+        }
+        return { ...tracker.delta };
+    }
+    getVelocity() {
+        const tracker = this._getActiveTracker();
+        if (!tracker) {
+            return this._primitiveValue;
+        }
+        return { ...tracker.velocity };
+    }
+    getEasingDistance(damping) {
+        const deAcceleration = 1 - damping;
+        let distance = {
+            x: 0,
+            y: 0,
+        };
+        const vel = this.getVelocity();
+        Object.keys(vel).forEach(dir => {
+            let v = Math.abs(vel[dir]) <= 10 ? 0 : vel[dir];
+            while (v !== 0) {
+                distance[dir] += v;
+                v = (v * deAcceleration) | 0;
+            }
+        });
+        return distance;
+    }
+    track(evt) {
+        const { targetTouches, } = evt;
+        Array.from(targetTouches).forEach(touch => {
+            this._add(touch);
+        });
+        return this._touchList;
+    }
+    update(evt) {
+        const { touches, changedTouches, } = evt;
+        Array.from(touches).forEach(touch => {
+            this._renew(touch);
+        });
+        this._setActiveID(changedTouches);
+        return this._touchList;
+    }
+    release(evt) {
+        delete this._activeTouchID;
+        Array.from(evt.changedTouches).forEach(touch => {
+            this._delete(touch);
+        });
+    }
+    _add(touch) {
+        if (this._has(touch)) {
+            this._delete(touch);
+        }
+        const tracker = new Tracker(touch);
+        this._touchList[touch.identifier] = tracker;
+    }
+    _renew(touch) {
+        if (!this._has(touch)) {
+            return;
+        }
+        const tracker = this._touchList[touch.identifier];
+        tracker.update(touch);
+    }
+    _delete(touch) {
+        delete this._touchList[touch.identifier];
+    }
+    _has(touch) {
+        return this._touchList.hasOwnProperty(touch.identifier);
+    }
+    _setActiveID(touches) {
+        this._activeTouchID = touches[touches.length - 1].identifier;
+    }
+    _getActiveTracker() {
+        const { _touchList, _activeTouchID, } = this;
+        if (_activeTouchID !== undefined) {
+            return _touchList[_activeTouchID];
+        }
+        return undefined;
+    }
+}
+TouchRecord.Namespace=`${moduleName}`;
+_.TouchRecord=TouchRecord;
+Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
+    static get observedAttributes() {return ["zoom"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'y_scroll_visible'() {
+                return this.hasAttribute('y_scroll_visible');
+            }
+            set 'y_scroll_visible'(val) {
+                val = this.getBoolean(val);
+                if (val) {
+                    this.setAttribute('y_scroll_visible', 'true');
+                } else{
+                    this.removeAttribute('y_scroll_visible');
+                }
+            }get 'x_scroll_visible'() {
+                return this.hasAttribute('x_scroll_visible');
+            }
+            set 'x_scroll_visible'(val) {
+                val = this.getBoolean(val);
+                if (val) {
+                    this.setAttribute('x_scroll_visible', 'true');
+                } else{
+                    this.removeAttribute('x_scroll_visible');
+                }
+            }get 'floating_scroll'() {
+                return this.hasAttribute('floating_scroll');
+            }
+            set 'floating_scroll'(val) {
+                val = this.getBoolean(val);
+                if (val) {
+                    this.setAttribute('floating_scroll', 'true');
+                } else{
+                    this.removeAttribute('floating_scroll');
+                }
+            }get 'x_scroll'() {
+                return this.hasAttribute('x_scroll');
+            }
+            set 'x_scroll'(val) {
+                val = this.getBoolean(val);
+                if (val) {
+                    this.setAttribute('x_scroll', 'true');
+                } else{
+                    this.removeAttribute('x_scroll');
+                }
+            }get 'y_scroll'() {
+                return this.hasAttribute('y_scroll');
+            }
+            set 'y_scroll'(val) {
+                val = this.getBoolean(val);
+                if (val) {
+                    this.setAttribute('y_scroll', 'true');
+                } else{
+                    this.removeAttribute('y_scroll');
+                }
+            }get 'auto_hide'() {
+                return this.hasAttribute('auto_hide');
+            }
+            set 'auto_hide'(val) {
+                val = this.getBoolean(val);
+                if (val) {
+                    this.setAttribute('auto_hide', 'true');
+                } else{
+                    this.removeAttribute('auto_hide');
+                }
+            }get 'break'() {
+                    return Number(this.getAttribute('break'));
+                }
+                set 'break'(val) {
+                    if(val === undefined || val === null){this.removeAttribute('break')}
+                    else{this.setAttribute('break',val)}
+                }get 'disable'() {
+                return this.hasAttribute('disable');
+            }
+            set 'disable'(val) {
+                val = this.getBoolean(val);
+                if (val) {
+                    this.setAttribute('disable', 'true');
+                } else{
+                    this.removeAttribute('disable');
+                }
+            }get 'no_user_select'() {
+                return this.hasAttribute('no_user_select');
+            }
+            set 'no_user_select'(val) {
+                val = this.getBoolean(val);
+                if (val) {
+                    this.setAttribute('no_user_select', 'true');
+                } else{
+                    this.removeAttribute('no_user_select');
+                }
+            }    get 'zoom'() {
+                    return Number(this.getAttribute('zoom'));
+                }
+                set 'zoom'(val) {
+                    if(val === undefined || val === null){this.removeAttribute('zoom')}
+                    else{this.setAttribute('zoom',val)}
+                }    observer;
+    display = { x: 0, y: 0 };
+    max = {
+        x: 0,
+        y: 0
+    };
+    margin = {
+        x: 0,
+        y: 0
+    };
+    position = {
+        x: 0,
+        y: 0
+    };
+    momentum = { x: 0, y: 0 };
+    contentWrapperSize = { x: 0, y: 0 };
+    scroller = {
+        x: () => {
+            if (!this.horizontalScroller) {
+                throw 'can\'t find the horizontalScroller';
+            }
+            return this.horizontalScroller;
+        },
+        y: () => {
+            if (!this.verticalScroller) {
+                throw 'can\'t find the verticalScroller';
+            }
+            return this.verticalScroller;
+        }
+    };
+    scrollerContainer = {
+        x: () => {
+            if (!this.horizontalScrollerContainer) {
+                throw 'can\'t find the horizontalScrollerContainer';
+            }
+            return this.horizontalScrollerContainer;
+        },
+        y: () => {
+            if (!this.verticalScrollerContainer) {
+                throw 'can\'t find the verticalScrollerContainer';
+            }
+            return this.verticalScrollerContainer;
+        }
+    };
+    hideDelay = { x: 0, y: 0 };
+    touchRecord;
+    pointerCount = 0;
+    savedBreak = 1;
+    get x() {
+        return this.position.x;
+    }
+    get y() {
+        return this.position.y;
+    }
+    onScrollChange = new Aventus.Callback();
+    renderAnimation;
+    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("zoom", ((target) => {
+    target.changeZoom();
+})); }
+    static __style = `:host{--internal-scrollbar-container-color: var(--scrollbar-container-color, transparent);--internal-scrollbar-color: var(--scrollbar-color, #757575);--internal-scrollbar-active-color: var(--scrollbar-active-color, #858585);--internal-scroller-width: var(--scroller-width, 6px);--internal-scroller-top: var(--scroller-top, 3px);--internal-scroller-bottom: var(--scroller-bottom, 3px);--internal-scroller-right: var(--scroller-right, 3px);--internal-scroller-left: var(--scroller-left, 3px)}:host{display:block;height:100%;overflow:hidden;position:relative;-webkit-user-drag:none;-khtml-user-drag:none;-moz-user-drag:none;-o-user-drag:none;width:100%}:host .scroll-main-container{display:block;height:100%;position:relative;width:100%}:host .scroll-main-container .content-zoom{display:block;height:100%;position:relative;transform-origin:0 0;width:100%;z-index:4}:host .scroll-main-container .content-zoom .content-hidder{display:block;height:100%;overflow:hidden;position:relative;width:100%}:host .scroll-main-container .content-zoom .content-hidder .content-wrapper{display:inline-block;height:100%;min-height:100%;min-width:100%;position:relative;width:100%}:host .scroll-main-container .scroller-wrapper .container-scroller{display:none;overflow:hidden;position:absolute;z-index:5;transition:transform .2s linear}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller{background-color:var(--internal-scrollbar-container-color);border-radius:5px}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller .scroller{background-color:var(--internal-scrollbar-color);border-radius:5px;cursor:pointer;position:absolute;-webkit-tap-highlight-color:rgba(0,0,0,0);touch-action:none;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .scroller.active{background-color:var(--internal-scrollbar-active-color)}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical{height:calc(100% - var(--internal-scroller-bottom)*2 - var(--internal-scroller-width));padding-left:var(--internal-scroller-left);right:var(--internal-scroller-right);top:var(--internal-scroller-bottom);transform:0;width:calc(var(--internal-scroller-width) + var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical.hide{transform:translateX(calc(var(--internal-scroller-width) + var(--internal-scroller-left)))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller .scroller{width:calc(100% - var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal{bottom:var(--internal-scroller-bottom);height:calc(var(--internal-scroller-width) + var(--internal-scroller-top));left:var(--internal-scroller-right);padding-top:var(--internal-scroller-top);transform:0;width:calc(100% - var(--internal-scroller-right)*2 - var(--internal-scroller-width))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal.hide{transform:translateY(calc(var(--internal-scroller-width) + var(--internal-scroller-top)))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller .scroller{height:calc(100% - var(--internal-scroller-top))}:host([y_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{height:auto}:host([x_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{width:auto}:host([y_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.vertical{display:block}:host([x_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.horizontal{display:block}:host([no_user_select]) .content-wrapper *{user-select:none}:host([no_user_select]) ::slotted{user-select:none}`;
+    constructor() {            super();            this.renderAnimation = this.createAnimation();            this.onWheel = this.onWheel.bind(this);            this.onTouchStart = this.onTouchStart.bind(this);            this.onTouchMove = this.onTouchMove.bind(this);            this.onTouchEnd = this.onTouchEnd.bind(this);            this.touchRecord = new TouchRecord();        }
+    __getStatic() {
+        return Scrollable;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Scrollable.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<div class="scroll-main-container" _id="scrollable_0">    <div class="content-zoom" _id="scrollable_1">        <div class="content-hidder" _id="scrollable_2">            <div class="content-wrapper" _id="scrollable_3">                <slot></slot>            </div>        </div>    </div>    <div class="scroller-wrapper">        <div class="container-scroller vertical" _id="scrollable_4">            <div class="shadow-scroller">                <div class="scroller" _id="scrollable_5"></div>            </div>        </div>        <div class="container-scroller horizontal" _id="scrollable_6">            <div class="shadow-scroller">                <div class="scroller" _id="scrollable_7"></div>            </div>        </div>    </div></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "elements": [
+    {
+      "name": "mainContainer",
+      "ids": [
+        "scrollable_0"
+      ]
+    },
+    {
+      "name": "contentZoom",
+      "ids": [
+        "scrollable_1"
+      ]
+    },
+    {
+      "name": "contentHidder",
+      "ids": [
+        "scrollable_2"
+      ]
+    },
+    {
+      "name": "contentWrapper",
+      "ids": [
+        "scrollable_3"
+      ]
+    },
+    {
+      "name": "verticalScrollerContainer",
+      "ids": [
+        "scrollable_4"
+      ]
+    },
+    {
+      "name": "verticalScroller",
+      "ids": [
+        "scrollable_5"
+      ]
+    },
+    {
+      "name": "horizontalScrollerContainer",
+      "ids": [
+        "scrollable_6"
+      ]
+    },
+    {
+      "name": "horizontalScroller",
+      "ids": [
+        "scrollable_7"
+      ]
+    }
+  ]
+}); }
+    getClassName() {
+        return "Scrollable";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('y_scroll_visible')) { this.attributeChangedCallback('y_scroll_visible', false, false); }if(!this.hasAttribute('x_scroll_visible')) { this.attributeChangedCallback('x_scroll_visible', false, false); }if(!this.hasAttribute('floating_scroll')) { this.attributeChangedCallback('floating_scroll', false, false); }if(!this.hasAttribute('x_scroll')) { this.attributeChangedCallback('x_scroll', false, false); }if(!this.hasAttribute('y_scroll')) {this.setAttribute('y_scroll' ,'true'); }if(!this.hasAttribute('auto_hide')) { this.attributeChangedCallback('auto_hide', false, false); }if(!this.hasAttribute('break')){ this['break'] = 0.1; }if(!this.hasAttribute('disable')) { this.attributeChangedCallback('disable', false, false); }if(!this.hasAttribute('no_user_select')) { this.attributeChangedCallback('no_user_select', false, false); }if(!this.hasAttribute('zoom')){ this['zoom'] = 1; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('y_scroll_visible');this.__upgradeProperty('x_scroll_visible');this.__upgradeProperty('floating_scroll');this.__upgradeProperty('x_scroll');this.__upgradeProperty('y_scroll');this.__upgradeProperty('auto_hide');this.__upgradeProperty('break');this.__upgradeProperty('disable');this.__upgradeProperty('no_user_select');this.__upgradeProperty('zoom'); }
+    __listBoolProps() { return ["y_scroll_visible","x_scroll_visible","floating_scroll","x_scroll","y_scroll","auto_hide","disable","no_user_select"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    createAnimation() {
+        return new Aventus.Animation({
+            fps: 60,
+            animate: () => {
+                const nextX = this.nextPosition('x');
+                const nextY = this.nextPosition('y');
+                this.momentum.x = nextX.momentum;
+                this.momentum.y = nextY.momentum;
+                this.scrollDirection('x', nextX.position);
+                this.scrollDirection('y', nextY.position);
+                if (!this.momentum.x && !this.momentum.y) {
+                    this.renderAnimation.stop();
+                }
+            },
+            stopped: () => {
+                if (this.momentum.x || this.momentum.y) {
+                    this.renderAnimation.start();
+                }
+            }
+        });
+    }
+    nextPosition(direction) {
+        const current = this.position[direction];
+        const remain = this.momentum[direction];
+        let result = {
+            momentum: 0,
+            position: 0,
+        };
+        if (Math.abs(remain) <= 0.1) {
+            result.position = current + remain;
+        }
+        else {
+            let nextMomentum = remain * (1 - this.break);
+            nextMomentum |= 0;
+            result.momentum = nextMomentum;
+            result.position = current + remain - nextMomentum;
+        }
+        let correctPosition = this.correctScrollValue(result.position, direction);
+        if (correctPosition != result.position) {
+            result.position = correctPosition;
+            result.momentum = 0;
+        }
+        return result;
+    }
+    scrollDirection(direction, value) {
+        const max = this.max[direction];
+        if (max != 0) {
+            this.position[direction] = this.correctScrollValue(value, direction);
+        }
+        else {
+            this.position[direction] = 0;
+        }
+        let container = this.scrollerContainer[direction]();
+        let scroller = this.scroller[direction]();
+        if (this.auto_hide) {
+            container.classList.remove("hide");
+            clearTimeout(this.hideDelay[direction]);
+            this.hideDelay[direction] = setTimeout(() => {
+                container.classList.add("hide");
+            }, 1000);
+        }
+        let containerSize = direction == 'y' ? container.offsetHeight : container.offsetWidth;
+        if (this.contentWrapperSize[direction] != 0) {
+            let scrollPosition = this.position[direction] / this.contentWrapperSize[direction] * containerSize;
+            scroller.style.transform = `translate${direction.toUpperCase()}(${scrollPosition}px)`;
+            this.contentWrapper.style.transform = `translate3d(${-1 * this.x}px, ${-1 * this.y}px, 0)`;
+        }
+        this.triggerScrollChange();
+    }
+    correctScrollValue(value, direction) {
+        if (value < 0) {
+            value = 0;
+        }
+        else if (value > this.max[direction]) {
+            value = this.max[direction];
+        }
+        return value;
+    }
+    triggerScrollChange() {
+        this.onScrollChange.trigger([this.x, this.y]);
+    }
+    scrollToPosition(x, y) {
+        this.scrollDirection('x', x);
+        this.scrollDirection('y', y);
+    }
+    scrollX(x) {
+        this.scrollDirection('x', x);
+    }
+    scrollY(y) {
+        this.scrollDirection('y', y);
+    }
+    addAction() {
+        this.addEventListener("wheel", this.onWheel);
+        this.addEventListener("touchstart", this.onTouchStart);
+        this.addEventListener("touchmove", this.onTouchMove);
+        this.addEventListener("touchcancel", this.onTouchEnd);
+        this.addEventListener("touchend", this.onTouchEnd);
+        this.addScrollDrag('x');
+        this.addScrollDrag('y');
+    }
+    addScrollDrag(direction) {
+        let scroller = this.scroller[direction]();
+        scroller.addEventListener("touchstart", (e) => {
+            e.stopPropagation();
+        });
+        let startPosition = 0;
+        new Aventus.DragAndDrop({
+            element: scroller,
+            applyDrag: false,
+            usePercent: true,
+            offsetDrag: 0,
+            isDragEnable: () => !this.disable,
+            onStart: (e) => {
+                this.no_user_select = true;
+                scroller.classList.add("active");
+                startPosition = this.position[direction];
+            },
+            onMove: (e, position) => {
+                let delta = position[direction] / 100 * this.contentWrapperSize[direction];
+                let value = startPosition + delta;
+                this.scrollDirection(direction, value);
+            },
+            onStop: () => {
+                this.no_user_select = false;
+                scroller.classList.remove("active");
+            }
+        });
+    }
+    addDelta(delta) {
+        if (this.disable) {
+            return;
+        }
+        this.momentum.x += delta.x;
+        this.momentum.y += delta.y;
+        this.renderAnimation?.start();
+    }
+    onWheel(e) {
+        const DELTA_MODE = [1.0, 28.0, 500.0];
+        const mode = DELTA_MODE[e.deltaMode] || DELTA_MODE[0];
+        this.addDelta({
+            x: e.deltaX * mode,
+            y: e.deltaY * mode,
+        });
+    }
+    onTouchStart(e) {
+        this.touchRecord.track(e);
+        this.momentum = {
+            x: 0,
+            y: 0
+        };
+        if (this.pointerCount === 0) {
+            this.savedBreak = this.break;
+            this.break = Math.max(this.break, 0.5); // less frames on touchmove
+        }
+        this.pointerCount++;
+    }
+    onTouchMove(e) {
+        this.touchRecord.update(e);
+        const delta = this.touchRecord.getDelta();
+        this.addDelta(delta);
+    }
+    onTouchEnd(e) {
+        const delta = this.touchRecord.getEasingDistance(this.savedBreak);
+        this.addDelta(delta);
+        this.pointerCount--;
+        if (this.pointerCount === 0) {
+            this.break = this.savedBreak;
+        }
+        this.touchRecord.release(e);
+    }
+    calculateRealSize() {
+        if (!this.contentZoom || !this.mainContainer || !this.contentWrapper) {
+            return;
+        }
+        const currentOffsetWidth = this.contentZoom.offsetWidth;
+        const currentOffsetHeight = this.contentZoom.offsetHeight;
+        this.contentWrapperSize.x = this.contentWrapper.offsetWidth;
+        this.contentWrapperSize.y = this.contentWrapper.offsetHeight;
+        if (this.zoom < 1) {
+            // scale the container for zoom
+            this.contentZoom.style.width = this.mainContainer.offsetWidth / this.zoom + 'px';
+            this.contentZoom.style.height = this.mainContainer.offsetHeight / this.zoom + 'px';
+            this.display.y = currentOffsetHeight;
+            this.display.x = currentOffsetWidth;
+        }
+        else {
+            this.display.y = currentOffsetHeight / this.zoom;
+            this.display.x = currentOffsetWidth / this.zoom;
+        }
+    }
+    calculatePositionScrollerContainer(direction) {
+        if (direction == 'y') {
+            this.calculatePositionScrollerContainerY();
+        }
+        else {
+            this.calculatePositionScrollerContainerX();
+        }
+    }
+    calculatePositionScrollerContainerY() {
+        const leftMissing = this.mainContainer.offsetWidth - this.verticalScrollerContainer.offsetLeft;
+        if (leftMissing > 0 && this.y_scroll_visible && !this.floating_scroll) {
+            this.contentHidder.style.width = 'calc(100% - ' + leftMissing + 'px)';
+            this.contentHidder.style.marginRight = leftMissing + 'px';
+            this.margin.x = leftMissing;
+        }
+        else {
+            this.contentHidder.style.width = '';
+            this.contentHidder.style.marginRight = '';
+            this.margin.x = 0;
+        }
+    }
+    calculatePositionScrollerContainerX() {
+        const topMissing = this.mainContainer.offsetHeight - this.horizontalScrollerContainer.offsetTop;
+        if (topMissing > 0 && this.x_scroll_visible && !this.floating_scroll) {
+            this.contentHidder.style.height = 'calc(100% - ' + topMissing + 'px)';
+            this.contentHidder.style.marginBottom = topMissing + 'px';
+            this.margin.y = topMissing;
+        }
+        else {
+            this.contentHidder.style.height = '';
+            this.contentHidder.style.marginBottom = '';
+            this.margin.y = 0;
+        }
+    }
+    calculateSizeScroller(direction) {
+        const scrollerSize = ((this.display[direction] - this.margin[direction]) / this.contentWrapperSize[direction] * 100);
+        if (direction == "y") {
+            this.scroller[direction]().style.height = scrollerSize + '%';
+        }
+        else {
+            this.scroller[direction]().style.width = scrollerSize + '%';
+        }
+        let maxScrollContent = this.contentWrapperSize[direction] - this.display[direction];
+        if (maxScrollContent < 0) {
+            maxScrollContent = 0;
+        }
+        this.max[direction] = maxScrollContent + this.margin[direction];
+    }
+    changeZoom() {
+        this.contentZoom.style.transform = 'scale(' + this.zoom + ')';
+        this.dimensionRefreshed();
+    }
+    dimensionRefreshed() {
+        this.calculateRealSize();
+        if (this.contentWrapperSize.y - this.display.y > 0) {
+            if (!this.y_scroll_visible) {
+                this.y_scroll_visible = true;
+                this.calculatePositionScrollerContainer('y');
+            }
+            this.calculateSizeScroller('y');
+            this.scrollDirection('y', this.y);
+        }
+        else if (this.y_scroll_visible) {
+            this.y_scroll_visible = false;
+            this.calculatePositionScrollerContainer('y');
+            this.scrollDirection('y', 0);
+        }
+        if (this.contentWrapperSize.x - this.display.x > 0) {
+            if (!this.x_scroll_visible) {
+                this.x_scroll_visible = true;
+                this.calculatePositionScrollerContainer('x');
+            }
+            this.calculateSizeScroller('x');
+            this.scrollDirection('x', this.x);
+        }
+        else if (this.x_scroll_visible) {
+            this.x_scroll_visible = false;
+            this.calculatePositionScrollerContainer('x');
+            this.scrollDirection('x', 0);
+        }
+    }
+    createResizeObserver() {
+        let inProgress = false;
+        return new Aventus.ResizeObserver({
+            callback: entries => {
+                if (inProgress) {
+                    return;
+                }
+                inProgress = true;
+                this.dimensionRefreshed();
+                inProgress = false;
+            },
+            fps: 30
+        });
+    }
+    addResizeObserver() {
+        if (this.observer == undefined) {
+            this.observer = this.createResizeObserver();
+        }
+        this.observer.observe(this.contentWrapper);
+        this.observer.observe(this);
+    }
+    postCreation() {
+        this.addResizeObserver();
+        this.addAction();
+    }
+}
+Layout.Scrollable.Namespace=`${moduleName}.Layout`;
+_.Layout.Scrollable=Layout.Scrollable;
+if(!window.customElements.get('av-scrollable')){window.customElements.define('av-scrollable', Layout.Scrollable);Aventus.WebComponentInstance.registerDefinition(Layout.Scrollable);}
+
+const App = class App extends Aventus.WebComponent {
+    static __style = `:host{height:100%;width:100%;margin:0;padding:0;overflow:hidden}:host .part{height:500px;width:100%}`;
+    __getStatic() {
+        return App;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(App.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<av-scrollable>	<div class="content" _id="app_0"></div></av-scrollable>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "elements": [
+    {
+      "name": "content",
+      "ids": [
+        "app_0"
+      ]
+    }
+  ]
+}); }
+    getClassName() {
+        return "App";
+    }
+    postCreation() {
+        for (let i = 0; i <= 8000; i += 500) {
+            let div = document.createElement("DIV");
+            div.classList.add("part");
+            div.style.backgroundColor = "#" + Math.floor(Math.random() * 16777215).toString(16);
+            this.content.appendChild(div);
+        }
+    }
+}
+App.Namespace=`${moduleName}`;
+_.App=App;
+if(!window.customElements.get('av-app')){window.customElements.define('av-app', App);Aventus.WebComponentInstance.registerDefinition(App);}
+
+Navigation.Router = class Router extends Aventus.WebComponent {
+    oldPage;
+    allRoutes = {};
+    activePath = "";
+    oneStateActive = false;
+    showPageMutex = new Aventus.Mutex();
+    get stateManager() {
+        return Aventus.Instance.get(RouterStateManager);
+    }
+    page404;
+    static __style = `:host{display:block}`;
+    constructor() {            super();            this.validError404 = this.validError404.bind(this);if (this.constructor == Router) { throw "can't instanciate an abstract class"; } }
+    __getStatic() {
+        return Router;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Router.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'before':`<slot name="before"></slot>`,'after':`<slot name="after"></slot>` }, 
+        blocks: { 'default':`<slot name="before"></slot><div class="content" _id="router_0"></div><slot name="after"></slot>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "elements": [
+    {
+      "name": "contentEl",
+      "ids": [
+        "router_0"
+      ]
+    }
+  ]
+}); }
+    getClassName() {
+        return "Router";
+    }
+    addRouteAsync(options) {
+        this.allRoutes[options.route] = options;
+    }
+    addRoute(route, elementCtr) {
+        this.allRoutes[route] = {
+            route: route,
+            scriptUrl: '',
+            render: () => elementCtr
+        };
+    }
+    register() {
+        try {
+            this.defineRoutes();
+            this.stateManager.onAfterStateChanged(this.validError404);
+            for (let key in this.allRoutes) {
+                this.initRoute(key);
+            }
+        }
+        catch (e) {
+            console.log(e);
+        }
+    }
+    initRoute(path) {
+        let element = undefined;
+        let allRoutes = this.allRoutes;
+        this.stateManager.subscribe(path, {
+            active: (currentState) => {
+                this.oneStateActive = true;
+                this.showPageMutex.safeRunLastAsync(async () => {
+                    if (!element) {
+                        let options = allRoutes[path];
+                        if (options.scriptUrl != "") {
+                            await Aventus.ResourceLoader.loadInHead(options.scriptUrl);
+                        }
+                        let cst = options.render();
+                        element = new cst;
+                        element.currentRouter = this;
+                        this.contentEl.appendChild(element);
+                    }
+                    if (this.oldPage && this.oldPage != element) {
+                        await this.oldPage.hide();
+                    }
+                    let oldPage = this.oldPage;
+                    let oldUrl = this.activePath;
+                    await element.show();
+                    this.oldPage = element;
+                    this.activePath = path;
+                    if (window.location.pathname != currentState.name) {
+                        let newUrl = window.location.origin + currentState.name;
+                        document.title = element.pageTitle();
+                        window.history.pushState({}, element.pageTitle(), newUrl);
+                    }
+                    this.onNewPage(oldUrl, oldPage, path, element);
+                });
+            },
+            inactive: () => {
+                this.oneStateActive = false;
+            }
+        });
+    }
+    async validError404() {
+        if (!this.oneStateActive) {
+            let Page404 = this.error404(this.stateManager.getState());
+            if (Page404) {
+                if (!this.page404) {
+                    this.page404 = new Page404();
+                    this.page404.currentRouter = this;
+                    this.contentEl.appendChild(this.page404);
+                }
+                if (this.oldPage && this.oldPage != this.page404) {
+                    await this.oldPage.hide();
+                }
+                await this.page404.show();
+                this.oldPage = this.page404;
+                this.activePath = '';
+            }
+        }
+    }
+    error404(state) {
+        return null;
+    }
+    onNewPage(oldUrl, oldPage, newUrl, newPage) {
+    }
+    getSlugs() {
+        return this.stateManager.getStateSlugs(this.activePath);
+    }
+    postCreation() {
+        this.register();
+        let oldUrl = window.localStorage.getItem("navigation_url");
+        if (oldUrl !== null) {
+            Aventus.State.activate(oldUrl, this.stateManager);
+            window.localStorage.removeItem("navigation_url");
+        }
+        else {
+            Aventus.State.activate(window.location.pathname, this.stateManager);
+        }
+        window.onpopstate = (e) => {
+            if (window.location.pathname != this.stateManager.getState()?.name) {
+                Aventus.State.activate(window.location.pathname, this.stateManager);
+            }
+        };
+    }
+}
+Navigation.Router.Namespace=`${moduleName}.Navigation`;
+_.Navigation.Router=Navigation.Router;
 
 
 for(let key in _) { Aventus[key] = _[key] }

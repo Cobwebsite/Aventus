@@ -1,4 +1,4 @@
-import { KeysObject } from "../ram/Ram.lib.avt";
+import type { KeysObject } from "../ram/Ram.lib.avt";
 
 /**
  * Merge object and create real instance of class

@@ -1,6 +1,6 @@
 import { HttpRouter } from "./HttpRouter.lib.avt";
 import { HttpRoute } from "./HttpRoute.lib.avt";
-import { MixProto } from "../tools/MergePrototype.lib.avt";
+import type { MixProto } from "../tools/MergePrototype.lib.avt";
 
 export interface RouterOptions {
     url: string;

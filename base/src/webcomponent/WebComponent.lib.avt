@@ -2,7 +2,7 @@ import { WebComponentTemplate, WebComponentTemplateInstance } from "./WebCompone
 import { Style } from "./Style.lib.avt";
 import { PressManager } from "../lib/PressManager.lib.avt";
 import { State } from "../state/State.lib.avt";
-import { StateManager, StateSlug } from "../state/StateManager.lib.avt";
+import { StateManager, type StateSlug } from "../state/StateManager.lib.avt";
 import { ElementExtension } from "./ElementExtension.lib.avt";
 import { Instance } from "../lib/Instance.lib.avt";
 import { WatchAction, Watcher } from "../lib/Watcher.lib.avt";

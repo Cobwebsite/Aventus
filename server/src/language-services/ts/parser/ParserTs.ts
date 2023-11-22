@@ -97,6 +97,9 @@ export class ParserTs {
         if (ParserTs.currentParsingDoc.waitingImports[name]) {
             return true;
         }
+        if (ParserTs.currentParsingDoc.npmImports[name]) {
+            return true;
+        }
         return false;
     }
     public static hasLocal(name: string): boolean {
@@ -149,11 +152,13 @@ export class ParserTs {
 
     private constructor(file: AventusFile, isLib: boolean, build: Build) {
         this.build = build;
+        this.build.npmBuilder.unregister(file.document.uri);
         this.file = file;
         ParserTs.parsedDoc[file.uri] = {
             version: file.version,
             result: this,
         }
+
         ParserTs.parsingDocs.push(this);
         this.content = file.document.getText();
         this._document = file.document;
@@ -314,10 +319,17 @@ export class ParserTs {
                     }
                     else {
                         let name = node.importClause.namedBindings.name.getText();
-                        this.npmImports[name] = {
-                            uri: moduleName,
-                            nameInsideLib: "*"
-                        };
+                        if (!node.importClause.isTypeOnly) {
+                            this.build.npmBuilder.register(this.document.uri, {
+                                libName: "*",
+                                uri: moduleName,
+                                alias: name
+                            })
+                            this.npmImports[name] = {
+                                uri: moduleName,
+                                nameInsideLib: "*"
+                            };
+                        }
                     }
                 }
                 else if (node.importClause.namedBindings.kind == SyntaxKind.NamedImports) {
@@ -347,10 +359,17 @@ export class ParserTs {
                             if (element.propertyName) {
                                 nameInsideLib = element.propertyName.getText();
                             }
-                            this.npmImports[name] = {
-                                uri: moduleName,
-                                nameInsideLib: nameInsideLib
-                            };
+                            if (!node.importClause.isTypeOnly && !element.isTypeOnly) {
+                                this.build.npmBuilder.register(this.document.uri, {
+                                    libName: nameInsideLib,
+                                    uri: moduleName,
+                                    alias: name
+                                })
+                                this.npmImports[name] = {
+                                    uri: moduleName,
+                                    nameInsideLib: nameInsideLib
+                                };
+                            }
 
                         }
                     }
@@ -364,10 +383,18 @@ export class ParserTs {
                     this.importLocal(moduleName, node.importClause.name);
                 }
                 else {
-                    this.npmImports[name] = {
-                        uri: moduleName,
-                        nameInsideLib: name
-                    };
+                    if (!node.importClause.isTypeOnly) {
+                        // TODO check if only here but it should be a default import
+                        this.build.npmBuilder.register(this.document.uri, {
+                            libName: 'default',
+                            uri: moduleName,
+                            alias: name
+                        })
+                        this.npmImports[name] = {
+                            uri: moduleName,
+                            nameInsideLib: 'default'
+                        };
+                    }
                 }
             }
         }

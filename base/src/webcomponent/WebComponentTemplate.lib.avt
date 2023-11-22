@@ -1,5 +1,5 @@
 import { WatchAction } from "../lib/Watcher.lib.avt";
-import { PressManager, PressManagerOptions } from "../lib/PressManager.lib.avt";
+import { PressManager, type PressManagerOptions } from "../lib/PressManager.lib.avt";
 import { WebComponent } from "./WebComponent.lib.avt";
 
 type WebComponentTemplateHTML = { slots: { [name: string]: string; }, blocks: { [name: string]: string; }; };

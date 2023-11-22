@@ -1,4 +1,4 @@
-import { StateManager, StateSlug } from "./StateManager.lib.avt";
+import type { StateManager, StateSlug } from "./StateManager.lib.avt";
 
 export abstract class State {
     /**

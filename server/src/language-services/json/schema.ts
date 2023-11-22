@@ -178,7 +178,14 @@ export const AventusConfigSchema: JSONSchema = {
                     },
                     "compressed": {
                         type: "boolean"
-                    }
+                    },
+                    "nodeModulesDir": {
+                        type: ["string", "array"],
+                        items: {
+                            type: "string",
+                        },
+                        description: "The dirs where node_modules are located"
+                    },
                 },
                 required: ["name", "inputPath"],
                 additionalProperties: false

@@ -15,9 +15,6 @@ export class MethodInfo {
     public decorators: DecoratorInfo[] = [];
     public _class: ClassInfo;
     public get compiledContent(): string {
-        if(this.name == "init" && this._class.name.includes("TableRowHeader")) {
-            console.log("in");
-        }
         let txt = this.content;
         let transformations: { newText: string, start: number, end: number }[] = [];
         for (let depName in this._class.dependancesLocations) {

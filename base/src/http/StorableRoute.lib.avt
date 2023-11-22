@@ -1,5 +1,5 @@
 import { HttpRoute } from "./HttpRoute.lib.avt";
-import { IData } from "../data/IData.data.avt";
+import type { IData } from "../data/IData.data.avt";
 import { HttpMethod } from "./HttpMethod.lib.avt";
 import { HttpRequest } from "./HttpRequest.lib.avt";
 

@@ -1,6 +1,5 @@
 import { RamError, RamErrorCode, ResultRamWithError } from "./Error.lib.avt";
-import { IData } from "../data/IData.data.avt";
-import { DataManager } from "../data/DataManager.lib.avt";
+import type { IData } from "../data/IData.data.avt";
 import { Converter } from "../tools/Converter.lib.avt";
 import { VoidWithError } from "../tools/Error.lib.avt";
 

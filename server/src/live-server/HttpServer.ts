@@ -6,12 +6,12 @@ import { createServer as testPortServer } from 'net';
 import { extname } from 'path';
 import { readFileSync } from 'fs';
 import { replace } from 'event-stream';
-import serveIndex = require('serve-index');
+import * as serveIndex from 'serve-index'
 import { INJECTED_CODE } from './injectedCode';
 import { WebSocket, WebSocketServer } from 'ws';
 import { ServerStart } from '../notification/httpServer/ServerStart';
 import { ServerStop } from '../notification/httpServer/ServerStop';
-import open = require('open');
+import * as open from 'open'
 import { LiveServerSettings, SettingsManager } from '../settings/Settings';
 import { GenericServer } from '../GenericServer';
 
