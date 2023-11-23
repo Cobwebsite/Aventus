@@ -1,8 +1,8 @@
-import { ClientConnection } from '../../Connection';
+import { GenericServer } from '../../GenericServer';
 
 export class ServerStop {
 
 	public static send() {
-		ClientConnection.getInstance().sendNotification("aventus/server/stop", {});
+		GenericServer.sendNotification("aventus/server/stop", {});
 	}
 }

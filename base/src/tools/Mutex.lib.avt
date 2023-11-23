@@ -1,39 +1,112 @@
 export class Mutex {
-	private waitingList: (() => void)[] = [];
-	private isLocked: boolean = false;
-	/**
-	 * Wait the mutex to be free then get it
-	 */
-	public waitOne() {
-		return new Promise<void>((resolve) => {
-			if (this.isLocked) {
-				this.waitingList.push(() => {
-					resolve();
-				})
-			}
-			else {
-				this.isLocked = true;
-				resolve();
-			}
-		})
-	}
-	/**
-	 * Release the mutex
-	 */
-	public release() {
-		let nextFct = this.waitingList.shift();
-		if (nextFct) {
-			nextFct();
-		}
-		else {
-			this.isLocked = false;
-		}
-	}
-	/**
-	 * Clear mutex
-	 */
-	public dispose() {
-		this.waitingList = [];
-		this.isLocked = false;
-	}
+    private waitingList: ((run: boolean) => void)[] = [];
+    private isLocked: boolean = false;
+    /**
+     * Wait the mutex to be free then get it
+     */
+    public waitOne() {
+        return new Promise<boolean>((resolve) => {
+            if(this.isLocked) {
+                this.waitingList.push((run: boolean) => {
+                    resolve(run);
+                });
+            }
+            else {
+                this.isLocked = true;
+                resolve(true);
+            }
+        });
+    }
+    /**
+     * Release the mutex
+     */
+    public release() {
+        let nextFct = this.waitingList.shift();
+        if(nextFct) {
+            nextFct(true);
+        }
+        else {
+            this.isLocked = false;
+        }
+    }
+
+    /**
+     * Release the mutex
+     */
+    public releaseOnlyLast() {
+        if(this.waitingList.length > 0) {
+            let lastFct = this.waitingList.pop();
+            for(let fct of this.waitingList) {
+                fct(false);
+            }
+            this.waitingList = [];
+            if(lastFct) {
+                lastFct(true);
+            }
+        }
+        else {
+            this.isLocked = false;
+        }
+    }
+
+    /**
+     * Clear mutex
+     */
+    public dispose() {
+        this.waitingList = [];
+        this.isLocked = false;
+    }
+
+    public async safeRun<T = void>(cb: () => T): Promise<T | null> {
+        let result: T | null = null;
+        await this.waitOne();
+        try {
+            result = cb.apply(null, []);
+        }
+        catch(e) {
+
+        }
+        await this.release();
+        return result;
+    }
+
+    public async safeRunAsync<T = void>(cb: () => Promise<T>): Promise<T | null> {
+        let result: T | null = null;
+        await this.waitOne();
+        try {
+            result = await cb.apply(null, []);
+        }
+        catch(e) {
+
+        }
+        await this.release();
+        return result;
+    }
+
+    public async safeRunLast<T = void>(cb: () => T): Promise<T | null> {
+        let result: T | null = null;
+        if(await this.waitOne()) {
+            try {
+                result = cb.apply(null, []);
+            }
+            catch(e) {
+
+            }
+            await this.releaseOnlyLast();
+        }
+        return result;
+    }
+    public async safeRunLastAsync<T = void>(cb: () => Promise<T>): Promise<T | undefined> {
+        let result: T | undefined;
+        if(await this.waitOne()) {
+            try {
+                result = await cb.apply(null, []);
+            }
+            catch(e) {
+
+            }
+            await this.releaseOnlyLast();
+        }
+        return result;
+    }
 }

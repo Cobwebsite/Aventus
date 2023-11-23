@@ -16,7 +16,7 @@ export class Dependances extends Aventus.WebComponent implements Aventus.Default
 
     //#region props
     @Attribute()
-    public no_deps: boolean;
+    public no_deps!: boolean;
 
     @Watch((target: Dependances) => {
         target.no_deps = target.dependances.length == 0;
@@ -36,7 +36,7 @@ export class Dependances extends Aventus.WebComponent implements Aventus.Default
     //#region variables
 
     @ViewElement()
-    protected temp: HTMLElement[];
+    protected temp!: HTMLElement[];
     //#endregion
 
 

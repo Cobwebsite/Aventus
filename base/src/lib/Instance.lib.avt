@@ -11,16 +11,16 @@ export class Instance {
         }
         return result;
     }
-    public static set<X>(el: X): boolean {
+    public static set<X extends { constructor: any; }>(el: X): boolean {
         let cst = el.constructor;
-        if(this.elements.get(cst)){
+        if(this.elements.get(cst)) {
             return false;
         }
         this.elements.set(cst, el);
         return true;
     }
 
-    public static destroy<X>(el: X): boolean {
+    public static destroy<X extends { constructor: any; }>(el: X): boolean {
         let cst = el.constructor;
         return this.elements.delete(cst);
     }

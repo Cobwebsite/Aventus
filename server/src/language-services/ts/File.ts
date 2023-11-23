@@ -6,6 +6,7 @@ import { createErrorTsPos } from '../../tools';
 import { AventusBaseFile } from "../BaseFile";
 import { CompileTsResult } from './LanguageService';
 import { ParserTs } from './parser/ParserTs';
+import { ClassInfo } from './parser/ClassInfo';
 
 
 
@@ -19,6 +20,9 @@ export abstract class AventusTsFile extends AventusBaseFile {
         return this._compileResult;
     }
     protected diagnostics: Diagnostic[] = [];
+    public getDiagnostics(): Diagnostic[] {
+        return [...this.diagnostics];
+    }
 
     protected abstract get extension(): string;
     public fileParsed: ParserTs | null = null;
@@ -36,7 +40,7 @@ export abstract class AventusTsFile extends AventusBaseFile {
     }
 
     protected refreshFileParsed(isLib: boolean = false): void {
-        this.fileParsed = ParserTs.parse(this.file.document, isLib);
+        this.fileParsed = ParserTs.parse(this.file, isLib, this.build);
         this._contentForLanguageService = this.file.document.getText();
         if (!isLib) {
             for (let _namespace of this.fileParsed.namespaces) {
@@ -57,13 +61,21 @@ export abstract class AventusTsFile extends AventusBaseFile {
         }
     }
 
-
     /**
      * check type for element inside file and add error into this.diagnostics
      * @param rules 
      * @returns 
      */
-    protected validateRules(rules: { allow_function: boolean, class_extend?: string[], class_implement?: string[], interface?: string[], enum?: string[], alias?: string[] }): void {
+    protected validateRules(rules: {
+        allow_variables?: boolean,
+        allow_function?: boolean,
+        class_extend?: string[],
+        class_implement?: string[],
+        customClassRules?: ((classinfo: ClassInfo) => void)[],
+        interface?: string[],
+        enum?: string[],
+        alias?: string[]
+    }): void {
         const struct = this.fileParsed;
         if (!struct) {
             return;
@@ -74,14 +86,25 @@ export abstract class AventusTsFile extends AventusBaseFile {
                 this.diagnostics.push(createErrorTsPos(this.file.document, `Function can only be used inside lib.avt file`, fct.nameStart, fct.nameEnd, AventusErrorCode.FunctionNotAllowed));
             }
         }
-        if (rules.class_extend || rules.class_implement || rules.interface) {
+        if (!rules.allow_variables) {
+            for (let varName in struct.variables) {
+                let varr = struct.variables[varName];
+                this.diagnostics.push(createErrorTsPos(this.file.document, `Variables can only be used inside lib.avt file`, varr.nameStart, varr.nameEnd, AventusErrorCode.VariableNotAllowed));
+            }
+        }
+        if (rules.class_extend || rules.class_implement || rules.interface || rules.customClassRules) {
 
             if (!rules.class_extend) { rules.class_extend = [] }
             if (!rules.class_implement) { rules.class_implement = [] }
             if (!rules.interface) { rules.interface = [] }
+            if (!rules.customClassRules) { rules.customClassRules = [] }
 
             for (let className in struct.classes) {
                 let classTemp = struct.classes[className];
+
+                for(let customClassRule of rules.customClassRules){
+                    customClassRule(classTemp);
+                }
                 if (classTemp.isInterface) {
                     let foundInterface = rules.interface.length == 0;
                     for (let extend of classTemp.extends) {
@@ -154,17 +177,20 @@ export abstract class AventusTsFile extends AventusBaseFile {
         if (this.mustBeAddedToLanguageService()) {
             this.tsLanguageService.removeFile(this);
         }
+        this.build.npmBuilder.unregister(this.file.uri);
     }
 
     private oldFullSrc: { name: string, src: string }[] = [];
     private oldFullDocVisible = "";
     private oldFullDocInvisible = "";
+    private oldFullClassScript = "";
     protected setCompileResult(compileResult: CompileTsResult[]) {
         let triggerRebuild = false;
         let fullSrcInline = "";
         let fullSrc: { name: string, src: string }[] = [];
         let fullDocVisible = "";
         let fullDocInvisible = "";
+        let fullClassScript = "";
         for (let res of compileResult) {
             fullSrcInline += res.compiled;
             if (res.classScript != "") {
@@ -175,6 +201,7 @@ export abstract class AventusTsFile extends AventusBaseFile {
             }
             fullDocVisible += res.docVisible;
             fullDocInvisible += res.docInvisible;
+            fullClassScript += res.classScript + "#";
         }
 
         let oldSrcInline = "";
@@ -183,6 +210,9 @@ export abstract class AventusTsFile extends AventusBaseFile {
         }
 
         if (compileResult.length != this.compileResult.length) {
+            triggerRebuild = true;
+        }
+        else if (this.oldFullClassScript != fullClassScript) {
             triggerRebuild = true;
         }
         else if (oldSrcInline != fullSrcInline) {
@@ -199,6 +229,7 @@ export abstract class AventusTsFile extends AventusBaseFile {
             this.oldFullDocInvisible = fullDocInvisible;
             this.oldFullDocVisible = fullDocVisible;
             this.oldFullSrc = fullSrc;
+            this.oldFullClassScript = fullClassScript;
         }
 
 

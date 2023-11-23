@@ -1,6 +1,6 @@
-import { ArrayTypeNode, ExpressionWithTypeArguments, FunctionTypeNode, IndexSignatureDeclaration, LiteralTypeNode, ParenthesizedTypeNode, PropertySignature, SyntaxKind, TypeLiteralNode, TypeNode, TypeReferenceNode, UnionTypeNode } from 'typescript';
+import { ArrayTypeNode, CallExpression, ExpressionWithTypeArguments, FunctionTypeNode, IndexSignatureDeclaration, LiteralTypeNode, ParenthesizedTypeNode, PropertySignature, SyntaxKind, TypeLiteralNode, TypeNode, TypeReferenceNode, UnionTypeNode } from 'typescript';
 
-type TypeInfoKind = "string" | 'number' | 'boolean' | 'null' | 'any' | 'void' | 'type' | 'literal' | 'union' | 'mock' | 'function' | 'typeLiteral';
+export type TypeInfoKind = "string" | 'number' | 'boolean' | 'null' | 'undefined' | 'any' | 'void' | 'type' | 'literal' | 'union' | 'mock' | 'function' | 'typeLiteral';
 
 export class TypeInfo {
 	public kind: TypeInfoKind = 'mock';
@@ -9,7 +9,8 @@ export class TypeInfo {
 	public genericValue: TypeInfo[] = [];
 	public nested: TypeInfo[] = [];
 	public start: number = 0;
-    public end: number = 0;
+	public end: number = 0;
+	public endNonGeneric: number = 0;
 
 	constructor(node: TypeNode | null) {
 		if (!node) {
@@ -17,7 +18,8 @@ export class TypeInfo {
 			return;
 		}
 		this.start = node.getStart();
-        this.end = node.getEnd();
+		this.end = node.getEnd();
+		this.endNonGeneric = this.end;
 		if (node.kind == SyntaxKind.StringKeyword) {
 			this.kind = "string";
 		}
@@ -29,6 +31,9 @@ export class TypeInfo {
 		}
 		else if (node.kind === SyntaxKind.NullKeyword) {
 			this.kind = "null";
+		}
+		else if (node.kind === SyntaxKind.UndefinedKeyword) {
+			this.kind = "undefined";
 		}
 		else if (node.kind === SyntaxKind.AnyKeyword) {
 			this.kind = "any";
@@ -44,6 +49,13 @@ export class TypeInfo {
 			this.kind = "type";
 			let typeRef = node as TypeReferenceNode;
 			this.value = typeRef.typeName.getText();
+			this.endNonGeneric = typeRef.typeName.end;
+			if (this.value == "const") {
+				this.value = "";
+				this.kind = "mock";
+				return;
+			}
+			
 			if (typeRef.typeArguments) {
 				for (let arg of typeRef.typeArguments) {
 					this.genericValue.push(new TypeInfo(arg));
@@ -71,6 +83,7 @@ export class TypeInfo {
 			this.kind = "type";
 			// TODO this is wrong bc of generic type <,>
 			this.value = expression.getText();
+			
 			if (expression.typeArguments) {
 				for (let arg of expression.typeArguments) {
 					this.genericValue.push(new TypeInfo(arg));
@@ -103,17 +116,20 @@ export class TypeInfo {
 			this.value = temp.value;
 			this.isArray = temp.isArray;
 		}
-		else if(node.kind == SyntaxKind.FunctionType){
+		else if (node.kind == SyntaxKind.FunctionType) {
 			let fctType = node as FunctionTypeNode;
 			this.kind = "function";
 			this.value = node.getText();
-			
-			for(let param of fctType.parameters){
-				if(param.type){
+
+			for (let param of fctType.parameters) {
+				if (param.type) {
 					this.nested.push(new TypeInfo(param.type));
 				}
 			}
 			this.nested.push(new TypeInfo(fctType.type));
 		}
+
+
+
 	}
 }

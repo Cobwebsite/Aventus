@@ -1,11 +1,22 @@
-import { Node, CallExpression, ClassDeclaration, EnumDeclaration, FunctionDeclaration, InterfaceDeclaration, SyntaxKind, TypeAliasDeclaration, TypeNode, TypeReferenceNode, forEachChild, ExpressionWithTypeArguments, NewExpression, PropertyAccessExpression } from "typescript";
+import { Node, CallExpression, ClassDeclaration, EnumDeclaration, FunctionDeclaration, InterfaceDeclaration, SyntaxKind, TypeAliasDeclaration, TypeNode, TypeReferenceNode, forEachChild, ExpressionWithTypeArguments, NewExpression, PropertyAccessExpression, VariableStatement, VariableDeclaration, MethodDeclaration } from "typescript";
 import { ParserTs } from './ParserTs';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { BaseLibInfo } from './BaseLibInfo';
 import { TypeInfo } from './TypeInfo';
-import { syntaxName } from './tools';
 import { DecoratorInfo } from './DecoratorInfo';
 import { DependancesDecorator } from './decorators/DependancesDecorator';
+import * as md5 from 'md5';
+
+
+export enum InfoType {
+    none,
+    class,
+    classData,
+    interface,
+    function,
+    variable,
+    enum
+}
 
 export abstract class BaseInfo {
     private static infoByShortName: { [shortName: string]: BaseInfo } = {};
@@ -13,8 +24,23 @@ export abstract class BaseInfo {
     public static getInfoByShortName(shortName: string): BaseInfo | undefined {
         return this.infoByShortName[shortName];
     }
-    public static getInfoByFullName(fullName: string): BaseInfo | undefined {
-        return this.infoByFullName[fullName];
+    public static getInfoByFullName(fullName: string, from: BaseInfo): BaseInfo | undefined {
+        let result = this.infoByFullName[fullName];
+        if (!result) {
+            result = this.infoByFullName[from.fullName.split('.')[0] + "." + fullName];
+        }
+        return result
+    }
+
+    public static isExported(node: ClassDeclaration | EnumDeclaration | InterfaceDeclaration | TypeAliasDeclaration | FunctionDeclaration | VariableStatement | MethodDeclaration) {
+        if (node.modifiers) {
+            for (let modifier of node.modifiers) {
+                if (modifier.kind == SyntaxKind.ExportKeyword) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     public name: string = "";
@@ -29,7 +55,7 @@ export abstract class BaseInfo {
     // public dependancesFullName: string[] = [];
     public dependances: {
         fullName: string,
-        uri: string, // @local (same file), @external (lib), file uri (same build) 
+        uri: string, // @local (same file), @external (lib), @npm (npm), file uri (same build) 
         isStrong: boolean,
     }[] = []
     public compiled: string = "";
@@ -37,19 +63,48 @@ export abstract class BaseInfo {
     public isExported: boolean = false;
     private _parserInfo: ParserTs;
     public content: string = "";
+    public get compiledContent(): string {
+        let txt = this.content;
+        let transformations: { newText: string, start: number, end: number }[] = [];
+        for (let depName in this.dependancesLocations) {
+            let replacement = this.dependancesLocations[depName].replacement;
+            if (replacement) {
+                for (let locationKey in this.dependancesLocations[depName].locations) {
+                    let location = this.dependancesLocations[depName].locations[locationKey];
+                    transformations.push({
+                        newText: replacement,
+                        start: location.start - this.start,
+                        end: location.end - this.start,
+                    })
+                }
+            }
+        }
+        transformations.sort((a, b) => b.end - a.end); // order from end file to start file
+        for (let transformation of transformations) {
+            txt = txt.slice(0, transformation.start) + transformation.newText + txt.slice(transformation.end, txt.length);
+        }
+        return txt;
+    }
     public get fileUri() {
         return this.document.uri;
     }
     public debug: boolean = false;
     public document: TextDocument;
     private dependanceNameLoaded: string[] = [];
-    private dependancesLocations: { [name: string]: { start: number, end: number }[] } = {};
+    private dependancePrevented: string[] = [];
+    public dependancesLocations: {
+        [name: string]: {
+            replacement: string | null,
+            locations: { [key: string]: { start: number, end: number } }
+        }
+    } = {};
+    public infoType: InfoType = InfoType.none;
 
     public get parserInfo() {
         return this._parserInfo;
     }
 
-    constructor(node: ClassDeclaration | EnumDeclaration | InterfaceDeclaration | TypeAliasDeclaration | FunctionDeclaration, namespaces: string[], parserInfo: ParserTs, autoLoadDepDecorator: boolean = true) {
+    constructor(node: ClassDeclaration | EnumDeclaration | InterfaceDeclaration | TypeAliasDeclaration | FunctionDeclaration | VariableDeclaration | MethodDeclaration, namespaces: string[], parserInfo: ParserTs, autoLoadDepDecorator: boolean = true) {
         this._parserInfo = parserInfo;
         this.document = parserInfo.document;
         this.decorators = DecoratorInfo.buildDecorator(node);
@@ -72,12 +127,8 @@ export abstract class BaseInfo {
                     this.documentation.push(jsDoc.comment);
                 }
             }
-            if (node.modifiers) {
-                for (let modifier of node.modifiers) {
-                    if (modifier.kind == SyntaxKind.ExportKeyword) {
-                        this.isExported = true;
-                    }
-                }
+            if (node.kind != SyntaxKind.VariableDeclaration) {
+                this.isExported = BaseInfo.isExported(node);
             }
             BaseInfo.infoByFullName[this.fullName] = this;
         }
@@ -99,63 +150,88 @@ export abstract class BaseInfo {
         }
     }
 
-    protected loadOnlyDependancesRecu(node: Node, depth: number = 0) {
+    protected preventDependanceAdd(name: string) {
+        if (!this.dependancePrevented.includes(name)) {
+            this.dependancePrevented.push(name);
+        }
+    }
+
+    private loadExpression(x: Node, depth2: number = 0, isStrongDependance: boolean = false) {
+        if (this.debug) {
+            console.log("***" + depth2 + ". " + x.getText());
+            console.log(SyntaxKind[x.kind]);
+        }
+        if (x.kind == SyntaxKind.ExpressionWithTypeArguments) {
+            this.addDependance(x as ExpressionWithTypeArguments, isStrongDependance);
+        }
+        else if (x.kind == SyntaxKind.NewExpression) {
+            let exp = (x as NewExpression);
+            this.loadExpression(exp.expression, depth2 + 1, isStrongDependance);
+        }
+        else if (x.kind == SyntaxKind.PropertyAccessExpression) {
+            let exp = (x as PropertyAccessExpression);
+            let txt = exp.name.getText();
+            let baseInfo = ParserTs.getBaseInfo(txt);
+            if (baseInfo) {
+                // when static call on external class
+                if (exp.expression.getText() + "." + txt == baseInfo.fullName) {
+                    this.addDependanceName(baseInfo.fullName, isStrongDependance, exp.expression.getStart(), exp.expression.getEnd());
+                }
+            }
+            else {
+                // when static call on local class
+                let localClassName = exp.expression.getText();
+                if (localClassName != 'this' && !localClassName.includes('.')) {
+                    if (ParserTs.hasLocal(localClassName)) {
+                        this.addDependanceName(localClassName, isStrongDependance, exp.expression.getStart(), exp.expression.getEnd());
+                    }
+                    else if (ParserTs.hasImport(localClassName)) {
+                        this.addDependanceName(localClassName, isStrongDependance, exp.expression.getStart(), exp.expression.getEnd());
+                    }
+                }
+            }
+            this.loadExpression(exp.expression, depth2 + 1, isStrongDependance);
+        }
+        else if (x.kind == SyntaxKind.Identifier) {
+            if (x.parent.kind == SyntaxKind.PropertyAccessExpression) {
+                return;
+            }
+            else if (x.parent.kind >= SyntaxKind.VariableDeclaration && x.parent.kind <= SyntaxKind.JsxExpression) {
+                return;
+            }
+            let localClassName = x.getText();
+            if (localClassName != 'this' && !localClassName.includes('.')) {
+                let baseInfo = ParserTs.getBaseInfo(localClassName);
+                if (baseInfo) {
+                    this.addDependanceName(localClassName, isStrongDependance, x.getStart(), x.getEnd());
+                }
+                else {
+                    if (ParserTs.hasImport(localClassName)) {
+                        this.addDependanceName(localClassName, isStrongDependance, x.getStart(), x.getEnd());
+                    }
+                }
+            }
+        }
+        else if (x.kind == SyntaxKind.CallExpression) {
+            let exp = (x as CallExpression);
+            this.loadExpression(exp.expression, depth2 + 1, isStrongDependance);
+        }
+    }
+    protected loadOnlyDependancesRecu(node: Node, depth: number = 0, isStrongDependance: boolean = false) {
         if (this.parserInfo.isLib) {
             return
         }
-        const loadExpression = (x: Node, depth2: number = 0) => {
-            if (this.debug) {
-                console.log("***" + depth + ". " + x.getText());
-                console.log(syntaxName[x.kind]);
-            }
-            if (x.kind == SyntaxKind.ExpressionWithTypeArguments) {
-                this.addDependance(x as ExpressionWithTypeArguments, false);
-            }
-            else if (x.kind == SyntaxKind.NewExpression) {
-                let exp = (x as NewExpression);
-                loadExpression(exp.expression, depth2 + 1);
-            }
-            else if (x.kind == SyntaxKind.PropertyAccessExpression) {
-                let exp = (x as PropertyAccessExpression);
-                let txt = exp.name.getText();
-                let baseInfo = ParserTs.getBaseInfo(txt);
-                if (baseInfo) {
-                    // when static call on external class
-                    if (exp.expression.getText() + "." + txt == baseInfo.fullName) {
-                        this.addDependanceName(baseInfo.fullName, false, exp.expression.getStart(), exp.expression.getEnd());
-                    }
-                }
-                else {
-                    // when static call on local class
-                    let localClassName = exp.expression.getText();
-                    if (localClassName != 'this' && !localClassName.includes('.')) {
-                        let localClass = this.parserInfo.imports[localClassName];
-                        if (localClass) {
-                            this.addDependanceName(localClassName, false, exp.expression.getStart(), exp.expression.getEnd());
-                        }
-                    }
-                }
-                loadExpression(exp.expression, depth2 + 1);
-            }
-            else if (x.kind == SyntaxKind.CallExpression) {
-                let exp = (x as CallExpression);
-                loadExpression(exp.expression, depth2 + 1);
-            }
-        }
         forEachChild(node, x => {
             if (x.kind == SyntaxKind.TypeReference) {
-                this.addDependance(x as TypeReferenceNode, false);
+                this.addDependance(x as TypeReferenceNode, isStrongDependance);
                 return;
             }
             else {
-                loadExpression(x);
+                this.loadExpression(x, depth, isStrongDependance);
             }
 
-            if (this.debug) {
-                console.log("***" + depth + ". " + x.getText());
-                console.log(syntaxName[x.kind]);
-            }
-            this.loadOnlyDependancesRecu(x, depth + 1);
+
+            this.loadOnlyDependancesRecu(x, depth + 1, isStrongDependance);
         })
     }
     /**
@@ -164,10 +240,11 @@ export abstract class BaseInfo {
      * @param isStrongDependance 
      */
     protected addDependance(type: TypeNode, isStrongDependance: boolean): string[] {
+        // TODO : add scope declaration variable
         let result: string[] = [];
         const loop = (info: TypeInfo) => {
             if (info.kind == "type") {
-                let fullName = this.addDependanceName(info.value, isStrongDependance, info.start, info.end);
+                let fullName = this.addDependanceName(info.value, isStrongDependance, info.start, info.endNonGeneric);
                 if (fullName !== null) {
                     result.push(fullName);
                 }
@@ -196,10 +273,17 @@ export abstract class BaseInfo {
         return result;
     }
     protected addDependanceName(name: string, isStrongDependance: boolean, start: number, end: number): string | null {
+        if (this.debug) {
+            console.log("try add dependance " + name);
+        }
         if (!name) {
             return null;
         }
-        name = name.replace(/<.*>/g, '');
+        let match = /<.*>/g.exec(name);
+        if (match) {
+            end -= match[0].length;
+            name = name.replace(match[0], '');
+        }
         // if same class
         if (name == this.fullName) {
             return null;
@@ -210,17 +294,26 @@ export abstract class BaseInfo {
         }
 
         if (start > 0 && end > 0) {
-            if (!Array.isArray(this.dependancesLocations[name])) {
-                this.dependancesLocations[name] = []
+            if (!this.dependancesLocations[name]) {
+                this.dependancesLocations[name] = {
+                    locations: {},
+                    replacement: null
+                }
             }
-            this.dependancesLocations[name].push({
-                start: start,
-                end: end
-            });
+            let key = start + "_" + end;
+            if (!this.dependancesLocations[name].locations[key]) {
+                this.dependancesLocations[name].locations[key] = {
+                    start: start,
+                    end: end
+                };
+            }
         }
 
 
         if (!this.addDependanceNameCustomCheck(name)) {
+            return null;
+        }
+        if (this.dependancePrevented.includes(name)) {
             return null;
         }
         if (this.dependanceNameLoaded.includes(name)) {
@@ -237,28 +330,25 @@ export abstract class BaseInfo {
             });
             return name;
         }
-        // import name or local name or lib name
-        if (this.parserInfo.classes[name]) {
-            // it's a class inside the same file
-            let fullName = this.parserInfo.classes[name].fullName
-            this.dependances.push({
-                fullName: "$namespace$" + fullName,
-                uri: '@local',
-                isStrong: isStrongDependance
-            });
+        let types = [this.parserInfo.classes, this.parserInfo.enums, this.parserInfo.aliases, this.parserInfo.functions, this.parserInfo.variables];
+        for (let type of types) {
+            if (type[name]) {
+                // it's a class inside the same file
+                let fullName = type[name].fullName
+                this.dependances.push({
+                    fullName: "$namespace$" + fullName,
+                    uri: '@local',
+                    isStrong: isStrongDependance
+                });
+                if (this.debug) {
+                    console.log("add dependance " + name + " : same file");
+                }
+                if (this.dependancesLocations[name])
+                    this.dependancesLocations[name].replacement = fullName;
+                return fullName;
+            }
+        }
 
-            return fullName;
-        }
-        if (this.parserInfo.enums[name]) {
-            // it's an enum inside the same file
-            let fullName = this.parserInfo.enums[name].fullName
-            this.dependances.push({
-                fullName: "$namespace$" + fullName,
-                uri: '@local',
-                isStrong: isStrongDependance
-            });
-            return fullName;
-        }
         if (this.parserInfo.imports[name]) {
             // it's an imported class
             let fullName = this.parserInfo.imports[name].fullName
@@ -267,30 +357,55 @@ export abstract class BaseInfo {
                 uri: this.parserInfo.imports[name].fileUri,
                 isStrong: isStrongDependance
             });
+            if (this.debug) {
+                console.log("add dependance " + name + " : imported file");
+            }
+            if (this.dependancesLocations[name])
+                this.dependancesLocations[name].replacement = fullName;
             return fullName;
         }
-        if (this.parserInfo.aliases[name]) {
-            // it's an alias
-            let fullName = this.parserInfo.aliases[name].fullName
+        else if (this.parserInfo.waitingImports[name]) {
+            // TODO maybe return a specific value to parsed after file is ready
+            if (this.debug) {
+                console.log("add dependance " + name + " : but waiting import file");
+            }
+            this.parserInfo.waitingImports[name].push((info) => {
+                let fullName = this.parserInfo.imports[name].fullName
+                if (this.dependancesLocations[name])
+                    this.dependancesLocations[name].replacement = fullName;
+            })
+        }
+
+        if (this.parserInfo.npmImports[name]) {
             this.dependances.push({
-                fullName: "$namespace$" + fullName,
-                uri: "@local",
+                fullName: name,
+                uri: "@npm",
                 isStrong: isStrongDependance
             });
-            return fullName;
+            if (this.debug) {
+                console.log("add dependance " + name + " : npm");
+            }
+            if (this.dependancesLocations[name]) {
+                let md5uri = md5(this.parserInfo.npmImports[name].uri);
+                this.dependancesLocations[name].replacement = "npmCompilation['" + md5uri + "']." + name;
+            }
+            return name;
         }
-
-
         // should be a lib dependances outside the module
         this.dependances.push({
             fullName: name,
             uri: "@external",
             isStrong: isStrongDependance
         });
+        if (this.debug) {
+            console.log("add dependance " + name + " : external");
+        }
         return name;
     }
 
     protected addDependanceNameCustomCheck(name: string): boolean {
         return true;
     }
+
+
 }

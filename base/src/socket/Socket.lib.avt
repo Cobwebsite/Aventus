@@ -1,19 +1,18 @@
-import { SocketOptions, SocketMessage, SocketRoute, ISocket } from './ISocket.lib.avt';
+import type { SocketOptions, SocketMessage, SocketRoute } from './ISocket.lib.avt';
 
-export abstract class Socket implements ISocket {
-    private options: SocketOptions;
-    private waitingList: { [uuid: string]: { [key: string]: (data: any) => void; }; } = {};
-    private multipltWaitingList: { [uuid: string]: { [key: string]: (data: any) => void; }; } = {};
-    private timeoutError: number;
+export abstract class Socket {
+    private options: Required<SocketOptions>;
+    private waitingList: { [uuid: string]: (channel: string, data: any) => void; } = {};
+    private timeoutError: number = 0;
     private memoryBeforeOpen: {
         channelName: string,
         data: any,
         options: {};
     }[] = [];
-    private socket: WebSocket;
+    private socket?: WebSocket;
 
     protected constructor() {
-        this._configure(this.configure({}));
+        this.options = this._configure(this.configure({}));
     }
 
     /**
@@ -23,7 +22,7 @@ export abstract class Socket implements ISocket {
     /**
      * Configure a new Websocket
      */
-    private _configure(options: SocketOptions = {}) {
+    private _configure(options: SocketOptions = {}): Required<SocketOptions> {
 
         if(!options.host) {
             options.host = window.location.hostname;
@@ -45,8 +44,11 @@ export abstract class Socket implements ISocket {
         if(!options.socketName) {
             options.socketName = "";
         }
+        if(options.log === undefined) {
+            options.log = false;
+        }
 
-        this.options = options;
+        return options as Required<SocketOptions>;
     }
 
 
@@ -73,7 +75,7 @@ export abstract class Socket implements ISocket {
         }
     }
 
-    private openCallback: (isOpen: boolean) => void;
+    private openCallback: ((isOpen: boolean) => void) | undefined;
     /**
      * Try to open the websocket
      */
@@ -117,7 +119,7 @@ export abstract class Socket implements ISocket {
      * @param data The data to send
      * @param options the options to add to the message (typically the uid)
      */
-    public sendMessage<T>(channelName: string, data: T = null, options = {}) {
+    public sendMessage<T>(channelName: string, body?: { [key: string | number]: any; }, options = {}) {
         if(this.socket && this.socket.readyState == 1) {
             let message: SocketMessage = {
                 channel: channelName,
@@ -125,11 +127,11 @@ export abstract class Socket implements ISocket {
             for(let key in options) {
                 message[key] = options[key];
             }
-            if(data) {
-                message.data = data;
+            if(body) {
+                message.data = body;
                 this.log(message);
-                if(typeof data != 'string') {
-                    message.data = JSON.stringify(data, this.jsonReplacer);
+                if(typeof body != 'string') {
+                    message.data = JSON.stringify(body, this.jsonReplacer);
                 }
             } else {
                 this.log(message);
@@ -140,7 +142,7 @@ export abstract class Socket implements ISocket {
             this.log('Socket not ready ! Please ensure that it is open and ready to send message');
             this.memoryBeforeOpen.push({
                 channelName: channelName,
-                data: data,
+                data: body,
                 options: options
             });
         }
@@ -152,27 +154,23 @@ export abstract class Socket implements ISocket {
      * @param data The data to send
      * @param callbacks The callbacks to call. With the channel as key and the callback function as value
      */
-    public sendMessageAndWait<T>(channelName: string, data: T, callbacks: { [key: string]: (data: any) => void; }) {
-        let uid = '_' + Math.random().toString(36).substr(2, 9);
-        this.waitingList[uid] = callbacks;
-        this.sendMessage(channelName, data, {
-            uid: uid
+    public sendMessageAndWait<T>(channelName: string, body?: { [key: string | number]: any; }): Promise<T | null> {
+        return new Promise<T | null>((resolve) => {
+            let uid = '_' + Math.random().toString(36).substr(2, 9);
+            this.waitingList[uid] = (channel, data) => {
+                if(channel != channelName) {
+                    resolve(null);
+                }
+                else {
+                    resolve(data);
+                }
+            };
+            this.sendMessage(channelName, body, {
+                uid: uid
+            });
         });
-    };
 
-    /**
-     * Send a message though the websocket and wait answer give in parameters callbacks
-     * @param channelName The channel on which the message is sent
-     * @param data The data to send
-     * @param callbacks The callbacks to call. With the channel as key and the callback function as value
-     */
-    public sendMessageAndWaitMultiple<T>(channelName: string, data: T[], callbacks: { [key: string]: (data: any) => void; }) {
-        let uid = '_' + Math.random().toString(36).substr(2, 9);
-        this.multipltWaitingList[uid] = callbacks;
-        this.sendMessage(channelName, data, {
-            uid: uid
-        });
-    }
+    };
 
     /**
      * Check if socket is ready
@@ -194,7 +192,7 @@ export abstract class Socket implements ISocket {
         if(this.socket && this.socket.readyState == 1) {
             if(this.openCallback) {
                 this.openCallback(true);
-                this.openCallback = null;
+                this.openCallback = undefined;
             }
             this.log('Connection successfully established !' + this.options.host + ":" + this.options.port);
             window.clearTimeout(this.timeoutError);
@@ -208,12 +206,12 @@ export abstract class Socket implements ISocket {
         else {
             if(this.openCallback) {
                 this.openCallback(false);
-                this.openCallback = null;
+                this.openCallback = undefined;
             }
         }
     }
 
-    private errorOccur: boolean;
+    private errorOccur: boolean = false;
     /**
      * Callback called when the socket as an error
      */
@@ -224,7 +222,7 @@ export abstract class Socket implements ISocket {
         this.errorOccur = true;
         if(this.openCallback) {
             this.openCallback(false);
-            this.openCallback = null;
+            this.openCallback = undefined;
             return;
         }
         this.log('An error has occured');
@@ -277,22 +275,8 @@ export abstract class Socket implements ISocket {
         }
         if(response.uid) {
             if(this.waitingList.hasOwnProperty(response.uid)) {
-                let group = this.waitingList[response.uid];
-                if(group.hasOwnProperty(response.channel)) {
-                    group[response.channel](response.data);
-                }
+                this.waitingList[response.uid](response.channel, response.data);
                 delete this.waitingList[response.uid];
-            } else if(this.multipltWaitingList.hasOwnProperty(response.uid)) {
-                let group = this.multipltWaitingList[response.uid];
-                if(group.hasOwnProperty(response.channel)) {
-                    try {
-                        group[response.channel](response.data);
-                    }
-                    catch(e) {
-                        console.error(e);
-                    }
-                }
-                delete this.multipltWaitingList[response.uid];
             }
         }
     }

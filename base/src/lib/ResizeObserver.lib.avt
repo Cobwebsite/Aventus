@@ -6,7 +6,7 @@ type WindowResizeObserver = globalThis.ResizeObserver;
 export class ResizeObserver {
     private callback: CallableFunction;
     private targets: Element[];
-    private fpsInterval: number;
+    private fpsInterval: number = -1;
     private nextFrame: number;
     private entriesChangedEvent: {};
     private willTrigger: boolean;

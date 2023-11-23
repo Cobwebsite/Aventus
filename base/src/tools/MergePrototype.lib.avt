@@ -1,0 +1,48 @@
+
+
+
+export type AnyConstructor = abstract new (...args: any[]) => any;
+
+type MixinPropertyProto<B extends AnyConstructor, R extends AnyConstructor, S extends string> = InstanceType<B> & Unflatten<Record<S, InstanceType<R>>>;
+type MixProtoWithPath<B extends AnyConstructor, R extends AnyConstructor, S extends string> = (
+    (abstract new (...args: any) => MixinPropertyProto<B, R, S>) & {
+        prototype: MixinPropertyProto<B, R, S>;
+    }) & B;
+type MixProtoNoPath<B extends AnyConstructor, R extends AnyConstructor, S extends string|undefined> = (
+    (abstract new (...args: any) => InstanceType<B> & InstanceType<R>) & {
+        prototype: InstanceType<B> & InstanceType<R>;
+    }) & B;
+
+export type MixProto<B extends AnyConstructor, R extends AnyConstructor, S extends string> = S extends null ? 
+    MixProtoNoPath<B, R, S> : 
+        S extends "" ? 
+            MixProtoNoPath<B, R, S> : MixProtoWithPath<B, R, S>;
+
+//#region tools
+
+/** Force the type to be a literal string */
+export type StringLiteral<T> = T extends string ? string extends T ? never : T : never;
+
+/** Split a string on string array */
+type Split<S extends string, Sep extends string = "", R extends string[] = []> =
+    S extends "" ? R : S extends `${infer A}${Sep}${infer B}`
+    ? Split<B, Sep, [...R, A]> : [...R, S];
+
+/** Join a string array into a string */
+export type Join<S extends (string|undefined)[], Sep extends string = "", R extends string = ""> =
+    S["length"] extends 0
+    ? R
+    : S extends [infer A extends string, ...infer B extends string[]]
+    ? Join<B, Sep, `${R}${R extends "" ? "" : Sep}${A}`>
+    : R;
+
+/** Transform a dot string : value into real object type */
+type Unflatten<T> = T extends object ? {
+    [K in keyof T & string as Split<K, ".">[0]]: [K] extends [`${string}.${string}`]
+    ? Unflatten<{
+        [P in Split<K, "."> extends [any, ...infer Rest extends string[]] ? Join<Rest, "."> : never]: T[`${Split<K, ".">[0]}.${P}` & keyof T]
+    }>
+    : T[K];
+} : T;
+
+//#endregion

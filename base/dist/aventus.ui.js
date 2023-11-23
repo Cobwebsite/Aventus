@@ -2,57 +2,11 @@ var Aventus;
 (Aventus||(Aventus = {}));
 (function (Aventus) {
 const moduleName = `Aventus`;
+const _ = {};
 
-class WebComponentInstance {
-    static __allDefinitions = [];
-    static __allInstances = [];
-    /**
-     * Last definition insert datetime
-     */
-    static lastDefinition = 0;
-    static registerDefinition(def) {
-        WebComponentInstance.lastDefinition = Date.now();
-        WebComponentInstance.__allDefinitions.push(def);
-    }
-    /**
-     * Get all sub classes of type
-     */
-    static getAllClassesOf(type) {
-        let result = [];
-        for (let def of WebComponentInstance.__allDefinitions) {
-            if (def.prototype instanceof type) {
-                result.push(def);
-            }
-        }
-        return result;
-    }
-    /**
-     * Get all registered definitions
-     */
-    static getAllDefinitions() {
-        return WebComponentInstance.__allDefinitions;
-    }
-    static addInstance(instance) {
-        this.__allInstances.push(instance);
-    }
-    static removeInstance(instance) {
-        let index = this.__allInstances.indexOf(instance);
-        if (index > -1) {
-            this.__allInstances.splice(index, 1);
-        }
-    }
-    static getAllInstances(type) {
-        let result = [];
-        for (let instance of this.__allInstances) {
-            if (instance instanceof type) {
-                result.push(instance);
-            }
-        }
-        return result;
-    }
-}
 
-class ElementExtension {
+let _n;
+const ElementExtension=class ElementExtension {
     /**
      * Find a parent by tagname if exist Static.findParentByTag(this, "av-img")
      */
@@ -227,7 +181,7 @@ class ElementExtension {
     /**
      * Get element inside slot
      */
-    static getElementsInSlot(element, slotName = null) {
+    static getElementsInSlot(element, slotName) {
         if (element.shadowRoot) {
             let slotEl;
             if (slotName) {
@@ -262,7 +216,7 @@ class ElementExtension {
     /**
      * Get deeper element inside dom at the position X and Y
      */
-    static getElementAtPosition(x, y, startFrom = null) {
+    static getElementAtPosition(x, y, startFrom) {
         var _realTarget = (el, i = 0) => {
             if (i == 50) {
                 debugger;
@@ -281,8 +235,9 @@ class ElementExtension {
         return _realTarget(startFrom);
     }
 }
-
-class Instance {
+ElementExtension.Namespace=`${moduleName}`;
+_.ElementExtension=ElementExtension;
+const Instance=class Instance {
     static elements = new Map();
     static get(type) {
         let result = this.elements.get(type);
@@ -306,11 +261,13 @@ class Instance {
         return this.elements.delete(cst);
     }
 }
-
-class Style {
+Instance.Namespace=`${moduleName}`;
+_.Instance=Instance;
+const Style=class Style {
     static instance;
+    static noAnimation;
     static defaultStyleSheets = {
-        "@general": `:host{display:inline-block;box-sizing:border-box}:host *{box-sizing:border-box}`
+        "@general": `:host{display:inline-block;box-sizing:border-box}:host *{box-sizing:border-box}`,
     };
     static store(name, content) {
         this.getInstance().store(name, content);
@@ -331,11 +288,14 @@ class Style {
         for (let name in Style.defaultStyleSheets) {
             this.store(name, Style.defaultStyleSheets[name]);
         }
+        Style.noAnimation = new CSSStyleSheet();
+        Style.noAnimation.replaceSync(`:host{-webkit-transition: none !important;-moz-transition: none !important;-ms-transition: none !important;-o-transition: none !important;transition: none !important;}:host *{-webkit-transition: none !important;-moz-transition: none !important;-ms-transition: none !important;-o-transition: none !important;transition: none !important;}`);
     }
     stylesheets = new Map();
     async load(name, url) {
         try {
-            if (!this.stylesheets.has(name) || this.stylesheets.get(name).cssRules.length == 0) {
+            let style = this.stylesheets.get(name);
+            if (!style || style.cssRules.length == 0) {
                 let txt = await (await fetch(url)).text();
                 this.store(name, txt);
             }
@@ -344,434 +304,101 @@ class Style {
         }
     }
     store(name, content) {
-        if (!this.stylesheets.has(name)) {
+        let style = this.stylesheets.get(name);
+        if (!style) {
             const sheet = new CSSStyleSheet();
             sheet.replaceSync(content);
             this.stylesheets.set(name, sheet);
+            return sheet;
         }
         else {
-            this.stylesheets.get(name).replaceSync(content);
+            style.replaceSync(content);
+            return style;
         }
     }
     get(name) {
-        if (!this.stylesheets.has(name)) {
-            this.store(name, "");
+        let style = this.stylesheets.get(name);
+        if (!style) {
+            style = this.store(name, "");
         }
-        return this.stylesheets.get(name);
+        return style;
     }
 }
-
-class WebComponent extends HTMLElement {
+Style.Namespace=`${moduleName}`;
+_.Style=Style;
+const WebComponentInstance=class WebComponentInstance {
+    static __allDefinitions = [];
+    static __allInstances = [];
     /**
-     * Add attributes informations
+     * Last definition insert datetime
      */
-    static get observedAttributes() {
-        return [];
+    static lastDefinition = 0;
+    static registerDefinition(def) {
+        WebComponentInstance.lastDefinition = Date.now();
+        WebComponentInstance.__allDefinitions.push(def);
     }
-    _first;
-    _isReady;
+    static removeDefinition(def) {
+        WebComponentInstance.lastDefinition = Date.now();
+        let index = WebComponentInstance.__allDefinitions.indexOf(def);
+        if (index > -1) {
+            WebComponentInstance.__allDefinitions.splice(index, 1);
+        }
+    }
     /**
-     * Determine if the component is ready (postCreation done)
+     * Get all sub classes of type
      */
-    get isReady() {
-        return this._isReady;
+    static getAllClassesOf(type) {
+        let result = [];
+        for (let def of WebComponentInstance.__allDefinitions) {
+            if (def.prototype instanceof type) {
+                result.push(def);
+            }
+        }
+        return result;
     }
     /**
-     * The current namespace
+     * Get all registered definitions
      */
-    static get Namespace() { return ""; }
-    /**
-     * Get the unique type for the data. Define it as the namespace + class name
-     */
-    static get Fullname() { return this.Namespace + "." + this.name; }
-    /**
-     * The current namespace
-     */
-    get namespace() {
-        return this.constructor['Namespace'];
+    static getAllDefinitions() {
+        return WebComponentInstance.__allDefinitions;
     }
-    /**
-     * Get the name of the component class
-     */
-    getClassName() {
-        return this.constructor.name;
+    static addInstance(instance) {
+        this.__allInstances.push(instance);
     }
-    /**
-    * Get the unique type for the data. Define it as the namespace + class name
-    */
-    get $type() {
-        return this.constructor['Fullname'];
-    }
-    __onChangeFct = {};
-    __watch;
-    __watchActions = {};
-    __watchActionsCb = {};
-    __pressManagers = [];
-    __isDefaultState = true;
-    __defaultActiveState = new Map();
-    __defaultInactiveState = new Map();
-    __statesList = {};
-    constructor() {
-        super();
-        if (this.constructor == WebComponent) {
-            throw "can't instanciate an abstract class";
-        }
-        this._first = true;
-        this._isReady = false;
-        this.__renderTemplate();
-        this.__registerWatchesActions();
-        this.__registerPropertiesActions();
-        this.__createStates();
-        this.__subscribeState();
-    }
-    /**
-     * Remove all listeners
-     * State + press
-     */
-    destructor() {
-        WebComponentInstance.removeInstance(this);
-        this.__unsubscribeState();
-        for (let press of this.__pressManagers) {
-            press.destroy();
-        }
-        // TODO add missing info for destructor();
-    }
-    __addWatchesActions(name, fct) {
-        if (!this.__watchActions[name]) {
-            this.__watchActions[name] = [];
-            this.__watchActionsCb[name] = (action, path, value) => {
-                for (let fct of this.__watchActions[name]) {
-                    fct(this, action, path, value);
-                }
-                if (this.__onChangeFct[name]) {
-                    for (let fct of this.__onChangeFct[name]) {
-                        fct(path);
-                    }
-                }
-            };
-        }
-        if (fct) {
-            this.__watchActions[name].push(fct);
+    static removeInstance(instance) {
+        let index = this.__allInstances.indexOf(instance);
+        if (index > -1) {
+            this.__allInstances.splice(index, 1);
         }
     }
-    __registerWatchesActions() {
-        if (Object.keys(this.__watchActions).length > 0) {
-            if (!this.__watch) {
-                this.__watch = Watcher.get({}, (type, path, element) => {
-                    let action = this.__watchActionsCb[path.split(".")[0]] || this.__watchActionsCb[path.split("[")[0]];
-                    action(type, path, element);
-                });
+    static getAllInstances(type) {
+        let result = [];
+        for (let instance of this.__allInstances) {
+            if (instance instanceof type) {
+                result.push(instance);
             }
         }
+        return result;
     }
-    __addPropertyActions(name, fct) {
-        if (!this.__onChangeFct[name]) {
-            this.__onChangeFct[name] = [];
+    static create(type) {
+        let _class = customElements.get(type);
+        if (_class) {
+            return new _class();
         }
-        if (fct) {
-            this.__onChangeFct[name].push(() => {
-                fct(this);
-            });
+        let splitted = type.split(".");
+        let current = window;
+        for (let part of splitted) {
+            current = current[part];
         }
-    }
-    __registerPropertiesActions() { }
-    static __style = ``;
-    static __template;
-    __templateInstance;
-    styleBefore() {
-        return ["@general"];
-    }
-    styleAfter() {
-        return [];
-    }
-    __getStyle() {
-        return [WebComponent.__style];
-    }
-    __getHtml() { }
-    __getStatic() {
-        return WebComponent;
-    }
-    static __styleSheets = {};
-    __renderStyles() {
-        let sheets = {};
-        let befores = this.styleBefore();
-        for (let before of befores) {
-            let sheet = Style.get(before);
-            if (sheet) {
-                sheets[before] = sheet;
-            }
-        }
-        let localStyle = new CSSStyleSheet();
-        let styleTxt = this.__getStyle().join("\r\n");
-        if (styleTxt.length > 0) {
-            localStyle.replace(styleTxt);
-            sheets['@local'] = localStyle;
-        }
-        let afters = this.styleAfter();
-        for (let after of afters) {
-            let sheet = Style.get(after);
-            if (sheet) {
-                sheets[after] = sheet;
-            }
-        }
-        return sheets;
-    }
-    __renderTemplate() {
-        let staticInstance = this.__getStatic();
-        if (!staticInstance.__template) {
-            staticInstance.__template = new WebComponentTemplate();
-            this.__getHtml();
-            this.__registerTemplateAction();
-            staticInstance.__template.generateTemplate();
-            staticInstance.__styleSheets = this.__renderStyles();
-        }
-        this.__templateInstance = staticInstance.__template.createInstance(this);
-        let shadowRoot = this.attachShadow({ mode: 'open' });
-        shadowRoot.adoptedStyleSheets = Object.values(staticInstance.__styleSheets);
-        this.shadowRoot.appendChild(this.__templateInstance.content);
-        customElements.upgrade(this.shadowRoot);
-    }
-    __registerTemplateAction() {
-    }
-    connectedCallback() {
-        if (this._first) {
-            WebComponentInstance.addInstance(this);
-            this._first = false;
-            this.__defaultValues();
-            this.__upgradeAttributes();
-            this.__templateInstance.render();
-            setTimeout(() => {
-                this.postCreation();
-                this._isReady = true;
-                this.dispatchEvent(new CustomEvent('postCreationDone'));
-            });
-        }
-    }
-    __defaultValues() { }
-    __upgradeAttributes() { }
-    __listBoolProps() {
-        return [];
-    }
-    __upgradeProperty(prop) {
-        let boolProps = this.__listBoolProps();
-        if (boolProps.indexOf(prop) != -1) {
-            if (this.hasAttribute(prop) && (this.getAttribute(prop) === "true" || this.getAttribute(prop) === "")) {
-                let value = this.getAttribute(prop);
-                delete this[prop];
-                this[prop] = value;
-            }
-            else {
-                this.removeAttribute(prop);
-                this[prop] = false;
-            }
-        }
-        else {
-            if (this.hasAttribute(prop)) {
-                let value = this.getAttribute(prop);
-                delete this[prop];
-                this[prop] = value;
-            }
-        }
-    }
-    __getStateManager(managerClass) {
-        let mClass;
-        if (managerClass instanceof StateManager) {
-            mClass = managerClass;
-        }
-        else {
-            mClass = Instance.get(managerClass);
-        }
-        return mClass;
-    }
-    __addActiveDefState(managerClass, cb) {
-        let mClass = this.__getStateManager(managerClass);
-        if (!this.__defaultActiveState.has(mClass)) {
-            this.__defaultActiveState.set(mClass, []);
-        }
-        this.__defaultActiveState.get(mClass).push(cb);
-    }
-    __addInactiveDefState(managerClass, cb) {
-        let mClass = this.__getStateManager(managerClass);
-        if (!this.__defaultInactiveState.has(mClass)) {
-            this.__defaultInactiveState.set(mClass, []);
-        }
-        this.__defaultInactiveState.get(mClass).push(cb);
-    }
-    __addActiveState(statePattern, managerClass, cb) {
-        let mClass = this.__getStateManager(managerClass);
-        this.__statesList[statePattern].get(mClass).active.push(cb);
-    }
-    __addInactiveState(statePattern, managerClass, cb) {
-        let mClass = this.__getStateManager(managerClass);
-        this.__statesList[statePattern].get(mClass).inactive.push(cb);
-    }
-    __addAskChangeState(statePattern, managerClass, cb) {
-        let mClass = this.__getStateManager(managerClass);
-        this.__statesList[statePattern].get(mClass).askChange.push(cb);
-    }
-    __createStates() { }
-    __createStatesList(statePattern, managerClass) {
-        if (!this.__statesList[statePattern]) {
-            this.__statesList[statePattern] = new Map();
-        }
-        let mClass = this.__getStateManager(managerClass);
-        if (!this.__statesList[statePattern].has(mClass)) {
-            this.__statesList[statePattern].set(mClass, {
-                active: [],
-                inactive: [],
-                askChange: []
-            });
-        }
-    }
-    __inactiveDefaultState(managerClass) {
-        if (this.__isDefaultState) {
-            this.__isDefaultState = false;
-            let mClass = this.__getStateManager(managerClass);
-            if (this.__defaultInactiveState.has(mClass)) {
-                let fcts = this.__defaultInactiveState.get(mClass);
-                for (let fct of fcts) {
-                    fct.bind(this)();
-                }
-            }
-        }
-    }
-    __activeDefaultState(nextStep, managerClass) {
-        if (!this.__isDefaultState) {
-            for (let pattern in this.__statesList) {
-                if (StateManager.canBeActivate(pattern, nextStep)) {
-                    let mClass = this.__getStateManager(managerClass);
-                    if (this.__statesList[pattern].has(mClass)) {
-                        return;
-                    }
-                }
-            }
-            this.__isDefaultState = true;
-            let mClass = this.__getStateManager(managerClass);
-            if (this.__defaultActiveState.has(mClass)) {
-                let fcts = this.__defaultActiveState.get(mClass);
-                for (let fct of fcts) {
-                    fct.bind(this)();
-                }
-            }
-        }
-    }
-    __subscribeState() {
-        if (!this.isReady && this.__stateCleared) {
-            return;
-        }
-        for (let route in this.__statesList) {
-            for (const managerClass of this.__statesList[route].keys()) {
-                managerClass.subscribe(route, this.__statesList[route].get(managerClass));
-            }
-        }
-    }
-    __stateCleared;
-    __unsubscribeState() {
-        for (let route in this.__statesList) {
-            for (const managerClass of this.__statesList[route].keys()) {
-                managerClass.unsubscribe(route, this.__statesList[route].get(managerClass));
-            }
-        }
-        this.__stateCleared = true;
-    }
-    dateToString(d) {
-        if (d instanceof Date) {
-            return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split("T")[0];
+        if (current && current.prototype instanceof Aventus.WebComponent) {
+            return new current();
         }
         return null;
     }
-    dateTimeToString(dt) {
-        if (dt instanceof Date) {
-            return new Date(dt.getTime() - (dt.getTimezoneOffset() * 60000)).toISOString().slice(0, -1);
-        }
-        return null;
-    }
-    stringToDate(s) {
-        let td = new Date(s);
-        let d = new Date(td.getTime() + (td.getTimezoneOffset() * 60000));
-        if (isNaN(d)) {
-            return null;
-        }
-        return d;
-    }
-    stringToDateTime(s) {
-        let td = new Date(s);
-        let d = new Date(td.getTime() + (td.getTimezoneOffset() * 60000));
-        if (isNaN(d)) {
-            return null;
-        }
-        return d;
-    }
-    getBoolean(val) {
-        if (val === true || val === 1 || val === 'true' || val === '') {
-            return true;
-        }
-        else if (val === false || val === 0 || val === 'false' || val === null || val === undefined) {
-            return false;
-        }
-        console.error("error parsing boolean value " + val);
-        return false;
-    }
-    attributeChangedCallback(name, oldValue, newValue) {
-        if (oldValue !== newValue || !this.isReady) {
-            if (this.__onChangeFct.hasOwnProperty(name)) {
-                for (let fct of this.__onChangeFct[name]) {
-                    fct('');
-                }
-            }
-        }
-    }
-    remove() {
-        super.remove();
-        this.postDestruction();
-    }
-    /**
-     * Function triggered when the component is removed from the DOM
-     */
-    postDestruction() { }
-    /**
-     * Function triggered the first time the component is rendering inside DOM
-     */
-    postCreation() { }
-    /**
-     * Find a parent by tagname if exist
-     */
-    findParentByTag(tagname, untilNode) {
-        return ElementExtension.findParentByTag(this, tagname, untilNode);
-    }
-    /**
-     * Find a parent by class name if exist
-     */
-    findParentByClass(classname, untilNode) {
-        return ElementExtension.findParentByClass(this, classname, untilNode);
-    }
-    /**
-     * Find a parent by type if exist
-     */
-    findParentByType(type, untilNode) {
-        return ElementExtension.findParentByType(this, type, untilNode);
-    }
-    /**
-     * Find list of parents by tagname
-     */
-    findParents(tagname, untilNode) {
-        return ElementExtension.findParents(this, tagname, untilNode);
-    }
-    /**
-     * Check if element contains a child
-     */
-    containsChild(el) {
-        return ElementExtension.containsChild(this, el);
-    }
-    /**
-     * Get element inside slot
-     */
-    getElementsInSlot(slotName = null) {
-        return ElementExtension.getElementsInSlot(this, slotName);
-    }
 }
-
-class Callback {
+WebComponentInstance.Namespace=`${moduleName}`;
+_.WebComponentInstance=WebComponentInstance;
+const Callback=class Callback {
     callbacks = [];
     /**
      * Clear all callbacks
@@ -799,325 +426,159 @@ class Callback {
      */
     trigger(args) {
         let result = [];
-        for (let callback of this.callbacks) {
-            result.push(callback.apply(null, args));
+        let cbs = [...this.callbacks];
+        for (let cb of cbs) {
+            result.push(cb.apply(null, args));
         }
         return result;
     }
 }
-
-class StateManager {
-    subscribers = {};
-    static canBeActivate(statePattern, stateName) {
-        let stateInfo = this.prepareStateString(statePattern);
-        return stateInfo.regex.test(stateName);
-    }
-    activeState;
-    afterStateChanged = new Callback();
+Callback.Namespace=`${moduleName}`;
+_.Callback=Callback;
+const Mutex=class Mutex {
+    waitingList = [];
+    isLocked = false;
     /**
-     * Subscribe actions for a state or a state list
+     * Wait the mutex to be free then get it
      */
-    subscribe(statePatterns, callbacks) {
-        if (!callbacks.active && !callbacks.inactive && !callbacks.askChange) {
-            this._log(`Trying to subscribe to state : ${statePatterns} with no callbacks !`, "warning");
-            return;
-        }
-        if (!Array.isArray(statePatterns)) {
-            statePatterns = [statePatterns];
-        }
-        for (let statePattern of statePatterns) {
-            if (!this.subscribers.hasOwnProperty(statePattern)) {
-                let res = StateManager.prepareStateString(statePattern);
-                let isActive = this.activeState !== undefined && res.regex.test(this.activeState.name);
-                this.subscribers[statePattern] = {
-                    "regex": res.regex,
-                    "params": res.params,
-                    "callbacks": {
-                        "active": [],
-                        "inactive": [],
-                        "askChange": [],
-                    },
-                    "isActive": isActive,
-                };
+    waitOne() {
+        return new Promise((resolve) => {
+            if (this.isLocked) {
+                this.waitingList.push((run) => {
+                    resolve(run);
+                });
             }
-            if (callbacks.active) {
-                if (!Array.isArray(callbacks.active)) {
-                    callbacks.active = [callbacks.active];
-                }
-                for (let activeFct of callbacks.active) {
-                    this.subscribers[statePattern].callbacks.active.push(activeFct);
-                    if (this.subscribers[statePattern].isActive) {
-                        let slugs = this.getInternalStateSlugs(this.subscribers[statePattern], this.activeState.name);
-                        activeFct(this.activeState, slugs);
-                    }
-                }
+            else {
+                this.isLocked = true;
+                resolve(true);
             }
-            if (callbacks.inactive) {
-                if (!Array.isArray(callbacks.inactive)) {
-                    callbacks.inactive = [callbacks.inactive];
-                }
-                for (let inactiveFct of callbacks.inactive) {
-                    this.subscribers[statePattern].callbacks.inactive.push(inactiveFct);
-                }
-            }
-            if (callbacks.askChange) {
-                if (!Array.isArray(callbacks.askChange)) {
-                    callbacks.askChange = [callbacks.askChange];
-                }
-                for (let askChangeFct of callbacks.askChange) {
-                    this.subscribers[statePattern].callbacks.askChange.push(askChangeFct);
-                }
-            }
-        }
-    }
-    /**
-     * Unsubscribe actions for a state or a state list
-     */
-    unsubscribe(statePatterns, callbacks) {
-        if (!callbacks.active && !callbacks.inactive && !callbacks.askChange) {
-            this._log(`Trying to unsubscribe to state : ${statePatterns} with no callbacks !`, "warning");
-            return;
-        }
-        if (!Array.isArray(statePatterns)) {
-            statePatterns = [statePatterns];
-        }
-        for (let statePattern of statePatterns) {
-            if (this.subscribers[statePattern]) {
-                if (callbacks.active) {
-                    if (!Array.isArray(callbacks.active)) {
-                        callbacks.active = [callbacks.active];
-                    }
-                    for (let activeFct of callbacks.active) {
-                        let index = this.subscribers[statePattern].callbacks.active.indexOf(activeFct);
-                        if (index !== -1) {
-                            this.subscribers[statePattern].callbacks.active.splice(index, 1);
-                        }
-                    }
-                }
-                if (callbacks.inactive) {
-                    if (!Array.isArray(callbacks.inactive)) {
-                        callbacks.inactive = [callbacks.inactive];
-                    }
-                    for (let inactiveFct of callbacks.inactive) {
-                        let index = this.subscribers[statePattern].callbacks.inactive.indexOf(inactiveFct);
-                        if (index !== -1) {
-                            this.subscribers[statePattern].callbacks.inactive.splice(index, 1);
-                        }
-                    }
-                }
-                if (callbacks.askChange) {
-                    if (!Array.isArray(callbacks.askChange)) {
-                        callbacks.askChange = [callbacks.askChange];
-                    }
-                    for (let askChangeFct of callbacks.askChange) {
-                        let index = this.subscribers[statePattern].callbacks.askChange.indexOf(askChangeFct);
-                        if (index !== -1) {
-                            this.subscribers[statePattern].callbacks.askChange.splice(index, 1);
-                        }
-                    }
-                }
-                if (this.subscribers[statePattern].callbacks.active.length === 0 &&
-                    this.subscribers[statePattern].callbacks.inactive.length === 0 &&
-                    this.subscribers[statePattern].callbacks.askChange.length === 0) {
-                    delete this.subscribers[statePattern];
-                }
-            }
-        }
-    }
-    onAfterStateChanged(cb) {
-        this.afterStateChanged.add(cb);
-    }
-    offAfterStateChanged(cb) {
-        this.afterStateChanged.remove(cb);
-    }
-    static prepareStateString(stateName) {
-        let params = [];
-        let i = 0;
-        let regexState = stateName.replace(/{.*?}/g, (group, position) => {
-            group = group.slice(1, -1);
-            let splitted = group.split(":");
-            let name = splitted[0].trim();
-            let type = "string";
-            let result = "([^\\/]+)";
-            i++;
-            if (splitted.length > 1) {
-                if (splitted[1].trim() == "number") {
-                    result = "([0-9]+)";
-                    type = "number";
-                }
-            }
-            params.push({
-                name,
-                type,
-                position: i
-            });
-            return result;
         });
-        regexState = regexState.replace(/\*/g, ".*?");
-        regexState = "^" + regexState + '$';
-        return {
-            regex: new RegExp(regexState),
-            params
-        };
     }
     /**
-     * Activate a current state
+     * Release the mutex
      */
-    async setState(state) {
-        let stateToUse;
-        if (typeof state == "string") {
-            stateToUse = new EmptyState(state);
+    release() {
+        let nextFct = this.waitingList.shift();
+        if (nextFct) {
+            nextFct(true);
         }
         else {
-            stateToUse = state;
+            this.isLocked = false;
         }
-        if (!stateToUse) {
-            this._log("state is undefined", "error");
-            return false;
-        }
-        let canChange = true;
-        if (this.activeState) {
-            let activeToInactive = [];
-            let inactiveToActive = [];
-            let triggerActive = [];
-            canChange = await this.activeState.askChange(this.activeState, stateToUse);
-            if (canChange) {
-                for (let statePattern in this.subscribers) {
-                    let subscriber = this.subscribers[statePattern];
-                    if (subscriber.isActive) {
-                        let clone = [...subscriber.callbacks.askChange];
-                        let currentSlug = this.getInternalStateSlugs(subscriber, this.activeState.name);
-                        for (let i = 0; i < clone.length; i++) {
-                            let askChange = clone[i];
-                            if (!await askChange(this.activeState, stateToUse, currentSlug)) {
-                                canChange = false;
-                                break;
-                            }
-                        }
-                        let slugs = this.getInternalStateSlugs(subscriber, stateToUse.name);
-                        if (slugs === null) {
-                            activeToInactive.push(subscriber);
-                        }
-                        else {
-                            triggerActive.push({
-                                subscriber: subscriber,
-                                params: slugs
-                            });
-                        }
-                    }
-                    else {
-                        let slugs = this.getInternalStateSlugs(subscriber, stateToUse.name);
-                        if (slugs) {
-                            inactiveToActive.push({
-                                subscriber,
-                                params: slugs
-                            });
-                        }
-                    }
-                    if (!canChange) {
-                        break;
-                    }
-                }
+    }
+    /**
+     * Release the mutex
+     */
+    releaseOnlyLast() {
+        if (this.waitingList.length > 0) {
+            let lastFct = this.waitingList.pop();
+            for (let fct of this.waitingList) {
+                fct(false);
             }
-            if (canChange) {
-                const oldState = this.activeState;
-                this.activeState = stateToUse;
-                oldState.onInactivate(stateToUse);
-                for (let subscriber of activeToInactive) {
-                    subscriber.isActive = false;
-                    let oldSlug = this.getInternalStateSlugs(subscriber, oldState.name);
-                    [...subscriber.callbacks.inactive].forEach(callback => {
-                        callback(oldState, stateToUse, oldSlug);
-                    });
-                }
-                for (let trigger of triggerActive) {
-                    [...trigger.subscriber.callbacks.active].forEach(callback => {
-                        callback(stateToUse, trigger.params);
-                    });
-                }
-                for (let trigger of inactiveToActive) {
-                    trigger.subscriber.isActive = true;
-                    [...trigger.subscriber.callbacks.active].forEach(callback => {
-                        callback(stateToUse, trigger.params);
-                    });
-                }
-                stateToUse.onActivate();
+            this.waitingList = [];
+            if (lastFct) {
+                lastFct(true);
             }
         }
         else {
-            this.activeState = stateToUse;
-            for (let key in this.subscribers) {
-                let slugs = this.getInternalStateSlugs(this.subscribers[key], stateToUse.name);
-                if (slugs) {
-                    this.subscribers[key].isActive = true;
-                    [...this.subscribers[key].callbacks.active].forEach(callback => {
-                        callback(stateToUse, slugs);
-                    });
-                }
-            }
-            stateToUse.onActivate();
+            this.isLocked = false;
         }
-        this.afterStateChanged.trigger([]);
-        return true;
-    }
-    getState() {
-        return this.activeState;
-    }
-    getInternalStateSlugs(subscriber, stateName) {
-        let matches = subscriber.regex.exec(stateName);
-        if (matches) {
-            let slugs = {};
-            for (let param of subscriber.params) {
-                if (param.type == "number") {
-                    slugs[param.name] = Number(matches[param.position]);
-                }
-                else {
-                    slugs[param.name] = matches[param.position];
-                }
-            }
-            return slugs;
-        }
-        return null;
     }
     /**
-     * Check if a state is in the subscribers and active, return true if it is, false otherwise
+     * Clear mutex
      */
-    isStateActive(statePattern) {
-        return StateManager.prepareStateString(statePattern).regex.test(this.activeState.name);
+    dispose() {
+        this.waitingList = [];
+        this.isLocked = false;
     }
-    /**
-     * Get slugs information for the current state, return null if state isn't active
-     */
-    getStateSlugs(statePattern) {
-        let prepared = StateManager.prepareStateString(statePattern);
-        return this.getInternalStateSlugs({
-            regex: prepared.regex,
-            params: prepared.params,
-            isActive: false,
-            callbacks: {
-                active: [],
-                inactive: [],
-                askChange: [],
+    async safeRun(cb) {
+        let result = null;
+        await this.waitOne();
+        try {
+            result = cb.apply(null, []);
+        }
+        catch (e) {
+        }
+        await this.release();
+        return result;
+    }
+    async safeRunAsync(cb) {
+        let result = null;
+        await this.waitOne();
+        try {
+            result = await cb.apply(null, []);
+        }
+        catch (e) {
+        }
+        await this.release();
+        return result;
+    }
+    async safeRunLast(cb) {
+        let result = null;
+        if (await this.waitOne()) {
+            try {
+                result = cb.apply(null, []);
             }
-        }, this.activeState.name);
+            catch (e) {
+            }
+            await this.releaseOnlyLast();
+        }
+        return result;
     }
-    // 0 = error only / 1 = errors and warning / 2 = error, warning and logs (not implemented)
-    logLevel() {
-        return 0;
-    }
-    _log(msg, type) {
-        if (type === "error") {
-            console.error(msg);
+    async safeRunLastAsync(cb) {
+        let result;
+        if (await this.waitOne()) {
+            try {
+                result = await cb.apply(null, []);
+            }
+            catch (e) {
+            }
+            await this.releaseOnlyLast();
         }
-        else if (type === "warning" && this.logLevel() > 0) {
-            console.warn(msg);
-        }
-        else if (type === "info" && this.logLevel() > 1) {
-            console.log(msg);
-        }
+        return result;
     }
 }
-
+Mutex.Namespace=`${moduleName}`;
+_.Mutex=Mutex;
+const State=class State {
+    /**
+     * Activate a custom state inside a specific manager
+     * It ll be a generic state with no information inside exept name
+     */
+    static async activate(stateName, manager) {
+        return await new EmptyState(stateName).activate(manager);
+    }
+    /**
+     * Activate this state inside a specific manager
+     */
+    async activate(manager) {
+        return await manager.setState(this);
+    }
+    onActivate() {
+    }
+    onInactivate(nextState) {
+    }
+    async askChange(state, nextState) {
+        return true;
+    }
+}
+State.Namespace=`${moduleName}`;
+_.State=State;
+const EmptyState=class EmptyState extends State {
+    localName;
+    constructor(stateName) {
+        super();
+        this.localName = stateName;
+    }
+    /**
+     * @inheritdoc
+     */
+    get name() {
+        return this.localName;
+    }
+}
+EmptyState.Namespace=`${moduleName}`;
+_.EmptyState=EmptyState;
 var WatchAction;
 (function (WatchAction) {
     WatchAction[WatchAction["CREATED"] = 0] = "CREATED";
@@ -1125,7 +586,8 @@ var WatchAction;
     WatchAction[WatchAction["DELETED"] = 2] = "DELETED";
 })(WatchAction || (WatchAction = {}));
 
-class Watcher {
+_.WatchAction=WatchAction;
+const Watcher=class Watcher {
     static __maxProxyData = 0;
     /**
      * Transform object into a watcher
@@ -1183,7 +645,7 @@ class Watcher {
             else
                 return value;
         };
-        let currentTrace = new Error().stack.split("\n");
+        let currentTrace = new Error().stack?.split("\n") ?? [];
         currentTrace.shift();
         currentTrace.shift();
         let onlyDuringInit = true;
@@ -1281,6 +743,18 @@ class Watcher {
                 else if (prop == "__getTarget" && onlyDuringInit) {
                     return () => {
                         return target;
+                    };
+                }
+                else if (prop == "toJSON") {
+                    return () => {
+                        let result = {};
+                        for (let key of Object.keys(target)) {
+                            if (key == "__path" || key == "__proxyData") {
+                                continue;
+                            }
+                            result[key] = target[key];
+                        }
+                        return result;
                     };
                 }
                 return undefined;
@@ -1506,7 +980,7 @@ class Watcher {
             }
             if (proxyData.id == receiverId) {
                 let stacks = [];
-                let allStacks = new Error().stack.split("\n");
+                let allStacks = new Error().stack?.split("\n") ?? [];
                 for (let i = allStacks.length - 1; i >= 0; i--) {
                     let current = allStacks[i].trim().replace("at ", "");
                     if (current.startsWith("Object.set") || current.startsWith("Proxy.result")) {
@@ -1558,11 +1032,25 @@ class Watcher {
         return realProxy;
     }
 }
-
-class PressManager {
+Watcher.Namespace=`${moduleName}`;
+_.Watcher=Watcher;
+const PressManager=class PressManager {
+    static create(options) {
+        if (Array.isArray(options.element)) {
+            let result = [];
+            for (let el of options.element) {
+                let cloneOpt = { ...options };
+                cloneOpt.element = el;
+                result.push(new PressManager(cloneOpt));
+            }
+            return result;
+        }
+        else {
+            return new PressManager(options);
+        }
+    }
     options;
     element;
-    subPressManager = [];
     delayDblPress = 150;
     delayLongPress = 700;
     nbPress = 0;
@@ -1583,6 +1071,7 @@ class PressManager {
         drag: "drag"
     };
     useDblPress = false;
+    stopPropagation = () => true;
     functionsBinded = {
         downAction: (e) => { },
         upAction: (e) => { },
@@ -1602,20 +1091,11 @@ class PressManager {
         if (options.element === void 0) {
             throw 'You must provide an element';
         }
-        if (Array.isArray(options.element)) {
-            for (let el of options.element) {
-                let cloneOpt = { ...options };
-                cloneOpt.element = el;
-                this.subPressManager.push(new PressManager(cloneOpt));
-            }
-        }
-        else {
-            this.element = options.element;
-            this.checkDragConstraint(options);
-            this.assignValueOption(options);
-            this.options = options;
-            this.init();
-        }
+        this.element = options.element;
+        this.checkDragConstraint(options);
+        this.assignValueOption(options);
+        this.options = options;
+        this.init();
     }
     /**
      * Get the current element focused by the PressManager
@@ -1665,6 +1145,12 @@ class PressManager {
         if (options.forceDblPress) {
             this.useDblPress = true;
         }
+        if (typeof options.stopPropagation == 'function') {
+            this.stopPropagation = options.stopPropagation;
+        }
+        else if (options.stopPropagation === false) {
+            this.stopPropagation = () => false;
+        }
     }
     bindAllFunction() {
         this.functionsBinded.downAction = this.downAction.bind(this);
@@ -1689,7 +1175,9 @@ class PressManager {
     }
     downAction(e) {
         this.downEventSaved = e;
-        e.stopImmediatePropagation();
+        if (this.stopPropagation()) {
+            e.stopImmediatePropagation();
+        }
         this.customFcts = {};
         if (this.nbPress == 0) {
             this.state.oneActionTriggered = false;
@@ -1706,20 +1194,22 @@ class PressManager {
                     this.triggerEventToParent(this.actionsName.longPress, e);
                 }
                 else {
-                    this.emitTriggerFunction("longpress", e);
+                    this.emitTriggerFunction(this.actionsName.longPress, e);
                 }
             }
         }, this.delayLongPress);
         if (this.options.onPressStart) {
             this.options.onPressStart(e, this);
-            this.emitTriggerFunction("pressstart", e, this.element.parentElement);
+            this.emitTriggerFunctionParent("pressstart", e);
         }
         else {
             this.emitTriggerFunction("pressstart", e);
         }
     }
     upAction(e) {
-        e.stopImmediatePropagation();
+        if (this.stopPropagation()) {
+            e.stopImmediatePropagation();
+        }
         document.removeEventListener("pointerup", this.functionsBinded.upAction);
         document.removeEventListener("pointermove", this.functionsBinded.moveAction);
         clearTimeout(this.timeoutLongPress);
@@ -1744,7 +1234,7 @@ class PressManager {
                             this.triggerEventToParent(this.actionsName.dblPress, e);
                         }
                         else {
-                            this.emitTriggerFunction("dblpress", e);
+                            this.emitTriggerFunction(this.actionsName.dblPress, e);
                         }
                     }
                 }
@@ -1758,7 +1248,7 @@ class PressManager {
                                 this.triggerEventToParent(this.actionsName.press, e);
                             }
                             else {
-                                this.emitTriggerFunction("press", e);
+                                this.emitTriggerFunction(this.actionsName.press, e);
                             }
                         }
                     }, this.delayDblPress);
@@ -1779,7 +1269,7 @@ class PressManager {
         }
         if (this.options.onPressEnd) {
             this.options.onPressEnd(e, this);
-            this.emitTriggerFunction("pressend", e, this.element.parentElement);
+            this.emitTriggerFunctionParent("pressend", e);
         }
         else {
             this.emitTriggerFunction("pressend", e);
@@ -1787,11 +1277,13 @@ class PressManager {
     }
     moveAction(e) {
         if (!this.state.isMoving && !this.state.oneActionTriggered) {
-            e.stopImmediatePropagation();
+            if (this.stopPropagation()) {
+                e.stopImmediatePropagation();
+            }
             let xDist = e.pageX - this.startPosition.x;
             let yDist = e.pageY - this.startPosition.y;
             let distance = Math.sqrt(xDist * xDist + yDist * yDist);
-            if (distance > this.offsetDrag) {
+            if (distance > this.offsetDrag && this.downEventSaved) {
                 this.state.oneActionTriggered = true;
                 if (this.options.onDragStart) {
                     this.state.isMoving = true;
@@ -1838,7 +1330,9 @@ class PressManager {
     }
     childPress(e) {
         if (this.options.onPress) {
-            e.stopImmediatePropagation();
+            if (this.stopPropagation()) {
+                e.stopImmediatePropagation();
+            }
             e.detail.state.oneActionTriggered = true;
             this.options.onPress(e.detail.realEvent, this);
             this.triggerEventToParent(this.actionsName.press, e.detail.realEvent);
@@ -1846,7 +1340,9 @@ class PressManager {
     }
     childDblPress(e) {
         if (this.options.onDblPress) {
-            e.stopImmediatePropagation();
+            if (this.stopPropagation()) {
+                e.stopImmediatePropagation();
+            }
             if (e.detail.state) {
                 e.detail.state.oneActionTriggered = true;
             }
@@ -1856,7 +1352,9 @@ class PressManager {
     }
     childLongPress(e) {
         if (this.options.onLongPress) {
-            e.stopImmediatePropagation();
+            if (this.stopPropagation()) {
+                e.stopImmediatePropagation();
+            }
             e.detail.state.oneActionTriggered = true;
             this.options.onLongPress(e.detail.realEvent, this);
             this.triggerEventToParent(this.actionsName.longPress, e.detail.realEvent);
@@ -1864,7 +1362,9 @@ class PressManager {
     }
     childDragStart(e) {
         if (this.options.onDragStart) {
-            e.stopImmediatePropagation();
+            if (this.stopPropagation()) {
+                e.stopImmediatePropagation();
+            }
             e.detail.state.isMoving = true;
             e.detail.customFcts.src = this;
             e.detail.customFcts.onDrag = this.options.onDrag;
@@ -1874,7 +1374,19 @@ class PressManager {
             this.triggerEventToParent(this.actionsName.drag, e.detail.realEvent);
         }
     }
-    emitTriggerFunction(action, e, el = null) {
+    emitTriggerFunctionParent(action, e) {
+        let el = this.element.parentElement;
+        if (el == null) {
+            let parentNode = this.element.parentNode;
+            if (parentNode instanceof ShadowRoot) {
+                this.emitTriggerFunction(action, e, parentNode.host);
+            }
+        }
+        else {
+            this.emitTriggerFunction(action, e, el);
+        }
+    }
+    emitTriggerFunction(action, e, el) {
         let ev = new CustomEvent("trigger_pointer_" + action, {
             bubbles: true,
             cancelable: true,
@@ -1894,9 +1406,6 @@ class PressManager {
      * Destroy the Press instance byremoving all events
      */
     destroy() {
-        for (let sub of this.subPressManager) {
-            sub.destroy();
-        }
         if (this.element) {
             this.element.removeEventListener("pointerdown", this.functionsBinded.downAction);
             this.element.removeEventListener("trigger_pointer_press", this.functionsBinded.childPress);
@@ -1908,45 +1417,445 @@ class PressManager {
         }
     }
 }
-
-class State {
+PressManager.Namespace=`${moduleName}`;
+_.PressManager=PressManager;
+const StateManager=class StateManager {
+    subscribers = {};
+    static canBeActivate(statePattern, stateName) {
+        let stateInfo = this.prepareStateString(statePattern);
+        return stateInfo.regex.test(stateName);
+    }
+    activeState;
+    changeStateMutex = new Mutex();
+    afterStateChanged = new Callback();
     /**
-     * Activate a custom state inside a specific manager
-     * It ll be a generic state with no information inside exept name
+     * Subscribe actions for a state or a state list
      */
-    static async activate(stateName, manager) {
-        return await new EmptyState(stateName).activate(manager);
+    subscribe(statePatterns, callbacks) {
+        if (!callbacks.active && !callbacks.inactive && !callbacks.askChange) {
+            this._log(`Trying to subscribe to state : ${statePatterns} with no callbacks !`, "warning");
+            return;
+        }
+        if (!Array.isArray(statePatterns)) {
+            statePatterns = [statePatterns];
+        }
+        for (let statePattern of statePatterns) {
+            if (!this.subscribers.hasOwnProperty(statePattern)) {
+                let res = StateManager.prepareStateString(statePattern);
+                let isActive = this.activeState !== undefined && res.regex.test(this.activeState.name);
+                this.subscribers[statePattern] = {
+                    "regex": res.regex,
+                    "params": res.params,
+                    "callbacks": {
+                        "active": [],
+                        "inactive": [],
+                        "askChange": [],
+                    },
+                    "isActive": isActive,
+                };
+            }
+            if (callbacks.active) {
+                if (!Array.isArray(callbacks.active)) {
+                    callbacks.active = [callbacks.active];
+                }
+                for (let activeFct of callbacks.active) {
+                    this.subscribers[statePattern].callbacks.active.push(activeFct);
+                    if (this.subscribers[statePattern].isActive && this.activeState) {
+                        let slugs = this.getInternalStateSlugs(this.subscribers[statePattern], this.activeState.name);
+                        if (slugs) {
+                            activeFct(this.activeState, slugs);
+                        }
+                    }
+                }
+            }
+            if (callbacks.inactive) {
+                if (!Array.isArray(callbacks.inactive)) {
+                    callbacks.inactive = [callbacks.inactive];
+                }
+                for (let inactiveFct of callbacks.inactive) {
+                    this.subscribers[statePattern].callbacks.inactive.push(inactiveFct);
+                }
+            }
+            if (callbacks.askChange) {
+                if (!Array.isArray(callbacks.askChange)) {
+                    callbacks.askChange = [callbacks.askChange];
+                }
+                for (let askChangeFct of callbacks.askChange) {
+                    this.subscribers[statePattern].callbacks.askChange.push(askChangeFct);
+                }
+            }
+        }
     }
     /**
-     * Activate this state inside a specific manager
+     * Unsubscribe actions for a state or a state list
      */
-    async activate(manager) {
-        return await manager.setState(this);
+    unsubscribe(statePatterns, callbacks) {
+        if (!callbacks.active && !callbacks.inactive && !callbacks.askChange) {
+            this._log(`Trying to unsubscribe to state : ${statePatterns} with no callbacks !`, "warning");
+            return;
+        }
+        if (!Array.isArray(statePatterns)) {
+            statePatterns = [statePatterns];
+        }
+        for (let statePattern of statePatterns) {
+            if (this.subscribers[statePattern]) {
+                if (callbacks.active) {
+                    if (!Array.isArray(callbacks.active)) {
+                        callbacks.active = [callbacks.active];
+                    }
+                    for (let activeFct of callbacks.active) {
+                        let index = this.subscribers[statePattern].callbacks.active.indexOf(activeFct);
+                        if (index !== -1) {
+                            this.subscribers[statePattern].callbacks.active.splice(index, 1);
+                        }
+                    }
+                }
+                if (callbacks.inactive) {
+                    if (!Array.isArray(callbacks.inactive)) {
+                        callbacks.inactive = [callbacks.inactive];
+                    }
+                    for (let inactiveFct of callbacks.inactive) {
+                        let index = this.subscribers[statePattern].callbacks.inactive.indexOf(inactiveFct);
+                        if (index !== -1) {
+                            this.subscribers[statePattern].callbacks.inactive.splice(index, 1);
+                        }
+                    }
+                }
+                if (callbacks.askChange) {
+                    if (!Array.isArray(callbacks.askChange)) {
+                        callbacks.askChange = [callbacks.askChange];
+                    }
+                    for (let askChangeFct of callbacks.askChange) {
+                        let index = this.subscribers[statePattern].callbacks.askChange.indexOf(askChangeFct);
+                        if (index !== -1) {
+                            this.subscribers[statePattern].callbacks.askChange.splice(index, 1);
+                        }
+                    }
+                }
+                if (this.subscribers[statePattern].callbacks.active.length === 0 &&
+                    this.subscribers[statePattern].callbacks.inactive.length === 0 &&
+                    this.subscribers[statePattern].callbacks.askChange.length === 0) {
+                    delete this.subscribers[statePattern];
+                }
+            }
+        }
     }
-    onActivate() {
+    onAfterStateChanged(cb) {
+        this.afterStateChanged.add(cb);
     }
-    onInactivate(nextState) {
+    offAfterStateChanged(cb) {
+        this.afterStateChanged.remove(cb);
     }
-    async askChange(state, nextState) {
-        return true;
+    static prepareStateString(stateName) {
+        let params = [];
+        let i = 0;
+        let regexState = stateName.replace(/{.*?}/g, (group, position) => {
+            group = group.slice(1, -1);
+            let splitted = group.split(":");
+            let name = splitted[0].trim();
+            let type = "string";
+            let result = "([^\\/]+)";
+            i++;
+            if (splitted.length > 1) {
+                if (splitted[1].trim() == "number") {
+                    result = "([0-9]+)";
+                    type = "number";
+                }
+            }
+            params.push({
+                name,
+                type,
+                position: i
+            });
+            return result;
+        });
+        regexState = regexState.replace(/\*/g, ".*?");
+        regexState = "^" + regexState + '$';
+        return {
+            regex: new RegExp(regexState),
+            params
+        };
+    }
+    /**
+     * Activate a current state
+     */
+    async setState(state) {
+        let result = await this.changeStateMutex.safeRunLastAsync(async () => {
+            let stateToUse;
+            if (typeof state == "string") {
+                stateToUse = new EmptyState(state);
+            }
+            else {
+                stateToUse = state;
+            }
+            if (!stateToUse) {
+                this._log("state is undefined", "error");
+                this.changeStateMutex.release();
+                return false;
+            }
+            let canChange = true;
+            if (this.activeState) {
+                let activeToInactive = [];
+                let inactiveToActive = [];
+                let triggerActive = [];
+                canChange = await this.activeState.askChange(this.activeState, stateToUse);
+                if (canChange) {
+                    for (let statePattern in this.subscribers) {
+                        let subscriber = this.subscribers[statePattern];
+                        if (subscriber.isActive) {
+                            let clone = [...subscriber.callbacks.askChange];
+                            let currentSlug = this.getInternalStateSlugs(subscriber, this.activeState.name);
+                            if (currentSlug) {
+                                for (let i = 0; i < clone.length; i++) {
+                                    let askChange = clone[i];
+                                    if (!await askChange(this.activeState, stateToUse, currentSlug)) {
+                                        canChange = false;
+                                        break;
+                                    }
+                                }
+                            }
+                            let slugs = this.getInternalStateSlugs(subscriber, stateToUse.name);
+                            if (slugs === null) {
+                                activeToInactive.push(subscriber);
+                            }
+                            else {
+                                triggerActive.push({
+                                    subscriber: subscriber,
+                                    params: slugs
+                                });
+                            }
+                        }
+                        else {
+                            let slugs = this.getInternalStateSlugs(subscriber, stateToUse.name);
+                            if (slugs) {
+                                inactiveToActive.push({
+                                    subscriber,
+                                    params: slugs
+                                });
+                            }
+                        }
+                        if (!canChange) {
+                            break;
+                        }
+                    }
+                }
+                if (canChange) {
+                    const oldState = this.activeState;
+                    this.activeState = stateToUse;
+                    oldState.onInactivate(stateToUse);
+                    for (let subscriber of activeToInactive) {
+                        subscriber.isActive = false;
+                        let oldSlug = this.getInternalStateSlugs(subscriber, oldState.name);
+                        if (oldSlug) {
+                            let oldSlugNotNull = oldSlug;
+                            [...subscriber.callbacks.inactive].forEach(callback => {
+                                callback(oldState, stateToUse, oldSlugNotNull);
+                            });
+                        }
+                    }
+                    for (let trigger of triggerActive) {
+                        [...trigger.subscriber.callbacks.active].forEach(callback => {
+                            callback(stateToUse, trigger.params);
+                        });
+                    }
+                    for (let trigger of inactiveToActive) {
+                        trigger.subscriber.isActive = true;
+                        [...trigger.subscriber.callbacks.active].forEach(callback => {
+                            callback(stateToUse, trigger.params);
+                        });
+                    }
+                    stateToUse.onActivate();
+                }
+            }
+            else {
+                this.activeState = stateToUse;
+                for (let key in this.subscribers) {
+                    let slugs = this.getInternalStateSlugs(this.subscribers[key], stateToUse.name);
+                    if (slugs) {
+                        let slugsNotNull = slugs;
+                        this.subscribers[key].isActive = true;
+                        [...this.subscribers[key].callbacks.active].forEach(callback => {
+                            callback(stateToUse, slugsNotNull);
+                        });
+                    }
+                }
+                stateToUse.onActivate();
+            }
+            this.afterStateChanged.trigger([]);
+            return true;
+        });
+        return result ?? false;
+    }
+    getState() {
+        return this.activeState;
+    }
+    getInternalStateSlugs(subscriber, stateName) {
+        let matches = subscriber.regex.exec(stateName);
+        if (matches) {
+            let slugs = {};
+            for (let param of subscriber.params) {
+                if (param.type == "number") {
+                    slugs[param.name] = Number(matches[param.position]);
+                }
+                else {
+                    slugs[param.name] = matches[param.position];
+                }
+            }
+            return slugs;
+        }
+        return null;
+    }
+    /**
+     * Check if a state is in the subscribers and active, return true if it is, false otherwise
+     */
+    isStateActive(statePattern) {
+        return StateManager.prepareStateString(statePattern).regex.test(this.activeState?.name ?? '');
+    }
+    /**
+     * Get slugs information for the current state, return null if state isn't active
+     */
+    getStateSlugs(statePattern) {
+        let prepared = StateManager.prepareStateString(statePattern);
+        let name = this.activeState?.name ?? '';
+        return this.getInternalStateSlugs({
+            regex: prepared.regex,
+            params: prepared.params,
+            isActive: false,
+            callbacks: {
+                active: [],
+                inactive: [],
+                askChange: [],
+            }
+        }, name);
+    }
+    // 0 = error only / 1 = errors and warning / 2 = error, warning and logs (not implemented)
+    logLevel() {
+        return 0;
+    }
+    _log(msg, type) {
+        if (type === "error") {
+            console.error(msg);
+        }
+        else if (type === "warning" && this.logLevel() > 0) {
+            console.warn(msg);
+        }
+        else if (type === "info" && this.logLevel() > 1) {
+            console.log(msg);
+        }
     }
 }
-
-class EmptyState extends State {
-    localName;
-    constructor(stateName) {
-        super();
-        this.localName = stateName;
+StateManager.Namespace=`${moduleName}`;
+_.StateManager=StateManager;
+const WebComponentTemplateContext=class WebComponentTemplateContext {
+    __changes = {};
+    component;
+    fctsToRemove = [];
+    c = {
+        __P: (value) => {
+            return value == null ? "" : value + "";
+        }
+    };
+    isRendered = false;
+    schema;
+    constructor(component, schema, locals) {
+        this.component = component;
+        this.schema = { ...schema };
+        for (let key in locals) {
+            this.schema.locals[key] = locals[key];
+        }
+        this.buildSchema();
     }
-    /**
-     * @inheritdoc
-     */
-    get name() {
-        return this.localName;
+    destructor() {
+        for (let toRemove of this.fctsToRemove) {
+            let index = this.component['__onChangeFct'][toRemove.name].indexOf(toRemove.fct);
+            if (index != -1) {
+                this.component['__onChangeFct'][toRemove.name].splice(index, 1);
+            }
+        }
+    }
+    buildSchema() {
+        for (let global of this.schema.globals) {
+            this.createGlobal(global);
+        }
+        for (let item in this.schema.loops) {
+            this.createLoop(item, this.schema.loops[item].index, this.schema.loops[item].data);
+        }
+        for (let key in this.schema.locals) {
+            this.createLocal(key, this.schema.locals[key]);
+        }
+    }
+    createGlobal(global) {
+        let comp = this.component;
+        Object.defineProperty(this.c, global, {
+            get() {
+                return WebComponentTemplate.getValueFromItem(global, comp);
+            },
+            set(value) {
+                WebComponentTemplate.setValueToItem(global, comp, value);
+            }
+        });
+        let name = global.split(".")[0];
+        this.__changes[name] = [];
+        if (!this.component['__onChangeFct'][name]) {
+            this.component['__onChangeFct'][name] = [];
+        }
+        let fct = (path) => {
+            if (this.isRendered) {
+                for (let change of this.__changes[name]) {
+                    change(path);
+                }
+            }
+        };
+        this.fctsToRemove.push({ name, fct });
+        this.component['__onChangeFct'][name].push(fct);
+    }
+    createLoop(item, index, data) {
+        Object.defineProperty(this.c, item, {
+            get() {
+                let indexValue = this[index];
+                return WebComponentTemplate.getValueFromItem(data, this)[indexValue];
+            }
+        });
+        let name = data.split(".")[0];
+        this.__changes[item] = [];
+        this.__changes[name].push((path) => {
+            if (this.isRendered) {
+                let currentPath = `${data}[${this.c[index]}]`;
+                if (path.startsWith(currentPath)) {
+                    let localPath = path.replace(currentPath, item);
+                    for (let change of this.__changes[item]) {
+                        change(localPath);
+                    }
+                }
+            }
+        });
+    }
+    createLocal(key, value) {
+        let changes = this.__changes;
+        Object.defineProperty(this.c, key, {
+            get() {
+                return value;
+            },
+            set(value) {
+                value = value;
+                if (changes[key]) {
+                    for (let change of changes[key]) {
+                        change(key);
+                    }
+                }
+            }
+        });
+    }
+    addChange(on, fct) {
+        if (!this.__changes[on]) {
+            this.__changes[on] = [];
+        }
+        this.__changes[on].push(fct);
     }
 }
-
-class WebComponentTemplate {
+WebComponentTemplateContext.Namespace=`${moduleName}`;
+_.WebComponentTemplateContext=WebComponentTemplateContext;
+const WebComponentTemplate=class WebComponentTemplate {
     static setValueToItem(path, obj, value) {
         let splitted = path.split(".");
         for (let i = 0; i < splitted.length - 1; i++) {
@@ -1974,6 +1883,10 @@ class WebComponentTemplate {
             return true;
         }
         return false;
+    }
+    cst;
+    constructor(component) {
+        this.cst = component;
     }
     htmlParts = [];
     setHTML(data) {
@@ -2004,8 +1917,8 @@ class WebComponentTemplate {
     }
     contextSchema = {
         globals: [],
-        locals: [],
-        loops: []
+        locals: {},
+        loops: {}
     };
     template;
     actions = {};
@@ -2043,7 +1956,7 @@ class WebComponentTemplate {
                             this.actions.content[contextProp] = actions.content[contextProp];
                         }
                         else {
-                            this.actions.content[contextProp] = { ...actions.content[contextProp], ...this.actions.content[contextProp] };
+                            this.actions.content[contextProp] = [...actions.content[contextProp], ...this.actions.content[contextProp]];
                         }
                     }
                 }
@@ -2082,18 +1995,26 @@ class WebComponentTemplate {
     }
     setSchema(contextSchema) {
         if (contextSchema.globals) {
-            this.contextSchema.globals = [...this.contextSchema.globals, ...contextSchema.globals];
+            for (let glob of contextSchema.globals) {
+                if (!this.contextSchema.globals.includes(glob)) {
+                    this.contextSchema.globals.push(glob);
+                }
+            }
         }
         if (contextSchema.locals) {
-            this.contextSchema.locals = [...this.contextSchema.locals, ...contextSchema.locals];
+            for (let key in contextSchema.locals) {
+                this.contextSchema.locals[key] = contextSchema.locals[key];
+            }
         }
         if (contextSchema.loops) {
-            this.contextSchema.loops = [...this.contextSchema.loops, ...contextSchema.loops];
+            for (let key in contextSchema.loops) {
+                this.contextSchema.loops[key] = contextSchema.loops[key];
+            }
         }
     }
     createInstance(component) {
-        let context = new WebComponentTemplateContext(component, this.contextSchema, []);
-        let content = this.template.content.cloneNode(true);
+        let context = new WebComponentTemplateContext(component, this.contextSchema, {});
+        let content = this.template?.content.cloneNode(true);
         let actions = this.actions;
         let instance = new WebComponentTemplateInstance(context, content, actions, component, this.loops);
         return instance;
@@ -2102,117 +2023,14 @@ class WebComponentTemplate {
         this.loops.push(loop);
     }
 }
-
-class WebComponentTemplateContext {
-    __changes = {};
-    component;
-    fctsToRemove = [];
-    c = {};
-    isRendered = false;
-    schema;
-    constructor(component, schema, locals) {
-        this.component = component;
-        this.schema = { ...schema };
-        this.schema.locals = [...this.schema.locals, ...locals];
-        5;
-        this.buildSchema();
-    }
-    destructor() {
-        for (let toRemove of this.fctsToRemove) {
-            let index = this.component['__onChangeFct'][toRemove.name].indexOf(toRemove.fct);
-            if (index != -1) {
-                this.component['__onChangeFct'][toRemove.name].splice(index, 1);
-            }
-        }
-    }
-    buildSchema() {
-        for (let global of this.schema.globals) {
-            this.createGlobal(global);
-        }
-        for (let loop of this.schema.loops) {
-            this.createLoop(loop);
-        }
-        for (let local of this.schema.locals) {
-            this.createLocal(local);
-        }
-    }
-    createGlobal(global) {
-        let comp = this.component;
-        Object.defineProperty(this.c, global, {
-            get() {
-                return WebComponentTemplate.getValueFromItem(global, comp);
-            },
-            set(value) {
-                WebComponentTemplate.setValueToItem(global, comp, value);
-            }
-        });
-        let name = global.split(".")[0];
-        this.__changes[name] = [];
-        if (!this.component['__onChangeFct'][name]) {
-            this.component['__onChangeFct'][name] = [];
-        }
-        let fct = (path) => {
-            if (this.isRendered) {
-                for (let change of this.__changes[name]) {
-                    change(path);
-                }
-            }
-        };
-        this.fctsToRemove.push({ name, fct });
-        this.component['__onChangeFct'][name].push(fct);
-    }
-    createLoop(loop) {
-        Object.defineProperty(this.c, loop.item, {
-            get() {
-                let indexValue = this[loop.index];
-                return WebComponentTemplate.getValueFromItem(loop.data, this)[indexValue];
-            }
-        });
-        let name = loop.data.split(".")[0];
-        this.__changes[loop.item] = [];
-        this.__changes[name].push((path) => {
-            if (this.isRendered) {
-                let currentPath = `${loop.data}[${this.c[loop.index]}]`;
-                if (path.startsWith(currentPath)) {
-                    let localPath = path.replace(currentPath, loop.item);
-                    for (let change of this.__changes[loop.item]) {
-                        change(localPath);
-                    }
-                }
-            }
-        });
-    }
-    createLocal(local) {
-        let localValue = local.value;
-        let changes = this.__changes;
-        Object.defineProperty(this.c, local.name, {
-            get() {
-                return localValue;
-            },
-            set(value) {
-                localValue = value;
-                if (changes[local.name]) {
-                    for (let change of changes[local.name]) {
-                        change(local.name);
-                    }
-                }
-            }
-        });
-    }
-    addChange(on, fct) {
-        if (!this.__changes[on]) {
-            this.__changes[on] = [];
-        }
-        this.__changes[on].push(fct);
-    }
-}
-
-class WebComponentTemplateInstance {
+WebComponentTemplate.Namespace=`${moduleName}`;
+_.WebComponentTemplate=WebComponentTemplate;
+const WebComponentTemplateInstance=class WebComponentTemplateInstance {
     context;
     content;
     actions;
     component;
-    _components;
+    _components = {};
     firstRenderUniqueCb = {};
     firstRenderCb = [];
     fctsToRemove = [];
@@ -2228,11 +2046,11 @@ class WebComponentTemplateInstance {
         this.loops = loops;
         this.firstChild = content.firstChild;
         this.lastChild = content.lastChild;
-        this.transformActionsListening();
         this.selectElements();
-        this.bindEvents();
+        this.transformActionsListening();
     }
     render() {
+        this.bindEvents();
         for (let cb of this.firstRenderCb) {
             cb();
         }
@@ -2273,7 +2091,7 @@ class WebComponentTemplateInstance {
                 if (element.isArray) {
                     WebComponentTemplate.setValueToItem(element.name, this.component, components);
                 }
-                else {
+                else if (components[0]) {
                     WebComponentTemplate.setValueToItem(element.name, this.component, components[0]);
                 }
             }
@@ -2292,6 +2110,9 @@ class WebComponentTemplateInstance {
         }
     }
     bindEvent(event) {
+        if (!this._components[event.id]) {
+            return;
+        }
         if (event.isCallback) {
             for (let el of this._components[event.id]) {
                 let cb = WebComponentTemplate.getValueFromItem(event.eventName, el);
@@ -2308,7 +2129,7 @@ class WebComponentTemplateInstance {
     }
     bindPressEvent(event) {
         let id = event['id'];
-        if (id) {
+        if (id && this._components[id]) {
             let clone = {};
             for (let temp in event) {
                 if (temp != 'id') {
@@ -2321,7 +2142,7 @@ class WebComponentTemplateInstance {
                 }
             }
             clone.element = this._components[id];
-            new PressManager(clone);
+            PressManager.create(clone);
         }
     }
     transformActionsListening() {
@@ -2348,11 +2169,13 @@ class WebComponentTemplateInstance {
         }
     }
     transformChangeAction(name, change) {
+        if (!this._components[change.id])
+            return;
         let key = change.id + "_" + change.attrName;
         if (change.attrName == "@HTML") {
             if (change.path) {
                 this.context.addChange(name, (path) => {
-                    if (WebComponentTemplate.validatePath(path, change.path)) {
+                    if (WebComponentTemplate.validatePath(path, change.path ?? '')) {
                         for (const el of this._components[change.id]) {
                             el.innerHTML = change.render(this.context.c);
                         }
@@ -2401,7 +2224,7 @@ class WebComponentTemplateInstance {
         else {
             if (change.path) {
                 this.context.addChange(name, (path) => {
-                    if (WebComponentTemplate.validatePath(path, change.path)) {
+                    if (WebComponentTemplate.validatePath(path, change.path ?? '')) {
                         for (const el of this._components[change.id]) {
                             el.setAttribute(change.attrName, change.render(this.context.c));
                         }
@@ -2425,9 +2248,11 @@ class WebComponentTemplateInstance {
         }
     }
     transformInjectionAction(name, injection) {
+        if (!this._components[injection.id])
+            return;
         if (injection.path) {
             this.context.addChange(name, (path) => {
-                if (WebComponentTemplate.validatePath(path, injection.path)) {
+                if (WebComponentTemplate.validatePath(path, injection.path ?? '')) {
                     for (const el of this._components[injection.id]) {
                         el[injection.injectionName] = injection.inject(this.context.c);
                     }
@@ -2448,10 +2273,13 @@ class WebComponentTemplateInstance {
         });
     }
     transformBindigAction(name, binding) {
+        if (!this._components[binding.id])
+            return;
         if (binding.path) {
             this.context.addChange(name, (path) => {
-                if (WebComponentTemplate.validatePath(path, binding.path)) {
-                    let valueToSet = WebComponentTemplate.getValueFromItem(binding.path, this.context.c);
+                let bindingPath = binding.path ?? '';
+                if (WebComponentTemplate.validatePath(path, bindingPath)) {
+                    let valueToSet = WebComponentTemplate.getValueFromItem(bindingPath, this.context.c);
                     for (const el of this._components[binding.id]) {
                         WebComponentTemplate.setValueToItem(binding.valueName, el, valueToSet);
                     }
@@ -2461,7 +2289,7 @@ class WebComponentTemplateInstance {
         else {
             binding.path = name;
             this.context.addChange(name, (path) => {
-                let valueToSet = WebComponentTemplate.getValueFromItem(binding.path, this.context.c);
+                let valueToSet = WebComponentTemplate.getValueFromItem(name, this.context.c);
                 for (const el of this._components[binding.id]) {
                     WebComponentTemplate.setValueToItem(binding.valueName, el, valueToSet);
                 }
@@ -2473,10 +2301,10 @@ class WebComponentTemplateInstance {
                     for (let fct of binding.eventNames) {
                         let cb = WebComponentTemplate.getValueFromItem(fct, el);
                         cb?.add((value) => {
-                            WebComponentTemplate.setValueToItem(binding.path, this.context.c, value);
+                            WebComponentTemplate.setValueToItem(binding.path ?? '', this.context.c, value);
                         });
                     }
-                    let valueToSet = WebComponentTemplate.getValueFromItem(binding.path, this.context.c);
+                    let valueToSet = WebComponentTemplate.getValueFromItem(binding.path ?? '', this.context.c);
                     WebComponentTemplate.setValueToItem(binding.valueName, el, valueToSet);
                 }
             });
@@ -2487,10 +2315,10 @@ class WebComponentTemplateInstance {
                     for (let fct of binding.eventNames) {
                         el.addEventListener(fct, (e) => {
                             let valueToSet = WebComponentTemplate.getValueFromItem(binding.valueName, e.target);
-                            WebComponentTemplate.setValueToItem(binding.path, this.context.c, valueToSet);
+                            WebComponentTemplate.setValueToItem(binding.path ?? '', this.context.c, valueToSet);
                         });
                     }
-                    let valueToSet = WebComponentTemplate.getValueFromItem(binding.path, this.context.c);
+                    let valueToSet = WebComponentTemplate.getValueFromItem(binding.path ?? '', this.context.c);
                     WebComponentTemplate.setValueToItem(binding.valueName, el, valueToSet);
                 }
             });
@@ -2499,11 +2327,10 @@ class WebComponentTemplateInstance {
     renderSubTemplate() {
         for (let loop of this.loops) {
             let localContext = JSON.parse(JSON.stringify(this.context.schema));
-            localContext.loops.push({
+            localContext.loops[loop.item] = {
                 data: loop.data,
                 index: loop.index,
-                item: loop.item
-            });
+            };
             this.renderLoop(loop, localContext);
             this.registerLoopWatchEvent(loop, localContext);
         }
@@ -2518,12 +2345,12 @@ class WebComponentTemplateInstance {
         let result = WebComponentTemplate.getValueFromItem(loop.data, this.context.c);
         let anchor = this._components[loop.anchorId][0];
         for (let i = 0; i < result.length; i++) {
-            let context = new WebComponentTemplateContext(this.component, localContext, [{ name: loop.index, value: i }]);
-            let content = loop.template.template.content.cloneNode(true);
+            let context = new WebComponentTemplateContext(this.component, localContext, { [loop.index]: i });
+            let content = loop.template.template?.content.cloneNode(true);
             let actions = loop.template.actions;
             let instance = new WebComponentTemplateInstance(context, content, actions, this.component, loop.template.loops);
             instance.render();
-            anchor.parentNode.insertBefore(instance.content, anchor);
+            anchor.parentNode?.insertBefore(instance.content, anchor);
             this.loopRegisteries[loop.anchorId].push(instance);
         }
     }
@@ -2545,8 +2372,8 @@ class WebComponentTemplateInstance {
                 let registry = this.loopRegisteries[loop.anchorId];
                 let index = Number(result[1]);
                 if (action == WatchAction.CREATED) {
-                    let context = new WebComponentTemplateContext(this.component, localContext, [{ name: loop.index, value: index }]);
-                    let content = loop.template.template.content.cloneNode(true);
+                    let context = new WebComponentTemplateContext(this.component, localContext, { [loop.index]: index });
+                    let content = loop.template.template?.content.cloneNode(true);
                     let actions = loop.template.actions;
                     let instance = new WebComponentTemplateInstance(context, content, actions, this.component, loop.template.loops);
                     instance.render();
@@ -2557,7 +2384,7 @@ class WebComponentTemplateInstance {
                     else {
                         anchor = this._components[loop.anchorId][0];
                     }
-                    anchor.parentNode.insertBefore(instance.content, anchor);
+                    anchor.parentNode?.insertBefore(instance.content, anchor);
                     registry.splice(index, 0, instance);
                     for (let i = index + 1; i < registry.length; i++) {
                         registry[i].context.c[loop.index] = registry[i].context.c[loop.index] + 1;
@@ -2577,175 +2404,435 @@ class WebComponentTemplateInstance {
         });
     }
 }
-
-class ResourceLoader {
-    static headerLoaded = {};
-    static headerWaiting = {};
+WebComponentTemplateInstance.Namespace=`${moduleName}`;
+_.WebComponentTemplateInstance=WebComponentTemplateInstance;
+const WebComponent=class WebComponent extends HTMLElement {
     /**
-     * Load the resource inside the head tag
+     * Add attributes informations
      */
-    static async loadInHead(options) {
-        const _options = this.prepareOptions(options);
-        if (this.headerLoaded[_options.url]) {
+    static get observedAttributes() {
+        return [];
+    }
+    _first;
+    _isReady;
+    /**
+     * Determine if the component is ready (postCreation done)
+     */
+    get isReady() {
+        return this._isReady;
+    }
+    /**
+     * The current namespace
+     */
+    static Namespace = "";
+    /**
+     * Get the unique type for the data. Define it as the namespace + class name
+     */
+    static get Fullname() { return this.Namespace + "." + this.name; }
+    /**
+     * The current namespace
+     */
+    get namespace() {
+        return this.constructor['Namespace'];
+    }
+    /**
+     * Get the name of the component class
+     */
+    getClassName() {
+        return this.constructor.name;
+    }
+    /**
+    * Get the unique type for the data. Define it as the namespace + class name
+    */
+    get $type() {
+        return this.constructor['Fullname'];
+    }
+    __onChangeFct = {};
+    __watch;
+    __watchActions = {};
+    __watchActionsCb = {};
+    __pressManagers = [];
+    __isDefaultState = true;
+    __defaultActiveState = new Map();
+    __defaultInactiveState = new Map();
+    __statesList = {};
+    constructor() {
+        super();
+        if (this.constructor == WebComponent) {
+            throw "can't instanciate an abstract class";
+        }
+        this.__removeNoAnimations = this.__removeNoAnimations.bind(this);
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", this.__removeNoAnimations);
+        }
+        this._first = true;
+        this._isReady = false;
+        this.__renderTemplate();
+        this.__registerWatchesActions();
+        this.__registerPropertiesActions();
+        this.__createStates();
+        this.__subscribeState();
+    }
+    /**
+     * Remove all listeners
+     * State + press
+     */
+    destructor() {
+        WebComponentInstance.removeInstance(this);
+        this.__unsubscribeState();
+        for (let press of this.__pressManagers) {
+            press.destroy();
+        }
+        // TODO add missing info for destructor();
+    }
+    __addWatchesActions(name, fct) {
+        if (!this.__watchActions[name]) {
+            this.__watchActions[name] = [];
+            this.__watchActionsCb[name] = (action, path, value) => {
+                for (let fct of this.__watchActions[name]) {
+                    fct(this, action, path, value);
+                }
+                if (this.__onChangeFct[name]) {
+                    for (let fct of this.__onChangeFct[name]) {
+                        fct(path);
+                    }
+                }
+            };
+        }
+        if (fct) {
+            this.__watchActions[name].push(fct);
+        }
+    }
+    __registerWatchesActions() {
+        if (Object.keys(this.__watchActions).length > 0) {
+            if (!this.__watch) {
+                this.__watch = Watcher.get({}, (type, path, element) => {
+                    let action = this.__watchActionsCb[path.split(".")[0]] || this.__watchActionsCb[path.split("[")[0]];
+                    action(type, path, element);
+                });
+            }
+        }
+    }
+    __addPropertyActions(name, fct) {
+        if (!this.__onChangeFct[name]) {
+            this.__onChangeFct[name] = [];
+        }
+        if (fct) {
+            this.__onChangeFct[name].push(() => {
+                fct(this);
+            });
+        }
+    }
+    __registerPropertiesActions() { }
+    static __style = ``;
+    static __template;
+    __templateInstance;
+    styleBefore(addStyle) {
+        addStyle("@general");
+    }
+    styleAfter(addStyle) {
+    }
+    __getStyle() {
+        return [WebComponent.__style];
+    }
+    __getHtml() { }
+    __getStatic() {
+        return WebComponent;
+    }
+    static __styleSheets = {};
+    __renderStyles() {
+        let sheets = {};
+        const addStyle = (name) => {
+            let sheet = Style.get(name);
+            if (sheet) {
+                sheets[name] = sheet;
+            }
+        };
+        this.styleBefore(addStyle);
+        let localStyle = new CSSStyleSheet();
+        let styleTxt = this.__getStyle().join("\r\n");
+        if (styleTxt.length > 0) {
+            localStyle.replace(styleTxt);
+            sheets['@local'] = localStyle;
+        }
+        this.styleAfter(addStyle);
+        return sheets;
+    }
+    __renderTemplate() {
+        let staticInstance = this.__getStatic();
+        if (!staticInstance.__template || staticInstance.__template.cst != staticInstance) {
+            staticInstance.__template = new WebComponentTemplate(staticInstance);
+            this.__getHtml();
+            this.__registerTemplateAction();
+            staticInstance.__template.generateTemplate();
+            staticInstance.__styleSheets = this.__renderStyles();
+        }
+        this.__templateInstance = staticInstance.__template.createInstance(this);
+        let shadowRoot = this.attachShadow({ mode: 'open' });
+        shadowRoot.adoptedStyleSheets = [...Object.values(staticInstance.__styleSheets), Style.noAnimation];
+        shadowRoot.appendChild(this.__templateInstance.content);
+        customElements.upgrade(shadowRoot);
+        return shadowRoot;
+    }
+    __registerTemplateAction() {
+    }
+    connectedCallback() {
+        if (this._first) {
+            WebComponentInstance.addInstance(this);
+            this._first = false;
+            this.__defaultValues();
+            this.__upgradeAttributes();
+            this.__templateInstance?.render();
+            this.__removeNoAnimations();
+        }
+    }
+    __removeNoAnimations() {
+        if (document.readyState !== "loading") {
+            this.offsetWidth;
+            setTimeout(() => {
+                this.postCreation();
+                this._isReady = true;
+                this.dispatchEvent(new CustomEvent('postCreationDone'));
+                this.shadowRoot.adoptedStyleSheets = Object.values(this.__getStatic().__styleSheets);
+                document.removeEventListener("DOMContentLoaded", this.__removeNoAnimations);
+            }, 50);
+        }
+    }
+    __defaultValues() { }
+    __upgradeAttributes() { }
+    __listBoolProps() {
+        return [];
+    }
+    __upgradeProperty(prop) {
+        let boolProps = this.__listBoolProps();
+        if (boolProps.indexOf(prop) != -1) {
+            if (this.hasAttribute(prop) && (this.getAttribute(prop) === "true" || this.getAttribute(prop) === "")) {
+                let value = this.getAttribute(prop);
+                delete this[prop];
+                this[prop] = value;
+            }
+            else {
+                this.removeAttribute(prop);
+                this[prop] = false;
+            }
+        }
+        else {
+            if (this.hasAttribute(prop)) {
+                let value = this.getAttribute(prop);
+                delete this[prop];
+                this[prop] = value;
+            }
+        }
+    }
+    __getStateManager(managerClass) {
+        let mClass;
+        if (managerClass instanceof StateManager) {
+            mClass = managerClass;
+        }
+        else {
+            mClass = Instance.get(managerClass);
+        }
+        return mClass;
+    }
+    __addActiveDefState(managerClass, cb) {
+        let mClass = this.__getStateManager(managerClass);
+        if (!this.__defaultActiveState.has(mClass)) {
+            this.__defaultActiveState.set(mClass, []);
+        }
+        this.__defaultActiveState.get(mClass)?.push(cb);
+    }
+    __addInactiveDefState(managerClass, cb) {
+        let mClass = this.__getStateManager(managerClass);
+        if (!this.__defaultInactiveState.has(mClass)) {
+            this.__defaultInactiveState.set(mClass, []);
+        }
+        this.__defaultInactiveState.get(mClass)?.push(cb);
+    }
+    __addActiveState(statePattern, managerClass, cb) {
+        let mClass = this.__getStateManager(managerClass);
+        this.__statesList[statePattern].get(mClass)?.active.push(cb);
+    }
+    __addInactiveState(statePattern, managerClass, cb) {
+        let mClass = this.__getStateManager(managerClass);
+        this.__statesList[statePattern].get(mClass)?.inactive.push(cb);
+    }
+    __addAskChangeState(statePattern, managerClass, cb) {
+        let mClass = this.__getStateManager(managerClass);
+        this.__statesList[statePattern].get(mClass)?.askChange.push(cb);
+    }
+    __createStates() { }
+    __createStatesList(statePattern, managerClass) {
+        if (!this.__statesList[statePattern]) {
+            this.__statesList[statePattern] = new Map();
+        }
+        let mClass = this.__getStateManager(managerClass);
+        if (!this.__statesList[statePattern].has(mClass)) {
+            this.__statesList[statePattern].set(mClass, {
+                active: [],
+                inactive: [],
+                askChange: []
+            });
+        }
+    }
+    __inactiveDefaultState(managerClass) {
+        if (this.__isDefaultState) {
+            this.__isDefaultState = false;
+            let mClass = this.__getStateManager(managerClass);
+            if (this.__defaultInactiveState.has(mClass)) {
+                let fcts = this.__defaultInactiveState.get(mClass) ?? [];
+                for (let fct of fcts) {
+                    fct.bind(this)();
+                }
+            }
+        }
+    }
+    __activeDefaultState(nextStep, managerClass) {
+        if (!this.__isDefaultState) {
+            for (let pattern in this.__statesList) {
+                if (StateManager.canBeActivate(pattern, nextStep)) {
+                    let mClass = this.__getStateManager(managerClass);
+                    if (this.__statesList[pattern].has(mClass)) {
+                        return;
+                    }
+                }
+            }
+            this.__isDefaultState = true;
+            let mClass = this.__getStateManager(managerClass);
+            if (this.__defaultActiveState.has(mClass)) {
+                let fcts = this.__defaultActiveState.get(mClass) ?? [];
+                for (let fct of fcts) {
+                    fct.bind(this)();
+                }
+            }
+        }
+    }
+    __subscribeState() {
+        if (!this.isReady && this.__stateCleared) {
+            return;
+        }
+        for (let route in this.__statesList) {
+            for (const managerClass of this.__statesList[route].keys()) {
+                let el = this.__statesList[route].get(managerClass);
+                if (el) {
+                    managerClass.subscribe(route, el);
+                }
+            }
+        }
+    }
+    __stateCleared = false;
+    __unsubscribeState() {
+        for (let route in this.__statesList) {
+            for (const managerClass of this.__statesList[route].keys()) {
+                let el = this.__statesList[route].get(managerClass);
+                if (el) {
+                    managerClass.unsubscribe(route, el);
+                }
+            }
+        }
+        this.__stateCleared = true;
+    }
+    dateToString(d) {
+        if (d instanceof Date) {
+            return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split("T")[0];
+        }
+        return null;
+    }
+    dateTimeToString(dt) {
+        if (dt instanceof Date) {
+            return new Date(dt.getTime() - (dt.getTimezoneOffset() * 60000)).toISOString().slice(0, -1);
+        }
+        return null;
+    }
+    stringToDate(s) {
+        let td = new Date(s);
+        let d = new Date(td.getTime() + (td.getTimezoneOffset() * 60000));
+        if (isNaN(d)) {
+            return null;
+        }
+        return d;
+    }
+    stringToDateTime(s) {
+        let td = new Date(s);
+        let d = new Date(td.getTime() + (td.getTimezoneOffset() * 60000));
+        if (isNaN(d)) {
+            return null;
+        }
+        return d;
+    }
+    getBoolean(val) {
+        if (val === true || val === 1 || val === 'true' || val === '') {
             return true;
         }
-        else if (this.headerWaiting.hasOwnProperty(_options.url)) {
-            return await this.awaitFctHead(_options.url);
+        else if (val === false || val === 0 || val === 'false' || val === null || val === undefined) {
+            return false;
         }
-        else {
-            this.headerWaiting[_options.url] = [];
-            let tagEl;
-            if (_options.type == "js") {
-                tagEl = document.createElement("SCRIPT");
-            }
-            else if (_options.type == "css") {
-                tagEl = document.createElement("LINK");
-                tagEl.setAttribute("rel", "stylesheet");
-            }
-            else {
-                throw "unknow type " + _options.type + " to append into head";
-            }
-            document.head.appendChild(tagEl);
-            let result = await this.loadTag(tagEl, _options.url);
-            this.headerLoaded[_options.url] = true;
-            this.releaseAwaitFctHead(_options.url, result);
-            return result;
-        }
+        console.error("error parsing boolean value " + val);
+        return false;
     }
-    static loadTag(tagEl, url) {
-        return new Promise((resolve, reject) => {
-            tagEl.addEventListener("load", (e) => {
-                resolve(true);
-            });
-            tagEl.addEventListener("error", (e) => {
-                resolve(false);
-            });
-            if (tagEl instanceof HTMLLinkElement) {
-                tagEl.setAttribute("href", url);
-            }
-            else {
-                tagEl.setAttribute('src', url);
-            }
-        });
-    }
-    static releaseAwaitFctHead(url, result) {
-        if (this.headerWaiting[url]) {
-            for (let i = 0; i < this.headerWaiting[url].length; i++) {
-                this.headerWaiting[url][i](result);
-            }
-            delete this.headerWaiting[url];
-        }
-    }
-    static awaitFctHead(url) {
-        return new Promise((resolve) => {
-            this.headerWaiting[url].push((result) => {
-                resolve(result);
-            });
-        });
-    }
-    static requestLoaded = {};
-    static requestWaiting = {};
-    /**
-     *
-    */
-    static async load(options) {
-        options = this.prepareOptions(options);
-        if (this.requestLoaded[options.url]) {
-            return this.requestLoaded[options.url];
-        }
-        else if (this.requestWaiting.hasOwnProperty(options.url)) {
-            await this.awaitFct(options.url);
-            return this.requestLoaded[options.url];
-        }
-        else {
-            this.requestWaiting[options.url] = [];
-            let blob = false;
-            if (options.type == "img") {
-                blob = true;
-            }
-            let content = await this.fetching(options.url, blob);
-            this.requestLoaded[options.url] = content;
-            this.releaseAwaitFct(options.url);
-            return content;
-        }
-    }
-    static releaseAwaitFct(url) {
-        if (this.requestWaiting[url]) {
-            for (let i = 0; i < this.requestWaiting[url].length; i++) {
-                this.requestWaiting[url][i]();
-            }
-            delete this.requestWaiting[url];
-        }
-    }
-    static awaitFct(url) {
-        return new Promise((resolve) => {
-            this.requestWaiting[url].push(() => {
-                resolve('');
-            });
-        });
-    }
-    static async fetching(url, useBlob = false) {
-        if (useBlob) {
-            let result = await fetch(url, {
-                headers: {
-                    responseType: 'blob'
+    attributeChangedCallback(name, oldValue, newValue) {
+        if (oldValue !== newValue || !this.isReady) {
+            if (this.__onChangeFct.hasOwnProperty(name)) {
+                for (let fct of this.__onChangeFct[name]) {
+                    fct('');
                 }
-            });
-            let blob = await result.blob();
-            return await this.readFile(blob);
-        }
-        else {
-            let result = await fetch(url);
-            return await result.text();
+            }
         }
     }
-    static readFile(blob) {
-        return new Promise((resolve) => {
-            var reader = new FileReader();
-            reader.onloadend = function () {
-                resolve(reader.result);
-            };
-            reader.readAsDataURL(blob);
-        });
+    remove() {
+        super.remove();
+        this.postDestruction();
     }
-    static imgExtensions = ["png", "jpg", "jpeg", "gif"];
-    static prepareOptions(options) {
-        let result;
-        if (typeof options === 'string' || options instanceof String) {
-            result = {
-                url: options,
-                type: 'js'
-            };
-            let splittedURI = result.url.split('.');
-            let extension = splittedURI[splittedURI.length - 1];
-            extension = extension.split("?")[0];
-            if (extension == "svg") {
-                result.type = 'svg';
-            }
-            else if (extension == "js") {
-                result.type = 'js';
-            }
-            else if (extension == "css") {
-                result.type = 'css';
-            }
-            else if (this.imgExtensions.indexOf(extension) != -1) {
-                result.type = 'img';
-            }
-            else {
-                throw 'unknow extension found :' + extension + ". Please define your extension inside options";
-            }
-        }
-        else {
-            result = options;
-        }
-        return result;
+    /**
+     * Function triggered when the component is removed from the DOM
+     */
+    postDestruction() { }
+    /**
+     * Function triggered the first time the component is rendering inside DOM
+     */
+    postCreation() { }
+    /**
+     * Find a parent by tagname if exist
+     */
+    findParentByTag(tagname, untilNode) {
+        return ElementExtension.findParentByTag(this, tagname, untilNode);
+    }
+    /**
+     * Find a parent by class name if exist
+     */
+    findParentByClass(classname, untilNode) {
+        return ElementExtension.findParentByClass(this, classname, untilNode);
+    }
+    /**
+     * Find a parent by type if exist
+     */
+    findParentByType(type, untilNode) {
+        return ElementExtension.findParentByType(this, type, untilNode);
+    }
+    /**
+     * Find list of parents by tagname
+     */
+    findParents(tagname, untilNode) {
+        return ElementExtension.findParents(this, tagname, untilNode);
+    }
+    /**
+     * Check if element contains a child
+     */
+    containsChild(el) {
+        return ElementExtension.containsChild(this, el);
+    }
+    /**
+     * Get element inside slot
+     */
+    getElementsInSlot(slotName) {
+        return ElementExtension.getElementsInSlot(this, slotName);
     }
 }
-
-class ResizeObserver {
+WebComponent.Namespace=`${moduleName}`;
+_.WebComponent=WebComponent;
+const ResizeObserver=class ResizeObserver {
     callback;
     targets;
-    fpsInterval;
+    fpsInterval = -1;
     nextFrame;
     entriesChangedEvent;
     willTrigger;
@@ -2867,28 +2954,295 @@ class ResizeObserver {
         }, 0);
     }
 }
-
-class DragAndDrop {
+ResizeObserver.Namespace=`${moduleName}`;
+_.ResizeObserver=ResizeObserver;
+const ResourceLoader=class ResourceLoader {
+    static headerLoaded = {};
+    static headerWaiting = {};
+    /**
+     * Load the resource inside the head tag
+     */
+    static async loadInHead(options) {
+        const _options = this.prepareOptions(options);
+        if (this.headerLoaded[_options.url]) {
+            return true;
+        }
+        else if (this.headerWaiting.hasOwnProperty(_options.url)) {
+            return await this.awaitFctHead(_options.url);
+        }
+        else {
+            this.headerWaiting[_options.url] = [];
+            let tagEl;
+            if (_options.type == "js") {
+                tagEl = document.createElement("SCRIPT");
+            }
+            else if (_options.type == "css") {
+                tagEl = document.createElement("LINK");
+                tagEl.setAttribute("rel", "stylesheet");
+            }
+            else {
+                throw "unknow type " + _options.type + " to append into head";
+            }
+            document.head.appendChild(tagEl);
+            let result = await this.loadTag(tagEl, _options.url);
+            this.headerLoaded[_options.url] = true;
+            this.releaseAwaitFctHead(_options.url, result);
+            return result;
+        }
+    }
+    static loadTag(tagEl, url) {
+        return new Promise((resolve, reject) => {
+            tagEl.addEventListener("load", (e) => {
+                resolve(true);
+            });
+            tagEl.addEventListener("error", (e) => {
+                resolve(false);
+            });
+            if (tagEl instanceof HTMLLinkElement) {
+                tagEl.setAttribute("href", url);
+            }
+            else {
+                tagEl.setAttribute('src', url);
+            }
+        });
+    }
+    static releaseAwaitFctHead(url, result) {
+        if (this.headerWaiting[url]) {
+            for (let i = 0; i < this.headerWaiting[url].length; i++) {
+                this.headerWaiting[url][i](result);
+            }
+            delete this.headerWaiting[url];
+        }
+    }
+    static awaitFctHead(url) {
+        return new Promise((resolve) => {
+            this.headerWaiting[url].push((result) => {
+                resolve(result);
+            });
+        });
+    }
+    static requestLoaded = {};
+    static requestWaiting = {};
+    /**
+     *
+    */
+    static async load(options) {
+        options = this.prepareOptions(options);
+        if (this.requestLoaded[options.url]) {
+            return this.requestLoaded[options.url];
+        }
+        else if (this.requestWaiting.hasOwnProperty(options.url)) {
+            await this.awaitFct(options.url);
+            return this.requestLoaded[options.url];
+        }
+        else {
+            this.requestWaiting[options.url] = [];
+            let blob = false;
+            if (options.type == "img") {
+                blob = true;
+            }
+            let content = await this.fetching(options.url, blob);
+            if (options.type == "img" && content.startsWith("data:text/html;")) {
+                console.error("Can't load img " + options.url);
+                content = "";
+            }
+            this.requestLoaded[options.url] = content;
+            this.releaseAwaitFct(options.url);
+            return content;
+        }
+    }
+    static releaseAwaitFct(url) {
+        if (this.requestWaiting[url]) {
+            for (let i = 0; i < this.requestWaiting[url].length; i++) {
+                this.requestWaiting[url][i]();
+            }
+            delete this.requestWaiting[url];
+        }
+    }
+    static awaitFct(url) {
+        return new Promise((resolve) => {
+            this.requestWaiting[url].push(() => {
+                resolve('');
+            });
+        });
+    }
+    static async fetching(url, useBlob = false) {
+        if (useBlob) {
+            let result = await fetch(url, {
+                headers: {
+                    responseType: 'blob'
+                }
+            });
+            let blob = await result.blob();
+            return await this.readFile(blob);
+        }
+        else {
+            let result = await fetch(url);
+            return await result.text();
+        }
+    }
+    static readFile(blob) {
+        return new Promise((resolve) => {
+            var reader = new FileReader();
+            reader.onloadend = function () {
+                resolve(reader.result);
+            };
+            reader.readAsDataURL(blob);
+        });
+    }
+    static imgExtensions = ["png", "jpg", "jpeg", "gif"];
+    static prepareOptions(options) {
+        let result;
+        if (typeof options === 'string' || options instanceof String) {
+            result = {
+                url: options,
+                type: 'js'
+            };
+            let splittedURI = result.url.split('.');
+            let extension = splittedURI[splittedURI.length - 1];
+            extension = extension.split("?")[0];
+            if (extension == "svg") {
+                result.type = 'svg';
+            }
+            else if (extension == "js") {
+                result.type = 'js';
+            }
+            else if (extension == "css") {
+                result.type = 'css';
+            }
+            else if (this.imgExtensions.indexOf(extension) != -1) {
+                result.type = 'img';
+            }
+            else {
+                throw 'unknow extension found :' + extension + ". Please define your extension inside options";
+            }
+        }
+        else {
+            result = options;
+        }
+        return result;
+    }
+}
+ResourceLoader.Namespace=`${moduleName}`;
+_.ResourceLoader=ResourceLoader;
+const Animation=class Animation {
+    /**
+     * Default FPS for all Animation if not set inside options
+     */
+    static FPS_DEFAULT = 60;
+    options;
+    nextFrame = 0;
+    fpsInterval;
+    continueAnimation = false;
+    frame_id = 0;
+    constructor(options) {
+        if (!options.animate) {
+            options.animate = () => { };
+        }
+        if (!options.stopped) {
+            options.stopped = () => { };
+        }
+        if (!options.fps) {
+            options.fps = Animation.FPS_DEFAULT;
+        }
+        this.options = options;
+        this.fpsInterval = 1000 / options.fps;
+    }
+    animate() {
+        let now = window.performance.now();
+        let elapsed = now - this.nextFrame;
+        if (elapsed <= this.fpsInterval) {
+            this.frame_id = requestAnimationFrame(() => this.animate());
+            return;
+        }
+        this.nextFrame = now - (elapsed % this.fpsInterval);
+        setTimeout(() => {
+            this.options.animate();
+        }, 0);
+        if (this.continueAnimation) {
+            this.frame_id = requestAnimationFrame(() => this.animate());
+        }
+        else {
+            this.options.stopped();
+        }
+    }
+    /**
+     * Start the of animation
+     */
+    start() {
+        if (this.continueAnimation == false) {
+            this.continueAnimation = true;
+            this.nextFrame = window.performance.now();
+            this.animate();
+        }
+    }
+    /**
+     * Stop the animation
+     */
+    stop() {
+        this.continueAnimation = false;
+    }
+    /**
+     * Stop the animation
+     */
+    immediateStop() {
+        cancelAnimationFrame(this.frame_id);
+        this.continueAnimation = false;
+        this.options.stopped();
+    }
+    /**
+     * Get the FPS
+     */
+    getFPS() {
+        return this.options.fps;
+    }
+    /**
+     * Set the FPS
+     */
+    setFPS(fps) {
+        this.options.fps = fps;
+        this.fpsInterval = 1000 / this.options.fps;
+    }
+    /**
+     * Get the animation status (true if animation is running)
+     */
+    isStarted() {
+        return this.continueAnimation;
+    }
+}
+Animation.Namespace=`${moduleName}`;
+_.Animation=Animation;
+const DragAndDrop=class DragAndDrop {
     /**
      * Default offset before drag element
      */
     static defaultOffsetDrag = 20;
     pressManager;
     options;
-    startCursorPosition;
-    startElementPosition;
+    startCursorPosition = { x: 0, y: 0 };
+    startElementPosition = { x: 0, y: 0 };
     isEnable = true;
     constructor(options) {
-        this.options = this.getDefaultOptions();
+        this.options = this.getDefaultOptions(options.element);
         this.mergeProperties(options);
         this.mergeFunctions(options);
-        this.init();
+        this.options.elementTrigger.style.touchAction = 'none';
+        this.pressManager = new PressManager({
+            element: this.options.elementTrigger,
+            onPressStart: this.onPressStart.bind(this),
+            onPressEnd: this.onPressEnd.bind(this),
+            onDragStart: this.onDragStart.bind(this),
+            onDrag: this.onDrag.bind(this),
+            onDragEnd: this.onDragEnd.bind(this),
+            offsetDrag: this.options.offsetDrag,
+            stopPropagation: this.options.stopPropagation
+        });
     }
-    getDefaultOptions() {
+    getDefaultOptions(element) {
         return {
             applyDrag: true,
-            element: null,
-            elementTrigger: null,
+            element: element,
+            elementTrigger: element,
             offsetDrag: DragAndDrop.defaultOffsetDrag,
             shadow: {
                 enable: false,
@@ -2899,6 +3253,7 @@ class DragAndDrop {
             strict: false,
             targets: [],
             usePercent: false,
+            stopPropagation: true,
             isDragEnable: () => true,
             getZoom: () => 1,
             getOffsetX: () => 0,
@@ -2908,7 +3263,8 @@ class DragAndDrop {
             onStart: (e) => { },
             onMove: (e) => { },
             onStop: (e) => { },
-            onDrop: (element, targets) => { }
+            onDrop: (element, targets) => { },
+            correctPosition: (position) => position
         };
     }
     mergeProperties(options) {
@@ -2927,6 +3283,7 @@ class DragAndDrop {
         this.defaultMerge(options, "strict");
         this.defaultMerge(options, "targets");
         this.defaultMerge(options, "usePercent");
+        this.defaultMerge(options, "stopPropagation");
         if (options.shadow !== void 0) {
             this.options.shadow.enable = options.shadow.enable;
             if (options.shadow.container !== void 0) {
@@ -2954,25 +3311,14 @@ class DragAndDrop {
         this.defaultMerge(options, "onMove");
         this.defaultMerge(options, "onStop");
         this.defaultMerge(options, "onDrop");
+        this.defaultMerge(options, "correctPosition");
     }
     defaultMerge(options, name) {
         if (options[name] !== void 0) {
             this.options[name] = options[name];
         }
     }
-    init() {
-        this.pressManager = new PressManager({
-            element: this.options.elementTrigger,
-            onPressStart: this.onPressStart.bind(this),
-            onPressEnd: this.onPressEnd.bind(this),
-            onDragStart: this.onDragStart.bind(this),
-            onDrag: this.onDrag.bind(this),
-            onDragEnd: this.onDragEnd.bind(this),
-            offsetDrag: this.options.offsetDrag
-        });
-    }
-    draggableElement;
-    positionShadowRelativeToElement;
+    positionShadowRelativeToElement = { x: 0, y: 0 };
     onPressStart(e) {
         this.options.onPointerDown(e);
     }
@@ -2984,17 +3330,17 @@ class DragAndDrop {
         if (!this.isEnable) {
             return;
         }
-        this.draggableElement = this.options.element;
+        let draggableElement = this.options.element;
         this.startCursorPosition = {
             x: e.pageX,
             y: e.pageY
         };
         this.startElementPosition = {
-            x: this.draggableElement.offsetLeft,
-            y: this.draggableElement.offsetTop
+            x: draggableElement.offsetLeft,
+            y: draggableElement.offsetTop
         };
         if (this.options.shadow.enable) {
-            this.draggableElement = this.options.element.cloneNode(true);
+            draggableElement = this.options.element.cloneNode(true);
             let elBox = this.options.element.getBoundingClientRect();
             let containerBox = this.options.shadow.container.getBoundingClientRect();
             this.positionShadowRelativeToElement = {
@@ -3002,12 +3348,12 @@ class DragAndDrop {
                 y: elBox.y - containerBox.y
             };
             if (this.options.applyDrag) {
-                this.draggableElement.style.position = "absolute";
-                this.draggableElement.style.top = this.positionShadowRelativeToElement.y + this.options.getOffsetY() + 'px';
-                this.draggableElement.style.left = this.positionShadowRelativeToElement.x + this.options.getOffsetX() + 'px';
+                draggableElement.style.position = "absolute";
+                draggableElement.style.top = this.positionShadowRelativeToElement.y + this.options.getOffsetY() + 'px';
+                draggableElement.style.left = this.positionShadowRelativeToElement.x + this.options.getOffsetX() + 'px';
             }
-            this.options.shadow.transform(this.draggableElement);
-            this.options.shadow.container.appendChild(this.draggableElement);
+            this.options.shadow.transform(draggableElement);
+            this.options.shadow.container.appendChild(draggableElement);
         }
         this.options.onStart(e);
     }
@@ -3040,32 +3386,35 @@ class DragAndDrop {
             return;
         }
         let targets = this.getMatchingTargets();
+        let draggableElement = this.options.element;
         if (this.options.shadow.enable && this.options.shadow.removeOnStop) {
-            this.draggableElement.parentNode?.removeChild(this.draggableElement);
+            draggableElement.parentNode?.removeChild(draggableElement);
         }
         if (targets.length > 0) {
-            this.options.onDrop(this.draggableElement, targets);
+            this.options.onDrop(draggableElement, targets);
         }
         this.options.onStop(e);
     }
     setPosition(position) {
+        let draggableElement = this.options.element;
         if (this.options.usePercent) {
-            let elementParent = this.draggableElement.offsetParent;
-            const percentLeft = (position.x / elementParent.offsetWidth) * 100;
-            const percentTop = (position.y / elementParent.offsetHeight) * 100;
-            if (this.options.applyDrag) {
-                this.draggableElement.style.left = percentLeft + '%';
-                this.draggableElement.style.top = percentTop + '%';
-            }
-            return {
-                x: percentLeft,
-                y: percentTop
+            let elementParent = draggableElement.offsetParent;
+            let percentPosition = {
+                x: (position.x / elementParent.offsetWidth) * 100,
+                y: (position.y / elementParent.offsetHeight) * 100
             };
+            percentPosition = this.options.correctPosition(percentPosition);
+            if (this.options.applyDrag) {
+                draggableElement.style.left = percentPosition.x + '%';
+                draggableElement.style.top = percentPosition.y + '%';
+            }
+            return percentPosition;
         }
         else {
+            position = this.options.correctPosition(position);
             if (this.options.applyDrag) {
-                this.draggableElement.style.left = position.x + 'px';
-                this.draggableElement.style.top = position.y + 'px';
+                draggableElement.style.left = position.x + 'px';
+                draggableElement.style.top = position.y + 'px';
             }
         }
         return position;
@@ -3074,9 +3423,10 @@ class DragAndDrop {
      * Get targets within the current element position is matching
      */
     getMatchingTargets() {
+        let draggableElement = this.options.element;
         let matchingTargets = [];
         for (let target of this.options.targets) {
-            const elementCoordinates = this.draggableElement.getBoundingClientRect();
+            const elementCoordinates = draggableElement.getBoundingClientRect();
             const targetCoordinates = target.getBoundingClientRect();
             let offsetX = this.options.getOffsetX();
             let offsetY = this.options.getOffsetY();
@@ -3114,7 +3464,7 @@ class DragAndDrop {
      * Get element currently dragging
      */
     getElementDrag() {
-        return this.draggableElement;
+        return this.options.element;
     }
     /**
      * Set targets where to drop
@@ -3129,165 +3479,41 @@ class DragAndDrop {
         this.pressManager.destroy();
     }
 }
+DragAndDrop.Namespace=`${moduleName}`;
+_.DragAndDrop=DragAndDrop;
 
-class Animation {
-    /**
-     * Default FPS for all Animation if not set inside options
-     */
-    static FPS_DEFAULT = 60;
-    options;
-    nextFrame;
-    fpsInterval;
-    continueAnimation = false;
-    constructor(options) {
-        if (!options.animate) {
-            options.animate = () => { };
-        }
-        if (!options.stopped) {
-            options.stopped = () => { };
-        }
-        if (!options.fps) {
-            options.fps = Animation.FPS_DEFAULT;
-        }
-        this.options = options;
-        this.fpsInterval = 1000 / this.options.fps;
-    }
-    animate() {
-        let now = window.performance.now();
-        let elapsed = now - this.nextFrame;
-        if (elapsed <= this.fpsInterval) {
-            requestAnimationFrame(() => this.animate());
-            return;
-        }
-        this.nextFrame = now - (elapsed % this.fpsInterval);
-        setTimeout(() => {
-            this.options.animate();
-        }, 0);
-        if (this.continueAnimation) {
-            requestAnimationFrame(() => this.animate());
-        }
-        else {
-            this.options.stopped();
-        }
-    }
-    /**
-     * Start the of animation
-     */
-    start() {
-        if (this.continueAnimation == false) {
-            this.continueAnimation = true;
-            this.nextFrame = window.performance.now();
-            this.animate();
-        }
-    }
-    /**
-     * Stop the animation
-     */
-    stop() {
-        this.continueAnimation = false;
-    }
-    /**
-     * Get the FPS
-     */
-    getFPS() {
-        return this.options.fps;
-    }
-    /**
-     * Set the FPS
-     */
-    setFPS(fps) {
-        this.options.fps = fps;
-        this.fpsInterval = 1000 / this.options.fps;
-    }
-    /**
-     * Get the animation status (true if animation is running)
-     */
-    isStarted() {
-        return this.continueAnimation;
-    }
-}
-WebComponentInstance.Namespace='Aventus';
-Aventus.WebComponentInstance=WebComponentInstance;
-ElementExtension.Namespace='Aventus';
-Aventus.ElementExtension=ElementExtension;
-Instance.Namespace='Aventus';
-Aventus.Instance=Instance;
-Style.Namespace='Aventus';
-Aventus.Style=Style;
-WebComponent.Namespace='Aventus';
-Aventus.WebComponent=WebComponent;
-Callback.Namespace='Aventus';
-Aventus.Callback=Callback;
-StateManager.Namespace='Aventus';
-Aventus.StateManager=StateManager;
-WatchAction.Namespace='Aventus';
-Aventus.WatchAction=WatchAction;
-Watcher.Namespace='Aventus';
-Aventus.Watcher=Watcher;
-PressManager.Namespace='Aventus';
-Aventus.PressManager=PressManager;
-State.Namespace='Aventus';
-Aventus.State=State;
-EmptyState.Namespace='Aventus';
-Aventus.EmptyState=EmptyState;
-WebComponentTemplate.Namespace='Aventus';
-Aventus.WebComponentTemplate=WebComponentTemplate;
-WebComponentTemplateContext.Namespace='Aventus';
-Aventus.WebComponentTemplateContext=WebComponentTemplateContext;
-WebComponentTemplateInstance.Namespace='Aventus';
-Aventus.WebComponentTemplateInstance=WebComponentTemplateInstance;
-ResourceLoader.Namespace='Aventus';
-Aventus.ResourceLoader=ResourceLoader;
-ResizeObserver.Namespace='Aventus';
-Aventus.ResizeObserver=ResizeObserver;
-DragAndDrop.Namespace='Aventus';
-Aventus.DragAndDrop=DragAndDrop;
-Animation.Namespace='Aventus';
-Aventus.Animation=Animation;
+for(let key in _) { Aventus[key] = _[key] }
 })(Aventus);
 
 var Aventus;
 (Aventus||(Aventus = {}));
 (function (Aventus) {
 const moduleName = `Aventus`;
+const _ = {};
 
-
-class App extends Aventus.WebComponent {
-    static __style = `:host{display:flex;margin-left:400px;margin-top:200px}`;
-    __getStatic() {
-        return App;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(App.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<av-checkbox label="My checkbox"></av-checkbox>` }
-    });
-}
-    getClassName() {
-        return "App";
-    }
-}
-window.customElements.define('av-app', App);Aventus.WebComponentInstance.registerDefinition(App);
-
-class RouterStateManager extends Aventus.StateManager {
+const Navigation = {};
+_.Navigation = {};
+const Layout = {};
+_.Layout = {};
+const Form = {};
+_.Form = {};
+let _n;
+const RouterStateManager=class RouterStateManager extends Aventus.StateManager {
     static getInstance() {
         return Aventus.Instance.get(RouterStateManager);
     }
 }
-
-class RouterLink extends Aventus.WebComponent {
+RouterStateManager.Namespace=`${moduleName}`;
+_.RouterStateManager=RouterStateManager;
+Navigation.RouterLink = class RouterLink extends Aventus.WebComponent {
     get 'state'() {
-                    return this.getAttribute('state');
+                    return this.getAttribute('state') ?? undefined;
                 }
                 set 'state'(val) {
                     if(val === undefined || val === null){this.removeAttribute('state')}
                     else{this.setAttribute('state',val)}
                 }get 'active_state'() {
-                    return this.getAttribute('active_state');
+                    return this.getAttribute('active_state') ?? undefined;
                 }
                 set 'active_state'(val) {
                     if(val === undefined || val === null){this.removeAttribute('active_state')}
@@ -3312,6 +3538,7 @@ class RouterLink extends Aventus.WebComponent {
         return "RouterLink";
     }
     __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('state')){ this['state'] = ""; }if(!this.hasAttribute('active_state')){ this['active_state'] = ""; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('state');this.__upgradeProperty('active_state'); }
     addClickEvent() {
         new Aventus.PressManager({
             element: this,
@@ -3341,151 +3568,11 @@ class RouterLink extends Aventus.WebComponent {
         this.addClickEvent();
     }
 }
-window.customElements.define('av-router-link', RouterLink);Aventus.WebComponentInstance.registerDefinition(RouterLink);
+Navigation.RouterLink.Namespace=`${moduleName}.Navigation`;
+_.Navigation.RouterLink=Navigation.RouterLink;
+if(!window.customElements.get('av-router-link')){window.customElements.define('av-router-link', Navigation.RouterLink);Aventus.WebComponentInstance.registerDefinition(Navigation.RouterLink);}
 
-class Router extends Aventus.WebComponent {
-    oldPage;
-    allRoutes = {};
-    activePath = "";
-    oneStateActive = false;
-    get stateManager() {
-        return Aventus.Instance.get(RouterStateManager);
-    }
-    page404;
-    static __style = `:host{display:block}`;
-    constructor() {            super();            this.validError404 = this.validError404.bind(this);if (this.constructor == Router) { throw "can't instanciate an abstract class"; } }
-    __getStatic() {
-        return Router;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(Router.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        slots: { 'before':`<slot name="before"></slot>`,'after':`<slot name="after"></slot>` }, 
-        blocks: { 'default':`<slot name="before"></slot><div class="content" _id="router_0"></div><slot name="after"></slot>` }
-    });
-}
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
-  "elements": [
-    {
-      "name": "contentEl",
-      "ids": [
-        "router_0"
-      ]
-    }
-  ]
-}); }
-    getClassName() {
-        return "Router";
-    }
-    addRouteAsync(options) {
-        this.allRoutes[options.route] = options;
-    }
-    addRoute(route, elementCtr) {
-        this.allRoutes[route] = {
-            route: route,
-            scriptUrl: '',
-            render: () => elementCtr
-        };
-    }
-    register() {
-        try {
-            this.defineRoutes();
-            this.stateManager.onAfterStateChanged(this.validError404);
-            for (let key in this.allRoutes) {
-                this.initRoute(key);
-            }
-        }
-        catch (e) {
-            console.log(e);
-        }
-    }
-    initRoute(path) {
-        let element = undefined;
-        let allRoutes = this.allRoutes;
-        this.stateManager.subscribe(path, {
-            active: (currentState) => {
-                this.oneStateActive = true;
-                const showPage = async () => {
-                    if (!element) {
-                        let options = allRoutes[path];
-                        if (options.scriptUrl != "") {
-                            await Aventus.ResourceLoader.loadInHead(options.scriptUrl);
-                        }
-                        let constructor = options.render();
-                        element = new constructor;
-                        element.currentRouter = this;
-                        this.contentEl.appendChild(element);
-                    }
-                    if (this.oldPage && this.oldPage != element) {
-                        await this.oldPage.hide();
-                    }
-                    let oldPage = this.oldPage;
-                    let oldUrl = this.activePath;
-                    await element.show();
-                    this.oldPage = element;
-                    this.activePath = path;
-                    if (window.location.pathname != currentState.name) {
-                        let newUrl = window.location.origin + currentState.name;
-                        document.title = element.pageTitle();
-                        window.history.pushState({}, element.pageTitle(), newUrl);
-                    }
-                    this.onNewPage(oldUrl, oldPage, path, element);
-                };
-                showPage();
-            },
-            inactive: () => {
-                this.oneStateActive = false;
-            }
-        });
-    }
-    async validError404() {
-        if (!this.oneStateActive) {
-            let Page404 = this.error404(this.stateManager.getState());
-            if (Page404) {
-                if (!this.page404) {
-                    this.page404 = new Page404();
-                    this.page404.currentRouter = this;
-                    this.contentEl.appendChild(this.page404);
-                }
-                if (this.oldPage && this.oldPage != this.page404) {
-                    await this.oldPage.hide();
-                }
-                await this.page404.show();
-                this.oldPage = this.page404;
-                this.activePath = '';
-            }
-        }
-    }
-    error404(state) {
-        return null;
-    }
-    onNewPage(oldUrl, oldPage, newUrl, newPage) {
-    }
-    getSlugs() {
-        return this.stateManager.getStateSlugs(this.activePath);
-    }
-    postCreation() {
-        this.register();
-        if (window.localStorage.getItem("navigation_url")) {
-            Aventus.State.activate(window.localStorage.getItem("navigation_url"), this.stateManager);
-            window.localStorage.removeItem("navigation_url");
-        }
-        else {
-            Aventus.State.activate(window.location.pathname, this.stateManager);
-        }
-        window.onpopstate = (e) => {
-            if (window.location.pathname != this.stateManager.getState().name) {
-                Aventus.State.activate(window.location.pathname, this.stateManager);
-            }
-        };
-    }
-}
-
-class Page extends Aventus.WebComponent {
+Navigation.Page = class Page extends Aventus.WebComponent {
     static get observedAttributes() {return ["visible"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'visible'() {
                 return this.hasAttribute('visible');
@@ -3535,571 +3622,57 @@ class Page extends Aventus.WebComponent {
         this.visible = false;
     }
 }
+Navigation.Page.Namespace=`${moduleName}.Navigation`;
+_.Navigation.Page=Navigation.Page;
 
-class Scrollable extends Aventus.WebComponent {
-    static get observedAttributes() {return ["zoom"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
-    get 'y_scroll_visible'() {
-                return this.hasAttribute('y_scroll_visible');
-            }
-            set 'y_scroll_visible'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('y_scroll_visible', 'true');
-                } else{
-                    this.removeAttribute('y_scroll_visible');
-                }
-            }get 'x_scroll_visible'() {
-                return this.hasAttribute('x_scroll_visible');
-            }
-            set 'x_scroll_visible'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('x_scroll_visible', 'true');
-                } else{
-                    this.removeAttribute('x_scroll_visible');
-                }
-            }get 'x'() {
-                    return Number(this.getAttribute('x'));
-                }
-                set 'x'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('x')}
-                    else{this.setAttribute('x',val)}
-                }get 'y'() {
-                    return Number(this.getAttribute('y'));
-                }
-                set 'y'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('y')}
-                    else{this.setAttribute('y',val)}
-                }get 'floating_scroll'() {
-                return this.hasAttribute('floating_scroll');
-            }
-            set 'floating_scroll'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('floating_scroll', 'true');
-                } else{
-                    this.removeAttribute('floating_scroll');
-                }
-            }get 'allow_x_scroll'() {
-                return this.hasAttribute('allow_x_scroll');
-            }
-            set 'allow_x_scroll'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('allow_x_scroll', 'true');
-                } else{
-                    this.removeAttribute('allow_x_scroll');
-                }
-            }get 'auto_hide'() {
-                return this.hasAttribute('auto_hide');
-            }
-            set 'auto_hide'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('auto_hide', 'true');
-                } else{
-                    this.removeAttribute('auto_hide');
-                }
-            }get 'no_transition'() {
-                return this.hasAttribute('no_transition');
-            }
-            set 'no_transition'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('no_transition', 'true');
-                } else{
-                    this.removeAttribute('no_transition');
-                }
-            }get 'no_user_select'() {
-                return this.hasAttribute('no_user_select');
-            }
-            set 'no_user_select'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('no_user_select', 'true');
-                } else{
-                    this.removeAttribute('no_user_select');
-                }
-            }    get 'zoom'() {
-                    return Number(this.getAttribute('zoom'));
-                }
-                set 'zoom'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('zoom')}
-                    else{this.setAttribute('zoom',val)}
-                }    observer;
-    displayWidth = 0;
-    displayHeight = 0;
-    maxX = 0;
-    marginX = 0;
-    maxY = 0;
-    marginY = 0;
-    hideDelayX;
-    hideDelayY;
-    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("zoom", ((target) => {
-    target.changeZoom();
-})); }
-    static __style = `:host{--internal-scrollbar-container-color: var(--scrollbar-container-color, transparent);--internal-scrollbar-color: var(--scrollbar-color, #757575);--internal-scrollbar-active-color: var(--scrollbar-active-color, #858585);--internal-scroller-width: var(--scroller-width, 6px);--internal-scroller-top: var(--scroller-top, 3px);--internal-scroller-bottom: var(--scroller-bottom, 3px);--internal-scroller-right: var(--scroller-right, 3px);--internal-scroller-left: var(--scroller-left, 3px);--internal-scroller-transition: var(--scroller-transition, 0.5s)}:host{display:block;height:100%;overflow:hidden;position:relative;-webkit-user-drag:none;-khtml-user-drag:none;-moz-user-drag:none;-o-user-drag:none;width:100%}:host .scroll-main-container{display:block;height:100%;position:relative;width:100%}:host .scroll-main-container .content-zoom{display:block;height:100%;position:relative;transform-origin:0 0;width:100%;z-index:4}:host .scroll-main-container .content-zoom .content-hidder{display:block;height:100%;overflow:hidden;position:relative;width:100%}:host .scroll-main-container .content-zoom .content-hidder .content-wrapper{display:inline-block;height:auto;min-width:100%;position:relative;transition:transform var(--internal-scroller-transition);width:100%}:host .scroll-main-container .scroller-wrapper .container-scroller{display:none;overflow:hidden;position:absolute;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller{background-color:var(--internal-scrollbar-container-color);border-radius:5px}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller .scroller{background-color:var(--internal-scrollbar-color);border-radius:5px;cursor:pointer;position:absolute;-webkit-tap-highlight-color:rgba(0,0,0,0);touch-action:none;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .scroller.active{background-color:var(--internal-scrollbar-active-color);transition:none !important}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical{height:calc(100% - var(--internal-scroller-bottom)*2 - var(--internal-scroller-width));padding-left:var(--internal-scroller-left);right:var(--internal-scroller-right);top:var(--internal-scroller-bottom);transform:0;transition:transform .2s ease-in-out;width:calc(var(--internal-scroller-width) + var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical.hide{transform:translateX(calc(var(--internal-scroller-width) + var(--internal-scroller-left)))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller .scroller{transition:top var(--internal-scroller-transition) linear;width:calc(100% - var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal{bottom:var(--internal-scroller-bottom);height:calc(var(--internal-scroller-width) + var(--internal-scroller-top));left:var(--internal-scroller-right);padding-top:var(--internal-scroller-top);transform:0;transition:transform .2s ease-in-out;width:calc(100% - var(--internal-scroller-right)*2 - var(--internal-scroller-width))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal.hide{transform:translateY(calc(var(--internal-scroller-width) + var(--internal-scroller-top)))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller .scroller{height:calc(100% - var(--internal-scroller-top));transition:left var(--internal-scroller-transition) linear}:host([allow_x_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{width:auto}:host([y_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.vertical{display:block}:host([x_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.horizontal{display:block}:host([no_transition]){--internal-scroller-transition: 0ms}:host([no_user_select]) .content-wrapper *{user-select:none}:host([no_user_select]) ::slotted{user-select:none}`;
-    constructor() {            super();            this.wheelAction = this.wheelAction.bind(this);            this.touchWheelAction = this.touchWheelAction.bind(this);        }
-    __getStatic() {
-        return Scrollable;
+const Tracker=class Tracker {
+    velocityMultiplier = window.devicePixelRatio;
+    updateTime = Date.now();
+    delta = { x: 0, y: 0 };
+    velocity = { x: 0, y: 0 };
+    lastPosition = { x: 0, y: 0 };
+    constructor(touch) {
+        this.lastPosition = this.getPosition(touch);
     }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(Scrollable.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<div class="scroll-main-container" _id="scrollable_0">    <div class="content-zoom" _id="scrollable_1">        <div class="content-hidder" _id="scrollable_2">            <div class="content-wrapper" _id="scrollable_3">                <slot></slot>            </div>        </div>    </div>    <div class="scroller-wrapper">        <div class="container-scroller vertical" _id="scrollable_4">            <div class="shadow-scroller">                <div class="scroller" _id="scrollable_5"></div>            </div>        </div>        <div class="container-scroller horizontal" _id="scrollable_6">            <div class="shadow-scroller">                <div class="scroller" _id="scrollable_7"></div>            </div>        </div>    </div></div>` }
-    });
-}
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
-  "elements": [
-    {
-      "name": "mainContainer",
-      "ids": [
-        "scrollable_0"
-      ]
-    },
-    {
-      "name": "contentZoom",
-      "ids": [
-        "scrollable_1"
-      ]
-    },
-    {
-      "name": "contentHidder",
-      "ids": [
-        "scrollable_2"
-      ]
-    },
-    {
-      "name": "contentWrapper",
-      "ids": [
-        "scrollable_3"
-      ]
-    },
-    {
-      "name": "verticalScrollerContainer",
-      "ids": [
-        "scrollable_4"
-      ]
-    },
-    {
-      "name": "verticalScroller",
-      "ids": [
-        "scrollable_5"
-      ]
-    },
-    {
-      "name": "horizontalScrollerContainer",
-      "ids": [
-        "scrollable_6"
-      ]
-    },
-    {
-      "name": "horizontalScroller",
-      "ids": [
-        "scrollable_7"
-      ]
-    }
-  ]
-}); }
-    getClassName() {
-        return "Scrollable";
-    }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('y_scroll_visible')) { this.attributeChangedCallback('y_scroll_visible', false, false); }if(!this.hasAttribute('x_scroll_visible')) { this.attributeChangedCallback('x_scroll_visible', false, false); }if(!this.hasAttribute('x')){ this['x'] = undefined; }if(!this.hasAttribute('y')){ this['y'] = undefined; }if(!this.hasAttribute('floating_scroll')) { this.attributeChangedCallback('floating_scroll', false, false); }if(!this.hasAttribute('allow_x_scroll')) { this.attributeChangedCallback('allow_x_scroll', false, false); }if(!this.hasAttribute('auto_hide')) { this.attributeChangedCallback('auto_hide', false, false); }if(!this.hasAttribute('no_transition')) { this.attributeChangedCallback('no_transition', false, false); }if(!this.hasAttribute('no_user_select')) { this.attributeChangedCallback('no_user_select', false, false); }if(!this.hasAttribute('zoom')){ this['zoom'] = 1; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('zoom'); }
-    __listBoolProps() { return ["y_scroll_visible","x_scroll_visible","floating_scroll","allow_x_scroll","auto_hide","no_transition","no_user_select"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
-    correctVerticalScrollValue(value) {
-        if (value < 0) {
-            value = 0;
-        }
-        else if (value > this.maxY) {
-            value = this.maxY;
-        }
-        return value;
-    }
-    scrollVerticalScrollbar(percentValue) {
-        let verticalValue = percentValue / 100 * this.contentWrapper.offsetHeight;
-        this.scrollY(verticalValue);
-    }
-    scrollY(value) {
-        if (this.maxY != 0) {
-            this.y = this.correctVerticalScrollValue(value);
-        }
-        else {
-            this.y = 0;
-        }
-        let scrollPosition = this.y / this.contentWrapper.offsetHeight * 100;
-        if (this.auto_hide) {
-            this.verticalScrollerContainer.classList.remove("hide");
-            clearTimeout(this.hideDelayY);
-            this.hideDelayY = setTimeout(() => {
-                this.verticalScrollerContainer.classList.add("hide");
-            }, 1000);
-        }
-        this.verticalScroller.style.top = `${scrollPosition}%`;
-        this.contentWrapper.style.transform = `translate3d(${-1 * this.x}px, ${-1 * this.y}px, 0)`;
-    }
-    correctHorizontalScrollValue(value) {
-        if (value < 0) {
-            value = 0;
-        }
-        else if (value > this.maxX) {
-            value = this.maxX;
-        }
-        return value;
-    }
-    scrollHorizontalScrollbar(percentValue) {
-        let value = percentValue / 100 * this.contentWrapper.offsetWidth;
-        this.scrollX(value);
-    }
-    scrollX(value) {
-        if (this.maxX != 0) {
-            this.x = this.correctHorizontalScrollValue(value);
-        }
-        else {
-            this.x = 0;
-        }
-        let scrollPosition = this.x / this.contentWrapper.offsetWidth * 100;
-        if (this.auto_hide) {
-            this.horizontalScrollerContainer.classList.remove("hide");
-            clearTimeout(this.hideDelayX);
-            this.hideDelayX = setTimeout(() => {
-                this.horizontalScrollerContainer.classList.add("hide");
-            }, 1000);
-        }
-        this.horizontalScroller.style.left = `${scrollPosition}%`;
-        this.contentWrapper.style.transform = `translate3d(${-1 * this.x}px, ${-1 * this.y}px, 0)`;
-    }
-    scrollToPosition(x, y) {
-        this.scrollX(x);
-        this.scrollY(y);
-    }
-    addAction() {
-        this.addEventListener("wheel", this.wheelAction);
-        this.addEventListener("touchstart", this.touchWheelAction);
-        this.addVerticalScrollDrag();
-        this.addHorizontalScrollDrag();
-    }
-    addVerticalScrollDrag() {
-        this.verticalScroller.addEventListener("touchstart", (e) => {
-            e.stopPropagation();
-        });
-        new Aventus.DragAndDrop({
-            element: this.verticalScroller,
-            applyDrag: false,
-            usePercent: true,
-            offsetDrag: 0,
-            onStart: (e) => {
-                this.no_transition = true;
-                this.no_user_select = true;
-                this.verticalScroller.classList.add("active");
-            },
-            onMove: (e, position) => {
-                this.scrollVerticalScrollbar(position.y);
-            },
-            onStop: () => {
-                this.no_transition = false;
-                this.no_user_select = false;
-                this.verticalScroller.classList.remove("active");
-            },
-        });
-    }
-    addHorizontalScrollDrag() {
-        this.horizontalScroller.addEventListener("touchstart", (e) => {
-            e.stopPropagation();
-        });
-        new Aventus.DragAndDrop({
-            element: this.horizontalScroller,
-            applyDrag: false,
-            usePercent: true,
-            offsetDrag: 0,
-            onStart: (e) => {
-                this.no_transition = true;
-                this.no_user_select = true;
-                this.horizontalScroller.classList.add("active");
-            },
-            onMove: (e, position) => {
-                this.scrollHorizontalScrollbar(position.x);
-            },
-            onStop: () => {
-                this.no_transition = false;
-                this.no_user_select = false;
-                this.horizontalScroller.classList.remove("active");
-            },
-        });
-    }
-    wheelAction(e) {
-        if (e.altKey) {
-            if (this.x_scroll_visible) {
-                let triggerEvent = (this.x == 0 && e.deltaY < 0) || (this.x == this.maxX && e.deltaY > 0);
-                this.scrollX(this.x + e.deltaY);
-                if (!triggerEvent) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                }
-            }
-        }
-        else {
-            if (this.y_scroll_visible) {
-                let triggerEvent = (this.y == 0 && e.deltaY < 0) || (this.y == this.maxY && e.deltaY > 0);
-                this.scrollY(this.y + e.deltaY);
-                if (!triggerEvent) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                }
-            }
-        }
-    }
-    touchWheelAction(e) {
-        let startX = e.touches[0].pageX;
-        let startY = e.touches[0].pageY;
-        let startHorizontal = this.x;
-        let startVertical = this.y;
-        this.no_transition = true;
-        let inertiaArrayY = new Map();
-        let inertiaArrayX = new Map();
-        let averageY = 0;
-        let averageX = 0;
-        let lastDiffY = 0;
-        let lastDiffX = 0;
-        let touchMove = (e) => {
-            let diffX = startX - e.touches[0].pageX;
-            let diffY = startY - e.touches[0].pageY;
-            // inertia
-            if (inertiaArrayY.size == 5) {
-                inertiaArrayY.delete(inertiaArrayY.keys()[0]);
-            }
-            if (inertiaArrayX.size == 5) {
-                inertiaArrayX.delete(inertiaArrayX.keys()[0]);
-            }
-            inertiaArrayX.set(new Date(), diffX - lastDiffX);
-            inertiaArrayY.set(new Date(), diffY - lastDiffY);
-            lastDiffX = diffX;
-            lastDiffY = diffY;
-            this.scrollX(startHorizontal + diffX);
-            this.scrollY(startVertical + diffY);
+    update(touch) {
+        const { velocity, updateTime, lastPosition, } = this;
+        const now = Date.now();
+        const position = this.getPosition(touch);
+        const delta = {
+            x: -(position.x - lastPosition.x),
+            y: -(position.y - lastPosition.y),
         };
-        let touchEnd = (e) => {
-            window.removeEventListener("touchmove", touchMove);
-            window.removeEventListener("touchend", touchEnd);
-            let date = new Date();
-            let totX = 0;
-            let totY = 0;
-            let inertiaXRunning = false;
-            let inertiaYRunning = false;
-            for (let [dateEvent, value] of inertiaArrayX) {
-                let factor = (1000) - (date.getTime() - dateEvent.getTime());
-                if (factor < 0) {
-                    factor = 0;
-                }
-                factor /= 1000;
-                totX += value * factor;
-            }
-            for (let [dateEvent, value] of inertiaArrayY) {
-                let factor = (1000) - (date.getTime() - dateEvent.getTime());
-                if (factor < 0) {
-                    factor = 0;
-                }
-                factor /= 1000;
-                totY += value * factor;
-            }
-            if (inertiaArrayX.size > 0) {
-                inertiaXRunning = true;
-                averageX = Math.round(totX / inertiaArrayX.size);
-                let breakX = averageX > 0 ? 1 : -1;
-                let checkX = averageX > 0 ? () => averageX <= 0 : () => averageX >= 0;
-                let intervalInertia = new Aventus.Animation({
-                    animate: () => {
-                        if (checkX()) {
-                            intervalInertia.stop();
-                        }
-                        else {
-                            averageX -= breakX;
-                            lastDiffX += averageX;
-                            this.scrollX(startHorizontal + lastDiffX);
-                        }
-                    },
-                    stopped: () => {
-                        inertiaXRunning = false;
-                        if (!inertiaXRunning && !inertiaYRunning) {
-                            this.no_transition = false;
-                        }
-                    },
-                    fps: 60,
-                });
-                intervalInertia.start();
-            }
-            if (inertiaArrayY.size > 0) {
-                inertiaYRunning = true;
-                averageY = Math.round(totY / inertiaArrayY.size);
-                let breakY = averageY > 0 ? 1 : -1;
-                let checkY = averageY > 0 ? () => averageY <= 0 : () => averageY >= 0;
-                let intervalInertia = new Aventus.Animation({
-                    animate: () => {
-                        if (checkY()) {
-                            intervalInertia.stop();
-                        }
-                        else {
-                            averageY -= breakY;
-                            lastDiffY += averageY;
-                            this.scrollY(startVertical + lastDiffY);
-                        }
-                    },
-                    stopped: () => {
-                        inertiaYRunning = false;
-                        if (!inertiaXRunning && !inertiaYRunning) {
-                            this.no_transition = false;
-                        }
-                    },
-                    fps: 60,
-                });
-                intervalInertia.start();
-            }
-            if (!inertiaXRunning && !inertiaYRunning) {
-                this.no_transition = false;
-            }
+        const duration = (now - updateTime) || 16.7;
+        const vx = delta.x / duration * 16.7;
+        const vy = delta.y / duration * 16.7;
+        velocity.x = vx * this.velocityMultiplier;
+        velocity.y = vy * this.velocityMultiplier;
+        this.delta = delta;
+        this.updateTime = now;
+        this.lastPosition = position;
+    }
+    getPointerData(evt) {
+        return evt.touches ? evt.touches[evt.touches.length - 1] : evt;
+    }
+    getPosition(evt) {
+        const data = this.getPointerData(evt);
+        return {
+            x: data.clientX,
+            y: data.clientY,
         };
-        window.addEventListener("touchmove", touchMove);
-        window.addEventListener("touchend", touchEnd);
-    }
-    calculateRealSize() {
-        const currentOffsetWidth = this.contentZoom.offsetWidth;
-        const currentOffsetHeight = this.contentZoom.offsetHeight;
-        if (this.zoom < 1) {
-            // scale the container for zoom
-            this.contentZoom.style.width = this.mainContainer.offsetWidth / this.zoom + 'px';
-            this.contentZoom.style.height = this.mainContainer.offsetHeight / this.zoom + 'px';
-            this.displayHeight = currentOffsetHeight;
-            this.displayWidth = currentOffsetWidth;
-        }
-        else {
-            this.displayHeight = currentOffsetHeight / this.zoom;
-            this.displayWidth = currentOffsetWidth / this.zoom;
-        }
-    }
-    calculatePositionHorizontalScrollerContainer() {
-        const topMissing = this.mainContainer.offsetHeight - this.horizontalScrollerContainer.offsetTop;
-        if (topMissing > 0 && this.x_scroll_visible && !this.floating_scroll) {
-            this.contentHidder.style.height = 'calc(100% - ' + topMissing + 'px)';
-            this.contentHidder.style.marginBottom = topMissing + 'px';
-            this.marginX = topMissing;
-        }
-        else {
-            this.contentHidder.style.height = '';
-            this.contentHidder.style.marginBottom = '';
-            this.marginX = 0;
-        }
-    }
-    calculateSizeHorizontalScroller() {
-        const horizontalScrollerHeight = ((this.displayWidth - this.marginX) / this.contentWrapper.offsetWidth * 100);
-        this.horizontalScroller.style.width = horizontalScrollerHeight + '%';
-        let maxScrollContent = this.contentWrapper.offsetWidth - this.displayWidth;
-        if (maxScrollContent < 0) {
-            maxScrollContent = 0;
-        }
-        this.maxX = maxScrollContent + this.marginX;
-    }
-    calculatePositionVerticalScrollerContainer() {
-        const leftMissing = this.mainContainer.offsetWidth - this.verticalScrollerContainer.offsetLeft;
-        if (leftMissing > 0 && this.y_scroll_visible && !this.floating_scroll) {
-            this.contentHidder.style.width = 'calc(100% - ' + leftMissing + 'px)';
-            this.contentHidder.style.marginRight = leftMissing + 'px';
-            this.marginY = leftMissing;
-        }
-        else {
-            this.contentHidder.style.width = '';
-            this.contentHidder.style.marginRight = '';
-            this.marginY = 0;
-        }
-    }
-    calculateSizeVerticalScroller() {
-        const verticalScrollerHeight = ((this.displayHeight - this.marginY) / this.contentWrapper.offsetHeight * 100);
-        this.verticalScroller.style.height = verticalScrollerHeight + '%';
-        let maxScrollContent = this.contentWrapper.offsetHeight - this.displayHeight;
-        if (maxScrollContent < 0) {
-            maxScrollContent = 0;
-        }
-        this.maxY = maxScrollContent + this.marginY;
-    }
-    changeZoom() {
-        this.contentZoom.style.transform = 'scale(' + this.zoom + ')';
-        this.dimensionRefreshed();
-    }
-    dimensionRefreshed() {
-        this.calculateRealSize();
-        if (this.contentWrapper.offsetHeight - this.displayHeight > 0) {
-            if (!this.y_scroll_visible) {
-                this.y_scroll_visible = true;
-                this.calculatePositionVerticalScrollerContainer();
-            }
-            this.calculateSizeVerticalScroller();
-            this.scrollY(this.y);
-        }
-        else if (this.y_scroll_visible) {
-            this.y_scroll_visible = false;
-            // clear space created by scrollbar
-            this.contentHidder.style.width = '';
-            this.contentHidder.style.marginRight = '';
-            this.scrollY(0);
-        }
-        if (this.contentWrapper.offsetWidth - this.displayWidth > 0) {
-            if (!this.x_scroll_visible) {
-                this.x_scroll_visible = true;
-                this.calculatePositionHorizontalScrollerContainer();
-            }
-            this.calculateSizeHorizontalScroller();
-            this.scrollX(this.x);
-        }
-        else if (this.x_scroll_visible) {
-            this.x_scroll_visible = false;
-            // clear space created by scrollbar
-            this.contentHidder.style.height = '';
-            this.contentHidder.style.marginBottom = '';
-            this.scrollX(0);
-        }
-    }
-    createResizeObserver() {
-        let inProgress = false;
-        this.observer = new Aventus.ResizeObserver({
-            callback: entries => {
-                if (inProgress) {
-                    return;
-                }
-                inProgress = true;
-                this.dimensionRefreshed();
-                inProgress = false;
-            },
-            fps: 30
-        });
-    }
-    addResizeObserver() {
-        if (this.observer == undefined) {
-            this.createResizeObserver();
-        }
-        this.observer.observe(this.contentWrapper);
-        this.observer.observe(this);
-    }
-    postCreation() {
-        this.addResizeObserver();
-        this.addAction();
-        window['temp1'] = this;
     }
 }
-window.customElements.define('av-scrollable', Scrollable);Aventus.WebComponentInstance.registerDefinition(Scrollable);
-
-class GridCol extends Aventus.WebComponent {
+Tracker.Namespace=`${moduleName}`;
+_.Tracker=Tracker;
+Layout.GridCol = class GridCol extends Aventus.WebComponent {
     get 'column'() {
-                    return this.getAttribute('column');
+                    return this.getAttribute('column') ?? undefined;
                 }
                 set 'column'(val) {
                     if(val === undefined || val === null){this.removeAttribute('column')}
                     else{this.setAttribute('column',val)}
                 }get 'row'() {
-                    return this.getAttribute('row');
+                    return this.getAttribute('row') ?? undefined;
                 }
                 set 'row'(val) {
                     if(val === undefined || val === null){this.removeAttribute('row')}
@@ -4135,10 +3708,13 @@ class GridCol extends Aventus.WebComponent {
         return "GridCol";
     }
     __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('column')){ this['column'] = undefined; }if(!this.hasAttribute('row')){ this['row'] = undefined; }if(!this.hasAttribute('c_start')){ this['c_start'] = undefined; }if(!this.hasAttribute('c_end')){ this['c_end'] = undefined; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('column');this.__upgradeProperty('row');this.__upgradeProperty('c_start');this.__upgradeProperty('c_end'); }
 }
-window.customElements.define('av-grid-col', GridCol);Aventus.WebComponentInstance.registerDefinition(GridCol);
+Layout.GridCol.Namespace=`${moduleName}.Layout`;
+_.Layout.GridCol=Layout.GridCol;
+if(!window.customElements.get('av-grid-col')){window.customElements.define('av-grid-col', Layout.GridCol);Aventus.WebComponentInstance.registerDefinition(Layout.GridCol);}
 
-class Grid extends Aventus.WebComponent {
+Layout.Grid = class Grid extends Aventus.WebComponent {
     static get observedAttributes() {return ["cols"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'cols'() {
                     return Number(this.getAttribute('cols'));
@@ -4146,7 +3722,7 @@ class Grid extends Aventus.WebComponent {
                 set 'cols'(val) {
                     if(val === undefined || val === null){this.removeAttribute('cols')}
                     else{this.setAttribute('cols',val)}
-                }    static __style = ``;
+                }    static __style = `:host{display:grid}:host([cols=j]){grid-template-columns:repeat(1, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(2, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(3, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(4, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(5, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(6, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(7, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(8, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(9, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(10, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(11, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(12, minmax(0, 1fr))}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_xs="0"]){margin-right:0%}::slotted(av-grid-col[size_xs="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_xs="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_xs="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_xs="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_xs="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_xs="3"]){margin-right:25%}::slotted(av-grid-col[size_xs="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_xs="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_xs="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_xs="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_xs="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_xs="6"]){margin-right:50%}::slotted(av-grid-col[size_xs="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_xs="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_xs="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_xs="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_xs="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_xs="9"]){margin-right:75%}::slotted(av-grid-col[size_xs="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_xs="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_xs="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_xs="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_xs="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_xs="12"]){margin-right:100%}::slotted(av-grid-col[size_xs="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_sm="0"]){margin-right:0%}::slotted(av-grid-col[size_sm="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_sm="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_sm="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_sm="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_sm="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_sm="3"]){margin-right:25%}::slotted(av-grid-col[size_sm="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_sm="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_sm="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_sm="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_sm="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_sm="6"]){margin-right:50%}::slotted(av-grid-col[size_sm="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_sm="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_sm="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_sm="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_sm="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_sm="9"]){margin-right:75%}::slotted(av-grid-col[size_sm="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_sm="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_sm="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_sm="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_sm="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_sm="12"]){margin-right:100%}::slotted(av-grid-col[size_sm="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_md="0"]){margin-right:0%}::slotted(av-grid-col[size_md="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_md="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_md="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_md="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_md="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_md="3"]){margin-right:25%}::slotted(av-grid-col[size_md="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_md="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_md="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_md="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_md="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_md="6"]){margin-right:50%}::slotted(av-grid-col[size_md="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_md="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_md="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_md="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_md="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_md="9"]){margin-right:75%}::slotted(av-grid-col[size_md="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_md="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_md="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_md="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_md="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_md="12"]){margin-right:100%}::slotted(av-grid-col[size_md="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_lg="0"]){margin-right:0%}::slotted(av-grid-col[size_lg="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_lg="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_lg="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_lg="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_lg="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_lg="3"]){margin-right:25%}::slotted(av-grid-col[size_lg="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_lg="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_lg="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_lg="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_lg="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_lg="6"]){margin-right:50%}::slotted(av-grid-col[size_lg="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_lg="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_lg="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_lg="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_lg="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_lg="9"]){margin-right:75%}::slotted(av-grid-col[size_lg="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_lg="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_lg="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_lg="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_lg="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_lg="12"]){margin-right:100%}::slotted(av-grid-col[size_lg="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_xl="0"]){margin-right:0%}::slotted(av-grid-col[size_xl="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_xl="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_xl="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_xl="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_xl="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_xl="3"]){margin-right:25%}::slotted(av-grid-col[size_xl="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_xl="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_xl="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_xl="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_xl="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_xl="6"]){margin-right:50%}::slotted(av-grid-col[size_xl="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_xl="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_xl="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_xl="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_xl="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_xl="9"]){margin-right:75%}::slotted(av-grid-col[size_xl="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_xl="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_xl="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_xl="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_xl="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_xl="12"]){margin-right:100%}::slotted(av-grid-col[size_xl="12"]){width:100%}}`;
     __getStatic() {
         return Grid;
     }
@@ -4167,11 +3743,13 @@ class Grid extends Aventus.WebComponent {
     __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('cols')){ this['cols'] = 12; } }
     __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('cols'); }
 }
-window.customElements.define('av-grid', Grid);Aventus.WebComponentInstance.registerDefinition(Grid);
+Layout.Grid.Namespace=`${moduleName}.Layout`;
+_.Layout.Grid=Layout.Grid;
+if(!window.customElements.get('av-grid')){window.customElements.define('av-grid', Layout.Grid);Aventus.WebComponentInstance.registerDefinition(Layout.Grid);}
 
-class DynamicRow extends Aventus.WebComponent {
+Layout.DynamicRow = class DynamicRow extends Aventus.WebComponent {
     get 'max_width'() {
-                    return this.getAttribute('max_width');
+                    return this.getAttribute('max_width') ?? undefined;
                 }
                 set 'max_width'(val) {
                     if(val === undefined || val === null){this.removeAttribute('max_width')}
@@ -4196,6 +3774,7 @@ class DynamicRow extends Aventus.WebComponent {
         return "DynamicRow";
     }
     __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('max_width')){ this['max_width'] = undefined; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('max_width'); }
     calculateWidth() {
         let size = this.offsetWidth;
         let labels = [];
@@ -4217,9 +3796,11 @@ class DynamicRow extends Aventus.WebComponent {
         }).observe(this);
     }
 }
-window.customElements.define('av-dynamic-row', DynamicRow);Aventus.WebComponentInstance.registerDefinition(DynamicRow);
+Layout.DynamicRow.Namespace=`${moduleName}.Layout`;
+_.Layout.DynamicRow=Layout.DynamicRow;
+if(!window.customElements.get('av-dynamic-row')){window.customElements.define('av-dynamic-row', Layout.DynamicRow);Aventus.WebComponentInstance.registerDefinition(Layout.DynamicRow);}
 
-class DynamicCol extends Aventus.WebComponent {
+Layout.DynamicCol = class DynamicCol extends Aventus.WebComponent {
     get 'size'() {
                     return Number(this.getAttribute('size'));
                 }
@@ -4367,30 +3948,33 @@ class DynamicCol extends Aventus.WebComponent {
         return "DynamicCol";
     }
     __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('size')){ this['size'] = undefined; }if(!this.hasAttribute('size_xs')){ this['size_xs'] = undefined; }if(!this.hasAttribute('size_sm')){ this['size_sm'] = undefined; }if(!this.hasAttribute('size_md')){ this['size_md'] = undefined; }if(!this.hasAttribute('size_lg')){ this['size_lg'] = undefined; }if(!this.hasAttribute('size_xl')){ this['size_xl'] = undefined; }if(!this.hasAttribute('offset')){ this['offset'] = undefined; }if(!this.hasAttribute('offset_xs')){ this['offset_xs'] = undefined; }if(!this.hasAttribute('offset_sm')){ this['offset_sm'] = undefined; }if(!this.hasAttribute('offset_md')){ this['offset_md'] = undefined; }if(!this.hasAttribute('offset_lg')){ this['offset_lg'] = undefined; }if(!this.hasAttribute('offset_xl')){ this['offset_xl'] = undefined; }if(!this.hasAttribute('offset_right')){ this['offset_right'] = undefined; }if(!this.hasAttribute('offset_right_xs')){ this['offset_right_xs'] = undefined; }if(!this.hasAttribute('offset_right_sm')){ this['offset_right_sm'] = undefined; }if(!this.hasAttribute('offset_right_md')){ this['offset_right_md'] = undefined; }if(!this.hasAttribute('offset_right_lg')){ this['offset_right_lg'] = undefined; }if(!this.hasAttribute('offset_right_xl')){ this['offset_right_xl'] = undefined; }if(!this.hasAttribute('nobreak')) { this.attributeChangedCallback('nobreak', false, false); }if(!this.hasAttribute('center')) { this.attributeChangedCallback('center', false, false); } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('size');this.__upgradeProperty('size_xs');this.__upgradeProperty('size_sm');this.__upgradeProperty('size_md');this.__upgradeProperty('size_lg');this.__upgradeProperty('size_xl');this.__upgradeProperty('offset');this.__upgradeProperty('offset_xs');this.__upgradeProperty('offset_sm');this.__upgradeProperty('offset_md');this.__upgradeProperty('offset_lg');this.__upgradeProperty('offset_xl');this.__upgradeProperty('offset_right');this.__upgradeProperty('offset_right_xs');this.__upgradeProperty('offset_right_sm');this.__upgradeProperty('offset_right_md');this.__upgradeProperty('offset_right_lg');this.__upgradeProperty('offset_right_xl');this.__upgradeProperty('nobreak');this.__upgradeProperty('center'); }
     __listBoolProps() { return ["nobreak","center"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
 }
-window.customElements.define('av-dynamic-col', DynamicCol);Aventus.WebComponentInstance.registerDefinition(DynamicCol);
+Layout.DynamicCol.Namespace=`${moduleName}.Layout`;
+_.Layout.DynamicCol=Layout.DynamicCol;
+if(!window.customElements.get('av-dynamic-col')){window.customElements.define('av-dynamic-col', Layout.DynamicCol);Aventus.WebComponentInstance.registerDefinition(Layout.DynamicCol);}
 
-class Img extends Aventus.WebComponent {
+const Img = class Img extends Aventus.WebComponent {
     static get observedAttributes() {return ["src", "mode"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
-    get 'no_save'() {
-                return this.hasAttribute('no_save');
+    get 'cache'() {
+                return this.hasAttribute('cache');
             }
-            set 'no_save'(val) {
+            set 'cache'(val) {
                 val = this.getBoolean(val);
                 if (val) {
-                    this.setAttribute('no_save', 'true');
+                    this.setAttribute('cache', 'true');
                 } else{
-                    this.removeAttribute('no_save');
+                    this.removeAttribute('cache');
                 }
             }    get 'src'() {
-                    return this.getAttribute('src');
+                    return this.getAttribute('src') ?? undefined;
                 }
                 set 'src'(val) {
                     if(val === undefined || val === null){this.removeAttribute('src')}
                     else{this.setAttribute('src',val)}
                 }get 'mode'() {
-                    return this.getAttribute('mode');
+                    return this.getAttribute('mode') ?? undefined;
                 }
                 set 'mode'(val) {
                     if(val === undefined || val === null){this.removeAttribute('mode')}
@@ -4398,6 +3982,7 @@ class Img extends Aventus.WebComponent {
                 }    isCalculing;
     maxCalculateSize = 10;
     ratio = 1;
+    resizeObserver;
     __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("src", ((target) => {
     target.onSrcChanged();
 }));this.__addPropertyActions("mode", ((target) => {
@@ -4438,11 +4023,11 @@ class Img extends Aventus.WebComponent {
     getClassName() {
         return "Img";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('no_save')) { this.attributeChangedCallback('no_save', false, false); }if(!this.hasAttribute('src')){ this['src'] = undefined; }if(!this.hasAttribute('mode')){ this['mode'] = "contains"; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('src');this.__upgradeProperty('mode'); }
-    __listBoolProps() { return ["no_save"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('cache')) { this.attributeChangedCallback('cache', false, false); }if(!this.hasAttribute('src')){ this['src'] = undefined; }if(!this.hasAttribute('mode')){ this['mode'] = "contains"; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('cache');this.__upgradeProperty('src');this.__upgradeProperty('mode'); }
+    __listBoolProps() { return ["cache"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     calculateSize(attempt = 0) {
-        if (this.isCalculing) {
+        if (this.isCalculing || !this.imgEl || !this.svgEl) {
             return;
         }
         if (this.src == "") {
@@ -4457,7 +4042,7 @@ class Img extends Aventus.WebComponent {
             return;
         }
         let element = this.imgEl;
-        if (this.src.endsWith(".svg")) {
+        if (this.src?.endsWith(".svg")) {
             element = this.svgEl;
         }
         this.style.width = '';
@@ -4529,13 +4114,19 @@ class Img extends Aventus.WebComponent {
         this.isCalculing = false;
     }
     async onSrcChanged() {
+        if (!this.src || !this.svgEl || !this.imgEl) {
+            return;
+        }
         if (this.src.endsWith(".svg")) {
             let svgContent = await Aventus.ResourceLoader.load(this.src);
             this.svgEl.innerHTML = svgContent;
             this.calculateSize();
         }
-        else if (this.src != "" && !this.no_save) {
-            let base64 = await Aventus.ResourceLoader.load(this.src);
+        else if (this.cache) {
+            let base64 = await Aventus.ResourceLoader.load({
+                url: this.src,
+                type: 'img'
+            });
             this.imgEl.setAttribute("src", base64);
             this.calculateSize();
         }
@@ -4544,10 +4135,25 @@ class Img extends Aventus.WebComponent {
             this.calculateSize();
         }
     }
+    postDestruction() {
+        this.resizeObserver?.disconnect();
+        this.resizeObserver = undefined;
+    }
+    postCreation() {
+        this.resizeObserver = new Aventus.ResizeObserver({
+            fps: 10,
+            callback: () => {
+                this.calculateSize();
+            }
+        });
+        this.resizeObserver.observe(this);
+    }
 }
-window.customElements.define('av-img', Img);Aventus.WebComponentInstance.registerDefinition(Img);
+Img.Namespace=`${moduleName}`;
+_.Img=Img;
+if(!window.customElements.get('av-img')){window.customElements.define('av-img', Img);Aventus.WebComponentInstance.registerDefinition(Img);}
 
-class Form extends Aventus.WebComponent {
+Form.Form = class Form extends Aventus.WebComponent {
     static __style = ``;
     __getStatic() {
         return Form;
@@ -4567,9 +4173,11 @@ class Form extends Aventus.WebComponent {
         return "Form";
     }
 }
-window.customElements.define('av-form', Form);Aventus.WebComponentInstance.registerDefinition(Form);
+Form.Form.Namespace=`${moduleName}.Form`;
+_.Form.Form=Form.Form;
+if(!window.customElements.get('av-form')){window.customElements.define('av-form', Form.Form);Aventus.WebComponentInstance.registerDefinition(Form.Form);}
 
-class Input extends Aventus.WebComponent {
+Form.Input = class Input extends Aventus.WebComponent {
     static get observedAttributes() {return ["value", "label"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'required'() {
                 return this.hasAttribute('required');
@@ -4604,19 +4212,19 @@ class Input extends Aventus.WebComponent {
                     if(val === undefined || val === null){this.removeAttribute('max_length')}
                     else{this.setAttribute('max_length',val)}
                 }get 'pattern'() {
-                    return this.getAttribute('pattern');
+                    return this.getAttribute('pattern') ?? undefined;
                 }
                 set 'pattern'(val) {
                     if(val === undefined || val === null){this.removeAttribute('pattern')}
                     else{this.setAttribute('pattern',val)}
                 }    get 'value'() {
-                    return this.getAttribute('value');
+                    return this.getAttribute('value') ?? undefined;
                 }
                 set 'value'(val) {
                     if(val === undefined || val === null){this.removeAttribute('value')}
                     else{this.setAttribute('value',val)}
                 }get 'label'() {
-                    return this.getAttribute('label');
+                    return this.getAttribute('label') ?? undefined;
                 }
                 set 'label'(val) {
                     if(val === undefined || val === null){this.removeAttribute('label')}
@@ -4661,7 +4269,7 @@ class Input extends Aventus.WebComponent {
       {
         "id": "input_1",
         "attrName": "@HTML",
-        "render": (c) => `${c.label}`
+        "render": (c) => `${c.__P(c.label)}`
       }
     ]
   },
@@ -4687,17 +4295,17 @@ class Input extends Aventus.WebComponent {
         return "Input";
     }
     __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('required')) { this.attributeChangedCallback('required', false, false); }if(!this.hasAttribute('disabled')) { this.attributeChangedCallback('disabled', false, false); }if(!this.hasAttribute('min_length')){ this['min_length'] = undefined; }if(!this.hasAttribute('max_length')){ this['max_length'] = undefined; }if(!this.hasAttribute('pattern')){ this['pattern'] = undefined; }if(!this.hasAttribute('value')){ this['value'] = ""; }if(!this.hasAttribute('label')){ this['label'] = ""; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('value');this.__upgradeProperty('label'); }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('required');this.__upgradeProperty('disabled');this.__upgradeProperty('min_length');this.__upgradeProperty('max_length');this.__upgradeProperty('pattern');this.__upgradeProperty('value');this.__upgradeProperty('label'); }
     __listBoolProps() { return ["required","disabled"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     onAttrChange() {
-        if (this.inputEl.value != this.value) {
+        if (this.inputEl && this.inputEl.value != this.value) {
             this.inputEl.value = this.value;
         }
         this.validate();
     }
     inputChange() {
         this.validate();
-        if (this.inputEl.value != this.value) {
+        if (this.inputEl && this.inputEl.value != this.value) {
             this.value = this.inputEl.value;
             this.onChange.trigger([this.value]);
         }
@@ -4721,7 +4329,9 @@ class Input extends Aventus.WebComponent {
         this.printErrors();
     }
     printErrors() {
-        this.errorEl.innerHTML = this.errors.join("<br />");
+        if (this.errorEl) {
+            this.errorEl.innerHTML = this.errors.join("<br />");
+        }
     }
     validate() {
         this.errors = [];
@@ -4769,9 +4379,11 @@ class Input extends Aventus.WebComponent {
         return this.errors.length == 0;
     }
 }
-window.customElements.define('av-input', Input);Aventus.WebComponentInstance.registerDefinition(Input);
+Form.Input.Namespace=`${moduleName}.Form`;
+_.Form.Input=Form.Input;
+if(!window.customElements.get('av-input')){window.customElements.define('av-input', Form.Input);Aventus.WebComponentInstance.registerDefinition(Form.Input);}
 
-class Checkbox extends Aventus.WebComponent {
+Form.Checkbox = class Checkbox extends Aventus.WebComponent {
     static get observedAttributes() {return ["label", "checked"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'disabled'() {
                 return this.hasAttribute('disabled');
@@ -4794,7 +4406,7 @@ class Checkbox extends Aventus.WebComponent {
                     this.removeAttribute('reverse');
                 }
             }    get 'label'() {
-                    return this.getAttribute('label');
+                    return this.getAttribute('label') ?? undefined;
                 }
                 set 'label'(val) {
                     if(val === undefined || val === null){this.removeAttribute('label')}
@@ -4851,7 +4463,7 @@ class Checkbox extends Aventus.WebComponent {
       {
         "id": "checkbox_1",
         "attrName": "@HTML",
-        "render": (c) => `${c.label}`
+        "render": (c) => `${c.__P(c.label)}`
       }
     ]
   }
@@ -4860,19 +4472,19 @@ class Checkbox extends Aventus.WebComponent {
         return "Checkbox";
     }
     __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('disabled')) { this.attributeChangedCallback('disabled', false, false); }if(!this.hasAttribute('reverse')) { this.attributeChangedCallback('reverse', false, false); }if(!this.hasAttribute('label')){ this['label'] = ""; }if(!this.hasAttribute('checked')) { this.attributeChangedCallback('checked', false, false); }if(!this["value"]){ this["value"] = false;} }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('label');this.__upgradeProperty('checked'); }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('disabled');this.__upgradeProperty('reverse');this.__upgradeProperty('label');this.__upgradeProperty('checked'); }
     __listBoolProps() { return ["disabled","reverse","checked"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     syncValue(master) {
         if (this.checked != this.value) {
             if (master == 'checked') {
-                this.value = this.checked;
+                this.value = this.checked ?? false;
             }
             else {
                 this.checked = this.value;
             }
         }
-        if (this.checkboxEl.checked != this.checked) {
-            this.checkboxEl.checked = this.checked;
+        if (this.checkboxEl && this.checkboxEl?.checked != this.checked) {
+            this.checkboxEl.checked = this.checked ?? false;
         }
     }
     validate() {
@@ -4888,36 +4500,817 @@ class Checkbox extends Aventus.WebComponent {
         });
     }
 }
-window.customElements.define('av-checkbox', Checkbox);Aventus.WebComponentInstance.registerDefinition(Checkbox);
-App.Namespace='Aventus';
-Aventus.App=App;
-RouterStateManager.Namespace='Aventus';
-Aventus.RouterStateManager=RouterStateManager;
-(Aventus.Navigation||(Aventus.Navigation = {}));
-RouterLink.Namespace='Aventus.Navigation';
-Aventus.Navigation.RouterLink=RouterLink;
-Router.Namespace='Aventus.Navigation';
-Aventus.Navigation.Router=Router;
-Page.Namespace='Aventus.Navigation';
-Aventus.Navigation.Page=Page;
-(Aventus.Layout||(Aventus.Layout = {}));
-Scrollable.Namespace='Aventus.Layout';
-Aventus.Layout.Scrollable=Scrollable;
-GridCol.Namespace='Aventus.Layout';
-Aventus.Layout.GridCol=GridCol;
-Grid.Namespace='Aventus.Layout';
-Aventus.Layout.Grid=Grid;
-DynamicRow.Namespace='Aventus.Layout';
-Aventus.Layout.DynamicRow=DynamicRow;
-DynamicCol.Namespace='Aventus.Layout';
-Aventus.Layout.DynamicCol=DynamicCol;
-Img.Namespace='Aventus';
-Aventus.Img=Img;
-(Aventus.Form||(Aventus.Form = {}));
-Form.Namespace='Aventus.Form';
-Aventus.Form.Form=Form;
-Input.Namespace='Aventus.Form';
-Aventus.Form.Input=Input;
-Checkbox.Namespace='Aventus.Form';
-Aventus.Form.Checkbox=Checkbox;
+Form.Checkbox.Namespace=`${moduleName}.Form`;
+_.Form.Checkbox=Form.Checkbox;
+if(!window.customElements.get('av-checkbox')){window.customElements.define('av-checkbox', Form.Checkbox);Aventus.WebComponentInstance.registerDefinition(Form.Checkbox);}
+
+const TouchRecord=class TouchRecord {
+    _activeTouchID;
+    _touchList = {};
+    get _primitiveValue() {
+        return { x: 0, y: 0 };
+    }
+    isActive() {
+        return this._activeTouchID !== undefined;
+    }
+    getDelta() {
+        const tracker = this._getActiveTracker();
+        if (!tracker) {
+            return this._primitiveValue;
+        }
+        return { ...tracker.delta };
+    }
+    getVelocity() {
+        const tracker = this._getActiveTracker();
+        if (!tracker) {
+            return this._primitiveValue;
+        }
+        return { ...tracker.velocity };
+    }
+    getEasingDistance(damping) {
+        const deAcceleration = 1 - damping;
+        let distance = {
+            x: 0,
+            y: 0,
+        };
+        const vel = this.getVelocity();
+        Object.keys(vel).forEach(dir => {
+            let v = Math.abs(vel[dir]) <= 10 ? 0 : vel[dir];
+            while (v !== 0) {
+                distance[dir] += v;
+                v = (v * deAcceleration) | 0;
+            }
+        });
+        return distance;
+    }
+    track(evt) {
+        const { targetTouches, } = evt;
+        Array.from(targetTouches).forEach(touch => {
+            this._add(touch);
+        });
+        return this._touchList;
+    }
+    update(evt) {
+        const { touches, changedTouches, } = evt;
+        Array.from(touches).forEach(touch => {
+            this._renew(touch);
+        });
+        this._setActiveID(changedTouches);
+        return this._touchList;
+    }
+    release(evt) {
+        delete this._activeTouchID;
+        Array.from(evt.changedTouches).forEach(touch => {
+            this._delete(touch);
+        });
+    }
+    _add(touch) {
+        if (this._has(touch)) {
+            this._delete(touch);
+        }
+        const tracker = new Tracker(touch);
+        this._touchList[touch.identifier] = tracker;
+    }
+    _renew(touch) {
+        if (!this._has(touch)) {
+            return;
+        }
+        const tracker = this._touchList[touch.identifier];
+        tracker.update(touch);
+    }
+    _delete(touch) {
+        delete this._touchList[touch.identifier];
+    }
+    _has(touch) {
+        return this._touchList.hasOwnProperty(touch.identifier);
+    }
+    _setActiveID(touches) {
+        this._activeTouchID = touches[touches.length - 1].identifier;
+    }
+    _getActiveTracker() {
+        const { _touchList, _activeTouchID, } = this;
+        if (_activeTouchID !== undefined) {
+            return _touchList[_activeTouchID];
+        }
+        return undefined;
+    }
+}
+TouchRecord.Namespace=`${moduleName}`;
+_.TouchRecord=TouchRecord;
+Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
+    static get observedAttributes() {return ["zoom"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'y_scroll_visible'() {
+                return this.hasAttribute('y_scroll_visible');
+            }
+            set 'y_scroll_visible'(val) {
+                val = this.getBoolean(val);
+                if (val) {
+                    this.setAttribute('y_scroll_visible', 'true');
+                } else{
+                    this.removeAttribute('y_scroll_visible');
+                }
+            }get 'x_scroll_visible'() {
+                return this.hasAttribute('x_scroll_visible');
+            }
+            set 'x_scroll_visible'(val) {
+                val = this.getBoolean(val);
+                if (val) {
+                    this.setAttribute('x_scroll_visible', 'true');
+                } else{
+                    this.removeAttribute('x_scroll_visible');
+                }
+            }get 'floating_scroll'() {
+                return this.hasAttribute('floating_scroll');
+            }
+            set 'floating_scroll'(val) {
+                val = this.getBoolean(val);
+                if (val) {
+                    this.setAttribute('floating_scroll', 'true');
+                } else{
+                    this.removeAttribute('floating_scroll');
+                }
+            }get 'x_scroll'() {
+                return this.hasAttribute('x_scroll');
+            }
+            set 'x_scroll'(val) {
+                val = this.getBoolean(val);
+                if (val) {
+                    this.setAttribute('x_scroll', 'true');
+                } else{
+                    this.removeAttribute('x_scroll');
+                }
+            }get 'y_scroll'() {
+                return this.hasAttribute('y_scroll');
+            }
+            set 'y_scroll'(val) {
+                val = this.getBoolean(val);
+                if (val) {
+                    this.setAttribute('y_scroll', 'true');
+                } else{
+                    this.removeAttribute('y_scroll');
+                }
+            }get 'auto_hide'() {
+                return this.hasAttribute('auto_hide');
+            }
+            set 'auto_hide'(val) {
+                val = this.getBoolean(val);
+                if (val) {
+                    this.setAttribute('auto_hide', 'true');
+                } else{
+                    this.removeAttribute('auto_hide');
+                }
+            }get 'break'() {
+                    return Number(this.getAttribute('break'));
+                }
+                set 'break'(val) {
+                    if(val === undefined || val === null){this.removeAttribute('break')}
+                    else{this.setAttribute('break',val)}
+                }get 'disable'() {
+                return this.hasAttribute('disable');
+            }
+            set 'disable'(val) {
+                val = this.getBoolean(val);
+                if (val) {
+                    this.setAttribute('disable', 'true');
+                } else{
+                    this.removeAttribute('disable');
+                }
+            }get 'no_user_select'() {
+                return this.hasAttribute('no_user_select');
+            }
+            set 'no_user_select'(val) {
+                val = this.getBoolean(val);
+                if (val) {
+                    this.setAttribute('no_user_select', 'true');
+                } else{
+                    this.removeAttribute('no_user_select');
+                }
+            }    get 'zoom'() {
+                    return Number(this.getAttribute('zoom'));
+                }
+                set 'zoom'(val) {
+                    if(val === undefined || val === null){this.removeAttribute('zoom')}
+                    else{this.setAttribute('zoom',val)}
+                }    observer;
+    display = { x: 0, y: 0 };
+    max = {
+        x: 0,
+        y: 0
+    };
+    margin = {
+        x: 0,
+        y: 0
+    };
+    position = {
+        x: 0,
+        y: 0
+    };
+    momentum = { x: 0, y: 0 };
+    contentWrapperSize = { x: 0, y: 0 };
+    scroller = {
+        x: () => {
+            if (!this.horizontalScroller) {
+                throw 'can\'t find the horizontalScroller';
+            }
+            return this.horizontalScroller;
+        },
+        y: () => {
+            if (!this.verticalScroller) {
+                throw 'can\'t find the verticalScroller';
+            }
+            return this.verticalScroller;
+        }
+    };
+    scrollerContainer = {
+        x: () => {
+            if (!this.horizontalScrollerContainer) {
+                throw 'can\'t find the horizontalScrollerContainer';
+            }
+            return this.horizontalScrollerContainer;
+        },
+        y: () => {
+            if (!this.verticalScrollerContainer) {
+                throw 'can\'t find the verticalScrollerContainer';
+            }
+            return this.verticalScrollerContainer;
+        }
+    };
+    hideDelay = { x: 0, y: 0 };
+    touchRecord;
+    pointerCount = 0;
+    savedBreak = 1;
+    get x() {
+        return this.position.x;
+    }
+    get y() {
+        return this.position.y;
+    }
+    onScrollChange = new Aventus.Callback();
+    renderAnimation;
+    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("zoom", ((target) => {
+    target.changeZoom();
+})); }
+    static __style = `:host{--internal-scrollbar-container-color: var(--scrollbar-container-color, transparent);--internal-scrollbar-color: var(--scrollbar-color, #757575);--internal-scrollbar-active-color: var(--scrollbar-active-color, #858585);--internal-scroller-width: var(--scroller-width, 6px);--internal-scroller-top: var(--scroller-top, 3px);--internal-scroller-bottom: var(--scroller-bottom, 3px);--internal-scroller-right: var(--scroller-right, 3px);--internal-scroller-left: var(--scroller-left, 3px)}:host{display:block;height:100%;overflow:hidden;position:relative;-webkit-user-drag:none;-khtml-user-drag:none;-moz-user-drag:none;-o-user-drag:none;width:100%}:host .scroll-main-container{display:block;height:100%;position:relative;width:100%}:host .scroll-main-container .content-zoom{display:block;height:100%;position:relative;transform-origin:0 0;width:100%;z-index:4}:host .scroll-main-container .content-zoom .content-hidder{display:block;height:100%;overflow:hidden;position:relative;width:100%}:host .scroll-main-container .content-zoom .content-hidder .content-wrapper{display:inline-block;height:100%;min-height:100%;min-width:100%;position:relative;width:100%}:host .scroll-main-container .scroller-wrapper .container-scroller{display:none;overflow:hidden;position:absolute;z-index:5;transition:transform .2s linear}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller{background-color:var(--internal-scrollbar-container-color);border-radius:5px}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller .scroller{background-color:var(--internal-scrollbar-color);border-radius:5px;cursor:pointer;position:absolute;-webkit-tap-highlight-color:rgba(0,0,0,0);touch-action:none;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .scroller.active{background-color:var(--internal-scrollbar-active-color)}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical{height:calc(100% - var(--internal-scroller-bottom)*2 - var(--internal-scroller-width));padding-left:var(--internal-scroller-left);right:var(--internal-scroller-right);top:var(--internal-scroller-bottom);transform:0;width:calc(var(--internal-scroller-width) + var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical.hide{transform:translateX(calc(var(--internal-scroller-width) + var(--internal-scroller-left)))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller .scroller{width:calc(100% - var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal{bottom:var(--internal-scroller-bottom);height:calc(var(--internal-scroller-width) + var(--internal-scroller-top));left:var(--internal-scroller-right);padding-top:var(--internal-scroller-top);transform:0;width:calc(100% - var(--internal-scroller-right)*2 - var(--internal-scroller-width))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal.hide{transform:translateY(calc(var(--internal-scroller-width) + var(--internal-scroller-top)))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller .scroller{height:calc(100% - var(--internal-scroller-top))}:host([y_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{height:auto}:host([x_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{width:auto}:host([y_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.vertical{display:block}:host([x_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.horizontal{display:block}:host([no_user_select]) .content-wrapper *{user-select:none}:host([no_user_select]) ::slotted{user-select:none}`;
+    constructor() {            super();            this.renderAnimation = this.createAnimation();            this.onWheel = this.onWheel.bind(this);            this.onTouchStart = this.onTouchStart.bind(this);            this.onTouchMove = this.onTouchMove.bind(this);            this.onTouchEnd = this.onTouchEnd.bind(this);            this.touchRecord = new TouchRecord();        }
+    __getStatic() {
+        return Scrollable;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Scrollable.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<div class="scroll-main-container" _id="scrollable_0">    <div class="content-zoom" _id="scrollable_1">        <div class="content-hidder" _id="scrollable_2">            <div class="content-wrapper" _id="scrollable_3">                <slot></slot>            </div>        </div>    </div>    <div class="scroller-wrapper">        <div class="container-scroller vertical" _id="scrollable_4">            <div class="shadow-scroller">                <div class="scroller" _id="scrollable_5"></div>            </div>        </div>        <div class="container-scroller horizontal" _id="scrollable_6">            <div class="shadow-scroller">                <div class="scroller" _id="scrollable_7"></div>            </div>        </div>    </div></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "elements": [
+    {
+      "name": "mainContainer",
+      "ids": [
+        "scrollable_0"
+      ]
+    },
+    {
+      "name": "contentZoom",
+      "ids": [
+        "scrollable_1"
+      ]
+    },
+    {
+      "name": "contentHidder",
+      "ids": [
+        "scrollable_2"
+      ]
+    },
+    {
+      "name": "contentWrapper",
+      "ids": [
+        "scrollable_3"
+      ]
+    },
+    {
+      "name": "verticalScrollerContainer",
+      "ids": [
+        "scrollable_4"
+      ]
+    },
+    {
+      "name": "verticalScroller",
+      "ids": [
+        "scrollable_5"
+      ]
+    },
+    {
+      "name": "horizontalScrollerContainer",
+      "ids": [
+        "scrollable_6"
+      ]
+    },
+    {
+      "name": "horizontalScroller",
+      "ids": [
+        "scrollable_7"
+      ]
+    }
+  ]
+}); }
+    getClassName() {
+        return "Scrollable";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('y_scroll_visible')) { this.attributeChangedCallback('y_scroll_visible', false, false); }if(!this.hasAttribute('x_scroll_visible')) { this.attributeChangedCallback('x_scroll_visible', false, false); }if(!this.hasAttribute('floating_scroll')) { this.attributeChangedCallback('floating_scroll', false, false); }if(!this.hasAttribute('x_scroll')) { this.attributeChangedCallback('x_scroll', false, false); }if(!this.hasAttribute('y_scroll')) {this.setAttribute('y_scroll' ,'true'); }if(!this.hasAttribute('auto_hide')) { this.attributeChangedCallback('auto_hide', false, false); }if(!this.hasAttribute('break')){ this['break'] = 0.1; }if(!this.hasAttribute('disable')) { this.attributeChangedCallback('disable', false, false); }if(!this.hasAttribute('no_user_select')) { this.attributeChangedCallback('no_user_select', false, false); }if(!this.hasAttribute('zoom')){ this['zoom'] = 1; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('y_scroll_visible');this.__upgradeProperty('x_scroll_visible');this.__upgradeProperty('floating_scroll');this.__upgradeProperty('x_scroll');this.__upgradeProperty('y_scroll');this.__upgradeProperty('auto_hide');this.__upgradeProperty('break');this.__upgradeProperty('disable');this.__upgradeProperty('no_user_select');this.__upgradeProperty('zoom'); }
+    __listBoolProps() { return ["y_scroll_visible","x_scroll_visible","floating_scroll","x_scroll","y_scroll","auto_hide","disable","no_user_select"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    createAnimation() {
+        return new Aventus.Animation({
+            fps: 60,
+            animate: () => {
+                const nextX = this.nextPosition('x');
+                const nextY = this.nextPosition('y');
+                this.momentum.x = nextX.momentum;
+                this.momentum.y = nextY.momentum;
+                this.scrollDirection('x', nextX.position);
+                this.scrollDirection('y', nextY.position);
+                if (!this.momentum.x && !this.momentum.y) {
+                    this.renderAnimation.stop();
+                }
+            },
+            stopped: () => {
+                if (this.momentum.x || this.momentum.y) {
+                    this.renderAnimation.start();
+                }
+            }
+        });
+    }
+    nextPosition(direction) {
+        const current = this.position[direction];
+        const remain = this.momentum[direction];
+        let result = {
+            momentum: 0,
+            position: 0,
+        };
+        if (Math.abs(remain) <= 0.1) {
+            result.position = current + remain;
+        }
+        else {
+            let nextMomentum = remain * (1 - this.break);
+            nextMomentum |= 0;
+            result.momentum = nextMomentum;
+            result.position = current + remain - nextMomentum;
+        }
+        let correctPosition = this.correctScrollValue(result.position, direction);
+        if (correctPosition != result.position) {
+            result.position = correctPosition;
+            result.momentum = 0;
+        }
+        return result;
+    }
+    scrollDirection(direction, value) {
+        const max = this.max[direction];
+        if (max != 0) {
+            this.position[direction] = this.correctScrollValue(value, direction);
+        }
+        else {
+            this.position[direction] = 0;
+        }
+        let container = this.scrollerContainer[direction]();
+        let scroller = this.scroller[direction]();
+        if (this.auto_hide) {
+            container.classList.remove("hide");
+            clearTimeout(this.hideDelay[direction]);
+            this.hideDelay[direction] = setTimeout(() => {
+                container.classList.add("hide");
+            }, 1000);
+        }
+        let containerSize = direction == 'y' ? container.offsetHeight : container.offsetWidth;
+        if (this.contentWrapperSize[direction] != 0) {
+            let scrollPosition = this.position[direction] / this.contentWrapperSize[direction] * containerSize;
+            scroller.style.transform = `translate${direction.toUpperCase()}(${scrollPosition}px)`;
+            this.contentWrapper.style.transform = `translate3d(${-1 * this.x}px, ${-1 * this.y}px, 0)`;
+        }
+        this.triggerScrollChange();
+    }
+    correctScrollValue(value, direction) {
+        if (value < 0) {
+            value = 0;
+        }
+        else if (value > this.max[direction]) {
+            value = this.max[direction];
+        }
+        return value;
+    }
+    triggerScrollChange() {
+        this.onScrollChange.trigger([this.x, this.y]);
+    }
+    scrollToPosition(x, y) {
+        this.scrollDirection('x', x);
+        this.scrollDirection('y', y);
+    }
+    scrollX(x) {
+        this.scrollDirection('x', x);
+    }
+    scrollY(y) {
+        this.scrollDirection('y', y);
+    }
+    addAction() {
+        this.addEventListener("wheel", this.onWheel);
+        this.addEventListener("touchstart", this.onTouchStart);
+        this.addEventListener("touchmove", this.onTouchMove);
+        this.addEventListener("touchcancel", this.onTouchEnd);
+        this.addEventListener("touchend", this.onTouchEnd);
+        this.addScrollDrag('x');
+        this.addScrollDrag('y');
+    }
+    addScrollDrag(direction) {
+        let scroller = this.scroller[direction]();
+        scroller.addEventListener("touchstart", (e) => {
+            e.stopPropagation();
+        });
+        let startPosition = 0;
+        new Aventus.DragAndDrop({
+            element: scroller,
+            applyDrag: false,
+            usePercent: true,
+            offsetDrag: 0,
+            isDragEnable: () => !this.disable,
+            onStart: (e) => {
+                this.no_user_select = true;
+                scroller.classList.add("active");
+                startPosition = this.position[direction];
+            },
+            onMove: (e, position) => {
+                let delta = position[direction] / 100 * this.contentWrapperSize[direction];
+                let value = startPosition + delta;
+                this.scrollDirection(direction, value);
+            },
+            onStop: () => {
+                this.no_user_select = false;
+                scroller.classList.remove("active");
+            }
+        });
+    }
+    addDelta(delta) {
+        if (this.disable) {
+            return;
+        }
+        this.momentum.x += delta.x;
+        this.momentum.y += delta.y;
+        this.renderAnimation?.start();
+    }
+    onWheel(e) {
+        const DELTA_MODE = [1.0, 28.0, 500.0];
+        const mode = DELTA_MODE[e.deltaMode] || DELTA_MODE[0];
+        this.addDelta({
+            x: e.deltaX * mode,
+            y: e.deltaY * mode,
+        });
+    }
+    onTouchStart(e) {
+        this.touchRecord.track(e);
+        this.momentum = {
+            x: 0,
+            y: 0
+        };
+        if (this.pointerCount === 0) {
+            this.savedBreak = this.break;
+            this.break = Math.max(this.break, 0.5); // less frames on touchmove
+        }
+        this.pointerCount++;
+    }
+    onTouchMove(e) {
+        this.touchRecord.update(e);
+        const delta = this.touchRecord.getDelta();
+        this.addDelta(delta);
+    }
+    onTouchEnd(e) {
+        const delta = this.touchRecord.getEasingDistance(this.savedBreak);
+        this.addDelta(delta);
+        this.pointerCount--;
+        if (this.pointerCount === 0) {
+            this.break = this.savedBreak;
+        }
+        this.touchRecord.release(e);
+    }
+    calculateRealSize() {
+        if (!this.contentZoom || !this.mainContainer || !this.contentWrapper) {
+            return;
+        }
+        const currentOffsetWidth = this.contentZoom.offsetWidth;
+        const currentOffsetHeight = this.contentZoom.offsetHeight;
+        this.contentWrapperSize.x = this.contentWrapper.offsetWidth;
+        this.contentWrapperSize.y = this.contentWrapper.offsetHeight;
+        if (this.zoom < 1) {
+            // scale the container for zoom
+            this.contentZoom.style.width = this.mainContainer.offsetWidth / this.zoom + 'px';
+            this.contentZoom.style.height = this.mainContainer.offsetHeight / this.zoom + 'px';
+            this.display.y = currentOffsetHeight;
+            this.display.x = currentOffsetWidth;
+        }
+        else {
+            this.display.y = currentOffsetHeight / this.zoom;
+            this.display.x = currentOffsetWidth / this.zoom;
+        }
+    }
+    calculatePositionScrollerContainer(direction) {
+        if (direction == 'y') {
+            this.calculatePositionScrollerContainerY();
+        }
+        else {
+            this.calculatePositionScrollerContainerX();
+        }
+    }
+    calculatePositionScrollerContainerY() {
+        const leftMissing = this.mainContainer.offsetWidth - this.verticalScrollerContainer.offsetLeft;
+        if (leftMissing > 0 && this.y_scroll_visible && !this.floating_scroll) {
+            this.contentHidder.style.width = 'calc(100% - ' + leftMissing + 'px)';
+            this.contentHidder.style.marginRight = leftMissing + 'px';
+            this.margin.x = leftMissing;
+        }
+        else {
+            this.contentHidder.style.width = '';
+            this.contentHidder.style.marginRight = '';
+            this.margin.x = 0;
+        }
+    }
+    calculatePositionScrollerContainerX() {
+        const topMissing = this.mainContainer.offsetHeight - this.horizontalScrollerContainer.offsetTop;
+        if (topMissing > 0 && this.x_scroll_visible && !this.floating_scroll) {
+            this.contentHidder.style.height = 'calc(100% - ' + topMissing + 'px)';
+            this.contentHidder.style.marginBottom = topMissing + 'px';
+            this.margin.y = topMissing;
+        }
+        else {
+            this.contentHidder.style.height = '';
+            this.contentHidder.style.marginBottom = '';
+            this.margin.y = 0;
+        }
+    }
+    calculateSizeScroller(direction) {
+        const scrollerSize = ((this.display[direction] - this.margin[direction]) / this.contentWrapperSize[direction] * 100);
+        if (direction == "y") {
+            this.scroller[direction]().style.height = scrollerSize + '%';
+        }
+        else {
+            this.scroller[direction]().style.width = scrollerSize + '%';
+        }
+        let maxScrollContent = this.contentWrapperSize[direction] - this.display[direction];
+        if (maxScrollContent < 0) {
+            maxScrollContent = 0;
+        }
+        this.max[direction] = maxScrollContent + this.margin[direction];
+    }
+    changeZoom() {
+        this.contentZoom.style.transform = 'scale(' + this.zoom + ')';
+        this.dimensionRefreshed();
+    }
+    dimensionRefreshed() {
+        this.calculateRealSize();
+        if (this.contentWrapperSize.y - this.display.y > 0) {
+            if (!this.y_scroll_visible) {
+                this.y_scroll_visible = true;
+                this.calculatePositionScrollerContainer('y');
+            }
+            this.calculateSizeScroller('y');
+            this.scrollDirection('y', this.y);
+        }
+        else if (this.y_scroll_visible) {
+            this.y_scroll_visible = false;
+            this.calculatePositionScrollerContainer('y');
+            this.scrollDirection('y', 0);
+        }
+        if (this.contentWrapperSize.x - this.display.x > 0) {
+            if (!this.x_scroll_visible) {
+                this.x_scroll_visible = true;
+                this.calculatePositionScrollerContainer('x');
+            }
+            this.calculateSizeScroller('x');
+            this.scrollDirection('x', this.x);
+        }
+        else if (this.x_scroll_visible) {
+            this.x_scroll_visible = false;
+            this.calculatePositionScrollerContainer('x');
+            this.scrollDirection('x', 0);
+        }
+    }
+    createResizeObserver() {
+        let inProgress = false;
+        return new Aventus.ResizeObserver({
+            callback: entries => {
+                if (inProgress) {
+                    return;
+                }
+                inProgress = true;
+                this.dimensionRefreshed();
+                inProgress = false;
+            },
+            fps: 30
+        });
+    }
+    addResizeObserver() {
+        if (this.observer == undefined) {
+            this.observer = this.createResizeObserver();
+        }
+        this.observer.observe(this.contentWrapper);
+        this.observer.observe(this);
+    }
+    postCreation() {
+        this.addResizeObserver();
+        this.addAction();
+    }
+}
+Layout.Scrollable.Namespace=`${moduleName}.Layout`;
+_.Layout.Scrollable=Layout.Scrollable;
+if(!window.customElements.get('av-scrollable')){window.customElements.define('av-scrollable', Layout.Scrollable);Aventus.WebComponentInstance.registerDefinition(Layout.Scrollable);}
+
+const App = class App extends Aventus.WebComponent {
+    static __style = `:host{height:100%;width:100%;margin:0;padding:0;overflow:hidden}:host .part{height:500px;width:100%}`;
+    __getStatic() {
+        return App;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(App.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<av-scrollable>	<div class="content" _id="app_0"></div></av-scrollable>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "elements": [
+    {
+      "name": "content",
+      "ids": [
+        "app_0"
+      ]
+    }
+  ]
+}); }
+    getClassName() {
+        return "App";
+    }
+    postCreation() {
+        for (let i = 0; i <= 8000; i += 500) {
+            let div = document.createElement("DIV");
+            div.classList.add("part");
+            div.style.backgroundColor = "#" + Math.floor(Math.random() * 16777215).toString(16);
+            this.content.appendChild(div);
+        }
+    }
+}
+App.Namespace=`${moduleName}`;
+_.App=App;
+if(!window.customElements.get('av-app')){window.customElements.define('av-app', App);Aventus.WebComponentInstance.registerDefinition(App);}
+
+Navigation.Router = class Router extends Aventus.WebComponent {
+    oldPage;
+    allRoutes = {};
+    activePath = "";
+    oneStateActive = false;
+    showPageMutex = new Aventus.Mutex();
+    get stateManager() {
+        return Aventus.Instance.get(RouterStateManager);
+    }
+    page404;
+    static __style = `:host{display:block}`;
+    constructor() {            super();            this.validError404 = this.validError404.bind(this);if (this.constructor == Router) { throw "can't instanciate an abstract class"; } }
+    __getStatic() {
+        return Router;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Router.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'before':`<slot name="before"></slot>`,'after':`<slot name="after"></slot>` }, 
+        blocks: { 'default':`<slot name="before"></slot><div class="content" _id="router_0"></div><slot name="after"></slot>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "elements": [
+    {
+      "name": "contentEl",
+      "ids": [
+        "router_0"
+      ]
+    }
+  ]
+}); }
+    getClassName() {
+        return "Router";
+    }
+    addRouteAsync(options) {
+        this.allRoutes[options.route] = options;
+    }
+    addRoute(route, elementCtr) {
+        this.allRoutes[route] = {
+            route: route,
+            scriptUrl: '',
+            render: () => elementCtr
+        };
+    }
+    register() {
+        try {
+            this.defineRoutes();
+            this.stateManager.onAfterStateChanged(this.validError404);
+            for (let key in this.allRoutes) {
+                this.initRoute(key);
+            }
+        }
+        catch (e) {
+            console.log(e);
+        }
+    }
+    initRoute(path) {
+        let element = undefined;
+        let allRoutes = this.allRoutes;
+        this.stateManager.subscribe(path, {
+            active: (currentState) => {
+                this.oneStateActive = true;
+                this.showPageMutex.safeRunLastAsync(async () => {
+                    if (!element) {
+                        let options = allRoutes[path];
+                        if (options.scriptUrl != "") {
+                            await Aventus.ResourceLoader.loadInHead(options.scriptUrl);
+                        }
+                        let cst = options.render();
+                        element = new cst;
+                        element.currentRouter = this;
+                        this.contentEl.appendChild(element);
+                    }
+                    if (this.oldPage && this.oldPage != element) {
+                        await this.oldPage.hide();
+                    }
+                    let oldPage = this.oldPage;
+                    let oldUrl = this.activePath;
+                    await element.show();
+                    this.oldPage = element;
+                    this.activePath = path;
+                    if (window.location.pathname != currentState.name) {
+                        let newUrl = window.location.origin + currentState.name;
+                        document.title = element.pageTitle();
+                        window.history.pushState({}, element.pageTitle(), newUrl);
+                    }
+                    this.onNewPage(oldUrl, oldPage, path, element);
+                });
+            },
+            inactive: () => {
+                this.oneStateActive = false;
+            }
+        });
+    }
+    async validError404() {
+        if (!this.oneStateActive) {
+            let Page404 = this.error404(this.stateManager.getState());
+            if (Page404) {
+                if (!this.page404) {
+                    this.page404 = new Page404();
+                    this.page404.currentRouter = this;
+                    this.contentEl.appendChild(this.page404);
+                }
+                if (this.oldPage && this.oldPage != this.page404) {
+                    await this.oldPage.hide();
+                }
+                await this.page404.show();
+                this.oldPage = this.page404;
+                this.activePath = '';
+            }
+        }
+    }
+    error404(state) {
+        return null;
+    }
+    onNewPage(oldUrl, oldPage, newUrl, newPage) {
+    }
+    getSlugs() {
+        return this.stateManager.getStateSlugs(this.activePath);
+    }
+    postCreation() {
+        this.register();
+        let oldUrl = window.localStorage.getItem("navigation_url");
+        if (oldUrl !== null) {
+            Aventus.State.activate(oldUrl, this.stateManager);
+            window.localStorage.removeItem("navigation_url");
+        }
+        else {
+            Aventus.State.activate(window.location.pathname, this.stateManager);
+        }
+        window.onpopstate = (e) => {
+            if (window.location.pathname != this.stateManager.getState()?.name) {
+                Aventus.State.activate(window.location.pathname, this.stateManager);
+            }
+        };
+    }
+}
+Navigation.Router.Namespace=`${moduleName}.Navigation`;
+_.Navigation.Router=Navigation.Router;
+
+
+for(let key in _) { Aventus[key] = _[key] }
 })(Aventus);

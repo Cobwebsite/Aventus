@@ -1,3 +1,5 @@
+import { TouchRecord } from "./Touch.lib.avt";
+
 namespace Layout {
     export class Scrollable extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
@@ -16,443 +18,458 @@ namespace Layout {
         public zoom: number = 1;
 
         @Attribute()
-        private y_scroll_visible: boolean;
+        private y_scroll_visible!: boolean;
 
         @Attribute()
-        private x_scroll_visible: boolean;
-
-        /**
-         * Current scroller position in x
-         */
-        @Attribute()
-        public x: number;
-
-        /**
-         * Current scroller position in y
-         */
-        @Attribute()
-        public y: number;
-
+        private x_scroll_visible!: boolean;
 
         /**
          * Determine if scrollbar will be floating or not
          */
         @Attribute()
-        public floating_scroll: boolean;
+        public floating_scroll!: boolean;
 
         /**
          * Determine if x scroll is allowed
          */
         @Attribute()
-        public allow_x_scroll: boolean;
+        public x_scroll!: boolean;
+
+        /**
+         * Determine if x scroll is allowed
+         */
+        @Attribute()
+        public y_scroll: boolean = true;
 
         /**
          * If true, the scrollers will hide if they're not in use
          */
         @Attribute()
-        public auto_hide: boolean;
+        public auto_hide!: boolean;
 
         @Attribute()
-        private no_transition: boolean;
+        public break: number = 0.1;
+
+        /**
+         * Disable user action
+         */
         @Attribute()
-        private no_user_select: boolean;
+        public disable!: boolean;
+
+        @Attribute()
+        private no_user_select!: boolean;
+
         //#endregion
 
 
         //#region variables
 
         @ViewElement()
-        private contentWrapper: HTMLDivElement;
+        private contentWrapper!: HTMLDivElement;
 
         @ViewElement()
-        private contentZoom: HTMLDivElement;
+        private contentZoom!: HTMLDivElement;
 
         @ViewElement()
-        private mainContainer: HTMLDivElement;
+        private mainContainer!: HTMLDivElement;
 
         @ViewElement()
-        private contentHidder: HTMLDivElement;
+        private contentHidder!: HTMLDivElement;
 
         @ViewElement()
-        private verticalScrollerContainer: HTMLDivElement;
+        private verticalScrollerContainer!: HTMLDivElement;
 
         @ViewElement()
-        private verticalScroller: HTMLDivElement;
+        private verticalScroller!: HTMLDivElement;
 
         @ViewElement()
-        private horizontalScrollerContainer: HTMLDivElement;
+        private horizontalScrollerContainer!: HTMLDivElement;
 
         @ViewElement()
-        private horizontalScroller: HTMLDivElement;
+        private horizontalScroller!: HTMLDivElement;
 
 
 
-        private observer: Aventus.ResizeObserver;
+        private observer?: Aventus.ResizeObserver;
 
-        private displayWidth: number = 0;
-        private displayHeight: number = 0;
+        private display: { x: number, y: number; } = { x: 0, y: 0 };
+        private max: { x: number, y: number; } = {
+            x: 0,
+            y: 0
+        };
+        private margin: { x: number, y: number; } = {
+            x: 0,
+            y: 0
+        };
+        private position: { x: number, y: number; } = {
+            x: 0,
+            y: 0
+        };
+        private momentum: { x: number, y: number; } = { x: 0, y: 0 };
+
+        private contentWrapperSize: { x: number, y: number; } = { x: 0, y: 0 };
+
+        private scroller: {
+            x: () => HTMLDivElement,
+            y: () => HTMLDivElement,
+        } = {
+                x: () => {
+                    if(!this.horizontalScroller) {
+                        throw 'can\'t find the horizontalScroller';
+                    }
+                    return this.horizontalScroller;
+                },
+                y: () => {
+                    if(!this.verticalScroller) {
+                        throw 'can\'t find the verticalScroller';
+                    }
+                    return this.verticalScroller;
+                }
+            };
+
+        private scrollerContainer: {
+            x: () => HTMLDivElement,
+            y: () => HTMLDivElement,
+        } = {
+                x: () => {
+                    if(!this.horizontalScrollerContainer) {
+                        throw 'can\'t find the horizontalScrollerContainer';
+                    }
+                    return this.horizontalScrollerContainer;
+                },
+                y: () => {
+                    if(!this.verticalScrollerContainer) {
+                        throw 'can\'t find the verticalScrollerContainer';
+                    }
+                    return this.verticalScrollerContainer;
+                }
+            };
+
+        private hideDelay: { x: number, y: number; } = { x: 0, y: 0 };
+
+        private touchRecord: TouchRecord;
+        private pointerCount: number = 0;
+        private savedBreak: number = 1;
 
 
-        private maxX: number = 0;
-        private marginX: number = 0;
-        private maxY: number = 0;
-        private marginY: number = 0;
-        private hideDelayX: number;
-        private hideDelayY: number;
+        public get x(): number {
+            return this.position.x;
+        }
+        public get y(): number {
+            return this.position.y;
+        }
         //#endregion
 
 
         //#region constructor
         constructor() {
             super();
-            this.wheelAction = this.wheelAction.bind(this);
-            this.touchWheelAction = this.touchWheelAction.bind(this);
+            this.renderAnimation = this.createAnimation();
+            this.onWheel = this.onWheel.bind(this);
+            this.onTouchStart = this.onTouchStart.bind(this);
+            this.onTouchMove = this.onTouchMove.bind(this);
+            this.onTouchEnd = this.onTouchEnd.bind(this);
+            this.touchRecord = new TouchRecord();
         }
         //#endregion
 
 
         //#region methods
 
-        //#region scroll action
-        private correctVerticalScrollValue(value: number): number {
-            if(value < 0) {
-                value = 0;
-            }
-            else if(value > this.maxY) {
-                value = this.maxY;
-            }
-            return value;
-        }
-        private scrollVerticalScrollbar(percentValue: number) {
-            let verticalValue = percentValue / 100 * this.contentWrapper.offsetHeight;
-            this.scrollY(verticalValue);
-        }
         /**
-         * Scroll the container vertically
+         * Callback trigger when the scroll change
          */
-        public scrollY(value: number) {
-            if(this.maxY != 0) {
-                this.y = this.correctVerticalScrollValue(value);
-            }
-            else {
-                this.y = 0;
-            }
-            let scrollPosition = this.y / this.contentWrapper.offsetHeight * 100;
-            if(this.auto_hide) {
-                this.verticalScrollerContainer.classList.remove("hide");
-                clearTimeout(this.hideDelayY);
-                this.hideDelayY = setTimeout(() => {
-                    this.verticalScrollerContainer.classList.add("hide");
-                }, 1000);
-            }
-            this.verticalScroller.style.top = `${scrollPosition}%`;
-            this.contentWrapper.style.transform = `translate3d(${-1 * this.x}px, ${-1 * this.y}px, 0)`;
+        public onScrollChange: Aventus.Callback<(x: number, y: number) => void> = new Aventus.Callback();
+
+        //#region render
+        private renderAnimation: Aventus.Animation;
+        private createAnimation(): Aventus.Animation {
+            return new Aventus.Animation({
+                fps: 60,
+                animate: () => {
+                    const nextX = this.nextPosition('x');
+                    const nextY = this.nextPosition('y');
+
+                    this.momentum.x = nextX.momentum;
+                    this.momentum.y = nextY.momentum;
+
+                    this.scrollDirection('x', nextX.position);
+                    this.scrollDirection('y', nextY.position);
+
+                    if(!this.momentum.x && !this.momentum.y) {
+                        this.renderAnimation.stop();
+                    }
+                },
+                stopped: () => {
+                    if(this.momentum.x || this.momentum.y) {
+                        this.renderAnimation.start();
+                    }
+                }
+            });
         }
 
-        private correctHorizontalScrollValue(value: number): number {
+        private nextPosition(direction: 'x' | 'y'): { momentum: number, position: number; } {
+            const current = this.position[direction];
+            const remain = this.momentum[direction];
+            let result = {
+                momentum: 0,
+                position: 0,
+            };
+            if(Math.abs(remain) <= 0.1) {
+                result.position = current + remain;
+            }
+            else {
+                let nextMomentum = remain * (1 - this.break);
+                nextMomentum |= 0;
+                result.momentum = nextMomentum;
+                result.position = current + remain - nextMomentum;
+            }
+
+            let correctPosition = this.correctScrollValue(result.position, direction);
+
+            if(correctPosition != result.position) {
+                result.position = correctPosition;
+                result.momentum = 0;
+            }
+
+
+            return result;
+        }
+        //#endregion
+
+        //#region scroll action
+        private scrollDirection(direction: 'x' | 'y', value: number) {
+            const max = this.max[direction];
+
+            if(max != 0) {
+                this.position[direction] = this.correctScrollValue(value, direction);
+            }
+            else {
+                this.position[direction] = 0;
+            }
+            let container = this.scrollerContainer[direction]();
+            let scroller = this.scroller[direction]();
+            if(this.auto_hide) {
+                container.classList.remove("hide");
+                clearTimeout(this.hideDelay[direction]);
+                this.hideDelay[direction] = setTimeout(() => {
+                    container.classList.add("hide");
+                }, 1000);
+            }
+            let containerSize = direction == 'y' ? container.offsetHeight : container.offsetWidth;
+            if(this.contentWrapperSize[direction] != 0) {
+                let scrollPosition = this.position[direction] / this.contentWrapperSize[direction] * containerSize;
+                scroller.style.transform = `translate${direction.toUpperCase()}(${scrollPosition}px)`;
+                this.contentWrapper!.style.transform = `translate3d(${-1 * this.x}px, ${-1 * this.y}px, 0)`;
+            }
+            this.triggerScrollChange();
+        }
+
+        private correctScrollValue(value: number, direction: 'x' | 'y'): number {
             if(value < 0) {
                 value = 0;
             }
-            else if(value > this.maxX) {
-                value = this.maxX;
+            else if(value > this.max[direction]) {
+                value = this.max[direction];
             }
             return value;
         }
-        private scrollHorizontalScrollbar(percentValue: number) {
-            let value = percentValue / 100 * this.contentWrapper.offsetWidth;
-            this.scrollX(value);
+
+        private triggerScrollChange() {
+            this.onScrollChange.trigger([this.x, this.y]);
         }
-        /**
-         * Scroll the container horizontally
-         */
-        public scrollX(value: number) {
-            if(this.maxX != 0) {
-                this.x = this.correctHorizontalScrollValue(value);
-            }
-            else {
-                this.x = 0;
-            }
-            let scrollPosition = this.x / this.contentWrapper.offsetWidth * 100;
-            if(this.auto_hide) {
-                this.horizontalScrollerContainer.classList.remove("hide");
-                clearTimeout(this.hideDelayX);
-                this.hideDelayX = setTimeout(() => {
-                    this.horizontalScrollerContainer.classList.add("hide");
-                }, 1000);
-            }
-            this.horizontalScroller.style.left = `${scrollPosition}%`;
-            this.contentWrapper.style.transform = `translate3d(${-1 * this.x}px, ${-1 * this.y}px, 0)`;
-        }
+
 
         /**
          * Shortcut for functions scrollX and scrollY
          */
         public scrollToPosition(x: number, y: number) {
-            this.scrollX(x);
-            this.scrollY(y);
+            this.scrollDirection('x', x);
+            this.scrollDirection('y', y);
         }
+        /**
+         * Scroll left - right
+         */
+        public scrollX(x: number) {
+            this.scrollDirection('x', x);
+        }
+        /**
+         * Scroll bottom - top
+         */
+        public scrollY(y: number) {
+            this.scrollDirection('y', y);
+        }
+
         //#endregion
 
         //#region events
         private addAction() {
-            this.addEventListener("wheel", this.wheelAction);
-            this.addEventListener("touchstart", this.touchWheelAction);
-            this.addVerticalScrollDrag();
-            this.addHorizontalScrollDrag();
+            this.addEventListener("wheel", this.onWheel);
+            this.addEventListener("touchstart", this.onTouchStart);
+            this.addEventListener("touchmove", this.onTouchMove);
+            this.addEventListener("touchcancel", this.onTouchEnd);
+            this.addEventListener("touchend", this.onTouchEnd);
+            this.addScrollDrag('x');
+            this.addScrollDrag('y');
         }
-        private addVerticalScrollDrag() {
-            this.verticalScroller.addEventListener("touchstart", (e) => {
+
+        private addScrollDrag(direction: 'x' | 'y') {
+            let scroller = this.scroller[direction]();
+            scroller.addEventListener("touchstart", (e) => {
                 e.stopPropagation();
             });
+            let startPosition = 0;
             new Aventus.DragAndDrop({
-                element: this.verticalScroller,
+                element: scroller,
                 applyDrag: false,
                 usePercent: true,
                 offsetDrag: 0,
+                isDragEnable: () => !this.disable,
                 onStart: (e) => {
-                    this.no_transition = true;
                     this.no_user_select = true;
-                    this.verticalScroller.classList.add("active");
+                    scroller.classList.add("active");
+                    startPosition = this.position[direction];
                 },
                 onMove: (e, position) => {
-                    this.scrollVerticalScrollbar(position.y);
+                    let delta = position[direction] / 100 * this.contentWrapperSize[direction];
+                    let value = startPosition + delta;
+                    this.scrollDirection(direction, value);
                 },
                 onStop: () => {
-                    this.no_transition = false;
                     this.no_user_select = false;
-                    this.verticalScroller.classList.remove("active");
+                    scroller.classList.remove("active");
+                }
+            });
+        }
 
-                },
-            });
-        }
-        private addHorizontalScrollDrag() {
-            this.horizontalScroller.addEventListener("touchstart", (e) => {
-                e.stopPropagation();
-            });
-            new Aventus.DragAndDrop({
-                element: this.horizontalScroller,
-                applyDrag: false,
-                usePercent: true,
-                offsetDrag: 0,
-                onStart: (e) => {
-                    this.no_transition = true;
-                    this.no_user_select = true;
-                    this.horizontalScroller.classList.add("active");
-                },
-                onMove: (e, position) => {
-                    this.scrollHorizontalScrollbar(position.x);
-                },
-                onStop: () => {
-                    this.no_transition = false;
-                    this.no_user_select = false;
-                    this.horizontalScroller.classList.remove("active");
 
-                },
+        private addDelta(delta: { x: number, y: number; }) {
+            if(this.disable) {
+                return;
+            }
+            this.momentum.x += delta.x;
+            this.momentum.y += delta.y;
+            this.renderAnimation?.start();
+        }
+        private onWheel(e: WheelEvent) {
+            const DELTA_MODE = [1.0, 28.0, 500.0];
+            const mode = DELTA_MODE[e.deltaMode] || DELTA_MODE[0];
+            this.addDelta({
+                x: e.deltaX * mode,
+                y: e.deltaY * mode,
             });
         }
-        private wheelAction(e: WheelEvent) {
-            if(e.altKey) {
-                if(this.x_scroll_visible) {
-                    let triggerEvent = (this.x == 0 && e.deltaY < 0) || (this.x == this.maxX && e.deltaY > 0);
-                    this.scrollX(this.x + e.deltaY);
-                    if(!triggerEvent) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                    }
-                }
-            }
-            else {
-                if(this.y_scroll_visible) {
-                    let triggerEvent = (this.y == 0 && e.deltaY < 0) || (this.y == this.maxY && e.deltaY > 0);
-                    this.scrollY(this.y + e.deltaY);
-                    if(!triggerEvent) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                    }
-                }
-            }
-        }
-        private touchWheelAction(e: TouchEvent) {
-            let startX = e.touches[0].pageX;
-            let startY = e.touches[0].pageY;
-            let startHorizontal = this.x;
-            let startVertical = this.y;
-            this.no_transition = true;
-            let inertiaArrayY: Map<Date, number> = new Map();
-            let inertiaArrayX: Map<Date, number> = new Map();
-            let averageY: number = 0;
-            let averageX: number = 0;
-            let lastDiffY = 0;
-            let lastDiffX = 0;
-            let touchMove = (e: TouchEvent) => {
-                let diffX = startX - e.touches[0].pageX;
-                let diffY = startY - e.touches[0].pageY;
-                // inertia
-                if(inertiaArrayY.size == 5) {
-                    inertiaArrayY.delete(inertiaArrayY.keys()[0]);
-                }
-                if(inertiaArrayX.size == 5) {
-                    inertiaArrayX.delete(inertiaArrayX.keys()[0]);
-                }
-                inertiaArrayX.set(new Date(), diffX - lastDiffX);
-                inertiaArrayY.set(new Date(), diffY - lastDiffY);
-                lastDiffX = diffX;
-                lastDiffY = diffY;
-                this.scrollX(startHorizontal + diffX);
-                this.scrollY(startVertical + diffY);
+
+
+        private onTouchStart(e: TouchEvent) {
+            this.touchRecord.track(e);
+
+            this.momentum = {
+                x: 0,
+                y: 0
             };
-            let touchEnd = (e: TouchEvent) => {
-                window.removeEventListener("touchmove", touchMove);
-                window.removeEventListener("touchend", touchEnd);
-                let date = new Date();
-                let totX = 0;
-                let totY = 0;
-                let inertiaXRunning = false;
-                let inertiaYRunning = false;
-                for(let [dateEvent, value] of inertiaArrayX) {
-                    let factor = (1000) - (date.getTime() - dateEvent.getTime());
-                    if(factor < 0) {
-                        factor = 0;
-                    }
-                    factor /= 1000;
-                    totX += value * factor;
-                }
-                for(let [dateEvent, value] of inertiaArrayY) {
-                    let factor = (1000) - (date.getTime() - dateEvent.getTime());
-                    if(factor < 0) {
-                        factor = 0;
-                    }
-                    factor /= 1000;
-                    totY += value * factor;
-                }
-                if(inertiaArrayX.size > 0) {
-                    inertiaXRunning = true;
-                    averageX = Math.round(totX / inertiaArrayX.size);
-                    let breakX = averageX > 0 ? 1 : -1;
-                    let checkX = averageX > 0 ? () => averageX <= 0 : () => averageX >= 0;
-                    let intervalInertia = new Aventus.Animation({
-                        animate: () => {
-                            if(checkX()) {
-                                intervalInertia.stop();
-                            }
-                            else {
-                                averageX -= breakX;
-                                lastDiffX += averageX;
-                                this.scrollX(startHorizontal + lastDiffX);
-                            }
-                        },
-                        stopped: () => {
-                            inertiaXRunning = false;
-                            if(!inertiaXRunning && !inertiaYRunning) {
-                                this.no_transition = false;
-                            }
-                        },
-                        fps: 60,
-                    });
-                    intervalInertia.start();
-                }
-                if(inertiaArrayY.size > 0) {
-                    inertiaYRunning = true;
-                    averageY = Math.round(totY / inertiaArrayY.size);
-                    let breakY = averageY > 0 ? 1 : -1;
-                    let checkY = averageY > 0 ? () => averageY <= 0 : () => averageY >= 0;
-                    let intervalInertia = new Aventus.Animation({
-                        animate: () => {
-                            if(checkY()) {
-                                intervalInertia.stop();
-                            }
-                            else {
-                                averageY -= breakY;
-                                lastDiffY += averageY;
-                                this.scrollY(startVertical + lastDiffY);
-                            }
-                        },
-                        stopped: () => {
-                            inertiaYRunning = false;
-                            if(!inertiaXRunning && !inertiaYRunning) {
-                                this.no_transition = false;
-                            }
-                        },
-                        fps: 60,
-                    });
-                    intervalInertia.start();
-                }
-                if(!inertiaXRunning && !inertiaYRunning) {
-                    this.no_transition = false;
-                }
-            };
-            window.addEventListener("touchmove", touchMove);
-            window.addEventListener("touchend", touchEnd);
+
+            if(this.pointerCount === 0) {
+                this.savedBreak = this.break;
+                this.break = Math.max(this.break, 0.5); // less frames on touchmove
+            }
+            this.pointerCount++;
         }
+        private onTouchMove(e: TouchEvent) {
+            this.touchRecord.update(e);
+            const delta = this.touchRecord.getDelta();
+            this.addDelta(delta);
+        }
+        private onTouchEnd(e: TouchEvent) {
+            const delta = this.touchRecord.getEasingDistance(this.savedBreak);
+            this.addDelta(delta);
+            this.pointerCount--;
+
+            if(this.pointerCount === 0) {
+                this.break = this.savedBreak;
+            }
+
+            this.touchRecord.release(e);
+        }
+
         //#endregion
 
         //#region position
         private calculateRealSize() {
+            if(!this.contentZoom || !this.mainContainer || !this.contentWrapper) {
+                return;
+            }
             const currentOffsetWidth = this.contentZoom.offsetWidth;
             const currentOffsetHeight = this.contentZoom.offsetHeight;
+
+            this.contentWrapperSize.x = this.contentWrapper.offsetWidth;
+            this.contentWrapperSize.y = this.contentWrapper.offsetHeight;
 
             if(this.zoom < 1) {
                 // scale the container for zoom
                 this.contentZoom.style.width = this.mainContainer.offsetWidth / this.zoom + 'px';
                 this.contentZoom.style.height = this.mainContainer.offsetHeight / this.zoom + 'px';
-                this.displayHeight = currentOffsetHeight;
-                this.displayWidth = currentOffsetWidth;
+                this.display.y = currentOffsetHeight;
+                this.display.x = currentOffsetWidth;
             }
             else {
-                this.displayHeight = currentOffsetHeight / this.zoom;
-                this.displayWidth = currentOffsetWidth / this.zoom;
+                this.display.y = currentOffsetHeight / this.zoom;
+                this.display.x = currentOffsetWidth / this.zoom;
             }
         }
 
-        private calculatePositionHorizontalScrollerContainer() {
-            const topMissing = this.mainContainer.offsetHeight - this.horizontalScrollerContainer.offsetTop;
-            if(topMissing > 0 && this.x_scroll_visible && !this.floating_scroll) {
-                this.contentHidder.style.height = 'calc(100% - ' + topMissing + 'px)';
-                this.contentHidder.style.marginBottom = topMissing + 'px';
-                this.marginX = topMissing;
+        private calculatePositionScrollerContainer(direction: 'x' | 'y') {
+            if(direction == 'y') {
+                this.calculatePositionScrollerContainerY();
             }
             else {
-                this.contentHidder.style.height = '';
-                this.contentHidder.style.marginBottom = '';
-                this.marginX = 0;
+                this.calculatePositionScrollerContainerX();
             }
         }
-        private calculateSizeHorizontalScroller() {
-            const horizontalScrollerHeight = ((this.displayWidth - this.marginX) / this.contentWrapper.offsetWidth * 100);
-            this.horizontalScroller.style.width = horizontalScrollerHeight + '%';
-
-            let maxScrollContent = this.contentWrapper.offsetWidth - this.displayWidth;
-            if(maxScrollContent < 0) {
-                maxScrollContent = 0;
-            }
-            this.maxX = maxScrollContent + this.marginX;
-
-        }
-        private calculatePositionVerticalScrollerContainer() {
+        private calculatePositionScrollerContainerY() {
             const leftMissing = this.mainContainer.offsetWidth - this.verticalScrollerContainer.offsetLeft;
             if(leftMissing > 0 && this.y_scroll_visible && !this.floating_scroll) {
                 this.contentHidder.style.width = 'calc(100% - ' + leftMissing + 'px)';
                 this.contentHidder.style.marginRight = leftMissing + 'px';
-                this.marginY = leftMissing;
+                this.margin.x = leftMissing;
 
             }
             else {
                 this.contentHidder.style.width = '';
                 this.contentHidder.style.marginRight = '';
-                this.marginY = 0;
+                this.margin.x = 0;
             }
         }
-        private calculateSizeVerticalScroller() {
-            const verticalScrollerHeight = ((this.displayHeight - this.marginY) / this.contentWrapper.offsetHeight * 100);
-            this.verticalScroller.style.height = verticalScrollerHeight + '%';
 
-            let maxScrollContent = this.contentWrapper.offsetHeight - this.displayHeight;
+        private calculatePositionScrollerContainerX() {
+            const topMissing = this.mainContainer.offsetHeight - this.horizontalScrollerContainer.offsetTop;
+            if(topMissing > 0 && this.x_scroll_visible && !this.floating_scroll) {
+                this.contentHidder.style.height = 'calc(100% - ' + topMissing + 'px)';
+                this.contentHidder.style.marginBottom = topMissing + 'px';
+                this.margin.y = topMissing;
+            }
+            else {
+                this.contentHidder.style.height = '';
+                this.contentHidder.style.marginBottom = '';
+                this.margin.y = 0;
+            }
+        }
+
+        private calculateSizeScroller(direction: 'x' | 'y') {
+            const scrollerSize = ((this.display[direction] - this.margin[direction]) / this.contentWrapperSize[direction] * 100);
+            if(direction == "y") {
+                this.scroller[direction]().style.height = scrollerSize + '%';
+            }
+            else {
+                this.scroller[direction]().style.width = scrollerSize + '%';
+            }
+            let maxScrollContent = this.contentWrapperSize[direction] - this.display[direction];
             if(maxScrollContent < 0) {
                 maxScrollContent = 0;
             }
-            this.maxY = maxScrollContent + this.marginY;
-
+            this.max[direction] = maxScrollContent + this.margin[direction];
         }
+
         //#endregion
 
         private changeZoom() {
@@ -463,42 +480,38 @@ namespace Layout {
         private dimensionRefreshed() {
             this.calculateRealSize();
 
-            if(this.contentWrapper.offsetHeight - this.displayHeight > 0) {
+            if(this.contentWrapperSize.y - this.display.y > 0) {
                 if(!this.y_scroll_visible) {
                     this.y_scroll_visible = true;
-                    this.calculatePositionVerticalScrollerContainer();
+                    this.calculatePositionScrollerContainer('y');
                 }
-                this.calculateSizeVerticalScroller();
-                this.scrollY(this.y);
+                this.calculateSizeScroller('y');
+                this.scrollDirection('y', this.y);
             }
             else if(this.y_scroll_visible) {
                 this.y_scroll_visible = false;
-                // clear space created by scrollbar
-                this.contentHidder.style.width = '';
-                this.contentHidder.style.marginRight = '';
-                this.scrollY(0);
+                this.calculatePositionScrollerContainer('y');
+                this.scrollDirection('y', 0);
             }
 
-            if(this.contentWrapper.offsetWidth - this.displayWidth > 0) {
+            if(this.contentWrapperSize.x - this.display.x > 0) {
                 if(!this.x_scroll_visible) {
                     this.x_scroll_visible = true;
-                    this.calculatePositionHorizontalScrollerContainer();
+                    this.calculatePositionScrollerContainer('x');
                 }
-                this.calculateSizeHorizontalScroller();
-                this.scrollX(this.x);
+                this.calculateSizeScroller('x');
+                this.scrollDirection('x', this.x);
             }
             else if(this.x_scroll_visible) {
                 this.x_scroll_visible = false;
-                // clear space created by scrollbar
-                this.contentHidder.style.height = '';
-                this.contentHidder.style.marginBottom = '';
-                this.scrollX(0);
+                this.calculatePositionScrollerContainer('x');
+                this.scrollDirection('x', 0);
             }
 
         }
         private createResizeObserver() {
             let inProgress = false;
-            this.observer = new Aventus.ResizeObserver({
+            return new Aventus.ResizeObserver({
                 callback: entries => {
                     if(inProgress) {
                         return;
@@ -513,7 +526,7 @@ namespace Layout {
         }
         private addResizeObserver() {
             if(this.observer == undefined) {
-                this.createResizeObserver();
+                this.observer = this.createResizeObserver();
             }
             this.observer.observe(this.contentWrapper);
             this.observer.observe(this);
@@ -521,7 +534,6 @@ namespace Layout {
         protected override postCreation(): void {
             this.addResizeObserver();
             this.addAction();
-            window['temp1'] = this;
         }
         //#endregion
 

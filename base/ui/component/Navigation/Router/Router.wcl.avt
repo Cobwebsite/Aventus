@@ -20,13 +20,14 @@ namespace Navigation {
 
 
         //#region variables
-        private oldPage: Page;
+        private oldPage?: Page;
         @ViewElement()
-        public contentEl: HTMLDivElement;
+        public contentEl!: HTMLDivElement;
 
         private allRoutes: { [key: string]: RouteAsyncOption; } = {};
         private activePath: string = "";
         private oneStateActive: boolean = false;
+        private showPageMutex: Aventus.Mutex = new Aventus.Mutex();
         //#endregion
 
 
@@ -70,20 +71,20 @@ namespace Navigation {
             }
         }
         private initRoute(path: string) {
-            let element: Page = undefined;
+            let element: Page | undefined = undefined;
             let allRoutes = this.allRoutes;
             this.stateManager.subscribe(path, {
                 active: (currentState) => {
                     this.oneStateActive = true;
-                    const showPage = async () => {
+                    this.showPageMutex.safeRunLastAsync(async () => {
                         if(!element) {
                             let options = allRoutes[path];
                             if(options.scriptUrl != "") {
                                 await Aventus.ResourceLoader.loadInHead(options.scriptUrl);
                             }
 
-                            let constructor = options.render();
-                            element = new constructor;
+                            let cst = options.render();
+                            element = new cst;
                             element.currentRouter = this;
                             this.contentEl.appendChild(element);
                         }
@@ -102,8 +103,7 @@ namespace Navigation {
                             window.history.pushState({}, element.pageTitle(), newUrl);
                         }
                         this.onNewPage(oldUrl, oldPage, path, element);
-                    };
-					showPage();
+                    });
                 },
                 inactive: () => {
                     this.oneStateActive = false;
@@ -111,7 +111,7 @@ namespace Navigation {
             });
         }
 
-        protected page404: Page;
+        protected page404?: Page;
         protected async validError404() {
             if(!this.oneStateActive) {
                 let Page404 = this.error404(this.stateManager.getState());
@@ -130,10 +130,10 @@ namespace Navigation {
                 }
             }
         }
-        protected error404(state: Aventus.State): null | (new () => Page) {
+        protected error404(state?: Aventus.State): null | (new () => Page) {
             return null;
         }
-        protected onNewPage(oldUrl: string, oldPage: Page, newUrl: string, newPage: Page) {
+        protected onNewPage(oldUrl: string, oldPage: Page | undefined, newUrl: string, newPage: Page) {
 
         }
         public getSlugs() {
@@ -141,15 +141,16 @@ namespace Navigation {
         }
         protected override postCreation(): void {
             this.register();
-            if(window.localStorage.getItem("navigation_url")) {
-                Aventus.State.activate(window.localStorage.getItem("navigation_url"), this.stateManager);
+            let oldUrl = window.localStorage.getItem("navigation_url");
+            if(oldUrl !== null) {
+                Aventus.State.activate(oldUrl, this.stateManager);
                 window.localStorage.removeItem("navigation_url");
             }
             else {
                 Aventus.State.activate(window.location.pathname, this.stateManager);
             }
             window.onpopstate = (e) => {
-                if(window.location.pathname != this.stateManager.getState().name) {
+                if(window.location.pathname != this.stateManager.getState()?.name) {
                     Aventus.State.activate(window.location.pathname, this.stateManager);
                 }
             };

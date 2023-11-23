@@ -1,27 +1,67 @@
 import { EOL } from 'os';
-import { ExecuteCommandParams, TextEdit } from 'vscode-languageserver';
+import { TextEdit } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AventusLanguageId } from '../../definition';
 import { InternalAventusFile } from '../../files/AventusFile';
 import { FilesManager } from '../../files/FilesManager';
 import { AventusWebComponentLogicalFile } from '../../language-services/ts/component/File';
 import { EditFile } from '../../notification/EditFile';
+import { GenericServer } from '../../GenericServer';
+import { reorderList } from '../../tools';
+import { SelectItem } from '../../IConnection';
 
 export class CreateProperty {
 	static cmd: string = "aventus.wc.create.property";
+	private static attrType: SelectItem[] = [
+		{ label: "Number", detail: "number" },
+		{ label: "String", detail: "string" },
+		{ label: "Boolean", detail: "boolean" },
+		{ label: "Date", detail: "Date" },
+		{ label: "Datetime", detail: "Datetime" },
+		{ label: "Custom", detail: "" },
+	];
 
-	constructor(params: ExecuteCommandParams) {
-		if (params.arguments && params.arguments.length == 5) {
-			let uri = params.arguments[0];
-			let name: string = params.arguments[1];
-			let type: string = params.arguments[2];
-			let cb: boolean = params.arguments[3];
-			let position: number = params.arguments[4];
-			this.run(uri, name, type, cb, position);
+
+
+	public static async run(uri: string, position: number, prefillName: string) {
+		if (!uri) {
+			return;
 		}
-	}
+		if (!position) {
+			return;
+		}
+		const name = await GenericServer.Input({
+			title: "Provide a name for your Property",
+			async validateInput(value) {
+				if (!value.match(/^[_a-z0-9]+$/g)) {
+					return 'A property must be with lowercase, number or _';
+				}
+				return null;
+			},
+			value: prefillName
+		});
+		if (!name) {
+			return;
+		}
 
-	private async run(uri: string, name: string, type: string, needCb: boolean, position: number) {
+		let typeResult = await GenericServer.Select(CreateProperty.attrType, {
+			placeHolder: 'Choose a type?',
+		})
+		if (!typeResult) { return }
+		reorderList(CreateProperty.attrType, typeResult);
+		let type = typeResult.detail;
+
+		const needCbResult = await GenericServer.Select([
+			{ label: "Yes" }, { label: "No" }
+		], {
+			placeHolder: 'Do you need a callback function?',
+		});
+
+		if (!needCbResult) {
+			return;
+		}
+		let needCb = needCbResult.label == "Yes";
+
 		let file = FilesManager.getInstance().getByUri(uri);
 		if (file) {
 			let oldEnd = file.document.positionAt(file.content.length);
@@ -40,7 +80,11 @@ export class CreateProperty {
 			if (needCb) {
 				cb = '(target: ' + componentName + ') => {' + EOL + EOL + '}';
 			}
-			let newTxt = '@Property(' + cb + ')' + EOL + 'public ' + name + ':' + type + ';' + EOL;
+			let nullable = "?";
+			if (type == "boolean" || type == "number") {
+				nullable = "!"
+			}
+			let newTxt = '@Property(' + cb + ')' + EOL + 'public ' + name + nullable + ':' + type + ';' + EOL;
 			let begin = file.content.slice(0, position);
 			let end = file.content.slice(position + 1, file.content.length);
 			let txt = begin + newTxt + end;

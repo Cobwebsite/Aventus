@@ -5,14 +5,16 @@ import { Build } from '../../project/Build';
 import { AventusBaseFile } from "../BaseFile";
 import { AventusWebComponentLogicalFile } from '../ts/component/File';
 import { ParserHtml } from './parser/ParserHtml';
+import { AventusWebSCSSFile } from '../scss/File';
 
 export class AventusHTMLFile extends AventusBaseFile {
 
     public fileParsed: ParserHtml | undefined;
     public tsErrors: Diagnostic[] = [];
+    private version: number = 0;
 
     public get compiledVersion() {
-        return ParserHtml.getVersion(this.file.document)
+        return this.version;
     }
     public get tsFile(): AventusWebComponentLogicalFile | null {
         let tsFile = this.build.tsFiles[this.file.uri.replace(AventusExtension.ComponentView, AventusExtension.ComponentLogic)];
@@ -21,18 +23,28 @@ export class AventusHTMLFile extends AventusBaseFile {
         }
         return null;
     }
+    public get scssFile(): AventusWebSCSSFile | null {
+        let file = this.build.scssFiles[this.file.uri.replace(AventusExtension.ComponentView, AventusExtension.ComponentStyle)];
+        if (file instanceof AventusWebSCSSFile) {
+            return file;
+        }
+        return null;
+    }
     constructor(file: AventusFile, build: Build) {
         super(file, build);
-        this.compile(false);
+    }
+
+    public async init(): Promise<void> {
+        await this.compile(false);
     }
     /**
      * return true if doc changed
      */
     protected refreshFileParsed(): boolean {
-        let oldVersion = ParserHtml.getVersion(this.file.document);
-        this.fileParsed = ParserHtml.parse(this.file.document, this.build);
-        let newVersion = ParserHtml.getVersion(this.file.document);
-        if (oldVersion != newVersion) {
+        this.fileParsed = ParserHtml.parse(this, this.build);
+        let newVersion = ParserHtml.getVersion(this);
+        if (this.version != newVersion) {
+            this.version = newVersion;
             this.file.validate();
             return true;
         }
@@ -50,15 +62,15 @@ export class AventusHTMLFile extends AventusBaseFile {
     protected async onContentChange(): Promise<void> {
     }
     protected async onSave() {
-        this.compile();
+        await this.compile();
     }
-    private compile(triggerSave = true) {
+    private async compile(triggerSave = true) {
         try {
             if (this.refreshFileParsed()) {
                 let tsFile = this.tsFile;
                 if (tsFile && triggerSave) {
-                    tsFile.validate();
-                    tsFile.triggerSave();
+                    await tsFile.validate();
+                    await tsFile.triggerSave();
                 }
             }
         } catch (e) {
@@ -87,7 +99,7 @@ export class AventusHTMLFile extends AventusBaseFile {
         return [];
     }
     protected async onReferences(document: AventusFile, position: Position): Promise<Location[]> {
-        return [];
+        return this.build.htmlLanguageService.getLinkToStyle(this, position);
     }
     protected async onCodeLens(document: AventusFile): Promise<CodeLens[]> {
         return [];

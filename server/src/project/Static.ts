@@ -3,7 +3,7 @@ import { Project } from "./Project";
 import { FSWatcher, watch } from "chokidar";
 import { normalize, sep } from "path";
 import { copyFileSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "fs";
-const nodeSass = require('sass');
+import { compile } from 'sass';
 import { HttpServer } from '../live-server/HttpServer';
 import { AventusExtension } from '../definition';
 import { pathToUri, uriToPath } from '../tools';
@@ -53,7 +53,7 @@ export class Static {
                 result = recu(dir);
                 return result;
             }
-            
+
             const copyFile = (pathFile, pathOut) => {
                 try {
                     pathOut = normalize(pathOut);
@@ -66,7 +66,7 @@ export class Static {
                     }
                     if (filename.endsWith(".scss")) {
                         if (!filename.startsWith("_")) {
-                            let style = nodeSass.compile(pathFile, {
+                            let style = compile(pathFile, {
                                 style: 'compressed',
                             }).css.toString().trim();
                             writeFileSync(pathOut.replace(".scss", ".css"), style);
@@ -82,18 +82,20 @@ export class Static {
             let staticFiles = foundAll(this.staticConfig.inputPathFolder);
             staticFiles.forEach(filePath => {
                 filePath = filePath.replace(/\\/g, '/');
-                let resultPath = filePath.replace(this.staticConfig.inputPathFolder, this.staticConfig.outputPathFolder);
-                if (filePath.endsWith(AventusExtension.Base)) {
-                    if (filePath.endsWith(AventusExtension.GlobalStyle)) {
-                        resultPath = resultPath.replace(AventusExtension.GlobalStyle, ".css")
-                        this.project.scssFiles[pathToUri(filePath)]?.addOutPath(resultPath);
+                for (let outputPathFolder of this.staticConfig.outputPathFolder) {
+                    let resultPath = filePath.replace(this.staticConfig.inputPathFolder, outputPathFolder);
+                    if (filePath.endsWith(AventusExtension.Base)) {
+                        if (filePath.endsWith(AventusExtension.GlobalStyle)) {
+                            resultPath = resultPath.replace(AventusExtension.GlobalStyle, ".css")
+                            this.project.scssFiles[pathToUri(filePath)]?.addOutPath(resultPath);
+                        }
+                        else if (filePath.endsWith(AventusExtension.ComponentGlobalStyle)) {
+
+                        }
                     }
-                    else if(filePath.endsWith(AventusExtension.ComponentGlobalStyle)){
-                        
+                    else {
+                        copyFile(filePath, resultPath);
                     }
-                }
-                else {
-                    copyFile(filePath, resultPath);
                 }
             })
             HttpServer.getInstance().reload();

@@ -1,0 +1,40 @@
+import { HttpRoute } from "./HttpRoute.lib.avt";
+import type { IData } from "../data/IData.data.avt";
+import { HttpMethod } from "./HttpMethod.lib.avt";
+import { HttpRequest } from "./HttpRequest.lib.avt";
+
+export abstract class StorableRoute<T extends IData> extends HttpRoute {
+	public async GetAll() {
+		const request = new HttpRequest(`/${this.StorableName()}`, HttpMethod.GET);
+		type TypeResult = T[];
+		return await request.queryJSON<TypeResult>(this.router);
+	}
+
+	public async Create(body: { item: T } | FormData) {
+		const request = new HttpRequest(`/${this.StorableName()}`, HttpMethod.POST);
+		request.setBody(body);
+		type TypeResult = T;
+		return await request.queryJSON<TypeResult>(this.router);
+	}
+
+	public async GetById(id: number) {
+		const request = new HttpRequest(`/${this.StorableName()}/${id}`, HttpMethod.GET);
+		type TypeResult = T;
+		return await request.queryJSON<TypeResult>(this.router);
+	}
+
+	public async Update(id: number, body: { body: T } | FormData) {
+		const request = new HttpRequest(`/${this.StorableName()}/${id}`, HttpMethod.PUT);
+		request.setBody(body);
+		type TypeResult = T;
+		return await request.queryJSON<TypeResult>(this.router);
+	}
+
+	public async Delete(id: number) {
+		const request = new HttpRequest(`/${this.StorableName()}/${id}`, HttpMethod.DELETE);
+		type TypeResult = T;
+		return await request.queryJSON<TypeResult>(this.router);
+	}
+
+	public abstract StorableName(): string;
+}

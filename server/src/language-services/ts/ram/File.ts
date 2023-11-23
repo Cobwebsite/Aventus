@@ -21,12 +21,14 @@ export class AventusRamFile extends AventusTsFile {
         }
         if (this.build.isCoreBuild) {
             this.validateRules({
+                allow_variables: false,
                 allow_function: false,
                 class_implement: ['IRam']
             })
         }
         else {
             this.validateRules({
+                allow_variables: false,
                 allow_function: false,
                 class_implement: ['Aventus.IRam']
             })

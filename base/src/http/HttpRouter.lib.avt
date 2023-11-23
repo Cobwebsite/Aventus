@@ -1,0 +1,141 @@
+import { HttpRoute } from "./HttpRoute.lib.avt";
+import type { MixProto } from "../tools/MergePrototype.lib.avt";
+import type { RouteType, MergeRoutesType } from "./type.lib.avt";
+import type { HttpRouterOptions } from "./HttpRouterOptions.lib.avt";
+import { HttpMethod } from "./HttpMethod.lib.avt";
+import { HttpRequest } from "./HttpRequest.lib.avt";
+
+
+export abstract class HttpRouter {
+    private _routes: any;
+    protected options: HttpRouterOptions;
+
+    public static WithRoute<const T extends readonly ({ type: RouteType, path: string; } | RouteType)[]>(options: T) {
+        abstract class Router extends HttpRouter {
+            constructor() {
+                super();
+                for(let route of options) {
+                    if(typeof route == "function") {
+                        this._routes.addRoute(route);
+                    }
+                    else {
+                        this._routes.addRoute(route.type, route.path);
+                    }
+                }
+            }
+
+        }
+        return Router as MixProto<typeof HttpRouter, MergeRoutesType<T>, "routes">;
+    }
+
+    public constructor() {
+        Object.defineProperty(this, "routes", {
+            get: () => { return this._routes; }
+        });
+        this.createRoutesProxy();
+
+        this.options = this.defineOptions(this.defaultOptionsValue());
+    }
+    private createRoutesProxy() {
+        if(!this._routes) {
+            var that = this;
+            var proxyData = {
+                routePath: {},
+                get(target, prop, receiver) {
+                    if(prop == "addRoute") {
+                        return (routeClass: typeof HttpRoute, path) => {
+                            try {
+                                if(!path) {
+                                    path = "";
+                                }
+                                let splitted = path.split(".");
+                                let current = this.routePath;
+                                for(let part of splitted) {
+                                    if(part != "") {
+                                        if(!current[part]) {
+                                            current[part] = {};
+                                        }
+                                        current = current[part];
+                                    }
+                                }
+                                let routeInstance = new routeClass(that);
+                                let keyFromChild: string[] = [];
+                                while(routeClass.prototype) {
+                                    let keys = Object.getOwnPropertyNames(routeClass.prototype);
+                                    for(let key of keys) {
+                                        if(key != "constructor" && !keyFromChild.includes(key)) {
+                                            keyFromChild.push(key);
+                                            current[key] = routeInstance[key].bind(routeInstance);
+                                        }
+                                    }
+                                    routeClass = Object.getPrototypeOf(routeClass);
+                                }
+                            } catch(e) {
+                                console.error(e);
+                            }
+                        };
+                    }
+                    else if(prop == "allRoutes") {
+                        return (flat) => {
+                            if(!flat) {
+                                return this.routePath;
+                            }
+                            else {
+                                let result = {};
+                                let load = (current, pathes: string[]) => {
+                                    for(let key in current) {
+                                        pathes.push(key);
+                                        if(typeof current[key] == "function") {
+                                            result[pathes.join(".")] = current[key];
+                                        }
+                                        else {
+                                            load(current[key], pathes);
+                                        }
+                                        pathes.pop();
+                                    }
+                                };
+                                load(this.routePath, []);
+                                return result;
+                            }
+                        };
+                    }
+                    else if(this.routePath[prop]) {
+                        return this.routePath[prop];
+                    }
+                    return null;
+                }
+            };
+            this._routes = new Proxy({}, proxyData);
+        }
+    }
+
+    private defaultOptionsValue(): HttpRouterOptions {
+        return {
+            url: location.protocol + "//" + location.host
+        };
+    }
+    protected defineOptions(options: HttpRouterOptions): HttpRouterOptions {
+        return options;
+    }
+
+
+    public async get<T>(url: string) {
+        return await new HttpRequest(url).queryJSON<T>(this);
+    }
+
+    public async post<T>(url: string, data?: { [key: string | number]: any; } | FormData) {
+        return await new HttpRequest(url, HttpMethod.POST, data).queryJSON<T>(this);
+    }
+
+    public async put<T>(url: string, data?: { [key: string | number]: any; } | FormData) {
+        return await new HttpRequest(url, HttpMethod.PUT, data).queryJSON<T>(this);
+    }
+
+    public async delete<T>(url: string, data?: { [key: string | number]: any; } | FormData) {
+        return await new HttpRequest(url, HttpMethod.DELETE, data).queryJSON<T>(this);
+    }
+
+    public async option<T>(url: string, data?: { [key: string | number]: any; } | FormData) {
+        return await new HttpRequest(url, HttpMethod.OPTION, data).queryJSON<T>(this);
+    }
+}

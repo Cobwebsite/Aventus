@@ -1,11 +1,13 @@
-import { ClientConnection } from '../Connection';
+import { GenericServer } from '../GenericServer';
 import { InitStep } from './InitStep';
 
 export class Compiled {
 
 	public static send(buildName: string) {
-		if (InitStep.isInit) {
-			ClientConnection.getInstance().sendNotification("aventus/compiled", buildName);
-		}
+		GenericServer.sendNotification("aventus/compiled", buildName);
+	}
+
+	public static part(info: string) {
+		GenericServer.sendNotification("aventus/compiled/part", info);
 	}
 }

@@ -3,6 +3,7 @@
     "componentPrefix": "av",
     "build": [
         {
+            "hideWarnings": true,
             "name": "UI",
             "inputPath": [
                 "./component/",

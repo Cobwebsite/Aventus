@@ -1,8 +1,8 @@
 import { ExpressionWithTypeArguments, GetAccessorDeclaration, PropertyDeclaration, SetAccessorDeclaration, SyntaxKind } from "typescript";
 import { DecoratorInfo } from "./DecoratorInfo";
 import { ParserTs } from './ParserTs';
-import { getArg } from './tools';
 import { TypeInfo } from './TypeInfo';
+import { ClassInfo } from './ClassInfo';
 
 type PropType = PropertyDeclaration | GetAccessorDeclaration | SetAccessorDeclaration;
 export class PropertyInfo {
@@ -21,17 +21,45 @@ export class PropertyInfo {
     public isGetSet: boolean = false;
     public isInsideInterface: boolean = false;
     public isStatic: boolean = false;
-    public fullStart: number = 0;
-    public fullEnd: number = 0;
+    public start: number = 0;
+    public end: number = 0;
+    public isNullable: boolean = false;
+    public overrideNullable: boolean = false;
+    public _class: ClassInfo;
+    public get compiledContent(): string {
+        let txt = this.content;
+        let transformations: { newText: string, start: number, end: number }[] = [];
+        for (let depName in this._class.dependancesLocations) {
+            let replacement = this._class.dependancesLocations[depName].replacement;
+            if (replacement) {
+                for (let locationKey in this._class.dependancesLocations[depName].locations) {
+                    let location = this._class.dependancesLocations[depName].locations[locationKey];
+                    if(location.start >= this.start && location.end <= this.end) {
+                        transformations.push({
+                            newText: replacement,
+                            start: location.start - this.start,
+                            end: location.end - this.start,
+                        })
+                    }
+                }
+            }
+        }
+        transformations.sort((a, b) => b.end - a.end); // order from end file to start file
+        for (let transformation of transformations) {
+            txt = txt.slice(0, transformation.start) + transformation.newText + txt.slice(transformation.end, txt.length);
+        }
+        return txt;
+    }
 
-    constructor(prop: PropType, isInsideInterface: boolean) {
+    constructor(prop: PropType, isInsideInterface: boolean, _class: ClassInfo) {
         this.isInsideInterface = isInsideInterface;
+        this._class = _class;
         this.prop = prop;
         this.name = prop.name.getText();
         this.nameStart = prop.name.getStart();
         this.nameEnd = prop.name.getEnd();
-        this.fullStart = prop.getStart();
-        this.fullEnd = prop.getEnd();
+        this.start = prop.getStart();
+        this.end = prop.getEnd();
         this.content = prop.getText();
         this.decorators = DecoratorInfo.buildDecorator(prop);
         if (prop.kind == SyntaxKind.GetAccessor) {
@@ -48,13 +76,19 @@ export class PropertyInfo {
                 this.documentation.push(jsDoc.comment);
             }
         }
+        if (prop.questionToken) {
+            this.isNullable = true;
+        }
+        if (prop.exclamationToken) {
+            this.overrideNullable = true;
+        }
         this.loadAccessibilityModifier(prop);
         this.type = this.loadType(prop);
         this.loadInitializer(prop);
     }
 
     private loadAccessibilityModifier(prop: PropType) {
-        if(this.isInsideInterface){
+        if (this.isInsideInterface) {
             // we can't have accessility modifier inside interface
             return
         }
@@ -82,6 +116,7 @@ export class PropertyInfo {
                 else if (modifier.kind == SyntaxKind.StaticKeyword) {
                     this.isStatic = true;
                 }
+
             }
 
         }

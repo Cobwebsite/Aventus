@@ -100,6 +100,10 @@ export class ResourceLoader {
                 blob = true;
             }
             let content = await this.fetching(options.url, blob);
+            if(options.type == "img" && content.startsWith("data:text/html;")) {
+                console.error("Can't load img "+options.url);
+                content = "";
+            }
             this.requestLoaded[options.url] = content;
             this.releaseAwaitFct(options.url);
             return content;

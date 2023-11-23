@@ -5,8 +5,6 @@ import { Commands } from "./cmds";
 import { AvenutsVsComponent } from "./component";
 import { FileSystem } from './file-system/FileSystem';
 import { Notifications } from "./notification";
-import { TemplateManager } from './file-system/Template';
-import { LocalTemplateManager } from './file-system/LocalTemplate';
 import { OpenAventusFolder } from './cmds/file-system/OpenAventusFolder';
 
 export class Client {
@@ -14,18 +12,9 @@ export class Client {
     private client: LanguageClient | undefined = undefined;
     public components: AvenutsVsComponent | undefined = undefined;
     private fileSystem: FileSystem | undefined = undefined;
-    private _template: TemplateManager | undefined = undefined;
-    private _localTemplate: LocalTemplateManager | undefined = undefined;
 
     public get context() {
         return this._context;
-    }
-
-    public get templateManager() {
-        return this._template;
-    }
-    public get localTemplateManager() {
-        return this._localTemplate;
     }
 
 
@@ -35,13 +24,10 @@ export class Client {
         let serverOptions = this.createServerOption(context.asAbsolutePath(
             join('server', 'out', 'server.js')
         ));
-        this.client = new LanguageClient('Aventus', 'Aventus', serverOptions, this.createClientOption(context.globalStorageUri.fsPath));
+        this.client = new LanguageClient('Aventus', 'Aventus', serverOptions, this.createClientOption(context));
         this.client.onReady().then(() => {
             this.addNotification();
         })
-        OpenAventusFolder.init(context);
-        this._template = new TemplateManager(context);
-        this._localTemplate = new LocalTemplateManager(this._template);
         // Start the client. This will also launch the server
         context.subscriptions.push(this.client.start());
     }
@@ -74,7 +60,7 @@ export class Client {
             },
         };
     }
-    private createClientOption(fsPath: string): LanguageClientOptions {
+    private createClientOption(context: ExtensionContext): LanguageClientOptions {
         return {
             // Register the server for plain text documents
             documentSelector: [
@@ -113,13 +99,14 @@ export class Client {
 
             },
             initializationOptions: {
-                fsPath: fsPath
+                savePath: context.globalStorageUri.fsPath,
+                extensionPath: context.extensionPath,
             },
         };
     }
 
-    private async commandMiddleware(command: string, args: any[]): Promise<any[] | null> {
-        let result: any[] | null = args;
+    private async commandMiddleware(command: string, args: any[]): Promise<any[]> {
+        let result: any[] = args;
         if (Commands.allCommandes[command]) {
             result = await Commands.allCommandes[command].middleware(args);
         }
@@ -129,7 +116,9 @@ export class Client {
     private addNotification() {
         if (this.client) {
             for (let cmdName in Notifications.allNotifications) {
-                this.client.onNotification(cmdName, Notifications.allNotifications[cmdName].action);
+                this.client.onNotification(cmdName, (params) => {
+                    (Notifications.allNotifications[cmdName].action as any).call(Notifications.allNotifications[cmdName], ...params)
+                });
             }
         }
     }

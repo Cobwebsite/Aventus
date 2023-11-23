@@ -1,3 +1,4 @@
+import { SCSSParsedRule } from '../../scss/LanguageService';
 import { ParserHtml } from './ParserHtml';
 import { HtmlTemplateResult, PressEventMapValues, pressEventMap } from './definition';
 
@@ -13,6 +14,10 @@ export class TagInfo {
 	public idLoop: number | null = null;
 	public parentLoopId: number | null = null;
 	private isInsideLoop: boolean = false;
+	public parent: TagInfo | null = null;
+
+	public openTagStart: number = 0;
+	public openTagEnd: number = 0;
 
 	public alias: string | null = null;
 	public aliasMultiple: boolean | undefined = undefined;
@@ -40,6 +45,7 @@ export class TagInfo {
 		this.parser = parser;
 		this.tagName = tagName;
 		this.start = start;
+		this.openTagStart = start;
 		this.end = end;
 		ParserHtml.addInterestPoint({ name: tagName, start, end, type: "tag" });
 		if (selfClosingTags.includes(tagName)) {
@@ -73,12 +79,14 @@ export class TagInfo {
 	}
 	public addChild(tag: TagInfo) {
 		this.children.push(tag);
+		tag.parent = this;
 	}
 	public addContent(content: ContentInfo) {
 		this.children.push(content);
 	}
 
-	public validateAllProps() {
+	public validateAllProps(openTagEnd: number) {
+		this.openTagEnd = openTagEnd;
 		if (this.alias) {
 			let isMultiple = this.alias.endsWith("[]");
 			if (isMultiple) {
@@ -133,7 +141,21 @@ export class TagInfo {
 		for (let binding of this.bindings) {
 			ParserHtml.addVariable(binding.bindingName.split('.')[0]);
 		}
+		this.checkStyle(ParserHtml.getRules(), (point) => ParserHtml.addStyleLink(point));
 	}
+
+	public checkStyle(rules: SCSSParsedRule, addStyleLink: (point: [{ start: number, end: number }, { start: number, end: number }]) => void) {
+		for (let [validate, position] of rules) {
+			if (validate(this)) {
+				let classPos = {
+					start: this.openTagStart,
+					end: this.openTagEnd
+				}
+				addStyleLink([classPos, position]);
+			}
+		}
+	}
+
 
 	private _render(): string {
 		let attrs: string[] = [];
@@ -570,7 +592,7 @@ function parseTxt(value: string, valueStart: number) {
 			result.errors.push("Code execution ll be implemented soon, right now you can only use variables");
 			//ParserHtml.addError(this.valueStart, this.valueEnd, "Code execution ll be implemented soon, right now you can only use variables");
 		}
-		finalValue = finalValue.replace(m[0], '${c.' + fullVariablePath + '}');
+		finalValue = finalValue.replace(m[0], '${c.__P(c.' + fullVariablePath + ')}');
 
 		let variableName = fullVariablePath.split(".")[0];
 		if (!result.variables.includes(variableName)) {

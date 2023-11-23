@@ -3,7 +3,7 @@ export class ElementExtension {
      * Find a parent by tagname if exist Static.findParentByTag(this, "av-img")
      */
     public static findParentByTag<T>(element: Element, tagname: string | string[], untilNode?: Element): T | null {
-        let el: Node | ShadowRoot = element;
+        let el: Node | ShadowRoot | null = element;
         if(Array.isArray(tagname)) {
             for(let i = 0; i < tagname.length; i++) {
                 tagname[i] = tagname[i].toLowerCase();
@@ -42,7 +42,7 @@ export class ElementExtension {
      * Find a parent by class name if exist Static.findParentByClass(this, "my-class-img") = querySelector('.my-class-img')
      */
     public static findParentByClass<T>(element: Element, classname: string | string[], untilNode?: Element): T | null {
-        let el: Node | ShadowRoot = element;
+        let el: Node | ShadowRoot | null = element;
         if(!Array.isArray(classname)) {
             classname = [classname];
         }
@@ -77,7 +77,7 @@ export class ElementExtension {
      * Find a parent by type if exist Static.findParentyType(this, Aventus.Img)
      */
     public static findParentByType<T>(element: Element, type: { prototype: T; }, untilNode?: Element): T | null {
-        let el: Node | ShadowRoot = element;
+        let el: Node | ShadowRoot | null = element;
         let checkFunc = (el) => {
             return false;
         };
@@ -122,7 +122,7 @@ export class ElementExtension {
      * Find list of parents by tagname
      */
     public static findParents<T>(element: Element, tagname: string | string[], untilNode?: Element): T[] {
-        let el: Node | ShadowRoot = element;
+        let el: Node | ShadowRoot | null = element;
         if(Array.isArray(tagname)) {
             for(let i = 0; i < tagname.length; i++) {
                 tagname[i] = tagname[i].toLowerCase();
@@ -173,9 +173,9 @@ export class ElementExtension {
     /**
      * Get element inside slot
      */
-    public static getElementsInSlot(element: Element, slotName: string = null): HTMLElement[] {
+    public static getElementsInSlot(element: Element, slotName?: string): HTMLElement[] {
         if(element.shadowRoot) {
-            let slotEl: HTMLSlotElement;
+            let slotEl: HTMLSlotElement | null;
             if(slotName) {
                 slotEl = element.shadowRoot.querySelector('slot[name="' + slotName + '"]');
             }
@@ -209,7 +209,7 @@ export class ElementExtension {
     /**
      * Get deeper element inside dom at the position X and Y
      */
-    public static getElementAtPosition(x: number, y: number, startFrom: Element = null) {
+    public static getElementAtPosition(x: number, y: number, startFrom?: Element) {
         var _realTarget = (el: Element, i = 0) => {
             if(i == 50) {
                 debugger;

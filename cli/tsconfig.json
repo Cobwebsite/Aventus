@@ -1,15 +1,39 @@
 {
 	"compilerOptions": {
 		"target": "ESNext",
-		"lib": ["es2020", "dom"],
-		"module": "commonjs",
-		"moduleResolution": "node",
+		"lib": [
+			"es2020",
+			"dom"
+		],
+		"module": "CommonJS",
+		"moduleResolution": "Node",
 		"sourceMap": true,
-		"strict": true,
+		"strict": false,
 		"outDir": "out",
-		"rootDir": "../",
+		"rootDir": "src",
 		"noImplicitAny": false,
+		"esModuleInterop": true,
+		"allowJs": true,
+		"paths": {
+			"@server/*": [
+				"../server/out/*"
+			]
+		},
+		"plugins": [
+			{
+				"transform": "typescript-transform-paths"
+			}
+		]
 	},
-	"include": ["src", "../server/src", "../server/server.ts", "../server/lib"],
-	"exclude": ["node_modules", ".vscode-test"]
+	"include": [
+		"src/main.ts"
+	],
+	"exclude": [
+		".vscode-test"
+	],
+	"references": [ // this is how we declare a dependency from
+		{
+			"path": "../server/"
+		}
+	]
 }

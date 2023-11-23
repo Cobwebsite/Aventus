@@ -2,8 +2,7 @@ import { existsSync, mkdirSync, statSync, unlinkSync, writeFileSync } from "fs";
 import { EOL } from "os";
 import { join, normalize, sep } from "path";
 import { Diagnostic, DiagnosticSeverity, TextEdit } from 'vscode-languageserver';
-import { ClientConnection } from '../Connection';
-import { AventusExtension, AventusLanguageId } from "../definition";
+import { AventusErrorCode, AventusExtension, AventusLanguageId } from "../definition";
 import { AventusFile } from '../files/AventusFile';
 import { FilesManager } from '../files/FilesManager';
 import { FilesWatcher } from '../files/FilesWatcher';
@@ -22,15 +21,18 @@ import { HttpServer } from '../live-server/HttpServer';
 import { Compiled } from '../notification/Compiled';
 import { RegisterBuild } from '../notification/RegisterBuild';
 import { UnregisterBuild } from '../notification/UnregisterBuild';
-import { getFolder, pathToUri, uriToPath } from "../tools";
+import { createErrorTsPos, getFolder, pathToUri, replaceNotImportAliases, uriToPath } from "../tools";
 import { Project } from "./Project";
 import { AventusGlobalSCSSLanguageService } from '../language-services/scss/GlobalLanguageService';
 import { DependanceManager } from './DependanceManager';
 import { AventusPackageFile, AventusPackageTsFileExport, AventusPackageTsFileExportNoCode } from '../language-services/ts/package/File';
-import { BuildNpm, NpmDependances } from './BuildNpm';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AventusGlobalComponentSCSSFile } from '../language-services/scss/GlobalComponentFile';
 import { minify } from 'terser';
+import { InfoType } from '../language-services/ts/parser/BaseInfo';
+import { AventusBaseFile } from '../language-services/BaseFile';
+import { GenericServer } from '../GenericServer';
+import { NpmBuilder } from './BuildNpm';
 
 export class Build {
     public project: Project;
@@ -46,12 +48,15 @@ export class Build {
     public htmlFiles: { [uri: string]: AventusHTMLFile } = {}
     public wcFiles: { [uri: string]: AventusWebComponentSingleFile } = {};
 
+    public namespaces: string[] = [];
+
     public externalPackageInformation: ExternalPackageInformation = new ExternalPackageInformation();
 
     private dependanceNeedUris: string[] = [];
     private dependanceFullUris: string[] = [];
     // order uri file to parse inside build
     private dependanceUris: string[] = [];
+    public diagnostics: Map<AventusBaseFile, Diagnostic[]> = new Map();
 
 
     public tsLanguageService: AventusTsLanguageService;
@@ -61,9 +66,12 @@ export class Build {
     public scssLanguageService: AventusSCSSLanguageService;
     public htmlLanguageService: AventusHTMLLanguageService;
     private allowBuild: boolean = true;
+    private initDone: boolean = false;
 
     public reloadPage: boolean = false;
     private _outputPathes: string[] = [];
+
+    public readonly npmBuilder: NpmBuilder;
 
     public get fullname() {
         return this.buildConfig.fullname;
@@ -73,6 +81,9 @@ export class Build {
     }
     public get hideWarnings() {
         return this.buildConfig.hideWarnings;
+    }
+    public get nodeModulesDir(): string {
+        return this.buildConfig.nodeModulesDir
     }
 
     public get outputPathes(): string[] {
@@ -88,13 +99,15 @@ export class Build {
         this.htmlLanguageService = new AventusHTMLLanguageService(this);
 
         this._outputPathes = [join(DependanceManager.getInstance().getPath(), "@locals", this.buildConfig.fullname + AventusExtension.Package).replace(/\\/g, '/')];
-        if (buildConfig.outputPackage) {
-            this._outputPathes.push(buildConfig.outputPackage.replace(/\\/g, '/'));
+        for (let outputPackage of buildConfig.outputPackage) {
+            this._outputPathes.push(outputPackage.replace(/\\/g, '/'));
         }
+        this.npmBuilder = new NpmBuilder(this);
         RegisterBuild.send(project.getConfigFile().path, buildConfig.fullname);
     }
     public async init() {
         await this.loadFiles();
+        this.initDone = true;
     }
 
     public getComponentPrefix() {
@@ -102,6 +115,9 @@ export class Build {
     }
     public getAvoidParsingTags() {
         return this.buildConfig.avoidParsingInsideTags;
+    }
+    public getAliases(): { [alias: string]: string } {
+        return this.project.getConfig()?.aliases ?? {};
     }
     public isFileInside(uri: string): boolean {
         return uriToPath(uri).match(this.buildConfig.inputPathRegex) != null;
@@ -122,10 +138,15 @@ export class Build {
     public disableBuild() {
         this.allowBuild = false;
     }
+    public get isBuildAllowed() {
+        return this.allowBuild;
+    }
     //#region build
     private timerBuild: NodeJS.Timeout | undefined = undefined;
+    public insideRebuildAll: boolean = false;
     public async rebuildAll() {
         this.allowBuild = false;
+        this.insideRebuildAll = true;
         // validate
         for (let uri in this.scssFiles) {
             await this.scssFiles[uri].validate();
@@ -141,23 +162,33 @@ export class Build {
         }
 
         for (let uri in this.scssFiles) {
-            this.scssFiles[uri].triggerSave();
+            await this.scssFiles[uri].triggerSave();
         }
         for (let uri in this.htmlFiles) {
-            this.htmlFiles[uri].triggerSave();
+            await this.htmlFiles[uri].triggerSave();
         }
         for (let uri in this.wcFiles) {
-            this.wcFiles[uri].triggerSave();
+            await this.wcFiles[uri].triggerSave();
         }
         for (let uri in this.tsFiles) {
-            this.tsFiles[uri].triggerSave();
+            await this.tsFiles[uri].triggerSave();
         }
-
+        this.insideRebuildAll = false;
         this.allowBuild = true;
-        await this.build();
+        this.npmBuilder.rebuildInfo();
+        if (this.initDone) {
+            await this.build();
+        }
+        else {
+            await this._build();
+        }
     }
     public async build() {
-        if (ClientConnection.getInstance().isCLI()) {
+        if(!this.initDone) {
+            return;
+        }
+        let delay = GenericServer.delayBetweenBuild();
+        if (delay == 0) {
             await this._build();
         }
         else {
@@ -166,19 +197,51 @@ export class Build {
             }
             this.timerBuild = setTimeout(async () => {
                 await this._build();
-            }, 300)
+            }, delay)
         }
     }
 
+    private addDiagnostic(file: AventusTsFile, diagnostic: Diagnostic) {
+        if (!this.diagnostics.has(file)) {
+            this.diagnostics.set(file, []);
+        }
+        this.diagnostics.get(file)?.push(diagnostic);
+    }
+    private clearDiagnostics() {
+        for (let [file, errors] of this.diagnostics.entries()) {
+            if (file instanceof AventusTsFile) {
+                GenericServer.sendDiagnostics({
+                    uri: file.file.uri,
+                    diagnostics: file.getDiagnostics()
+                })
+            }
+        }
+        this.diagnostics.clear();
+    }
+    private emitDiagnostics() {
+        for (let [file, errors] of this.diagnostics.entries()) {
+            if (file instanceof AventusTsFile) {
+                let finalErrors = [...errors, ...file.getDiagnostics()];
+                if (this.hideWarnings) {
+                    finalErrors = finalErrors.filter(p => p.severity != DiagnosticSeverity.Warning)
+                }
+                GenericServer.sendDiagnostics({
+                    uri: file.file.uri,
+                    diagnostics: finalErrors
+                })
+            }
+        }
+    }
     private async _build() {
         if (!this.allowBuild) {
             return
         }
-        if (ClientConnection.getInstance().isDebug()) {
+        if (GenericServer.isDebug()) {
             console.log("building " + this.buildConfig.fullname);
         }
-        let compilationInfo = this.buildOrderCompilationInfo();
-        let result = await this.buildLocalCode(compilationInfo.toCompile, this.buildConfig.module, compilationInfo.npmNeeded);
+        this.clearDiagnostics();
+        let compilationInfo = await this.buildOrderCompilationInfo();
+        let result = await this.buildLocalCode(compilationInfo.toCompile, this.buildConfig.module);
 
         await this.writeBuildCode(result, compilationInfo.libSrc);
         let srcInfo = {
@@ -186,15 +249,18 @@ export class Build {
             available: result.codeRenderInJs,
             existing: result.codeNotRenderInJs
         }
-        this.writeBuildDocumentation(this.buildConfig.outputPackage, result, srcInfo)
+        for (let outputPackage of this.buildConfig.outputPackage) {
+            this.writeBuildDocumentation(outputPackage, result, srcInfo)
+        }
 
         Compiled.send(this.buildConfig.fullname);
         if (this.reloadPage) {
             this.reloadPage = false;
             HttpServer.getInstance().reload();
         }
+        this.emitDiagnostics();
     }
-    private _buildStringModule(namespace: string, codeBefore: string[], code: string[], classesName: string[], classesNameData: string[], codeAfter: string[], stylesheets: string[]) {
+    private _buildStringModule(namespace: string, codeBefore: string[], code: string[], classesName: { [name: string]: { type: InfoType, isExported: boolean, convertibleName: string } }, codeAfter: string[], stylesheets: string[]) {
         let finalTxt = '';
         let splittedNames = namespace.split(".");
         finalTxt += codeBefore.join(EOL) + EOL;
@@ -208,13 +274,11 @@ export class Build {
 
                 finalTxt += '(' + baseName + '||(' + baseName + ' = {}));' + EOL
             }
-            finalTxt += "(function (" + splittedNames[0] + ") {" + EOL;
-            finalTxt += "const moduleName = `" + baseName + "`;" + EOL;
-            finalTxt += stylesheets.join(EOL) + EOL;
-            finalTxt += code.join(EOL) + EOL;
-            finalTxt = finalTxt.trim() + EOL;
+
+            let namespaces: string[] = [];
+            let afterCode: string[] = [];
             let subNamespace: string[] = [];
-            for (let className of classesName) {
+            for (let className in classesName) {
                 if (className != "") {
                     let classNameSplitted = className.split(".");
                     let currentNamespace = "";
@@ -227,26 +291,28 @@ export class Build {
                         }
                         if (subNamespace.indexOf(currentNamespace) == -1) {
                             subNamespace.push(currentNamespace);
-                            let nameToCreate = namespace + "." + currentNamespace;
-                            finalTxt += '(' + nameToCreate + '||(' + nameToCreate + ' = {}));' + EOL
+                            if (currentNamespace.includes(".")) {
+                                namespaces.push(`${currentNamespace} = {};`)
+                            }
+                            else {
+                                namespaces.push(`const ${currentNamespace} = {};`)
+                            }
+                            namespaces.push(`_.${currentNamespace} = {};`)
                         }
                     }
-                    let finalName = classNameSplitted[classNameSplitted.length - 1];
-                    let currentNamespaceWithDot = "";
-                    if (currentNamespace) {
-                        currentNamespaceWithDot = "." + currentNamespace
-                    }
-                    finalTxt += finalName + ".Namespace='" + namespace + currentNamespaceWithDot + "';" + EOL;
-                    finalTxt += namespace + "." + className + "=" + finalName + ";" + EOL;
                 }
             }
-            for (let className of classesNameData) {
-                if (className != "") {
-                    let classNameSplitted = className.split(".");
-                    let finalName = classNameSplitted[classNameSplitted.length - 1];
-                    finalTxt += "Aventus.DataManager.register(" + finalName + ".Fullname, " + finalName + ");" + EOL;
-                }
-            }
+
+            finalTxt += "(function (" + splittedNames[0] + ") {" + EOL;
+            finalTxt += "const moduleName = `" + baseName + "`;" + EOL;
+            finalTxt += "const _ = {};" + EOL;
+            finalTxt += stylesheets.join(EOL) + EOL;
+            finalTxt += namespaces.join(EOL) + EOL;
+            finalTxt += 'let _n;' + EOL;
+            finalTxt += code.join(EOL) + EOL;
+            finalTxt += afterCode.join(EOL) + EOL;
+            finalTxt += `for(let key in _) { ${namespace}[key] = _[key] }`
+            finalTxt = finalTxt.trim() + EOL;
             finalTxt += "})(" + splittedNames[0] + ");" + EOL;
         }
         finalTxt += codeAfter.join(EOL) + EOL;
@@ -258,10 +324,11 @@ export class Build {
      * Write the code inside the exported .js
      */
     private async writeBuildCode(localCode: {
-        code: string[], codeNoNamespaceBefore: string[], codeNoNamespaceAfter: string[], classesName: string[], classesNameData: string[], stylesheets: { [name: string]: string }
+        code: string[], codeNoNamespaceBefore: string[], codeNoNamespaceAfter: string[], classesName: { [name: string]: { type: InfoType, isExported: boolean, convertibleName: string } }, stylesheets: { [name: string]: string }
     }, libSrc: string) {
-        if (this.buildConfig.outputFile) {
+        if (this.buildConfig.outputFile && this.buildConfig.outputFile.length > 0) {
             let finalTxt = '';
+            finalTxt += await this.npmBuilder.compile();
             finalTxt += libSrc + EOL;
             let stylesheets: string[] = [];
             for (let name in localCode.stylesheets) {
@@ -272,32 +339,33 @@ export class Build {
                 localCode.codeNoNamespaceBefore,
                 localCode.code,
                 localCode.classesName,
-                localCode.classesNameData,
                 localCode.codeNoNamespaceAfter,
                 stylesheets
             );
 
-            let folderPath = getFolder(this.buildConfig.outputFile.replace(/\\/g, "/"));
-            if (!existsSync(folderPath)) {
-                mkdirSync(folderPath, { recursive: true });
-            }
-            if (this.buildConfig.compressed) {
-                try {
-                    
-                    const resultTemp = await minify({
-                        "file1.js" : finalTxt
-                    }, {
-                        compress: false,
-                        format: {
-                            comments: false,
-                        }
-                    })
-                    finalTxt = resultTemp.code ?? '';
-                } catch (e) {
-                    console.log(e);
+            for (let outputFile of this.buildConfig.outputFile) {
+                let folderPath = getFolder(outputFile.replace(/\\/g, "/"));
+                if (!existsSync(folderPath)) {
+                    mkdirSync(folderPath, { recursive: true });
                 }
+                if (this.buildConfig.compressed) {
+                    try {
+
+                        const resultTemp = await minify({
+                            "file1.js": finalTxt
+                        }, {
+                            compress: false,
+                            format: {
+                                comments: false,
+                            }
+                        })
+                        finalTxt = resultTemp.code ?? '';
+                    } catch (e) {
+                        console.log(e);
+                    }
+                }
+                writeFileSync(outputFile, finalTxt);
             }
-            writeFileSync(this.buildConfig.outputFile, finalTxt);
         }
     }
     /**
@@ -362,7 +430,7 @@ export class Build {
     /**
      * Build the code for the current project after order
      */
-    private async buildLocalCode(toCompile: CompileTsResult[], namespace: string, npmNeeded: { inside: NpmDependances, outside: NpmDependances }) {
+    private async buildLocalCode(toCompile: CompileTsResult[], namespace: string) {
         let result: {
             codeNoNamespaceBefore: string[],
             code: string[],
@@ -370,8 +438,7 @@ export class Build {
             doc: string[],
             docNoNamespace: string[],
             docInvisible: string[],
-            classesName: string[],
-            classesNameData: string[],
+            classesName: { [className: string]: { type: InfoType, isExported: boolean, convertibleName: string } },
 
             stylesheets: { [name: string]: string },
 
@@ -386,8 +453,7 @@ export class Build {
             doc: [],
             docNoNamespace: [],
             docInvisible: [],
-            classesName: [],
-            classesNameData: [],
+            classesName: {},
             stylesheets: {},
             codeRenderInJs: [],
             codeNotRenderInJs: [],
@@ -405,12 +471,7 @@ export class Build {
             namespaceWithDot = namespace + '.'
         }
 
-        result.code.push(await new BuildNpm().build(npmNeeded.inside, this.project.getConfigFile().folderPath));
-        result.codeNoNamespaceBefore.push(await new BuildNpm().build(npmNeeded.outside, this.project.getConfigFile().folderPath));
-
-
-
-        /** Prepare the right dependances for a class (local, external and uri) */
+        /** Prepare the right dependances for a class (local, external, npm and uri) */
         const prepareDependances = (deps: { fullName: string; uri: string; isStrong: boolean }[], currentUri: string): { fullName: string; isStrong: boolean }[] => {
             let result: { fullName: string; isStrong: boolean }[] = [];
             for (let dep of deps) {
@@ -423,7 +484,7 @@ export class Build {
                         depName = dep.fullName.replace("$namespace$", namespaceWithDot);
                     }
                 }
-                else if (dep.uri == "@external") {
+                else if (dep.uri == "@external" || dep.uri == "@npm") {
                     depName = dep.fullName;
                 }
                 else {
@@ -470,11 +531,14 @@ export class Build {
                         result.codeNoNamespaceAfter.push(info.compiled)
                         if (!renderInJsByFullname[info.classScript]) {
                             renderInJsByFullname[info.classScript] = {
-                                code: info.compiled,
+                                code: replaceNotImportAliases(info.compiled, this.project.getConfig()),
                                 dependances: prepareDependances(info.dependances, info.uri),
                                 fullName: info.classScript,
                                 required: info.required,
                                 noNamespace: "after",
+                                type: info.type,
+                                isExported: info.isExported,
+                                convertibleName: info.convertibleName,
                             };
                         }
                     }
@@ -482,11 +546,14 @@ export class Build {
                         result.codeNoNamespaceBefore.push(info.compiled);
                         if (!renderInJsByFullname[info.classScript]) {
                             renderInJsByFullname[info.classScript] = {
-                                code: info.compiled,
+                                code: replaceNotImportAliases(info.compiled, this.project.getConfig()),
                                 dependances: prepareDependances(info.dependances, info.uri),
                                 fullName: info.classScript,
                                 required: info.required,
                                 noNamespace: "before",
+                                type: info.type,
+                                isExported: info.isExported,
+                                convertibleName: info.convertibleName,
                             }
                         }
                     }
@@ -516,21 +583,25 @@ export class Build {
             else {
                 moduleCodeStarted = true;
                 if (info.classScript != "" && !info.classScript.startsWith("!staticClass_")) {
-                    if (info.isData) {
-                        result.classesNameData.push(info.classScript);
+                    result.classesName[info.classScript] = {
+                        type: info.type,
+                        isExported: info.isExported,
+                        convertibleName: info.convertibleName
                     }
-                    result.classesName.push(info.classScript);
                 }
 
                 if (info.compiled != "") {
-                    result.code.push(info.compiled)
+                    result.code.push(replaceNotImportAliases(info.compiled, this.project.getConfig()))
                     let exportName = namespaceWithDot + info.classScript;
                     if (!renderInJsByFullname[exportName]) {
                         renderInJsByFullname[exportName] = {
-                            code: info.compiled,
+                            code: replaceNotImportAliases(info.compiled, this.project.getConfig()),
                             dependances: prepareDependances(info.dependances, info.uri),
                             fullName: exportName,
                             required: info.required,
+                            type: info.type,
+                            isExported: info.isExported,
+                            convertibleName: info.convertibleName
                         }
                     }
                 }
@@ -573,56 +644,47 @@ export class Build {
         return result;
     }
 
-    private buildOrderCompilationInfo(): { toCompile: CompileTsResult[], libSrc: string, npmNeeded: { inside: NpmDependances, outside: NpmDependances } } {
-        let result: { toCompile: CompileTsResult[], libSrc: string, npmNeeded: { inside: NpmDependances, outside: NpmDependances } } = { toCompile: [], libSrc: '', npmNeeded: { inside: {}, outside: {} } };
+    private async buildOrderCompilationInfo(): Promise<{ toCompile: CompileTsResult[], libSrc: string }> {
+        let result: { toCompile: CompileTsResult[], libSrc: string } = { toCompile: [], libSrc: '' };
         // map local information by fullname
         let localClassByFullName: { [fullName: string]: CompileTsResult } = {};
+        let localClass: { [name: string]: CompileTsResult } = {};
         for (let fileUri in this.tsFiles) {
             let currentFile = this.tsFiles[fileUri];
             for (let compileInfo of currentFile.compileResult) {
                 if (compileInfo.classScript !== "") {
-                    localClassByFullName[compileInfo.classScript] = compileInfo;
+                    if (localClass[compileInfo.classScript]) {
+                        let txt = "The name " + compileInfo.classScript + " is registered more than once.";
+                        let info = currentFile.fileParsed?.getBaseInfo(compileInfo.classScript);
+                        if (info) {
+                            this.addDiagnostic(currentFile, createErrorTsPos(currentFile.file.document, txt, info.nameStart, info.nameEnd, AventusErrorCode.SameNameFound));
+                        }
+                        else {
+                            throw 'Please contact the support its an unknow case'
+                        }
+
+                        let oldFile = this.tsFiles[localClass[compileInfo.classScript].uri]
+                        info = oldFile.fileParsed?.getBaseInfo(compileInfo.classScript);
+                        if (info) {
+                            this.addDiagnostic(oldFile, createErrorTsPos(oldFile.file.document, txt, info.nameStart, info.nameEnd, AventusErrorCode.SameNameFound));
+                        }
+                        else {
+                            throw 'Please contact the support its an unknow case'
+                        }
+                    }
+                    else {
+                        localClassByFullName[compileInfo.classScript] = compileInfo;
+                        localClass[compileInfo.classScript] = compileInfo;
+                    }
                 }
                 // in case script and doc are different
                 if (compileInfo.classDoc !== "" && !localClassByFullName[compileInfo.classDoc]) {
                     localClassByFullName[compileInfo.classDoc] = compileInfo;
                 }
             }
-
-
-            if (currentFile.fileParsed) {
-                for (let name in currentFile.fileParsed.npmImports) {
-                    let current = currentFile.fileParsed.npmImports[name];
-                    let uri = current.uri;
-                    let npmNeededSelected: NpmDependances;
-                    // TODO add manage between inside and outside to compile module only once (outisde > inside)
-                    if (this.noNamespaceUri[currentFile.file.uri]) {
-                        npmNeededSelected = result.npmNeeded.outside;
-                    }
-                    else {
-                        npmNeededSelected = result.npmNeeded.inside;
-                    }
-                    if (!npmNeededSelected[uri]) {
-                        npmNeededSelected[uri] = { parts: {} };
-                    }
-                    if (current.nameInsideLib == "*") {
-                        npmNeededSelected[uri].isGlobal = name;
-                    }
-                    else {
-
-                        if (!npmNeededSelected[uri].parts[current.nameInsideLib]) {
-                            npmNeededSelected[uri].parts[current.nameInsideLib] = []
-                        }
-
-                        if (!npmNeededSelected[uri].parts[current.nameInsideLib].includes(name)) {
-                            npmNeededSelected[uri].parts[current.nameInsideLib].push(name);
-                        }
-                    }
-
-                }
-            }
         }
 
+        let allProms: Promise<{ [uri: string]: string }>[] = [];
 
         // load
         let loadedInfoInternal: string[] = [];
@@ -631,141 +693,251 @@ export class Build {
         /**
          * Load information for a class and the dependances needed
          */
-        const loadAndOrderInfo = (info: { fullName: string; isStrong: boolean }, isLocal: boolean, indexByUri: { [uri: string]: number }, alreadyLooked: { [name: string]: boolean }): { [uri: string]: number } => {
+        const loadAndOrderInfo = (info: { fullName: string; isStrong: boolean }, isLocal: boolean, indexByUri: { [uri: string]: number }, alreadyLooked: { [name: string]: (() => void)[] }, alreadyLookedStrong: { [name: string]: boolean }): { [uri: string]: number } | Promise<{ [uri: string]: string }> => {
             const fullName = info.fullName.replace("$namespace$", '');
-            if (fullName == "State") {
-                console.log("in")
-            }
-
-            let calculateDependances = true;
-            if (alreadyLooked[fullName] !== undefined) {
-                calculateDependances = false;
-                // loop on a strong dependance => infinite loop
-                if (info.isStrong && alreadyLooked[fullName]) {
-                    console.log("error impossible");
-                    return indexByUri;
-                }
-
-                if (info.isStrong) {
-                    alreadyLooked[fullName] = info.isStrong;
-                }
-
+            let uri = "";
+            let infoExternal: null | {
+                content: AventusPackageTsFileExport | "noCode";
+                uri: string;
+            } = null;
+            if (isLocal) {
+                uri = localUri;
             }
             else {
-                alreadyLooked[fullName] = info.isStrong;
+                infoExternal = this.externalPackageInformation.getByFullName(fullName);
+                if (!infoExternal) {
+                    // it s an error
+                    return indexByUri;
+                }
+                uri = infoExternal.uri;
             }
-            const calculate = () => {
+
+            if (alreadyLooked[fullName] !== undefined) {
+
+                if (info.isStrong) {
+                    // loop on a strong dependance => infinite loop 
+                    if (alreadyLookedStrong[fullName] !== undefined) {
+                        console.log("error impossible");
+                        return indexByUri;
+                    }
+
+                    const prom = new Promise<{ [uri: string]: string }>((resolve) => {
+                        alreadyLooked[fullName].push(() => {
+                            resolve({ [uri]: fullName });
+                        })
+                    })
+                    allProms.push(prom);
+                    return prom;
+                }
+                return indexByUri;
+            }
+            else {
+                alreadyLooked[fullName] = [];
+            }
+            if (info.isStrong) {
+                alreadyLookedStrong[fullName] = true;
+            }
+            const promises: Promise<{ [uri: string]: string }>[] = [];
+            const calculate: () => void = () => {
                 if (isLocal) {
                     if (!localClassByFullName[fullName]) {
-                        if (indexByUri[localUri] === undefined) {
-                            indexByUri[localUri] = -1;
+                        if (indexByUri[uri] === undefined) {
+                            indexByUri[uri] = -1;
                         }
                         return;
                     }
 
                     let previousIndex = loadedInfoInternal.indexOf(fullName);
                     if (previousIndex != -1) {
-                        if (indexByUri[localUri] === undefined) {
-                            indexByUri[localUri] = previousIndex + 1;
+                        if (indexByUri[uri] === undefined) {
+                            indexByUri[uri] = previousIndex + 1;
                         }
                         return;
                     }
 
                     let infoInternal = localClassByFullName[fullName];
                     let insertIndex = 0;
-                    if (calculateDependances) {
-                        for (let dependance of infoInternal.dependances) {
-                            let cloneBeforeLoop = { ...indexByUri };
-                            // load info to force insert before
-                            if (dependance.isStrong) {
-                                if (dependance.uri == "@external") {
-                                    indexByUri = loadAndOrderInfo(dependance, false, indexByUri, alreadyLooked);
-                                }
-                                else {
-                                    let fullNameDep = dependance.fullName.replace("$namespace$", '');
-                                    if (fullNameDep != fullName) {
-                                        indexByUri = loadAndOrderInfo(dependance, true, indexByUri, alreadyLooked);
-                                        if (indexByUri[localUri] && indexByUri[localUri] >= 0 && indexByUri[localUri] > insertIndex) {
-                                            insertIndex = indexByUri[localUri];
-                                        }
-                                    }
+                    for (let dependance of infoInternal.dependances) {
+                        if (dependance.uri == "@npm") {
+                            continue;
+                        }
+
+                        let cloneBeforeLoop = { ...indexByUri };
+                        // load info to force insert before
+                        if (dependance.uri == "@external") {
+                            const resultTemp = loadAndOrderInfo(dependance, false, indexByUri, alreadyLooked, {});
+                            if (resultTemp instanceof Promise) {
+                                if (dependance.isStrong) {
+                                    promises.push(resultTemp);
                                 }
                             }
                             else {
-                                if (dependance.uri == "@external") {
-                                    indexByUri = loadAndOrderInfo(dependance, false, indexByUri, alreadyLooked);
-                                }
-                                else {
-                                    let oldLength = result.toCompile.length;
-                                    indexByUri = loadAndOrderInfo(dependance, true, indexByUri, alreadyLooked);
-                                    let newLength = result.toCompile.length;
-                                    if (indexByUri[localUri] && indexByUri[localUri] >= 0 && indexByUri[localUri] > insertIndex) {
-                                        if (insertIndex > 0) {
-                                            insertIndex += (newLength - oldLength);
+                                indexByUri = resultTemp
+                            }
+                        }
+                        else {
+                            if (dependance.isStrong) {
+                                let fullNameDep = dependance.fullName.replace("$namespace$", '');
+                                if (fullNameDep != fullName) {
+
+                                    const resultTemp = loadAndOrderInfo(dependance, true, indexByUri, alreadyLooked, alreadyLookedStrong);
+                                    if (resultTemp instanceof Promise) {
+                                        promises.push(resultTemp);
+                                    }
+                                    else {
+                                        indexByUri = resultTemp
+                                        if (indexByUri[uri] && indexByUri[uri] >= 0 && indexByUri[uri] > insertIndex) {
+                                            insertIndex = indexByUri[uri];
                                         }
                                     }
                                 }
 
                             }
-                            indexByUri = cloneBeforeLoop;
+                            else {
+                                let oldLength = result.toCompile.length;
+                                const resultTemp = loadAndOrderInfo(dependance, true, indexByUri, alreadyLooked, {});
+                                if (!(resultTemp instanceof Promise)) {
+                                    indexByUri = resultTemp
+                                    if (indexByUri[uri] && indexByUri[uri] >= 0 && indexByUri[uri] > insertIndex) {
+                                        insertIndex = indexByUri[uri];
+                                    }
+                                }
+                                let newLength = result.toCompile.length;
+                                if (indexByUri[uri] && indexByUri[uri] >= 0 && indexByUri[uri] > insertIndex) {
+                                    if (insertIndex > 0) {
+                                        insertIndex += (newLength - oldLength);
+                                    }
+                                }
+
+                            }
                         }
+                        indexByUri = cloneBeforeLoop;
                     }
                     if (loadedInfoInternal.indexOf(fullName) != -1) {
-                        result[localUri] = loadedInfoInternal.indexOf(fullName);
-                        return indexByUri;
+                        result[uri] = loadedInfoInternal.indexOf(fullName);
+                        return;
                     }
 
-                    result.toCompile.splice(insertIndex, 0, infoInternal);
-                    loadedInfoInternal.splice(insertIndex, 0, fullName);
-                    indexByUri[localUri] = result.toCompile.length
-                    return indexByUri;
+                    if (promises.length == 0) {
+                        result.toCompile.splice(insertIndex, 0, infoInternal);
+                        loadedInfoInternal.splice(insertIndex, 0, fullName);
+                        for (const cb of alreadyLooked[fullName]) {
+                            cb()
+                        }
+                        alreadyLooked[fullName] = [];
+                    }
+                    indexByUri[uri] = result.toCompile.length
+                    return;
                 }
                 else {
-                    let infoExternal = this.externalPackageInformation.getByFullName(fullName);
                     if (!infoExternal) {
                         // it s an error
-                        return indexByUri;
+                        return;
                     }
-                    if (!this.dependanceUris.includes(infoExternal.uri)) {
+                    if (!this.dependanceUris.includes(uri)) {
                         // don't need to load the lib because not include inside build (care change this if want to load dependance of depenande not included)
-                        return indexByUri;
+                        return;
                     }
-                    if (!loadedInfoExternal[infoExternal.uri]) {
-                        loadedInfoExternal[infoExternal.uri] = [];
+                    if (!loadedInfoExternal[uri]) {
+                        loadedInfoExternal[uri] = [];
                     }
-                    let previousIndex = loadedInfoExternal[infoExternal.uri].indexOf(fullName);
+                    let previousIndex = loadedInfoExternal[uri].indexOf(fullName);
                     if (previousIndex != -1) {
-                        indexByUri[infoExternal.uri] = previousIndex + 1;
-                        return indexByUri;
+                        indexByUri[uri] = previousIndex + 1;
+                        return;
                     }
 
                     let insertIndex = 0;
                     if (infoExternal.content != 'noCode') {
-                        if (calculateDependances) {
-                            for (let dependance of infoExternal.content.dependances) {
-                                let cloneBeforeLoop = { ...indexByUri };
-                                indexByUri = loadAndOrderInfo(dependance, false, indexByUri, alreadyLooked);
-                                if (indexByUri[infoExternal.uri] && indexByUri[infoExternal.uri] >= 0 && indexByUri[infoExternal.uri] > insertIndex) {
-                                    insertIndex = indexByUri[infoExternal.uri];
+                        for (let dependance of infoExternal.content.dependances) {
+                            let cloneBeforeLoop = { ...indexByUri };
+                            let strongDep = dependance.isStrong ? alreadyLookedStrong : {};
+                            const resultTemp = loadAndOrderInfo(dependance, false, indexByUri, alreadyLooked, strongDep);
+                            if (resultTemp instanceof Promise) {
+                                if (dependance.isStrong) {
+                                    promises.push(resultTemp);
                                 }
-                                indexByUri = cloneBeforeLoop;
+                            }
+                            else {
+                                indexByUri = resultTemp;
+                                if (indexByUri[uri] && indexByUri[uri] >= 0 && indexByUri[uri] > insertIndex) {
+                                    insertIndex = indexByUri[uri];
+                                }
+                            }
+                            indexByUri = cloneBeforeLoop;
+
+                        }
+                    }
+
+                    if (loadedInfoExternal[uri].includes(fullName)) {
+                        indexByUri[uri] = loadedInfoExternal[uri].indexOf(fullName);
+                        return;
+                    }
+
+                    if (promises.length == 0) {
+                        loadedInfoExternal[uri].splice(insertIndex, 0, fullName);
+                        indexByUri[uri] = loadedInfoExternal[uri].length;
+                        for (const cb of alreadyLooked[fullName]) {
+                            cb()
+                        }
+                        alreadyLooked[fullName] = [];
+                    }
+                    return;
+                }
+            }
+            calculate();
+            if (info.isStrong) {
+                delete alreadyLookedStrong[fullName];
+            }
+
+            if (promises.length == 0) {
+                if (alreadyLooked[fullName] && alreadyLooked[fullName].length == 0) {
+                    delete alreadyLooked[fullName];
+                }
+                return indexByUri;
+            }
+            else {
+                const prom = new Promise<{ [uri: string]: string }>(async (resolve) => {
+                    const asyncResults = await Promise.all(promises);
+                    let insertIndex = indexByUri[uri] ?? 0;
+                    for (const result of asyncResults) {
+                        if (result[uri]) {
+                            let fullnameTemp = result[uri];
+                            if (isLocal) {
+                                let indexTemp = loadedInfoInternal.indexOf(fullnameTemp) + 1
+                                if (indexTemp > insertIndex) {
+                                    insertIndex = indexTemp;
+                                }
+                            }
+                            else {
+                                let indexTemp = loadedInfoExternal[uri].indexOf(fullnameTemp) + 1
+                                if (indexTemp > insertIndex) {
+                                    insertIndex = indexTemp;
+                                }
                             }
                         }
                     }
 
-                    if (loadedInfoExternal[infoExternal.uri].includes(fullName)) {
-                        indexByUri[infoExternal.uri] = loadedInfoExternal[infoExternal.uri].indexOf(fullName);
-                        return indexByUri;
+                    if (isLocal) {
+                        let infoInternal = localClassByFullName[fullName];
+                        if (!loadedInfoInternal.includes(fullName)) {
+                            result.toCompile.splice(insertIndex, 0, infoInternal);
+                            loadedInfoInternal.splice(insertIndex, 0, fullName);
+                        }
                     }
-
-                    loadedInfoExternal[infoExternal.uri].splice(insertIndex, 0, fullName);
-                    indexByUri[infoExternal.uri] = loadedInfoExternal[infoExternal.uri].length;
-                    return indexByUri;
-                }
+                    else if (!loadedInfoExternal[uri].includes(fullName)) {
+                        loadedInfoExternal[uri].splice(insertIndex, 0, fullName);
+                    }
+                    for (const cb of alreadyLooked[fullName]) {
+                        cb()
+                    }
+                    delete alreadyLooked[fullName];
+                    resolve({ [uri]: fullName });
+                });
+                allProms.push(prom);
+                return prom;
             }
-            calculate();
-            delete alreadyLooked[fullName];
-            return indexByUri;
+
         }
 
         // load internal file
@@ -776,51 +948,64 @@ export class Build {
                     loadAndOrderInfo({
                         fullName: compileInfo.classScript,
                         isStrong: true,
-                    }, true, {}, {});
+                    }, true, {}, {}, {});
                 }
                 if (compileInfo.classDoc !== "") {
                     loadAndOrderInfo({
                         fullName: compileInfo.classDoc,
                         isStrong: true,
-                    }, true, {}, {});
+                    }, true, {}, {}, {});
                 }
             }
         }
-
+        await Promise.all(allProms);
+        allProms = [];
         // add required code for lib
         for (let libUri of this.dependanceNeedUris) {
             let requiredInfos = this.externalPackageInformation.getInformationsRequired(libUri);
+            if (!loadedInfoExternal[libUri]) {
+                loadedInfoExternal[libUri] = [];
+            }
             for (let requiredInfo of requiredInfos) {
                 if (!loadedInfoExternal[libUri].includes(requiredInfo.fullName)) {
                     loadAndOrderInfo({
                         fullName: requiredInfo.fullName,
                         isStrong: true
-                    }, false, {}, {});
+                    }, false, {}, {}, {});
                 }
             }
         }
+
+        await Promise.all(allProms);
+        allProms = [];
+
         for (let libUri of this.dependanceFullUris) {
+            if (!loadedInfoExternal[libUri]) {
+                loadedInfoExternal[libUri] = [];
+            }
             let fullInfos = this.externalPackageInformation.getFullInformations(libUri);
             for (let fullInfo of fullInfos) {
                 if (!loadedInfoExternal[libUri].includes(fullInfo.fullName)) {
                     loadAndOrderInfo({
                         fullName: fullInfo.fullName,
                         isStrong: true
-                    }, false, {}, {});
+                    }, false, {}, {}, {});
                 }
             }
         }
 
+        await Promise.all(allProms);
+        allProms = [];
+
         // build code for each lib
         let libSrc: string[] = []
         for (let libUri of this.dependanceUris) {
-            let libInfo: { namespace: string, code: string[], before: string[], after: string[], classesName: string[], classesNameData: string[] } = {
+            let libInfo: { namespace: string, code: string[], before: string[], after: string[], classesName: { [name: string]: { type: InfoType, isExported: boolean, convertibleName: string } } } = {
                 namespace: this.externalPackageInformation.getNamespaceByUri(libUri),
                 before: [],
                 code: [],
                 after: [],
-                classesName: [],
-                classesNameData: []
+                classesName: {},
             }
             if (!loadedInfoExternal[libUri]) {
                 continue;
@@ -828,19 +1013,22 @@ export class Build {
             for (let fullname of loadedInfoExternal[libUri]) {
                 let infoExternal = this.externalPackageInformation.getByFullName(fullname);
                 if (infoExternal.content != 'noCode') {
+                    let code = replaceNotImportAliases(infoExternal.content.code, this.project.getConfig());
                     if (!infoExternal.content.noNamespace) {
-                        libInfo.code.push(infoExternal.content.code);
+                        libInfo.code.push(code);
                         let regex = new RegExp('^' + this.externalPackageInformation.getNamespaceByUri(infoExternal.uri) + "\.");
-                        if (this.externalPackageInformation.fullNameIsData(fullname)) {
-                            libInfo.classesNameData.push(infoExternal.content.fullName.replace(regex, ""));
+                        let fullNameTemp = infoExternal.content.fullName.replace(regex, "");
+                        libInfo.classesName[fullNameTemp] = {
+                            type: infoExternal.content.type,
+                            isExported: infoExternal.content.isExported,
+                            convertibleName: infoExternal.content.convertibleName,
                         }
-                        libInfo.classesName.push(infoExternal.content.fullName.replace(regex, ""));
                     }
                     else if (infoExternal.content.noNamespace == 'before') {
-                        libInfo.before.push(infoExternal.content.code);
+                        libInfo.before.push(code);
                     }
                     else if (infoExternal.content.noNamespace == 'after') {
-                        libInfo.after.push(infoExternal.content.code);
+                        libInfo.after.push(code);
                     }
 
                 }
@@ -851,12 +1039,14 @@ export class Build {
             for (let name in stylesheetsInfo) {
                 stylesheets.push(`Aventus.Style.store("${name}", \`${stylesheetsInfo[name]}\`)`);
             }
-            let codeModule = this._buildStringModule(libInfo.namespace, libInfo.before, libInfo.code, libInfo.classesName, libInfo.classesNameData, libInfo.after, stylesheets);
+            let codeModule = this._buildStringModule(libInfo.namespace, libInfo.before, libInfo.code, libInfo.classesName, libInfo.after, stylesheets);
             libSrc.push(codeModule);
 
         }
 
         result.libSrc = libSrc.join(EOL);
+
+
 
         return result;
     }
@@ -919,7 +1109,7 @@ export class Build {
             }
         }
 
-        if (ClientConnection.getInstance().isDebug()) {
+        if (GenericServer.isDebug()) {
             console.log("loaded all files needed");
         }
         this.allowBuild = true;
@@ -929,22 +1119,25 @@ export class Build {
      * Register one file inside this build
      * @param file 
      */
-    private registerFile(file: AventusFile) {
+    private async registerFile(file: AventusFile) {
         if (file.uri.endsWith(AventusExtension.ComponentStyle)) {
             if (!this.scssFiles[file.uri]) {
                 this.scssFiles[file.uri] = new AventusWebSCSSFile(file, this);
+                await this.scssFiles[file.uri].init()
                 this.registerOnFileDelete(file);
             }
         }
         else if (file.uri.endsWith(AventusExtension.ComponentView)) {
             if (!this.htmlFiles[file.uri]) {
                 this.htmlFiles[file.uri] = new AventusHTMLFile(file, this);
+                await this.htmlFiles[file.uri].init()
                 this.registerOnFileDelete(file);
             }
         }
         else if (file.uri.endsWith(AventusExtension.Component)) {
             if (!this.wcFiles[file.uri]) {
                 this.wcFiles[file.uri] = new AventusWebComponentSingleFile(file, this);
+                await this.wcFiles[file.uri].init();
                 this.registerOnFileDelete(file);
             }
         }
@@ -1055,7 +1248,7 @@ export class Build {
                 }
             }
         }
-        else if (this.buildConfig.namespaceStrategy == "followFolders") {
+        else if (this.buildConfig.namespaceStrategy == "followFolders" || this.buildConfig.namespaceStrategy == "followFoldersCamelCase") {
             let path = uriToPath(uri);
             let splittedPath = path.split("/");
             splittedPath.pop();
@@ -1067,15 +1260,42 @@ export class Build {
             if (namespaceTxt.endsWith(".")) {
                 namespaceTxt = namespaceTxt.slice(0, -1);
             }
+            if (namespaceTxt.startsWith(".")) {
+                namespaceTxt = namespaceTxt.slice(1);
+            }
             if (namespaceTxt.includes(":")) {
                 // TODO add error
                 return "";
             }
+            if (this.buildConfig.namespaceStrategy == "followFoldersCamelCase") {
+                return namespaceTxt.toLowerCase().replace(/(([-_\.]|^)[a-z])/g, (group) =>
+                    group
+                        .toUpperCase()
+                        .replace('-', '')
+                        .replace('_', '')
+                );
+            }
             return namespaceTxt;
         }
+
         return "";
     }
 
+    public addNamespace(_namespace: string) {
+        if (!this.namespaces.includes(_namespace)) {
+            const splitted = _namespace.split(".");
+            let current = "";
+            for (let split of splitted) {
+                current += split;
+
+                if (!this.namespaces.includes(current)) {
+                    this.namespaces.push(current);
+                }
+
+                current += "."
+            }
+        }
+    }
 
     public async onRename(changes: { oldUri: string, newUri: string }[]): Promise<{ [uri: string]: TextEdit[] }> {
         for (let change of changes) {
@@ -1116,7 +1336,6 @@ class ExternalPackageInformation {
     private informations: { [fullname: string]: { content: AventusPackageTsFileExport | 'noCode', uri: string } } = {};
     private informationsRequired: { [uri: string]: AventusPackageTsFileExport[] } = {};
     private webComponentByName: { [name: string]: ClassInfo } = {}
-    private dataFullname: string[] = [];
 
     public init(files: AventusPackageFile[]) {
         for (let file of files) {
@@ -1138,11 +1357,6 @@ class ExternalPackageInformation {
         return this.files[uri]?.srcInfo.available || []
     }
 
-    public fullNameIsData(fullName: string) {
-        return this.dataFullname.includes(fullName);
-    }
-
-
     public getStyleByUri(uri: string): { [name: string]: string } {
         if (this.files[uri]) {
             return this.files[uri].externalCSS;
@@ -1153,7 +1367,6 @@ class ExternalPackageInformation {
     public rebuild() {
         this.informations = {};
         this.webComponentByName = {};
-        this.dataFullname = [];
         let errors: Diagnostic[] = [];
         for (let uri in this.files) {
             let defFile = this.files[uri];
@@ -1209,10 +1422,8 @@ class ExternalPackageInformation {
                 ...this.webComponentByName,
                 ...defFile.classInfoByName
             }
-
-            this.dataFullname = this.dataFullname.concat(defFile.classInfoDataFullname);
         }
-        ClientConnection.getInstance().sendDiagnostics({ uri: '@Import lib', diagnostics: errors })
+        GenericServer.sendDiagnostics({ uri: '@Import lib', diagnostics: errors })
     }
 
     public getExternalWebComponentDefinition(className: string): ClassInfo | undefined {

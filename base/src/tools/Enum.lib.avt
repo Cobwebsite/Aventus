@@ -1,0 +1,4 @@
+export type Enum<T = unknown> = {
+    [id: string]: T | string;
+    [nu: number]: string;
+}

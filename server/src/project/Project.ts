@@ -1,4 +1,4 @@
-import { normalize } from 'path';
+import { normalize, sep } from 'path';
 import { CompletionItem, CompletionList, FormattingOptions, Hover, Position, Range, TextEdit } from 'vscode-languageserver';
 import { AventusExtension } from '../definition';
 import { AventusFile } from '../files/AventusFile';
@@ -39,6 +39,54 @@ export class Project {
     }
     public getConfig() {
         return this.config;
+    }
+
+    public resolveAlias(path: string, file: AventusFile) {
+        if (path.startsWith("@")) {
+            let pathSplitted = path.split("/");
+            let alias = pathSplitted[0];
+            let value = this.config?.aliases[alias]
+            if (value) {
+                let basePath = normalize(this.configFile.folderPath + "/" + value);
+                let filePath = normalize(file.folderPath);
+                if (basePath.endsWith(sep)) {
+                    basePath = basePath.substring(0, basePath.length - 1);
+                }
+                if (filePath.endsWith(sep)) {
+                    filePath = filePath.substring(0, filePath.length - 1);
+                }
+
+
+                let basePathSplitted = basePath.split(sep);
+                let filePathSplitted = filePath.split(sep);
+
+                for (let i = 0; i < basePathSplitted.length; i++) {
+                    if (filePathSplitted.length > i) {
+                        if (basePathSplitted[i] == filePathSplitted[i]) {
+                            basePathSplitted.splice(i, 1);
+                            filePathSplitted.splice(i, 1);
+                            i--;
+                        }
+                        else {
+                            break;
+                        }
+                    }
+                }
+                let finalPathToImport = "";
+                for (let i = 0; i < filePathSplitted.length; i++) {
+                    finalPathToImport += '../';
+                }
+                if (finalPathToImport == "") {
+                    finalPathToImport += "./";
+                }
+                finalPathToImport += basePathSplitted.join("/");
+
+                pathSplitted.splice(0, 1, finalPathToImport);
+
+                return pathSplitted.join("/").replace(/\/\//g, "/");
+            }
+        }
+        return path;
     }
 
     public getInternalWebComponentDefinition(path: string, tagName: string): ClassInfo | undefined {
@@ -100,6 +148,9 @@ export class Project {
         this.config = newConfig;
         if (this.config) {
             for (let build of this.config.build) {
+                if (build.disabled) {
+                    continue;
+                }
                 let newBuild = new Build(this, build);
                 this.builds.push(newBuild);
                 await newBuild.init()
@@ -128,6 +179,13 @@ export class Project {
 
     //#endregion
 
+    public getBuildsName(): string[] {
+        let result: string[] = [];
+        for (let build of this.builds) {
+            result.push(build.fullname);
+        }
+        return result;
+    }
     public getBuild(name: string): Build | undefined {
         for (let build of this.builds) {
             if (build.fullname == name) {
@@ -142,6 +200,13 @@ export class Project {
             if (build.isFileInside(uri)) {
                 result.push(build);
             }
+        }
+        return result;
+    }
+    public getStaticsName(): string[] {
+        let result: string[] = [];
+        for (let build of this.statics) {
+            result.push(build.name);
         }
         return result;
     }

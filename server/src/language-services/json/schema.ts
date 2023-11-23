@@ -24,7 +24,7 @@ export const AventusConfigSchema: JSONSchema = {
         "componentPrefix": {
             type: "string",
             description: "Identifier to prefix all your components (in lower case)",
-            pattern: "^[a-z]{2,}$",
+            pattern: "^[a-z\-]{2,}$",
         },
         "build": {
             type: "array",
@@ -41,6 +41,11 @@ export const AventusConfigSchema: JSONSchema = {
                         pattern: "^[0-9]+\.[0-9]+\.[0-9]+$",
                         description: "Version for this build (x.x.x)"
                     },
+                    "disabled": {
+                        type: "boolean",
+                        description: "Disable auto-build",
+                        default: true
+                    },
                     "hideWarnings": {
                         type: "boolean",
                         description: "Hide warnings for this build"
@@ -48,7 +53,7 @@ export const AventusConfigSchema: JSONSchema = {
                     "componentPrefix": {
                         type: "string",
                         description: "Identifier to prefix all your components (in lower case)",
-                        pattern: "^[a-z]{2,}$",
+                        pattern: "^[a-z\-]{2,}$",
                     },
                     "inputPath": {
                         type: "array",
@@ -61,12 +66,20 @@ export const AventusConfigSchema: JSONSchema = {
                         description: "List of all pathes to import outside the module"
                     },
                     "outputFile": {
-                        type: "string",
+                        type: ["string", "array"],
+                        items: {
+                            type: "string",
+                            pattern: "^\\S+\\.js",
+                        },
                         pattern: "^\\S+\\.js",
                         description: "The script file generated path"
                     },
                     "outputPackage": {
-                        type: "string",
+                        type: ["string", "array"],
+                        items: {
+                            type: "string",
+                            pattern: "^\\S+\\.package\\.avt",
+                        },
                         pattern: "^\\S+\\.package\\.avt",
                         description: "The package file generated path (for lib)"
                     },
@@ -117,7 +130,7 @@ export const AventusConfigSchema: JSONSchema = {
                     },
                     "namespaceStrategy": {
                         type: "string",
-                        enum: ["manual", "followFolders", "rules"],
+                        enum: ["manual", "followFolders", "followFoldersCamelCase", "rules"],
                         description: "Stragety to generate namespace",
                         default: "manual"
                     },
@@ -165,7 +178,14 @@ export const AventusConfigSchema: JSONSchema = {
                     },
                     "compressed": {
                         type: "boolean"
-                    }
+                    },
+                    "nodeModulesDir": {
+                        type: ["string", "array"],
+                        items: {
+                            type: "string",
+                        },
+                        description: "The dirs where node_modules are located"
+                    },
                 },
                 required: ["name", "inputPath"],
                 additionalProperties: false
@@ -187,7 +207,10 @@ export const AventusConfigSchema: JSONSchema = {
                         description: "Input path to watch to export as static files"
                     },
                     "outputPath": {
-                        type: "string",
+                        type: ["string", "array"],
+                        items: {
+                            type: "string",
+                        },
                         description: "Define where to export static files"
                     }
                 },
@@ -202,9 +225,12 @@ export const AventusConfigSchema: JSONSchema = {
                 pattern: "^[a-z\-]+$",
             },
             description: "List of html tag that mustn't be parsed by the html compiler"
+        },
+        "aliases": {
+            type: "object"
         }
     },
-    "required": ["build", "componentPrefix", "module"]
+    "required": ["build", "module"]
 };
 
 export const AventusTemplateSchema: JSONSchema = {
@@ -261,4 +287,111 @@ export const AventusTemplateSchema: JSONSchema = {
         }
     },
     "required": ["name", "description", "version", "variables"]
+}
+
+
+export const AventusSharpSchema: JSONSchema = {
+    "$schema": "foo://aventus/sharp.json",
+    "title": "JSON Schema for Aventus",
+    "description": "JSON Schema for Aventus",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "csProj": {
+            type: "string",
+            pattern: "^\\S+\\.csproj",
+        },
+        "outputPath": {
+            type: "string",
+        },
+        "exportEnumByDefault": {
+            type: "boolean",
+            default: false
+        },
+        "exportStorableByDefault": {
+            type: "boolean",
+            default: true
+        },
+        "exportHttpRouteByDefault": {
+            type: "boolean",
+            default: true
+        },
+        "exportErrorsByDefault": {
+            type: "boolean",
+            default: true
+        },
+        "exportWsEndPointByDefault": {
+            type: "boolean",
+            default: true
+        },
+        "exportWsEventByDefault": {
+            type: "boolean",
+            default: true
+        },
+        "exportWsRouteByDefault": {
+            type: "boolean",
+            default: true
+        },
+        "replacer": {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+                "all": { "$ref": "#/$defs/replacerPart" },
+                "genericError": { "$ref": "#/$defs/replacerPart" },
+                "httpRouter": { "$ref": "#/$defs/replacerPart" },
+                "normalClass": { "$ref": "#/$defs/replacerPart" },
+                "storable": { "$ref": "#/$defs/replacerPart" },
+                "withError": { "$ref": "#/$defs/replacerPart" },
+                "wsEndPoint": { "$ref": "#/$defs/replacerPart" },
+                "wsEvent": { "$ref": "#/$defs/replacerPart" },
+                "wsRouter": { "$ref": "#/$defs/replacerPart" }
+            }
+        }
+    },
+    "required": ["csProj", "outputPath"],
+    "$defs": {
+        "replacerPart": {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+                "type": {
+                    type: "object",
+                    patternProperties: {
+                        "^\\S+$": {
+                            type: "object",
+                            additionalProperties: false,
+                            properties: {
+                                "result": {
+                                    type: "string"
+                                },
+                                "file": {
+                                    type: "string"
+                                },
+                            },
+                            required: ["result"]
+                        }
+                    }
+                },
+                "result": {
+                    type: "object",
+                    patternProperties: {
+                        "^\\S+$": {
+                            type: "object",
+                            additionalProperties: false,
+                            properties: {
+                                "result": {
+                                    type: "string"
+                                },
+                                "file": {
+                                    type: "string"
+                                },
+                            },
+                            required: ["result"]
+                        }
+                    }
+                }
+            },
+
+        }
+    }
 }

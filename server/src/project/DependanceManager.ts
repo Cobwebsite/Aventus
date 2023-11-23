@@ -2,14 +2,14 @@ import { createReadStream, createWriteStream, existsSync, mkdirSync, readFileSyn
 import { AventusConfigBuild, AventusConfigBuildDependance, IncludeType } from '../language-services/json/definition';
 import * as md5 from 'md5';
 import { join, normalize } from 'path';
-import { AVENTUS_DEF_BASE_PATH, AVENTUS_DEF_UI_PATH } from '../language-services/ts/libLoader';
+import { AVENTUS_DEF_BASE_PATH, AVENTUS_DEF_SHARP_PATH, AVENTUS_DEF_UI_PATH } from '../language-services/ts/libLoader';
 import { FilesWatcher } from '../files/FilesWatcher';
 import { pathToUri } from '../tools';
 import { AventusExtension, AventusLanguageId } from '../definition';
 import { AventusPackageFile } from '../language-services/ts/package/File';
 import { Build } from './Build';
-import { ClientConnection } from '../Connection';
 import { get } from 'http';
+import { GenericServer } from '../GenericServer';
 
 type DependanceLoopPart = {
 	file: AventusPackageFile,
@@ -37,15 +37,18 @@ export class DependanceManager {
 	}
 
 	private constructor() {
-		this.path = join(ClientConnection.getInstance().getFsPath(), "packages");
+		this.path = join(GenericServer.savePath, "packages");
 		if (!existsSync(this.path)) {
 			mkdirSync(this.path, { recursive: true });
 		}
 	}
 
 	private predefinedPaths = {
-		"@Aventus": AVENTUS_DEF_BASE_PATH,
-		"@AventusUI": AVENTUS_DEF_UI_PATH,
+		"@Aventus": AVENTUS_DEF_BASE_PATH(),
+		"@AventusUI": AVENTUS_DEF_UI_PATH(),
+		"Aventus@UI": AVENTUS_DEF_UI_PATH(),
+		"@AventusSharp": AVENTUS_DEF_SHARP_PATH(),
+		"Aventus@Sharp": AVENTUS_DEF_SHARP_PATH(),
 	}
 	private aventusLoaded: boolean = false;
 	public async loadDependancesFromBuild(config: AventusConfigBuild, build: Build): Promise<{ files: AventusPackageFile[], dependanceNeedUris: string[], dependanceFullUris: string[], dependanceUris: string[] }> {
@@ -67,7 +70,7 @@ export class DependanceManager {
 		}
 
 		if (!this.aventusLoaded) {
-			let uri = pathToUri(AVENTUS_DEF_BASE_PATH);
+			let uri = pathToUri(AVENTUS_DEF_BASE_PATH());
 			let avFile = this.loadByUri(build, uri)
 			loopResult["Aventus"] = {
 				dependances: [],
@@ -86,17 +89,21 @@ export class DependanceManager {
 
 		for (let name of orderedName) {
 			let current = loopResult[name];
-			// insert first place | TODO check if we need reverse
-			result.dependanceUris.push(current.uri);
+			current.file.loadWebComponents();
 			result.files.push(current.file);
 			let nameTemp = includeNames[name] ? name : "*";
 			if (includeNames[nameTemp]) {
 				if (includeNames[nameTemp] == "full") {
 					result.dependanceFullUris.push(current.uri);
+					result.dependanceUris.push(current.uri);
 				}
 				else if (includeNames[nameTemp] == "need") {
 					result.dependanceNeedUris.push(current.uri);
+					result.dependanceUris.push(current.uri);
 				}
+			}
+			else {
+				result.dependanceUris.push(current.uri);
 			}
 		}
 		return result;
@@ -222,6 +229,9 @@ export class DependanceManager {
 
 	private loadLocal(localName: string, build: Build) {
 		let uri = pathToUri(join(this.path, "@locals", localName))
+		if(!uri.endsWith(AventusExtension.Package)){
+			uri += AventusExtension.Package;
+		}
 		let file = FilesWatcher.getInstance().registerFile(uri, AventusLanguageId.Package);
 		return {
 			uri,
@@ -419,7 +429,7 @@ export class DependanceManager {
 				// error
 				let v1Txt = Object.values(v1).join(".");
 				let v2Txt = Object.values(v2).join(".");
-				ClientConnection.getInstance().showErrorMessage(`Can't resolve version for dependance ${name} between ${v1Txt} and ${v2Txt}`);
+				GenericServer.showErrorMessage(`Can't resolve version for dependance ${name} between ${v1Txt} and ${v2Txt}`);
 				return -1;
 			}
 		}

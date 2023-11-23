@@ -1,7 +1,8 @@
 export class Style {
     private static instance: Style;
+    public static noAnimation: CSSStyleSheet;
     private static defaultStyleSheets: { [name: string]: string; } = {
-        "@general": `:host{display:inline-block;box-sizing:border-box}:host *{box-sizing:border-box}`
+        "@general": `:host{display:inline-block;box-sizing:border-box}:host *{box-sizing:border-box}`,
     };
 
     public static store(name: string, content: string) {
@@ -25,14 +26,16 @@ export class Style {
         for(let name in Style.defaultStyleSheets) {
             this.store(name, Style.defaultStyleSheets[name]);
         }
+        Style.noAnimation = new CSSStyleSheet();
+        Style.noAnimation.replaceSync(`:host{-webkit-transition: none !important;-moz-transition: none !important;-ms-transition: none !important;-o-transition: none !important;transition: none !important;}:host *{-webkit-transition: none !important;-moz-transition: none !important;-ms-transition: none !important;-o-transition: none !important;transition: none !important;}`);
     }
-
 
     private stylesheets: Map<string, CSSStyleSheet> = new Map();
 
     public async load(name: string, url: string): Promise<void> {
         try {
-            if(!this.stylesheets.has(name) || this.stylesheets.get(name).cssRules.length == 0) {
+            let style = this.stylesheets.get(name);
+            if(!style || style.cssRules.length == 0) {
                 let txt = await (await fetch(url)).text();
                 this.store(name, txt);
             }
@@ -43,19 +46,23 @@ export class Style {
     }
 
     public store(name: string, content: string) {
-        if(!this.stylesheets.has(name)) {
+        let style = this.stylesheets.get(name);
+        if(!style) {
             const sheet = new CSSStyleSheet();
             sheet.replaceSync(content);
             this.stylesheets.set(name, sheet);
+            return sheet;
         }
         else {
-            this.stylesheets.get(name).replaceSync(content);
+            style.replaceSync(content);
+            return style;
         }
     }
     public get(name: string): CSSStyleSheet {
-        if(!this.stylesheets.has(name)) {
-            this.store(name, "");
+        let style = this.stylesheets.get(name);
+        if(!style) {
+            style = this.store(name, "");
         }
-        return this.stylesheets.get(name);
+        return style;
     }
 }

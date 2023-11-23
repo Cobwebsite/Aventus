@@ -8,7 +8,7 @@ import { createErrorScssPos } from "../../tools";
 import { AventusBaseFile } from "../BaseFile";
 import { writeFileSync } from 'fs';
 import { HttpServer } from '../../live-server/HttpServer';
-const nodeSass = require('sass');
+import { compileString } from 'sass';
 
 export class AventusGlobalComponentSCSSFile extends AventusBaseFile {
 	private usedBy: { [uri: string]: AventusGlobalComponentSCSSFile } = {};
@@ -69,7 +69,7 @@ export class AventusGlobalComponentSCSSFile extends AventusBaseFile {
 				let arrMatch: RegExpExecArray | null = null;
 				while (arrMatch = regex.exec(textToSearch)) {
 					let importName = arrMatch[2];
-					let fileDependance = this.resolvePath(importName, file.folderUri);
+					let fileDependance = this.resolvePath(importName, file.folderPath);
 					if (fileDependance) {
 						let nesteadContent = _loadContent(fileDependance);
 						if (nesteadContent == errorMsgTxt) {
@@ -85,7 +85,7 @@ export class AventusGlobalComponentSCSSFile extends AventusBaseFile {
 			}
 			let oneFileContent = _loadContent(this.file);
 			if (oneFileContent != "|error|") {
-				let compiled = nodeSass.compileString(oneFileContent, {
+				let compiled = compileString(oneFileContent, {
 					style: 'compressed'
 				}).css.toString().trim();
 				newCompiledTxt = compiled;
@@ -164,7 +164,7 @@ export class AventusGlobalComponentSCSSFile extends AventusBaseFile {
 		}
 		while (arrMatch = regex.exec(textToSearch)) {
 			let importName = arrMatch[2];
-			let fileDependance = this.resolvePath(importName, this.file.folderUri);
+			let fileDependance = this.resolvePath(importName, this.file.folderPath);
 			if (!fileDependance) {
 				let start = text.indexOf(arrMatch[0]);
 				let end = start + arrMatch[0].length;
@@ -190,6 +190,7 @@ export class AventusGlobalComponentSCSSFile extends AventusBaseFile {
 	}
 
 	private resolvePath(loadingPath: string, currentFolder: string): AventusFile | undefined {
+		loadingPath = this.build.project.resolveAlias(loadingPath, this.file);
 		loadingPath = normalize(currentFolder + "/" + loadingPath);
 		let result: AventusFile | undefined = FilesManager.getInstance().getByPath(loadingPath);
 		if (result) {

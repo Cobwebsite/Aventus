@@ -1,5 +1,5 @@
 
-export class GenericError<T extends number> {
+export class GenericError<T extends number = number> {
     /**
      * Code for the error
      */
@@ -9,26 +9,31 @@ export class GenericError<T extends number> {
      */
     public message: string;
 
+    public details: any[] = [];
+
     public constructor(code: T, message: string) {
         this.code = code;
         this.message = message;
     }
 }
 
-export class ResultWithError<T, U extends GenericError<any>> {
+export class VoidWithError<T extends GenericError = GenericError> {
 
-	/**
-	 * Determine if the action is a success
-	 */
+    /**
+     * Determine if the action is a success
+     */
     public get success(): boolean {
         return this.errors.length == 0;
     }
-	/**
-	 * Result
-	 */
-	public result:T;
-	/**
-	 * List of errors
-	 */
-    public errors: U[] = [];
+    /**
+     * List of errors
+     */
+    public errors: T[] = [];
+}
+export class ResultWithError<U, T extends GenericError = GenericError> extends VoidWithError<T> {
+
+    /**
+     * Result
+     */
+    public result: U | undefined;
 }

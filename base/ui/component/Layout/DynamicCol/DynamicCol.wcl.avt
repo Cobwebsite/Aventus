@@ -9,55 +9,55 @@ namespace Layout {
         //#region props
         //#region size
         @Attribute()
-        public size: number;
+        public size!: number;
         @Attribute()
-        public size_xs: number;
+        public size_xs!: number;
         @Attribute()
-        public size_sm: number;
+        public size_sm!: number;
         @Attribute()
-        public size_md: number;
+        public size_md!: number;
         @Attribute()
-        public size_lg: number;
+        public size_lg!: number;
         @Attribute()
-        public size_xl: number;
+        public size_xl!: number;
         //#endregion
 
         //#region offset
         @Attribute()
-        public offset: number;
+        public offset!: number;
         @Attribute()
-        public offset_xs: number;
+        public offset_xs!: number;
         @Attribute()
-        public offset_sm: number;
+        public offset_sm!: number;
         @Attribute()
-        public offset_md: number;
+        public offset_md!: number;
         @Attribute()
-        public offset_lg: number;
+        public offset_lg!: number;
         @Attribute()
-        public offset_xl: number;
+        public offset_xl!: number;
         //#endregion
 
         //#region offset-right
         @Attribute()
-        public offset_right: number;
+        public offset_right!: number;
         @Attribute()
-        public offset_right_xs: number;
+        public offset_right_xs!: number;
         @Attribute()
-        public offset_right_sm: number;
+        public offset_right_sm!: number;
         @Attribute()
-        public offset_right_md: number;
+        public offset_right_md!: number;
         @Attribute()
-        public offset_right_lg: number;
+        public offset_right_lg!: number;
         @Attribute()
-        public offset_right_xl: number;
+        public offset_right_xl!: number;
         //#endregion
 
 
         @Attribute()
-        public nobreak: boolean;
+        public nobreak!: boolean;
 
         @Attribute()
-        public center: boolean;
+        public center!: boolean;
         //#endregion
 
 

@@ -1,10 +1,11 @@
-import { sep } from "path";
+import { normalize, sep } from "path";
 import { flattenDiagnosticMessageText } from 'typescript';
-import { Diagnostic, DiagnosticSeverity, ExecuteCommandParams, Position, Range } from "vscode-languageserver";
+import { Diagnostic, DiagnosticSeverity, Position, Range } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { AventusErrorCode, AventusExtension, AventusLanguageId } from "./definition";
 import { SectionType } from './language-services/ts/LanguageService';
 import { AventusFile } from './files/AventusFile';
+import { AventusConfig } from './language-services/json/definition';
 
 export function pathToUri(path: string): string {
     if (path.startsWith("file://")) {
@@ -21,6 +22,13 @@ export function uriToPath(uri: string): string {
         return decodeURIComponent(uri.replace("file://", ""));
     }
     return decodeURIComponent(uri.replace("file:///", ""));
+}
+export function reorderList<T>(list: T[], selected: T) {
+    let indexResult = list.indexOf(selected);
+    if (indexResult > -1) {
+        list.splice(indexResult, 1);
+    }
+    list.splice(0, 0, selected);
 }
 
 type AventusExtensionKeys = keyof typeof AventusExtension;
@@ -122,14 +130,6 @@ export function convertRange(document: TextDocument, span: { start: number | und
     return Range.create(startPosition, endPosition);
 }
 
-export function getPathFromCommandArguments(params: ExecuteCommandParams): string {
-    let path = "";
-    if (params.arguments) {
-        path = "file://" + params.arguments[0].path.replace(":", "%3A");
-    }
-    return path;
-}
-
 export function checkTxtBefore(file: AventusFile, position: Position, textToSearch: string) {
     let offset = file.document.offsetAt(position) - 1;
     let currentLetterPosition = textToSearch.length - 1;
@@ -176,4 +176,21 @@ export function checkTxtAfter(file: AventusFile, position: Position, textToSearc
         return false;
     }
     return false;
+}
+
+export function replaceNotImportAliases(content: string, config: AventusConfig | null) {
+    if (!config) {
+        return content;
+    }
+    // replace aliases not starting with @
+    let aliases = config.aliases;
+    for (let alias in aliases) {
+        if (!alias.startsWith("@")) {
+            // we replace all alias not preceded by \
+            let aliasEscaped = alias.replace(/[\\^$*+?.()|[\]{}]/g, '\\$&')
+            let reg = new RegExp("(?<!\\\\)" + aliasEscaped, "g");
+            content = content.replace(reg, aliases[alias]);
+        }
+    }
+    return content;
 }

@@ -17,9 +17,9 @@ namespace Navigation {
                 target.onHide();
             }
         })
-        public visible: boolean;
+        public visible!: boolean;
 
-        public currentRouter: Router;
+        public currentRouter?: Router;
         //#endregion
 
 
@@ -36,10 +36,10 @@ namespace Navigation {
         //#region methods
         public abstract pageTitle(): string;
 
-        public async show(){
+        public async show() {
             this.visible = true;
         }
-        public async hide(){
+        public async hide() {
             this.visible = false;
         }
         public abstract onShow();

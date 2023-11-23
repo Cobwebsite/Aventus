@@ -1,0 +1,137 @@
+import { HttpRouter } from "./HttpRouter.lib.avt";
+import { ResultWithError, VoidWithError } from "../tools/Error.lib.avt";
+import { HttpMethod } from "./HttpMethod.lib.avt";
+import { HttpError, HttpErrorCode } from "./HttpError.lib.avt";
+import { Converter } from "../tools/Converter.lib.avt";
+
+export class HttpRequest {
+    private request: RequestInit;
+    private url: string;
+    public constructor(url: string, method: HttpMethod = HttpMethod.GET, body?: { [key: string | number]: any; } | FormData) {
+        this.url = url;
+        this.request = {};
+        this.setMethod(method);
+        this.prepareBody(body);
+    }
+
+
+    public setUrl(url: string) {
+        this.url = url;
+    }
+
+    public toString(): string {
+        return this.url + " : " + JSON.stringify(this.request);
+    }
+
+    public setBody(body: { [key: string | number]: any; } | FormData) {
+        this.prepareBody(body);
+    }
+    public setMethod(method: HttpMethod) {
+        this.request.method = method;
+    }
+
+    private prepareBody(data?: { [key: string | number]: any; } | FormData) {
+        if(!data) {
+            return;
+        }
+        else if(data instanceof FormData) {
+            this.request.body = data;
+        }
+        else {
+            this.request.body = JSON.stringify(data);
+            this.setHeader("Content-Type", "Application/json");
+        }
+    }
+
+    public setHeader(name: string, value: string) {
+        if(!this.request.headers) {
+            this.request.headers = [];
+        }
+        (this.request.headers as [string, string][]).push([name, value]);
+    }
+
+
+    public async query(router: HttpRouter): Promise<ResultWithError<Response>> {
+        let result = new ResultWithError<Response>();
+        try {
+            result.result = await fetch(router['options'].url + this.url, this.request);
+        } catch(e) {
+            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
+        }
+        return result;
+    }
+
+    public async queryVoid<T>(router: HttpRouter): Promise<VoidWithError> {
+        let resultTemp = await this.query(router);
+        let result = new VoidWithError();
+        if(!resultTemp.success) {
+            result.errors = resultTemp.errors;
+            return result;
+        }
+        try {
+            if(!resultTemp.result) {
+                return result;
+            }
+            // try to parse json if has result
+            if(resultTemp.result.status != 204) {
+                let tempResult = Converter.transform(await resultTemp.result.json());
+                if(tempResult instanceof VoidWithError) {
+                    for(let error of tempResult.errors) {
+                        result.errors.push(error);
+                    }
+                }
+            }
+        } catch(e) {
+
+        }
+        return result;
+    }
+
+    public async queryJSON<T>(router: HttpRouter): Promise<ResultWithError<T>> {
+        let resultTemp = await this.query(router);
+        let result = new ResultWithError<T>();
+        if(!resultTemp.success) {
+            result.errors = resultTemp.errors;
+            return result;
+        }
+        try {
+            if(!resultTemp.result) {
+                return result;
+            }
+            let tempResult = Converter.transform(await resultTemp.result.json());
+            if(tempResult instanceof VoidWithError) {
+                for(let error of tempResult.errors) {
+                    result.errors.push(error);
+                }
+                if(tempResult instanceof ResultWithError) {
+                    result.result = tempResult.result;
+                }
+            }
+            else {
+                result.result = tempResult;
+            }
+        } catch(e) {
+            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
+        }
+        return result;
+    }
+
+    public async queryTxt(router: HttpRouter): Promise<ResultWithError<string>> {
+        let resultTemp = await this.query(router);
+        let result = new ResultWithError<string>();
+        if(!resultTemp.success) {
+            result.errors = resultTemp.errors;
+            return result;
+        }
+        try {
+            if(!resultTemp.result) {
+                return result;
+            }
+            result.result = await resultTemp.result.text();
+        } catch(e) {
+            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
+        }
+        return result;
+    }
+
+}

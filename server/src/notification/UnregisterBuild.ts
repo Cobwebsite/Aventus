@@ -1,9 +1,9 @@
-import { ClientConnection } from '../Connection';
+import { GenericServer } from '../GenericServer';
 
 export class UnregisterBuild {
 
 	public static send(pathConfig: string, buildName: string) {
-		ClientConnection.getInstance().sendNotification("aventus/unregisterBuild", {
+		GenericServer.sendNotification("aventus/unregisterBuild", {
 			pathConfig,
 			buildName
 		});

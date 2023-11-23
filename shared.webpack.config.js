@@ -41,7 +41,9 @@ module.exports = function withDefaults(/**@type WebpackConfig*/extConfig) {
 					options: {
 						compilerOptions: {
 							"sourceMap": true,
-						}
+							"module": "es6"
+						},
+						projectReferences: true
 					}
 				}]
 			}]

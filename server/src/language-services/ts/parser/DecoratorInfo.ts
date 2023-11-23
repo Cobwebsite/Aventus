@@ -1,6 +1,8 @@
-import { CallExpression, SyntaxKind, Node, canHaveDecorators, getDecorators } from "typescript";
+import { CallExpression, SyntaxKind, Node, canHaveDecorators, getDecorators, HasDecorators } from "typescript";
 import { ParserTs } from './ParserTs';
 import { ArgType, getArg } from "./tools";
+import { FunctionDeclaration } from '../../scss/helper/CSSNode';
+import { GenericServer } from '../../../GenericServer';
 
 export class DecoratorInfo {
     public name: string = "";
@@ -11,8 +13,10 @@ export class DecoratorInfo {
 
     public static buildDecorator(node: Node): DecoratorInfo[] {
         let result: DecoratorInfo[] = [];
-        if (canHaveDecorators(node)) {
-            let decorators = getDecorators(node) || [];
+
+        // canHaveDecorators(node)
+        try {
+            let decorators = getDecorators(node as HasDecorators) || [];
             for (let decorator of decorators) {
                 let e = decorator.expression;
                 let info = new DecoratorInfo();
@@ -22,7 +26,7 @@ export class DecoratorInfo {
                     info.name = call.expression.getText();
                     info.start = e.getStart();
                     info.end = e.getEnd();
-                    for(let argument of call.arguments){
+                    for (let argument of call.arguments) {
                         let arg = getArg(argument);
                         if (arg) {
                             info.arguments.push(arg);
@@ -34,6 +38,8 @@ export class DecoratorInfo {
                     ParserTs.addError(decorator.getStart(), decorator.getEnd(), "Missing paramaters for Decorator");
                 }
             }
+        } catch (e) {
+            GenericServer.showErrorMessage(e+"");
         }
         return result;
     }

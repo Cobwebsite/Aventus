@@ -8,3 +8,4 @@ client/out
 server/out
 *package-lock.json
 *.vsix
+lib/*.avt

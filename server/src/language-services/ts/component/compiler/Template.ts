@@ -1,5 +1,5 @@
 export function AventusWebcomponentTemplate() {
-    return `class $classname$ extends $parentClass$ {
+    return `$namespaceStart$$fullname$ = class $classname$ extends $parentClass$ {
     $watchingAttributes$
     
     $getterSetterAttr$
@@ -35,6 +35,9 @@ export function AventusWebcomponentTemplate() {
 
     $methods$
 }
+$namespace$
+$exported$
 $definition$
+$namespaceEnd$
 `
 }

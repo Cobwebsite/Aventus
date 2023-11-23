@@ -13,6 +13,7 @@ import { AventusTsFile } from "../File";
 import { AventusWebcomponentCompiler } from "./compiler/compiler";
 import { CompileComponentResult } from "./compiler/def";
 import { ClassInfo } from '../parser/ClassInfo';
+import { replaceNotImportAliases } from '../../../tools';
 
 export class AventusWebComponentLogicalFile extends AventusTsFile {
     private _compilationResult: CompileComponentResult | undefined;
@@ -46,7 +47,8 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         return new Promise<void>((resolve) => {
             let version = AventusWebcomponentCompiler.getVersion(this, this.build);
             let mergedVersion = version.ts + '_' + version.scss + '_' + version.html;
-            if (mergedVersion == this.version) {
+            let force = this.build.insideRebuildAll;
+            if (mergedVersion == this.version && !force) {
                 resolve();
             }
             else {
@@ -102,7 +104,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
             this.setCompileResult([]);
         }
         if (this.compilationResult?.writeCompiled) {
-            writeFileSync(this.file.folderPath + '/compiled.js', this.compilationResult.debug);
+            writeFileSync(this.file.folderPath + '/compiled.js', replaceNotImportAliases(this.compilationResult.debug, this.build.project.getConfig()));
         }
         else if (existsSync(this.file.folderPath + '/compiled.js')) {
             unlinkSync(this.file.folderPath + '/compiled.js')
@@ -141,21 +143,9 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
             }
         }
         if (!this.build.reloadPage && reloadComp && classInfo) {
-            srcToUpdate = srcToUpdate.replace(/window\.customElements\.define\(.*$/gm, '');
-            // TODO check side effects => maybe use real position instead of regex
-            for (let dependance of classInfo.dependances) {
-                if (dependance.uri == "@local") {
-                    let fullName = dependance.fullName.replace("$namespace$", this.buildNamespace);
-                    let regexp = new RegExp("(" + dependance.fullName.replace("$namespace$", "") + ")(\\(|\\.|,|;| )", 'g');
-                    srcToUpdate = srcToUpdate.replace(regexp, fullName + "$2");
-                }
-                else if (dependance.uri != "@external") {
-                    let namespace = this.build.getNamespace(dependance.uri);
-                    let fullName = dependance.fullName.replace("$namespace$", namespace);
-                    let regexp = new RegExp("(" + dependance.fullName.replace("$namespace$", "") + ")(\\(|\\.|,|;| )", 'g');
-                    srcToUpdate = srcToUpdate.replace(regexp, fullName + "$2");
-                }
-            }
+            srcToUpdate = srcToUpdate.slice(srcToUpdate.indexOf("="));
+            srcToUpdate = srcToUpdate.replace(/if\(\!window\.customElements\.get\(.*$/gm, '');
+            
             let namespace = this.buildNamespace;
             if (classInfo.namespace) {
                 namespace += classInfo.namespace;
@@ -281,7 +271,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         if (this.compilationResult) {
             position = this.compilationResult?.missingViewElements.position;
             for (let name in this.compilationResult.missingViewElements.elements) {
-                result += "@ViewElement()" + EOL + "protected " + name + ": " + this.compilationResult.missingViewElements.elements[name] + ";" + EOL
+                result += "@ViewElement()" + EOL + "protected " + name + "!: " + this.compilationResult.missingViewElements.elements[name] + ";" + EOL
             }
         }
         if (result != "") {
@@ -356,7 +346,7 @@ interface AventusWebComponentSingleFileRegion<T extends AventusBaseFile> {
     end: number,
     file?: T,
 }
-export class AventusWebComponentSingleFile extends AventusTsFile {
+export class AventusWebComponentSingleFile extends AventusBaseFile {
     private regionLogic: AventusWebComponentSingleFileRegion<AventusWebComponentLogicalFile> = {
         start: 0,
         end: 0,
@@ -374,38 +364,42 @@ export class AventusWebComponentSingleFile extends AventusTsFile {
         if (this.regionLogic.file) {
             return this.regionLogic.file
         }
-        let fileTemp = this.getDocuments().ts;
-        this.regionLogic.file = fileTemp;
-        return fileTemp;
+        throw 'should not append'
+        // let fileTemp = this.getDocuments().ts;
+        // this.regionLogic.file = fileTemp;
+        // return fileTemp;
     }
     public get style(): AventusWebSCSSFile {
         if (this.regionStyle.file) {
             return this.regionStyle.file
         }
-        let fileTemp = this.getDocuments().scss;
-        this.regionStyle.file = fileTemp;
-        return fileTemp;
+        throw 'should not append'
+        // let fileTemp = this.getDocuments().scss;
+        // this.regionStyle.file = fileTemp;
+        // return fileTemp;
     }
     public get view(): AventusHTMLFile {
         if (this.regionView.file) {
             return this.regionView.file
         }
-        let fileTemp = this.getDocuments().html;
-        this.regionView.file = fileTemp;
-        return fileTemp;
+        throw 'should not append'
+        // let fileTemp = this.getDocuments().html;
+        // this.regionView.file = fileTemp;
+        // return fileTemp;
     }
 
     protected get extension(): string {
         return AventusExtension.Component;
     }
 
-    protected mustBeAddedToLanguageService(): boolean {
-        return false;
-    }
+    
 
     public constructor(file: AventusFile, build: Build) {
         super(file, build);
-        let result = this.getDocuments();
+        
+    }
+    public async init() {
+        let result = await this.getDocuments();
         this.regionLogic.file = result.ts;
         this.build.tsFiles[result.ts.file.uri] = result.ts;
         this.regionStyle.file = result.scss;
@@ -672,7 +666,6 @@ export class AventusWebComponentSingleFile extends AventusTsFile {
     }
 
     protected async onDelete(): Promise<void> {
-        await super.onDelete();
         delete this.build.tsFiles[this.file.uri];
     }
 
@@ -687,18 +680,23 @@ export class AventusWebComponentSingleFile extends AventusTsFile {
     }
 
 
-    private getDocuments() {
+    private async getDocuments() {
         let resultTxt = this.splitDocument();
 
         let htmlFileTemp = new InternalAventusFile(TextDocument.create(this.file.uri, AventusLanguageId.HTML, this.file.version, resultTxt.htmlText));
         let scssFileTemp = new InternalAventusFile(TextDocument.create(this.file.uri, AventusLanguageId.SCSS, this.file.version, resultTxt.cssText));
         let tsFileTemp = new InternalAventusFile(TextDocument.create(this.file.uri, AventusLanguageId.HTML, this.file.version, resultTxt.scriptText));
 
-        return {
+        const result = {
             html: new AventusHTMLFile(htmlFileTemp, this.build),
             scss: new AventusWebSCSSFile(scssFileTemp, this.build),
             ts: new AventusWebComponentLogicalFile(tsFileTemp, this.build)
         };
+
+        await result.html.init();
+        await result.scss.init();
+
+        return result;
     }
 
     private splitDocument() {
@@ -788,4 +786,7 @@ export class AventusWebComponentSingleFile extends AventusTsFile {
         return resultTxt;
     }
 
+    protected onGetBuild(): Build[] {
+        return [this.build]
+    }
 }

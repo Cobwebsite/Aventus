@@ -7,17 +7,21 @@ import { SCSSDoc } from '../../scss/helper/CSSNode';
 import { AventusTsFile } from '../File';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AventusExtension, AventusLanguageId } from '../../../definition';
-import { ClientConnection } from '../../../Connection';
 import { ClassInfo } from '../parser/ClassInfo';
 import { AventusConfigBuildDependance } from '../../json/definition';
+import { InfoType } from '../parser/BaseInfo';
+import { GenericServer } from '../../../GenericServer';
 
 
 export interface AventusPackageTsFileExport {
 	fullName: string;
 	dependances: { fullName: string; isStrong: boolean }[];
+	type: InfoType,
 	code: string;
 	required?: boolean | undefined;
 	noNamespace?: "before" | "after" | undefined;
+	isExported: boolean,
+	convertibleName: string,
 }
 export interface AventusPackageTsFileExportNoCode {
 	fullName: string;
@@ -49,15 +53,16 @@ export class AventusPackageFile extends AventusBaseFile {
 		return this.tsDef?.classInfoByName || {};
 	}
 
-	public get classInfoDataFullname(): string[] {
-		return this.tsDef?.classInfoDataFullname || [];
-	}
 
 	public dependances: AventusConfigBuildDependance[] = [];
 
 	public constructor(file: AventusFile, build: Build) {
 		super(file, build);
 		this.prepareFile();
+	}
+
+	public loadWebComponents() {
+		this.tsDef?.loadWebComponents();
 	}
 
 	private prepareFile() {
@@ -236,23 +241,19 @@ export class AventusPackageFile extends AventusBaseFile {
 
 export class AventusPackageFileTs extends AventusTsFile {
 	private _classInfoByName: { [name: string]: ClassInfo } = {};
-	private _classInfoDataFullname: string[] = [];
 	protected get extension(): string {
 		return AventusExtension.Package;
 	}
 	public get classInfoByName() {
 		return this._classInfoByName;
 	}
-	public get classInfoDataFullname() {
-		return this._classInfoDataFullname;
-	}
+
 
 	public constructor(file: AventusFile, build: Build) {
 		super(file, build);
-		this.loadWebComponents();
 	}
 
-	private loadWebComponents() {
+	public loadWebComponents() {
 		try {
 			this.refreshFileParsed(true);
 			let structJs = this.fileParsed;
@@ -278,15 +279,12 @@ export class AventusPackageFileTs extends AventusTsFile {
 					if (foundDefaultComponent) {
 						this._classInfoByName[classInfo.fullName] = classInfo;
 					}
-					if (foundIData) {
-						this._classInfoDataFullname.push(classInfo.fullName);
-					}
 				}
 			}
 		} catch {
 			let splitted = this.file.uri.split("/");
 			let fileName = splitted[splitted.length - 1];
-			ClientConnection.getInstance().showErrorMessage("There is an error inside file :" + fileName);
+			GenericServer.showErrorMessage("There is an error inside file :" + fileName);
 		}
 	}
 	protected async onContentChange(): Promise<void> {

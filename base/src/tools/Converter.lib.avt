@@ -1,0 +1,84 @@
+
+
+// export type JsonFormat<T> = T extends Array<infer U> ? KeysObject<U>[] : KeysObject<T>;
+type SchemaType = 'string' | 'number' | 'boolean' | 'date' | string;
+export interface Schema {
+    [key: string]: SchemaType;
+}
+
+export class Converter {
+    private static info: Map<string, new () => any> = new Map();
+    private static schema: Map<string, Schema> = new Map();
+    /**
+     * Register a unique string type for any class
+     */
+    public static register($type: string, cst: new () => any, schema?: Schema) {
+        this.info.set($type, cst);
+        if(schema) {
+            this.schema.set($type, schema);
+        }
+    }
+
+    public static transform<T = any>(data: any): T {
+        return this.transformLoop(data);
+    }
+
+    private static transformLoop(data: any) {
+        if(data === null) {
+            return data;
+        }
+        if(Array.isArray(data)) {
+            let result: any[] = [];
+            for(let element of data) {
+                result.push(this.transformLoop(element));
+            }
+            return result;
+        }
+        if(data instanceof Date) {
+            return data;
+        }
+
+        if(typeof data === 'object' && !/^\s*class\s+/.test(data.toString())) {
+            if(data.$type) {
+                if(data.$type == "AventusSharp.Map") {
+
+                }
+                let cst = this.info.get(data.$type);
+                if(cst) {
+                    let obj = new cst();
+                    let props = Object.getOwnPropertyNames(obj);
+                    for(let prop of props) {
+                        let propUpperFirst = prop[0].toUpperCase() + prop.slice(1);
+                        let value = data[prop] === undefined ? data[propUpperFirst] : data[prop];
+                        if(value !== undefined) {
+                            let propInfo = Object.getOwnPropertyDescriptor(obj, prop);
+                            if(propInfo?.writable) {
+                                if(obj[prop] instanceof Date) {
+                                    obj[prop] = value ? new Date(value) : null;
+                                }
+                                else if(obj[prop] instanceof Map) {
+                                    obj[prop].clear()
+                                    for(const keyValue of value) {
+                                        obj[prop].set(this.transformLoop(keyValue[0]), this.transformLoop(keyValue[1]));
+                                    }
+                                }
+                                else {
+                                    obj[prop] = this.transformLoop(value);
+                                }
+                            }
+                        }
+                    }
+                    return obj;
+                }
+            }
+
+            let result = {};
+            for(let key in data) {
+                result[key] = this.transformLoop(data[key]);
+            }
+            return result;
+        }
+
+        return data;
+    }
+}

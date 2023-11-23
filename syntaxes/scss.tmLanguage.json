@@ -42,6 +42,9 @@
 			"include": "#at_rule_media"
 		},
 		{
+			"include": "#at_rule_container"
+		},
+		{
 			"include": "#at_rule_function"
 		},
 		{
@@ -646,6 +649,100 @@
 						},
 						{
 							"include": "source.css#media-types"
+						}
+					]
+				}
+			]
+		},
+		"at_rule_container": {
+			"patterns": [
+				{
+					"begin": "^\\s*((@)container)\\b",
+					"beginCaptures": {
+						"1": {
+							"name": "keyword.control.at-rule.container.scss"
+						},
+						"2": {
+							"name": "punctuation.definition.keyword.scss"
+						}
+					},
+					"end": "\\s*(?={)",
+					"name": "meta.at-rule.container.scss",
+					"patterns": [
+						{
+							"include": "#comment_docblock"
+						},
+						{
+							"include": "#comment_block"
+						},
+						{
+							"include": "#comment_line"
+						},
+						{
+							"match": "\\b(only)\\b",
+							"name": "keyword.control.operator.css.scss"
+						},
+						{
+							"begin": "\\(",
+							"beginCaptures": {
+								"0": {
+									"name": "punctuation.definition.container-query.begin.bracket.round.scss"
+								}
+							},
+							"end": "\\)",
+							"endCaptures": {
+								"0": {
+									"name": "punctuation.definition.container-query.end.bracket.round.scss"
+								}
+							},
+							"name": "meta.property-list.container-query.scss",
+							"patterns": [
+								{
+									"begin": "(?<![-a-z])(?=[-a-z])",
+									"end": "$|(?![-a-z])",
+									"name": "meta.property-name.container-query.scss",
+									"patterns": [
+										{
+											"include": "source.css#container-features"
+										},
+										{
+											"include": "source.css#property-names"
+										}
+									]
+								},
+								{
+									"begin": "(:)\\s*(?!(\\s*{))",
+									"beginCaptures": {
+										"1": {
+											"name": "punctuation.separator.key-value.scss"
+										}
+									},
+									"end": "\\s*(;|(?=}|\\)))",
+									"endCaptures": {
+										"1": {
+											"name": "punctuation.terminator.rule.scss"
+										}
+									},
+									"contentName": "meta.property-value.container-query.scss",
+									"patterns": [
+										{
+											"include": "#general"
+										},
+										{
+											"include": "#property_values"
+										}
+									]
+								}
+							]
+						},
+						{
+							"include": "#variable"
+						},
+						{
+							"include": "#conditional_operators"
+						},
+						{
+							"include": "source.css#container-types"
 						}
 					]
 				}

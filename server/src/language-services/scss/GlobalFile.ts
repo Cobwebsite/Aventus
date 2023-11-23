@@ -8,7 +8,7 @@ import { AventusExtension } from '../../definition';
 import { createErrorScssPos } from '../../tools';
 import { Project } from '../../project/Project';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
-const nodeSass = require('sass');
+import { compileString } from 'sass';
 
 
 export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
@@ -18,6 +18,7 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 
 	private diagnostics: Diagnostic[] = [];
 	private compiledTxt: string = "";
+	private savedOnce: boolean = false;
 
 	private outPaths: string[] = [];
 
@@ -29,7 +30,6 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 	public constructor(file: AventusFile, project: Project) {
 		super(file, project);
 		this.loadDependances();
-		this.compile();
 		this.project.globalSCSSLanguageService.loadVariables(this, this.file.uri);
 	}
 	protected async onContentChange(): Promise<void> {
@@ -41,6 +41,7 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 		return this.diagnostics;
 	}
 	protected async onSave(): Promise<void> {
+		this.savedOnce = true;
 		this.compileRoot();
 		this.project.globalSCSSLanguageService.loadVariables(this, this.file.uri);
 	}
@@ -70,7 +71,7 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 				let arrMatch: RegExpExecArray | null = null;
 				while (arrMatch = regex.exec(textToSearch)) {
 					let importName = arrMatch[2];
-					let fileDependance = this.resolvePath(importName, file.folderUri);
+					let fileDependance = this.resolvePath(importName, file.folderPath);
 					if (fileDependance) {
 						let nesteadContent = _loadContent(fileDependance);
 						if (nesteadContent == errorMsgTxt) {
@@ -86,7 +87,7 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 			}
 			let oneFileContent = _loadContent(this.file);
 			if (oneFileContent != "|error|") {
-				let compiled = nodeSass.compileString(oneFileContent, {
+				let compiled = compileString(oneFileContent, {
 					style: 'compressed'
 				}).css.toString().trim();
 				newCompiledTxt = compiled;
@@ -144,9 +145,17 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 	}
 
 	public addOutPath(path: string) {
+		if (this.file.shortname.startsWith("_")) {
+			return;
+		}
 		if (!this.outPaths.includes(path)) {
 			this.outPaths.push(path);
-			this.export();
+			if (!this.savedOnce) {
+				this.onSave();
+			}
+			else {
+				this.export();
+			}
 		}
 	}
 
@@ -164,7 +173,7 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 		}
 	}
 
-	
+
 
 	//#region dependances
 	private loadDependances() {
@@ -177,7 +186,7 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 		}
 		while (arrMatch = regex.exec(textToSearch)) {
 			let importName = arrMatch[2];
-			let fileDependance = this.resolvePath(importName, this.file.folderUri);
+			let fileDependance = this.resolvePath(importName, this.file.folderPath);
 			if (!fileDependance) {
 				let start = text.indexOf(arrMatch[0]);
 				let end = start + arrMatch[0].length;
@@ -200,7 +209,7 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 			this.dependances[fileDependance.uri] = this.project.scssFiles[fileDependance.uri];
 			this.project.scssFiles[fileDependance.uri].usedBy[this.file.uri] = this;
 		}
-		else {
+		else if (fileDependance.uri.endsWith(AventusExtension.GlobalStyle)) {
 			this.project.scssFiles[fileDependance.uri] = new AventusGlobalSCSSFile(fileDependance, this.project);
 			this.dependances[fileDependance.uri] = this.project.scssFiles[fileDependance.uri];
 			this.project.scssFiles[fileDependance.uri].usedBy[this.file.uri] = this;
@@ -208,6 +217,7 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 	}
 
 	private resolvePath(loadingPath: string, currentFolder: string): AventusFile | undefined {
+		loadingPath = this.project.resolveAlias(loadingPath, this.file);
 		loadingPath = normalize(currentFolder + "/" + loadingPath);
 		let result: AventusFile | undefined = FilesManager.getInstance().getByPath(loadingPath);
 		if (result) {

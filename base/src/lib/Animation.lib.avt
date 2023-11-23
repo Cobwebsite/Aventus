@@ -1,7 +1,9 @@
-export interface AnimationOptions {
-    animate?: Function,
-    stopped?: Function,
-    fps?: number;
+export type AnimationOptions = Partial<AnimationOptionsInternal>;
+
+interface AnimationOptionsInternal {
+    animate: Function,
+    stopped: Function,
+    fps: number;
 }
 
 export class Animation {
@@ -10,10 +12,11 @@ export class Animation {
      */
     public static FPS_DEFAULT: number = 60;
 
-    private options: AnimationOptions;
-    private nextFrame: number;
+    private options: AnimationOptionsInternal;
+    private nextFrame: number = 0;
     private fpsInterval: number;
     private continueAnimation: boolean = false;
+    private frame_id: number = 0;
 
     constructor(options: AnimationOptions) {
         if(!options.animate) {
@@ -25,15 +28,15 @@ export class Animation {
         if(!options.fps) {
             options.fps = Animation.FPS_DEFAULT;
         }
-        this.options = options;
-        this.fpsInterval = 1000 / this.options.fps;
+        this.options = options as AnimationOptionsInternal;
+        this.fpsInterval = 1000 / options.fps;
     }
 
     private animate(): void {
         let now = window.performance.now();
         let elapsed = now - this.nextFrame;
         if(elapsed <= this.fpsInterval) {
-            requestAnimationFrame(() => this.animate());
+            this.frame_id = requestAnimationFrame(() => this.animate());
             return;
         }
         this.nextFrame = now - (elapsed % this.fpsInterval);
@@ -42,7 +45,7 @@ export class Animation {
             this.options.animate();
         }, 0);
         if(this.continueAnimation) {
-            requestAnimationFrame(() => this.animate());
+            this.frame_id = requestAnimationFrame(() => this.animate());
         }
         else {
             this.options.stopped();
@@ -64,6 +67,15 @@ export class Animation {
      */
     public stop(): void {
         this.continueAnimation = false;
+    }
+
+    /**
+     * Stop the animation
+     */
+    public immediateStop(): void {
+        cancelAnimationFrame(this.frame_id);
+        this.continueAnimation = false;
+        this.options.stopped();
     }
 
     /**

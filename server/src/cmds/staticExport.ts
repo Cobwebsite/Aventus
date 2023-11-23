@@ -1,14 +1,29 @@
-import { ExecuteCommandParams } from 'vscode-languageserver';
 import { ProjectManager } from '../project/ProjectManager';
-import { pathToUri } from '../tools';
+import { SelectItem } from '../IConnection';
+import { GenericServer } from '../GenericServer';
 
 
 export class StaticExport {
 	static cmd: string = "aventus.static";
-	constructor(params: ExecuteCommandParams) {
-		if (params.arguments && params.arguments[0]) {
-			let uri: string = pathToUri(params.arguments[0].detail);
-			let name: string = params.arguments[0].label;
+	
+	public static async run(){
+		let items: SelectItem[] = [];
+		let builds = ProjectManager.getInstance().getAllStatics();
+
+		for (let build of builds) {
+			items.push({
+				label: build.name,
+				detail: build.uri
+			})
+		}
+
+		let result = await GenericServer.Select(items, {
+			placeHolder: 'Static to export'
+		})
+
+		if(result) {
+			let uri = result.detail ?? "";
+			let name = result.label;
 			ProjectManager.getInstance().getProjectByUri(uri)?.getStatic(name)?.export();
 		}
 	}

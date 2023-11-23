@@ -5,5 +5,5 @@ export enum RamErrorCode {
     noId,
     noItemInsideRam
 }
-export class RamError extends GenericError<RamErrorCode>{ }
+export class RamError extends GenericError<RamErrorCode>{}
 export class ResultRamWithError<T> extends ResultWithError<T, RamError>{ }

@@ -3,6 +3,6 @@
 	"typescript.tsc.autoDetect": "off",
 	"typescript.preferences.quoteStyle": "single",
 	"aventus.liveserver": {
-		"rootFolder": "./client/view/"
+		"rootFolder": "./base/dist/"
 	}
 }

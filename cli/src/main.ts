@@ -1,34 +1,54 @@
-
-process.env["AVENTUS_CLI"] = "true";
-process.env["DEBUG"] = "true";
-process.env["aventus_server_folder"] = __dirname + "/../..";
-
-import { startServer, stopServer } from '../../server/src/server';
-import { pathToUri } from '../../server/src/tools';
+#!/usr/bin/env node
+import { printLogo } from './logo';
+import { Interaction } from './Interaction';
+import { Server } from './Server';
 
 
+(async () => {
+    console.clear();
+    printLogo();
+    console.log("Welcome inside Aventus CLI");
+    console.log("Initing...");
+    await Interaction.init();
+    await Server.start();
+    let query = [{
+        value: "create",
+        name: "Create...",
+    },
+    {
+        value: "log",
+        name: "Show logs",
+    },
+    // {
+    //     value: "web",
+    //     name: "Run the amazing web interface",
+    // }, 
+    {
+        value: "quit",
+        name: "Quit",
+    }] as const;
+    Interaction.clear();
 
-async function main() {
-	let projectToCompile = ""
-	if (process.argv.length == 3) {
-		projectToCompile = process.argv[2];
-	}
-	else {
-		projectToCompile = __dirname;
-		projectToCompile = 'D:\\404\\5_Prog_SVN\\2_Services\\Project\\Release\\currentRelease\\Export\\typescript'
-	}
-	projectToCompile = projectToCompile.replace(/\\/g, "/")
-	await startServer([pathToUri(projectToCompile)]);
+    while (true) {
+        let response = await Interaction.select("Which action shoud I perform?", query)
+        if (response == "create") {
+            // use this to delay loading file
+            // const { Server } = await (eval('import("./Server")') as Promise<typeof import('./Server')>);
+            await Server.create();
+        }
+        else if (response == "log") {
+            await Server.log();
+        }
+        else if (response == "quit") {
+            process.exit(0)
+        }
+        else {
+            console.log("WIP");
+        }
+        Interaction.clear();
+    }
+})();
 
-	//await delay(1000 * 60);
-	stopServer();
+setInterval(function () {
 
-}
-main();
-
-
-async function delay(x: number) {
-	return new Promise<void>((resolve) => {
-		setTimeout(() => resolve(), x)
-	})
-}
+}, 1000 * 60);

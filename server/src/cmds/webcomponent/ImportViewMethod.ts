@@ -1,4 +1,4 @@
-import { ExecuteCommandParams, TextEdit } from 'vscode-languageserver';
+import { TextEdit } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AventusLanguageId } from '../../definition';
 import { InternalAventusFile } from '../../files/AventusFile';
@@ -9,15 +9,8 @@ import { EditFile } from '../../notification/EditFile';
 export class ImportViewMethod {
 	static cmd: string = "aventus.wc.import.viewMethod";
 
-	constructor(params: ExecuteCommandParams) {
-		if (params.arguments && params.arguments.length > 0) {
-			let uri: string = params.arguments[0];
-			let position: number = params.arguments.length > 1 ? params.arguments[1] : -1;
-			this.run(uri, position);
-		}
-	}
-
-	private async run(uri: string, position: number) {
+	
+	public static async run(uri: string, position: number) {
 		let file = FilesManager.getInstance().getByUri(uri);
 		if (file) {
 			let oldEnd = file.document.positionAt(file.content.length);

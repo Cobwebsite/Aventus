@@ -1,61 +1,215 @@
 import { mkdirSync, writeFileSync } from 'fs';
-import { ExecuteCommandParams } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { EOL } from 'os';
-import { getFolder, getPathFromCommandArguments, pathToUri, uriToPath } from '../tools';
+import { pathToUri, reorderList, uriToPath } from '../tools';
 import { AventusExtension, AventusLanguageId } from '../definition';
 import { ProjectManager } from '../project/ProjectManager';
-import { ClientConnection } from '../Connection';
 import { FilesManager } from '../files/FilesManager';
 import { OpenFile } from '../notification/OpenFile';
+import { GenericServer } from '../GenericServer';
+import { SelectItem } from '../IConnection';
+import { normalize } from 'path';
 
 
 export class Create {
-	static cmd: string = "aventus.create";
-	constructor(params: ExecuteCommandParams) {
-		if (params.arguments && params.arguments[2]) {
-			let type = params.arguments[2].label;
-			let baseFolder: string = getPathFromCommandArguments(params);
-			if (params.arguments[3]) {
+	private static createOptions: SelectItem[] = [
+		{ label: "Component", detail: "Create a component" },
+		{ label: "Data", detail: "Create a data" },
+		{ label: "Library", detail: "Create a library" },
+		{ label: "RAM", detail: "Create a RAM" },
+		{ label: "Socket", detail: "Create a websocket" },
+		{ label: "State", detail: "Create a state" },
+		{ label: "Custom", detail: "Create a custom template" },
+	];
+	private static componentFormatOptions: SelectItem[] = [
+		{ label: "Single", detail: "Single file" },
+		{ label: "Multiple", detail: "Splitted file" },
+	];
+	private static stateOptions: SelectItem[] = [
+		{ label: "State", detail: "Create a state" },
+		{ label: "Manager", detail: "Create a state manager" },
+	]
 
-				if (type == "RAM") {
-					this.createRAM(params.arguments[3], baseFolder);
+	static cmd: string = "aventus.create";
+
+	public static async run(uri: string) {
+		if (!uri) {
+			return;
+		}
+		let path = normalize(uriToPath(uri));
+
+
+		if (Create.checkIfProject(uri)) {
+			if (!GenericServer.isIDE) {
+				let resultTemp = await GenericServer.SelectFolder("Select where to create", path);
+				if (!resultTemp) {
+					return;
 				}
-				else {
-					let name: string = params.arguments[3];
-					let format = "Multiple";
-					if (params.arguments[4]) {
-						format = params.arguments[4].label;
+				uri = resultTemp;
+				path = uriToPath(uri);
+			}
+
+			const result = await GenericServer.Select(Create.createOptions, {
+				placeHolder: 'What do you want to create?',
+			});
+			if (result) {
+				const type = result.label;
+				reorderList(Create.createOptions, result);
+				if (type == "Custom") {
+					GenericServer.localTemplateManager?.createTemplate(path);
+				}
+				else if (type == "RAM") {
+					const name = await GenericServer.Input({
+						title: "Provide a data name for your " + type,
+					});
+
+					if (!name) {
+						return;
 					}
-					if (type == "Component") {
-						this.createComponent(name, baseFolder, format == "Multiple");
+					const extendsActionResponse = await GenericServer.Select([{
+						label: "Yes"
+					}, {
+						label: "No"
+					}], {
+						title: "Do you need to add custom methods on " + type
+					});
+					if (!extendsActionResponse) {
+						return;
 					}
-					else if (type == "Data") {
-						this.createData(name, baseFolder);
+					let extendsAction = extendsActionResponse.label == "Yes";
+					this.createRAM(name, path, extendsAction);
+				}
+				else if (type == "Component") {
+					const name = await GenericServer.Input({
+						title: "Provide a name for your " + type,
+					});
+					if (!name) {
+						return;
 					}
-					else if (type == "Library") {
-						this.createLib(name, baseFolder);
-					}
-					else if (type == "Socket") {
-						this.createSocket(name, baseFolder);
-					}
-					else if (type == "State") {
-						this.createState(name, baseFolder, format);
+					const resultFormat = await GenericServer.Select(Create.componentFormatOptions, {
+						placeHolder: 'How should I setup your component?',
+					});
+					if (resultFormat) {
+						reorderList(Create.componentFormatOptions, resultFormat);
+						this.createComponent(name, path, resultFormat.label == "Multiple");
 					}
 				}
+				else if (type == "Data") {
+					const name = await GenericServer.Input({
+						title: "Provide a name for your " + type,
+					});
+					if (!name) {
+						return;
+					}
+					this.createData(name, path);
+				}
+				else if (type == "Library") {
+					const name = await GenericServer.Input({
+						title: "Provide a name for your " + type,
+					});
+					if (!name) {
+						return;
+					}
+					this.createLib(name, path);
+				}
+				else if (type == "Socket") {
+					const name = await GenericServer.Input({
+						title: "Provide a name for your " + type,
+					});
+					if (!name) {
+						return;
+					}
+					this.createSocket(name, path);
+				}
+				else if (type == "State") {
+					const stateType = await GenericServer.Select(Create.stateOptions, {});
+					if (!stateType) {
+						return;
+					}
+					const name = await GenericServer.Input({
+						title: "Provide a name for your " + type,
+					});
+					if (!name) {
+						return;
+					}
+					this.createState(name, path, stateType.label);
+				}
+			}
+
+		}
+		else {
+			const result = await GenericServer.Select([{
+				label: "Init",
+				detail: "Create a project"
+			}], {
+				placeHolder: 'What do you want to create?',
+			});
+			if (result) {
+				await GenericServer.templateManager?.createProject(path);
 			}
 		}
 	}
 
-
-	private createRAM(objectName: string, baseFolderUri: string) {
+	private static createRAM(objectName: string, baseFolderUri: string, extendsAction: boolean) {
 		objectName = objectName.charAt(0).toUpperCase() + objectName.slice(1);
 		let newScriptPath = uriToPath(baseFolderUri + "/" + objectName + AventusExtension.RAM);
 		let newScriptUri = pathToUri(newScriptPath);
 		// let importPath = this.getImportPath(newScriptPath, objectPath);
 		let className = objectName + "RAM";
 		let defaultRAM = ''
-		defaultRAM = `
+		if (extendsAction) {
+			defaultRAM = `
+interface ${objectName}Method {
+	// define your methods here
+	
+}
+
+export type ${objectName}Extended = ${objectName} & ${objectName}Method;
+
+export class ${className} extends Aventus.Ram<${objectName}Extended> implements Aventus.IRam {
+
+	/**
+	 * Create a singleton to store data
+	 */
+	public static getInstance() {
+		return Aventus.Instance.get(${className});
+	}
+
+	/**
+	 * @inheritdoc
+	 */
+	public override defineIndexKey(): keyof ${objectName}Extended {
+		return 'id';
+	}
+	/**
+	 * @inheritdoc
+	 */
+	protected override getTypeForData(objJson: Aventus.KeysObject<${objectName}Extended> | ${objectName}Extended): new () => ${objectName}Extended {
+		return this.add${objectName}Method(${objectName});
+	}
+
+	/**
+	 * Mixin pattern to add methods
+	 */
+	private add${objectName}Method<B extends (new (...args: any[]) => ${objectName}) & { className?: string; }>(Base: B) {
+		return class Extension extends Base implements ${objectName}Extended {
+			public static override get className(): string {
+                return Base.className || Base.name;
+            }
+            public override get className(): string {
+                return Base.className || Base.name;
+            }
+
+			// code your methods here
+
+			
+		};
+	}
+
+}`;
+		}
+		else {
+			defaultRAM = `
 export class ${className} extends Aventus.Ram<${objectName}> implements Aventus.IRam {
 
 	/**
@@ -78,6 +232,7 @@ export class ${className} extends Aventus.Ram<${objectName}> implements Aventus.
 		return ${objectName};
 	}
 }`;
+		}
 		defaultRAM = this.addNamespace(defaultRAM, newScriptUri);
 		writeFileSync(newScriptPath, defaultRAM);
 		let textDocument: TextDocument = TextDocument.create(newScriptUri, AventusLanguageId.TypeScript, 0, defaultRAM);
@@ -85,7 +240,7 @@ export class ${className} extends Aventus.Ram<${objectName}> implements Aventus.
 		OpenFile.send(newScriptUri);
 	}
 
-	private createComponent(componentName: string, baseFolderUri: string, isMultiple: boolean) {
+	private static createComponent(componentName: string, baseFolderUri: string, isMultiple: boolean) {
 		let newFolderPath = uriToPath(baseFolderUri + "/" + componentName);
 		componentName = componentName.replace(/_|-([a-z])/g, (match, p1) => p1.toUpperCase());
 		let firstUpperName = componentName.charAt(0).toUpperCase() + componentName.slice(1);
@@ -164,7 +319,7 @@ export class ${className} extends Aventus.Ram<${objectName}> implements Aventus.
 
 	}
 
-	private createData(dataName: string, baseFolderUri: string) {
+	private static createData(dataName: string, baseFolderUri: string) {
 		let newScriptPath = uriToPath(baseFolderUri + "/" + dataName + AventusExtension.Data);
 		let newScriptUri = pathToUri(newScriptPath);
 		dataName = dataName.replace(/_|-([a-z])/g, (match, p1) => p1.toUpperCase());
@@ -177,7 +332,7 @@ export class ${className} extends Aventus.Ram<${objectName}> implements Aventus.
 		FilesManager.getInstance().registerFile(textDocument);
 		OpenFile.send(textDocument.uri);
 	}
-	private createLib(libName: string, baseFolderUri: string) {
+	private static createLib(libName: string, baseFolderUri: string) {
 		let newScriptPath = uriToPath(baseFolderUri + "/" + libName + AventusExtension.Lib);
 		let newScriptUri = pathToUri(newScriptPath);
 		libName = libName.replace(/_|-([a-z])/g, (match, p1) => p1.toUpperCase());
@@ -191,7 +346,7 @@ export class ${className} extends Aventus.Ram<${objectName}> implements Aventus.
 		OpenFile.send(textDocument.uri);
 	}
 
-	private createSocket(socketName: string, baseFolderUri: string) {
+	private static createSocket(socketName: string, baseFolderUri: string) {
 		socketName = socketName.charAt(0).toUpperCase() + socketName.slice(1);
 		let newScriptPath = uriToPath(baseFolderUri + "/" + socketName + AventusExtension.Socket);
 		let newScriptUri = pathToUri(newScriptPath);
@@ -220,7 +375,7 @@ export class LoginSocket extends Aventus.Socket implements Aventus.ISocket {
 		FilesManager.getInstance().registerFile(textDocument);
 		OpenFile.send(newScriptUri);
 	}
-	private createState(name: string, baseFolderUri: string, format: string) {
+	private static createState(name: string, baseFolderUri: string, format: string) {
 		name = name.charAt(0).toUpperCase() + name.slice(1);
 		let newScriptPath = uriToPath(baseFolderUri + "/" + name + AventusExtension.State);
 		let newScriptUri = pathToUri(newScriptPath);
@@ -259,8 +414,17 @@ export class LoginSocket extends Aventus.Socket implements Aventus.ISocket {
 
 
 	//#region tools
-
-	private addNamespace(text: string, uri: string, removeParentFolder: boolean = false) {
+	private static checkIfProject(uri: string) {
+		let uris = ProjectManager.getInstance().getAllConfigFiles();
+		let norm = uri.replace(/\\/g, "/");
+		for (let uriTemp of uris) {
+			if (norm.startsWith(uriTemp.replace("/aventus.conf.avt", ""))) {
+				return true;
+			}
+		}
+		return false;
+	}
+	private static addNamespace(text: string, uri: string, removeParentFolder: boolean = false) {
 		let builds = ProjectManager.getInstance().getMatchingBuildsByUri(uri);
 		if (builds.length > 0) {
 			let namespace = builds[0].getNamespaceForUri(uri, removeParentFolder);

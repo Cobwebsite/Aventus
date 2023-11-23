@@ -1,4 +1,4 @@
-import { FormElement } from "../Form/FormElement.lib.avt";
+import type { FormElement } from "../Form/FormElement.lib.avt";
 
 namespace Form {
     @Debugger({
@@ -28,31 +28,31 @@ namespace Form {
          * Determine if the field is required
          */
         @Attribute()
-        public required: boolean;
+        public required!: boolean;
 
         /**
          * Determine if the fields is disabled
          */
         @Attribute()
-        public disabled: boolean;
+        public disabled!: boolean;
 
 
         @Attribute()
-        public min_length: number;
+        public min_length!: number;
 
         @Attribute()
-        public max_length: number;
+        public max_length!: number;
 
         @Attribute()
-        public pattern: string;
+        public pattern?: string;
         //#endregion
 
 
         //#region variables
         @ViewElement()
-        protected errorEl: HTMLDivElement;
+        protected errorEl!: HTMLDivElement;
         @ViewElement()
-        protected inputEl: HTMLInputElement;
+        protected inputEl!: HTMLInputElement;
 
         private customValidationRules: ((value: string) => boolean | { success: boolean, error: string; })[] = [];
         //#endregion
@@ -75,14 +75,14 @@ namespace Form {
         public onChange: Aventus.Callback<(value: string) => void> = new Aventus.Callback();
 
         protected onAttrChange() {
-            if(this.inputEl.value != this.value) {
+            if(this.inputEl && this.inputEl.value != this.value) {
                 this.inputEl.value = this.value;
             }
             this.validate();
         }
         protected inputChange() {
             this.validate();
-            if(this.inputEl.value != this.value){
+            if(this.inputEl && this.inputEl.value != this.value) {
                 this.value = this.inputEl.value;
                 this.onChange.trigger([this.value]);
             }
@@ -109,7 +109,9 @@ namespace Form {
             this.printErrors();
         }
         public printErrors() {
-            this.errorEl.innerHTML = this.errors.join("<br />");
+            if(this.errorEl) {
+                this.errorEl.innerHTML = this.errors.join("<br />");
+            }
         }
         /**
          * @inheritdoc

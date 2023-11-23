@@ -2,16 +2,17 @@ export interface AventusConfigBuild {
 	fullname: string,
 	name: string,
 	version: string,
+	disabled: boolean,
 	hideWarnings: boolean,
 	inputPath: string[],
 	inputPathRegex: RegExp,
 	outsideModulePath: string[],
 	outsideModulePathRegex: RegExp,
-	outputFile: string,
-	outputPackage: string,
+	outputFile: string[],
+	outputPackage: string[],
 	module: string,
 	componentPrefix: string,
-	namespaceStrategy: 'manual' | 'followFolders' | 'rules'
+	namespaceStrategy: 'manual' | 'followFolders' | 'followFoldersCamelCase' | 'rules'
 	namespaceRules: { [namespace: string]: string[] },
 	namespaceRulesRegex: { [namespace: string]: RegExp },
 	namespaceRoot: string,
@@ -22,7 +23,8 @@ export interface AventusConfigBuild {
 		path: string,
 		outputFile?: string,
 	}[],
-	compressed: boolean
+	compressed: boolean,
+	nodeModulesDir: string
 }
 export type IncludeType = 'none' | 'need' | 'full';
 
@@ -38,8 +40,8 @@ export interface AventusConfigStatic {
 	name: string,
 	inputPath: string,
 	inputPathFolder: string,
-	outputPath: string
-	outputPathFolder: string,
+	outputPath: string[]
+	outputPathFolder: string[],
 }
 export interface AventusConfig {
 	version: string,
@@ -48,5 +50,8 @@ export interface AventusConfig {
 	module: string;
 	build: AventusConfigBuild[],
 	static: AventusConfigStatic[],
-	avoidParsingInsideTags: string[]
+	avoidParsingInsideTags: string[],
+	aliases: {
+		[alias: string]: string
+	}
 }

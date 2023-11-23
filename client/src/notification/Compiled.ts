@@ -1,9 +1,11 @@
 import { Singleton } from "../Singleton";
+import { InitStep } from './InitStep';
 
 export class Compiled {
     public static cmd: string = "aventus/compiled";
 
     private static timeByBuild: { [build: string]: string } = {};
+    private static lastTime: string = "";
 
     public static removeBuild(buildName: string) {
         delete Compiled.timeByBuild[buildName];
@@ -28,9 +30,23 @@ export class Compiled {
         let time = h + ":" + m + ":" + s;
         let txt = buildName + " compiled at " + time;
         Compiled.timeByBuild[buildName] = txt;
+        this.lastTime = txt;
+        this.render();
+    }
+
+    public static render() {
+        if(!InitStep.isDone) {
+            return;
+        }
         if (Singleton.client.components) {
-            Singleton.client.components.lastCompiledInfo.text = "$(issue-closed) " + time;
-            Singleton.client.components.lastCompiledInfo.tooltip = "Aventus last compilation :\n" + Object.values(Compiled.timeByBuild).join("\n");
+            if (Object.values(Compiled.timeByBuild).length > 0) {
+                Singleton.client.components.lastCompiledInfo.text = "$(issue-closed) " + this.lastTime;
+                Singleton.client.components.lastCompiledInfo.tooltip = "Aventus last compilation :\n" + Object.values(Compiled.timeByBuild).join("\n");
+            }
+            else {
+                Singleton.client.components.lastCompiledInfo.text = "";
+                Singleton.client.components.lastCompiledInfo.tooltip = "";
+            }
         }
     }
 }

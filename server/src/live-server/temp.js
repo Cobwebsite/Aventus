@@ -15,6 +15,21 @@ if ('WebSocket' in window) {
 			}
 			return current;
 		}
+		const setElement = function (name, cst) {
+			let current = window
+			let splitted = name.split(".")
+			for (let i = 0; i < splitted.length - 1; i++) {
+				let part = splitted[i];
+				if (!current[part]) {
+					return null;
+				}
+				current = current[part];
+			}
+			if (current) {
+				current[splitted[splitted.length - 1]] = cst;
+			}
+			return current;
+		}
 		socket.onmessage = function (ev) {
 			try {
 				let content = ev.data;
@@ -32,7 +47,7 @@ if ('WebSocket' in window) {
 							let cst = webComp.constructor;
 							if (!checkedType.includes(cst) && cst.__styleSheets['@local']) {
 								checkedType.push(cst);
-								let styleTxt = webComp.__getStyle().join("\r\n");
+								let styleTxt = webComp.__getStyle().join("\\r\\n");
 								cst.__styleSheets['@local'].replaceSync(styleTxt)
 							}
 						}
@@ -47,10 +62,14 @@ if ('WebSocket' in window) {
 						eval(`var __aventusHotReload = \${message.params.js}`);
 						let oldProps = Object.getOwnPropertyNames(element.prototype);
 						let newProps = Object.getOwnPropertyNames(__aventusHotReload.prototype);
+						let avoidProps = ['__getStatic', '__getStyle'];
 						for (let newPropName of newProps) {
 							let index = oldProps.indexOf(newPropName)
 							if (index != -1) {
 								oldProps.splice(index, 1);
+							}
+							if (avoidProps.includes(newPropName)) {
+								continue;
 							}
 							let descriptor = Object.getOwnPropertyDescriptor(element.prototype, newPropName);
 							let descriptor2 = Object.getOwnPropertyDescriptor(__aventusHotReload.prototype, newPropName);
@@ -69,7 +88,10 @@ if ('WebSocket' in window) {
 						for (let oldPropName of oldProps) {
 							delete element.prototype[oldPropName];
 						}
-
+						Object.defineProperty(__aventusHotReload, '__styleSheets', {
+							get() { return element.__styleSheets }
+						})
+						element.__template = null;
 						let allInstances = Aventus.WebComponentInstance.getAllInstances(element)
 						for (let webComp of allInstances) {
 							let newInstance = new element();

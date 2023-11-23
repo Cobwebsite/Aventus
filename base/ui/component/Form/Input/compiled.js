@@ -1,4 +1,4 @@
-class Input extends Aventus.WebComponent {
+Form.Input = class Input extends Aventus.WebComponent {
     static get observedAttributes() {return ["value", "label"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'required'() {
                 return this.hasAttribute('required');
@@ -33,19 +33,19 @@ class Input extends Aventus.WebComponent {
                     if(val === undefined || val === null){this.removeAttribute('max_length')}
                     else{this.setAttribute('max_length',val)}
                 }get 'pattern'() {
-                    return this.getAttribute('pattern');
+                    return this.getAttribute('pattern') ?? undefined;
                 }
                 set 'pattern'(val) {
                     if(val === undefined || val === null){this.removeAttribute('pattern')}
                     else{this.setAttribute('pattern',val)}
                 }    get 'value'() {
-                    return this.getAttribute('value');
+                    return this.getAttribute('value') ?? undefined;
                 }
                 set 'value'(val) {
                     if(val === undefined || val === null){this.removeAttribute('value')}
                     else{this.setAttribute('value',val)}
                 }get 'label'() {
-                    return this.getAttribute('label');
+                    return this.getAttribute('label') ?? undefined;
                 }
                 set 'label'(val) {
                     if(val === undefined || val === null){this.removeAttribute('label')}
@@ -90,7 +90,7 @@ class Input extends Aventus.WebComponent {
       {
         "id": "input_1",
         "attrName": "@HTML",
-        "render": (c) => `${c.label}`
+        "render": (c) => `${c.__P(c.label)}`
       }
     ]
   },
@@ -116,17 +116,17 @@ class Input extends Aventus.WebComponent {
         return "Input";
     }
     __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('required')) { this.attributeChangedCallback('required', false, false); }if(!this.hasAttribute('disabled')) { this.attributeChangedCallback('disabled', false, false); }if(!this.hasAttribute('min_length')){ this['min_length'] = undefined; }if(!this.hasAttribute('max_length')){ this['max_length'] = undefined; }if(!this.hasAttribute('pattern')){ this['pattern'] = undefined; }if(!this.hasAttribute('value')){ this['value'] = ""; }if(!this.hasAttribute('label')){ this['label'] = ""; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('value');this.__upgradeProperty('label'); }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('required');this.__upgradeProperty('disabled');this.__upgradeProperty('min_length');this.__upgradeProperty('max_length');this.__upgradeProperty('pattern');this.__upgradeProperty('value');this.__upgradeProperty('label'); }
     __listBoolProps() { return ["required","disabled"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     onAttrChange() {
-        if (this.inputEl.value != this.value) {
+        if (this.inputEl && this.inputEl.value != this.value) {
             this.inputEl.value = this.value;
         }
         this.validate();
     }
     inputChange() {
         this.validate();
-        if (this.inputEl.value != this.value) {
+        if (this.inputEl && this.inputEl.value != this.value) {
             this.value = this.inputEl.value;
             this.onChange.trigger([this.value]);
         }
@@ -150,7 +150,9 @@ class Input extends Aventus.WebComponent {
         this.printErrors();
     }
     printErrors() {
-        this.errorEl.innerHTML = this.errors.join("<br />");
+        if (this.errorEl) {
+            this.errorEl.innerHTML = this.errors.join("<br />");
+        }
     }
     validate() {
         this.errors = [];
@@ -198,5 +200,7 @@ class Input extends Aventus.WebComponent {
         return this.errors.length == 0;
     }
 }
-window.customElements.define('av-input', Input);Aventus.WebComponentInstance.registerDefinition(Input);
+Form.Input.Namespace=`${moduleName}.Form`;
+_.Form.Input=Form.Input;
+if(!window.customElements.get('av-input')){window.customElements.define('av-input', Form.Input);Aventus.WebComponentInstance.registerDefinition(Form.Input);}
 
