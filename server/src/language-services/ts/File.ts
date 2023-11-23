@@ -43,21 +43,28 @@ export abstract class AventusTsFile extends AventusBaseFile {
         this.fileParsed = ParserTs.parse(this.file, isLib, this.build);
         this._contentForLanguageService = this.file.document.getText();
         if (!isLib) {
-            for (let _namespace of this.fileParsed.namespaces) {
-                let diff = _namespace.bodyStart - _namespace.start;
-                let empty = "";
-                for (let i = 0; i < diff; i++) { empty += " " }
-                let firstPart = this._contentForLanguageService.substring(0, _namespace.start);
-                let lastPart = this._contentForLanguageService.substring(_namespace.bodyStart, this._contentForLanguageService.length);
-                this._contentForLanguageService = firstPart + empty + lastPart;
+            this.replaceNamespace();
+        }
+    }
 
-                diff = _namespace.end - _namespace.bodyEnd;
-                empty = "";
-                for (let i = 0; i < diff; i++) { empty += " " }
-                firstPart = this._contentForLanguageService.substring(0, _namespace.bodyEnd);
-                lastPart = this._contentForLanguageService.substring(_namespace.end, this._contentForLanguageService.length);
-                this._contentForLanguageService = firstPart + empty + lastPart;
-            }
+    protected replaceNamespace() {
+        if(!this.fileParsed) {
+            return;
+        }
+        for (let _namespace of this.fileParsed.namespaces) {
+            let diff = _namespace.bodyStart - _namespace.start;
+            let empty = "";
+            for (let i = 0; i < diff; i++) { empty += " " }
+            let firstPart = this._contentForLanguageService.substring(0, _namespace.start);
+            let lastPart = this._contentForLanguageService.substring(_namespace.bodyStart, this._contentForLanguageService.length);
+            this._contentForLanguageService = firstPart + empty + lastPart;
+
+            diff = _namespace.end - _namespace.bodyEnd;
+            empty = "";
+            for (let i = 0; i < diff; i++) { empty += " " }
+            firstPart = this._contentForLanguageService.substring(0, _namespace.bodyEnd);
+            lastPart = this._contentForLanguageService.substring(_namespace.end, this._contentForLanguageService.length);
+            this._contentForLanguageService = firstPart + empty + lastPart;
         }
     }
 

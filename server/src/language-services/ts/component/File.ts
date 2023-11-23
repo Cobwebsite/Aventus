@@ -14,10 +14,13 @@ import { AventusWebcomponentCompiler } from "./compiler/compiler";
 import { CompileComponentResult } from "./compiler/def";
 import { ClassInfo } from '../parser/ClassInfo';
 import { replaceNotImportAliases } from '../../../tools';
+import { QuickParser } from './QuickParser';
+import * as md5 from 'md5';
 
 export class AventusWebComponentLogicalFile extends AventusTsFile {
     private _compilationResult: CompileComponentResult | undefined;
     public canUpdateComponent: boolean = true;
+    private methodsStart: number[] = [];
     public get compilationResult() {
         return this._compilationResult;
     }
@@ -25,7 +28,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         return AventusExtension.ComponentLogic;
     }
 
-    public getHTMLFile(): AventusHTMLFile | undefined {
+    public get HTMLFile(): AventusHTMLFile | undefined {
         if (this.file.uri.endsWith(AventusExtension.Component)) {
             return this.build.wcFiles[this.file.uri].view;
         }
@@ -34,7 +37,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
 
     constructor(file: AventusFile, build: Build) {
         super(file, build);
-        this.refreshFileParsed();
+        this.recreateFileContent();
     }
 
 
@@ -80,19 +83,52 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
 
     }
 
+    private lastFileVersionCreated = "-1_-1";
+    public recreateFileContent() {
+        let htmlFile = this.HTMLFile;
+        if (htmlFile) {
+            let htmlVersion = htmlFile.file.version ?? -1;
+            let version = this.file.version + "_" + htmlVersion;
+            if (this.lastFileVersionCreated != version) {
+                this.lastFileVersionCreated = version;
+                let quickParse = QuickParser.parse(this.file, this.build);
+                if (quickParse.end >= 0) {
+                    let oldContent = this.file.content;
+                    let newContent = oldContent.slice(0, quickParse.end - 1) + EOL;
 
+                    let methods = htmlFile.fileParsed?.fcts ?? [];
+                    this.methodsStart = [];
+                    let name = "__" + md5(quickParse.fullname) + "method";
+                    for (let i = 0; i < methods.length; i++) {
+                        let method = methods[i];
+                        newContent += `public ${name}${i}() {` + EOL;
+                        let offsetStart = newContent.length;
+                        this.methodsStart.push(offsetStart);
+                        newContent += method.txt + EOL;
+                        newContent += '}' + EOL;
+                    }
+                    newContent += oldContent.slice(quickParse.end - 1);
+                    let v = this.file.version + htmlVersion
+                    console.log(newContent);
+                    this.file.document = TextDocument.create(this.file.document.uri, this.file.document.languageId, v, newContent);
+                }
+            }
+        }
+
+        this.refreshFileParsed();
+    }
 
     protected async onValidate(): Promise<Diagnostic[]> {
         await this.runWebCompiler();
         this.diagnostics = this.compilationResult?.diagnostics || []
-        this.getHTMLFile()?.validate();
+        this.HTMLFile?.validate();
         if (this.fileParsed) {
             this.diagnostics = this.diagnostics.concat(this.fileParsed.errors)
         }
         return this.diagnostics;
     }
     protected async onContentChange(): Promise<void> {
-        this.refreshFileParsed();
+        this.recreateFileContent();
         await this.runWebCompiler();
     }
     protected async onSave() {
@@ -317,7 +353,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
     private reverseViewClassInfoDependances: Map<AventusHTMLFile, { start: number, end: number }[]> = new Map();
 
     public resetViewClassInfoDep() {
-        let htmlFile = this.getHTMLFile();
+        let htmlFile = this.HTMLFile;
         if (!htmlFile) {
             return;
         }
@@ -329,7 +365,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         this.viewClassInfoDependances = [];
     }
     public addViewClassInfoDep(file: AventusTsFile, start: number, end: number) {
-        let htmlFile = this.getHTMLFile();
+        let htmlFile = this.HTMLFile;
         if (!htmlFile) {
             return;
         }

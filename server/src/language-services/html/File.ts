@@ -11,7 +11,7 @@ export class AventusHTMLFile extends AventusBaseFile {
 
     public fileParsed: ParserHtml | undefined;
     public tsErrors: Diagnostic[] = [];
-    private version: number = 0;
+    private version: number = -1;
 
     public get compiledVersion() {
         return this.version;
@@ -35,7 +35,7 @@ export class AventusHTMLFile extends AventusBaseFile {
     }
 
     public async init(): Promise<void> {
-        await this.compile(false);
+        await this.compile();
     }
     /**
      * return true if doc changed
@@ -69,6 +69,7 @@ export class AventusHTMLFile extends AventusBaseFile {
             if (this.refreshFileParsed()) {
                 let tsFile = this.tsFile;
                 if (tsFile && triggerSave) {
+                    tsFile.recreateFileContent();
                     await tsFile.validate();
                     await tsFile.triggerSave();
                 }

@@ -170,6 +170,11 @@ export class ParserHtml {
 	public static idElement = 0;
 	public static idLoop = 0;
 	public static loopsInfo: TagInfo[] = [];
+	public static addFct(fct : { start: number, end: number, txt: string }) {
+		if (this.currentParsingDoc) {
+			this.currentParsingDoc.fcts.push(fct);
+		}
+	}
 	//#endregion
 
 	public uri: string;
@@ -188,7 +193,7 @@ export class ParserHtml {
 	public interestPoints: InterestPoint[] = []
 	public rules: SCSSParsedRule;
 	public styleLinks: [{ start: number, end: number }, { start: number, end: number }][] = []
-
+	public fcts: { start: number, end: number, txt: string }[] = [];
 
 	public getBlocksInfoTxt(className: string) {
 		className = className.toLowerCase();

@@ -611,6 +611,11 @@ function parseTxt(value: string, valueStart: number) {
 		}
 		let start = valueStart + m.index;
 		let end = valueStart + m.index + m[0].length;
+		ParserHtml.addFct({
+			txt: m[1],
+			start: start,
+			end: end
+		});
 		result.variablesPosition[variableName].push({
 			start, end
 		})

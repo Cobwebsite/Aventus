@@ -78,6 +78,9 @@ export class Build {
     public get fullname() {
         return this.buildConfig.fullname;
     }
+    public get module() {
+        return this.buildConfig.module;
+    }
     public get isCoreBuild() {
         return this.project.isCoreBuild;
     }
