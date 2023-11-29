@@ -7,7 +7,6 @@ import { AventusDefinitionFile } from './definition/File';
 import { AventusTsFile } from './File';
 import { AventusLibFile } from './lib/File';
 import { AventusRamFile } from './ram/File';
-import { AventusSocketFile } from './socket/File';
 import { AventusStateFile } from './state/File';
 import { AventusStaticFile } from './static/File';
 
@@ -24,9 +23,6 @@ export function AventusTsFileSelector(file: AventusFile, build: Build): AventusT
 	}
 	else if (file.uri.endsWith(AventusExtension.RAM)) {
 		result = new AventusRamFile(file, build);
-	}
-	else if (file.uri.endsWith(AventusExtension.Socket)) {
-		result = new AventusSocketFile(file, build);
 	}
 	else if (file.uri.endsWith(AventusExtension.State)) {
 		result = new AventusStateFile(file, build);

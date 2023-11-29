@@ -8,6 +8,8 @@ export class CompiledPart {
         if (Singleton.client.components) {
             Singleton.client.components.lastCompiledInfo.text = "$(loading~spin) " + info;
             Singleton.client.components.lastCompiledInfo.tooltip = "";
+            Singleton.client.components.lastCompiledInfo.backgroundColor = undefined;
+            Singleton.client.components.lastCompiledInfo.command = undefined;
         }
     }
 }

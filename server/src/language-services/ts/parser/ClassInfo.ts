@@ -25,32 +25,32 @@ export class ClassInfo extends BaseInfo {
 	private methodParameters: string[] = [];
 	public convertibleName: string = '';
 	public get constructorContent(): string {
-		if(!this.constructorBody) {
+		if (!this.constructorBody) {
 			return "";
 		}
-        let txt = this.constructorBody.getText();
-        let transformations: { newText: string, start: number, end: number }[] = [];
-        for (let depName in this.dependancesLocations) {
-            let replacement = this.dependancesLocations[depName].replacement;
-            if (replacement) {
-                for (let locationKey in this.dependancesLocations[depName].locations) {
-                    let location = this.dependancesLocations[depName].locations[locationKey];
-                    if(location.start >= this.constructorBody.getStart() && location.end <= this.constructorBody.getEnd()) {
-                        transformations.push({
-                            newText: replacement,
-                            start: location.start - this.constructorBody.getStart(),
-                            end: location.end - this.constructorBody.getStart(),
-                        })
-                    }
-                }
-            }
-        }
-        transformations.sort((a, b) => b.end - a.end); // order from end file to start file
-        for (let transformation of transformations) {
-            txt = txt.slice(0, transformation.start) + transformation.newText + txt.slice(transformation.end, txt.length);
-        }
-        return txt;
-    }
+		let txt = this.constructorBody.getText();
+		let transformations: { newText: string, start: number, end: number }[] = [];
+		for (let depName in this.dependancesLocations) {
+			let replacement = this.dependancesLocations[depName].replacement;
+			if (replacement) {
+				for (let locationKey in this.dependancesLocations[depName].locations) {
+					let location = this.dependancesLocations[depName].locations[locationKey];
+					if (location.start >= this.constructorBody.getStart() && location.end <= this.constructorBody.getEnd()) {
+						transformations.push({
+							newText: replacement,
+							start: location.start - this.constructorBody.getStart(),
+							end: location.end - this.constructorBody.getStart(),
+						})
+					}
+				}
+			}
+		}
+		transformations.sort((a, b) => b.end - a.end); // order from end file to start file
+		for (let transformation of transformations) {
+			txt = txt.slice(0, transformation.start) + transformation.newText + txt.slice(transformation.end, txt.length);
+		}
+		return txt;
+	}
 
 	constructor(node: ClassDeclaration | InterfaceDeclaration, namespaces: string[], parserInfo: ParserTs) {
 		super(node, namespaces, parserInfo, false);
@@ -82,12 +82,6 @@ export class ClassInfo extends BaseInfo {
 				if (cst.body) {
 					this.constructorBody = cst.body
 				}
-				forEachChild(x, y => {
-					if (y.kind == SyntaxKind.Block) {
-
-						this.loadOnlyDependancesRecu(y);
-					}
-				})
 			}
 			else if (x.kind == SyntaxKind.PropertyDeclaration) {
 				let propInfo = new PropertyInfo(x as PropertyDeclaration, this.isInterface, this);
@@ -98,13 +92,11 @@ export class ClassInfo extends BaseInfo {
 					this.properties[propInfo.name] = propInfo;
 				}
 				let prop = x as PropertyDeclaration;
-				if (prop.type) {
-					this.addDependance(prop.type, false);
-				}
-				else {
+				if (!prop.type) {
 					ParserTs.addError(prop.getStart(), prop.getEnd(), "You must define a type for the prop " + propInfo.name);
 				}
-				
+
+
 			}
 			else if (x.kind == SyntaxKind.GetAccessor) {
 				let prop = x as GetAccessorDeclaration;
@@ -115,14 +107,8 @@ export class ClassInfo extends BaseInfo {
 				else {
 					this.properties[propInfo.name] = propInfo;
 				}
-				if (prop.type) {
-					this.addDependance(prop.type, false);
-				}
-				else {
+				if (!prop.type) {
 					ParserTs.addError(prop.getStart(), prop.getEnd(), "You must define a type for the prop " + propInfo.name);
-				}
-				if(prop.body) {
-					this.loadOnlyDependancesRecu(prop.body);
 				}
 			}
 			else if (x.kind == SyntaxKind.SetAccessor) {
@@ -134,14 +120,8 @@ export class ClassInfo extends BaseInfo {
 				else {
 					this.properties[propInfo.name] = propInfo;
 				}
-				if (prop.type) {
-					this.addDependance(prop.type, false);
-				}
-				else {
+				if (!prop.type) {
 					ParserTs.addError(prop.getStart(), prop.getEnd(), "You must define a type for the prop " + propInfo.name);
-				}
-				if(prop.body) {
-					this.loadOnlyDependancesRecu(prop.body);
 				}
 			}
 			else if (x.kind == SyntaxKind.MethodDeclaration) {
@@ -151,16 +131,6 @@ export class ClassInfo extends BaseInfo {
 						this.methodParameters.push(param.name.getText());
 					}
 				}
-				for (let param of method.parameters) {
-					if (param.type) {
-						this.addDependance(param.type, false);
-					}
-				}
-				forEachChild(x, y => {
-					if (y.kind == SyntaxKind.Block) {
-						this.loadOnlyDependancesRecu(y);
-					}
-				})
 				let methodInfo = new MethodInfo(x as MethodDeclaration, this);
 				this.methods[methodInfo.name] = methodInfo;
 				this.methodParameters = [];
@@ -169,6 +139,7 @@ export class ClassInfo extends BaseInfo {
 				console.log(SyntaxKind[x.kind]);
 				console.log(x.getText());
 			}
+			this.loadOnlyDependancesRecu(x);
 		});
 
 		for (let decorator of this.decorators) {

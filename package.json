@@ -72,7 +72,6 @@
 					".data.avt",
 					".lib.avt",
 					".ram.avt",
-					".socket.avt",
 					".state.avt",
 					".static.avt",
 					".def.avt"
@@ -380,6 +379,10 @@
 			{
 				"command": "aventus.sharp.export",
 				"title": "Aventus : Export sharp"
+			},
+			{
+				"command": "aventus.openfile.debug",
+				"title": "Aventus : Open debug file"
 			}
 		],
 		"menus": {

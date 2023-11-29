@@ -1,5 +1,4 @@
 import { window } from 'vscode';
-import { BuildQuickPick, QuickPick } from '../../quickPick';
 
 export class CreateProperty {
 	static cmd: string = "aventus.wc.create.property";

@@ -5,8 +5,9 @@ import virtual from '@rollup/plugin-virtual';
 import nodeResolve from '@rollup/plugin-node-resolve';
 import { minify } from 'terser';
 import * as md5 from 'md5';
-import { Build } from './Build';
+import { Build, BuildErrors } from './Build';
 import { Compiled } from '../notification/Compiled';
+import { DebugFileAdd } from '../notification/DebugFileAdd';
 
 
 // TODO : check what to do with the package exported and how imported it back
@@ -125,10 +126,14 @@ export class NpmBuilder {
 	}
 
 	private npmBuildTxt: string = "";
-	private npmDepBuildTxt: string = "";
-	public async compile(): Promise<string> {
+	private npmDepBuildTxt: { result: string, errors: BuildErrors } = { result: "", errors: [] };
+	public async compile(): Promise<{ result: string, errors: BuildErrors }> {
+
 		if (Object.keys(this.infos).length == 0) {
-			return "";
+			return {
+				result: "",
+				errors: []
+			};
 		}
 		let currentInfo = JSON.stringify(this.infos)
 		if (this.lastInfo != currentInfo) {
@@ -140,14 +145,18 @@ export class NpmBuilder {
 				this.npmDepBuildTxt = await this.rollupBuild(this.lastInfoToCompile)
 				Compiled.part("Compiling node modules done");
 			}
+
 			this.npmBuildTxt = `var npmCompilation;` + EOL;
 			this.npmBuildTxt += `(npmCompilation||(npmCompilation = {}));` + EOL;
 			this.npmBuildTxt += `(function (npmCompilation) {
-	${this.npmDepBuildTxt + EOL}
+	${this.npmDepBuildTxt.result + EOL}
 	${toCompile.toExport}
 })(npmCompilation);`+ EOL;
 		}
-		return this.npmBuildTxt
+		return {
+			result: this.npmBuildTxt,
+			errors: this.npmDepBuildTxt.errors
+		}
 	}
 
 	private writeFileToCompile(): { buildTxt: string, toExport: string } {
@@ -193,12 +202,18 @@ export class NpmBuilder {
 			toExport: exportTxt
 		};
 	}
-	private async rollupBuild(txt: string): Promise<string> {
+	private async rollupBuild(txt: string): Promise<{ result: string, errors: BuildErrors }> {
 		let resultTxt = "{}";
-
+		let response: { result: string, errors: BuildErrors } = {
+			result: "",
+			errors: []
+		}
 		try {
 			let res = await rollup({
 				input: "index.js",
+				onwarn: (message) => {
+
+				},
 				output: {
 					format: "iife",
 					name: "_",
@@ -233,18 +248,33 @@ export class NpmBuilder {
 				resultTxt += chunk['code'];
 			}
 		} catch (e) {
-			console.log(e);
+			let uri = this.build.fullname + "_npmErrors";
+			DebugFileAdd.send(uri, e + "");
+			response.errors.push({
+				title: "Npm compilation errors",
+				file: uri
+			})
 		}
 
 		var code = {
 			"file1.js": resultTxt
 		}
-		const resultTemp = await minify(code, {
-			compress: false,
-			format: {
-				comments: false,
-			}
-		})
-		return resultTemp.code || '';
+		try {
+			const resultTemp = await minify(code, {
+				compress: false,
+				format: {
+					comments: false,
+				}
+			})
+			response.result = resultTemp.code || '';
+		} catch (e) {
+			let uri = this.build.fullname + "_minifyErrors";
+			DebugFileAdd.send(uri, e + "");
+			response.errors.push({
+				title: "Npm minification errors",
+				file: uri
+			})
+		}
+		return response;
 	}
 }

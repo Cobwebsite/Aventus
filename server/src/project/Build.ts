@@ -34,6 +34,8 @@ import { AventusBaseFile } from '../language-services/BaseFile';
 import { GenericServer } from '../GenericServer';
 import { NpmBuilder } from './BuildNpm';
 
+export type BuildErrors = { file: string, title: string }[]
+
 export class Build {
     public project: Project;
     private buildConfig: AventusConfigBuild;
@@ -184,7 +186,7 @@ export class Build {
         }
     }
     public async build() {
-        if(!this.initDone) {
+        if (!this.initDone) {
             return;
         }
         let delay = GenericServer.delayBetweenBuild();
@@ -240,10 +242,11 @@ export class Build {
             console.log("building " + this.buildConfig.fullname);
         }
         this.clearDiagnostics();
+        let buildErrors: BuildErrors = []
         let compilationInfo = await this.buildOrderCompilationInfo();
         let result = await this.buildLocalCode(compilationInfo.toCompile, this.buildConfig.module);
 
-        await this.writeBuildCode(result, compilationInfo.libSrc);
+        buildErrors = await this.writeBuildCode(result, compilationInfo.libSrc);
         let srcInfo = {
             namespace: this.buildConfig.module,
             available: result.codeRenderInJs,
@@ -253,7 +256,7 @@ export class Build {
             this.writeBuildDocumentation(outputPackage, result, srcInfo)
         }
 
-        Compiled.send(this.buildConfig.fullname);
+        Compiled.send(this.buildConfig.fullname, buildErrors);
         if (this.reloadPage) {
             this.reloadPage = false;
             HttpServer.getInstance().reload();
@@ -325,10 +328,13 @@ export class Build {
      */
     private async writeBuildCode(localCode: {
         code: string[], codeNoNamespaceBefore: string[], codeNoNamespaceAfter: string[], classesName: { [name: string]: { type: InfoType, isExported: boolean, convertibleName: string } }, stylesheets: { [name: string]: string }
-    }, libSrc: string) {
+    }, libSrc: string): Promise<BuildErrors> {
+        let result: BuildErrors = []
         if (this.buildConfig.outputFile && this.buildConfig.outputFile.length > 0) {
             let finalTxt = '';
-            finalTxt += await this.npmBuilder.compile();
+            let npmResult = await this.npmBuilder.compile();
+            result = [...result, ...npmResult.errors];
+            finalTxt += npmResult.result;
             finalTxt += libSrc + EOL;
             let stylesheets: string[] = [];
             for (let name in localCode.stylesheets) {
@@ -367,6 +373,8 @@ export class Build {
                 writeFileSync(outputFile, finalTxt);
             }
         }
+
+        return result;
     }
     /**
      * Write the code inside the exported .package.avt
@@ -1303,8 +1311,7 @@ export class Build {
                 change.oldUri.endsWith(AventusExtension.ComponentLogic) ||
                 change.oldUri.endsWith(AventusExtension.Data) ||
                 change.oldUri.endsWith(AventusExtension.Lib) ||
-                change.oldUri.endsWith(AventusExtension.RAM) ||
-                change.oldUri.endsWith(AventusExtension.Socket)
+                change.oldUri.endsWith(AventusExtension.RAM)
             ) {
                 return await this.tsLanguageService.onRenameFile(change.oldUri, change.newUri);
             }

@@ -4,7 +4,8 @@ var Aventus;
 const moduleName = `Aventus`;
 const _ = {};
 
-
+const Uri = {};
+_.Uri = {};
 let _n;
 const ElementExtension=class ElementExtension {
     /**
@@ -326,78 +327,6 @@ const Style=class Style {
 }
 Style.Namespace=`${moduleName}`;
 _.Style=Style;
-const WebComponentInstance=class WebComponentInstance {
-    static __allDefinitions = [];
-    static __allInstances = [];
-    /**
-     * Last definition insert datetime
-     */
-    static lastDefinition = 0;
-    static registerDefinition(def) {
-        WebComponentInstance.lastDefinition = Date.now();
-        WebComponentInstance.__allDefinitions.push(def);
-    }
-    static removeDefinition(def) {
-        WebComponentInstance.lastDefinition = Date.now();
-        let index = WebComponentInstance.__allDefinitions.indexOf(def);
-        if (index > -1) {
-            WebComponentInstance.__allDefinitions.splice(index, 1);
-        }
-    }
-    /**
-     * Get all sub classes of type
-     */
-    static getAllClassesOf(type) {
-        let result = [];
-        for (let def of WebComponentInstance.__allDefinitions) {
-            if (def.prototype instanceof type) {
-                result.push(def);
-            }
-        }
-        return result;
-    }
-    /**
-     * Get all registered definitions
-     */
-    static getAllDefinitions() {
-        return WebComponentInstance.__allDefinitions;
-    }
-    static addInstance(instance) {
-        this.__allInstances.push(instance);
-    }
-    static removeInstance(instance) {
-        let index = this.__allInstances.indexOf(instance);
-        if (index > -1) {
-            this.__allInstances.splice(index, 1);
-        }
-    }
-    static getAllInstances(type) {
-        let result = [];
-        for (let instance of this.__allInstances) {
-            if (instance instanceof type) {
-                result.push(instance);
-            }
-        }
-        return result;
-    }
-    static create(type) {
-        let _class = customElements.get(type);
-        if (_class) {
-            return new _class();
-        }
-        let splitted = type.split(".");
-        let current = window;
-        for (let part of splitted) {
-            current = current[part];
-        }
-        if (current && current.prototype instanceof Aventus.WebComponent) {
-            return new current();
-        }
-        return null;
-    }
-}
-WebComponentInstance.Namespace=`${moduleName}`;
-_.WebComponentInstance=WebComponentInstance;
 const Callback=class Callback {
     callbacks = [];
     /**
@@ -564,21 +493,6 @@ const State=class State {
 }
 State.Namespace=`${moduleName}`;
 _.State=State;
-const EmptyState=class EmptyState extends State {
-    localName;
-    constructor(stateName) {
-        super();
-        this.localName = stateName;
-    }
-    /**
-     * @inheritdoc
-     */
-    get name() {
-        return this.localName;
-    }
-}
-EmptyState.Namespace=`${moduleName}`;
-_.EmptyState=EmptyState;
 var WatchAction;
 (function (WatchAction) {
     WatchAction[WatchAction["CREATED"] = 0] = "CREATED";
@@ -1034,6 +948,78 @@ const Watcher=class Watcher {
 }
 Watcher.Namespace=`${moduleName}`;
 _.Watcher=Watcher;
+const WebComponentInstance=class WebComponentInstance {
+    static __allDefinitions = [];
+    static __allInstances = [];
+    /**
+     * Last definition insert datetime
+     */
+    static lastDefinition = 0;
+    static registerDefinition(def) {
+        WebComponentInstance.lastDefinition = Date.now();
+        WebComponentInstance.__allDefinitions.push(def);
+    }
+    static removeDefinition(def) {
+        WebComponentInstance.lastDefinition = Date.now();
+        let index = WebComponentInstance.__allDefinitions.indexOf(def);
+        if (index > -1) {
+            WebComponentInstance.__allDefinitions.splice(index, 1);
+        }
+    }
+    /**
+     * Get all sub classes of type
+     */
+    static getAllClassesOf(type) {
+        let result = [];
+        for (let def of WebComponentInstance.__allDefinitions) {
+            if (def.prototype instanceof type) {
+                result.push(def);
+            }
+        }
+        return result;
+    }
+    /**
+     * Get all registered definitions
+     */
+    static getAllDefinitions() {
+        return WebComponentInstance.__allDefinitions;
+    }
+    static addInstance(instance) {
+        this.__allInstances.push(instance);
+    }
+    static removeInstance(instance) {
+        let index = this.__allInstances.indexOf(instance);
+        if (index > -1) {
+            this.__allInstances.splice(index, 1);
+        }
+    }
+    static getAllInstances(type) {
+        let result = [];
+        for (let instance of this.__allInstances) {
+            if (instance instanceof type) {
+                result.push(instance);
+            }
+        }
+        return result;
+    }
+    static create(type) {
+        let _class = customElements.get(type);
+        if (_class) {
+            return new _class();
+        }
+        let splitted = type.split(".");
+        let current = window;
+        for (let part of splitted) {
+            current = current[part];
+        }
+        if (current && current.prototype instanceof Aventus.WebComponent) {
+            return new current();
+        }
+        return null;
+    }
+}
+WebComponentInstance.Namespace=`${moduleName}`;
+_.WebComponentInstance=WebComponentInstance;
 const PressManager=class PressManager {
     static create(options) {
         if (Array.isArray(options.element)) {
@@ -1419,10 +1405,86 @@ const PressManager=class PressManager {
 }
 PressManager.Namespace=`${moduleName}`;
 _.PressManager=PressManager;
+const EmptyState=class EmptyState extends State {
+    localName;
+    constructor(stateName) {
+        super();
+        this.localName = stateName;
+    }
+    /**
+     * @inheritdoc
+     */
+    get name() {
+        return this.localName;
+    }
+}
+EmptyState.Namespace=`${moduleName}`;
+_.EmptyState=EmptyState;
+Uri.prepare=function prepare(uri) {
+    let params = [];
+    let i = 0;
+    let regexState = uri.replace(/{.*?}/g, (group, position) => {
+        group = group.slice(1, -1);
+        let splitted = group.split(":");
+        let name = splitted[0].trim();
+        let type = "string";
+        let result = "([^\\/]+)";
+        i++;
+        if (splitted.length > 1) {
+            if (splitted[1].trim() == "number") {
+                result = "([0-9]+)";
+                type = "number";
+            }
+        }
+        params.push({
+            name,
+            type,
+            position: i
+        });
+        return result;
+    });
+    regexState = regexState.replace(/\*/g, ".*?");
+    regexState = "^" + regexState + '$';
+    return {
+        regex: new RegExp(regexState),
+        params
+    };
+}
+
+_.Uri.prepare=Uri.prepare;
+Uri.isActive=function isActive(from, current) {
+    if (typeof from == "string") {
+        from = Uri.prepare(from);
+    }
+    return from.regex.test(current);
+}
+
+_.Uri.isActive=Uri.isActive;
+Uri.getParams=function getParams(from, current) {
+    if (typeof from == "string") {
+        from = Uri.prepare(from);
+    }
+    let matches = from.regex.exec(current);
+    if (matches) {
+        let slugs = {};
+        for (let param of from.params) {
+            if (param.type == "number") {
+                slugs[param.name] = Number(matches[param.position]);
+            }
+            else {
+                slugs[param.name] = matches[param.position];
+            }
+        }
+        return slugs;
+    }
+    return null;
+}
+
+_.Uri.getParams=Uri.getParams;
 const StateManager=class StateManager {
     subscribers = {};
     static canBeActivate(statePattern, stateName) {
-        let stateInfo = this.prepareStateString(statePattern);
+        let stateInfo = Uri.prepare(statePattern);
         return stateInfo.regex.test(stateName);
     }
     activeState;
@@ -1441,7 +1503,7 @@ const StateManager=class StateManager {
         }
         for (let statePattern of statePatterns) {
             if (!this.subscribers.hasOwnProperty(statePattern)) {
-                let res = StateManager.prepareStateString(statePattern);
+                let res = Uri.prepare(statePattern);
                 let isActive = this.activeState !== undefined && res.regex.test(this.activeState.name);
                 this.subscribers[statePattern] = {
                     "regex": res.regex,
@@ -1451,7 +1513,7 @@ const StateManager=class StateManager {
                         "inactive": [],
                         "askChange": [],
                     },
-                    "isActive": isActive,
+                    "isActive": Uri.isActive,
                 };
             }
             if (callbacks.active) {
@@ -1461,7 +1523,7 @@ const StateManager=class StateManager {
                 for (let activeFct of callbacks.active) {
                     this.subscribers[statePattern].callbacks.active.push(activeFct);
                     if (this.subscribers[statePattern].isActive && this.activeState) {
-                        let slugs = this.getInternalStateSlugs(this.subscribers[statePattern], this.activeState.name);
+                        let slugs = Uri.getParams(this.subscribers[statePattern], this.activeState.name);
                         if (slugs) {
                             activeFct(this.activeState, slugs);
                         }
@@ -1546,36 +1608,6 @@ const StateManager=class StateManager {
     offAfterStateChanged(cb) {
         this.afterStateChanged.remove(cb);
     }
-    static prepareStateString(stateName) {
-        let params = [];
-        let i = 0;
-        let regexState = stateName.replace(/{.*?}/g, (group, position) => {
-            group = group.slice(1, -1);
-            let splitted = group.split(":");
-            let name = splitted[0].trim();
-            let type = "string";
-            let result = "([^\\/]+)";
-            i++;
-            if (splitted.length > 1) {
-                if (splitted[1].trim() == "number") {
-                    result = "([0-9]+)";
-                    type = "number";
-                }
-            }
-            params.push({
-                name,
-                type,
-                position: i
-            });
-            return result;
-        });
-        regexState = regexState.replace(/\*/g, ".*?");
-        regexState = "^" + regexState + '$';
-        return {
-            regex: new RegExp(regexState),
-            params
-        };
-    }
     /**
      * Activate a current state
      */
@@ -1604,7 +1636,7 @@ const StateManager=class StateManager {
                         let subscriber = this.subscribers[statePattern];
                         if (subscriber.isActive) {
                             let clone = [...subscriber.callbacks.askChange];
-                            let currentSlug = this.getInternalStateSlugs(subscriber, this.activeState.name);
+                            let currentSlug = Uri.getParams(subscriber, this.activeState.name);
                             if (currentSlug) {
                                 for (let i = 0; i < clone.length; i++) {
                                     let askChange = clone[i];
@@ -1614,7 +1646,7 @@ const StateManager=class StateManager {
                                     }
                                 }
                             }
-                            let slugs = this.getInternalStateSlugs(subscriber, stateToUse.name);
+                            let slugs = Uri.getParams(subscriber, stateToUse.name);
                             if (slugs === null) {
                                 activeToInactive.push(subscriber);
                             }
@@ -1626,7 +1658,7 @@ const StateManager=class StateManager {
                             }
                         }
                         else {
-                            let slugs = this.getInternalStateSlugs(subscriber, stateToUse.name);
+                            let slugs = Uri.getParams(subscriber, stateToUse.name);
                             if (slugs) {
                                 inactiveToActive.push({
                                     subscriber,
@@ -1645,7 +1677,7 @@ const StateManager=class StateManager {
                     oldState.onInactivate(stateToUse);
                     for (let subscriber of activeToInactive) {
                         subscriber.isActive = false;
-                        let oldSlug = this.getInternalStateSlugs(subscriber, oldState.name);
+                        let oldSlug = Uri.getParams(subscriber, oldState.name);
                         if (oldSlug) {
                             let oldSlugNotNull = oldSlug;
                             [...subscriber.callbacks.inactive].forEach(callback => {
@@ -1670,7 +1702,7 @@ const StateManager=class StateManager {
             else {
                 this.activeState = stateToUse;
                 for (let key in this.subscribers) {
-                    let slugs = this.getInternalStateSlugs(this.subscribers[key], stateToUse.name);
+                    let slugs = Uri.getParams(this.subscribers[key], stateToUse.name);
                     if (slugs) {
                         let slugsNotNull = slugs;
                         this.subscribers[key].isActive = true;
@@ -1689,44 +1721,17 @@ const StateManager=class StateManager {
     getState() {
         return this.activeState;
     }
-    getInternalStateSlugs(subscriber, stateName) {
-        let matches = subscriber.regex.exec(stateName);
-        if (matches) {
-            let slugs = {};
-            for (let param of subscriber.params) {
-                if (param.type == "number") {
-                    slugs[param.name] = Number(matches[param.position]);
-                }
-                else {
-                    slugs[param.name] = matches[param.position];
-                }
-            }
-            return slugs;
-        }
-        return null;
-    }
     /**
      * Check if a state is in the subscribers and active, return true if it is, false otherwise
      */
     isStateActive(statePattern) {
-        return StateManager.prepareStateString(statePattern).regex.test(this.activeState?.name ?? '');
+        return Uri.isActive(statePattern, this.activeState?.name ?? '');
     }
     /**
      * Get slugs information for the current state, return null if state isn't active
      */
     getStateSlugs(statePattern) {
-        let prepared = StateManager.prepareStateString(statePattern);
-        let name = this.activeState?.name ?? '';
-        return this.getInternalStateSlugs({
-            regex: prepared.regex,
-            params: prepared.params,
-            isActive: false,
-            callbacks: {
-                active: [],
-                inactive: [],
-                askChange: [],
-            }
-        }, name);
+        return Uri.getParams(statePattern, this.activeState?.name ?? '');
     }
     // 0 = error only / 1 = errors and warning / 2 = error, warning and logs (not implemented)
     logLevel() {

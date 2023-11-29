@@ -1,10 +1,18 @@
+
+type NotVoid<T> = T extends void ? never : T;
+
 export enum WatchAction {
     CREATED,
     UPDATED,
     DELETED
 }
+
 export class Watcher {
     private static __maxProxyData: number = 0;
+    private static _registering: Effect[] = [];
+    private static get _register(): Effect | undefined {
+        return this._registering[this._registering.length - 1];
+    }
     /**
      * Transform object into a watcher
      */
@@ -18,6 +26,10 @@ export class Watcher {
             return obj;
         }
         Watcher.__maxProxyData++;
+        const reservedName = {
+            __path: '__path',
+            __proxyData: '__proxyData',
+        };
         let setProxyPath = (newProxy, newPath) => {
             if(newProxy instanceof Object && newProxy.__isProxy) {
                 newProxy.__path = newPath;
@@ -56,14 +68,14 @@ export class Watcher {
             }
         };
         let jsonReplacer = (key, value) => {
-            if(key == "__path") return undefined;
-            else if(key == "__proxyData") return undefined;
-            else return value;
+            if(reservedName[key]) return undefined;
+            return value;
         };
         let currentTrace = new Error().stack?.split("\n") ?? [];
         currentTrace.shift();
         currentTrace.shift();
         let onlyDuringInit = true;
+
         let proxyData = {
             baseData: {},
             id: Watcher.__maxProxyData,
@@ -84,6 +96,9 @@ export class Watcher {
                 }
                 else {
                     try {
+                        if(element instanceof Computed) {
+                            return element;
+                        }
                         if(element instanceof Object) {
                             newProxy = new Proxy(element, this);
                         } else {
@@ -164,7 +179,7 @@ export class Watcher {
                     return () => {
                         let result = {};
                         for(let key of Object.keys(target)) {
-                            if(key == "__path" || key == "__proxyData") {
+                            if(reservedName[key]) {
                                 continue;
                             }
                             result[key] = target[key];
@@ -175,10 +190,9 @@ export class Watcher {
                 return undefined;
             },
             get(target, prop, receiver) {
-                if(prop == "__proxyData") {
+                if(reservedName[prop]) {
                     return target[prop];
                 }
-
 
                 let customResult = this.tryCustomFunction(target, prop, receiver);
                 if(customResult !== undefined) {
@@ -186,11 +200,7 @@ export class Watcher {
                 }
 
                 let element = target[prop];
-                if(typeof (element) == 'object') {
-                    return this.getProxyObject(target, element, prop);
-                }
-                else if(typeof (element) == 'function') {
-
+                if(typeof (element) == 'function') {
                     if(Array.isArray(target)) {
                         let result;
                         if(prop == 'push') {
@@ -295,11 +305,28 @@ export class Watcher {
                     }
                     return element.bind(target);
                 }
-                return Reflect.get(target, prop, receiver);
+
+                if(element instanceof Computed) {
+                    return element.value;
+                }
+                if(typeof (element) == 'object') {
+                    if(Watcher._registering.length > 0) {
+                        const currentPath = receiver.__path ? receiver.__path + '.' + prop : prop;
+                        Watcher._register?.register(receiver, currentPath);
+                    }
+                    return this.getProxyObject(target, element, prop);
+                }
+
+                let resultTemp = Reflect.get(target, prop, receiver);
+                if(Watcher._registering.length > 0) {
+                    const currentPath = receiver.__path ? receiver.__path + '.' + prop : prop;
+                    Watcher._register?.register(receiver, currentPath);
+                }
+                return resultTemp;
             },
             set(target, prop, value, receiver) {
                 let triggerChange = false;
-                if(["__path", "__proxyData"].indexOf(prop) == -1) {
+                if(!reservedName[prop]) {
                     if(Array.isArray(target)) {
                         if(prop != "length") {
                             triggerChange = true;
@@ -311,9 +338,7 @@ export class Watcher {
                             triggerChange = true;
                         }
                     }
-
                 }
-
                 let result = Reflect.set(target, prop, value, receiver);
 
                 if(triggerChange) {
@@ -331,7 +356,7 @@ export class Watcher {
             deleteProperty(target, prop) {
                 let triggerChange = false;
                 let pathToDelete = '';
-                if(prop != "__path") {
+                if(!reservedName[prop]) {
                     if(Array.isArray(target)) {
                         if(prop != "length") {
                             if((target as any).__path) {
@@ -351,6 +376,9 @@ export class Watcher {
                 }
                 if(target.hasOwnProperty(prop)) {
                     let oldValue = target[prop];
+                    if(oldValue instanceof Effect) {
+                        oldValue.destroy();
+                    }
                     delete target[prop];
                     if(triggerChange) {
                         trigger('DELETED', target, null, oldValue, prop);
@@ -363,7 +391,7 @@ export class Watcher {
             defineProperty(target, prop, descriptor) {
                 let triggerChange = false;
                 let newPath = '';
-                if(["__path", "__proxyData"].indexOf(prop) == -1) {
+                if(!reservedName[prop]) {
                     if(Array.isArray(target)) {
                         if(prop != "length") {
                             if((target as any).__path) {
@@ -473,4 +501,134 @@ export class Watcher {
         setProxyPath(realProxy, '');
         return realProxy;
     }
+
+    public static computed<T>(fct: () => NotVoid<T>) {
+        const comp = new Computed<T>(fct);
+        return comp;
+    }
+    public static effect(fct: () => void) {
+        const comp = new Effect(fct);
+        return comp;
+    }
+}
+
+type WatcherChange = (action: WatchAction, changePath: string, value: any) => void;
+type EffectReceiver = {
+    __subscribe: (fct: WatcherChange) => void;
+    __unsubscribe: (fct: WatcherChange) => void;
+};
+class Effect {
+    protected callbacks: {
+        receiver: EffectReceiver,
+        path: string,
+        cb: WatcherChange;
+    }[] = [];
+
+    protected isInit: boolean = false;
+    protected __subscribes: WatcherChange[] = [];
+
+    protected fct: () => void;
+
+    public constructor(fct: () => void) {
+        this.fct = fct;
+        if(this.autoInit()) {
+            this.init();
+        }
+    }
+
+    protected autoInit(): boolean {
+        return true;
+    }
+
+    protected init() {
+        this.isInit = true;
+        Watcher['_registering'].push(this);
+        this.fct();
+        Watcher['_registering'].splice(Watcher['_registering'].length - 1, 1);
+    }
+
+    public register(receiver: EffectReceiver, path: string) {
+        const cb: WatcherChange = (action, changePath, value) => {
+            if(path == changePath) {
+                this.onChange();
+            }
+        };
+
+        for(let info of this.callbacks) {
+            if(info.receiver == receiver && info.path == path) {
+                return;
+            }
+        }
+        this.callbacks.push({
+            receiver,
+            path,
+            cb
+        });
+        receiver.__subscribe(cb);
+    }
+
+    protected onChange() {
+        this.fct();
+        for(let fct of this.__subscribes) {
+            fct(WatchAction.UPDATED, "", undefined);
+        }
+    }
+
+    public destroy() {
+        for(let pair of this.callbacks) {
+            pair.receiver.__unsubscribe(pair.cb);
+        }
+        this.callbacks = [];
+        this.isInit = false;
+    }
+
+    public __subscribe(fct: WatcherChange): void {
+        let index = this.__subscribes.indexOf(fct);
+        if(index == -1) {
+            this.__subscribes.push(fct);
+        }
+    }
+
+    public __unsubscribe(fct: WatcherChange): void {
+        let index = this.__subscribes.indexOf(fct);
+        if(index > -1) {
+            this.__subscribes.splice(index, 1);
+        }
+    }
+}
+
+class Computed<T> extends Effect {
+    private _value?: T;
+
+    public get value(): T | undefined {
+        if(!this.isInit) {
+            this.init();
+        }
+        Watcher['_register']?.register(this, "");
+        return this._value;
+    }
+
+    protected override autoInit(): boolean {
+        return false;
+    }
+
+    public constructor(fct: () => NotVoid<T>) {
+        super(fct);
+    }
+
+    protected override init(): void {
+        this.isInit = true;
+        Watcher['_registering'].push(this);
+        this._value = this.fct() as T;
+        Watcher['_registering'].splice(Watcher['_registering'].length - 1, 1);
+    }
+
+    protected override onChange(): void {
+        this._value = this.fct() as T;
+        for(let fct of this.__subscribes) {
+            fct(WatchAction.UPDATED, "", this._value);
+        }
+    }
+
+
 }

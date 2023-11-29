@@ -37,7 +37,7 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
         updated: [],
         deleted: [],
     };
-    private recordsSubscribers: Map<Index, RamSubscribers<RamItem<T>>> = new Map();
+    protected recordsSubscribers: Map<Index, RamSubscribers<RamItem<T>>> = new Map();
     /**
      * List of stored item by index key
      */
@@ -199,6 +199,7 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
             result.errors.push(new RamError(RamErrorCode.unknow, e));
         }
     }
+
     /**
      * Merge object and create real instance of class
      */
@@ -753,9 +754,10 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
                 else {
                     this.publish('deleted', action.result);
                 }
+                this.recordsSubscribers.delete(key);
             }
             else {
-                action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't update the item " + key + " because it wasn't found inside ram"));
+                action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't delete the item " + key + " because it wasn't found inside ram"));
             }
         }
         else {

@@ -1,0 +1,80 @@
+namespace Uri {
+
+    export type UriParams = {
+        name: string,
+        type: "number" | "string",
+        position: number;
+    };
+
+    export type UriParamsValue = {
+        [paramName: string]: string | number;
+    };
+
+    export type PreparedUri = {
+        regex: RegExp;
+        params: UriParams[];
+    };
+
+    export function prepare(uri: string): PreparedUri {
+        let params: UriParams[] = [];
+        let i = 0;
+        let regexState = uri.replace(/{.*?}/g, (group, position) => {
+            group = group.slice(1, -1);
+            let splitted = group.split(":");
+            let name = splitted[0].trim();
+            let type: "number" | "string" = "string";
+            let result = "([^\\/]+)";
+            i++;
+
+            if(splitted.length > 1) {
+                if(splitted[1].trim() == "number") {
+                    result = "([0-9]+)";
+                    type = "number";
+                }
+            }
+
+            params.push({
+                name,
+                type,
+                position: i
+            });
+            return result;
+        });
+        regexState = regexState.replace(/\*/g, ".*?");
+        regexState = "^" + regexState + '$';
+
+        return {
+            regex: new RegExp(regexState),
+            params
+        };
+    }
+
+    export function getParams(from: string | PreparedUri, current: string): UriParamsValue | null {
+        if(typeof from == "string") {
+            from = prepare(from);
+        }
+
+        let matches = from.regex.exec(current);
+        if(matches) {
+            let slugs: UriParamsValue = {};
+            for(let param of from.params) {
+                if(param.type == "number") {
+                    slugs[param.name] = Number(matches[param.position]);
+                }
+                else {
+                    slugs[param.name] = matches[param.position];
+                }
+            }
+            return slugs;
+        }
+        return null;
+    }
+
+    export function isActive(from: string | PreparedUri, current: string): boolean {
+		if(typeof from == "string") {
+            from = prepare(from);
+        }
+
+		return from.regex.test(current)
+    }
+}

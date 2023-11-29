@@ -1,22 +1,27 @@
 
 
 
-export type AnyConstructor = abstract new (...args: any[]) => any;
+type OnlyConstructor = (abstract new (...args: any[]) => any);
+export type AnyConstructor = OnlyConstructor | {};
 
-type MixinPropertyProto<B extends AnyConstructor, R extends AnyConstructor, S extends string> = InstanceType<B> & Unflatten<Record<S, InstanceType<R>>>;
+
+
+type GetInstanceType<B extends AnyConstructor> = B extends OnlyConstructor ? InstanceType<B> : {};
+
+type MixinPropertyProto<B extends AnyConstructor, R extends AnyConstructor, S extends string> = GetInstanceType<B> & Unflatten<Record<S, GetInstanceType<R>>>;
 type MixProtoWithPath<B extends AnyConstructor, R extends AnyConstructor, S extends string> = (
     (abstract new (...args: any) => MixinPropertyProto<B, R, S>) & {
         prototype: MixinPropertyProto<B, R, S>;
     }) & B;
-type MixProtoNoPath<B extends AnyConstructor, R extends AnyConstructor, S extends string|undefined> = (
-    (abstract new (...args: any) => InstanceType<B> & InstanceType<R>) & {
-        prototype: InstanceType<B> & InstanceType<R>;
+type MixProtoNoPath<B extends AnyConstructor, R extends AnyConstructor, S extends string | undefined> = (
+    (abstract new (...args: any) => GetInstanceType<B> & GetInstanceType<R>) & {
+        prototype: GetInstanceType<B> & GetInstanceType<R>;
     }) & B;
 
-export type MixProto<B extends AnyConstructor, R extends AnyConstructor, S extends string> = S extends null ? 
-    MixProtoNoPath<B, R, S> : 
-        S extends "" ? 
-            MixProtoNoPath<B, R, S> : MixProtoWithPath<B, R, S>;
+export type MixProto<B extends AnyConstructor, R extends AnyConstructor, S extends string> = S extends null ?
+    MixProtoNoPath<B, R, S> :
+    S extends "" ?
+    MixProtoNoPath<B, R, S> : MixProtoWithPath<B, R, S>;
 
 //#region tools
 
@@ -29,7 +34,7 @@ type Split<S extends string, Sep extends string = "", R extends string[] = []> =
     ? Split<B, Sep, [...R, A]> : [...R, S];
 
 /** Join a string array into a string */
-export type Join<S extends (string|undefined)[], Sep extends string = "", R extends string = ""> =
+export type Join<S extends (string | undefined)[], Sep extends string = "", R extends string = ""> =
     S["length"] extends 0
     ? R
     : S extends [infer A extends string, ...infer B extends string[]]

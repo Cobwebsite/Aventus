@@ -1,7 +1,3 @@
-import { window } from "vscode";
-import { BuildQuickPick, QuickPick } from "../quickPick";
-import { Singleton } from "../Singleton";
-import { readdirSync } from 'fs';
 
 export class Create {
     static cmd: string = "aventus.create";

@@ -6,6 +6,7 @@ import { TypeInfo } from './TypeInfo';
 import { DecoratorInfo } from './DecoratorInfo';
 import { DependancesDecorator } from './decorators/DependancesDecorator';
 import * as md5 from 'md5';
+import { GenericServer } from '../../../GenericServer';
 
 
 export enum InfoType {
@@ -273,11 +274,11 @@ export abstract class BaseInfo {
         return result;
     }
     protected addDependanceName(name: string, isStrongDependance: boolean, start: number, end: number): string | null {
+        if (!name || name == "constructor" || name == "toString") {
+            return null
+        }
         if (this.debug) {
             console.log("try add dependance " + name);
-        }
-        if (!name) {
-            return null;
         }
         let match = /<.*>/g.exec(name);
         if (match) {
@@ -301,6 +302,10 @@ export abstract class BaseInfo {
                 }
             }
             let key = start + "_" + end;
+            if (!this.dependancesLocations[name].locations) {
+                GenericServer.showErrorMessage("For the admin : you can add " + name + " as dependance to avoid");
+                return null;
+            }
             if (!this.dependancesLocations[name].locations[key]) {
                 this.dependancesLocations[name].locations[key] = {
                     start: start,

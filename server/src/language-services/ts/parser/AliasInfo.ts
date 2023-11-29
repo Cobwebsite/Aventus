@@ -8,6 +8,8 @@ export class AliasInfo extends BaseInfo {
 	constructor(node: TypeAliasDeclaration, namespaces: string[], parserInfo: ParserTs) {
 		super(node, namespaces, parserInfo);
 		this.type = new TypeInfo(node.type);
+
+		this.loadOnlyDependancesRecu(node);
 	}
 
 }

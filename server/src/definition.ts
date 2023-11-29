@@ -4,7 +4,6 @@ export enum AventusType {
     Lib,
     Data,
     RAM,
-    Socket,
     Static,
     Definition,
     Unknow
@@ -30,7 +29,6 @@ export const AventusExtension = {
     Data: ".data.avt",
     Lib: ".lib.avt",
     RAM: ".ram.avt",
-    Socket: ".socket.avt",
     State: ".state.avt",
     Static: ".static.avt",
     Definition: ".def.avt",
