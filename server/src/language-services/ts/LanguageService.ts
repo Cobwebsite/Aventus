@@ -1,6 +1,6 @@
 import { EOL } from 'os';
 import { normalize, sep } from 'path';
-import { CodeFixAction, CompilerOptions, CompletionInfo, createLanguageService, Diagnostic as DiagnosticTs, displayPartsToString, Extension, flattenDiagnosticMessageText, FormatCodeSettings, GetCompletionsAtPositionOptions, ImportsNotUsedAsValues, IndentStyle, JsxEmit, LanguageService, LanguageServiceHost, ModuleDetectionKind, ModuleResolutionKind, RenameInfo, ResolvedModule, ResolvedModuleFull, resolveModuleName, ScriptKind, ScriptTarget, SemicolonPreference, transpile, WithMetadata } from 'typescript';
+import { CodeFixAction, CompilerOptions, CompletionInfo, createLanguageService, Diagnostic as DiagnosticTs, displayPartsToString, Extension, flattenDiagnosticMessageText, FormatCodeSettings, GetCompletionsAtPositionOptions, ImportsNotUsedAsValues, IndentStyle, JsxEmit, LanguageService, LanguageServiceHost, ModuleDetectionKind, ModuleResolutionKind, RenameInfo, ResolvedModule, ResolvedModuleFull, resolveModuleName, ScriptKind, ScriptTarget, SemicolonPreference, transpile, WithMetadata, UserPreferences } from 'typescript';
 import { CodeAction, CodeLens, CompletionItem, CompletionItemKind, CompletionList, Definition, Diagnostic, DiagnosticSeverity, DiagnosticTag, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver';
 import { AventusExtension, AventusLanguageId } from '../../definition';
 import { AventusFile, InternalAventusFile } from '../../files/AventusFile';
@@ -120,6 +120,7 @@ export class AventusTsLanguageService {
     }
     private createHost(): LanguageServiceHost {
         const that = this;
+        let last = 0;
         const host: LanguageServiceHost = {
             getCompilationSettings: () => compilerOptionsRead,
             getScriptFileNames: () => {
@@ -130,7 +131,10 @@ export class AventusTsLanguageService {
             },
             getScriptVersion: (fileName: string) => {
                 if (this.filesLoaded[fileName]) {
-                    return String(this.filesLoaded[fileName].file.version);
+                    if (fileName.endsWith("Test.wcl.avt") && this.filesLoaded[fileName].version != last) {
+                        last = this.filesLoaded[fileName].version;
+                    }
+                    return String(this.filesLoaded[fileName].version);
                 }
                 return '1';
             },
@@ -675,11 +679,12 @@ export class AventusTsLanguageService {
     public async onRename(file: AventusFile, position: Position, newName: string): Promise<WorkspaceEdit | null> {
         let references = this.languageService.getFileReferences(file.uri);
         let offset: number = file.document.offsetAt(position);
-        let renameInfo: RenameInfo = this.languageService.getRenameInfo(file.uri, offset)
+        let pref: UserPreferences = {};
+        let renameInfo: RenameInfo = this.languageService.getRenameInfo(file.uri, offset, pref)
         if (!renameInfo.canRename) {
             return null;
         }
-        let renameLocations = this.languageService.findRenameLocations(file.uri, offset, false, false);
+        let renameLocations = this.languageService.findRenameLocations(file.uri, offset, false, false, pref);
         if (!renameLocations) {
             return null;
         }

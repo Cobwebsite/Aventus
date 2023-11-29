@@ -1,6 +1,7 @@
 import { CodeAction, CodeLens, CompletionItem, CompletionList, Definition, Diagnostic, DiagnosticSeverity, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from "vscode-languageserver";
 import { AventusFile, InternalAventusFile } from '../files/AventusFile';
 import { Build } from "../project/Build";
+import { TextDocument } from 'vscode-languageserver-textdocument';
 
 
 export abstract class AventusBaseFile {
@@ -80,12 +81,12 @@ export abstract class AventusBaseFile {
     }
     public async triggerSave(): Promise<void> {
         if (this.file instanceof InternalAventusFile) {
-            await this.file.triggerSave(this.file.document);
+            await this.file.triggerSave();
         }
     }
-    public triggerContentChange(): void {
+    public triggerContentChange(document: TextDocument): void {
         if (this.file instanceof InternalAventusFile) {
-            this.file.triggerContentChange(this.file.document);
+            this.file.triggerContentChange(document);
         }
     }
     protected abstract onContentChange(): Promise<void>;

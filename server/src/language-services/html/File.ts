@@ -57,19 +57,23 @@ export class AventusHTMLFile extends AventusBaseFile {
             diagnostics = [...diagnostics, ...this.fileParsed.errors]
         }
         diagnostics = [...diagnostics, ...this.tsErrors]
+        if (this.tsFile) {
+            diagnostics = [...diagnostics, ...this.tsFile.htmlDiagnostics]
+        }
         return diagnostics;
     }
     protected async onContentChange(): Promise<void> {
+        await this.compile();
+        console.log("Done");
     }
     protected async onSave() {
-        await this.compile();
+
     }
     private async compile(triggerSave = true) {
         try {
             if (this.refreshFileParsed()) {
                 let tsFile = this.tsFile;
                 if (tsFile && triggerSave) {
-                    tsFile.recreateFileContent();
                     await tsFile.validate();
                     await tsFile.triggerSave();
                 }
@@ -82,15 +86,27 @@ export class AventusHTMLFile extends AventusBaseFile {
 
     }
     protected async onCompletion(document: AventusFile, position: Position): Promise<CompletionList> {
-        return await this.build.htmlLanguageService.doComplete(document, position);
+        let resultTemp = await this.tsFile?.doViewCompletion(position)
+        if (resultTemp) {
+            return resultTemp;
+        }
+        return this.build.htmlLanguageService.doComplete(document, position);
     }
     protected async onCompletionResolve(document: AventusFile, item: CompletionItem): Promise<CompletionItem> {
         return item;
     }
-    protected onHover(document: AventusFile, position: Position): Promise<Hover | null> {
-        return this.build.htmlLanguageService.doHover(this, position);
+    protected async onHover(document: AventusFile, position: Position): Promise<Hover | null> {
+        let resultTemp = await this.tsFile?.doHover(position)
+        if (resultTemp) {
+            return resultTemp;
+        }
+        return await this.build.htmlLanguageService.doHover(this, position);
     }
     protected async onDefinition(document: AventusFile, position: Position): Promise<Definition | null> {
+        let resultTemp = await this.tsFile?.doDefinition(position)
+        if (resultTemp) {
+            return resultTemp;
+        }
         return this.build.htmlLanguageService.onDefinition(this, position);
     }
     protected async onFormatting(document: AventusFile, range: Range, options: FormattingOptions): Promise<TextEdit[]> {
@@ -100,6 +116,10 @@ export class AventusHTMLFile extends AventusBaseFile {
         return [];
     }
     protected async onReferences(document: AventusFile, position: Position): Promise<Location[]> {
+        let resultTemp = await this.tsFile?.doReferences(position)
+        if (resultTemp) {
+            return resultTemp;
+        }
         return this.build.htmlLanguageService.getLinkToStyle(this, position);
     }
     protected async onCodeLens(document: AventusFile): Promise<CodeLens[]> {
@@ -109,6 +129,10 @@ export class AventusHTMLFile extends AventusBaseFile {
         return [this.build]
     }
     protected async onRename(document: AventusFile, position: Position, newName: string): Promise<WorkspaceEdit | null> {
+        let resultTemp = await this.tsFile?.doRename(position, newName);
+        if (resultTemp) {
+            return resultTemp;
+        }
         return null;
     }
 }

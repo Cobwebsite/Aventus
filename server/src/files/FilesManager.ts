@@ -157,7 +157,7 @@ export class FilesManager {
             await this.triggerOnNewFile(document);
         }
         else {
-            await this.files[document.uri].triggerSave(document);
+            await this.files[document.uri].triggerSave();
         }
     }
     public async onClose(document: TextDocument) {

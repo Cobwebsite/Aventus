@@ -811,7 +811,11 @@
 							"name":"aventus.wcv.changingstart"
 						},
 						"2": {
-							"name": "aventus.wcv.changingtext"
+							"patterns": [
+								{
+									"include": "source.js"
+								}
+							]
 						},
 						"3": {
 							"name": "aventus.wcv.changingstop"

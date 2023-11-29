@@ -99,7 +99,7 @@ export class CSharpFile {
 	}
 	public triggerSave(): void {
 		if (this.file instanceof InternalAventusFile) {
-			this.file.triggerSave(this.file.document);
+			this.file.triggerSave();
 		}
 	}
 	public triggerContentChange(): void {

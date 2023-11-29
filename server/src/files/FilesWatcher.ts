@@ -124,7 +124,6 @@ export class FilesWatcher {
                 this.files[uri].document.version + 1,
                 txtToImport
             );
-            this.files[uri].document = document;
             this.files[uri].triggerContentChange(document);
         }
     }

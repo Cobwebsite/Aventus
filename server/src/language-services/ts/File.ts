@@ -24,6 +24,10 @@ export abstract class AventusTsFile extends AventusBaseFile {
         return [...this.diagnostics];
     }
 
+    public get version(): number {
+        return this.file.version;
+    }
+
     protected abstract get extension(): string;
     public fileParsed: ParserTs | null = null;
 
@@ -48,7 +52,7 @@ export abstract class AventusTsFile extends AventusBaseFile {
     }
 
     protected replaceNamespace() {
-        if(!this.fileParsed) {
+        if (!this.fileParsed) {
             return;
         }
         for (let _namespace of this.fileParsed.namespaces) {
@@ -109,7 +113,7 @@ export abstract class AventusTsFile extends AventusBaseFile {
             for (let className in struct.classes) {
                 let classTemp = struct.classes[className];
 
-                for(let customClassRule of rules.customClassRules){
+                for (let customClassRule of rules.customClassRules) {
                     customClassRule(classTemp);
                 }
                 if (classTemp.isInterface) {

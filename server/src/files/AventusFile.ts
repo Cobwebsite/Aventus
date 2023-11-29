@@ -20,7 +20,7 @@ export type onRenameType = (document: AventusFile, position: Position, newName: 
 export type onGetBuildType = () => Build[];
 
 export interface AventusFile {
-    document: TextDocument;
+    readonly document: TextDocument;
     uri: string;
     path: string;
     version: number;
@@ -74,10 +74,18 @@ export interface AventusFile {
     removeOnRename(uuid: string): void;
 }
 export class InternalAventusFile implements AventusFile {
-    public document: TextDocument;
+    private _document: TextDocument;
+
+    public get document(): TextDocument {
+        return this._document;
+    }
+
+    public setDocument(value: TextDocument) {
+        this._document = value;
+    }
 
     public constructor(document: TextDocument) {
-        this.document = document;
+        this._document = document;
         this._version = this.document.version;
     }
 
@@ -210,7 +218,7 @@ export class InternalAventusFile implements AventusFile {
 
     private async triggerContentChangeNoBuffer(document: TextDocument) {
         let parsingVersion = document.version;
-        this.document = document;
+        this._document = document;
         this._version = this.document.version;
 
         let proms: Promise<void>[] = [];
@@ -285,8 +293,7 @@ export class InternalAventusFile implements AventusFile {
 
     private onSaveCb: { [uuid: string]: (document: AventusFile) => Promise<void> } = {};
 
-    public async triggerSave(document: TextDocument): Promise<void> {
-        this.document = document;
+    public async triggerSave(): Promise<void> {
         for (let uuid in this.onSaveCb) {
             await this.onSaveCb[uuid](this);
         }

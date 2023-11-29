@@ -14,22 +14,22 @@ import { Build } from '../../../project/Build';
 
 export class QuickParser {
 
-	public static parse(file: AventusFile, build: Build) {
-		return new QuickParser(file, build);
+	public static parse(content: string, build: Build) {
+		return new QuickParser(content, build);
 	}
 
 	private AventusDefaultComponent: string = "Aventus.DefaultComponent";
 
 	public end: number = -1;
 	private currentNamespace: string[] = []
-	public fullname:string = "";
+	public fullname: string = "";
 
-	private constructor(file: AventusFile, build: Build) {
+	private constructor(content: string, build: Build) {
 		this.currentNamespace.push(build.module);
 		if (build.isCoreBuild) {
 			this.AventusDefaultComponent = "DefaultComponent";
 		}
-		this.loadRoot(createSourceFile("sample.ts", file.content, ScriptTarget.ESNext, true));
+		this.loadRoot(createSourceFile("sample.ts", content, ScriptTarget.ESNext, true));
 	}
 
 	private loadRoot(node: Node): true | undefined {
@@ -51,8 +51,8 @@ export class QuickParser {
 	private loadNamespace(node: ModuleDeclaration): true | undefined {
 		if (hasFlag(node.flags, NodeFlags.Namespace) && node.body) {
 			this.currentNamespace.push(node.name.getText());
-            let result = this.loadRoot(node);
-            this.currentNamespace.splice(this.currentNamespace.length - 1, 1);
+			let result = this.loadRoot(node);
+			this.currentNamespace.splice(this.currentNamespace.length - 1, 1);
 			return result;
 		}
 		else if (hasFlag(node.flags, NodeFlags.GlobalAugmentation) && node.body) {
