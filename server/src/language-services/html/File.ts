@@ -64,7 +64,6 @@ export class AventusHTMLFile extends AventusBaseFile {
     }
     protected async onContentChange(): Promise<void> {
         await this.compile();
-        console.log("Done");
     }
     protected async onSave() {
 

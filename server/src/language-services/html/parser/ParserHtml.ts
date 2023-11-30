@@ -92,15 +92,6 @@ export class ParserHtml {
 			}
 		}
 
-		for (let contextProp in toMerge.content) {
-			if (main.content[contextProp]) {
-				main.content[contextProp] = [...main.content[contextProp], ...toMerge.content[contextProp]];
-			}
-			else {
-				main.content[contextProp] = toMerge.content[contextProp]
-			}
-		}
-
 		for (let contextProp in toMerge.injection) {
 			if (main.injection[contextProp]) {
 				main.injection[contextProp] = [...main.injection[contextProp], ...toMerge.injection[contextProp]];
@@ -170,10 +161,27 @@ export class ParserHtml {
 	public static idElement = 0;
 	public static idLoop = 0;
 	public static loopsInfo: TagInfo[] = [];
-	public static addFct(fct : { start: number, end: number, txt: string }) {
+	public static addFct(fct: { start: number, end: number, txt: string }) {
 		if (this.currentParsingDoc) {
-			this.currentParsingDoc.fcts.push(fct);
+			let loops: { from: string, item: string, index: string }[] = [];
+			for (let loopInfo of this.loopsInfo) {
+				if (!loopInfo.forInstance) {
+					continue;
+				}
+				loops.push({
+					from: loopInfo.forInstance.from,
+					index: loopInfo.forInstance.index,
+					item: loopInfo.forInstance.item,
+				})
+			}
+			this.currentParsingDoc.fcts.push({
+				start: fct.start,
+				end: fct.end,
+				txt: fct.txt,
+				loops: loops
+			});
 		}
+		this.loopsInfo
 	}
 	//#endregion
 
@@ -193,7 +201,7 @@ export class ParserHtml {
 	public interestPoints: InterestPoint[] = []
 	public rules: SCSSParsedRule;
 	public styleLinks: [{ start: number, end: number }, { start: number, end: number }][] = []
-	public fcts: { start: number, end: number, txt: string }[] = [];
+	public fcts: { start: number, end: number, txt: string, loops: { from: string, item: string, index: string }[] }[] = [];
 
 	public getBlocksInfoTxt(className: string) {
 		className = className.toLowerCase();
@@ -332,7 +340,7 @@ export class ParserHtml {
 								this.errors.push(createErrorHTMLPos(document, "The tag " + lastTag?.tagName + " isn't correctly closed", lastTag?.start, lastTag?.end))
 							}
 							else {
-								this.errors.push(createErrorHTMLPos(document, "No opening tag found for "+tagName, scanner.getTokenOffset(), scanner.getTokenEnd()))
+								this.errors.push(createErrorHTMLPos(document, "No opening tag found for " + tagName, scanner.getTokenOffset(), scanner.getTokenEnd()))
 							}
 							return;
 						}
@@ -401,7 +409,6 @@ export class ParserHtml {
 		}
 		let result: HtmlTemplateResult = {
 			elements: [],
-			content: {},
 			injection: {},
 			bindings: {},
 			events: [],

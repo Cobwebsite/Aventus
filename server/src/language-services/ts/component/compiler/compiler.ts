@@ -1035,82 +1035,7 @@ this.clearWatchHistory = () => {
         //#endregion
 
         //#region content
-        let contents = template.content;
-        let resultContents: { [contextProp: string]: ActionChange[] } = {}
-        // for (let propName in contents) {
-        //     if (this.allFields[propName]) {
-        //         let field = this.allFields[propName];
-        //         if (field.propType == "Property") {
-        //             if (!resultContents[propName]) {
-        //                 resultContents[propName] = [];
-        //             }
-        //             if (field.type.kind == "boolean") {
-        //                 for (let content of contents[propName]) {
-        //                     resultContents[propName].push({
-        //                         id: content.id,
-        //                         attrName: content.attrName,
-        //                         render: content.render,
-        //                         isBool: true
-        //                     })
-        //                 }
-        //             }
-        //             else {
-        //                 for (let content of contents[propName]) {
-        //                     resultContents[propName].push({
-        //                         id: content.id,
-        //                         attrName: content.attrName,
-        //                         render: content.render
-        //                     })
-        //                 }
-        //             }
-        //         }
-        //         else if (field.propType == "Watch") {
-        //             if (!resultContents[propName]) {
-        //                 resultContents[propName] = [];
-        //             }
-        //             for (let content of contents[propName]) {
-        //                 resultContents[propName].push({
-        //                     id: content.id,
-        //                     attrName: content.attrName,
-        //                     render: content.render,
-        //                     path: content.path
-        //                 })
-        //             }
-        //         }
-        //         else {
-        //             this.result.diagnostics.push(createErrorTsPos(this.document, "The variable " + propName + " must be a property or a watch for template update", field.nameStart, field.nameEnd, AventusErrorCode.MissingWatchable));
-        //         }
-        //     }
-        //     else if (localVars.includes(propName)) {
-        //         if (!resultContents[propName]) {
-        //             resultContents[propName] = [];
-        //         }
-        //         for (let content of contents[propName]) {
-        //             resultContents[propName].push({
-        //                 id: content.id,
-        //                 attrName: content.attrName,
-        //                 render: content.render,
-        //                 path: content.path
-        //             })
-        //         }
-        //     }
-        //     else {
-        //         let errorTxt = "Missing property or watch #" + propName + " for template update"
-        //         this.result.diagnostics.push(createErrorTsSection(this.document, errorTxt, "props", AventusErrorCode.MissingProp));
-        //         if (this.htmlFile) {
-        //             for (let content of contents[propName]) {
-        //                 if (content.positions) {
-        //                     for (let position of content.positions) {
-        //                         this.htmlFile.tsErrors.push(createErrorHTMLPos(this.htmlFile.file.document, errorTxt, position.start, position.end));
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
-        if (Object.keys(resultContents).length > 0) {
-            finalViewResult.content = resultContents;
-        }
+        
         //#endregion
 
         //#region injection
@@ -1326,7 +1251,7 @@ this.clearWatchHistory = () => {
         }
         //#endregion
 
-        if (Object.keys(finalViewResult).length > 0) {
+        if (Object.keys(finalViewResult).length > 0 || loopInfo) {
             let finalViewResultTxt = JSON.stringify(finalViewResult, null, 2).replace(/"@_@(.*?)@_@"/g, "$1").replace(/\\"/g, '"')
             if (isMain) {
                 finalTxt = `this.__getStatic().__template.setActions(${finalViewResultTxt});` + EOL;

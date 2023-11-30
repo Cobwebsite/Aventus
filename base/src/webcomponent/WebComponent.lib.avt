@@ -5,7 +5,7 @@ import { State } from "../state/State.state.avt";
 import { StateManager, type StateSlug } from "../state/StateManager.state.avt";
 import { ElementExtension } from "./ElementExtension.lib.avt";
 import { Instance } from "../lib/Instance.lib.avt";
-import { WatchAction, Watcher } from "../lib/Watcher.lib.avt";
+import { Computed, WatchAction, Watcher } from "../lib/Watcher.lib.avt";
 
 
 export interface DebuggerConfig {
@@ -161,6 +161,8 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
     @Internal()
     public __watchActions: { [key: string]: ((target: WebComponent, action: WatchAction, path: string, value: any) => void)[]; } = {};
     private __watchActionsCb: { [key: string]: (type: WatchAction, path: string, element: any) => void; } = {};
+    private __watchFunctions: string[] = [];
+    private __watchFunctionsComputed: { [name: string]: Computed<any>; } = {};
     private __pressManagers: PressManager[] = [];
 
     private __isDefaultState: boolean = true;
@@ -203,6 +205,9 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
         for(let press of this.__pressManagers) {
             press.destroy();
         }
+        for(let name in this.__watchFunctionsComputed) {
+            this.__watchFunctionsComputed[name].destroy();
+        }
         // TODO add missing info for destructor();
     }
     private __addWatchesActions(name: string, fct?: () => void) {
@@ -223,6 +228,9 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
             this.__watchActions[name].push(fct);
         }
     }
+    private __addWatchesFunctions(name: string) {
+        this.__watchFunctions.push(name);
+    }
     private __registerWatchesActions() {
         if(Object.keys(this.__watchActions).length > 0) {
             if(!this.__watch) {
@@ -231,6 +239,9 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
                     action(type, path, element);
                 });
             }
+        }
+        for(let name of this.__watchFunctions) {
+            this.__watchFunctionsComputed[name] = Watcher.computed(this[name]);
         }
     }
 

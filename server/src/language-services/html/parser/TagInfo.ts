@@ -23,7 +23,6 @@ export class TagInfo {
 	public aliasMultiple: boolean | undefined = undefined;
 	public pressEvent: { [key: PressEventMapValues]: { value: string, start: number, end: number } } | null = null;
 	public eventsPerso: { event: string, fct: string, start: number, end: number }[] = [];
-	public changes: { prop?: string, value: string, variableName: string, positions: { start: number, end: number }[] }[] = [];
 	public injections: { variableName: string, injectedName: string, start: number, end: number }[] = [];
 	public bindings: { event?: string, bindingName: string, valueName?: string, start: number, end: number }[] = [];
 
@@ -131,10 +130,6 @@ export class TagInfo {
 			}
 		}
 
-
-		for (let change of this.changes) {
-			ParserHtml.addVariable(change.variableName.split(".")[0]);
-		}
 		for (let injection of this.injections) {
 			ParserHtml.addVariable(injection.variableName.split(".")[0]);
 		}
@@ -198,7 +193,6 @@ export class TagInfo {
 	public getTemplateInfo(className: string): HtmlTemplateResult {
 		let result: HtmlTemplateResult = {
 			elements: [],
-			content: {},
 			injection: {},
 			bindings: {},
 			events: [],
@@ -220,20 +214,7 @@ export class TagInfo {
 					positions: [{ start: this.attributes['@element'].valueStart, end: this.attributes['@element'].valueEnd }]
 				});
 			}
-			for (let change of this.changes) {
-				let simpleName = change.variableName.split('.')[0];
-				if (!result.content[simpleName]) {
-					result.content[simpleName] = []
-				}
-				let attrName = change.prop ? change.prop : '@HTML';
-				result.content[simpleName].push({
-					id: id,
-					attrName: attrName,
-					render: `@_@(c) => \`${change.value}\`@_@`,
-					path: change.variableName,
-					positions: change.positions
-				})
-			}
+
 			for (let injection of this.injections) {
 				let simpleName = injection.variableName.split('.')[0];
 				if (!result.injection[simpleName]) {
@@ -300,7 +281,6 @@ export class TagInfo {
 		if (this.forInstance) {
 			let templateResult: HtmlTemplateResult = {
 				elements: [],
-				content: {},
 				injection: {},
 				bindings: {},
 				events: [],
@@ -511,21 +491,8 @@ export class AttributeInfo {
 			})
 		}
 		else {
-			let parsed = parseTxt(value, this.valueStart);
-			if (Object.keys(parsed.variables).length > 0) {
+			if (parseTxt(value, this.valueStart)) {
 				this.tag.createId();
-				for(let shortName in parsed.variables) {
-					for (var i = 0; i < parsed.variables[shortName].length; i++) {
-						let variableName = parsed.variables[shortName][i];
-
-						this.tag.changes.push({
-							prop: this.name,
-							value: parsed.value,
-							variableName,
-							positions: parsed.variablesPosition[shortName] || []
-						});
-					}
-				}
 				this.mustBeAdded = false;
 			}
 		}
@@ -551,23 +518,8 @@ export class ContentInfo {
 
 	private manageVariables() {
 		let content = this.content;
-		let parsed = parseTxt(content, this.start);
-		if (Object.keys(parsed.variables).length > 0) {
+		if (parseTxt(content, this.start)) {
 			this.tag.createId();
-
-			for(let shortname in parsed.variables) {
-				for (var i = 0; i < parsed.variables[shortname].length; i++) {
-					let variableName = parsed.variables[shortname][i];
-	
-					this.tag.changes.push({
-						value: parsed.value,
-						variableName,
-						positions: parsed.variablesPosition[shortname] || []
-					});
-				}
-			}
-
-			
 			this.mustBeAdded = false;
 		}
 	}
@@ -582,33 +534,11 @@ export class ContentInfo {
 }
 
 function parseTxt(value: string, valueStart: number) {
-	let result: { errors: string[], variables: { [shortname: string]: string[] }, value: string, variablesPosition: { [key: string]: { start: number, end: number }[] } } = {
-		errors: [],
-		variables: {},
-		value: value,
-		variablesPosition: {}
-	}
-
 	let regex = /\{\{(.*?)\}\}/g;
 	let m: RegExpExecArray | null;
 
-	let finalValue = value;
+	let hasMatch = false;
 	while (m = regex.exec(value)) {
-		let fullVariablePath = m[1].trim();
-		if (!fullVariablePath.match(/^[a-zA-Z0-9_\.]*$/g)) {
-			result.errors.push("Code execution ll be implemented soon, right now you can only use variables");
-			//ParserHtml.addError(this.valueStart, this.valueEnd, "Code execution ll be implemented soon, right now you can only use variables");
-		}
-		finalValue = finalValue.replace(m[0], '${c.__P(c.' + fullVariablePath.split(".").join("?.") + ')}');
-
-		let variableName = fullVariablePath.split(".")[0];
-		if (!result.variables[variableName]) {
-			result.variables[variableName] = [];
-			result.variablesPosition[variableName] = [];
-		}
-		if (!result.variables[variableName].includes(fullVariablePath)) {
-			result.variables[variableName].push(fullVariablePath)
-		}
 		let start = valueStart + m.index;
 		let end = valueStart + m.index + m[0].length;
 		ParserHtml.addFct({
@@ -616,16 +546,8 @@ function parseTxt(value: string, valueStart: number) {
 			start: start,
 			end: end
 		});
-		result.variablesPosition[variableName].push({
-			start, end
-		})
-		ParserHtml.addInterestPoint({
-			name: variableName,
-			start: start,
-			end: end,
-			type: 'property'
-		})
+		hasMatch = true;
 	}
-	result.value = finalValue;
-	return result;
+
+	return hasMatch;
 }

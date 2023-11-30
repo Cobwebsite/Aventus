@@ -150,7 +150,14 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                         method.txt = resultTemp.join("\n");
 
                         let fullStart = newContent.length;
-                        newContent += `/** */\npublic ${name}${i}(): NotVoid {\n`;
+                        let parameters: string[] = [];
+                        for (let loop of method.loops) {
+                            parameters.push(loop.item + ":any");
+                            if (loop.index) {
+                                parameters.push(loop.index + ":any");
+                            }
+                        }
+                        newContent += `/** */\n@Watch()\npublic ${name}${i}(${parameters.join(",")}): NotVoid {\n`;
                         let start = newContent.length;
                         newContent += method.txt + "\n";
                         newContent += '}' + "\n";

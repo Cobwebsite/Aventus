@@ -82,9 +82,6 @@ export interface ActionLoop {
 
 export type HtmlTemplateResult = {
 	elements: ActionElement[],
-	content: {
-		[contextProp: string]: ActionChange[];
-	},
 	injection: {
 		[contextProp: string]: ActionInjection[];
 	};
