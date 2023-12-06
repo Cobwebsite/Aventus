@@ -61,7 +61,7 @@ export class PropertyInfo {
         this.start = prop.getStart();
         this.end = prop.getEnd();
         this.content = prop.getText();
-        this.decorators = DecoratorInfo.buildDecorator(prop);
+        this.decorators = DecoratorInfo.buildDecorator(prop, _class);
         if (prop.kind == SyntaxKind.GetAccessor) {
             this.isGet = true;
         }

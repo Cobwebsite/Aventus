@@ -153,12 +153,13 @@ export class WebComponentTemplateContext {
 
     private createLocal(key: string, value: any) {
         let changes = this.__changes;
+        let v = value;
         Object.defineProperty(this.c, key, {
             get() {
-                return value;
+                return v;
             },
             set(value) {
-                value = value;
+                v = value;
                 if(changes[key]) {
                     for(let change of changes[key]) {
                         change(key);

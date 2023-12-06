@@ -48,7 +48,7 @@ export class MethodInfo {
         this.nameStart = method.name.getStart();
         this.nameEnd = method.name.getEnd();
         this.content = method.getText();
-        this.decorators = DecoratorInfo.buildDecorator(method);
+        this.decorators = DecoratorInfo.buildDecorator(method, _class);
         if (method['jsDoc']) {
             for (let jsDoc of method['jsDoc']) {
                 this.documentation.push(jsDoc.comment);

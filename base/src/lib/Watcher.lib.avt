@@ -517,7 +517,7 @@ type EffectReceiver = {
     __subscribe: (fct: WatcherChange) => void;
     __unsubscribe: (fct: WatcherChange) => void;
 };
-class Effect {
+export class Effect {
     protected callbacks: {
         receiver: EffectReceiver,
         path: string,
@@ -597,7 +597,7 @@ class Effect {
     }
 }
 
-class Computed<T> extends Effect {
+export class Computed<T> extends Effect {
     private _value?: T;
 
     public get value(): T | undefined {

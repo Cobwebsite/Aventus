@@ -1,5 +1,16 @@
 # Change Log
 
+## 1.1.1 (--)
+
+### Bug Fixes
+ - Correct dependances parsing
+ - Correct error index inside view loop
+
+### Features
+ - Add error when npm build failed
+ - Remove socket from core and set it inside Sharp
+ - Add computed and effect inside Watcher
+
 ## 1.1.0 (2023-11-22)
 
 ### Bug Fixes

@@ -22,7 +22,6 @@ export class VariableInfo extends BaseInfo {
 			this.type = VariableInfoType.const;
 		}
 		this.isExported = isExported;
-
 		this.loadOnlyDependancesRecu(node, 0, true);
 	}
 }

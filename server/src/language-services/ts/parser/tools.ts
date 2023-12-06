@@ -124,6 +124,12 @@ export function getArg(node: Expression): { type: ArgType, value: string } | nul
             value: node.getText()
         }
     }
-   
+    else if (node.kind == SyntaxKind.PropertyAccessExpression) {
+        return {
+            type: "identifier",
+            value: node.getText()
+        }
+    }
+
     return null;
 }

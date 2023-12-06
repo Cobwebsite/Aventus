@@ -8,7 +8,8 @@ export class DefaultStateActiveDecorator {
 			let result = new DefaultStateActiveDecorator();
 			if (decorator.arguments.length > 0) {
 				try {
-					result.managerName = decorator.arguments[0].value;
+					let parsed = DefaultStateParser.parse(decorator);
+					result.managerName = parsed.managerName;
 				} catch (e) {
 
 				}
@@ -16,5 +17,24 @@ export class DefaultStateActiveDecorator {
 			return result;
 		}
 		return null;
+	}
+}
+
+export class DefaultStateParser {
+	public static parse(decorator: DecoratorInfo) {
+		let result: {
+			managerName: string
+		} = {
+			managerName: "",
+		}
+		try {
+			let managerName = decorator.arguments[0].value;
+			const remplacement = decorator.baseInfo.dependancesLocations[managerName]?.replacement;
+			if (remplacement) {
+				managerName = remplacement;
+			}
+			result.managerName = managerName;
+		} catch (e) { }
+		return result;
 	}
 }

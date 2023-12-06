@@ -19,6 +19,8 @@ export enum InfoType {
     enum
 }
 
+export type SupportedRootNodes = ClassDeclaration | EnumDeclaration | InterfaceDeclaration | TypeAliasDeclaration | FunctionDeclaration | VariableDeclaration | MethodDeclaration
+
 export abstract class BaseInfo {
     private static infoByShortName: { [shortName: string]: BaseInfo } = {};
     private static infoByFullName: { [shortName: string]: BaseInfo } = {};
@@ -105,10 +107,10 @@ export abstract class BaseInfo {
         return this._parserInfo;
     }
 
-    constructor(node: ClassDeclaration | EnumDeclaration | InterfaceDeclaration | TypeAliasDeclaration | FunctionDeclaration | VariableDeclaration | MethodDeclaration, namespaces: string[], parserInfo: ParserTs, autoLoadDepDecorator: boolean = true) {
+    constructor(node: SupportedRootNodes, namespaces: string[], parserInfo: ParserTs, autoLoadDepDecorator: boolean = true) {
         this._parserInfo = parserInfo;
         this.document = parserInfo.document;
-        this.decorators = DecoratorInfo.buildDecorator(node);
+        this.decorators = DecoratorInfo.buildDecorator(node, this);
         this.dependancesLocations = {};
         if (node.name) {
             this.start = node.getStart();
@@ -335,23 +337,19 @@ export abstract class BaseInfo {
             });
             return name;
         }
-        let types = [this.parserInfo.classes, this.parserInfo.enums, this.parserInfo.aliases, this.parserInfo.functions, this.parserInfo.variables];
-        for (let type of types) {
-            if (type[name]) {
-                // it's a class inside the same file
-                let fullName = type[name].fullName
-                this.dependances.push({
-                    fullName: "$namespace$" + fullName,
-                    uri: '@local',
-                    isStrong: isStrongDependance
-                });
-                if (this.debug) {
-                    console.log("add dependance " + name + " : same file");
-                }
-                if (this.dependancesLocations[name])
-                    this.dependancesLocations[name].replacement = fullName;
-                return fullName;
+        if (this.parserInfo.internalObjects[name]) {
+            let fullName = this.parserInfo.internalObjects[name].fullname
+            this.dependances.push({
+                fullName: "$namespace$" + fullName,
+                uri: '@local',
+                isStrong: isStrongDependance
+            });
+            if (this.debug) {
+                console.log("add dependance " + name + " : same file");
             }
+            if (this.dependancesLocations[name])
+                this.dependancesLocations[name].replacement = fullName;
+            return fullName;
         }
 
         if (this.parserInfo.imports[name]) {

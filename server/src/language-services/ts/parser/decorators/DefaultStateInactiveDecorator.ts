@@ -1,4 +1,5 @@
 import { DecoratorInfo } from '../DecoratorInfo';
+import { DefaultStateParser } from './DefaultStateActiveDecorator';
 
 
 export class DefaultStateInactiveDecorator {
@@ -8,7 +9,8 @@ export class DefaultStateInactiveDecorator {
 			let result = new DefaultStateInactiveDecorator();
 			if (decorator.arguments.length > 0) {
 				try {
-					result.managerName = decorator.arguments[0].value;
+					let parsed = DefaultStateParser.parse(decorator);
+					result.managerName = parsed.managerName;
 				} catch (e) {
 
 				}

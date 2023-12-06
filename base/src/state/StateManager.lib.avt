@@ -1,7 +1,7 @@
 import { Mutex } from "../tools/Mutex.lib.avt";
 import { Callback } from "../lib/Callback.lib.avt";
 import { EmptyState, State } from "./State.lib.avt";
-import { getParams, isActive, prepare, type PreparedUri, type UriParamsValue } from "../lib/Uri.lib.avt";
+import { Uri, type UriParamsValue } from "../lib/Uri.lib.avt";
 
 export type StateSlug = UriParamsValue;
 type StateActivationFct = (state: State, slugs: StateSlug) => void;
@@ -30,7 +30,7 @@ export abstract class StateManager {
     protected subscribers: { [statePattern: string]: Subscriber; } = {};
 
     public static canBeActivate(statePattern: string, stateName: string): boolean {
-        let stateInfo = prepare(statePattern);
+        let stateInfo = Uri.prepare(statePattern);
         return stateInfo.regex.test(stateName);
     }
 
@@ -54,7 +54,7 @@ export abstract class StateManager {
 
             // We have test that the state is present in the state list
             if(!this.subscribers.hasOwnProperty(statePattern)) {
-                let res = prepare(statePattern);
+                let res = Uri.prepare(statePattern);
 
                 // The route doesn't exist, so we create the default architecture
                 let isActive = this.activeState !== undefined && res.regex.test(this.activeState.name);
@@ -77,7 +77,7 @@ export abstract class StateManager {
                 for(let activeFct of callbacks.active) {
                     this.subscribers[statePattern].callbacks.active.push(activeFct);
                     if(this.subscribers[statePattern].isActive && this.activeState) {
-                        let slugs = getParams(this.subscribers[statePattern], this.activeState.name);
+                        let slugs = Uri.getParams(this.subscribers[statePattern], this.activeState.name);
                         if(slugs) {
                             activeFct(this.activeState, slugs);
                         }
@@ -199,7 +199,7 @@ export abstract class StateManager {
                             // ask change
                             // We clone all the callbacks
                             let clone = [...subscriber.callbacks.askChange];
-                            let currentSlug = getParams(subscriber, this.activeState.name);
+                            let currentSlug = Uri.getParams(subscriber, this.activeState.name);
                             if(currentSlug) {
                                 for(let i = 0; i < clone.length; i++) {
                                     let askChange = clone[i];
@@ -212,7 +212,7 @@ export abstract class StateManager {
                             }
 
                             // And the subscriber does not match on the next state
-                            let slugs = getParams(subscriber, stateToUse.name);
+                            let slugs = Uri.getParams(subscriber, stateToUse.name);
                             if(slugs === null) {
                                 // We need to pass it from active to inactive -> trigger the askChange callback before
                                 // We push the current subscriber to the list to trigger
@@ -227,7 +227,7 @@ export abstract class StateManager {
                         }
                         else {
                             // If the state is not active and it will match on the next state, we want to trigger the activeCallback
-                            let slugs = getParams(subscriber, stateToUse.name);
+                            let slugs = Uri.getParams(subscriber, stateToUse.name);
                             if(slugs) {
                                 // We need to pass it from inactive to active
                                 inactiveToActive.push({
@@ -251,7 +251,7 @@ export abstract class StateManager {
                         // We pass the subscriber to inactive
                         subscriber.isActive = false;
                         // We clone all the callbacks in order to avoid the callback to modify the array
-                        let oldSlug = getParams(subscriber, oldState.name);
+                        let oldSlug = Uri.getParams(subscriber, oldState.name);
                         if(oldSlug) {
                             let oldSlugNotNull = oldSlug;
                             [...subscriber.callbacks.inactive].forEach(callback => {
@@ -284,7 +284,7 @@ export abstract class StateManager {
                 this.activeState = stateToUse;
                 for(let key in this.subscribers) {
                     // If the subscriber match on the next state, we want to trigger the activeCallback
-                    let slugs = getParams(this.subscribers[key], stateToUse.name);
+                    let slugs = Uri.getParams(this.subscribers[key], stateToUse.name);
                     if(slugs) {
                         let slugsNotNull = slugs;
                         this.subscribers[key].isActive = true;
@@ -309,13 +309,13 @@ export abstract class StateManager {
      * Check if a state is in the subscribers and active, return true if it is, false otherwise
      */
     public isStateActive(statePattern: string): boolean {
-        return isActive(statePattern, this.activeState?.name ?? '');
+        return Uri.isActive(statePattern, this.activeState?.name ?? '');
     }
     /**
      * Get slugs information for the current state, return null if state isn't active
      */
     public getStateSlugs(statePattern: string) {
-        return getParams(statePattern, this.activeState?.name ?? '');
+        return Uri.getParams(statePattern, this.activeState?.name ?? '');
     }
     // 0 = error only / 1 = errors and warning / 2 = error, warning and logs (not implemented)
     protected logLevel() {

@@ -1,21 +1,20 @@
-namespace Uri {
+export type UriParams = {
+    name: string,
+    type: "number" | "string",
+    position: number;
+};
 
-    export type UriParams = {
-        name: string,
-        type: "number" | "string",
-        position: number;
-    };
+export type UriParamsValue = {
+    [paramName: string]: string | number;
+};
 
-    export type UriParamsValue = {
-        [paramName: string]: string | number;
-    };
+export type PreparedUri = {
+    regex: RegExp;
+    params: UriParams[];
+};
+export class Uri {
 
-    export type PreparedUri = {
-        regex: RegExp;
-        params: UriParams[];
-    };
-
-    export function prepare(uri: string): PreparedUri {
+    public static prepare(uri: string): PreparedUri {
         let params: UriParams[] = [];
         let i = 0;
         let regexState = uri.replace(/{.*?}/g, (group, position) => {
@@ -49,9 +48,9 @@ namespace Uri {
         };
     }
 
-    export function getParams(from: string | PreparedUri, current: string): UriParamsValue | null {
+    public static getParams(from: string | PreparedUri, current: string): UriParamsValue | null {
         if(typeof from == "string") {
-            from = prepare(from);
+            from = this.prepare(from);
         }
 
         let matches = from.regex.exec(current);
@@ -70,11 +69,11 @@ namespace Uri {
         return null;
     }
 
-    export function isActive(from: string | PreparedUri, current: string): boolean {
-		if(typeof from == "string") {
-            from = prepare(from);
+    public static isActive(from: string | PreparedUri, current: string): boolean {
+        if(typeof from == "string") {
+            from = this.prepare(from);
         }
 
-		return from.regex.test(current)
+        return from.regex.test(current);
     }
 }

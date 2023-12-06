@@ -314,17 +314,17 @@ export class AventusSCSSLanguageService {
                     let oldParentCheck = parentCheck;
                     for (let childNode of realNode.getChildren()) {
                         if (childNode.type == NodeType.SimpleSelector) {
-                            if(!position){
+                            if (!position) {
                                 position = {
                                     start: childNode.offset,
                                     end: childNode.offset + childNode.length,
                                 };
                             }
-                            else if(position.start > childNode.offset) {
+                            else if (position.start > childNode.offset) {
                                 position.start = childNode.offset;
                             }
-                            else if(position.end < childNode.offset+ childNode.length) {
-                                position.end = childNode.offset+ childNode.length;
+                            else if (position.end < childNode.offset + childNode.length) {
+                                position.end = childNode.offset + childNode.length;
                             }
                             let checks: ((tagInfo: TagInfo) => boolean)[] = [];
                             for (let selector of childNode.getChildren()) {
@@ -402,13 +402,18 @@ export class AventusSCSSLanguageService {
                         let propertyNode = node.getChild(0);
                         let expressionNode = node.getChild(1);
                         if (propertyNode && expressionNode) {
+                            let externalName: null | string = null;
                             if (propertyNode.getText().startsWith("--internal")) {
-                                let externalName = propertyNode.getText().replace("--internal-", "--");
-                                if (expressionNode.getText().indexOf(externalName) != -1) {
-                                    result.push({
-                                        name: externalName
-                                    })
-                                }
+                                externalName = propertyNode.getText().replace("--internal-", "--");
+                            }
+                            else if (propertyNode.getText().startsWith("--_")) {
+                                externalName = propertyNode.getText().replace("--_", "--");
+                            }
+
+                            if (externalName && expressionNode.getText().indexOf(externalName) != -1) {
+                                result.push({
+                                    name: externalName
+                                })
                             }
                         }
                     }

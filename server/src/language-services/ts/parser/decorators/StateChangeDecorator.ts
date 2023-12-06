@@ -1,4 +1,5 @@
 import { DecoratorInfo } from '../DecoratorInfo';
+import { StateParser } from './StateActiveDecorator';
 
 
 export class StateChangeDecorator {
@@ -10,10 +11,9 @@ export class StateChangeDecorator {
 			let result = new StateChangeDecorator();
 			if (decorator.arguments.length > 0) {
 				try {
-					result.stateName = decorator.arguments[0].value;
-					if (decorator.arguments.length > 1) {
-						result.managerName = decorator.arguments[1].value;
-					}
+					let parsed = StateParser.parse(decorator);
+					result.stateName = parsed.stateName;
+					result.managerName = parsed.managerName ?? "";
 				} catch (e) {
 
 				}

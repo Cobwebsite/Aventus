@@ -367,6 +367,9 @@ export const AventusSharpSchema: JSONSchema = {
                                 "file": {
                                     type: "string"
                                 },
+                                "useTypeImport": {
+                                    type: "boolean"
+                                }
                             },
                             required: ["result"]
                         }
@@ -385,6 +388,9 @@ export const AventusSharpSchema: JSONSchema = {
                                 "file": {
                                     type: "string"
                                 },
+                                "useTypeImport": {
+                                    type: "boolean"
+                                }
                             },
                             required: ["result"]
                         }

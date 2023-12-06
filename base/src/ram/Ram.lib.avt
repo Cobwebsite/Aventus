@@ -223,7 +223,7 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
     //#region listener
     protected publish(type: 'created' | 'updated' | 'deleted', data: RamItem<T>) {
         [...this.subscribers[type]].forEach(callback => callback(data));
-        let sub = this.recordsSubscribers.has(this.getId(data));
+        let sub = this.recordsSubscribers.get(this.getId(data));
         if(sub) {
             [...sub[type]].forEach(callback => callback(data));
         }
