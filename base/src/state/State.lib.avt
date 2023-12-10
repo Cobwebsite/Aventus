@@ -1,4 +1,4 @@
-import type { StateManager, StateSlug } from "./StateManager.lib.avt";
+import type { StateManager } from "./StateManager.lib.avt";
 
 export abstract class State {
     /**
@@ -6,7 +6,8 @@ export abstract class State {
      * It ll be a generic state with no information inside exept name
      */
     public static async activate(stateName: string, manager: StateManager): Promise<boolean> {
-        return await new EmptyState(stateName).activate(manager);
+        let cstState = manager['defineDefaultState']()
+        return await new cstState(stateName).activate(manager);
     }
 
     public abstract get name(): string;

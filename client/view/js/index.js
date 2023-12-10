@@ -474,7 +474,8 @@ const State=class State {
      * It ll be a generic state with no information inside exept name
      */
     static async activate(stateName, manager) {
-        return await new EmptyState(stateName).activate(manager);
+        let cstState = manager['defineDefaultState']();
+        return await new cstState(stateName).activate(manager);
     }
     /**
      * Activate this state inside a specific manager
@@ -492,6 +493,21 @@ const State=class State {
 }
 State.Namespace=`${moduleName}`;
 _.State=State;
+const EmptyState=class EmptyState extends State {
+    localName;
+    constructor(stateName) {
+        super();
+        this.localName = stateName;
+    }
+    /**
+     * @inheritdoc
+     */
+    get name() {
+        return this.localName;
+    }
+}
+EmptyState.Namespace=`${moduleName}`;
+_.EmptyState=EmptyState;
 var WatchAction;
 (function (WatchAction) {
     WatchAction[WatchAction["CREATED"] = 0] = "CREATED";
@@ -957,21 +973,6 @@ const PressManager=class PressManager {
 }
 PressManager.Namespace=`${moduleName}`;
 _.PressManager=PressManager;
-const EmptyState=class EmptyState extends State {
-    localName;
-    constructor(stateName) {
-        super();
-        this.localName = stateName;
-    }
-    /**
-     * @inheritdoc
-     */
-    get name() {
-        return this.localName;
-    }
-}
-EmptyState.Namespace=`${moduleName}`;
-_.EmptyState=EmptyState;
 const Uri=class Uri {
     static prepare(uri) {
         let params = [];
@@ -1158,6 +1159,9 @@ const StateManager=class StateManager {
     offAfterStateChanged(cb) {
         this.afterStateChanged.remove(cb);
     }
+    defineDefaultState() {
+        return EmptyState;
+    }
     /**
      * Activate a current state
      */
@@ -1165,7 +1169,8 @@ const StateManager=class StateManager {
         let result = await this.changeStateMutex.safeRunLastAsync(async () => {
             let stateToUse;
             if (typeof state == "string") {
-                stateToUse = new EmptyState(state);
+                let ctsEmptyState = this.defineDefaultState();
+                stateToUse = new ctsEmptyState(state);
             }
             else {
                 stateToUse = state;

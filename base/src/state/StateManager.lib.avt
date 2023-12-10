@@ -25,7 +25,6 @@ type Subscriber = {
 };
 
 
-@Dependances([{ type: EmptyState, strong: false }])
 export abstract class StateManager {
     protected subscribers: { [statePattern: string]: Subscriber; } = {};
 
@@ -169,6 +168,10 @@ export abstract class StateManager {
         this.afterStateChanged.remove(cb);
     }
 
+    protected defineDefaultState(): new (stateName: string) => State {
+        return EmptyState;
+    }
+
     /**
      * Activate a current state
      */
@@ -176,7 +179,8 @@ export abstract class StateManager {
         let result = await this.changeStateMutex.safeRunLastAsync<boolean>(async () => {
             let stateToUse: State;
             if(typeof state == "string") {
-                stateToUse = new EmptyState(state);
+                let ctsEmptyState = this.defineDefaultState();
+                stateToUse = new ctsEmptyState(state);
             }
             else {
                 stateToUse = state;
