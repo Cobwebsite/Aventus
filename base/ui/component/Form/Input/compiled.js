@@ -201,6 +201,7 @@ Form.Input = class Input extends Aventus.WebComponent {
     }
 }
 Form.Input.Namespace=`${moduleName}.Form`;
+Form.Input.Tag=`av-input`;
 _.Form.Input=Form.Input;
 if(!window.customElements.get('av-input')){window.customElements.define('av-input', Form.Input);Aventus.WebComponentInstance.registerDefinition(Form.Input);}
 

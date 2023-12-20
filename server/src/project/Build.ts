@@ -246,7 +246,7 @@ export class Build {
         let compilationInfo = await this.buildOrderCompilationInfo();
         let result = await this.buildLocalCode(compilationInfo.toCompile, this.buildConfig.module);
 
-        buildErrors = await this.writeBuildCode(result, compilationInfo.libSrc);
+        buildErrors = await this.writeBuildCode(result, compilationInfo.libSrc, this.buildConfig.outputFile);
         let srcInfo = {
             namespace: this.buildConfig.module,
             available: result.codeRenderInJs,
@@ -328,9 +328,9 @@ export class Build {
      */
     private async writeBuildCode(localCode: {
         code: string[], codeNoNamespaceBefore: string[], codeNoNamespaceAfter: string[], classesName: { [name: string]: { type: InfoType, isExported: boolean, convertibleName: string } }, stylesheets: { [name: string]: string }
-    }, libSrc: string): Promise<BuildErrors> {
+    }, libSrc: string, outputs:string[]): Promise<BuildErrors> {
         let result: BuildErrors = []
-        if (this.buildConfig.outputFile && this.buildConfig.outputFile.length > 0) {
+        if (outputs && outputs.length > 0) {
             let finalTxt = '';
             let npmResult = await this.npmBuilder.compile();
             result = [...result, ...npmResult.errors];
@@ -349,7 +349,7 @@ export class Build {
                 stylesheets
             );
 
-            for (let outputFile of this.buildConfig.outputFile) {
+            for (let outputFile of outputs) {
                 let folderPath = getFolder(outputFile.replace(/\\/g, "/"));
                 if (!existsSync(folderPath)) {
                     mkdirSync(folderPath, { recursive: true });
@@ -1059,6 +1059,50 @@ export class Build {
         return result;
     }
 
+    private getAllFullnames() {
+        let result: { [module: string]: string[] } = {}
+
+        const insert = (fullname:string) => {
+            if(fullname.startsWith("!staticClass_")) return;
+            let moduleName = fullname.split(".")[0];
+            if (!result[moduleName]) {
+                result[moduleName] = []
+            }
+            result[moduleName].push(fullname);
+
+        }
+
+        for (let fileUri in this.tsFiles) {
+            let currentFile = this.tsFiles[fileUri];
+            for (let compileInfo of currentFile.compileResult) {
+                if (compileInfo.classScript !== "") {
+                    insert(compileInfo.classScript);
+                }
+            }
+        }
+
+        for (let libUri of this.dependanceNeedUris) {
+            let infos = this.externalPackageInformation.getInformationsRequired(libUri);
+            for (let info of infos) {
+                if (info.code) {
+                    insert(info.fullName);
+                }
+            }
+        }
+
+        for (let libUri of this.dependanceFullUris) {
+            let infos = this.externalPackageInformation.getFullInformations(libUri);
+            for (let info of infos) {
+                if (info.code) {
+                    insert(info.fullName);
+                }
+            }
+        }
+
+        writeFileSync("D:\\test\\debug.json", JSON.stringify(result));
+
+        return result;
+    }
     //#endregion
 
     /**

@@ -79,15 +79,22 @@ export class Template {
 		let folderSplitted = path.split(sep);
 		this.setVar('folderName', folderSplitted[folderSplitted.length - 1]);
 		this.setVar('path', path);
-		this.setVar('namespace', this.getNamespace(path));
+		const projectInfo = this.getProjectInfo(path);
+		this.setVar('namespace', projectInfo.namespace);
+		this.setVar('module', projectInfo.module);
 	}
-	private getNamespace(path: string) {
+	private getProjectInfo(path: string) {
+		let result = {
+			"namespace": "",
+			"module": "",
+		}
 		let uri: string = pathToUri(path);
 		let builds = ProjectManager.getInstance().getMatchingBuildsByUri(uri);
 		if (builds.length > 0) {
-			return builds[0].getNamespaceForUri(uri, false);
+			result.namespace = builds[0].getNamespaceForUri(uri, false);
+			result.module = builds[0].project.getConfig()?.module ?? "";
 		}
-		return "";
+		return result;
 	}
 	private async prepareNeededVars() {
 		for (let variableName in this.currentConfig.variables) {

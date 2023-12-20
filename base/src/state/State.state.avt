@@ -1,12 +1,20 @@
-import type { StateManager } from "./StateManager.lib.avt";
+import type { StateManager } from "./StateManager.state.avt";
 
-export abstract class State {
+export interface IState {
+    readonly name: string;
+    activate(manager: StateManager): Promise<boolean>;
+    onActivate();
+    onInactivate(nextState: State);
+    askChange(state: State, nextState: State): Promise<boolean>;
+}
+
+export abstract class State implements IState {
     /**
      * Activate a custom state inside a specific manager
      * It ll be a generic state with no information inside exept name
      */
     public static async activate(stateName: string, manager: StateManager): Promise<boolean> {
-        let cstState = manager['defineDefaultState']()
+        let cstState = manager['defineDefaultState']();
         return await new cstState(stateName).activate(manager);
     }
 
@@ -25,12 +33,12 @@ export abstract class State {
     public onInactivate(nextState: State) {
 
     }
-    public async askChange(state: State, nextState: State) : Promise<boolean> {
+    public async askChange(state: State, nextState: State): Promise<boolean> {
         return true;
     }
 }
 
-export class EmptyState extends State {
+export class EmptyState extends State implements IState {
 
     private localName: string;
     public constructor(stateName: string) {

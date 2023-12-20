@@ -36,6 +36,7 @@ export function AventusWebcomponentTemplate() {
     $methods$
 }
 $namespace$
+$tag$
 $exported$
 $definition$
 $namespaceEnd$

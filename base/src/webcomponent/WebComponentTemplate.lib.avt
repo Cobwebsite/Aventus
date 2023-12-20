@@ -192,15 +192,18 @@ export class WebComponentTemplate {
         let splitted = path.split(".");
         for(let i = 0; i < splitted.length - 1; i++) {
             let split = splitted[i];
-            if(typeof obj[split] !== 'object') {
+            if(!obj[split] || typeof obj[split] !== 'object') {
                 return undefined;
             }
             obj = obj[split];
         }
+        if(!obj || typeof obj !== 'object') {
+            return undefined;
+        }
         return obj[splitted[splitted.length - 1]];
     }
     public static validatePath(path: string, pathToCheck: string) {
-        if(path.startsWith(pathToCheck)) {
+        if(pathToCheck.startsWith(path)) {
             return true;
         }
         return false;

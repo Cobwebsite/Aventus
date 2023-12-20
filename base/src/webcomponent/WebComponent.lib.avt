@@ -1,8 +1,8 @@
 import { WebComponentTemplate, WebComponentTemplateInstance } from "./WebComponentTemplate.lib.avt";
 import { Style } from "./Style.lib.avt";
 import { PressManager } from "../lib/PressManager.lib.avt";
-import { State } from "../state/State.lib.avt";
-import { StateManager, type StateSlug } from "../state/StateManager.lib.avt";
+import { State } from "../state/State.state.avt";
+import { StateManager, type StateSlug } from "../state/StateManager.state.avt";
 import { ElementExtension } from "./ElementExtension.lib.avt";
 import { Instance } from "../lib/Instance.lib.avt";
 import { WatchAction, Watcher } from "../lib/Watcher.lib.avt";
@@ -119,6 +119,10 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
      */
     public static readonly Namespace: string = "";
     /**
+     * The current Tag / empty if abstract class
+     */
+    public static readonly Tag: string = "";
+    /**
      * Get the unique type for the data. Define it as the namespace + class name
      */
     public static get Fullname(): string { return this.Namespace + "." + this.name; }
@@ -134,6 +138,13 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
      */
     public getClassName(): string {
         return this.constructor.name;
+    }
+
+    /**
+     * The current tag
+     */
+    public get tag(): string {
+        return this.constructor['Tag'];
     }
 
     /**

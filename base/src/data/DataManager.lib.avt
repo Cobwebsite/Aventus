@@ -1,3 +1,4 @@
+import { Converter } from "../tools/Converter.lib.avt";
 import { Data } from "../data/IData.data.avt";
 
 export class DataManager {
@@ -22,59 +23,7 @@ export class DataManager {
      * Clone the object to keep real type
      */
     public static clone<T>(data: T): T {
-        return this.createObject(JSON.parse(JSON.stringify(data)));
+        return Converter.transform<T>(JSON.parse(JSON.stringify(data)));
     }
-    /**
-     * Create an object with the type management
-     * Usefull to convert object from JSON into Js class
-     */
-    public static createObject(data: any, transfromToDate: boolean = false) {
-        if(typeof data === 'object' && data !== null) {
-            if(data instanceof Date) {
-                return data;
-            }
-            if(Array.isArray(data)) {
-                let result: any[] = [];
-                for(let element of data) {
-                    // TODO impossible to know if its a date or not => find a solution
-                    // maybe use a schema
-                    result.push(this.createObject(element));
-                }
-                return result;
-            }
-
-            if(data.$type) {
-                let cst = DataManager.getConstructor(data.$type);
-                if(cst) {
-                    let obj = new cst();
-                    let props = Object.getOwnPropertyNames(obj);
-                    for(let prop of props) {
-                        if(data[prop] !== undefined) {
-                            let propInfo = Object.getOwnPropertyDescriptor(obj, prop);
-                            if(propInfo?.writable) {
-                                if(obj[prop] instanceof Date) {
-                                    obj[prop] = this.createObject(data[prop], true);
-                                }
-                                else {
-                                    obj[prop] = this.createObject(data[prop]);
-                                }
-                            }
-                        }
-                    }
-                    return obj;
-                }
-            }
-            else {
-                let result = {};
-                for(let key in data) {
-                    result[key] = this.createObject(data[key]);
-                }
-                return result;
-            }
-        }
-        else if(transfromToDate && typeof data === "string") {
-            return new Date(data);
-        }
-        return data;
-    }
+   
 }

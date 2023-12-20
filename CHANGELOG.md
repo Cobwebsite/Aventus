@@ -5,11 +5,23 @@
 ### Bug Fixes
  - Correct dependances parsing
  - Correct error index inside view loop
+ - Loop in proxy avoid __path and __proxyData
+ - Prevent undefined value inside the webcomponent template
+ - Correct 2 times public when auto creating methods from parent
+
 
 ### Features
  - Add error when npm build failed
  - Remove socket from core and set it inside Sharp
  - Add computed and effect inside Watcher
+ - Add Uri parser (used by state)
+ - Exctract a pattern to add route into a class (Communication lib)
+ - Generalise the converter to transform data to real json with customisation (class Converter and Json)
+ - State file (*.state.avt) must now implements Aventus.IState or Aventus.IStateManager
+ - Change tag name parser. Now the tag is splitted on each lower case or number
+ - Add section to define how to auto-generate httprouter from C# project
+
+
 
 ## 1.1.0 (2023-11-22)
 

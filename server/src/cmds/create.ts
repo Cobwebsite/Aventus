@@ -342,7 +342,7 @@ export class ${className} extends Aventus.Ram<${objectName}> implements Aventus.
 		let newScriptUri = pathToUri(newScriptPath);
 		let defaultState = "";
 		if (format == "State") {
-			defaultState = `export class ${name} extends Aventus.State {
+			defaultState = `export class ${name} extends Aventus.State implements Aventus.IState {
 	/**
 	 * @inheritdoc
 	 */
@@ -355,7 +355,7 @@ export class ${className} extends Aventus.Ram<${objectName}> implements Aventus.
 			if (name.endsWith("Manager")) {
 				name.replace("Manager", "");
 			}
-			defaultState = `export class ${name}StateManager extends Aventus.StateManager {
+			defaultState = `export class ${name}StateManager extends Aventus.StateManager implements Aventus.IStateManager {
 	/**
 	 * Get the instance of the StateManager
 	 */

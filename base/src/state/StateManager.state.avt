@@ -1,6 +1,6 @@
 import { Mutex } from "../tools/Mutex.lib.avt";
 import { Callback } from "../lib/Callback.lib.avt";
-import { EmptyState, State } from "./State.lib.avt";
+import { EmptyState, State } from "./State.state.avt";
 import { Uri, type UriParamsValue } from "../lib/Uri.lib.avt";
 
 export type StateSlug = UriParamsValue;
@@ -25,7 +25,18 @@ type Subscriber = {
 };
 
 
-export abstract class StateManager {
+export interface IStateManager {
+    subscribe(statePatterns: string | string[], callbacks: StateAction);
+    unsubscribe(statePatterns: string | string[], callbacks: StateAction);
+    onAfterStateChanged(cb: () => void);
+    offAfterStateChanged(cb: () => void);
+    setState(state: State | string): Promise<boolean>;
+    getState(): State | undefined;
+    isStateActive(statePattern: string): boolean;
+    getStateSlugs(statePattern: string);
+}
+
+export abstract class StateManager implements IStateManager {
     protected subscribers: { [statePattern: string]: Subscriber; } = {};
 
     public static canBeActivate(statePattern: string, stateName: string): boolean {
@@ -168,8 +179,8 @@ export abstract class StateManager {
         this.afterStateChanged.remove(cb);
     }
 
-    protected defineDefaultState(): new (stateName: string) => State {
-        return EmptyState;
+    protected assignDefaultState(stateName: string): State {
+        return new EmptyState(stateName);
     }
 
     /**
@@ -179,8 +190,7 @@ export abstract class StateManager {
         let result = await this.changeStateMutex.safeRunLastAsync<boolean>(async () => {
             let stateToUse: State;
             if(typeof state == "string") {
-                let ctsEmptyState = this.defineDefaultState();
-                stateToUse = new ctsEmptyState(state);
+                stateToUse = this.assignDefaultState(state);
             }
             else {
                 stateToUse = state;

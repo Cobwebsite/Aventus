@@ -1,23 +1,88 @@
-export function Stringify(obj: any): string {
-    const replacer = (key, value) => {
-        if(value instanceof Map) {
-            return Array.from(value.entries());
-        } else {
-            return value;
-        }
-    };
-    return JSON.stringify(obj, replacer);
-}
 
-export function Parse(txt: string) {
-    const reviver = (key, value) => {
-        if(typeof value === 'object' && value !== null) {
-            const values = [];
-            if(value.$type === 'AventusSharp.Map') {
-                return new Map(values);
+export type JsonToOptions = {
+    isValidKey?: (key: string) => boolean;
+    replaceKey?: (key: string) => string;
+    transformValue?: (key: string, value: any) => any;
+};
+
+export type JsonFromOptions = {
+    transformValue?: (key: string, value: any) => any;
+};
+
+export class Json {
+    public static classToJson<T extends Object>(obj: T, options?: JsonToOptions): { [key: string | number]: any; } {
+        const realOptions: Required<JsonToOptions> = {
+            isValidKey: options?.isValidKey ?? (() => true),
+            replaceKey: options?.replaceKey ?? ((key) => key),
+            transformValue: options?.transformValue ?? ((key, value) => value),
+        };
+        return this.__classToJson(obj, realOptions);
+    }
+
+    private static __classToJson<T extends Object>(obj: T, options: Required<JsonToOptions>): { [key: string | number]: any; } {
+        let result: { [key: string | number]: any; } = {};
+        let descriptors = Object.getOwnPropertyDescriptors(obj);
+
+        for(let key in descriptors) {
+            if(options.isValidKey(key))
+                result[options.replaceKey(key)] = options.transformValue(key, descriptors[key].value);
+        }
+
+
+        let cst = obj.constructor;
+        while(cst.prototype && cst != Object.prototype) {
+            let descriptorsClass = Object.getOwnPropertyDescriptors(cst.prototype);
+            for(let key in descriptorsClass) {
+                if(options.isValidKey(key)) {
+                    let descriptor = descriptorsClass[key];
+                    if(descriptor?.get) {
+                        result[options.replaceKey(key)] = options.transformValue(key, obj[key]);
+                    }
+                }
+            }
+            cst = Object.getPrototypeOf(cst);
+
+        }
+
+        return result;
+    }
+
+    public static classfromJson<T extends Object>(obj: T, data: any, options?: JsonFromOptions): T {
+        let realOptions: Required<JsonFromOptions> = {
+            transformValue: options?.transformValue ?? ((key, value) => value),
+        };
+        return this.__classfromJson(obj, data, realOptions);
+    }
+
+    private static __classfromJson<T extends Object>(obj: T, data: any, options: Required<JsonFromOptions>): T {
+        let props = Object.getOwnPropertyNames(obj);
+        for(let prop of props) {
+            let propUpperFirst = prop[0].toUpperCase() + prop.slice(1);
+            let value = data[prop] === undefined ? data[propUpperFirst] : data[prop];
+            if(value !== undefined) {
+                let propInfo = Object.getOwnPropertyDescriptor(obj, prop);
+                if(propInfo?.writable) {
+                    obj[prop] = options.transformValue(prop, value);
+                }
             }
         }
-        return value;
-    };
-    return JSON.parse(txt, reviver);
+        // load custom getter / setter
+        let cstTemp = obj.constructor;
+        while(cstTemp.prototype && cstTemp != Object.prototype) {
+            props = Object.getOwnPropertyNames(cstTemp.prototype);
+            for(let prop of props) {
+                let propUpperFirst = prop[0].toUpperCase() + prop.slice(1);
+                let value = data[prop] === undefined ? data[propUpperFirst] : data[prop];
+                if(value !== undefined) {
+                    let propInfo = Object.getOwnPropertyDescriptor(cstTemp.prototype, prop);
+                    if(propInfo?.set) {
+                        obj[prop] = options.transformValue(prop, value);
+                    }
+                }
+            }
+            cstTemp = Object.getPrototypeOf(cstTemp);
+        }
+        return obj;
+    }
+
 }

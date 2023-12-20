@@ -1,6 +1,4 @@
 
-
-
 type OnlyConstructor = (abstract new (...args: any[]) => any);
 export type AnyConstructor = OnlyConstructor | {};
 
@@ -51,3 +49,4 @@ type Unflatten<T> = T extends object ? {
 } : T;
 
 //#endregion
+

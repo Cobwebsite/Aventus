@@ -33,6 +33,7 @@ export interface PressManagerOptions {
     /** Force double press to be triggered (callback or dispatch to parent) */
     forceDblPress?: boolean;
     stopPropagation?: boolean | (() => boolean);
+    buttonAllowed?: number[];
 }
 export interface PressManagerState {
     oneActionTriggered: boolean,
@@ -56,34 +57,34 @@ export class PressManager {
         }
     }
 
-    private options: PressManagerOptions;
-    private element: Element;
+    protected options: PressManagerOptions;
+    protected element: Element;
 
-    private delayDblPress: number = 150;
-    private delayLongPress: number = 700;
-    private nbPress: number = 0;
-    private offsetDrag: number = 20;
+    protected delayDblPress: number = 150;
+    protected delayLongPress: number = 700;
+    protected nbPress: number = 0;
+    protected offsetDrag: number = 20;
 
-    private state: PressManagerState = {
+    protected state: PressManagerState = {
         oneActionTriggered: false,
         isMoving: false,
     };
-    private startPosition: { x: number, y: number; } = { x: 0, y: 0 };
-    private customFcts: InternalCustomFunction = {};
+    protected startPosition: { x: number, y: number; } = { x: 0, y: 0 };
+    protected customFcts: InternalCustomFunction = {};
 
-    private timeoutDblPress: number = 0;
-    private timeoutLongPress: number = 0;
-    private downEventSaved?: PointerEvent;
-    private actionsName: { press: "press", longPress: "longPress", dblPress: "dblPress", drag: "drag"; } = {
+    protected timeoutDblPress: number = 0;
+    protected timeoutLongPress: number = 0;
+    protected downEventSaved?: PointerEvent;
+    protected actionsName: { press: "press", longPress: "longPress", dblPress: "dblPress", drag: "drag"; } = {
         press: "press",
         longPress: "longPress",
         dblPress: "dblPress",
         drag: "drag"
     };
-    private useDblPress: boolean = false;
-    private stopPropagation: () => boolean = () => true;
+    protected useDblPress: boolean = false;
+    protected stopPropagation: () => boolean = () => true;
 
-    private functionsBinded: {
+    protected functionsBinded: {
         downAction: (e: PointerEvent) => void,
         upAction: (e: PointerEvent) => void,
         moveAction: (e: PointerEvent) => void,
@@ -126,7 +127,7 @@ export class PressManager {
         return this.element;
     }
 
-    private checkDragConstraint(options: PressManagerOptions) {
+    protected checkDragConstraint(options: PressManagerOptions) {
         if(options.onDrag !== void 0) {
             if(options.onDragStart === void 0) {
                 options.onDragStart = (e) => { };
@@ -152,7 +153,7 @@ export class PressManager {
             }
         }
     }
-    private assignValueOption(options: PressManagerOptions) {
+    protected assignValueOption(options: PressManagerOptions) {
         if(options.delayDblPress !== undefined) {
             this.delayDblPress = options.delayDblPress;
         }
@@ -174,8 +175,9 @@ export class PressManager {
         else if(options.stopPropagation === false) {
             this.stopPropagation = () => false;
         }
+        if(!options.buttonAllowed) options.buttonAllowed = [0];
     }
-    private bindAllFunction() {
+    protected bindAllFunction() {
         this.functionsBinded.downAction = this.downAction.bind(this);
         this.functionsBinded.moveAction = this.moveAction.bind(this);
         this.functionsBinded.upAction = this.upAction.bind(this);
@@ -186,7 +188,7 @@ export class PressManager {
         this.functionsBinded.childPressStart = this.childPressStart.bind(this);
         this.functionsBinded.childPressEnd = this.childPressEnd.bind(this);
     }
-    private init() {
+    protected init() {
         this.bindAllFunction();
         this.element.addEventListener("pointerdown", this.functionsBinded.downAction);
         this.element.addEventListener("trigger_pointer_press", this.functionsBinded.childPress);
@@ -199,7 +201,11 @@ export class PressManager {
 
 
     // #region current Event
-    private downAction(e: PointerEvent) {
+    protected downAction(e: PointerEvent) {
+        // TODO edit this to implement the full logic to avoid cancelling parent
+        if(!this.options.buttonAllowed?.includes(e.button)) {
+            return;
+        }
         this.downEventSaved = e;
         if(this.stopPropagation()) {
             e.stopImmediatePropagation();
@@ -234,7 +240,7 @@ export class PressManager {
             this.emitTriggerFunction("pressstart", e);
         }
     }
-    private upAction(e: PointerEvent) {
+    protected upAction(e: PointerEvent) {
         if(this.stopPropagation()) {
             e.stopImmediatePropagation();
         }
@@ -306,7 +312,7 @@ export class PressManager {
             this.emitTriggerFunction("pressend", e);
         }
     }
-    private moveAction(e: PointerEvent) {
+    protected moveAction(e: PointerEvent) {
         if(!this.state.isMoving && !this.state.oneActionTriggered) {
             if(this.stopPropagation()) {
                 e.stopImmediatePropagation();
@@ -335,7 +341,7 @@ export class PressManager {
             }
         }
     }
-    private triggerEventToParent(eventName: string, pointerEvent: PointerEvent) {
+    protected triggerEventToParent(eventName: string, pointerEvent: PointerEvent) {
         if(this.element.parentNode) {
             this.element.parentNode.dispatchEvent(new CustomEvent("pressaction_trigger", {
                 bubbles: true,
@@ -352,17 +358,17 @@ export class PressManager {
     // #endregion
 
     // #region custom Event
-    private childPressStart(e: InternalPointerEvent) {
+    protected childPressStart(e: InternalPointerEvent) {
         if(this.options.onPressStart) {
             this.options.onPressStart(e.detail.realEvent, this);
         }
     }
-    private childPressEnd(e: InternalPointerEvent) {
+    protected childPressEnd(e: InternalPointerEvent) {
         if(this.options.onPressEnd) {
             this.options.onPressEnd(e.detail.realEvent, this);
         }
     }
-    private childPress(e: InternalPointerEvent) {
+    protected childPress(e: InternalPointerEvent) {
         if(this.options.onPress) {
             if(this.stopPropagation()) {
                 e.stopImmediatePropagation();
@@ -372,7 +378,7 @@ export class PressManager {
             this.triggerEventToParent(this.actionsName.press, e.detail.realEvent);
         }
     }
-    private childDblPress(e: InternalPointerEvent) {
+    protected childDblPress(e: InternalPointerEvent) {
         if(this.options.onDblPress) {
             if(this.stopPropagation()) {
                 e.stopImmediatePropagation();
@@ -384,7 +390,7 @@ export class PressManager {
             this.triggerEventToParent(this.actionsName.dblPress, e.detail.realEvent);
         }
     }
-    private childLongPress(e: InternalPointerEvent) {
+    protected childLongPress(e: InternalPointerEvent) {
         if(this.options.onLongPress) {
             if(this.stopPropagation()) {
                 e.stopImmediatePropagation();
@@ -394,7 +400,7 @@ export class PressManager {
             this.triggerEventToParent(this.actionsName.longPress, e.detail.realEvent);
         }
     }
-    private childDragStart(e: InternalPointerEvent) {
+    protected childDragStart(e: InternalPointerEvent) {
         if(this.options.onDragStart) {
             if(this.stopPropagation()) {
                 e.stopImmediatePropagation();
@@ -409,7 +415,7 @@ export class PressManager {
         }
     }
     // #endregion
-    private emitTriggerFunctionParent(action: string, e: PointerEvent) {
+    protected emitTriggerFunctionParent(action: string, e: PointerEvent) {
         let el = this.element.parentElement;
         if(el == null) {
             let parentNode = this.element.parentNode;
@@ -421,7 +427,7 @@ export class PressManager {
             this.emitTriggerFunction(action, e, el);
         }
     }
-    private emitTriggerFunction(action: string, e: PointerEvent, el?: Element | null) {
+    protected emitTriggerFunction(action: string, e: PointerEvent, el?: Element | null) {
         let ev = new CustomEvent("trigger_pointer_" + action, {
             bubbles: true,
             cancelable: true,

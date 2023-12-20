@@ -526,7 +526,7 @@ export class AventusTsLanguageService {
                                     textChange.span.start = index;
                                 }
                                 // check modifier
-                                if (!textChange.newText.includes(" protected ")) {
+                                if (!textChange.newText.match(/ (public|protected) /g)) {
                                     textChange.newText = textChange.newText.replace(/^([\s|\S]*?)([a-z])/g, "$1public $2")
                                 }
 

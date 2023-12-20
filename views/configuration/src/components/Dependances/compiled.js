@@ -39,26 +39,26 @@ const Dependances = class Dependances extends Aventus.WebComponent {
       {
         "id": "dependances_2",
         "attrName": "@HTML",
-        "render": (c) => `\r\n\t\t\t${c.__P(c.dep.name)}\r\n\t\t`,
-        "path": "dep"
+        "render": (c) => `\r\n\t\t\t${c.__P(c.dep?.name)}\r\n\t\t`,
+        "path": "dep.name"
       },
       {
         "id": "dependances_3",
         "attrName": "@HTML",
-        "render": (c) => `\r\n\t\t\t${c.__P(c.dep.version)}\r\n\t\t`,
-        "path": "dep"
+        "render": (c) => `\r\n\t\t\t${c.__P(c.dep?.version)}\r\n\t\t`,
+        "path": "dep.version"
       },
       {
         "id": "dependances_4",
         "attrName": "href",
-        "render": (c) => `${c.__P(c.dep.uri)}`,
-        "path": "dep"
+        "render": (c) => `${c.__P(c.dep?.uri)}`,
+        "path": "dep.uri"
       },
       {
         "id": "dependances_4",
         "attrName": "@HTML",
-        "render": (c) => `\r\n\t\t\t\t${c.__P(c.dep.uri)}\r\n\t\t\t`,
-        "path": "dep"
+        "render": (c) => `\r\n\t\t\t\t${c.__P(c.dep?.uri)}\r\n\t\t\t`,
+        "path": "dep.uri"
       }
     ]
   }
@@ -77,6 +77,7 @@ const Dependances = class Dependances extends Aventus.WebComponent {
     __listBoolProps() { return ["no_deps"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
 }
 Dependances.Namespace=`${moduleName}`;
+Dependances.Tag=`av-dependances`;
 _.Dependances=Dependances;
 if(!window.customElements.get('av-dependances')){window.customElements.define('av-dependances', Dependances);Aventus.WebComponentInstance.registerDefinition(Dependances);}
 

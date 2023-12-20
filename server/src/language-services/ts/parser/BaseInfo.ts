@@ -209,7 +209,10 @@ export abstract class BaseInfo {
                     this.addDependanceName(localClassName, isStrongDependance, x.getStart(), x.getEnd());
                 }
                 else {
-                    if (ParserTs.hasImport(localClassName)) {
+                    if (ParserTs.hasLocal(localClassName)) {
+                        this.addDependanceName(localClassName, isStrongDependance, x.getStart(), x.getEnd());
+                    }
+                    else if (ParserTs.hasImport(localClassName)) {
                         this.addDependanceName(localClassName, isStrongDependance, x.getStart(), x.getEnd());
                     }
                 }
@@ -339,6 +342,9 @@ export abstract class BaseInfo {
         }
         if (this.parserInfo.internalObjects[name]) {
             let fullName = this.parserInfo.internalObjects[name].fullname
+            if(fullName == this.fullName) {
+                isStrongDependance = false;
+            }
             this.dependances.push({
                 fullName: "$namespace$" + fullName,
                 uri: '@local',

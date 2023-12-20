@@ -39,7 +39,7 @@ export class Uri {
             });
             return result;
         });
-        regexState = regexState.replace(/\*/g, ".*?");
+        regexState = regexState.replace(/\*/g, ".*?").toLowerCase();
         regexState = "^" + regexState + '$';
 
         return {

@@ -1,3 +1,4 @@
+import { compareObject } from "../tools/CompareObject.lib.avt";
 
 type NotVoid<T> = T extends void ? never : T;
 
@@ -334,7 +335,7 @@ export class Watcher {
                     }
                     else {
                         let oldValue = Reflect.get(target, prop, receiver);
-                        if(oldValue !== value) {
+                        if(!compareObject(value, oldValue)) {
                             triggerChange = true;
                         }
                     }
@@ -421,7 +422,17 @@ export class Watcher {
                     trigger('CREATED', target, null, proxyEl, prop);
                 }
                 return result;
-            }
+            },
+            ownKeys(target) {
+                let result = Reflect.ownKeys(target);
+                for(let i = 0; i < result.length; i++) {
+                    if(reservedName[result[i]]) {
+                        result.splice(i, 1);
+                        i--;
+                    }
+                }
+                return result;
+            },
         };
         const trigger = (type, target, receiver, value, prop) => {
 
@@ -439,18 +450,19 @@ export class Watcher {
             }
             if(proxyData.id == receiverId) {
                 let stacks: string[] = [];
-                let allStacks = new Error().stack?.split("\n") ?? [];
-                for(let i = allStacks.length - 1; i >= 0; i--) {
-                    let current = allStacks[i].trim().replace("at ", "");
-                    if(current.startsWith("Object.set") || current.startsWith("Proxy.result")) {
-                        break;
+                if(proxyData.useHistory) {
+                    let allStacks = new Error().stack?.split("\n") ?? [];
+                    for(let i = allStacks.length - 1; i >= 0; i--) {
+                        let current = allStacks[i].trim().replace("at ", "");
+                        if(current.startsWith("Object.set") || current.startsWith("Proxy.result")) {
+                            break;
+                        }
+                        stacks.push(current);
                     }
-                    stacks.push(current);
                 }
 
 
                 for(let triggerPath in allProxies) {
-
                     for(let currentProxyData of allProxies[triggerPath]) {
 
                         let pathToSend = triggerPath;

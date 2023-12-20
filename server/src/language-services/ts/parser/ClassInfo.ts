@@ -20,7 +20,7 @@ export class ClassInfo extends BaseInfo {
 	public propertiesStatic: { [propName: string]: PropertyInfo } = {};
 	public isInterface: boolean = false;
 	public isAbstract: boolean = false;
-	public constructorBody: FunctionBody | undefined;
+	private constructorBody: FunctionBody | undefined;
 	public parameters: string[] = [];
 	private methodParameters: string[] = [];
 	public convertibleName: string = '';
@@ -75,8 +75,8 @@ export class ClassInfo extends BaseInfo {
 				this.getClassInheritance(heritage);
 			}
 		}
-
 		forEachChild(node, x => {
+			let isStrong = false;
 			if (x.kind == SyntaxKind.Constructor) {
 				let cst = x as ConstructorDeclaration;
 				if (cst.body) {
@@ -87,6 +87,7 @@ export class ClassInfo extends BaseInfo {
 				let propInfo = new PropertyInfo(x as PropertyDeclaration, this.isInterface, this);
 				if (propInfo.isStatic) {
 					this.propertiesStatic[propInfo.name] = propInfo;
+					isStrong = true;
 				}
 				else {
 					this.properties[propInfo.name] = propInfo;
@@ -95,8 +96,6 @@ export class ClassInfo extends BaseInfo {
 				if (!prop.type) {
 					ParserTs.addError(prop.getStart(), prop.getEnd(), "You must define a type for the prop " + propInfo.name);
 				}
-
-
 			}
 			else if (x.kind == SyntaxKind.GetAccessor) {
 				let prop = x as GetAccessorDeclaration;
@@ -120,9 +119,6 @@ export class ClassInfo extends BaseInfo {
 				else {
 					this.properties[propInfo.name] = propInfo;
 				}
-				if (!prop.type) {
-					ParserTs.addError(prop.getStart(), prop.getEnd(), "You must define a type for the prop " + propInfo.name);
-				}
 			}
 			else if (x.kind == SyntaxKind.MethodDeclaration) {
 				let method = x as MethodDeclaration;
@@ -139,17 +135,12 @@ export class ClassInfo extends BaseInfo {
 				console.log(SyntaxKind[x.kind]);
 				console.log(x.getText());
 			}
-			this.loadOnlyDependancesRecu(x);
+			this.loadOnlyDependancesRecu(x, 0, isStrong);
 		});
 
-		for (let decorator of this.decorators) {
-			let temp = ConvertibleDecorator.is(decorator);
-			if (temp) {
-				this.convertibleName = temp.name;
-			}
-		}
-		this.loadDependancesDecorator();
+		this.loadConvertible();
 
+		this.loadDependancesDecorator();
 	}
 	private getClassInheritance(node: HeritageClause) {
 		if (node.token == SyntaxKind.ExtendsKeyword) {
@@ -181,6 +172,20 @@ export class ClassInfo extends BaseInfo {
 					}
 				}
 			})
+		}
+	}
+
+	private loadConvertible() {
+		let current: ClassInfo | null = this;
+		while (current != null) {
+			for (let decorator of current.decorators) {
+				let temp = ConvertibleDecorator.is(decorator);
+				if (temp) {
+					this.convertibleName = temp.name;
+					return;
+				}
+			}
+			current = current.parentClass;
 		}
 	}
 

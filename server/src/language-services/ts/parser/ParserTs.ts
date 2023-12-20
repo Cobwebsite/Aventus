@@ -106,21 +106,24 @@ export class ParserTs {
         if (!ParserTs.currentParsingDoc) {
             return false;
         }
-        if (ParserTs.currentParsingDoc.enums[name]) {
+        if(ParserTs.currentParsingDoc.internalObjects[name]) {
             return true;
         }
-        if (ParserTs.currentParsingDoc.classes[name]) {
-            return true;
-        }
-        if (ParserTs.currentParsingDoc.aliases[name]) {
-            return true;
-        }
-        if (ParserTs.currentParsingDoc.functions[name]) {
-            return true;
-        }
-        if (ParserTs.currentParsingDoc.variables[name]) {
-            return true;
-        }
+        // if (ParserTs.currentParsingDoc.enums[name]) {
+        //     return true;
+        // }
+        // if (ParserTs.currentParsingDoc.classes[name]) {
+        //     return true;
+        // }
+        // if (ParserTs.currentParsingDoc.aliases[name]) {
+        //     return true;
+        // }
+        // if (ParserTs.currentParsingDoc.functions[name]) {
+        //     return true;
+        // }
+        // if (ParserTs.currentParsingDoc.variables[name]) {
+        //     return true;
+        // }
         return false
     }
 

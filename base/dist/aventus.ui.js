@@ -326,6 +326,56 @@ const Style=class Style {
 }
 Style.Namespace=`${moduleName}`;
 _.Style=Style;
+const compareObject=function compareObject(obj1, obj2) {
+    if (Array.isArray(obj1)) {
+        if (!Array.isArray(obj2)) {
+            return false;
+        }
+        obj2 = obj2.slice();
+        if (obj1.length !== obj2.length) {
+            return false;
+        }
+        for (let i = 0; i < obj1.length; i++) {
+            let foundElement = false;
+            for (let j = 0; j < obj2.length; j++) {
+                if (compareObject(obj1[i], obj2[j])) {
+                    obj2.splice(j, 1);
+                    foundElement = true;
+                    break;
+                }
+            }
+            if (!foundElement) {
+                return false;
+            }
+        }
+        return true;
+    }
+    else if (obj1 instanceof Date) {
+        return obj1.toString() === obj2.toString();
+    }
+    else if (obj1 !== null && typeof obj1 == 'object') {
+        if (obj2 === null || typeof obj1 !== 'object') {
+            return false;
+        }
+        if (Object.keys(obj1).length !== Object.keys(obj2).length) {
+            return false;
+        }
+        for (let key in obj1) {
+            if (!(key in obj2)) {
+                return false;
+            }
+            if (!compareObject(obj1[key], obj2[key])) {
+                return false;
+            }
+        }
+        return true;
+    }
+    else {
+        return obj1 === obj2;
+    }
+}
+
+_.compareObject=compareObject;
 const Callback=class Callback {
     callbacks = [];
     /**
@@ -468,46 +518,6 @@ const Mutex=class Mutex {
 }
 Mutex.Namespace=`${moduleName}`;
 _.Mutex=Mutex;
-const State=class State {
-    /**
-     * Activate a custom state inside a specific manager
-     * It ll be a generic state with no information inside exept name
-     */
-    static async activate(stateName, manager) {
-        let cstState = manager['defineDefaultState']();
-        return await new cstState(stateName).activate(manager);
-    }
-    /**
-     * Activate this state inside a specific manager
-     */
-    async activate(manager) {
-        return await manager.setState(this);
-    }
-    onActivate() {
-    }
-    onInactivate(nextState) {
-    }
-    async askChange(state, nextState) {
-        return true;
-    }
-}
-State.Namespace=`${moduleName}`;
-_.State=State;
-const EmptyState=class EmptyState extends State {
-    localName;
-    constructor(stateName) {
-        super();
-        this.localName = stateName;
-    }
-    /**
-     * @inheritdoc
-     */
-    get name() {
-        return this.localName;
-    }
-}
-EmptyState.Namespace=`${moduleName}`;
-_.EmptyState=EmptyState;
 var WatchAction;
 (function (WatchAction) {
     WatchAction[WatchAction["CREATED"] = 0] = "CREATED";
@@ -516,78 +526,6 @@ var WatchAction;
 })(WatchAction || (WatchAction = {}));
 
 _.WatchAction=WatchAction;
-const WebComponentInstance=class WebComponentInstance {
-    static __allDefinitions = [];
-    static __allInstances = [];
-    /**
-     * Last definition insert datetime
-     */
-    static lastDefinition = 0;
-    static registerDefinition(def) {
-        WebComponentInstance.lastDefinition = Date.now();
-        WebComponentInstance.__allDefinitions.push(def);
-    }
-    static removeDefinition(def) {
-        WebComponentInstance.lastDefinition = Date.now();
-        let index = WebComponentInstance.__allDefinitions.indexOf(def);
-        if (index > -1) {
-            WebComponentInstance.__allDefinitions.splice(index, 1);
-        }
-    }
-    /**
-     * Get all sub classes of type
-     */
-    static getAllClassesOf(type) {
-        let result = [];
-        for (let def of WebComponentInstance.__allDefinitions) {
-            if (def.prototype instanceof type) {
-                result.push(def);
-            }
-        }
-        return result;
-    }
-    /**
-     * Get all registered definitions
-     */
-    static getAllDefinitions() {
-        return WebComponentInstance.__allDefinitions;
-    }
-    static addInstance(instance) {
-        this.__allInstances.push(instance);
-    }
-    static removeInstance(instance) {
-        let index = this.__allInstances.indexOf(instance);
-        if (index > -1) {
-            this.__allInstances.splice(index, 1);
-        }
-    }
-    static getAllInstances(type) {
-        let result = [];
-        for (let instance of this.__allInstances) {
-            if (instance instanceof type) {
-                result.push(instance);
-            }
-        }
-        return result;
-    }
-    static create(type) {
-        let _class = customElements.get(type);
-        if (_class) {
-            return new _class();
-        }
-        let splitted = type.split(".");
-        let current = window;
-        for (let part of splitted) {
-            current = current[part];
-        }
-        if (current && current.prototype instanceof Aventus.WebComponent) {
-            return new current();
-        }
-        return null;
-    }
-}
-WebComponentInstance.Namespace=`${moduleName}`;
-_.WebComponentInstance=WebComponentInstance;
 const PressManager=class PressManager {
     static create(options) {
         if (Array.isArray(options.element)) {
@@ -705,6 +643,8 @@ const PressManager=class PressManager {
         else if (options.stopPropagation === false) {
             this.stopPropagation = () => false;
         }
+        if (!options.buttonAllowed)
+            options.buttonAllowed = [0];
     }
     bindAllFunction() {
         this.functionsBinded.downAction = this.downAction.bind(this);
@@ -728,6 +668,9 @@ const PressManager=class PressManager {
         this.element.addEventListener("trigger_pointer_dragstart", this.functionsBinded.childDragStart);
     }
     downAction(e) {
+        if (!this.options.buttonAllowed?.includes(e.button)) {
+            return;
+        }
         this.downEventSaved = e;
         if (this.stopPropagation()) {
             e.stopImmediatePropagation();
@@ -997,7 +940,7 @@ const Uri=class Uri {
             });
             return result;
         });
-        regexState = regexState.replace(/\*/g, ".*?");
+        regexState = regexState.replace(/\*/g, ".*?").toLowerCase();
         regexState = "^" + regexState + '$';
         return {
             regex: new RegExp(regexState),
@@ -1032,6 +975,46 @@ const Uri=class Uri {
 }
 Uri.Namespace=`${moduleName}`;
 _.Uri=Uri;
+const State=class State {
+    /**
+     * Activate a custom state inside a specific manager
+     * It ll be a generic state with no information inside exept name
+     */
+    static async activate(stateName, manager) {
+        let cstState = manager['defineDefaultState']();
+        return await new cstState(stateName).activate(manager);
+    }
+    /**
+     * Activate this state inside a specific manager
+     */
+    async activate(manager) {
+        return await manager.setState(this);
+    }
+    onActivate() {
+    }
+    onInactivate(nextState) {
+    }
+    async askChange(state, nextState) {
+        return true;
+    }
+}
+State.Namespace=`${moduleName}`;
+_.State=State;
+const EmptyState=class EmptyState extends State {
+    localName;
+    constructor(stateName) {
+        super();
+        this.localName = stateName;
+    }
+    /**
+     * @inheritdoc
+     */
+    get name() {
+        return this.localName;
+    }
+}
+EmptyState.Namespace=`${moduleName}`;
+_.EmptyState=EmptyState;
 const StateManager=class StateManager {
     subscribers = {};
     static canBeActivate(statePattern, stateName) {
@@ -1159,8 +1142,8 @@ const StateManager=class StateManager {
     offAfterStateChanged(cb) {
         this.afterStateChanged.remove(cb);
     }
-    defineDefaultState() {
-        return EmptyState;
+    assignDefaultState(stateName) {
+        return new EmptyState(stateName);
     }
     /**
      * Activate a current state
@@ -1169,8 +1152,7 @@ const StateManager=class StateManager {
         let result = await this.changeStateMutex.safeRunLastAsync(async () => {
             let stateToUse;
             if (typeof state == "string") {
-                let ctsEmptyState = this.defineDefaultState();
-                stateToUse = new ctsEmptyState(state);
+                stateToUse = this.assignDefaultState(state);
             }
             else {
                 stateToUse = state;
@@ -1717,7 +1699,7 @@ const Watcher=class Watcher {
                     }
                     else {
                         let oldValue = Reflect.get(target, prop, receiver);
-                        if (oldValue !== value) {
+                        if (!compareObject(value, oldValue)) {
                             triggerChange = true;
                         }
                     }
@@ -1802,7 +1784,17 @@ const Watcher=class Watcher {
                     trigger('CREATED', target, null, proxyEl, prop);
                 }
                 return result;
-            }
+            },
+            ownKeys(target) {
+                let result = Reflect.ownKeys(target);
+                for (let i = 0; i < result.length; i++) {
+                    if (reservedName[result[i]]) {
+                        result.splice(i, 1);
+                        i--;
+                    }
+                }
+                return result;
+            },
         };
         const trigger = (type, target, receiver, value, prop) => {
             if (target.__isProxy) {
@@ -1818,13 +1810,15 @@ const Watcher=class Watcher {
             }
             if (proxyData.id == receiverId) {
                 let stacks = [];
-                let allStacks = new Error().stack?.split("\n") ?? [];
-                for (let i = allStacks.length - 1; i >= 0; i--) {
-                    let current = allStacks[i].trim().replace("at ", "");
-                    if (current.startsWith("Object.set") || current.startsWith("Proxy.result")) {
-                        break;
+                if (proxyData.useHistory) {
+                    let allStacks = new Error().stack?.split("\n") ?? [];
+                    for (let i = allStacks.length - 1; i >= 0; i--) {
+                        let current = allStacks[i].trim().replace("at ", "");
+                        if (current.startsWith("Object.set") || current.startsWith("Proxy.result")) {
+                            break;
+                        }
+                        stacks.push(current);
                     }
-                    stacks.push(current);
                 }
                 for (let triggerPath in allProxies) {
                     for (let currentProxyData of allProxies[triggerPath]) {
@@ -2387,15 +2381,18 @@ const WebComponentTemplate=class WebComponentTemplate {
         let splitted = path.split(".");
         for (let i = 0; i < splitted.length - 1; i++) {
             let split = splitted[i];
-            if (typeof obj[split] !== 'object') {
+            if (!obj[split] || typeof obj[split] !== 'object') {
                 return undefined;
             }
             obj = obj[split];
         }
+        if (!obj || typeof obj !== 'object') {
+            return undefined;
+        }
         return obj[splitted[splitted.length - 1]];
     }
     static validatePath(path, pathToCheck) {
-        if (path.startsWith(pathToCheck)) {
+        if (pathToCheck.startsWith(path)) {
             return true;
         }
         return false;
@@ -2561,6 +2558,10 @@ const WebComponent=class WebComponent extends HTMLElement {
      */
     static Namespace = "";
     /**
+     * The current Tag / empty if abstract class
+     */
+    static Tag = "";
+    /**
      * Get the unique type for the data. Define it as the namespace + class name
      */
     static get Fullname() { return this.Namespace + "." + this.name; }
@@ -2575,6 +2576,12 @@ const WebComponent=class WebComponent extends HTMLElement {
      */
     getClassName() {
         return this.constructor.name;
+    }
+    /**
+     * The current tag
+     */
+    get tag() {
+        return this.constructor['Tag'];
     }
     /**
     * Get the unique type for the data. Define it as the namespace + class name
@@ -2964,6 +2971,78 @@ const WebComponent=class WebComponent extends HTMLElement {
 }
 WebComponent.Namespace=`${moduleName}`;
 _.WebComponent=WebComponent;
+const WebComponentInstance=class WebComponentInstance {
+    static __allDefinitions = [];
+    static __allInstances = [];
+    /**
+     * Last definition insert datetime
+     */
+    static lastDefinition = 0;
+    static registerDefinition(def) {
+        WebComponentInstance.lastDefinition = Date.now();
+        WebComponentInstance.__allDefinitions.push(def);
+    }
+    static removeDefinition(def) {
+        WebComponentInstance.lastDefinition = Date.now();
+        let index = WebComponentInstance.__allDefinitions.indexOf(def);
+        if (index > -1) {
+            WebComponentInstance.__allDefinitions.splice(index, 1);
+        }
+    }
+    /**
+     * Get all sub classes of type
+     */
+    static getAllClassesOf(type) {
+        let result = [];
+        for (let def of WebComponentInstance.__allDefinitions) {
+            if (def.prototype instanceof type) {
+                result.push(def);
+            }
+        }
+        return result;
+    }
+    /**
+     * Get all registered definitions
+     */
+    static getAllDefinitions() {
+        return WebComponentInstance.__allDefinitions;
+    }
+    static addInstance(instance) {
+        this.__allInstances.push(instance);
+    }
+    static removeInstance(instance) {
+        let index = this.__allInstances.indexOf(instance);
+        if (index > -1) {
+            this.__allInstances.splice(index, 1);
+        }
+    }
+    static getAllInstances(type) {
+        let result = [];
+        for (let instance of this.__allInstances) {
+            if (instance instanceof type) {
+                result.push(instance);
+            }
+        }
+        return result;
+    }
+    static create(type) {
+        let _class = customElements.get(type);
+        if (_class) {
+            return new _class();
+        }
+        let splitted = type.split(".");
+        let current = window;
+        for (let part of splitted) {
+            current = current[part];
+        }
+        if (current && current.prototype instanceof Aventus.WebComponent) {
+            return new current();
+        }
+        return null;
+    }
+}
+WebComponentInstance.Namespace=`${moduleName}`;
+_.WebComponentInstance=WebComponentInstance;
 const ResizeObserver=class ResizeObserver {
     callback;
     targets;
@@ -3704,6 +3783,7 @@ Navigation.RouterLink = class RouterLink extends Aventus.WebComponent {
     }
 }
 Navigation.RouterLink.Namespace=`${moduleName}.Navigation`;
+Navigation.RouterLink.Tag=`av-router-link`;
 _.Navigation.RouterLink=Navigation.RouterLink;
 if(!window.customElements.get('av-router-link')){window.customElements.define('av-router-link', Navigation.RouterLink);Aventus.WebComponentInstance.registerDefinition(Navigation.RouterLink);}
 
@@ -3846,6 +3926,7 @@ Layout.GridCol = class GridCol extends Aventus.WebComponent {
     __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('column');this.__upgradeProperty('row');this.__upgradeProperty('c_start');this.__upgradeProperty('c_end'); }
 }
 Layout.GridCol.Namespace=`${moduleName}.Layout`;
+Layout.GridCol.Tag=`av-grid-col`;
 _.Layout.GridCol=Layout.GridCol;
 if(!window.customElements.get('av-grid-col')){window.customElements.define('av-grid-col', Layout.GridCol);Aventus.WebComponentInstance.registerDefinition(Layout.GridCol);}
 
@@ -3879,6 +3960,7 @@ Layout.Grid = class Grid extends Aventus.WebComponent {
     __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('cols'); }
 }
 Layout.Grid.Namespace=`${moduleName}.Layout`;
+Layout.Grid.Tag=`av-grid`;
 _.Layout.Grid=Layout.Grid;
 if(!window.customElements.get('av-grid')){window.customElements.define('av-grid', Layout.Grid);Aventus.WebComponentInstance.registerDefinition(Layout.Grid);}
 
@@ -3932,6 +4014,7 @@ Layout.DynamicRow = class DynamicRow extends Aventus.WebComponent {
     }
 }
 Layout.DynamicRow.Namespace=`${moduleName}.Layout`;
+Layout.DynamicRow.Tag=`av-dynamic-row`;
 _.Layout.DynamicRow=Layout.DynamicRow;
 if(!window.customElements.get('av-dynamic-row')){window.customElements.define('av-dynamic-row', Layout.DynamicRow);Aventus.WebComponentInstance.registerDefinition(Layout.DynamicRow);}
 
@@ -4087,6 +4170,7 @@ Layout.DynamicCol = class DynamicCol extends Aventus.WebComponent {
     __listBoolProps() { return ["nobreak","center"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
 }
 Layout.DynamicCol.Namespace=`${moduleName}.Layout`;
+Layout.DynamicCol.Tag=`av-dynamic-col`;
 _.Layout.DynamicCol=Layout.DynamicCol;
 if(!window.customElements.get('av-dynamic-col')){window.customElements.define('av-dynamic-col', Layout.DynamicCol);Aventus.WebComponentInstance.registerDefinition(Layout.DynamicCol);}
 
@@ -4285,6 +4369,7 @@ const Img = class Img extends Aventus.WebComponent {
     }
 }
 Img.Namespace=`${moduleName}`;
+Img.Tag=`av-img`;
 _.Img=Img;
 if(!window.customElements.get('av-img')){window.customElements.define('av-img', Img);Aventus.WebComponentInstance.registerDefinition(Img);}
 
@@ -4309,6 +4394,7 @@ Form.Form = class Form extends Aventus.WebComponent {
     }
 }
 Form.Form.Namespace=`${moduleName}.Form`;
+Form.Form.Tag=`av-form`;
 _.Form.Form=Form.Form;
 if(!window.customElements.get('av-form')){window.customElements.define('av-form', Form.Form);Aventus.WebComponentInstance.registerDefinition(Form.Form);}
 
@@ -4515,6 +4601,7 @@ Form.Input = class Input extends Aventus.WebComponent {
     }
 }
 Form.Input.Namespace=`${moduleName}.Form`;
+Form.Input.Tag=`av-input`;
 _.Form.Input=Form.Input;
 if(!window.customElements.get('av-input')){window.customElements.define('av-input', Form.Input);Aventus.WebComponentInstance.registerDefinition(Form.Input);}
 
@@ -4636,6 +4723,7 @@ Form.Checkbox = class Checkbox extends Aventus.WebComponent {
     }
 }
 Form.Checkbox.Namespace=`${moduleName}.Form`;
+Form.Checkbox.Tag=`av-checkbox`;
 _.Form.Checkbox=Form.Checkbox;
 if(!window.customElements.get('av-checkbox')){window.customElements.define('av-checkbox', Form.Checkbox);Aventus.WebComponentInstance.registerDefinition(Form.Checkbox);}
 
@@ -5214,6 +5302,7 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
         else if (this.y_scroll_visible) {
             this.y_scroll_visible = false;
             this.calculatePositionScrollerContainer('y');
+            this.calculateSizeScroller('y');
             this.scrollDirection('y', 0);
         }
         if (this.contentWrapperSize.x - this.display.x > 0) {
@@ -5227,6 +5316,7 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
         else if (this.x_scroll_visible) {
             this.x_scroll_visible = false;
             this.calculatePositionScrollerContainer('x');
+            this.calculateSizeScroller('x');
             this.scrollDirection('x', 0);
         }
     }
@@ -5257,6 +5347,7 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
     }
 }
 Layout.Scrollable.Namespace=`${moduleName}.Layout`;
+Layout.Scrollable.Tag=`av-scrollable`;
 _.Layout.Scrollable=Layout.Scrollable;
 if(!window.customElements.get('av-scrollable')){window.customElements.define('av-scrollable', Layout.Scrollable);Aventus.WebComponentInstance.registerDefinition(Layout.Scrollable);}
 
@@ -5298,6 +5389,7 @@ const App = class App extends Aventus.WebComponent {
     }
 }
 App.Namespace=`${moduleName}`;
+App.Tag=`av-app`;
 _.App=App;
 if(!window.customElements.get('av-app')){window.customElements.define('av-app', App);Aventus.WebComponentInstance.registerDefinition(App);}
 

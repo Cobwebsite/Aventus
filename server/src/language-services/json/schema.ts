@@ -346,6 +346,19 @@ export const AventusSharpSchema: JSONSchema = {
                 "wsEvent": { "$ref": "#/$defs/replacerPart" },
                 "wsRouter": { "$ref": "#/$defs/replacerPart" }
             }
+        },
+        "httpRouter": {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+                createRouter: { type: "boolean", default: true },
+                autobindRoute: { type: "string", enum: ["none", "auto", "full"], default: "auto" },
+                routerName: { type: "string", default: "GeneratedRouter" },
+                variableRoutesName: { type: "string", default: "generatedHttpRoutes" },
+                uri: { type: "string", default: "", pattern: "^(?=\s*$)|^(\\/[a-zA-Z0-9_-]+?){1,}$" },
+                host: { type: "string", default: "https://localhost:5000", pattern: "^http(s)?:\\/\\/[a-zA-Z0-9_-]*?(:[0-9]{3,4})?$" },
+                parent: { type: "string", default: "Aventus.HttpRouter" }
+            }
         }
     },
     "required": ["csProj", "outputPath"],

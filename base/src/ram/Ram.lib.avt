@@ -1,7 +1,7 @@
 import { RamError, RamErrorCode, ResultRamWithError } from "./Error.lib.avt";
 import type { IData } from "../data/IData.data.avt";
-import { Converter } from "../tools/Converter.lib.avt";
 import { VoidWithError } from "../tools/Error.lib.avt";
+import { Json } from "../tools/Json.lib.avt";
 
 export interface IRam { }
 export type KeysObject<T> = { [Key in keyof T]?: any; };
@@ -207,16 +207,7 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
         if(!item) {
             return;
         }
-        let realObject = Converter.transform(objJson);
-        let props = Object.getOwnPropertyNames(item);
-        for(let prop of props) {
-            if(realObject[prop] !== undefined) {
-                let propInfo = Object.getOwnPropertyDescriptor(item, prop);
-                if(propInfo?.writable) {
-                    item[prop] = realObject[prop];
-                }
-            }
-        }
+        Json.classfromJson(item, objJson);
     }
     //#endregion
 

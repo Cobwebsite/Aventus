@@ -281,7 +281,7 @@ export class AventusWebcomponentCompiler {
         }
     }
     private getClassName(classInfo: ClassInfo) {
-        let splittedName = classInfo.name.match(/([A-Z][a-z]*)|([0-9][a-z]*)/g);
+        let splittedName = classInfo.name.match(/([A-Z][a-z]*)|([0-9]+[a-z]*)/g);
         if (splittedName) {
             let componentPrefixes = this.build.getComponentPrefix().split("-");
             for (let i = 0; i < componentPrefixes.length; i++) {
@@ -451,7 +451,13 @@ export class AventusWebcomponentCompiler {
             this.writeFileReplaceVar("fullname", "const " + this.fullName);
             this.writeFileReplaceVar("namespace", this.fullName + ".Namespace=`${moduleName}`;");
         }
-        if(this.build.namespaces.includes(this.fullName)) {
+        if (this.classInfo?.isAbstract) {
+            this.writeFileReplaceVar("tag", "");
+        }
+        else {
+            this.writeFileReplaceVar("tag", this.fullName + ".Tag=`" + this.tagName + "`;");
+        }
+        if (this.build.namespaces.includes(this.fullName)) {
             this.writeFileReplaceVar("namespaceStart", '_n = ' + this.fullName + ';' + EOL);
             this.writeFileReplaceVar("namespaceEnd", EOL + 'Object.assign(' + this.fullName + ', _n);' + EOL);
         }
@@ -459,8 +465,8 @@ export class AventusWebcomponentCompiler {
             this.writeFileReplaceVar("namespaceStart", '');
             this.writeFileReplaceVar("namespaceEnd", '');
         }
-        if(this.classInfo?.isExported) {
-            this.writeFileReplaceVar("exported", "_." + this.fullName + "=" + this.fullName+";");
+        if (this.classInfo?.isExported) {
+            this.writeFileReplaceVar("exported", "_." + this.fullName + "=" + this.fullName + ";");
         }
         else {
             this.writeFileReplaceVar("exported", "");
@@ -469,12 +475,8 @@ export class AventusWebcomponentCompiler {
             this.writeFileReplaceVar("definition", "")
         }
         else {
-            if (this.build.isCoreBuild) {
-                this.writeFileReplaceVar("definition", "if(!window.customElements.get('" + this.tagName + "')){window.customElements.define('" + this.tagName + "', " + this.fullName + ");WebComponentInstance.registerDefinition(" + this.fullName + ");}")
-            }
-            else {
-                this.writeFileReplaceVar("definition", "if(!window.customElements.get('" + this.tagName + "')){window.customElements.define('" + this.tagName + "', " + this.fullName + ");Aventus.WebComponentInstance.registerDefinition(" + this.fullName + ");}")
-            }
+            let aventusName = this.build.isCoreBuild ? "" : "Aventus.";
+            this.writeFileReplaceVar("definition", "if(!window.customElements.get('" + this.tagName + "')){window.customElements.define('" + this.tagName + "', " + this.fullName + ");" + aventusName + "WebComponentInstance.registerDefinition(" + this.fullName + ");}")
         }
     }
     private writeFileTemplateHtml() {
@@ -1670,8 +1672,6 @@ this.clearWatchHistory = () => {
     //#endregion
 
     //#region prepare doc
-
-
     private prepareDocSCSS() {
         let customCssProperties: SCSSDoc = {
             [this.tagName]: AventusSCSSLanguageService.getCustomProperty(this.scssTxt)
@@ -1696,7 +1696,7 @@ this.clearWatchHistory = () => {
         }
         return methodTxt;
     }
-    
+
     private transpileMethodNoRun(methodTxt) {
         methodTxt = this.prepareMethodToTranspile(methodTxt);
         let method = transpile(methodTxt, AventusTsLanguageService.getCompilerOptionsCompile()).trim();

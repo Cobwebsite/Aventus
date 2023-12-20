@@ -26,14 +26,14 @@ export class AventusStateFile extends AventusTsFile {
             this.validateRules({
                 allow_variables: false,
                 allow_function: false,
-                class_implement: ['StateManager', 'State']
+                class_implement: ['IStateManager', 'IState']
             })
         }
         else {
             this.validateRules({
                 allow_variables: false,
                 allow_function: false,
-                class_extend: ['Aventus.StateManager', 'Aventus.State']
+                class_implement: ['Aventus.IStateManager', 'Aventus.IState']
             })
         }
         return this.diagnostics;
