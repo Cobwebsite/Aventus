@@ -14,8 +14,7 @@ export abstract class State implements IState {
      * It ll be a generic state with no information inside exept name
      */
     public static async activate(stateName: string, manager: StateManager): Promise<boolean> {
-        let cstState = manager['defineDefaultState']();
-        return await new cstState(stateName).activate(manager);
+        return await manager.setState(stateName)
     }
 
     public abstract get name(): string;

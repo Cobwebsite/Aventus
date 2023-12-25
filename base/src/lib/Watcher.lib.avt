@@ -10,8 +10,10 @@ export enum WatchAction {
 
 export class Watcher {
     private static __maxProxyData: number = 0;
-    private static _registering: Effect[] = [];
-    private static get _register(): Effect | undefined {
+    @Internal()
+    public static _registering: Effect[] = [];
+    @Internal()
+    public static get _register(): Effect | undefined {
         return this._registering[this._registering.length - 1];
     }
     /**
@@ -554,9 +556,9 @@ export class Effect {
 
     protected init() {
         this.isInit = true;
-        Watcher['_registering'].push(this);
+        Watcher._registering.push(this);
         this.fct();
-        Watcher['_registering'].splice(Watcher['_registering'].length - 1, 1);
+        Watcher._registering.splice(Watcher._registering.length - 1, 1);
     }
 
     public register(receiver: EffectReceiver, path: string) {
@@ -616,7 +618,7 @@ export class Computed<T> extends Effect {
         if(!this.isInit) {
             this.init();
         }
-        Watcher['_register']?.register(this, "");
+        Watcher._register?.register(this, "");
         return this._value;
     }
 
@@ -630,9 +632,9 @@ export class Computed<T> extends Effect {
 
     protected override init(): void {
         this.isInit = true;
-        Watcher['_registering'].push(this);
+        Watcher._registering.push(this);
         this._value = this.fct() as T;
-        Watcher['_registering'].splice(Watcher['_registering'].length - 1, 1);
+        Watcher._registering.splice(Watcher._registering.length - 1, 1);
     }
 
     protected override onChange(): void {

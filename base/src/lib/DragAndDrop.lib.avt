@@ -71,6 +71,7 @@ export class DragAndDrop {
     private startCursorPosition: Coordinate = { x: 0, y: 0 };
     private startElementPosition: Coordinate = { x: 0, y: 0 };
     private isEnable: boolean = true;
+    private draggableElement!: HTMLElement;
     constructor(options: DragAndDropOptions) {
         this.options = this.getDefaultOptions(options.element);
         this.mergeProperties(options);
@@ -209,6 +210,7 @@ export class DragAndDrop {
             this.options.shadow.transform(draggableElement);
             this.options.shadow.container.appendChild(draggableElement);
         }
+        this.draggableElement = draggableElement;
         this.options.onStart(e);
     }
     private onDrag(e: PointerEvent) {
@@ -240,18 +242,18 @@ export class DragAndDrop {
             return;
         }
         let targets = this.getMatchingTargets();
-        let draggableElement = this.options.element;
+        let draggableElement = this.draggableElement;
         if(this.options.shadow.enable && this.options.shadow.removeOnStop) {
             draggableElement.parentNode?.removeChild(draggableElement);
         }
         if(targets.length > 0) {
-            this.options.onDrop(draggableElement, targets);
+            this.options.onDrop(this.options.element, targets);
         }
 
         this.options.onStop(e);
     }
     private setPosition(position: Coordinate): Coordinate {
-        let draggableElement = this.options.element;
+        let draggableElement = this.draggableElement;
         if(this.options.usePercent) {
             let elementParent = draggableElement.offsetParent as HTMLElement;
             let percentPosition = {
@@ -278,7 +280,7 @@ export class DragAndDrop {
      * Get targets within the current element position is matching
      */
     public getMatchingTargets(): HTMLElement[] {
-        let draggableElement = this.options.element;
+        let draggableElement = this.draggableElement;
         let matchingTargets: HTMLElement[] = [];
         for(let target of this.options.targets) {
             const elementCoordinates = draggableElement.getBoundingClientRect();

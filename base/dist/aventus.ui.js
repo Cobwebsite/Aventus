@@ -223,7 +223,7 @@ const ElementExtension=class ElementExtension {
             }
             if (el.shadowRoot && x !== undefined && y !== undefined) {
                 var newEl = el.shadowRoot.elementFromPoint(x, y);
-                if (newEl && newEl != el) {
+                if (newEl && newEl != el && el.shadowRoot.contains(newEl)) {
                     return _realTarget(newEl, i + 1);
                 }
             }
@@ -981,8 +981,7 @@ const State=class State {
      * It ll be a generic state with no information inside exept name
      */
     static async activate(stateName, manager) {
-        let cstState = manager['defineDefaultState']();
-        return await new cstState(stateName).activate(manager);
+        return await manager.setState(stateName);
     }
     /**
      * Activate this state inside a specific manager
@@ -1304,9 +1303,9 @@ const Effect=class Effect {
     }
     init() {
         this.isInit = true;
-        Watcher['_registering'].push(this);
+        Watcher._registering.push(this);
         this.fct();
-        Watcher['_registering'].splice(Watcher['_registering'].length - 1, 1);
+        Watcher._registering.splice(Watcher._registering.length - 1, 1);
     }
     register(receiver, path) {
         const cb = (action, changePath, value) => {
@@ -1360,7 +1359,7 @@ const Computed=class Computed extends Effect {
         if (!this.isInit) {
             this.init();
         }
-        Watcher['_register']?.register(this, "");
+        Watcher._register?.register(this, "");
         return this._value;
     }
     autoInit() {
@@ -1371,9 +1370,9 @@ const Computed=class Computed extends Effect {
     }
     init() {
         this.isInit = true;
-        Watcher['_registering'].push(this);
+        Watcher._registering.push(this);
         this._value = this.fct();
-        Watcher['_registering'].splice(Watcher['_registering'].length - 1, 1);
+        Watcher._registering.splice(Watcher._registering.length - 1, 1);
     }
     onChange() {
         this._value = this.fct();
@@ -1895,9 +1894,9 @@ const WebComponentTemplateContext=class WebComponentTemplateContext {
     }
     destructor() {
         for (let toRemove of this.fctsToRemove) {
-            let index = this.component['__onChangeFct'][toRemove.name].indexOf(toRemove.fct);
+            let index = this.component.__onChangeFct[toRemove.name].indexOf(toRemove.fct);
             if (index != -1) {
-                this.component['__onChangeFct'][toRemove.name].splice(index, 1);
+                this.component.__onChangeFct[toRemove.name].splice(index, 1);
             }
         }
     }
@@ -1924,8 +1923,8 @@ const WebComponentTemplateContext=class WebComponentTemplateContext {
         });
         let name = global.split(".")[0];
         this.__changes[name] = [];
-        if (!this.component['__onChangeFct'][name]) {
-            this.component['__onChangeFct'][name] = [];
+        if (!this.component.__onChangeFct[name]) {
+            this.component.__onChangeFct[name] = [];
         }
         let fct = (path) => {
             if (this.isRendered) {
@@ -1935,7 +1934,7 @@ const WebComponentTemplateContext=class WebComponentTemplateContext {
             }
         };
         this.fctsToRemove.push({ name, fct });
-        this.component['__onChangeFct'][name].push(fct);
+        this.component.__onChangeFct[name].push(fct);
     }
     createLoop(item, index, data) {
         Object.defineProperty(this.c, item, {
@@ -2023,9 +2022,9 @@ const WebComponentTemplateInstance=class WebComponentTemplateInstance {
         this.firstChild.remove();
         this.context.destructor();
         for (let toRemove of this.fctsToRemove) {
-            let index = this.component['__watchActions'][toRemove.name].indexOf(toRemove.fct);
+            let index = this.component.__watchActions[toRemove.name].indexOf(toRemove.fct);
             if (index != -1) {
-                this.component['__watchActions'][toRemove.name].splice(index, 1);
+                this.component.__watchActions[toRemove.name].splice(index, 1);
             }
         }
     }
@@ -2316,11 +2315,11 @@ const WebComponentTemplateInstance=class WebComponentTemplateInstance {
     registerLoopWatchEvent(loop, localContext) {
         let fullPath = loop.data;
         let watchName = fullPath.split(".")[0];
-        if (!this.component['__watchActions'][watchName]) {
-            this.component['__watchActions'][watchName] = [];
+        if (!this.component.__watchActions[watchName]) {
+            this.component.__watchActions[watchName] = [];
         }
         let regex = new RegExp(fullPath.replace(/\./g, "\\.") + "\\[(\\d+?)\\]$");
-        this.component['__watchActions'][watchName].push((element, action, path, value) => {
+        this.component.__watchActions[watchName].push((element, action, path, value) => {
             if (path == fullPath) {
                 this.renderLoop(loop, localContext);
                 return;
@@ -3436,6 +3435,7 @@ const DragAndDrop=class DragAndDrop {
     startCursorPosition = { x: 0, y: 0 };
     startElementPosition = { x: 0, y: 0 };
     isEnable = true;
+    draggableElement;
     constructor(options) {
         this.options = this.getDefaultOptions(options.element);
         this.mergeProperties(options);
@@ -3569,6 +3569,7 @@ const DragAndDrop=class DragAndDrop {
             this.options.shadow.transform(draggableElement);
             this.options.shadow.container.appendChild(draggableElement);
         }
+        this.draggableElement = draggableElement;
         this.options.onStart(e);
     }
     onDrag(e) {
@@ -3600,17 +3601,17 @@ const DragAndDrop=class DragAndDrop {
             return;
         }
         let targets = this.getMatchingTargets();
-        let draggableElement = this.options.element;
+        let draggableElement = this.draggableElement;
         if (this.options.shadow.enable && this.options.shadow.removeOnStop) {
             draggableElement.parentNode?.removeChild(draggableElement);
         }
         if (targets.length > 0) {
-            this.options.onDrop(draggableElement, targets);
+            this.options.onDrop(this.options.element, targets);
         }
         this.options.onStop(e);
     }
     setPosition(position) {
-        let draggableElement = this.options.element;
+        let draggableElement = this.draggableElement;
         if (this.options.usePercent) {
             let elementParent = draggableElement.offsetParent;
             let percentPosition = {
@@ -3637,7 +3638,7 @@ const DragAndDrop=class DragAndDrop {
      * Get targets within the current element position is matching
      */
     getMatchingTargets() {
-        let draggableElement = this.options.element;
+        let draggableElement = this.draggableElement;
         let matchingTargets = [];
         for (let target of this.options.targets) {
             const elementCoordinates = draggableElement.getBoundingClientRect();
@@ -3786,59 +3787,6 @@ Navigation.RouterLink.Namespace=`${moduleName}.Navigation`;
 Navigation.RouterLink.Tag=`av-router-link`;
 _.Navigation.RouterLink=Navigation.RouterLink;
 if(!window.customElements.get('av-router-link')){window.customElements.define('av-router-link', Navigation.RouterLink);Aventus.WebComponentInstance.registerDefinition(Navigation.RouterLink);}
-
-Navigation.Page = class Page extends Aventus.WebComponent {
-    static get observedAttributes() {return ["visible"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
-    get 'visible'() {
-                return this.hasAttribute('visible');
-            }
-            set 'visible'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('visible', 'true');
-                } else{
-                    this.removeAttribute('visible');
-                }
-            }    currentRouter;
-    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("visible", ((target) => {
-    if (target.visible) {
-        target.onShow();
-    }
-    else {
-        target.onHide();
-    }
-})); }
-    static __style = `:host{display:none}:host([visible]){display:block}`;
-    constructor() { super(); if (this.constructor == Page) { throw "can't instanciate an abstract class"; } }
-    __getStatic() {
-        return Page;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(Page.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<slot></slot>` }
-    });
-}
-    getClassName() {
-        return "Page";
-    }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('visible')) { this.attributeChangedCallback('visible', false, false); } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('visible'); }
-    __listBoolProps() { return ["visible"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
-    async show() {
-        this.visible = true;
-    }
-    async hide() {
-        this.visible = false;
-    }
-}
-Navigation.Page.Namespace=`${moduleName}.Navigation`;
-_.Navigation.Page=Navigation.Page;
 
 const Tracker=class Tracker {
     velocityMultiplier = window.devicePixelRatio;
@@ -5537,6 +5485,59 @@ Navigation.Router = class Router extends Aventus.WebComponent {
 }
 Navigation.Router.Namespace=`${moduleName}.Navigation`;
 _.Navigation.Router=Navigation.Router;
+
+Navigation.Page = class Page extends Aventus.WebComponent {
+    static get observedAttributes() {return ["visible"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'visible'() {
+                return this.hasAttribute('visible');
+            }
+            set 'visible'(val) {
+                val = this.getBoolean(val);
+                if (val) {
+                    this.setAttribute('visible', 'true');
+                } else{
+                    this.removeAttribute('visible');
+                }
+            }    currentRouter;
+    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("visible", ((target) => {
+    if (target.visible) {
+        target.onShow();
+    }
+    else {
+        target.onHide();
+    }
+})); }
+    static __style = `:host{display:none}:host([visible]){display:block}`;
+    constructor() { super(); if (this.constructor == Page) { throw "can't instanciate an abstract class"; } }
+    __getStatic() {
+        return Page;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Page.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<slot></slot>` }
+    });
+}
+    getClassName() {
+        return "Page";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('visible')) { this.attributeChangedCallback('visible', false, false); } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('visible'); }
+    __listBoolProps() { return ["visible"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    async show() {
+        this.visible = true;
+    }
+    async hide() {
+        this.visible = false;
+    }
+}
+Navigation.Page.Namespace=`${moduleName}.Navigation`;
+_.Navigation.Page=Navigation.Page;
 
 
 for(let key in _) { Aventus[key] = _[key] }

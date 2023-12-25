@@ -83,9 +83,9 @@ export class WebComponentTemplateContext {
     }
     public destructor() {
         for(let toRemove of this.fctsToRemove) {
-            let index = this.component['__onChangeFct'][toRemove.name].indexOf(toRemove.fct);
+            let index = this.component.__onChangeFct[toRemove.name].indexOf(toRemove.fct);
             if(index != -1) {
-                this.component['__onChangeFct'][toRemove.name].splice(index, 1);
+                this.component.__onChangeFct[toRemove.name].splice(index, 1);
             }
         }
     }
@@ -114,8 +114,8 @@ export class WebComponentTemplateContext {
         });
         let name = global.split(".")[0];
         this.__changes[name] = [];
-        if(!this.component['__onChangeFct'][name]) {
-            this.component['__onChangeFct'][name] = [];
+        if(!this.component.__onChangeFct[name]) {
+            this.component.__onChangeFct[name] = [];
         }
         let fct = (path: string) => {
             if(this.isRendered) {
@@ -125,7 +125,7 @@ export class WebComponentTemplateContext {
             }
         };
         this.fctsToRemove.push({ name, fct });
-        this.component['__onChangeFct'][name].push(fct);
+        this.component.__onChangeFct[name].push(fct);
     }
     private createLoop(item: string, index: string, data: string) {
         Object.defineProperty(this.c, item, {
@@ -403,9 +403,9 @@ export class WebComponentTemplateInstance {
         this.firstChild.remove();
         this.context.destructor();
         for(let toRemove of this.fctsToRemove) {
-            let index = this.component['__watchActions'][toRemove.name].indexOf(toRemove.fct);
+            let index = this.component.__watchActions[toRemove.name].indexOf(toRemove.fct);
             if(index != -1) {
-                this.component['__watchActions'][toRemove.name].splice(index, 1);
+                this.component.__watchActions[toRemove.name].splice(index, 1);
             }
         }
     }
@@ -709,12 +709,12 @@ export class WebComponentTemplateInstance {
     private registerLoopWatchEvent(loop: Loop, localContext: ContextSchema) {
         let fullPath = loop.data;
         let watchName = fullPath.split(".")[0];
-        if(!this.component['__watchActions'][watchName]) {
-            this.component['__watchActions'][watchName] = [];
+        if(!this.component.__watchActions[watchName]) {
+            this.component.__watchActions[watchName] = [];
 
         }
         let regex = new RegExp(fullPath.replace(/\./g, "\\.") + "\\[(\\d+?)\\]$");
-        this.component['__watchActions'][watchName].push((element, action, path, value) => {
+        this.component.__watchActions[watchName].push((element, action, path, value) => {
             if(path == fullPath) {
                 this.renderLoop(loop, localContext);
                 return;

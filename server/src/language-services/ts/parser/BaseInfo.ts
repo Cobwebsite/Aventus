@@ -7,6 +7,7 @@ import { DecoratorInfo } from './DecoratorInfo';
 import { DependancesDecorator } from './decorators/DependancesDecorator';
 import * as md5 from 'md5';
 import { GenericServer } from '../../../GenericServer';
+import { InternalDecorator } from './decorators/InternalDecorator';
 
 
 export enum InfoType {
@@ -17,6 +18,12 @@ export enum InfoType {
     function,
     variable,
     enum
+}
+
+type DependanceType = {
+    fullName: string,
+    uri: string, // @local (same file), @external (lib), @npm (npm), file uri (same build) 
+    isStrong: boolean,
 }
 
 export type SupportedRootNodes = ClassDeclaration | EnumDeclaration | InterfaceDeclaration | TypeAliasDeclaration | FunctionDeclaration | VariableDeclaration | MethodDeclaration
@@ -56,37 +63,15 @@ export abstract class BaseInfo {
     public decorators: DecoratorInfo[] = [];
 
     // public dependancesFullName: string[] = [];
-    public dependances: {
-        fullName: string,
-        uri: string, // @local (same file), @external (lib), @npm (npm), file uri (same build) 
-        isStrong: boolean,
-    }[] = []
+    public dependances: DependanceType[] = []
     public compiled: string = "";
     public documentation: string[] = [];
     public isExported: boolean = false;
     private _parserInfo: ParserTs;
     public content: string = "";
+    public compileTransformations: { [key: string]: { newText: string, start: number, end: number } } = {};
     public get compiledContent(): string {
-        let txt = this.content;
-        let transformations: { newText: string, start: number, end: number }[] = [];
-        for (let depName in this.dependancesLocations) {
-            let replacement = this.dependancesLocations[depName].replacement;
-            if (replacement) {
-                for (let locationKey in this.dependancesLocations[depName].locations) {
-                    let location = this.dependancesLocations[depName].locations[locationKey];
-                    transformations.push({
-                        newText: replacement,
-                        start: location.start - this.start,
-                        end: location.end - this.start,
-                    })
-                }
-            }
-        }
-        transformations.sort((a, b) => b.end - a.end); // order from end file to start file
-        for (let transformation of transformations) {
-            txt = txt.slice(0, transformation.start) + transformation.newText + txt.slice(transformation.end, txt.length);
-        }
-        return txt;
+        return BaseInfo.getContent(this.content, this.start, this.end, this.dependancesLocations, this.compileTransformations);
     }
     public get fileUri() {
         return this.document.uri;
@@ -130,15 +115,23 @@ export abstract class BaseInfo {
                     this.documentation.push(jsDoc.comment);
                 }
             }
+            if (autoLoadDepDecorator) {
+                this.loadDependancesDecorator();
+            }
             if (node.kind != SyntaxKind.VariableDeclaration) {
                 this.isExported = BaseInfo.isExported(node);
+                for (let decorator of this.decorators) {
+                    let deco = InternalDecorator.is(decorator);
+                    if (deco) {
+                        this.isExported = false;
+                        break;
+                    }
+                }
             }
             BaseInfo.infoByFullName[this.fullName] = this;
         }
 
-        if (autoLoadDepDecorator) {
-            this.loadDependancesDecorator();
-        }
+
 
     }
 
@@ -296,7 +289,13 @@ export abstract class BaseInfo {
         }
         // if its come from js native
         if (BaseLibInfo.exists(name)) {
-            return null;
+            if (!this.parserInfo.internalObjects[name] &&
+                !this.parserInfo.imports[name] &&
+                !this.parserInfo.waitingImports[name] &&
+                !this.parserInfo.npmImports[name]
+            ) {
+                return null;
+            }
         }
 
         if (start > 0 && end > 0) {
@@ -342,7 +341,7 @@ export abstract class BaseInfo {
         }
         if (this.parserInfo.internalObjects[name]) {
             let fullName = this.parserInfo.internalObjects[name].fullname
-            if(fullName == this.fullName) {
+            if (fullName == this.fullName) {
                 isStrongDependance = false;
             }
             this.dependances.push({
@@ -417,4 +416,47 @@ export abstract class BaseInfo {
     }
 
 
+
+    public static getContent(
+        txt: string,
+        start: number,
+        end: number,
+        dependancesLocations: { [name: string]: { replacement: string | null, locations: { [key: string]: { start: number, end: number } } } },
+        compileTransformations: { [key: string]: { newText: string, start: number, end: number } }
+    ) {
+        let transformations: { newText: string, start: number, end: number }[] = [];
+        for (let depName in dependancesLocations) {
+            let replacement = dependancesLocations[depName].replacement;
+            if (replacement) {
+                for (let locationKey in dependancesLocations[depName].locations) {
+                    let location = dependancesLocations[depName].locations[locationKey];
+                    if (location.start >= start && location.end <= end) {
+                        transformations.push({
+                            newText: replacement,
+                            start: location.start - start,
+                            end: location.end - start,
+                        })
+                    }
+                }
+            }
+        }
+        for (let key in compileTransformations) {
+            let transformation = compileTransformations[key];
+            if (transformation.start >= start && transformation.end <= end) {
+                transformations.push({
+                    newText: transformation.newText,
+                    start: transformation.start - start,
+                    end: transformation.end - start,
+                })
+            }
+        }
+        transformations.sort((a, b) => b.end - a.end); // order from end file to start file
+        let lastPos = txt.length;
+        for (let transformation of transformations) {
+            if (transformation.end > lastPos) continue;
+            txt = txt.slice(0, transformation.start) + transformation.newText + txt.slice(transformation.end, txt.length);
+            lastPos = transformation.start;
+        }
+        return txt;
+    }
 }

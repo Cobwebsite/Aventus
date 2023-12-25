@@ -181,10 +181,38 @@ export class InternalAventusFile implements AventusFile {
 
     private onContentChangeCb: { [uuid: string]: onContentChangeType } = {};
     private delayValidate: NodeJS.Timeout | undefined;
+    private waitingDocContentChange: { [uri: string]: TextDocument | true } = {};
+    private resolveContentChange: { [uri: string]: { [version: number]: (() => void)[] } } = {};
 
-    public async triggerContentChange(document: TextDocument) {
+    public triggerContentChange(document: TextDocument): Promise<void> {
+        return new Promise<void>((resolve) => {
+            setTimeout(() => {
+                if (!this.waitingDocContentChange[document.uri]) {
+                    this.waitingDocContentChange[document.uri] = true;
+                    this.resolveContentChange[document.uri] = {
+                        [document.version]: [resolve]
+                    };
+                    this.triggerContentChangeNoBuffer(document);
+                }
+                else {
+                    if (!this.resolveContentChange[document.uri]) {
+                        this.resolveContentChange[document.uri] = {};
+                    }
+                    if (!this.resolveContentChange[document.uri][document.version]) {
+                        this.resolveContentChange[document.uri][document.version] = []
+                    }
+                    this.resolveContentChange[document.uri][document.version].push(resolve);
+                    this.waitingDocContentChange[document.uri] = document;
+                }
+            }, 0)
+        })
+    }
+
+    private async triggerContentChangeNoBuffer(document: TextDocument) {
+        let parsingVersion = document.version;
         this.document = document;
         this._version = this.document.version;
+
         let proms: Promise<void>[] = [];
         for (let uuid in this.onContentChangeCb) {
             proms.push(this.onContentChangeCb[uuid](this));
@@ -196,6 +224,32 @@ export class InternalAventusFile implements AventusFile {
         this.delayValidate = setTimeout(async () => {
             this.validate();
         }, 500)
+
+        let versions = Object.keys(this.resolveContentChange[document.uri]);
+        for (let version of versions) {
+            let v = Number(version);
+            if (v > parsingVersion) {
+                break;
+            }
+            if (this.resolveContentChange[document.uri][version]) {
+                for (let resolve of this.resolveContentChange[document.uri][version]) {
+                    resolve();
+                }
+                delete this.resolveContentChange[document.uri][version];
+            }
+        }
+        if (Object.keys(this.resolveContentChange[document.uri]).length == 0) {
+            delete this.resolveContentChange[document.uri];
+        }
+
+        let newDoc = this.waitingDocContentChange[document.uri];
+        if (newDoc && typeof newDoc != 'boolean') {
+            this.waitingDocContentChange[document.uri] = true;
+            this.triggerContentChangeNoBuffer(newDoc);
+        }
+        else {
+            delete this.waitingDocContentChange[document.uri];
+        }
     }
 
     public onContentChange(cb: onContentChangeType): string {
@@ -450,9 +504,9 @@ export class InternalAventusFile implements AventusFile {
         }
         let promsResult = await Promise.all(proms);
         for (let promResult of promsResult) {
-            for(let textEdit of promResult){
+            for (let textEdit of promResult) {
                 let key = JSON.stringify(textEdit);
-                if(!result[key]){
+                if (!result[key]) {
                     result[key] = textEdit;
                 }
             }

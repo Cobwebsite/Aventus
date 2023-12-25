@@ -245,7 +245,7 @@ export class AventusWebcomponentCompiler {
             let tempTagName = TagNameDecorator.is(decorator);
             if (tempTagName && tempTagName.tagName) {
                 if (tempTagName.tagName.indexOf("-") == -1 || tempTagName.tagName.toLowerCase() != tempTagName.tagName) {
-                    this.result.diagnostics.push(createErrorTsPos(this.document, "tag name must be in lower case and have a - inside", decorator.start, decorator.end, AventusErrorCode.TagLower));
+                    this.result.diagnostics.push(createErrorTsPos(this.document, "tag name must be in lower case and have a - inside", decorator.contentStart, decorator.contentEnd, AventusErrorCode.TagLower));
                 }
                 else {
                     this.tagName = tempTagName.tagName;
@@ -628,11 +628,11 @@ export class AventusWebcomponentCompiler {
         if (this.classInfo) {
             for (let fieldName in this.classInfo.propertiesStatic) {
                 let field = this.classInfo.propertiesStatic[fieldName];
-                fullTxt += AventusTsLanguageService.removeDecoratorFromContent(field.compiledContent, field.decorators) + EOL;
+                fullTxt += field.compiledContent + EOL;
             }
         }
         for (let field of fields) {
-            fullTxt += AventusTsLanguageService.removeDecoratorFromContent(field.compiledContent, field.decorators) + EOL;
+            fullTxt += field.compiledContent + EOL;
         }
         let fullClassFields = `class MyCompilationClassAventus {${fullTxt}}`;
         let fieldsCompiled = transpile(fullClassFields, AventusTsLanguageService.getCompilerOptionsCompile());
@@ -1575,7 +1575,7 @@ this.clearWatchHistory = () => {
             let fullTxt = ""
             for (let methodName in this.classInfo.methods) {
                 let method = this.classInfo.methods[methodName];
-                fullTxt += AventusTsLanguageService.removeDecoratorFromContent(method.compiledContent, method.decorators) + EOL;
+                fullTxt += method.compiledContent + EOL;
                 for (let decorator of method.decorators) {
                     if (BindThisDecorator.is(decorator)) {
                         this.extraConstructorCode.push(`this.${methodName}=this.${methodName}.bind(this)`);

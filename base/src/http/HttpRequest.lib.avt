@@ -54,7 +54,7 @@ export class HttpRequest {
     public async query(router: HttpRouter): Promise<ResultWithError<Response>> {
         let result = new ResultWithError<Response>();
         try {
-            result.result = await fetch(router['options'].url + this.url, this.request);
+            result.result = await fetch(router.options.url + this.url, this.request);
         } catch(e) {
             result.errors.push(new HttpError(HttpErrorCode.unknow, e));
         }

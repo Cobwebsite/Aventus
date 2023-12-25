@@ -53,6 +53,14 @@ declare global {
      * Add foreign key reference
      */
     function ForeignKey(ref: ConstructorConstraint<Aventus.IData>);
+    /**
+     * Define a public property that will be trasnformed to private once compiled
+     */
+    function Internal();
+    /**
+     * Define a public property that will be trasnformed to protected once compiled
+     */
+    function InternalProtected();
 
     function StateActive(stateName: string, manager: ConstructorConstraint<Aventus.StateManager> | Aventus.StateManager): (target: any, propertyKey: string, descriptor: TypedPropertyDescriptor<((state: Aventus.State, slugs: Aventus.StateSlug) => void)>) => void;
     function DefaultStateActive(manager: ConstructorConstraint<Aventus.StateManager> | Aventus.StateManager);

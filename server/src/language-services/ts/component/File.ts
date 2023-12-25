@@ -145,7 +145,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         if (!this.build.reloadPage && reloadComp && classInfo) {
             srcToUpdate = srcToUpdate.slice(srcToUpdate.indexOf("="));
             srcToUpdate = srcToUpdate.replace(/if\(\!window\.customElements\.get\(.*$/gm, '');
-            
+
             let namespace = this.buildNamespace;
             if (classInfo.namespace) {
                 namespace += classInfo.namespace;
@@ -185,15 +185,21 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
     protected async onReferences(document: AventusFile, position: Position): Promise<Location[]> {
         let locationsHTML: Location[] = []
         let locationsTs = await this.tsLanguageService.onReferences(document, position) || [];
-        for (let [file, positions] of this.reverseViewClassInfoDependances) {
-            for (let position of positions) {
-                locationsHTML.push({
-                    uri: file.file.uri,
-                    range: {
-                        start: file.file.document.positionAt(position.start),
-                        end: file.file.document.positionAt(position.end),
+        if (this._compilationResult?.componentName && this.fileParsed?.classes[this._compilationResult.componentName]) {
+            let offset = this.file.document.offsetAt(position);
+            let classParsed = this.fileParsed?.classes[this._compilationResult.componentName];
+            if (offset >= classParsed.nameStart && offset <= classParsed.nameEnd) {
+                for (let [file, positions] of this.reverseViewClassInfoDependances) {
+                    for (let position of positions) {
+                        locationsHTML.push({
+                            uri: file.file.uri,
+                            range: {
+                                start: file.file.document.positionAt(position.start),
+                                end: file.file.document.positionAt(position.end),
+                            }
+                        })
                     }
-                })
+                }
             }
         }
         return [...locationsTs, ...locationsHTML];
@@ -392,11 +398,11 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
         return AventusExtension.Component;
     }
 
-    
+
 
     public constructor(file: AventusFile, build: Build) {
         super(file, build);
-        
+
     }
     public async init() {
         let result = await this.getDocuments();

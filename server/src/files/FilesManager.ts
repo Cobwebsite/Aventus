@@ -141,23 +141,23 @@ export class FilesManager {
             await this.triggerOnNewFile(document);
         }
         else {
-            this.files[document.uri].triggerContentChange(document);
+            await this.files[document.uri].triggerContentChange(document);
         }
     }
     public async onContentChange(document: TextDocument) {
         if (!this.files[document.uri]) {
-            this.triggerOnNewFile(document);
+            await this.triggerOnNewFile(document);
         }
         else {
-            this.files[document.uri].triggerContentChange(document);
+            await this.files[document.uri].triggerContentChange(document);
         }
     }
     public async onSave(document: TextDocument) {
         if (!this.files[document.uri]) {
-            this.triggerOnNewFile(document);
+            await this.triggerOnNewFile(document);
         }
         else {
-            this.files[document.uri].triggerSave(document);
+            await this.files[document.uri].triggerSave(document);
         }
     }
     public async onClose(document: TextDocument) {

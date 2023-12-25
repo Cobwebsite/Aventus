@@ -5,7 +5,7 @@ import { CodeAction, CodeLens, CompletionItem, CompletionItemKind, CompletionLis
 import { AventusExtension, AventusLanguageId } from '../../definition';
 import { AventusFile, InternalAventusFile } from '../../files/AventusFile';
 import { Build } from '../../project/Build';
-import { convertRange, uriToPath } from '../../tools';
+import { Debug, convertRange, uriToPath } from '../../tools';
 import { AventusTsFile } from './File';
 import { loadLibrary, loadTypescriptLib } from './libLoader';
 import { BaseInfo, InfoType } from './parser/BaseInfo';
@@ -259,7 +259,6 @@ export class AventusTsLanguageService {
             } catch (e) {
                 console.error(e);
             }
-
             if (!completions) {
                 return { isIncomplete: false, items: [] };
             }
@@ -773,14 +772,7 @@ export class AventusTsLanguageService {
         })
         return txt;
     }
-    public static removeDecoratorFromContent(txt: string, decorators: DecoratorInfo[], manualDecorator: string[] = []) {
-        txt = txt.trim();
-        let decoratorNames = decorators.map(d => d.name).concat(manualDecorator);
-        for (let decoratorName of decoratorNames) {
-            txt = txt.replace(new RegExp("@" + decoratorName + "\\s*(\\([^)]*\\))?", "g"), "");
-        }
-        return txt.trim();
-    }
+    
     private static replaceFirstExport(txt: string): string {
         return txt.replace(/^\s*export\s+(class|interface|enum|type|abstract|function)/m, "$1");
     }
@@ -843,7 +835,7 @@ export class AventusTsLanguageService {
         return JSON.stringify(template).replace(/\\"/g, '"');
     }
 
-    private static addBindThis(element: ClassInfo, txt: string, additionalDecorator: string[]) {
+    private static addBindThis(element: ClassInfo, txt: string) {
         let extraConstructorCode: string[] = [];
         for (let methodName in element.methods) {
             for (let deco of element.methods[methodName].decorators) {
@@ -854,7 +846,6 @@ export class AventusTsLanguageService {
         }
 
         if (extraConstructorCode.length > 0) {
-            additionalDecorator.push("BindThis");
             let constructorBody = element.constructorContent;
             if (constructorBody.length > 0) {
                 let constructorBodyTxt = constructorBody;
@@ -894,12 +885,10 @@ export class AventusTsLanguageService {
             let additionContent = "";
             // prepare content
             let txt = element.compiledContent;
-            let additionalDecorator: string[] = [];
             if (element instanceof ClassInfo && !element.isInterface) {
                 if (element.implements.includes('Aventus.IData')) {
                     additionContent += element.fullName + ".$schema=" + this.prepareDataSchema(element) + ";";
                     additionContent += "Aventus.DataManager.register(" + element.fullName + ".Fullname, " + element.fullName + ");";
-                    additionalDecorator.push("ForeignKey");
                     result.type = InfoType.classData;
                 }
                 let currentNamespaceWithDot = "";
@@ -912,10 +901,10 @@ export class AventusTsLanguageService {
                 }
                 result.convertibleName = element.convertibleName;
 
-                txt = this.addBindThis(element, txt, additionalDecorator);
+                txt = this.addBindThis(element, txt);
             }
 
-            txt = this.removeDecoratorFromContent(txt, element.decorators, additionalDecorator);
+           
             txt = this.removeComments(txt);
             txt = this.replaceFirstExport(txt);
 

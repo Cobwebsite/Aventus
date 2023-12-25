@@ -223,7 +223,7 @@ const ElementExtension=class ElementExtension {
             }
             if (el.shadowRoot && x !== undefined && y !== undefined) {
                 var newEl = el.shadowRoot.elementFromPoint(x, y);
-                if (newEl && newEl != el) {
+                if (newEl && newEl != el && el.shadowRoot.contains(newEl)) {
                     return _realTarget(newEl, i + 1);
                 }
             }
@@ -643,6 +643,8 @@ const PressManager=class PressManager {
         else if (options.stopPropagation === false) {
             this.stopPropagation = () => false;
         }
+        if (!options.buttonAllowed)
+            options.buttonAllowed = [0];
     }
     bindAllFunction() {
         this.functionsBinded.downAction = this.downAction.bind(this);
@@ -666,6 +668,9 @@ const PressManager=class PressManager {
         this.element.addEventListener("trigger_pointer_dragstart", this.functionsBinded.childDragStart);
     }
     downAction(e) {
+        if (!this.options.buttonAllowed?.includes(e.button)) {
+            return;
+        }
         this.downEventSaved = e;
         if (this.stopPropagation()) {
             e.stopImmediatePropagation();
@@ -976,8 +981,7 @@ const State=class State {
      * It ll be a generic state with no information inside exept name
      */
     static async activate(stateName, manager) {
-        let cstState = manager['defineDefaultState']();
-        return await new cstState(stateName).activate(manager);
+        return await manager.setState(stateName);
     }
     /**
      * Activate this state inside a specific manager
@@ -1299,9 +1303,9 @@ const Effect=class Effect {
     }
     init() {
         this.isInit = true;
-        Watcher['_registering'].push(this);
+        Watcher._registering.push(this);
         this.fct();
-        Watcher['_registering'].splice(Watcher['_registering'].length - 1, 1);
+        Watcher._registering.splice(Watcher._registering.length - 1, 1);
     }
     register(receiver, path) {
         const cb = (action, changePath, value) => {
@@ -1355,7 +1359,7 @@ const Computed=class Computed extends Effect {
         if (!this.isInit) {
             this.init();
         }
-        Watcher['_register']?.register(this, "");
+        Watcher._register?.register(this, "");
         return this._value;
     }
     autoInit() {
@@ -1366,9 +1370,9 @@ const Computed=class Computed extends Effect {
     }
     init() {
         this.isInit = true;
-        Watcher['_registering'].push(this);
+        Watcher._registering.push(this);
         this._value = this.fct();
-        Watcher['_registering'].splice(Watcher['_registering'].length - 1, 1);
+        Watcher._registering.splice(Watcher._registering.length - 1, 1);
     }
     onChange() {
         this._value = this.fct();
@@ -1890,9 +1894,9 @@ const WebComponentTemplateContext=class WebComponentTemplateContext {
     }
     destructor() {
         for (let toRemove of this.fctsToRemove) {
-            let index = this.component['__onChangeFct'][toRemove.name].indexOf(toRemove.fct);
+            let index = this.component.__onChangeFct[toRemove.name].indexOf(toRemove.fct);
             if (index != -1) {
-                this.component['__onChangeFct'][toRemove.name].splice(index, 1);
+                this.component.__onChangeFct[toRemove.name].splice(index, 1);
             }
         }
     }
@@ -1919,8 +1923,8 @@ const WebComponentTemplateContext=class WebComponentTemplateContext {
         });
         let name = global.split(".")[0];
         this.__changes[name] = [];
-        if (!this.component['__onChangeFct'][name]) {
-            this.component['__onChangeFct'][name] = [];
+        if (!this.component.__onChangeFct[name]) {
+            this.component.__onChangeFct[name] = [];
         }
         let fct = (path) => {
             if (this.isRendered) {
@@ -1930,7 +1934,7 @@ const WebComponentTemplateContext=class WebComponentTemplateContext {
             }
         };
         this.fctsToRemove.push({ name, fct });
-        this.component['__onChangeFct'][name].push(fct);
+        this.component.__onChangeFct[name].push(fct);
     }
     createLoop(item, index, data) {
         Object.defineProperty(this.c, item, {
@@ -2018,9 +2022,9 @@ const WebComponentTemplateInstance=class WebComponentTemplateInstance {
         this.firstChild.remove();
         this.context.destructor();
         for (let toRemove of this.fctsToRemove) {
-            let index = this.component['__watchActions'][toRemove.name].indexOf(toRemove.fct);
+            let index = this.component.__watchActions[toRemove.name].indexOf(toRemove.fct);
             if (index != -1) {
-                this.component['__watchActions'][toRemove.name].splice(index, 1);
+                this.component.__watchActions[toRemove.name].splice(index, 1);
             }
         }
     }
@@ -2311,11 +2315,11 @@ const WebComponentTemplateInstance=class WebComponentTemplateInstance {
     registerLoopWatchEvent(loop, localContext) {
         let fullPath = loop.data;
         let watchName = fullPath.split(".")[0];
-        if (!this.component['__watchActions'][watchName]) {
-            this.component['__watchActions'][watchName] = [];
+        if (!this.component.__watchActions[watchName]) {
+            this.component.__watchActions[watchName] = [];
         }
         let regex = new RegExp(fullPath.replace(/\./g, "\\.") + "\\[(\\d+?)\\]$");
-        this.component['__watchActions'][watchName].push((element, action, path, value) => {
+        this.component.__watchActions[watchName].push((element, action, path, value) => {
             if (path == fullPath) {
                 this.renderLoop(loop, localContext);
                 return;

@@ -9,7 +9,8 @@ import { createCommProxy } from "../lib/Communication.lib.avt";
 
 export abstract class HttpRouter {
     private _routes: any;
-    protected options: HttpRouterOptions;
+    @InternalProtected()
+    public options: HttpRouterOptions;
 
     public static WithRoute<const T extends readonly ({ type: RouteType, path: string; } | RouteType)[]>(options: T) {
         abstract class Router extends HttpRouter {

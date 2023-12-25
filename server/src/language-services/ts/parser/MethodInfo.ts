@@ -2,6 +2,8 @@ import { MethodDeclaration, SyntaxKind } from "typescript";
 import { DecoratorInfo } from "./DecoratorInfo";
 import { ParserTs } from './ParserTs';
 import { ClassInfo } from './ClassInfo';
+import { InternalDecorator, InternalProtectedDecorator } from './decorators/InternalDecorator';
+import { BaseInfo } from './BaseInfo';
 
 export class MethodInfo {
     public fullStart: number = 0;
@@ -14,29 +16,9 @@ export class MethodInfo {
     public documentation: string[] = [];
     public decorators: DecoratorInfo[] = [];
     public _class: ClassInfo;
+    public accessibilityModifierTransformation?: { newText: string, start: number, end: number };
     public get compiledContent(): string {
-        let txt = this.content;
-        let transformations: { newText: string, start: number, end: number }[] = [];
-        for (let depName in this._class.dependancesLocations) {
-            let replacement = this._class.dependancesLocations[depName].replacement;
-            if (replacement) {
-                for (let locationKey in this._class.dependancesLocations[depName].locations) {
-                    let location = this._class.dependancesLocations[depName].locations[locationKey];
-                    if(location.start >= this.start && location.end <= this.end) {
-                        transformations.push({
-                            newText: replacement,
-                            start: location.start - this.start,
-                            end: location.end - this.start,
-                        })
-                    }
-                }
-            }
-        }
-        transformations.sort((a, b) => b.end - a.end); // order from end file to start file
-        for (let transformation of transformations) {
-            txt = txt.slice(0, transformation.start) + transformation.newText + txt.slice(transformation.end, txt.length);
-        }
-        return txt;
+        return BaseInfo.getContent(this.content, this.start, this.end, this._class.dependancesLocations, this._class.compileTransformations);
     }
 
     constructor(method: MethodDeclaration, _class: ClassInfo) {
@@ -61,12 +43,40 @@ export class MethodInfo {
         let accessModDefine = false;
         let isOverride = false;
         let isPrivate = false;
+        let isInternal: InternalDecorator | InternalProtectedDecorator | null = null;
+        for (let decorator of this.decorators) {
+            let deco = InternalDecorator.is(decorator);
+            if (deco) {
+                isInternal = deco;
+                break;
+            }
+            let decoP = InternalProtectedDecorator.is(decorator);
+            if (decoP) {
+                isInternal = decoP;
+                break;
+            }
+        }
         if (method.modifiers) {
             for (let modifier of method.modifiers) {
                 if (modifier.kind == SyntaxKind.PublicKeyword) {
+                    if (isInternal) {
+                        let txt = isInternal instanceof InternalDecorator ? "private" : "protected";
+                        this.accessibilityModifierTransformation = {
+                            start: modifier.getStart(),
+                            end: modifier.getEnd(),
+                            newText: txt
+                        }
+                    }
                     accessModDefine = true;
                 }
                 else if (modifier.kind == SyntaxKind.ProtectedKeyword) {
+                    if (isInternal instanceof InternalDecorator) {
+                        this.accessibilityModifierTransformation = {
+                            start: modifier.getStart(),
+                            end: modifier.getEnd(),
+                            newText: "private"
+                        }
+                    }
                     accessModDefine = true;
                 }
                 else if (modifier.kind == SyntaxKind.PrivateKeyword) {

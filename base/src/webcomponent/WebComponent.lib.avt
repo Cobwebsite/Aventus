@@ -154,10 +154,12 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
         return this.constructor['Fullname'];
     }
 
-    private __onChangeFct: { [key: string]: ((path: string) => void)[]; } = {};
+    @Internal()
+    public __onChangeFct: { [key: string]: ((path: string) => void)[]; } = {};
 
     private __watch: any;
-    private __watchActions: { [key: string]: ((target: WebComponent, action: WatchAction, path: string, value: any) => void)[]; } = {};
+    @Internal()
+    public __watchActions: { [key: string]: ((target: WebComponent, action: WatchAction, path: string, value: any) => void)[]; } = {};
     private __watchActionsCb: { [key: string]: (type: WatchAction, path: string, element: any) => void; } = {};
     private __pressManagers: PressManager[] = [];
 

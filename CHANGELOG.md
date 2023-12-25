@@ -8,7 +8,8 @@
  - Loop in proxy avoid __path and __proxyData
  - Prevent undefined value inside the webcomponent template
  - Correct 2 times public when auto creating methods from parent
-
+ - Replace Decorators by position instead of using regex
+ - Increase performance by avoiding buffering whne typing fast inside big file
 
 ### Features
  - Add error when npm build failed
@@ -20,6 +21,7 @@
  - State file (*.state.avt) must now implements Aventus.IState or Aventus.IStateManager
  - Change tag name parser. Now the tag is splitted on each lower case or number
  - Add section to define how to auto-generate httprouter from C# project
+ - Add Decorator @Internal and @InternalProtected to allow public accessibility only on the current module
 
 
 

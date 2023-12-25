@@ -12,7 +12,7 @@ import { dirname } from 'path';
 import { FilesManager } from '../files/FilesManager';
 
 export class VsCodeConnection implements IConnection {
-	
+
 	private _connection: _Connection<_, _, _, _, _, _, _>;
 	private documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
 
@@ -22,7 +22,7 @@ export class VsCodeConnection implements IConnection {
 	}
 
 	private addDocumentsAction() {
-		this.documents.onDidChangeContent(e => {
+		this.documents.onDidChangeContent(async (e) => {
 			if (GenericServer.isAllowed(e.document)) {
 				FilesManager.getInstance().onContentChange(e.document);
 			}

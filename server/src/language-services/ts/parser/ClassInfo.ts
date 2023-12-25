@@ -1,11 +1,8 @@
-import { ClassDeclaration, Expression, forEachChild, SyntaxKind, Node, MethodDeclaration, PropertyDeclaration, NewExpression, PropertyAccessExpression, HeritageClause, InterfaceDeclaration, ConstructorDeclaration, ExpressionWithTypeArguments, TypeNode, TypeReferenceNode, CallExpression, GetAccessorDeclaration, SetAccessorDeclaration, FunctionBody } from "typescript";
+import { ClassDeclaration, forEachChild, SyntaxKind, MethodDeclaration, PropertyDeclaration, HeritageClause, InterfaceDeclaration, ConstructorDeclaration, ExpressionWithTypeArguments, TypeNode, TypeReferenceNode, CallExpression, GetAccessorDeclaration, SetAccessorDeclaration, FunctionBody } from "typescript";
 import { BaseInfo, InfoType } from "./BaseInfo";
-import { BaseLibInfo } from './BaseLibInfo';
-import { DecoratorInfo } from "./DecoratorInfo";
 import { MethodInfo } from "./MethodInfo";
 import { ParserTs } from "./ParserTs";
 import { PropertyInfo } from "./PropertyInfo";
-import { TypeInfo } from './TypeInfo';
 import { ConvertibleDecorator } from './decorators/ConvertibleDecorator';
 
 
@@ -29,27 +26,7 @@ export class ClassInfo extends BaseInfo {
 			return "";
 		}
 		let txt = this.constructorBody.getText();
-		let transformations: { newText: string, start: number, end: number }[] = [];
-		for (let depName in this.dependancesLocations) {
-			let replacement = this.dependancesLocations[depName].replacement;
-			if (replacement) {
-				for (let locationKey in this.dependancesLocations[depName].locations) {
-					let location = this.dependancesLocations[depName].locations[locationKey];
-					if (location.start >= this.constructorBody.getStart() && location.end <= this.constructorBody.getEnd()) {
-						transformations.push({
-							newText: replacement,
-							start: location.start - this.constructorBody.getStart(),
-							end: location.end - this.constructorBody.getStart(),
-						})
-					}
-				}
-			}
-		}
-		transformations.sort((a, b) => b.end - a.end); // order from end file to start file
-		for (let transformation of transformations) {
-			txt = txt.slice(0, transformation.start) + transformation.newText + txt.slice(transformation.end, txt.length);
-		}
-		return txt;
+		return BaseInfo.getContent(txt, this.constructorBody.getStart(), this.constructorBody.getEnd(), this.dependancesLocations, this.compileTransformations);
 	}
 
 	constructor(node: ClassDeclaration | InterfaceDeclaration, namespaces: string[], parserInfo: ParserTs) {
@@ -75,8 +52,10 @@ export class ClassInfo extends BaseInfo {
 				this.getClassInheritance(heritage);
 			}
 		}
+		
 		forEachChild(node, x => {
 			let isStrong = false;
+			let result: PropertyInfo | MethodInfo | null = null;
 			if (x.kind == SyntaxKind.Constructor) {
 				let cst = x as ConstructorDeclaration;
 				if (cst.body) {
@@ -96,6 +75,7 @@ export class ClassInfo extends BaseInfo {
 				if (!prop.type) {
 					ParserTs.addError(prop.getStart(), prop.getEnd(), "You must define a type for the prop " + propInfo.name);
 				}
+				result = propInfo;
 			}
 			else if (x.kind == SyntaxKind.GetAccessor) {
 				let prop = x as GetAccessorDeclaration;
@@ -109,6 +89,7 @@ export class ClassInfo extends BaseInfo {
 				if (!prop.type) {
 					ParserTs.addError(prop.getStart(), prop.getEnd(), "You must define a type for the prop " + propInfo.name);
 				}
+				result = propInfo;
 			}
 			else if (x.kind == SyntaxKind.SetAccessor) {
 				let prop = x as SetAccessorDeclaration;
@@ -119,6 +100,7 @@ export class ClassInfo extends BaseInfo {
 				else {
 					this.properties[propInfo.name] = propInfo;
 				}
+				result = propInfo;
 			}
 			else if (x.kind == SyntaxKind.MethodDeclaration) {
 				let method = x as MethodDeclaration;
@@ -130,10 +112,18 @@ export class ClassInfo extends BaseInfo {
 				let methodInfo = new MethodInfo(x as MethodDeclaration, this);
 				this.methods[methodInfo.name] = methodInfo;
 				this.methodParameters = [];
+				result = methodInfo;
 			}
 			else if (this.debug) {
 				console.log(SyntaxKind[x.kind]);
 				console.log(x.getText());
+			}
+
+			if (result) {
+				if (result.accessibilityModifierTransformation) {
+					let key = result.accessibilityModifierTransformation.start + "_" + result.accessibilityModifierTransformation.end
+					this.compileTransformations[key] = result.accessibilityModifierTransformation
+				}
 			}
 			this.loadOnlyDependancesRecu(x, 0, isStrong);
 		});

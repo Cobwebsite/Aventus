@@ -10,6 +10,8 @@ export class DecoratorInfo {
     public content: string = "";
     public start: number = 0;
     public end: number = 0;
+    public contentStart: number = 0;
+    public contentEnd: number = 0;
     public arguments: { value: string, type: ArgType }[] = [];
     public baseInfo: BaseInfo;
 
@@ -30,8 +32,15 @@ export class DecoratorInfo {
                 if (e.kind === SyntaxKind.CallExpression) {
                     var call: CallExpression = <CallExpression>e;
                     info.name = call.expression.getText();
-                    info.start = e.getStart();
-                    info.end = e.getEnd();
+                    info.start = decorator.getStart();
+                    info.end = decorator.getEnd();
+                    info.contentStart = e.getStart();
+                    info.contentEnd = e.getEnd();
+                    baseInfo.compileTransformations[info.start + "_" + info.end] = {
+                        newText: "",
+                        start: info.start,
+                        end: info.end
+                    }
                     for (let argument of call.arguments) {
                         let arg = getArg(argument);
                         if (arg) {
