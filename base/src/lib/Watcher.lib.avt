@@ -179,6 +179,15 @@ export class Watcher {
                     };
                 }
                 else if(prop == "toJSON") {
+                    if(Array.isArray(target)) {
+                        return () => {
+                            let result: any[] = [];
+                            for(let element of target) {
+                                result.push(element);
+                            }
+                            return result;
+                        };
+                    }
                     return () => {
                         let result = {};
                         for(let key of Object.keys(target)) {
@@ -563,7 +572,7 @@ export class Effect {
 
     public register(receiver: EffectReceiver, path: string) {
         const cb: WatcherChange = (action, changePath, value) => {
-            if(path == changePath) {
+            if(changePath.startsWith(path)) {
                 this.onChange();
             }
         };
@@ -596,18 +605,26 @@ export class Effect {
         this.isInit = false;
     }
 
+    @Internal()
     public __subscribe(fct: WatcherChange): void {
         let index = this.__subscribes.indexOf(fct);
         if(index == -1) {
             this.__subscribes.push(fct);
         }
     }
+    public subscribe(fct: WatcherChange): void {
+        return this.__subscribe(fct);
+    }
 
+    @Internal()
     public __unsubscribe(fct: WatcherChange): void {
         let index = this.__subscribes.indexOf(fct);
         if(index > -1) {
             this.__subscribes.splice(index, 1);
         }
+    }
+    public unsubscribe(fct: WatcherChange): void {
+        return this.__unsubscribe(fct);
     }
 }
 

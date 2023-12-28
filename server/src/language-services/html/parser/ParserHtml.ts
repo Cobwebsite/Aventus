@@ -8,6 +8,7 @@ import { HtmlTemplateResult, InterestPoint } from './definition';
 import { AventusHTMLFile } from '../File';
 import { SCSSParsedRule } from '../../scss/LanguageService';
 import { createErrorHTMLPos } from '../../../tools';
+import { Node, ScriptTarget, SyntaxKind, createSourceFile, forEachChild } from 'typescript';
 
 
 export class ParserHtml {
@@ -256,7 +257,61 @@ export class ParserHtml {
 		}
 	}
 
+	private parseJs(document: TextDocument) {
+		let srcFile = createSourceFile("sample.ts", document.getText(), ScriptTarget.ESNext, true);
+
+		type Token = { text: string, start: number, end: number }
+
+		const loop = (node: Node, lvl: number) => {
+			forEachChild(node, x => {
+				console.log(SyntaxKind[x.kind])
+				if (x.kind == SyntaxKind.ForOfStatement) {
+					console.log(x.getText());
+					console.log(x.getStart());
+					console.log(x.getEnd());
+					let identifier: Token;
+					let variable: Token;
+					let block: Token;
+					forEachChild(x, y => {
+						if (y.kind == SyntaxKind.VariableDeclarationList) {
+							let _var = y.getChildAt(1);
+							variable = {
+								text: _var.getText(),
+								start: _var.getStart(),
+								end: _var.getEnd()
+							}
+						}
+						else if (y.kind == SyntaxKind.Identifier) {
+							identifier = {
+								text: y.getText(),
+								start: y.getStart(),
+								end: y.getEnd()
+							}
+						}
+						else if (y.kind == SyntaxKind.Block) {
+							block = {
+								text: "",
+								start: y.getStart(),
+								end: y.getEnd()
+							}
+						}
+					})
+					debugger
+				}
+				// avoid parsing inside {{ }}
+				if(x.kind == SyntaxKind.Block && node.kind == SyntaxKind.Block) {
+					return
+				}
+				loop(x, lvl + 1)
+			})
+		}
+
+		loop(srcFile, 0);
+	}
+
+
 	private parse(document: TextDocument) {
+		this.parseJs(document);
 		ParserHtml.idElement = 0;
 		ParserHtml.idLoop = 0;
 		let isInAvoidTagStart: number[] = [];

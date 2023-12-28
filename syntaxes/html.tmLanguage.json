@@ -20,28 +20,41 @@
 	},
 	"patterns": [
 		{
-			"include": "#xml-processing"
-		},
-		{
-			"include": "#comment"
-		},
-		{
-			"include": "#doctype"
-		},
-		{
-			"include": "#cdata"
-		},
-		{
-			"include": "#tags-valid"
-		},
-		{
-			"include": "#tags-invalid"
-		},
-		{
-			"include": "#entities"
+			"include": "#basics"
 		}
 	],
 	"repository": {
+		"basics" : {
+			"patterns": [
+				{
+					"include": "#xml-processing"
+				},
+				{
+					"include": "#comment"
+				},
+				{
+					"include": "#doctype"
+				},
+				{
+					"include": "#cdata"
+				},
+				{
+					"include": "#tags-valid"
+				},
+				{
+					"include": "#tags-invalid"
+				},
+				{
+					"include": "#entities"
+				},
+				{
+					"include": "#for"
+				},
+				{
+					"include": "#if"
+				}
+			]
+		},
 		"attribute": {
 			"patterns": [
 				{
@@ -805,22 +818,85 @@
 					"name": "invalid.illegal.ambiguous-ampersand.html"
 				},
 				{
-					"match": "(\\{\\{)(.*?)(\\}\\})",
-					"captures": {
+					"begin": "({{)",
+					"beginCaptures": {
 						"1": {
 							"name":"aventus.wcv.changingstart"
-						},
-						"2": {
+						}
+					},
+					"end": "}}",
+					"endCaptures": {
+						"0": {
+							"name": "aventus.wcv.changingstart"
+						}
+					},
+					"patterns": [
+						{
+							"include": "source.js"
+						}
+					]
+				}
+			]
+		},
+		"for": {
+			"patterns": [
+				{
+					"begin": "(for *\\(.*?\\) *\\{)",
+					"beginCaptures": {
+						"0": {
 							"patterns": [
 								{
 									"include": "source.js"
 								}
 							]
-						},
-						"3": {
-							"name": "aventus.wcv.changingstop"
 						}
-					}
+					},
+					"end": "}",
+					"endCaptures": {
+						"0": {
+							"patterns": [
+								{
+									"include": "source.js"
+								}
+							]
+						}
+					},
+					"patterns": [
+						{
+							"include": "#basics"
+						}
+					]
+				}
+			]
+		},
+		"if": {
+			"patterns": [
+				{
+					"begin": "(if|else if|else)\\s*(\\([\\s|\\S]*?\\))?\\s*\\{",
+					"beginCaptures": {
+						"0": {
+							"patterns": [
+								{
+									"include": "source.js"
+								}
+							]
+						}
+					},
+					"end": "}",
+					"endCaptures": {
+						"0": {
+							"patterns": [
+								{
+									"include": "source.js"
+								}
+							]
+						}
+					},
+					"patterns": [
+						{
+							"include": "#basics"
+						}
+					]
 				}
 			]
 		},
