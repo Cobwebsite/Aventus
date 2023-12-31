@@ -1,6 +1,6 @@
 import { SCSSParsedRule } from '../../scss/LanguageService';
 import { ParserHtml } from './ParserHtml';
-import { HtmlTemplateResult, PressEventMapValues, pressEventMap } from './definition';
+import { ActionChange, HtmlTemplateResult, PressEventMapValues, pressEventMap } from './definition';
 
 export class TagInfo {
 	public tagName: string = "";
@@ -25,6 +25,7 @@ export class TagInfo {
 	public eventsPerso: { event: string, fct: string, start: number, end: number }[] = [];
 	public injections: { variableName: string, injectedName: string, start: number, end: number }[] = [];
 	public bindings: { event?: string, bindingName: string, valueName?: string, start: number, end: number }[] = [];
+	private changes: { [id_attr: string]: string } = {};
 
 	public parser: ParserHtml;
 	public forInstance: {
@@ -38,6 +39,10 @@ export class TagInfo {
 	public get isMainTemplate() {
 		return this.forInstance == null;
 	}
+	public get componentClassName(): string {
+		return this.parser.htmlFile.tsFile?.componentClassName.toLowerCase() ?? "";
+	}
+
 
 
 	public constructor(parser: ParserHtml, tagName: string, start: number, end: number) {
@@ -54,7 +59,7 @@ export class TagInfo {
 
 	public createId() {
 		if (!this.id) {
-			this.id = "$classname$_" + ParserHtml.idElement;
+			this.id = this.componentClassName + "_" + ParserHtml.idElement;
 			ParserHtml.idElement++;
 		}
 		return this.id;
@@ -82,6 +87,11 @@ export class TagInfo {
 	}
 	public addContent(content: ContentInfo) {
 		this.children.push(content);
+	}
+	public addChanges(attrName: string, fct: string) {
+		let tagId = this.createId();
+		let key = tagId + "°" + attrName;
+		this.changes[key] = fct;
 	}
 
 	public validateAllProps(openTagEnd: number) {
@@ -193,6 +203,7 @@ export class TagInfo {
 	public getTemplateInfo(className: string): HtmlTemplateResult {
 		let result: HtmlTemplateResult = {
 			elements: [],
+			content: {},
 			injection: {},
 			bindings: {},
 			events: [],
@@ -200,7 +211,7 @@ export class TagInfo {
 			loops: []
 		}
 
-		let id = this.id.replace(/\$classname\$/g, className);
+		let id = this.id;
 
 		const addResultInfo = (result: HtmlTemplateResult) => {
 			if (this.alias) {
@@ -214,7 +225,9 @@ export class TagInfo {
 					positions: [{ start: this.attributes['@element'].valueStart, end: this.attributes['@element'].valueEnd }]
 				});
 			}
-
+			for (let key in this.changes) {
+				result.content[key] = this.changes[key];
+			}
 			for (let injection of this.injections) {
 				let simpleName = injection.variableName.split('.')[0];
 				if (!result.injection[simpleName]) {
@@ -281,6 +294,7 @@ export class TagInfo {
 		if (this.forInstance) {
 			let templateResult: HtmlTemplateResult = {
 				elements: [],
+				content: {},
 				injection: {},
 				bindings: {},
 				events: [],
@@ -295,14 +309,14 @@ export class TagInfo {
 				}
 			}
 			let index = this.forInstance.index;
-			let anchorId = this.forInstance._id.replace(/\$classname\$/g, className)
+			let anchorId = this.forInstance._id
 			if (!index) {
 				index = "index_" + anchorId;
 			}
 			result.loops.push({
 				loopId: this.idLoop || 0,
 				anchorId: anchorId,
-				template: this.renderLoop().replace(/\$classname\$/g, className),
+				template: this.renderLoop(),
 				from: this.forInstance.from,
 				index: index,
 				item: this.forInstance.item,
@@ -351,6 +365,7 @@ export class AttributeInfo {
 	public valueEnd: number = 0;
 	public tag: TagInfo;
 	public mustBeAdded: boolean = true;
+
 
 	public constructor(name: string, nameStart: number, nameEnd: number, tag: TagInfo) {
 		this.name = name;
@@ -419,7 +434,7 @@ export class AttributeInfo {
 		else if (this.name === "@for") {
 			let match = /^((.+?)(,(.+?))? in )(.+?)$/g.exec(value);
 			if (match) {
-				let idTemplate = "$classname$_" + ParserHtml.idElement;
+				let idTemplate = this.tag.componentClassName + "_" + ParserHtml.idElement;
 				ParserHtml.idElement++;
 				let fromStart = match.index + match[1].length;
 				let fromEnd = match.index + match[1].length;
@@ -491,8 +506,9 @@ export class AttributeInfo {
 			})
 		}
 		else {
-			if (parseTxt(value, this.valueStart)) {
-				this.tag.createId();
+			let result = parseTxt(value, this.valueStart);
+			if (result.changes.length > 0) {
+				this.tag.addChanges(this.name, result.txt);
 				this.mustBeAdded = false;
 			}
 		}
@@ -518,8 +534,9 @@ export class ContentInfo {
 
 	private manageVariables() {
 		let content = this.content;
-		if (parseTxt(content, this.start)) {
-			this.tag.createId();
+		let result = parseTxt(content, this.start);
+		if (result.changes.length > 0) {
+			this.tag.addChanges("@HTML", result.txt);
 			this.mustBeAdded = false;
 		}
 	}
@@ -533,21 +550,44 @@ export class ContentInfo {
 	}
 }
 
-function parseTxt(value: string, valueStart: number) {
+
+export class ForLoop {
+	
+}
+
+function parseTxt(value: string, valueStart: number): {
+	changes: ActionChange[],
+	txt: string
+} {
 	let regex = /\{\{(.*?)\}\}/g;
 	let m: RegExpExecArray | null;
-
-	let hasMatch = false;
+	let result: {
+		changes: ActionChange[],
+		txt: string
+	} = {
+		changes: [],
+		txt: value
+	}
 	while (m = regex.exec(value)) {
 		let start = valueStart + m.index;
 		let end = valueStart + m.index + m[0].length;
-		ParserHtml.addFct({
+
+		let resultTemp = ParserHtml.createChange({
 			txt: m[1],
 			start: start,
 			end: end
 		});
-		hasMatch = true;
+		if (resultTemp) {
+			let params = Object.keys(resultTemp.variablesType).map(p => "c.data." + p).join(",");
+			let content = "${c.print(c.comp." + resultTemp.name + "(" + params + "))}";
+			result.txt = result.txt.replace(m[0], content);
+			result.changes.push(resultTemp);
+		}
 	}
 
-	return hasMatch;
+	if (result.changes.length > 0) {
+		result.txt = "(c) => `" + result.txt + "`";
+	}
+
+	return result;
 }

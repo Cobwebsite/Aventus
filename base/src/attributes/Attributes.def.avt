@@ -46,6 +46,10 @@ declare global {
      */
     function Watch<T>(onChange: (component: T, action: Aventus.WatchAction, path: string, value: any) => void);
     /**
+     * Add a function inside a watcher to be notify of changing
+     */
+    function Effect(options?: { autoInit?: boolean; });
+    /**
      * Signal that this variable is a link to your shadowroot
      */
     function ViewElement(config?: ViewElementConfig);

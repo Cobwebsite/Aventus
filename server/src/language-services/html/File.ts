@@ -66,16 +66,12 @@ export class AventusHTMLFile extends AventusBaseFile {
         await this.compile();
     }
     protected async onSave() {
-
+        await this.tsFile?.triggerSave();
     }
-    private async compile(triggerSave = true) {
+    private async compile() {
         try {
             if (this.refreshFileParsed()) {
-                let tsFile = this.tsFile;
-                if (tsFile && triggerSave) {
-                    await tsFile.validate();
-                    await tsFile.triggerSave();
-                }
+                await this.tsFile?.validate();
             }
         } catch (e) {
             console.error(e);

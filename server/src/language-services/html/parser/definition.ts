@@ -28,14 +28,7 @@ export type ActionElement = {
 	positions: { start: number, end: number }[]
 }
 
-export type ActionChange = {
-	id: string,
-	attrName: string | '@HTML';
-	render: string;
-	isBool?: boolean;
-	path?: string;
-	positions?: { start: number, end: number }[]
-};
+
 export type ActionInjection = {
 	id: string,
 	injectionName: string;
@@ -60,15 +53,15 @@ export type ActionEvent = {
 	tagName?: string,
 	position?: { start: number, end: number }
 };
-export interface ActionPressEvent {
+export type ActionPressEvent = {
 	id: string,
 	[key: PressEventMapValues]: {
 		value: string,
-		start: number, 
+		start: number,
 		end: number
 	} | string,
 };
-export interface ActionLoop {
+export type ActionLoop = {
 	loopId: number,
 	anchorId: string,
 	template: string,
@@ -79,9 +72,17 @@ export interface ActionLoop {
 	loopParentId: number | null,
 	positionFrom: { start: number, end: number }
 };
+export type ActionChange = {
+	start: number,
+	end: number,
+	name: string,
+	txt: string,
+	variablesType: { [name: string]: string }
+};
 
 export type HtmlTemplateResult = {
 	elements: ActionElement[],
+	content: { [id_attr: string]: string },
 	injection: {
 		[contextProp: string]: ActionInjection[];
 	};

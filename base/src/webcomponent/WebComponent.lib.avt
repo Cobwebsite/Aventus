@@ -1,4 +1,4 @@
-import { WebComponentTemplate, WebComponentTemplateInstance } from "./WebComponentTemplate.lib.avt";
+import { Template, TemplateInstance } from "./WebComponentTemplate.lib.avt";
 import { Style } from "./Style.lib.avt";
 import { PressManager } from "../lib/PressManager.lib.avt";
 import { State } from "../state/State.state.avt";
@@ -161,7 +161,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
     @Internal()
     public __watchActions: { [key: string]: ((target: WebComponent, action: WatchAction, path: string, value: any) => void)[]; } = {};
     private __watchActionsCb: { [key: string]: (type: WatchAction, path: string, element: any) => void; } = {};
-    private __watchFunctions: string[] = [];
+    private __watchFunctions: { [key: string]: { autoInit: boolean } } = {};
     private __watchFunctionsComputed: { [name: string]: Computed<any>; } = {};
     private __pressManagers: PressManager[] = [];
 
@@ -228,20 +228,40 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
             this.__watchActions[name].push(fct);
         }
     }
-    private __addWatchesFunctions(name: string) {
-        this.__watchFunctions.push(name);
+    private __addWatchesFunctions(infos: (string | { name: string, autoInit: boolean })[]) {
+        for (let info of infos) {
+            let realName: string;
+            let autoInit: boolean;
+            if (typeof info == "string") {
+                realName = info;
+                autoInit = false;
+            }
+            else {
+                realName = info.name;
+                autoInit = info.autoInit;
+            }
+
+            if (!this.__watchFunctions[realName]) {
+                this.__watchFunctions[realName] = { autoInit };
+            }
+        }
     }
     private __registerWatchesActions() {
         if(Object.keys(this.__watchActions).length > 0) {
             if(!this.__watch) {
-                this.__watch = Watcher.get({}, (type, path, element) => {
+                let defaultValue = {};
+                this.__defaultValuesWatch(defaultValue);
+                this.__watch = Watcher.get(defaultValue, (type, path, element) => {
                     let action = this.__watchActionsCb[path.split(".")[0]] || this.__watchActionsCb[path.split("[")[0]];
                     action(type, path, element);
                 });
             }
         }
-        for(let name of this.__watchFunctions) {
-            this.__watchFunctionsComputed[name] = Watcher.computed(this[name]);
+        for (let name in this.__watchFunctions) {
+            this.__watchFunctionsComputed[name] = Watcher.computed(this[name].bind(this));
+            if (this.__watchFunctions[name].autoInit) {
+                this.__watchFunctionsComputed[name].value;
+            }
         }
     }
 
@@ -258,8 +278,8 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
     private __registerPropertiesActions() { }
     //#region template
     private static __style: string = ``;
-    private static __template: WebComponentTemplate;
-    private __templateInstance?: WebComponentTemplateInstance;
+    private static __template: Template;
+    private __templateInstance?: TemplateInstance;
     protected styleBefore(addStyle: (name: string) => void): void {
         addStyle("@general");
     }
@@ -299,7 +319,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
 
         let staticInstance = this.__getStatic();
         if(!staticInstance.__template || staticInstance.__template.cst != staticInstance) {
-            staticInstance.__template = new WebComponentTemplate(staticInstance);
+            staticInstance.__template = new Template(staticInstance);
             this.__getHtml();
             this.__registerTemplateAction();
             staticInstance.__template.generateTemplate();
@@ -350,6 +370,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
         }
     }
     private __defaultValues() { }
+    private __defaultValuesWatch(w) { }
     private __upgradeAttributes() { }
     private __listBoolProps(): string[] {
         return [];

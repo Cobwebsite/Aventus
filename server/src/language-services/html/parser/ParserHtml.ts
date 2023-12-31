@@ -4,12 +4,11 @@ import { AventusLanguageId } from '../../../definition';
 import { LanguageService, TokenType, getLanguageService } from 'vscode-html-languageservice';
 import { AttributeInfo, ContentInfo, TagInfo } from './TagInfo';
 import { Build } from '../../../project/Build';
-import { HtmlTemplateResult, InterestPoint } from './definition';
+import { ActionChange, HtmlTemplateResult, InterestPoint } from './definition';
 import { AventusHTMLFile } from '../File';
 import { SCSSParsedRule } from '../../scss/LanguageService';
 import { createErrorHTMLPos } from '../../../tools';
-import { Node, ScriptTarget, SyntaxKind, createSourceFile, forEachChild } from 'typescript';
-
+import { IfStatement, Node, ScriptTarget, Statement, SyntaxKind, createSourceFile, forEachChild } from 'typescript';
 
 export class ParserHtml {
 	//#region static
@@ -57,6 +56,7 @@ export class ParserHtml {
 		main.events = [...main.events, ...toMerge.events];
 		main.pressEvents = [...main.pressEvents, ...toMerge.pressEvents];
 		main.loops = [...main.loops, ...toMerge.loops];
+		main.content = {...main.content, ...toMerge.content};
 
 		for (let mergeEl of toMerge.elements) {
 			let found = false;
@@ -162,7 +162,7 @@ export class ParserHtml {
 	public static idElement = 0;
 	public static idLoop = 0;
 	public static loopsInfo: TagInfo[] = [];
-	public static addFct(fct: { start: number, end: number, txt: string }) {
+	public static createChange(fct: { start: number, end: number, txt: string }): ActionChange | null {
 		if (this.currentParsingDoc) {
 			let loops: { from: string, item: string, index: string }[] = [];
 			for (let loopInfo of this.loopsInfo) {
@@ -175,14 +175,21 @@ export class ParserHtml {
 					item: loopInfo.forInstance.item,
 				})
 			}
-			this.currentParsingDoc.fcts.push({
-				start: fct.start,
-				end: fct.end,
-				txt: fct.txt,
-				loops: loops
-			});
+
+			if (this.currentParsingDoc.htmlFile.tsFile) {
+				let name = this.currentParsingDoc.htmlFile.tsFile?.viewMethodName + this.currentParsingDoc.fcts.length
+				let result: ActionChange = {
+					name: name,
+					start: fct.start,
+					end: fct.end,
+					txt: fct.txt,
+					variablesType: {}
+				}
+				this.currentParsingDoc.fcts.push(result);
+				return result;
+			}
 		}
-		this.loopsInfo
+		return null;
 	}
 	//#endregion
 
@@ -202,23 +209,22 @@ export class ParserHtml {
 	public interestPoints: InterestPoint[] = []
 	public rules: SCSSParsedRule;
 	public styleLinks: [{ start: number, end: number }, { start: number, end: number }][] = []
-	public fcts: { start: number, end: number, txt: string, loops: { from: string, item: string, index: string }[] }[] = [];
+	public fcts: ActionChange[] = [];
+	public htmlFile: AventusHTMLFile;
 
-	public getBlocksInfoTxt(className: string) {
-		className = className.toLowerCase();
+	public getBlocksInfoTxt() {
 		let blocks: string[] = [];
 		for (let name in this.blocksInfo) {
 			blocks.push("'" + name + "':`" + this.blocksInfo[name] + "`")
 		}
-		return blocks.join(",").replace(/\$classname\$/g, className)
+		return blocks.join(",");
 	}
-	public getSlotsInfoTxt(className: string) {
-		className = className.toLowerCase();
+	public getSlotsInfoTxt() {
 		let slots: string[] = [];
 		for (let name in this.slotsInfo) {
 			slots.push("'" + name + "':`" + this.slotsInfo[name] + "`");
 		}
-		return slots.join(",").replace(/\$classname\$/g, className)
+		return slots.join(",");
 	}
 
 	public isReady: boolean = false;
@@ -226,6 +232,7 @@ export class ParserHtml {
 
 	private constructor(document: AventusHTMLFile, build: Build) {
 		this.build = build;
+		this.htmlFile = document;
 		ParserHtml.parsedDoc[document.file.uri] = {
 			version: document.file.version,
 			result: this,
@@ -261,45 +268,74 @@ export class ParserHtml {
 		let srcFile = createSourceFile("sample.ts", document.getText(), ScriptTarget.ESNext, true);
 
 		type Token = { text: string, start: number, end: number }
+		let info: {
+			for: Token[],
+			if: {
+
+			}[]
+		} = {
+			for: [],
+			if: []
+		}
 
 		const loop = (node: Node, lvl: number) => {
 			forEachChild(node, x => {
-				console.log(SyntaxKind[x.kind])
-				if (x.kind == SyntaxKind.ForOfStatement) {
-					console.log(x.getText());
-					console.log(x.getStart());
-					console.log(x.getEnd());
-					let identifier: Token;
-					let variable: Token;
-					let block: Token;
-					forEachChild(x, y => {
-						if (y.kind == SyntaxKind.VariableDeclarationList) {
-							let _var = y.getChildAt(1);
-							variable = {
-								text: _var.getText(),
-								start: _var.getStart(),
-								end: _var.getEnd()
-							}
-						}
-						else if (y.kind == SyntaxKind.Identifier) {
-							identifier = {
-								text: y.getText(),
-								start: y.getStart(),
-								end: y.getEnd()
-							}
-						}
-						else if (y.kind == SyntaxKind.Block) {
-							block = {
-								text: "",
-								start: y.getStart(),
-								end: y.getEnd()
-							}
-						}
-					})
-					debugger
-				}
+				// console.log(SyntaxKind[x.kind])
+				// console.log(x.getText());
+				// console.log(x.getStart());
+				// console.log(x.getEnd());
+				// if (x.kind == SyntaxKind.ForOfStatement) {
+				// 	let identifier: Token;
+				// 	let variable: Token;
+				// 	let block: Token;
+				// 	forEachChild(x, y => {
+				// 		if (y.kind == SyntaxKind.VariableDeclarationList) {
+				// 			let _var = y.getChildAt(1);
+				// 			variable = {
+				// 				text: _var.getText(),
+				// 				start: _var.getStart(),
+				// 				end: _var.getEnd()
+				// 			}
+				// 		}
+				// 		else if (y.kind == SyntaxKind.Identifier) {
+				// 			identifier = {
+				// 				text: y.getText(),
+				// 				start: y.getStart(),
+				// 				end: y.getEnd()
+				// 			}
+				// 		}
+				// 		else if (y.kind == SyntaxKind.Block) {
+				// 			block = {
+				// 				text: "",
+				// 				start: y.getStart(),
+				// 				end: y.getEnd()
+				// 			}
+				// 		}
+				// 	})
+				// 	debugger
+				// }
+				// if (x.kind == SyntaxKind.IfStatement) {
+				// 	const loadStatement = (c: IfStatement) => {
+				// 		if (c.expression) {
+				// 			ParserHtml.addFct({
+				// 				txt: c.expression.getText(),
+				// 				start: c.expression.getStart(),
+				// 				end: c.expression.getEnd(),
+				// 			})
+				// 			if (c.elseStatement) {
+				// 				loadStatement(c.elseStatement as IfStatement);
+				// 			}
+				// 		}
+				// 		else {
+				// 			// its an else
+				// 		}
+				// 	}
+				// 	loadStatement(x as IfStatement);
+				// }
+
+				
 				// avoid parsing inside {{ }}
-				if(x.kind == SyntaxKind.Block && node.kind == SyntaxKind.Block) {
+				if (x.kind == SyntaxKind.Block && node.kind == SyntaxKind.Block) {
 					return
 				}
 				loop(x, lvl + 1)
@@ -464,6 +500,7 @@ export class ParserHtml {
 		}
 		let result: HtmlTemplateResult = {
 			elements: [],
+			content: {},
 			injection: {},
 			bindings: {},
 			events: [],

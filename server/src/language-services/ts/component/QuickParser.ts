@@ -23,6 +23,7 @@ export class QuickParser {
 	public end: number = -1;
 	private currentNamespace: string[] = []
 	public fullname: string = "";
+	public className: string = "";
 
 	private constructor(content: string, build: Build) {
 		this.currentNamespace.push(build.module);
@@ -71,6 +72,7 @@ export class QuickParser {
 							if (x.getText() == this.AventusDefaultComponent) {
 								this.end = node.getEnd()
 								this.fullname = [...this.currentNamespace, name.getText()].join('.')
+								this.className = name.getText();
 								return true;
 							}
 						}

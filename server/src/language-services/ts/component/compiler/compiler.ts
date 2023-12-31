@@ -31,10 +31,11 @@ import { RequiredDecorator } from '../../parser/decorators/RequiredDecorator';
 import { AliasInfo } from '../../parser/AliasInfo';
 import { WatchDecorator } from '../../parser/decorators/WatchDecorator';
 import { ParserHtml } from '../../../html/parser/ParserHtml';
-import { ActionBindings, ActionChange, ActionElement, ActionEvent, ActionInjection, ActionLoop, ActionPressEvent, HtmlTemplateResult, pressEventMap } from '../../../html/parser/definition';
+import { ActionBindings, ActionElement, ActionEvent, ActionInjection, ActionLoop, ActionPressEvent, HtmlTemplateResult, pressEventMap } from '../../../html/parser/definition';
 import { DefaultStateActiveDecorator } from '../../parser/decorators/DefaultStateActiveDecorator';
 import { DefaultStateInactiveDecorator } from '../../parser/decorators/DefaultStateInactiveDecorator';
 import { BindThisDecorator } from '../../parser/decorators/BindThisDecorator';
+import { EffectDecorator, EffectDecoratorOption } from '../../parser/decorators/EffectDecorator';
 
 
 export class AventusWebcomponentCompiler {
@@ -138,8 +139,8 @@ export class AventusWebcomponentCompiler {
         }
         this.scssTxt = scssFile ? scssFile.compileResult : '';
         this.htmlFile = htmlFile;
-        if (htmlFile) {
-            this.htmlParsed = htmlFile.fileParsed;
+        if (this.htmlFile) {
+            this.htmlParsed = this.htmlFile.fileParsed;
             this.htmlFile.tsErrors = [];
         }
         this.result.diagnostics = build.tsLanguageService.doValidation(this.file);
@@ -434,6 +435,7 @@ export class AventusWebcomponentCompiler {
         this.writeFileReplaceVar("style", this.scssTxt);
         this.writeFileFields();
         this.writeFileMethods();
+        this.writeWatchableElements();
         this.writeFileConstructor();
         this.template = this.template.replace(/\|\!\*(.*?)\*\!\|/g, "{{$1}}");
         this.template = this.removeWhiteSpaceLines(this.template);
@@ -482,8 +484,8 @@ export class AventusWebcomponentCompiler {
     private writeFileTemplateHtml() {
         let htmlTxt = "";
         if (this.htmlParsed) {
-            let slots = this.htmlParsed.getSlotsInfoTxt(this.className);
-            let blocks = this.htmlParsed.getBlocksInfoTxt(this.className);
+            let slots = this.htmlParsed.getSlotsInfoTxt();
+            let blocks = this.htmlParsed.getBlocksInfoTxt();
             if (slots.length + blocks.length > 0) {
                 let superTxt = EOL + "super.__getHtml();";
                 let slotsTxt = "";
@@ -894,17 +896,18 @@ export class AventusWebcomponentCompiler {
     }
     private writeFileFieldsWatch(watches: { field: CustomFieldModel, fctTxt: string | null }[]) {
         let getterSetter = "";
-        let variableProxyTxt = "";
+        let defaultValueWatch = "";
         for (let watch of watches) {
             let field = watch.field;
 
             if (field.defaultValue === null || field.defaultValue == "undefined") {
                 this.result.diagnostics.push(createErrorTsPos(this.document, "A watchable prop must be initialized", field.nameStart, field.nameEnd, AventusErrorCode.MissingInit));
             }
-            let watchAction = `this.__addWatchesActions("${field.name}");`;
             if (watch.fctTxt) {
-                let fctTxt = this.transpileMethodNoRun(watch.fctTxt);
-                watchAction = `this.__addWatchesActions("${field.name}", ${fctTxt});`;
+                this.watchProperties[field.name] = this.transpileMethodNoRun(watch.fctTxt);
+            }
+            else {
+                this.watchProperties[field.name] = "";
             }
 
             getterSetter += `get '${field.name}'() {
@@ -914,38 +917,15 @@ export class AventusWebcomponentCompiler {
 						this.__watch["${field.name}"] = val;
 					}`+ EOL;
 
-            variableProxyTxt += `${watchAction}` + EOL;
-            this.defaultValueTxt += `if(!this["${field.name}"]){ this["${field.name}"] = ${field.defaultValue?.replace(/\\"/g, '')};}` + EOL;
+            defaultValueWatch += `w["${field.name}"] = ${field.defaultValue?.replace(/\\"/g, '')};` + EOL;
             this.foundedWatch.push(field.name);
         }
 
-        let debugWatchTxt = '';
-        if (this.debuggerDecorator?.enableWatchHistory) {
-            debugWatchTxt = `if(this.__watch){
-this.__watch.enableHistory();
-this.getWatchHistory = () => {
-    return this.__watch.getHistory();
-}
-this.clearWatchHistory = () => {
-    return this.__watch.clearHistory();
-}
-}`
+        if (defaultValueWatch.length > 0) {
+            defaultValueWatch = `__defaultValuesWatch(w) { super.__defaultValuesWatch(w); ${defaultValueWatch} }`;
         }
-        if (variableProxyTxt.length > 0) {
+        this.writeFileReplaceVar("defaultValueWatch", defaultValueWatch);
 
-            variableProxyTxt = `__registerWatchesActions() {
-                ${variableProxyTxt}
-                super.__registerWatchesActions();
-                ${debugWatchTxt}
-            }`
-        }
-        else if (debugWatchTxt.length > 0) {
-            variableProxyTxt = `__registerWatchesActions() {
-                super.__registerWatchesActions();
-                ${debugWatchTxt}
-            }`
-        }
-        this.writeFileReplaceVar("watchesChangeCb", variableProxyTxt);
         this.writeFileReplaceVar("getterSetterWatch", getterSetter);
     }
 
@@ -968,7 +948,122 @@ this.clearWatchHistory = () => {
         this.writeFileReplaceVar("listBool", listBoolTxt);
     }
 
+    private writeFileMethods() {
+        let tempStateList: {
+            [statePattern: string]: {
+                [managerName: string]: {
+                    active: string[],
+                    inactive: string[],
+                    askChange: string[],
+                };
+            };
+        } = {}
 
+        let methodsTxt = "";
+        let defaultStateTxt = "";
+        if (this.classInfo) {
+            let fullTxt = ""
+            for (let methodName in this.classInfo.methods) {
+                let method = this.classInfo.methods[methodName];
+                fullTxt += method.compiledContent + EOL;
+                for (let decorator of method.decorators) {
+                    if (BindThisDecorator.is(decorator)) {
+                        this.extraConstructorCode.push(`this.${methodName}=this.${methodName}.bind(this)`);
+                        continue;
+                    }
+
+                    let effectDecorator = EffectDecorator.is(decorator);
+                    if (effectDecorator) {
+                        this.watchFunctions[methodName] = effectDecorator.options;
+                        continue;
+                    }
+
+                    // gestion des states
+                    let basicState: StateChangeDecorator | StateActiveDecorator | StateInactiveDecorator | null = null;
+                    let tempChange = StateChangeDecorator.is(decorator);
+                    if (tempChange) {
+                        basicState = tempChange;
+                    }
+                    else {
+                        let tempActive = StateActiveDecorator.is(decorator);
+                        if (tempActive) {
+                            basicState = tempActive;
+                        }
+                        else {
+                            let tempInactive = StateInactiveDecorator.is(decorator);
+                            if (tempInactive) {
+                                basicState = tempInactive;
+                            }
+                        }
+                    }
+                    let defActive: DefaultStateActiveDecorator | null;
+                    let defInactive: DefaultStateInactiveDecorator | null;
+
+                    if (basicState !== null) {
+                        if (decorator.arguments.length > 0) {
+                            if (!tempStateList[basicState.stateName]) {
+                                tempStateList[basicState.stateName] = {};
+                            }
+                            if (!tempStateList[basicState.stateName][basicState.managerName]) {
+                                tempStateList[basicState.stateName][basicState.managerName] = {
+                                    active: [],
+                                    inactive: [],
+                                    askChange: []
+                                }
+                            }
+                            tempStateList[basicState.stateName][basicState.managerName][basicState.functionName].push(method.name);
+                        }
+                    }
+                    else if ((defActive = DefaultStateActiveDecorator.is(decorator))) {
+                        defaultStateTxt += `this.__addActiveDefState(${defActive.managerName}, this.${method.name});` + EOL;
+                    }
+                    else if ((defInactive = DefaultStateInactiveDecorator.is(decorator))) {
+                        defaultStateTxt += `this.__addInactiveDefState(${defInactive.managerName}, this.${method.name});` + EOL;
+                    }
+                }
+            }
+            let fullClassFct = `class MyCompilationClassAventus {${fullTxt}}`;
+            let fctCompiled = transpile(fullClassFct, AventusTsLanguageService.getCompilerOptionsCompile());
+            let matchContent = /\{((\s|\S)*)\}/gm.exec(fctCompiled);
+            if (matchContent) {
+                methodsTxt = matchContent[1].trim();
+            }
+        }
+        this.writeFileReplaceVar("methods", methodsTxt);
+
+        let statesTxt = "";
+        for (let statePattern in tempStateList) {
+            for (let managerName in tempStateList[statePattern]) {
+                let currentAction = tempStateList[statePattern][managerName];
+                statesTxt += `this.__createStatesList(${statePattern}, ${managerName});`;
+                if (currentAction.active.length > 0) {
+                    let fctTxt = "";
+                    for (let fctName of currentAction.active) {
+                        fctTxt += "that." + fctName + "(state, slugs);"
+                    }
+                    statesTxt += `this.__addActiveState(${statePattern}, ${managerName}, (state, slugs) => { that.__inactiveDefaultState(${managerName}); ${fctTxt}})` + EOL;
+                }
+                if (currentAction.inactive.length > 0) {
+                    let fctTxt = "";
+                    for (let fctName of currentAction.inactive) {
+                        fctTxt += "that." + fctName + "(state, nextState, slugs);"
+                    }
+                    statesTxt += `this.__addInactiveState(${statePattern}, ${managerName}, (state, nextState, slugs) => { ${fctTxt}that.__activeDefaultState(nextState, ${managerName});})` + EOL;
+                }
+                if (currentAction.askChange.length > 0) {
+                    let fctTxt = "";
+                    for (let fctName of currentAction.askChange) {
+                        fctTxt += "if(!await that." + fctName + "(state, nextState, slugs)){return false;}" + EOL;
+                    }
+                    statesTxt += `this.__addAskChangeState(${statePattern}, ${managerName}, async (state, nextState, slugs) => { ${fctTxt} return true;})` + EOL;
+                }
+            }
+        }
+        if (statesTxt.length > 0 || defaultStateTxt.length > 0) {
+            statesTxt = `__createStates() { super.__createStates(); let that = this; ${defaultStateTxt} ${statesTxt} }`
+        }
+        this.writeFileReplaceVar("states", statesTxt)
+    }
 
     private variablesInViewDynamic = "";
     private writeViewInfo(template: HtmlTemplateResult, isMain: boolean, localVars: string[] = [], loopInfo?: ActionLoop) {
@@ -1035,7 +1130,16 @@ this.clearWatchHistory = () => {
         //#endregion
 
         //#region content
-        
+        let contents = template.content;
+        let contentResult: { [id_attr: string]: { fct: string } } = {}
+        for (let key in contents) {
+            contentResult[key] = {
+                fct: `@_@${contents[key]}@_@`
+            }
+        }
+        if (Object.keys(contentResult).length > 0) {
+            finalViewResult.content = contentResult;
+        }
         //#endregion
 
         //#region injection
@@ -1181,7 +1285,7 @@ this.clearWatchHistory = () => {
                 let temp: ActionEvent = {
                     eventName: event.eventName,
                     id: event.id,
-                    fct: `@_@(e, c) => c.component.${event.fct}(e)@_@`,
+                    fct: `@_@(e, c) => c.comp.${event.fct}(e)@_@`,
                 }
                 if (event.tagName) {
                     let definition = this.build.getWebComponentDefinition(event.tagName);
@@ -1191,7 +1295,7 @@ this.clearWatchHistory = () => {
                             let type = definition.class.properties[eventName].type.value
                             if (ListCallbacks.includes(type)) {
                                 temp.isCallback = true;
-                                temp.fct = `@_@(c, ...args) => c.component.${event.fct}.apply(c.component, args)@_@`;
+                                temp.fct = `@_@(c, ...args) => c.comp.${event.fct}.apply(c.comp, args)@_@`;
                             }
                         }
                     }
@@ -1235,7 +1339,7 @@ this.clearWatchHistory = () => {
                             this.createMissingMethod(currentEvent.value, currentEvent.start, currentEvent.end);
                         }
                         else {
-                            tempPressEvent[key] = `@_@(e, pressInstance, c) => { c.component.${currentEvent.value}(e, pressInstance); }@_@`;
+                            tempPressEvent[key] = `@_@(e, pressInstance, c) => { c.comp.${currentEvent.value}(e, pressInstance); }@_@`;
                         }
                     }
                     else if (props.includes(key)) {
@@ -1326,6 +1430,64 @@ this.clearWatchHistory = () => {
         }
 
         return finalTxt;
+    }
+
+    private watchProperties: { [name: string]: string } = {}
+    private watchFunctions: { [name: string]: EffectDecoratorOption } = {}
+    private writeWatchableElements() {
+        let variableProxyTxt = "";
+
+        for (let prop in this.watchProperties) {
+            if (this.watchProperties[prop]) {
+                variableProxyTxt += `this.__addWatchesActions("${prop}", ${this.watchProperties[prop]});` + EOL
+            }
+            else {
+                variableProxyTxt += `this.__addWatchesActions("${prop}");` + EOL
+            }
+        }
+
+        if (Object.keys(this.watchFunctions).length > 0) {
+            let functionList: string[] = [];
+            for (let name in this.watchFunctions) {
+                if (this.watchFunctions[name].autoInit) {
+                    functionList.push(`{ name: "${name}", autoInit: true }`)
+                }
+                else {
+                    functionList.push(`"${name}"`);
+                }
+            }
+            variableProxyTxt += `this.__addWatchesFunctions([${EOL}${functionList.join(",\n")}${EOL}]);` + EOL;
+        }
+
+
+
+        let debugWatchTxt = '';
+        if (this.debuggerDecorator?.enableWatchHistory) {
+            debugWatchTxt = `if(this.__watch){
+this.__watch.enableHistory();
+this.getWatchHistory = () => {
+    return this.__watch.getHistory();
+}
+this.clearWatchHistory = () => {
+    return this.__watch.clearHistory();
+}
+}`
+        }
+        if (variableProxyTxt.length > 0) {
+            variableProxyTxt = `__registerWatchesActions() {
+    ${variableProxyTxt}
+    super.__registerWatchesActions();
+    ${debugWatchTxt}
+}`
+        }
+        else if (debugWatchTxt.length > 0) {
+            variableProxyTxt = `__registerWatchesActions() {
+    super.__registerWatchesActions();
+    ${debugWatchTxt}
+}`
+        }
+
+        this.writeFileReplaceVar("watchesChangeCb", variableProxyTxt);
     }
 
     //#region utils
@@ -1483,116 +1645,7 @@ this.clearWatchHistory = () => {
 
     //#endregion
 
-    private writeFileMethods() {
-        let tempStateList: {
-            [statePattern: string]: {
-                [managerName: string]: {
-                    active: string[],
-                    inactive: string[],
-                    askChange: string[],
-                };
-            };
-        } = {}
 
-        let methodsTxt = "";
-        let defaultStateTxt = "";
-        if (this.classInfo) {
-            let fullTxt = ""
-            for (let methodName in this.classInfo.methods) {
-                let method = this.classInfo.methods[methodName];
-                fullTxt += method.compiledContent + EOL;
-                for (let decorator of method.decorators) {
-                    if (BindThisDecorator.is(decorator)) {
-                        this.extraConstructorCode.push(`this.${methodName}=this.${methodName}.bind(this)`);
-                        continue;
-                    }
-
-                    // gestion des states
-                    let basicState: StateChangeDecorator | StateActiveDecorator | StateInactiveDecorator | null = null;
-                    let tempChange = StateChangeDecorator.is(decorator);
-                    if (tempChange) {
-                        basicState = tempChange;
-                    }
-                    else {
-                        let tempActive = StateActiveDecorator.is(decorator);
-                        if (tempActive) {
-                            basicState = tempActive;
-                        }
-                        else {
-                            let tempInactive = StateInactiveDecorator.is(decorator);
-                            if (tempInactive) {
-                                basicState = tempInactive;
-                            }
-                        }
-                    }
-                    let defActive: DefaultStateActiveDecorator | null;
-                    let defInactive: DefaultStateInactiveDecorator | null;
-
-                    if (basicState !== null) {
-                        if (decorator.arguments.length > 0) {
-                            if (!tempStateList[basicState.stateName]) {
-                                tempStateList[basicState.stateName] = {};
-                            }
-                            if (!tempStateList[basicState.stateName][basicState.managerName]) {
-                                tempStateList[basicState.stateName][basicState.managerName] = {
-                                    active: [],
-                                    inactive: [],
-                                    askChange: []
-                                }
-                            }
-                            tempStateList[basicState.stateName][basicState.managerName][basicState.functionName].push(method.name);
-                        }
-                    }
-                    else if ((defActive = DefaultStateActiveDecorator.is(decorator))) {
-                        defaultStateTxt += `this.__addActiveDefState(${defActive.managerName}, this.${method.name});` + EOL;
-                    }
-                    else if ((defInactive = DefaultStateInactiveDecorator.is(decorator))) {
-                        defaultStateTxt += `this.__addInactiveDefState(${defInactive.managerName}, this.${method.name});` + EOL;
-                    }
-                }
-            }
-            let fullClassFct = `class MyCompilationClassAventus {${fullTxt}}`;
-            let fctCompiled = transpile(fullClassFct, AventusTsLanguageService.getCompilerOptionsCompile());
-            let matchContent = /\{((\s|\S)*)\}/gm.exec(fctCompiled);
-            if (matchContent) {
-                methodsTxt = matchContent[1].trim();
-            }
-        }
-        this.writeFileReplaceVar("methods", methodsTxt);
-
-        let statesTxt = "";
-        for (let statePattern in tempStateList) {
-            for (let managerName in tempStateList[statePattern]) {
-                let currentAction = tempStateList[statePattern][managerName];
-                statesTxt += `this.__createStatesList(${statePattern}, ${managerName});`;
-                if (currentAction.active.length > 0) {
-                    let fctTxt = "";
-                    for (let fctName of currentAction.active) {
-                        fctTxt += "that." + fctName + "(state, slugs);"
-                    }
-                    statesTxt += `this.__addActiveState(${statePattern}, ${managerName}, (state, slugs) => { that.__inactiveDefaultState(${managerName}); ${fctTxt}})` + EOL;
-                }
-                if (currentAction.inactive.length > 0) {
-                    let fctTxt = "";
-                    for (let fctName of currentAction.inactive) {
-                        fctTxt += "that." + fctName + "(state, nextState, slugs);"
-                    }
-                    statesTxt += `this.__addInactiveState(${statePattern}, ${managerName}, (state, nextState, slugs) => { ${fctTxt}that.__activeDefaultState(nextState, ${managerName});})` + EOL;
-                }
-                if (currentAction.askChange.length > 0) {
-                    let fctTxt = "";
-                    for (let fctName of currentAction.askChange) {
-                        fctTxt += "if(!await that." + fctName + "(state, nextState, slugs)){return false;}" + EOL;
-                    }
-                    statesTxt += `this.__addAskChangeState(${statePattern}, ${managerName}, async (state, nextState, slugs) => { ${fctTxt} return true;})` + EOL;
-                }
-            }
-        }
-        if (statesTxt.length > 0 || defaultStateTxt.length > 0) {
-            statesTxt = `__createStates() { super.__createStates(); let that = this; ${defaultStateTxt} ${statesTxt} }`
-        }
-        this.writeFileReplaceVar("states", statesTxt)
-    }
 
     //#endregion
 

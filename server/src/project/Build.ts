@@ -12,7 +12,7 @@ import { AventusHTMLLanguageService } from "../language-services/html/LanguageSe
 import { AventusConfigBuild } from "../language-services/json/definition";
 import { AventusWebSCSSFile } from "../language-services/scss/File";
 import { AventusSCSSLanguageService } from "../language-services/scss/LanguageService";
-import { AventusWebComponentLogicalFile, AventusWebComponentSingleFile } from "../language-services/ts/component/File";
+import { AventusWebComponentLogicalFile } from "../language-services/ts/component/File";
 import { AventusTsFile } from "../language-services/ts/File";
 import { AventusTsFileSelector } from '../language-services/ts/FileSelector';
 import { AventusTsLanguageService, CompileTsResult } from "../language-services/ts/LanguageService";
@@ -33,6 +33,7 @@ import { InfoType } from '../language-services/ts/parser/BaseInfo';
 import { AventusBaseFile } from '../language-services/BaseFile';
 import { GenericServer } from '../GenericServer';
 import { NpmBuilder } from './BuildNpm';
+import { AventusWebComponentSingleFile } from '../language-services/ts/component/SingleFile';
 
 export type BuildErrors = { file: string, title: string }[]
 

@@ -30,6 +30,7 @@ export function AventusWebcomponentTemplate() {
     }
 
     $defaultValue$
+    $defaultValueWatch$
     $upgradeAttributes$
     $listBool$
 
