@@ -99,4 +99,6 @@ declare global {
     function Convertible(name: string = "Fullname"): (ConstructorConstraint: Function) => void;
 
     function BindThis(): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void;
+
+    function NoCompile(): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void;
 }

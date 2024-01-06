@@ -24,6 +24,7 @@ export class QuickParser {
 	private currentNamespace: string[] = []
 	public fullname: string = "";
 	public className: string = "";
+	public whiteSpaceBefore: number = 0;
 
 	private constructor(content: string, build: Build) {
 		this.currentNamespace.push(build.module);
@@ -63,6 +64,10 @@ export class QuickParser {
 	}
 
 	private loadClass(node: ClassDeclaration): true | undefined {
+		let whiteSpaceBefore = /^(\s)*/.exec(node.getText());
+		if (whiteSpaceBefore) {
+			this.whiteSpaceBefore = whiteSpaceBefore[0].length;
+		}
 		if (node.name && node.heritageClauses) {
 			let name = node.name;
 			for (let heritage of node.heritageClauses) {

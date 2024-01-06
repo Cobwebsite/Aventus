@@ -1,11 +1,12 @@
 import { Position, CompletionList, CompletionItem, Hover, Definition, Range, FormattingOptions, TextEdit, CodeAction, Diagnostic, Location, CodeLens, WorkspaceEdit } from "vscode-languageserver";
-import { AventusExtension } from '../../definition';
+import { AventusExtension, AventusLanguageId, AventusType } from '../../definition';
 import { AventusFile } from '../../files/AventusFile';
 import { Build } from '../../project/Build';
 import { AventusBaseFile } from "../BaseFile";
 import { AventusWebComponentLogicalFile } from '../ts/component/File';
 import { ParserHtml } from './parser/ParserHtml';
 import { AventusWebSCSSFile } from '../scss/File';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 
 export class AventusHTMLFile extends AventusBaseFile {
 
@@ -104,8 +105,29 @@ export class AventusHTMLFile extends AventusBaseFile {
         }
         return this.build.htmlLanguageService.onDefinition(this, position);
     }
-    protected async onFormatting(document: AventusFile, range: Range, options: FormattingOptions): Promise<TextEdit[]> {
-        return this.build.htmlLanguageService.format(document, range, options);
+    protected async onFormatting(file: AventusFile, range: Range, options: FormattingOptions): Promise<TextEdit[]> {
+        let resultJs = await this.tsFile?.doFormatting(range, options) ?? [];
+        let content = file.document.getText();
+        let transformations = resultJs;
+        transformations.sort((a, b) => file.document.offsetAt(b.range.end) - file.document.offsetAt(a.range.end)); // order from end file to start file
+        for (let transformation of transformations) {
+            let start = file.document.offsetAt(transformation.range.start);
+            let end = file.document.offsetAt(transformation.range.end);
+            content = content.slice(0, start) + transformation.newText + content.slice(end, content.length);
+        }
+        let document = TextDocument.create(file.document.uri, file.document.languageId, file.document.version, content);
+        let result = await this.build.htmlLanguageService.format(document, range, options);
+
+        if (result.length == 1) {
+            result[0].range = {
+                start: {
+                    character: 0,
+                    line: 0
+                },
+                end: file.document.positionAt(file.document.getText().length)
+            }
+        }
+        return result;
     }
     protected async onCodeAction(document: AventusFile, range: Range): Promise<CodeAction[]> {
         return [];

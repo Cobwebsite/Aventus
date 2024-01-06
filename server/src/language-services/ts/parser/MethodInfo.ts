@@ -4,6 +4,7 @@ import { ParserTs } from './ParserTs';
 import { ClassInfo } from './ClassInfo';
 import { InternalDecorator, InternalProtectedDecorator } from './decorators/InternalDecorator';
 import { BaseInfo } from './BaseInfo';
+import { NoCompileDecorator } from './decorators/NoCompileDecorator';
 
 export class MethodInfo {
     public fullStart: number = 0;
@@ -17,6 +18,7 @@ export class MethodInfo {
     public decorators: DecoratorInfo[] = [];
     public _class: ClassInfo;
     public accessibilityModifierTransformation?: { newText: string, start: number, end: number };
+    public mustBeCompiled: boolean = true;
     public get compiledContent(): string {
         return BaseInfo.getContent(this.content, this.start, this.end, this._class.dependancesLocations, this._class.compileTransformations);
     }
@@ -37,6 +39,12 @@ export class MethodInfo {
             }
         }
         this.loadAccessibilityModifier(method);
+        for (let decorator of this.decorators) {
+            if (NoCompileDecorator.is(decorator)) {
+                this.mustBeCompiled = false;
+                break;
+            }
+        }
     }
 
     private loadAccessibilityModifier(method: MethodDeclaration) {

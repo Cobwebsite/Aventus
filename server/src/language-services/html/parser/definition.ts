@@ -62,19 +62,34 @@ export type ActionPressEvent = {
 	} | string,
 };
 export type ActionLoop = {
-	loopId: number,
+	templateId: number,
 	anchorId: string,
 	template: string,
-	from: string,
-	index: string,
-	item: string,
 	actions: HtmlTemplateResult,
-	loopParentId: number | null,
-	positionFrom: { start: number, end: number }
+	parentId?: number,
+	simple?: {
+		data: string,
+		item?: string,
+		index?: string,
+	}
+	func?: string
 };
+export type ActionIfPart = {
+	template: string,
+	templateId: number,
+	condition: string,
+	templateAction: HtmlTemplateResult,
+}
+export type ActionIf = {
+	parentId?: number,
+	anchorId: string,
+	parts: ActionIfPart[]
+}
 export type ActionChange = {
-	start: number,
-	end: number,
+	positions:{
+		start: number,
+		end: number,
+	}[],
 	name: string,
 	txt: string,
 	variablesType: { [name: string]: string }
@@ -92,4 +107,5 @@ export type HtmlTemplateResult = {
 	events: ActionEvent[];
 	pressEvents: ActionPressEvent[];
 	loops: ActionLoop[];
+	ifs: ActionIf[]
 };

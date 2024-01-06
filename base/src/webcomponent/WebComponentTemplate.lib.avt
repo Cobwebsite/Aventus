@@ -1,4 +1,4 @@
-import { Computed, Effect, WatchAction, Watcher } from "../lib/Watcher.lib.avt";
+import { Computed, Effect, WatchAction, Watcher, type WatcherFunction } from "../lib/Watcher.lib.avt";
 import { PressManager, type PressManagerOptions } from "../lib/PressManager.lib.avt";
 import { WebComponent } from "./WebComponent.lib.avt";
 
@@ -41,12 +41,21 @@ type Actions = {
     events?: ActionEvent[];
     pressEvents?: PressManagerOptions[];
 };
-type Loop = {
+type LoopFct = {
+    transform?: () => void;
+    condition: () => boolean,
+    apply: () => { [key: string]: any; };
+};
+type LoopSimple = {
     data: string,
-    item: string,
-    index: string,
+    item?: string,
+    index?: string,
+};
+type Loop = {
     anchorId: string,
     template: Template;
+    func?: (c: WebComponent) => LoopFct,
+    simple?: LoopSimple,
 };
 type If = {
     anchorId: string;
@@ -213,7 +222,7 @@ export class Template {
 
     public createInstance(component: WebComponent) {
         let content = this.template.content.cloneNode(true) as DocumentFragment;
-        return new TemplateInstance(component, content, this.actions, "", this.loops, this.ifs);
+        return new TemplateInstance(component, content, this.actions, this.loops, this.ifs);
     }
 }
 
@@ -230,23 +239,28 @@ export class TemplateInstance {
     public firstChild: HTMLElement | null;
     public lastChild: HTMLElement | null;
     private computeds: Effect[] = [];
-    private pathFrom: string;
-    private loopRegisteries: { [name: string]: TemplateInstance[]; } = {};
+    private renderingComputeds: Effect[] = [];
+    private loopRegisteries: {
+        [name: string]: {
+            templates: TemplateInstance[],
+            computeds: Computed[],
+            sub?: (change: WatcherFunction) => void;
+        };
+    } = {};
     private loops: Loop[] = [];
     private ifs: If[] = [];
 
 
 
-    public constructor(component: WebComponent, content: DocumentFragment, actions: Actions, pathFrom: string, loops: Loop[], ifs: If[], context?: TemplateContext) {
+    public constructor(component: WebComponent, content: DocumentFragment, actions: Actions, loops: Loop[], ifs: If[], context?: TemplateContext) {
         this.component = component;
         this.content = content;
         this.actions = actions;
-        this.pathFrom = pathFrom;
         this.ifs = ifs;
         this.loops = loops;
         this.context = context ? context : new TemplateContext(component);
-        this.firstChild = content.firstChild as HTMLElement;
-        this.lastChild = content.lastChild as HTMLElement;
+        this.firstChild = content.firstElementChild as HTMLElement;
+        this.lastChild = content.lastElementChild as HTMLElement;
 
         this.selectElements();
         this.transformActionsListening();
@@ -266,14 +280,20 @@ export class TemplateInstance {
 
     public destructor() {
         for(let name in this.loopRegisteries) {
-            for(let item of this.loopRegisteries[name]) {
+            for(let item of this.loopRegisteries[name].templates) {
                 item.destructor();
+            }
+            for(let item of this.loopRegisteries[name].computeds) {
+                item.destroy();
             }
         }
         this.loopRegisteries = {};
 
         this.context.destructor();
         for(let computed of this.computeds) {
+            computed.destroy();
+        }
+        for(let computed of this.renderingComputeds) {
             computed.destroy();
         }
         this.computeds = [];
@@ -444,7 +464,7 @@ export class TemplateInstance {
 
         });
 
-        this.computeds.push(computed);
+        this.renderingComputeds.push(computed);
 
         this.firstRenderUniqueCb[name] = () => {
             apply();
@@ -532,119 +552,183 @@ export class TemplateInstance {
     private renderSubTemplate() {
         for(let loop of this.loops) {
             this.renderLoop(loop);
-            this.registerLoopWatchEvent(loop);
         }
         for(let _if of this.ifs) {
             this.renderIf(_if);
         }
     }
     private renderLoop(loop: Loop) {
+        if(loop.func) {
+            // it's a complex rendering
+            let fctsTemp = loop.func(this.component);
+            let fcts: Required<LoopFct> = {
+                apply: fctsTemp.apply,
+                condition: fctsTemp.condition,
+                transform: fctsTemp.transform ?? (() => { })
+            };
+            this.renderLoopComplex(loop, fcts);
+        }
+        else if(loop.simple) {
+            this.renderLoopSimple(loop, loop.simple);
+        }
+    }
+    private resetLoop(loop: Loop) {
         if(this.loopRegisteries[loop.anchorId]) {
-            for(let item of this.loopRegisteries[loop.anchorId]) {
+            for(let item of this.loopRegisteries[loop.anchorId].templates) {
                 item.destructor();
             }
-        }
-        this.loopRegisteries[loop.anchorId] = [];
+            for(let item of this.loopRegisteries[loop.anchorId].computeds) {
+                item.destroy();
+            }
 
-        let result: any[];
-        let pathFromArray = this.pathFrom == "" ? [] : [this.pathFrom];
-        if(loop.data.startsWith("°")) {
-            result = Template.getValueFromItem(loop.data, this.context.data);
-            let array = loop.data.split(".");
-            array.splice(0, 1);
-            let txtFinal = array.join(".");
-            if(txtFinal != "")
-                pathFromArray.push(txtFinal);
+            if(loop.simple && this.loopRegisteries[loop.anchorId].sub) {
+                let elements = this.context.getValueFromItem(loop.simple.data.replace(/^this\./, ''));
+                if(elements) {
+                    elements.unsubscribe(this.loopRegisteries[loop.anchorId].sub);
+                }
+            }
         }
-        else {
-            result = Template.getValueFromItem(loop.data, this.component);
-            pathFromArray.push(loop.data);
+        this.loopRegisteries[loop.anchorId] = {
+            templates: [],
+            computeds: [],
+        };
+    }
+    private renderLoopComplex(loop: Loop, fcts: Required<LoopFct>) {
+        this.resetLoop(loop);
+        let computedsCondition: Computed[] = [];
+        let alreadyRecreated = false;
+        const createComputedCondition = () => {
+            let compCondition = new Computed<any>(() => {
+                return fcts.condition();
+            });
+            compCondition.value;
+            compCondition.subscribe((action, path, value) => {
+                if(!alreadyRecreated) {
+                    alreadyRecreated = true;
+                    this.renderLoopComplex(loop, fcts);
+                }
+            });
+            computedsCondition.push(compCondition);
+            this.loopRegisteries[loop.anchorId].computeds.push(compCondition);
+            return compCondition;
+        };
+
+        let result: any[] = [];
+        let compCondition = createComputedCondition();
+        while(compCondition.value) {
+            result.push(fcts.apply());
+            fcts.transform();
+            compCondition = createComputedCondition();
         }
 
 
         let anchor = this._components[loop.anchorId][0];
         for(let i = 0; i < result.length; i++) {
-            let context = new TemplateContext(this.component, this.context);
-            context.registerLoop(loop.item, loop.data, loop.index, i);
-
+            let context = new TemplateContext(this.component, result[i], this.context);
             let content = loop.template.template?.content.cloneNode(true) as DocumentFragment;
             let actions = loop.template.actions;
-            let newPathFrom = pathFromArray.join(".") + "[" + i + "]";
-            let instance = new TemplateInstance(this.component, content, actions, newPathFrom, loop.template.loops, loop.template.ifs, context);
+            let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
             instance.render();
             anchor.parentNode?.insertBefore(instance.content, anchor);
-            this.loopRegisteries[loop.anchorId].push(instance);
+            this.loopRegisteries[loop.anchorId].templates.push(instance);
         }
     }
-    private registerLoopWatchEvent(loop: Loop) {
-        let computed: Effect;
-        let pathFromArray = this.pathFrom == "" ? [] : [this.pathFrom];
-        if(loop.data.startsWith("°")) {
-            computed = new Effect(() => {
-                Template.getValueFromItem(loop.data, this.context.data);
-            });
-            let array = loop.data.split(".");
-            array.splice(0, 1);
-            let txtFinal = array.join(".");
-            if(txtFinal != "")
-                pathFromArray.push(txtFinal);
+    private renderLoopSimple(loop: Loop, simple: LoopSimple) {
+        this.resetLoop(loop);
+        let basePath = simple.data.replace(/^this\./, '');
+        let getElements = () => this.context.getValueFromItem(basePath);
+        let elements = getElements();
+        let indexName = this.context.registerIndex();
+        let keys = Object.keys(elements);
+        if(elements.__isProxy) {
+            let regexArray = new RegExp(basePath.replace(/\./g, "\\.") + "\\[(\\d+?)\\]$");
+            let regexObject = new RegExp(basePath.replace(/\./g, "\\.") + "\\.([^\\.]*)$");
+            let sub: WatcherFunction = (action, path, value) => {
+                if(path == basePath) {
+                    this.renderLoopSimple(loop, simple);
+                    return;
+                }
+                // updated is deal by other function
+                if(action == WatchAction.UPDATED) {
+                    return;
+                }
+
+                let index: undefined | number = undefined;
+                regexArray.lastIndex = 0;
+                regexObject.lastIndex = 0;
+                let resultArray = regexArray.exec(path);
+                if(resultArray) {
+                    index = Number(resultArray[1]);
+                }
+                else {
+                    let resultObject = regexObject.exec(path);
+                    if(resultObject) {
+                        let oldKey = resultObject[1];
+                        if(action == WatchAction.CREATED) {
+                            keys = Object.keys(getElements());
+                            index = keys.indexOf(oldKey);
+                        }
+                        else if(action == WatchAction.DELETED) {
+                            index = keys.indexOf(oldKey);
+                            keys = Object.keys(getElements());
+                        }
+
+
+                    }
+                }
+
+                if(index !== undefined) {
+                    let registry = this.loopRegisteries[loop.anchorId];
+                    if(action == WatchAction.CREATED) {
+                        let context = new TemplateContext(this.component, {}, this.context);
+                        context.registerLoop(simple.data, index, indexName, simple.index, simple.item);
+                        let content = loop.template.template?.content.cloneNode(true) as DocumentFragment;
+                        let actions = loop.template.actions;
+                        let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
+                        instance.render();
+
+                        let anchor: HTMLElement | null;
+                        if(index < registry.templates.length) {
+                            anchor = registry.templates[index].firstChild;
+                        }
+                        else {
+                            anchor = this._components[loop.anchorId][0];
+                        }
+
+                        anchor?.parentNode?.insertBefore(instance.content, anchor);
+                        registry.templates.splice(index, 0, instance);
+                        for(let i = index + 1; i < registry.templates.length; i++) {
+                            let computeds = registry.templates[i].renderingComputeds;
+                            registry.templates[i].context.increaseIndex(indexName, simple.data, computeds);
+
+                        }
+                    }
+                    else if(action == WatchAction.DELETED) {
+                        registry.templates[index].destructor();
+                        registry.templates.splice(index, 1);
+                        for(let i = index; i < registry.templates.length; i++) {
+                            let computeds = registry.templates[i].renderingComputeds;
+                            registry.templates[i].context.decreaseIndex(indexName, simple.data, computeds);
+                        }
+                    }
+                }
+            };
+            elements.subscribe(sub);
         }
-        else {
-            computed = new Effect(() => {
-                Template.getValueFromItem(loop.data, this.component);
-            });
-            pathFromArray.push(loop.data);
+
+        let anchor = this._components[loop.anchorId][0];
+        for(let i = 0; i < keys.length; i++) {
+            let context = new TemplateContext(this.component, {}, this.context);
+            context.registerLoop(simple.data, i, indexName, simple.index, simple.item);
+            let content = loop.template.template?.content.cloneNode(true) as DocumentFragment;
+            let actions = loop.template.actions;
+            let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
+            instance.render();
+            anchor.parentNode?.insertBefore(instance.content, anchor);
+            this.loopRegisteries[loop.anchorId].templates.push(instance);
         }
-
-        let regex = new RegExp(loop.data.replace(/\./g, "\\.") + "\\[(\\d+?)\\]$");
-        computed.subscribe((action, path, value) => {
-            if(path == loop.data) {
-                this.renderLoop(loop);
-                return;
-            }
-            regex.lastIndex = 0;
-            let result = regex.exec(path);
-            if(result) {
-                let registry = this.loopRegisteries[loop.anchorId];
-                let index = Number(result[1]);
-                if(action == WatchAction.CREATED) {
-                    let context = new TemplateContext(this.component, this.context);
-                    context.registerLoop(loop.item, loop.data, loop.index, index);
-                    let content = loop.template.template?.content.cloneNode(true) as DocumentFragment;
-                    let actions = loop.template.actions;
-                    let newPathFrom = pathFromArray.join(".") + "[" + index + "]";
-                    let instance = new TemplateInstance(this.component, content, actions, newPathFrom, loop.template.loops, loop.template.ifs, context);
-                    instance.render();
-
-                    let anchor: HTMLElement | null;
-                    if(index < registry.length) {
-                        anchor = registry[index].firstChild;
-                    }
-                    else {
-                        anchor = this._components[loop.anchorId][0];
-                    }
-
-                    anchor?.parentNode?.insertBefore(instance.content, anchor);
-                    registry.splice(index, 0, instance);
-                    for(let i = index + 1; i < registry.length; i++) {
-                        registry[i].context.increaseIndex(loop.index);
-                    }
-                }
-                else if(action == WatchAction.UPDATED) {
-                    registry[index].render();
-                }
-                else if(action == WatchAction.DELETED) {
-                    registry[index].destructor();
-                    registry.splice(index, 1);
-                    for(let i = index; i < registry.length; i++) {
-                        registry[i].context.decreaseIndex(loop.index);
-                    }
-                }
-            }
-        });
-
-        this.computeds.push(computed);
     }
+
     private renderIf(_if: If) {
         let computeds: Computed<boolean>[] = [];
         let instances: TemplateInstance[] = [];
@@ -692,10 +776,10 @@ export class TemplateInstance {
 
 
 
-            let context = new TemplateContext(this.component, this.context);
+            let context = new TemplateContext(this.component, {}, this.context);
             let content = part.template.template?.content.cloneNode(true) as DocumentFragment;
             let actions = part.template.actions;
-            let instance = new TemplateInstance(this.component, content, actions, this.pathFrom, part.template.loops, part.template.ifs, context);
+            let instance = new TemplateInstance(this.component, content, actions, part.template.loops, part.template.ifs, context);
             instances.push(instance);
             instance.render();
         }
@@ -711,16 +795,24 @@ export class TemplateContext {
     private computeds: Computed[] = [];
     private watch: any;
 
-    public constructor(component: WebComponent, parentContext?: TemplateContext) {
+    public constructor(component: WebComponent, data: { [key: string]: any; } = {}, parentContext?: TemplateContext) {
         this.comp = component;
-        this.watch = Watcher.get({});
+        this.watch = Watcher.get({ ...data });
+        let that = this;
+        for(let key in data) {
+            Object.defineProperty(this.data, key, {
+                get() {
+                    return that.watch[key];
+                }
+            });
+        }
 
         if(parentContext) {
             const descriptors = Object.getOwnPropertyDescriptors(parentContext.data);
             for(let name in descriptors) {
                 Object.defineProperty(this.data, name, {
                     get() {
-                        return parentContext.data.name;
+                        return parentContext.data[name];
                     }
                 });
             }
@@ -732,46 +824,112 @@ export class TemplateContext {
     }
 
 
-    public increaseIndex(indexName: string) {
-        this.watch[indexName] = this.watch[indexName] + 1;
+    public registerIndex() {
+        let name = "index";
+        let i = 0;
+        let fullName = name + i;
+        while(this.watch[fullName] !== undefined) {
+            i++;
+            fullName = name + i;
+        }
+        return fullName;
     }
-    public decreaseIndex(indexName: string) {
-        this.watch[indexName] = this.watch[indexName] - 1;
-    }
-    public registerLoop(itemName: string, dataName: string, indexName: string, indexValue: number | string) {
-        this.watch[indexName] = indexValue;
-        let getItem: Computed<any>;
-        let getIndex: Computed<any> = new Computed(() => {
-            return this.watch[indexName];
-        });
 
-        if(dataName.startsWith("°")) {
-            // it's a local variable from another loop
-            getItem = new Computed(() => {
-                let indexValue = this.data[indexName];
-                return Template.getValueFromItem(dataName, this.data)[indexValue];
-            });
+    public registerLoop(dataName: string, _indexValue: number, _indexName: string, indexName?: string, itemName?: string) {
+        this.watch[_indexName] = _indexValue;
+        let getItems: () => any[];
+        if(!dataName.startsWith("this.")) {
+            getItems = () => {
+                return Template.getValueFromItem(dataName, this.data);
+            };
         }
         else {
-            // its a variable from the component
-            getItem = new Computed(() => {
-                let indexValue = this.data[indexName];
-                return Template.getValueFromItem(dataName, this.comp)[indexValue];
+            dataName = dataName.replace(/^this\./, '');
+            getItems = () => {
+                return Template.getValueFromItem(dataName, this.comp);
+            };
+        }
+
+        let getIndex: Computed<any> = new Computed(() => {
+            let keys = Object.keys(getItems());
+            let index = keys[_getIndex.value];
+            if(/^[0-9]+$/g.test(index)) return Number(index);
+            return index;
+        });
+        let getItem: Computed<any> = new Computed(() => {
+            let keys = Object.keys(getItems());
+            let index = keys[_getIndex.value];
+            return getItems()[index];
+        });
+        let _getIndex: Computed<any> = new Computed(() => {
+            return this.watch[_indexName];
+        });
+
+        this.computeds.push(getIndex);
+        this.computeds.push(getItem);
+        this.computeds.push(_getIndex);
+        if(itemName) {
+            Object.defineProperty(this.data, itemName, {
+                get() {
+                    return getItem.value;
+                }
             });
         }
-        this.computeds.push(getItem);
-        this.computeds.push(getIndex);
-        Object.defineProperty(this.data, itemName, {
-            get() {
-                return getItem.value;
-            }
-        });
-        Object.defineProperty(this.data, indexName, {
-            get() {
-                return getIndex.value;
-            }
-        });
+        if(indexName) {
+            Object.defineProperty(this.data, indexName, {
+                get() {
+                    return getIndex.value;
+                }
+            });
+        }
     }
+
+    private updateIndex(newIndex: number, _indexName: string, dataName: string, computeds: Effect[]) {
+        let fullName: string;
+        let items: any[] | {};
+        if(!dataName.startsWith("this.")) {
+            let comp = new Computed(() => {
+                return Template.getValueFromItem(dataName, this.data);
+            });
+            items = comp.value;
+            fullName = comp.callbacks[comp.callbacks.length - 1].path;
+        }
+        else {
+            fullName = dataName.replace(/^this\./, '');
+            items = Template.getValueFromItem(fullName, this.comp);
+        }
+
+        if(Array.isArray(items)) {
+            let regex = new RegExp("^(" + fullName.replace(/\./g, "\\.") + ")\\[(\\d+?)\\]");
+            for(let computed of computeds) {
+                for(let cb of computed.callbacks) {
+                    regex.lastIndex = 0;
+                    cb.path = cb.path.replace(regex, "$1[" + newIndex + "]");
+                }
+            }
+        }
+        else {
+            // let oldKey = Object.keys(items)[this.watch[_indexName]]
+            // let newKey = Object.keys(items)[newIndex]
+            // let regex = new RegExp("^(" + fullName.replace(/\./g, "\\.") + "\\.)(" + oldKey + ")($|\\.)");
+            // for (let computed of computeds) {
+            //     for (let cb of computed.callbacks) {
+            //         regex.lastIndex = 0;
+            //         cb.path = cb.path.replace(regex, "$1" + newKey + "$3")
+            //     }
+            // }
+        }
+
+        this.watch[_indexName] = newIndex;
+    }
+    public increaseIndex(_indexName: string, dataName: string, computeds: Effect[]) {
+        this.updateIndex(this.watch[_indexName] + 1, _indexName, dataName, computeds);
+    }
+    public decreaseIndex(_indexName: string, dataName: string, computeds: Effect[]) {
+        this.updateIndex(this.watch[_indexName] - 1, _indexName, dataName, computeds);
+    }
+
+
 
     public registerChange(name: string, fct: (path: string) => void) {
         let computed: Computed<any>;
@@ -800,6 +958,7 @@ export class TemplateContext {
         this.computeds = [];
     }
 
+
     public getValueFromItem(name: string) {
         let result = Template.getValueFromItem(name, this.data);
         if(result !== undefined) {
@@ -813,7 +972,6 @@ export class TemplateContext {
 
         return undefined;
     }
-
     public setValueToItem(name: string, value: any) {
         Template.setValueToItem(name, this.comp, value);
     }

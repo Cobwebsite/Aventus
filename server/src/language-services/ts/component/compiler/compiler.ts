@@ -31,7 +31,7 @@ import { RequiredDecorator } from '../../parser/decorators/RequiredDecorator';
 import { AliasInfo } from '../../parser/AliasInfo';
 import { WatchDecorator } from '../../parser/decorators/WatchDecorator';
 import { ParserHtml } from '../../../html/parser/ParserHtml';
-import { ActionBindings, ActionElement, ActionEvent, ActionInjection, ActionLoop, ActionPressEvent, HtmlTemplateResult, pressEventMap } from '../../../html/parser/definition';
+import { ActionBindings, ActionElement, ActionEvent, ActionIf, ActionIfPart, ActionInjection, ActionLoop, ActionPressEvent, HtmlTemplateResult, pressEventMap } from '../../../html/parser/definition';
 import { DefaultStateActiveDecorator } from '../../parser/decorators/DefaultStateActiveDecorator';
 import { DefaultStateInactiveDecorator } from '../../parser/decorators/DefaultStateInactiveDecorator';
 import { BindThisDecorator } from '../../parser/decorators/BindThisDecorator';
@@ -143,7 +143,15 @@ export class AventusWebcomponentCompiler {
             this.htmlParsed = this.htmlFile.fileParsed;
             this.htmlFile.tsErrors = [];
         }
-        this.result.diagnostics = build.tsLanguageService.doValidation(this.file);
+        let nativeDiags = build.tsLanguageService.doValidation(this.file);
+        let methodName = this.logicalFile.viewMethodName;
+        for (let i = 0; i < nativeDiags.length; i++) {
+            if (nativeDiags[i].message.startsWith("'" + methodName)) {
+                nativeDiags.splice(i, 1);
+                i--;
+            }
+        }
+        this.result.diagnostics = nativeDiags;
         this.template = AventusWebcomponentTemplate();
         this.document = logicalFile.file.document;
         this.build = build;
@@ -965,6 +973,7 @@ export class AventusWebcomponentCompiler {
             let fullTxt = ""
             for (let methodName in this.classInfo.methods) {
                 let method = this.classInfo.methods[methodName];
+                if (!method.mustBeCompiled) continue;
                 fullTxt += method.compiledContent + EOL;
                 for (let decorator of method.decorators) {
                     if (BindThisDecorator.is(decorator)) {
@@ -1066,7 +1075,7 @@ export class AventusWebcomponentCompiler {
     }
 
     private variablesInViewDynamic = "";
-    private writeViewInfo(template: HtmlTemplateResult, isMain: boolean, localVars: string[] = [], loopInfo?: ActionLoop) {
+    private writeViewInfo(template: HtmlTemplateResult, isMain: boolean, loopInfo?: ActionLoop, ifInfo?: ActionIfPart) {
         const finalViewResult: any = {};
         let finalTxt = "";
 
@@ -1169,19 +1178,6 @@ export class AventusWebcomponentCompiler {
                     this.result.diagnostics.push(createErrorTsPos(this.document, "The variable " + propName + " must be a property or a watch for injection", field.nameStart, field.nameEnd, AventusErrorCode.MissingWatchable));
                 }
             }
-            else if (localVars.includes(propName)) {
-                if (!resultInjections[propName]) {
-                    resultInjections[propName] = [];
-                }
-                for (let injection of injections[propName]) {
-                    resultInjections[propName].push({
-                        id: injection.id,
-                        injectionName: injection.injectionName,
-                        inject: injection.inject,
-                        path: injection.path
-                    })
-                }
-            }
             else {
                 let errorTxt = "Missing property or watch #" + propName + " for injection"
                 this.result.diagnostics.push(createErrorTsSection(this.document, errorTxt, "props", AventusErrorCode.MissingProp));
@@ -1236,29 +1232,6 @@ export class AventusWebcomponentCompiler {
                 }
                 else {
                     this.result.diagnostics.push(createErrorTsPos(this.document, "The variable " + propName + " must be a property or a watch for bindings", field.nameStart, field.nameEnd, AventusErrorCode.MissingWatchable));
-                }
-            }
-            else if (localVars.includes(propName)) {
-                for (let binding of bindings[propName]) {
-                    let temp: ActionBindings = {
-                        id: binding.id,
-                        valueName: binding.valueName,
-                        eventNames: binding.eventNames,
-                        path: binding.path
-                    }
-                    if (binding.eventNames.length == 1 && binding.tagName) {
-                        let definition = this.build.getWebComponentDefinition(binding.tagName);
-                        let eventName = binding.eventNames[0];
-                        if (definition) {
-                            if (definition.class.properties[eventName]) {
-                                let type = definition.class.properties[eventName].type.value
-                                if (ListCallbacks.includes(type)) {
-                                    temp.isCallback = true;
-                                }
-                            }
-                        }
-                    }
-                    resultBindings[propName].push(temp);
                 }
             }
             else {
@@ -1355,7 +1328,7 @@ export class AventusWebcomponentCompiler {
         }
         //#endregion
 
-        if (Object.keys(finalViewResult).length > 0 || loopInfo) {
+        if (Object.keys(finalViewResult).length > 0 || loopInfo || ifInfo) {
             let finalViewResultTxt = JSON.stringify(finalViewResult, null, 2).replace(/"@_@(.*?)@_@"/g, "$1").replace(/\\"/g, '"')
             if (isMain) {
                 finalTxt = `this.__getStatic().__template.setActions(${finalViewResultTxt});` + EOL;
@@ -1365,27 +1338,32 @@ export class AventusWebcomponentCompiler {
                 }
             }
             else if (loopInfo) {
-                finalTxt = `const templ${loopInfo.loopId} = new Aventus.WebComponentTemplate(this);` + EOL;
-                finalTxt += `templ${loopInfo.loopId}.setTemplate(\`${loopInfo.template}\`);` + EOL;
-                finalTxt += `templ${loopInfo.loopId}.setActions(${finalViewResultTxt});` + EOL;
-                if (!loopInfo.loopParentId) {
-                    finalTxt += `this.__getStatic().__template.addLoop({
-                        anchorId: '${loopInfo.anchorId}',
-                        data: '${loopInfo.from}',
-                        index: '${loopInfo.index}',
-                        item: '${loopInfo.item}',
-                        template: templ${loopInfo.loopId}
-                    });`+ EOL;
+                finalTxt = `const templ${loopInfo.templateId} = new Aventus.Template(this);` + EOL;
+                finalTxt += `templ${loopInfo.templateId}.setTemplate(\`${loopInfo.template}\`);` + EOL;
+                if (Object.keys(finalViewResult).length > 0)
+                    finalTxt += `templ${loopInfo.templateId}.setActions(${finalViewResultTxt});` + EOL;
+                const parent = loopInfo.parentId === undefined ? 'this.__getStatic().__template' : `templ${loopInfo.parentId}`
+                finalTxt += `${parent}.addLoop({
+                    anchorId: '${loopInfo.anchorId}',
+                    template: templ${loopInfo.templateId},
+                `;
+                if (loopInfo.simple) {
+                    finalTxt += `simple:{data: "${loopInfo.simple.data}"`;
+                    if (loopInfo.simple.index) {
+                        finalTxt += `,index:"${loopInfo.simple.index}"`;
+                    }
+                    if (loopInfo.simple.item) {
+                        finalTxt += `,item:"${loopInfo.simple.item}"`;
+                    }
+                    finalTxt += `}` + EOL;
                 }
-                else {
-                    finalTxt += `templ${loopInfo.loopParentId}.addLoop({
-                        anchorId: '${loopInfo.anchorId}',
-                        data: '${loopInfo.from}',
-                        index: '${loopInfo.index}',
-                        item: '${loopInfo.item}',
-                        template: templ${loopInfo.loopId}
-                    });`+ EOL;
-                }
+                finalTxt += `});` + EOL;
+            }
+            else if (ifInfo) {
+                finalTxt = `const templ${ifInfo.templateId} = new Aventus.Template(this);` + EOL;
+                finalTxt += `templ${ifInfo.templateId}.setTemplate(\`${ifInfo.template}\`);` + EOL;
+                if (Object.keys(finalViewResult).length > 0)
+                    finalTxt += `templ${ifInfo.templateId}.setActions(${finalViewResultTxt});` + EOL;
             }
         }
         else if (isMain) {
@@ -1396,26 +1374,26 @@ export class AventusWebcomponentCompiler {
         }
 
         for (let loop of template.loops) {
-            let newLocal = [...localVars];
-            newLocal.push(loop.item);
-            newLocal.push(loop.index);
-            let fromName = loop.from.split(".")[0]
-            if (!localVars.includes(fromName)) {
-                let field = this.allFields[fromName];
-                if (!field) {
-                    let errorTxt = "Missing watch #" + fromName + " for loop";
-                    this.result.diagnostics.push(createErrorTsSection(this.document, errorTxt, "props", AventusErrorCode.MissingProp));
-                    if (this.htmlFile) {
-                        if (loop.positionFrom) {
-                            this.htmlFile.tsErrors.push(createErrorHTMLPos(this.htmlFile.file.document, errorTxt, loop.positionFrom.start, loop.positionFrom.end));
-                        }
-                    }
-                }
-                else if (field.propType != "Watch") {
-                    this.result.diagnostics.push(createErrorTsPos(this.document, "The variable " + fromName + " must be a watch for loop", field.nameStart, field.nameEnd, AventusErrorCode.MissingWatchable));
-                }
+            finalTxt += this.writeViewInfo(loop.actions, false, loop);
+        }
+        for (let _if of template.ifs) {
+            let partTxt = "";
+            for (let part of _if.parts) {
+                finalTxt += this.writeViewInfo(part.templateAction, false, undefined, part);
+                partTxt += `{
+                    condition: ${part.condition},
+                    template: templ${part.templateId}
+                },`
             }
-            finalTxt += this.writeViewInfo(loop.actions, false, newLocal, loop);
+
+            if(partTxt.length > 0) {
+                partTxt = partTxt.slice(0, partTxt.length - 1);
+            }
+            const parent = _if.parentId === undefined ? 'this.__getStatic().__template' : `templ${_if.parentId}`
+            finalTxt += `${parent}.addIf({
+                    anchorId: '${_if.anchorId}',
+                    parts: [${partTxt}]
+            })`;
         }
 
         if (isMain) {

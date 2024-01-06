@@ -2,13 +2,15 @@ import { Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AventusLanguageId } from '../../../definition';
 import { LanguageService, TokenType, getLanguageService } from 'vscode-html-languageservice';
-import { AttributeInfo, ContentInfo, TagInfo } from './TagInfo';
+import { AttributeInfo, ContentInfo, ForLoop, IfInfo, TagInfo } from './TagInfo';
 import { Build } from '../../../project/Build';
-import { ActionChange, HtmlTemplateResult, InterestPoint } from './definition';
+import { ActionChange, ActionLoop, HtmlTemplateResult, InterestPoint } from './definition';
 import { AventusHTMLFile } from '../File';
 import { SCSSParsedRule } from '../../scss/LanguageService';
-import { createErrorHTMLPos } from '../../../tools';
-import { IfStatement, Node, ScriptTarget, Statement, SyntaxKind, createSourceFile, forEachChild } from 'typescript';
+import { createErrorHTMLPos, pathToUri, uriToPath } from '../../../tools';
+import { ForOfStatement, IfStatement, Node, ScriptTarget, SyntaxKind, createSourceFile, forEachChild } from 'typescript';
+import { writeFileSync } from 'fs';
+import * as md5 from 'md5';
 
 export class ParserHtml {
 	//#region static
@@ -56,7 +58,8 @@ export class ParserHtml {
 		main.events = [...main.events, ...toMerge.events];
 		main.pressEvents = [...main.pressEvents, ...toMerge.pressEvents];
 		main.loops = [...main.loops, ...toMerge.loops];
-		main.content = {...main.content, ...toMerge.content};
+		main.ifs = [...main.ifs, ...toMerge.ifs];
+		main.content = { ...main.content, ...toMerge.content };
 
 		for (let mergeEl of toMerge.elements) {
 			let found = false;
@@ -160,37 +163,135 @@ export class ParserHtml {
 		this.parse(document, build);
 	}
 	public static idElement = 0;
-	public static idLoop = 0;
-	public static loopsInfo: TagInfo[] = [];
+	private static idTemplate = 0;
+	public static createIdTemplate() {
+		let id = this.idTemplate
+		this.idTemplate++;
+		return id;
+	}
+	public static getCustomFctName(nb: number = 0) {
+		if (this.currentParsingDoc?.htmlFile.tsFile) {
+			let nbIf = this.currentParsingDoc.ifs.reduce((acc, p) => acc + p.conditions.length, 0);
+			let nbLoop = this.currentParsingDoc.loops.length;
+			let nbFct = Object.keys(this.currentParsingDoc.fcts).length;
+			let tot = nb + nbFct + nbLoop + nbIf;
+			return this.currentParsingDoc.htmlFile.tsFile?.viewMethodName + tot
+		}
+		return null;
+	}
+
 	public static createChange(fct: { start: number, end: number, txt: string }): ActionChange | null {
 		if (this.currentParsingDoc) {
-			let loops: { from: string, item: string, index: string }[] = [];
-			for (let loopInfo of this.loopsInfo) {
-				if (!loopInfo.forInstance) {
-					continue;
-				}
-				loops.push({
-					from: loopInfo.forInstance.from,
-					index: loopInfo.forInstance.index,
-					item: loopInfo.forInstance.item,
+			// TODO ajout des variables ici
+
+			let contentmd5 = md5(fct.txt);
+			if (this.currentParsingDoc.fcts[contentmd5]) {
+				this.currentParsingDoc.fcts[contentmd5].positions.push({
+					start: fct.start,
+					end: fct.end
 				})
+				return this.currentParsingDoc.fcts[contentmd5];
+			}
+			else {
+				let name = this.getCustomFctName();
+				let variablesType = this.getVariablesType();
+				this.currentParsingDoc.stacks.map(p => p instanceof ForLoop ? p.variableNames : [])
+				if (name) {
+					let result: ActionChange = {
+						name: name,
+						positions: [{
+							start: fct.start,
+							end: fct.end,
+						}],
+						txt: fct.txt,
+						variablesType: variablesType
+					}
+					this.currentParsingDoc.fcts[contentmd5] = result;
+					return result;
+				}
 			}
 
-			if (this.currentParsingDoc.htmlFile.tsFile) {
-				let name = this.currentParsingDoc.htmlFile.tsFile?.viewMethodName + this.currentParsingDoc.fcts.length
-				let result: ActionChange = {
-					name: name,
-					start: fct.start,
-					end: fct.end,
-					txt: fct.txt,
-					variablesType: {}
+
+
+		}
+		return null;
+	}
+
+	public static getRawDiff(start: number): number {
+		let nb = 0;
+		if (this.currentParsingDoc) {
+			let keys = Object.keys(this.currentParsingDoc.rawDiff).map(n => Number(n)).sort();
+
+			for (let key of keys) {
+				if (key > start) {
+					break;
 				}
-				this.currentParsingDoc.fcts.push(result);
-				return result;
+				nb += this.currentParsingDoc.rawDiff[key];
+			}
+		}
+		return nb;
+	}
+	public static getCurrentDiff(start: number): number {
+		let nb = 0;
+		if (this.currentParsingDoc) {
+			let keys = Object.keys(this.currentParsingDoc.formatedDiff).map(n => Number(n)).sort();
+
+			for (let key of keys) {
+				if (key > start) {
+					break;
+				}
+				nb += this.currentParsingDoc.formatedDiff[key];
+			}
+		}
+		return nb;
+	}
+	public static addLoopStack(nb: number): ForLoop | null {
+		if (this.currentParsingDoc) {
+			let loop = this.currentParsingDoc.loops.find(p => p.idTemplate == nb);
+			if (loop) {
+				this.currentParsingDoc?.stacks.push(loop);
+				return loop;
 			}
 		}
 		return null;
 	}
+	public static addIfStack(nb: number): IfInfo | null {
+		if (this.currentParsingDoc) {
+			for (let _if of this.currentParsingDoc.ifs) {
+				if (_if.idsTemplate.includes(nb)) {
+					this.currentParsingDoc?.stacks.push({
+						idTemplate: nb
+					});
+					return _if;
+				}
+			}
+		}
+		return null;
+	}
+	public static removeStack() {
+		this.currentParsingDoc?.stacks.pop();
+	}
+	public static getParentId(): number | undefined {
+		if (this.currentParsingDoc && this.currentParsingDoc.stacks.length > 0) {
+			return this.currentParsingDoc.stacks[0].idTemplate
+		}
+		return undefined;
+	}
+	public static getVariablesType() {
+		let variablesType: { [name: string]: string; } = {};
+		if (this.currentParsingDoc) {
+			for (let loop of this.currentParsingDoc.stacks) {
+				if (loop instanceof ForLoop) {
+					for (let name of loop.variableNames) {
+						variablesType[name] = "any";
+					}
+				}
+			}
+		}
+		return variablesType;
+	}
+
+
 	//#endregion
 
 	public uri: string;
@@ -209,8 +310,14 @@ export class ParserHtml {
 	public interestPoints: InterestPoint[] = []
 	public rules: SCSSParsedRule;
 	public styleLinks: [{ start: number, end: number }, { start: number, end: number }][] = []
-	public fcts: ActionChange[] = [];
+	public fcts: { [md5: string]: ActionChange } = {};
 	public htmlFile: AventusHTMLFile;
+	public loops: ForLoop[] = [];
+	public ifs: IfInfo[] = [];
+	public rawDiff: { [position: number]: number } = {}
+	public formatedDiff: { [position: number]: number } = {}
+	public stacks: (ForLoop | { idTemplate: number })[] = [];
+	public debugTxt: string = "";
 
 	public getBlocksInfoTxt() {
 		let blocks: string[] = [];
@@ -242,6 +349,9 @@ export class ParserHtml {
 		this.document = TextDocument.create(document.file.uri, document.file.document.languageId, document.file.version, fileContent);
 		ParserHtml.currentParsingDoc = this;
 		this.uri = document.file.uri;
+		ParserHtml.idElement = 0;
+		ParserHtml.idTemplate = 0;
+		ParserHtml.idTemplate = 0;
 		this.parse(this.document);
 		ParserHtml.currentParsingDoc = null;
 		this.isReady = true;
@@ -264,95 +374,122 @@ export class ParserHtml {
 		}
 	}
 
-	private parseJs(document: TextDocument) {
-		let srcFile = createSourceFile("sample.ts", document.getText(), ScriptTarget.ESNext, true);
+	private parseJs(document: TextDocument): string {
+		let txt = document.getText();
 
-		type Token = { text: string, start: number, end: number }
-		let info: {
-			for: Token[],
-			if: {
-
-			}[]
-		} = {
-			for: [],
-			if: []
+		//#region replace comment by empty string to avoid conflict with js parsing
+		let replacements: { [start: number]: string } = {};
+		let regex = /<!--(.|\s)*?-->/g
+		let m: RegExpExecArray | null;
+		while (m = regex.exec(txt)) {
+			let replacement = "";
+			for (let i = 0; i < m[0].length; i++) {
+				replacement += " ";
+			}
+			replacements[m.index] = m[0];
+			txt = txt.slice(0, m.index) + replacement + txt.slice(m.index + m[0].length);
 		}
+		//#endregion
 
+		//#region loop though nodes to find if and for
+		let realJsTxt = txt;
+		const sliceText = (start: number, end?: number) => realJsTxt.slice(start, end);
+		let srcFile = createSourceFile("sample.ts", txt.replace(/\{\{|\}\}/g, "  ").replace(/<(\/?.*?)>/g, "'$1'"), ScriptTarget.ESNext, true);
+		let transformations: { newText: string, start: number, end: number }[] = [];
 		const loop = (node: Node, lvl: number) => {
 			forEachChild(node, x => {
-				// console.log(SyntaxKind[x.kind])
-				// console.log(x.getText());
-				// console.log(x.getStart());
-				// console.log(x.getEnd());
-				// if (x.kind == SyntaxKind.ForOfStatement) {
-				// 	let identifier: Token;
-				// 	let variable: Token;
-				// 	let block: Token;
-				// 	forEachChild(x, y => {
-				// 		if (y.kind == SyntaxKind.VariableDeclarationList) {
-				// 			let _var = y.getChildAt(1);
-				// 			variable = {
-				// 				text: _var.getText(),
-				// 				start: _var.getStart(),
-				// 				end: _var.getEnd()
-				// 			}
-				// 		}
-				// 		else if (y.kind == SyntaxKind.Identifier) {
-				// 			identifier = {
-				// 				text: y.getText(),
-				// 				start: y.getStart(),
-				// 				end: y.getEnd()
-				// 			}
-				// 		}
-				// 		else if (y.kind == SyntaxKind.Block) {
-				// 			block = {
-				// 				text: "",
-				// 				start: y.getStart(),
-				// 				end: y.getEnd()
-				// 			}
-				// 		}
-				// 	})
-				// 	debugger
-				// }
-				// if (x.kind == SyntaxKind.IfStatement) {
-				// 	const loadStatement = (c: IfStatement) => {
-				// 		if (c.expression) {
-				// 			ParserHtml.addFct({
-				// 				txt: c.expression.getText(),
-				// 				start: c.expression.getStart(),
-				// 				end: c.expression.getEnd(),
-				// 			})
-				// 			if (c.elseStatement) {
-				// 				loadStatement(c.elseStatement as IfStatement);
-				// 			}
-				// 		}
-				// 		else {
-				// 			// its an else
-				// 		}
-				// 	}
-				// 	loadStatement(x as IfStatement);
-				// }
+				let forLoop: ForLoop | undefined = undefined;
+				if (x.kind == SyntaxKind.IfStatement) {
+					let _ifStatement = x as IfStatement;
+					let isAllowed = true;
+					if (_ifStatement.parent.kind == SyntaxKind.IfStatement) {
+						let parentIf = _ifStatement.parent as IfStatement;
+						if (parentIf.elseStatement == _ifStatement) {
+							isAllowed = false;
+						}
+					}
 
-				
+					if (isAllowed) {
+						let _if = new IfInfo(x as IfStatement, sliceText);
+						this.ifs.push(_if);
+						transformations = [...transformations, ..._if.transformations];
+						for (let key in _if.diff) {
+							this.rawDiff[key] = _if.diff[key];
+						}
+					}
+				}
+				else if (x.kind == SyntaxKind.ForOfStatement || x.kind == SyntaxKind.ForInStatement) {
+					forLoop = new ForLoop(x as ForOfStatement, sliceText);
+					transformations = [...transformations, ...forLoop.transformations];
+					this.loops.push(forLoop);
+					this.stacks.push(forLoop);
+					if (forLoop.diffBefore)
+						this.rawDiff[forLoop.start] = forLoop.diffBefore
+					if (forLoop.diffAfter)
+						this.rawDiff[forLoop.end] = forLoop.diffAfter
+				}
 				// avoid parsing inside {{ }}
 				if (x.kind == SyntaxKind.Block && node.kind == SyntaxKind.Block) {
 					return
 				}
 				loop(x, lvl + 1)
+
+				if (forLoop) {
+					this.stacks.pop();
+				}
 			})
 		}
 
 		loop(srcFile, 0);
+		//#endregion
+
+		//#region fromat difference to have right line
+		let keys = Object.keys(this.rawDiff).map(n => Number(n)).sort();
+		let decalage = 0;
+		for (let key of keys) {
+			this.formatedDiff[key + decalage] = this.rawDiff[key];
+			decalage += this.rawDiff[key];
+		}
+		//#endregion
+
+		//#region transfrom file to replace js by tags <i> and <l>
+		transformations.sort((a, b) => b.end - a.end); // order from end file to start file
+		let lastPos = txt.length;
+		let transfoDiff: { [key: number]: number } = {}
+		for (let transformation of transformations) {
+			if (transformation.end > lastPos) continue;
+			transfoDiff[transformation.start] = transformation.newText.length - (transformation.end - transformation.start);
+			txt = txt.slice(0, transformation.start) + transformation.newText + txt.slice(transformation.end, txt.length);
+			lastPos = transformation.start;
+		}
+		//#endregion
+
+		//#region reset comment that was replaced before
+		for (let start in replacements) {
+			let replacement = replacements[start];
+			let baseStart = Number(start);
+			let newStart = Number(start);
+			for (let key in transfoDiff) {
+				if (Number(key) > baseStart) {
+					break;
+				}
+				newStart += transfoDiff[key];
+			}
+			txt = txt.slice(0, newStart) + replacement + txt.slice(newStart + replacement.length);
+		}
+		//#endregion
+
+		return txt;
 	}
 
 
 	private parse(document: TextDocument) {
-		this.parseJs(document);
-		ParserHtml.idElement = 0;
-		ParserHtml.idLoop = 0;
+		let txt = this.parseJs(document);
+		writeFileSync(uriToPath(document.uri).replace(".wcv.avt", ".html"), txt);
+		this.debugTxt = txt;
 		let isInAvoidTagStart: number[] = [];
 		let removeNextClose = false;
-		let scanner = ParserHtml.languageService.createScanner(document.getText(), 0);
+		let scanner = ParserHtml.languageService.createScanner(txt, 0);
 		let currentTags: TagInfo[] = [];
 		let currentAttribute: AttributeInfo | null = null;
 		try {
@@ -505,7 +642,8 @@ export class ParserHtml {
 			bindings: {},
 			events: [],
 			pressEvents: [],
-			loops: []
+			loops: [],
+			ifs: [],
 		}
 
 		for (let tag of this.rootTags) {

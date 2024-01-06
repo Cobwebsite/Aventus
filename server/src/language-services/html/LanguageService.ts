@@ -11,6 +11,7 @@ import { HTMLDoc } from "./helper/definition";
 import { MethodInfo } from '../ts/parser/MethodInfo';
 import { PropertyInfo } from '../ts/parser/PropertyInfo';
 import { ClassInfo } from '../ts/parser/ClassInfo';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 
 
 export class AventusHTMLLanguageService {
@@ -175,8 +176,8 @@ export class AventusHTMLLanguageService {
         }
         return null;
     }
-    public async format(file: AventusFile, range: Range, formatParams: FormattingOptions): Promise<TextEdit[]> {
-        return this.languageService.format(file.document, range, formatParams);
+    public async format(document: TextDocument, range: Range, formatParams: FormattingOptions): Promise<TextEdit[]> {
+        return this.languageService.format(document, range, formatParams);
     }
     public async onDefinition(file: AventusHTMLFile, position: Position): Promise<Definition | null> {
         let info = this.getLinkToLogic(file, position);

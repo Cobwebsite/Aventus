@@ -1,6 +1,7 @@
+import { Block, ForInStatement, ForOfStatement, IfStatement, SyntaxKind, forEachChild } from 'typescript';
 import { SCSSParsedRule } from '../../scss/LanguageService';
 import { ParserHtml } from './ParserHtml';
-import { ActionChange, HtmlTemplateResult, PressEventMapValues, pressEventMap } from './definition';
+import { ActionChange, ActionIf, ActionIfPart, ActionLoop, HtmlTemplateResult, PressEventMapValues, pressEventMap } from './definition';
 
 export class TagInfo {
 	public tagName: string = "";
@@ -11,9 +12,6 @@ export class TagInfo {
 	public id: string = "";
 	public start: number = 0;
 	public end: number = 0;
-	public idLoop: number | null = null;
-	public parentLoopId: number | null = null;
-	private isInsideLoop: boolean = false;
 	public parent: TagInfo | null = null;
 
 	public openTagStart: number = 0;
@@ -28,20 +26,19 @@ export class TagInfo {
 	private changes: { [id_attr: string]: string } = {};
 
 	public parser: ParserHtml;
-	public forInstance: {
-		_id: string,
-		from: string,
-		item: string
-		index: string,
-		positionFrom: { start: number, end: number }
-	} | null = null;
 
-	public get isMainTemplate() {
-		return this.forInstance == null;
-	}
 	public get componentClassName(): string {
 		return this.parser.htmlFile.tsFile?.componentClassName.toLowerCase() ?? "";
 	}
+	public get isLoop(): boolean {
+		return this.tagName == ForLoop.tagName;
+	}
+	public get isIf(): boolean {
+		return this.tagName == IfInfo.tagName;
+	}
+
+	public loopInfo?: ForLoop;
+	public ifInfo?: IfInfo;
 
 
 
@@ -51,6 +48,13 @@ export class TagInfo {
 		this.start = start;
 		this.openTagStart = start;
 		this.end = end;
+		if (this.isLoop) {
+			this.createId();
+			return;
+		}
+		if (this.isIf) {
+			return;
+		}
 		ParserHtml.addInterestPoint({ name: tagName, start, end, type: "tag" });
 		if (selfClosingTags.includes(tagName)) {
 			this.selfClosing = true;
@@ -64,14 +68,7 @@ export class TagInfo {
 		}
 		return this.id;
 	}
-	private createLoopId() {
-		ParserHtml.idLoop++;
-		this.idLoop = ParserHtml.idLoop;
-		if (ParserHtml.loopsInfo.length > 0) {
-			this.parentLoopId = ParserHtml.loopsInfo[ParserHtml.loopsInfo.length - 1].idLoop;
-		}
-		ParserHtml.loopsInfo.push(this);
-	}
+
 
 	public addAttribute(attributeInfo: AttributeInfo) {
 		if (!this.attributes[attributeInfo.name]) {
@@ -105,21 +102,21 @@ export class TagInfo {
 				this.aliasMultiple = isMultiple;
 			}
 		}
-
-		if (this.attributes['@for']) {
-			this.createLoopId();
-			if (this.forInstance) {
-				ParserHtml.addVariable(this.forInstance.from.split(".")[0]);
-				ParserHtml.addVariable(this.forInstance.item, true);
-				if (this.forInstance.index) {
-					ParserHtml.addVariable(this.forInstance.index, true);
+		if (this.isLoop) {
+			let loop = ParserHtml.addLoopStack(Number(this.attributes["id"].value));
+			if (loop) this.loopInfo = loop
+		}
+		else if (this.isIf) {
+			let idIf = Number(this.attributes["id"].value);
+			let _if = ParserHtml.addIfStack(idIf);
+			if (_if) {
+				this.ifInfo = _if;
+				if (idIf == _if.idsTemplate[0]) {
+					let _id = this.createId();
+					_if._id = _id;
 				}
 			}
-		}
 
-		if (ParserHtml.loopsInfo.length > 0) {
-			this.isInsideLoop = true;
-			this.aliasMultiple = true;
 		}
 	}
 	public afterClose(start: number, end: number) {
@@ -133,13 +130,6 @@ export class TagInfo {
 			})
 		}
 
-		if (this.attributes['@for']) {
-			let index = ParserHtml.loopsInfo.indexOf(this);
-			if (index != -1) {
-				ParserHtml.loopsInfo.splice(index, 1);
-			}
-		}
-
 		for (let injection of this.injections) {
 			ParserHtml.addVariable(injection.variableName.split(".")[0]);
 		}
@@ -147,6 +137,9 @@ export class TagInfo {
 			ParserHtml.addVariable(binding.bindingName.split('.')[0]);
 		}
 		this.checkStyle(ParserHtml.getRules(), (point) => ParserHtml.addStyleLink(point));
+		if (this.isLoop || this.isIf) {
+			ParserHtml.removeStack();
+		}
 	}
 
 	public checkStyle(rules: SCSSParsedRule, addStyleLink: (point: [{ start: number, end: number }, { start: number, end: number }]) => void) {
@@ -188,17 +181,20 @@ export class TagInfo {
 		return `<${this.tagName}${attrTxt}>${this.children.map(c => c.render()).join("")}</${this.tagName}>`;
 	}
 	public render(): string {
-		if (this.forInstance) {
-			return `<template _id="${this.forInstance._id}"></template>`
+		if (this.isLoop) {
+			return '<template _id="' + this.id + '"></template>';
 		}
-		else {
-			return this._render();
+		if (this.isIf) {
+			// its the first if
+			if (this.id) {
+				return '<template _id="' + this.id + '"></template>';
+			}
+			// its the other else if
+			return '';
 		}
-	}
-
-	public renderLoop(): string {
 		return this._render();
 	}
+
 
 	public getTemplateInfo(className: string): HtmlTemplateResult {
 		let result: HtmlTemplateResult = {
@@ -208,8 +204,10 @@ export class TagInfo {
 			bindings: {},
 			events: [],
 			pressEvents: [],
-			loops: []
+			loops: [],
+			ifs: [],
 		}
+
 
 		let id = this.id;
 
@@ -220,7 +218,7 @@ export class TagInfo {
 					name: this.alias,
 					ids: [id],
 					tags: { [this.tagName]: nb },
-					useLive: this.isInsideLoop,
+					useLive: false,
 					isArray: nb > 1,
 					positions: [{ start: this.attributes['@element'].valueStart, end: this.attributes['@element'].valueEnd }]
 				});
@@ -289,9 +287,10 @@ export class TagInfo {
 			if (this.pressEvent) {
 				result.pressEvents.push({ ...this.pressEvent, id: id })
 			}
+
 		}
 
-		if (this.forInstance) {
+		if (this.loopInfo) {
 			let templateResult: HtmlTemplateResult = {
 				elements: [],
 				content: {},
@@ -299,35 +298,70 @@ export class TagInfo {
 				bindings: {},
 				events: [],
 				pressEvents: [],
-				loops: []
+				loops: [],
+				ifs: [],
 			}
-			addResultInfo(templateResult);
+			let templateTxt = "";
 			for (let child of this.children) {
 				if (child instanceof TagInfo) {
 					let resultTemp = child.getTemplateInfo(className);
 					ParserHtml.mergeTemplateResult(templateResult, resultTemp);
 				}
+				templateTxt += child.render();
 			}
-			let index = this.forInstance.index;
-			let anchorId = this.forInstance._id
-			if (!index) {
-				index = "index_" + anchorId;
-			}
-			result.loops.push({
-				loopId: this.idLoop || 0,
-				anchorId: anchorId,
-				template: this.renderLoop(),
-				from: this.forInstance.from,
-				index: index,
-				item: this.forInstance.item,
+
+			let resultLoop: ActionLoop = {
+				templateId: this.loopInfo.idTemplate || 0,
+				anchorId: this.id,
+				template: templateTxt,
 				actions: templateResult,
-				loopParentId: this.parentLoopId,
-				positionFrom: this.forInstance.positionFrom
+				parentId: ParserHtml.getParentId(),
+			}
+			if (this.loopInfo.isSimple) {
+				resultLoop.simple = this.loopInfo.simple;
+			}
+			result.loops.push(resultLoop);
+		}
+		else if (this.isIf && this.ifInfo) {
+			let idIf = Number(this.attributes["id"].value);
+			let templateResult: HtmlTemplateResult = {
+				elements: [],
+				content: {},
+				injection: {},
+				bindings: {},
+				events: [],
+				pressEvents: [],
+				loops: [],
+				ifs: [],
+			}
+			let templateTxt = "";
+			for (let child of this.children) {
+				if (child instanceof TagInfo) {
+					let resultTemp = child.getTemplateInfo(className);
+					ParserHtml.mergeTemplateResult(templateResult, resultTemp);
+				}
+				templateTxt += child.render();
+			}
+			this.ifInfo.registerPart({
+				template: templateTxt,
+				templateId: idIf,
+				templateAction: templateResult,
+				condition: "",
 			})
+
+
+
+			if (idIf == this.ifInfo.idsTemplate[this.ifInfo.idsTemplate.length - 1]) {
+				let resultIfs: ActionIf = {
+					anchorId: this.ifInfo._id,
+					parts: this.ifInfo.parts,
+					parentId: ParserHtml.getParentId()
+				}
+				result.ifs.push(resultIfs);
+			}
 		}
 		else {
 			addResultInfo(result);
-
 			for (let child of this.children) {
 				if (child instanceof TagInfo) {
 					let resultTemp = child.getTemplateInfo(className);
@@ -335,6 +369,10 @@ export class TagInfo {
 				}
 			}
 		}
+
+
+
+
 		return result;
 	}
 }
@@ -365,12 +403,14 @@ export class AttributeInfo {
 	public valueEnd: number = 0;
 	public tag: TagInfo;
 	public mustBeAdded: boolean = true;
+	private diff: number;
 
 
 	public constructor(name: string, nameStart: number, nameEnd: number, tag: TagInfo) {
 		this.name = name;
-		this.nameStart = nameStart;
-		this.nameEnd = nameEnd;
+		this.diff = ParserHtml.getCurrentDiff(nameStart);
+		this.nameStart = nameStart - this.diff;
+		this.nameEnd = nameEnd - this.diff;
 		this.tag = tag;
 		this.manageSpecialAttribute();
 	}
@@ -396,8 +436,8 @@ export class AttributeInfo {
 	public setValue(value: string, valueStart: number, valueEnd: number) {
 		value = value.replace(/"/g, "");
 		this.value = value;
-		this.valueStart = valueStart;
-		this.valueEnd = valueEnd;
+		this.valueStart = valueStart - this.diff;
+		this.valueEnd = valueEnd - this.diff;
 
 		if (this.name === "@element") {
 			this.tag.alias = value;
@@ -430,35 +470,6 @@ export class AttributeInfo {
 				end: this.valueEnd,
 				type: 'method'
 			})
-		}
-		else if (this.name === "@for") {
-			let match = /^((.+?)(,(.+?))? in )(.+?)$/g.exec(value);
-			if (match) {
-				let idTemplate = this.tag.componentClassName + "_" + ParserHtml.idElement;
-				ParserHtml.idElement++;
-				let fromStart = match.index + match[1].length;
-				let fromEnd = match.index + match[1].length;
-				this.tag.forInstance = {
-					_id: idTemplate,
-					from: match[5].trim(),
-					index: match[4] ? match[4].trim() : '',
-					item: match[2].trim(),
-					positionFrom: {
-						start: fromStart,
-						end: fromEnd
-					}
-				}
-				ParserHtml.addInterestPoint({
-					name: match[5].trim(),
-					start: fromStart,
-					end: fromEnd,
-					type: 'property'
-				})
-			}
-			else {
-				ParserHtml.addError(this.nameStart, this.valueEnd, `Your for loop must be similar to "$item(, $index) in $array`)
-			}
-
 		}
 		else if (this.name.startsWith(":")) {
 			let injectedName = this.name.slice(1);
@@ -524,8 +535,9 @@ export class ContentInfo {
 
 	public constructor(content: string, start: number, end: number, tag: TagInfo, parse: boolean = true) {
 		this.content = content;
-		this.start = start;
-		this.end = end;
+		let diff = ParserHtml.getCurrentDiff(start);
+		this.start = start - diff;
+		this.end = end - diff;
 		this.tag = tag;
 		if (parse) {
 			this.manageVariables();
@@ -552,14 +564,244 @@ export class ContentInfo {
 
 
 export class ForLoop {
-	
+	public static readonly tagName = "l";
+	public idTemplate: number = 0;
+	public isSimple: boolean = true;
+	public transformations: { newText: string, start: number, end: number }[] = [];
+
+	public start: number = 0;
+	public startBlock: number = 0;
+	public end: number = 0;
+	public loopTxt: string = "";
+	public loopName: string = "";
+	public diffBefore: number = 0;
+	public diffAfter: number = 0;
+
+	public simple: {
+		data: string,
+		item?: string,
+		index?: string,
+	} = { data: '' }
+
+	public get variableNames(): string[] {
+		let result: string[] = [];
+		if (this.isSimple) {
+			if (this.simple.index) {
+				result.push(this.simple.index);
+			}
+			if (this.simple.item) {
+				result.push(this.simple.item);
+			}
+		}
+		return result;
+	}
+	public variablesType: { [name: string]: string; } = {};
+	private sliceText: (start: number, end?: number) => string;
+
+
+	public constructor(_for: ForOfStatement | ForInStatement, sliceText: (start: number, end?: number) => string) {
+		this.sliceText = sliceText;
+		this.idTemplate = ParserHtml.createIdTemplate();
+		if (_for.kind == SyntaxKind.ForOfStatement || _for.kind == SyntaxKind.ForInStatement) {
+			this.loadForInOf(_for);
+		}
+		this.loopName = ParserHtml.getCustomFctName() ?? "";
+
+		this.variablesType = ParserHtml.getVariablesType();
+	}
+
+
+	private loadForInOf(_for: ForOfStatement | ForInStatement) {
+		let i = 0;
+		forEachChild(_for, y => {
+			if (i == 0) {
+				let _var = y.getChildAt(1);
+				let varTxt = this.sliceText(_var.getStart(), _var.getEnd());
+				if (_for.kind == SyntaxKind.ForInStatement) {
+					this.simple.index = varTxt;
+				}
+				else {
+					this.simple.item = varTxt;
+				}
+			}
+			else if (i == 1) {
+				this.simple.data = this.sliceText(y.getStart(), y.getEnd());
+			}
+			else if (i == 2) {
+				let start = _for.getStart();
+				let startBlock = y.getStart() + 1;
+				this.loopTxt = this.sliceText(start, startBlock) + " }";
+				let newTxt = "<" + ForLoop.tagName + " id=\"" + this.idTemplate + "\">";
+				let newCloseTxt = "</" + ForLoop.tagName + ">";
+
+				this.transformations.push({
+					start: start,
+					end: startBlock,
+					newText: newTxt
+				})
+				let endBlock = y.getEnd();
+				this.transformations.push({
+					start: endBlock - 1,
+					end: endBlock,
+					newText: newCloseTxt
+				})
+
+				let oldLength = startBlock - start;
+				this.diffBefore = newTxt.length - oldLength;
+				this.diffAfter = newCloseTxt.length - 1;
+
+				this.start = start;
+				this.startBlock = startBlock;
+				this.end = endBlock;
+
+			}
+			i++;
+		})
+	}
+}
+
+export class IfInfo {
+	public static readonly tagName = "i";
+	public statements: { txt: string }[] = []
+	public idsTemplate: number[] = [];
+	public variablesType: { [name: string]: string; } = {};
+	public transformations: { newText: string, start: number, end: number }[] = [];
+	public start: number = 0;
+	public startBlock: number = 0;
+	public end: number = 0;
+	public diffBefore: number = 0;
+	public diffAfter: number = 0;
+	public diff: { [pos: number]: number } = {}
+	public _id: string = "";
+	public parts: ActionIfPart[] = [];
+	public parentId?: number;
+
+	public conditions: {
+		fctName: string,
+		start: number;
+		end: number;
+		txt: string;
+		fctTxt: string,
+		offsetBefore: number,
+		offsetAfter: number
+	}[] = [];
+	private sliceText: (start: number, end?: number) => string;
+
+	public constructor(_if: IfStatement, sliceText: (start: number, end?: number) => string) {
+		this.sliceText = sliceText;
+		this.parentId = ParserHtml.getParentId();
+		this.variablesType = ParserHtml.getVariablesType();
+
+		this.loadIf(_if);
+	}
+
+
+	private loadIf(_if: IfStatement) {
+		let ifTxt = this.sliceText(_if.getStart(), _if.getEnd())
+		let blocks: Block[] = [];
+		const createId = () => {
+			let idIf = ParserHtml.createIdTemplate();
+			this.idsTemplate.push(idIf);
+			return idIf;
+		}
+		const transform = (startIf: number, block: Block) => {
+			let idIf = createId();
+			let startBlock = block.getStart() + 1;
+			let newTxt = "<" + IfInfo.tagName + " id=\"" + idIf + "\">";
+			let newCloseTxt = "</" + IfInfo.tagName + ">";
+
+			this.transformations.push({
+				start: startIf,
+				end: startBlock,
+				newText: newTxt
+			})
+
+			let endBlock = block.getEnd();
+			this.transformations.push({
+				start: endBlock - 1,
+				end: endBlock,
+				newText: newCloseTxt
+			})
+
+			let oldLength = startBlock - startIf;
+			// diff to move from wcv to html
+			let min = Math.min(newTxt.length, oldLength);
+			this.diff[startIf + min] = newTxt.length - oldLength;
+			this.diff[endBlock] = newCloseTxt.length - 1;
+		}
+		const loadBlocks = (_if: IfStatement, start?: number) => {
+			let nbBlock = 0;
+			if (start === undefined) {
+				start = _if.getStart();
+			}
+			let realStart = start;
+			let elseStart: number | undefined = undefined;
+			for (let child of _if.getChildren()) {
+				if (child.kind == SyntaxKind.ElseKeyword) {
+					elseStart = child.getStart();
+				}
+			}
+			forEachChild(_if, y => {
+				if (y.kind == SyntaxKind.Block) {
+					nbBlock++;
+					if (nbBlock == 2) {
+						if (elseStart == undefined) {
+							throw 'impossible';
+						}
+						transform(elseStart, y as Block);
+					}
+					else {
+						transform(realStart, y as Block);
+					}
+					blocks.push(y as Block);
+				}
+				else if (y.kind == SyntaxKind.IfStatement) {
+					if (elseStart == undefined) {
+						throw 'impossible';
+					}
+					loadBlocks(y as IfStatement, elseStart);
+				}
+				else if (y.kind == SyntaxKind.BinaryExpression) {
+					let fctName = ParserHtml.getCustomFctName(this.conditions.length) ?? '';
+					let params = Object.keys(this.variablesType).map(p => "c.data." + p).join(",");
+					this.conditions.push({
+						fctName: fctName,
+						txt: this.sliceText(y.getStart(), y.getEnd()),
+						fctTxt: `(c) => c.comp.${fctName}(${params})`,
+						start: y.getStart(),
+						end: y.getEnd(),
+						offsetAfter: 0,
+						offsetBefore: 0
+					});
+				}
+			})
+		}
+		loadBlocks(_if);
+
+		// this.diffBefore = startBlock - newTxtLength < 0 ? newTxtLength - startBlock : 0;
+		// this.diffAfter = newCloseTxt.length - 1;
+
+		// this.start = start;
+		// this.startBlock = startBlock;
+		// this.end = endBlock;
+	}
+
+	public registerPart(part: ActionIfPart) {
+		if (this.conditions.length > this.parts.length) {
+			part.condition = this.conditions[this.parts.length].fctTxt
+		}
+		else {
+			part.condition = "(c) => true";
+		}
+		this.parts.push(part);
+	}
 }
 
 function parseTxt(value: string, valueStart: number): {
 	changes: ActionChange[],
 	txt: string
 } {
-	let regex = /\{\{(.*?)\}\}/g;
+	let regex = /\{\{([\s|\S]*?)\}\}/g;
 	let m: RegExpExecArray | null;
 	let result: {
 		changes: ActionChange[],

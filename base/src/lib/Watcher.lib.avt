@@ -1,6 +1,7 @@
 import { compareObject } from "../tools/CompareObject.lib.avt";
 
 type NotVoid<T> = T extends void ? never : T;
+export type WatcherFunction = (action: WatchAction, path: string, value: any) => void;
 
 export enum WatchAction {
     CREATED,
@@ -19,7 +20,7 @@ export class Watcher {
     /**
      * Transform object into a watcher
      */
-    public static get(obj: object, onDataChanged?: (action: WatchAction, path: string, value: any) => void): any {
+    public static get(obj: object, onDataChanged?: WatcherFunction): any {
         if(obj == undefined) {
             console.error("You must define an objet / array for your proxy");
             return;
@@ -35,7 +36,7 @@ export class Watcher {
             __proxyData: '__proxyData',
         };
         const clearReservedNames = (data) => {
-            if(data instanceof Object && data.__isProxy) {
+            if(data instanceof Object && !data.__isProxy) {
                 for(let key in reservedName) {
                     delete data[key];
                 }
@@ -88,7 +89,7 @@ export class Watcher {
         type ProxyData = {
             baseData: any,
             id: number,
-            callbacks: ((action: WatchAction, path: string, value: any) => void)[],
+            callbacks: WatcherFunction[],
             avoidUpdate: string[],
             pathToRemove: string[],
             history: any[],
@@ -135,13 +136,16 @@ export class Watcher {
                     }
                 }
                 let newPath = '';
-                if(Array.isArray(target)) {
-                    if(prop != "length") {
-                        if((target as any).__path) {
+                if (Array.isArray(target)) {
+                    if (/^[0-9]*$/g.exec(prop)) {
+                        if ((target as any).__path) {
                             newPath = (target as any).__path;
                         }
                         newPath += "[" + prop + "]";
                         setProxyPath(newProxy, newPath);
+                    }
+                    else {
+                        newPath += "." + prop;
                     }
                 }
                 else if(element instanceof Date) {
@@ -251,6 +255,7 @@ export class Watcher {
                                     let proxyEl = this.getProxyObject(target, el, (index - 1));
                                     target.splice(target.length - 1, 1, proxyEl);
                                     trigger('CREATED', target, receiver, proxyEl, "[" + (index - 1) + "]");
+                                    trigger('UPDATED', target, receiver, target.length, "length");
                                     return index;
                                 };
                             }
@@ -265,16 +270,17 @@ export class Watcher {
                             else {
                                 result = (index, nbRemove, ...insert) => {
                                     let oldValues: any[] = [];
-                                    for(let i = index; i < index + nbRemove; i++) {
+                                    for (let i = index; i < index + nbRemove; i++) {
                                         oldValues.push(receiver[i]);
                                     }
+                                    let updateLength = nbRemove != insert.length;
                                     let res = target.splice(index, nbRemove, ...insert);
                                     let path = (target as any).__path ? (target as any).__path : '';
-                                    for(let i = 0; i < oldValues.length; i++) {
+                                    for (let i = 0; i < oldValues.length; i++) {
                                         removeProxyPath(oldValues[i], path + "[" + (index + i) + "]");
                                         trigger('DELETED', target, receiver, oldValues[i], "[" + index + "]");
                                     }
-                                    for(let i = 0; i < insert.length; i++) {
+                                    for (let i = 0; i < insert.length; i++) {
                                         // get real objetct with proxy to have the correct subscription
                                         let proxyEl = this.getProxyObject(target, insert[i], (index + i));
                                         target.splice((index + i), 1, proxyEl);
@@ -283,15 +289,15 @@ export class Watcher {
                                     let fromIndex = index + insert.length;
                                     let baseDiff = index - insert.length + res.length + 1;
                                     // update path and subscription
-                                    for(let i = fromIndex, j = 0; i < target.length; i++, j++) {
+                                    for (let i = fromIndex, j = 0; i < target.length; i++, j++) {
                                         let oldPath = path + "[" + (j + baseDiff) + "]";
                                         removeProxyPath(target[i], oldPath, false);
                                         let proxyEl = this.getProxyObject(target, target[i], i);
 
                                         let recuUpdate = (childEl) => {
-                                            if(Array.isArray(childEl)) {
-                                                for(let i = 0; i < childEl.length; i++) {
-                                                    if(childEl[i] instanceof Object && childEl[i].__path) {
+                                            if (Array.isArray(childEl)) {
+                                                for (let i = 0; i < childEl.length; i++) {
+                                                    if (childEl[i] instanceof Object && childEl[i].__path) {
                                                         let oldPathRecu = proxyEl[i].__path.replace(proxyEl.__path, oldPath);
                                                         removeProxyPath(childEl[i], oldPathRecu, false);
                                                         let newProxyEl = this.getProxyObject(childEl, childEl[i], i);
@@ -299,9 +305,9 @@ export class Watcher {
                                                     }
                                                 }
                                             }
-                                            else if(childEl instanceof Object && !(childEl instanceof Date)) {
-                                                for(let key in childEl) {
-                                                    if(childEl[key] instanceof Object && childEl[key].__path) {
+                                            else if (childEl instanceof Object && !(childEl instanceof Date)) {
+                                                for (let key in childEl) {
+                                                    if (childEl[key] instanceof Object && childEl[key].__path) {
                                                         let oldPathRecu = proxyEl[key].__path.replace(proxyEl.__path, oldPath);
                                                         removeProxyPath(childEl[key], oldPathRecu, false);
                                                         let newProxyEl = this.getProxyObject(childEl, childEl[key], key);
@@ -311,8 +317,9 @@ export class Watcher {
                                             }
                                         };
                                         recuUpdate(proxyEl);
-
                                     }
+                                    if (updateLength)
+                                        trigger('UPDATED', target, receiver, target.length, "length");
                                     return res;
                                 };
                             }
@@ -333,6 +340,7 @@ export class Watcher {
                                     let path = (target as any).__path ? (target as any).__path : '';
                                     removeProxyPath(oldValue, path + "[" + index + "]");
                                     trigger('DELETED', target, receiver, oldValue, "[" + index + "]");
+                                    trigger('UPDATED', target, receiver, target.length, "length");
                                     return res;
                                 };
                             }
@@ -348,20 +356,24 @@ export class Watcher {
                 if(element instanceof Computed) {
                     return element.value;
                 }
-                if(typeof (element) == 'object') {
-                    if(Watcher._registering.length > 0) {
-                        const currentPath = receiver.__path ? receiver.__path + '.' + prop : prop;
-                        Watcher._register?.register(receiver, currentPath);
+                
+                if (Watcher._registering.length > 0) {
+                    let currentPath: string;
+                    let isArray = Array.isArray(receiver);
+                    if (isArray && /^[0-9]*$/g.exec(prop)) {
+                        currentPath = receiver.__path + "[" + prop + "]";
                     }
+                    else {
+                        currentPath = receiver.__path ? receiver.__path + '.' + prop : prop
+                    }
+                    Watcher._register?.register(receiver, currentPath);
+                }
+
+                if (typeof (element) == 'object') {
                     return this.getProxyObject(target, element, prop);
                 }
 
-                let resultTemp = Reflect.get(target, prop, receiver);
-                if(Watcher._registering.length > 0) {
-                    const currentPath = receiver.__path ? receiver.__path + '.' + prop : prop;
-                    Watcher._register?.register(receiver, currentPath);
-                }
-                return resultTemp;
+                return Reflect.get(target, prop, receiver);
             },
             set(target, prop, value, receiver) {
                 let triggerChange = false;
@@ -509,17 +521,22 @@ export class Watcher {
                     for(let currentProxyData of allProxies[triggerPath]) {
 
                         let pathToSend = triggerPath;
-                        if(pathToSend != "") {
-                            if(Array.isArray(target)) {
-                                if(!prop.startsWith("[")) {
-                                    pathToSend += "[" + prop + "]";
+                        if (pathToSend != "") {
+                            if (Array.isArray(target)) {
+                                if (!prop.startsWith("[")) {
+                                    if (/^[0-9]*$/g.exec(prop)) {
+                                        pathToSend += "[" + prop + "]";
+                                    }
+                                    else {
+                                        pathToSend += "." + prop
+                                    }
                                 }
                                 else {
                                     pathToSend += prop;
                                 }
                             }
                             else {
-                                if(!prop.startsWith("[")) {
+                                if (!prop.startsWith("[")) {
                                     pathToSend += ".";
                                 }
                                 pathToSend += prop;
@@ -538,11 +555,10 @@ export class Watcher {
                             });
                         }
 
-                        [...currentProxyData.callbacks].forEach((cb) => {
-
+                        const cbs = [...currentProxyData.callbacks];
+                        for(let cb of cbs) {
                             cb(WatchAction[type], pathToSend, value);
-                        });
-
+                        }
                     }
 
                 }
@@ -568,13 +584,15 @@ export class Watcher {
 }
 
 type WatcherChange = (action: WatchAction, changePath: string, value: any) => void;
-type WatcherAllowed = (action: WatchAction, changePath: string, value: any) => boolean;
 type EffectReceiver = {
     subscribe: (fct: WatcherChange) => void;
     unsubscribe: (fct: WatcherChange) => void;
 };
+type WatcherAllowed = (action: WatchAction, path: string, value: any) => boolean;
+
 export class Effect {
-    protected callbacks: {
+    @InternalProtected()
+    public callbacks: {
         receiver: EffectReceiver,
         path: string,
         cb: WatcherChange;
@@ -606,11 +624,17 @@ export class Effect {
 
     @InternalProtected()
     public register(receiver: EffectReceiver, path: string) {
-        const cb: WatcherChange = (action, changePath, value) => {
-            if(changePath.startsWith(path)) {
-                this.onChange(action, changePath, value);
-            }
-        };
+        let cb: WatcherChange;
+        if (path == "*") {
+            cb = (action, changePath, value) => { this.onChange(action, changePath, value) }
+        }
+        else {
+            cb = (action, changePath, value) => {
+                if (changePath == path) {
+                    this.onChange(action, changePath, value);
+                }
+            };
+        }
 
         for(let info of this.callbacks) {
             if(info.receiver == receiver && info.path == path) {
@@ -679,7 +703,7 @@ export class Computed<T = any> extends Effect {
         if(!this.isInit) {
             this.init();
         }
-        Watcher._register?.register(this, "");
+        Watcher._register?.register(this, "*");
         return this._value;
     }
 

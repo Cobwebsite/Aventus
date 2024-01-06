@@ -438,7 +438,7 @@ export class AventusTsLanguageService {
         }
         return null;
     }
-    public async format(file: AventusFile, range: Range, formatParams: FormattingOptions): Promise<TextEdit[]> {
+    public async format(file: AventusFile, range: Range, formatParams: FormattingOptions, semiColon: boolean = true): Promise<TextEdit[]> {
         try {
             let document = file.document;
             let start = document.offsetAt(range.start);
@@ -449,6 +449,12 @@ export class AventusTsLanguageService {
                 lastLineRange = Range.create(Position.create(range.end.line, 0), range.end);
             }
             let options = { ...formatingOptions };
+            if (semiColon) {
+                options.semicolons = SemicolonPreference.Insert;
+            }
+            else {
+                options.semicolons = SemicolonPreference.Remove;
+            }
 
             let edits = this.languageServiceNamespace.getFormattingEditsForRange(document.uri, start, end, options);
             if (edits) {
@@ -777,7 +783,7 @@ export class AventusTsLanguageService {
         })
         return txt;
     }
-    
+
     private static replaceFirstExport(txt: string): string {
         return txt.replace(/^\s*export\s+(class|interface|enum|type|abstract|function)/m, "$1");
     }
@@ -909,7 +915,7 @@ export class AventusTsLanguageService {
                 txt = this.addBindThis(element, txt);
             }
 
-           
+
             txt = this.removeComments(txt);
             txt = this.replaceFirstExport(txt);
 
