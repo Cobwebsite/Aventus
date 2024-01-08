@@ -7,9 +7,8 @@ import { Build } from '../../../project/Build';
 import { ActionChange, ActionLoop, HtmlTemplateResult, InterestPoint } from './definition';
 import { AventusHTMLFile } from '../File';
 import { SCSSParsedRule } from '../../scss/LanguageService';
-import { createErrorHTMLPos, pathToUri, uriToPath } from '../../../tools';
+import { createErrorHTMLPos } from '../../../tools';
 import { ForOfStatement, IfStatement, Node, ScriptTarget, SyntaxKind, createSourceFile, forEachChild } from 'typescript';
-import { writeFileSync } from 'fs';
 import * as md5 from 'md5';
 
 export class ParserHtml {
@@ -217,33 +216,31 @@ export class ParserHtml {
 		return null;
 	}
 
-	public static getRawDiff(start: number): number {
-		let nb = 0;
+	/**
+	 * Transform position from the raw file to compiled file
+	 * The raw format is the one where user is typing
+	 * The compiled format is the one where for and if are replaced by <i> and <l>
+	 * @param pos Position inside the raw
+	 * @returns 
+	 */
+	public static fromRawToCompiled(position: number): number {
 		if (this.currentParsingDoc) {
-			let keys = Object.keys(this.currentParsingDoc.rawDiff).map(n => Number(n)).sort();
-
-			for (let key of keys) {
-				if (key > start) {
-					break;
-				}
-				nb += this.currentParsingDoc.rawDiff[key];
-			}
+			return this.currentParsingDoc.fromRawToCompiled(position);
 		}
-		return nb;
+		return position
 	}
-	public static getCurrentDiff(start: number): number {
-		let nb = 0;
+	/**
+	 * Transform position from the compiled file to raw file
+	 * The raw format is the one where user is typing
+	 * The compiled format is the one where for and if are replaced by <i> and <l>
+	 * @param pos Position inside the compiled
+	 * @returns 
+	 */
+	public static fromCompiledToRaw(position: number): number {
 		if (this.currentParsingDoc) {
-			let keys = Object.keys(this.currentParsingDoc.formatedDiff).map(n => Number(n)).sort();
-
-			for (let key of keys) {
-				if (key > start) {
-					break;
-				}
-				nb += this.currentParsingDoc.formatedDiff[key];
-			}
+			return this.currentParsingDoc.fromCompiledToRaw(position)
 		}
-		return nb;
+		return position
 	}
 	public static addLoopStack(nb: number): ForLoop | null {
 		if (this.currentParsingDoc) {
@@ -314,11 +311,45 @@ export class ParserHtml {
 	public htmlFile: AventusHTMLFile;
 	public loops: ForLoop[] = [];
 	public ifs: IfInfo[] = [];
-	public rawDiff: { [position: number]: number } = {}
-	public formatedDiff: { [position: number]: number } = {}
+	public diffRawToCompiled: { [key: number]: number } = {};
+	public diffCompiledToRaw: { [key: number]: number } = {};
 	public stacks: (ForLoop | { idTemplate: number })[] = [];
-	public debugTxt: string = "";
+	public compiledTxt: string = "";
 
+	/**
+	 * Transform position from the raw file to compiled file
+	 * The raw format is the one where user is typing
+	 * The compiled format is the one where for and if are replaced by <i> and <l>
+	 * @param pos Position inside the raw
+	 * @returns 
+	 */
+	public fromRawToCompiled(pos: number) {
+		let newPos = pos;
+		for (let key in this.diffRawToCompiled) {
+			if (Number(key) > pos) {
+				break;
+			}
+			newPos += this.diffRawToCompiled[key];
+		}
+		return newPos;
+	}
+	/**
+	 * Transform position from the compiled file to raw file
+	 * The raw format is the one where user is typing
+	 * The compiled format is the one where for and if are replaced by <i> and <l>
+	 * @param pos Position inside the compiled
+	 * @returns 
+	 */
+	public fromCompiledToRaw(pos: number) {
+		let newPos = pos;
+		for (let key in this.diffCompiledToRaw) {
+			if (Number(key) > pos) {
+				break;
+			}
+			newPos += this.diffCompiledToRaw[key];
+		}
+		return newPos;
+	}
 	public getBlocksInfoTxt() {
 		let blocks: string[] = [];
 		for (let name in this.blocksInfo) {
@@ -413,9 +444,6 @@ export class ParserHtml {
 						let _if = new IfInfo(x as IfStatement, sliceText);
 						this.ifs.push(_if);
 						transformations = [...transformations, ..._if.transformations];
-						for (let key in _if.diff) {
-							this.rawDiff[key] = _if.diff[key];
-						}
 					}
 				}
 				else if (x.kind == SyntaxKind.ForOfStatement || x.kind == SyntaxKind.ForInStatement) {
@@ -423,10 +451,6 @@ export class ParserHtml {
 					transformations = [...transformations, ...forLoop.transformations];
 					this.loops.push(forLoop);
 					this.stacks.push(forLoop);
-					if (forLoop.diffBefore)
-						this.rawDiff[forLoop.start] = forLoop.diffBefore
-					if (forLoop.diffAfter)
-						this.rawDiff[forLoop.end] = forLoop.diffAfter
 				}
 				// avoid parsing inside {{ }}
 				if (x.kind == SyntaxKind.Block && node.kind == SyntaxKind.Block) {
@@ -439,42 +463,35 @@ export class ParserHtml {
 				}
 			})
 		}
-
 		loop(srcFile, 0);
 		//#endregion
 
-		//#region fromat difference to have right line
-		let keys = Object.keys(this.rawDiff).map(n => Number(n)).sort();
-		let decalage = 0;
-		for (let key of keys) {
-			this.formatedDiff[key + decalage] = this.rawDiff[key];
-			decalage += this.rawDiff[key];
-		}
-		//#endregion
 
-		//#region transfrom file to replace js by tags <i> and <l>
+		//#region transfrom file to replace js by tags <i> and <l> + create difference
 		transformations.sort((a, b) => b.end - a.end); // order from end file to start file
 		let lastPos = txt.length;
-		let transfoDiff: { [key: number]: number } = {}
+		this.diffRawToCompiled = {}
 		for (let transformation of transformations) {
 			if (transformation.end > lastPos) continue;
-			transfoDiff[transformation.start] = transformation.newText.length - (transformation.end - transformation.start);
+			let min = Math.min(transformation.newText.length, transformation.end - transformation.start)
+			this.diffRawToCompiled[transformation.start + min] = transformation.newText.length - (transformation.end - transformation.start);
 			txt = txt.slice(0, transformation.start) + transformation.newText + txt.slice(transformation.end, txt.length);
 			lastPos = transformation.start;
 		}
+		let diff = 0;
+		for (let key in this.diffRawToCompiled) {
+			let newKey = Number(key) + diff;
+			let newValue = this.diffRawToCompiled[key] * -1;
+			diff += this.diffRawToCompiled[key];
+			this.diffCompiledToRaw[newKey] = newValue;
+		}
+
 		//#endregion
 
 		//#region reset comment that was replaced before
 		for (let start in replacements) {
 			let replacement = replacements[start];
-			let baseStart = Number(start);
-			let newStart = Number(start);
-			for (let key in transfoDiff) {
-				if (Number(key) > baseStart) {
-					break;
-				}
-				newStart += transfoDiff[key];
-			}
+			let newStart = this.fromRawToCompiled(Number(start));
 			txt = txt.slice(0, newStart) + replacement + txt.slice(newStart + replacement.length);
 		}
 		//#endregion
@@ -485,8 +502,7 @@ export class ParserHtml {
 
 	private parse(document: TextDocument) {
 		let txt = this.parseJs(document);
-		writeFileSync(uriToPath(document.uri).replace(".wcv.avt", ".html"), txt);
-		this.debugTxt = txt;
+		this.compiledTxt = txt;
 		let isInAvoidTagStart: number[] = [];
 		let removeNextClose = false;
 		let scanner = ParserHtml.languageService.createScanner(txt, 0);

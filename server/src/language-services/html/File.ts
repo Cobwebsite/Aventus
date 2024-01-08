@@ -7,6 +7,9 @@ import { AventusWebComponentLogicalFile } from '../ts/component/File';
 import { ParserHtml } from './parser/ParserHtml';
 import { AventusWebSCSSFile } from '../scss/File';
 import { TextDocument } from 'vscode-languageserver-textdocument';
+import { ActionChange } from './parser/definition';
+import { ForLoop, IfInfoCondition } from './parser/TagInfo';
+
 
 export class AventusHTMLFile extends AventusBaseFile {
 
@@ -106,29 +109,153 @@ export class AventusHTMLFile extends AventusBaseFile {
         return this.build.htmlLanguageService.onDefinition(this, position);
     }
     protected async onFormatting(file: AventusFile, range: Range, options: FormattingOptions): Promise<TextEdit[]> {
+        let replacements = await this.applyJsFormatting(range, options);
+        return this.applyHtmlFormatting(file, range, options, replacements);
+    }
+    private async applyJsFormatting(range: Range, options: FormattingOptions): Promise<{ [src: string]: string }> {
         let resultJs = await this.tsFile?.doFormatting(range, options) ?? [];
-        let content = file.document.getText();
-        let transformations = resultJs;
-        transformations.sort((a, b) => file.document.offsetAt(b.range.end) - file.document.offsetAt(a.range.end)); // order from end file to start file
-        for (let transformation of transformations) {
-            let start = file.document.offsetAt(transformation.range.start);
-            let end = file.document.offsetAt(transformation.range.end);
-            content = content.slice(0, start) + transformation.newText + content.slice(end, content.length);
-        }
-        let document = TextDocument.create(file.document.uri, file.document.languageId, file.document.version, content);
-        let result = await this.build.htmlLanguageService.format(document, range, options);
 
-        if (result.length == 1) {
-            result[0].range = {
-                start: {
-                    character: 0,
-                    line: 0
-                },
-                end: file.document.positionAt(file.document.getText().length)
+        if (!this.fileParsed) {
+            return {};
+        }
+        let mapFct: Map<ActionChange, { txt: string, start: number, end: number }[]> = new Map();
+        let mapLoop: Map<ForLoop, { txt: string, start: number, end: number }[]> = new Map();
+        let mapCondition: Map<IfInfoCondition, { txt: string, start: number, end: number }[]> = new Map();
+        for (let format of resultJs) {
+            if (format.kind == "fct") {
+                for (let fctHash in this.fileParsed.fcts) {
+                    let fct = this.fileParsed.fcts[fctHash];
+                    if (fct.positions.find(p => p.start == format.start && p.end == format.end)) {
+                        let array = mapFct.get(fct);
+                        if (!array) {
+                            array = []
+                            mapFct.set(fct, array);
+                        }
+                        array.push({
+                            start: format.edit.range.start - format.start,
+                            end: format.edit.range.end - format.start,
+                            txt: format.edit.newText
+                        })
+                        break;
+                    }
+                }
+            }
+            else if (format.kind == "loop") {
+                for (let loop of this.fileParsed.loops) {
+                    if (loop.start == format.start && loop.startBlock == format.end) {
+                        let array = mapLoop.get(loop);
+                        if (!array) {
+                            array = []
+                            mapLoop.set(loop, array);
+                        }
+                        array.push({
+                            start: format.edit.range.start - format.start,
+                            end: format.edit.range.end - format.start,
+                            txt: format.edit.newText
+                        })
+                    }
+                }
+            }
+            else if (format.kind == "if") {
+                for (let _if of this.fileParsed.ifs) {
+                    for (let condition of _if.conditions) {
+                        if (condition.start == format.start && condition.end == format.end) {
+                            let array = mapCondition.get(condition);
+                            if (!array) {
+                                array = []
+                                mapCondition.set(condition, array);
+                            }
+                            array.push({
+                                start: format.edit.range.start - format.start,
+                                end: format.edit.range.end - format.start,
+                                txt: format.edit.newText
+                            })
+                        }
+                    }
+                }
             }
         }
-        return result;
+        let replacements: { [src: string]: string } = {}
+        for (let [key, transformations] of mapFct) {
+            let src = "{{" + key.txt + "}}";
+            replacements[src] = src;
+            transformations.sort((a, b) => b.end - a.end);
+            for (let transformation of transformations) {
+                replacements[src] = replacements[src].slice(0, transformation.start) + transformation.txt + replacements[src].slice(transformation.end);
+            }
+        }
+        for (let [loop, transformations] of mapLoop) {
+            let key = loop.idTemplate;
+            let txt = loop.loopTxt;
+            transformations.sort((a, b) => b.end - a.end);
+            for (let transformation of transformations) {
+                txt = txt.slice(0, transformation.start) + transformation.txt + txt.slice(transformation.end);
+            }
+            txt = txt.slice(0, txt.length - 1)
+            replacements['<l id="' + key + '">'] = txt;
+        }
+        for(let loop of this.fileParsed.loops) {
+            if(!mapLoop.has(loop)) {
+                replacements['<l id="' + loop.idTemplate + '">'] = loop.loopTxt.slice(0, loop.loopTxt.length - 1);
+            }
+        }
+        for (let [condition, transformations] of mapCondition) {
+            let key = condition.idTemplate;
+            let txt = condition.txt;
+            transformations.sort((a, b) => b.end - a.end);
+            for (let transformation of transformations) {
+                txt = txt.slice(0, transformation.start) + transformation.txt + txt.slice(transformation.end);
+            }
+            if (condition.type == "if") {
+                txt = 'if(' + txt + ') {'
+            }
+            else if (condition.type == "elif") {
+                txt = 'else if(' + txt + ') {'
+            }
+            replacements['<i id="' + key + '">'] = txt;
+        }
+        for (let _if of this.fileParsed.ifs) {
+            for (let condition of _if.conditions) {
+                if (!mapCondition.has(condition)) {
+                    let txt = condition.txt;
+                    if (condition.type == "if") {
+                        txt = 'if(' + txt + ') {'
+                    }
+                    else if (condition.type == "elif") {
+                        txt = 'else if(' + txt + ') {'
+                    }
+                    replacements['<i id="' + condition.idTemplate + '">'] = txt;
+                }
+            }
+            if(_if.conditions.length != _if.idsTemplate.length) {
+                replacements['<i id="' + _if.idsTemplate[_if.idsTemplate.length - 1] + '">'] = 'else {';
+            }
+        }
+        replacements['</l>'] = "}"
+        replacements['</i>'] = "}"
+        return replacements;
     }
+    private async applyHtmlFormatting(file: AventusFile, range: Range, options: FormattingOptions, replacements: { [src: string]: string }): Promise<TextEdit[]> {
+        if (!this.fileParsed) {
+            return [];
+        }
+        let content = this.fileParsed?.compiledTxt
+        let document = TextDocument.create(file.document.uri, file.document.languageId, file.document.version, content);
+        let result = await this.build.htmlLanguageService.format(document, range, options);
+        let txt = result[0].newText;
+        for (let src in replacements) {
+            let regex = new RegExp(src.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'), 'g');
+            txt = txt.replace(regex, replacements[src]);
+        }
+        return [{
+            newText: txt,
+            range: {
+                start: file.document.positionAt(0),
+                end: file.document.positionAt(file.content.length)
+            }
+        }]
+    }
+
     protected async onCodeAction(document: AventusFile, range: Range): Promise<CodeAction[]> {
         return [];
     }

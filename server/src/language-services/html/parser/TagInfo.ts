@@ -403,14 +403,12 @@ export class AttributeInfo {
 	public valueEnd: number = 0;
 	public tag: TagInfo;
 	public mustBeAdded: boolean = true;
-	private diff: number;
 
 
 	public constructor(name: string, nameStart: number, nameEnd: number, tag: TagInfo) {
 		this.name = name;
-		this.diff = ParserHtml.getCurrentDiff(nameStart);
-		this.nameStart = nameStart - this.diff;
-		this.nameEnd = nameEnd - this.diff;
+		this.nameStart = ParserHtml.fromCompiledToRaw(nameStart);
+		this.nameEnd = ParserHtml.fromCompiledToRaw(nameEnd);
 		this.tag = tag;
 		this.manageSpecialAttribute();
 	}
@@ -436,8 +434,8 @@ export class AttributeInfo {
 	public setValue(value: string, valueStart: number, valueEnd: number) {
 		value = value.replace(/"/g, "");
 		this.value = value;
-		this.valueStart = valueStart - this.diff;
-		this.valueEnd = valueEnd - this.diff;
+		this.valueStart = ParserHtml.fromCompiledToRaw(valueStart);
+		this.valueEnd = ParserHtml.fromCompiledToRaw(valueEnd);
 
 		if (this.name === "@element") {
 			this.tag.alias = value;
@@ -535,9 +533,9 @@ export class ContentInfo {
 
 	public constructor(content: string, start: number, end: number, tag: TagInfo, parse: boolean = true) {
 		this.content = content;
-		let diff = ParserHtml.getCurrentDiff(start);
-		this.start = start - diff;
-		this.end = end - diff;
+		this.start = ParserHtml.fromCompiledToRaw(start);
+		this.end = ParserHtml.fromCompiledToRaw(end);
+		let part = ParserHtml['currentParsingDoc']?.htmlFile.file.content.slice(this.start, this.end);
 		this.tag = tag;
 		if (parse) {
 			this.manageVariables();
@@ -574,8 +572,6 @@ export class ForLoop {
 	public end: number = 0;
 	public loopTxt: string = "";
 	public loopName: string = "";
-	public diffBefore: number = 0;
-	public diffAfter: number = 0;
 
 	public simple: {
 		data: string,
@@ -646,10 +642,6 @@ export class ForLoop {
 					newText: newCloseTxt
 				})
 
-				let oldLength = startBlock - start;
-				this.diffBefore = newTxt.length - oldLength;
-				this.diffAfter = newCloseTxt.length - 1;
-
 				this.start = start;
 				this.startBlock = startBlock;
 				this.end = endBlock;
@@ -660,31 +652,29 @@ export class ForLoop {
 	}
 }
 
+export type IfInfoCondition = {
+	fctName: string,
+	start: number;
+	end: number;
+	txt: string;
+	fctTxt: string,
+	offsetBefore: number,
+	offsetAfter: number,
+	idTemplate: number,
+	type: 'if' | 'elif'
+};
 export class IfInfo {
 	public static readonly tagName = "i";
 	public statements: { txt: string }[] = []
 	public idsTemplate: number[] = [];
 	public variablesType: { [name: string]: string; } = {};
 	public transformations: { newText: string, start: number, end: number }[] = [];
-	public start: number = 0;
-	public startBlock: number = 0;
 	public end: number = 0;
-	public diffBefore: number = 0;
-	public diffAfter: number = 0;
-	public diff: { [pos: number]: number } = {}
 	public _id: string = "";
 	public parts: ActionIfPart[] = [];
 	public parentId?: number;
 
-	public conditions: {
-		fctName: string,
-		start: number;
-		end: number;
-		txt: string;
-		fctTxt: string,
-		offsetBefore: number,
-		offsetAfter: number
-	}[] = [];
+	public conditions: IfInfoCondition[] = [];
 	private sliceText: (start: number, end?: number) => string;
 
 	public constructor(_if: IfStatement, sliceText: (start: number, end?: number) => string) {
@@ -704,8 +694,7 @@ export class IfInfo {
 			this.idsTemplate.push(idIf);
 			return idIf;
 		}
-		const transform = (startIf: number, block: Block) => {
-			let idIf = createId();
+		const transform = (idIf: number, startIf: number, block: Block) => {
 			let startBlock = block.getStart() + 1;
 			let newTxt = "<" + IfInfo.tagName + " id=\"" + idIf + "\">";
 			let newCloseTxt = "</" + IfInfo.tagName + ">";
@@ -722,14 +711,8 @@ export class IfInfo {
 				end: endBlock,
 				newText: newCloseTxt
 			})
-
-			let oldLength = startBlock - startIf;
-			// diff to move from wcv to html
-			let min = Math.min(newTxt.length, oldLength);
-			this.diff[startIf + min] = newTxt.length - oldLength;
-			this.diff[endBlock] = newCloseTxt.length - 1;
 		}
-		const loadBlocks = (_if: IfStatement, start?: number) => {
+		const loadBlocks = (_if: IfStatement, depth: number = 0, start?: number) => {
 			let nbBlock = 0;
 			if (start === undefined) {
 				start = _if.getStart();
@@ -741,6 +724,8 @@ export class IfInfo {
 					elseStart = child.getStart();
 				}
 			}
+			let idTemplate = createId();
+
 			forEachChild(_if, y => {
 				if (y.kind == SyntaxKind.Block) {
 					nbBlock++;
@@ -748,10 +733,10 @@ export class IfInfo {
 						if (elseStart == undefined) {
 							throw 'impossible';
 						}
-						transform(elseStart, y as Block);
+						transform(createId(), elseStart, y as Block);
 					}
 					else {
-						transform(realStart, y as Block);
+						transform(idTemplate, realStart, y as Block);
 					}
 					blocks.push(y as Block);
 				}
@@ -759,7 +744,7 @@ export class IfInfo {
 					if (elseStart == undefined) {
 						throw 'impossible';
 					}
-					loadBlocks(y as IfStatement, elseStart);
+					loadBlocks(y as IfStatement, depth + 1, elseStart);
 				}
 				else if (y.kind == SyntaxKind.BinaryExpression) {
 					let fctName = ParserHtml.getCustomFctName(this.conditions.length) ?? '';
@@ -771,19 +756,15 @@ export class IfInfo {
 						start: y.getStart(),
 						end: y.getEnd(),
 						offsetAfter: 0,
-						offsetBefore: 0
+						offsetBefore: 0,
+						idTemplate,
+						type: depth == 0 ? 'if' : 'elif'
 					});
 				}
 			})
 		}
 		loadBlocks(_if);
 
-		// this.diffBefore = startBlock - newTxtLength < 0 ? newTxtLength - startBlock : 0;
-		// this.diffAfter = newCloseTxt.length - 1;
-
-		// this.start = start;
-		// this.startBlock = startBlock;
-		// this.end = endBlock;
 	}
 
 	public registerPart(part: ActionIfPart) {

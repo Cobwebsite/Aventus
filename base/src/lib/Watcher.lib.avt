@@ -599,6 +599,7 @@ export class Effect {
     }[] = [];
 
     protected isInit: boolean = false;
+    protected isDestroy: boolean = false;
     protected __subscribes: WatcherChange[] = [];
     protected __allowChanged: WatcherAllowed[] = [];
 
@@ -654,6 +655,9 @@ export class Effect {
     }
 
     protected checkCanChange(action: WatchAction, changePath: string, value: any): boolean {
+        if (this.isDestroy) {
+            return false;
+        }
         for(let fct of this.__allowChanged) {
             if(!fct(action, changePath, value)) {
                 return false;
@@ -673,6 +677,7 @@ export class Effect {
     }
 
     public destroy() {
+        this.isDestroy = true;
         for(let pair of this.callbacks) {
             pair.receiver.unsubscribe(pair.cb);
         }

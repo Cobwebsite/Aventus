@@ -7,6 +7,7 @@ import { AventusLanguageId } from '../definition';
 import { GenericServer } from '../GenericServer';
 
 export type onValidateType = (document: AventusFile) => Promise<Diagnostic[]>;
+export type onCanContentChangeType = (document: TextDocument) => boolean;
 export type onContentChangeType = (document: AventusFile) => Promise<void>;
 export type onCompletionType = (document: AventusFile, position: Position) => Promise<CompletionList>;
 export type onCompletionResolveType = (document: AventusFile, item: CompletionItem) => Promise<CompletionItem>;
@@ -36,6 +37,9 @@ export interface AventusFile {
     validate(sendDiagnostics?: boolean): Promise<Diagnostic[]>;
     onValidate(cb: onValidateType): string;
     removeOnValidate(uuid: string): void;
+
+    onCanContentChange(cb: onCanContentChangeType): string;
+    removeOnCanContentChange(uuid: string): void;
 
     onContentChange(cb: onContentChangeType): string;
     removeOnContentChange(uuid: string): void;
@@ -82,6 +86,7 @@ export class InternalAventusFile implements AventusFile {
 
     public setDocument(value: TextDocument) {
         this._document = value;
+        this._version = this.document.version;
     }
 
     public constructor(document: TextDocument) {
@@ -192,8 +197,13 @@ export class InternalAventusFile implements AventusFile {
     private waitingDocContentChange: { [uri: string]: TextDocument | true } = {};
     private resolveContentChange: { [uri: string]: { [version: number]: (() => void)[] } } = {};
 
+
     public triggerContentChange(document: TextDocument): Promise<void> {
         return new Promise<void>((resolve) => {
+            if (!this.triggerCanContentChange(document)) {
+                resolve();
+                return;
+            }
             setTimeout(() => {
                 if (!this.waitingDocContentChange[document.uri]) {
                     this.waitingDocContentChange[document.uri] = true;
@@ -271,6 +281,30 @@ export class InternalAventusFile implements AventusFile {
 
     public removeOnContentChange(uuid: string): void {
         delete this.onContentChangeCb[uuid];
+    }
+
+    private onCanContentChangeCb: { [uuid: string]: onCanContentChangeType } = {};
+
+    public triggerCanContentChange(document: TextDocument): boolean {
+        for (let uuid in this.onCanContentChangeCb) {
+            if (!this.onCanContentChangeCb[uuid](document)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public onCanContentChange(cb: onCanContentChangeType): string {
+        let uuid = randomUUID();
+        while (this.onCanContentChangeCb[uuid] != undefined) {
+            uuid = randomUUID();
+        }
+        this.onCanContentChangeCb[uuid] = cb;
+        return uuid;
+    }
+
+    public removeOnCanContentChange(uuid: string): void {
+        delete this.onCanContentChangeCb[uuid];
     }
 
     //#endregion

@@ -1,3 +1,5 @@
+import { TextEdit } from 'vscode-languageserver';
+
 export type InterestPoint = {
 	start: number,
 	end: number,
@@ -86,7 +88,7 @@ export type ActionIf = {
 	parts: ActionIfPart[]
 }
 export type ActionChange = {
-	positions:{
+	positions: {
 		start: number,
 		end: number,
 	}[],
@@ -109,3 +111,17 @@ export type HtmlTemplateResult = {
 	loops: ActionLoop[];
 	ifs: ActionIf[]
 };
+
+
+export type HTMLFormat = {
+	edit: {
+		newText: string;
+		range: {
+			start: number,
+			end: number
+		}
+	},
+	kind: 'fct' | 'loop' | 'if',
+	start: number,
+	end: number
+}

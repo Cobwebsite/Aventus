@@ -25,6 +25,7 @@ export abstract class AventusBaseFile {
 
 
     private uuidEvents = {
+        onCanContentChange: '',
         onContentChange: '',
         onValidate: '',
         onSave: '',
@@ -41,6 +42,7 @@ export abstract class AventusBaseFile {
         onRename: ''
     }
     private addEvents(): void {
+        this.uuidEvents.onCanContentChange = this.file.onCanContentChange(this.onCanContentChange.bind(this));
         this.uuidEvents.onContentChange = this.file.onContentChange(this.onContentChange.bind(this));
         this.uuidEvents.onValidate = this.file.onValidate(this._onValidate.bind(this));
         this.uuidEvents.onSave = this.file.onSave(this.onSave.bind(this));
@@ -57,6 +59,7 @@ export abstract class AventusBaseFile {
         this.uuidEvents.onRename = this.file.onRename(this.onRename.bind(this));
     }
     public removeEvents(): void {
+        this.file.removeOnCanContentChange(this.uuidEvents.onCanContentChange);
         this.file.removeOnContentChange(this.uuidEvents.onContentChange);
         this.file.removeOnValidate(this.uuidEvents.onValidate);
         this.file.removeOnSave(this.uuidEvents.onSave);
@@ -88,6 +91,9 @@ export abstract class AventusBaseFile {
         if (this.file instanceof InternalAventusFile) {
             this.file.triggerContentChange(document);
         }
+    }
+    protected onCanContentChange(document: TextDocument): boolean {
+        return this._file.version != document.version;
     }
     protected abstract onContentChange(): Promise<void>;
     private async _onValidate(): Promise<Diagnostic[]> {

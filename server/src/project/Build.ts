@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, statSync, unlinkSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "fs";
 import { EOL } from "os";
 import { join, normalize, sep } from "path";
 import { Diagnostic, DiagnosticSeverity, TextEdit } from 'vscode-languageserver';
@@ -1102,9 +1102,6 @@ export class Build {
                 }
             }
         }
-
-        writeFileSync("D:\\test\\debug.json", JSON.stringify(result));
-
         return result;
     }
     //#endregion

@@ -16,6 +16,7 @@ import { ClassInfo } from '../parser/ClassInfo';
 import { replaceNotImportAliases } from '../../../tools';
 import { QuickParser } from './QuickParser';
 import * as md5 from 'md5';
+import { HTMLFormat } from '../../html/parser/definition';
 
 type ViewMethodInfo = {
     name: string
@@ -32,6 +33,7 @@ type ViewMethodInfo = {
         }[]
         txt: string;
     }
+    kind: 'fct' | 'loop' | 'if'
 }
 
 export class AventusWebComponentLogicalFile extends AventusTsFile {
@@ -151,12 +153,12 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                     this.viewMethodsInfo = [];
                     let returnAddedLength = 0;
                     for (let method of Object.values(methods)) {
-                        method.txt = method.txt.replace(/\n/g, ";");
+                        let methodTxt = method.txt.replace(/\n/g, ";");
 
                         let returnPosition = -1;
 
-                        let resultTemp: string[] = method.txt.split(";");
-                        if (!method.txt.includes("return ")) {
+                        let resultTemp: string[] = methodTxt.split(";");
+                        if (!methodTxt.includes("return ")) {
                             // TODO correct the return to get only the last none empty lane
                             if (resultTemp.length > 0) {
                                 let lastEl = resultTemp.pop()
@@ -172,7 +174,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
 
                             }
                         }
-                        method.txt = resultTemp.join("\n");
+                        methodTxt = resultTemp.join("\n");
 
                         let fullStart = newContent.length;
                         let parameters: string[] = [];
@@ -184,7 +186,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                         let t = this._space;
                         newContent += `${t}/** */\n${t}@Effect({ autoInit: false })\n${t}private ${method.name}(${parameters.join(",")}): NotVoid {\n`;
                         let start = newContent.length;
-                        newContent += method.txt + "\n";
+                        newContent += methodTxt + "\n";
                         let end = newContent.length;
                         newContent += t + '}\n';
 
@@ -198,6 +200,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                                 fct: method,
                                 offsetBefore: "{{".length,
                                 offsetAfter: "}}".length,
+                                kind: "fct",
                                 transform(start, currentPos) {
                                     if (start >= rPos) {
                                         currentPos += returnLength;
@@ -235,6 +238,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                                 end: end,
                                 offsetBefore: 0,
                                 offsetAfter: 0,
+                                kind: "loop",
                                 fct: {
                                     txt: _for.loopTxt,
                                     positions: [{
@@ -258,12 +262,12 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                             parameters.push(varName + ":" + _if.variablesType[varName]);
                         }
                         for (let condition of _if.conditions) {
-                            condition.txt = condition.txt.replace(/\n/g, ";");
+                            let conditionTxt = condition.txt.replace(/\n/g, ";");
 
                             let returnPosition = -1;
 
-                            let resultTemp: string[] = condition.txt.split(";");
-                            if (!condition.txt.includes("return ")) {
+                            let resultTemp: string[] = conditionTxt.split(";");
+                            if (!conditionTxt.includes("return ")) {
                                 // TODO correct the return to get only the last none empty lane
                                 if (resultTemp.length > 0) {
                                     let lastEl = resultTemp.pop()
@@ -279,7 +283,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
 
                                 }
                             }
-                            condition.txt = resultTemp.join("\n");
+                            conditionTxt = resultTemp.join("\n");
 
                             let fullStart = newContent.length;
 
@@ -288,7 +292,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                             let t = this._space;
                             newContent += `${t}/** */\n${t}@Effect({ autoInit: false })\n${t}private ${condition.fctName}(${parameters.join(",")}): NotVoid {\n`;
                             let start = newContent.length;
-                            newContent += condition.txt + "\n";
+                            newContent += conditionTxt + "\n";
                             let end = newContent.length;
                             newContent += t + '}\n';
 
@@ -298,9 +302,10 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                                     fullStart: fullStart,
                                     start: start,
                                     end: end,
+                                    kind: "if",
                                     fct: {
                                         positions: [{ start: condition.start, end: condition.end }],
-                                        txt: condition.txt
+                                        txt: conditionTxt
                                     },
                                     offsetBefore: condition.offsetBefore,
                                     offsetAfter: condition.offsetAfter,
@@ -323,7 +328,6 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                     if (this.file instanceof InternalAventusFile) {
                         this.file.setDocument(TextDocument.create(this.file.document.uri, this.file.document.languageId, v, newContent));
                     }
-                    writeFileSync(this.file.path + ".ts", newContent);
                 }
 
                 this.refreshFileParsed();
@@ -433,6 +437,9 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         }
     }
 
+    protected onCanContentChange(document: TextDocument): boolean {
+        return this.originalDocument.version != document.version;
+    }
     protected async onContentChange(): Promise<void> {
         this.setOriginalDocument(this.file.document);
         await this.runWebCompiler();
@@ -607,14 +614,12 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
             return null;
         }
         let offsetFrom = html.file.document.offsetAt(htmlPosition);
-        // TODO correct here
-        let extract = html.file.content.slice(offsetFrom - 2, offsetFrom + 2);
         for (let viewMethodInfo of this.viewMethodsInfo) {
             for (let position of viewMethodInfo.fct.positions) {
                 if (offsetFrom >= position.start + viewMethodInfo.offsetBefore && offsetFrom <= position.end) {
                     let offset = offsetFrom - position.start - viewMethodInfo.offsetAfter;
                     let offsetOnFile = viewMethodInfo.start + offset;
-                    offsetOnFile = viewMethodInfo.transform(offsetOnFile, offsetOnFile)
+                    offsetOnFile = viewMethodInfo.transform(offset, offsetOnFile)
                     let positionOnFile = this.file.document.positionAt(offsetOnFile);
                     let resultTemp = await this.onDefinition(this.file, positionOnFile);
                     return resultTemp;
@@ -627,20 +632,22 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         return this.tsLanguageService.findDefinition(document, position);
     }
 
-    public async doFormatting(range: Range, options: FormattingOptions): Promise<TextEdit[] | null> {
+    public async doFormatting(range: Range, options: FormattingOptions): Promise<HTMLFormat[] | null> {
         const html = this.HTMLFile;
         if (!html) {
             return null;
         }
-        let result: TextEdit[] = (await this.getFormatting(options, false)).html;
-        return result;
+        return (await this.getFormatting(options, false)).html;
     }
     protected async onFormatting(document: AventusFile, range: Range, options: FormattingOptions): Promise<TextEdit[]> {
         return (await this.getFormatting(options, true)).js;
     }
 
-    private async getFormatting(options: FormattingOptions, semiColon: boolean): Promise<{ js: TextEdit[], html: TextEdit[] }> {
-        let result: { js: TextEdit[], html: TextEdit[] } = { js: [], html: [] }
+    private async getFormatting(options: FormattingOptions, semiColon: boolean): Promise<{ js: TextEdit[], html: HTMLFormat[] }> {
+        let result: {
+            js: TextEdit[],
+            html: HTMLFormat[]
+        } = { js: [], html: [] }
         let range: Range = {
             start: { character: 0, line: 0 },
             end: this.file.document.positionAt(this.file.content.length)
@@ -674,22 +681,23 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                             for (let j = 0; j < methodView.positions.length; j++) {
                                 let finalPositionStart = methodView.positions[j].start + offsetBefore + offsetStart;
                                 let finalPositionEnd = methodView.positions[j].start + offsetBefore + offsetEnd;
-                                if (j == 0) {
-                                    format.range.start = html.file.document.positionAt(finalPositionStart);
-                                    format.range.end = html.file.document.positionAt(finalPositionEnd);
-                                }
-                                else {
-                                    let clone = { ...format };
-                                    clone.range.start = html.file.document.positionAt(finalPositionStart);
-                                    clone.range.end = html.file.document.positionAt(finalPositionEnd);
-                                    result.html.push(clone);
-                                }
+                                result.html.push({
+                                    edit: {
+                                        newText: format.newText,
+                                        range: {
+                                            start: finalPositionStart,
+                                            end: finalPositionEnd
+                                        }
+                                    },
+                                    start: methodView.positions[j].start,
+                                    end: methodView.positions[j].end,
+                                    kind: this.viewMethodsInfo[i].kind
+                                });
                             }
 
 
                         }
                         found = true;
-                        result.html.push(format);
                         break;
                     }
                     else if (diagStart >= this.viewMethodsInfo[i].fullStart && diagEnd <= end) {
