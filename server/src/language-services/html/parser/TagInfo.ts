@@ -77,6 +77,10 @@ export class TagInfo {
 
 
 	public addAttribute(attributeInfo: AttributeInfo) {
+		if(attributeInfo.name == "@for") {
+			ParserHtml.addError(attributeInfo.nameStart, attributeInfo.nameEnd, "Deprecated : use for directly inside template")
+			return
+		}
 		if (!this.attributes[attributeInfo.name]) {
 			this.attributes[attributeInfo.name] = attributeInfo;
 		}
@@ -474,6 +478,9 @@ export class AttributeInfo {
 		this.value = value;
 		this.valueStart = ParserHtml.fromCompiledToRaw(valueStart);
 		this.valueEnd = ParserHtml.fromCompiledToRaw(valueEnd);
+		if(this.name == "@for") {
+			return;
+		}
 
 		if (this.name === "@element") {
 			this.tag.alias = value;
@@ -718,7 +725,7 @@ export class ForLoop {
 		let i = 0;
 		let loopTxt = "";
 		forEachChild(_for, y => {
-			if (i == 0) {
+			if (i == 0 && y.kind == SyntaxKind.VariableDeclarationList) {
 				// declaration
 				forEachChild(y, decl => {
 					let _var = decl.getChildAt(0);
@@ -734,7 +741,7 @@ export class ForLoop {
 					})
 				})
 			}
-			else if (i == 1) {
+			else if (i == 1 && y.kind == SyntaxKind.BinaryExpression) {
 				// condition
 				condition = y.getText();
 			}
@@ -756,7 +763,7 @@ export class ForLoop {
 				}
 				loadRecu(y);
 			}
-			else if (i == 3) {
+			else if (i == 3 && y.kind == SyntaxKind.Block) {
 				// block
 				let start = _for.getStart();
 				let startBlock = y.getStart() + 1;
@@ -785,6 +792,14 @@ export class ForLoop {
 			i++;
 
 		});
+
+		if(this.transformations.length == 0) {
+			this.transformations.push({
+				start: _for.getStart(),
+				end: _for.getEnd(),
+				newText: "<" + ForLoop.tagName + " id=\"" + this.idTemplate + "\"></" + ForLoop.tagName + ">"
+			})
+		}
 
 		if (!this.checkIsSimple(init, condition, transform)) {
 			let fctName = ParserHtml.getCustomFctName(1) ?? ""

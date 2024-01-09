@@ -5,7 +5,7 @@ import { CodeAction, CodeLens, CompletionItem, CompletionItemKind, CompletionLis
 import { AventusExtension, AventusLanguageId } from '../../definition';
 import { AventusFile } from '../../files/AventusFile';
 import { Build } from '../../project/Build';
-import { convertRange, uriToPath } from '../../tools';
+import { convertRange, getWordAtText, uriToPath } from '../../tools';
 import { AventusTsFile } from './File';
 import { loadLibrary, loadTypescriptLib } from './libLoader';
 import { BaseInfo, InfoType } from './parser/BaseInfo';
@@ -250,7 +250,7 @@ export class AventusTsLanguageService {
             let document = file.documentInternal;
 
             let offset = document.offsetAt(position);
-            let replaceRange = convertRange(document, getWordAtText(document.getText(), offset, JS_WORD_REGEX));
+            let replaceRange = convertRange(document, getWordAtText(document.getText(), offset));
             let completions: WithMetadata<CompletionInfo> | undefined;
             try {
                 completions = this.languageService.getCompletionsAtPosition(document.uri, offset, completionOptions);
@@ -1072,7 +1072,6 @@ export type CompileTsResult = {
     convertibleName: string
 }
 
-const JS_WORD_REGEX = /(-?\d*\.\d\w*)|([^\`\~\!\@\#\%\^\&\*\(\)\-\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\?\s]+)/g;
 
 const compilerOptionsRead: CompilerOptions = {
     allowNonTsExtensions: true,
@@ -1250,31 +1249,8 @@ function convertKind(kind: string): CompletionItemKind {
             return CompletionItemKind.Property;
     }
 }
-function isNewlineCharacter(charCode: number) {
-    return charCode === '\r'.charCodeAt(0) || charCode === '\n'.charCodeAt(0);
-}
-function getWordAtText(text: string, offset: number, wordDefinition: RegExp): { start: number; length: number } {
-    let lineStart = offset;
-    while (lineStart > 0 && !isNewlineCharacter(text.charCodeAt(lineStart - 1))) {
-        lineStart--;
-    }
-    const offsetInLine = offset - lineStart;
-    const lineText = text.substr(lineStart);
 
-    // make a copy of the regex as to not keep the state
-    const flags = wordDefinition.ignoreCase ? 'gi' : 'g';
-    wordDefinition = new RegExp(wordDefinition.source, flags);
 
-    let match = wordDefinition.exec(lineText);
-    while (match && match.index + match[0].length < offsetInLine) {
-        match = wordDefinition.exec(lineText);
-    }
-    if (match && match.index <= offsetInLine) {
-        return { start: match.index + lineStart, length: match[0].length };
-    }
-
-    return { start: offset, length: 0 };
-}
 function simplifyPath(importPathTxt, currentPath) {
     importPathTxt = decodeURIComponent(importPathTxt);
     if (importPathTxt.startsWith("custom://")) {

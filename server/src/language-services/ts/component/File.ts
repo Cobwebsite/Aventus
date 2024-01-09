@@ -75,12 +75,15 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         return this._componentClassName;
     }
     private _space: string = "";
+    private writeHtml: boolean = false;
+    private writeTs: boolean = false;
 
     public htmlDiagnostics: Diagnostic[] = [];
 
     constructor(file: AventusFile, build: Build) {
         super(file, build);
         file.linkInternalAndUser = false;
+        this.quickParse();
     }
 
 
@@ -457,29 +460,15 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
 
                 this.refreshFileParsed();
 
-                let decorators = this.fileParsed?.classes[this._componentClassName]?.decorators ?? [];
                 let htmlPath = join(this.file.folderPath, "compiled.html");
                 let tsPath = join(this.file.folderPath, "compiled.ts");
-                let writeHtml = false;
-                let writeTs = false;
-                for (let decorator of decorators) {
-                    let debugDeco = DebuggerDecorator.is(decorator);
-                    if (debugDeco) {
-                        if (debugDeco.writeHTML) {
-                            writeHtml = true;
-                        }
-                        if (debugDeco.writeComponentTs) {
-                            writeTs = true;
-                        }
-                    }
-                }
-                if (writeHtml) {
+                if (this.writeHtml) {
                     writeFileSync(htmlPath, this.HTMLFile?.fileParsed?.compiledTxt ?? "");
                 }
                 else if (existsSync(htmlPath)) {
                     unlinkSync(htmlPath);
                 }
-                if (writeTs) {
+                if (this.writeTs) {
                     writeFileSync(tsPath, newContent);
                 }
                 else if (existsSync(tsPath)) {
@@ -577,16 +566,21 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         }
     }
 
-    protected async onContentChange(): Promise<void> {
+    private quickParse() {
         let quickParse = QuickParser.parse(this.file.documentUser.getText(), this.build);
         this._componentEnd = quickParse.end;
         this._fullname = quickParse.fullname;
         this._componentClassName = quickParse.className;
+        this.writeHtml = quickParse.writeHtml;
+        this.writeTs = quickParse.writeTs;
         let space = "";
         for (let i = 0; i < quickParse.whiteSpaceBefore + 4; i++) {
             space += " ";
         }
         this._space = space;
+    }
+    protected async onContentChange(): Promise<void> {
+        this.quickParse();
         await this.runWebCompiler();
     }
 

@@ -652,110 +652,76 @@ export class AventusWebcomponentCompiler {
         }
         this.writeFileReplaceVar('variables', variablesSimpleTxt);
     }
+
+    private getGetterAndSetter(field: CustomFieldModel, type: TypeInfo, isProp: boolean): string {
+        let result = "";
+        let key = field.name;
+        let propTxt = isProp ? 'Prop' : 'Attr'
+        if (type.kind == "string" || type.kind == "literal" || type.kind == "union") {
+            result += `get '${key}'() { return this.getString${propTxt}('${key}') }
+    set '${key}'(val) { this.setStringAttr('${key}', val) }${EOL}`;
+        }
+        else if (type.kind == "number") {
+            result += `get '${key}'() { return this.getNumber${propTxt}('${key}') }
+    set '${key}'(val) { this.setNumberAttr('${key}', val) }${EOL}`;
+        }
+        else if (type.kind == "boolean") {
+            this.listBoolProperties.push('"' + key + '"');
+            result += `get '${key}'() { return this.getBool${propTxt}('${key}') }
+    set '${key}'(val) { this.setBoolAttr('${key}', val) }${EOL}`;
+        }
+        else if (type.kind === "type" && type.value == "Date") {
+            result += `get '${key}'() { return this.getDate${propTxt}('${key}') }
+    set '${key}'(val) { this.setDateAttr('${key}', val) }${EOL}`;
+        }
+        else if (type.kind === "type" && type.value == "DateTime") {
+            result += `get '${key}'() { return this.getDateTime${propTxt}('${key}') }
+    set '${key}'(val) { this.setDateTimeAttr('${key}', val) }${EOL}`;
+        }
+        return result;
+    }
+    private getDefaultValueAttr(field: CustomFieldModel, type: TypeInfo): string {
+        let result = "";
+        let key = field.name;
+        if (type.kind == "boolean") {
+            if (field.defaultValue !== null && field.defaultValue !== "false") {
+                result += "if(!this.hasAttribute('" + key + "')) {this.setAttribute('" + key + "' ,'true'); }" + EOL;
+            }
+            else {
+                //If default set to false, we refresh the attribute to set it to false and not undefined
+                result += "if(!this.hasAttribute('" + key + "')) { this.attributeChangedCallback('" + key + "', false, false); }" + EOL;
+            }
+        }
+        else if (type.kind == "type" && (type.value == "Date" || type.value == "DateTime")) {
+            if (field.defaultValue !== null) {
+                result += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = " + field.defaultValue + "; }" + EOL;
+            }
+            else {
+                result += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = undefined; }" + EOL;
+            }
+        }
+        else {
+            if (field.defaultValue !== null) {
+                result += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = " + field.defaultValue + "; }" + EOL;
+            }
+            else {
+                result += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = undefined; }" + EOL;
+            }
+        }
+
+        return result;
+    }
     private writeFileFieldsAttribute(fields: CustomFieldModel[]) {
         let defaultValue = "";
         let getterSetter = "";
-        var _createDefaultValue = (field: CustomFieldModel, type: TypeInfo) => {
-            let key = field.name;
-            if (type.kind == "boolean") {
-                if (field.defaultValue !== null && field.defaultValue !== "false") {
-                    defaultValue += "if(!this.hasAttribute('" + key + "')) {this.setAttribute('" + key + "' ,'true'); }" + EOL;
-                }
-                else {
-                    //If default set to false, we refresh the attribute to set it to false and not undefined
-                    defaultValue += "if(!this.hasAttribute('" + key + "')) { this.attributeChangedCallback('" + key + "', false, false); }" + EOL;
-                }
-            }
-            else if (type.kind == "type" && (type.value == "Date" || type.value == "DateTime")) {
-                if (field.defaultValue !== null) {
-                    defaultValue += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = " + field.defaultValue + "; }" + EOL;
-                }
-                else {
-                    defaultValue += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = undefined; }" + EOL;
-                }
-            }
-            else {
-                if (field.defaultValue !== null) {
-                    defaultValue += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = " + field.defaultValue + "; }" + EOL;
-                }
-                else {
-                    defaultValue += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = undefined; }" + EOL;
-                }
-            }
-        }
-        var _createGetterSetter = (field: CustomFieldModel, type: TypeInfo) => {
-            let key = field.name;
-            if (type.kind == "string" || type.kind == "literal" || type.kind == "union") {
-                getterSetter += `get '${key}'() {
-                    return this.getAttribute('${key}') ?? undefined;
-                }
-                set '${key}'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('${key}')}
-                    else{this.setAttribute('${key}',val)}
-                }${EOL}`;
-            }
-            else if (type.kind == "number") {
-                getterSetter += `get '${key}'() {
-                    return Number(this.getAttribute('${key}'));
-                }
-                set '${key}'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('${key}')}
-                    else{this.setAttribute('${key}',val)}
-                }${EOL}`;
-            }
-            else if (type.kind == "boolean") {
-                this.listBoolProperties.push('"' + key + '"');
-                getterSetter += `get '${key}'() {
-                return this.hasAttribute('${key}');
-            }
-            set '${key}'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('${key}', 'true');
-                } else{
-                    this.removeAttribute('${key}');
-                }
-            }${EOL}`;
-            }
-            else if (type.kind === "type" && type.value == "Date") {
-                getterSetter += `
-                get '${key}'() {
-                    if(!this.hasAttribute('${key}')) {
-                        return undefined;
-                    }
-                    return this.stringToDate(this.getAttribute('${key}'));
-                }
-                set '${key}'(val) {
-                    let valTxt = this.dateToString(val);
-                    if(valTxt === null){this.removeAttribute('${key}')}
-                    else { this.setAttribute('${key}', valTxt); }
-                }
-                `;
-            }
-            else if (type.kind === "type" && type.value == "DateTime") {
-                getterSetter += `
-                get '${key}'() {
-                    if(!this.hasAttribute('${key}')) {
-                        return undefined;
-                    }
-                    return this.stringToDateTime(this.getAttribute('${key}'));
-                }
-                set '${key}'(val) {
-                    let valTxt = this.dateTimeToString(val);
-                    if(valTxt === null){ this.removeAttribute('${key}') }
-                    else { this.setAttribute('${key}', valTxt); }
-                }
-                `;
-            }
-        }
 
         for (let field of fields) {
             let type = this.validateTypeForProp(this.document, field);
             if (!type) {
                 continue;
             }
-            _createDefaultValue(field, type);
-            _createGetterSetter(field, type);
+            defaultValue += this.getDefaultValueAttr(field, type);
+            getterSetter += this.getGetterAndSetter(field, type, false);
             this.createHtmlDoc(field, type);
 
             this.upgradeAttributes += 'this.__upgradeProperty(\'' + field.name.toLowerCase() + '\');' + EOL;
@@ -772,97 +738,7 @@ export class AventusWebcomponentCompiler {
         let getterSetter = "";
         let onChange = "";
         let variablesWatched: string[] = [];
-        var _createDefaultValue = (field: CustomFieldModel, type: TypeInfo) => {
-            let key = field.name;
-            if (type.kind == "boolean") {
-                if (field.defaultValue !== null && field.defaultValue !== "false") {
-                    defaultValue += "if(!this.hasAttribute('" + key + "')) {this.setAttribute('" + key + "' ,'true'); }" + EOL;
-                }
-                else {
-                    //If default set to false, we refresh the attribute to set it to false and not undefined
-                    defaultValue += "if(!this.hasAttribute('" + key + "')) { this.attributeChangedCallback('" + key + "', false, false); }" + EOL;
-                }
-            }
-            else if (type.kind == "type" && (type.value == "Date" || type.value == "DateTime")) {
-                if (field.defaultValue !== null) {
-                    defaultValue += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = " + field.defaultValue + "; }" + EOL;
-                }
-                else {
-                    defaultValue += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = undefined; }" + EOL;
-                }
-            }
-            else {
-                if (field.defaultValue !== null) {
-                    defaultValue += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = " + field.defaultValue + "; }" + EOL;
-                }
-                else {
-                    defaultValue += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = undefined; }" + EOL;
-                }
-            }
-        }
-        var _createGetterSetter = (field: CustomFieldModel, type: TypeInfo) => {
-            let key = field.name;
-            if (type.kind == "string" || type.kind == "literal" || type.kind == "union") {
-                getterSetter += `get '${key}'() {
-                    return this.getAttribute('${key}') ?? undefined;
-                }
-                set '${key}'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('${key}')}
-                    else{this.setAttribute('${key}',val)}
-                }${EOL}`;
-            }
-            else if (type.kind == "number") {
-                getterSetter += `get '${key}'() {
-                    return Number(this.getAttribute('${key}'));
-                }
-                set '${key}'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('${key}')}
-                    else{this.setAttribute('${key}',val)}
-                }${EOL}`;
-            }
-            else if (type.kind == "boolean") {
-                this.listBoolProperties.push('"' + key + '"');
-                getterSetter += `get '${key}'() {
-                return this.hasAttribute('${key}');
-            }
-            set '${key}'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('${key}', 'true');
-                } else{
-                    this.removeAttribute('${key}');
-                }
-            }${EOL}`;
-            }
-            else if (type.kind === "type" && type.value == "Date") {
-                getterSetter += `
-                get '${key}'() {
-                    if(!this.hasAttribute('${key}')) { return undefined; }
-                    return this.stringToDate(this.getAttribute('${key}'));
-                }
-                set '${key}'(val) {
-                    let valTxt = this.dateToString(val);
-                    if(valTxt === null){this.removeAttribute('${key}')}
-                    else { this.setAttribute('${key}', valTxt) }
-                }
-                `;
-            }
-            else if (type.kind === "type" && type.value == "DateTime") {
-                getterSetter += `
-                get '${key}'() {
-                    if(!this.hasAttribute('${key}')) {
-                        return undefined;
-                    }
-                    return this.stringToDateTime(this.getAttribute('${key}'));
-                }
-                set '${key}'(val) {
-                    let valTxt = this.dateTimeToString(val);
-                    if(valTxt === null){this.removeAttribute('${key}')}
-                    else { this.setAttribute('${key}', valTxt); }
-                }
-                `;
-            }
-        }
+
         for (let property of properties) {
             let field = property.field;
             let type = this.validateTypeForProp(this.document, field)
@@ -870,8 +746,8 @@ export class AventusWebcomponentCompiler {
                 continue;
             }
 
-            _createDefaultValue(field, type);
-            _createGetterSetter(field, type);
+            defaultValue += this.getDefaultValueAttr(field, type);
+            getterSetter += this.getGetterAndSetter(field, type, true);
             this.createHtmlDoc(field, type);
 
             this.upgradeAttributes += 'this.__upgradeProperty(\'' + field.name.toLowerCase() + '\');' + EOL;

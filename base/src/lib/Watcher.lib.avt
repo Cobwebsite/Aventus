@@ -582,8 +582,8 @@ export class Watcher {
     }
 }
 
-type WatcherChange = (action: WatchAction, changePath: string, value: any) => void;
-type EffectReceiver = {
+export type WatcherChange = (action: WatchAction, changePath: string, value: any) => void;
+export type EffectReceiver = {
     subscribe: (fct: WatcherChange) => void;
     unsubscribe: (fct: WatcherChange) => void;
 };

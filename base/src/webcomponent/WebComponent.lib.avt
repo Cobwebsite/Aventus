@@ -5,7 +5,7 @@ import { State } from "../state/State.state.avt";
 import { StateManager, type StateSlug } from "../state/StateManager.state.avt";
 import { ElementExtension } from "./ElementExtension.lib.avt";
 import { Instance } from "../lib/Instance.lib.avt";
-import { Computed, WatchAction, Watcher } from "../lib/Watcher.lib.avt";
+import { Computed, WatchAction, Watcher, type EffectReceiver, type WatcherChange } from "../lib/Watcher.lib.avt";
 
 
 export interface DebuggerConfig {
@@ -161,7 +161,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
     @Internal()
     public __watchActions: { [key: string]: ((target: WebComponent, action: WatchAction, path: string, value: any) => void)[]; } = {};
     private __watchActionsCb: { [key: string]: (type: WatchAction, path: string, element: any) => void; } = {};
-    private __watchFunctions: { [key: string]: { autoInit: boolean } } = {};
+    private __watchFunctions: { [key: string]: { autoInit: boolean; }; } = {};
     private __watchFunctionsComputed: { [name: string]: Computed<any>; } = {};
     private __pressManagers: PressManager[] = [];
 
@@ -228,11 +228,11 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
             this.__watchActions[name].push(fct);
         }
     }
-    private __addWatchesFunctions(infos: (string | { name: string, autoInit: boolean })[]) {
-        for (let info of infos) {
+    private __addWatchesFunctions(infos: (string | { name: string, autoInit: boolean; })[]) {
+        for(let info of infos) {
             let realName: string;
             let autoInit: boolean;
-            if (typeof info == "string") {
+            if(typeof info == "string") {
                 realName = info;
                 autoInit = false;
             }
@@ -241,7 +241,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
                 autoInit = info.autoInit;
             }
 
-            if (!this.__watchFunctions[realName]) {
+            if(!this.__watchFunctions[realName]) {
                 this.__watchFunctions[realName] = { autoInit };
             }
         }
@@ -257,9 +257,9 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
                 });
             }
         }
-        for (let name in this.__watchFunctions) {
+        for(let name in this.__watchFunctions) {
             this.__watchFunctionsComputed[name] = Watcher.computed(this[name].bind(this));
-            if (this.__watchFunctions[name].autoInit) {
+            if(this.__watchFunctions[name].autoInit) {
                 this.__watchFunctionsComputed[name].value;
             }
         }
@@ -338,14 +338,6 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
 
     }
     //#endregion
-
-
-
-
-    //#region select element
-
-    //#endregion
-
 
     private connectedCallback() {
         if(this._first) {
@@ -554,8 +546,132 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
     }
     //#endregion
 
+    //#region attributes
+
+    //#region string
+    private getStringAttr(name: string) {
+        return this.getAttribute(name) ?? undefined;
+    }
+    private setStringAttr(name: string, val: any) {
+        if(val === undefined || val === null) { this.removeAttribute(name); }
+        else { this.setAttribute(name, val); }
+    }
+    private getStringProp(name: string) {
+        if(Watcher._register) {
+            Watcher._register.register(this.getReceiver(name), name);
+        }
+        return this.getStringAttr(name);
+    }
+    //#endregion
+
+    //#region number
+    private getNumberAttr(name: string) {
+        return Number(this.getAttribute(name));
+    }
+    private setNumberAttr(name: string, val: any) {
+        if(val === undefined || val === null) { this.removeAttribute(name); }
+        else { this.setAttribute(name, val); }
+    }
+    private getNumberProp(name: string) {
+        if(Watcher._register) {
+            Watcher._register.register(this.getReceiver(name), name);
+        }
+        return this.getNumberAttr(name);
+    }
+    //#endregion
+
+    //#region boolean
+    private getBoolAttr(name: string) {
+        return this.hasAttribute(name);
+    }
+    private setBoolAttr(name: string, val: any) {
+        val = this.getBoolean(val);
+        if(val) {
+            this.setAttribute(val, 'true');
+        } else {
+            this.removeAttribute(val);
+        }
+    }
+    private getBoolProp(name: string) {
+        if(Watcher._register) {
+            Watcher._register.register(this.getReceiver(name), name);
+        }
+        return this.getBoolAttr(name);
+    }
+    //#endregion
+
+    //#region date
+    private getDateAttr(name: string) {
+        if(!this.hasAttribute(name)) { return undefined; }
+        return this.stringToDate(this.getAttribute(name)!);
+    }
+    private setDateAttr(name: string, val: any) {
+        let valTxt = this.dateToString(val);
+        if(valTxt === null) { this.removeAttribute(name); }
+        else { this.setAttribute(name, valTxt); }
+    }
+    private getDateProp(name: string) {
+        if(Watcher._register) {
+            Watcher._register.register(this.getReceiver(name), name);
+        }
+        return this.getDateAttr(name);
+    }
+    //#endregion
+
+    //#region datetime
+    private getDateTimeAttr(name: string) {
+        if(!this.hasAttribute(name)) return undefined;
+        return this.stringToDateTime(this.getAttribute(name)!);
+    }
+    private setDateTimeAttr(name: string, val: any) {
+        let valTxt = this.dateTimeToString(val);
+        if(valTxt === null) { this.removeAttribute(name); }
+        else { this.setAttribute(name, valTxt); }
+    }
+    private getDateTimeProp(name: string) {
+        if(Watcher._register) {
+            Watcher._register.register(this.getReceiver(name), name);
+        }
+        return this.getDateTimeAttr(name);
+    }
+    //#endregion
+
+
+    private __propertyReceivers: { [name: string]: EffectReceiver & { onChange: () => void; }; } = {};
+    private getReceiver(name: string): EffectReceiver {
+        if(!this.__propertyReceivers[name]) {
+            let that = this;
+            let result: EffectReceiver & { __subscribes: WatcherChange[]; onChange: () => void; } = {
+                __subscribes: [],
+                subscribe(fct: WatcherChange) {
+                    let index = this.__subscribes.indexOf(fct);
+                    if(index == -1) {
+                        this.__subscribes.push(fct);
+                    }
+                },
+                unsubscribe(fct: WatcherChange) {
+                    let index = this.__subscribes.indexOf(fct);
+                    if(index > -1) {
+                        this.__subscribes.splice(index, 1);
+                    }
+                },
+                onChange() {
+                    for(let fct of this.__subscribes) {
+                        fct(WatchAction.UPDATED, name, that[name]);
+                    }
+                }
+            };
+            this.__propertyReceivers[name] = result;
+        }
+        return this.__propertyReceivers[name];
+    }
+    //#endregion
+
     private attributeChangedCallback(name, oldValue, newValue) {
         if(oldValue !== newValue || !this.isReady) {
+            if(this.__propertyReceivers.hasOwnProperty(name)) {
+                this.__propertyReceivers[name].onChange();
+            }
             if(this.__onChangeFct.hasOwnProperty(name)) {
                 for(let fct of this.__onChangeFct[name]) {
                     fct('');

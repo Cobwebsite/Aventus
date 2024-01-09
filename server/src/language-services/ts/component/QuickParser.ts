@@ -11,6 +11,8 @@ import {
 } from "typescript";
 import { hasFlag } from '../parser/tools';
 import { Build } from '../../../project/Build';
+import { DecoratorInfo } from '../parser/DecoratorInfo';
+import { DebuggerDecorator } from '../parser/decorators/DebuggerDecorator';
 
 export class QuickParser {
 
@@ -25,6 +27,8 @@ export class QuickParser {
 	public fullname: string = "";
 	public className: string = "";
 	public whiteSpaceBefore: number = 0;
+	public writeHtml: boolean = false;
+	public writeTs: boolean = false;
 
 	private constructor(content: string, build: Build) {
 		this.currentNamespace.push(build.module);
@@ -78,6 +82,19 @@ export class QuickParser {
 								this.end = node.getEnd()
 								this.fullname = [...this.currentNamespace, name.getText()].join('.')
 								this.className = name.getText();
+
+								let decorators = DecoratorInfo.buildDecorator(node);
+								for (let decorator of decorators) {
+									let debugDeco = DebuggerDecorator.is(decorator);
+									if (debugDeco) {
+										if (debugDeco.writeHTML) {
+											this.writeHtml = true;
+										}
+										if (debugDeco.writeComponentTs) {
+											this.writeTs = true;
+										}
+									}
+								}
 								return true;
 							}
 						}

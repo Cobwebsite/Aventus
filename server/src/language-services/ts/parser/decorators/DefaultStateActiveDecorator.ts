@@ -29,7 +29,7 @@ export class DefaultStateParser {
 		}
 		try {
 			let managerName = decorator.arguments[0].value;
-			const remplacement = decorator.baseInfo.dependancesLocations[managerName]?.replacement;
+			const remplacement = decorator.baseInfo?.dependancesLocations[managerName]?.replacement;
 			if (remplacement) {
 				managerName = remplacement;
 			}

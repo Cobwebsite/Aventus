@@ -1,17 +1,18 @@
-import { getLanguageService, IAttributeData, ITagData, IValueData, LanguageService, TokenType } from "vscode-html-languageservice";
-import { CompletionItemKind, CompletionList, Definition, Diagnostic, FormattingOptions, Hover, Location, Position, Range, TextEdit } from "vscode-languageserver";
+import { getLanguageService, IAttributeData, InsertTextFormat, InsertTextMode, ITagData, IValueData, LanguageService, TokenType } from "vscode-html-languageservice";
+import { CompletionItem, CompletionItemKind, CompletionList, Definition, Diagnostic, FormattingOptions, Hover, Location, Position, Range, TextEdit } from "vscode-languageserver";
 import { AventusLanguageId } from "../../definition";
 import { AventusFile } from '../../files/AventusFile';
 import { Build } from "../../project/Build";
 import { CustomTypeAttribute } from "../ts/component/compiler/def";
 import { AventusWebComponentLogicalFile } from '../ts/component/File';
-import { allGenericTags, defaultAttrs } from './defaultTags';
+import { allGenericTags, defaultAttrs, defaultSnippet } from './defaultTags';
 import { AventusHTMLFile } from './File';
 import { HTMLDoc } from "./helper/definition";
 import { MethodInfo } from '../ts/parser/MethodInfo';
 import { PropertyInfo } from '../ts/parser/PropertyInfo';
 import { ClassInfo } from '../ts/parser/ClassInfo';
 import { TextDocument } from 'vscode-languageserver-textdocument';
+import { convertRange, getWordAtText } from '../../tools';
 
 
 export class AventusHTMLLanguageService {
@@ -153,10 +154,31 @@ export class AventusHTMLLanguageService {
                     }
                 }
             }
+            result.items = result.items.concat(this.doCustomComplete(file, position));
             return result;
         }
         return { isIncomplete: false, items: [] };
     }
+
+    private doCustomComplete(file: AventusFile, position: Position): CompletionItem[] {
+        let result: CompletionItem[] = [];
+        let offset = file.documentUser.offsetAt(position);
+        let replaceRange = convertRange(file.documentUser, getWordAtText(file.documentUser.getText(), offset));
+        let txt = file.documentUser.getText().slice(file.documentUser.offsetAt(replaceRange.start), file.documentUser.offsetAt(replaceRange.end));
+        for (let key in defaultSnippet) {
+            if (key.startsWith(txt)) {
+                result.push({
+                    label: key,
+                    kind: CompletionItemKind.Snippet,
+                    insertText: defaultSnippet[key],
+                    insertTextFormat: InsertTextFormat.Snippet,
+                    insertTextMode: InsertTextMode.adjustIndentation
+                })
+            }
+        }
+        return result;
+    }
+
     public async doHover(file: AventusHTMLFile, position: Position): Promise<Hover | null> {
         let info = this.getLinkToLogic(file, position);
         if (info) {
@@ -201,7 +223,7 @@ export class AventusHTMLLanguageService {
             }
         }
 
-        
+
         return null;
     }
     //#endregion
