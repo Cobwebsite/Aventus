@@ -669,7 +669,7 @@ export class Build {
                         let txt = "The name " + compileInfo.classScript + " is registered more than once.";
                         let info = currentFile.fileParsed?.getBaseInfo(compileInfo.classScript);
                         if (info) {
-                            this.addDiagnostic(currentFile, createErrorTsPos(currentFile.file.document, txt, info.nameStart, info.nameEnd, AventusErrorCode.SameNameFound));
+                            this.addDiagnostic(currentFile, createErrorTsPos(currentFile.file.documentUser, txt, info.nameStart, info.nameEnd, AventusErrorCode.SameNameFound));
                         }
                         else {
                             throw 'Please contact the support its an unknow case'
@@ -678,7 +678,7 @@ export class Build {
                         let oldFile = this.tsFiles[localClass[compileInfo.classScript].uri]
                         info = oldFile.fileParsed?.getBaseInfo(compileInfo.classScript);
                         if (info) {
-                            this.addDiagnostic(oldFile, createErrorTsPos(oldFile.file.document, txt, info.nameStart, info.nameEnd, AventusErrorCode.SameNameFound));
+                            this.addDiagnostic(oldFile, createErrorTsPos(oldFile.file.documentUser, txt, info.nameStart, info.nameEnd, AventusErrorCode.SameNameFound));
                         }
                         else {
                             throw 'Please contact the support its an unknow case'

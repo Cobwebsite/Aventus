@@ -10,10 +10,10 @@ export class AventusDefinitionFile extends AventusTsFile {
     }
     public constructor(file: AventusFile, build: Build) {
         super(file, build);
-        this._contentForLanguageService = this.file.content;
+        this._contentForLanguageService = this.file.contentUser;
     }
     protected async onContentChange(): Promise<void> {
-        this._contentForLanguageService = this.file.content;
+        this._contentForLanguageService = this.file.contentUser;
     }
     protected async onValidate(): Promise<Diagnostic[]> {
         return [];

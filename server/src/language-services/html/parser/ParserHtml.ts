@@ -394,9 +394,9 @@ export class ParserHtml {
 			version: document.file.version,
 			result: this,
 		}
-		let fileContent = this.getFileContent(document.file.document);
+		let fileContent = this.getFileContent(document.file.documentUser);
 		this.rules = document.scssFile?.rules ?? new Map();
-		this.document = TextDocument.create(document.file.uri, document.file.document.languageId, document.file.version, fileContent);
+		this.document = TextDocument.create(document.file.uri, document.file.documentUser.languageId, document.file.version, fileContent);
 		ParserHtml.currentParsingDoc = this;
 		this.uri = document.file.uri;
 		ParserHtml.idElement = 0;

@@ -51,13 +51,13 @@ export class AventusJSONLanguageService {
 
 
     public async format(file: AventusFile, range: Range, options: FormattingOptions): Promise<TextEdit[]> {
-        let document = file.document;
+        let document = file.documentUser;
         return await this.languageService.format(document, range, options);
     }
     public async doComplete(file: AventusFile, position: Position): Promise<CompletionList> {
-        let document = file.document;
+        let document = file.documentUser;
         let jsonDoc = this.languageService.parseJSONDocument(document);
-        let result = await this.languageService.doComplete(file.document, position, jsonDoc);
+        let result = await this.languageService.doComplete(file.documentUser, position, jsonDoc);
         if (result) {
             return result;
         }
@@ -70,12 +70,12 @@ export class AventusJSONLanguageService {
         return await this.languageService.doResolve(item);
     }
     public async doHover(file: AventusFile, position: Position): Promise<Hover | null> {
-        let document = file.document;
+        let document = file.documentUser;
         let jsonDoc = this.languageService.parseJSONDocument(document);
         return await this.languageService.doHover(document, position, jsonDoc);
     }
     public async validate(file: AventusFile): Promise<Diagnostic[]> {
-        let document = file.document;
+        let document = file.documentUser;
         let jsonDoc = this.languageService.parseJSONDocument(document);
         let errors = await this.languageService.doValidation(document, jsonDoc);
         if (errors.length == 0) {
@@ -96,7 +96,7 @@ export class AventusJSONLanguageService {
 
     //#region config
     public async getConfig(file: AventusFile): Promise<AventusConfig | null> {
-        let document = file.document;
+        let document = file.documentUser;
         let jsonDoc = this.languageService.parseJSONDocument(document);
         let errors = await this.languageService.doValidation(document, jsonDoc, undefined, AventusConfigSchema);
         if (errors.length == 0) {

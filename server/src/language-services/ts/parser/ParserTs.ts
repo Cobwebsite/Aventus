@@ -156,7 +156,7 @@ export class ParserTs {
 
     private constructor(file: AventusFile, isLib: boolean, build: Build) {
         this.build = build;
-        this.build.npmBuilder.unregister(file.document.uri);
+        this.build.npmBuilder.unregister(file.documentUser.uri);
         this.file = file;
         ParserTs.parsedDoc[file.uri] = {
             version: file.version,
@@ -164,8 +164,8 @@ export class ParserTs {
         }
 
         ParserTs.parsingDocs.push(this);
-        this.content = file.document.getText();
-        this._document = file.document;
+        this.content = file.documentInternal.getText();
+        this._document = file.documentInternal;
         this.isLib = isLib;
         let srcFile = createSourceFile("sample.ts", this.content, ScriptTarget.ESNext, true);
         this.quickLoadRoot(srcFile);

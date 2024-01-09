@@ -80,13 +80,13 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
         const _convertSection = async (region: AventusWebComponentSingleFileRegion<AventusBaseFile>) => {
             if (region.file) {
                 let errors = await (region.file.file as InternalAventusFile).validate();
-                let document = region.file.file.document;
+                let document = region.file.file.documentUser;
                 for (let error of errors) {
                     error.source = AventusLanguageId.WebComponent;
                     if (convertedRanges.indexOf(error.range) == -1) {
                         convertedRanges.push(error.range);
-                        error.range.start = this.file.document.positionAt(document.offsetAt(error.range.start) + region.start);
-                        error.range.end = this.file.document.positionAt(document.offsetAt(error.range.end) + region.start);
+                        error.range.start = this.file.documentUser.positionAt(document.offsetAt(error.range.start) + region.start);
+                        error.range.end = this.file.documentUser.positionAt(document.offsetAt(error.range.end) + region.start);
                     }
                     diagnostics.push(error);
                 }
@@ -105,7 +105,7 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
         const _convertSection = async (region: AventusWebComponentSingleFileRegion<AventusBaseFile>, languageId: string, newText: string) => {
             let newDocument = TextDocument.create(this.file.uri, languageId, this.file.version, newText);
             if (region.file) {
-                region.file.triggerContentChange(newDocument);
+                await region.file.triggerContentChange(newDocument);
             }
         }
         await _convertSection(this.regionStyle, AventusLanguageId.SCSS, result.cssText);
@@ -120,12 +120,12 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
         (this.logic.file as InternalAventusFile).triggerSave();
     }
     protected async onCompletion(document: AventusFile, position: Position): Promise<CompletionList> {
-        let currentOffset = document.document.offsetAt(position);
+        let currentOffset = document.documentUser.offsetAt(position);
         let convertedRanges: Range[] = [];
 
         const generateComplete = async (region: AventusWebComponentSingleFileRegion<AventusBaseFile>): Promise<CompletionList | undefined> => {
             if (currentOffset >= region.start && currentOffset <= region.end && region.file) {
-                let result = await (region.file?.file as InternalAventusFile).getCompletion(region.file.file.document.positionAt(currentOffset - region.start));
+                let result = await (region.file?.file as InternalAventusFile).getCompletion(region.file.file.documentUser.positionAt(currentOffset - region.start));
 
                 for (let item of result.items) {
                     if (item.data && item.data.uri) {
@@ -173,7 +173,7 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
                             let resultTemp = await (subfile.file as InternalAventusFile).getCompletionResolve(item);
                             if (resultTemp.additionalTextEdits) {
                                 for (let edit of resultTemp.additionalTextEdits) {
-                                    if (subfile.file.document.offsetAt(edit.range.start) == 0) {
+                                    if (subfile.file.documentUser.offsetAt(edit.range.start) == 0) {
                                         edit.newText = EOL + edit.newText;
                                     }
                                     if (convertedRanges.indexOf(edit.range) == -1 && !edit.range["wc_transformed"]) {
@@ -202,12 +202,12 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
         return item;
     }
     protected async onHover(document: AventusFile, position: Position): Promise<Hover | null> {
-        let currentOffset = document.document.offsetAt(position);
+        let currentOffset = document.documentUser.offsetAt(position);
         let convertedRanges: Range[] = [];
 
         const generateHover = async (region: AventusWebComponentSingleFileRegion<AventusBaseFile>): Promise<Hover | null> => {
             if (currentOffset >= region.start && currentOffset <= region.end && region.file) {
-                let result = await (region.file.file as InternalAventusFile).getHover(region.file.file.document.positionAt(currentOffset - region.start));
+                let result = await (region.file.file as InternalAventusFile).getHover(region.file.file.documentUser.positionAt(currentOffset - region.start));
                 if (result?.range) {
                     if (convertedRanges.indexOf(result.range) == -1) {
                         convertedRanges.push(result.range);
@@ -230,16 +230,16 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
         return null;
     }
     protected async onDefinition(document: AventusFile, position: Position): Promise<Definition | null> {
-        let currentOffset = document.document.offsetAt(position);
+        let currentOffset = document.documentUser.offsetAt(position);
         let result: Definition | null = null;
         if (currentOffset >= this.regionStyle.start && currentOffset <= this.regionStyle.end) {
-            result = await (this.style.file as InternalAventusFile).getDefinition(this.style.file.document.positionAt(currentOffset - this.regionStyle.start));
+            result = await (this.style.file as InternalAventusFile).getDefinition(this.style.file.documentUser.positionAt(currentOffset - this.regionStyle.start));
         }
         else if (currentOffset >= this.regionView.start && currentOffset <= this.regionView.end) {
-            result = await (this.view.file as InternalAventusFile).getDefinition(this.view.file.document.positionAt(currentOffset - this.regionView.start));
+            result = await (this.view.file as InternalAventusFile).getDefinition(this.view.file.documentUser.positionAt(currentOffset - this.regionView.start));
         }
         else if (currentOffset >= this.regionLogic.start && currentOffset <= this.regionLogic.end) {
-            result = await (this.logic.file as InternalAventusFile).getDefinition(this.logic.file.document.positionAt(currentOffset - this.regionLogic.start));
+            result = await (this.logic.file as InternalAventusFile).getDefinition(this.logic.file.documentUser.positionAt(currentOffset - this.regionLogic.start));
         }
 
         return result;
@@ -259,7 +259,7 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
                     if (temp.range.start.character == 0) {
                         temp.newText = "\t" + temp.newText;
                     }
-                    if (region.file.file.document.offsetAt(temp.range.end) == region.file.file.document.getText().length) {
+                    if (region.file.file.documentUser.offsetAt(temp.range.end) == region.file.file.documentUser.getText().length) {
                         temp.newText = temp.newText + EOL;
                     }
                     if (convertedRanges.indexOf(temp.range) == -1) {
@@ -279,8 +279,8 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
     }
     protected async onCodeAction(document: AventusFile, range: Range): Promise<CodeAction[]> {
         let rangeSelected = {
-            start: document.document.offsetAt(range.start),
-            end: document.document.offsetAt(range.end)
+            start: document.documentUser.offsetAt(range.start),
+            end: document.documentUser.offsetAt(range.end)
         }
         let convertedRanges: Range[] = [];
 
@@ -378,38 +378,38 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
             scriptText: ''
         }
 
-        let scriptMatch = regexScript.exec(this.file.content);
+        let scriptMatch = regexScript.exec(this.file.contentUser);
         if (scriptMatch) {
             let startIndex = scriptMatch.index + 8;
             this.regionLogic.start = startIndex;
             let endIndex = scriptMatch.index + scriptMatch[0].length - 9;
             this.regionLogic.end = endIndex;
-            resultTxt.scriptText = this.file.content.substring(startIndex, endIndex)
+            resultTxt.scriptText = this.file.contentUser.substring(startIndex, endIndex)
         }
 
-        let styleMatch = regexStyle.exec(this.file.content);
+        let styleMatch = regexStyle.exec(this.file.contentUser);
         if (styleMatch) {
             let startIndex = styleMatch.index + 7;
             this.regionStyle.start = startIndex;
             let endIndex = styleMatch.index + styleMatch[0].length - 8;
             this.regionStyle.end = endIndex;
-            resultTxt.cssText = this.file.content.substring(startIndex, endIndex)
+            resultTxt.cssText = this.file.contentUser.substring(startIndex, endIndex)
         }
 
-        let htmlMatch = regexTemplate.exec(this.file.content);
+        let htmlMatch = regexTemplate.exec(this.file.contentUser);
         if (htmlMatch) {
             let startIndex = htmlMatch.index + 10;
             this.regionView.start = startIndex;
             let endIndex = htmlMatch.index + htmlMatch[0].length - 11;
             this.regionView.end = endIndex;
-            resultTxt.htmlText = this.file.content.substring(startIndex, endIndex)
+            resultTxt.htmlText = this.file.contentUser.substring(startIndex, endIndex)
         }
 
         return resultTxt;
     }
     private transformPosition(fileFrom: AventusBaseFile, positionFrom: Position, fileTo: AventusBaseFile, offset: number): Position {
-        let currentOffset = fileFrom.file.document.offsetAt(positionFrom);
-        return fileTo.file.document.positionAt(currentOffset - offset);
+        let currentOffset = fileFrom.file.documentUser.offsetAt(positionFrom);
+        return fileTo.file.documentUser.positionAt(currentOffset - offset);
     }
     private isOverlapping(rangeSelected: { start: number, end: number }, rangeSection: { start: number, end: number }): boolean {
         return (rangeSection.start < rangeSelected.start && rangeSection.end > rangeSelected.start) ||
@@ -430,25 +430,25 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
             scriptText: ''
         }
 
-        let scriptMatch = regexScript.exec(file.content);
+        let scriptMatch = regexScript.exec(file.contentUser);
         if (scriptMatch) {
             let startIndex = scriptMatch.index + 8;
             let endIndex = scriptMatch.index + scriptMatch[0].length - 9;
-            resultTxt.scriptText = file.content.substring(startIndex, endIndex)
+            resultTxt.scriptText = file.contentUser.substring(startIndex, endIndex)
         }
 
-        let styleMatch = regexStyle.exec(file.content);
+        let styleMatch = regexStyle.exec(file.contentUser);
         if (styleMatch) {
             let startIndex = styleMatch.index + 7;
             let endIndex = styleMatch.index + styleMatch[0].length - 8;
-            resultTxt.cssText = file.content.substring(startIndex, endIndex)
+            resultTxt.cssText = file.contentUser.substring(startIndex, endIndex)
         }
 
-        let htmlMatch = regexTemplate.exec(file.content);
+        let htmlMatch = regexTemplate.exec(file.contentUser);
         if (htmlMatch) {
             let startIndex = htmlMatch.index + 10;
             let endIndex = htmlMatch.index + htmlMatch[0].length - 11;
-            resultTxt.htmlText = file.content.substring(startIndex, endIndex)
+            resultTxt.htmlText = file.contentUser.substring(startIndex, endIndex)
         }
 
         return resultTxt;

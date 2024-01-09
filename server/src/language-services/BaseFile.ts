@@ -87,9 +87,9 @@ export abstract class AventusBaseFile {
             await this.file.triggerSave();
         }
     }
-    public triggerContentChange(document: TextDocument): void {
+    public async triggerContentChange(document: TextDocument): Promise<void> {
         if (this.file instanceof InternalAventusFile) {
-            this.file.triggerContentChange(document);
+            await this.file.triggerContentChange(document);
         }
     }
     protected onCanContentChange(document: TextDocument): boolean {

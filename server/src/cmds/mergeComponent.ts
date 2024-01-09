@@ -20,16 +20,16 @@ export class MergeComponent {
 		let maxVersion = 0;
 		let jsDoc = FilesManager.getInstance().getByUri(fileUriNoExtension + AventusExtension.ComponentLogic);
 		if (jsDoc && jsDoc.version > maxVersion) { maxVersion = jsDoc.version; }
-		let jsTxt = jsDoc ? jsDoc.content : "";
+		let jsTxt = jsDoc ? jsDoc.contentUser : "";
 
 		let scssDoc = FilesManager.getInstance().getByUri(fileUriNoExtension + AventusExtension.ComponentStyle);
 		if (scssDoc && scssDoc.version > maxVersion) { maxVersion = scssDoc.version; }
-		let scssTxt = scssDoc ? scssDoc.content : "";
+		let scssTxt = scssDoc ? scssDoc.contentUser : "";
 
 
 		let htmlDoc = FilesManager.getInstance().getByUri(fileUriNoExtension + AventusExtension.ComponentView);
 		if (htmlDoc && htmlDoc.version > maxVersion) { maxVersion = htmlDoc.version; }
-		let htmlTxt = htmlDoc ? htmlDoc.content : "";
+		let htmlTxt = htmlDoc ? htmlDoc.contentUser : "";
 
 
 		let mergeTxt =
@@ -55,17 +55,17 @@ export class MergeComponent {
 		writeFileSync(uriToPath(compDoc.uri), mergeTxt);
 		if (scssDoc) {
 			unlinkSync(scssDoc.path);
-			FilesManager.getInstance().onClose(scssDoc.document);
+			FilesManager.getInstance().onClose(scssDoc.documentUser);
 			CloseFile.send(scssDoc.uri);
 		}
 		if (jsDoc) {
 			unlinkSync(jsDoc.path);
-			FilesManager.getInstance().onClose(jsDoc.document);
+			FilesManager.getInstance().onClose(jsDoc.documentUser);
 			CloseFile.send(jsDoc.uri);
 		}
 		if (htmlDoc) {
 			unlinkSync(htmlDoc.path);
-			FilesManager.getInstance().onClose(htmlDoc.document);
+			FilesManager.getInstance().onClose(htmlDoc.documentUser);
 			CloseFile.send(htmlDoc.uri);
 		}
 

@@ -41,8 +41,8 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
     public canUpdateComponent: boolean = true;
     private viewMethodsInfo: ViewMethodInfo[] = [];
 
-    private originalDocument!: TextDocument;
-    private originalDocumentVersion: number = 0;
+    // private originalDocument!: TextDocument;
+    // private originalDocumentVersion: number = 0;
     public get compilationResult() {
         return this._compilationResult;
     }
@@ -50,7 +50,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         return AventusExtension.ComponentLogic;
     }
     public get version(): number {
-        return this.file.document.version;
+        return this.file.documentInternal.version;
     }
 
     public get HTMLFile(): AventusHTMLFile | undefined {
@@ -80,7 +80,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
 
     constructor(file: AventusFile, build: Build) {
         super(file, build);
-        this.setOriginalDocument(file.document);
+        file.linkInternalAndUser = false;
     }
 
 
@@ -136,7 +136,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
             let htmlVersion = htmlFile.file.version ?? -1;
             let mustWrite = false;
             let tsIsDiff = false;
-            if (this.lastFileVersionCreated.js != this.originalDocument.version) {
+            if (this.lastFileVersionCreated.js != this.file.documentUser.version) {
                 mustWrite = true;
                 tsIsDiff = true;
             }
@@ -146,13 +146,13 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
             if (mustWrite) {
                 this.lastFileVersionCreated = {
                     html: htmlVersion,
-                    js: this.originalDocument.version
+                    js: this.file.documentUser.version
                 }
                 let newContent = "";
                 // write html fct inside js
                 if (this.componentEnd >= 0) {
-                    let v = this.originalDocument.version + htmlVersion
-                    let oldContent = this.originalDocument.getText();
+                    let v = this.file.documentUser.version + htmlVersion
+                    let oldContent = this.file.documentUser.getText();
                     newContent = oldContent.slice(0, this.componentEnd - 1) + "\n";
 
                     this.viewMethodsInfo = [];
@@ -183,7 +183,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                                 // close the class
                                 tempContent += '}';
                                 if (this.file instanceof InternalAventusFile) {
-                                    this.file.setDocument(TextDocument.create(this.file.document.uri, this.file.document.languageId, (v + i) * -1, tempContent));
+                                    this.file.setDocumentInternal(TextDocument.create(this.file.documentUser.uri, this.file.documentUser.languageId, (v + i) * -1, tempContent));
                                     this._contentForLanguageService = tempContent;
                                 }
 
@@ -212,7 +212,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
 
                                 writeFileSync(this.file.path + ".ts", tempContent);
                                 if (this.file instanceof InternalAventusFile) {
-                                    this.file.setDocument(TextDocument.create(this.file.document.uri, this.file.document.languageId, (v + i) * -1, tempContent));
+                                    this.file.setDocumentInternal(TextDocument.create(this.file.documentUser.uri, this.file.documentUser.languageId, (v + i) * -1, tempContent));
                                     this._contentForLanguageService = tempContent;
                                 }
 
@@ -451,13 +451,13 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
 
                     newContent += oldContent.slice(this.componentEnd - 1);
                     if (this.file instanceof InternalAventusFile) {
-                        this.file.setDocument(TextDocument.create(this.file.document.uri, this.file.document.languageId, v, newContent));
+                        this.file.setDocumentInternal(TextDocument.create(this.file.documentUser.uri, this.file.documentUser.languageId, v, newContent));
                     }
                 }
 
                 this.refreshFileParsed();
 
-                let decorators = this.fileParsed?.classes[this._componentClassName].decorators ?? [];
+                let decorators = this.fileParsed?.classes[this._componentClassName]?.decorators ?? [];
                 let htmlPath = join(this.file.folderPath, "compiled.html");
                 let tsPath = join(this.file.folderPath, "compiled.ts");
                 let writeHtml = false;
@@ -489,20 +489,6 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         }
     }
 
-    private setOriginalDocument(document: TextDocument) {
-        this.originalDocument = document;
-        this.originalDocumentVersion = document.version;
-        let quickParse = QuickParser.parse(this.originalDocument.getText(), this.build);
-        this._componentEnd = quickParse.end;
-        this._fullname = quickParse.fullname;
-        this._componentClassName = quickParse.className;
-        let space = "";
-        for (let i = 0; i < quickParse.whiteSpaceBefore + 4; i++) {
-            space += " ";
-        }
-        this._space = space;
-    }
-
     protected async onValidate(): Promise<Diagnostic[]> {
         await this.runWebCompiler();
         this.diagnostics = this.compilationResult?.diagnostics || []
@@ -521,8 +507,8 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
             let htmlDiags: Diagnostic[] = [];
             let convertedRanges: Range[] = [];
             for (let diagnostic of this.diagnostics) {
-                let diagStart = this.file.document.offsetAt(diagnostic.range.start);
-                let diagEnd = this.file.document.offsetAt(diagnostic.range.end);
+                let diagStart = this.file.documentInternal.offsetAt(diagnostic.range.start);
+                let diagEnd = this.file.documentInternal.offsetAt(diagnostic.range.end);
                 let found = false;
                 for (let i = 0; i < this.viewMethodsInfo.length; i++) {
                     let start = this.viewMethodsInfo[i].fullStart;
@@ -554,14 +540,14 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                                 let finalPositionEnd = start + offsetBefore + offsetEnd;
                                 if (finalPositionStart < start || finalPositionEnd > end - offsetAfter) {
                                     diag.range = {
-                                        start: html.file.document.positionAt(start),
-                                        end: html.file.document.positionAt(end)
+                                        start: html.file.documentInternal.positionAt(start),
+                                        end: html.file.documentInternal.positionAt(end)
                                     }
                                 }
                                 else {
                                     diag.range = {
-                                        start: html.file.document.positionAt(finalPositionStart),
-                                        end: html.file.document.positionAt(finalPositionEnd)
+                                        start: html.file.documentInternal.positionAt(finalPositionStart),
+                                        end: html.file.documentInternal.positionAt(finalPositionEnd)
                                     }
                                 }
                                 if (j > 0) {
@@ -591,11 +577,16 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         }
     }
 
-    protected onCanContentChange(document: TextDocument): boolean {
-        return this.originalDocumentVersion != document.version;
-    }
     protected async onContentChange(): Promise<void> {
-        this.setOriginalDocument(this.file.document);
+        let quickParse = QuickParser.parse(this.file.documentUser.getText(), this.build);
+        this._componentEnd = quickParse.end;
+        this._fullname = quickParse.fullname;
+        this._componentClassName = quickParse.className;
+        let space = "";
+        for (let i = 0; i < quickParse.whiteSpaceBefore + 4; i++) {
+            space += " ";
+        }
+        this._space = space;
         await this.runWebCompiler();
     }
 
@@ -672,14 +663,14 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         if (!html) {
             return null;
         }
-        let offsetFrom = html.file.document.offsetAt(htmlPosition);
+        let offsetFrom = html.file.documentInternal.offsetAt(htmlPosition);
         for (let viewMethodInfo of this.viewMethodsInfo) {
             for (let position of viewMethodInfo.fct.positions) {
                 if (offsetFrom >= position.start + viewMethodInfo.offsetBefore && offsetFrom <= position.end) {
                     let offset = offsetFrom - position.start - viewMethodInfo.offsetAfter;
                     let offsetOnFile = viewMethodInfo.start + offset;
                     offsetOnFile = viewMethodInfo.transform(offsetOnFile, offsetOnFile)
-                    let positionOnFile = this.file.document.positionAt(offsetOnFile);
+                    let positionOnFile = this.file.documentInternal.positionAt(offsetOnFile);
                     let resultTemp = await this.onCompletion(this.file, positionOnFile);
                     let result: CompletionItem[] = [];
                     let convertedRanges: Range[] = [];
@@ -697,15 +688,15 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                                 if (convertedRanges.indexOf(textEdit.range) == -1) {
                                     convertedRanges.push(textEdit.range);
                                     let methodView = viewMethodInfo.fct;
-                                    let textEditStart = this.file.document.offsetAt(textEdit.range.start);
-                                    let textEditEnd = this.file.document.offsetAt(textEdit.range.end);
+                                    let textEditStart = this.file.documentInternal.offsetAt(textEdit.range.start);
+                                    let textEditEnd = this.file.documentInternal.offsetAt(textEdit.range.end);
 
                                     let offsetReturn = viewMethodInfo.transform(textEditStart, 0);
                                     let offsetStart = textEditStart - viewMethodInfo.start - offsetReturn;
                                     let offsetEnd = textEditEnd - viewMethodInfo.start - offsetReturn;
 
-                                    textEdit.range.start = html.file.document.positionAt(position.start + viewMethodInfo.offsetBefore + offsetStart);
-                                    textEdit.range.end = html.file.document.positionAt(position.start + viewMethodInfo.offsetBefore + offsetEnd);
+                                    textEdit.range.start = html.file.documentInternal.positionAt(position.start + viewMethodInfo.offsetBefore + offsetStart);
+                                    textEdit.range.end = html.file.documentInternal.positionAt(position.start + viewMethodInfo.offsetBefore + offsetEnd);
 
                                 }
                             }
@@ -731,26 +722,26 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         if (!html) {
             return null;
         }
-        let offsetFrom = html.file.document.offsetAt(htmlPosition);
+        let offsetFrom = html.file.documentInternal.offsetAt(htmlPosition);
         for (let viewMethodInfo of this.viewMethodsInfo) {
             for (let position of viewMethodInfo.fct.positions) {
                 if (offsetFrom >= position.start + viewMethodInfo.offsetBefore && offsetFrom <= position.end) {
                     let offset = offsetFrom - position.start - viewMethodInfo.offsetAfter;
                     let offsetOnFile = viewMethodInfo.start + offset;
                     offsetOnFile = viewMethodInfo.transform(offsetOnFile, offsetOnFile);
-                    let positionOnFile = this.file.document.positionAt(offsetOnFile);
+                    let positionOnFile = this.file.documentInternal.positionAt(offsetOnFile);
                     let resultTemp = await this.onHover(this.file, positionOnFile);
                     if (resultTemp && resultTemp.range) {
 
-                        let textEditStart = this.file.document.offsetAt(resultTemp.range.start);
-                        let textEditEnd = this.file.document.offsetAt(resultTemp.range.end);
+                        let textEditStart = this.file.documentInternal.offsetAt(resultTemp.range.start);
+                        let textEditEnd = this.file.documentInternal.offsetAt(resultTemp.range.end);
 
                         let offsetReturn = viewMethodInfo.transform(textEditStart, 0);
                         let offsetStart = textEditStart - viewMethodInfo.start - offsetReturn;
                         let offsetEnd = textEditEnd - viewMethodInfo.start - offsetReturn;
 
-                        resultTemp.range.start = html.file.document.positionAt(position.start + viewMethodInfo.offsetBefore + offsetStart);
-                        resultTemp.range.end = html.file.document.positionAt(position.start + viewMethodInfo.offsetBefore + offsetEnd);
+                        resultTemp.range.start = html.file.documentInternal.positionAt(position.start + viewMethodInfo.offsetBefore + offsetStart);
+                        resultTemp.range.end = html.file.documentInternal.positionAt(position.start + viewMethodInfo.offsetBefore + offsetEnd);
 
                     }
                     return resultTemp;
@@ -768,14 +759,14 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         if (!html) {
             return null;
         }
-        let offsetFrom = html.file.document.offsetAt(htmlPosition);
+        let offsetFrom = html.file.documentInternal.offsetAt(htmlPosition);
         for (let viewMethodInfo of this.viewMethodsInfo) {
             for (let position of viewMethodInfo.fct.positions) {
                 if (offsetFrom >= position.start + viewMethodInfo.offsetBefore && offsetFrom <= position.end) {
                     let offset = offsetFrom - position.start - viewMethodInfo.offsetAfter;
                     let offsetOnFile = viewMethodInfo.start + offset;
                     offsetOnFile = viewMethodInfo.transform(offset, offsetOnFile)
-                    let positionOnFile = this.file.document.positionAt(offsetOnFile);
+                    let positionOnFile = this.file.documentInternal.positionAt(offsetOnFile);
                     let resultTemp = await this.onDefinition(this.file, positionOnFile);
                     return resultTemp;
                 }
@@ -805,14 +796,14 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         } = { js: [], html: [] }
         let range: Range = {
             start: { character: 0, line: 0 },
-            end: this.file.document.positionAt(this.file.content.length)
+            end: this.file.documentInternal.positionAt(this.file.contentInternal.length)
         };
         let formats = await this.tsLanguageService.format(this.file, range, options, semiColon);
         let html = this.HTMLFile;
         let convertedRanges: Range[] = [];
         for (let format of formats) {
-            let diagStart = this.file.document.offsetAt(format.range.start);
-            let diagEnd = this.file.document.offsetAt(format.range.end);
+            let diagStart = this.file.documentInternal.offsetAt(format.range.start);
+            let diagEnd = this.file.documentInternal.offsetAt(format.range.end);
             let found = false;
             if (html) {
                 for (let i = 0; i < this.viewMethodsInfo.length; i++) {
@@ -880,14 +871,14 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         if (!html) {
             return null;
         }
-        let offsetFrom = html.file.document.offsetAt(htmlPosition);
+        let offsetFrom = html.file.documentInternal.offsetAt(htmlPosition);
         for (let viewMethodInfo of this.viewMethodsInfo) {
             for (let position of viewMethodInfo.fct.positions) {
                 if (offsetFrom >= position.start + viewMethodInfo.offsetBefore && offsetFrom <= position.end) {
                     let offset = offsetFrom - position.start - viewMethodInfo.offsetAfter;
                     let offsetOnFile = viewMethodInfo.start + offset;
                     offsetOnFile = viewMethodInfo.transform(offsetOnFile, offsetOnFile);
-                    let positionOnFile = this.file.document.positionAt(offsetOnFile);
+                    let positionOnFile = this.file.documentInternal.positionAt(offsetOnFile);
                     let resultTemps = await this.onReferences(this.file, positionOnFile);
                     return resultTemps;
                 }
@@ -899,7 +890,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         let locationsHTML: Location[] = []
         let locationsTs = await this.tsLanguageService.onReferences(document, position) || [];
         if (this._compilationResult?.componentName && this.fileParsed?.classes[this._compilationResult.componentName]) {
-            let offset = this.file.document.offsetAt(position);
+            let offset = this.file.documentInternal.offsetAt(position);
             let classParsed = this.fileParsed?.classes[this._compilationResult.componentName];
             if (offset >= classParsed.nameStart && offset <= classParsed.nameEnd) {
                 for (let [file, positions] of this.reverseViewClassInfoDependances) {
@@ -907,8 +898,8 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                         locationsHTML.push({
                             uri: file.file.uri,
                             range: {
-                                start: file.file.document.positionAt(position.start),
-                                end: file.file.document.positionAt(position.end),
+                                start: file.file.documentInternal.positionAt(position.start),
+                                end: file.file.documentInternal.positionAt(position.end),
                             }
                         })
                     }
@@ -933,8 +924,8 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                     let html = file.HTMLFile;
                     if (html) {
                         let convertedRanges: Range[] = [];
-                        let diagStart = file._file.document.offsetAt(location.range.start);
-                        let diagEnd = file._file.document.offsetAt(location.range.end);
+                        let diagStart = file._file.documentInternal.offsetAt(location.range.start);
+                        let diagEnd = file._file.documentInternal.offsetAt(location.range.end);
                         for (let i = 0; i < this.viewMethodsInfo.length; i++) {
                             let start = this.viewMethodsInfo[i].fullStart;
                             let end = this.viewMethodsInfo[i].end;
@@ -960,8 +951,8 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                                             loc = { ...loc };
                                         }
                                         loc.range = {
-                                            start: html.file.document.positionAt(finalPositionStart),
-                                            end: html.file.document.positionAt(finalPositionEnd)
+                                            start: html.file.documentInternal.positionAt(finalPositionStart),
+                                            end: html.file.documentInternal.positionAt(finalPositionEnd)
                                         }
                                         if (j > 0) {
                                             result.push(loc);
@@ -991,14 +982,14 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         if (!html) {
             return null;
         }
-        let offsetFrom = html.file.document.offsetAt(htmlPosition);
+        let offsetFrom = html.file.documentInternal.offsetAt(htmlPosition);
         for (let viewMethodInfo of this.viewMethodsInfo) {
             for (let position of viewMethodInfo.fct.positions) {
                 if (offsetFrom >= position.start + viewMethodInfo.offsetBefore && offsetFrom <= position.end) {
                     let offset = offsetFrom - position.start - viewMethodInfo.offsetAfter;
                     let offsetOnFile = viewMethodInfo.start + offset;
                     offsetOnFile = viewMethodInfo.transform(offsetOnFile, offsetOnFile);
-                    let positionOnFile = this.file.document.positionAt(offsetOnFile);
+                    let positionOnFile = this.file.documentInternal.positionAt(offsetOnFile);
                     let resultTemps = await this.onRename(this.file, positionOnFile, newName);
                     return resultTemps;
                 }
@@ -1029,8 +1020,8 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                         if (html) {
                             for (let j = 0; j < changes.length; j++) {
                                 let change = changes[j];
-                                let diagStart = file._file.document.offsetAt(change.range.start);
-                                let diagEnd = file._file.document.offsetAt(change.range.end);
+                                let diagStart = file._file.documentInternal.offsetAt(change.range.start);
+                                let diagEnd = file._file.documentInternal.offsetAt(change.range.end);
                                 for (let i = 0; i < this.viewMethodsInfo.length; i++) {
                                     let start = this.viewMethodsInfo[i].fullStart;
                                     let end = this.viewMethodsInfo[i].end;
@@ -1054,8 +1045,8 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                                             toAdd[html.file.uri].push({
                                                 newText: change.newText,
                                                 range: {
-                                                    start: html.file.document.positionAt(finalPositionStart),
-                                                    end: html.file.document.positionAt(finalPositionEnd)
+                                                    start: html.file.documentInternal.positionAt(finalPositionStart),
+                                                    end: html.file.documentInternal.positionAt(finalPositionEnd)
                                                 }
                                             });
                                         }
@@ -1133,8 +1124,8 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                                 [this.file.uri]: [{
                                     newText: "",
                                     range: {
-                                        start: this.file.document.positionAt(data.start),
-                                        end: this.file.document.positionAt(data.end),
+                                        start: this.file.documentInternal.positionAt(data.start),
+                                        end: this.file.documentInternal.positionAt(data.end),
                                     }
                                 }]
                             }

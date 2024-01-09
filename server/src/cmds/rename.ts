@@ -75,7 +75,7 @@ export class Rename {
 			let file = fileManager.getByUri(uri);
 			if (file) {
 				await (file as InternalAventusFile).applyTextEdits(textEditsByUri[uri]);
-				toWrite[uriToPath(file.uri)] = file.content;
+				toWrite[uriToPath(file.uri)] = file.contentUser;
 			}
 		}
 

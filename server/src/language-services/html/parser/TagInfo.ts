@@ -573,7 +573,7 @@ export class ContentInfo {
 		this.content = content;
 		this.start = ParserHtml.fromCompiledToRaw(start);
 		this.end = ParserHtml.fromCompiledToRaw(end);
-		let part = ParserHtml['currentParsingDoc']?.htmlFile.file.content.slice(this.start, this.end);
+		let part = ParserHtml['currentParsingDoc']?.htmlFile.file.contentUser.slice(this.start, this.end);
 		this.tag = tag;
 		if (parse) {
 			this.manageVariables();

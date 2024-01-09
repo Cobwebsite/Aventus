@@ -28,7 +28,7 @@ export class AventusLibFile extends AventusTsFile {
                 (classInfo) => {
                     if (!classInfo.isInterface && classInfo.convertibleName) {
                         if (!classInfo.hasStaticField(classInfo.convertibleName)) {
-                            this.diagnostics.push(createErrorTsPos(this.file.document, `Missing static property ${classInfo.convertibleName}`, classInfo.nameStart, classInfo.nameEnd, AventusErrorCode.MissingFullName));
+                            this.diagnostics.push(createErrorTsPos(this.file.documentUser, `Missing static property ${classInfo.convertibleName}`, classInfo.nameStart, classInfo.nameEnd, AventusErrorCode.MissingFullName));
                         }
                     }
                 }

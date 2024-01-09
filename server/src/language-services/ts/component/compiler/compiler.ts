@@ -153,7 +153,7 @@ export class AventusWebcomponentCompiler {
         }
         this.result.diagnostics = nativeDiags;
         this.template = AventusWebcomponentTemplate();
-        this.document = logicalFile.file.document;
+        this.document = logicalFile.file.documentInternal;
         this.build = build;
         this.fileParsed = logicalFile.fileParsed;
     }
@@ -1184,7 +1184,7 @@ export class AventusWebcomponentCompiler {
                 if (this.htmlFile) {
                     for (let injection of injections[propName]) {
                         if (injection.position) {
-                            this.htmlFile.tsErrors.push(createErrorHTMLPos(this.htmlFile.file.document, errorTxt, injection.position.start, injection.position.end));
+                            this.htmlFile.tsErrors.push(createErrorHTMLPos(this.htmlFile.file.documentUser, errorTxt, injection.position.start, injection.position.end));
                         }
                     }
                 }
@@ -1240,7 +1240,7 @@ export class AventusWebcomponentCompiler {
                 if (this.htmlFile) {
                     for (let binding of bindings[propName]) {
                         if (binding.position) {
-                            this.htmlFile.tsErrors.push(createErrorHTMLPos(this.htmlFile.file.document, errorTxt, binding.position.start, binding.position.end));
+                            this.htmlFile.tsErrors.push(createErrorHTMLPos(this.htmlFile.file.documentUser, errorTxt, binding.position.start, binding.position.end));
                         }
                     }
                 }
@@ -1558,7 +1558,7 @@ this.clearWatchHistory = () => {
             this.result.diagnostics.push(createErrorTsSection(this.document, errorTxt, "methods", AventusErrorCode.MissingMethod))
         }
         if (this.htmlFile) {
-            this.htmlFile.tsErrors.push(createErrorHTMLPos(this.htmlFile.file.document, errorTxt, start, end));
+            this.htmlFile.tsErrors.push(createErrorHTMLPos(this.htmlFile.file.documentUser, errorTxt, start, end));
         }
     }
     private createMissingViewElement(element: ActionElement) {
@@ -1600,7 +1600,7 @@ this.clearWatchHistory = () => {
 
         if (this.htmlFile) {
             for (let position of element.positions) {
-                this.htmlFile.tsErrors.push(createErrorHTMLPos(this.htmlFile.file.document, errorTxt, position.start, position.end));
+                this.htmlFile.tsErrors.push(createErrorHTMLPos(this.htmlFile.file.documentUser, errorTxt, position.start, position.end));
             }
         }
     }

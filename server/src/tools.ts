@@ -131,14 +131,14 @@ export function convertRange(document: TextDocument, span: { start: number | und
 }
 
 export function checkTxtBefore(file: AventusFile, position: Position, textToSearch: string) {
-    let offset = file.document.offsetAt(position) - 1;
+    let offset = file.documentUser.offsetAt(position) - 1;
     let currentLetterPosition = textToSearch.length - 1;
     let currentLetter = textToSearch[currentLetterPosition];
     while (offset > 0) {
-        if (file.content[offset] == " ") {
+        if (file.contentUser[offset] == " ") {
             continue;
         }
-        if (file.content[offset] == currentLetter) {
+        if (file.contentUser[offset] == currentLetter) {
             currentLetterPosition--;
             if (currentLetterPosition == -1) {
                 return true;
@@ -154,15 +154,15 @@ export function checkTxtBefore(file: AventusFile, position: Position, textToSear
     return false;
 }
 export function checkTxtAfter(file: AventusFile, position: Position, textToSearch: string) {
-    let offset = file.document.offsetAt(position);
-    let maxOffset = file.document.getText().length;
+    let offset = file.documentUser.offsetAt(position);
+    let maxOffset = file.documentUser.getText().length;
     let currentLetterPosition = 0;
     let currentLetter = textToSearch[currentLetterPosition];
     while (offset <= maxOffset) {
-        if (file.content[offset] == " ") {
+        if (file.contentUser[offset] == " ") {
             continue;
         }
-        if (file.content[offset] == currentLetter) {
+        if (file.contentUser[offset] == currentLetter) {
             currentLetterPosition++;
             if (currentLetterPosition == textToSearch.length) {
                 return true;

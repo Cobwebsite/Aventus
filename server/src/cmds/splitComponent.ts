@@ -32,7 +32,7 @@ export class SplitComponent {
 			writeFileSync(uriToPath(tsUri), tsDoc.getText());
 
 			unlinkSync(wcDoc.path);
-			FilesManager.getInstance().onClose(wcDoc.document);
+			FilesManager.getInstance().onClose(wcDoc.documentUser);
 			CloseFile.send(wcDoc.uri);
 
 

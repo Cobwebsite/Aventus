@@ -111,7 +111,7 @@ export class FilesWatcher {
 
         return this.files[uri];
     }
-    public onContentChange(path: string) {
+    public async onContentChange(path: string) {
         let uri = pathToUri(path);
         if (this.files[uri]) {
             let txtToImport = "";
@@ -120,11 +120,11 @@ export class FilesWatcher {
             }
             let document = TextDocument.create(
                 uri,
-                this.files[uri].document.languageId,
-                this.files[uri].document.version + 1,
+                this.files[uri].documentUser.languageId,
+                this.files[uri].documentUser.version + 1,
                 txtToImport
             );
-            this.files[uri].triggerContentChange(document);
+            await this.files[uri].triggerContentChange(document);
         }
     }
     public async onRemove(path: string) {

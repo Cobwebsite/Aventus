@@ -28,11 +28,11 @@ export class AventusStaticFile extends AventusTsFile {
         if (definitionPath.endsWith(AventusExtension.Definition) && existsSync(definitionPath)) {
             docVisible = readFileSync(definitionPath, 'utf8').replace(/declare global \{((\s|\S)*)\}/gm, '$1');
         }
-        let hash = createHash('md5').update(this.file.content).digest('hex');
+        let hash = createHash('md5').update(this.file.contentUser).digest('hex');
         this.setCompileResult([{
             classDoc: '',
             classScript: '!staticClass_' + hash,
-            compiled: this.file.content,
+            compiled: this.file.contentUser,
             docVisible: docVisible,
             docInvisible: '',
             debugTxt: '',

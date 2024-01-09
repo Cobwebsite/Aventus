@@ -18,27 +18,27 @@ export class ProjectManager {
         FilesManager.getInstance().onNewFile(this.onNewFile.bind(this));
     }
     private async onNewFile(file: AventusFile) {
-        if (file.document.uri.endsWith(AventusExtension.Config)) {
+        if (file.documentUser.uri.endsWith(AventusExtension.Config)) {
             // prevent create a project when on template
-            let templateFileUri = file.document.uri.replace(AventusExtension.Config, AventusExtension.Template);
+            let templateFileUri = file.documentUser.uri.replace(AventusExtension.Config, AventusExtension.Template);
             if (FilesManager.getInstance().getByUri(templateFileUri)) {
                 return;
             }
 
-            if (!this.projects[file.document.uri]) {
-                this.projects[file.document.uri] = new Project(file);
-                await this.projects[file.document.uri].init()
+            if (!this.projects[file.documentUser.uri]) {
+                this.projects[file.documentUser.uri] = new Project(file);
+                await this.projects[file.documentUser.uri].init()
                 file.onDelete(this.onDeleteFile.bind(this));
             }
             else {
-                console.error("a config file with the uri :" + file.document.uri + " is already inside project manager");
+                console.error("a config file with the uri :" + file.documentUser.uri + " is already inside project manager");
             }
         }
     }
     private async onDeleteFile(file: AventusFile) {
-        if (this.projects[file.document.uri]) {
-            this.projects[file.document.uri].destroy();
-            delete this.projects[file.document.uri];
+        if (this.projects[file.documentUser.uri]) {
+            this.projects[file.documentUser.uri].destroy();
+            delete this.projects[file.documentUser.uri];
         }
     }
 

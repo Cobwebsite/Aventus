@@ -95,7 +95,7 @@ export class AventusHTMLFile extends AventusBaseFile {
         return item;
     }
     public async getHover(offset: number): Promise<Hover | null> {
-        return this.onHover(this.file, this.file.document.positionAt(offset));
+        return this.onHover(this.file, this.file.documentUser.positionAt(offset));
     }
     protected async onHover(document: AventusFile, position: Position): Promise<Hover | null> {
         let resultTemp = await this.tsFile?.doHover(position)
@@ -249,7 +249,7 @@ export class AventusHTMLFile extends AventusBaseFile {
             return [];
         }
         let content = this.fileParsed?.compiledTxt
-        let document = TextDocument.create(file.document.uri, file.document.languageId, file.document.version, content);
+        let document = TextDocument.create(file.documentUser.uri, file.documentUser.languageId, file.documentUser.version, content);
         let result = await this.build.htmlLanguageService.format(document, range, options);
         let txt = result[0].newText;
         for (let src in replacements) {
@@ -259,8 +259,8 @@ export class AventusHTMLFile extends AventusBaseFile {
         return [{
             newText: txt,
             range: {
-                start: file.document.positionAt(0),
-                end: file.document.positionAt(file.content.length)
+                start: file.documentUser.positionAt(0),
+                end: file.documentUser.positionAt(file.contentUser.length)
             }
         }]
     }
