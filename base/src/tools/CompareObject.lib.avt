@@ -31,9 +31,9 @@ export function compareObject(obj1, obj2) {
     } else if(obj1 instanceof Date) {
         // date
         return obj1.toString() === obj2.toString();
-    } else if(obj1 !== null && typeof obj1 == 'object') {
+    } else if(obj1 !== undefined && typeof obj1 == 'object') {
         // object
-        if(obj2 === null || typeof obj1 !== 'object') {
+        if(obj2 === undefined || typeof obj1 !== 'object') {
             return false;
         }
         // not same keys length

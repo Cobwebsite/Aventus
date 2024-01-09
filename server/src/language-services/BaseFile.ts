@@ -39,7 +39,7 @@ export abstract class AventusBaseFile {
         onReferences: '',
         onCodeLens: '',
         onGetBuild: '',
-        onRename: ''
+        onRename: '',
     }
     private addEvents(): void {
         this.uuidEvents.onCanContentChange = this.file.onCanContentChange(this.onCanContentChange.bind(this));

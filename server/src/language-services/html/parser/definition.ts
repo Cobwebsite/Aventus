@@ -73,7 +73,7 @@ export type ActionLoop = {
 		data: string,
 		item?: string,
 		index?: string,
-	}
+	},
 	func?: string
 };
 export type ActionIfPart = {
@@ -94,8 +94,11 @@ export type ActionChange = {
 	}[],
 	name: string,
 	txt: string,
-	variablesType: { [name: string]: string }
+	variables: string[],
 };
+export type ActionContextEdit = {
+	fct: string
+}
 
 export type HtmlTemplateResult = {
 	elements: ActionElement[],
@@ -109,7 +112,8 @@ export type HtmlTemplateResult = {
 	events: ActionEvent[];
 	pressEvents: ActionPressEvent[];
 	loops: ActionLoop[];
-	ifs: ActionIf[]
+	ifs: ActionIf[];
+	contextEdits: ActionContextEdit[];
 };
 
 
@@ -121,7 +125,7 @@ export type HTMLFormat = {
 			end: number
 		}
 	},
-	kind: 'fct' | 'loop' | 'if',
+	kind: 'fct' | 'loop' | 'if' | 'context',
 	start: number,
 	end: number
 }

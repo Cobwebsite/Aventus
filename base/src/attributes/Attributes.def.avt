@@ -4,6 +4,10 @@ declare global {
     interface DebuggerConfig {
         /** Write the compiled file inside ./compiled.js */
         writeCompiled?: boolean,
+        /** Write the view parsed */
+        writeHTML?: boolean;
+        /** Write the ts file for the component with template methods */
+        writeComponentTs?: boolean;
         /** Enable history for watch property and add a function getWatchHistory on this component*/
         enableWatchHistory?: boolean,
     }
@@ -101,4 +105,5 @@ declare global {
     function BindThis(): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void;
 
     function NoCompile(): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void;
+    function Context<T>(name: string, el: T);
 }

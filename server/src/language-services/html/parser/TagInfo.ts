@@ -1,4 +1,4 @@
-import { Block, ForInStatement, ForOfStatement, IfStatement, SyntaxKind, forEachChild } from 'typescript';
+import { Block, CallExpression, Decorator, ForInStatement, ForOfStatement, ForStatement, IfStatement, LabeledStatement, Node, PropertyAccessExpression, ScriptTarget, SyntaxKind, createSourceFile, forEachChild } from 'typescript';
 import { SCSSParsedRule } from '../../scss/LanguageService';
 import { ParserHtml } from './ParserHtml';
 import { ActionChange, ActionIf, ActionIfPart, ActionLoop, HtmlTemplateResult, PressEventMapValues, pressEventMap } from './definition';
@@ -13,6 +13,7 @@ export class TagInfo {
 	public start: number = 0;
 	public end: number = 0;
 	public parent: TagInfo | null = null;
+	public parentTemplateId?: number;
 
 	public openTagStart: number = 0;
 	public openTagEnd: number = 0;
@@ -24,6 +25,7 @@ export class TagInfo {
 	public injections: { variableName: string, injectedName: string, start: number, end: number }[] = [];
 	public bindings: { event?: string, bindingName: string, valueName?: string, start: number, end: number }[] = [];
 	private changes: { [id_attr: string]: string } = {};
+	public variableNames: string[] = []
 
 	public parser: ParserHtml;
 
@@ -36,9 +38,13 @@ export class TagInfo {
 	public get isIf(): boolean {
 		return this.tagName == IfInfo.tagName;
 	}
+	public get isContextEditing(): boolean {
+		return this.tagName == ContextEditing.tagName;
+	}
 
 	public loopInfo?: ForLoop;
 	public ifInfo?: IfInfo;
+	public contextEdit?: ContextEditing;
 
 
 
@@ -52,7 +58,7 @@ export class TagInfo {
 			this.createId();
 			return;
 		}
-		if (this.isIf) {
+		if (this.isIf || this.isContextEditing) {
 			return;
 		}
 		ParserHtml.addInterestPoint({ name: tagName, start, end, type: "tag" });
@@ -103,10 +109,12 @@ export class TagInfo {
 			}
 		}
 		if (this.isLoop) {
+			this.parentTemplateId = ParserHtml.getParentId();
 			let loop = ParserHtml.addLoopStack(Number(this.attributes["id"].value));
 			if (loop) this.loopInfo = loop
 		}
 		else if (this.isIf) {
+			this.parentTemplateId = ParserHtml.getParentId();
 			let idIf = Number(this.attributes["id"].value);
 			let _if = ParserHtml.addIfStack(idIf);
 			if (_if) {
@@ -116,8 +124,24 @@ export class TagInfo {
 					_if._id = _id;
 				}
 			}
-
 		}
+		else if (this.isContextEditing) {
+			this.parentTemplateId = ParserHtml.getParentId();
+			let id = Number(this.attributes["id"].value);
+			let edit = ParserHtml.getContextEditing(id);
+			if (edit) {
+				this.contextEdit = edit;
+				if (this.parent) {
+					for (let name of edit.variableNames) {
+						if (!this.parent.variableNames.includes(name)) {
+							this.parent.variableNames.push(name);
+						}
+					}
+				}
+			}
+		}
+
+		ParserHtml.addTagInfoStack(this);
 	}
 	public afterClose(start: number, end: number) {
 		this.hasClose = true;
@@ -137,6 +161,7 @@ export class TagInfo {
 			ParserHtml.addVariable(binding.bindingName.split('.')[0]);
 		}
 		this.checkStyle(ParserHtml.getRules(), (point) => ParserHtml.addStyleLink(point));
+		ParserHtml.removeStack();
 		if (this.isLoop || this.isIf) {
 			ParserHtml.removeStack();
 		}
@@ -181,6 +206,9 @@ export class TagInfo {
 		return `<${this.tagName}${attrTxt}>${this.children.map(c => c.render()).join("")}</${this.tagName}>`;
 	}
 	public render(): string {
+		if (this.isContextEditing) {
+			return '';
+		}
 		if (this.isLoop) {
 			return '<template _id="' + this.id + '"></template>';
 		}
@@ -206,6 +234,7 @@ export class TagInfo {
 			pressEvents: [],
 			loops: [],
 			ifs: [],
+			contextEdits: []
 		}
 
 
@@ -287,7 +316,11 @@ export class TagInfo {
 			if (this.pressEvent) {
 				result.pressEvents.push({ ...this.pressEvent, id: id })
 			}
-
+			if (this.contextEdit) {
+				result.contextEdits.push({
+					fct: this.contextEdit.fctJs
+				})
+			}
 		}
 
 		if (this.loopInfo) {
@@ -300,6 +333,7 @@ export class TagInfo {
 				pressEvents: [],
 				loops: [],
 				ifs: [],
+				contextEdits: [],
 			}
 			let templateTxt = "";
 			for (let child of this.children) {
@@ -315,10 +349,13 @@ export class TagInfo {
 				anchorId: this.id,
 				template: templateTxt,
 				actions: templateResult,
-				parentId: ParserHtml.getParentId(),
+				parentId: this.parentTemplateId
 			}
 			if (this.loopInfo.isSimple) {
 				resultLoop.simple = this.loopInfo.simple;
+			}
+			else {
+				resultLoop.func = this.loopInfo.complex.fct
 			}
 			result.loops.push(resultLoop);
 		}
@@ -333,6 +370,7 @@ export class TagInfo {
 				pressEvents: [],
 				loops: [],
 				ifs: [],
+				contextEdits: []
 			}
 			let templateTxt = "";
 			for (let child of this.children) {
@@ -355,7 +393,7 @@ export class TagInfo {
 				let resultIfs: ActionIf = {
 					anchorId: this.ifInfo._id,
 					parts: this.ifInfo.parts,
-					parentId: ParserHtml.getParentId()
+					parentId: this.parentTemplateId
 				}
 				result.ifs.push(resultIfs);
 			}
@@ -549,6 +587,11 @@ export class ContentInfo {
 			this.tag.addChanges("@HTML", result.txt);
 			this.mustBeAdded = false;
 		}
+		for (let _var of result.variables) {
+			if (!this.tag.variableNames.includes(_var)) {
+				this.tag.variableNames.push(_var);
+			}
+		}
 	}
 
 
@@ -564,7 +607,7 @@ export class ContentInfo {
 export class ForLoop {
 	public static readonly tagName = "l";
 	public idTemplate: number = 0;
-	public isSimple: boolean = true;
+	public isSimple: boolean = false;
 	public transformations: { newText: string, start: number, end: number }[] = [];
 
 	public start: number = 0;
@@ -573,37 +616,46 @@ export class ForLoop {
 	public loopTxt: string = "";
 	public loopName: string = "";
 
+	public typeToLoad: {
+		start: number,
+		end: number,
+		txt: string
+	}[] = []
 	public simple: {
 		data: string,
 		item?: string,
 		index?: string,
 	} = { data: '' }
 
+	public complex: {
+		init: string[],
+		condition: string,
+		transform: string[],
+		apply: string[],
+		loopName: string,
+		fct: string
+	} = { init: [], condition: "", transform: [], apply: [], loopName: "", fct: "" }
+
 	public get variableNames(): string[] {
-		let result: string[] = [];
-		if (this.isSimple) {
-			if (this.simple.index) {
-				result.push(this.simple.index);
-			}
-			if (this.simple.item) {
-				result.push(this.simple.item);
-			}
-		}
-		return result;
+		return this.typeToLoad.map(p => p.txt);
 	}
-	public variablesType: { [name: string]: string; } = {};
+	public variables: string[] = [];
 	private sliceText: (start: number, end?: number) => string;
 
 
-	public constructor(_for: ForOfStatement | ForInStatement, sliceText: (start: number, end?: number) => string) {
+	public constructor(_for: ForOfStatement | ForInStatement | ForStatement, sliceText: (start: number, end?: number) => string) {
 		this.sliceText = sliceText;
 		this.idTemplate = ParserHtml.createIdTemplate();
 		if (_for.kind == SyntaxKind.ForOfStatement || _for.kind == SyntaxKind.ForInStatement) {
+			this.isSimple = true;
 			this.loadForInOf(_for);
+		}
+		else {
+			this.loadFor(_for);
 		}
 		this.loopName = ParserHtml.getCustomFctName() ?? "";
 
-		this.variablesType = ParserHtml.getVariablesType();
+		this.variables = ParserHtml.getVariables();
 	}
 
 
@@ -612,13 +664,21 @@ export class ForLoop {
 		forEachChild(_for, y => {
 			if (i == 0) {
 				let _var = y.getChildAt(1);
-				let varTxt = this.sliceText(_var.getStart(), _var.getEnd());
+				let start = _var.getStart()
+				let end = _var.getEnd();
+				let varTxt = this.sliceText(start, end);
 				if (_for.kind == SyntaxKind.ForInStatement) {
 					this.simple.index = varTxt;
 				}
 				else {
 					this.simple.item = varTxt;
 				}
+
+				this.typeToLoad.push({
+					txt: varTxt,
+					start,
+					end
+				})
 			}
 			else if (i == 1) {
 				this.simple.data = this.sliceText(y.getStart(), y.getEnd());
@@ -650,6 +710,138 @@ export class ForLoop {
 			i++;
 		})
 	}
+	private loadFor(_for: ForStatement) {
+		let init: string[] = [];
+		let apply: string[] = [];
+		let condition: string = "";
+		let transform: string[] = [];
+		let i = 0;
+		let loopTxt = "";
+		forEachChild(_for, y => {
+			if (i == 0) {
+				// declaration
+				forEachChild(y, decl => {
+					let _var = decl.getChildAt(0);
+					let start = _var.getStart()
+					let end = _var.getEnd();
+					let varTxt = this.sliceText(start, end);
+					init.push("let " + decl.getText());
+					apply.push(decl.getChildAt(0).getText());
+					this.typeToLoad.push({
+						txt: varTxt,
+						start,
+						end
+					})
+				})
+			}
+			else if (i == 1) {
+				// condition
+				condition = y.getText();
+			}
+			else if (i == 2) {
+				// transform
+				let loadRecu = (trans: Node) => {
+					if (trans.kind == SyntaxKind.BinaryExpression) {
+						if (trans.getChildAt(1).getText() == ",") {
+							loadRecu(trans.getChildAt(0));
+							loadRecu(trans.getChildAt(2));
+						}
+						else {
+							transform.push(trans.getText())
+						}
+					}
+					else {
+						transform.push(trans.getText())
+					}
+				}
+				loadRecu(y);
+			}
+			else if (i == 3) {
+				// block
+				let start = _for.getStart();
+				let startBlock = y.getStart() + 1;
+				loopTxt = this.sliceText(start, startBlock) + " }";
+				this.loopTxt = loopTxt;
+				let newTxt = "<" + ForLoop.tagName + " id=\"" + this.idTemplate + "\">";
+				let newCloseTxt = "</" + ForLoop.tagName + ">";
+
+				this.transformations.push({
+					start: start,
+					end: startBlock,
+					newText: newTxt
+				})
+				let endBlock = y.getEnd();
+				this.transformations.push({
+					start: endBlock - 1,
+					end: endBlock,
+					newText: newCloseTxt
+				})
+
+				this.start = start;
+				this.startBlock = startBlock;
+				this.end = endBlock;
+			}
+
+			i++;
+
+		});
+
+		if (!this.checkIsSimple(init, condition, transform)) {
+			let fctName = ParserHtml.getCustomFctName(1) ?? ""
+			let variables = anaylseVariables(loopTxt, this.variables);
+			let params = variables.map(p => "c.data." + p).join(",");
+			this.complex = {
+				init,
+				condition,
+				transform,
+				apply,
+				loopName: fctName,
+				fct: `(c) => c.comp.${fctName}(${params})`
+			}
+		}
+	}
+
+
+	private checkIsSimple(init: string[], condition: string, transform: string[]) {
+		if (init.length != 1) {
+			return false;
+		}
+		let initSplit = init[0].split("=");
+		if (initSplit.length != 2) {
+			return false;
+		}
+		let index = initSplit[0].replace("let ", "").trim()
+		let startValue = initSplit[1].trim();
+		if (startValue != "0") {
+			return false;
+		}
+
+		let regCond = new RegExp("\\s*" + index + "\\s*<\\s*([a-zA-Z0-9\\._\\[\\]-]+)\\.length");
+		let matchCond = regCond.exec(condition);
+		if (!matchCond) {
+			return false;
+		}
+		let data = matchCond[1];
+
+		if (transform.length != 1) {
+			return false;
+		}
+
+		let regTransform = new RegExp("\\s*" + index + "\\+\\+\\s*");
+		let matchTransform = regTransform.exec(transform[0]);
+		if (!matchTransform) {
+			return false;
+		}
+
+
+		this.isSimple = true;
+		this.simple = {
+			data,
+			index
+		}
+		return true;
+
+	}
 }
 
 export type IfInfoCondition = {
@@ -661,33 +853,31 @@ export type IfInfoCondition = {
 	offsetBefore: number,
 	offsetAfter: number,
 	idTemplate: number,
-	type: 'if' | 'elif'
+	type: 'if' | 'elif',
+	variables: string[]
 };
 export class IfInfo {
 	public static readonly tagName = "i";
 	public statements: { txt: string }[] = []
 	public idsTemplate: number[] = [];
-	public variablesType: { [name: string]: string; } = {};
+	public defaultVariables: string[] = [];
 	public transformations: { newText: string, start: number, end: number }[] = [];
 	public end: number = 0;
 	public _id: string = "";
 	public parts: ActionIfPart[] = [];
-	public parentId?: number;
 
 	public conditions: IfInfoCondition[] = [];
 	private sliceText: (start: number, end?: number) => string;
 
 	public constructor(_if: IfStatement, sliceText: (start: number, end?: number) => string) {
 		this.sliceText = sliceText;
-		this.parentId = ParserHtml.getParentId();
-		this.variablesType = ParserHtml.getVariablesType();
+		this.defaultVariables = ParserHtml.getVariables();
 
 		this.loadIf(_if);
 	}
 
 
 	private loadIf(_if: IfStatement) {
-		let ifTxt = this.sliceText(_if.getStart(), _if.getEnd())
 		let blocks: Block[] = [];
 		const createId = () => {
 			let idIf = ParserHtml.createIdTemplate();
@@ -748,17 +938,21 @@ export class IfInfo {
 				}
 				else if (y.kind == SyntaxKind.BinaryExpression) {
 					let fctName = ParserHtml.getCustomFctName(this.conditions.length) ?? '';
-					let params = Object.keys(this.variablesType).map(p => "c.data." + p).join(",");
+					let fctTxt = this.sliceText(y.getStart(), y.getEnd())
+					let varsType = anaylseVariables(fctTxt, this.defaultVariables);
+					let params = varsType.map(p => "c.data." + p).join(",");
+
 					this.conditions.push({
 						fctName: fctName,
-						txt: this.sliceText(y.getStart(), y.getEnd()),
+						txt: fctTxt,
 						fctTxt: `(c) => c.comp.${fctName}(${params})`,
 						start: y.getStart(),
 						end: y.getEnd(),
 						offsetAfter: 0,
 						offsetBefore: 0,
 						idTemplate,
-						type: depth == 0 ? 'if' : 'elif'
+						type: depth == 0 ? 'if' : 'elif',
+						variables: varsType
 					});
 				}
 			})
@@ -778,20 +972,93 @@ export class IfInfo {
 	}
 }
 
+export class ContextEditing {
+	public static readonly tagName = "c";
+	private sliceText: (start: number, end?: number) => string;
+	public variables: string[] = [];
+	public transformations: { newText: string, start: number, end: number }[] = [];
+	public id: number;
+	public fctTs: string = "";
+	public fctJs: string = "";
+	public editName: string;
+	public start: number = 0;
+	public end: number = 0;
+	public mapping: [string, string] = ["", ""]
+
+	public typeToLoad: {
+		start: number,
+		end: number,
+		txt: string
+	}[] = []
+	public get variableNames(): string[] {
+		return this.typeToLoad.map(p => p.txt);
+	}
+
+	public constructor(deco: Decorator, sliceText: (start: number, end?: number) => string) {
+		this.sliceText = sliceText;
+		this.editName = ParserHtml.getCustomFctName() ?? "";
+		this.id = ParserHtml.createIdTemplate();
+		this.loadContextEditing(deco);
+	}
+	private loadContextEditing(deco: Decorator) {
+		this.start = deco.getStart();
+		this.end = deco.getEnd();
+		this.transformations.push({
+			start: deco.getStart(),
+			end: deco.getEnd(),
+			newText: "<" + ContextEditing.tagName + " id=\"" + this.id + "\"></" + ContextEditing.tagName + ">"
+		})
+
+		forEachChild(deco, y => {
+			if (y.kind == SyntaxKind.CallExpression) {
+				let call = y as CallExpression;
+				let txt = "{ ";
+				let i = 0;
+				for (let arg of call.arguments) {
+					txt += arg.getText();
+					if (i == 0) {
+						this.typeToLoad.push({
+							txt: arg.getText().replace(/['`"]/g, ""),
+							start: arg.getStart(),
+							end: arg.getEnd(),
+						})
+						txt += ": "
+					}
+					this.mapping[i] = arg.getText()					
+					i++;
+				}
+				txt += " }";
+
+				this.fctTs = "return " + txt;
+
+			}
+		})
+
+
+		this.variables = anaylseVariables(this.fctTs, ParserHtml.getVariables());
+		let params = this.variables.map(p => "c.data." + p).join(",");
+		this.fctJs = `@_@(c) => c.comp.${this.editName}(${params})@_@`
+	}
+}
+
 function parseTxt(value: string, valueStart: number): {
 	changes: ActionChange[],
-	txt: string
+	txt: string,
+	variables: string[]
 } {
 	let regex = /\{\{([\s|\S]*?)\}\}/g;
 	let m: RegExpExecArray | null;
 	let result: {
 		changes: ActionChange[],
-		txt: string
+		txt: string,
+		variables: string[]
 	} = {
 		changes: [],
-		txt: value
+		txt: value,
+		variables: []
 	}
 	while (m = regex.exec(value)) {
+
 		let start = valueStart + m.index;
 		let end = valueStart + m.index + m[0].length;
 
@@ -801,7 +1068,8 @@ function parseTxt(value: string, valueStart: number): {
 			end: end
 		});
 		if (resultTemp) {
-			let params = Object.keys(resultTemp.variablesType).map(p => "c.data." + p).join(",");
+			resultTemp.variables = anaylseVariables(m[1], resultTemp.variables);
+			let params = resultTemp.variables.map(p => "c.data." + p).join(",");
 			let content = "${c.print(c.comp." + resultTemp.name + "(" + params + "))}";
 			result.txt = result.txt.replace(m[0], content);
 			result.changes.push(resultTemp);
@@ -813,4 +1081,38 @@ function parseTxt(value: string, valueStart: number): {
 	}
 
 	return result;
+}
+
+
+function anaylseVariables(txt: string, variables: string[]): string[] {
+	if (variables.length == 0) {
+		return variables;
+	}
+	let paramsToUse: string[] = []
+	let srcFile = createSourceFile("sample.ts", txt, ScriptTarget.ESNext, true);
+	let loadLoop = (node: Node) => {
+		forEachChild(node, x => {
+			if (x.kind == SyntaxKind.Identifier) {
+				if (x.parent.kind != SyntaxKind.PropertyAccessExpression) {
+					let txt = x.getText();
+					if (variables.includes(txt) && !paramsToUse.includes(txt)) {
+						paramsToUse.push(txt);
+					}
+				}
+				else {
+					let parent = x.parent as PropertyAccessExpression;
+					if (parent.getChildAt(0) == x) {
+						// its the first element acces so its ok
+						let txt = x.getText();
+						if (variables.includes(txt) && !paramsToUse.includes(txt)) {
+							paramsToUse.push(txt);
+						}
+					}
+				}
+			}
+			loadLoop(x);
+		})
+	}
+	loadLoop(srcFile);
+	return paramsToUse;
 }

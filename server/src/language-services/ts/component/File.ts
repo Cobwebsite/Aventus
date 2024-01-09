@@ -6,9 +6,7 @@ import { AventusErrorCode, AventusExtension, AventusLanguageId } from "../../../
 import { AventusFile, InternalAventusFile } from '../../../files/AventusFile';
 import { HttpServer } from '../../../live-server/HttpServer';
 import { Build } from "../../../project/Build";
-import { AventusBaseFile } from "../../BaseFile";
 import { AventusHTMLFile } from "../../html/File";
-import { AventusWebSCSSFile } from "../../scss/File";
 import { AventusTsFile } from "../File";
 import { AventusWebcomponentCompiler } from "./compiler/compiler";
 import { CompileComponentResult } from "./compiler/def";
@@ -17,6 +15,8 @@ import { replaceNotImportAliases } from '../../../tools';
 import { QuickParser } from './QuickParser';
 import * as md5 from 'md5';
 import { HTMLFormat } from '../../html/parser/definition';
+import { DebuggerDecorator } from '../parser/decorators/DebuggerDecorator';
+import { join } from 'path';
 
 type ViewMethodInfo = {
     name: string
@@ -33,7 +33,7 @@ type ViewMethodInfo = {
         }[]
         txt: string;
     }
-    kind: 'fct' | 'loop' | 'if'
+    kind: 'fct' | 'loop' | 'if' | 'context'
 }
 
 export class AventusWebComponentLogicalFile extends AventusTsFile {
@@ -42,6 +42,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
     private viewMethodsInfo: ViewMethodInfo[] = [];
 
     private originalDocument!: TextDocument;
+    private originalDocumentVersion: number = 0;
     public get compilationResult() {
         return this._compilationResult;
     }
@@ -128,13 +129,16 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         html: -1,
         js: -1
     };
+    private typeInfered: { [name: string]: string } = {};
     public recreateFileContent() {
         let htmlFile = this.HTMLFile;
         if (htmlFile) {
             let htmlVersion = htmlFile.file.version ?? -1;
             let mustWrite = false;
+            let tsIsDiff = false;
             if (this.lastFileVersionCreated.js != this.originalDocument.version) {
                 mustWrite = true;
+                tsIsDiff = true;
             }
             else if (this.lastFileVersionCreated.html != htmlVersion) {
                 mustWrite = true;
@@ -144,84 +148,92 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                     html: htmlVersion,
                     js: this.originalDocument.version
                 }
+                let newContent = "";
                 // write html fct inside js
                 if (this.componentEnd >= 0) {
+                    let v = this.originalDocument.version + htmlVersion
                     let oldContent = this.originalDocument.getText();
-                    let newContent = oldContent.slice(0, this.componentEnd - 1) + "\n";
+                    newContent = oldContent.slice(0, this.componentEnd - 1) + "\n";
 
-                    let methods = htmlFile.fileParsed?.fcts ?? {};
                     this.viewMethodsInfo = [];
                     let returnAddedLength = 0;
-                    for (let method of Object.values(methods)) {
-                        let methodTxt = method.txt.replace(/\n/g, ";");
 
-                        let returnPosition = -1;
-
-                        let resultTemp: string[] = methodTxt.split(";");
-                        if (!methodTxt.includes("return ")) {
-                            // TODO correct the return to get only the last none empty lane
-                            if (resultTemp.length > 0) {
-                                let lastEl = resultTemp.pop()
-                                returnPosition = resultTemp.join("\n").length;
-                                if (lastEl?.startsWith(" ")) {
-                                    resultTemp.push("return" + lastEl);
-                                    returnAddedLength = "return".length
-                                }
-                                else {
-                                    resultTemp.push("return " + lastEl);
-                                    returnAddedLength = "return ".length
-                                }
-
-                            }
-                        }
-                        methodTxt = resultTemp.join("\n");
-
-                        let fullStart = newContent.length;
+                    const getParameters = (variables: string[]) => {
                         let parameters: string[] = [];
-                        for (let varName in method.variablesType) {
-                            parameters.push(varName + ":" + method.variablesType[varName]);
+                        for (let variable of variables) {
+                            let type = this.typeInfered[variable] ?? "any";
+                            parameters.push(variable + ":" + type);
                         }
+                        return parameters;
+                    }
 
-                        // TODO correct indentation
-                        let t = this._space;
-                        newContent += `${t}/** */\n${t}@Effect({ autoInit: false })\n${t}private ${method.name}(${parameters.join(",")}): NotVoid {\n`;
-                        let start = newContent.length;
-                        newContent += methodTxt + "\n";
-                        let end = newContent.length;
-                        newContent += t + '}\n';
+                    if (tsIsDiff) {
+                        // if the typescript, maybe the type of the loop changed => we must reinfered all types
+                        const inferForType = () => {
+                            if (!htmlFile) return;
+                            let fors = htmlFile.fileParsed?.loops ?? [];
+                            let i = 0;
+                            for (let _for of fors) {
+                                let parameters: string[] = getParameters(_for.variables);
+                                let tempContent = newContent;
+                                tempContent += `/** */\n@NoCompile()\nprivate ${_for.loopName}(${parameters.join(",")}): void {\n`;
+                                let start = tempContent.length;
+                                tempContent += _for.loopTxt + "\n";
+                                tempContent += '}\n';
+                                // close the class
+                                tempContent += '}';
+                                if (this.file instanceof InternalAventusFile) {
+                                    this.file.setDocument(TextDocument.create(this.file.document.uri, this.file.document.languageId, (v + i) * -1, tempContent));
+                                    this._contentForLanguageService = tempContent;
+                                }
 
+                                for (let info of _for.typeToLoad) {
+                                    let center = Math.floor((info.start + info.end) / 2);
+                                    let diff = center - _for.start;
+                                    let position = start + diff;
+                                    let text = _for.loopTxt.slice(info.start - _for.start, info.end - _for.start)
+                                    let typeName = this.tsLanguageService.getType(this.file, position) ?? "any";
+                                    this.typeInfered[text] = typeName;
+                                }
 
-                        const wrapper = function (rPos: number, returnLength: number) {
-                            let result: ViewMethodInfo = {
-                                name: method.name,
-                                fullStart: fullStart,
-                                start: start,
-                                end: end,
-                                fct: method,
-                                offsetBefore: "{{".length,
-                                offsetAfter: "}}".length,
-                                kind: "fct",
-                                transform(start, currentPos) {
-                                    if (start >= rPos) {
-                                        currentPos += returnLength;
-                                    }
-                                    return currentPos;
-                                },
+                                i++;
                             }
-                            return result;
-                        }
-                        this.viewMethodsInfo.push(wrapper(returnPosition, returnAddedLength));
 
+                            let edits = htmlFile.fileParsed?.contextEdits ?? [];
+                            for (let edit of edits) {
+                                let parameters: string[] = getParameters(edit.variables);
+                                let tempContent = newContent;
+                                tempContent += `/** */\n@NoCompile()\nprivate ${edit.editName}(${parameters.join(",")}): void {\n`;
+                                let start = tempContent.length;
+                                tempContent += edit.fctTs + "\n";
+                                tempContent += '}\n';
+                                // close the class
+                                tempContent += '}';
+
+                                writeFileSync(this.file.path + ".ts", tempContent);
+                                if (this.file instanceof InternalAventusFile) {
+                                    this.file.setDocument(TextDocument.create(this.file.document.uri, this.file.document.languageId, (v + i) * -1, tempContent));
+                                    this._contentForLanguageService = tempContent;
+                                }
+
+                                for (let info of edit.typeToLoad) {
+                                    let center = Math.floor((info.start + info.end) / 2);
+                                    let diff = center - edit.start;
+                                    let position = start + diff;
+                                    let typeName = this.tsLanguageService.getType(this.file, position) ?? "any";
+                                    this.typeInfered[info.txt] = typeName;
+                                }
+                            }
+
+
+                        }
+                        inferForType();
                     }
 
                     let fors = htmlFile.fileParsed?.loops ?? [];
                     for (let _for of fors) {
-
                         let fullStart = newContent.length;
-                        let parameters: string[] = [];
-                        for (let varName in _for.variablesType) {
-                            parameters.push(varName + ":" + _for.variablesType[varName]);
-                        }
+                        let parameters: string[] = getParameters(_for.variables);
 
                         let t = this._space;
                         newContent += `${t}/** */\n${t}@NoCompile()\n${t}private ${_for.loopName}(${parameters.join(",")}): void {\n`;
@@ -253,14 +265,91 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                             return result;
                         }
                         this.viewMethodsInfo.push(wrapper());
+
+
+                        if (!_for.isSimple) {
+                            newContent += `${t}/** */\n${t}private ${_for.complex.loopName}() {\n
+                                ${_for.complex.init.join(";\n")}
+                                return {
+                                    transform:() => {
+                                        ${_for.complex.transform.join(";\n")}
+                                    },
+                                    condition: () => {
+                                        return (${_for.complex.condition})
+                                    },
+                                    apply: () => {
+                                        return ({${_for.complex.apply}})
+                                    }
+                                }
+                            }`
+                        }
+                    }
+
+                    let methods = htmlFile.fileParsed?.fcts ?? {};
+                    for (let method of Object.values(methods)) {
+                        let methodTxt = method.txt.replace(/\n/g, ";");
+
+                        let returnPosition = -1;
+
+                        let resultTemp: string[] = methodTxt.split(";");
+                        if (!methodTxt.includes("return ")) {
+                            // TODO correct the return to get only the last none empty lane
+                            if (resultTemp.length > 0) {
+                                let lastEl = resultTemp.pop()
+                                returnPosition = resultTemp.join("\n").length;
+                                if (lastEl?.startsWith(" ")) {
+                                    resultTemp.push("return" + lastEl);
+                                    returnAddedLength = "return".length
+                                }
+                                else {
+                                    resultTemp.push("return " + lastEl);
+                                    returnAddedLength = "return ".length
+                                }
+
+                            }
+                        }
+                        methodTxt = resultTemp.join("\n");
+
+                        let fullStart = newContent.length;
+                        let parameters: string[] = getParameters(method.variables);
+
+                        let resultType = 'NotVoid';
+
+                        // TODO correct indentation
+                        let t = this._space;
+                        newContent += `${t}/** */\n${t}@Effect({ autoInit: false })\n${t}private ${method.name}(${parameters.join(",")}): ${resultType} {\n`;
+                        let start = newContent.length;
+                        newContent += methodTxt + "\n";
+                        let end = newContent.length;
+                        newContent += t + '}\n';
+
+
+                        const wrapper = function (rPos: number, returnLength: number) {
+                            let result: ViewMethodInfo = {
+                                name: method.name,
+                                fullStart: fullStart,
+                                start: start,
+                                end: end,
+                                fct: method,
+                                offsetBefore: "{{".length,
+                                offsetAfter: "}}".length,
+                                kind: "fct",
+                                transform(start, currentPos) {
+                                    if (start >= rPos) {
+                                        currentPos += returnLength;
+                                    }
+                                    return currentPos;
+                                },
+                            }
+                            return result;
+                        }
+                        this.viewMethodsInfo.push(wrapper(returnPosition, returnAddedLength));
+
                     }
 
                     let ifs = htmlFile.fileParsed?.ifs ?? [];
                     for (let _if of ifs) {
-                        let parameters: string[] = [];
-                        for (let varName in _if.variablesType) {
-                            parameters.push(varName + ":" + _if.variablesType[varName]);
-                        }
+
                         for (let condition of _if.conditions) {
                             let conditionTxt = condition.txt.replace(/\n/g, ";");
 
@@ -287,7 +376,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
 
                             let fullStart = newContent.length;
 
-
+                            let parameters: string[] = getParameters(condition.variables);
                             // TODO correct indentation
                             let t = this._space;
                             newContent += `${t}/** */\n${t}@Effect({ autoInit: false })\n${t}private ${condition.fctName}(${parameters.join(",")}): NotVoid {\n`;
@@ -323,21 +412,86 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
 
                     }
 
+                    let edits = htmlFile.fileParsed?.contextEdits ?? [];
+                    for (let edit of edits) {
+                        let fullStart = newContent.length;
+                        let parameters: string[] = getParameters(edit.variables);
+
+                        let t = this._space;
+                        newContent += `${t}/** */\n${t}@Effect({ autoInit: false })\n${t}private ${edit.editName}(${parameters.join(",")}): { [key: string]: any } {\n`;
+                        let start = newContent.length;
+                        newContent += edit.fctTs + "\n";
+                        let end = newContent.length;
+                        newContent += t + '}\n';
+
+                        const wrapper = function () {
+                            let result: ViewMethodInfo = {
+                                name: edit.editName,
+                                fullStart: fullStart,
+                                start: start,
+                                end: end,
+                                offsetBefore: 0,
+                                offsetAfter: 0,
+                                kind: "context",
+                                fct: {
+                                    txt: edit.fctTs,
+                                    positions: [{
+                                        start: edit.start,
+                                        end: edit.end
+                                    }]
+                                },
+                                transform(start, currentPos) {
+                                    return currentPos;
+                                }
+                            }
+                            return result;
+                        }
+                        this.viewMethodsInfo.push(wrapper());
+                    }
+
                     newContent += oldContent.slice(this.componentEnd - 1);
-                    let v = this.originalDocument.version + htmlVersion
                     if (this.file instanceof InternalAventusFile) {
                         this.file.setDocument(TextDocument.create(this.file.document.uri, this.file.document.languageId, v, newContent));
                     }
                 }
 
                 this.refreshFileParsed();
+
+                let decorators = this.fileParsed?.classes[this._componentClassName].decorators ?? [];
+                let htmlPath = join(this.file.folderPath, "compiled.html");
+                let tsPath = join(this.file.folderPath, "compiled.ts");
+                let writeHtml = false;
+                let writeTs = false;
+                for (let decorator of decorators) {
+                    let debugDeco = DebuggerDecorator.is(decorator);
+                    if (debugDeco) {
+                        if (debugDeco.writeHTML) {
+                            writeHtml = true;
+                        }
+                        if (debugDeco.writeComponentTs) {
+                            writeTs = true;
+                        }
+                    }
+                }
+                if (writeHtml) {
+                    writeFileSync(htmlPath, this.HTMLFile?.fileParsed?.compiledTxt ?? "");
+                }
+                else if (existsSync(htmlPath)) {
+                    unlinkSync(htmlPath);
+                }
+                if (writeTs) {
+                    writeFileSync(tsPath, newContent);
+                }
+                else if (existsSync(tsPath)) {
+                    unlinkSync(tsPath);
+                }
             }
         }
-
     }
 
     private setOriginalDocument(document: TextDocument) {
         this.originalDocument = document;
+        this.originalDocumentVersion = document.version;
         let quickParse = QuickParser.parse(this.originalDocument.getText(), this.build);
         this._componentEnd = quickParse.end;
         this._fullname = quickParse.fullname;
@@ -438,12 +592,13 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
     }
 
     protected onCanContentChange(document: TextDocument): boolean {
-        return this.originalDocument.version != document.version;
+        return this.originalDocumentVersion != document.version;
     }
     protected async onContentChange(): Promise<void> {
         this.setOriginalDocument(this.file.document);
         await this.runWebCompiler();
     }
+
     protected async onSave() {
         await this.runWebCompiler();
         if (this.compilationResult) {

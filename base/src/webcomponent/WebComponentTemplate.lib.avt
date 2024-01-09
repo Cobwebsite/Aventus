@@ -40,6 +40,7 @@ type Actions = {
     };
     events?: ActionEvent[];
     pressEvents?: PressManagerOptions[];
+    contextEdits?: ContextEdit[];
 };
 type LoopFct = {
     transform?: () => void;
@@ -54,7 +55,7 @@ type LoopSimple = {
 type Loop = {
     anchorId: string,
     template: Template;
-    func?: (c: WebComponent) => LoopFct,
+    func?: (c: TemplateContext) => LoopFct,
     simple?: LoopSimple,
 };
 type If = {
@@ -63,6 +64,10 @@ type If = {
         condition: (c: TemplateContext) => boolean;
         template: Template;
     }[];
+};
+
+type ContextEdit = {
+    fct: (c: TemplateContext) => { [key: string]: any; };
 };
 
 export class Template {
@@ -206,6 +211,11 @@ export class Template {
                     }
                 }
             }
+
+            if(actions.contextEdits) {
+                if(!this.actions.contextEdits) { this.actions.contextEdits = []; }
+                this.actions.contextEdits = [...actions.contextEdits, ...this.actions.contextEdits];
+            }
         }
     }
 
@@ -267,6 +277,7 @@ export class TemplateInstance {
     }
 
     public render() {
+        this.updateContext();
         this.bindEvents();
         for(let cb of this.firstRenderCb) {
             cb();
@@ -348,6 +359,27 @@ export class TemplateInstance {
         }
     }
 
+    private updateContext() {
+        if(this.actions.contextEdits) {
+            for(let contextEdit of this.actions.contextEdits) {
+                this.renderContextEdit(contextEdit);
+            }
+        }
+    }
+    private renderContextEdit(edit: ContextEdit) {
+        let computed = new Computed(() => {
+            return edit.fct(this.context);
+        });
+        computed.subscribe(() => {
+            for(let key in computed.value) {
+                this.context.data[key] = computed.value[key];
+            }
+        });
+        this.computeds.push(computed);
+        for(let key in computed.value) {
+            this.context.data[key] = computed.value[key];
+        }
+    }
 
     private bindEvents() {
         if(this.actions.events) {
@@ -559,14 +591,7 @@ export class TemplateInstance {
     }
     private renderLoop(loop: Loop) {
         if(loop.func) {
-            // it's a complex rendering
-            let fctsTemp = loop.func(this.component);
-            let fcts: Required<LoopFct> = {
-                apply: fctsTemp.apply,
-                condition: fctsTemp.condition,
-                transform: fctsTemp.transform ?? (() => { })
-            };
-            this.renderLoopComplex(loop, fcts);
+            this.renderLoopComplex(loop);
         }
         else if(loop.simple) {
             this.renderLoopSimple(loop, loop.simple);
@@ -593,7 +618,14 @@ export class TemplateInstance {
             computeds: [],
         };
     }
-    private renderLoopComplex(loop: Loop, fcts: Required<LoopFct>) {
+    private renderLoopComplex(loop: Loop) {
+        if(!loop.func) return;
+        let fctsTemp = loop.func.bind(this.component)(this.context);
+        let fcts: Required<LoopFct> = {
+            apply: fctsTemp.apply,
+            condition: fctsTemp.condition,
+            transform: fctsTemp.transform ?? (() => { })
+        };
         this.resetLoop(loop);
         let computedsCondition: Computed[] = [];
         let alreadyRecreated = false;
@@ -605,7 +637,7 @@ export class TemplateInstance {
             compCondition.subscribe((action, path, value) => {
                 if(!alreadyRecreated) {
                     alreadyRecreated = true;
-                    this.renderLoopComplex(loop, fcts);
+                    this.renderLoopComplex(loop);
                 }
             });
             computedsCondition.push(compCondition);
@@ -797,14 +829,24 @@ export class TemplateContext {
 
     public constructor(component: WebComponent, data: { [key: string]: any; } = {}, parentContext?: TemplateContext) {
         this.comp = component;
-        this.watch = Watcher.get({ ...data });
+        this.watch = Watcher.get({});
         let that = this;
         for(let key in data) {
-            Object.defineProperty(this.data, key, {
-                get() {
-                    return that.watch[key];
-                }
-            });
+            if(data[key].__isProxy) {
+                Object.defineProperty(this.data, key, {
+                    get() {
+                        return data[key];
+                    }
+                });
+            }
+            else {
+                this.watch[key] = data[key];
+                Object.defineProperty(this.data, key, {
+                    get() {
+                        return that.watch[key];
+                    }
+                });
+            }
         }
 
         if(parentContext) {

@@ -1,6 +1,6 @@
 import { EOL } from 'os';
 import { normalize, sep } from 'path';
-import { CodeFixAction, CompilerOptions, CompletionInfo, createLanguageService, Diagnostic as DiagnosticTs, displayPartsToString, Extension, flattenDiagnosticMessageText, FormatCodeSettings, GetCompletionsAtPositionOptions, IndentStyle, JsxEmit, LanguageService, LanguageServiceHost, ModuleDetectionKind, ModuleResolutionKind, RenameInfo, ResolvedModule, ResolvedModuleFull, resolveModuleName, ScriptKind, ScriptTarget, SemicolonPreference, transpile, WithMetadata, UserPreferences } from 'typescript';
+import { CodeFixAction, CompilerOptions, CompletionInfo, createLanguageService, Diagnostic as DiagnosticTs, displayPartsToString, Extension, flattenDiagnosticMessageText, FormatCodeSettings, GetCompletionsAtPositionOptions, IndentStyle, JsxEmit, LanguageService, LanguageServiceHost, ModuleDetectionKind, ModuleResolutionKind, RenameInfo, ResolvedModule, ResolvedModuleFull, resolveModuleName, ScriptKind, ScriptTarget, SemicolonPreference, transpile, WithMetadata, UserPreferences, getTokenAtPosition } from 'typescript';
 import { CodeAction, CodeLens, CompletionItem, CompletionItemKind, CompletionList, Definition, Diagnostic, DiagnosticSeverity, DiagnosticTag, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver';
 import { AventusExtension, AventusLanguageId } from '../../definition';
 import { AventusFile } from '../../files/AventusFile';
@@ -118,7 +118,6 @@ export class AventusTsLanguageService {
     }
     private createHost(): LanguageServiceHost {
         const that = this;
-        let last = 0;
         const host: LanguageServiceHost = {
             getCompilationSettings: () => compilerOptionsRead,
             getScriptFileNames: () => {
@@ -129,9 +128,6 @@ export class AventusTsLanguageService {
             },
             getScriptVersion: (fileName: string) => {
                 if (this.filesLoaded[fileName]) {
-                    if (fileName.endsWith("Test.wcl.avt") && this.filesLoaded[fileName].version != last) {
-                        last = this.filesLoaded[fileName].version;
-                    }
                     return String(this.filesLoaded[fileName].version);
                 }
                 return '1';
@@ -413,6 +409,19 @@ export class AventusTsLanguageService {
             console.error(e);
         }
         return null;
+    }
+
+    public getType(file: AventusFile, offset: number): string | undefined {
+        let program = this.languageService.getProgram();
+        if (!program) return undefined;
+
+        let srcFile = program.getSourceFile(file.uri);
+        if (!srcFile) return undefined;
+        let node = getTokenAtPosition(srcFile, offset);
+        let typeChecker = program.getTypeChecker()
+        let type = typeChecker.getTypeAtLocation(node);
+        let typeName = typeChecker.typeToString(type)
+        return typeName;
     }
 
     public async findDefinition(file: AventusFile, position: Position): Promise<Definition | null> {

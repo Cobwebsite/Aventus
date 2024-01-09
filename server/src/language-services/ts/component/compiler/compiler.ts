@@ -1328,6 +1328,13 @@ export class AventusWebcomponentCompiler {
         }
         //#endregion
 
+        //#region contextEdit
+        if (template.contextEdits.length > 0) {
+            finalViewResult.contextEdits = template.contextEdits;
+        }
+        //#endregion
+
+
         if (Object.keys(finalViewResult).length > 0 || loopInfo || ifInfo) {
             let finalViewResultTxt = JSON.stringify(finalViewResult, null, 2).replace(/"@_@(.*?)@_@"/g, "$1").replace(/\\"/g, '"')
             if (isMain) {
@@ -1356,6 +1363,9 @@ export class AventusWebcomponentCompiler {
                         finalTxt += `,item:"${loopInfo.simple.item}"`;
                     }
                     finalTxt += `}` + EOL;
+                }
+                else {
+                    finalTxt += `func: ${loopInfo.func}` + EOL
                 }
                 finalTxt += `});` + EOL;
             }
@@ -1386,7 +1396,7 @@ export class AventusWebcomponentCompiler {
                 },`
             }
 
-            if(partTxt.length > 0) {
+            if (partTxt.length > 0) {
                 partTxt = partTxt.slice(0, partTxt.length - 1);
             }
             const parent = _if.parentId === undefined ? 'this.__getStatic().__template' : `templ${_if.parentId}`

@@ -24,7 +24,7 @@
 		}
 	],
 	"repository": {
-		"basics" : {
+		"basics": {
 			"patterns": [
 				{
 					"include": "#xml-processing"
@@ -52,6 +52,9 @@
 				},
 				{
 					"include": "#if"
+				},
+				{
+					"include": "#context"
 				}
 			]
 		},
@@ -821,7 +824,7 @@
 					"begin": "({{)",
 					"beginCaptures": {
 						"1": {
-							"name":"aventus.wcv.changingstart"
+							"name": "aventus.wcv.changingstart"
 						}
 					},
 					"end": "}}",
@@ -897,6 +900,22 @@
 							"include": "#basics"
 						}
 					]
+				}
+			]
+		},
+		"context": {
+			"patterns": [
+				{
+					"match": "@Context\\(\\s*['\"]([a-zA-Z0-9-]+)['\"]\\s*,\\s*([a-zA-Z0-9.\\[\\]-]+)\\s*\\)",
+					"captures": {
+						"0": {
+							"patterns": [
+								{
+									"include": "source.js"
+								}
+							]
+						}
+					}
 				}
 			]
 		},

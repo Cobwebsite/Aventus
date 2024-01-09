@@ -391,7 +391,6 @@ export class Watcher {
                     }
                 }
                 let result = Reflect.set(target, prop, value, receiver);
-
                 if(triggerChange) {
                     let index = this.avoidUpdate.indexOf(prop);
 

@@ -2,13 +2,13 @@ import { Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AventusLanguageId } from '../../../definition';
 import { LanguageService, TokenType, getLanguageService } from 'vscode-html-languageservice';
-import { AttributeInfo, ContentInfo, ForLoop, IfInfo, TagInfo } from './TagInfo';
+import { AttributeInfo, ContentInfo, ContextEditing, ForLoop, IfInfo, TagInfo } from './TagInfo';
 import { Build } from '../../../project/Build';
 import { ActionChange, ActionLoop, HtmlTemplateResult, InterestPoint } from './definition';
 import { AventusHTMLFile } from '../File';
 import { SCSSParsedRule } from '../../scss/LanguageService';
-import { createErrorHTMLPos } from '../../../tools';
-import { ForOfStatement, IfStatement, Node, ScriptTarget, SyntaxKind, createSourceFile, forEachChild } from 'typescript';
+import { createErrorHTMLPos, pathToUri, uriToPath } from '../../../tools';
+import { Decorator, ForOfStatement, IfStatement, Node, ScriptTarget, SyntaxKind, createSourceFile, forEachChild } from 'typescript';
 import * as md5 from 'md5';
 
 export class ParserHtml {
@@ -59,6 +59,7 @@ export class ParserHtml {
 		main.loops = [...main.loops, ...toMerge.loops];
 		main.ifs = [...main.ifs, ...toMerge.ifs];
 		main.content = { ...main.content, ...toMerge.content };
+		main.contextEdits = [...main.contextEdits, ...toMerge.contextEdits];
 
 		for (let mergeEl of toMerge.elements) {
 			let found = false;
@@ -171,9 +172,10 @@ export class ParserHtml {
 	public static getCustomFctName(nb: number = 0) {
 		if (this.currentParsingDoc?.htmlFile.tsFile) {
 			let nbIf = this.currentParsingDoc.ifs.reduce((acc, p) => acc + p.conditions.length, 0);
-			let nbLoop = this.currentParsingDoc.loops.length;
+			let nbLoop = this.currentParsingDoc.loops.length + this.currentParsingDoc.loops.reduce((acc, p) => p.isSimple ? acc : acc + 1, 0);
 			let nbFct = Object.keys(this.currentParsingDoc.fcts).length;
-			let tot = nb + nbFct + nbLoop + nbIf;
+			let nbEdit = this.currentParsingDoc.contextEdits.length;
+			let tot = nb + nbFct + nbLoop + nbIf + nbEdit;
 			return this.currentParsingDoc.htmlFile.tsFile?.viewMethodName + tot
 		}
 		return null;
@@ -193,8 +195,7 @@ export class ParserHtml {
 			}
 			else {
 				let name = this.getCustomFctName();
-				let variablesType = this.getVariablesType();
-				this.currentParsingDoc.stacks.map(p => p instanceof ForLoop ? p.variableNames : [])
+				let variables = this.getVariables();
 				if (name) {
 					let result: ActionChange = {
 						name: name,
@@ -203,15 +204,12 @@ export class ParserHtml {
 							end: fct.end,
 						}],
 						txt: fct.txt,
-						variablesType: variablesType
+						variables: variables,
 					}
 					this.currentParsingDoc.fcts[contentmd5] = result;
 					return result;
 				}
 			}
-
-
-
 		}
 		return null;
 	}
@@ -265,27 +263,47 @@ export class ParserHtml {
 		}
 		return null;
 	}
+	public static addTagInfoStack(tagInfo: TagInfo) {
+		this.currentParsingDoc?.stacks.push(tagInfo);
+	}
+	public static getContextEditing(id: number) {
+		return this.currentParsingDoc?.contextEdits.find(p => p.id == id)
+	}
 	public static removeStack() {
 		this.currentParsingDoc?.stacks.pop();
 	}
 	public static getParentId(): number | undefined {
 		if (this.currentParsingDoc && this.currentParsingDoc.stacks.length > 0) {
-			return this.currentParsingDoc.stacks[0].idTemplate
+			for (let i = this.currentParsingDoc.stacks.length - 1; i >= 0; i--) {
+				let stack = this.currentParsingDoc.stacks[i]
+				if (stack instanceof ForLoop) {
+					return stack.idTemplate;
+				}
+				else if (stack instanceof TagInfo) {
+
+				}
+				else {
+					return stack.idTemplate;
+				}
+			}
 		}
 		return undefined;
 	}
-	public static getVariablesType() {
-		let variablesType: { [name: string]: string; } = {};
+
+	public static getVariables() {
+		let variables: string[] = [];
 		if (this.currentParsingDoc) {
-			for (let loop of this.currentParsingDoc.stacks) {
-				if (loop instanceof ForLoop) {
-					for (let name of loop.variableNames) {
-						variablesType[name] = "any";
+			for (let stack of this.currentParsingDoc.stacks) {
+				if (stack instanceof ForLoop || stack instanceof TagInfo) {
+					for (let name of stack.variableNames) {
+						if (!variables.includes(name)) {
+							variables.push(name);
+						}
 					}
 				}
 			}
 		}
-		return variablesType;
+		return variables;
 	}
 
 
@@ -311,9 +329,10 @@ export class ParserHtml {
 	public htmlFile: AventusHTMLFile;
 	public loops: ForLoop[] = [];
 	public ifs: IfInfo[] = [];
+	public contextEdits: ContextEditing[] = [];
 	public diffRawToCompiled: { [key: number]: number } = {};
 	public diffCompiledToRaw: { [key: number]: number } = {};
-	public stacks: (ForLoop | { idTemplate: number })[] = [];
+	public stacks: (ForLoop | { idTemplate: number } | TagInfo)[] = [];
 	public compiledTxt: string = "";
 
 	/**
@@ -446,11 +465,19 @@ export class ParserHtml {
 						transformations = [...transformations, ..._if.transformations];
 					}
 				}
-				else if (x.kind == SyntaxKind.ForOfStatement || x.kind == SyntaxKind.ForInStatement) {
+				else if ([SyntaxKind.ForInStatement, SyntaxKind.ForOfStatement, SyntaxKind.ForStatement].includes(x.kind)) {
 					forLoop = new ForLoop(x as ForOfStatement, sliceText);
 					transformations = [...transformations, ...forLoop.transformations];
 					this.loops.push(forLoop);
 					this.stacks.push(forLoop);
+				}
+				else if (x.kind == SyntaxKind.Decorator) {
+					let txt = x.getText();
+					if (txt.startsWith("@Context(")) {
+						let ctxEdit = new ContextEditing(x as Decorator, sliceText);
+						transformations = [...transformations, ...ctxEdit.transformations];
+						this.contextEdits.push(ctxEdit)
+					}
 				}
 				// avoid parsing inside {{ }}
 				if (x.kind == SyntaxKind.Block && node.kind == SyntaxKind.Block) {
@@ -660,6 +687,7 @@ export class ParserHtml {
 			pressEvents: [],
 			loops: [],
 			ifs: [],
+			contextEdits: []
 		}
 
 		for (let tag of this.rootTags) {

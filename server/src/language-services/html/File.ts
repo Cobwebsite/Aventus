@@ -94,6 +94,9 @@ export class AventusHTMLFile extends AventusBaseFile {
     protected async onCompletionResolve(document: AventusFile, item: CompletionItem): Promise<CompletionItem> {
         return item;
     }
+    public async getHover(offset: number): Promise<Hover | null> {
+        return this.onHover(this.file, this.file.document.positionAt(offset));
+    }
     protected async onHover(document: AventusFile, position: Position): Promise<Hover | null> {
         let resultTemp = await this.tsFile?.doHover(position)
         if (resultTemp) {
@@ -194,8 +197,8 @@ export class AventusHTMLFile extends AventusBaseFile {
             txt = txt.slice(0, txt.length - 1)
             replacements['<l id="' + key + '">'] = txt;
         }
-        for(let loop of this.fileParsed.loops) {
-            if(!mapLoop.has(loop)) {
+        for (let loop of this.fileParsed.loops) {
+            if (!mapLoop.has(loop)) {
                 replacements['<l id="' + loop.idTemplate + '">'] = loop.loopTxt.slice(0, loop.loopTxt.length - 1);
             }
         }
@@ -227,9 +230,15 @@ export class AventusHTMLFile extends AventusBaseFile {
                     replacements['<i id="' + condition.idTemplate + '">'] = txt;
                 }
             }
-            if(_if.conditions.length != _if.idsTemplate.length) {
+            if (_if.conditions.length != _if.idsTemplate.length) {
                 replacements['<i id="' + _if.idsTemplate[_if.idsTemplate.length - 1] + '">'] = 'else {';
             }
+        }
+        for (let edit of this.fileParsed.contextEdits) {
+            let name = edit.mapping.length > 0 ? edit.mapping[0] : '';
+            let src = edit.mapping.length > 1 ? edit.mapping[1] : '';
+            let txt = '@Context(' + name + ', ' + src + ')'
+            replacements['<c id="' + edit.id + '"></c>'] = txt;
         }
         replacements['</l>'] = "}"
         replacements['</i>'] = "}"
