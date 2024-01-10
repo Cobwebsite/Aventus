@@ -587,9 +587,9 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
     private setBoolAttr(name: string, val: any) {
         val = this.getBoolean(val);
         if(val) {
-            this.setAttribute(val, 'true');
+            this.setAttribute(name, 'true');
         } else {
-            this.removeAttribute(val);
+            this.removeAttribute(name);
         }
     }
     private getBoolProp(name: string) {

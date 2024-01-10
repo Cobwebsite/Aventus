@@ -11,14 +11,14 @@ type ActionInjection = {
     id: string,
     injectionName: string;
     inject: (c: TemplateContext) => any;
-    path?: string;
 };
 type ActionBindings = {
     id: string,
-    valueName: string,
+    injectionName: string,
     eventNames: string[],
+    inject: (c: TemplateContext) => any,
+    extract: (c: TemplateContext, v: any) => any,
     isCallback?: boolean,
-    path?: string,
 };
 type ActionEventListener = (e: Event, c: TemplateContext) => void;
 type ActionEventCallback = (c: TemplateContext, ...args: any) => void;
@@ -32,12 +32,8 @@ type ActionEvent = {
 type Actions = {
     elements?: { name: string, ids: string[], isArray?: boolean; }[],
     content?: { [id_attr: string]: ActionChange; },
-    injection?: {
-        [contextProp: string]: ActionInjection[];
-    };
-    bindings?: {
-        [contextProp: string]: ActionBindings[];
-    };
+    injection?: ActionInjection[];
+    bindings?: ActionBindings[];
     events?: ActionEvent[];
     pressEvents?: PressManagerOptions[];
     contextEdits?: ContextEdit[];
@@ -438,17 +434,13 @@ export class TemplateInstance {
             }
         }
         if(this.actions.injection) {
-            for(let name in this.actions.injection) {
-                for(let injection of this.actions.injection[name]) {
-                    this.transformInjectionAction(name, injection);
-                }
+            for(let injection of this.actions.injection) {
+                this.transformInjectionAction(injection);
             }
         }
         if(this.actions.bindings) {
-            for(let name in this.actions.bindings) {
-                for(let binding of this.actions.bindings[name]) {
-                    this.transformBindigAction(name, binding);
-                }
+            for(let binding of this.actions.bindings) {
+                this.transformBindigAction(binding);
             }
         }
     }
@@ -503,53 +495,41 @@ export class TemplateInstance {
         };
     }
 
-    private transformInjectionAction(name: string, injection: ActionInjection) {
+    private transformInjectionAction(injection: ActionInjection) {
         if(!this._components[injection.id]) return;
-        if(injection.path) {
-            this.context.registerChange(name, (path) => {
-                if(Template.validatePath(path, injection.path ?? '')) {
-                    for(const el of this._components[injection.id]) {
-                        el[injection.injectionName] = injection.inject(this.context);
-                    }
-                }
-            });
-        }
-        else {
-            this.context.registerChange(name, (path) => {
-                for(const el of this._components[injection.id]) {
-                    el[injection.injectionName] = injection.inject(this.context);
-                }
-            });
-        }
+        let computed = new Computed(() => {
+            return injection.inject(this.context);
+        });
+        this.computeds.push(computed);
+        computed.subscribe(() => {
+            for(const el of this._components[injection.id]) {
+                el[injection.injectionName] = computed.value;
+            }
+        });
         this.firstRenderCb.push(() => {
             for(const el of this._components[injection.id]) {
-                el[injection.injectionName] = injection.inject(this.context);
+                el[injection.injectionName] = computed.value;
             }
         });
     }
 
-    private transformBindigAction(name: string, binding: ActionBindings) {
-        if(!this._components[binding.id]) return;
-        if(binding.path) {
-            this.context.registerChange(name, (path) => {
-                let bindingPath = binding.path ?? '';
-                if(Template.validatePath(path, bindingPath)) {
-                    let valueToSet = this.context.getValueFromItem(bindingPath);
-                    for(const el of this._components[binding.id]) {
-                        Template.setValueToItem(binding.valueName, el, valueToSet);
-                    }
-                }
-            });
-        }
-        else {
-            binding.path = name;
-            this.context.registerChange(name, (path) => {
-                let valueToSet = this.context.getValueFromItem(name);
-                for(const el of this._components[binding.id]) {
-                    Template.setValueToItem(binding.valueName, el, valueToSet);
-                }
-            });
-        }
+    private transformBindigAction(binding: ActionBindings) {
+        let isLocalChange = false;
+        let computed = new Computed(() => {
+            return binding.inject(this.context);
+        });
+        this.computeds.push(computed);
+        computed.subscribe(() => {
+            if(isLocalChange) return;
+            for(const el of this._components[binding.id]) {
+                el[binding.injectionName] = computed.value;
+            }
+        });
+        this.firstRenderCb.push(() => {
+            for(const el of this._components[binding.id]) {
+                el[binding.injectionName] = computed.value;
+            }
+        });
 
         if(binding.isCallback) {
             this.firstRenderCb.push(() => {
@@ -557,11 +537,12 @@ export class TemplateInstance {
                     for(let fct of binding.eventNames) {
                         let cb = Template.getValueFromItem(fct, el);
                         cb?.add((value) => {
-                            this.context.setValueToItem(binding.path ?? '', value);
+                            let valueToSet = Template.getValueFromItem(binding.injectionName, el);
+                            isLocalChange = true;
+                            binding.extract(this.context, valueToSet)
+                            isLocalChange = false;
                         });
                     }
-                    let valueToSet = this.context.getValueFromItem(binding.path ?? '');
-                    Template.setValueToItem(binding.valueName, el, valueToSet);
                 }
             });
         }
@@ -570,12 +551,13 @@ export class TemplateInstance {
                 for(var el of this._components[binding.id]) {
                     for(let fct of binding.eventNames) {
                         el.addEventListener(fct, (e) => {
-                            let valueToSet = Template.getValueFromItem(binding.valueName, e.target);
-                            this.context.setValueToItem(binding.path ?? '', valueToSet);
+                            debugger
+                            let valueToSet = Template.getValueFromItem(binding.injectionName, e.target);
+                            isLocalChange = true;
+                            binding.extract(this.context, valueToSet);
+                            isLocalChange = false;
                         });
                     }
-                    let valueToSet = this.context.getValueFromItem(binding.path ?? '');
-                    Template.setValueToItem(binding.valueName, el, valueToSet);
                 }
             });
         }
@@ -972,25 +954,29 @@ export class TemplateContext {
     }
 
 
-
     public registerChange(name: string, fct: (path: string) => void) {
-        let computed: Computed<any>;
-        if(name.startsWith("°")) {
+        let getValue: () => any[];
+        if(!name.startsWith("this.")) {
             // it's a local variable from another loop
-            computed = new Computed(() => {
+            getValue = () => {
                 return Template.getValueFromItem(name, this.data);
-            });
+            };
         }
         else {
             // its a variable from the component
-            computed = new Computed(() => {
+            name = name.replace(/^this\./, '');
+            getValue = () => {
                 return Template.getValueFromItem(name, this.comp);
-            });
+            };
         }
+        let computed = new Computed(() => {
+            return getValue();
+        });
         this.computeds.push(computed);
         computed.subscribe((action, path, value) => {
             fct(path);
         });
+        fct(name);
     }
 
     public destructor() {

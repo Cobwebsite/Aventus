@@ -96,12 +96,15 @@ export abstract class AventusBaseFile {
         return this._file.version != document.version;
     }
     protected abstract onContentChange(): Promise<void>;
+    private oldResult:Diagnostic[] = [];
     private async _onValidate(): Promise<Diagnostic[]> {
         let result = this._build.diagnostics.get(this) ?? [];
         result = [...result, ...await this.onValidate()];
         if (this.build && this.build.hideWarnings) {
             result = result.filter(p => p.severity != DiagnosticSeverity.Warning)
         }
+        this.oldResult = result;
+        
         return result;
     }
     protected abstract onValidate(): Promise<Diagnostic[]>;

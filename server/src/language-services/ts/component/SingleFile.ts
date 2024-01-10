@@ -65,13 +65,15 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
     public constructor(file: AventusFile, build: Build) {
         super(file, build);
 
-    }
-    public async init() {
-        let result = await this.getDocuments();
+        let result = this.getDocuments();
         this.regionLogic.file = result.ts;
         
         this.regionStyle.file = result.scss;
         this.regionView.file = result.html;
+    }
+    public async init() {
+        await this.regionView.file?.init();
+        await this.regionStyle.file?.init();
     }
     protected async onValidate(): Promise<Diagnostic[]> {
         let diagnostics: Diagnostic[] = [];
@@ -347,7 +349,7 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
     }
 
 
-    private async getDocuments() {
+    private getDocuments() {
         let resultTxt = this.splitDocument();
 
         let htmlFileTemp = new InternalAventusFile(TextDocument.create(this.file.uri, AventusLanguageId.HTML, this.file.version, resultTxt.htmlText));
@@ -361,8 +363,7 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
         };
 
         this.build.tsFiles[result.ts.file.uri] = result.ts;
-        await result.html.init();
-        await result.scss.init();
+
 
         return result;
     }

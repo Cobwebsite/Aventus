@@ -22,8 +22,8 @@ export class TagInfo {
 	public aliasMultiple: boolean | undefined = undefined;
 	public pressEvent: { [key: PressEventMapValues]: { value: string, start: number, end: number } } | null = null;
 	public eventsPerso: { event: string, fct: string, start: number, end: number }[] = [];
-	public injections: { variableName: string, injectedName: string, start: number, end: number }[] = [];
-	public bindings: { event?: string, bindingName: string, valueName?: string, start: number, end: number }[] = [];
+	public injections: Injection[] = [];
+	public bindings: Binding[] = [];
 	private changes: { [id_attr: string]: string } = {};
 	public variableNames: string[] = []
 
@@ -77,7 +77,7 @@ export class TagInfo {
 
 
 	public addAttribute(attributeInfo: AttributeInfo) {
-		if(attributeInfo.name == "@for") {
+		if (attributeInfo.name == "@for") {
 			ParserHtml.addError(attributeInfo.nameStart, attributeInfo.nameEnd, "Deprecated : use for directly inside template")
 			return
 		}
@@ -158,12 +158,6 @@ export class TagInfo {
 			})
 		}
 
-		for (let injection of this.injections) {
-			ParserHtml.addVariable(injection.variableName.split(".")[0]);
-		}
-		for (let binding of this.bindings) {
-			ParserHtml.addVariable(binding.bindingName.split('.')[0]);
-		}
 		this.checkStyle(ParserHtml.getRules(), (point) => ParserHtml.addStyleLink(point));
 		ParserHtml.removeStack();
 		if (this.isLoop || this.isIf) {
@@ -232,8 +226,8 @@ export class TagInfo {
 		let result: HtmlTemplateResult = {
 			elements: [],
 			content: {},
-			injection: {},
-			bindings: {},
+			injection: [],
+			bindings: [],
 			events: [],
 			pressEvents: [],
 			loops: [],
@@ -260,28 +254,14 @@ export class TagInfo {
 				result.content[key] = this.changes[key];
 			}
 			for (let injection of this.injections) {
-				let simpleName = injection.variableName.split('.')[0];
-				if (!result.injection[simpleName]) {
-					result.injection[simpleName] = []
-				}
-				result.injection[simpleName].push({
+				result.injection.push({
 					id: id,
-					injectionName: injection.injectedName,
-					inject: `@_@(c) => c.${injection.variableName.split(".").join("?.")}@_@`,
-					path: injection.variableName,
-					position: {
-						start: injection.start,
-						end: injection.end
-					}
+					injectionName: injection.attr,
+					inject: `@_@${injection.injectTxt}@_@`
 				})
 
 			}
 			for (let binding of this.bindings) {
-				let simpleName = binding.bindingName.split('.')[0];
-				if (!result.bindings[simpleName]) {
-					result.bindings[simpleName] = []
-				}
-
 				let eventNames: string[] = [];
 				if (binding.event) {
 					eventNames = [binding.event];
@@ -292,17 +272,14 @@ export class TagInfo {
 				else {
 					eventNames = ['change'];
 				}
-				result.bindings[simpleName].push({
+
+				result.bindings.push({
 					id: id,
-					valueName: binding.valueName ?? 'value',
 					eventNames: eventNames,
+					injectionName: binding.valueName,
 					tagName: this.tagName,
-					path: binding.bindingName,
-					position: {
-						start: binding.start,
-						end: binding.end,
-					}
-					// isCallback => deal by typescript
+					inject: `@_@${binding.injectTxt}@_@`,
+					extract:  `@_@${binding.extractTxt}@_@`,
 				})
 			}
 			for (let event of this.eventsPerso) {
@@ -331,8 +308,8 @@ export class TagInfo {
 			let templateResult: HtmlTemplateResult = {
 				elements: [],
 				content: {},
-				injection: {},
-				bindings: {},
+				injection: [],
+				bindings: [],
 				events: [],
 				pressEvents: [],
 				loops: [],
@@ -368,8 +345,8 @@ export class TagInfo {
 			let templateResult: HtmlTemplateResult = {
 				elements: [],
 				content: {},
-				injection: {},
-				bindings: {},
+				injection: [],
+				bindings: [],
 				events: [],
 				pressEvents: [],
 				loops: [],
@@ -478,7 +455,7 @@ export class AttributeInfo {
 		this.value = value;
 		this.valueStart = ParserHtml.fromCompiledToRaw(valueStart);
 		this.valueEnd = ParserHtml.fromCompiledToRaw(valueEnd);
-		if(this.name == "@for") {
+		if (this.name == "@for") {
 			return;
 		}
 
@@ -492,42 +469,14 @@ export class AttributeInfo {
 			})
 		}
 		else if (this.name.startsWith("@bind")) {
-			let result: { event?: string, bindingName: string, valueName?: string, start: number, end: number } = {
-				bindingName: value,
-				start: valueStart,
-				end: valueEnd
-			};
-			let splitted = this.name.split(":")
-			let fct = splitted[0];
-			if (fct.startsWith("@bind_")) {
-				result.event = fct.replace("@bind_", "");
-			}
-
-			if (splitted.length > 1) {
-				result.valueName = splitted[1];
-			}
-			this.tag.bindings.push(result);
-			ParserHtml.addInterestPoint({
-				name: value,
-				start: this.nameStart,
-				end: this.valueEnd,
-				type: 'method'
-			})
+			let binding = new Binding(this.name, value, valueStart, valueEnd)
+			this.tag.bindings.push(binding);
+			ParserHtml.addBinding(binding);
 		}
 		else if (this.name.startsWith(":")) {
-			let injectedName = this.name.slice(1);
-			this.tag.injections.push({
-				variableName: value,
-				injectedName,
-				start: valueStart,
-				end: valueEnd
-			})
-			ParserHtml.addInterestPoint({
-				name: value,
-				start: this.nameStart,
-				end: this.valueEnd,
-				type: 'property'
-			})
+			let injection = new Injection(this.name.slice(1), value, valueStart, valueEnd)
+			this.tag.injections.push(injection);
+			ParserHtml.addInjection(injection);
 		}
 		else if (pressEventMap.hasOwnProperty(this.name)) {
 			if (!this.tag.pressEvent) {
@@ -622,6 +571,7 @@ export class ForLoop {
 	public end: number = 0;
 	public loopTxt: string = "";
 	public loopName: string = "";
+	public isValid: boolean = true;
 
 	public typeToLoad: {
 		start: number,
@@ -793,12 +743,8 @@ export class ForLoop {
 
 		});
 
-		if(this.transformations.length == 0) {
-			this.transformations.push({
-				start: _for.getStart(),
-				end: _for.getEnd(),
-				newText: "<" + ForLoop.tagName + " id=\"" + this.idTemplate + "\"></" + ForLoop.tagName + ">"
-			})
+		if (this.transformations.length == 0) {
+			this.isValid = false;
 		}
 
 		if (!this.checkIsSimple(init, condition, transform)) {
@@ -880,6 +826,7 @@ export class IfInfo {
 	public end: number = 0;
 	public _id: string = "";
 	public parts: ActionIfPart[] = [];
+	public isValid: boolean = true;
 
 	public conditions: IfInfoCondition[] = [];
 	private sliceText: (start: number, end?: number) => string;
@@ -971,6 +918,10 @@ export class IfInfo {
 					});
 				}
 			})
+
+			if (nbBlock == 0) {
+				this.isValid = false;
+			}
 		}
 		loadBlocks(_if);
 
@@ -1039,7 +990,7 @@ export class ContextEditing {
 						})
 						txt += ": "
 					}
-					this.mapping[i] = arg.getText()					
+					this.mapping[i] = arg.getText()
 					i++;
 				}
 				txt += " }";
@@ -1056,6 +1007,67 @@ export class ContextEditing {
 	}
 }
 
+export interface InjectionRender {
+	injectTsTxt: string,
+	variables: string[],
+	injectFctName: string,
+	start: number,
+	end: number
+}
+export class Injection implements InjectionRender {
+	public start: number = 0;
+	public end: number = 0;
+	public attr: string;
+	public injectFctName: string;
+	public injectTsTxt: string;
+	public injectTxt: string;
+	public variables: string[] = [];
+	public constructor(attr: string, value: string, valueStart: number, valueEnd: number) {
+		this.attr = attr;
+		this.start = ParserHtml.fromCompiledToRaw(valueStart);
+		this.end = ParserHtml.fromCompiledToRaw(valueEnd);
+		this.injectFctName = ParserHtml.getCustomFctName() ?? "";
+		this.injectTsTxt = value;
+		this.variables = anaylseVariables(value, ParserHtml.getVariables());
+		let params = this.variables.map(p => "c.data." + p).join(",");
+		this.injectTxt = `(c) => c.comp.${this.injectFctName}(${params})`
+	}
+}
+
+export class Binding implements InjectionRender {
+	public start: number = 0;
+	public end: number = 0;
+	public event?: string;
+	public valueName: string = "value"
+	public injectFctName: string;
+	public extractFctName: string;
+	public injectTsTxt: string;
+	public injectTxt: string;
+	public extractTxt: string;
+	public variables: string[] = [];
+
+	public constructor(attr: string, value: string, valueStart: number, valueEnd: number) {
+		let splitted = attr.split(":")
+		let fct = splitted[0];
+		if (fct.startsWith("@bind_")) {
+			this.event = fct.replace("@bind_", "");
+		}
+		if (splitted.length > 1) {
+			this.valueName = splitted[1];
+		}
+		this.start = ParserHtml.fromCompiledToRaw(valueStart);
+		this.end = ParserHtml.fromCompiledToRaw(valueEnd);
+		this.injectFctName = ParserHtml.getCustomFctName() ?? "";
+		this.extractFctName = ParserHtml.getCustomFctName(1) ?? "";
+		this.injectTsTxt = value;
+		this.variables = anaylseVariables(value, ParserHtml.getVariables());
+		let params = this.variables.map(p => "c.data." + p);
+		let extractParams = ["v"].concat(params).join(",");
+		let paramsTxt = params.join(",")
+		this.injectTxt = `(c) => c.comp.${this.injectFctName}(${paramsTxt})`
+		this.extractTxt = `(c, v) => c.comp.${this.extractFctName}(${extractParams})`
+	}
+}
 function parseTxt(value: string, valueStart: number): {
 	changes: ActionChange[],
 	txt: string,

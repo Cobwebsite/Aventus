@@ -57,12 +57,12 @@ export class QuickParser {
 	private loadNamespace(node: ModuleDeclaration): true | undefined {
 		if (hasFlag(node.flags, NodeFlags.Namespace) && node.body) {
 			this.currentNamespace.push(node.name.getText());
-			let result = this.loadRoot(node);
+			let result = this.loadRoot(node.body);
 			this.currentNamespace.splice(this.currentNamespace.length - 1, 1);
 			return result;
 		}
 		else if (hasFlag(node.flags, NodeFlags.GlobalAugmentation) && node.body) {
-			return this.loadRoot(node);
+			return this.loadRoot(node.body);
 		}
 		return undefined;
 	}

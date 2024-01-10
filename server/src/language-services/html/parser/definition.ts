@@ -35,17 +35,14 @@ export type ActionInjection = {
 	id: string,
 	injectionName: string;
 	inject: string;
-	path?: string;
-	position?: { start: number, end: number }
 };
 export type ActionBindings = {
 	id: string,
-	valueName: string,
+	injectionName: string,
+	inject: string;
+	extract: string;
 	eventNames: string[],
-	tagName?: string,
 	isCallback?: boolean,
-	path?: string,
-	position?: { start: number, end: number }
 };
 export type ActionEvent = {
 	id: string,
@@ -103,12 +100,8 @@ export type ActionContextEdit = {
 export type HtmlTemplateResult = {
 	elements: ActionElement[],
 	content: { [id_attr: string]: string },
-	injection: {
-		[contextProp: string]: ActionInjection[];
-	};
-	bindings: {
-		[contextProp: string]: ActionBindings[];
-	};
+	injection: ActionInjection[];
+	bindings: (ActionBindings & { tagName: string })[];
 	events: ActionEvent[];
 	pressEvents: ActionPressEvent[];
 	loops: ActionLoop[];

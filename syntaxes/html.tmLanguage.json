@@ -368,7 +368,7 @@
 					]
 				},
 				{
-					"begin": "(@element|:injection)(?![\\w:-])",
+					"begin": "@element(?![\\w:-])",
 					"beginCaptures": {
 						"0": {
 							"name": "aventus.wcv.attribute"
@@ -422,9 +422,6 @@
 						},
 						"2": {
 							"name": "aventus.wcv.fctvalue"
-						},
-						"4": {
-							"name": "aventus.wcv.propvalue"
 						}
 					},
 					"comment": "Aventus element attribute",
@@ -459,69 +456,7 @@
 									"name": "string.quoted.double.html",
 									"patterns": [
 										{
-											"match": "[a-zA-Z0-9_]+",
-											"name": "aventus.wcv.propvalue"
-										}
-									]
-								}
-							]
-						}
-					]
-				},
-				{
-					"begin": "@for(?![\\w:-])",
-					"beginCaptures": {
-						"0": {
-							"name": "aventus.wcv.attribute"
-						}
-					},
-					"comment": "Aventus element attribute",
-					"end": "(?=\\s*+[^=\\s])",
-					"patterns": [
-						{
-							"begin": "=",
-							"beginCaptures": {
-								"0": {
-									"name": "punctuation.separator.key-value.html"
-								}
-							},
-							"end": "(?<=[^\\s=])(?!\\s*=)|(?=/?>)",
-							"patterns": [
-								{
-									"match": "([^\\s\"'=<>`/]|/(?!>))+",
-									"name": "string.unquoted.html"
-								},
-								{
-									"begin": "\"",
-									"beginCaptures": {
-										"0": {
-											"name": "punctuation.definition.string.begin.html"
-										}
-									},
-									"end": "\"",
-									"endCaptures": {
-										"0": {
-											"name": "punctuation.definition.string.end.html"
-										}
-									},
-									"name": "string.quoted.double.html",
-									"patterns": [
-										{
-											"match": "([a-zA-Z0-9_\\.\\s]*)(,([a-zA-Z0-9_\\.\\s]*))? in ([a-zA-Z0-9_\\.]*?)(?=\")",
-											"captures": {
-												"0": {
-													"name": "aventus.wcv.attribute"
-												},
-												"1": {
-													"name": "aventus.wcv.propvalue"
-												},
-												"3": {
-													"name": "aventus.wcv.propvalue"
-												},
-												"4": {
-													"name": "aventus.wcv.propvalue"
-												}
-											}
+											"include": "source.js"
 										}
 									]
 								}
@@ -592,6 +527,74 @@
 										{
 											"match": ".*?'",
 											"name": "aventus.wcv.fctvalue"
+										}
+									]
+								}
+							]
+						}
+					]
+				},
+				{
+					"begin": ":([a-zA-Z_\\-])*?(?![\\w:-])",
+					"beginCaptures": {
+						"0": {
+							"name": "aventus.wcv.attribute"
+						}
+					},
+					"comment": "Aventus element attribute",
+					"end": "(?=\\s*+[^=\\s])",
+					"name": "meta.attribute.$1.html",
+					"patterns": [
+						{
+							"begin": "=",
+							"beginCaptures": {
+								"0": {
+									"name": "punctuation.separator.key-value.html"
+								}
+							},
+							"end": "(?<=[^\\s=])(?!\\s*=)|(?=/?>)",
+							"patterns": [
+								{
+									"match": "([^\\s\"'=<>`/]|/(?!>))+",
+									"name": "string.unquoted.html"
+								},
+								{
+									"begin": "\"",
+									"beginCaptures": {
+										"0": {
+											"name": "punctuation.definition.string.begin.html"
+										}
+									},
+									"end": "\"",
+									"endCaptures": {
+										"0": {
+											"name": "punctuation.definition.string.end.html"
+										}
+									},
+									"name": "string.quoted.double.html",
+									"patterns": [
+										{
+											"include": "source.js"
+										}
+									]
+								},
+								{
+									"begin": "'",
+									"beginCaptures": {
+										"0": {
+											"name": "punctuation.definition.string.begin.html"
+										}
+									},
+									"end": "'",
+									"endCaptures": {
+										"0": {
+											"name": "punctuation.definition.string.end.html"
+										}
+									},
+									"name": "string.quoted.single.html",
+									"patterns": [
+										{
+											"include": "source.js"
 										}
 									]
 								}
@@ -906,7 +909,7 @@
 		"context": {
 			"patterns": [
 				{
-					"match": "@Context\\(\\s*['\"]([a-zA-Z0-9-]+)['\"]\\s*,\\s*([a-zA-Z0-9.\\[\\]-]+)\\s*\\)",
+					"match": "@Context\\(.*?\\)",
 					"captures": {
 						"0": {
 							"patterns": [

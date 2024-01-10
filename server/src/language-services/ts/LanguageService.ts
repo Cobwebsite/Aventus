@@ -50,7 +50,7 @@ export class AventusTsLanguageService {
             },
             getScriptVersion: (fileName: string) => {
                 if (this.filesLoaded[fileName]) {
-                    return String(this.filesLoaded[fileName].file.version);
+                    return String(this.filesLoaded[fileName].file.version + 1);
                 }
                 return '1';
             },
@@ -128,7 +128,7 @@ export class AventusTsLanguageService {
             },
             getScriptVersion: (fileName: string) => {
                 if (this.filesLoaded[fileName]) {
-                    return String(this.filesLoaded[fileName].version);
+                    return String(this.filesLoaded[fileName].version + 1);
                 }
                 return '1';
             },
@@ -365,7 +365,7 @@ export class AventusTsLanguageService {
                         }
                     }
                 }
-                
+
                 let value: string = "";
                 if (info.displayParts) {
                     value += '\n```';
@@ -391,16 +391,21 @@ export class AventusTsLanguageService {
     }
 
     public getType(file: AventusFile, offset: number): string | undefined {
-        let program = this.languageService.getProgram();
-        if (!program) return undefined;
+        try {
+            let program = this.languageService.getProgram();
+            if (!program) return undefined;
 
-        let srcFile = program.getSourceFile(file.uri);
-        if (!srcFile) return undefined;
-        let node = getTokenAtPosition(srcFile, offset);
-        let typeChecker = program.getTypeChecker()
-        let type = typeChecker.getTypeAtLocation(node);
-        let typeName = typeChecker.typeToString(type)
-        return typeName;
+            let srcFile = program.getSourceFile(file.uri);
+            if (!srcFile) return undefined;
+            let node = getTokenAtPosition(srcFile, offset);
+            let typeChecker = program.getTypeChecker()
+            let type = typeChecker.getTypeAtLocation(node);
+            let typeName = typeChecker.typeToString(type)
+            return typeName;
+        } catch (e) {
+            console.log(e);
+        }
+        return undefined;
     }
 
     public async findDefinition(file: AventusFile, position: Position): Promise<Definition | null> {

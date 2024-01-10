@@ -256,6 +256,7 @@ export class AventusHTMLFile extends AventusBaseFile {
             let regex = new RegExp(src.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'), 'g');
             txt = txt.replace(regex, replacements[src]);
         }
+        txt = txt.replace(/\{\{ *([^\n][\s|\S]*?) *\n?\}\}/g, "{{ $1 }}")
         return [{
             newText: txt,
             range: {

@@ -326,20 +326,6 @@ export class ParserTs {
         let localName = identifier.getText();
         let moduleUri = pathToUri(normalize(getFolder(uriToPath(this.document.uri)) + '/' + moduleName));
 
-        if (moduleUri.endsWith(AventusExtension.Component)) {
-            if (this.waitingImports[localName]) {
-                return;
-            }
-            this.waitingImports[localName] = [];
-            if (!ParserTs.waitingUri[moduleUri]) {
-                ParserTs.waitingUri[moduleUri] = [];
-            }
-            ParserTs.waitingUri[moduleUri].push(() => {
-                this.asyncImportLocal(moduleUri, localName, identifier);
-            })
-            return;
-        }
-
         if (!ParserTs.parsedDoc[moduleUri]) {
             let file = FilesManager.getInstance().getByUri(moduleUri);
             if (file) {

@@ -4,7 +4,6 @@ import { AventusFile } from '../../../files/AventusFile';
 import { Build } from '../../../project/Build';
 import { genericTsCompile } from "../compiler";
 import { AventusTsFile } from "../File";
-import { ClassInfo } from '../parser/ClassInfo';
 import { createErrorTsPos } from '../../../tools';
 
 export class AventusLibFile extends AventusTsFile {

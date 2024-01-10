@@ -136,17 +136,19 @@ export class ClassInfo extends BaseInfo {
 		if (node.token == SyntaxKind.ExtendsKeyword) {
 			forEachChild(node, x => {
 				if (x.kind == SyntaxKind.ExpressionWithTypeArguments) {
-					let fullName = this.addDependance(x as ExpressionWithTypeArguments, true);
-					if (fullName.length > 0) {
-						this.extends.push(fullName[0]);
-						if (this.extends.length == 1) {
-							// search parent inside local import
-							let parent = BaseInfo.getInfoByFullName(fullName[0], this);
-							if (parent && parent instanceof ClassInfo) {
-								this.parentClass = parent;
+					this.addDependanceWaitName(x as ExpressionWithTypeArguments, true, (names) => {
+						if (names.length > 0) {
+							this.extends.push(names[0]);
+							if (this.extends.length == 1) {
+								// search parent inside local import
+								let parent = BaseInfo.getInfoByFullName(names[0], this);
+								if (parent && parent instanceof ClassInfo) {
+									this.parentClass = parent;
+								}
 							}
 						}
-					}
+					});
+					
 					forEachChild(x, y => {
 						this.loadOnlyDependancesRecu(y, 0, true);
 					})
@@ -156,10 +158,12 @@ export class ClassInfo extends BaseInfo {
 		else if (node.token == SyntaxKind.ImplementsKeyword) {
 			forEachChild(node, x => {
 				if (x.kind == SyntaxKind.ExpressionWithTypeArguments) {
-					let fullName = this.addDependance(x as ExpressionWithTypeArguments, true);
-					if (fullName.length > 0) {
-						this.implements.push(fullName[0]);
-					}
+					this.addDependanceWaitName(x as ExpressionWithTypeArguments, true, (names) => {
+						if (names.length > 0) {
+							this.implements.push(names[0]);
+						}
+					});
+					
 				}
 			})
 		}

@@ -4418,15 +4418,6 @@ Form.Input = class Input extends Aventus.WebComponent {
       ]
     }
   ],
-  "content": {
-    "label": [
-      {
-        "id": "input_1",
-        "attrName": "@HTML",
-        "render": (c) => `${c.__P(c.label)}`
-      }
-    ]
-  },
   "events": [
     {
       "eventName": "blur",
@@ -4444,7 +4435,7 @@ Form.Input = class Input extends Aventus.WebComponent {
       "fct": (e, c) => c.component.inputChange(e)
     }
   ]
-});this.__getStatic().__template.setSchema({globals:["label"]}); }
+});this.__getStatic().__template.setSchema({globals:["this"]}); }
     getClassName() {
         return "Input";
     }
@@ -4612,17 +4603,8 @@ Form.Checkbox = class Checkbox extends Aventus.WebComponent {
         "checkbox_0"
       ]
     }
-  ],
-  "content": {
-    "label": [
-      {
-        "id": "checkbox_1",
-        "attrName": "@HTML",
-        "render": (c) => `${c.__P(c.label)}`
-      }
-    ]
-  }
-});this.__getStatic().__template.setSchema({globals:["label"]}); }
+  ]
+});this.__getStatic().__template.setSchema({globals:["this"]}); }
     getClassName() {
         return "Checkbox";
     }
@@ -5235,7 +5217,6 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
         else if (this.y_scroll_visible) {
             this.y_scroll_visible = false;
             this.calculatePositionScrollerContainer('y');
-            this.calculateSizeScroller('y');
             this.scrollDirection('y', 0);
         }
         if (this.contentWrapperSize.x - this.display.x > 0) {
@@ -5249,7 +5230,6 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
         else if (this.x_scroll_visible) {
             this.x_scroll_visible = false;
             this.calculatePositionScrollerContainer('x');
-            this.calculateSizeScroller('x');
             this.scrollDirection('x', 0);
         }
     }

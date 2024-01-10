@@ -41,7 +41,7 @@ import { EffectDecorator, EffectDecoratorOption } from '../../parser/decorators/
 export class AventusWebcomponentCompiler {
     public static getVersion(logicalFile: AventusWebComponentLogicalFile, build: Build) {
         let version = {
-            ts: logicalFile.file.version,
+            ts: logicalFile.file.documentUser.version,
             scss: -1,
             html: -1
         }
@@ -963,19 +963,18 @@ export class AventusWebcomponentCompiler {
             if (this.allFields[fieldName]) {
                 let field = this.allFields[fieldName];
                 if (field.propType == "ViewElement") {
-                    if (!element.useLive) {
-                        for (let decorator of field.decorators) {
-                            let viewElTemp = ViewElementDecorator.is(decorator);
-                            if (viewElTemp) {
-                                element.useLive = viewElTemp.useLive;
-                                break;
-                            }
+                    element.useLive = isMain ? false : true
+                    for (let decorator of field.decorators) {
+                        let viewElTemp = ViewElementDecorator.is(decorator);
+                        if (viewElTemp && viewElTemp.useLive !== undefined) {
+                            element.useLive = viewElTemp.useLive;
+                            break;
                         }
                     }
 
                     if (element.useLive) {
                         let querySelectorTxt = element.ids.map(id => `[_id="${id}"]`).join("|");
-                        if (element.isArray) {
+                        if (field.type.isArray || element.isArray) {
                             this.variablesInViewDynamic += `get ${fieldName} () { var list = Array.from(this.shadowRoot.querySelectorAll('${querySelectorTxt}')); return list; }` + EOL;
                         }
                         else {
@@ -1028,101 +1027,37 @@ export class AventusWebcomponentCompiler {
         //#endregion
 
         //#region injection
-        let injections = template.injection;
-        let resultInjections: { [contextProp: string]: ActionInjection[] } = {}
-        for (let propName in injections) {
-            if (this.allFields[propName]) {
-                let field = this.allFields[propName];
-                if (field.propType == "Property" || field.propType == "Watch") {
-                    let isWatch = field.propType == "Watch";
-                    if (!resultInjections[propName]) {
-                        resultInjections[propName] = [];
-                    }
-                    for (let injection of injections[propName]) {
-                        let temp: ActionInjection = {
-                            id: injection.id,
-                            injectionName: injection.injectionName,
-                            inject: injection.inject,
-                        }
-                        if (isWatch) {
-                            temp.path = injection.path;
-                        }
-                        resultInjections[propName].push(temp)
-                    }
-                }
-                else {
-                    this.result.diagnostics.push(createErrorTsPos(this.document, "The variable " + propName + " must be a property or a watch for injection", field.nameStart, field.nameEnd, AventusErrorCode.MissingWatchable));
-                }
-            }
-            else {
-                let errorTxt = "Missing property or watch #" + propName + " for injection"
-                this.result.diagnostics.push(createErrorTsSection(this.document, errorTxt, "props", AventusErrorCode.MissingProp));
-                if (this.htmlFile) {
-                    for (let injection of injections[propName]) {
-                        if (injection.position) {
-                            this.htmlFile.tsErrors.push(createErrorHTMLPos(this.htmlFile.file.documentUser, errorTxt, injection.position.start, injection.position.end));
-                        }
-                    }
-                }
-            }
-        }
-        if (Object.keys(resultInjections).length > 0) {
-            finalViewResult.injection = resultInjections;
+        if (template.injection.length > 0) {
+            finalViewResult.injection = template.injection;
         }
         //#endregion
 
         //#region bindings
         let bindings = template.bindings;
-        let resultBindings: { [contextProp: string]: ActionBindings[] } = {}
-        for (let propName in bindings) {
-            if (this.allFields[propName]) {
-                let field = this.allFields[propName];
-                if (field.propType == "Property" || field.propType == "Watch") {
-                    if (!resultBindings[propName]) {
-                        resultBindings[propName] = [];
-                    }
-                    let isWatch = field.propType == "Watch";
-                    for (let binding of bindings[propName]) {
-                        let temp: ActionBindings = {
-                            id: binding.id,
-                            valueName: binding.valueName,
-                            eventNames: binding.eventNames,
-                        }
-                        if (isWatch) {
-                            temp.path = binding.path;
-                        }
-                        if (binding.eventNames.length == 1 && binding.tagName) {
-                            let definition = this.build.getWebComponentDefinition(binding.tagName);
-                            let eventName = binding.eventNames[0];
-                            if (definition) {
-                                if (definition.class.properties[eventName]) {
-                                    let type = definition.class.properties[eventName].type.value;
-                                    if (ListCallbacks.includes(type)) {
-                                        temp.isCallback = true;
-                                    }
-                                }
-                            }
-                        }
-                        resultBindings[propName].push(temp);
-                    }
-                }
-                else {
-                    this.result.diagnostics.push(createErrorTsPos(this.document, "The variable " + propName + " must be a property or a watch for bindings", field.nameStart, field.nameEnd, AventusErrorCode.MissingWatchable));
-                }
+        let resultBindings: ActionBindings[] = []
+        for (let binding of bindings) {
+            let temp: ActionBindings = {
+                id: binding.id,
+                injectionName: binding.injectionName,
+                eventNames: binding.eventNames,
+                inject: binding.inject,
+                extract: binding.extract
             }
-            else {
-                let errorTxt = "Missing property or watch #" + propName + " for bindings";
-                this.result.diagnostics.push(createErrorTsSection(this.document, errorTxt, "props", AventusErrorCode.MissingProp));
-                if (this.htmlFile) {
-                    for (let binding of bindings[propName]) {
-                        if (binding.position) {
-                            this.htmlFile.tsErrors.push(createErrorHTMLPos(this.htmlFile.file.documentUser, errorTxt, binding.position.start, binding.position.end));
+            if (binding.eventNames.length == 1 && binding.tagName) {
+                let definition = this.build.getWebComponentDefinition(binding.tagName);
+                let eventName = binding.eventNames[0];
+                if (definition) {
+                    if (definition.class.properties[eventName]) {
+                        let type = definition.class.properties[eventName].type.value;
+                        if (ListCallbacks.includes(type)) {
+                            temp.isCallback = true;
                         }
                     }
                 }
             }
+            resultBindings.push(temp);
         }
-        if (Object.keys(resultBindings).length > 0) {
+        if (resultBindings.length > 0) {
             finalViewResult.bindings = resultBindings;
         }
         //#endregion
@@ -1215,10 +1150,6 @@ export class AventusWebcomponentCompiler {
             let finalViewResultTxt = JSON.stringify(finalViewResult, null, 2).replace(/"@_@(.*?)@_@"/g, "$1").replace(/\\"/g, '"')
             if (isMain) {
                 finalTxt = `this.__getStatic().__template.setActions(${finalViewResultTxt});` + EOL;
-                let globalVars = this.htmlParsed?.getVariables()?.globalVars;
-                if (globalVars && globalVars.length > 0) {
-                    finalTxt += `this.__getStatic().__template.setSchema({globals:${JSON.stringify(globalVars)}});` + EOL;
-                }
             }
             else if (loopInfo) {
                 finalTxt = `const templ${loopInfo.templateId} = new Aventus.Template(this);` + EOL;
@@ -1250,12 +1181,6 @@ export class AventusWebcomponentCompiler {
                 finalTxt += `templ${ifInfo.templateId}.setTemplate(\`${ifInfo.template}\`);` + EOL;
                 if (Object.keys(finalViewResult).length > 0)
                     finalTxt += `templ${ifInfo.templateId}.setActions(${finalViewResultTxt});` + EOL;
-            }
-        }
-        else if (isMain) {
-            let globalVars = this.htmlParsed?.getVariables()?.globalVars;
-            if (globalVars && globalVars.length > 0) {
-                finalTxt += `this.__getStatic().__template.setSchema({globals:${JSON.stringify(globalVars)}});` + EOL;
             }
         }
 

@@ -2,7 +2,7 @@ import { Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AventusLanguageId } from '../../../definition';
 import { LanguageService, TokenType, getLanguageService } from 'vscode-html-languageservice';
-import { AttributeInfo, ContentInfo, ContextEditing, ForLoop, IfInfo, TagInfo } from './TagInfo';
+import { AttributeInfo, Binding, ContentInfo, ContextEditing, ForLoop, IfInfo, Injection, TagInfo } from './TagInfo';
 import { Build } from '../../../project/Build';
 import { ActionChange, ActionLoop, HtmlTemplateResult, InterestPoint } from './definition';
 import { AventusHTMLFile } from '../File';
@@ -60,6 +60,8 @@ export class ParserHtml {
 		main.ifs = [...main.ifs, ...toMerge.ifs];
 		main.content = { ...main.content, ...toMerge.content };
 		main.contextEdits = [...main.contextEdits, ...toMerge.contextEdits];
+		main.injection = [...main.injection, ...toMerge.injection];
+		main.bindings = [...main.bindings, ...toMerge.bindings];
 
 		for (let mergeEl of toMerge.elements) {
 			let found = false;
@@ -95,44 +97,10 @@ export class ParserHtml {
 				main.elements.push(mergeEl);
 			}
 		}
-
-		for (let contextProp in toMerge.injection) {
-			if (main.injection[contextProp]) {
-				main.injection[contextProp] = [...main.injection[contextProp], ...toMerge.injection[contextProp]];
-			}
-			else {
-				main.injection[contextProp] = toMerge.injection[contextProp]
-			}
-		}
-
-		for (let contextProp in toMerge.bindings) {
-			if (main.bindings[contextProp]) {
-				main.bindings[contextProp] = [...main.bindings[contextProp], ...toMerge.bindings[contextProp]];
-			}
-			else {
-				main.bindings[contextProp] = toMerge.bindings[contextProp]
-			}
-		}
 	}
-	public static addVariable(name: string, isLocal?: boolean) {
-		if (this.currentParsingDoc) {
-			if (isLocal) {
-				if (!this.currentParsingDoc.localVars.includes(name)) {
-					this.currentParsingDoc.localVars.push(name);
-				}
-			}
-			else if (!this.currentParsingDoc.localVars.includes(name)) {
-				if (!this.currentParsingDoc.globalVars.includes(name)) {
-					this.currentParsingDoc.globalVars.push(name);
-				}
-			}
-		}
-	}
+
 	public static addInterestPoint(point: InterestPoint) {
 		if (this.currentParsingDoc) {
-			if (point.type == "property" && this.currentParsingDoc.localVars.includes(point.name)) {
-				return;
-			}
 			this.currentParsingDoc.interestPoints.push(point);
 		}
 	}
@@ -175,7 +143,9 @@ export class ParserHtml {
 			let nbLoop = this.currentParsingDoc.loops.length + this.currentParsingDoc.loops.reduce((acc, p) => p.isSimple ? acc : acc + 1, 0);
 			let nbFct = Object.keys(this.currentParsingDoc.fcts).length;
 			let nbEdit = this.currentParsingDoc.contextEdits.length;
-			let tot = nb + nbFct + nbLoop + nbIf + nbEdit;
+			let nbInjection = this.currentParsingDoc.injections.length;
+			let nbBinding = this.currentParsingDoc.bindings.length * 2;
+			let tot = nb + nbFct + nbLoop + nbIf + nbEdit + nbInjection + nbBinding;
 			return this.currentParsingDoc.htmlFile.tsFile?.viewMethodName + tot
 		}
 		return null;
@@ -263,6 +233,12 @@ export class ParserHtml {
 		}
 		return null;
 	}
+	public static addInjection(injection: Injection) {
+		this.currentParsingDoc?.injections.push(injection);
+	}
+	public static addBinding(binding: Binding) {
+		this.currentParsingDoc?.bindings.push(binding);
+	}
 	public static addTagInfoStack(tagInfo: TagInfo) {
 		this.currentParsingDoc?.stacks.push(tagInfo);
 	}
@@ -319,8 +295,6 @@ export class ParserHtml {
 
 	public blocksInfo: { [name: string]: string } = {}
 	public slotsInfo: { [name: string]: string } = {}
-	public localVars: string[] = [];
-	public globalVars: string[] = [];
 	public resultsByClassName: { [className: string]: HtmlTemplateResult } = {};
 	public interestPoints: InterestPoint[] = []
 	public rules: SCSSParsedRule;
@@ -329,6 +303,8 @@ export class ParserHtml {
 	public htmlFile: AventusHTMLFile;
 	public loops: ForLoop[] = [];
 	public ifs: IfInfo[] = [];
+	public injections: Injection[] = [];
+	public bindings: Binding[] = [];
 	public contextEdits: ContextEditing[] = [];
 	public diffRawToCompiled: { [key: number]: number } = {};
 	public diffCompiledToRaw: { [key: number]: number } = {};
@@ -461,15 +437,22 @@ export class ParserHtml {
 
 					if (isAllowed) {
 						let _if = new IfInfo(x as IfStatement, sliceText);
-						this.ifs.push(_if);
-						transformations = [...transformations, ..._if.transformations];
+						if (_if.isValid) {
+							this.ifs.push(_if);
+							transformations = [...transformations, ..._if.transformations];
+						}
 					}
 				}
 				else if ([SyntaxKind.ForInStatement, SyntaxKind.ForOfStatement, SyntaxKind.ForStatement].includes(x.kind)) {
-					forLoop = new ForLoop(x as ForOfStatement, sliceText);
-					transformations = [...transformations, ...forLoop.transformations];
-					this.loops.push(forLoop);
-					this.stacks.push(forLoop);
+					if (x.getText() !== 'for') {
+						let forLoopTemp = new ForLoop(x as ForOfStatement, sliceText);
+						if (forLoopTemp.isValid) {
+							forLoop = forLoopTemp;
+							transformations = [...transformations, ...forLoop.transformations];
+							this.loops.push(forLoop);
+							this.stacks.push(forLoop);
+						}
+					}
 				}
 				else if (x.kind == SyntaxKind.Decorator) {
 					let txt = x.getText();
@@ -681,8 +664,8 @@ export class ParserHtml {
 		let result: HtmlTemplateResult = {
 			elements: [],
 			content: {},
-			injection: {},
-			bindings: {},
+			injection: [],
+			bindings: [],
 			events: [],
 			pressEvents: [],
 			loops: [],
@@ -697,12 +680,7 @@ export class ParserHtml {
 		this.resultsByClassName[className] = result;
 		return result;
 	}
-	public getVariables() {
-		return {
-			localVars: this.localVars,
-			globalVars: this.globalVars
-		}
-	}
+
 
 	// TODO replace it with tag management
 	private manageSlotAndBlock(finalTxt: string) {

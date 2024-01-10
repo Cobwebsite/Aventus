@@ -15,8 +15,8 @@ import { replaceNotImportAliases } from '../../../tools';
 import { QuickParser } from './QuickParser';
 import * as md5 from 'md5';
 import { HTMLFormat } from '../../html/parser/definition';
-import { DebuggerDecorator } from '../parser/decorators/DebuggerDecorator';
 import { join } from 'path';
+import { InjectionRender } from '../../html/parser/TagInfo';
 
 type ViewMethodInfo = {
     name: string
@@ -84,6 +84,8 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         super(file, build);
         file.linkInternalAndUser = false;
         this.quickParse();
+        // refresh file parsed on load to have default content without view function so that others files can have dependance
+        this.refreshFileParsed();
     }
 
 
@@ -125,7 +127,6 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                 }
             }
         })
-
     }
 
     private lastFileVersionCreated: { html: number, js: number } = {
@@ -154,7 +155,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                 let newContent = "";
                 // write html fct inside js
                 if (this.componentEnd >= 0) {
-                    let v = this.file.documentUser.version + htmlVersion
+                    let v = this.file.documentUser.version + htmlVersion + 1 // use +1 to allow version to be bigger than 0 at start
                     let oldContent = this.file.documentUser.getText();
                     newContent = oldContent.slice(0, this.componentEnd - 1) + "\n";
 
@@ -213,7 +214,6 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                                 // close the class
                                 tempContent += '}';
 
-                                writeFileSync(this.file.path + ".ts", tempContent);
                                 if (this.file instanceof InternalAventusFile) {
                                     this.file.setDocumentInternal(TextDocument.create(this.file.documentUser.uri, this.file.documentUser.languageId, (v + i) * -1, tempContent));
                                     this._contentForLanguageService = tempContent;
@@ -452,6 +452,89 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                         this.viewMethodsInfo.push(wrapper());
                     }
 
+                    const writeInjection = (injection: InjectionRender) => {
+                        let injectionTxt = injection.injectTsTxt.replace(/\n/g, ";");
+                        let returnPosition = -1;
+
+                        let resultTemp: string[] = injectionTxt.split(";");
+                        if (!injectionTxt.includes("return ")) {
+                            // TODO correct the return to get only the last none empty lane
+                            if (resultTemp.length > 0) {
+                                let lastEl = resultTemp.pop()
+                                returnPosition = resultTemp.join("\n").length;
+                                if (lastEl?.startsWith(" ")) {
+                                    resultTemp.push("return" + lastEl);
+                                    returnAddedLength = "return".length
+                                }
+                                else {
+                                    resultTemp.push("return " + lastEl);
+                                    returnAddedLength = "return ".length
+                                }
+
+                            }
+                        }
+                        injectionTxt = resultTemp.join("\n");
+
+                        let fullStart = newContent.length;
+                        let parameters: string[] = getParameters(injection.variables);
+
+                        // TODO correct indentation
+                        let t = this._space;
+                        newContent += `${t}/** */\n${t}@Effect({ autoInit: false })\n${t}private ${injection.injectFctName}(${parameters.join(",")}): NotVoid {\n`;
+                        let start = newContent.length;
+                        newContent += injectionTxt + "\n";
+                        let end = newContent.length;
+                        newContent += t + '}\n';
+
+
+                        const wrapper = function (rPos: number, returnLength: number) {
+                            let result: ViewMethodInfo = {
+                                name: injection.injectFctName,
+                                fullStart: fullStart,
+                                start: start,
+                                end: end,
+                                fct: {
+                                    txt: injection.injectTsTxt,
+                                    positions: [{
+                                        start: injection.start,
+                                        end: injection.end
+                                    }]
+                                },
+                                offsetBefore: '"'.length,
+                                offsetAfter: '"'.length,
+                                kind: "fct",
+                                transform(start, currentPos) {
+                                    if (start >= rPos) {
+                                        currentPos += returnLength;
+                                    }
+                                    return currentPos;
+                                },
+                            }
+                            return result;
+                        }
+                        this.viewMethodsInfo.push(wrapper(returnPosition, returnAddedLength));
+
+                    }
+                    let injections = htmlFile.fileParsed?.injections ?? [];
+                    for (let injection of injections) {
+                        writeInjection(injection);
+                    }
+
+                    let bindings = htmlFile.fileParsed?.bindings ?? [];
+                    for (let binding of bindings) {
+                        writeInjection(binding);
+                        let extractTxt = binding.injectTsTxt.replace(/\n/g, ";") + " = v";
+                        let parameters: string[] = ["v: any"].concat(getParameters(binding.variables));
+
+                        // TODO correct indentation
+                        let t = this._space;
+                        newContent += `${t}/** */\n${t}private ${binding.extractFctName}(${parameters.join(",")}): void {\n`;
+                        let start = newContent.length;
+                        newContent += extractTxt + "\n";
+                        let end = newContent.length;
+                        newContent += t + '}\n';
+                    }
+
                     newContent += oldContent.slice(this.componentEnd - 1);
                     if (this.file instanceof InternalAventusFile) {
                         this.file.setDocumentInternal(TextDocument.create(this.file.documentUser.uri, this.file.documentUser.languageId, v, newContent));
@@ -499,6 +582,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                 let diagStart = this.file.documentInternal.offsetAt(diagnostic.range.start);
                 let diagEnd = this.file.documentInternal.offsetAt(diagnostic.range.end);
                 let found = false;
+                let avoid = false;
                 for (let i = 0; i < this.viewMethodsInfo.length; i++) {
                     let start = this.viewMethodsInfo[i].fullStart;
                     let end = this.viewMethodsInfo[i].end;
@@ -549,13 +633,18 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
 
                         break;
                     }
+                    else if (diagStart >= this.file.contentUser.length) {
+                        avoid = true;
+                    }
                 }
 
-                if (found) {
-                    htmlDiags.push(diagnostic);
-                }
-                else {
-                    jsDiags.push(diagnostic);
+                if (!avoid) {
+                    if (found) {
+                        htmlDiags.push(diagnostic);
+                    }
+                    else {
+                        jsDiags.push(diagnostic);
+                    }
                 }
             }
             this.diagnostics = jsDiags;
@@ -841,6 +930,11 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                         break;
                     }
                     else if (diagStart >= this.viewMethodsInfo[i].fullStart && diagEnd <= end) {
+                        found = true;
+                        break;
+                    }
+                    else if (diagStart >= this.file.contentUser.length) {
+                        // outisde the file => mean only visible internal
                         found = true;
                         break;
                     }

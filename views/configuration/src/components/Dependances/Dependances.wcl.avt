@@ -4,9 +4,6 @@ type Dependance = {
     uri: string;
 };
 
-@Debugger({
-    writeCompiled: true
-})
 export class Dependances extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
     //#region static

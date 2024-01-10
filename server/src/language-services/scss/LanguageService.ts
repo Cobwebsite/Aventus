@@ -302,51 +302,56 @@ export class AventusSCSSLanguageService {
         const _loadRules = (node: Node, parentCheck: ((tagInfo: TagInfo) => boolean) | null = null) => {
             if (node.type == NodeType.Ruleset) {
                 let hasContent = false;
-                for (let decl of node.getChildren()[1].getChildren()) {
-                    if (decl.type == NodeType.Declaration || decl.type == NodeType.CustomPropertyDeclaration || decl.type == NodeType.MixinDeclaration || decl.type == NodeType.FunctionDeclaration || decl.type == NodeType.VariableDeclaration) {
-                        hasContent = true;
-                        break;
+                let children = node.getChildren();
+                if (children.length > 1) {
+                    for (let decl of children[1].getChildren()) {
+                        if (decl.type == NodeType.Declaration || decl.type == NodeType.CustomPropertyDeclaration || decl.type == NodeType.MixinDeclaration || decl.type == NodeType.FunctionDeclaration || decl.type == NodeType.VariableDeclaration) {
+                            hasContent = true;
+                            break;
+                        }
                     }
                 }
-                let realNode = node.getChildren()[0]?.getChildren()[0];
-                let position: { start: number, end: number } | null = null;
-                if (realNode) {
-                    let oldParentCheck = parentCheck;
-                    for (let childNode of realNode.getChildren()) {
-                        if (childNode.type == NodeType.SimpleSelector) {
-                            if (!position) {
-                                position = {
-                                    start: childNode.offset,
-                                    end: childNode.offset + childNode.length,
-                                };
-                            }
-                            else if (position.start > childNode.offset) {
-                                position.start = childNode.offset;
-                            }
-                            else if (position.end < childNode.offset + childNode.length) {
-                                position.end = childNode.offset + childNode.length;
-                            }
-                            let checks: ((tagInfo: TagInfo) => boolean)[] = [];
-                            for (let selector of childNode.getChildren()) {
-                                if (selector.type == NodeType.ClassSelector) {
-                                    checks.push(_createRuleClass(selector));
+                if (children.length > 0) {
+                    let realNode = children[0]?.getChildren()[0];
+                    let position: { start: number, end: number } | null = null;
+                    if (realNode) {
+                        let oldParentCheck = parentCheck;
+                        for (let childNode of realNode.getChildren()) {
+                            if (childNode.type == NodeType.SimpleSelector) {
+                                if (!position) {
+                                    position = {
+                                        start: childNode.offset,
+                                        end: childNode.offset + childNode.length,
+                                    };
                                 }
-                                else if (selector.type == NodeType.ElementNameSelector) {
-                                    checks.push(_createRuleElementName(selector))
+                                else if (position.start > childNode.offset) {
+                                    position.start = childNode.offset;
                                 }
-                            }
-                            if (checks.length > 0) {
-                                parentCheck = _createCheck(parentCheck, checks);
+                                else if (position.end < childNode.offset + childNode.length) {
+                                    position.end = childNode.offset + childNode.length;
+                                }
+                                let checks: ((tagInfo: TagInfo) => boolean)[] = [];
+                                for (let selector of childNode.getChildren()) {
+                                    if (selector.type == NodeType.ClassSelector) {
+                                        checks.push(_createRuleClass(selector));
+                                    }
+                                    else if (selector.type == NodeType.ElementNameSelector) {
+                                        checks.push(_createRuleElementName(selector))
+                                    }
+                                }
+                                if (checks.length > 0) {
+                                    parentCheck = _createCheck(parentCheck, checks);
 
+                                }
+                            }
+                            else {
+                                let txt = childNode.getText();
+                                console.log("to implement");
                             }
                         }
-                        else {
-                            let txt = childNode.getText();
-                            console.log("to debug");
+                        if (parentCheck && position) {
+                            rules.set(parentCheck, position)
                         }
-                    }
-                    if (parentCheck && position) {
-                        rules.set(parentCheck, position)
                     }
                 }
             }
