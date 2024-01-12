@@ -39,6 +39,9 @@ export class QuickParser {
 	}
 
 	private loadRoot(node: Node): true | undefined {
+		if (node.kind == SyntaxKind.ModuleDeclaration) {
+			return this.loadNamespace(node as ModuleDeclaration);
+		}
 		forEachChild(node, x => {
 			if (x.kind == SyntaxKind.ModuleDeclaration) {
 				return this.loadNamespace(x as ModuleDeclaration);

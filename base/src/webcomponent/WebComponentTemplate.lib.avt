@@ -1,4 +1,4 @@
-import { Computed, Effect, WatchAction, Watcher, type WatcherFunction } from "../lib/Watcher.lib.avt";
+import { Computed, ComputedNoRecomputed, Effect, WatchAction, Watcher, type WatcherFunction } from "../lib/Watcher.lib.avt";
 import { PressManager, type PressManagerOptions } from "../lib/PressManager.lib.avt";
 import { WebComponent } from "./WebComponent.lib.avt";
 
@@ -6,11 +6,13 @@ type TemplateHTML = { slots: { [name: string]: string; }, blocks: { [name: strin
 
 type ActionChange = {
     fct: (c: TemplateContext) => string;
+    once?: boolean;
 };
 type ActionInjection = {
     id: string,
     injectionName: string;
     inject: (c: TemplateContext) => any;
+    once?: boolean;
 };
 type ActionBindings = {
     id: string,
@@ -19,6 +21,7 @@ type ActionBindings = {
     inject: (c: TemplateContext) => any,
     extract: (c: TemplateContext, v: any) => any,
     isCallback?: boolean,
+    once?: boolean;
 };
 type ActionEventListener = (e: Event, c: TemplateContext) => void;
 type ActionEventCallback = (c: TemplateContext, ...args: any) => void;
@@ -59,11 +62,13 @@ type If = {
     parts: {
         condition: (c: TemplateContext) => boolean;
         template: Template;
+        once?: boolean;
     }[];
 };
 
 type ContextEdit = {
     fct: (c: TemplateContext) => { [key: string]: any; };
+    once?: boolean;
 };
 
 export class Template {
@@ -363,7 +368,8 @@ export class TemplateInstance {
         }
     }
     private renderContextEdit(edit: ContextEdit) {
-        let computed = new Computed(() => {
+        let _class = edit.once ? ComputedNoRecomputed : Computed;
+        let computed = new _class(() => {
             return edit.fct(this.context);
         });
         computed.subscribe(() => {
@@ -449,7 +455,6 @@ export class TemplateInstance {
         const [id, attr] = name.split("°");
         if(!this._components[id]) return;
 
-        let computed: Computed<string>;
         let apply = () => { };
         if(attr == "@HTML") {
             apply = () => {
@@ -474,7 +479,8 @@ export class TemplateInstance {
             };
         }
 
-        computed = new Computed<string>(() => {
+        let _class = change.once ? ComputedNoRecomputed : Computed;
+        let computed = new _class(() => {
             return change.fct(this.context);
         });
 
@@ -497,7 +503,8 @@ export class TemplateInstance {
 
     private transformInjectionAction(injection: ActionInjection) {
         if(!this._components[injection.id]) return;
-        let computed = new Computed(() => {
+        let _class = injection.once ? ComputedNoRecomputed : Computed;
+        let computed = new _class(() => {
             return injection.inject(this.context);
         });
         this.computeds.push(computed);
@@ -515,7 +522,8 @@ export class TemplateInstance {
 
     private transformBindigAction(binding: ActionBindings) {
         let isLocalChange = false;
-        let computed = new Computed(() => {
+        let _class = binding.once ? ComputedNoRecomputed : Computed;
+        let computed = new _class(() => {
             return binding.inject(this.context);
         });
         this.computeds.push(computed);
@@ -539,7 +547,7 @@ export class TemplateInstance {
                         cb?.add((value) => {
                             let valueToSet = Template.getValueFromItem(binding.injectionName, el);
                             isLocalChange = true;
-                            binding.extract(this.context, valueToSet)
+                            binding.extract(this.context, valueToSet);
                             isLocalChange = false;
                         });
                     }
@@ -551,7 +559,6 @@ export class TemplateInstance {
                 for(var el of this._components[binding.id]) {
                     for(let fct of binding.eventNames) {
                         el.addEventListener(fct, (e) => {
-                            debugger
                             let valueToSet = Template.getValueFromItem(binding.injectionName, e.target);
                             isLocalChange = true;
                             binding.extract(this.context, valueToSet);
@@ -655,10 +662,10 @@ export class TemplateInstance {
         let indexName = this.context.registerIndex();
         let keys = Object.keys(elements);
         if(elements.__isProxy) {
-            let regexArray = new RegExp(basePath.replace(/\./g, "\\.") + "\\[(\\d+?)\\]$");
-            let regexObject = new RegExp(basePath.replace(/\./g, "\\.") + "\\.([^\\.]*)$");
+            let regexArray = new RegExp("^\\[(\\d+?)\\]$");
+            let regexObject = new RegExp("^([^\\.]*)$");
             let sub: WatcherFunction = (action, path, value) => {
-                if(path == basePath) {
+                if(path == "") {
                     this.renderLoopSimple(loop, simple);
                     return;
                 }
@@ -712,8 +719,7 @@ export class TemplateInstance {
                         anchor?.parentNode?.insertBefore(instance.content, anchor);
                         registry.templates.splice(index, 0, instance);
                         for(let i = index + 1; i < registry.templates.length; i++) {
-                            let computeds = registry.templates[i].renderingComputeds;
-                            registry.templates[i].context.increaseIndex(indexName, simple.data, computeds);
+                            registry.templates[i].context.increaseIndex(indexName);
 
                         }
                     }
@@ -721,8 +727,7 @@ export class TemplateInstance {
                         registry.templates[index].destructor();
                         registry.templates.splice(index, 1);
                         for(let i = index; i < registry.templates.length; i++) {
-                            let computeds = registry.templates[i].renderingComputeds;
-                            registry.templates[i].context.decreaseIndex(indexName, simple.data, computeds);
+                            registry.templates[i].context.decreaseIndex(indexName);
                         }
                     }
                 }
@@ -779,7 +784,8 @@ export class TemplateInstance {
 
         for(let i = 0; i < _if.parts.length; i++) {
             const part = _if.parts[i];
-            let computed = new Computed<boolean>(() => {
+            let _class = part.once ? ComputedNoRecomputed : Computed;
+            let computed = new _class(() => {
                 return part.condition(this.context);
             });
             computeds.push(computed);
@@ -861,31 +867,37 @@ export class TemplateContext {
 
     public registerLoop(dataName: string, _indexValue: number, _indexName: string, indexName?: string, itemName?: string) {
         this.watch[_indexName] = _indexValue;
-        let getItems: () => any[];
+        let getItems: Computed<any[]>;
+        let mustBeRecomputed = /if|switch|\?|\[.+?\]/g.test(dataName);
+        let _class = mustBeRecomputed ? Computed : ComputedNoRecomputed;
         if(!dataName.startsWith("this.")) {
-            getItems = () => {
+            getItems = new _class(() => {
                 return Template.getValueFromItem(dataName, this.data);
-            };
+            });
         }
         else {
             dataName = dataName.replace(/^this\./, '');
-            getItems = () => {
+            getItems = new _class(() => {
                 return Template.getValueFromItem(dataName, this.comp);
-            };
+            });
         }
 
-        let getIndex: Computed<any> = new Computed(() => {
-            let keys = Object.keys(getItems());
+        let getIndex: Computed<any> = new ComputedNoRecomputed(() => {
+            let items = getItems.value;
+            if(!items) throw 'impossible';
+            let keys = Object.keys(items);
             let index = keys[_getIndex.value];
             if(/^[0-9]+$/g.test(index)) return Number(index);
             return index;
         });
-        let getItem: Computed<any> = new Computed(() => {
-            let keys = Object.keys(getItems());
+        let getItem: Computed<any> = new ComputedNoRecomputed(() => {
+            let items = getItems.value;
+            if(!items) throw 'impossible';
+            let keys = Object.keys(items);
             let index = keys[_getIndex.value];
-            return getItems()[index];
+            return items[index];
         });
-        let _getIndex: Computed<any> = new Computed(() => {
+        let _getIndex: Computed<any> = new ComputedNoRecomputed(() => {
             return this.watch[_indexName];
         });
 
@@ -908,76 +920,51 @@ export class TemplateContext {
         }
     }
 
-    private updateIndex(newIndex: number, _indexName: string, dataName: string, computeds: Effect[]) {
-        let fullName: string;
-        let items: any[] | {};
-        if(!dataName.startsWith("this.")) {
-            let comp = new Computed(() => {
-                return Template.getValueFromItem(dataName, this.data);
-            });
-            items = comp.value;
-            fullName = comp.callbacks[comp.callbacks.length - 1].path;
-        }
-        else {
-            fullName = dataName.replace(/^this\./, '');
-            items = Template.getValueFromItem(fullName, this.comp);
-        }
+    private updateIndex(newIndex: number, _indexName: string) {
+        // let fullName: string;
+        // let items: any[] | {};
+        // if(!dataName.startsWith("this.")) {
+        //     let comp = new Computed(() => {
+        //         return Template.getValueFromItem(dataName, this.data);
+        //     });
+        //     items = comp.value;
+        //     fullName = comp.callbacks[comp.callbacks.length - 1].path;
+        // }
+        // else {
+        //     fullName = dataName.replace(/^this\./, '');
+        //     items = Template.getValueFromItem(fullName, this.comp);
+        // }
 
-        if(Array.isArray(items)) {
-            let regex = new RegExp("^(" + fullName.replace(/\./g, "\\.") + ")\\[(\\d+?)\\]");
-            for(let computed of computeds) {
-                for(let cb of computed.callbacks) {
-                    regex.lastIndex = 0;
-                    cb.path = cb.path.replace(regex, "$1[" + newIndex + "]");
-                }
-            }
-        }
-        else {
-            // let oldKey = Object.keys(items)[this.watch[_indexName]]
-            // let newKey = Object.keys(items)[newIndex]
-            // let regex = new RegExp("^(" + fullName.replace(/\./g, "\\.") + "\\.)(" + oldKey + ")($|\\.)");
-            // for (let computed of computeds) {
-            //     for (let cb of computed.callbacks) {
-            //         regex.lastIndex = 0;
-            //         cb.path = cb.path.replace(regex, "$1" + newKey + "$3")
-            //     }
-            // }
-        }
+        // if(Array.isArray(items)) {
+        //     let regex = new RegExp("^(" + fullName.replace(/\./g, "\\.") + ")\\[(\\d+?)\\]");
+        //     for(let computed of computeds) {
+        //         for(let cb of computed.callbacks) {
+        //             regex.lastIndex = 0;
+        //             cb.path = cb.path.replace(regex, "$1[" + newIndex + "]");
+        //         }
+        //     }
+        // }
+        // else {
+        //     let oldKey = Object.keys(items)[this.watch[_indexName]]
+        //     let newKey = Object.keys(items)[newIndex]
+        //     let regex = new RegExp("^(" + fullName.replace(/\./g, "\\.") + "\\.)(" + oldKey + ")($|\\.)");
+        //     for (let computed of computeds) {
+        //         for (let cb of computed.callbacks) {
+        //             regex.lastIndex = 0;
+        //             cb.path = cb.path.replace(regex, "$1" + newKey + "$3")
+        //         }
+        //     }
+        // }
 
         this.watch[_indexName] = newIndex;
     }
-    public increaseIndex(_indexName: string, dataName: string, computeds: Effect[]) {
-        this.updateIndex(this.watch[_indexName] + 1, _indexName, dataName, computeds);
+    public increaseIndex(_indexName: string) {
+        this.updateIndex(this.watch[_indexName] + 1, _indexName);
     }
-    public decreaseIndex(_indexName: string, dataName: string, computeds: Effect[]) {
-        this.updateIndex(this.watch[_indexName] - 1, _indexName, dataName, computeds);
+    public decreaseIndex(_indexName: string) {
+        this.updateIndex(this.watch[_indexName] - 1, _indexName);
     }
 
-
-    public registerChange(name: string, fct: (path: string) => void) {
-        let getValue: () => any[];
-        if(!name.startsWith("this.")) {
-            // it's a local variable from another loop
-            getValue = () => {
-                return Template.getValueFromItem(name, this.data);
-            };
-        }
-        else {
-            // its a variable from the component
-            name = name.replace(/^this\./, '');
-            getValue = () => {
-                return Template.getValueFromItem(name, this.comp);
-            };
-        }
-        let computed = new Computed(() => {
-            return getValue();
-        });
-        this.computeds.push(computed);
-        computed.subscribe((action, path, value) => {
-            fct(path);
-        });
-        fct(name);
-    }
 
     public destructor() {
         for(let computed of this.computeds) {

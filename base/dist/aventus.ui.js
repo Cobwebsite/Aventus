@@ -2097,17 +2097,13 @@ const WebComponentTemplateInstance=class WebComponentTemplateInstance {
             }
         }
         if (this.actions.injection) {
-            for (let name in this.actions.injection) {
-                for (let injection of this.actions.injection[name]) {
-                    this.transformInjectionAction(name, injection);
-                }
+            for (let injection of this.actions.injection) {
+                this.transformInjectionAction(injection);
             }
         }
         if (this.actions.bindings) {
-            for (let name in this.actions.bindings) {
-                for (let binding of this.actions.bindings[name]) {
-                    this.transformBindigAction(name, binding);
-                }
+            for (let binding of this.actions.bindings) {
+                this.transformBindigAction(binding);
             }
         }
     }
@@ -2190,7 +2186,7 @@ const WebComponentTemplateInstance=class WebComponentTemplateInstance {
             }
         }
     }
-    transformInjectionAction(name, injection) {
+    transformInjectionAction(injection) {
         if (!this._components[injection.id])
             return;
         if (injection.path) {
@@ -3712,13 +3708,15 @@ Navigation.RouterLink = class RouterLink extends Aventus.WebComponent {
                 set 'state'(val) {
                     if(val === undefined || val === null){this.removeAttribute('state')}
                     else{this.setAttribute('state',val)}
-                }get 'active_state'() {
+                }
+get 'active_state'() {
                     return this.getAttribute('active_state') ?? undefined;
                 }
                 set 'active_state'(val) {
                     if(val === undefined || val === null){this.removeAttribute('active_state')}
                     else{this.setAttribute('active_state',val)}
-                }    onActiveChange = new Aventus.Callback();
+                }
+    onActiveChange = new Aventus.Callback();
     static __style = ``;
     __getStatic() {
         return RouterLink;
@@ -3737,8 +3735,12 @@ Navigation.RouterLink = class RouterLink extends Aventus.WebComponent {
     getClassName() {
         return "RouterLink";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('state')){ this['state'] = ""; }if(!this.hasAttribute('active_state')){ this['active_state'] = ""; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('state');this.__upgradeProperty('active_state'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('state')){ this['state'] = ""; }
+if(!this.hasAttribute('active_state')){ this['active_state'] = ""; }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('state');
+this.__upgradeProperty('active_state');
+ }
     addClickEvent() {
         new Aventus.PressManager({
             element: this,
@@ -3819,25 +3821,29 @@ Layout.GridCol = class GridCol extends Aventus.WebComponent {
                 set 'column'(val) {
                     if(val === undefined || val === null){this.removeAttribute('column')}
                     else{this.setAttribute('column',val)}
-                }get 'row'() {
+                }
+get 'row'() {
                     return this.getAttribute('row') ?? undefined;
                 }
                 set 'row'(val) {
                     if(val === undefined || val === null){this.removeAttribute('row')}
                     else{this.setAttribute('row',val)}
-                }get 'c_start'() {
+                }
+get 'c_start'() {
                     return Number(this.getAttribute('c_start'));
                 }
                 set 'c_start'(val) {
                     if(val === undefined || val === null){this.removeAttribute('c_start')}
                     else{this.setAttribute('c_start',val)}
-                }get 'c_end'() {
+                }
+get 'c_end'() {
                     return Number(this.getAttribute('c_end'));
                 }
                 set 'c_end'(val) {
                     if(val === undefined || val === null){this.removeAttribute('c_end')}
                     else{this.setAttribute('c_end',val)}
-                }    static __style = ``;
+                }
+    static __style = ``;
     __getStatic() {
         return GridCol;
     }
@@ -3855,8 +3861,16 @@ Layout.GridCol = class GridCol extends Aventus.WebComponent {
     getClassName() {
         return "GridCol";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('column')){ this['column'] = undefined; }if(!this.hasAttribute('row')){ this['row'] = undefined; }if(!this.hasAttribute('c_start')){ this['c_start'] = undefined; }if(!this.hasAttribute('c_end')){ this['c_end'] = undefined; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('column');this.__upgradeProperty('row');this.__upgradeProperty('c_start');this.__upgradeProperty('c_end'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('column')){ this['column'] = undefined; }
+if(!this.hasAttribute('row')){ this['row'] = undefined; }
+if(!this.hasAttribute('c_start')){ this['c_start'] = undefined; }
+if(!this.hasAttribute('c_end')){ this['c_end'] = undefined; }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('column');
+this.__upgradeProperty('row');
+this.__upgradeProperty('c_start');
+this.__upgradeProperty('c_end');
+ }
 }
 Layout.GridCol.Namespace=`${moduleName}.Layout`;
 Layout.GridCol.Tag=`av-grid-col`;
@@ -3871,7 +3885,8 @@ Layout.Grid = class Grid extends Aventus.WebComponent {
                 set 'cols'(val) {
                     if(val === undefined || val === null){this.removeAttribute('cols')}
                     else{this.setAttribute('cols',val)}
-                }    static __style = `:host{display:grid}:host([cols=j]){grid-template-columns:repeat(1, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(2, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(3, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(4, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(5, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(6, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(7, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(8, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(9, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(10, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(11, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(12, minmax(0, 1fr))}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_xs="0"]){margin-right:0%}::slotted(av-grid-col[size_xs="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_xs="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_xs="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_xs="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_xs="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_xs="3"]){margin-right:25%}::slotted(av-grid-col[size_xs="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_xs="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_xs="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_xs="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_xs="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_xs="6"]){margin-right:50%}::slotted(av-grid-col[size_xs="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_xs="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_xs="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_xs="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_xs="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_xs="9"]){margin-right:75%}::slotted(av-grid-col[size_xs="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_xs="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_xs="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_xs="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_xs="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_xs="12"]){margin-right:100%}::slotted(av-grid-col[size_xs="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_sm="0"]){margin-right:0%}::slotted(av-grid-col[size_sm="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_sm="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_sm="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_sm="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_sm="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_sm="3"]){margin-right:25%}::slotted(av-grid-col[size_sm="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_sm="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_sm="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_sm="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_sm="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_sm="6"]){margin-right:50%}::slotted(av-grid-col[size_sm="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_sm="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_sm="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_sm="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_sm="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_sm="9"]){margin-right:75%}::slotted(av-grid-col[size_sm="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_sm="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_sm="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_sm="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_sm="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_sm="12"]){margin-right:100%}::slotted(av-grid-col[size_sm="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_md="0"]){margin-right:0%}::slotted(av-grid-col[size_md="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_md="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_md="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_md="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_md="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_md="3"]){margin-right:25%}::slotted(av-grid-col[size_md="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_md="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_md="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_md="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_md="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_md="6"]){margin-right:50%}::slotted(av-grid-col[size_md="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_md="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_md="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_md="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_md="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_md="9"]){margin-right:75%}::slotted(av-grid-col[size_md="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_md="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_md="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_md="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_md="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_md="12"]){margin-right:100%}::slotted(av-grid-col[size_md="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_lg="0"]){margin-right:0%}::slotted(av-grid-col[size_lg="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_lg="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_lg="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_lg="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_lg="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_lg="3"]){margin-right:25%}::slotted(av-grid-col[size_lg="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_lg="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_lg="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_lg="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_lg="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_lg="6"]){margin-right:50%}::slotted(av-grid-col[size_lg="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_lg="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_lg="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_lg="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_lg="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_lg="9"]){margin-right:75%}::slotted(av-grid-col[size_lg="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_lg="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_lg="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_lg="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_lg="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_lg="12"]){margin-right:100%}::slotted(av-grid-col[size_lg="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_xl="0"]){margin-right:0%}::slotted(av-grid-col[size_xl="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_xl="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_xl="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_xl="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_xl="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_xl="3"]){margin-right:25%}::slotted(av-grid-col[size_xl="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_xl="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_xl="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_xl="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_xl="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_xl="6"]){margin-right:50%}::slotted(av-grid-col[size_xl="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_xl="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_xl="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_xl="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_xl="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_xl="9"]){margin-right:75%}::slotted(av-grid-col[size_xl="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_xl="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_xl="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_xl="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_xl="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_xl="12"]){margin-right:100%}::slotted(av-grid-col[size_xl="12"]){width:100%}}`;
+                }
+    static __style = `:host{display:grid}:host([cols=j]){grid-template-columns:repeat(1, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(2, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(3, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(4, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(5, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(6, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(7, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(8, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(9, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(10, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(11, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(12, minmax(0, 1fr))}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_xs="0"]){margin-right:0%}::slotted(av-grid-col[size_xs="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_xs="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_xs="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_xs="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_xs="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_xs="3"]){margin-right:25%}::slotted(av-grid-col[size_xs="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_xs="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_xs="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_xs="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_xs="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_xs="6"]){margin-right:50%}::slotted(av-grid-col[size_xs="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_xs="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_xs="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_xs="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_xs="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_xs="9"]){margin-right:75%}::slotted(av-grid-col[size_xs="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_xs="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_xs="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_xs="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_xs="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_xs="12"]){margin-right:100%}::slotted(av-grid-col[size_xs="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_sm="0"]){margin-right:0%}::slotted(av-grid-col[size_sm="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_sm="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_sm="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_sm="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_sm="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_sm="3"]){margin-right:25%}::slotted(av-grid-col[size_sm="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_sm="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_sm="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_sm="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_sm="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_sm="6"]){margin-right:50%}::slotted(av-grid-col[size_sm="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_sm="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_sm="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_sm="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_sm="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_sm="9"]){margin-right:75%}::slotted(av-grid-col[size_sm="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_sm="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_sm="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_sm="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_sm="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_sm="12"]){margin-right:100%}::slotted(av-grid-col[size_sm="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_md="0"]){margin-right:0%}::slotted(av-grid-col[size_md="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_md="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_md="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_md="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_md="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_md="3"]){margin-right:25%}::slotted(av-grid-col[size_md="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_md="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_md="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_md="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_md="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_md="6"]){margin-right:50%}::slotted(av-grid-col[size_md="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_md="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_md="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_md="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_md="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_md="9"]){margin-right:75%}::slotted(av-grid-col[size_md="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_md="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_md="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_md="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_md="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_md="12"]){margin-right:100%}::slotted(av-grid-col[size_md="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_lg="0"]){margin-right:0%}::slotted(av-grid-col[size_lg="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_lg="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_lg="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_lg="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_lg="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_lg="3"]){margin-right:25%}::slotted(av-grid-col[size_lg="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_lg="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_lg="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_lg="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_lg="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_lg="6"]){margin-right:50%}::slotted(av-grid-col[size_lg="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_lg="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_lg="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_lg="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_lg="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_lg="9"]){margin-right:75%}::slotted(av-grid-col[size_lg="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_lg="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_lg="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_lg="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_lg="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_lg="12"]){margin-right:100%}::slotted(av-grid-col[size_lg="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_xl="0"]){margin-right:0%}::slotted(av-grid-col[size_xl="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_xl="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_xl="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_xl="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_xl="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_xl="3"]){margin-right:25%}::slotted(av-grid-col[size_xl="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_xl="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_xl="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_xl="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_xl="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_xl="6"]){margin-right:50%}::slotted(av-grid-col[size_xl="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_xl="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_xl="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_xl="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_xl="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_xl="9"]){margin-right:75%}::slotted(av-grid-col[size_xl="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_xl="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_xl="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_xl="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_xl="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_xl="12"]){margin-right:100%}::slotted(av-grid-col[size_xl="12"]){width:100%}}`;
     __getStatic() {
         return Grid;
     }
@@ -3889,8 +3904,10 @@ Layout.Grid = class Grid extends Aventus.WebComponent {
     getClassName() {
         return "Grid";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('cols')){ this['cols'] = 12; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('cols'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('cols')){ this['cols'] = 12; }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('cols');
+ }
 }
 Layout.Grid.Namespace=`${moduleName}.Layout`;
 Layout.Grid.Tag=`av-grid`;
@@ -3904,7 +3921,8 @@ Layout.DynamicRow = class DynamicRow extends Aventus.WebComponent {
                 set 'max_width'(val) {
                     if(val === undefined || val === null){this.removeAttribute('max_width')}
                     else{this.setAttribute('max_width',val)}
-                }    sizes = { "xs": 300, "sm": 540, "md": 720, "lg": 960, "xl": 1140 };
+                }
+    sizes = { "xs": 300, "sm": 540, "md": 720, "lg": 960, "xl": 1140 };
     static __style = `:host{display:flex;flex-wrap:wrap;flex-direction:row;width:100%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="0"]){margin-left:0%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="0"]){margin-right:0%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="0"]){width:0%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="1"]){margin-left:8.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="1"]){margin-right:8.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="1"]){width:8.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="2"]){margin-left:16.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="2"]){margin-right:16.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="2"]){width:16.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="3"]){margin-left:25%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="3"]){margin-right:25%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="3"]){width:25%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="4"]){margin-left:33.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="4"]){margin-right:33.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="4"]){width:33.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="5"]){margin-left:41.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="5"]){margin-right:41.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="5"]){width:41.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="6"]){margin-left:50%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="6"]){margin-right:50%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="6"]){width:50%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="7"]){margin-left:58.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="7"]){margin-right:58.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="7"]){width:58.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="8"]){margin-left:66.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="8"]){margin-right:66.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="8"]){width:66.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="9"]){margin-left:75%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="9"]){margin-right:75%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="9"]){width:75%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="10"]){margin-left:83.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="10"]){margin-right:83.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="10"]){width:83.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="11"]){margin-left:91.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="11"]){margin-right:91.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="11"]){width:91.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="12"]){margin-left:100%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="12"]){margin-right:100%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="12"]){width:100%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="0"]){margin-left:0%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="0"]){margin-right:0%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="0"]){width:0%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="1"]){margin-left:8.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="1"]){margin-right:8.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="1"]){width:8.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="2"]){margin-left:16.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="2"]){margin-right:16.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="2"]){width:16.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="3"]){margin-left:25%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="3"]){margin-right:25%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="3"]){width:25%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="4"]){margin-left:33.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="4"]){margin-right:33.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="4"]){width:33.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="5"]){margin-left:41.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="5"]){margin-right:41.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="5"]){width:41.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="6"]){margin-left:50%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="6"]){margin-right:50%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="6"]){width:50%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="7"]){margin-left:58.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="7"]){margin-right:58.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="7"]){width:58.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="8"]){margin-left:66.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="8"]){margin-right:66.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="8"]){width:66.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="9"]){margin-left:75%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="9"]){margin-right:75%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="9"]){width:75%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="10"]){margin-left:83.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="10"]){margin-right:83.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="10"]){width:83.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="11"]){margin-left:91.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="11"]){margin-right:91.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="11"]){width:91.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="12"]){margin-left:100%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="12"]){margin-right:100%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="12"]){width:100%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="0"]){margin-left:0%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="0"]){margin-right:0%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="0"]){width:0%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="1"]){margin-left:8.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="1"]){margin-right:8.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="1"]){width:8.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="2"]){margin-left:16.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="2"]){margin-right:16.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="2"]){width:16.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="3"]){margin-left:25%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="3"]){margin-right:25%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="3"]){width:25%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="4"]){margin-left:33.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="4"]){margin-right:33.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="4"]){width:33.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="5"]){margin-left:41.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="5"]){margin-right:41.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="5"]){width:41.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="6"]){margin-left:50%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="6"]){margin-right:50%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="6"]){width:50%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="7"]){margin-left:58.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="7"]){margin-right:58.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="7"]){width:58.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="8"]){margin-left:66.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="8"]){margin-right:66.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="8"]){width:66.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="9"]){margin-left:75%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="9"]){margin-right:75%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="9"]){width:75%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="10"]){margin-left:83.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="10"]){margin-right:83.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="10"]){width:83.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="11"]){margin-left:91.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="11"]){margin-right:91.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="11"]){width:91.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="12"]){margin-left:100%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="12"]){margin-right:100%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="12"]){width:100%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="0"]){margin-left:0%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="0"]){margin-right:0%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="0"]){width:0%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="1"]){margin-left:8.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="1"]){margin-right:8.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="1"]){width:8.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="2"]){margin-left:16.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="2"]){margin-right:16.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="2"]){width:16.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="3"]){margin-left:25%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="3"]){margin-right:25%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="3"]){width:25%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="4"]){margin-left:33.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="4"]){margin-right:33.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="4"]){width:33.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="5"]){margin-left:41.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="5"]){margin-right:41.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="5"]){width:41.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="6"]){margin-left:50%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="6"]){margin-right:50%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="6"]){width:50%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="7"]){margin-left:58.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="7"]){margin-right:58.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="7"]){width:58.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="8"]){margin-left:66.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="8"]){margin-right:66.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="8"]){width:66.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="9"]){margin-left:75%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="9"]){margin-right:75%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="9"]){width:75%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="10"]){margin-left:83.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="10"]){margin-right:83.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="10"]){width:83.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="11"]){margin-left:91.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="11"]){margin-right:91.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="11"]){width:91.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="12"]){margin-left:100%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="12"]){margin-right:100%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="12"]){width:100%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="0"]){margin-left:0%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="0"]){margin-right:0%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="0"]){width:0%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="1"]){margin-left:8.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="1"]){margin-right:8.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="1"]){width:8.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="2"]){margin-left:16.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="2"]){margin-right:16.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="2"]){width:16.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="3"]){margin-left:25%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="3"]){margin-right:25%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="3"]){width:25%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="4"]){margin-left:33.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="4"]){margin-right:33.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="4"]){width:33.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="5"]){margin-left:41.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="5"]){margin-right:41.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="5"]){width:41.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="6"]){margin-left:50%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="6"]){margin-right:50%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="6"]){width:50%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="7"]){margin-left:58.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="7"]){margin-right:58.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="7"]){width:58.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="8"]){margin-left:66.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="8"]){margin-right:66.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="8"]){width:66.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="9"]){margin-left:75%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="9"]){margin-right:75%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="9"]){width:75%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="10"]){margin-left:83.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="10"]){margin-right:83.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="10"]){width:83.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="11"]){margin-left:91.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="11"]){margin-right:91.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="11"]){width:91.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="12"]){margin-left:100%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="12"]){margin-right:100%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="12"]){width:100%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="0"]){margin-left:0%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="0"]){margin-right:0%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="0"]){width:0%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="1"]){margin-left:8.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="1"]){margin-right:8.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="1"]){width:8.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="2"]){margin-left:16.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="2"]){margin-right:16.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="2"]){width:16.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="3"]){margin-left:25%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="3"]){margin-right:25%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="3"]){width:25%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="4"]){margin-left:33.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="4"]){margin-right:33.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="4"]){width:33.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="5"]){margin-left:41.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="5"]){margin-right:41.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="5"]){width:41.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="6"]){margin-left:50%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="6"]){margin-right:50%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="6"]){width:50%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="7"]){margin-left:58.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="7"]){margin-right:58.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="7"]){width:58.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="8"]){margin-left:66.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="8"]){margin-right:66.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="8"]){width:66.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="9"]){margin-left:75%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="9"]){margin-right:75%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="9"]){width:75%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="10"]){margin-left:83.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="10"]){margin-right:83.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="10"]){width:83.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="11"]){margin-left:91.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="11"]){margin-right:91.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="11"]){width:91.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="12"]){margin-left:100%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="12"]){margin-right:100%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="12"]){width:100%}`;
     __getStatic() {
         return DynamicRow;
@@ -3923,8 +3941,10 @@ Layout.DynamicRow = class DynamicRow extends Aventus.WebComponent {
     getClassName() {
         return "DynamicRow";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('max_width')){ this['max_width'] = undefined; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('max_width'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('max_width')){ this['max_width'] = undefined; }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('max_width');
+ }
     calculateWidth() {
         let size = this.offsetWidth;
         let labels = [];
@@ -3958,109 +3978,127 @@ Layout.DynamicCol = class DynamicCol extends Aventus.WebComponent {
                 set 'size'(val) {
                     if(val === undefined || val === null){this.removeAttribute('size')}
                     else{this.setAttribute('size',val)}
-                }get 'size_xs'() {
+                }
+get 'size_xs'() {
                     return Number(this.getAttribute('size_xs'));
                 }
                 set 'size_xs'(val) {
                     if(val === undefined || val === null){this.removeAttribute('size_xs')}
                     else{this.setAttribute('size_xs',val)}
-                }get 'size_sm'() {
+                }
+get 'size_sm'() {
                     return Number(this.getAttribute('size_sm'));
                 }
                 set 'size_sm'(val) {
                     if(val === undefined || val === null){this.removeAttribute('size_sm')}
                     else{this.setAttribute('size_sm',val)}
-                }get 'size_md'() {
+                }
+get 'size_md'() {
                     return Number(this.getAttribute('size_md'));
                 }
                 set 'size_md'(val) {
                     if(val === undefined || val === null){this.removeAttribute('size_md')}
                     else{this.setAttribute('size_md',val)}
-                }get 'size_lg'() {
+                }
+get 'size_lg'() {
                     return Number(this.getAttribute('size_lg'));
                 }
                 set 'size_lg'(val) {
                     if(val === undefined || val === null){this.removeAttribute('size_lg')}
                     else{this.setAttribute('size_lg',val)}
-                }get 'size_xl'() {
+                }
+get 'size_xl'() {
                     return Number(this.getAttribute('size_xl'));
                 }
                 set 'size_xl'(val) {
                     if(val === undefined || val === null){this.removeAttribute('size_xl')}
                     else{this.setAttribute('size_xl',val)}
-                }get 'offset'() {
+                }
+get 'offset'() {
                     return Number(this.getAttribute('offset'));
                 }
                 set 'offset'(val) {
                     if(val === undefined || val === null){this.removeAttribute('offset')}
                     else{this.setAttribute('offset',val)}
-                }get 'offset_xs'() {
+                }
+get 'offset_xs'() {
                     return Number(this.getAttribute('offset_xs'));
                 }
                 set 'offset_xs'(val) {
                     if(val === undefined || val === null){this.removeAttribute('offset_xs')}
                     else{this.setAttribute('offset_xs',val)}
-                }get 'offset_sm'() {
+                }
+get 'offset_sm'() {
                     return Number(this.getAttribute('offset_sm'));
                 }
                 set 'offset_sm'(val) {
                     if(val === undefined || val === null){this.removeAttribute('offset_sm')}
                     else{this.setAttribute('offset_sm',val)}
-                }get 'offset_md'() {
+                }
+get 'offset_md'() {
                     return Number(this.getAttribute('offset_md'));
                 }
                 set 'offset_md'(val) {
                     if(val === undefined || val === null){this.removeAttribute('offset_md')}
                     else{this.setAttribute('offset_md',val)}
-                }get 'offset_lg'() {
+                }
+get 'offset_lg'() {
                     return Number(this.getAttribute('offset_lg'));
                 }
                 set 'offset_lg'(val) {
                     if(val === undefined || val === null){this.removeAttribute('offset_lg')}
                     else{this.setAttribute('offset_lg',val)}
-                }get 'offset_xl'() {
+                }
+get 'offset_xl'() {
                     return Number(this.getAttribute('offset_xl'));
                 }
                 set 'offset_xl'(val) {
                     if(val === undefined || val === null){this.removeAttribute('offset_xl')}
                     else{this.setAttribute('offset_xl',val)}
-                }get 'offset_right'() {
+                }
+get 'offset_right'() {
                     return Number(this.getAttribute('offset_right'));
                 }
                 set 'offset_right'(val) {
                     if(val === undefined || val === null){this.removeAttribute('offset_right')}
                     else{this.setAttribute('offset_right',val)}
-                }get 'offset_right_xs'() {
+                }
+get 'offset_right_xs'() {
                     return Number(this.getAttribute('offset_right_xs'));
                 }
                 set 'offset_right_xs'(val) {
                     if(val === undefined || val === null){this.removeAttribute('offset_right_xs')}
                     else{this.setAttribute('offset_right_xs',val)}
-                }get 'offset_right_sm'() {
+                }
+get 'offset_right_sm'() {
                     return Number(this.getAttribute('offset_right_sm'));
                 }
                 set 'offset_right_sm'(val) {
                     if(val === undefined || val === null){this.removeAttribute('offset_right_sm')}
                     else{this.setAttribute('offset_right_sm',val)}
-                }get 'offset_right_md'() {
+                }
+get 'offset_right_md'() {
                     return Number(this.getAttribute('offset_right_md'));
                 }
                 set 'offset_right_md'(val) {
                     if(val === undefined || val === null){this.removeAttribute('offset_right_md')}
                     else{this.setAttribute('offset_right_md',val)}
-                }get 'offset_right_lg'() {
+                }
+get 'offset_right_lg'() {
                     return Number(this.getAttribute('offset_right_lg'));
                 }
                 set 'offset_right_lg'(val) {
                     if(val === undefined || val === null){this.removeAttribute('offset_right_lg')}
                     else{this.setAttribute('offset_right_lg',val)}
-                }get 'offset_right_xl'() {
+                }
+get 'offset_right_xl'() {
                     return Number(this.getAttribute('offset_right_xl'));
                 }
                 set 'offset_right_xl'(val) {
                     if(val === undefined || val === null){this.removeAttribute('offset_right_xl')}
                     else{this.setAttribute('offset_right_xl',val)}
-                }get 'nobreak'() {
+                }
+get 'nobreak'() {
                 return this.hasAttribute('nobreak');
             }
             set 'nobreak'(val) {
@@ -4070,7 +4108,8 @@ Layout.DynamicCol = class DynamicCol extends Aventus.WebComponent {
                 } else{
                     this.removeAttribute('nobreak');
                 }
-            }get 'center'() {
+            }
+get 'center'() {
                 return this.hasAttribute('center');
             }
             set 'center'(val) {
@@ -4080,7 +4119,8 @@ Layout.DynamicCol = class DynamicCol extends Aventus.WebComponent {
                 } else{
                     this.removeAttribute('center');
                 }
-            }    static __style = `:host{display:flex;flex-direction:column;padding:0 10px;width:100%;margin-left:0;margin-right:0}:host([nobreak]){white-space:nowrap;text-overflow:ellipsis;overflow:hidden}:host([center]){text-align:center}:host([size="0"]){width:0%;display:flex}:host([offset="0"]){margin-left:0%}:host([offset-right="0"]){margin-right:0%}:host([size="1"]){width:8.3333333333%;display:flex}:host([offset="1"]){margin-left:8.3333333333%}:host([offset-right="1"]){margin-right:8.3333333333%}:host([size="2"]){width:16.6666666667%;display:flex}:host([offset="2"]){margin-left:16.6666666667%}:host([offset-right="2"]){margin-right:16.6666666667%}:host([size="3"]){width:25%;display:flex}:host([offset="3"]){margin-left:25%}:host([offset-right="3"]){margin-right:25%}:host([size="4"]){width:33.3333333333%;display:flex}:host([offset="4"]){margin-left:33.3333333333%}:host([offset-right="4"]){margin-right:33.3333333333%}:host([size="5"]){width:41.6666666667%;display:flex}:host([offset="5"]){margin-left:41.6666666667%}:host([offset-right="5"]){margin-right:41.6666666667%}:host([size="6"]){width:50%;display:flex}:host([offset="6"]){margin-left:50%}:host([offset-right="6"]){margin-right:50%}:host([size="7"]){width:58.3333333333%;display:flex}:host([offset="7"]){margin-left:58.3333333333%}:host([offset-right="7"]){margin-right:58.3333333333%}:host([size="8"]){width:66.6666666667%;display:flex}:host([offset="8"]){margin-left:66.6666666667%}:host([offset-right="8"]){margin-right:66.6666666667%}:host([size="9"]){width:75%;display:flex}:host([offset="9"]){margin-left:75%}:host([offset-right="9"]){margin-right:75%}:host([size="10"]){width:83.3333333333%;display:flex}:host([offset="10"]){margin-left:83.3333333333%}:host([offset-right="10"]){margin-right:83.3333333333%}:host([size="11"]){width:91.6666666667%;display:flex}:host([offset="11"]){margin-left:91.6666666667%}:host([offset-right="11"]){margin-right:91.6666666667%}:host([size="12"]){width:100%;display:flex}:host([offset="12"]){margin-left:100%}:host([offset-right="12"]){margin-right:100%}`;
+            }
+    static __style = `:host{display:flex;flex-direction:column;padding:0 10px;width:100%;margin-left:0;margin-right:0}:host([nobreak]){white-space:nowrap;text-overflow:ellipsis;overflow:hidden}:host([center]){text-align:center}:host([size="0"]){width:0%;display:flex}:host([offset="0"]){margin-left:0%}:host([offset-right="0"]){margin-right:0%}:host([size="1"]){width:8.3333333333%;display:flex}:host([offset="1"]){margin-left:8.3333333333%}:host([offset-right="1"]){margin-right:8.3333333333%}:host([size="2"]){width:16.6666666667%;display:flex}:host([offset="2"]){margin-left:16.6666666667%}:host([offset-right="2"]){margin-right:16.6666666667%}:host([size="3"]){width:25%;display:flex}:host([offset="3"]){margin-left:25%}:host([offset-right="3"]){margin-right:25%}:host([size="4"]){width:33.3333333333%;display:flex}:host([offset="4"]){margin-left:33.3333333333%}:host([offset-right="4"]){margin-right:33.3333333333%}:host([size="5"]){width:41.6666666667%;display:flex}:host([offset="5"]){margin-left:41.6666666667%}:host([offset-right="5"]){margin-right:41.6666666667%}:host([size="6"]){width:50%;display:flex}:host([offset="6"]){margin-left:50%}:host([offset-right="6"]){margin-right:50%}:host([size="7"]){width:58.3333333333%;display:flex}:host([offset="7"]){margin-left:58.3333333333%}:host([offset-right="7"]){margin-right:58.3333333333%}:host([size="8"]){width:66.6666666667%;display:flex}:host([offset="8"]){margin-left:66.6666666667%}:host([offset-right="8"]){margin-right:66.6666666667%}:host([size="9"]){width:75%;display:flex}:host([offset="9"]){margin-left:75%}:host([offset-right="9"]){margin-right:75%}:host([size="10"]){width:83.3333333333%;display:flex}:host([offset="10"]){margin-left:83.3333333333%}:host([offset-right="10"]){margin-right:83.3333333333%}:host([size="11"]){width:91.6666666667%;display:flex}:host([offset="11"]){margin-left:91.6666666667%}:host([offset-right="11"]){margin-right:91.6666666667%}:host([size="12"]){width:100%;display:flex}:host([offset="12"]){margin-left:100%}:host([offset-right="12"]){margin-right:100%}`;
     __getStatic() {
         return DynamicCol;
     }
@@ -4098,8 +4138,48 @@ Layout.DynamicCol = class DynamicCol extends Aventus.WebComponent {
     getClassName() {
         return "DynamicCol";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('size')){ this['size'] = undefined; }if(!this.hasAttribute('size_xs')){ this['size_xs'] = undefined; }if(!this.hasAttribute('size_sm')){ this['size_sm'] = undefined; }if(!this.hasAttribute('size_md')){ this['size_md'] = undefined; }if(!this.hasAttribute('size_lg')){ this['size_lg'] = undefined; }if(!this.hasAttribute('size_xl')){ this['size_xl'] = undefined; }if(!this.hasAttribute('offset')){ this['offset'] = undefined; }if(!this.hasAttribute('offset_xs')){ this['offset_xs'] = undefined; }if(!this.hasAttribute('offset_sm')){ this['offset_sm'] = undefined; }if(!this.hasAttribute('offset_md')){ this['offset_md'] = undefined; }if(!this.hasAttribute('offset_lg')){ this['offset_lg'] = undefined; }if(!this.hasAttribute('offset_xl')){ this['offset_xl'] = undefined; }if(!this.hasAttribute('offset_right')){ this['offset_right'] = undefined; }if(!this.hasAttribute('offset_right_xs')){ this['offset_right_xs'] = undefined; }if(!this.hasAttribute('offset_right_sm')){ this['offset_right_sm'] = undefined; }if(!this.hasAttribute('offset_right_md')){ this['offset_right_md'] = undefined; }if(!this.hasAttribute('offset_right_lg')){ this['offset_right_lg'] = undefined; }if(!this.hasAttribute('offset_right_xl')){ this['offset_right_xl'] = undefined; }if(!this.hasAttribute('nobreak')) { this.attributeChangedCallback('nobreak', false, false); }if(!this.hasAttribute('center')) { this.attributeChangedCallback('center', false, false); } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('size');this.__upgradeProperty('size_xs');this.__upgradeProperty('size_sm');this.__upgradeProperty('size_md');this.__upgradeProperty('size_lg');this.__upgradeProperty('size_xl');this.__upgradeProperty('offset');this.__upgradeProperty('offset_xs');this.__upgradeProperty('offset_sm');this.__upgradeProperty('offset_md');this.__upgradeProperty('offset_lg');this.__upgradeProperty('offset_xl');this.__upgradeProperty('offset_right');this.__upgradeProperty('offset_right_xs');this.__upgradeProperty('offset_right_sm');this.__upgradeProperty('offset_right_md');this.__upgradeProperty('offset_right_lg');this.__upgradeProperty('offset_right_xl');this.__upgradeProperty('nobreak');this.__upgradeProperty('center'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('size')){ this['size'] = undefined; }
+if(!this.hasAttribute('size_xs')){ this['size_xs'] = undefined; }
+if(!this.hasAttribute('size_sm')){ this['size_sm'] = undefined; }
+if(!this.hasAttribute('size_md')){ this['size_md'] = undefined; }
+if(!this.hasAttribute('size_lg')){ this['size_lg'] = undefined; }
+if(!this.hasAttribute('size_xl')){ this['size_xl'] = undefined; }
+if(!this.hasAttribute('offset')){ this['offset'] = undefined; }
+if(!this.hasAttribute('offset_xs')){ this['offset_xs'] = undefined; }
+if(!this.hasAttribute('offset_sm')){ this['offset_sm'] = undefined; }
+if(!this.hasAttribute('offset_md')){ this['offset_md'] = undefined; }
+if(!this.hasAttribute('offset_lg')){ this['offset_lg'] = undefined; }
+if(!this.hasAttribute('offset_xl')){ this['offset_xl'] = undefined; }
+if(!this.hasAttribute('offset_right')){ this['offset_right'] = undefined; }
+if(!this.hasAttribute('offset_right_xs')){ this['offset_right_xs'] = undefined; }
+if(!this.hasAttribute('offset_right_sm')){ this['offset_right_sm'] = undefined; }
+if(!this.hasAttribute('offset_right_md')){ this['offset_right_md'] = undefined; }
+if(!this.hasAttribute('offset_right_lg')){ this['offset_right_lg'] = undefined; }
+if(!this.hasAttribute('offset_right_xl')){ this['offset_right_xl'] = undefined; }
+if(!this.hasAttribute('nobreak')) { this.attributeChangedCallback('nobreak', false, false); }
+if(!this.hasAttribute('center')) { this.attributeChangedCallback('center', false, false); }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('size');
+this.__upgradeProperty('size_xs');
+this.__upgradeProperty('size_sm');
+this.__upgradeProperty('size_md');
+this.__upgradeProperty('size_lg');
+this.__upgradeProperty('size_xl');
+this.__upgradeProperty('offset');
+this.__upgradeProperty('offset_xs');
+this.__upgradeProperty('offset_sm');
+this.__upgradeProperty('offset_md');
+this.__upgradeProperty('offset_lg');
+this.__upgradeProperty('offset_xl');
+this.__upgradeProperty('offset_right');
+this.__upgradeProperty('offset_right_xs');
+this.__upgradeProperty('offset_right_sm');
+this.__upgradeProperty('offset_right_md');
+this.__upgradeProperty('offset_right_lg');
+this.__upgradeProperty('offset_right_xl');
+this.__upgradeProperty('nobreak');
+this.__upgradeProperty('center');
+ }
     __listBoolProps() { return ["nobreak","center"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
 }
 Layout.DynamicCol.Namespace=`${moduleName}.Layout`;
@@ -4119,29 +4199,34 @@ const Img = class Img extends Aventus.WebComponent {
                 } else{
                     this.removeAttribute('cache');
                 }
-            }    get 'src'() {
+            }
+    get 'src'() {
                     return this.getAttribute('src') ?? undefined;
                 }
                 set 'src'(val) {
                     if(val === undefined || val === null){this.removeAttribute('src')}
                     else{this.setAttribute('src',val)}
-                }get 'mode'() {
+                }
+get 'mode'() {
                     return this.getAttribute('mode') ?? undefined;
                 }
                 set 'mode'(val) {
                     if(val === undefined || val === null){this.removeAttribute('mode')}
                     else{this.setAttribute('mode',val)}
-                }    isCalculing;
+                }
+    isCalculing;
     maxCalculateSize = 10;
     ratio = 1;
     resizeObserver;
     __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("src", ((target) => {
     target.onSrcChanged();
-}));this.__addPropertyActions("mode", ((target) => {
+}));
+this.__addPropertyActions("mode", ((target) => {
     if (target.src != "") {
         target.calculateSize();
     }
-})); }
+}));
+ }
     static __style = `:host{--internal-img-color: var(--img-color);--internal-img-stroke-color: var(--img-stroke-color, var(--internal-img-color));--internal-img-fill-color: var(--img-fill-color, var(--internal-img-color));--internal-img-color-transition: var(--img-color-transition, none)}:host{display:inline-block;overflow:hidden;font-size:0}:host *{box-sizing:border-box}:host img{opacity:0;transition:filter .3s linear}:host .svg{display:none;height:100%;width:100%}:host .svg svg{height:100%;width:100%}:host([src$=".svg"]) img{display:none}:host([src$=".svg"]) .svg{display:flex}:host([src$=".svg"]) .svg svg{transition:var(--internal-img-color-transition);stroke:var(--internal-img-stroke-color);fill:var(--internal-img-fill-color)}:host([display_bigger]) img{cursor:pointer}:host([display_bigger]) img:hover{filter:brightness(50%)}`;
     __getStatic() {
         return Img;
@@ -4156,7 +4241,8 @@ const Img = class Img extends Aventus.WebComponent {
         blocks: { 'default':`<img _id="img_0" /><div class="svg" _id="img_1"></div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "imgEl",
@@ -4171,12 +4257,19 @@ const Img = class Img extends Aventus.WebComponent {
       ]
     }
   ]
-}); }
+});
+ }
     getClassName() {
         return "Img";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('cache')) { this.attributeChangedCallback('cache', false, false); }if(!this.hasAttribute('src')){ this['src'] = undefined; }if(!this.hasAttribute('mode')){ this['mode'] = "contains"; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('cache');this.__upgradeProperty('src');this.__upgradeProperty('mode'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('cache')) { this.attributeChangedCallback('cache', false, false); }
+if(!this.hasAttribute('src')){ this['src'] = undefined; }
+if(!this.hasAttribute('mode')){ this['mode'] = "contains"; }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('cache');
+this.__upgradeProperty('src');
+this.__upgradeProperty('mode');
+ }
     __listBoolProps() { return ["cache"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     calculateSize(attempt = 0) {
         if (this.isCalculing || !this.imgEl || !this.svgEl) {
@@ -4343,7 +4436,8 @@ Form.Input = class Input extends Aventus.WebComponent {
                 } else{
                     this.removeAttribute('required');
                 }
-            }get 'disabled'() {
+            }
+get 'disabled'() {
                 return this.hasAttribute('disabled');
             }
             set 'disabled'(val) {
@@ -4353,42 +4447,49 @@ Form.Input = class Input extends Aventus.WebComponent {
                 } else{
                     this.removeAttribute('disabled');
                 }
-            }get 'min_length'() {
+            }
+get 'min_length'() {
                     return Number(this.getAttribute('min_length'));
                 }
                 set 'min_length'(val) {
                     if(val === undefined || val === null){this.removeAttribute('min_length')}
                     else{this.setAttribute('min_length',val)}
-                }get 'max_length'() {
+                }
+get 'max_length'() {
                     return Number(this.getAttribute('max_length'));
                 }
                 set 'max_length'(val) {
                     if(val === undefined || val === null){this.removeAttribute('max_length')}
                     else{this.setAttribute('max_length',val)}
-                }get 'pattern'() {
+                }
+get 'pattern'() {
                     return this.getAttribute('pattern') ?? undefined;
                 }
                 set 'pattern'(val) {
                     if(val === undefined || val === null){this.removeAttribute('pattern')}
                     else{this.setAttribute('pattern',val)}
-                }    get 'value'() {
+                }
+    get 'value'() {
                     return this.getAttribute('value') ?? undefined;
                 }
                 set 'value'(val) {
                     if(val === undefined || val === null){this.removeAttribute('value')}
                     else{this.setAttribute('value',val)}
-                }get 'label'() {
+                }
+get 'label'() {
                     return this.getAttribute('label') ?? undefined;
                 }
                 set 'label'(val) {
                     if(val === undefined || val === null){this.removeAttribute('label')}
                     else{this.setAttribute('label',val)}
-                }    customValidationRules = [];
+                }
+    customValidationRules = [];
     onChange = new Aventus.Callback();
     errors = [];
     __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("value", ((target) => {
     target.onAttrChange();
-})); }
+}));
+ }
     static __style = `:host{--internal-input-font-size: var(--input-font-size, 16px);--internal-input-label-font-size: var(--input-label-font-size, 12px);--internal-input-label-spacing: var(--input-label-spacing, 2px)}:host{margin:16px;position:relative}:host input{background-color:rgba(0,0,0,0);background-image:linear-gradient(#3d5afe, #3d5afe),linear-gradient(to top, transparent 1px, #afafaf 1px);background-position:center bottom;background-repeat:no-repeat;background-size:0% 2px,100% 2px;border:none;border-radius:0;color:#212121;display:inline-block;font:inherit;font-size:var(--internal-input-font-size);font-weight:400;margin:0;outline:none;padding:0;padding-bottom:2px;padding-top:calc(var(--internal-input-label-font-size) + var(--internal-input-label-spacing));touch-action:manipulation;-webkit-transform:translate3d(0, 0, 0);user-select:auto;vertical-align:middle;width:100%}:host input:focus{background-size:100% 2px,100% 2px;transition:background-size .3s ease}:host label{color:#3d5afe;font-size:var(--internal-input-label-font-size);-webkit-font-smoothing:antialiased;font-weight:400;left:0;pointer-events:none;position:absolute;top:0;transition:top .1s ease-in,color .1s ease-in,font-size .1s ease-in;user-select:none}:host .grid{display:grid;grid-template-rows:1fr}:host .error{color:red;display:grid;font-size:12px;margin-top:5px;transition:all linear .5s;grid-column:1;grid-row:1}:host([value=""]) label{color:#afafaf;font-size:var(--internal-input-font-size);top:calc(var(--internal-input-label-font-size) + var(--internal-input-label-spacing))}`;
     __getStatic() {
         return Input;
@@ -4400,10 +4501,13 @@ Form.Input = class Input extends Aventus.WebComponent {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<input id="input" _id="input_0" /><label for="input" _id="input_1"></label><div class="grid">	<div class="error" _id="input_2"></div></div>` }
+        blocks: { 'default':`<input id="input" _id="input_0" /><label for="input" _id="input_1"></label><div class="grid">
+	<div class="error" _id="input_2"></div>
+</div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "inputEl",
@@ -4435,12 +4539,28 @@ Form.Input = class Input extends Aventus.WebComponent {
       "fct": (e, c) => c.component.inputChange(e)
     }
   ]
-});this.__getStatic().__template.setSchema({globals:["this"]}); }
+});
+this.__getStatic().__template.setSchema({globals:["this"]});
+ }
     getClassName() {
         return "Input";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('required')) { this.attributeChangedCallback('required', false, false); }if(!this.hasAttribute('disabled')) { this.attributeChangedCallback('disabled', false, false); }if(!this.hasAttribute('min_length')){ this['min_length'] = undefined; }if(!this.hasAttribute('max_length')){ this['max_length'] = undefined; }if(!this.hasAttribute('pattern')){ this['pattern'] = undefined; }if(!this.hasAttribute('value')){ this['value'] = ""; }if(!this.hasAttribute('label')){ this['label'] = ""; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('required');this.__upgradeProperty('disabled');this.__upgradeProperty('min_length');this.__upgradeProperty('max_length');this.__upgradeProperty('pattern');this.__upgradeProperty('value');this.__upgradeProperty('label'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('required')) { this.attributeChangedCallback('required', false, false); }
+if(!this.hasAttribute('disabled')) { this.attributeChangedCallback('disabled', false, false); }
+if(!this.hasAttribute('min_length')){ this['min_length'] = undefined; }
+if(!this.hasAttribute('max_length')){ this['max_length'] = undefined; }
+if(!this.hasAttribute('pattern')){ this['pattern'] = undefined; }
+if(!this.hasAttribute('value')){ this['value'] = ""; }
+if(!this.hasAttribute('label')){ this['label'] = ""; }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('required');
+this.__upgradeProperty('disabled');
+this.__upgradeProperty('min_length');
+this.__upgradeProperty('max_length');
+this.__upgradeProperty('pattern');
+this.__upgradeProperty('value');
+this.__upgradeProperty('label');
+ }
     __listBoolProps() { return ["required","disabled"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     onAttrChange() {
         if (this.inputEl && this.inputEl.value != this.value) {
@@ -4541,7 +4661,8 @@ Form.Checkbox = class Checkbox extends Aventus.WebComponent {
                 } else{
                     this.removeAttribute('disabled');
                 }
-            }get 'reverse'() {
+            }
+get 'reverse'() {
                 return this.hasAttribute('reverse');
             }
             set 'reverse'(val) {
@@ -4551,13 +4672,15 @@ Form.Checkbox = class Checkbox extends Aventus.WebComponent {
                 } else{
                     this.removeAttribute('reverse');
                 }
-            }    get 'label'() {
+            }
+    get 'label'() {
                     return this.getAttribute('label') ?? undefined;
                 }
                 set 'label'(val) {
                     if(val === undefined || val === null){this.removeAttribute('label')}
                     else{this.setAttribute('label',val)}
-                }get 'checked'() {
+                }
+get 'checked'() {
                 return this.hasAttribute('checked');
             }
             set 'checked'(val) {
@@ -4567,20 +4690,24 @@ Form.Checkbox = class Checkbox extends Aventus.WebComponent {
                 } else{
                     this.removeAttribute('checked');
                 }
-            }    get 'value'() {
+            }
+    get 'value'() {
 						return this.__watch["value"];
 					}
 					set 'value'(val) {
 						this.__watch["value"] = val;
-					}    onChange = new Aventus.Callback();
+					}
+    onChange = new Aventus.Callback();
     __registerWatchesActions() {
                 this.__addWatchesActions("value", ((target) => {
     target.syncValue('value');
-}));                super.__registerWatchesActions();
+}));
+                super.__registerWatchesActions();
             }
     __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("checked", ((target) => {
     target.syncValue('checked');
-})); }
+}));
+ }
     static __style = `:host{--internal-checkbox-size: var(--checkbox-size, 18px);--internal-checkbox-label-space: var(--checkbox-label-space, 8px);--internal-checkbox-border-size: var(--checkbox-border-size, 2px);--internal-checkbox-tick-size: var(--checkbox-tick-size, var(--internal-checkbox-size));--internal-checkbox-tick-stroke-size: var(--checkbox-tick-stroke-size, 2px);--internal-checkbox-border-radius: var(--checkbox-border-radius, 2px)}:host{color:#212121;cursor:pointer;display:flex;font-family:inherit;-webkit-font-smoothing:antialiased;font-weight:400;position:relative;user-select:none;align-items:center}:host .checkbox{align-items:center;border:var(--internal-checkbox-border-size) solid #37474f;border-radius:var(--internal-checkbox-border-radius);display:flex;height:var(--internal-checkbox-size);justify-content:center;overflow:visible;position:relative;-webkit-tap-highlight-color:rgba(0,0,0,0);transition:background-color .1s linear;width:var(--internal-checkbox-size)}:host .checkbox .tick{flex-shrink:0;height:var(--internal-checkbox-tick-size);stroke:#fff;stroke-linecap:round;stroke-linejoin:round;stroke-width:var(--internal-checkbox-tick-stroke-size);transform:scale(0);transition:transform .2s ease;width:var(--internal-checkbox-tick-size)}:host label:not(:empty){cursor:pointer;margin-left:var(--internal-checkbox-label-space)}:host([checked]) .checkbox{background-color:#37474f}:host([checked]) .checkbox .tick{transform:scale(1)}:host([reverse]) .checkbox{order:2}:host([reverse]) label:not(:empty){order:1;margin-right:var(--internal-checkbox-label-space);margin-left:0}`;
     __getStatic() {
         return Checkbox;
@@ -4592,10 +4719,15 @@ Form.Checkbox = class Checkbox extends Aventus.WebComponent {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<span class="checkbox" _id="checkbox_0">	<svg class="tick" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">		<path d="M4.89163 13.2687L9.16582 17.5427L18.7085 8"></path>	</svg></span><label _id="checkbox_1"></label>` }
+        blocks: { 'default':`<span class="checkbox" _id="checkbox_0">
+	<svg class="tick" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+		<path d="M4.89163 13.2687L9.16582 17.5427L18.7085 8"></path>
+	</svg>
+</span><label _id="checkbox_1"></label>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "checkboxEl",
@@ -4604,12 +4736,23 @@ Form.Checkbox = class Checkbox extends Aventus.WebComponent {
       ]
     }
   ]
-});this.__getStatic().__template.setSchema({globals:["this"]}); }
+});
+this.__getStatic().__template.setSchema({globals:["this"]});
+ }
     getClassName() {
         return "Checkbox";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('disabled')) { this.attributeChangedCallback('disabled', false, false); }if(!this.hasAttribute('reverse')) { this.attributeChangedCallback('reverse', false, false); }if(!this.hasAttribute('label')){ this['label'] = ""; }if(!this.hasAttribute('checked')) { this.attributeChangedCallback('checked', false, false); }if(!this["value"]){ this["value"] = false;} }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('disabled');this.__upgradeProperty('reverse');this.__upgradeProperty('label');this.__upgradeProperty('checked'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('disabled')) { this.attributeChangedCallback('disabled', false, false); }
+if(!this.hasAttribute('reverse')) { this.attributeChangedCallback('reverse', false, false); }
+if(!this.hasAttribute('label')){ this['label'] = ""; }
+if(!this.hasAttribute('checked')) { this.attributeChangedCallback('checked', false, false); }
+if(!this["value"]){ this["value"] = false;}
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('disabled');
+this.__upgradeProperty('reverse');
+this.__upgradeProperty('label');
+this.__upgradeProperty('checked');
+ }
     __listBoolProps() { return ["disabled","reverse","checked"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     syncValue(master) {
         if (this.checked != this.value) {
@@ -4747,7 +4890,8 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
                 } else{
                     this.removeAttribute('y_scroll_visible');
                 }
-            }get 'x_scroll_visible'() {
+            }
+get 'x_scroll_visible'() {
                 return this.hasAttribute('x_scroll_visible');
             }
             set 'x_scroll_visible'(val) {
@@ -4757,7 +4901,8 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
                 } else{
                     this.removeAttribute('x_scroll_visible');
                 }
-            }get 'floating_scroll'() {
+            }
+get 'floating_scroll'() {
                 return this.hasAttribute('floating_scroll');
             }
             set 'floating_scroll'(val) {
@@ -4767,7 +4912,8 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
                 } else{
                     this.removeAttribute('floating_scroll');
                 }
-            }get 'x_scroll'() {
+            }
+get 'x_scroll'() {
                 return this.hasAttribute('x_scroll');
             }
             set 'x_scroll'(val) {
@@ -4777,7 +4923,8 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
                 } else{
                     this.removeAttribute('x_scroll');
                 }
-            }get 'y_scroll'() {
+            }
+get 'y_scroll'() {
                 return this.hasAttribute('y_scroll');
             }
             set 'y_scroll'(val) {
@@ -4787,7 +4934,8 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
                 } else{
                     this.removeAttribute('y_scroll');
                 }
-            }get 'auto_hide'() {
+            }
+get 'auto_hide'() {
                 return this.hasAttribute('auto_hide');
             }
             set 'auto_hide'(val) {
@@ -4797,13 +4945,15 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
                 } else{
                     this.removeAttribute('auto_hide');
                 }
-            }get 'break'() {
+            }
+get 'break'() {
                     return Number(this.getAttribute('break'));
                 }
                 set 'break'(val) {
                     if(val === undefined || val === null){this.removeAttribute('break')}
                     else{this.setAttribute('break',val)}
-                }get 'disable'() {
+                }
+get 'disable'() {
                 return this.hasAttribute('disable');
             }
             set 'disable'(val) {
@@ -4813,7 +4963,8 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
                 } else{
                     this.removeAttribute('disable');
                 }
-            }get 'no_user_select'() {
+            }
+get 'no_user_select'() {
                 return this.hasAttribute('no_user_select');
             }
             set 'no_user_select'(val) {
@@ -4823,13 +4974,15 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
                 } else{
                     this.removeAttribute('no_user_select');
                 }
-            }    get 'zoom'() {
+            }
+    get 'zoom'() {
                     return Number(this.getAttribute('zoom'));
                 }
                 set 'zoom'(val) {
                     if(val === undefined || val === null){this.removeAttribute('zoom')}
                     else{this.setAttribute('zoom',val)}
-                }    observer;
+                }
+    observer;
     display = { x: 0, y: 0 };
     max = {
         x: 0,
@@ -4887,9 +5040,18 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
     renderAnimation;
     __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("zoom", ((target) => {
     target.changeZoom();
-})); }
+}));
+ }
     static __style = `:host{--internal-scrollbar-container-color: var(--scrollbar-container-color, transparent);--internal-scrollbar-color: var(--scrollbar-color, #757575);--internal-scrollbar-active-color: var(--scrollbar-active-color, #858585);--internal-scroller-width: var(--scroller-width, 6px);--internal-scroller-top: var(--scroller-top, 3px);--internal-scroller-bottom: var(--scroller-bottom, 3px);--internal-scroller-right: var(--scroller-right, 3px);--internal-scroller-left: var(--scroller-left, 3px)}:host{display:block;height:100%;overflow:hidden;position:relative;-webkit-user-drag:none;-khtml-user-drag:none;-moz-user-drag:none;-o-user-drag:none;width:100%}:host .scroll-main-container{display:block;height:100%;position:relative;width:100%}:host .scroll-main-container .content-zoom{display:block;height:100%;position:relative;transform-origin:0 0;width:100%;z-index:4}:host .scroll-main-container .content-zoom .content-hidder{display:block;height:100%;overflow:hidden;position:relative;width:100%}:host .scroll-main-container .content-zoom .content-hidder .content-wrapper{display:inline-block;height:100%;min-height:100%;min-width:100%;position:relative;width:100%}:host .scroll-main-container .scroller-wrapper .container-scroller{display:none;overflow:hidden;position:absolute;z-index:5;transition:transform .2s linear}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller{background-color:var(--internal-scrollbar-container-color);border-radius:5px}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller .scroller{background-color:var(--internal-scrollbar-color);border-radius:5px;cursor:pointer;position:absolute;-webkit-tap-highlight-color:rgba(0,0,0,0);touch-action:none;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .scroller.active{background-color:var(--internal-scrollbar-active-color)}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical{height:calc(100% - var(--internal-scroller-bottom)*2 - var(--internal-scroller-width));padding-left:var(--internal-scroller-left);right:var(--internal-scroller-right);top:var(--internal-scroller-bottom);transform:0;width:calc(var(--internal-scroller-width) + var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical.hide{transform:translateX(calc(var(--internal-scroller-width) + var(--internal-scroller-left)))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller .scroller{width:calc(100% - var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal{bottom:var(--internal-scroller-bottom);height:calc(var(--internal-scroller-width) + var(--internal-scroller-top));left:var(--internal-scroller-right);padding-top:var(--internal-scroller-top);transform:0;width:calc(100% - var(--internal-scroller-right)*2 - var(--internal-scroller-width))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal.hide{transform:translateY(calc(var(--internal-scroller-width) + var(--internal-scroller-top)))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller .scroller{height:calc(100% - var(--internal-scroller-top))}:host([y_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{height:auto}:host([x_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{width:auto}:host([y_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.vertical{display:block}:host([x_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.horizontal{display:block}:host([no_user_select]) .content-wrapper *{user-select:none}:host([no_user_select]) ::slotted{user-select:none}`;
-    constructor() {            super();            this.renderAnimation = this.createAnimation();            this.onWheel = this.onWheel.bind(this);            this.onTouchStart = this.onTouchStart.bind(this);            this.onTouchMove = this.onTouchMove.bind(this);            this.onTouchEnd = this.onTouchEnd.bind(this);            this.touchRecord = new TouchRecord();        }
+    constructor() {
+            super();
+            this.renderAnimation = this.createAnimation();
+            this.onWheel = this.onWheel.bind(this);
+            this.onTouchStart = this.onTouchStart.bind(this);
+            this.onTouchMove = this.onTouchMove.bind(this);
+            this.onTouchEnd = this.onTouchEnd.bind(this);
+            this.touchRecord = new TouchRecord();
+        }
     __getStatic() {
         return Scrollable;
     }
@@ -4901,10 +5063,31 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
     __getHtml() {
     this.__getStatic().__template.setHTML({
         slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<div class="scroll-main-container" _id="scrollable_0">    <div class="content-zoom" _id="scrollable_1">        <div class="content-hidder" _id="scrollable_2">            <div class="content-wrapper" _id="scrollable_3">                <slot></slot>            </div>        </div>    </div>    <div class="scroller-wrapper">        <div class="container-scroller vertical" _id="scrollable_4">            <div class="shadow-scroller">                <div class="scroller" _id="scrollable_5"></div>            </div>        </div>        <div class="container-scroller horizontal" _id="scrollable_6">            <div class="shadow-scroller">                <div class="scroller" _id="scrollable_7"></div>            </div>        </div>    </div></div>` }
+        blocks: { 'default':`<div class="scroll-main-container" _id="scrollable_0">
+    <div class="content-zoom" _id="scrollable_1">
+        <div class="content-hidder" _id="scrollable_2">
+            <div class="content-wrapper" _id="scrollable_3">
+                <slot></slot>
+            </div>
+        </div>
+    </div>
+    <div class="scroller-wrapper">
+        <div class="container-scroller vertical" _id="scrollable_4">
+            <div class="shadow-scroller">
+                <div class="scroller" _id="scrollable_5"></div>
+            </div>
+        </div>
+        <div class="container-scroller horizontal" _id="scrollable_6">
+            <div class="shadow-scroller">
+                <div class="scroller" _id="scrollable_7"></div>
+            </div>
+        </div>
+    </div>
+</div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "mainContainer",
@@ -4955,12 +5138,33 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
       ]
     }
   ]
-}); }
+});
+ }
     getClassName() {
         return "Scrollable";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('y_scroll_visible')) { this.attributeChangedCallback('y_scroll_visible', false, false); }if(!this.hasAttribute('x_scroll_visible')) { this.attributeChangedCallback('x_scroll_visible', false, false); }if(!this.hasAttribute('floating_scroll')) { this.attributeChangedCallback('floating_scroll', false, false); }if(!this.hasAttribute('x_scroll')) { this.attributeChangedCallback('x_scroll', false, false); }if(!this.hasAttribute('y_scroll')) {this.setAttribute('y_scroll' ,'true'); }if(!this.hasAttribute('auto_hide')) { this.attributeChangedCallback('auto_hide', false, false); }if(!this.hasAttribute('break')){ this['break'] = 0.1; }if(!this.hasAttribute('disable')) { this.attributeChangedCallback('disable', false, false); }if(!this.hasAttribute('no_user_select')) { this.attributeChangedCallback('no_user_select', false, false); }if(!this.hasAttribute('zoom')){ this['zoom'] = 1; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('y_scroll_visible');this.__upgradeProperty('x_scroll_visible');this.__upgradeProperty('floating_scroll');this.__upgradeProperty('x_scroll');this.__upgradeProperty('y_scroll');this.__upgradeProperty('auto_hide');this.__upgradeProperty('break');this.__upgradeProperty('disable');this.__upgradeProperty('no_user_select');this.__upgradeProperty('zoom'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('y_scroll_visible')) { this.attributeChangedCallback('y_scroll_visible', false, false); }
+if(!this.hasAttribute('x_scroll_visible')) { this.attributeChangedCallback('x_scroll_visible', false, false); }
+if(!this.hasAttribute('floating_scroll')) { this.attributeChangedCallback('floating_scroll', false, false); }
+if(!this.hasAttribute('x_scroll')) { this.attributeChangedCallback('x_scroll', false, false); }
+if(!this.hasAttribute('y_scroll')) {this.setAttribute('y_scroll' ,'true'); }
+if(!this.hasAttribute('auto_hide')) { this.attributeChangedCallback('auto_hide', false, false); }
+if(!this.hasAttribute('break')){ this['break'] = 0.1; }
+if(!this.hasAttribute('disable')) { this.attributeChangedCallback('disable', false, false); }
+if(!this.hasAttribute('no_user_select')) { this.attributeChangedCallback('no_user_select', false, false); }
+if(!this.hasAttribute('zoom')){ this['zoom'] = 1; }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('y_scroll_visible');
+this.__upgradeProperty('x_scroll_visible');
+this.__upgradeProperty('floating_scroll');
+this.__upgradeProperty('x_scroll');
+this.__upgradeProperty('y_scroll');
+this.__upgradeProperty('auto_hide');
+this.__upgradeProperty('break');
+this.__upgradeProperty('disable');
+this.__upgradeProperty('no_user_select');
+this.__upgradeProperty('zoom');
+ }
     __listBoolProps() { return ["y_scroll_visible","x_scroll_visible","floating_scroll","x_scroll","y_scroll","auto_hide","disable","no_user_select"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     createAnimation() {
         return new Aventus.Animation({
@@ -5276,10 +5480,13 @@ const App = class App extends Aventus.WebComponent {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<av-scrollable>	<div class="content" _id="app_0"></div></av-scrollable>` }
+        blocks: { 'default':`<av-scrollable>
+	<div class="content" _id="app_0"></div>
+</av-scrollable>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "content",
@@ -5288,7 +5495,8 @@ const App = class App extends Aventus.WebComponent {
       ]
     }
   ]
-}); }
+});
+ }
     getClassName() {
         return "App";
     }
@@ -5317,7 +5525,10 @@ Navigation.Router = class Router extends Aventus.WebComponent {
     }
     page404;
     static __style = `:host{display:block}`;
-    constructor() {            super();            this.validError404 = this.validError404.bind(this);if (this.constructor == Router) { throw "can't instanciate an abstract class"; } }
+    constructor() {
+            super();
+            this.validError404 = this.validError404.bind(this);
+if (this.constructor == Router) { throw "can't instanciate an abstract class"; } }
     __getStatic() {
         return Router;
     }
@@ -5332,7 +5543,8 @@ Navigation.Router = class Router extends Aventus.WebComponent {
         blocks: { 'default':`<slot name="before"></slot><div class="content" _id="router_0"></div><slot name="after"></slot>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "contentEl",
@@ -5341,7 +5553,8 @@ Navigation.Router = class Router extends Aventus.WebComponent {
       ]
     }
   ]
-}); }
+});
+ }
     getClassName() {
         return "Router";
     }
@@ -5463,7 +5676,8 @@ Navigation.Page = class Page extends Aventus.WebComponent {
                 } else{
                     this.removeAttribute('visible');
                 }
-            }    currentRouter;
+            }
+    currentRouter;
     __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("visible", ((target) => {
     if (target.visible) {
         target.onShow();
@@ -5471,7 +5685,8 @@ Navigation.Page = class Page extends Aventus.WebComponent {
     else {
         target.onHide();
     }
-})); }
+}));
+ }
     static __style = `:host{display:none}:host([visible]){display:block}`;
     constructor() { super(); if (this.constructor == Page) { throw "can't instanciate an abstract class"; } }
     __getStatic() {
@@ -5491,8 +5706,10 @@ Navigation.Page = class Page extends Aventus.WebComponent {
     getClassName() {
         return "Page";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('visible')) { this.attributeChangedCallback('visible', false, false); } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('visible'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('visible')) { this.attributeChangedCallback('visible', false, false); }
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('visible');
+ }
     __listBoolProps() { return ["visible"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     async show() {
         this.visible = true;

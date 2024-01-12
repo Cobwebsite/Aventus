@@ -320,7 +320,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
 
                         // TODO correct indentation
                         let t = this._space;
-                        newContent += `${t}/** */\n${t}@Effect({ autoInit: false })\n${t}private ${method.name}(${parameters.join(",")}): ${resultType} {\n`;
+                        newContent += `${t}/** */\n${t}private ${method.name}(${parameters.join(",")}): ${resultType} {\n`;
                         let start = newContent.length;
                         newContent += methodTxt + "\n";
                         let end = newContent.length;
@@ -382,7 +382,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                             let parameters: string[] = getParameters(condition.variables);
                             // TODO correct indentation
                             let t = this._space;
-                            newContent += `${t}/** */\n${t}@Effect({ autoInit: false })\n${t}private ${condition.fctName}(${parameters.join(",")}): NotVoid {\n`;
+                            newContent += `${t}/** */\n${t}private ${condition.fctName}(${parameters.join(",")}): NotVoid {\n`;
                             let start = newContent.length;
                             newContent += conditionTxt + "\n";
                             let end = newContent.length;
@@ -421,7 +421,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                         let parameters: string[] = getParameters(edit.variables);
 
                         let t = this._space;
-                        newContent += `${t}/** */\n${t}@Effect({ autoInit: false })\n${t}private ${edit.editName}(${parameters.join(",")}): { [key: string]: any } {\n`;
+                        newContent += `${t}/** */\n${t}private ${edit.editName}(${parameters.join(",")}): { [key: string]: any } {\n`;
                         let start = newContent.length;
                         newContent += edit.fctTs + "\n";
                         let end = newContent.length;
@@ -480,7 +480,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
 
                         // TODO correct indentation
                         let t = this._space;
-                        newContent += `${t}/** */\n${t}@Effect({ autoInit: false })\n${t}private ${injection.injectFctName}(${parameters.join(",")}): NotVoid {\n`;
+                        newContent += `${t}/** */\n${t}private ${injection.injectFctName}(${parameters.join(",")}): NotVoid {\n`;
                         let start = newContent.length;
                         newContent += injectionTxt + "\n";
                         let end = newContent.length;
@@ -523,8 +523,24 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                     let bindings = htmlFile.fileParsed?.bindings ?? [];
                     for (let binding of bindings) {
                         writeInjection(binding);
-                        let extractTxt = binding.injectTsTxt.replace(/\n/g, ";") + " = v";
-                        let parameters: string[] = ["v: any"].concat(getParameters(binding.variables));
+                        let extractTxt: string;
+                        let parameters: string[] = getParameters(binding.variables);
+
+                        let iParam = 0;
+                        let setVar = "v";
+                        while (binding.variables.includes(setVar)) {
+                            iParam++;
+                            setVar = "v" + iParam;
+                        }
+
+                        parameters = [setVar + ": any"].concat(parameters);
+
+                        if (binding.extractTsCond.length == 0) {
+                            extractTxt = binding.extractTsTxt.replace(/\n/g, ";") + " = " + setVar;
+                        }
+                        else {
+                            extractTxt = "if( " + binding.extractTsCond + " ) { " + binding.extractTsTxt.replace(/\n/g, ";") + " = " + setVar + " }";
+                        }
 
                         // TODO correct indentation
                         let t = this._space;
@@ -582,7 +598,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                 let diagStart = this.file.documentInternal.offsetAt(diagnostic.range.start);
                 let diagEnd = this.file.documentInternal.offsetAt(diagnostic.range.end);
                 let found = false;
-                let avoid = false;
+                let avoid = diagStart >= this.file.contentUser.length;
                 for (let i = 0; i < this.viewMethodsInfo.length; i++) {
                     let start = this.viewMethodsInfo[i].fullStart;
                     let end = this.viewMethodsInfo[i].end;
@@ -633,18 +649,13 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
 
                         break;
                     }
-                    else if (diagStart >= this.file.contentUser.length) {
-                        avoid = true;
-                    }
                 }
 
-                if (!avoid) {
-                    if (found) {
-                        htmlDiags.push(diagnostic);
-                    }
-                    else {
-                        jsDiags.push(diagnostic);
-                    }
+                if (found) {
+                    htmlDiags.push(diagnostic);
+                }
+                else if (!avoid) {
+                    jsDiags.push(diagnostic);
                 }
             }
             this.diagnostics = jsDiags;
@@ -888,6 +899,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
             let diagStart = this.file.documentInternal.offsetAt(format.range.start);
             let diagEnd = this.file.documentInternal.offsetAt(format.range.end);
             let found = false;
+            let avoid = diagStart >= this.file.contentUser.length;
             if (html) {
                 for (let i = 0; i < this.viewMethodsInfo.length; i++) {
                     let start = this.viewMethodsInfo[i].start;
@@ -933,15 +945,10 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                         found = true;
                         break;
                     }
-                    else if (diagStart >= this.file.contentUser.length) {
-                        // outisde the file => mean only visible internal
-                        found = true;
-                        break;
-                    }
                 }
             }
 
-            if (!found) {
+            if (!found && !avoid) {
                 result.js.push(format);
             }
         }

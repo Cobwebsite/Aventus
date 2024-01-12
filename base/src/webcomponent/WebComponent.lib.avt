@@ -5,7 +5,7 @@ import { State } from "../state/State.state.avt";
 import { StateManager, type StateSlug } from "../state/StateManager.state.avt";
 import { ElementExtension } from "./ElementExtension.lib.avt";
 import { Instance } from "../lib/Instance.lib.avt";
-import { Computed, WatchAction, Watcher, type EffectReceiver, type WatcherChange } from "../lib/Watcher.lib.avt";
+import { type Computed, WatchAction, Watcher, type EffectReceiver, type WatcherChange } from "../lib/Watcher.lib.avt";
 
 
 export interface DebuggerConfig {
@@ -548,6 +548,12 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
 
     //#region attributes
 
+    private __registerPropToWatcher(name: string) {
+        if(Watcher._register) {
+            Watcher._register.register(this.getReceiver(name), name, Watcher._register.version);
+        }
+    }
+
     //#region string
     private getStringAttr(name: string) {
         return this.getAttribute(name) ?? undefined;
@@ -557,9 +563,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
         else { this.setAttribute(name, val); }
     }
     private getStringProp(name: string) {
-        if(Watcher._register) {
-            Watcher._register.register(this.getReceiver(name), name);
-        }
+        this.__registerPropToWatcher(name);
         return this.getStringAttr(name);
     }
     //#endregion
@@ -573,9 +577,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
         else { this.setAttribute(name, val); }
     }
     private getNumberProp(name: string) {
-        if(Watcher._register) {
-            Watcher._register.register(this.getReceiver(name), name);
-        }
+        this.__registerPropToWatcher(name);
         return this.getNumberAttr(name);
     }
     //#endregion
@@ -593,9 +595,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
         }
     }
     private getBoolProp(name: string) {
-        if(Watcher._register) {
-            Watcher._register.register(this.getReceiver(name), name);
-        }
+        this.__registerPropToWatcher(name);
         return this.getBoolAttr(name);
     }
     //#endregion
@@ -611,9 +611,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
         else { this.setAttribute(name, valTxt); }
     }
     private getDateProp(name: string) {
-        if(Watcher._register) {
-            Watcher._register.register(this.getReceiver(name), name);
-        }
+        this.__registerPropToWatcher(name);
         return this.getDateAttr(name);
     }
     //#endregion
@@ -629,9 +627,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
         else { this.setAttribute(name, valTxt); }
     }
     private getDateTimeProp(name: string) {
-        if(Watcher._register) {
-            Watcher._register.register(this.getReceiver(name), name);
-        }
+        this.__registerPropToWatcher(name);
         return this.getDateTimeAttr(name);
     }
     //#endregion

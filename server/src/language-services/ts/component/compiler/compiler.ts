@@ -1015,10 +1015,13 @@ export class AventusWebcomponentCompiler {
 
         //#region content
         let contents = template.content;
-        let contentResult: { [id_attr: string]: { fct: string } } = {}
+        let contentResult: { [id_attr: string]: { fct: string, once?: boolean } } = {}
         for (let key in contents) {
             contentResult[key] = {
-                fct: `@_@${contents[key]}@_@`
+                fct: `@_@${contents[key].fct}@_@`
+            }
+            if (contents[key].once) {
+                contentResult[key].once = true;
             }
         }
         if (Object.keys(contentResult).length > 0) {
@@ -1042,6 +1045,9 @@ export class AventusWebcomponentCompiler {
                 eventNames: binding.eventNames,
                 inject: binding.inject,
                 extract: binding.extract
+            }
+            if (binding.once) {
+                temp.once = binding.once;
             }
             if (binding.eventNames.length == 1 && binding.tagName) {
                 let definition = this.build.getWebComponentDefinition(binding.tagName);
@@ -1191,7 +1197,8 @@ export class AventusWebcomponentCompiler {
             let partTxt = "";
             for (let part of _if.parts) {
                 finalTxt += this.writeViewInfo(part.templateAction, false, undefined, part);
-                partTxt += `{
+                let once = part.once ? 'once: true,' : ''
+                partTxt += `{${once}
                     condition: ${part.condition},
                     template: templ${part.templateId}
                 },`

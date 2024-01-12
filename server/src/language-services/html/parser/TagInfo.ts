@@ -1,7 +1,7 @@
 import { Block, CallExpression, Decorator, ForInStatement, ForOfStatement, ForStatement, IfStatement, LabeledStatement, Node, PropertyAccessExpression, ScriptTarget, SyntaxKind, createSourceFile, forEachChild } from 'typescript';
 import { SCSSParsedRule } from '../../scss/LanguageService';
 import { ParserHtml } from './ParserHtml';
-import { ActionChange, ActionIf, ActionIfPart, ActionLoop, HtmlTemplateResult, PressEventMapValues, pressEventMap } from './definition';
+import { ActionBindings, ActionChange, ActionContextEdit, ActionIf, ActionIfPart, ActionInjection, ActionLoop, HtmlTemplateResult, PressEventMapValues, pressEventMap } from './definition';
 
 export class TagInfo {
 	public tagName: string = "";
@@ -24,7 +24,12 @@ export class TagInfo {
 	public eventsPerso: { event: string, fct: string, start: number, end: number }[] = [];
 	public injections: Injection[] = [];
 	public bindings: Binding[] = [];
-	private changes: { [id_attr: string]: string } = {};
+	private changes: {
+		[id_attr: string]: {
+			fct: string,
+			once: boolean
+		}
+	} = {};
 	public variableNames: string[] = []
 
 	public parser: ParserHtml;
@@ -95,10 +100,13 @@ export class TagInfo {
 	public addContent(content: ContentInfo) {
 		this.children.push(content);
 	}
-	public addChanges(attrName: string, fct: string) {
+	public addChanges(attrName: string, fct: string, computedOnce: boolean) {
 		let tagId = this.createId();
 		let key = tagId + "°" + attrName;
-		this.changes[key] = fct;
+		this.changes[key] = {
+			fct,
+			once: computedOnce
+		};
 	}
 
 	public validateAllProps(openTagEnd: number) {
@@ -254,11 +262,15 @@ export class TagInfo {
 				result.content[key] = this.changes[key];
 			}
 			for (let injection of this.injections) {
-				result.injection.push({
+				let injectionTemp: ActionInjection = {
 					id: id,
 					injectionName: injection.attr,
-					inject: `@_@${injection.injectTxt}@_@`
-				})
+					inject: `@_@${injection.injectTxt}@_@`,
+				}
+				if (injection.computedOnce) {
+					injectionTemp.once = true;
+				}
+				result.injection.push(injectionTemp)
 
 			}
 			for (let binding of this.bindings) {
@@ -272,15 +284,18 @@ export class TagInfo {
 				else {
 					eventNames = ['change'];
 				}
-
-				result.bindings.push({
+				let bindingTemp: (ActionBindings & { tagName: string; }) = {
 					id: id,
 					eventNames: eventNames,
 					injectionName: binding.valueName,
 					tagName: this.tagName,
 					inject: `@_@${binding.injectTxt}@_@`,
-					extract:  `@_@${binding.extractTxt}@_@`,
-				})
+					extract: `@_@${binding.extractTxt}@_@`,
+				}
+				if (binding.computedOnce) {
+					bindingTemp.once = true;
+				}
+				result.bindings.push(bindingTemp)
 			}
 			for (let event of this.eventsPerso) {
 				result.events.push({
@@ -298,9 +313,13 @@ export class TagInfo {
 				result.pressEvents.push({ ...this.pressEvent, id: id })
 			}
 			if (this.contextEdit) {
-				result.contextEdits.push({
-					fct: this.contextEdit.fctJs
-				})
+				let edit: ActionContextEdit = {
+					fct: this.contextEdit.fctJs,
+				}
+				if (this.contextEdit.computedOnce) {
+					edit.once = true;
+				}
+				result.contextEdits.push(edit)
 			}
 		}
 
@@ -511,7 +530,7 @@ export class AttributeInfo {
 		else {
 			let result = parseTxt(value, this.valueStart);
 			if (result.changes.length > 0) {
-				this.tag.addChanges(this.name, result.txt);
+				this.tag.addChanges(this.name, result.txt, result.once);
 				this.mustBeAdded = false;
 			}
 		}
@@ -540,7 +559,7 @@ export class ContentInfo {
 		let content = this.content;
 		let result = parseTxt(content, this.start);
 		if (result.changes.length > 0) {
-			this.tag.addChanges("@HTML", result.txt);
+			this.tag.addChanges("@HTML", result.txt, result.once);
 			this.mustBeAdded = false;
 		}
 		for (let _var of result.variables) {
@@ -815,7 +834,9 @@ export type IfInfoCondition = {
 	offsetAfter: number,
 	idTemplate: number,
 	type: 'if' | 'elif',
-	variables: string[]
+	variables: string[],
+	computedOnce: boolean;
+
 };
 export class IfInfo {
 	public static readonly tagName = "i";
@@ -914,7 +935,8 @@ export class IfInfo {
 						offsetBefore: 0,
 						idTemplate,
 						type: depth == 0 ? 'if' : 'elif',
-						variables: varsType
+						variables: varsType,
+						computedOnce: isComputedOnce(fctTxt)
 					});
 				}
 			})
@@ -930,9 +952,11 @@ export class IfInfo {
 	public registerPart(part: ActionIfPart) {
 		if (this.conditions.length > this.parts.length) {
 			part.condition = this.conditions[this.parts.length].fctTxt
+			part.once = this.conditions[this.parts.length].computedOnce
 		}
 		else {
 			part.condition = "(c) => true";
+			part.once = true;
 		}
 		this.parts.push(part);
 	}
@@ -950,6 +974,7 @@ export class ContextEditing {
 	public start: number = 0;
 	public end: number = 0;
 	public mapping: [string, string] = ["", ""]
+	public computedOnce: boolean = false;
 
 	public typeToLoad: {
 		start: number,
@@ -996,7 +1021,7 @@ export class ContextEditing {
 				txt += " }";
 
 				this.fctTs = "return " + txt;
-
+				this.computedOnce = isComputedOnce(this.fctTs);
 			}
 		})
 
@@ -1022,12 +1047,15 @@ export class Injection implements InjectionRender {
 	public injectTsTxt: string;
 	public injectTxt: string;
 	public variables: string[] = [];
+	public computedOnce: boolean = false;
+
 	public constructor(attr: string, value: string, valueStart: number, valueEnd: number) {
 		this.attr = attr;
 		this.start = ParserHtml.fromCompiledToRaw(valueStart);
 		this.end = ParserHtml.fromCompiledToRaw(valueEnd);
 		this.injectFctName = ParserHtml.getCustomFctName() ?? "";
 		this.injectTsTxt = value;
+		this.computedOnce = isComputedOnce(value);
 		this.variables = anaylseVariables(value, ParserHtml.getVariables());
 		let params = this.variables.map(p => "c.data." + p).join(",");
 		this.injectTxt = `(c) => c.comp.${this.injectFctName}(${params})`
@@ -1042,9 +1070,12 @@ export class Binding implements InjectionRender {
 	public injectFctName: string;
 	public extractFctName: string;
 	public injectTsTxt: string;
+	public extractTsCond: string;
+	public extractTsTxt: string;
 	public injectTxt: string;
 	public extractTxt: string;
 	public variables: string[] = [];
+	public computedOnce: boolean = false;
 
 	public constructor(attr: string, value: string, valueStart: number, valueEnd: number) {
 		let splitted = attr.split(":")
@@ -1060,6 +1091,14 @@ export class Binding implements InjectionRender {
 		this.injectFctName = ParserHtml.getCustomFctName() ?? "";
 		this.extractFctName = ParserHtml.getCustomFctName(1) ?? "";
 		this.injectTsTxt = value;
+		this.computedOnce = isComputedOnce(value);
+		let splittedValue = value.split(".");
+		splittedValue.pop();
+		this.extractTsCond = splittedValue.join(".").trim();
+		if (this.extractTsCond.endsWith("?")) {
+			this.extractTsCond = this.extractTsCond.slice(0, this.extractTsCond.length - 1);
+		}
+		this.extractTsTxt = value.replace(/\?/g, "");
 		this.variables = anaylseVariables(value, ParserHtml.getVariables());
 		let params = this.variables.map(p => "c.data." + p);
 		let extractParams = ["v"].concat(params).join(",");
@@ -1071,18 +1110,21 @@ export class Binding implements InjectionRender {
 function parseTxt(value: string, valueStart: number): {
 	changes: ActionChange[],
 	txt: string,
-	variables: string[]
+	variables: string[],
+	once: boolean
 } {
 	let regex = /\{\{([\s|\S]*?)\}\}/g;
 	let m: RegExpExecArray | null;
 	let result: {
 		changes: ActionChange[],
 		txt: string,
-		variables: string[]
+		variables: string[],
+		once: boolean
 	} = {
 		changes: [],
 		txt: value,
-		variables: []
+		variables: [],
+		once: true
 	}
 	while (m = regex.exec(value)) {
 
@@ -1092,8 +1134,11 @@ function parseTxt(value: string, valueStart: number): {
 		let resultTemp = ParserHtml.createChange({
 			txt: m[1],
 			start: start,
-			end: end
+			end: end,
 		});
+		if (result.once && !isComputedOnce(m[1])) {
+			result.once = false;
+		}
 		if (resultTemp) {
 			resultTemp.variables = anaylseVariables(m[1], resultTemp.variables);
 			let params = resultTemp.variables.map(p => "c.data." + p).join(",");
@@ -1142,4 +1187,10 @@ function anaylseVariables(txt: string, variables: string[]): string[] {
 	}
 	loadLoop(srcFile);
 	return paramsToUse;
+}
+
+
+function isComputedOnce(txt: string) {
+	let mustBeRecomputed = /if|switch|\?|\[.+?\]/g.test(txt);
+	return !mustBeRecomputed;
 }

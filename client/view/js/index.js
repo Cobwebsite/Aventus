@@ -2097,17 +2097,13 @@ const WebComponentTemplateInstance=class WebComponentTemplateInstance {
             }
         }
         if (this.actions.injection) {
-            for (let name in this.actions.injection) {
-                for (let injection of this.actions.injection[name]) {
-                    this.transformInjectionAction(name, injection);
-                }
+            for (let injection of this.actions.injection) {
+                this.transformInjectionAction(injection);
             }
         }
         if (this.actions.bindings) {
-            for (let name in this.actions.bindings) {
-                for (let binding of this.actions.bindings[name]) {
-                    this.transformBindigAction(name, binding);
-                }
+            for (let binding of this.actions.bindings) {
+                this.transformBindigAction(binding);
             }
         }
     }
@@ -2190,7 +2186,7 @@ const WebComponentTemplateInstance=class WebComponentTemplateInstance {
             }
         }
     }
-    transformInjectionAction(name, injection) {
+    transformInjectionAction(injection) {
         if (!this._components[injection.id])
             return;
         if (injection.path) {
@@ -3090,7 +3086,19 @@ const GeneralInformation = class GeneralInformation extends Aventus.WebComponent
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<h3>General informations</h3><div>	<vscode-text-field>Module name</vscode-text-field></div><div>	<vscode-text-field>Version</vscode-text-field></div><div>	<vscode-text-field>Webcomponent prefix</vscode-text-field></div><div>	<vscode-checkbox>Hide warnings</vscode-checkbox></div><div>	<vscode-text-field>Avoid parsing tags</vscode-text-field></div><div>	<vscode-button>Save</vscode-button></div>` }
+        blocks: { 'default':`<h3>General informations</h3><div>
+	<vscode-text-field>Module name</vscode-text-field>
+</div><div>
+	<vscode-text-field>Version</vscode-text-field>
+</div><div>
+	<vscode-text-field>Webcomponent prefix</vscode-text-field>
+</div><div>
+	<vscode-checkbox>Hide warnings</vscode-checkbox>
+</div><div>
+	<vscode-text-field>Avoid parsing tags</vscode-text-field>
+</div><div>
+	<vscode-button>Save</vscode-button>
+</div>` }
     });
 }
     getClassName() {
@@ -3113,15 +3121,18 @@ const Dependances = class Dependances extends Aventus.WebComponent {
                 } else{
                     this.removeAttribute('no_deps');
                 }
-            }    get 'dependances'() {
+            }
+    get 'dependances'() {
 						return this.__watch["dependances"];
 					}
 					set 'dependances'(val) {
 						this.__watch["dependances"] = val;
-					}    __registerWatchesActions() {
+					}
+    __registerWatchesActions() {
                 this.__addWatchesActions("dependances", ((target) => {
     target.no_deps = target.dependances.length == 0;
-}));                super.__registerWatchesActions();
+}));
+                super.__registerWatchesActions();
             }
     static __style = `:host .no-dependances-txt{display:none}:host vscode-data-grid-row{text-align:center}:host av-icon.trash{color:var(--vscode-errorForeground)}:host .add-row{margin-top:16px}:host([no_deps]) .no-dependances-txt{display:block}`;
     __getStatic() {
@@ -3134,10 +3145,46 @@ const Dependances = class Dependances extends Aventus.WebComponent {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<h3>Dependances</h3><p class="no-dependances-txt">Your project has no dependance</p><vscode-data-grid aria-label="Default">	<vscode-data-grid-row row-type="header">		<vscode-data-grid-cell cell-type="columnheader" grid-column="1">			Name		</vscode-data-grid-cell>		<vscode-data-grid-cell cell-type="columnheader" grid-column="2">			Version		</vscode-data-grid-cell>		<vscode-data-grid-cell cell-type="columnheader" grid-column="3">			Url		</vscode-data-grid-cell>		<vscode-data-grid-cell cell-type="columnheader" grid-column="4">			Action		</vscode-data-grid-cell>	</vscode-data-grid-row>	for(let dep of this.dependances) {		<vscode-data-grid-row _id="dependances_0">			<vscode-data-grid-cell grid-column="1" _id="dependances_1"></vscode-data-grid-cell>			<vscode-data-grid-cell grid-column="2" _id="dependances_2"></vscode-data-grid-cell>			<vscode-data-grid-cell grid-column="3">				<a target="_blank" _id="dependances_3"></a>			</vscode-data-grid-cell>			<vscode-data-grid-cell grid-column="4">				<av-icon class="trash"></av-icon>			</vscode-data-grid-cell>		</vscode-data-grid-row>	}	<vscode-data-grid-row class="add-row">		<vscode-data-grid-cell grid-column="1"></vscode-data-grid-cell>		<vscode-data-grid-cell grid-column="2"></vscode-data-grid-cell>		<vscode-data-grid-cell grid-column="3"></vscode-data-grid-cell>		<vscode-data-grid-cell grid-column="4">			<vscode-button>Add</vscode-button>		</vscode-data-grid-cell>	</vscode-data-grid-row></vscode-data-grid>` }
+        blocks: { 'default':`<h3>Dependances</h3><p class="no-dependances-txt">Your project has no dependance</p><vscode-data-grid aria-label="Default">
+	<vscode-data-grid-row row-type="header">
+		<vscode-data-grid-cell cell-type="columnheader" grid-column="1">
+			Name
+		</vscode-data-grid-cell>
+		<vscode-data-grid-cell cell-type="columnheader" grid-column="2">
+			Version
+		</vscode-data-grid-cell>
+		<vscode-data-grid-cell cell-type="columnheader" grid-column="3">
+			Url
+		</vscode-data-grid-cell>
+		<vscode-data-grid-cell cell-type="columnheader" grid-column="4">
+			Action
+		</vscode-data-grid-cell>
+	</vscode-data-grid-row>
+	for(let dep of this.dependances) {
+		<vscode-data-grid-row _id="dependances_0">
+			<vscode-data-grid-cell grid-column="1" _id="dependances_1"></vscode-data-grid-cell>
+			<vscode-data-grid-cell grid-column="2" _id="dependances_2"></vscode-data-grid-cell>
+			<vscode-data-grid-cell grid-column="3">
+				<a target="_blank" _id="dependances_3"></a>
+			</vscode-data-grid-cell>
+			<vscode-data-grid-cell grid-column="4">
+				<av-icon class="trash"></av-icon>
+			</vscode-data-grid-cell>
+		</vscode-data-grid-row>
+	}
+	<vscode-data-grid-row class="add-row">
+		<vscode-data-grid-cell grid-column="1"></vscode-data-grid-cell>
+		<vscode-data-grid-cell grid-column="2"></vscode-data-grid-cell>
+		<vscode-data-grid-cell grid-column="3"></vscode-data-grid-cell>
+		<vscode-data-grid-cell grid-column="4">
+			<vscode-button>Add</vscode-button>
+		</vscode-data-grid-cell>
+	</vscode-data-grid-row>
+</vscode-data-grid>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();
+this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "temp",
@@ -3146,12 +3193,25 @@ const Dependances = class Dependances extends Aventus.WebComponent {
       ]
     }
   ]
-});this.__getStatic().__template.setSchema({globals:["dep"]}); }
+});
+this.__getStatic().__template.setSchema({globals:["dep"]});
+ }
     getClassName() {
         return "Dependances";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('no_deps')) { this.attributeChangedCallback('no_deps', false, false); }if(!this["dependances"]){ this["dependances"] = [{        name: "AventusUI",        version: "1.0.0",        uri: "https://aventusjs.com/aventusUI.def.avt"    }, {        name: "AventusUI2",        version: "1.0.0",        uri: "https://aventusjs.com/aventusUI.def.avt"    }];} }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('no_deps'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('no_deps')) { this.attributeChangedCallback('no_deps', false, false); }
+if(!this["dependances"]){ this["dependances"] = [{
+        name: "AventusUI",
+        version: "1.0.0",
+        uri: "https://aventusjs.com/aventusUI.def.avt"
+    }, {
+        name: "AventusUI2",
+        version: "1.0.0",
+        uri: "https://aventusjs.com/aventusUI.def.avt"
+    }];}
+ }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('no_deps');
+ }
     __listBoolProps() { return ["no_deps"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
 }
 Dependances.Namespace=`${moduleName}`;
@@ -3171,7 +3231,24 @@ const ConfigurationEditor = class ConfigurationEditor extends Aventus.WebCompone
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<h1>Configuration editor</h1><vscode-panels>	<vscode-panel-tab id="tab-1">General</vscode-panel-tab>	<vscode-panel-tab id="tab-2">Dependances</vscode-panel-tab>	<vscode-panel-tab id="tab-3">Builds</vscode-panel-tab>	<vscode-panel-tab id="tab-4">Statics</vscode-panel-tab>	<vscode-panel-view id="view-1">		<av-general-information></av-general-information>	</vscode-panel-view>	<vscode-panel-view id="view-2">		<av-dependances></av-dependances>	</vscode-panel-view>	<vscode-panel-view id="view-3">		Debug Console Content	</vscode-panel-view>	<vscode-panel-view id="view-4">		Terminal Content	</vscode-panel-view></vscode-panels>` }
+        blocks: { 'default':`<h1>Configuration editor</h1><vscode-panels>
+	<vscode-panel-tab id="tab-1">General</vscode-panel-tab>
+	<vscode-panel-tab id="tab-2">Dependances</vscode-panel-tab>
+	<vscode-panel-tab id="tab-3">Builds</vscode-panel-tab>
+	<vscode-panel-tab id="tab-4">Statics</vscode-panel-tab>
+	<vscode-panel-view id="view-1">
+		<av-general-information></av-general-information>
+	</vscode-panel-view>
+	<vscode-panel-view id="view-2">
+		<av-dependances></av-dependances>
+	</vscode-panel-view>
+	<vscode-panel-view id="view-3">
+		Debug Console Content
+	</vscode-panel-view>
+	<vscode-panel-view id="view-4">
+		Terminal Content
+	</vscode-panel-view>
+</vscode-panels>` }
     });
 }
     getClassName() {

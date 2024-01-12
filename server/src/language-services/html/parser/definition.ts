@@ -35,6 +35,7 @@ export type ActionInjection = {
 	id: string,
 	injectionName: string;
 	inject: string;
+	once?: boolean
 };
 export type ActionBindings = {
 	id: string,
@@ -43,6 +44,7 @@ export type ActionBindings = {
 	extract: string;
 	eventNames: string[],
 	isCallback?: boolean,
+	once?: boolean
 };
 export type ActionEvent = {
 	id: string,
@@ -78,6 +80,7 @@ export type ActionIfPart = {
 	templateId: number,
 	condition: string,
 	templateAction: HtmlTemplateResult,
+	once?: boolean
 }
 export type ActionIf = {
 	parentId?: number,
@@ -92,14 +95,21 @@ export type ActionChange = {
 	name: string,
 	txt: string,
 	variables: string[],
+	once?: boolean
 };
 export type ActionContextEdit = {
-	fct: string
+	fct: string,
+	once?: boolean
 }
 
 export type HtmlTemplateResult = {
 	elements: ActionElement[],
-	content: { [id_attr: string]: string },
+	content: {
+		[id_attr: string]: {
+			fct: string,
+			once: boolean
+		}
+	},
 	injection: ActionInjection[];
 	bindings: (ActionBindings & { tagName: string })[];
 	events: ActionEvent[];
