@@ -326,56 +326,6 @@ const Style=class Style {
 }
 Style.Namespace=`${moduleName}`;
 _.Style=Style;
-const compareObject=function compareObject(obj1, obj2) {
-    if (Array.isArray(obj1)) {
-        if (!Array.isArray(obj2)) {
-            return false;
-        }
-        obj2 = obj2.slice();
-        if (obj1.length !== obj2.length) {
-            return false;
-        }
-        for (let i = 0; i < obj1.length; i++) {
-            let foundElement = false;
-            for (let j = 0; j < obj2.length; j++) {
-                if (compareObject(obj1[i], obj2[j])) {
-                    obj2.splice(j, 1);
-                    foundElement = true;
-                    break;
-                }
-            }
-            if (!foundElement) {
-                return false;
-            }
-        }
-        return true;
-    }
-    else if (obj1 instanceof Date) {
-        return obj1.toString() === obj2.toString();
-    }
-    else if (obj1 !== null && typeof obj1 == 'object') {
-        if (obj2 === null || typeof obj1 !== 'object') {
-            return false;
-        }
-        if (Object.keys(obj1).length !== Object.keys(obj2).length) {
-            return false;
-        }
-        for (let key in obj1) {
-            if (!(key in obj2)) {
-                return false;
-            }
-            if (!compareObject(obj1[key], obj2[key])) {
-                return false;
-            }
-        }
-        return true;
-    }
-    else {
-        return obj1 === obj2;
-    }
-}
-
-_.compareObject=compareObject;
 const Callback=class Callback {
     callbacks = [];
     /**
@@ -518,6 +468,56 @@ const Mutex=class Mutex {
 }
 Mutex.Namespace=`${moduleName}`;
 _.Mutex=Mutex;
+const compareObject=function compareObject(obj1, obj2) {
+    if (Array.isArray(obj1)) {
+        if (!Array.isArray(obj2)) {
+            return false;
+        }
+        obj2 = obj2.slice();
+        if (obj1.length !== obj2.length) {
+            return false;
+        }
+        for (let i = 0; i < obj1.length; i++) {
+            let foundElement = false;
+            for (let j = 0; j < obj2.length; j++) {
+                if (compareObject(obj1[i], obj2[j])) {
+                    obj2.splice(j, 1);
+                    foundElement = true;
+                    break;
+                }
+            }
+            if (!foundElement) {
+                return false;
+            }
+        }
+        return true;
+    }
+    else if (obj1 instanceof Date) {
+        return obj1.toString() === obj2.toString();
+    }
+    else if (typeof obj1 === 'object' && obj1 !== undefined && obj1 !== null) {
+        if (typeof obj2 !== 'object' || obj2 === undefined || obj2 === null) {
+            return false;
+        }
+        if (Object.keys(obj1).length !== Object.keys(obj2).length) {
+            return false;
+        }
+        for (let key in obj1) {
+            if (!(key in obj2)) {
+                return false;
+            }
+            if (!compareObject(obj1[key], obj2[key])) {
+                return false;
+            }
+        }
+        return true;
+    }
+    else {
+        return obj1 === obj2;
+    }
+}
+
+_.compareObject=compareObject;
 var WatchAction;
 (function (WatchAction) {
     WatchAction[WatchAction["CREATED"] = 0] = "CREATED";
@@ -526,6 +526,660 @@ var WatchAction;
 })(WatchAction || (WatchAction = {}));
 
 _.WatchAction=WatchAction;
+const Effect=class Effect {
+    callbacks = [];
+    isInit = false;
+    isDestroy = false;
+    __subscribes = [];
+    __allowChanged = [];
+    version = 0;
+    fct;
+    constructor(fct) {
+        this.fct = fct;
+        if (this.autoInit()) {
+            this.init();
+        }
+    }
+    autoInit() {
+        return true;
+    }
+    init() {
+        this.isInit = true;
+        this.run();
+    }
+    run() {
+        this.version++;
+        Watcher._registering.push(this);
+        let result = this.fct();
+        Watcher._registering.splice(Watcher._registering.length - 1, 1);
+        for (let i = 0; i < this.callbacks.length; i++) {
+            if (this.callbacks[i].version != this.version) {
+                this.callbacks[i].receiver.unsubscribe(this.callbacks[i].cb);
+                this.callbacks.splice(i, 1);
+                i--;
+            }
+        }
+        return result;
+    }
+    register(receiver, path, version) {
+        for (let info of this.callbacks) {
+            if (info.receiver == receiver && info.path == path) {
+                info.version = version;
+                return;
+            }
+        }
+        let cb;
+        if (path == "*") {
+            cb = (action, changePath, value) => { this.onChange(action, changePath, value); };
+        }
+        else {
+            cb = (action, changePath, value) => {
+                if (changePath == path) {
+                    this.onChange(action, changePath, value);
+                }
+            };
+        }
+        this.callbacks.push({
+            receiver,
+            path,
+            cb,
+            version
+        });
+        receiver.subscribe(cb);
+    }
+    canChange(fct) {
+        this.__allowChanged.push(fct);
+    }
+    checkCanChange(action, changePath, value) {
+        if (this.isDestroy) {
+            return false;
+        }
+        for (let fct of this.__allowChanged) {
+            if (!fct(action, changePath, value)) {
+                return false;
+            }
+        }
+        return true;
+    }
+    onChange(action, changePath, value) {
+        if (!this.checkCanChange(action, changePath, value)) {
+            return;
+        }
+        this.run();
+        for (let fct of this.__subscribes) {
+            fct(action, changePath, value);
+        }
+    }
+    destroy() {
+        this.isDestroy = true;
+        for (let pair of this.callbacks) {
+            pair.receiver.unsubscribe(pair.cb);
+        }
+        this.callbacks = [];
+        this.isInit = false;
+    }
+    subscribe(fct) {
+        let index = this.__subscribes.indexOf(fct);
+        if (index == -1) {
+            this.__subscribes.push(fct);
+        }
+    }
+    unsubscribe(fct) {
+        let index = this.__subscribes.indexOf(fct);
+        if (index > -1) {
+            this.__subscribes.splice(index, 1);
+        }
+    }
+}
+Effect.Namespace=`${moduleName}`;
+_.Effect=Effect;
+const Watcher=class Watcher {
+    static _registering = [];
+    static get _register() {
+        return this._registering[this._registering.length - 1];
+    }
+    /**
+     * Transform object into a watcher
+     */
+    static get(obj, onDataChanged) {
+        if (obj == undefined) {
+            console.error("You must define an objet / array for your proxy");
+            return;
+        }
+        if (obj.__isProxy) {
+            if (onDataChanged)
+                obj.subscribe(onDataChanged);
+            return obj;
+        }
+        const reservedName = {
+            __path: '__path',
+        };
+        const clearReservedNames = (data) => {
+            if (data instanceof Object && !data.__isProxy) {
+                for (let key in reservedName) {
+                    delete data[key];
+                }
+            }
+        };
+        let setProxyPath = (newProxy, newPath) => {
+            if (newProxy instanceof Object && newProxy.__isProxy) {
+                newProxy.__path = newPath;
+            }
+        };
+        let jsonReplacer = (key, value) => {
+            if (reservedName[key])
+                return undefined;
+            return value;
+        };
+        let currentTrace = new Error().stack?.split("\n") ?? [];
+        currentTrace.shift();
+        currentTrace.shift();
+        let onlyDuringInit = true;
+        let proxyData = {
+            baseData: {},
+            callbacks: {},
+            avoidUpdate: [],
+            pathToRemove: [],
+            history: [{
+                    object: JSON.parse(JSON.stringify(obj, jsonReplacer)),
+                    trace: currentTrace,
+                    action: 'init',
+                    path: ''
+                }],
+            useHistory: false,
+            getProxyObject(target, element, prop) {
+                let newProxy;
+                if (element instanceof Object && element.__isProxy) {
+                    newProxy = element;
+                }
+                else {
+                    try {
+                        if (element instanceof Computed) {
+                            return element;
+                        }
+                        if (element instanceof Object) {
+                            newProxy = new Proxy(element, this);
+                        }
+                        else {
+                            return element;
+                        }
+                    }
+                    catch {
+                        return element;
+                    }
+                }
+                let newPath = '';
+                if (Array.isArray(target)) {
+                    if (/^[0-9]*$/g.exec(prop)) {
+                        if (target.__path) {
+                            newPath = target.__path;
+                        }
+                        newPath += "[" + prop + "]";
+                        setProxyPath(newProxy, newPath);
+                    }
+                    else {
+                        newPath += "." + prop;
+                    }
+                }
+                else if (element instanceof Date) {
+                    return element;
+                }
+                else {
+                    if (target.__path) {
+                        newPath = target.__path + '.';
+                    }
+                    newPath += prop;
+                    setProxyPath(newProxy, newPath);
+                }
+                return newProxy;
+            },
+            tryCustomFunction(target, prop, receiver) {
+                if (prop == "__isProxy") {
+                    return true;
+                }
+                else if (prop == "subscribe") {
+                    let path = receiver.__path;
+                    return (cb) => {
+                        if (!this.callbacks[path]) {
+                            this.callbacks[path] = [];
+                        }
+                        this.callbacks[path].push(cb);
+                    };
+                }
+                else if (prop == "unsubscribe") {
+                    let path = receiver.__path;
+                    return (cb) => {
+                        if (!this.callbacks[path]) {
+                            return;
+                        }
+                        let index = this.callbacks[path].indexOf(cb);
+                        if (index > -1) {
+                            this.callbacks[path].splice(index, 1);
+                        }
+                    };
+                }
+                else if (prop == "getHistory") {
+                    return () => {
+                        return this.history;
+                    };
+                }
+                else if (prop == "clearHistory") {
+                    this.history = [];
+                }
+                else if (prop == "enableHistory") {
+                    return () => {
+                        this.useHistory = true;
+                    };
+                }
+                else if (prop == "disableHistory") {
+                    return () => {
+                        this.useHistory = false;
+                    };
+                }
+                else if (prop == "__getTarget" && onlyDuringInit) {
+                    return () => {
+                        return target;
+                    };
+                }
+                else if (prop == "toJSON") {
+                    if (Array.isArray(target)) {
+                        return () => {
+                            let result = [];
+                            for (let element of target) {
+                                result.push(element);
+                            }
+                            return result;
+                        };
+                    }
+                    return () => {
+                        let result = {};
+                        for (let key of Object.keys(target)) {
+                            if (reservedName[key]) {
+                                continue;
+                            }
+                            result[key] = target[key];
+                        }
+                        return result;
+                    };
+                }
+                return undefined;
+            },
+            get(target, prop, receiver) {
+                if (reservedName[prop]) {
+                    return target[prop];
+                }
+                let customResult = this.tryCustomFunction(target, prop, receiver);
+                if (customResult !== undefined) {
+                    return customResult;
+                }
+                let element = target[prop];
+                if (typeof (element) == 'function') {
+                    if (Array.isArray(target)) {
+                        let result;
+                        if (prop == 'push') {
+                            if (target.__isProxy) {
+                                result = (el) => {
+                                    let index = target.push(el);
+                                    return index;
+                                };
+                            }
+                            else {
+                                result = (el) => {
+                                    let index = target.push(el);
+                                    let proxyEl = this.getProxyObject(target, el, (index - 1));
+                                    target.splice(target.length - 1, 1, proxyEl);
+                                    trigger('CREATED', target, receiver, proxyEl, "[" + (index - 1) + "]");
+                                    trigger('UPDATED', target, receiver, target.length, "length");
+                                    return index;
+                                };
+                            }
+                        }
+                        else if (prop == 'splice') {
+                            if (target.__isProxy) {
+                                result = (index, nbRemove, ...insert) => {
+                                    let res = target.splice(index, nbRemove, ...insert);
+                                    return res;
+                                };
+                            }
+                            else {
+                                result = (index, nbRemove, ...insert) => {
+                                    let oldValues = [];
+                                    for (let i = index; i < index + nbRemove; i++) {
+                                        oldValues.push(receiver[i]);
+                                    }
+                                    let updateLength = nbRemove != insert.length;
+                                    let res = target.splice(index, nbRemove, ...insert);
+                                    for (let i = 0; i < oldValues.length; i++) {
+                                        trigger('DELETED', target, receiver, oldValues[i], "[" + index + "]");
+                                    }
+                                    for (let i = 0; i < insert.length; i++) {
+                                        let proxyEl = this.getProxyObject(target, insert[i], (index + i));
+                                        target.splice((index + i), 1, proxyEl);
+                                        trigger('CREATED', target, receiver, proxyEl, "[" + (index + i) + "]");
+                                    }
+                                    let fromIndex = index + insert.length;
+                                    for (let i = fromIndex, j = 0; i < target.length; i++, j++) {
+                                        let proxyEl = this.getProxyObject(target, target[i], i);
+                                        let recuUpdate = (childEl) => {
+                                            if (Array.isArray(childEl)) {
+                                                for (let i = 0; i < childEl.length; i++) {
+                                                    if (childEl[i] instanceof Object && childEl[i].__path) {
+                                                        let newProxyEl = this.getProxyObject(childEl, childEl[i], i);
+                                                        recuUpdate(newProxyEl);
+                                                    }
+                                                }
+                                            }
+                                            else if (childEl instanceof Object && !(childEl instanceof Date)) {
+                                                for (let key in childEl) {
+                                                    if (childEl[key] instanceof Object && childEl[key].__path) {
+                                                        let newProxyEl = this.getProxyObject(childEl, childEl[key], key);
+                                                        recuUpdate(newProxyEl);
+                                                    }
+                                                }
+                                            }
+                                        };
+                                        recuUpdate(proxyEl);
+                                    }
+                                    if (updateLength)
+                                        trigger('UPDATED', target, receiver, target.length, "length");
+                                    return res;
+                                };
+                            }
+                        }
+                        else if (prop == 'pop') {
+                            if (target.__isProxy) {
+                                result = () => {
+                                    let res = target.pop();
+                                    return res;
+                                };
+                            }
+                            else {
+                                result = () => {
+                                    let index = target.length - 1;
+                                    let oldValue = receiver.length ? receiver[receiver.length] : undefined;
+                                    let res = target.pop();
+                                    trigger('DELETED', target, receiver, oldValue, "[" + index + "]");
+                                    trigger('UPDATED', target, receiver, target.length, "length");
+                                    return res;
+                                };
+                            }
+                        }
+                        else {
+                            result = element.bind(target);
+                        }
+                        return result;
+                    }
+                    return element.bind(target);
+                }
+                if (element instanceof Computed) {
+                    return element.value;
+                }
+                if (Watcher._registering.length > 0) {
+                    let currentPath;
+                    let isArray = Array.isArray(receiver);
+                    if (isArray && /^[0-9]*$/g.exec(prop)) {
+                        currentPath = receiver.__path + "[" + prop + "]";
+                        currentPath = "[" + prop + "]";
+                    }
+                    else {
+                        currentPath = receiver.__path ? receiver.__path + '.' + prop : prop;
+                        currentPath = prop;
+                    }
+                    Watcher._register?.register(receiver, currentPath, Watcher._register.version);
+                }
+                if (typeof (element) == 'object') {
+                    return this.getProxyObject(target, element, prop);
+                }
+                return Reflect.get(target, prop, receiver);
+            },
+            set(target, prop, value, receiver) {
+                let triggerChange = false;
+                if (!reservedName[prop]) {
+                    if (Array.isArray(target)) {
+                        if (prop != "length") {
+                            triggerChange = true;
+                        }
+                    }
+                    else {
+                        let oldValue = Reflect.get(target, prop, receiver);
+                        if (!compareObject(value, oldValue)) {
+                            triggerChange = true;
+                        }
+                    }
+                }
+                let result = Reflect.set(target, prop, value, receiver);
+                if (triggerChange) {
+                    let index = this.avoidUpdate.indexOf(prop);
+                    if (index == -1) {
+                        trigger('UPDATED', target, receiver, value, prop);
+                    }
+                    else {
+                        this.avoidUpdate.splice(index, 1);
+                    }
+                }
+                return result;
+            },
+            deleteProperty(target, prop) {
+                let triggerChange = false;
+                let pathToDelete = '';
+                if (!reservedName[prop]) {
+                    if (Array.isArray(target)) {
+                        if (prop != "length") {
+                            if (target.__path) {
+                                pathToDelete = target.__path;
+                            }
+                            pathToDelete += "[" + prop + "]";
+                            triggerChange = true;
+                        }
+                    }
+                    else {
+                        if (target.__path) {
+                            pathToDelete = target.__path + '.';
+                        }
+                        pathToDelete += prop;
+                        triggerChange = true;
+                    }
+                }
+                if (target.hasOwnProperty(prop)) {
+                    let oldValue = target[prop];
+                    if (oldValue instanceof Effect) {
+                        oldValue.destroy();
+                    }
+                    delete target[prop];
+                    if (triggerChange) {
+                        clearReservedNames(oldValue);
+                        trigger('DELETED', target, null, oldValue, prop);
+                    }
+                    return true;
+                }
+                return false;
+            },
+            defineProperty(target, prop, descriptor) {
+                let triggerChange = false;
+                let newPath = '';
+                if (!reservedName[prop]) {
+                    if (Array.isArray(target)) {
+                        if (prop != "length") {
+                            if (target.__path) {
+                                newPath = target.__path;
+                            }
+                            newPath += "[" + prop + "]";
+                            if (!target.hasOwnProperty(prop)) {
+                                triggerChange = true;
+                            }
+                        }
+                    }
+                    else {
+                        if (target.__path) {
+                            newPath = target.__path + '.';
+                        }
+                        newPath += prop;
+                        if (!target.hasOwnProperty(prop)) {
+                            triggerChange = true;
+                        }
+                    }
+                }
+                let result = Reflect.defineProperty(target, prop, descriptor);
+                if (triggerChange) {
+                    this.avoidUpdate.push(prop);
+                    let proxyEl = this.getProxyObject(target, descriptor.value, prop);
+                    target[prop] = proxyEl;
+                    trigger('CREATED', target, null, proxyEl, prop);
+                }
+                return result;
+            },
+            ownKeys(target) {
+                let result = Reflect.ownKeys(target);
+                for (let i = 0; i < result.length; i++) {
+                    if (reservedName[result[i]]) {
+                        result.splice(i, 1);
+                        i--;
+                    }
+                }
+                return result;
+            },
+        };
+        if (onDataChanged) {
+            proxyData.callbacks[''] = [onDataChanged];
+        }
+        const trigger = (type, target, receiver, value, prop) => {
+            if (target.__isProxy) {
+                return;
+            }
+            let rootPath;
+            if (receiver == null) {
+                rootPath = target.__path;
+            }
+            else {
+                rootPath = receiver.__path;
+            }
+            if (rootPath != "") {
+                if (Array.isArray(target)) {
+                    if (!prop.startsWith("[")) {
+                        if (/^[0-9]*$/g.exec(prop)) {
+                            rootPath += "[" + prop + "]";
+                        }
+                        else {
+                            rootPath += "." + prop;
+                        }
+                    }
+                    else {
+                        rootPath += prop;
+                    }
+                }
+                else {
+                    if (!prop.startsWith("[")) {
+                        rootPath += ".";
+                    }
+                    rootPath += prop;
+                }
+            }
+            else {
+                rootPath = prop;
+            }
+            let stacks = [];
+            if (proxyData.useHistory) {
+                let allStacks = new Error().stack?.split("\n") ?? [];
+                for (let i = allStacks.length - 1; i >= 0; i--) {
+                    let current = allStacks[i].trim().replace("at ", "");
+                    if (current.startsWith("Object.set") || current.startsWith("Proxy.result")) {
+                        break;
+                    }
+                    stacks.push(current);
+                }
+            }
+            for (let name in proxyData.callbacks) {
+                let pathToSend = rootPath;
+                if (name !== "") {
+                    let regex = new RegExp("^" + name + "(\\.|(\\[)|$)");
+                    if (!regex.test(rootPath)) {
+                        continue;
+                    }
+                    pathToSend = rootPath.replace(regex, "$2");
+                }
+                if (proxyData.useHistory) {
+                    proxyData.history.push({
+                        object: JSON.parse(JSON.stringify(proxyData.baseData, jsonReplacer)),
+                        trace: stacks.reverse(),
+                        action: WatchAction[type],
+                        path: pathToSend
+                    });
+                }
+                let cbs = [...proxyData.callbacks[name]];
+                for (let cb of cbs) {
+                    cb(WatchAction[type], pathToSend, value);
+                }
+            }
+        };
+        var realProxy = new Proxy(obj, proxyData);
+        proxyData.baseData = realProxy.__getTarget();
+        onlyDuringInit = false;
+        setProxyPath(realProxy, '');
+        return realProxy;
+    }
+    static computed(fct) {
+        const comp = new Computed(fct);
+        return comp;
+    }
+    static effect(fct) {
+        const comp = new Effect(fct);
+        return comp;
+    }
+}
+Watcher.Namespace=`${moduleName}`;
+_.Watcher=Watcher;
+const Computed=class Computed extends Effect {
+    _value;
+    get value() {
+        if (!this.isInit) {
+            this.init();
+        }
+        Watcher._register?.register(this, "*", Watcher._register.version);
+        return this._value;
+    }
+    autoInit() {
+        return false;
+    }
+    constructor(fct) {
+        super(fct);
+    }
+    init() {
+        this.isInit = true;
+        this.computedValue();
+    }
+    computedValue() {
+        this._value = this.run();
+    }
+    onChange(action, changePath, value) {
+        if (!this.checkCanChange(action, changePath, value)) {
+            return;
+        }
+        let oldValue = this._value;
+        this.computedValue();
+        if (oldValue === this._value) {
+            return;
+        }
+        for (let fct of this.__subscribes) {
+            fct(action, changePath, value);
+        }
+    }
+}
+Computed.Namespace=`${moduleName}`;
+_.Computed=Computed;
+const ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
+    init() {
+        this.isInit = true;
+        Watcher._registering.push(this);
+        this._value = this.fct();
+        Watcher._registering.splice(Watcher._registering.length - 1, 1);
+    }
+    computedValue() {
+        this._value = this.fct();
+    }
+    run() { }
+}
+ComputedNoRecomputed.Namespace=`${moduleName}`;
+_.ComputedNoRecomputed=ComputedNoRecomputed;
 const PressManager=class PressManager {
     static create(options) {
         if (Array.isArray(options.element)) {
@@ -1272,703 +1926,162 @@ const State=class State {
 }
 State.Namespace=`${moduleName}`;
 _.State=State;
-const Effect=class Effect {
-    callbacks = [];
-    isInit = false;
-    __subscribes = [];
-    fct;
-    constructor(fct) {
-        this.fct = fct;
-        if (this.autoInit()) {
-            this.init();
-        }
-    }
-    autoInit() {
-        return true;
-    }
-    init() {
-        this.isInit = true;
-        Watcher._registering.push(this);
-        this.fct();
-        Watcher._registering.splice(Watcher._registering.length - 1, 1);
-    }
-    register(receiver, path) {
-        const cb = (action, changePath, value) => {
-            if (path == changePath) {
-                this.onChange();
-            }
-        };
-        for (let info of this.callbacks) {
-            if (info.receiver == receiver && info.path == path) {
-                return;
-            }
-        }
-        this.callbacks.push({
-            receiver,
-            path,
-            cb
-        });
-        receiver.__subscribe(cb);
-    }
-    onChange() {
-        this.fct();
-        for (let fct of this.__subscribes) {
-            fct(WatchAction.UPDATED, "", undefined);
-        }
-    }
-    destroy() {
-        for (let pair of this.callbacks) {
-            pair.receiver.__unsubscribe(pair.cb);
-        }
-        this.callbacks = [];
-        this.isInit = false;
-    }
-    __subscribe(fct) {
-        let index = this.__subscribes.indexOf(fct);
-        if (index == -1) {
-            this.__subscribes.push(fct);
-        }
-    }
-    __unsubscribe(fct) {
-        let index = this.__subscribes.indexOf(fct);
-        if (index > -1) {
-            this.__subscribes.splice(index, 1);
-        }
-    }
-}
-Effect.Namespace=`${moduleName}`;
-_.Effect=Effect;
-const Computed=class Computed extends Effect {
-    _value;
-    get value() {
-        if (!this.isInit) {
-            this.init();
-        }
-        Watcher._register?.register(this, "");
-        return this._value;
-    }
-    autoInit() {
-        return false;
-    }
-    constructor(fct) {
-        super(fct);
-    }
-    init() {
-        this.isInit = true;
-        Watcher._registering.push(this);
-        this._value = this.fct();
-        Watcher._registering.splice(Watcher._registering.length - 1, 1);
-    }
-    onChange() {
-        this._value = this.fct();
-        for (let fct of this.__subscribes) {
-            fct(WatchAction.UPDATED, "", this._value);
-        }
-    }
-}
-Computed.Namespace=`${moduleName}`;
-_.Computed=Computed;
-const Watcher=class Watcher {
-    static __maxProxyData = 0;
-    static _registering = [];
-    static get _register() {
-        return this._registering[this._registering.length - 1];
-    }
-    /**
-     * Transform object into a watcher
-     */
-    static get(obj, onDataChanged) {
-        if (obj == undefined) {
-            console.error("You must define an objet / array for your proxy");
-            return;
-        }
-        if (obj.__isProxy) {
-            obj.__subscribe(onDataChanged);
-            return obj;
-        }
-        Watcher.__maxProxyData++;
-        const reservedName = {
-            __path: '__path',
-            __proxyData: '__proxyData',
-        };
-        let setProxyPath = (newProxy, newPath) => {
-            if (newProxy instanceof Object && newProxy.__isProxy) {
-                newProxy.__path = newPath;
-                if (!newProxy.__proxyData) {
-                    newProxy.__proxyData = {};
-                }
-                if (!newProxy.__proxyData[newPath]) {
-                    newProxy.__proxyData[newPath] = [];
-                }
-                if (newProxy.__proxyData[newPath].indexOf(proxyData) == -1) {
-                    newProxy.__proxyData[newPath].push(proxyData);
-                }
-            }
-        };
-        let removeProxyPath = (oldValue, pathToDelete, recursive = true) => {
-            if (oldValue instanceof Object && oldValue.__isProxy) {
-                let allProxies = oldValue.__proxyData;
-                for (let triggerPath in allProxies) {
-                    if (triggerPath == pathToDelete) {
-                        for (let i = 0; i < allProxies[triggerPath].length; i++) {
-                            if (allProxies[triggerPath][i] == proxyData) {
-                                allProxies[triggerPath].splice(i, 1);
-                                i--;
-                            }
-                        }
-                        if (allProxies[triggerPath].length == 0) {
-                            delete allProxies[triggerPath];
-                            if (Object.keys(allProxies).length == 0) {
-                                delete oldValue.__proxyData;
-                            }
-                        }
+const TemplateContext=class TemplateContext {
+    data = {};
+    comp;
+    computeds = [];
+    watch;
+    constructor(component, data = {}, parentContext) {
+        this.comp = component;
+        this.watch = Watcher.get({});
+        let that = this;
+        for (let key in data) {
+            if (data[key].__isProxy) {
+                Object.defineProperty(this.data, key, {
+                    get() {
+                        return data[key];
                     }
-                }
-            }
-        };
-        let jsonReplacer = (key, value) => {
-            if (reservedName[key])
-                return undefined;
-            return value;
-        };
-        let currentTrace = new Error().stack?.split("\n") ?? [];
-        currentTrace.shift();
-        currentTrace.shift();
-        let onlyDuringInit = true;
-        let proxyData = {
-            baseData: {},
-            id: Watcher.__maxProxyData,
-            callbacks: [onDataChanged],
-            avoidUpdate: [],
-            pathToRemove: [],
-            history: [{
-                    object: JSON.parse(JSON.stringify(obj, jsonReplacer)),
-                    trace: currentTrace,
-                    action: 'init',
-                    path: ''
-                }],
-            useHistory: false,
-            getProxyObject(target, element, prop) {
-                let newProxy;
-                if (element instanceof Object && element.__isProxy) {
-                    newProxy = element;
-                }
-                else {
-                    try {
-                        if (element instanceof Computed) {
-                            return element;
-                        }
-                        if (element instanceof Object) {
-                            newProxy = new Proxy(element, this);
-                        }
-                        else {
-                            return element;
-                        }
-                    }
-                    catch {
-                        return element;
-                    }
-                }
-                let newPath = '';
-                if (Array.isArray(target)) {
-                    if (prop != "length") {
-                        if (target.__path) {
-                            newPath = target.__path;
-                        }
-                        newPath += "[" + prop + "]";
-                        setProxyPath(newProxy, newPath);
-                    }
-                }
-                else if (element instanceof Date) {
-                    return element;
-                }
-                else {
-                    if (target.__path) {
-                        newPath = target.__path + '.';
-                    }
-                    newPath += prop;
-                    setProxyPath(newProxy, newPath);
-                }
-                return newProxy;
-            },
-            tryCustomFunction(target, prop, receiver) {
-                if (prop == "__isProxy") {
-                    return true;
-                }
-                else if (prop == "__subscribe") {
-                    return (cb) => {
-                        this.callbacks.push(cb);
-                    };
-                }
-                else if (prop == "__unsubscribe") {
-                    return (cb) => {
-                        let index = this.callbacks.indexOf(cb);
-                        if (index > -1) {
-                            this.callbacks.splice(index, 1);
-                        }
-                    };
-                }
-                else if (prop == "__proxyId") {
-                    return this.id;
-                }
-                else if (prop == "getHistory") {
-                    return () => {
-                        return this.history;
-                    };
-                }
-                else if (prop == "clearHistory") {
-                    this.history = [];
-                }
-                else if (prop == "enableHistory") {
-                    return () => {
-                        this.useHistory = true;
-                    };
-                }
-                else if (prop == "disableHistory") {
-                    return () => {
-                        this.useHistory = false;
-                    };
-                }
-                else if (prop == "__getTarget" && onlyDuringInit) {
-                    return () => {
-                        return target;
-                    };
-                }
-                else if (prop == "toJSON") {
-                    return () => {
-                        let result = {};
-                        for (let key of Object.keys(target)) {
-                            if (reservedName[key]) {
-                                continue;
-                            }
-                            result[key] = target[key];
-                        }
-                        return result;
-                    };
-                }
-                return undefined;
-            },
-            get(target, prop, receiver) {
-                if (reservedName[prop]) {
-                    return target[prop];
-                }
-                let customResult = this.tryCustomFunction(target, prop, receiver);
-                if (customResult !== undefined) {
-                    return customResult;
-                }
-                let element = target[prop];
-                if (typeof (element) == 'function') {
-                    if (Array.isArray(target)) {
-                        let result;
-                        if (prop == 'push') {
-                            if (target.__isProxy) {
-                                result = (el) => {
-                                    let index = target.push(el);
-                                    return index;
-                                };
-                            }
-                            else {
-                                result = (el) => {
-                                    let index = target.push(el);
-                                    let proxyEl = this.getProxyObject(target, el, (index - 1));
-                                    target.splice(target.length - 1, 1, proxyEl);
-                                    trigger('CREATED', target, receiver, proxyEl, "[" + (index - 1) + "]");
-                                    return index;
-                                };
-                            }
-                        }
-                        else if (prop == 'splice') {
-                            if (target.__isProxy) {
-                                result = (index, nbRemove, ...insert) => {
-                                    let res = target.splice(index, nbRemove, ...insert);
-                                    return res;
-                                };
-                            }
-                            else {
-                                result = (index, nbRemove, ...insert) => {
-                                    let res = target.splice(index, nbRemove, ...insert);
-                                    let path = target.__path ? target.__path : '';
-                                    for (let i = 0; i < res.length; i++) {
-                                        trigger('DELETED', target, receiver, res[i], "[" + index + "]");
-                                        removeProxyPath(res[i], path + "[" + (index + i) + "]");
-                                    }
-                                    for (let i = 0; i < insert.length; i++) {
-                                        let proxyEl = this.getProxyObject(target, insert[i], (index + i));
-                                        target.splice((index + i), 1, proxyEl);
-                                        trigger('CREATED', target, receiver, proxyEl, "[" + (index + i) + "]");
-                                    }
-                                    let fromIndex = index + insert.length;
-                                    let baseDiff = index - insert.length + res.length + 1;
-                                    for (let i = fromIndex, j = 0; i < target.length; i++, j++) {
-                                        let oldPath = path + "[" + (j + baseDiff) + "]";
-                                        removeProxyPath(target[i], oldPath, false);
-                                        let proxyEl = this.getProxyObject(target, target[i], i);
-                                        let recuUpdate = (childEl) => {
-                                            if (Array.isArray(childEl)) {
-                                                for (let i = 0; i < childEl.length; i++) {
-                                                    if (childEl[i] instanceof Object && childEl[i].__path) {
-                                                        let oldPathRecu = proxyEl[i].__path.replace(proxyEl.__path, oldPath);
-                                                        removeProxyPath(childEl[i], oldPathRecu, false);
-                                                        let newProxyEl = this.getProxyObject(childEl, childEl[i], i);
-                                                        recuUpdate(newProxyEl);
-                                                    }
-                                                }
-                                            }
-                                            else if (childEl instanceof Object && !(childEl instanceof Date)) {
-                                                for (let key in childEl) {
-                                                    if (childEl[key] instanceof Object && childEl[key].__path) {
-                                                        let oldPathRecu = proxyEl[key].__path.replace(proxyEl.__path, oldPath);
-                                                        removeProxyPath(childEl[key], oldPathRecu, false);
-                                                        let newProxyEl = this.getProxyObject(childEl, childEl[key], key);
-                                                        recuUpdate(newProxyEl);
-                                                    }
-                                                }
-                                            }
-                                        };
-                                        recuUpdate(proxyEl);
-                                    }
-                                    return res;
-                                };
-                            }
-                        }
-                        else if (prop == 'pop') {
-                            if (target.__isProxy) {
-                                result = () => {
-                                    let res = target.pop();
-                                    return res;
-                                };
-                            }
-                            else {
-                                result = () => {
-                                    let index = target.length - 1;
-                                    let res = target.pop();
-                                    let path = target.__path ? target.__path : '';
-                                    trigger('DELETED', target, receiver, res, "[" + index + "]");
-                                    removeProxyPath(res, path + "[" + index + "]");
-                                    return res;
-                                };
-                            }
-                        }
-                        else {
-                            result = element.bind(target);
-                        }
-                        return result;
-                    }
-                    return element.bind(target);
-                }
-                if (element instanceof Computed) {
-                    return element.value;
-                }
-                if (typeof (element) == 'object') {
-                    if (Watcher._registering.length > 0) {
-                        const currentPath = receiver.__path ? receiver.__path + '.' + prop : prop;
-                        Watcher._register?.register(receiver, currentPath);
-                    }
-                    return this.getProxyObject(target, element, prop);
-                }
-                let resultTemp = Reflect.get(target, prop, receiver);
-                if (Watcher._registering.length > 0) {
-                    const currentPath = receiver.__path ? receiver.__path + '.' + prop : prop;
-                    Watcher._register?.register(receiver, currentPath);
-                }
-                return resultTemp;
-            },
-            set(target, prop, value, receiver) {
-                let triggerChange = false;
-                if (!reservedName[prop]) {
-                    if (Array.isArray(target)) {
-                        if (prop != "length") {
-                            triggerChange = true;
-                        }
-                    }
-                    else {
-                        let oldValue = Reflect.get(target, prop, receiver);
-                        if (!compareObject(value, oldValue)) {
-                            triggerChange = true;
-                        }
-                    }
-                }
-                let result = Reflect.set(target, prop, value, receiver);
-                if (triggerChange) {
-                    let index = this.avoidUpdate.indexOf(prop);
-                    if (index == -1) {
-                        trigger('UPDATED', target, receiver, value, prop);
-                    }
-                    else {
-                        this.avoidUpdate.splice(index, 1);
-                    }
-                }
-                return result;
-            },
-            deleteProperty(target, prop) {
-                let triggerChange = false;
-                let pathToDelete = '';
-                if (!reservedName[prop]) {
-                    if (Array.isArray(target)) {
-                        if (prop != "length") {
-                            if (target.__path) {
-                                pathToDelete = target.__path;
-                            }
-                            pathToDelete += "[" + prop + "]";
-                            triggerChange = true;
-                        }
-                    }
-                    else {
-                        if (target.__path) {
-                            pathToDelete = target.__path + '.';
-                        }
-                        pathToDelete += prop;
-                        triggerChange = true;
-                    }
-                }
-                if (target.hasOwnProperty(prop)) {
-                    let oldValue = target[prop];
-                    if (oldValue instanceof Effect) {
-                        oldValue.destroy();
-                    }
-                    delete target[prop];
-                    if (triggerChange) {
-                        trigger('DELETED', target, null, oldValue, prop);
-                        removeProxyPath(oldValue, pathToDelete);
-                    }
-                    return true;
-                }
-                return false;
-            },
-            defineProperty(target, prop, descriptor) {
-                let triggerChange = false;
-                let newPath = '';
-                if (!reservedName[prop]) {
-                    if (Array.isArray(target)) {
-                        if (prop != "length") {
-                            if (target.__path) {
-                                newPath = target.__path;
-                            }
-                            newPath += "[" + prop + "]";
-                            if (!target.hasOwnProperty(prop)) {
-                                triggerChange = true;
-                            }
-                        }
-                    }
-                    else {
-                        if (target.__path) {
-                            newPath = target.__path + '.';
-                        }
-                        newPath += prop;
-                        if (!target.hasOwnProperty(prop)) {
-                            triggerChange = true;
-                        }
-                    }
-                }
-                let result = Reflect.defineProperty(target, prop, descriptor);
-                if (triggerChange) {
-                    this.avoidUpdate.push(prop);
-                    let proxyEl = this.getProxyObject(target, descriptor.value, prop);
-                    target[prop] = proxyEl;
-                    trigger('CREATED', target, null, proxyEl, prop);
-                }
-                return result;
-            },
-            ownKeys(target) {
-                let result = Reflect.ownKeys(target);
-                for (let i = 0; i < result.length; i++) {
-                    if (reservedName[result[i]]) {
-                        result.splice(i, 1);
-                        i--;
-                    }
-                }
-                return result;
-            },
-        };
-        const trigger = (type, target, receiver, value, prop) => {
-            if (target.__isProxy) {
-                return;
-            }
-            let allProxies = target.__proxyData;
-            let receiverId = 0;
-            if (receiver == null) {
-                receiverId = proxyData.id;
+                });
             }
             else {
-                receiverId = receiver.__proxyId;
-            }
-            if (proxyData.id == receiverId) {
-                let stacks = [];
-                if (proxyData.useHistory) {
-                    let allStacks = new Error().stack?.split("\n") ?? [];
-                    for (let i = allStacks.length - 1; i >= 0; i--) {
-                        let current = allStacks[i].trim().replace("at ", "");
-                        if (current.startsWith("Object.set") || current.startsWith("Proxy.result")) {
-                            break;
-                        }
-                        stacks.push(current);
+                this.watch[key] = data[key];
+                Object.defineProperty(this.data, key, {
+                    get() {
+                        return that.watch[key];
                     }
-                }
-                for (let triggerPath in allProxies) {
-                    for (let currentProxyData of allProxies[triggerPath]) {
-                        let pathToSend = triggerPath;
-                        if (pathToSend != "") {
-                            if (Array.isArray(target)) {
-                                if (!prop.startsWith("[")) {
-                                    pathToSend += "[" + prop + "]";
-                                }
-                                else {
-                                    pathToSend += prop;
-                                }
-                            }
-                            else {
-                                if (!prop.startsWith("[")) {
-                                    pathToSend += ".";
-                                }
-                                pathToSend += prop;
-                            }
-                        }
-                        else {
-                            pathToSend = prop;
-                        }
-                        if (proxyData.useHistory) {
-                            proxyData.history.push({
-                                object: JSON.parse(JSON.stringify(currentProxyData.baseData, jsonReplacer)),
-                                trace: stacks.reverse(),
-                                action: WatchAction[type],
-                                path: pathToSend
-                            });
-                        }
-                        [...currentProxyData.callbacks].forEach((cb) => {
-                            cb(WatchAction[type], pathToSend, value);
-                        });
-                    }
-                }
+                });
             }
-        };
-        var realProxy = new Proxy(obj, proxyData);
-        proxyData.baseData = realProxy.__getTarget();
-        onlyDuringInit = false;
-        setProxyPath(realProxy, '');
-        return realProxy;
-    }
-    static computed(fct) {
-        const comp = new Computed(fct);
-        return comp;
-    }
-    static effect(fct) {
-        const comp = new Effect(fct);
-        return comp;
-    }
-}
-Watcher.Namespace=`${moduleName}`;
-_.Watcher=Watcher;
-const WebComponentTemplateContext=class WebComponentTemplateContext {
-    __changes = {};
-    component;
-    fctsToRemove = [];
-    c = {
-        __P: (value) => {
-            return value == null ? "" : value + "";
         }
-    };
-    isRendered = false;
-    schema;
-    constructor(component, schema, locals) {
-        this.component = component;
-        this.schema = { ...schema };
-        for (let key in locals) {
-            this.schema.locals[key] = locals[key];
+        if (parentContext) {
+            const descriptors = Object.getOwnPropertyDescriptors(parentContext.data);
+            for (let name in descriptors) {
+                Object.defineProperty(this.data, name, {
+                    get() {
+                        return parentContext.data[name];
+                    }
+                });
+            }
         }
-        this.buildSchema();
+    }
+    print(value) {
+        return value == null ? "" : value + "";
+    }
+    registerIndex() {
+        let name = "index";
+        let i = 0;
+        let fullName = name + i;
+        while (this.watch[fullName] !== undefined) {
+            i++;
+            fullName = name + i;
+        }
+        return fullName;
+    }
+    registerLoop(dataName, _indexValue, _indexName, indexName, itemName) {
+        this.watch[_indexName] = _indexValue;
+        let getItems;
+        let mustBeRecomputed = /if|switch|\?|\[.+?\]/g.test(dataName);
+        let _class = mustBeRecomputed ? Computed : ComputedNoRecomputed;
+        if (!dataName.startsWith("this.")) {
+            getItems = new _class(() => {
+                return Template.getValueFromItem(dataName, this.data);
+            });
+        }
+        else {
+            dataName = dataName.replace(/^this\./, '');
+            getItems = new _class(() => {
+                return Template.getValueFromItem(dataName, this.comp);
+            });
+        }
+        let getIndex = new ComputedNoRecomputed(() => {
+            let items = getItems.value;
+            if (!items)
+                throw 'impossible';
+            let keys = Object.keys(items);
+            let index = keys[_getIndex.value];
+            if (/^[0-9]+$/g.test(index))
+                return Number(index);
+            return index;
+        });
+        let getItem = new ComputedNoRecomputed(() => {
+            let items = getItems.value;
+            if (!items)
+                throw 'impossible';
+            let keys = Object.keys(items);
+            let index = keys[_getIndex.value];
+            return items[index];
+        });
+        let _getIndex = new ComputedNoRecomputed(() => {
+            return this.watch[_indexName];
+        });
+        this.computeds.push(getIndex);
+        this.computeds.push(getItem);
+        this.computeds.push(_getIndex);
+        if (itemName) {
+            Object.defineProperty(this.data, itemName, {
+                get() {
+                    return getItem.value;
+                }
+            });
+        }
+        if (indexName) {
+            Object.defineProperty(this.data, indexName, {
+                get() {
+                    return getIndex.value;
+                }
+            });
+        }
+    }
+    updateIndex(newIndex, _indexName) {
+        // let items: any[] | {};
+        // if(!dataName.startsWith("this.")) {
+        //     let comp = new Computed(() => {
+        //         return Template.getValueFromItem(dataName, this.data);
+        //     });
+        //     fullName = dataName.replace(/^this\./, '');
+        //     items = Template.getValueFromItem(fullName, this.comp);
+        // if(Array.isArray(items)) {
+        //     let regex = new RegExp("^(" + fullName.replace(/\./g, "\\.") + ")\\[(\\d+?)\\]");
+        //     for(let computed of computeds) {
+        //         for(let cb of computed.callbacks) {
+        //             cb.path = cb.path.replace(regex, "$1[" + newIndex + "]");
+        //     let oldKey = Object.keys(items)[this.watch[_indexName]]
+        //     let newKey = Object.keys(items)[newIndex]
+        //     let regex = new RegExp("^(" + fullName.replace(/\./g, "\\.") + "\\.)(" + oldKey + ")($|\\.)");
+        //     for (let computed of computeds) {
+        //         for (let cb of computed.callbacks) {
+        //             cb.path = cb.path.replace(regex, "$1" + newKey + "$3")
+        this.watch[_indexName] = newIndex;
+    }
+    increaseIndex(_indexName) {
+        this.updateIndex(this.watch[_indexName] + 1, _indexName);
+    }
+    decreaseIndex(_indexName) {
+        this.updateIndex(this.watch[_indexName] - 1, _indexName);
     }
     destructor() {
-        for (let toRemove of this.fctsToRemove) {
-            let index = this.component.__onChangeFct[toRemove.name].indexOf(toRemove.fct);
-            if (index != -1) {
-                this.component.__onChangeFct[toRemove.name].splice(index, 1);
-            }
+        for (let computed of this.computeds) {
+            computed.destroy();
         }
+        this.computeds = [];
     }
-    buildSchema() {
-        for (let global of this.schema.globals) {
-            this.createGlobal(global);
+    getValueFromItem(name) {
+        let result = Template.getValueFromItem(name, this.data);
+        if (result !== undefined) {
+            return result;
         }
-        for (let item in this.schema.loops) {
-            this.createLoop(item, this.schema.loops[item].index, this.schema.loops[item].data);
+        result = Template.getValueFromItem(name, this.comp);
+        if (result !== undefined) {
+            return result;
         }
-        for (let key in this.schema.locals) {
-            this.createLocal(key, this.schema.locals[key]);
-        }
+        return undefined;
     }
-    createGlobal(global) {
-        let comp = this.component;
-        Object.defineProperty(this.c, global, {
-            get() {
-                return WebComponentTemplate.getValueFromItem(global, comp);
-            },
-            set(value) {
-                WebComponentTemplate.setValueToItem(global, comp, value);
-            }
-        });
-        let name = global.split(".")[0];
-        this.__changes[name] = [];
-        if (!this.component.__onChangeFct[name]) {
-            this.component.__onChangeFct[name] = [];
-        }
-        let fct = (path) => {
-            if (this.isRendered) {
-                for (let change of this.__changes[name]) {
-                    change(path);
-                }
-            }
-        };
-        this.fctsToRemove.push({ name, fct });
-        this.component.__onChangeFct[name].push(fct);
-    }
-    createLoop(item, index, data) {
-        Object.defineProperty(this.c, item, {
-            get() {
-                let indexValue = this[index];
-                return WebComponentTemplate.getValueFromItem(data, this)[indexValue];
-            }
-        });
-        let name = data.split(".")[0];
-        this.__changes[item] = [];
-        this.__changes[name].push((path) => {
-            if (this.isRendered) {
-                let currentPath = `${data}[${this.c[index]}]`;
-                if (path.startsWith(currentPath)) {
-                    let localPath = path.replace(currentPath, item);
-                    for (let change of this.__changes[item]) {
-                        change(localPath);
-                    }
-                }
-            }
-        });
-    }
-    createLocal(key, value) {
-        let changes = this.__changes;
-        let v = value;
-        Object.defineProperty(this.c, key, {
-            get() {
-                return v;
-            },
-            set(value) {
-                v = value;
-                if (changes[key]) {
-                    for (let change of changes[key]) {
-                        change(key);
-                    }
-                }
-            }
-        });
-    }
-    addChange(on, fct) {
-        if (!this.__changes[on]) {
-            this.__changes[on] = [];
-        }
-        this.__changes[on].push(fct);
+    setValueToItem(name, value) {
+        Template.setValueToItem(name, this.comp, value);
     }
 }
-WebComponentTemplateContext.Namespace=`${moduleName}`;
-_.WebComponentTemplateContext=WebComponentTemplateContext;
-const WebComponentTemplateInstance=class WebComponentTemplateInstance {
+TemplateContext.Namespace=`${moduleName}`;
+_.TemplateContext=TemplateContext;
+const TemplateInstance=class TemplateInstance {
     context;
     content;
     actions;
@@ -1976,23 +2089,27 @@ const WebComponentTemplateInstance=class WebComponentTemplateInstance {
     _components = {};
     firstRenderUniqueCb = {};
     firstRenderCb = [];
-    fctsToRemove = [];
-    loopRegisteries = {};
     firstChild;
     lastChild;
+    computeds = [];
+    renderingComputeds = [];
+    loopRegisteries = {};
     loops = [];
-    constructor(context, content, actions, component, loops) {
-        this.context = context;
+    ifs = [];
+    constructor(component, content, actions, loops, ifs, context) {
+        this.component = component;
         this.content = content;
         this.actions = actions;
-        this.component = component;
+        this.ifs = ifs;
         this.loops = loops;
-        this.firstChild = content.firstChild;
-        this.lastChild = content.lastChild;
+        this.context = context ? context : new TemplateContext(component);
+        this.firstChild = content.firstElementChild;
+        this.lastChild = content.lastElementChild;
         this.selectElements();
         this.transformActionsListening();
     }
     render() {
+        this.updateContext();
         this.bindEvents();
         for (let cb of this.firstRenderCb) {
             cb();
@@ -2001,16 +2118,45 @@ const WebComponentTemplateInstance=class WebComponentTemplateInstance {
             this.firstRenderUniqueCb[key]();
         }
         this.renderSubTemplate();
-        this.context.isRendered = true;
     }
     destructor() {
-        this.firstChild.remove();
-        this.context.destructor();
-        for (let toRemove of this.fctsToRemove) {
-            let index = this.component.__watchActions[toRemove.name].indexOf(toRemove.fct);
-            if (index != -1) {
-                this.component.__watchActions[toRemove.name].splice(index, 1);
+        for (let name in this.loopRegisteries) {
+            for (let item of this.loopRegisteries[name].templates) {
+                item.destructor();
             }
+            for (let item of this.loopRegisteries[name].computeds) {
+                item.destroy();
+            }
+        }
+        this.loopRegisteries = {};
+        this.context.destructor();
+        for (let computed of this.computeds) {
+            computed.destroy();
+        }
+        for (let computed of this.renderingComputeds) {
+            computed.destroy();
+        }
+        this.computeds = [];
+        this.removeFromDOM();
+    }
+    removeFromDOM(avoidTrigger = false) {
+        if (avoidTrigger) {
+            let node = this.firstChild;
+            while (node && node != this.lastChild) {
+                let next = node.nextElementSibling;
+                node.parentNode?.removeChild(node);
+                node = next;
+            }
+            this.lastChild?.parentNode?.removeChild(this.lastChild);
+        }
+        else {
+            let node = this.firstChild;
+            while (node && node != this.lastChild) {
+                let next = node.nextElementSibling;
+                node.remove();
+                node = next;
+            }
+            this.lastChild?.remove();
         }
     }
     selectElements() {
@@ -2032,12 +2178,34 @@ const WebComponentTemplateInstance=class WebComponentTemplateInstance {
                     }
                 }
                 if (element.isArray) {
-                    WebComponentTemplate.setValueToItem(element.name, this.component, components);
+                    Template.setValueToItem(element.name, this.component, components);
                 }
                 else if (components[0]) {
-                    WebComponentTemplate.setValueToItem(element.name, this.component, components[0]);
+                    Template.setValueToItem(element.name, this.component, components[0]);
                 }
             }
+        }
+    }
+    updateContext() {
+        if (this.actions.contextEdits) {
+            for (let contextEdit of this.actions.contextEdits) {
+                this.renderContextEdit(contextEdit);
+            }
+        }
+    }
+    renderContextEdit(edit) {
+        let _class = edit.once ? ComputedNoRecomputed : Computed;
+        let computed = new _class(() => {
+            return edit.fct(this.context);
+        });
+        computed.subscribe(() => {
+            for (let key in computed.value) {
+                this.context.data[key] = computed.value[key];
+            }
+        });
+        this.computeds.push(computed);
+        for (let key in computed.value) {
+            this.context.data[key] = computed.value[key];
         }
     }
     bindEvents() {
@@ -2058,7 +2226,7 @@ const WebComponentTemplateInstance=class WebComponentTemplateInstance {
         }
         if (event.isCallback) {
             for (let el of this._components[event.id]) {
-                let cb = WebComponentTemplate.getValueFromItem(event.eventName, el);
+                let cb = Template.getValueFromItem(event.eventName, el);
                 cb?.add((...args) => {
                     event.fct(this.context, args);
                 });
@@ -2091,9 +2259,7 @@ const WebComponentTemplateInstance=class WebComponentTemplateInstance {
     transformActionsListening() {
         if (this.actions.content) {
             for (let name in this.actions.content) {
-                for (let change of this.actions.content[name]) {
-                    this.transformChangeAction(name, change);
-                }
+                this.transformChangeAction(name, this.actions.content[name]);
             }
         }
         if (this.actions.injection) {
@@ -2108,143 +2274,99 @@ const WebComponentTemplateInstance=class WebComponentTemplateInstance {
         }
     }
     transformChangeAction(name, change) {
-        if (!this._components[change.id])
+        const [id, attr] = name.split("°");
+        if (!this._components[id])
             return;
-        let key = change.id + "_" + change.attrName;
-        if (change.attrName == "@HTML") {
-            if (change.path) {
-                this.context.addChange(name, (path) => {
-                    if (WebComponentTemplate.validatePath(path, change.path ?? '')) {
-                        for (const el of this._components[change.id]) {
-                            el.innerHTML = change.render(this.context.c);
-                        }
-                    }
-                });
-            }
-            else {
-                this.context.addChange(name, (path) => {
-                    for (const el of this._components[change.id]) {
-                        el.innerHTML = change.render(this.context.c);
-                    }
-                });
-            }
-            if (!this.firstRenderUniqueCb[key]) {
-                this.firstRenderUniqueCb[key] = () => {
-                    for (const el of this._components[change.id]) {
-                        el.innerHTML = change.render(this.context.c);
-                    }
-                };
-            }
-        }
-        else if (change.isBool) {
-            this.context.addChange(name, () => {
-                for (const el of this._components[change.id]) {
-                    if (this.context.c[name]) {
-                        el.setAttribute(change.attrName, "true");
-                    }
-                    else {
-                        el.removeAttribute(change.attrName);
-                    }
-                }
-            });
-            if (!this.firstRenderUniqueCb[key]) {
-                this.firstRenderUniqueCb[key] = () => {
-                    for (const el of this._components[change.id]) {
-                        if (this.context.c[name]) {
-                            el.setAttribute(change.attrName, "true");
-                        }
-                        else {
-                            el.removeAttribute(change.attrName);
-                        }
-                    }
-                };
-            }
+        let apply = () => { };
+        if (attr == "@HTML") {
+            apply = () => {
+                let value = this.context.print(computed.value);
+                for (const el of this._components[id])
+                    el.innerHTML = value;
+            };
         }
         else {
-            if (change.path) {
-                this.context.addChange(name, (path) => {
-                    if (WebComponentTemplate.validatePath(path, change.path ?? '')) {
-                        for (const el of this._components[change.id]) {
-                            el.setAttribute(change.attrName, change.render(this.context.c));
-                        }
+            apply = () => {
+                let value = this.context.print(computed.value);
+                if (value === "false") {
+                    for (const el of this._components[id]) {
+                        el.removeAttribute(attr);
                     }
-                });
-            }
-            else {
-                this.context.addChange(name, (path) => {
-                    for (const el of this._components[change.id]) {
-                        el.setAttribute(change.attrName, change.render(this.context.c));
+                }
+                else {
+                    for (const el of this._components[id]) {
+                        el.setAttribute(attr, value);
                     }
-                });
-            }
-            if (!this.firstRenderUniqueCb[key]) {
-                this.firstRenderUniqueCb[key] = () => {
-                    for (const el of this._components[change.id]) {
-                        el.setAttribute(change.attrName, change.render(this.context.c));
-                    }
-                };
-            }
+                }
+            };
         }
+        let _class = change.once ? ComputedNoRecomputed : Computed;
+        let computed = new _class(() => {
+            return change.fct(this.context);
+        });
+        let timeout;
+        computed.subscribe((action, path, value) => {
+            clearTimeout(timeout);
+            // add timeout to group change that append on the same frame (for example index update)
+            timeout = setTimeout(() => {
+                apply();
+            });
+        });
+        this.renderingComputeds.push(computed);
+        this.firstRenderUniqueCb[name] = () => {
+            apply();
+        };
     }
     transformInjectionAction(injection) {
         if (!this._components[injection.id])
             return;
-        if (injection.path) {
-            this.context.addChange(name, (path) => {
-                if (WebComponentTemplate.validatePath(path, injection.path ?? '')) {
-                    for (const el of this._components[injection.id]) {
-                        el[injection.injectionName] = injection.inject(this.context.c);
-                    }
-                }
-            });
-        }
-        else {
-            this.context.addChange(name, (path) => {
-                for (const el of this._components[injection.id]) {
-                    el[injection.injectionName] = injection.inject(this.context.c);
-                }
-            });
-        }
+        let _class = injection.once ? ComputedNoRecomputed : Computed;
+        let computed = new _class(() => {
+            return injection.inject(this.context);
+        });
+        this.computeds.push(computed);
+        computed.subscribe(() => {
+            for (const el of this._components[injection.id]) {
+                el[injection.injectionName] = computed.value;
+            }
+        });
         this.firstRenderCb.push(() => {
             for (const el of this._components[injection.id]) {
-                el[injection.injectionName] = injection.inject(this.context.c);
+                el[injection.injectionName] = computed.value;
             }
         });
     }
-    transformBindigAction(name, binding) {
-        if (!this._components[binding.id])
-            return;
-        if (binding.path) {
-            this.context.addChange(name, (path) => {
-                let bindingPath = binding.path ?? '';
-                if (WebComponentTemplate.validatePath(path, bindingPath)) {
-                    let valueToSet = WebComponentTemplate.getValueFromItem(bindingPath, this.context.c);
-                    for (const el of this._components[binding.id]) {
-                        WebComponentTemplate.setValueToItem(binding.valueName, el, valueToSet);
-                    }
-                }
-            });
-        }
-        else {
-            binding.path = name;
-            this.context.addChange(name, (path) => {
-                let valueToSet = WebComponentTemplate.getValueFromItem(name, this.context.c);
-                for (const el of this._components[binding.id]) {
-                    WebComponentTemplate.setValueToItem(binding.valueName, el, valueToSet);
-                }
-            });
-        }
+    transformBindigAction(binding) {
+        let isLocalChange = false;
+        let _class = binding.once ? ComputedNoRecomputed : Computed;
+        let computed = new _class(() => {
+            return binding.inject(this.context);
+        });
+        this.computeds.push(computed);
+        computed.subscribe(() => {
+            if (isLocalChange)
+                return;
+            for (const el of this._components[binding.id]) {
+                el[binding.injectionName] = computed.value;
+            }
+        });
+        this.firstRenderCb.push(() => {
+            for (const el of this._components[binding.id]) {
+                el[binding.injectionName] = computed.value;
+            }
+        });
         if (binding.isCallback) {
             this.firstRenderCb.push(() => {
                 for (var el of this._components[binding.id]) {
                     for (let fct of binding.eventNames) {
-                        let cb = WebComponentTemplate.getValueFromItem(fct, el);
+                        let cb = Template.getValueFromItem(fct, el);
                         cb?.add((value) => {
-                            WebComponentTemplate.setValueToItem(binding.path ?? '', this.context.c, value);
+                            let valueToSet = Template.getValueFromItem(binding.injectionName, el);
+                            isLocalChange = true;
+                            binding.extract(this.context, valueToSet);
+                            isLocalChange = false;
                         });
                     }
-                    let valueToSet = WebComponentTemplate.getValueFromItem(binding.path ?? '', this.context.c);
-                    WebComponentTemplate.setValueToItem(binding.valueName, el, valueToSet);
                 }
             });
         }
@@ -2253,99 +2375,235 @@ const WebComponentTemplateInstance=class WebComponentTemplateInstance {
                 for (var el of this._components[binding.id]) {
                     for (let fct of binding.eventNames) {
                         el.addEventListener(fct, (e) => {
-                            let valueToSet = WebComponentTemplate.getValueFromItem(binding.valueName, e.target);
-                            WebComponentTemplate.setValueToItem(binding.path ?? '', this.context.c, valueToSet);
+                            let valueToSet = Template.getValueFromItem(binding.injectionName, e.target);
+                            isLocalChange = true;
+                            binding.extract(this.context, valueToSet);
+                            isLocalChange = false;
                         });
                     }
-                    let valueToSet = WebComponentTemplate.getValueFromItem(binding.path ?? '', this.context.c);
-                    WebComponentTemplate.setValueToItem(binding.valueName, el, valueToSet);
                 }
             });
         }
     }
     renderSubTemplate() {
         for (let loop of this.loops) {
-            let localContext = JSON.parse(JSON.stringify(this.context.schema));
-            localContext.loops[loop.item] = {
-                data: loop.data,
-                index: loop.index,
-            };
-            this.renderLoop(loop, localContext);
-            this.registerLoopWatchEvent(loop, localContext);
+            this.renderLoop(loop);
+        }
+        for (let _if of this.ifs) {
+            this.renderIf(_if);
         }
     }
-    renderLoop(loop, localContext) {
+    renderLoop(loop) {
+        if (loop.func) {
+            this.renderLoopComplex(loop);
+        }
+        else if (loop.simple) {
+            this.renderLoopSimple(loop, loop.simple);
+        }
+    }
+    resetLoop(loop) {
         if (this.loopRegisteries[loop.anchorId]) {
-            for (let item of this.loopRegisteries[loop.anchorId]) {
+            for (let item of this.loopRegisteries[loop.anchorId].templates) {
                 item.destructor();
             }
+            for (let item of this.loopRegisteries[loop.anchorId].computeds) {
+                item.destroy();
+            }
+            if (loop.simple && this.loopRegisteries[loop.anchorId].sub) {
+                let elements = this.context.getValueFromItem(loop.simple.data.replace(/^this\./, ''));
+                if (elements) {
+                    elements.unsubscribe(this.loopRegisteries[loop.anchorId].sub);
+                }
+            }
         }
-        this.loopRegisteries[loop.anchorId] = [];
-        let result = WebComponentTemplate.getValueFromItem(loop.data, this.context.c);
+        this.loopRegisteries[loop.anchorId] = {
+            templates: [],
+            computeds: [],
+        };
+    }
+    renderLoopComplex(loop) {
+        if (!loop.func)
+            return;
+        let fctsTemp = loop.func.bind(this.component)(this.context);
+        let fcts = {
+            apply: fctsTemp.apply,
+            condition: fctsTemp.condition,
+            transform: fctsTemp.transform ?? (() => { })
+        };
+        this.resetLoop(loop);
+        let computedsCondition = [];
+        let alreadyRecreated = false;
+        const createComputedCondition = () => {
+            let compCondition = new Computed(() => {
+                return fcts.condition();
+            });
+            compCondition.value;
+            compCondition.subscribe((action, path, value) => {
+                if (!alreadyRecreated) {
+                    alreadyRecreated = true;
+                    this.renderLoopComplex(loop);
+                }
+            });
+            computedsCondition.push(compCondition);
+            this.loopRegisteries[loop.anchorId].computeds.push(compCondition);
+            return compCondition;
+        };
+        let result = [];
+        let compCondition = createComputedCondition();
+        while (compCondition.value) {
+            result.push(fcts.apply());
+            fcts.transform();
+            compCondition = createComputedCondition();
+        }
         let anchor = this._components[loop.anchorId][0];
         for (let i = 0; i < result.length; i++) {
-            let context = new WebComponentTemplateContext(this.component, localContext, { [loop.index]: i });
+            let context = new TemplateContext(this.component, result[i], this.context);
             let content = loop.template.template?.content.cloneNode(true);
             let actions = loop.template.actions;
-            let instance = new WebComponentTemplateInstance(context, content, actions, this.component, loop.template.loops);
+            let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
             instance.render();
             anchor.parentNode?.insertBefore(instance.content, anchor);
-            this.loopRegisteries[loop.anchorId].push(instance);
+            this.loopRegisteries[loop.anchorId].templates.push(instance);
         }
     }
-    registerLoopWatchEvent(loop, localContext) {
-        let fullPath = loop.data;
-        let watchName = fullPath.split(".")[0];
-        if (!this.component.__watchActions[watchName]) {
-            this.component.__watchActions[watchName] = [];
+    renderLoopSimple(loop, simple) {
+        this.resetLoop(loop);
+        let basePath = simple.data.replace(/^this\./, '');
+        let getElements = () => this.context.getValueFromItem(basePath);
+        let elements = getElements();
+        let indexName = this.context.registerIndex();
+        let keys = Object.keys(elements);
+        if (elements.__isProxy) {
+            let regexArray = new RegExp("^\\[(\\d+?)\\]$");
+            let regexObject = new RegExp("^([^\\.]*)$");
+            let sub = (action, path, value) => {
+                if (path == "") {
+                    this.renderLoopSimple(loop, simple);
+                    return;
+                }
+                if (action == WatchAction.UPDATED) {
+                    return;
+                }
+                let index = undefined;
+                regexArray.lastIndex = 0;
+                regexObject.lastIndex = 0;
+                let resultArray = regexArray.exec(path);
+                if (resultArray) {
+                    index = Number(resultArray[1]);
+                }
+                else {
+                    let resultObject = regexObject.exec(path);
+                    if (resultObject) {
+                        let oldKey = resultObject[1];
+                        if (action == WatchAction.CREATED) {
+                            keys = Object.keys(getElements());
+                            index = keys.indexOf(oldKey);
+                        }
+                        else if (action == WatchAction.DELETED) {
+                            index = keys.indexOf(oldKey);
+                            keys = Object.keys(getElements());
+                        }
+                    }
+                }
+                if (index !== undefined) {
+                    let registry = this.loopRegisteries[loop.anchorId];
+                    if (action == WatchAction.CREATED) {
+                        let context = new TemplateContext(this.component, {}, this.context);
+                        context.registerLoop(simple.data, index, indexName, simple.index, simple.item);
+                        let content = loop.template.template?.content.cloneNode(true);
+                        let actions = loop.template.actions;
+                        let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
+                        instance.render();
+                        let anchor;
+                        if (index < registry.templates.length) {
+                            anchor = registry.templates[index].firstChild;
+                        }
+                        else {
+                            anchor = this._components[loop.anchorId][0];
+                        }
+                        anchor?.parentNode?.insertBefore(instance.content, anchor);
+                        registry.templates.splice(index, 0, instance);
+                        for (let i = index + 1; i < registry.templates.length; i++) {
+                            registry.templates[i].context.increaseIndex(indexName);
+                        }
+                    }
+                    else if (action == WatchAction.DELETED) {
+                        registry.templates[index].destructor();
+                        registry.templates.splice(index, 1);
+                        for (let i = index; i < registry.templates.length; i++) {
+                            registry.templates[i].context.decreaseIndex(indexName);
+                        }
+                    }
+                }
+            };
+            elements.subscribe(sub);
         }
-        let regex = new RegExp(fullPath.replace(/\./g, "\\.") + "\\[(\\d+?)\\]$");
-        this.component.__watchActions[watchName].push((element, action, path, value) => {
-            if (path == fullPath) {
-                this.renderLoop(loop, localContext);
+        let anchor = this._components[loop.anchorId][0];
+        for (let i = 0; i < keys.length; i++) {
+            let context = new TemplateContext(this.component, {}, this.context);
+            context.registerLoop(simple.data, i, indexName, simple.index, simple.item);
+            let content = loop.template.template?.content.cloneNode(true);
+            let actions = loop.template.actions;
+            let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
+            instance.render();
+            anchor.parentNode?.insertBefore(instance.content, anchor);
+            this.loopRegisteries[loop.anchorId].templates.push(instance);
+        }
+    }
+    renderIf(_if) {
+        let computeds = [];
+        let instances = [];
+        let anchor = this._components[_if.anchorId][0];
+        let currentActive = -1;
+        const calculateActive = () => {
+            let newActive = -1;
+            for (let i = 0; i < _if.parts.length; i++) {
+                if (computeds[i].value) {
+                    newActive = i;
+                    break;
+                }
+            }
+            if (newActive == currentActive) {
                 return;
             }
-            regex.lastIndex = 0;
-            let result = regex.exec(path);
-            if (result) {
-                let registry = this.loopRegisteries[loop.anchorId];
-                let index = Number(result[1]);
-                if (action == WatchAction.CREATED) {
-                    let context = new WebComponentTemplateContext(this.component, localContext, { [loop.index]: index });
-                    let content = loop.template.template?.content.cloneNode(true);
-                    let actions = loop.template.actions;
-                    let instance = new WebComponentTemplateInstance(context, content, actions, this.component, loop.template.loops);
-                    instance.render();
-                    let anchor;
-                    if (index < registry.length) {
-                        anchor = registry[index].firstChild;
-                    }
-                    else {
-                        anchor = this._components[loop.anchorId][0];
-                    }
-                    anchor.parentNode?.insertBefore(instance.content, anchor);
-                    registry.splice(index, 0, instance);
-                    for (let i = index + 1; i < registry.length; i++) {
-                        registry[i].context.c[loop.index] = registry[i].context.c[loop.index] + 1;
-                    }
+            if (currentActive != -1) {
+                let instance = instances[currentActive];
+                let node = instance.firstChild;
+                while (node && node != instance.lastChild) {
+                    let next = node.nextElementSibling;
+                    instance.content.appendChild(node);
+                    node = next;
                 }
-                else if (action == WatchAction.UPDATED) {
-                    registry[index].render();
-                }
-                else if (action == WatchAction.DELETED) {
-                    registry[index].destructor();
-                    registry.splice(index, 1);
-                    for (let i = index; i < registry.length; i++) {
-                        registry[i].context.c[loop.index] = registry[i].context.c[loop.index] - 1;
-                    }
-                }
+                if (instance.lastChild)
+                    instance.content.appendChild(instance.lastChild);
             }
-        });
+            currentActive = newActive;
+            anchor.parentNode?.insertBefore(instances[currentActive].content, anchor);
+        };
+        for (let i = 0; i < _if.parts.length; i++) {
+            const part = _if.parts[i];
+            let _class = part.once ? ComputedNoRecomputed : Computed;
+            let computed = new _class(() => {
+                return part.condition(this.context);
+            });
+            computeds.push(computed);
+            computed.subscribe(() => {
+                calculateActive();
+            });
+            this.computeds.push(computed);
+            let context = new TemplateContext(this.component, {}, this.context);
+            let content = part.template.template?.content.cloneNode(true);
+            let actions = part.template.actions;
+            let instance = new TemplateInstance(this.component, content, actions, part.template.loops, part.template.ifs, context);
+            instances.push(instance);
+            instance.render();
+        }
+        calculateActive();
     }
 }
-WebComponentTemplateInstance.Namespace=`${moduleName}`;
-_.WebComponentTemplateInstance=WebComponentTemplateInstance;
-const WebComponentTemplate=class WebComponentTemplate {
+TemplateInstance.Namespace=`${moduleName}`;
+_.TemplateInstance=TemplateInstance;
+const Template=class Template {
     static setValueToItem(path, obj, value) {
         let splitted = path.split(".");
         for (let i = 0; i < splitted.length - 1; i++) {
@@ -2404,18 +2662,16 @@ const WebComponentTemplate=class WebComponentTemplate {
         }
         this.template.innerHTML = currentHTML;
     }
+    /**
+     * Used by the for loop and the if
+     * @param template
+     */
     setTemplate(template) {
         this.template = document.createElement('template');
         this.template.innerHTML = template;
     }
-    contextSchema = {
-        globals: [],
-        locals: {},
-        loops: {}
-    };
     template;
     actions = {};
-    loops = [];
     setActions(actions) {
         if (!this.actions) {
             this.actions = actions;
@@ -2449,7 +2705,7 @@ const WebComponentTemplate=class WebComponentTemplate {
                             this.actions.content[contextProp] = actions.content[contextProp];
                         }
                         else {
-                            this.actions.content[contextProp] = [...actions.content[contextProp], ...this.actions.content[contextProp]];
+                            throw 'this should be impossible';
                         }
                     }
                 }
@@ -2484,40 +2740,29 @@ const WebComponentTemplate=class WebComponentTemplate {
                     }
                 }
             }
-        }
-    }
-    setSchema(contextSchema) {
-        if (contextSchema.globals) {
-            for (let glob of contextSchema.globals) {
-                if (!this.contextSchema.globals.includes(glob)) {
-                    this.contextSchema.globals.push(glob);
+            if (actions.contextEdits) {
+                if (!this.actions.contextEdits) {
+                    this.actions.contextEdits = [];
                 }
-            }
-        }
-        if (contextSchema.locals) {
-            for (let key in contextSchema.locals) {
-                this.contextSchema.locals[key] = contextSchema.locals[key];
-            }
-        }
-        if (contextSchema.loops) {
-            for (let key in contextSchema.loops) {
-                this.contextSchema.loops[key] = contextSchema.loops[key];
+                this.actions.contextEdits = [...actions.contextEdits, ...this.actions.contextEdits];
             }
         }
     }
-    createInstance(component) {
-        let context = new WebComponentTemplateContext(component, this.contextSchema, {});
-        let content = this.template?.content.cloneNode(true);
-        let actions = this.actions;
-        let instance = new WebComponentTemplateInstance(context, content, actions, component, this.loops);
-        return instance;
-    }
+    loops = [];
     addLoop(loop) {
         this.loops.push(loop);
     }
+    ifs = [];
+    addIf(_if) {
+        this.ifs.push(_if);
+    }
+    createInstance(component) {
+        let content = this.template.content.cloneNode(true);
+        return new TemplateInstance(component, content, this.actions, this.loops, this.ifs);
+    }
 }
-WebComponentTemplate.Namespace=`${moduleName}`;
-_.WebComponentTemplate=WebComponentTemplate;
+Template.Namespace=`${moduleName}`;
+_.Template=Template;
 const WebComponent=class WebComponent extends HTMLElement {
     /**
      * Add attributes informations
@@ -2573,6 +2818,8 @@ const WebComponent=class WebComponent extends HTMLElement {
     __watch;
     __watchActions = {};
     __watchActionsCb = {};
+    __watchFunctions = {};
+    __watchFunctionsComputed = {};
     __pressManagers = [];
     __isDefaultState = true;
     __defaultActiveState = new Map();
@@ -2605,6 +2852,9 @@ const WebComponent=class WebComponent extends HTMLElement {
         for (let press of this.__pressManagers) {
             press.destroy();
         }
+        for (let name in this.__watchFunctionsComputed) {
+            this.__watchFunctionsComputed[name].destroy();
+        }
         // TODO add missing info for destructor();
     }
     __addWatchesActions(name, fct) {
@@ -2625,13 +2875,38 @@ const WebComponent=class WebComponent extends HTMLElement {
             this.__watchActions[name].push(fct);
         }
     }
+    __addWatchesFunctions(infos) {
+        for (let info of infos) {
+            let realName;
+            let autoInit;
+            if (typeof info == "string") {
+                realName = info;
+                autoInit = false;
+            }
+            else {
+                realName = info.name;
+                autoInit = info.autoInit;
+            }
+            if (!this.__watchFunctions[realName]) {
+                this.__watchFunctions[realName] = { autoInit };
+            }
+        }
+    }
     __registerWatchesActions() {
         if (Object.keys(this.__watchActions).length > 0) {
             if (!this.__watch) {
-                this.__watch = Watcher.get({}, (type, path, element) => {
+                let defaultValue = {};
+                this.__defaultValuesWatch(defaultValue);
+                this.__watch = Watcher.get(defaultValue, (type, path, element) => {
                     let action = this.__watchActionsCb[path.split(".")[0]] || this.__watchActionsCb[path.split("[")[0]];
                     action(type, path, element);
                 });
+            }
+        }
+        for (let name in this.__watchFunctions) {
+            this.__watchFunctionsComputed[name] = Watcher.computed(this[name].bind(this));
+            if (this.__watchFunctions[name].autoInit) {
+                this.__watchFunctionsComputed[name].value;
             }
         }
     }
@@ -2683,7 +2958,7 @@ const WebComponent=class WebComponent extends HTMLElement {
     __renderTemplate() {
         let staticInstance = this.__getStatic();
         if (!staticInstance.__template || staticInstance.__template.cst != staticInstance) {
-            staticInstance.__template = new WebComponentTemplate(staticInstance);
+            staticInstance.__template = new Template(staticInstance);
             this.__getHtml();
             this.__registerTemplateAction();
             staticInstance.__template.generateTemplate();
@@ -2721,6 +2996,7 @@ const WebComponent=class WebComponent extends HTMLElement {
         }
     }
     __defaultValues() { }
+    __defaultValuesWatch(w) { }
     __upgradeAttributes() { }
     __listBoolProps() {
         return [];
@@ -2891,8 +3167,127 @@ const WebComponent=class WebComponent extends HTMLElement {
         console.error("error parsing boolean value " + val);
         return false;
     }
+    __registerPropToWatcher(name) {
+        if (Watcher._register) {
+            Watcher._register.register(this.getReceiver(name), name, Watcher._register.version);
+        }
+    }
+    getStringAttr(name) {
+        return this.getAttribute(name) ?? undefined;
+    }
+    setStringAttr(name, val) {
+        if (val === undefined || val === null) {
+            this.removeAttribute(name);
+        }
+        else {
+            this.setAttribute(name, val);
+        }
+    }
+    getStringProp(name) {
+        this.__registerPropToWatcher(name);
+        return this.getStringAttr(name);
+    }
+    getNumberAttr(name) {
+        return Number(this.getAttribute(name));
+    }
+    setNumberAttr(name, val) {
+        if (val === undefined || val === null) {
+            this.removeAttribute(name);
+        }
+        else {
+            this.setAttribute(name, val);
+        }
+    }
+    getNumberProp(name) {
+        this.__registerPropToWatcher(name);
+        return this.getNumberAttr(name);
+    }
+    getBoolAttr(name) {
+        return this.hasAttribute(name);
+    }
+    setBoolAttr(name, val) {
+        val = this.getBoolean(val);
+        if (val) {
+            this.setAttribute(name, 'true');
+        }
+        else {
+            this.removeAttribute(name);
+        }
+    }
+    getBoolProp(name) {
+        this.__registerPropToWatcher(name);
+        return this.getBoolAttr(name);
+    }
+    getDateAttr(name) {
+        if (!this.hasAttribute(name)) {
+            return undefined;
+        }
+        return this.stringToDate(this.getAttribute(name));
+    }
+    setDateAttr(name, val) {
+        let valTxt = this.dateToString(val);
+        if (valTxt === null) {
+            this.removeAttribute(name);
+        }
+        else {
+            this.setAttribute(name, valTxt);
+        }
+    }
+    getDateProp(name) {
+        this.__registerPropToWatcher(name);
+        return this.getDateAttr(name);
+    }
+    getDateTimeAttr(name) {
+        if (!this.hasAttribute(name))
+            return undefined;
+        return this.stringToDateTime(this.getAttribute(name));
+    }
+    setDateTimeAttr(name, val) {
+        let valTxt = this.dateTimeToString(val);
+        if (valTxt === null) {
+            this.removeAttribute(name);
+        }
+        else {
+            this.setAttribute(name, valTxt);
+        }
+    }
+    getDateTimeProp(name) {
+        this.__registerPropToWatcher(name);
+        return this.getDateTimeAttr(name);
+    }
+    __propertyReceivers = {};
+    getReceiver(name) {
+        if (!this.__propertyReceivers[name]) {
+            let that = this;
+            let result = {
+                __subscribes: [],
+                subscribe(fct) {
+                    let index = this.__subscribes.indexOf(fct);
+                    if (index == -1) {
+                        this.__subscribes.push(fct);
+                    }
+                },
+                unsubscribe(fct) {
+                    let index = this.__subscribes.indexOf(fct);
+                    if (index > -1) {
+                        this.__subscribes.splice(index, 1);
+                    }
+                },
+                onChange() {
+                    for (let fct of this.__subscribes) {
+                        fct(WatchAction.UPDATED, name, that[name]);
+                    }
+                }
+            };
+            this.__propertyReceivers[name] = result;
+        }
+        return this.__propertyReceivers[name];
+    }
     attributeChangedCallback(name, oldValue, newValue) {
         if (oldValue !== newValue || !this.isReady) {
+            if (this.__propertyReceivers.hasOwnProperty(name)) {
+                this.__propertyReceivers[name].onChange();
+            }
             if (this.__onChangeFct.hasOwnProperty(name)) {
                 for (let fct of this.__onChangeFct[name]) {
                     fct('');
@@ -3702,21 +4097,9 @@ const RouterStateManager=class RouterStateManager extends Aventus.StateManager {
 RouterStateManager.Namespace=`${moduleName}`;
 _.RouterStateManager=RouterStateManager;
 Navigation.RouterLink = class RouterLink extends Aventus.WebComponent {
-    get 'state'() {
-                    return this.getAttribute('state') ?? undefined;
-                }
-                set 'state'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('state')}
-                    else{this.setAttribute('state',val)}
-                }
-get 'active_state'() {
-                    return this.getAttribute('active_state') ?? undefined;
-                }
-                set 'active_state'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('active_state')}
-                    else{this.setAttribute('active_state',val)}
-                }
-    onActiveChange = new Aventus.Callback();
+    get 'state'() { return this.getStringAttr('state') }
+    set 'state'(val) { this.setStringAttr('state', val) }get 'active_state'() { return this.getStringAttr('active_state') }
+    set 'active_state'(val) { this.setStringAttr('active_state', val) }    onActiveChange = new Aventus.Callback();
     static __style = ``;
     __getStatic() {
         return RouterLink;
@@ -3735,12 +4118,8 @@ get 'active_state'() {
     getClassName() {
         return "RouterLink";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('state')){ this['state'] = ""; }
-if(!this.hasAttribute('active_state')){ this['active_state'] = ""; }
- }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('state');
-this.__upgradeProperty('active_state');
- }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('state')){ this['state'] = ""; }if(!this.hasAttribute('active_state')){ this['active_state'] = ""; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('state');this.__upgradeProperty('active_state'); }
     addClickEvent() {
         new Aventus.PressManager({
             element: this,
@@ -3815,35 +4194,11 @@ const Tracker=class Tracker {
 Tracker.Namespace=`${moduleName}`;
 _.Tracker=Tracker;
 Layout.GridCol = class GridCol extends Aventus.WebComponent {
-    get 'column'() {
-                    return this.getAttribute('column') ?? undefined;
-                }
-                set 'column'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('column')}
-                    else{this.setAttribute('column',val)}
-                }
-get 'row'() {
-                    return this.getAttribute('row') ?? undefined;
-                }
-                set 'row'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('row')}
-                    else{this.setAttribute('row',val)}
-                }
-get 'c_start'() {
-                    return Number(this.getAttribute('c_start'));
-                }
-                set 'c_start'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('c_start')}
-                    else{this.setAttribute('c_start',val)}
-                }
-get 'c_end'() {
-                    return Number(this.getAttribute('c_end'));
-                }
-                set 'c_end'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('c_end')}
-                    else{this.setAttribute('c_end',val)}
-                }
-    static __style = ``;
+    get 'column'() { return this.getStringAttr('column') }
+    set 'column'(val) { this.setStringAttr('column', val) }get 'row'() { return this.getStringAttr('row') }
+    set 'row'(val) { this.setStringAttr('row', val) }get 'c_start'() { return this.getNumberAttr('c_start') }
+    set 'c_start'(val) { this.setNumberAttr('c_start', val) }get 'c_end'() { return this.getNumberAttr('c_end') }
+    set 'c_end'(val) { this.setNumberAttr('c_end', val) }    static __style = ``;
     __getStatic() {
         return GridCol;
     }
@@ -3861,16 +4216,8 @@ get 'c_end'() {
     getClassName() {
         return "GridCol";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('column')){ this['column'] = undefined; }
-if(!this.hasAttribute('row')){ this['row'] = undefined; }
-if(!this.hasAttribute('c_start')){ this['c_start'] = undefined; }
-if(!this.hasAttribute('c_end')){ this['c_end'] = undefined; }
- }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('column');
-this.__upgradeProperty('row');
-this.__upgradeProperty('c_start');
-this.__upgradeProperty('c_end');
- }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('column')){ this['column'] = undefined; }if(!this.hasAttribute('row')){ this['row'] = undefined; }if(!this.hasAttribute('c_start')){ this['c_start'] = undefined; }if(!this.hasAttribute('c_end')){ this['c_end'] = undefined; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('column');this.__upgradeProperty('row');this.__upgradeProperty('c_start');this.__upgradeProperty('c_end'); }
 }
 Layout.GridCol.Namespace=`${moduleName}.Layout`;
 Layout.GridCol.Tag=`av-grid-col`;
@@ -3879,14 +4226,8 @@ if(!window.customElements.get('av-grid-col')){window.customElements.define('av-g
 
 Layout.Grid = class Grid extends Aventus.WebComponent {
     static get observedAttributes() {return ["cols"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
-    get 'cols'() {
-                    return Number(this.getAttribute('cols'));
-                }
-                set 'cols'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('cols')}
-                    else{this.setAttribute('cols',val)}
-                }
-    static __style = `:host{display:grid}:host([cols=j]){grid-template-columns:repeat(1, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(2, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(3, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(4, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(5, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(6, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(7, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(8, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(9, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(10, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(11, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(12, minmax(0, 1fr))}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_xs="0"]){margin-right:0%}::slotted(av-grid-col[size_xs="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_xs="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_xs="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_xs="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_xs="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_xs="3"]){margin-right:25%}::slotted(av-grid-col[size_xs="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_xs="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_xs="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_xs="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_xs="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_xs="6"]){margin-right:50%}::slotted(av-grid-col[size_xs="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_xs="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_xs="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_xs="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_xs="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_xs="9"]){margin-right:75%}::slotted(av-grid-col[size_xs="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_xs="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_xs="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_xs="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_xs="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_xs="12"]){margin-right:100%}::slotted(av-grid-col[size_xs="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_sm="0"]){margin-right:0%}::slotted(av-grid-col[size_sm="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_sm="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_sm="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_sm="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_sm="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_sm="3"]){margin-right:25%}::slotted(av-grid-col[size_sm="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_sm="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_sm="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_sm="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_sm="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_sm="6"]){margin-right:50%}::slotted(av-grid-col[size_sm="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_sm="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_sm="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_sm="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_sm="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_sm="9"]){margin-right:75%}::slotted(av-grid-col[size_sm="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_sm="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_sm="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_sm="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_sm="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_sm="12"]){margin-right:100%}::slotted(av-grid-col[size_sm="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_md="0"]){margin-right:0%}::slotted(av-grid-col[size_md="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_md="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_md="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_md="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_md="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_md="3"]){margin-right:25%}::slotted(av-grid-col[size_md="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_md="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_md="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_md="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_md="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_md="6"]){margin-right:50%}::slotted(av-grid-col[size_md="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_md="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_md="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_md="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_md="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_md="9"]){margin-right:75%}::slotted(av-grid-col[size_md="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_md="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_md="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_md="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_md="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_md="12"]){margin-right:100%}::slotted(av-grid-col[size_md="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_lg="0"]){margin-right:0%}::slotted(av-grid-col[size_lg="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_lg="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_lg="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_lg="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_lg="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_lg="3"]){margin-right:25%}::slotted(av-grid-col[size_lg="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_lg="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_lg="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_lg="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_lg="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_lg="6"]){margin-right:50%}::slotted(av-grid-col[size_lg="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_lg="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_lg="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_lg="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_lg="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_lg="9"]){margin-right:75%}::slotted(av-grid-col[size_lg="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_lg="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_lg="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_lg="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_lg="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_lg="12"]){margin-right:100%}::slotted(av-grid-col[size_lg="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_xl="0"]){margin-right:0%}::slotted(av-grid-col[size_xl="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_xl="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_xl="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_xl="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_xl="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_xl="3"]){margin-right:25%}::slotted(av-grid-col[size_xl="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_xl="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_xl="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_xl="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_xl="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_xl="6"]){margin-right:50%}::slotted(av-grid-col[size_xl="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_xl="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_xl="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_xl="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_xl="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_xl="9"]){margin-right:75%}::slotted(av-grid-col[size_xl="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_xl="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_xl="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_xl="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_xl="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_xl="12"]){margin-right:100%}::slotted(av-grid-col[size_xl="12"]){width:100%}}`;
+    get 'cols'() { return this.getNumberProp('cols') }
+    set 'cols'(val) { this.setNumberAttr('cols', val) }    static __style = `:host{display:grid}:host([cols=j]){grid-template-columns:repeat(1, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(2, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(3, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(4, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(5, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(6, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(7, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(8, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(9, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(10, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(11, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(12, minmax(0, 1fr))}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_xs="0"]){margin-right:0%}::slotted(av-grid-col[size_xs="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_xs="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_xs="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_xs="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_xs="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_xs="3"]){margin-right:25%}::slotted(av-grid-col[size_xs="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_xs="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_xs="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_xs="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_xs="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_xs="6"]){margin-right:50%}::slotted(av-grid-col[size_xs="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_xs="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_xs="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_xs="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_xs="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_xs="9"]){margin-right:75%}::slotted(av-grid-col[size_xs="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_xs="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_xs="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_xs="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_xs="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_xs="12"]){margin-right:100%}::slotted(av-grid-col[size_xs="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_sm="0"]){margin-right:0%}::slotted(av-grid-col[size_sm="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_sm="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_sm="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_sm="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_sm="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_sm="3"]){margin-right:25%}::slotted(av-grid-col[size_sm="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_sm="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_sm="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_sm="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_sm="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_sm="6"]){margin-right:50%}::slotted(av-grid-col[size_sm="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_sm="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_sm="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_sm="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_sm="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_sm="9"]){margin-right:75%}::slotted(av-grid-col[size_sm="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_sm="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_sm="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_sm="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_sm="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_sm="12"]){margin-right:100%}::slotted(av-grid-col[size_sm="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_md="0"]){margin-right:0%}::slotted(av-grid-col[size_md="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_md="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_md="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_md="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_md="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_md="3"]){margin-right:25%}::slotted(av-grid-col[size_md="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_md="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_md="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_md="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_md="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_md="6"]){margin-right:50%}::slotted(av-grid-col[size_md="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_md="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_md="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_md="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_md="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_md="9"]){margin-right:75%}::slotted(av-grid-col[size_md="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_md="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_md="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_md="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_md="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_md="12"]){margin-right:100%}::slotted(av-grid-col[size_md="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_lg="0"]){margin-right:0%}::slotted(av-grid-col[size_lg="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_lg="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_lg="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_lg="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_lg="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_lg="3"]){margin-right:25%}::slotted(av-grid-col[size_lg="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_lg="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_lg="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_lg="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_lg="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_lg="6"]){margin-right:50%}::slotted(av-grid-col[size_lg="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_lg="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_lg="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_lg="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_lg="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_lg="9"]){margin-right:75%}::slotted(av-grid-col[size_lg="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_lg="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_lg="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_lg="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_lg="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_lg="12"]){margin-right:100%}::slotted(av-grid-col[size_lg="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_xl="0"]){margin-right:0%}::slotted(av-grid-col[size_xl="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_xl="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_xl="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_xl="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_xl="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_xl="3"]){margin-right:25%}::slotted(av-grid-col[size_xl="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_xl="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_xl="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_xl="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_xl="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_xl="6"]){margin-right:50%}::slotted(av-grid-col[size_xl="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_xl="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_xl="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_xl="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_xl="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_xl="9"]){margin-right:75%}::slotted(av-grid-col[size_xl="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_xl="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_xl="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_xl="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_xl="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_xl="12"]){margin-right:100%}::slotted(av-grid-col[size_xl="12"]){width:100%}}`;
     __getStatic() {
         return Grid;
     }
@@ -3904,10 +4245,8 @@ Layout.Grid = class Grid extends Aventus.WebComponent {
     getClassName() {
         return "Grid";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('cols')){ this['cols'] = 12; }
- }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('cols');
- }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('cols')){ this['cols'] = 12; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('cols'); }
 }
 Layout.Grid.Namespace=`${moduleName}.Layout`;
 Layout.Grid.Tag=`av-grid`;
@@ -3915,14 +4254,8 @@ _.Layout.Grid=Layout.Grid;
 if(!window.customElements.get('av-grid')){window.customElements.define('av-grid', Layout.Grid);Aventus.WebComponentInstance.registerDefinition(Layout.Grid);}
 
 Layout.DynamicRow = class DynamicRow extends Aventus.WebComponent {
-    get 'max_width'() {
-                    return this.getAttribute('max_width') ?? undefined;
-                }
-                set 'max_width'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('max_width')}
-                    else{this.setAttribute('max_width',val)}
-                }
-    sizes = { "xs": 300, "sm": 540, "md": 720, "lg": 960, "xl": 1140 };
+    get 'max_width'() { return this.getStringAttr('max_width') }
+    set 'max_width'(val) { this.setStringAttr('max_width', val) }    sizes = { "xs": 300, "sm": 540, "md": 720, "lg": 960, "xl": 1140 };
     static __style = `:host{display:flex;flex-wrap:wrap;flex-direction:row;width:100%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="0"]){margin-left:0%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="0"]){margin-right:0%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="0"]){width:0%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="1"]){margin-left:8.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="1"]){margin-right:8.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="1"]){width:8.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="2"]){margin-left:16.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="2"]){margin-right:16.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="2"]){width:16.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="3"]){margin-left:25%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="3"]){margin-right:25%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="3"]){width:25%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="4"]){margin-left:33.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="4"]){margin-right:33.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="4"]){width:33.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="5"]){margin-left:41.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="5"]){margin-right:41.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="5"]){width:41.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="6"]){margin-left:50%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="6"]){margin-right:50%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="6"]){width:50%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="7"]){margin-left:58.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="7"]){margin-right:58.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="7"]){width:58.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="8"]){margin-left:66.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="8"]){margin-right:66.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="8"]){width:66.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="9"]){margin-left:75%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="9"]){margin-right:75%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="9"]){width:75%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="10"]){margin-left:83.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="10"]){margin-right:83.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="10"]){width:83.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="11"]){margin-left:91.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="11"]){margin-right:91.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="11"]){width:91.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="12"]){margin-left:100%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="12"]){margin-right:100%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="12"]){width:100%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="0"]){margin-left:0%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="0"]){margin-right:0%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="0"]){width:0%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="1"]){margin-left:8.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="1"]){margin-right:8.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="1"]){width:8.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="2"]){margin-left:16.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="2"]){margin-right:16.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="2"]){width:16.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="3"]){margin-left:25%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="3"]){margin-right:25%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="3"]){width:25%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="4"]){margin-left:33.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="4"]){margin-right:33.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="4"]){width:33.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="5"]){margin-left:41.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="5"]){margin-right:41.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="5"]){width:41.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="6"]){margin-left:50%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="6"]){margin-right:50%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="6"]){width:50%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="7"]){margin-left:58.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="7"]){margin-right:58.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="7"]){width:58.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="8"]){margin-left:66.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="8"]){margin-right:66.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="8"]){width:66.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="9"]){margin-left:75%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="9"]){margin-right:75%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="9"]){width:75%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="10"]){margin-left:83.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="10"]){margin-right:83.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="10"]){width:83.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="11"]){margin-left:91.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="11"]){margin-right:91.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="11"]){width:91.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="12"]){margin-left:100%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="12"]){margin-right:100%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="12"]){width:100%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="0"]){margin-left:0%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="0"]){margin-right:0%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="0"]){width:0%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="1"]){margin-left:8.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="1"]){margin-right:8.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="1"]){width:8.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="2"]){margin-left:16.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="2"]){margin-right:16.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="2"]){width:16.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="3"]){margin-left:25%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="3"]){margin-right:25%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="3"]){width:25%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="4"]){margin-left:33.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="4"]){margin-right:33.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="4"]){width:33.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="5"]){margin-left:41.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="5"]){margin-right:41.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="5"]){width:41.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="6"]){margin-left:50%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="6"]){margin-right:50%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="6"]){width:50%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="7"]){margin-left:58.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="7"]){margin-right:58.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="7"]){width:58.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="8"]){margin-left:66.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="8"]){margin-right:66.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="8"]){width:66.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="9"]){margin-left:75%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="9"]){margin-right:75%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="9"]){width:75%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="10"]){margin-left:83.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="10"]){margin-right:83.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="10"]){width:83.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="11"]){margin-left:91.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="11"]){margin-right:91.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="11"]){width:91.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="12"]){margin-left:100%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="12"]){margin-right:100%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="12"]){width:100%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="0"]){margin-left:0%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="0"]){margin-right:0%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="0"]){width:0%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="1"]){margin-left:8.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="1"]){margin-right:8.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="1"]){width:8.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="2"]){margin-left:16.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="2"]){margin-right:16.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="2"]){width:16.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="3"]){margin-left:25%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="3"]){margin-right:25%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="3"]){width:25%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="4"]){margin-left:33.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="4"]){margin-right:33.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="4"]){width:33.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="5"]){margin-left:41.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="5"]){margin-right:41.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="5"]){width:41.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="6"]){margin-left:50%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="6"]){margin-right:50%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="6"]){width:50%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="7"]){margin-left:58.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="7"]){margin-right:58.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="7"]){width:58.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="8"]){margin-left:66.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="8"]){margin-right:66.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="8"]){width:66.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="9"]){margin-left:75%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="9"]){margin-right:75%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="9"]){width:75%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="10"]){margin-left:83.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="10"]){margin-right:83.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="10"]){width:83.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="11"]){margin-left:91.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="11"]){margin-right:91.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="11"]){width:91.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="12"]){margin-left:100%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="12"]){margin-right:100%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="12"]){width:100%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="0"]){margin-left:0%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="0"]){margin-right:0%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="0"]){width:0%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="1"]){margin-left:8.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="1"]){margin-right:8.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="1"]){width:8.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="2"]){margin-left:16.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="2"]){margin-right:16.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="2"]){width:16.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="3"]){margin-left:25%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="3"]){margin-right:25%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="3"]){width:25%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="4"]){margin-left:33.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="4"]){margin-right:33.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="4"]){width:33.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="5"]){margin-left:41.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="5"]){margin-right:41.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="5"]){width:41.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="6"]){margin-left:50%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="6"]){margin-right:50%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="6"]){width:50%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="7"]){margin-left:58.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="7"]){margin-right:58.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="7"]){width:58.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="8"]){margin-left:66.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="8"]){margin-right:66.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="8"]){width:66.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="9"]){margin-left:75%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="9"]){margin-right:75%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="9"]){width:75%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="10"]){margin-left:83.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="10"]){margin-right:83.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="10"]){width:83.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="11"]){margin-left:91.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="11"]){margin-right:91.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="11"]){width:91.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="12"]){margin-left:100%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="12"]){margin-right:100%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="12"]){width:100%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="0"]){margin-left:0%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="0"]){margin-right:0%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="0"]){width:0%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="1"]){margin-left:8.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="1"]){margin-right:8.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="1"]){width:8.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="2"]){margin-left:16.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="2"]){margin-right:16.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="2"]){width:16.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="3"]){margin-left:25%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="3"]){margin-right:25%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="3"]){width:25%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="4"]){margin-left:33.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="4"]){margin-right:33.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="4"]){width:33.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="5"]){margin-left:41.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="5"]){margin-right:41.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="5"]){width:41.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="6"]){margin-left:50%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="6"]){margin-right:50%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="6"]){width:50%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="7"]){margin-left:58.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="7"]){margin-right:58.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="7"]){width:58.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="8"]){margin-left:66.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="8"]){margin-right:66.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="8"]){width:66.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="9"]){margin-left:75%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="9"]){margin-right:75%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="9"]){width:75%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="10"]){margin-left:83.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="10"]){margin-right:83.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="10"]){width:83.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="11"]){margin-left:91.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="11"]){margin-right:91.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="11"]){width:91.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="12"]){margin-left:100%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="12"]){margin-right:100%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="12"]){width:100%}`;
     __getStatic() {
         return DynamicRow;
@@ -3941,10 +4274,8 @@ Layout.DynamicRow = class DynamicRow extends Aventus.WebComponent {
     getClassName() {
         return "DynamicRow";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('max_width')){ this['max_width'] = undefined; }
- }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('max_width');
- }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('max_width')){ this['max_width'] = undefined; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('max_width'); }
     calculateWidth() {
         let size = this.offsetWidth;
         let labels = [];
@@ -3972,155 +4303,27 @@ _.Layout.DynamicRow=Layout.DynamicRow;
 if(!window.customElements.get('av-dynamic-row')){window.customElements.define('av-dynamic-row', Layout.DynamicRow);Aventus.WebComponentInstance.registerDefinition(Layout.DynamicRow);}
 
 Layout.DynamicCol = class DynamicCol extends Aventus.WebComponent {
-    get 'size'() {
-                    return Number(this.getAttribute('size'));
-                }
-                set 'size'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('size')}
-                    else{this.setAttribute('size',val)}
-                }
-get 'size_xs'() {
-                    return Number(this.getAttribute('size_xs'));
-                }
-                set 'size_xs'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('size_xs')}
-                    else{this.setAttribute('size_xs',val)}
-                }
-get 'size_sm'() {
-                    return Number(this.getAttribute('size_sm'));
-                }
-                set 'size_sm'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('size_sm')}
-                    else{this.setAttribute('size_sm',val)}
-                }
-get 'size_md'() {
-                    return Number(this.getAttribute('size_md'));
-                }
-                set 'size_md'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('size_md')}
-                    else{this.setAttribute('size_md',val)}
-                }
-get 'size_lg'() {
-                    return Number(this.getAttribute('size_lg'));
-                }
-                set 'size_lg'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('size_lg')}
-                    else{this.setAttribute('size_lg',val)}
-                }
-get 'size_xl'() {
-                    return Number(this.getAttribute('size_xl'));
-                }
-                set 'size_xl'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('size_xl')}
-                    else{this.setAttribute('size_xl',val)}
-                }
-get 'offset'() {
-                    return Number(this.getAttribute('offset'));
-                }
-                set 'offset'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('offset')}
-                    else{this.setAttribute('offset',val)}
-                }
-get 'offset_xs'() {
-                    return Number(this.getAttribute('offset_xs'));
-                }
-                set 'offset_xs'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('offset_xs')}
-                    else{this.setAttribute('offset_xs',val)}
-                }
-get 'offset_sm'() {
-                    return Number(this.getAttribute('offset_sm'));
-                }
-                set 'offset_sm'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('offset_sm')}
-                    else{this.setAttribute('offset_sm',val)}
-                }
-get 'offset_md'() {
-                    return Number(this.getAttribute('offset_md'));
-                }
-                set 'offset_md'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('offset_md')}
-                    else{this.setAttribute('offset_md',val)}
-                }
-get 'offset_lg'() {
-                    return Number(this.getAttribute('offset_lg'));
-                }
-                set 'offset_lg'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('offset_lg')}
-                    else{this.setAttribute('offset_lg',val)}
-                }
-get 'offset_xl'() {
-                    return Number(this.getAttribute('offset_xl'));
-                }
-                set 'offset_xl'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('offset_xl')}
-                    else{this.setAttribute('offset_xl',val)}
-                }
-get 'offset_right'() {
-                    return Number(this.getAttribute('offset_right'));
-                }
-                set 'offset_right'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('offset_right')}
-                    else{this.setAttribute('offset_right',val)}
-                }
-get 'offset_right_xs'() {
-                    return Number(this.getAttribute('offset_right_xs'));
-                }
-                set 'offset_right_xs'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('offset_right_xs')}
-                    else{this.setAttribute('offset_right_xs',val)}
-                }
-get 'offset_right_sm'() {
-                    return Number(this.getAttribute('offset_right_sm'));
-                }
-                set 'offset_right_sm'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('offset_right_sm')}
-                    else{this.setAttribute('offset_right_sm',val)}
-                }
-get 'offset_right_md'() {
-                    return Number(this.getAttribute('offset_right_md'));
-                }
-                set 'offset_right_md'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('offset_right_md')}
-                    else{this.setAttribute('offset_right_md',val)}
-                }
-get 'offset_right_lg'() {
-                    return Number(this.getAttribute('offset_right_lg'));
-                }
-                set 'offset_right_lg'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('offset_right_lg')}
-                    else{this.setAttribute('offset_right_lg',val)}
-                }
-get 'offset_right_xl'() {
-                    return Number(this.getAttribute('offset_right_xl'));
-                }
-                set 'offset_right_xl'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('offset_right_xl')}
-                    else{this.setAttribute('offset_right_xl',val)}
-                }
-get 'nobreak'() {
-                return this.hasAttribute('nobreak');
-            }
-            set 'nobreak'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('nobreak', 'true');
-                } else{
-                    this.removeAttribute('nobreak');
-                }
-            }
-get 'center'() {
-                return this.hasAttribute('center');
-            }
-            set 'center'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('center', 'true');
-                } else{
-                    this.removeAttribute('center');
-                }
-            }
-    static __style = `:host{display:flex;flex-direction:column;padding:0 10px;width:100%;margin-left:0;margin-right:0}:host([nobreak]){white-space:nowrap;text-overflow:ellipsis;overflow:hidden}:host([center]){text-align:center}:host([size="0"]){width:0%;display:flex}:host([offset="0"]){margin-left:0%}:host([offset-right="0"]){margin-right:0%}:host([size="1"]){width:8.3333333333%;display:flex}:host([offset="1"]){margin-left:8.3333333333%}:host([offset-right="1"]){margin-right:8.3333333333%}:host([size="2"]){width:16.6666666667%;display:flex}:host([offset="2"]){margin-left:16.6666666667%}:host([offset-right="2"]){margin-right:16.6666666667%}:host([size="3"]){width:25%;display:flex}:host([offset="3"]){margin-left:25%}:host([offset-right="3"]){margin-right:25%}:host([size="4"]){width:33.3333333333%;display:flex}:host([offset="4"]){margin-left:33.3333333333%}:host([offset-right="4"]){margin-right:33.3333333333%}:host([size="5"]){width:41.6666666667%;display:flex}:host([offset="5"]){margin-left:41.6666666667%}:host([offset-right="5"]){margin-right:41.6666666667%}:host([size="6"]){width:50%;display:flex}:host([offset="6"]){margin-left:50%}:host([offset-right="6"]){margin-right:50%}:host([size="7"]){width:58.3333333333%;display:flex}:host([offset="7"]){margin-left:58.3333333333%}:host([offset-right="7"]){margin-right:58.3333333333%}:host([size="8"]){width:66.6666666667%;display:flex}:host([offset="8"]){margin-left:66.6666666667%}:host([offset-right="8"]){margin-right:66.6666666667%}:host([size="9"]){width:75%;display:flex}:host([offset="9"]){margin-left:75%}:host([offset-right="9"]){margin-right:75%}:host([size="10"]){width:83.3333333333%;display:flex}:host([offset="10"]){margin-left:83.3333333333%}:host([offset-right="10"]){margin-right:83.3333333333%}:host([size="11"]){width:91.6666666667%;display:flex}:host([offset="11"]){margin-left:91.6666666667%}:host([offset-right="11"]){margin-right:91.6666666667%}:host([size="12"]){width:100%;display:flex}:host([offset="12"]){margin-left:100%}:host([offset-right="12"]){margin-right:100%}`;
+    get 'size'() { return this.getNumberAttr('size') }
+    set 'size'(val) { this.setNumberAttr('size', val) }get 'size_xs'() { return this.getNumberAttr('size_xs') }
+    set 'size_xs'(val) { this.setNumberAttr('size_xs', val) }get 'size_sm'() { return this.getNumberAttr('size_sm') }
+    set 'size_sm'(val) { this.setNumberAttr('size_sm', val) }get 'size_md'() { return this.getNumberAttr('size_md') }
+    set 'size_md'(val) { this.setNumberAttr('size_md', val) }get 'size_lg'() { return this.getNumberAttr('size_lg') }
+    set 'size_lg'(val) { this.setNumberAttr('size_lg', val) }get 'size_xl'() { return this.getNumberAttr('size_xl') }
+    set 'size_xl'(val) { this.setNumberAttr('size_xl', val) }get 'offset'() { return this.getNumberAttr('offset') }
+    set 'offset'(val) { this.setNumberAttr('offset', val) }get 'offset_xs'() { return this.getNumberAttr('offset_xs') }
+    set 'offset_xs'(val) { this.setNumberAttr('offset_xs', val) }get 'offset_sm'() { return this.getNumberAttr('offset_sm') }
+    set 'offset_sm'(val) { this.setNumberAttr('offset_sm', val) }get 'offset_md'() { return this.getNumberAttr('offset_md') }
+    set 'offset_md'(val) { this.setNumberAttr('offset_md', val) }get 'offset_lg'() { return this.getNumberAttr('offset_lg') }
+    set 'offset_lg'(val) { this.setNumberAttr('offset_lg', val) }get 'offset_xl'() { return this.getNumberAttr('offset_xl') }
+    set 'offset_xl'(val) { this.setNumberAttr('offset_xl', val) }get 'offset_right'() { return this.getNumberAttr('offset_right') }
+    set 'offset_right'(val) { this.setNumberAttr('offset_right', val) }get 'offset_right_xs'() { return this.getNumberAttr('offset_right_xs') }
+    set 'offset_right_xs'(val) { this.setNumberAttr('offset_right_xs', val) }get 'offset_right_sm'() { return this.getNumberAttr('offset_right_sm') }
+    set 'offset_right_sm'(val) { this.setNumberAttr('offset_right_sm', val) }get 'offset_right_md'() { return this.getNumberAttr('offset_right_md') }
+    set 'offset_right_md'(val) { this.setNumberAttr('offset_right_md', val) }get 'offset_right_lg'() { return this.getNumberAttr('offset_right_lg') }
+    set 'offset_right_lg'(val) { this.setNumberAttr('offset_right_lg', val) }get 'offset_right_xl'() { return this.getNumberAttr('offset_right_xl') }
+    set 'offset_right_xl'(val) { this.setNumberAttr('offset_right_xl', val) }get 'nobreak'() { return this.getBoolAttr('nobreak') }
+    set 'nobreak'(val) { this.setBoolAttr('nobreak', val) }get 'center'() { return this.getBoolAttr('center') }
+    set 'center'(val) { this.setBoolAttr('center', val) }    static __style = `:host{display:flex;flex-direction:column;padding:0 10px;width:100%;margin-left:0;margin-right:0}:host([nobreak]){white-space:nowrap;text-overflow:ellipsis;overflow:hidden}:host([center]){text-align:center}:host([size="0"]){width:0%;display:flex}:host([offset="0"]){margin-left:0%}:host([offset-right="0"]){margin-right:0%}:host([size="1"]){width:8.3333333333%;display:flex}:host([offset="1"]){margin-left:8.3333333333%}:host([offset-right="1"]){margin-right:8.3333333333%}:host([size="2"]){width:16.6666666667%;display:flex}:host([offset="2"]){margin-left:16.6666666667%}:host([offset-right="2"]){margin-right:16.6666666667%}:host([size="3"]){width:25%;display:flex}:host([offset="3"]){margin-left:25%}:host([offset-right="3"]){margin-right:25%}:host([size="4"]){width:33.3333333333%;display:flex}:host([offset="4"]){margin-left:33.3333333333%}:host([offset-right="4"]){margin-right:33.3333333333%}:host([size="5"]){width:41.6666666667%;display:flex}:host([offset="5"]){margin-left:41.6666666667%}:host([offset-right="5"]){margin-right:41.6666666667%}:host([size="6"]){width:50%;display:flex}:host([offset="6"]){margin-left:50%}:host([offset-right="6"]){margin-right:50%}:host([size="7"]){width:58.3333333333%;display:flex}:host([offset="7"]){margin-left:58.3333333333%}:host([offset-right="7"]){margin-right:58.3333333333%}:host([size="8"]){width:66.6666666667%;display:flex}:host([offset="8"]){margin-left:66.6666666667%}:host([offset-right="8"]){margin-right:66.6666666667%}:host([size="9"]){width:75%;display:flex}:host([offset="9"]){margin-left:75%}:host([offset-right="9"]){margin-right:75%}:host([size="10"]){width:83.3333333333%;display:flex}:host([offset="10"]){margin-left:83.3333333333%}:host([offset-right="10"]){margin-right:83.3333333333%}:host([size="11"]){width:91.6666666667%;display:flex}:host([offset="11"]){margin-left:91.6666666667%}:host([offset-right="11"]){margin-right:91.6666666667%}:host([size="12"]){width:100%;display:flex}:host([offset="12"]){margin-left:100%}:host([offset-right="12"]){margin-right:100%}`;
     __getStatic() {
         return DynamicCol;
     }
@@ -4138,48 +4341,8 @@ get 'center'() {
     getClassName() {
         return "DynamicCol";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('size')){ this['size'] = undefined; }
-if(!this.hasAttribute('size_xs')){ this['size_xs'] = undefined; }
-if(!this.hasAttribute('size_sm')){ this['size_sm'] = undefined; }
-if(!this.hasAttribute('size_md')){ this['size_md'] = undefined; }
-if(!this.hasAttribute('size_lg')){ this['size_lg'] = undefined; }
-if(!this.hasAttribute('size_xl')){ this['size_xl'] = undefined; }
-if(!this.hasAttribute('offset')){ this['offset'] = undefined; }
-if(!this.hasAttribute('offset_xs')){ this['offset_xs'] = undefined; }
-if(!this.hasAttribute('offset_sm')){ this['offset_sm'] = undefined; }
-if(!this.hasAttribute('offset_md')){ this['offset_md'] = undefined; }
-if(!this.hasAttribute('offset_lg')){ this['offset_lg'] = undefined; }
-if(!this.hasAttribute('offset_xl')){ this['offset_xl'] = undefined; }
-if(!this.hasAttribute('offset_right')){ this['offset_right'] = undefined; }
-if(!this.hasAttribute('offset_right_xs')){ this['offset_right_xs'] = undefined; }
-if(!this.hasAttribute('offset_right_sm')){ this['offset_right_sm'] = undefined; }
-if(!this.hasAttribute('offset_right_md')){ this['offset_right_md'] = undefined; }
-if(!this.hasAttribute('offset_right_lg')){ this['offset_right_lg'] = undefined; }
-if(!this.hasAttribute('offset_right_xl')){ this['offset_right_xl'] = undefined; }
-if(!this.hasAttribute('nobreak')) { this.attributeChangedCallback('nobreak', false, false); }
-if(!this.hasAttribute('center')) { this.attributeChangedCallback('center', false, false); }
- }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('size');
-this.__upgradeProperty('size_xs');
-this.__upgradeProperty('size_sm');
-this.__upgradeProperty('size_md');
-this.__upgradeProperty('size_lg');
-this.__upgradeProperty('size_xl');
-this.__upgradeProperty('offset');
-this.__upgradeProperty('offset_xs');
-this.__upgradeProperty('offset_sm');
-this.__upgradeProperty('offset_md');
-this.__upgradeProperty('offset_lg');
-this.__upgradeProperty('offset_xl');
-this.__upgradeProperty('offset_right');
-this.__upgradeProperty('offset_right_xs');
-this.__upgradeProperty('offset_right_sm');
-this.__upgradeProperty('offset_right_md');
-this.__upgradeProperty('offset_right_lg');
-this.__upgradeProperty('offset_right_xl');
-this.__upgradeProperty('nobreak');
-this.__upgradeProperty('center');
- }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('size')){ this['size'] = undefined; }if(!this.hasAttribute('size_xs')){ this['size_xs'] = undefined; }if(!this.hasAttribute('size_sm')){ this['size_sm'] = undefined; }if(!this.hasAttribute('size_md')){ this['size_md'] = undefined; }if(!this.hasAttribute('size_lg')){ this['size_lg'] = undefined; }if(!this.hasAttribute('size_xl')){ this['size_xl'] = undefined; }if(!this.hasAttribute('offset')){ this['offset'] = undefined; }if(!this.hasAttribute('offset_xs')){ this['offset_xs'] = undefined; }if(!this.hasAttribute('offset_sm')){ this['offset_sm'] = undefined; }if(!this.hasAttribute('offset_md')){ this['offset_md'] = undefined; }if(!this.hasAttribute('offset_lg')){ this['offset_lg'] = undefined; }if(!this.hasAttribute('offset_xl')){ this['offset_xl'] = undefined; }if(!this.hasAttribute('offset_right')){ this['offset_right'] = undefined; }if(!this.hasAttribute('offset_right_xs')){ this['offset_right_xs'] = undefined; }if(!this.hasAttribute('offset_right_sm')){ this['offset_right_sm'] = undefined; }if(!this.hasAttribute('offset_right_md')){ this['offset_right_md'] = undefined; }if(!this.hasAttribute('offset_right_lg')){ this['offset_right_lg'] = undefined; }if(!this.hasAttribute('offset_right_xl')){ this['offset_right_xl'] = undefined; }if(!this.hasAttribute('nobreak')) { this.attributeChangedCallback('nobreak', false, false); }if(!this.hasAttribute('center')) { this.attributeChangedCallback('center', false, false); } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('size');this.__upgradeProperty('size_xs');this.__upgradeProperty('size_sm');this.__upgradeProperty('size_md');this.__upgradeProperty('size_lg');this.__upgradeProperty('size_xl');this.__upgradeProperty('offset');this.__upgradeProperty('offset_xs');this.__upgradeProperty('offset_sm');this.__upgradeProperty('offset_md');this.__upgradeProperty('offset_lg');this.__upgradeProperty('offset_xl');this.__upgradeProperty('offset_right');this.__upgradeProperty('offset_right_xs');this.__upgradeProperty('offset_right_sm');this.__upgradeProperty('offset_right_md');this.__upgradeProperty('offset_right_lg');this.__upgradeProperty('offset_right_xl');this.__upgradeProperty('nobreak');this.__upgradeProperty('center'); }
     __listBoolProps() { return ["nobreak","center"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
 }
 Layout.DynamicCol.Namespace=`${moduleName}.Layout`;
@@ -4189,44 +4352,20 @@ if(!window.customElements.get('av-dynamic-col')){window.customElements.define('a
 
 const Img = class Img extends Aventus.WebComponent {
     static get observedAttributes() {return ["src", "mode"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
-    get 'cache'() {
-                return this.hasAttribute('cache');
-            }
-            set 'cache'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('cache', 'true');
-                } else{
-                    this.removeAttribute('cache');
-                }
-            }
-    get 'src'() {
-                    return this.getAttribute('src') ?? undefined;
-                }
-                set 'src'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('src')}
-                    else{this.setAttribute('src',val)}
-                }
-get 'mode'() {
-                    return this.getAttribute('mode') ?? undefined;
-                }
-                set 'mode'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('mode')}
-                    else{this.setAttribute('mode',val)}
-                }
-    isCalculing;
+    get 'cache'() { return this.getBoolAttr('cache') }
+    set 'cache'(val) { this.setBoolAttr('cache', val) }    get 'src'() { return this.getStringProp('src') }
+    set 'src'(val) { this.setStringAttr('src', val) }get 'mode'() { return this.getStringProp('mode') }
+    set 'mode'(val) { this.setStringAttr('mode', val) }    isCalculing;
     maxCalculateSize = 10;
     ratio = 1;
     resizeObserver;
     __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("src", ((target) => {
     target.onSrcChanged();
-}));
-this.__addPropertyActions("mode", ((target) => {
+}));this.__addPropertyActions("mode", ((target) => {
     if (target.src != "") {
         target.calculateSize();
     }
-}));
- }
+})); }
     static __style = `:host{--internal-img-color: var(--img-color);--internal-img-stroke-color: var(--img-stroke-color, var(--internal-img-color));--internal-img-fill-color: var(--img-fill-color, var(--internal-img-color));--internal-img-color-transition: var(--img-color-transition, none)}:host{display:inline-block;overflow:hidden;font-size:0}:host *{box-sizing:border-box}:host img{opacity:0;transition:filter .3s linear}:host .svg{display:none;height:100%;width:100%}:host .svg svg{height:100%;width:100%}:host([src$=".svg"]) img{display:none}:host([src$=".svg"]) .svg{display:flex}:host([src$=".svg"]) .svg svg{transition:var(--internal-img-color-transition);stroke:var(--internal-img-stroke-color);fill:var(--internal-img-fill-color)}:host([display_bigger]) img{cursor:pointer}:host([display_bigger]) img:hover{filter:brightness(50%)}`;
     __getStatic() {
         return Img;
@@ -4241,8 +4380,7 @@ this.__addPropertyActions("mode", ((target) => {
         blocks: { 'default':`<img _id="img_0" /><div class="svg" _id="img_1"></div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();
-this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "imgEl",
@@ -4257,19 +4395,12 @@ this.__getStatic().__template.setActions({
       ]
     }
   ]
-});
- }
+}); }
     getClassName() {
         return "Img";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('cache')) { this.attributeChangedCallback('cache', false, false); }
-if(!this.hasAttribute('src')){ this['src'] = undefined; }
-if(!this.hasAttribute('mode')){ this['mode'] = "contains"; }
- }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('cache');
-this.__upgradeProperty('src');
-this.__upgradeProperty('mode');
- }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('cache')) { this.attributeChangedCallback('cache', false, false); }if(!this.hasAttribute('src')){ this['src'] = undefined; }if(!this.hasAttribute('mode')){ this['mode'] = "contains"; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('cache');this.__upgradeProperty('src');this.__upgradeProperty('mode'); }
     __listBoolProps() { return ["cache"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     calculateSize(attempt = 0) {
         if (this.isCalculing || !this.imgEl || !this.svgEl) {
@@ -4426,70 +4557,19 @@ if(!window.customElements.get('av-form')){window.customElements.define('av-form'
 
 Form.Input = class Input extends Aventus.WebComponent {
     static get observedAttributes() {return ["value", "label"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
-    get 'required'() {
-                return this.hasAttribute('required');
-            }
-            set 'required'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('required', 'true');
-                } else{
-                    this.removeAttribute('required');
-                }
-            }
-get 'disabled'() {
-                return this.hasAttribute('disabled');
-            }
-            set 'disabled'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('disabled', 'true');
-                } else{
-                    this.removeAttribute('disabled');
-                }
-            }
-get 'min_length'() {
-                    return Number(this.getAttribute('min_length'));
-                }
-                set 'min_length'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('min_length')}
-                    else{this.setAttribute('min_length',val)}
-                }
-get 'max_length'() {
-                    return Number(this.getAttribute('max_length'));
-                }
-                set 'max_length'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('max_length')}
-                    else{this.setAttribute('max_length',val)}
-                }
-get 'pattern'() {
-                    return this.getAttribute('pattern') ?? undefined;
-                }
-                set 'pattern'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('pattern')}
-                    else{this.setAttribute('pattern',val)}
-                }
-    get 'value'() {
-                    return this.getAttribute('value') ?? undefined;
-                }
-                set 'value'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('value')}
-                    else{this.setAttribute('value',val)}
-                }
-get 'label'() {
-                    return this.getAttribute('label') ?? undefined;
-                }
-                set 'label'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('label')}
-                    else{this.setAttribute('label',val)}
-                }
-    customValidationRules = [];
+    get 'required'() { return this.getBoolAttr('required') }
+    set 'required'(val) { this.setBoolAttr('required', val) }get 'disabled'() { return this.getBoolAttr('disabled') }
+    set 'disabled'(val) { this.setBoolAttr('disabled', val) }get 'min_length'() { return this.getNumberAttr('min_length') }
+    set 'min_length'(val) { this.setNumberAttr('min_length', val) }get 'max_length'() { return this.getNumberAttr('max_length') }
+    set 'max_length'(val) { this.setNumberAttr('max_length', val) }get 'pattern'() { return this.getStringAttr('pattern') }
+    set 'pattern'(val) { this.setStringAttr('pattern', val) }    get 'value'() { return this.getStringProp('value') }
+    set 'value'(val) { this.setStringAttr('value', val) }get 'label'() { return this.getStringProp('label') }
+    set 'label'(val) { this.setStringAttr('label', val) }    customValidationRules = [];
     onChange = new Aventus.Callback();
     errors = [];
     __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("value", ((target) => {
     target.onAttrChange();
-}));
- }
+})); }
     static __style = `:host{--internal-input-font-size: var(--input-font-size, 16px);--internal-input-label-font-size: var(--input-label-font-size, 12px);--internal-input-label-spacing: var(--input-label-spacing, 2px)}:host{margin:16px;position:relative}:host input{background-color:rgba(0,0,0,0);background-image:linear-gradient(#3d5afe, #3d5afe),linear-gradient(to top, transparent 1px, #afafaf 1px);background-position:center bottom;background-repeat:no-repeat;background-size:0% 2px,100% 2px;border:none;border-radius:0;color:#212121;display:inline-block;font:inherit;font-size:var(--internal-input-font-size);font-weight:400;margin:0;outline:none;padding:0;padding-bottom:2px;padding-top:calc(var(--internal-input-label-font-size) + var(--internal-input-label-spacing));touch-action:manipulation;-webkit-transform:translate3d(0, 0, 0);user-select:auto;vertical-align:middle;width:100%}:host input:focus{background-size:100% 2px,100% 2px;transition:background-size .3s ease}:host label{color:#3d5afe;font-size:var(--internal-input-label-font-size);-webkit-font-smoothing:antialiased;font-weight:400;left:0;pointer-events:none;position:absolute;top:0;transition:top .1s ease-in,color .1s ease-in,font-size .1s ease-in;user-select:none}:host .grid{display:grid;grid-template-rows:1fr}:host .error{color:red;display:grid;font-size:12px;margin-top:5px;transition:all linear .5s;grid-column:1;grid-row:1}:host([value=""]) label{color:#afafaf;font-size:var(--internal-input-font-size);top:calc(var(--internal-input-label-font-size) + var(--internal-input-label-spacing))}`;
     __getStatic() {
         return Input;
@@ -4501,13 +4581,10 @@ get 'label'() {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<input id="input" _id="input_0" /><label for="input" _id="input_1"></label><div class="grid">
-	<div class="error" _id="input_2"></div>
-</div>` }
+        blocks: { 'default':`<input id="input" _id="input_0" /><label for="input" _id="input_1"></label><div class="grid">	<div class="error" _id="input_2"></div></div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();
-this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "inputEl",
@@ -4522,45 +4599,35 @@ this.__getStatic().__template.setActions({
       ]
     }
   ],
+  "content": {
+    "input_1°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__c3d0451e83f327f9ac50560c1fff4e87method0())}`,
+      "once": true
+    }
+  },
   "events": [
     {
       "eventName": "blur",
       "id": "input_0",
-      "fct": (e, c) => c.component.validate(e)
+      "fct": (e, c) => c.comp.validate(e)
     },
     {
       "eventName": "focus",
       "id": "input_0",
-      "fct": (e, c) => c.component.clearErrors(e)
+      "fct": (e, c) => c.comp.clearErrors(e)
     },
     {
       "eventName": "input",
       "id": "input_0",
-      "fct": (e, c) => c.component.inputChange(e)
+      "fct": (e, c) => c.comp.inputChange(e)
     }
   ]
-});
-this.__getStatic().__template.setSchema({globals:["this"]});
- }
+}); }
     getClassName() {
         return "Input";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('required')) { this.attributeChangedCallback('required', false, false); }
-if(!this.hasAttribute('disabled')) { this.attributeChangedCallback('disabled', false, false); }
-if(!this.hasAttribute('min_length')){ this['min_length'] = undefined; }
-if(!this.hasAttribute('max_length')){ this['max_length'] = undefined; }
-if(!this.hasAttribute('pattern')){ this['pattern'] = undefined; }
-if(!this.hasAttribute('value')){ this['value'] = ""; }
-if(!this.hasAttribute('label')){ this['label'] = ""; }
- }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('required');
-this.__upgradeProperty('disabled');
-this.__upgradeProperty('min_length');
-this.__upgradeProperty('max_length');
-this.__upgradeProperty('pattern');
-this.__upgradeProperty('value');
-this.__upgradeProperty('label');
- }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('required')) { this.attributeChangedCallback('required', false, false); }if(!this.hasAttribute('disabled')) { this.attributeChangedCallback('disabled', false, false); }if(!this.hasAttribute('min_length')){ this['min_length'] = undefined; }if(!this.hasAttribute('max_length')){ this['max_length'] = undefined; }if(!this.hasAttribute('pattern')){ this['pattern'] = undefined; }if(!this.hasAttribute('value')){ this['value'] = ""; }if(!this.hasAttribute('label')){ this['label'] = ""; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('required');this.__upgradeProperty('disabled');this.__upgradeProperty('min_length');this.__upgradeProperty('max_length');this.__upgradeProperty('pattern');this.__upgradeProperty('value');this.__upgradeProperty('label'); }
     __listBoolProps() { return ["required","disabled"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     onAttrChange() {
         if (this.inputEl && this.inputEl.value != this.value) {
@@ -4651,63 +4718,24 @@ if(!window.customElements.get('av-input')){window.customElements.define('av-inpu
 
 Form.Checkbox = class Checkbox extends Aventus.WebComponent {
     static get observedAttributes() {return ["label", "checked"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
-    get 'disabled'() {
-                return this.hasAttribute('disabled');
-            }
-            set 'disabled'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('disabled', 'true');
-                } else{
-                    this.removeAttribute('disabled');
-                }
-            }
-get 'reverse'() {
-                return this.hasAttribute('reverse');
-            }
-            set 'reverse'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('reverse', 'true');
-                } else{
-                    this.removeAttribute('reverse');
-                }
-            }
-    get 'label'() {
-                    return this.getAttribute('label') ?? undefined;
-                }
-                set 'label'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('label')}
-                    else{this.setAttribute('label',val)}
-                }
-get 'checked'() {
-                return this.hasAttribute('checked');
-            }
-            set 'checked'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('checked', 'true');
-                } else{
-                    this.removeAttribute('checked');
-                }
-            }
-    get 'value'() {
+    get 'disabled'() { return this.getBoolAttr('disabled') }
+    set 'disabled'(val) { this.setBoolAttr('disabled', val) }get 'reverse'() { return this.getBoolAttr('reverse') }
+    set 'reverse'(val) { this.setBoolAttr('reverse', val) }    get 'label'() { return this.getStringProp('label') }
+    set 'label'(val) { this.setStringAttr('label', val) }get 'checked'() { return this.getBoolProp('checked') }
+    set 'checked'(val) { this.setBoolAttr('checked', val) }    get 'value'() {
 						return this.__watch["value"];
 					}
 					set 'value'(val) {
 						this.__watch["value"] = val;
-					}
-    onChange = new Aventus.Callback();
+					}    onChange = new Aventus.Callback();
     __registerWatchesActions() {
-                this.__addWatchesActions("value", ((target) => {
+    this.__addWatchesActions("value", ((target) => {
     target.syncValue('value');
-}));
-                super.__registerWatchesActions();
-            }
+}));    super.__registerWatchesActions();
+}
     __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("checked", ((target) => {
     target.syncValue('checked');
-}));
- }
+})); }
     static __style = `:host{--internal-checkbox-size: var(--checkbox-size, 18px);--internal-checkbox-label-space: var(--checkbox-label-space, 8px);--internal-checkbox-border-size: var(--checkbox-border-size, 2px);--internal-checkbox-tick-size: var(--checkbox-tick-size, var(--internal-checkbox-size));--internal-checkbox-tick-stroke-size: var(--checkbox-tick-stroke-size, 2px);--internal-checkbox-border-radius: var(--checkbox-border-radius, 2px)}:host{color:#212121;cursor:pointer;display:flex;font-family:inherit;-webkit-font-smoothing:antialiased;font-weight:400;position:relative;user-select:none;align-items:center}:host .checkbox{align-items:center;border:var(--internal-checkbox-border-size) solid #37474f;border-radius:var(--internal-checkbox-border-radius);display:flex;height:var(--internal-checkbox-size);justify-content:center;overflow:visible;position:relative;-webkit-tap-highlight-color:rgba(0,0,0,0);transition:background-color .1s linear;width:var(--internal-checkbox-size)}:host .checkbox .tick{flex-shrink:0;height:var(--internal-checkbox-tick-size);stroke:#fff;stroke-linecap:round;stroke-linejoin:round;stroke-width:var(--internal-checkbox-tick-stroke-size);transform:scale(0);transition:transform .2s ease;width:var(--internal-checkbox-tick-size)}:host label:not(:empty){cursor:pointer;margin-left:var(--internal-checkbox-label-space)}:host([checked]) .checkbox{background-color:#37474f}:host([checked]) .checkbox .tick{transform:scale(1)}:host([reverse]) .checkbox{order:2}:host([reverse]) label:not(:empty){order:1;margin-right:var(--internal-checkbox-label-space);margin-left:0}`;
     __getStatic() {
         return Checkbox;
@@ -4719,15 +4747,10 @@ get 'checked'() {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<span class="checkbox" _id="checkbox_0">
-	<svg class="tick" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-		<path d="M4.89163 13.2687L9.16582 17.5427L18.7085 8"></path>
-	</svg>
-</span><label _id="checkbox_1"></label>` }
+        blocks: { 'default':`<span class="checkbox" _id="checkbox_0">	<svg class="tick" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">		<path d="M4.89163 13.2687L9.16582 17.5427L18.7085 8"></path>	</svg></span><label _id="checkbox_1"></label>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();
-this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "checkboxEl",
@@ -4735,24 +4758,20 @@ this.__getStatic().__template.setActions({
         "checkbox_0"
       ]
     }
-  ]
-});
-this.__getStatic().__template.setSchema({globals:["this"]});
- }
+  ],
+  "content": {
+    "checkbox_1°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__5c369bf990a8d72e34b101c6013f3aecmethod0())}`,
+      "once": true
+    }
+  }
+}); }
     getClassName() {
         return "Checkbox";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('disabled')) { this.attributeChangedCallback('disabled', false, false); }
-if(!this.hasAttribute('reverse')) { this.attributeChangedCallback('reverse', false, false); }
-if(!this.hasAttribute('label')){ this['label'] = ""; }
-if(!this.hasAttribute('checked')) { this.attributeChangedCallback('checked', false, false); }
-if(!this["value"]){ this["value"] = false;}
- }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('disabled');
-this.__upgradeProperty('reverse');
-this.__upgradeProperty('label');
-this.__upgradeProperty('checked');
- }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('disabled')) { this.attributeChangedCallback('disabled', false, false); }if(!this.hasAttribute('reverse')) { this.attributeChangedCallback('reverse', false, false); }if(!this.hasAttribute('label')){ this['label'] = ""; }if(!this.hasAttribute('checked')) { this.attributeChangedCallback('checked', false, false); } }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["value"] = false; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('disabled');this.__upgradeProperty('reverse');this.__upgradeProperty('label');this.__upgradeProperty('checked'); }
     __listBoolProps() { return ["disabled","reverse","checked"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     syncValue(master) {
         if (this.checked != this.value) {
@@ -4880,109 +4899,17 @@ TouchRecord.Namespace=`${moduleName}`;
 _.TouchRecord=TouchRecord;
 Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
     static get observedAttributes() {return ["zoom"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
-    get 'y_scroll_visible'() {
-                return this.hasAttribute('y_scroll_visible');
-            }
-            set 'y_scroll_visible'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('y_scroll_visible', 'true');
-                } else{
-                    this.removeAttribute('y_scroll_visible');
-                }
-            }
-get 'x_scroll_visible'() {
-                return this.hasAttribute('x_scroll_visible');
-            }
-            set 'x_scroll_visible'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('x_scroll_visible', 'true');
-                } else{
-                    this.removeAttribute('x_scroll_visible');
-                }
-            }
-get 'floating_scroll'() {
-                return this.hasAttribute('floating_scroll');
-            }
-            set 'floating_scroll'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('floating_scroll', 'true');
-                } else{
-                    this.removeAttribute('floating_scroll');
-                }
-            }
-get 'x_scroll'() {
-                return this.hasAttribute('x_scroll');
-            }
-            set 'x_scroll'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('x_scroll', 'true');
-                } else{
-                    this.removeAttribute('x_scroll');
-                }
-            }
-get 'y_scroll'() {
-                return this.hasAttribute('y_scroll');
-            }
-            set 'y_scroll'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('y_scroll', 'true');
-                } else{
-                    this.removeAttribute('y_scroll');
-                }
-            }
-get 'auto_hide'() {
-                return this.hasAttribute('auto_hide');
-            }
-            set 'auto_hide'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('auto_hide', 'true');
-                } else{
-                    this.removeAttribute('auto_hide');
-                }
-            }
-get 'break'() {
-                    return Number(this.getAttribute('break'));
-                }
-                set 'break'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('break')}
-                    else{this.setAttribute('break',val)}
-                }
-get 'disable'() {
-                return this.hasAttribute('disable');
-            }
-            set 'disable'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('disable', 'true');
-                } else{
-                    this.removeAttribute('disable');
-                }
-            }
-get 'no_user_select'() {
-                return this.hasAttribute('no_user_select');
-            }
-            set 'no_user_select'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('no_user_select', 'true');
-                } else{
-                    this.removeAttribute('no_user_select');
-                }
-            }
-    get 'zoom'() {
-                    return Number(this.getAttribute('zoom'));
-                }
-                set 'zoom'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('zoom')}
-                    else{this.setAttribute('zoom',val)}
-                }
-    observer;
+    get 'y_scroll_visible'() { return this.getBoolAttr('y_scroll_visible') }
+    set 'y_scroll_visible'(val) { this.setBoolAttr('y_scroll_visible', val) }get 'x_scroll_visible'() { return this.getBoolAttr('x_scroll_visible') }
+    set 'x_scroll_visible'(val) { this.setBoolAttr('x_scroll_visible', val) }get 'floating_scroll'() { return this.getBoolAttr('floating_scroll') }
+    set 'floating_scroll'(val) { this.setBoolAttr('floating_scroll', val) }get 'x_scroll'() { return this.getBoolAttr('x_scroll') }
+    set 'x_scroll'(val) { this.setBoolAttr('x_scroll', val) }get 'y_scroll'() { return this.getBoolAttr('y_scroll') }
+    set 'y_scroll'(val) { this.setBoolAttr('y_scroll', val) }get 'auto_hide'() { return this.getBoolAttr('auto_hide') }
+    set 'auto_hide'(val) { this.setBoolAttr('auto_hide', val) }get 'break'() { return this.getNumberAttr('break') }
+    set 'break'(val) { this.setNumberAttr('break', val) }get 'disable'() { return this.getBoolAttr('disable') }
+    set 'disable'(val) { this.setBoolAttr('disable', val) }get 'no_user_select'() { return this.getBoolAttr('no_user_select') }
+    set 'no_user_select'(val) { this.setBoolAttr('no_user_select', val) }    get 'zoom'() { return this.getNumberProp('zoom') }
+    set 'zoom'(val) { this.setNumberAttr('zoom', val) }    observer;
     display = { x: 0, y: 0 };
     max = {
         x: 0,
@@ -5040,18 +4967,9 @@ get 'no_user_select'() {
     renderAnimation;
     __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("zoom", ((target) => {
     target.changeZoom();
-}));
- }
+})); }
     static __style = `:host{--internal-scrollbar-container-color: var(--scrollbar-container-color, transparent);--internal-scrollbar-color: var(--scrollbar-color, #757575);--internal-scrollbar-active-color: var(--scrollbar-active-color, #858585);--internal-scroller-width: var(--scroller-width, 6px);--internal-scroller-top: var(--scroller-top, 3px);--internal-scroller-bottom: var(--scroller-bottom, 3px);--internal-scroller-right: var(--scroller-right, 3px);--internal-scroller-left: var(--scroller-left, 3px)}:host{display:block;height:100%;overflow:hidden;position:relative;-webkit-user-drag:none;-khtml-user-drag:none;-moz-user-drag:none;-o-user-drag:none;width:100%}:host .scroll-main-container{display:block;height:100%;position:relative;width:100%}:host .scroll-main-container .content-zoom{display:block;height:100%;position:relative;transform-origin:0 0;width:100%;z-index:4}:host .scroll-main-container .content-zoom .content-hidder{display:block;height:100%;overflow:hidden;position:relative;width:100%}:host .scroll-main-container .content-zoom .content-hidder .content-wrapper{display:inline-block;height:100%;min-height:100%;min-width:100%;position:relative;width:100%}:host .scroll-main-container .scroller-wrapper .container-scroller{display:none;overflow:hidden;position:absolute;z-index:5;transition:transform .2s linear}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller{background-color:var(--internal-scrollbar-container-color);border-radius:5px}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller .scroller{background-color:var(--internal-scrollbar-color);border-radius:5px;cursor:pointer;position:absolute;-webkit-tap-highlight-color:rgba(0,0,0,0);touch-action:none;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .scroller.active{background-color:var(--internal-scrollbar-active-color)}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical{height:calc(100% - var(--internal-scroller-bottom)*2 - var(--internal-scroller-width));padding-left:var(--internal-scroller-left);right:var(--internal-scroller-right);top:var(--internal-scroller-bottom);transform:0;width:calc(var(--internal-scroller-width) + var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical.hide{transform:translateX(calc(var(--internal-scroller-width) + var(--internal-scroller-left)))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller .scroller{width:calc(100% - var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal{bottom:var(--internal-scroller-bottom);height:calc(var(--internal-scroller-width) + var(--internal-scroller-top));left:var(--internal-scroller-right);padding-top:var(--internal-scroller-top);transform:0;width:calc(100% - var(--internal-scroller-right)*2 - var(--internal-scroller-width))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal.hide{transform:translateY(calc(var(--internal-scroller-width) + var(--internal-scroller-top)))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller .scroller{height:calc(100% - var(--internal-scroller-top))}:host([y_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{height:auto}:host([x_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{width:auto}:host([y_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.vertical{display:block}:host([x_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.horizontal{display:block}:host([no_user_select]) .content-wrapper *{user-select:none}:host([no_user_select]) ::slotted{user-select:none}`;
-    constructor() {
-            super();
-            this.renderAnimation = this.createAnimation();
-            this.onWheel = this.onWheel.bind(this);
-            this.onTouchStart = this.onTouchStart.bind(this);
-            this.onTouchMove = this.onTouchMove.bind(this);
-            this.onTouchEnd = this.onTouchEnd.bind(this);
-            this.touchRecord = new TouchRecord();
-        }
+    constructor() {            super();            this.renderAnimation = this.createAnimation();            this.onWheel = this.onWheel.bind(this);            this.onTouchStart = this.onTouchStart.bind(this);            this.onTouchMove = this.onTouchMove.bind(this);            this.onTouchEnd = this.onTouchEnd.bind(this);            this.touchRecord = new TouchRecord();        }
     __getStatic() {
         return Scrollable;
     }
@@ -5063,31 +4981,10 @@ get 'no_user_select'() {
     __getHtml() {
     this.__getStatic().__template.setHTML({
         slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<div class="scroll-main-container" _id="scrollable_0">
-    <div class="content-zoom" _id="scrollable_1">
-        <div class="content-hidder" _id="scrollable_2">
-            <div class="content-wrapper" _id="scrollable_3">
-                <slot></slot>
-            </div>
-        </div>
-    </div>
-    <div class="scroller-wrapper">
-        <div class="container-scroller vertical" _id="scrollable_4">
-            <div class="shadow-scroller">
-                <div class="scroller" _id="scrollable_5"></div>
-            </div>
-        </div>
-        <div class="container-scroller horizontal" _id="scrollable_6">
-            <div class="shadow-scroller">
-                <div class="scroller" _id="scrollable_7"></div>
-            </div>
-        </div>
-    </div>
-</div>` }
+        blocks: { 'default':`<div class="scroll-main-container" _id="scrollable_0">    <div class="content-zoom" _id="scrollable_1">        <div class="content-hidder" _id="scrollable_2">            <div class="content-wrapper" _id="scrollable_3">                <slot></slot>            </div>        </div>    </div>    <div class="scroller-wrapper">        <div class="container-scroller vertical" _id="scrollable_4">            <div class="shadow-scroller">                <div class="scroller" _id="scrollable_5"></div>            </div>        </div>        <div class="container-scroller horizontal" _id="scrollable_6">            <div class="shadow-scroller">                <div class="scroller" _id="scrollable_7"></div>            </div>        </div>    </div></div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();
-this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "mainContainer",
@@ -5138,33 +5035,12 @@ this.__getStatic().__template.setActions({
       ]
     }
   ]
-});
- }
+}); }
     getClassName() {
         return "Scrollable";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('y_scroll_visible')) { this.attributeChangedCallback('y_scroll_visible', false, false); }
-if(!this.hasAttribute('x_scroll_visible')) { this.attributeChangedCallback('x_scroll_visible', false, false); }
-if(!this.hasAttribute('floating_scroll')) { this.attributeChangedCallback('floating_scroll', false, false); }
-if(!this.hasAttribute('x_scroll')) { this.attributeChangedCallback('x_scroll', false, false); }
-if(!this.hasAttribute('y_scroll')) {this.setAttribute('y_scroll' ,'true'); }
-if(!this.hasAttribute('auto_hide')) { this.attributeChangedCallback('auto_hide', false, false); }
-if(!this.hasAttribute('break')){ this['break'] = 0.1; }
-if(!this.hasAttribute('disable')) { this.attributeChangedCallback('disable', false, false); }
-if(!this.hasAttribute('no_user_select')) { this.attributeChangedCallback('no_user_select', false, false); }
-if(!this.hasAttribute('zoom')){ this['zoom'] = 1; }
- }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('y_scroll_visible');
-this.__upgradeProperty('x_scroll_visible');
-this.__upgradeProperty('floating_scroll');
-this.__upgradeProperty('x_scroll');
-this.__upgradeProperty('y_scroll');
-this.__upgradeProperty('auto_hide');
-this.__upgradeProperty('break');
-this.__upgradeProperty('disable');
-this.__upgradeProperty('no_user_select');
-this.__upgradeProperty('zoom');
- }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('y_scroll_visible')) { this.attributeChangedCallback('y_scroll_visible', false, false); }if(!this.hasAttribute('x_scroll_visible')) { this.attributeChangedCallback('x_scroll_visible', false, false); }if(!this.hasAttribute('floating_scroll')) { this.attributeChangedCallback('floating_scroll', false, false); }if(!this.hasAttribute('x_scroll')) { this.attributeChangedCallback('x_scroll', false, false); }if(!this.hasAttribute('y_scroll')) {this.setAttribute('y_scroll' ,'true'); }if(!this.hasAttribute('auto_hide')) { this.attributeChangedCallback('auto_hide', false, false); }if(!this.hasAttribute('break')){ this['break'] = 0.1; }if(!this.hasAttribute('disable')) { this.attributeChangedCallback('disable', false, false); }if(!this.hasAttribute('no_user_select')) { this.attributeChangedCallback('no_user_select', false, false); }if(!this.hasAttribute('zoom')){ this['zoom'] = 1; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('y_scroll_visible');this.__upgradeProperty('x_scroll_visible');this.__upgradeProperty('floating_scroll');this.__upgradeProperty('x_scroll');this.__upgradeProperty('y_scroll');this.__upgradeProperty('auto_hide');this.__upgradeProperty('break');this.__upgradeProperty('disable');this.__upgradeProperty('no_user_select');this.__upgradeProperty('zoom'); }
     __listBoolProps() { return ["y_scroll_visible","x_scroll_visible","floating_scroll","x_scroll","y_scroll","auto_hide","disable","no_user_select"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     createAnimation() {
         return new Aventus.Animation({
@@ -5421,6 +5297,7 @@ this.__upgradeProperty('zoom');
         else if (this.y_scroll_visible) {
             this.y_scroll_visible = false;
             this.calculatePositionScrollerContainer('y');
+            this.calculateSizeScroller('y');
             this.scrollDirection('y', 0);
         }
         if (this.contentWrapperSize.x - this.display.x > 0) {
@@ -5434,6 +5311,7 @@ this.__upgradeProperty('zoom');
         else if (this.x_scroll_visible) {
             this.x_scroll_visible = false;
             this.calculatePositionScrollerContainer('x');
+            this.calculateSizeScroller('x');
             this.scrollDirection('x', 0);
         }
     }
@@ -5480,13 +5358,10 @@ const App = class App extends Aventus.WebComponent {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<av-scrollable>
-	<div class="content" _id="app_0"></div>
-</av-scrollable>` }
+        blocks: { 'default':`<av-scrollable>	<div class="content" _id="app_0"></div></av-scrollable>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();
-this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "content",
@@ -5495,8 +5370,7 @@ this.__getStatic().__template.setActions({
       ]
     }
   ]
-});
- }
+}); }
     getClassName() {
         return "App";
     }
@@ -5525,10 +5399,7 @@ Navigation.Router = class Router extends Aventus.WebComponent {
     }
     page404;
     static __style = `:host{display:block}`;
-    constructor() {
-            super();
-            this.validError404 = this.validError404.bind(this);
-if (this.constructor == Router) { throw "can't instanciate an abstract class"; } }
+    constructor() {            super();            this.validError404 = this.validError404.bind(this);if (this.constructor == Router) { throw "can't instanciate an abstract class"; } }
     __getStatic() {
         return Router;
     }
@@ -5543,8 +5414,7 @@ if (this.constructor == Router) { throw "can't instanciate an abstract class"; }
         blocks: { 'default':`<slot name="before"></slot><div class="content" _id="router_0"></div><slot name="after"></slot>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();
-this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "contentEl",
@@ -5553,8 +5423,7 @@ this.__getStatic().__template.setActions({
       ]
     }
   ]
-});
- }
+}); }
     getClassName() {
         return "Router";
     }
@@ -5666,18 +5535,8 @@ _.Navigation.Router=Navigation.Router;
 
 Navigation.Page = class Page extends Aventus.WebComponent {
     static get observedAttributes() {return ["visible"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
-    get 'visible'() {
-                return this.hasAttribute('visible');
-            }
-            set 'visible'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('visible', 'true');
-                } else{
-                    this.removeAttribute('visible');
-                }
-            }
-    currentRouter;
+    get 'visible'() { return this.getBoolProp('visible') }
+    set 'visible'(val) { this.setBoolAttr('visible', val) }    currentRouter;
     __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("visible", ((target) => {
     if (target.visible) {
         target.onShow();
@@ -5685,8 +5544,7 @@ Navigation.Page = class Page extends Aventus.WebComponent {
     else {
         target.onHide();
     }
-}));
- }
+})); }
     static __style = `:host{display:none}:host([visible]){display:block}`;
     constructor() { super(); if (this.constructor == Page) { throw "can't instanciate an abstract class"; } }
     __getStatic() {
@@ -5706,10 +5564,8 @@ Navigation.Page = class Page extends Aventus.WebComponent {
     getClassName() {
         return "Page";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('visible')) { this.attributeChangedCallback('visible', false, false); }
- }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('visible');
- }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('visible')) { this.attributeChangedCallback('visible', false, false); } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('visible'); }
     __listBoolProps() { return ["visible"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     async show() {
         this.visible = true;

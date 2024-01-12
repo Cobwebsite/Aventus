@@ -326,56 +326,6 @@ const Style=class Style {
 }
 Style.Namespace=`${moduleName}`;
 _.Style=Style;
-const compareObject=function compareObject(obj1, obj2) {
-    if (Array.isArray(obj1)) {
-        if (!Array.isArray(obj2)) {
-            return false;
-        }
-        obj2 = obj2.slice();
-        if (obj1.length !== obj2.length) {
-            return false;
-        }
-        for (let i = 0; i < obj1.length; i++) {
-            let foundElement = false;
-            for (let j = 0; j < obj2.length; j++) {
-                if (compareObject(obj1[i], obj2[j])) {
-                    obj2.splice(j, 1);
-                    foundElement = true;
-                    break;
-                }
-            }
-            if (!foundElement) {
-                return false;
-            }
-        }
-        return true;
-    }
-    else if (obj1 instanceof Date) {
-        return obj1.toString() === obj2.toString();
-    }
-    else if (obj1 !== null && typeof obj1 == 'object') {
-        if (obj2 === null || typeof obj1 !== 'object') {
-            return false;
-        }
-        if (Object.keys(obj1).length !== Object.keys(obj2).length) {
-            return false;
-        }
-        for (let key in obj1) {
-            if (!(key in obj2)) {
-                return false;
-            }
-            if (!compareObject(obj1[key], obj2[key])) {
-                return false;
-            }
-        }
-        return true;
-    }
-    else {
-        return obj1 === obj2;
-    }
-}
-
-_.compareObject=compareObject;
 const Callback=class Callback {
     callbacks = [];
     /**
@@ -518,6 +468,56 @@ const Mutex=class Mutex {
 }
 Mutex.Namespace=`${moduleName}`;
 _.Mutex=Mutex;
+const compareObject=function compareObject(obj1, obj2) {
+    if (Array.isArray(obj1)) {
+        if (!Array.isArray(obj2)) {
+            return false;
+        }
+        obj2 = obj2.slice();
+        if (obj1.length !== obj2.length) {
+            return false;
+        }
+        for (let i = 0; i < obj1.length; i++) {
+            let foundElement = false;
+            for (let j = 0; j < obj2.length; j++) {
+                if (compareObject(obj1[i], obj2[j])) {
+                    obj2.splice(j, 1);
+                    foundElement = true;
+                    break;
+                }
+            }
+            if (!foundElement) {
+                return false;
+            }
+        }
+        return true;
+    }
+    else if (obj1 instanceof Date) {
+        return obj1.toString() === obj2.toString();
+    }
+    else if (typeof obj1 === 'object' && obj1 !== undefined && obj1 !== null) {
+        if (typeof obj2 !== 'object' || obj2 === undefined || obj2 === null) {
+            return false;
+        }
+        if (Object.keys(obj1).length !== Object.keys(obj2).length) {
+            return false;
+        }
+        for (let key in obj1) {
+            if (!(key in obj2)) {
+                return false;
+            }
+            if (!compareObject(obj1[key], obj2[key])) {
+                return false;
+            }
+        }
+        return true;
+    }
+    else {
+        return obj1 === obj2;
+    }
+}
+
+_.compareObject=compareObject;
 var WatchAction;
 (function (WatchAction) {
     WatchAction[WatchAction["CREATED"] = 0] = "CREATED";
@@ -526,6 +526,660 @@ var WatchAction;
 })(WatchAction || (WatchAction = {}));
 
 _.WatchAction=WatchAction;
+const Effect=class Effect {
+    callbacks = [];
+    isInit = false;
+    isDestroy = false;
+    __subscribes = [];
+    __allowChanged = [];
+    version = 0;
+    fct;
+    constructor(fct) {
+        this.fct = fct;
+        if (this.autoInit()) {
+            this.init();
+        }
+    }
+    autoInit() {
+        return true;
+    }
+    init() {
+        this.isInit = true;
+        this.run();
+    }
+    run() {
+        this.version++;
+        Watcher._registering.push(this);
+        let result = this.fct();
+        Watcher._registering.splice(Watcher._registering.length - 1, 1);
+        for (let i = 0; i < this.callbacks.length; i++) {
+            if (this.callbacks[i].version != this.version) {
+                this.callbacks[i].receiver.unsubscribe(this.callbacks[i].cb);
+                this.callbacks.splice(i, 1);
+                i--;
+            }
+        }
+        return result;
+    }
+    register(receiver, path, version) {
+        for (let info of this.callbacks) {
+            if (info.receiver == receiver && info.path == path) {
+                info.version = version;
+                return;
+            }
+        }
+        let cb;
+        if (path == "*") {
+            cb = (action, changePath, value) => { this.onChange(action, changePath, value); };
+        }
+        else {
+            cb = (action, changePath, value) => {
+                if (changePath == path) {
+                    this.onChange(action, changePath, value);
+                }
+            };
+        }
+        this.callbacks.push({
+            receiver,
+            path,
+            cb,
+            version
+        });
+        receiver.subscribe(cb);
+    }
+    canChange(fct) {
+        this.__allowChanged.push(fct);
+    }
+    checkCanChange(action, changePath, value) {
+        if (this.isDestroy) {
+            return false;
+        }
+        for (let fct of this.__allowChanged) {
+            if (!fct(action, changePath, value)) {
+                return false;
+            }
+        }
+        return true;
+    }
+    onChange(action, changePath, value) {
+        if (!this.checkCanChange(action, changePath, value)) {
+            return;
+        }
+        this.run();
+        for (let fct of this.__subscribes) {
+            fct(action, changePath, value);
+        }
+    }
+    destroy() {
+        this.isDestroy = true;
+        for (let pair of this.callbacks) {
+            pair.receiver.unsubscribe(pair.cb);
+        }
+        this.callbacks = [];
+        this.isInit = false;
+    }
+    subscribe(fct) {
+        let index = this.__subscribes.indexOf(fct);
+        if (index == -1) {
+            this.__subscribes.push(fct);
+        }
+    }
+    unsubscribe(fct) {
+        let index = this.__subscribes.indexOf(fct);
+        if (index > -1) {
+            this.__subscribes.splice(index, 1);
+        }
+    }
+}
+Effect.Namespace=`${moduleName}`;
+_.Effect=Effect;
+const Watcher=class Watcher {
+    static _registering = [];
+    static get _register() {
+        return this._registering[this._registering.length - 1];
+    }
+    /**
+     * Transform object into a watcher
+     */
+    static get(obj, onDataChanged) {
+        if (obj == undefined) {
+            console.error("You must define an objet / array for your proxy");
+            return;
+        }
+        if (obj.__isProxy) {
+            if (onDataChanged)
+                obj.subscribe(onDataChanged);
+            return obj;
+        }
+        const reservedName = {
+            __path: '__path',
+        };
+        const clearReservedNames = (data) => {
+            if (data instanceof Object && !data.__isProxy) {
+                for (let key in reservedName) {
+                    delete data[key];
+                }
+            }
+        };
+        let setProxyPath = (newProxy, newPath) => {
+            if (newProxy instanceof Object && newProxy.__isProxy) {
+                newProxy.__path = newPath;
+            }
+        };
+        let jsonReplacer = (key, value) => {
+            if (reservedName[key])
+                return undefined;
+            return value;
+        };
+        let currentTrace = new Error().stack?.split("\n") ?? [];
+        currentTrace.shift();
+        currentTrace.shift();
+        let onlyDuringInit = true;
+        let proxyData = {
+            baseData: {},
+            callbacks: {},
+            avoidUpdate: [],
+            pathToRemove: [],
+            history: [{
+                    object: JSON.parse(JSON.stringify(obj, jsonReplacer)),
+                    trace: currentTrace,
+                    action: 'init',
+                    path: ''
+                }],
+            useHistory: false,
+            getProxyObject(target, element, prop) {
+                let newProxy;
+                if (element instanceof Object && element.__isProxy) {
+                    newProxy = element;
+                }
+                else {
+                    try {
+                        if (element instanceof Computed) {
+                            return element;
+                        }
+                        if (element instanceof Object) {
+                            newProxy = new Proxy(element, this);
+                        }
+                        else {
+                            return element;
+                        }
+                    }
+                    catch {
+                        return element;
+                    }
+                }
+                let newPath = '';
+                if (Array.isArray(target)) {
+                    if (/^[0-9]*$/g.exec(prop)) {
+                        if (target.__path) {
+                            newPath = target.__path;
+                        }
+                        newPath += "[" + prop + "]";
+                        setProxyPath(newProxy, newPath);
+                    }
+                    else {
+                        newPath += "." + prop;
+                    }
+                }
+                else if (element instanceof Date) {
+                    return element;
+                }
+                else {
+                    if (target.__path) {
+                        newPath = target.__path + '.';
+                    }
+                    newPath += prop;
+                    setProxyPath(newProxy, newPath);
+                }
+                return newProxy;
+            },
+            tryCustomFunction(target, prop, receiver) {
+                if (prop == "__isProxy") {
+                    return true;
+                }
+                else if (prop == "subscribe") {
+                    let path = receiver.__path;
+                    return (cb) => {
+                        if (!this.callbacks[path]) {
+                            this.callbacks[path] = [];
+                        }
+                        this.callbacks[path].push(cb);
+                    };
+                }
+                else if (prop == "unsubscribe") {
+                    let path = receiver.__path;
+                    return (cb) => {
+                        if (!this.callbacks[path]) {
+                            return;
+                        }
+                        let index = this.callbacks[path].indexOf(cb);
+                        if (index > -1) {
+                            this.callbacks[path].splice(index, 1);
+                        }
+                    };
+                }
+                else if (prop == "getHistory") {
+                    return () => {
+                        return this.history;
+                    };
+                }
+                else if (prop == "clearHistory") {
+                    this.history = [];
+                }
+                else if (prop == "enableHistory") {
+                    return () => {
+                        this.useHistory = true;
+                    };
+                }
+                else if (prop == "disableHistory") {
+                    return () => {
+                        this.useHistory = false;
+                    };
+                }
+                else if (prop == "__getTarget" && onlyDuringInit) {
+                    return () => {
+                        return target;
+                    };
+                }
+                else if (prop == "toJSON") {
+                    if (Array.isArray(target)) {
+                        return () => {
+                            let result = [];
+                            for (let element of target) {
+                                result.push(element);
+                            }
+                            return result;
+                        };
+                    }
+                    return () => {
+                        let result = {};
+                        for (let key of Object.keys(target)) {
+                            if (reservedName[key]) {
+                                continue;
+                            }
+                            result[key] = target[key];
+                        }
+                        return result;
+                    };
+                }
+                return undefined;
+            },
+            get(target, prop, receiver) {
+                if (reservedName[prop]) {
+                    return target[prop];
+                }
+                let customResult = this.tryCustomFunction(target, prop, receiver);
+                if (customResult !== undefined) {
+                    return customResult;
+                }
+                let element = target[prop];
+                if (typeof (element) == 'function') {
+                    if (Array.isArray(target)) {
+                        let result;
+                        if (prop == 'push') {
+                            if (target.__isProxy) {
+                                result = (el) => {
+                                    let index = target.push(el);
+                                    return index;
+                                };
+                            }
+                            else {
+                                result = (el) => {
+                                    let index = target.push(el);
+                                    let proxyEl = this.getProxyObject(target, el, (index - 1));
+                                    target.splice(target.length - 1, 1, proxyEl);
+                                    trigger('CREATED', target, receiver, proxyEl, "[" + (index - 1) + "]");
+                                    trigger('UPDATED', target, receiver, target.length, "length");
+                                    return index;
+                                };
+                            }
+                        }
+                        else if (prop == 'splice') {
+                            if (target.__isProxy) {
+                                result = (index, nbRemove, ...insert) => {
+                                    let res = target.splice(index, nbRemove, ...insert);
+                                    return res;
+                                };
+                            }
+                            else {
+                                result = (index, nbRemove, ...insert) => {
+                                    let oldValues = [];
+                                    for (let i = index; i < index + nbRemove; i++) {
+                                        oldValues.push(receiver[i]);
+                                    }
+                                    let updateLength = nbRemove != insert.length;
+                                    let res = target.splice(index, nbRemove, ...insert);
+                                    for (let i = 0; i < oldValues.length; i++) {
+                                        trigger('DELETED', target, receiver, oldValues[i], "[" + index + "]");
+                                    }
+                                    for (let i = 0; i < insert.length; i++) {
+                                        let proxyEl = this.getProxyObject(target, insert[i], (index + i));
+                                        target.splice((index + i), 1, proxyEl);
+                                        trigger('CREATED', target, receiver, proxyEl, "[" + (index + i) + "]");
+                                    }
+                                    let fromIndex = index + insert.length;
+                                    for (let i = fromIndex, j = 0; i < target.length; i++, j++) {
+                                        let proxyEl = this.getProxyObject(target, target[i], i);
+                                        let recuUpdate = (childEl) => {
+                                            if (Array.isArray(childEl)) {
+                                                for (let i = 0; i < childEl.length; i++) {
+                                                    if (childEl[i] instanceof Object && childEl[i].__path) {
+                                                        let newProxyEl = this.getProxyObject(childEl, childEl[i], i);
+                                                        recuUpdate(newProxyEl);
+                                                    }
+                                                }
+                                            }
+                                            else if (childEl instanceof Object && !(childEl instanceof Date)) {
+                                                for (let key in childEl) {
+                                                    if (childEl[key] instanceof Object && childEl[key].__path) {
+                                                        let newProxyEl = this.getProxyObject(childEl, childEl[key], key);
+                                                        recuUpdate(newProxyEl);
+                                                    }
+                                                }
+                                            }
+                                        };
+                                        recuUpdate(proxyEl);
+                                    }
+                                    if (updateLength)
+                                        trigger('UPDATED', target, receiver, target.length, "length");
+                                    return res;
+                                };
+                            }
+                        }
+                        else if (prop == 'pop') {
+                            if (target.__isProxy) {
+                                result = () => {
+                                    let res = target.pop();
+                                    return res;
+                                };
+                            }
+                            else {
+                                result = () => {
+                                    let index = target.length - 1;
+                                    let oldValue = receiver.length ? receiver[receiver.length] : undefined;
+                                    let res = target.pop();
+                                    trigger('DELETED', target, receiver, oldValue, "[" + index + "]");
+                                    trigger('UPDATED', target, receiver, target.length, "length");
+                                    return res;
+                                };
+                            }
+                        }
+                        else {
+                            result = element.bind(target);
+                        }
+                        return result;
+                    }
+                    return element.bind(target);
+                }
+                if (element instanceof Computed) {
+                    return element.value;
+                }
+                if (Watcher._registering.length > 0) {
+                    let currentPath;
+                    let isArray = Array.isArray(receiver);
+                    if (isArray && /^[0-9]*$/g.exec(prop)) {
+                        currentPath = receiver.__path + "[" + prop + "]";
+                        currentPath = "[" + prop + "]";
+                    }
+                    else {
+                        currentPath = receiver.__path ? receiver.__path + '.' + prop : prop;
+                        currentPath = prop;
+                    }
+                    Watcher._register?.register(receiver, currentPath, Watcher._register.version);
+                }
+                if (typeof (element) == 'object') {
+                    return this.getProxyObject(target, element, prop);
+                }
+                return Reflect.get(target, prop, receiver);
+            },
+            set(target, prop, value, receiver) {
+                let triggerChange = false;
+                if (!reservedName[prop]) {
+                    if (Array.isArray(target)) {
+                        if (prop != "length") {
+                            triggerChange = true;
+                        }
+                    }
+                    else {
+                        let oldValue = Reflect.get(target, prop, receiver);
+                        if (!compareObject(value, oldValue)) {
+                            triggerChange = true;
+                        }
+                    }
+                }
+                let result = Reflect.set(target, prop, value, receiver);
+                if (triggerChange) {
+                    let index = this.avoidUpdate.indexOf(prop);
+                    if (index == -1) {
+                        trigger('UPDATED', target, receiver, value, prop);
+                    }
+                    else {
+                        this.avoidUpdate.splice(index, 1);
+                    }
+                }
+                return result;
+            },
+            deleteProperty(target, prop) {
+                let triggerChange = false;
+                let pathToDelete = '';
+                if (!reservedName[prop]) {
+                    if (Array.isArray(target)) {
+                        if (prop != "length") {
+                            if (target.__path) {
+                                pathToDelete = target.__path;
+                            }
+                            pathToDelete += "[" + prop + "]";
+                            triggerChange = true;
+                        }
+                    }
+                    else {
+                        if (target.__path) {
+                            pathToDelete = target.__path + '.';
+                        }
+                        pathToDelete += prop;
+                        triggerChange = true;
+                    }
+                }
+                if (target.hasOwnProperty(prop)) {
+                    let oldValue = target[prop];
+                    if (oldValue instanceof Effect) {
+                        oldValue.destroy();
+                    }
+                    delete target[prop];
+                    if (triggerChange) {
+                        clearReservedNames(oldValue);
+                        trigger('DELETED', target, null, oldValue, prop);
+                    }
+                    return true;
+                }
+                return false;
+            },
+            defineProperty(target, prop, descriptor) {
+                let triggerChange = false;
+                let newPath = '';
+                if (!reservedName[prop]) {
+                    if (Array.isArray(target)) {
+                        if (prop != "length") {
+                            if (target.__path) {
+                                newPath = target.__path;
+                            }
+                            newPath += "[" + prop + "]";
+                            if (!target.hasOwnProperty(prop)) {
+                                triggerChange = true;
+                            }
+                        }
+                    }
+                    else {
+                        if (target.__path) {
+                            newPath = target.__path + '.';
+                        }
+                        newPath += prop;
+                        if (!target.hasOwnProperty(prop)) {
+                            triggerChange = true;
+                        }
+                    }
+                }
+                let result = Reflect.defineProperty(target, prop, descriptor);
+                if (triggerChange) {
+                    this.avoidUpdate.push(prop);
+                    let proxyEl = this.getProxyObject(target, descriptor.value, prop);
+                    target[prop] = proxyEl;
+                    trigger('CREATED', target, null, proxyEl, prop);
+                }
+                return result;
+            },
+            ownKeys(target) {
+                let result = Reflect.ownKeys(target);
+                for (let i = 0; i < result.length; i++) {
+                    if (reservedName[result[i]]) {
+                        result.splice(i, 1);
+                        i--;
+                    }
+                }
+                return result;
+            },
+        };
+        if (onDataChanged) {
+            proxyData.callbacks[''] = [onDataChanged];
+        }
+        const trigger = (type, target, receiver, value, prop) => {
+            if (target.__isProxy) {
+                return;
+            }
+            let rootPath;
+            if (receiver == null) {
+                rootPath = target.__path;
+            }
+            else {
+                rootPath = receiver.__path;
+            }
+            if (rootPath != "") {
+                if (Array.isArray(target)) {
+                    if (!prop.startsWith("[")) {
+                        if (/^[0-9]*$/g.exec(prop)) {
+                            rootPath += "[" + prop + "]";
+                        }
+                        else {
+                            rootPath += "." + prop;
+                        }
+                    }
+                    else {
+                        rootPath += prop;
+                    }
+                }
+                else {
+                    if (!prop.startsWith("[")) {
+                        rootPath += ".";
+                    }
+                    rootPath += prop;
+                }
+            }
+            else {
+                rootPath = prop;
+            }
+            let stacks = [];
+            if (proxyData.useHistory) {
+                let allStacks = new Error().stack?.split("\n") ?? [];
+                for (let i = allStacks.length - 1; i >= 0; i--) {
+                    let current = allStacks[i].trim().replace("at ", "");
+                    if (current.startsWith("Object.set") || current.startsWith("Proxy.result")) {
+                        break;
+                    }
+                    stacks.push(current);
+                }
+            }
+            for (let name in proxyData.callbacks) {
+                let pathToSend = rootPath;
+                if (name !== "") {
+                    let regex = new RegExp("^" + name + "(\\.|(\\[)|$)");
+                    if (!regex.test(rootPath)) {
+                        continue;
+                    }
+                    pathToSend = rootPath.replace(regex, "$2");
+                }
+                if (proxyData.useHistory) {
+                    proxyData.history.push({
+                        object: JSON.parse(JSON.stringify(proxyData.baseData, jsonReplacer)),
+                        trace: stacks.reverse(),
+                        action: WatchAction[type],
+                        path: pathToSend
+                    });
+                }
+                let cbs = [...proxyData.callbacks[name]];
+                for (let cb of cbs) {
+                    cb(WatchAction[type], pathToSend, value);
+                }
+            }
+        };
+        var realProxy = new Proxy(obj, proxyData);
+        proxyData.baseData = realProxy.__getTarget();
+        onlyDuringInit = false;
+        setProxyPath(realProxy, '');
+        return realProxy;
+    }
+    static computed(fct) {
+        const comp = new Computed(fct);
+        return comp;
+    }
+    static effect(fct) {
+        const comp = new Effect(fct);
+        return comp;
+    }
+}
+Watcher.Namespace=`${moduleName}`;
+_.Watcher=Watcher;
+const Computed=class Computed extends Effect {
+    _value;
+    get value() {
+        if (!this.isInit) {
+            this.init();
+        }
+        Watcher._register?.register(this, "*", Watcher._register.version);
+        return this._value;
+    }
+    autoInit() {
+        return false;
+    }
+    constructor(fct) {
+        super(fct);
+    }
+    init() {
+        this.isInit = true;
+        this.computedValue();
+    }
+    computedValue() {
+        this._value = this.run();
+    }
+    onChange(action, changePath, value) {
+        if (!this.checkCanChange(action, changePath, value)) {
+            return;
+        }
+        let oldValue = this._value;
+        this.computedValue();
+        if (oldValue === this._value) {
+            return;
+        }
+        for (let fct of this.__subscribes) {
+            fct(action, changePath, value);
+        }
+    }
+}
+Computed.Namespace=`${moduleName}`;
+_.Computed=Computed;
+const ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
+    init() {
+        this.isInit = true;
+        Watcher._registering.push(this);
+        this._value = this.fct();
+        Watcher._registering.splice(Watcher._registering.length - 1, 1);
+    }
+    computedValue() {
+        this._value = this.fct();
+    }
+    run() { }
+}
+ComputedNoRecomputed.Namespace=`${moduleName}`;
+_.ComputedNoRecomputed=ComputedNoRecomputed;
 const PressManager=class PressManager {
     static create(options) {
         if (Array.isArray(options.element)) {
@@ -1272,703 +1926,162 @@ const State=class State {
 }
 State.Namespace=`${moduleName}`;
 _.State=State;
-const Effect=class Effect {
-    callbacks = [];
-    isInit = false;
-    __subscribes = [];
-    fct;
-    constructor(fct) {
-        this.fct = fct;
-        if (this.autoInit()) {
-            this.init();
-        }
-    }
-    autoInit() {
-        return true;
-    }
-    init() {
-        this.isInit = true;
-        Watcher._registering.push(this);
-        this.fct();
-        Watcher._registering.splice(Watcher._registering.length - 1, 1);
-    }
-    register(receiver, path) {
-        const cb = (action, changePath, value) => {
-            if (path == changePath) {
-                this.onChange();
-            }
-        };
-        for (let info of this.callbacks) {
-            if (info.receiver == receiver && info.path == path) {
-                return;
-            }
-        }
-        this.callbacks.push({
-            receiver,
-            path,
-            cb
-        });
-        receiver.__subscribe(cb);
-    }
-    onChange() {
-        this.fct();
-        for (let fct of this.__subscribes) {
-            fct(WatchAction.UPDATED, "", undefined);
-        }
-    }
-    destroy() {
-        for (let pair of this.callbacks) {
-            pair.receiver.__unsubscribe(pair.cb);
-        }
-        this.callbacks = [];
-        this.isInit = false;
-    }
-    __subscribe(fct) {
-        let index = this.__subscribes.indexOf(fct);
-        if (index == -1) {
-            this.__subscribes.push(fct);
-        }
-    }
-    __unsubscribe(fct) {
-        let index = this.__subscribes.indexOf(fct);
-        if (index > -1) {
-            this.__subscribes.splice(index, 1);
-        }
-    }
-}
-Effect.Namespace=`${moduleName}`;
-_.Effect=Effect;
-const Computed=class Computed extends Effect {
-    _value;
-    get value() {
-        if (!this.isInit) {
-            this.init();
-        }
-        Watcher._register?.register(this, "");
-        return this._value;
-    }
-    autoInit() {
-        return false;
-    }
-    constructor(fct) {
-        super(fct);
-    }
-    init() {
-        this.isInit = true;
-        Watcher._registering.push(this);
-        this._value = this.fct();
-        Watcher._registering.splice(Watcher._registering.length - 1, 1);
-    }
-    onChange() {
-        this._value = this.fct();
-        for (let fct of this.__subscribes) {
-            fct(WatchAction.UPDATED, "", this._value);
-        }
-    }
-}
-Computed.Namespace=`${moduleName}`;
-_.Computed=Computed;
-const Watcher=class Watcher {
-    static __maxProxyData = 0;
-    static _registering = [];
-    static get _register() {
-        return this._registering[this._registering.length - 1];
-    }
-    /**
-     * Transform object into a watcher
-     */
-    static get(obj, onDataChanged) {
-        if (obj == undefined) {
-            console.error("You must define an objet / array for your proxy");
-            return;
-        }
-        if (obj.__isProxy) {
-            obj.__subscribe(onDataChanged);
-            return obj;
-        }
-        Watcher.__maxProxyData++;
-        const reservedName = {
-            __path: '__path',
-            __proxyData: '__proxyData',
-        };
-        let setProxyPath = (newProxy, newPath) => {
-            if (newProxy instanceof Object && newProxy.__isProxy) {
-                newProxy.__path = newPath;
-                if (!newProxy.__proxyData) {
-                    newProxy.__proxyData = {};
-                }
-                if (!newProxy.__proxyData[newPath]) {
-                    newProxy.__proxyData[newPath] = [];
-                }
-                if (newProxy.__proxyData[newPath].indexOf(proxyData) == -1) {
-                    newProxy.__proxyData[newPath].push(proxyData);
-                }
-            }
-        };
-        let removeProxyPath = (oldValue, pathToDelete, recursive = true) => {
-            if (oldValue instanceof Object && oldValue.__isProxy) {
-                let allProxies = oldValue.__proxyData;
-                for (let triggerPath in allProxies) {
-                    if (triggerPath == pathToDelete) {
-                        for (let i = 0; i < allProxies[triggerPath].length; i++) {
-                            if (allProxies[triggerPath][i] == proxyData) {
-                                allProxies[triggerPath].splice(i, 1);
-                                i--;
-                            }
-                        }
-                        if (allProxies[triggerPath].length == 0) {
-                            delete allProxies[triggerPath];
-                            if (Object.keys(allProxies).length == 0) {
-                                delete oldValue.__proxyData;
-                            }
-                        }
+const TemplateContext=class TemplateContext {
+    data = {};
+    comp;
+    computeds = [];
+    watch;
+    constructor(component, data = {}, parentContext) {
+        this.comp = component;
+        this.watch = Watcher.get({});
+        let that = this;
+        for (let key in data) {
+            if (data[key].__isProxy) {
+                Object.defineProperty(this.data, key, {
+                    get() {
+                        return data[key];
                     }
-                }
-            }
-        };
-        let jsonReplacer = (key, value) => {
-            if (reservedName[key])
-                return undefined;
-            return value;
-        };
-        let currentTrace = new Error().stack?.split("\n") ?? [];
-        currentTrace.shift();
-        currentTrace.shift();
-        let onlyDuringInit = true;
-        let proxyData = {
-            baseData: {},
-            id: Watcher.__maxProxyData,
-            callbacks: [onDataChanged],
-            avoidUpdate: [],
-            pathToRemove: [],
-            history: [{
-                    object: JSON.parse(JSON.stringify(obj, jsonReplacer)),
-                    trace: currentTrace,
-                    action: 'init',
-                    path: ''
-                }],
-            useHistory: false,
-            getProxyObject(target, element, prop) {
-                let newProxy;
-                if (element instanceof Object && element.__isProxy) {
-                    newProxy = element;
-                }
-                else {
-                    try {
-                        if (element instanceof Computed) {
-                            return element;
-                        }
-                        if (element instanceof Object) {
-                            newProxy = new Proxy(element, this);
-                        }
-                        else {
-                            return element;
-                        }
-                    }
-                    catch {
-                        return element;
-                    }
-                }
-                let newPath = '';
-                if (Array.isArray(target)) {
-                    if (prop != "length") {
-                        if (target.__path) {
-                            newPath = target.__path;
-                        }
-                        newPath += "[" + prop + "]";
-                        setProxyPath(newProxy, newPath);
-                    }
-                }
-                else if (element instanceof Date) {
-                    return element;
-                }
-                else {
-                    if (target.__path) {
-                        newPath = target.__path + '.';
-                    }
-                    newPath += prop;
-                    setProxyPath(newProxy, newPath);
-                }
-                return newProxy;
-            },
-            tryCustomFunction(target, prop, receiver) {
-                if (prop == "__isProxy") {
-                    return true;
-                }
-                else if (prop == "__subscribe") {
-                    return (cb) => {
-                        this.callbacks.push(cb);
-                    };
-                }
-                else if (prop == "__unsubscribe") {
-                    return (cb) => {
-                        let index = this.callbacks.indexOf(cb);
-                        if (index > -1) {
-                            this.callbacks.splice(index, 1);
-                        }
-                    };
-                }
-                else if (prop == "__proxyId") {
-                    return this.id;
-                }
-                else if (prop == "getHistory") {
-                    return () => {
-                        return this.history;
-                    };
-                }
-                else if (prop == "clearHistory") {
-                    this.history = [];
-                }
-                else if (prop == "enableHistory") {
-                    return () => {
-                        this.useHistory = true;
-                    };
-                }
-                else if (prop == "disableHistory") {
-                    return () => {
-                        this.useHistory = false;
-                    };
-                }
-                else if (prop == "__getTarget" && onlyDuringInit) {
-                    return () => {
-                        return target;
-                    };
-                }
-                else if (prop == "toJSON") {
-                    return () => {
-                        let result = {};
-                        for (let key of Object.keys(target)) {
-                            if (reservedName[key]) {
-                                continue;
-                            }
-                            result[key] = target[key];
-                        }
-                        return result;
-                    };
-                }
-                return undefined;
-            },
-            get(target, prop, receiver) {
-                if (reservedName[prop]) {
-                    return target[prop];
-                }
-                let customResult = this.tryCustomFunction(target, prop, receiver);
-                if (customResult !== undefined) {
-                    return customResult;
-                }
-                let element = target[prop];
-                if (typeof (element) == 'function') {
-                    if (Array.isArray(target)) {
-                        let result;
-                        if (prop == 'push') {
-                            if (target.__isProxy) {
-                                result = (el) => {
-                                    let index = target.push(el);
-                                    return index;
-                                };
-                            }
-                            else {
-                                result = (el) => {
-                                    let index = target.push(el);
-                                    let proxyEl = this.getProxyObject(target, el, (index - 1));
-                                    target.splice(target.length - 1, 1, proxyEl);
-                                    trigger('CREATED', target, receiver, proxyEl, "[" + (index - 1) + "]");
-                                    return index;
-                                };
-                            }
-                        }
-                        else if (prop == 'splice') {
-                            if (target.__isProxy) {
-                                result = (index, nbRemove, ...insert) => {
-                                    let res = target.splice(index, nbRemove, ...insert);
-                                    return res;
-                                };
-                            }
-                            else {
-                                result = (index, nbRemove, ...insert) => {
-                                    let res = target.splice(index, nbRemove, ...insert);
-                                    let path = target.__path ? target.__path : '';
-                                    for (let i = 0; i < res.length; i++) {
-                                        trigger('DELETED', target, receiver, res[i], "[" + index + "]");
-                                        removeProxyPath(res[i], path + "[" + (index + i) + "]");
-                                    }
-                                    for (let i = 0; i < insert.length; i++) {
-                                        let proxyEl = this.getProxyObject(target, insert[i], (index + i));
-                                        target.splice((index + i), 1, proxyEl);
-                                        trigger('CREATED', target, receiver, proxyEl, "[" + (index + i) + "]");
-                                    }
-                                    let fromIndex = index + insert.length;
-                                    let baseDiff = index - insert.length + res.length + 1;
-                                    for (let i = fromIndex, j = 0; i < target.length; i++, j++) {
-                                        let oldPath = path + "[" + (j + baseDiff) + "]";
-                                        removeProxyPath(target[i], oldPath, false);
-                                        let proxyEl = this.getProxyObject(target, target[i], i);
-                                        let recuUpdate = (childEl) => {
-                                            if (Array.isArray(childEl)) {
-                                                for (let i = 0; i < childEl.length; i++) {
-                                                    if (childEl[i] instanceof Object && childEl[i].__path) {
-                                                        let oldPathRecu = proxyEl[i].__path.replace(proxyEl.__path, oldPath);
-                                                        removeProxyPath(childEl[i], oldPathRecu, false);
-                                                        let newProxyEl = this.getProxyObject(childEl, childEl[i], i);
-                                                        recuUpdate(newProxyEl);
-                                                    }
-                                                }
-                                            }
-                                            else if (childEl instanceof Object && !(childEl instanceof Date)) {
-                                                for (let key in childEl) {
-                                                    if (childEl[key] instanceof Object && childEl[key].__path) {
-                                                        let oldPathRecu = proxyEl[key].__path.replace(proxyEl.__path, oldPath);
-                                                        removeProxyPath(childEl[key], oldPathRecu, false);
-                                                        let newProxyEl = this.getProxyObject(childEl, childEl[key], key);
-                                                        recuUpdate(newProxyEl);
-                                                    }
-                                                }
-                                            }
-                                        };
-                                        recuUpdate(proxyEl);
-                                    }
-                                    return res;
-                                };
-                            }
-                        }
-                        else if (prop == 'pop') {
-                            if (target.__isProxy) {
-                                result = () => {
-                                    let res = target.pop();
-                                    return res;
-                                };
-                            }
-                            else {
-                                result = () => {
-                                    let index = target.length - 1;
-                                    let res = target.pop();
-                                    let path = target.__path ? target.__path : '';
-                                    trigger('DELETED', target, receiver, res, "[" + index + "]");
-                                    removeProxyPath(res, path + "[" + index + "]");
-                                    return res;
-                                };
-                            }
-                        }
-                        else {
-                            result = element.bind(target);
-                        }
-                        return result;
-                    }
-                    return element.bind(target);
-                }
-                if (element instanceof Computed) {
-                    return element.value;
-                }
-                if (typeof (element) == 'object') {
-                    if (Watcher._registering.length > 0) {
-                        const currentPath = receiver.__path ? receiver.__path + '.' + prop : prop;
-                        Watcher._register?.register(receiver, currentPath);
-                    }
-                    return this.getProxyObject(target, element, prop);
-                }
-                let resultTemp = Reflect.get(target, prop, receiver);
-                if (Watcher._registering.length > 0) {
-                    const currentPath = receiver.__path ? receiver.__path + '.' + prop : prop;
-                    Watcher._register?.register(receiver, currentPath);
-                }
-                return resultTemp;
-            },
-            set(target, prop, value, receiver) {
-                let triggerChange = false;
-                if (!reservedName[prop]) {
-                    if (Array.isArray(target)) {
-                        if (prop != "length") {
-                            triggerChange = true;
-                        }
-                    }
-                    else {
-                        let oldValue = Reflect.get(target, prop, receiver);
-                        if (!compareObject(value, oldValue)) {
-                            triggerChange = true;
-                        }
-                    }
-                }
-                let result = Reflect.set(target, prop, value, receiver);
-                if (triggerChange) {
-                    let index = this.avoidUpdate.indexOf(prop);
-                    if (index == -1) {
-                        trigger('UPDATED', target, receiver, value, prop);
-                    }
-                    else {
-                        this.avoidUpdate.splice(index, 1);
-                    }
-                }
-                return result;
-            },
-            deleteProperty(target, prop) {
-                let triggerChange = false;
-                let pathToDelete = '';
-                if (!reservedName[prop]) {
-                    if (Array.isArray(target)) {
-                        if (prop != "length") {
-                            if (target.__path) {
-                                pathToDelete = target.__path;
-                            }
-                            pathToDelete += "[" + prop + "]";
-                            triggerChange = true;
-                        }
-                    }
-                    else {
-                        if (target.__path) {
-                            pathToDelete = target.__path + '.';
-                        }
-                        pathToDelete += prop;
-                        triggerChange = true;
-                    }
-                }
-                if (target.hasOwnProperty(prop)) {
-                    let oldValue = target[prop];
-                    if (oldValue instanceof Effect) {
-                        oldValue.destroy();
-                    }
-                    delete target[prop];
-                    if (triggerChange) {
-                        trigger('DELETED', target, null, oldValue, prop);
-                        removeProxyPath(oldValue, pathToDelete);
-                    }
-                    return true;
-                }
-                return false;
-            },
-            defineProperty(target, prop, descriptor) {
-                let triggerChange = false;
-                let newPath = '';
-                if (!reservedName[prop]) {
-                    if (Array.isArray(target)) {
-                        if (prop != "length") {
-                            if (target.__path) {
-                                newPath = target.__path;
-                            }
-                            newPath += "[" + prop + "]";
-                            if (!target.hasOwnProperty(prop)) {
-                                triggerChange = true;
-                            }
-                        }
-                    }
-                    else {
-                        if (target.__path) {
-                            newPath = target.__path + '.';
-                        }
-                        newPath += prop;
-                        if (!target.hasOwnProperty(prop)) {
-                            triggerChange = true;
-                        }
-                    }
-                }
-                let result = Reflect.defineProperty(target, prop, descriptor);
-                if (triggerChange) {
-                    this.avoidUpdate.push(prop);
-                    let proxyEl = this.getProxyObject(target, descriptor.value, prop);
-                    target[prop] = proxyEl;
-                    trigger('CREATED', target, null, proxyEl, prop);
-                }
-                return result;
-            },
-            ownKeys(target) {
-                let result = Reflect.ownKeys(target);
-                for (let i = 0; i < result.length; i++) {
-                    if (reservedName[result[i]]) {
-                        result.splice(i, 1);
-                        i--;
-                    }
-                }
-                return result;
-            },
-        };
-        const trigger = (type, target, receiver, value, prop) => {
-            if (target.__isProxy) {
-                return;
-            }
-            let allProxies = target.__proxyData;
-            let receiverId = 0;
-            if (receiver == null) {
-                receiverId = proxyData.id;
+                });
             }
             else {
-                receiverId = receiver.__proxyId;
-            }
-            if (proxyData.id == receiverId) {
-                let stacks = [];
-                if (proxyData.useHistory) {
-                    let allStacks = new Error().stack?.split("\n") ?? [];
-                    for (let i = allStacks.length - 1; i >= 0; i--) {
-                        let current = allStacks[i].trim().replace("at ", "");
-                        if (current.startsWith("Object.set") || current.startsWith("Proxy.result")) {
-                            break;
-                        }
-                        stacks.push(current);
+                this.watch[key] = data[key];
+                Object.defineProperty(this.data, key, {
+                    get() {
+                        return that.watch[key];
                     }
-                }
-                for (let triggerPath in allProxies) {
-                    for (let currentProxyData of allProxies[triggerPath]) {
-                        let pathToSend = triggerPath;
-                        if (pathToSend != "") {
-                            if (Array.isArray(target)) {
-                                if (!prop.startsWith("[")) {
-                                    pathToSend += "[" + prop + "]";
-                                }
-                                else {
-                                    pathToSend += prop;
-                                }
-                            }
-                            else {
-                                if (!prop.startsWith("[")) {
-                                    pathToSend += ".";
-                                }
-                                pathToSend += prop;
-                            }
-                        }
-                        else {
-                            pathToSend = prop;
-                        }
-                        if (proxyData.useHistory) {
-                            proxyData.history.push({
-                                object: JSON.parse(JSON.stringify(currentProxyData.baseData, jsonReplacer)),
-                                trace: stacks.reverse(),
-                                action: WatchAction[type],
-                                path: pathToSend
-                            });
-                        }
-                        [...currentProxyData.callbacks].forEach((cb) => {
-                            cb(WatchAction[type], pathToSend, value);
-                        });
-                    }
-                }
+                });
             }
-        };
-        var realProxy = new Proxy(obj, proxyData);
-        proxyData.baseData = realProxy.__getTarget();
-        onlyDuringInit = false;
-        setProxyPath(realProxy, '');
-        return realProxy;
-    }
-    static computed(fct) {
-        const comp = new Computed(fct);
-        return comp;
-    }
-    static effect(fct) {
-        const comp = new Effect(fct);
-        return comp;
-    }
-}
-Watcher.Namespace=`${moduleName}`;
-_.Watcher=Watcher;
-const WebComponentTemplateContext=class WebComponentTemplateContext {
-    __changes = {};
-    component;
-    fctsToRemove = [];
-    c = {
-        __P: (value) => {
-            return value == null ? "" : value + "";
         }
-    };
-    isRendered = false;
-    schema;
-    constructor(component, schema, locals) {
-        this.component = component;
-        this.schema = { ...schema };
-        for (let key in locals) {
-            this.schema.locals[key] = locals[key];
+        if (parentContext) {
+            const descriptors = Object.getOwnPropertyDescriptors(parentContext.data);
+            for (let name in descriptors) {
+                Object.defineProperty(this.data, name, {
+                    get() {
+                        return parentContext.data[name];
+                    }
+                });
+            }
         }
-        this.buildSchema();
+    }
+    print(value) {
+        return value == null ? "" : value + "";
+    }
+    registerIndex() {
+        let name = "index";
+        let i = 0;
+        let fullName = name + i;
+        while (this.watch[fullName] !== undefined) {
+            i++;
+            fullName = name + i;
+        }
+        return fullName;
+    }
+    registerLoop(dataName, _indexValue, _indexName, indexName, itemName) {
+        this.watch[_indexName] = _indexValue;
+        let getItems;
+        let mustBeRecomputed = /if|switch|\?|\[.+?\]/g.test(dataName);
+        let _class = mustBeRecomputed ? Computed : ComputedNoRecomputed;
+        if (!dataName.startsWith("this.")) {
+            getItems = new _class(() => {
+                return Template.getValueFromItem(dataName, this.data);
+            });
+        }
+        else {
+            dataName = dataName.replace(/^this\./, '');
+            getItems = new _class(() => {
+                return Template.getValueFromItem(dataName, this.comp);
+            });
+        }
+        let getIndex = new ComputedNoRecomputed(() => {
+            let items = getItems.value;
+            if (!items)
+                throw 'impossible';
+            let keys = Object.keys(items);
+            let index = keys[_getIndex.value];
+            if (/^[0-9]+$/g.test(index))
+                return Number(index);
+            return index;
+        });
+        let getItem = new ComputedNoRecomputed(() => {
+            let items = getItems.value;
+            if (!items)
+                throw 'impossible';
+            let keys = Object.keys(items);
+            let index = keys[_getIndex.value];
+            return items[index];
+        });
+        let _getIndex = new ComputedNoRecomputed(() => {
+            return this.watch[_indexName];
+        });
+        this.computeds.push(getIndex);
+        this.computeds.push(getItem);
+        this.computeds.push(_getIndex);
+        if (itemName) {
+            Object.defineProperty(this.data, itemName, {
+                get() {
+                    return getItem.value;
+                }
+            });
+        }
+        if (indexName) {
+            Object.defineProperty(this.data, indexName, {
+                get() {
+                    return getIndex.value;
+                }
+            });
+        }
+    }
+    updateIndex(newIndex, _indexName) {
+        // let items: any[] | {};
+        // if(!dataName.startsWith("this.")) {
+        //     let comp = new Computed(() => {
+        //         return Template.getValueFromItem(dataName, this.data);
+        //     });
+        //     fullName = dataName.replace(/^this\./, '');
+        //     items = Template.getValueFromItem(fullName, this.comp);
+        // if(Array.isArray(items)) {
+        //     let regex = new RegExp("^(" + fullName.replace(/\./g, "\\.") + ")\\[(\\d+?)\\]");
+        //     for(let computed of computeds) {
+        //         for(let cb of computed.callbacks) {
+        //             cb.path = cb.path.replace(regex, "$1[" + newIndex + "]");
+        //     let oldKey = Object.keys(items)[this.watch[_indexName]]
+        //     let newKey = Object.keys(items)[newIndex]
+        //     let regex = new RegExp("^(" + fullName.replace(/\./g, "\\.") + "\\.)(" + oldKey + ")($|\\.)");
+        //     for (let computed of computeds) {
+        //         for (let cb of computed.callbacks) {
+        //             cb.path = cb.path.replace(regex, "$1" + newKey + "$3")
+        this.watch[_indexName] = newIndex;
+    }
+    increaseIndex(_indexName) {
+        this.updateIndex(this.watch[_indexName] + 1, _indexName);
+    }
+    decreaseIndex(_indexName) {
+        this.updateIndex(this.watch[_indexName] - 1, _indexName);
     }
     destructor() {
-        for (let toRemove of this.fctsToRemove) {
-            let index = this.component.__onChangeFct[toRemove.name].indexOf(toRemove.fct);
-            if (index != -1) {
-                this.component.__onChangeFct[toRemove.name].splice(index, 1);
-            }
+        for (let computed of this.computeds) {
+            computed.destroy();
         }
+        this.computeds = [];
     }
-    buildSchema() {
-        for (let global of this.schema.globals) {
-            this.createGlobal(global);
+    getValueFromItem(name) {
+        let result = Template.getValueFromItem(name, this.data);
+        if (result !== undefined) {
+            return result;
         }
-        for (let item in this.schema.loops) {
-            this.createLoop(item, this.schema.loops[item].index, this.schema.loops[item].data);
+        result = Template.getValueFromItem(name, this.comp);
+        if (result !== undefined) {
+            return result;
         }
-        for (let key in this.schema.locals) {
-            this.createLocal(key, this.schema.locals[key]);
-        }
+        return undefined;
     }
-    createGlobal(global) {
-        let comp = this.component;
-        Object.defineProperty(this.c, global, {
-            get() {
-                return WebComponentTemplate.getValueFromItem(global, comp);
-            },
-            set(value) {
-                WebComponentTemplate.setValueToItem(global, comp, value);
-            }
-        });
-        let name = global.split(".")[0];
-        this.__changes[name] = [];
-        if (!this.component.__onChangeFct[name]) {
-            this.component.__onChangeFct[name] = [];
-        }
-        let fct = (path) => {
-            if (this.isRendered) {
-                for (let change of this.__changes[name]) {
-                    change(path);
-                }
-            }
-        };
-        this.fctsToRemove.push({ name, fct });
-        this.component.__onChangeFct[name].push(fct);
-    }
-    createLoop(item, index, data) {
-        Object.defineProperty(this.c, item, {
-            get() {
-                let indexValue = this[index];
-                return WebComponentTemplate.getValueFromItem(data, this)[indexValue];
-            }
-        });
-        let name = data.split(".")[0];
-        this.__changes[item] = [];
-        this.__changes[name].push((path) => {
-            if (this.isRendered) {
-                let currentPath = `${data}[${this.c[index]}]`;
-                if (path.startsWith(currentPath)) {
-                    let localPath = path.replace(currentPath, item);
-                    for (let change of this.__changes[item]) {
-                        change(localPath);
-                    }
-                }
-            }
-        });
-    }
-    createLocal(key, value) {
-        let changes = this.__changes;
-        let v = value;
-        Object.defineProperty(this.c, key, {
-            get() {
-                return v;
-            },
-            set(value) {
-                v = value;
-                if (changes[key]) {
-                    for (let change of changes[key]) {
-                        change(key);
-                    }
-                }
-            }
-        });
-    }
-    addChange(on, fct) {
-        if (!this.__changes[on]) {
-            this.__changes[on] = [];
-        }
-        this.__changes[on].push(fct);
+    setValueToItem(name, value) {
+        Template.setValueToItem(name, this.comp, value);
     }
 }
-WebComponentTemplateContext.Namespace=`${moduleName}`;
-_.WebComponentTemplateContext=WebComponentTemplateContext;
-const WebComponentTemplateInstance=class WebComponentTemplateInstance {
+TemplateContext.Namespace=`${moduleName}`;
+_.TemplateContext=TemplateContext;
+const TemplateInstance=class TemplateInstance {
     context;
     content;
     actions;
@@ -1976,23 +2089,27 @@ const WebComponentTemplateInstance=class WebComponentTemplateInstance {
     _components = {};
     firstRenderUniqueCb = {};
     firstRenderCb = [];
-    fctsToRemove = [];
-    loopRegisteries = {};
     firstChild;
     lastChild;
+    computeds = [];
+    renderingComputeds = [];
+    loopRegisteries = {};
     loops = [];
-    constructor(context, content, actions, component, loops) {
-        this.context = context;
+    ifs = [];
+    constructor(component, content, actions, loops, ifs, context) {
+        this.component = component;
         this.content = content;
         this.actions = actions;
-        this.component = component;
+        this.ifs = ifs;
         this.loops = loops;
-        this.firstChild = content.firstChild;
-        this.lastChild = content.lastChild;
+        this.context = context ? context : new TemplateContext(component);
+        this.firstChild = content.firstElementChild;
+        this.lastChild = content.lastElementChild;
         this.selectElements();
         this.transformActionsListening();
     }
     render() {
+        this.updateContext();
         this.bindEvents();
         for (let cb of this.firstRenderCb) {
             cb();
@@ -2001,16 +2118,45 @@ const WebComponentTemplateInstance=class WebComponentTemplateInstance {
             this.firstRenderUniqueCb[key]();
         }
         this.renderSubTemplate();
-        this.context.isRendered = true;
     }
     destructor() {
-        this.firstChild.remove();
-        this.context.destructor();
-        for (let toRemove of this.fctsToRemove) {
-            let index = this.component.__watchActions[toRemove.name].indexOf(toRemove.fct);
-            if (index != -1) {
-                this.component.__watchActions[toRemove.name].splice(index, 1);
+        for (let name in this.loopRegisteries) {
+            for (let item of this.loopRegisteries[name].templates) {
+                item.destructor();
             }
+            for (let item of this.loopRegisteries[name].computeds) {
+                item.destroy();
+            }
+        }
+        this.loopRegisteries = {};
+        this.context.destructor();
+        for (let computed of this.computeds) {
+            computed.destroy();
+        }
+        for (let computed of this.renderingComputeds) {
+            computed.destroy();
+        }
+        this.computeds = [];
+        this.removeFromDOM();
+    }
+    removeFromDOM(avoidTrigger = false) {
+        if (avoidTrigger) {
+            let node = this.firstChild;
+            while (node && node != this.lastChild) {
+                let next = node.nextElementSibling;
+                node.parentNode?.removeChild(node);
+                node = next;
+            }
+            this.lastChild?.parentNode?.removeChild(this.lastChild);
+        }
+        else {
+            let node = this.firstChild;
+            while (node && node != this.lastChild) {
+                let next = node.nextElementSibling;
+                node.remove();
+                node = next;
+            }
+            this.lastChild?.remove();
         }
     }
     selectElements() {
@@ -2032,12 +2178,34 @@ const WebComponentTemplateInstance=class WebComponentTemplateInstance {
                     }
                 }
                 if (element.isArray) {
-                    WebComponentTemplate.setValueToItem(element.name, this.component, components);
+                    Template.setValueToItem(element.name, this.component, components);
                 }
                 else if (components[0]) {
-                    WebComponentTemplate.setValueToItem(element.name, this.component, components[0]);
+                    Template.setValueToItem(element.name, this.component, components[0]);
                 }
             }
+        }
+    }
+    updateContext() {
+        if (this.actions.contextEdits) {
+            for (let contextEdit of this.actions.contextEdits) {
+                this.renderContextEdit(contextEdit);
+            }
+        }
+    }
+    renderContextEdit(edit) {
+        let _class = edit.once ? ComputedNoRecomputed : Computed;
+        let computed = new _class(() => {
+            return edit.fct(this.context);
+        });
+        computed.subscribe(() => {
+            for (let key in computed.value) {
+                this.context.data[key] = computed.value[key];
+            }
+        });
+        this.computeds.push(computed);
+        for (let key in computed.value) {
+            this.context.data[key] = computed.value[key];
         }
     }
     bindEvents() {
@@ -2058,7 +2226,7 @@ const WebComponentTemplateInstance=class WebComponentTemplateInstance {
         }
         if (event.isCallback) {
             for (let el of this._components[event.id]) {
-                let cb = WebComponentTemplate.getValueFromItem(event.eventName, el);
+                let cb = Template.getValueFromItem(event.eventName, el);
                 cb?.add((...args) => {
                     event.fct(this.context, args);
                 });
@@ -2091,9 +2259,7 @@ const WebComponentTemplateInstance=class WebComponentTemplateInstance {
     transformActionsListening() {
         if (this.actions.content) {
             for (let name in this.actions.content) {
-                for (let change of this.actions.content[name]) {
-                    this.transformChangeAction(name, change);
-                }
+                this.transformChangeAction(name, this.actions.content[name]);
             }
         }
         if (this.actions.injection) {
@@ -2108,143 +2274,99 @@ const WebComponentTemplateInstance=class WebComponentTemplateInstance {
         }
     }
     transformChangeAction(name, change) {
-        if (!this._components[change.id])
+        const [id, attr] = name.split("°");
+        if (!this._components[id])
             return;
-        let key = change.id + "_" + change.attrName;
-        if (change.attrName == "@HTML") {
-            if (change.path) {
-                this.context.addChange(name, (path) => {
-                    if (WebComponentTemplate.validatePath(path, change.path ?? '')) {
-                        for (const el of this._components[change.id]) {
-                            el.innerHTML = change.render(this.context.c);
-                        }
-                    }
-                });
-            }
-            else {
-                this.context.addChange(name, (path) => {
-                    for (const el of this._components[change.id]) {
-                        el.innerHTML = change.render(this.context.c);
-                    }
-                });
-            }
-            if (!this.firstRenderUniqueCb[key]) {
-                this.firstRenderUniqueCb[key] = () => {
-                    for (const el of this._components[change.id]) {
-                        el.innerHTML = change.render(this.context.c);
-                    }
-                };
-            }
-        }
-        else if (change.isBool) {
-            this.context.addChange(name, () => {
-                for (const el of this._components[change.id]) {
-                    if (this.context.c[name]) {
-                        el.setAttribute(change.attrName, "true");
-                    }
-                    else {
-                        el.removeAttribute(change.attrName);
-                    }
-                }
-            });
-            if (!this.firstRenderUniqueCb[key]) {
-                this.firstRenderUniqueCb[key] = () => {
-                    for (const el of this._components[change.id]) {
-                        if (this.context.c[name]) {
-                            el.setAttribute(change.attrName, "true");
-                        }
-                        else {
-                            el.removeAttribute(change.attrName);
-                        }
-                    }
-                };
-            }
+        let apply = () => { };
+        if (attr == "@HTML") {
+            apply = () => {
+                let value = this.context.print(computed.value);
+                for (const el of this._components[id])
+                    el.innerHTML = value;
+            };
         }
         else {
-            if (change.path) {
-                this.context.addChange(name, (path) => {
-                    if (WebComponentTemplate.validatePath(path, change.path ?? '')) {
-                        for (const el of this._components[change.id]) {
-                            el.setAttribute(change.attrName, change.render(this.context.c));
-                        }
+            apply = () => {
+                let value = this.context.print(computed.value);
+                if (value === "false") {
+                    for (const el of this._components[id]) {
+                        el.removeAttribute(attr);
                     }
-                });
-            }
-            else {
-                this.context.addChange(name, (path) => {
-                    for (const el of this._components[change.id]) {
-                        el.setAttribute(change.attrName, change.render(this.context.c));
+                }
+                else {
+                    for (const el of this._components[id]) {
+                        el.setAttribute(attr, value);
                     }
-                });
-            }
-            if (!this.firstRenderUniqueCb[key]) {
-                this.firstRenderUniqueCb[key] = () => {
-                    for (const el of this._components[change.id]) {
-                        el.setAttribute(change.attrName, change.render(this.context.c));
-                    }
-                };
-            }
+                }
+            };
         }
+        let _class = change.once ? ComputedNoRecomputed : Computed;
+        let computed = new _class(() => {
+            return change.fct(this.context);
+        });
+        let timeout;
+        computed.subscribe((action, path, value) => {
+            clearTimeout(timeout);
+            // add timeout to group change that append on the same frame (for example index update)
+            timeout = setTimeout(() => {
+                apply();
+            });
+        });
+        this.renderingComputeds.push(computed);
+        this.firstRenderUniqueCb[name] = () => {
+            apply();
+        };
     }
     transformInjectionAction(injection) {
         if (!this._components[injection.id])
             return;
-        if (injection.path) {
-            this.context.addChange(name, (path) => {
-                if (WebComponentTemplate.validatePath(path, injection.path ?? '')) {
-                    for (const el of this._components[injection.id]) {
-                        el[injection.injectionName] = injection.inject(this.context.c);
-                    }
-                }
-            });
-        }
-        else {
-            this.context.addChange(name, (path) => {
-                for (const el of this._components[injection.id]) {
-                    el[injection.injectionName] = injection.inject(this.context.c);
-                }
-            });
-        }
+        let _class = injection.once ? ComputedNoRecomputed : Computed;
+        let computed = new _class(() => {
+            return injection.inject(this.context);
+        });
+        this.computeds.push(computed);
+        computed.subscribe(() => {
+            for (const el of this._components[injection.id]) {
+                el[injection.injectionName] = computed.value;
+            }
+        });
         this.firstRenderCb.push(() => {
             for (const el of this._components[injection.id]) {
-                el[injection.injectionName] = injection.inject(this.context.c);
+                el[injection.injectionName] = computed.value;
             }
         });
     }
-    transformBindigAction(name, binding) {
-        if (!this._components[binding.id])
-            return;
-        if (binding.path) {
-            this.context.addChange(name, (path) => {
-                let bindingPath = binding.path ?? '';
-                if (WebComponentTemplate.validatePath(path, bindingPath)) {
-                    let valueToSet = WebComponentTemplate.getValueFromItem(bindingPath, this.context.c);
-                    for (const el of this._components[binding.id]) {
-                        WebComponentTemplate.setValueToItem(binding.valueName, el, valueToSet);
-                    }
-                }
-            });
-        }
-        else {
-            binding.path = name;
-            this.context.addChange(name, (path) => {
-                let valueToSet = WebComponentTemplate.getValueFromItem(name, this.context.c);
-                for (const el of this._components[binding.id]) {
-                    WebComponentTemplate.setValueToItem(binding.valueName, el, valueToSet);
-                }
-            });
-        }
+    transformBindigAction(binding) {
+        let isLocalChange = false;
+        let _class = binding.once ? ComputedNoRecomputed : Computed;
+        let computed = new _class(() => {
+            return binding.inject(this.context);
+        });
+        this.computeds.push(computed);
+        computed.subscribe(() => {
+            if (isLocalChange)
+                return;
+            for (const el of this._components[binding.id]) {
+                el[binding.injectionName] = computed.value;
+            }
+        });
+        this.firstRenderCb.push(() => {
+            for (const el of this._components[binding.id]) {
+                el[binding.injectionName] = computed.value;
+            }
+        });
         if (binding.isCallback) {
             this.firstRenderCb.push(() => {
                 for (var el of this._components[binding.id]) {
                     for (let fct of binding.eventNames) {
-                        let cb = WebComponentTemplate.getValueFromItem(fct, el);
+                        let cb = Template.getValueFromItem(fct, el);
                         cb?.add((value) => {
-                            WebComponentTemplate.setValueToItem(binding.path ?? '', this.context.c, value);
+                            let valueToSet = Template.getValueFromItem(binding.injectionName, el);
+                            isLocalChange = true;
+                            binding.extract(this.context, valueToSet);
+                            isLocalChange = false;
                         });
                     }
-                    let valueToSet = WebComponentTemplate.getValueFromItem(binding.path ?? '', this.context.c);
-                    WebComponentTemplate.setValueToItem(binding.valueName, el, valueToSet);
                 }
             });
         }
@@ -2253,99 +2375,235 @@ const WebComponentTemplateInstance=class WebComponentTemplateInstance {
                 for (var el of this._components[binding.id]) {
                     for (let fct of binding.eventNames) {
                         el.addEventListener(fct, (e) => {
-                            let valueToSet = WebComponentTemplate.getValueFromItem(binding.valueName, e.target);
-                            WebComponentTemplate.setValueToItem(binding.path ?? '', this.context.c, valueToSet);
+                            let valueToSet = Template.getValueFromItem(binding.injectionName, e.target);
+                            isLocalChange = true;
+                            binding.extract(this.context, valueToSet);
+                            isLocalChange = false;
                         });
                     }
-                    let valueToSet = WebComponentTemplate.getValueFromItem(binding.path ?? '', this.context.c);
-                    WebComponentTemplate.setValueToItem(binding.valueName, el, valueToSet);
                 }
             });
         }
     }
     renderSubTemplate() {
         for (let loop of this.loops) {
-            let localContext = JSON.parse(JSON.stringify(this.context.schema));
-            localContext.loops[loop.item] = {
-                data: loop.data,
-                index: loop.index,
-            };
-            this.renderLoop(loop, localContext);
-            this.registerLoopWatchEvent(loop, localContext);
+            this.renderLoop(loop);
+        }
+        for (let _if of this.ifs) {
+            this.renderIf(_if);
         }
     }
-    renderLoop(loop, localContext) {
+    renderLoop(loop) {
+        if (loop.func) {
+            this.renderLoopComplex(loop);
+        }
+        else if (loop.simple) {
+            this.renderLoopSimple(loop, loop.simple);
+        }
+    }
+    resetLoop(loop) {
         if (this.loopRegisteries[loop.anchorId]) {
-            for (let item of this.loopRegisteries[loop.anchorId]) {
+            for (let item of this.loopRegisteries[loop.anchorId].templates) {
                 item.destructor();
             }
+            for (let item of this.loopRegisteries[loop.anchorId].computeds) {
+                item.destroy();
+            }
+            if (loop.simple && this.loopRegisteries[loop.anchorId].sub) {
+                let elements = this.context.getValueFromItem(loop.simple.data.replace(/^this\./, ''));
+                if (elements) {
+                    elements.unsubscribe(this.loopRegisteries[loop.anchorId].sub);
+                }
+            }
         }
-        this.loopRegisteries[loop.anchorId] = [];
-        let result = WebComponentTemplate.getValueFromItem(loop.data, this.context.c);
+        this.loopRegisteries[loop.anchorId] = {
+            templates: [],
+            computeds: [],
+        };
+    }
+    renderLoopComplex(loop) {
+        if (!loop.func)
+            return;
+        let fctsTemp = loop.func.bind(this.component)(this.context);
+        let fcts = {
+            apply: fctsTemp.apply,
+            condition: fctsTemp.condition,
+            transform: fctsTemp.transform ?? (() => { })
+        };
+        this.resetLoop(loop);
+        let computedsCondition = [];
+        let alreadyRecreated = false;
+        const createComputedCondition = () => {
+            let compCondition = new Computed(() => {
+                return fcts.condition();
+            });
+            compCondition.value;
+            compCondition.subscribe((action, path, value) => {
+                if (!alreadyRecreated) {
+                    alreadyRecreated = true;
+                    this.renderLoopComplex(loop);
+                }
+            });
+            computedsCondition.push(compCondition);
+            this.loopRegisteries[loop.anchorId].computeds.push(compCondition);
+            return compCondition;
+        };
+        let result = [];
+        let compCondition = createComputedCondition();
+        while (compCondition.value) {
+            result.push(fcts.apply());
+            fcts.transform();
+            compCondition = createComputedCondition();
+        }
         let anchor = this._components[loop.anchorId][0];
         for (let i = 0; i < result.length; i++) {
-            let context = new WebComponentTemplateContext(this.component, localContext, { [loop.index]: i });
+            let context = new TemplateContext(this.component, result[i], this.context);
             let content = loop.template.template?.content.cloneNode(true);
             let actions = loop.template.actions;
-            let instance = new WebComponentTemplateInstance(context, content, actions, this.component, loop.template.loops);
+            let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
             instance.render();
             anchor.parentNode?.insertBefore(instance.content, anchor);
-            this.loopRegisteries[loop.anchorId].push(instance);
+            this.loopRegisteries[loop.anchorId].templates.push(instance);
         }
     }
-    registerLoopWatchEvent(loop, localContext) {
-        let fullPath = loop.data;
-        let watchName = fullPath.split(".")[0];
-        if (!this.component.__watchActions[watchName]) {
-            this.component.__watchActions[watchName] = [];
+    renderLoopSimple(loop, simple) {
+        this.resetLoop(loop);
+        let basePath = simple.data.replace(/^this\./, '');
+        let getElements = () => this.context.getValueFromItem(basePath);
+        let elements = getElements();
+        let indexName = this.context.registerIndex();
+        let keys = Object.keys(elements);
+        if (elements.__isProxy) {
+            let regexArray = new RegExp("^\\[(\\d+?)\\]$");
+            let regexObject = new RegExp("^([^\\.]*)$");
+            let sub = (action, path, value) => {
+                if (path == "") {
+                    this.renderLoopSimple(loop, simple);
+                    return;
+                }
+                if (action == WatchAction.UPDATED) {
+                    return;
+                }
+                let index = undefined;
+                regexArray.lastIndex = 0;
+                regexObject.lastIndex = 0;
+                let resultArray = regexArray.exec(path);
+                if (resultArray) {
+                    index = Number(resultArray[1]);
+                }
+                else {
+                    let resultObject = regexObject.exec(path);
+                    if (resultObject) {
+                        let oldKey = resultObject[1];
+                        if (action == WatchAction.CREATED) {
+                            keys = Object.keys(getElements());
+                            index = keys.indexOf(oldKey);
+                        }
+                        else if (action == WatchAction.DELETED) {
+                            index = keys.indexOf(oldKey);
+                            keys = Object.keys(getElements());
+                        }
+                    }
+                }
+                if (index !== undefined) {
+                    let registry = this.loopRegisteries[loop.anchorId];
+                    if (action == WatchAction.CREATED) {
+                        let context = new TemplateContext(this.component, {}, this.context);
+                        context.registerLoop(simple.data, index, indexName, simple.index, simple.item);
+                        let content = loop.template.template?.content.cloneNode(true);
+                        let actions = loop.template.actions;
+                        let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
+                        instance.render();
+                        let anchor;
+                        if (index < registry.templates.length) {
+                            anchor = registry.templates[index].firstChild;
+                        }
+                        else {
+                            anchor = this._components[loop.anchorId][0];
+                        }
+                        anchor?.parentNode?.insertBefore(instance.content, anchor);
+                        registry.templates.splice(index, 0, instance);
+                        for (let i = index + 1; i < registry.templates.length; i++) {
+                            registry.templates[i].context.increaseIndex(indexName);
+                        }
+                    }
+                    else if (action == WatchAction.DELETED) {
+                        registry.templates[index].destructor();
+                        registry.templates.splice(index, 1);
+                        for (let i = index; i < registry.templates.length; i++) {
+                            registry.templates[i].context.decreaseIndex(indexName);
+                        }
+                    }
+                }
+            };
+            elements.subscribe(sub);
         }
-        let regex = new RegExp(fullPath.replace(/\./g, "\\.") + "\\[(\\d+?)\\]$");
-        this.component.__watchActions[watchName].push((element, action, path, value) => {
-            if (path == fullPath) {
-                this.renderLoop(loop, localContext);
+        let anchor = this._components[loop.anchorId][0];
+        for (let i = 0; i < keys.length; i++) {
+            let context = new TemplateContext(this.component, {}, this.context);
+            context.registerLoop(simple.data, i, indexName, simple.index, simple.item);
+            let content = loop.template.template?.content.cloneNode(true);
+            let actions = loop.template.actions;
+            let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
+            instance.render();
+            anchor.parentNode?.insertBefore(instance.content, anchor);
+            this.loopRegisteries[loop.anchorId].templates.push(instance);
+        }
+    }
+    renderIf(_if) {
+        let computeds = [];
+        let instances = [];
+        let anchor = this._components[_if.anchorId][0];
+        let currentActive = -1;
+        const calculateActive = () => {
+            let newActive = -1;
+            for (let i = 0; i < _if.parts.length; i++) {
+                if (computeds[i].value) {
+                    newActive = i;
+                    break;
+                }
+            }
+            if (newActive == currentActive) {
                 return;
             }
-            regex.lastIndex = 0;
-            let result = regex.exec(path);
-            if (result) {
-                let registry = this.loopRegisteries[loop.anchorId];
-                let index = Number(result[1]);
-                if (action == WatchAction.CREATED) {
-                    let context = new WebComponentTemplateContext(this.component, localContext, { [loop.index]: index });
-                    let content = loop.template.template?.content.cloneNode(true);
-                    let actions = loop.template.actions;
-                    let instance = new WebComponentTemplateInstance(context, content, actions, this.component, loop.template.loops);
-                    instance.render();
-                    let anchor;
-                    if (index < registry.length) {
-                        anchor = registry[index].firstChild;
-                    }
-                    else {
-                        anchor = this._components[loop.anchorId][0];
-                    }
-                    anchor.parentNode?.insertBefore(instance.content, anchor);
-                    registry.splice(index, 0, instance);
-                    for (let i = index + 1; i < registry.length; i++) {
-                        registry[i].context.c[loop.index] = registry[i].context.c[loop.index] + 1;
-                    }
+            if (currentActive != -1) {
+                let instance = instances[currentActive];
+                let node = instance.firstChild;
+                while (node && node != instance.lastChild) {
+                    let next = node.nextElementSibling;
+                    instance.content.appendChild(node);
+                    node = next;
                 }
-                else if (action == WatchAction.UPDATED) {
-                    registry[index].render();
-                }
-                else if (action == WatchAction.DELETED) {
-                    registry[index].destructor();
-                    registry.splice(index, 1);
-                    for (let i = index; i < registry.length; i++) {
-                        registry[i].context.c[loop.index] = registry[i].context.c[loop.index] - 1;
-                    }
-                }
+                if (instance.lastChild)
+                    instance.content.appendChild(instance.lastChild);
             }
-        });
+            currentActive = newActive;
+            anchor.parentNode?.insertBefore(instances[currentActive].content, anchor);
+        };
+        for (let i = 0; i < _if.parts.length; i++) {
+            const part = _if.parts[i];
+            let _class = part.once ? ComputedNoRecomputed : Computed;
+            let computed = new _class(() => {
+                return part.condition(this.context);
+            });
+            computeds.push(computed);
+            computed.subscribe(() => {
+                calculateActive();
+            });
+            this.computeds.push(computed);
+            let context = new TemplateContext(this.component, {}, this.context);
+            let content = part.template.template?.content.cloneNode(true);
+            let actions = part.template.actions;
+            let instance = new TemplateInstance(this.component, content, actions, part.template.loops, part.template.ifs, context);
+            instances.push(instance);
+            instance.render();
+        }
+        calculateActive();
     }
 }
-WebComponentTemplateInstance.Namespace=`${moduleName}`;
-_.WebComponentTemplateInstance=WebComponentTemplateInstance;
-const WebComponentTemplate=class WebComponentTemplate {
+TemplateInstance.Namespace=`${moduleName}`;
+_.TemplateInstance=TemplateInstance;
+const Template=class Template {
     static setValueToItem(path, obj, value) {
         let splitted = path.split(".");
         for (let i = 0; i < splitted.length - 1; i++) {
@@ -2404,18 +2662,16 @@ const WebComponentTemplate=class WebComponentTemplate {
         }
         this.template.innerHTML = currentHTML;
     }
+    /**
+     * Used by the for loop and the if
+     * @param template
+     */
     setTemplate(template) {
         this.template = document.createElement('template');
         this.template.innerHTML = template;
     }
-    contextSchema = {
-        globals: [],
-        locals: {},
-        loops: {}
-    };
     template;
     actions = {};
-    loops = [];
     setActions(actions) {
         if (!this.actions) {
             this.actions = actions;
@@ -2449,7 +2705,7 @@ const WebComponentTemplate=class WebComponentTemplate {
                             this.actions.content[contextProp] = actions.content[contextProp];
                         }
                         else {
-                            this.actions.content[contextProp] = [...actions.content[contextProp], ...this.actions.content[contextProp]];
+                            throw 'this should be impossible';
                         }
                     }
                 }
@@ -2484,40 +2740,29 @@ const WebComponentTemplate=class WebComponentTemplate {
                     }
                 }
             }
-        }
-    }
-    setSchema(contextSchema) {
-        if (contextSchema.globals) {
-            for (let glob of contextSchema.globals) {
-                if (!this.contextSchema.globals.includes(glob)) {
-                    this.contextSchema.globals.push(glob);
+            if (actions.contextEdits) {
+                if (!this.actions.contextEdits) {
+                    this.actions.contextEdits = [];
                 }
-            }
-        }
-        if (contextSchema.locals) {
-            for (let key in contextSchema.locals) {
-                this.contextSchema.locals[key] = contextSchema.locals[key];
-            }
-        }
-        if (contextSchema.loops) {
-            for (let key in contextSchema.loops) {
-                this.contextSchema.loops[key] = contextSchema.loops[key];
+                this.actions.contextEdits = [...actions.contextEdits, ...this.actions.contextEdits];
             }
         }
     }
-    createInstance(component) {
-        let context = new WebComponentTemplateContext(component, this.contextSchema, {});
-        let content = this.template?.content.cloneNode(true);
-        let actions = this.actions;
-        let instance = new WebComponentTemplateInstance(context, content, actions, component, this.loops);
-        return instance;
-    }
+    loops = [];
     addLoop(loop) {
         this.loops.push(loop);
     }
+    ifs = [];
+    addIf(_if) {
+        this.ifs.push(_if);
+    }
+    createInstance(component) {
+        let content = this.template.content.cloneNode(true);
+        return new TemplateInstance(component, content, this.actions, this.loops, this.ifs);
+    }
 }
-WebComponentTemplate.Namespace=`${moduleName}`;
-_.WebComponentTemplate=WebComponentTemplate;
+Template.Namespace=`${moduleName}`;
+_.Template=Template;
 const WebComponent=class WebComponent extends HTMLElement {
     /**
      * Add attributes informations
@@ -2573,6 +2818,8 @@ const WebComponent=class WebComponent extends HTMLElement {
     __watch;
     __watchActions = {};
     __watchActionsCb = {};
+    __watchFunctions = {};
+    __watchFunctionsComputed = {};
     __pressManagers = [];
     __isDefaultState = true;
     __defaultActiveState = new Map();
@@ -2605,6 +2852,9 @@ const WebComponent=class WebComponent extends HTMLElement {
         for (let press of this.__pressManagers) {
             press.destroy();
         }
+        for (let name in this.__watchFunctionsComputed) {
+            this.__watchFunctionsComputed[name].destroy();
+        }
         // TODO add missing info for destructor();
     }
     __addWatchesActions(name, fct) {
@@ -2625,13 +2875,38 @@ const WebComponent=class WebComponent extends HTMLElement {
             this.__watchActions[name].push(fct);
         }
     }
+    __addWatchesFunctions(infos) {
+        for (let info of infos) {
+            let realName;
+            let autoInit;
+            if (typeof info == "string") {
+                realName = info;
+                autoInit = false;
+            }
+            else {
+                realName = info.name;
+                autoInit = info.autoInit;
+            }
+            if (!this.__watchFunctions[realName]) {
+                this.__watchFunctions[realName] = { autoInit };
+            }
+        }
+    }
     __registerWatchesActions() {
         if (Object.keys(this.__watchActions).length > 0) {
             if (!this.__watch) {
-                this.__watch = Watcher.get({}, (type, path, element) => {
+                let defaultValue = {};
+                this.__defaultValuesWatch(defaultValue);
+                this.__watch = Watcher.get(defaultValue, (type, path, element) => {
                     let action = this.__watchActionsCb[path.split(".")[0]] || this.__watchActionsCb[path.split("[")[0]];
                     action(type, path, element);
                 });
+            }
+        }
+        for (let name in this.__watchFunctions) {
+            this.__watchFunctionsComputed[name] = Watcher.computed(this[name].bind(this));
+            if (this.__watchFunctions[name].autoInit) {
+                this.__watchFunctionsComputed[name].value;
             }
         }
     }
@@ -2683,7 +2958,7 @@ const WebComponent=class WebComponent extends HTMLElement {
     __renderTemplate() {
         let staticInstance = this.__getStatic();
         if (!staticInstance.__template || staticInstance.__template.cst != staticInstance) {
-            staticInstance.__template = new WebComponentTemplate(staticInstance);
+            staticInstance.__template = new Template(staticInstance);
             this.__getHtml();
             this.__registerTemplateAction();
             staticInstance.__template.generateTemplate();
@@ -2721,6 +2996,7 @@ const WebComponent=class WebComponent extends HTMLElement {
         }
     }
     __defaultValues() { }
+    __defaultValuesWatch(w) { }
     __upgradeAttributes() { }
     __listBoolProps() {
         return [];
@@ -2891,8 +3167,127 @@ const WebComponent=class WebComponent extends HTMLElement {
         console.error("error parsing boolean value " + val);
         return false;
     }
+    __registerPropToWatcher(name) {
+        if (Watcher._register) {
+            Watcher._register.register(this.getReceiver(name), name, Watcher._register.version);
+        }
+    }
+    getStringAttr(name) {
+        return this.getAttribute(name) ?? undefined;
+    }
+    setStringAttr(name, val) {
+        if (val === undefined || val === null) {
+            this.removeAttribute(name);
+        }
+        else {
+            this.setAttribute(name, val);
+        }
+    }
+    getStringProp(name) {
+        this.__registerPropToWatcher(name);
+        return this.getStringAttr(name);
+    }
+    getNumberAttr(name) {
+        return Number(this.getAttribute(name));
+    }
+    setNumberAttr(name, val) {
+        if (val === undefined || val === null) {
+            this.removeAttribute(name);
+        }
+        else {
+            this.setAttribute(name, val);
+        }
+    }
+    getNumberProp(name) {
+        this.__registerPropToWatcher(name);
+        return this.getNumberAttr(name);
+    }
+    getBoolAttr(name) {
+        return this.hasAttribute(name);
+    }
+    setBoolAttr(name, val) {
+        val = this.getBoolean(val);
+        if (val) {
+            this.setAttribute(name, 'true');
+        }
+        else {
+            this.removeAttribute(name);
+        }
+    }
+    getBoolProp(name) {
+        this.__registerPropToWatcher(name);
+        return this.getBoolAttr(name);
+    }
+    getDateAttr(name) {
+        if (!this.hasAttribute(name)) {
+            return undefined;
+        }
+        return this.stringToDate(this.getAttribute(name));
+    }
+    setDateAttr(name, val) {
+        let valTxt = this.dateToString(val);
+        if (valTxt === null) {
+            this.removeAttribute(name);
+        }
+        else {
+            this.setAttribute(name, valTxt);
+        }
+    }
+    getDateProp(name) {
+        this.__registerPropToWatcher(name);
+        return this.getDateAttr(name);
+    }
+    getDateTimeAttr(name) {
+        if (!this.hasAttribute(name))
+            return undefined;
+        return this.stringToDateTime(this.getAttribute(name));
+    }
+    setDateTimeAttr(name, val) {
+        let valTxt = this.dateTimeToString(val);
+        if (valTxt === null) {
+            this.removeAttribute(name);
+        }
+        else {
+            this.setAttribute(name, valTxt);
+        }
+    }
+    getDateTimeProp(name) {
+        this.__registerPropToWatcher(name);
+        return this.getDateTimeAttr(name);
+    }
+    __propertyReceivers = {};
+    getReceiver(name) {
+        if (!this.__propertyReceivers[name]) {
+            let that = this;
+            let result = {
+                __subscribes: [],
+                subscribe(fct) {
+                    let index = this.__subscribes.indexOf(fct);
+                    if (index == -1) {
+                        this.__subscribes.push(fct);
+                    }
+                },
+                unsubscribe(fct) {
+                    let index = this.__subscribes.indexOf(fct);
+                    if (index > -1) {
+                        this.__subscribes.splice(index, 1);
+                    }
+                },
+                onChange() {
+                    for (let fct of this.__subscribes) {
+                        fct(WatchAction.UPDATED, name, that[name]);
+                    }
+                }
+            };
+            this.__propertyReceivers[name] = result;
+        }
+        return this.__propertyReceivers[name];
+    }
     attributeChangedCallback(name, oldValue, newValue) {
         if (oldValue !== newValue || !this.isReady) {
+            if (this.__propertyReceivers.hasOwnProperty(name)) {
+                this.__propertyReceivers[name].onChange();
+            }
             if (this.__onChangeFct.hasOwnProperty(name)) {
                 for (let fct of this.__onChangeFct[name]) {
                     fct('');
@@ -3086,19 +3481,7 @@ const GeneralInformation = class GeneralInformation extends Aventus.WebComponent
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<h3>General informations</h3><div>
-	<vscode-text-field>Module name</vscode-text-field>
-</div><div>
-	<vscode-text-field>Version</vscode-text-field>
-</div><div>
-	<vscode-text-field>Webcomponent prefix</vscode-text-field>
-</div><div>
-	<vscode-checkbox>Hide warnings</vscode-checkbox>
-</div><div>
-	<vscode-text-field>Avoid parsing tags</vscode-text-field>
-</div><div>
-	<vscode-button>Save</vscode-button>
-</div>` }
+        blocks: { 'default':`<h3>General informations</h3><div>	<vscode-text-field>Module name</vscode-text-field></div><div>	<vscode-text-field>Version</vscode-text-field></div><div>	<vscode-text-field>Webcomponent prefix</vscode-text-field></div><div>	<vscode-checkbox>Hide warnings</vscode-checkbox></div><div>	<vscode-text-field>Avoid parsing tags</vscode-text-field></div><div>	<vscode-button>Save</vscode-button></div>` }
     });
 }
     getClassName() {
@@ -3111,29 +3494,17 @@ _.GeneralInformation=GeneralInformation;
 if(!window.customElements.get('av-general-information')){window.customElements.define('av-general-information', GeneralInformation);Aventus.WebComponentInstance.registerDefinition(GeneralInformation);}
 
 const Dependances = class Dependances extends Aventus.WebComponent {
-    get 'no_deps'() {
-                return this.hasAttribute('no_deps');
-            }
-            set 'no_deps'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('no_deps', 'true');
-                } else{
-                    this.removeAttribute('no_deps');
-                }
-            }
-    get 'dependances'() {
+    get 'no_deps'() { return this.getBoolAttr('no_deps') }
+    set 'no_deps'(val) { this.setBoolAttr('no_deps', val) }    get 'dependances'() {
 						return this.__watch["dependances"];
 					}
 					set 'dependances'(val) {
 						this.__watch["dependances"] = val;
-					}
-    __registerWatchesActions() {
-                this.__addWatchesActions("dependances", ((target) => {
+					}    __registerWatchesActions() {
+    this.__addWatchesActions("dependances", ((target) => {
     target.no_deps = target.dependances.length == 0;
-}));
-                super.__registerWatchesActions();
-            }
+}));    super.__registerWatchesActions();
+}
     static __style = `:host .no-dependances-txt{display:none}:host vscode-data-grid-row{text-align:center}:host av-icon.trash{color:var(--vscode-errorForeground)}:host .add-row{margin-top:16px}:host([no_deps]) .no-dependances-txt{display:block}`;
     __getStatic() {
         return Dependances;
@@ -3145,73 +3516,38 @@ const Dependances = class Dependances extends Aventus.WebComponent {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<h3>Dependances</h3><p class="no-dependances-txt">Your project has no dependance</p><vscode-data-grid aria-label="Default">
-	<vscode-data-grid-row row-type="header">
-		<vscode-data-grid-cell cell-type="columnheader" grid-column="1">
-			Name
-		</vscode-data-grid-cell>
-		<vscode-data-grid-cell cell-type="columnheader" grid-column="2">
-			Version
-		</vscode-data-grid-cell>
-		<vscode-data-grid-cell cell-type="columnheader" grid-column="3">
-			Url
-		</vscode-data-grid-cell>
-		<vscode-data-grid-cell cell-type="columnheader" grid-column="4">
-			Action
-		</vscode-data-grid-cell>
-	</vscode-data-grid-row>
-	for(let dep of this.dependances) {
-		<vscode-data-grid-row _id="dependances_0">
-			<vscode-data-grid-cell grid-column="1" _id="dependances_1"></vscode-data-grid-cell>
-			<vscode-data-grid-cell grid-column="2" _id="dependances_2"></vscode-data-grid-cell>
-			<vscode-data-grid-cell grid-column="3">
-				<a target="_blank" _id="dependances_3"></a>
-			</vscode-data-grid-cell>
-			<vscode-data-grid-cell grid-column="4">
-				<av-icon class="trash"></av-icon>
-			</vscode-data-grid-cell>
-		</vscode-data-grid-row>
-	}
-	<vscode-data-grid-row class="add-row">
-		<vscode-data-grid-cell grid-column="1"></vscode-data-grid-cell>
-		<vscode-data-grid-cell grid-column="2"></vscode-data-grid-cell>
-		<vscode-data-grid-cell grid-column="3"></vscode-data-grid-cell>
-		<vscode-data-grid-cell grid-column="4">
-			<vscode-button>Add</vscode-button>
-		</vscode-data-grid-cell>
-	</vscode-data-grid-row>
-</vscode-data-grid>` }
+        blocks: { 'default':`<h3>Dependances</h3><p class="no-dependances-txt">Your project has no dependance</p><vscode-data-grid aria-label="Default">	<vscode-data-grid-row row-type="header">		<vscode-data-grid-cell cell-type="columnheader" grid-column="1">			Name		</vscode-data-grid-cell>		<vscode-data-grid-cell cell-type="columnheader" grid-column="2">			Version		</vscode-data-grid-cell>		<vscode-data-grid-cell cell-type="columnheader" grid-column="3">			Url		</vscode-data-grid-cell>		<vscode-data-grid-cell cell-type="columnheader" grid-column="4">			Action		</vscode-data-grid-cell>	</vscode-data-grid-row>	<template _id="dependances_0"></template>	<vscode-data-grid-row class="add-row">		<vscode-data-grid-cell grid-column="1"></vscode-data-grid-cell>		<vscode-data-grid-cell grid-column="2"></vscode-data-grid-cell>		<vscode-data-grid-cell grid-column="3"></vscode-data-grid-cell>		<vscode-data-grid-cell grid-column="4">			<vscode-button>Add</vscode-button>		</vscode-data-grid-cell>	</vscode-data-grid-row></vscode-data-grid>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();
-this.__getStatic().__template.setActions({
-  "elements": [
-    {
-      "name": "temp",
-      "ids": [
-        "dependances_0"
-      ]
+    get temp () { var list = Array.from(this.shadowRoot.querySelectorAll('[_id="dependances_1"]')); return list; }    __registerTemplateAction() { super.__registerTemplateAction();const templ0 = new Aventus.Template(this);templ0.setTemplate(`		<vscode-data-grid-row _id="dependances_1">			<vscode-data-grid-cell grid-column="1" _id="dependances_2"></vscode-data-grid-cell>			<vscode-data-grid-cell grid-column="2" _id="dependances_3"></vscode-data-grid-cell>			<vscode-data-grid-cell grid-column="3">				<a target="_blank" _id="dependances_4"></a>			</vscode-data-grid-cell>			<vscode-data-grid-cell grid-column="4">				<av-icon class="trash"></av-icon>			</vscode-data-grid-cell>		</vscode-data-grid-row>	`);templ0.setActions({
+  "content": {
+    "dependances_2°@HTML": {
+      "fct": (c) => `\r\n\t\t\t\t${c.print(c.comp.__4c586c5853b5a601cdc35d6c258f14a8method1(c.data.dep))}\r\n\t\t\t`,
+      "once": true
+    },
+    "dependances_3°@HTML": {
+      "fct": (c) => `\r\n\t\t\t\t${c.print(c.comp.__4c586c5853b5a601cdc35d6c258f14a8method2(c.data.dep))}\r\n\t\t\t`,
+      "once": true
+    },
+    "dependances_4°href": {
+      "fct": (c) => `${c.print(c.comp.__4c586c5853b5a601cdc35d6c258f14a8method3(c.data.dep))}`,
+      "once": true
+    },
+    "dependances_4°@HTML": {
+      "fct": (c) => `\r\n\t\t\t\t\t${c.print(c.comp.__4c586c5853b5a601cdc35d6c258f14a8method3(c.data.dep))}\r\n\t\t\t\t`,
+      "once": true
     }
-  ]
-});
-this.__getStatic().__template.setSchema({globals:["dep"]});
- }
+  }
+});this.__getStatic().__template.addLoop({
+                    anchorId: 'dependances_0',
+                    template: templ0,
+                simple:{data: "this.dependances",item:"dep"}}); }
     getClassName() {
         return "Dependances";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('no_deps')) { this.attributeChangedCallback('no_deps', false, false); }
-if(!this["dependances"]){ this["dependances"] = [{
-        name: "AventusUI",
-        version: "1.0.0",
-        uri: "https://aventusjs.com/aventusUI.def.avt"
-    }, {
-        name: "AventusUI2",
-        version: "1.0.0",
-        uri: "https://aventusjs.com/aventusUI.def.avt"
-    }];}
- }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('no_deps');
- }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('no_deps')) { this.attributeChangedCallback('no_deps', false, false); } }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["dependances"] = [{        name: "AventusUI",        version: "1.0.0",        uri: "https://aventusjs.com/aventusUI.def.avt"    }, {        name: "AventusUI2",        version: "1.0.0",        uri: "https://aventusjs.com/aventusUI.def.avt"    }]; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('no_deps'); }
     __listBoolProps() { return ["no_deps"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
 }
 Dependances.Namespace=`${moduleName}`;
@@ -3231,24 +3567,7 @@ const ConfigurationEditor = class ConfigurationEditor extends Aventus.WebCompone
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<h1>Configuration editor</h1><vscode-panels>
-	<vscode-panel-tab id="tab-1">General</vscode-panel-tab>
-	<vscode-panel-tab id="tab-2">Dependances</vscode-panel-tab>
-	<vscode-panel-tab id="tab-3">Builds</vscode-panel-tab>
-	<vscode-panel-tab id="tab-4">Statics</vscode-panel-tab>
-	<vscode-panel-view id="view-1">
-		<av-general-information></av-general-information>
-	</vscode-panel-view>
-	<vscode-panel-view id="view-2">
-		<av-dependances></av-dependances>
-	</vscode-panel-view>
-	<vscode-panel-view id="view-3">
-		Debug Console Content
-	</vscode-panel-view>
-	<vscode-panel-view id="view-4">
-		Terminal Content
-	</vscode-panel-view>
-</vscode-panels>` }
+        blocks: { 'default':`<h1>Configuration editor</h1><vscode-panels>	<vscode-panel-tab id="tab-1">General</vscode-panel-tab>	<vscode-panel-tab id="tab-2">Dependances</vscode-panel-tab>	<vscode-panel-tab id="tab-3">Builds</vscode-panel-tab>	<vscode-panel-tab id="tab-4">Statics</vscode-panel-tab>	<vscode-panel-view id="view-1">		<av-general-information></av-general-information>	</vscode-panel-view>	<vscode-panel-view id="view-2">		<av-dependances></av-dependances>	</vscode-panel-view>	<vscode-panel-view id="view-3">		Debug Console Content	</vscode-panel-view>	<vscode-panel-view id="view-4">		Terminal Content	</vscode-panel-view></vscode-panels>` }
     });
 }
     getClassName() {
