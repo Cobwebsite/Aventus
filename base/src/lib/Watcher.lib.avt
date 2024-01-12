@@ -1,6 +1,7 @@
 import { compareObject } from "../tools/CompareObject.lib.avt";
 
 type NotVoid<T> = T extends void ? never : T;
+export type WatcherFunction = (action: WatchAction, path: string, value: any) => void;
 
 export enum WatchAction {
     CREATED,
@@ -9,7 +10,6 @@ export enum WatchAction {
 }
 
 export class Watcher {
-    private static __maxProxyData: number = 0;
     @Internal()
     public static _registering: Effect[] = [];
     @Internal()
@@ -19,55 +19,29 @@ export class Watcher {
     /**
      * Transform object into a watcher
      */
-    public static get(obj: object, onDataChanged: (action: WatchAction, path: string, value: any) => void) {
+    public static get(obj: object, onDataChanged?: WatcherFunction): any {
         if(obj == undefined) {
             console.error("You must define an objet / array for your proxy");
             return;
         }
         if((obj as any).__isProxy) {
-            (obj as any).__subscribe(onDataChanged);
+            if(onDataChanged)
+                (obj as any).subscribe(onDataChanged);
             return obj;
         }
-        Watcher.__maxProxyData++;
         const reservedName = {
             __path: '__path',
-            __proxyData: '__proxyData',
+        };
+        const clearReservedNames = (data) => {
+            if(data instanceof Object && !data.__isProxy) {
+                for(let key in reservedName) {
+                    delete data[key];
+                }
+            }
         };
         let setProxyPath = (newProxy, newPath) => {
             if(newProxy instanceof Object && newProxy.__isProxy) {
                 newProxy.__path = newPath;
-                if(!newProxy.__proxyData) {
-                    newProxy.__proxyData = {};
-                }
-                if(!newProxy.__proxyData[newPath]) {
-                    newProxy.__proxyData[newPath] = [];
-                }
-                if(newProxy.__proxyData[newPath].indexOf(proxyData) == -1) {
-                    newProxy.__proxyData[newPath].push(proxyData);
-                }
-            }
-        };
-        let removeProxyPath = (oldValue, pathToDelete, recursive = true) => {
-            if(oldValue instanceof Object && oldValue.__isProxy) {
-                let allProxies = oldValue.__proxyData;
-                for(let triggerPath in allProxies) {
-                    if(triggerPath == pathToDelete) {
-                        for(let i = 0; i < allProxies[triggerPath].length; i++) {
-                            if(allProxies[triggerPath][i] == proxyData) {
-                                allProxies[triggerPath].splice(i, 1);
-                                i--;
-                            }
-                        }
-                        if(allProxies[triggerPath].length == 0) {
-                            delete allProxies[triggerPath];
-                            if(Object.keys(allProxies).length == 0) {
-                                delete oldValue.__proxyData;
-                            }
-                        }
-                    }
-                }
-
-                // apply recursive delete
             }
         };
         let jsonReplacer = (key, value) => {
@@ -79,10 +53,24 @@ export class Watcher {
         currentTrace.shift();
         let onlyDuringInit = true;
 
-        let proxyData = {
+        type ProxyData = {
+            baseData: any,
+            callbacks: { [key: string]: WatcherFunction[]; },
+            avoidUpdate: string[],
+            pathToRemove: string[],
+            history: any[],
+            useHistory: boolean,
+            getProxyObject: (target: any, element: any, prop: string) => any,
+            tryCustomFunction: (target: any, prop: string, receiver: any) => any,
+            get: (target: any, prop: string, receiver: any) => any,
+            set: (target: any, prop: string, value: any, receiver: any) => any,
+            deleteProperty: (target: any, prop: string) => boolean,
+            defineProperty: (target: any, prop: string, descriptor: any) => boolean,
+            ownKeys: (target: any) => (string | symbol)[],
+        };
+        let proxyData: ProxyData = {
             baseData: {},
-            id: Watcher.__maxProxyData,
-            callbacks: [onDataChanged],
+            callbacks: {},
             avoidUpdate: [],
             pathToRemove: [],
             history: [{
@@ -114,12 +102,15 @@ export class Watcher {
                 }
                 let newPath = '';
                 if(Array.isArray(target)) {
-                    if(prop != "length") {
+                    if(/^[0-9]*$/g.exec(prop)) {
                         if((target as any).__path) {
                             newPath = (target as any).__path;
                         }
                         newPath += "[" + prop + "]";
                         setProxyPath(newProxy, newPath);
+                    }
+                    else {
+                        newPath += "." + prop;
                     }
                 }
                 else if(element instanceof Date) {
@@ -139,21 +130,26 @@ export class Watcher {
                 if(prop == "__isProxy") {
                     return true;
                 }
-                else if(prop == "__subscribe") {
+                else if(prop == "subscribe") {
+                    let path = receiver.__path;
                     return (cb) => {
-                        this.callbacks.push(cb);
+                        if(!this.callbacks[path]) {
+                            this.callbacks[path] = [];
+                        }
+                        this.callbacks[path].push(cb);
                     };
                 }
-                else if(prop == "__unsubscribe") {
+                else if(prop == "unsubscribe") {
+                    let path = receiver.__path;
                     return (cb) => {
-                        let index = this.callbacks.indexOf(cb);
+                        if(!this.callbacks[path]) {
+                            return;
+                        }
+                        let index = this.callbacks[path].indexOf(cb);
                         if(index > -1) {
-                            this.callbacks.splice(index, 1);
+                            this.callbacks[path].splice(index, 1);
                         }
                     };
-                }
-                else if(prop == "__proxyId") {
-                    return this.id;
                 }
                 else if(prop == "getHistory") {
                     return () => {
@@ -179,6 +175,15 @@ export class Watcher {
                     };
                 }
                 else if(prop == "toJSON") {
+                    if(Array.isArray(target)) {
+                        return () => {
+                            let result: any[] = [];
+                            for(let element of target) {
+                                result.push(element);
+                            }
+                            return result;
+                        };
+                    }
                     return () => {
                         let result = {};
                         for(let key of Object.keys(target)) {
@@ -220,6 +225,7 @@ export class Watcher {
                                     let proxyEl = this.getProxyObject(target, el, (index - 1));
                                     target.splice(target.length - 1, 1, proxyEl);
                                     trigger('CREATED', target, receiver, proxyEl, "[" + (index - 1) + "]");
+                                    trigger('UPDATED', target, receiver, target.length, "length");
                                     return index;
                                 };
                             }
@@ -233,11 +239,14 @@ export class Watcher {
                             }
                             else {
                                 result = (index, nbRemove, ...insert) => {
+                                    let oldValues: any[] = [];
+                                    for(let i = index; i < index + nbRemove; i++) {
+                                        oldValues.push(receiver[i]);
+                                    }
+                                    let updateLength = nbRemove != insert.length;
                                     let res = target.splice(index, nbRemove, ...insert);
-                                    let path = (target as any).__path ? (target as any).__path : '';
-                                    for(let i = 0; i < res.length; i++) {
-                                        trigger('DELETED', target, receiver, res[i], "[" + index + "]");
-                                        removeProxyPath(res[i], path + "[" + (index + i) + "]");
+                                    for(let i = 0; i < oldValues.length; i++) {
+                                        trigger('DELETED', target, receiver, oldValues[i], "[" + index + "]");
                                     }
                                     for(let i = 0; i < insert.length; i++) {
                                         // get real objetct with proxy to have the correct subscription
@@ -246,19 +255,14 @@ export class Watcher {
                                         trigger('CREATED', target, receiver, proxyEl, "[" + (index + i) + "]");
                                     }
                                     let fromIndex = index + insert.length;
-                                    let baseDiff = index - insert.length + res.length + 1;
                                     // update path and subscription
                                     for(let i = fromIndex, j = 0; i < target.length; i++, j++) {
-                                        let oldPath = path + "[" + (j + baseDiff) + "]";
-                                        removeProxyPath(target[i], oldPath, false);
                                         let proxyEl = this.getProxyObject(target, target[i], i);
 
                                         let recuUpdate = (childEl) => {
                                             if(Array.isArray(childEl)) {
                                                 for(let i = 0; i < childEl.length; i++) {
                                                     if(childEl[i] instanceof Object && childEl[i].__path) {
-                                                        let oldPathRecu = proxyEl[i].__path.replace(proxyEl.__path, oldPath);
-                                                        removeProxyPath(childEl[i], oldPathRecu, false);
                                                         let newProxyEl = this.getProxyObject(childEl, childEl[i], i);
                                                         recuUpdate(newProxyEl);
                                                     }
@@ -267,8 +271,6 @@ export class Watcher {
                                             else if(childEl instanceof Object && !(childEl instanceof Date)) {
                                                 for(let key in childEl) {
                                                     if(childEl[key] instanceof Object && childEl[key].__path) {
-                                                        let oldPathRecu = proxyEl[key].__path.replace(proxyEl.__path, oldPath);
-                                                        removeProxyPath(childEl[key], oldPathRecu, false);
                                                         let newProxyEl = this.getProxyObject(childEl, childEl[key], key);
                                                         recuUpdate(newProxyEl);
                                                     }
@@ -276,8 +278,9 @@ export class Watcher {
                                             }
                                         };
                                         recuUpdate(proxyEl);
-
                                     }
+                                    if(updateLength)
+                                        trigger('UPDATED', target, receiver, target.length, "length");
                                     return res;
                                 };
                             }
@@ -293,10 +296,10 @@ export class Watcher {
                             else {
                                 result = () => {
                                     let index = target.length - 1;
+                                    let oldValue = receiver.length ? receiver[receiver.length] : undefined;
                                     let res = target.pop();
-                                    let path = (target as any).__path ? (target as any).__path : '';
-                                    trigger('DELETED', target, receiver, res, "[" + index + "]");
-                                    removeProxyPath(res, path + "[" + index + "]");
+                                    trigger('DELETED', target, receiver, oldValue, "[" + index + "]");
+                                    trigger('UPDATED', target, receiver, target.length, "length");
                                     return res;
                                 };
                             }
@@ -312,20 +315,26 @@ export class Watcher {
                 if(element instanceof Computed) {
                     return element.value;
                 }
-                if(typeof (element) == 'object') {
-                    if(Watcher._registering.length > 0) {
-                        const currentPath = receiver.__path ? receiver.__path + '.' + prop : prop;
-                        Watcher._register?.register(receiver, currentPath);
+
+                if(Watcher._registering.length > 0) {
+                    let currentPath: string;
+                    let isArray = Array.isArray(receiver);
+                    if(isArray && /^[0-9]*$/g.exec(prop)) {
+                        currentPath = receiver.__path + "[" + prop + "]";
+                        currentPath = "[" + prop + "]";
                     }
+                    else {
+                        currentPath = receiver.__path ? receiver.__path + '.' + prop : prop;
+                        currentPath = prop;
+                    }
+                    Watcher._register?.register(receiver, currentPath, Watcher._register.version);
+                }
+
+                if(typeof (element) == 'object') {
                     return this.getProxyObject(target, element, prop);
                 }
 
-                let resultTemp = Reflect.get(target, prop, receiver);
-                if(Watcher._registering.length > 0) {
-                    const currentPath = receiver.__path ? receiver.__path + '.' + prop : prop;
-                    Watcher._register?.register(receiver, currentPath);
-                }
-                return resultTemp;
+                return Reflect.get(target, prop, receiver);
             },
             set(target, prop, value, receiver) {
                 let triggerChange = false;
@@ -343,7 +352,6 @@ export class Watcher {
                     }
                 }
                 let result = Reflect.set(target, prop, value, receiver);
-
                 if(triggerChange) {
                     let index = this.avoidUpdate.indexOf(prop);
 
@@ -384,8 +392,8 @@ export class Watcher {
                     }
                     delete target[prop];
                     if(triggerChange) {
+                        clearReservedNames(oldValue);
                         trigger('DELETED', target, null, oldValue, prop);
-                        removeProxyPath(oldValue, pathToDelete);
                     }
                     return true;
                 }
@@ -436,78 +444,83 @@ export class Watcher {
                 return result;
             },
         };
-        const trigger = (type, target, receiver, value, prop) => {
 
+        if(onDataChanged) {
+            proxyData.callbacks[''] = [onDataChanged];
+        }
+        const trigger = (type, target, receiver, value, prop) => {
             if(target.__isProxy) {
                 return;
             }
-            let allProxies = target.__proxyData;
-            // trigger only if same id
-            let receiverId = 0;
+            let rootPath: string;
             if(receiver == null) {
-                receiverId = proxyData.id;
+                rootPath = target.__path;
             }
             else {
-                receiverId = receiver.__proxyId;
+                rootPath = receiver.__path;
             }
-            if(proxyData.id == receiverId) {
-                let stacks: string[] = [];
-                if(proxyData.useHistory) {
-                    let allStacks = new Error().stack?.split("\n") ?? [];
-                    for(let i = allStacks.length - 1; i >= 0; i--) {
-                        let current = allStacks[i].trim().replace("at ", "");
-                        if(current.startsWith("Object.set") || current.startsWith("Proxy.result")) {
-                            break;
-                        }
-                        stacks.push(current);
-                    }
-                }
-
-
-                for(let triggerPath in allProxies) {
-                    for(let currentProxyData of allProxies[triggerPath]) {
-
-                        let pathToSend = triggerPath;
-                        if(pathToSend != "") {
-                            if(Array.isArray(target)) {
-                                if(!prop.startsWith("[")) {
-                                    pathToSend += "[" + prop + "]";
-                                }
-                                else {
-                                    pathToSend += prop;
-                                }
-                            }
-                            else {
-                                if(!prop.startsWith("[")) {
-                                    pathToSend += ".";
-                                }
-                                pathToSend += prop;
-                            }
+            if(rootPath != "") {
+                if(Array.isArray(target)) {
+                    if(!prop.startsWith("[")) {
+                        if(/^[0-9]*$/g.exec(prop)) {
+                            rootPath += "[" + prop + "]";
                         }
                         else {
-                            pathToSend = prop;
+                            rootPath += "." + prop;
                         }
-
-                        if(proxyData.useHistory) {
-                            proxyData.history.push({
-                                object: JSON.parse(JSON.stringify(currentProxyData.baseData, jsonReplacer)),
-                                trace: stacks.reverse(),
-                                action: WatchAction[type],
-                                path: pathToSend
-                            });
-                        }
-
-                        [...currentProxyData.callbacks].forEach((cb) => {
-
-                            cb(WatchAction[type], pathToSend, value);
-                        });
-
                     }
+                    else {
+                        rootPath += prop;
+                    }
+                }
+                else {
+                    if(!prop.startsWith("[")) {
+                        rootPath += ".";
+                    }
+                    rootPath += prop;
+                }
+            }
+            else {
+                rootPath = prop;
+            }
 
+            let stacks: string[] = [];
+            if(proxyData.useHistory) {
+                let allStacks = new Error().stack?.split("\n") ?? [];
+                for(let i = allStacks.length - 1; i >= 0; i--) {
+                    let current = allStacks[i].trim().replace("at ", "");
+                    if(current.startsWith("Object.set") || current.startsWith("Proxy.result")) {
+                        break;
+                    }
+                    stacks.push(current);
+                }
+            }
+
+            for(let name in proxyData.callbacks) {
+                let pathToSend = rootPath;
+                if(name !== "") {
+                    let regex = new RegExp("^" + name + "(\\.|(\\[)|$)");
+                    if(!regex.test(rootPath)) {
+                        continue;
+                    }
+                    pathToSend = rootPath.replace(regex, "$2");
+                }
+
+                if(proxyData.useHistory) {
+                    proxyData.history.push({
+                        object: JSON.parse(JSON.stringify(proxyData.baseData, jsonReplacer)),
+                        trace: stacks.reverse(),
+                        action: WatchAction[type],
+                        path: pathToSend
+                    });
+                }
+
+                let cbs = [...proxyData.callbacks[name]];
+                for(let cb of cbs) {
+                    cb(WatchAction[type] as any, pathToSend, value);
                 }
             }
         };
-
 
         var realProxy = new Proxy(obj, proxyData);
         proxyData.baseData = realProxy.__getTarget();
@@ -526,20 +539,32 @@ export class Watcher {
     }
 }
 
-type WatcherChange = (action: WatchAction, changePath: string, value: any) => void;
-type EffectReceiver = {
-    __subscribe: (fct: WatcherChange) => void;
-    __unsubscribe: (fct: WatcherChange) => void;
+export type WatcherChange = (action: WatchAction, changePath: string, value: any) => void;
+export type EffectReceiver = {
+    subscribe: (fct: WatcherChange) => void;
+    unsubscribe: (fct: WatcherChange) => void;
 };
+type WatcherAllowed = (action: WatchAction, path: string, value: any) => boolean;
+
+/**
+ * Effect will recomputed each time a watchable variable or effect or computed are changed
+ * Each time the function is called, dependances tree is updated. It's usefull when you have array or conditional inside
+ */
 export class Effect {
-    protected callbacks: {
+    @InternalProtected()
+    public callbacks: {
         receiver: EffectReceiver,
         path: string,
         cb: WatcherChange;
+        version: number;
     }[] = [];
 
     protected isInit: boolean = false;
+    protected isDestroy: boolean = false;
     protected __subscribes: WatcherChange[] = [];
+    protected __allowChanged: WatcherAllowed[] = [];
+    @InternalProtected()
+    public version: number = 0;
 
     protected fct: () => void;
 
@@ -556,54 +581,99 @@ export class Effect {
 
     protected init() {
         this.isInit = true;
-        Watcher._registering.push(this);
-        this.fct();
-        Watcher._registering.splice(Watcher._registering.length - 1, 1);
+        this.run();
     }
 
-    public register(receiver: EffectReceiver, path: string) {
-        const cb: WatcherChange = (action, changePath, value) => {
-            if(path == changePath) {
-                this.onChange();
+    protected run() {
+        this.version++;
+        Watcher._registering.push(this);
+        let result = this.fct();
+        Watcher._registering.splice(Watcher._registering.length - 1, 1);
+        for(let i = 0; i < this.callbacks.length; i++) {
+            if(this.callbacks[i].version != this.version) {
+                this.callbacks[i].receiver.unsubscribe(this.callbacks[i].cb);
+                this.callbacks.splice(i, 1);
+                i--;
             }
-        };
+        }
+        return result;
+    }
 
+    @InternalProtected()
+    public register(receiver: EffectReceiver, path: string, version: number) {
         for(let info of this.callbacks) {
             if(info.receiver == receiver && info.path == path) {
+                info.version = version;
                 return;
             }
         }
+
+        let cb: WatcherChange;
+        if(path == "*") {
+            cb = (action, changePath, value) => { this.onChange(action, changePath, value); };
+        }
+        else {
+            cb = (action, changePath, value) => {
+                if(changePath == path) {
+                    this.onChange(action, changePath, value);
+                }
+            };
+        }
+
+
         this.callbacks.push({
             receiver,
             path,
-            cb
+            cb,
+            version
         });
-        receiver.__subscribe(cb);
+        receiver.subscribe(cb);
     }
 
-    protected onChange() {
-        this.fct();
+    public canChange(fct: WatcherAllowed) {
+        this.__allowChanged.push(fct);
+    }
+
+    protected checkCanChange(action: WatchAction, changePath: string, value: any): boolean {
+        if(this.isDestroy) {
+            return false;
+        }
+        for(let fct of this.__allowChanged) {
+            if(!fct(action, changePath, value)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    protected onChange(action: WatchAction, changePath: string, value: any) {
+        if(!this.checkCanChange(action, changePath, value)) {
+            return;
+        }
+        this.run();
         for(let fct of this.__subscribes) {
-            fct(WatchAction.UPDATED, "", undefined);
+            fct(action, changePath, value);
         }
     }
 
     public destroy() {
+        this.isDestroy = true;
         for(let pair of this.callbacks) {
-            pair.receiver.__unsubscribe(pair.cb);
+            pair.receiver.unsubscribe(pair.cb);
         }
         this.callbacks = [];
         this.isInit = false;
     }
 
-    public __subscribe(fct: WatcherChange): void {
+
+    public subscribe(fct: WatcherChange): void {
         let index = this.__subscribes.indexOf(fct);
         if(index == -1) {
             this.__subscribes.push(fct);
         }
     }
 
-    public __unsubscribe(fct: WatcherChange): void {
+    public unsubscribe(fct: WatcherChange): void {
         let index = this.__subscribes.indexOf(fct);
         if(index > -1) {
             this.__subscribes.splice(index, 1);
@@ -611,14 +681,34 @@ export class Effect {
     }
 }
 
-export class Computed<T> extends Effect {
-    private _value?: T;
+/**
+ * Effect will recomputed each time a watchable variable or effect or computed are changed
+ * The dependances tree is created only during the first execution
+ */
+export class EffectNoRecomputed extends Effect {
+    protected override init() {
+        this.isInit = true;
+        Watcher._registering.push(this);
+        this.fct();
+        Watcher._registering.splice(Watcher._registering.length - 1, 1);
+    }
+
+    protected override run() { }
+}
+
+/**
+ * Computed will recomputed each time a watchable variable or effect or computed are changed
+ * When no change occured you can get the value by calling the value property
+ * Each time the function is called, dependances tree is updated. It's usefull when you have array or conditional inside
+ */
+export class Computed<T = any> extends Effect {
+    protected _value?: T;
 
     public get value(): T | undefined {
         if(!this.isInit) {
             this.init();
         }
-        Watcher._register?.register(this, "");
+        Watcher._register?.register(this, "*", Watcher._register.version);
         return this._value;
     }
 
@@ -632,17 +722,44 @@ export class Computed<T> extends Effect {
 
     protected override init(): void {
         this.isInit = true;
+        this.computedValue();
+    }
+
+    protected computedValue() {
+        this._value = this.run() as T;
+    }
+
+    protected override onChange(action: WatchAction, changePath: string, value: any): void {
+        if(!this.checkCanChange(action, changePath, value)) {
+            return;
+        }
+        let oldValue = this._value;
+        this.computedValue();
+        if(oldValue === this._value) {
+            return;
+        }
+        for(let fct of this.__subscribes) {
+            fct(action, changePath, value);
+        }
+    }
+}
+
+/**
+ * Computed will recomputed each time a watchable variable or effect or computed are changed
+ * When no change occured you can get the value by calling the value property
+ * The dependances tree is created only during the first execution
+ */
+export class ComputedNoRecomputed<T = any> extends Computed<T> {
+    protected override init() {
+        this.isInit = true;
         Watcher._registering.push(this);
         this._value = this.fct() as T;
         Watcher._registering.splice(Watcher._registering.length - 1, 1);
     }
 
-    protected override onChange(): void {
+    protected override computedValue() {
         this._value = this.fct() as T;
-        for(let fct of this.__subscribes) {
-            fct(WatchAction.UPDATED, "", this._value);
-        }
     }
 
-
+    protected override run() { }
 }

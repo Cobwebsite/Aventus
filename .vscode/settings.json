@@ -4,5 +4,6 @@
 	"typescript.preferences.quoteStyle": "single",
 	"aventus.liveserver": {
 		"rootFolder": "./base/dist/"
-	}
+	},
+	"terminal.integrated.defaultProfile.windows": "Command Prompt",
 }

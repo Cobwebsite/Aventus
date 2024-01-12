@@ -1,11 +1,11 @@
-import { WebComponentTemplate, WebComponentTemplateInstance } from "./WebComponentTemplate.lib.avt";
+import { Template, TemplateInstance } from "./WebComponentTemplate.lib.avt";
 import { Style } from "./Style.lib.avt";
 import { PressManager } from "../lib/PressManager.lib.avt";
 import { State } from "../state/State.state.avt";
 import { StateManager, type StateSlug } from "../state/StateManager.state.avt";
 import { ElementExtension } from "./ElementExtension.lib.avt";
 import { Instance } from "../lib/Instance.lib.avt";
-import { WatchAction, Watcher } from "../lib/Watcher.lib.avt";
+import { type Computed, WatchAction, Watcher, type EffectReceiver, type WatcherChange } from "../lib/Watcher.lib.avt";
 
 
 export interface DebuggerConfig {
@@ -161,6 +161,8 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
     @Internal()
     public __watchActions: { [key: string]: ((target: WebComponent, action: WatchAction, path: string, value: any) => void)[]; } = {};
     private __watchActionsCb: { [key: string]: (type: WatchAction, path: string, element: any) => void; } = {};
+    private __watchFunctions: { [key: string]: { autoInit: boolean; }; } = {};
+    private __watchFunctionsComputed: { [name: string]: Computed<any>; } = {};
     private __pressManagers: PressManager[] = [];
 
     private __isDefaultState: boolean = true;
@@ -203,6 +205,9 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
         for(let press of this.__pressManagers) {
             press.destroy();
         }
+        for(let name in this.__watchFunctionsComputed) {
+            this.__watchFunctionsComputed[name].destroy();
+        }
         // TODO add missing info for destructor();
     }
     private __addWatchesActions(name: string, fct?: () => void) {
@@ -223,13 +228,39 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
             this.__watchActions[name].push(fct);
         }
     }
+    private __addWatchesFunctions(infos: (string | { name: string, autoInit: boolean; })[]) {
+        for(let info of infos) {
+            let realName: string;
+            let autoInit: boolean;
+            if(typeof info == "string") {
+                realName = info;
+                autoInit = false;
+            }
+            else {
+                realName = info.name;
+                autoInit = info.autoInit;
+            }
+
+            if(!this.__watchFunctions[realName]) {
+                this.__watchFunctions[realName] = { autoInit };
+            }
+        }
+    }
     private __registerWatchesActions() {
         if(Object.keys(this.__watchActions).length > 0) {
             if(!this.__watch) {
-                this.__watch = Watcher.get({}, (type, path, element) => {
+                let defaultValue = {};
+                this.__defaultValuesWatch(defaultValue);
+                this.__watch = Watcher.get(defaultValue, (type, path, element) => {
                     let action = this.__watchActionsCb[path.split(".")[0]] || this.__watchActionsCb[path.split("[")[0]];
                     action(type, path, element);
                 });
+            }
+        }
+        for(let name in this.__watchFunctions) {
+            this.__watchFunctionsComputed[name] = Watcher.computed(this[name].bind(this));
+            if(this.__watchFunctions[name].autoInit) {
+                this.__watchFunctionsComputed[name].value;
             }
         }
     }
@@ -247,8 +278,8 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
     private __registerPropertiesActions() { }
     //#region template
     private static __style: string = ``;
-    private static __template: WebComponentTemplate;
-    private __templateInstance?: WebComponentTemplateInstance;
+    private static __template: Template;
+    private __templateInstance?: TemplateInstance;
     protected styleBefore(addStyle: (name: string) => void): void {
         addStyle("@general");
     }
@@ -288,7 +319,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
 
         let staticInstance = this.__getStatic();
         if(!staticInstance.__template || staticInstance.__template.cst != staticInstance) {
-            staticInstance.__template = new WebComponentTemplate(staticInstance);
+            staticInstance.__template = new Template(staticInstance);
             this.__getHtml();
             this.__registerTemplateAction();
             staticInstance.__template.generateTemplate();
@@ -307,14 +338,6 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
 
     }
     //#endregion
-
-
-
-
-    //#region select element
-
-    //#endregion
-
 
     private connectedCallback() {
         if(this._first) {
@@ -339,6 +362,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
         }
     }
     private __defaultValues() { }
+    private __defaultValuesWatch(w) { }
     private __upgradeAttributes() { }
     private __listBoolProps(): string[] {
         return [];
@@ -522,8 +546,128 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
     }
     //#endregion
 
+    //#region attributes
+
+    private __registerPropToWatcher(name: string) {
+        if(Watcher._register) {
+            Watcher._register.register(this.getReceiver(name), name, Watcher._register.version);
+        }
+    }
+
+    //#region string
+    private getStringAttr(name: string) {
+        return this.getAttribute(name) ?? undefined;
+    }
+    private setStringAttr(name: string, val: any) {
+        if(val === undefined || val === null) { this.removeAttribute(name); }
+        else { this.setAttribute(name, val); }
+    }
+    private getStringProp(name: string) {
+        this.__registerPropToWatcher(name);
+        return this.getStringAttr(name);
+    }
+    //#endregion
+
+    //#region number
+    private getNumberAttr(name: string) {
+        return Number(this.getAttribute(name));
+    }
+    private setNumberAttr(name: string, val: any) {
+        if(val === undefined || val === null) { this.removeAttribute(name); }
+        else { this.setAttribute(name, val); }
+    }
+    private getNumberProp(name: string) {
+        this.__registerPropToWatcher(name);
+        return this.getNumberAttr(name);
+    }
+    //#endregion
+
+    //#region boolean
+    private getBoolAttr(name: string) {
+        return this.hasAttribute(name);
+    }
+    private setBoolAttr(name: string, val: any) {
+        val = this.getBoolean(val);
+        if(val) {
+            this.setAttribute(name, 'true');
+        } else {
+            this.removeAttribute(name);
+        }
+    }
+    private getBoolProp(name: string) {
+        this.__registerPropToWatcher(name);
+        return this.getBoolAttr(name);
+    }
+    //#endregion
+
+    //#region date
+    private getDateAttr(name: string) {
+        if(!this.hasAttribute(name)) { return undefined; }
+        return this.stringToDate(this.getAttribute(name)!);
+    }
+    private setDateAttr(name: string, val: any) {
+        let valTxt = this.dateToString(val);
+        if(valTxt === null) { this.removeAttribute(name); }
+        else { this.setAttribute(name, valTxt); }
+    }
+    private getDateProp(name: string) {
+        this.__registerPropToWatcher(name);
+        return this.getDateAttr(name);
+    }
+    //#endregion
+
+    //#region datetime
+    private getDateTimeAttr(name: string) {
+        if(!this.hasAttribute(name)) return undefined;
+        return this.stringToDateTime(this.getAttribute(name)!);
+    }
+    private setDateTimeAttr(name: string, val: any) {
+        let valTxt = this.dateTimeToString(val);
+        if(valTxt === null) { this.removeAttribute(name); }
+        else { this.setAttribute(name, valTxt); }
+    }
+    private getDateTimeProp(name: string) {
+        this.__registerPropToWatcher(name);
+        return this.getDateTimeAttr(name);
+    }
+    //#endregion
+
+
+    private __propertyReceivers: { [name: string]: EffectReceiver & { onChange: () => void; }; } = {};
+    private getReceiver(name: string): EffectReceiver {
+        if(!this.__propertyReceivers[name]) {
+            let that = this;
+            let result: EffectReceiver & { __subscribes: WatcherChange[]; onChange: () => void; } = {
+                __subscribes: [],
+                subscribe(fct: WatcherChange) {
+                    let index = this.__subscribes.indexOf(fct);
+                    if(index == -1) {
+                        this.__subscribes.push(fct);
+                    }
+                },
+                unsubscribe(fct: WatcherChange) {
+                    let index = this.__subscribes.indexOf(fct);
+                    if(index > -1) {
+                        this.__subscribes.splice(index, 1);
+                    }
+                },
+                onChange() {
+                    for(let fct of this.__subscribes) {
+                        fct(WatchAction.UPDATED, name, that[name]);
+                    }
+                }
+            };
+            this.__propertyReceivers[name] = result;
+        }
+        return this.__propertyReceivers[name];
+    }
+    //#endregion
+
     private attributeChangedCallback(name, oldValue, newValue) {
         if(oldValue !== newValue || !this.isReady) {
+            if(this.__propertyReceivers.hasOwnProperty(name)) {
+                this.__propertyReceivers[name].onChange();
+            }
             if(this.__onChangeFct.hasOwnProperty(name)) {
                 for(let fct of this.__onChangeFct[name]) {
                     fct('');

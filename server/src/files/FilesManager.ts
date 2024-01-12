@@ -67,7 +67,7 @@ export class FilesManager {
             this.registerFile(textDoc);
         }
         else {
-            let newVersion = this.files[uri].version + 1;
+            let newVersion = this.files[uri].versionUser + 1;
             let textDoc = TextDocument.create(uri, extension, newVersion, content);
             this.onContentChange(textDoc);
             this.onSave(textDoc);
@@ -157,7 +157,7 @@ export class FilesManager {
             await this.triggerOnNewFile(document);
         }
         else {
-            await this.files[document.uri].triggerSave(document);
+            await this.files[document.uri].triggerSave();
         }
     }
     public async onClose(document: TextDocument) {

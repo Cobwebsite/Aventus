@@ -2,13 +2,14 @@ import { Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AventusLanguageId } from '../../../definition';
 import { LanguageService, TokenType, getLanguageService } from 'vscode-html-languageservice';
-import { AttributeInfo, ContentInfo, TagInfo } from './TagInfo';
+import { AttributeInfo, Binding, ContentInfo, ContextEditing, ForLoop, IfInfo, Injection, TagInfo } from './TagInfo';
 import { Build } from '../../../project/Build';
-import { HtmlTemplateResult, InterestPoint } from './definition';
+import { ActionChange, ActionLoop, HtmlTemplateResult, InterestPoint } from './definition';
 import { AventusHTMLFile } from '../File';
 import { SCSSParsedRule } from '../../scss/LanguageService';
-import { createErrorHTMLPos } from '../../../tools';
-
+import { createErrorHTMLPos, pathToUri, uriToPath } from '../../../tools';
+import { Decorator, ForOfStatement, IfStatement, Node, ScriptTarget, SyntaxKind, createSourceFile, forEachChild } from 'typescript';
+import * as md5 from 'md5';
 
 export class ParserHtml {
 	//#region static
@@ -22,7 +23,7 @@ export class ParserHtml {
 	}
 	public static parse(document: AventusHTMLFile, build: Build): ParserHtml {
 		if (ParserHtml.parsedDoc[document.file.uri]) {
-			if (this.parsedDoc[document.file.uri].version == document.file.version) {
+			if (this.parsedDoc[document.file.uri].version == document.file.versionUser) {
 				return this.parsedDoc[document.file.uri].result;
 			}
 		}
@@ -56,6 +57,11 @@ export class ParserHtml {
 		main.events = [...main.events, ...toMerge.events];
 		main.pressEvents = [...main.pressEvents, ...toMerge.pressEvents];
 		main.loops = [...main.loops, ...toMerge.loops];
+		main.ifs = [...main.ifs, ...toMerge.ifs];
+		main.content = { ...main.content, ...toMerge.content };
+		main.contextEdits = [...main.contextEdits, ...toMerge.contextEdits];
+		main.injection = [...main.injection, ...toMerge.injection];
+		main.bindings = [...main.bindings, ...toMerge.bindings];
 
 		for (let mergeEl of toMerge.elements) {
 			let found = false;
@@ -91,53 +97,10 @@ export class ParserHtml {
 				main.elements.push(mergeEl);
 			}
 		}
-
-		for (let contextProp in toMerge.content) {
-			if (main.content[contextProp]) {
-				main.content[contextProp] = [...main.content[contextProp], ...toMerge.content[contextProp]];
-			}
-			else {
-				main.content[contextProp] = toMerge.content[contextProp]
-			}
-		}
-
-		for (let contextProp in toMerge.injection) {
-			if (main.injection[contextProp]) {
-				main.injection[contextProp] = [...main.injection[contextProp], ...toMerge.injection[contextProp]];
-			}
-			else {
-				main.injection[contextProp] = toMerge.injection[contextProp]
-			}
-		}
-
-		for (let contextProp in toMerge.bindings) {
-			if (main.bindings[contextProp]) {
-				main.bindings[contextProp] = [...main.bindings[contextProp], ...toMerge.bindings[contextProp]];
-			}
-			else {
-				main.bindings[contextProp] = toMerge.bindings[contextProp]
-			}
-		}
 	}
-	public static addVariable(name: string, isLocal?: boolean) {
-		if (this.currentParsingDoc) {
-			if (isLocal) {
-				if (!this.currentParsingDoc.localVars.includes(name)) {
-					this.currentParsingDoc.localVars.push(name);
-				}
-			}
-			else if (!this.currentParsingDoc.localVars.includes(name)) {
-				if (!this.currentParsingDoc.globalVars.includes(name)) {
-					this.currentParsingDoc.globalVars.push(name);
-				}
-			}
-		}
-	}
+
 	public static addInterestPoint(point: InterestPoint) {
 		if (this.currentParsingDoc) {
-			if (point.type == "property" && this.currentParsingDoc.localVars.includes(point.name)) {
-				return;
-			}
 			this.currentParsingDoc.interestPoints.push(point);
 		}
 	}
@@ -154,7 +117,7 @@ export class ParserHtml {
 	}
 	public static refreshStyle(document: AventusHTMLFile, build: Build) {
 		if (ParserHtml.parsedDoc[document.file.uri]) {
-			if (this.parsedDoc[document.file.uri].version == document.file.version) {
+			if (this.parsedDoc[document.file.uri].version == document.file.versionUser) {
 				let doc = this.parsedDoc[document.file.uri];
 				doc.result.styleLinks = [];
 				doc.result.rules = document.scssFile?.rules ?? new Map();
@@ -168,8 +131,158 @@ export class ParserHtml {
 		this.parse(document, build);
 	}
 	public static idElement = 0;
-	public static idLoop = 0;
-	public static loopsInfo: TagInfo[] = [];
+	private static idTemplate = 0;
+	public static createIdTemplate() {
+		let id = this.idTemplate
+		this.idTemplate++;
+		return id;
+	}
+	public static getCustomFctName(nb: number = 0) {
+		if (this.currentParsingDoc?.htmlFile.tsFile) {
+			let nbIf = this.currentParsingDoc.ifs.reduce((acc, p) => acc + p.conditions.length, 0);
+			let nbLoop = this.currentParsingDoc.loops.length + this.currentParsingDoc.loops.reduce((acc, p) => p.isSimple ? acc : acc + 1, 0);
+			let nbFct = Object.keys(this.currentParsingDoc.fcts).length;
+			let nbEdit = this.currentParsingDoc.contextEdits.length;
+			let nbInjection = this.currentParsingDoc.injections.length;
+			let nbBinding = this.currentParsingDoc.bindings.length * 2;
+			let tot = nb + nbFct + nbLoop + nbIf + nbEdit + nbInjection + nbBinding;
+			return this.currentParsingDoc.htmlFile.tsFile?.viewMethodName + tot
+		}
+		return null;
+	}
+
+	public static createChange(fct: { start: number, end: number, txt: string }): ActionChange | null {
+		if (this.currentParsingDoc) {
+			// TODO ajout des variables ici
+
+			let contentmd5 = md5(fct.txt);
+			if (this.currentParsingDoc.fcts[contentmd5]) {
+				this.currentParsingDoc.fcts[contentmd5].positions.push({
+					start: fct.start,
+					end: fct.end
+				})
+				return this.currentParsingDoc.fcts[contentmd5];
+			}
+			else {
+				let name = this.getCustomFctName();
+				let variables = this.getVariables();
+				if (name) {
+					let result: ActionChange = {
+						name: name,
+						positions: [{
+							start: fct.start,
+							end: fct.end,
+						}],
+						txt: fct.txt,
+						variables: variables,
+					}
+					this.currentParsingDoc.fcts[contentmd5] = result;
+					return result;
+				}
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Transform position from the raw file to compiled file
+	 * The raw format is the one where user is typing
+	 * The compiled format is the one where for and if are replaced by <i> and <l>
+	 * @param pos Position inside the raw
+	 * @returns 
+	 */
+	public static fromRawToCompiled(position: number): number {
+		if (this.currentParsingDoc) {
+			return this.currentParsingDoc.fromRawToCompiled(position);
+		}
+		return position
+	}
+	/**
+	 * Transform position from the compiled file to raw file
+	 * The raw format is the one where user is typing
+	 * The compiled format is the one where for and if are replaced by <i> and <l>
+	 * @param pos Position inside the compiled
+	 * @returns 
+	 */
+	public static fromCompiledToRaw(position: number): number {
+		if (this.currentParsingDoc) {
+			return this.currentParsingDoc.fromCompiledToRaw(position)
+		}
+		return position
+	}
+	public static addLoopStack(nb: number): ForLoop | null {
+		if (this.currentParsingDoc) {
+			let loop = this.currentParsingDoc.loops.find(p => p.idTemplate == nb);
+			if (loop) {
+				this.currentParsingDoc?.stacks.push(loop);
+				return loop;
+			}
+		}
+		return null;
+	}
+	public static addIfStack(nb: number): IfInfo | null {
+		if (this.currentParsingDoc) {
+			for (let _if of this.currentParsingDoc.ifs) {
+				if (_if.idsTemplate.includes(nb)) {
+					this.currentParsingDoc?.stacks.push({
+						idTemplate: nb
+					});
+					return _if;
+				}
+			}
+		}
+		return null;
+	}
+	public static addInjection(injection: Injection) {
+		this.currentParsingDoc?.injections.push(injection);
+	}
+	public static addBinding(binding: Binding) {
+		this.currentParsingDoc?.bindings.push(binding);
+	}
+	public static addTagInfoStack(tagInfo: TagInfo) {
+		this.currentParsingDoc?.stacks.push(tagInfo);
+	}
+	public static getContextEditing(id: number) {
+		return this.currentParsingDoc?.contextEdits.find(p => p.id == id)
+	}
+	public static removeStack() {
+		this.currentParsingDoc?.stacks.pop();
+	}
+	public static getParentId(): number | undefined {
+		if (this.currentParsingDoc && this.currentParsingDoc.stacks.length > 0) {
+			for (let i = this.currentParsingDoc.stacks.length - 1; i >= 0; i--) {
+				let stack = this.currentParsingDoc.stacks[i]
+				if (stack instanceof ForLoop) {
+					return stack.idTemplate;
+				}
+				else if (stack instanceof TagInfo) {
+
+				}
+				else {
+					return stack.idTemplate;
+				}
+			}
+		}
+		return undefined;
+	}
+
+	public static getVariables() {
+		let variables: string[] = [];
+		if (this.currentParsingDoc) {
+			for (let stack of this.currentParsingDoc.stacks) {
+				if (stack instanceof ForLoop || stack instanceof TagInfo) {
+					for (let name of stack.variableNames) {
+						if (!variables.includes(name)) {
+							variables.push(name);
+						}
+					}
+				}
+			}
+		}
+		return variables;
+	}
+
+
 	//#endregion
 
 	public uri: string;
@@ -182,29 +295,69 @@ export class ParserHtml {
 
 	public blocksInfo: { [name: string]: string } = {}
 	public slotsInfo: { [name: string]: string } = {}
-	public localVars: string[] = [];
-	public globalVars: string[] = [];
 	public resultsByClassName: { [className: string]: HtmlTemplateResult } = {};
 	public interestPoints: InterestPoint[] = []
 	public rules: SCSSParsedRule;
 	public styleLinks: [{ start: number, end: number }, { start: number, end: number }][] = []
+	public fcts: { [md5: string]: ActionChange } = {};
+	public htmlFile: AventusHTMLFile;
+	public loops: ForLoop[] = [];
+	public ifs: IfInfo[] = [];
+	public injections: Injection[] = [];
+	public bindings: Binding[] = [];
+	public contextEdits: ContextEditing[] = [];
+	public diffRawToCompiled: { [key: number]: number } = {};
+	public diffCompiledToRaw: { [key: number]: number } = {};
+	public stacks: (ForLoop | { idTemplate: number } | TagInfo)[] = [];
+	public compiledTxt: string = "";
 
-
-	public getBlocksInfoTxt(className: string) {
-		className = className.toLowerCase();
+	/**
+	 * Transform position from the raw file to compiled file
+	 * The raw format is the one where user is typing
+	 * The compiled format is the one where for and if are replaced by <i> and <l>
+	 * @param pos Position inside the raw
+	 * @returns 
+	 */
+	public fromRawToCompiled(pos: number) {
+		let newPos = pos;
+		for (let key in this.diffRawToCompiled) {
+			if (Number(key) > pos) {
+				break;
+			}
+			newPos += this.diffRawToCompiled[key];
+		}
+		return newPos;
+	}
+	/**
+	 * Transform position from the compiled file to raw file
+	 * The raw format is the one where user is typing
+	 * The compiled format is the one where for and if are replaced by <i> and <l>
+	 * @param pos Position inside the compiled
+	 * @returns 
+	 */
+	public fromCompiledToRaw(pos: number) {
+		let newPos = pos;
+		for (let key in this.diffCompiledToRaw) {
+			if (Number(key) > pos) {
+				break;
+			}
+			newPos += this.diffCompiledToRaw[key];
+		}
+		return newPos;
+	}
+	public getBlocksInfoTxt() {
 		let blocks: string[] = [];
 		for (let name in this.blocksInfo) {
 			blocks.push("'" + name + "':`" + this.blocksInfo[name] + "`")
 		}
-		return blocks.join(",").replace(/\$classname\$/g, className)
+		return blocks.join(",");
 	}
-	public getSlotsInfoTxt(className: string) {
-		className = className.toLowerCase();
+	public getSlotsInfoTxt() {
 		let slots: string[] = [];
 		for (let name in this.slotsInfo) {
 			slots.push("'" + name + "':`" + this.slotsInfo[name] + "`");
 		}
-		return slots.join(",").replace(/\$classname\$/g, className)
+		return slots.join(",");
 	}
 
 	public isReady: boolean = false;
@@ -212,15 +365,19 @@ export class ParserHtml {
 
 	private constructor(document: AventusHTMLFile, build: Build) {
 		this.build = build;
+		this.htmlFile = document;
 		ParserHtml.parsedDoc[document.file.uri] = {
-			version: document.file.version,
+			version: document.file.versionUser,
 			result: this,
 		}
-		let fileContent = this.getFileContent(document.file.document);
+		let fileContent = this.getFileContent(document.file.documentUser);
 		this.rules = document.scssFile?.rules ?? new Map();
-		this.document = TextDocument.create(document.file.uri, document.file.document.languageId, document.file.version, fileContent);
+		this.document = TextDocument.create(document.file.uri, document.file.documentUser.languageId, document.file.versionUser, fileContent);
 		ParserHtml.currentParsingDoc = this;
 		this.uri = document.file.uri;
+		ParserHtml.idElement = 0;
+		ParserHtml.idTemplate = 0;
+		ParserHtml.idTemplate = 0;
 		this.parse(this.document);
 		ParserHtml.currentParsingDoc = null;
 		this.isReady = true;
@@ -243,12 +400,122 @@ export class ParserHtml {
 		}
 	}
 
+	private parseJs(document: TextDocument): string {
+		let txt = document.getText();
+
+		//#region replace comment by empty string to avoid conflict with js parsing
+		let replacements: { [start: number]: string } = {};
+		let regex = /<!--(.|\s)*?-->/g
+		let m: RegExpExecArray | null;
+		while (m = regex.exec(txt)) {
+			let replacement = "";
+			for (let i = 0; i < m[0].length; i++) {
+				replacement += " ";
+			}
+			replacements[m.index] = m[0];
+			txt = txt.slice(0, m.index) + replacement + txt.slice(m.index + m[0].length);
+		}
+		//#endregion
+
+		//#region loop though nodes to find if and for
+		let realJsTxt = txt;
+		const sliceText = (start: number, end?: number) => realJsTxt.slice(start, end);
+		let srcFile = createSourceFile("sample.ts", txt.replace(/\{\{|\}\}/g, "  ").replace(/<(\/?.*?)>/g, "'$1'"), ScriptTarget.ESNext, true);
+		let transformations: { newText: string, start: number, end: number }[] = [];
+		const loop = (node: Node, lvl: number) => {
+			forEachChild(node, x => {
+				let forLoop: ForLoop | undefined = undefined;
+				if (x.kind == SyntaxKind.IfStatement) {
+					let _ifStatement = x as IfStatement;
+					let isAllowed = true;
+					if (_ifStatement.parent.kind == SyntaxKind.IfStatement) {
+						let parentIf = _ifStatement.parent as IfStatement;
+						if (parentIf.elseStatement == _ifStatement) {
+							isAllowed = false;
+						}
+					}
+
+					if (isAllowed) {
+						let _if = new IfInfo(x as IfStatement, sliceText);
+						if (_if.isValid) {
+							this.ifs.push(_if);
+							transformations = [...transformations, ..._if.transformations];
+						}
+					}
+				}
+				else if ([SyntaxKind.ForInStatement, SyntaxKind.ForOfStatement, SyntaxKind.ForStatement].includes(x.kind)) {
+					if (x.getText() !== 'for') {
+						let forLoopTemp = new ForLoop(x as ForOfStatement, sliceText);
+						if (forLoopTemp.isValid) {
+							forLoop = forLoopTemp;
+							transformations = [...transformations, ...forLoop.transformations];
+							this.loops.push(forLoop);
+							this.stacks.push(forLoop);
+						}
+					}
+				}
+				else if (x.kind == SyntaxKind.Decorator) {
+					let txt = x.getText();
+					if (txt.startsWith("@Context(")) {
+						let ctxEdit = new ContextEditing(x as Decorator, sliceText);
+						transformations = [...transformations, ...ctxEdit.transformations];
+						this.contextEdits.push(ctxEdit)
+					}
+				}
+				// avoid parsing inside {{ }}
+				if (x.kind == SyntaxKind.Block && node.kind == SyntaxKind.Block) {
+					return
+				}
+				loop(x, lvl + 1)
+
+				if (forLoop) {
+					this.stacks.pop();
+				}
+			})
+		}
+		loop(srcFile, 0);
+		//#endregion
+
+
+		//#region transfrom file to replace js by tags <i> and <l> + create difference
+		transformations.sort((a, b) => b.end - a.end); // order from end file to start file
+		let lastPos = txt.length;
+		this.diffRawToCompiled = {}
+		for (let transformation of transformations) {
+			if (transformation.end > lastPos) continue;
+			let min = Math.min(transformation.newText.length, transformation.end - transformation.start)
+			this.diffRawToCompiled[transformation.start + min] = transformation.newText.length - (transformation.end - transformation.start);
+			txt = txt.slice(0, transformation.start) + transformation.newText + txt.slice(transformation.end, txt.length);
+			lastPos = transformation.start;
+		}
+		let diff = 0;
+		for (let key in this.diffRawToCompiled) {
+			let newKey = Number(key) + diff;
+			let newValue = this.diffRawToCompiled[key] * -1;
+			diff += this.diffRawToCompiled[key];
+			this.diffCompiledToRaw[newKey] = newValue;
+		}
+
+		//#endregion
+
+		//#region reset comment that was replaced before
+		for (let start in replacements) {
+			let replacement = replacements[start];
+			let newStart = this.fromRawToCompiled(Number(start));
+			txt = txt.slice(0, newStart) + replacement + txt.slice(newStart + replacement.length);
+		}
+		//#endregion
+
+		return txt;
+	}
+
+
 	private parse(document: TextDocument) {
-		ParserHtml.idElement = 0;
-		ParserHtml.idLoop = 0;
+		let txt = this.parseJs(document);
+		this.compiledTxt = txt;
 		let isInAvoidTagStart: number[] = [];
 		let removeNextClose = false;
-		let scanner = ParserHtml.languageService.createScanner(document.getText(), 0);
+		let scanner = ParserHtml.languageService.createScanner(txt, 0);
 		let currentTags: TagInfo[] = [];
 		let currentAttribute: AttributeInfo | null = null;
 		try {
@@ -327,7 +594,7 @@ export class ParserHtml {
 								this.errors.push(createErrorHTMLPos(document, "The tag " + lastTag?.tagName + " isn't correctly closed", lastTag?.start, lastTag?.end))
 							}
 							else {
-								this.errors.push(createErrorHTMLPos(document, "No opening tag found for "+tagName, scanner.getTokenOffset(), scanner.getTokenEnd()))
+								this.errors.push(createErrorHTMLPos(document, "No opening tag found for " + tagName, scanner.getTokenOffset(), scanner.getTokenEnd()))
 							}
 							return;
 						}
@@ -397,11 +664,13 @@ export class ParserHtml {
 		let result: HtmlTemplateResult = {
 			elements: [],
 			content: {},
-			injection: {},
-			bindings: {},
+			injection: [],
+			bindings: [],
 			events: [],
 			pressEvents: [],
-			loops: []
+			loops: [],
+			ifs: [],
+			contextEdits: []
 		}
 
 		for (let tag of this.rootTags) {
@@ -411,12 +680,7 @@ export class ParserHtml {
 		this.resultsByClassName[className] = result;
 		return result;
 	}
-	public getVariables() {
-		return {
-			localVars: this.localVars,
-			globalVars: this.globalVars
-		}
-	}
+
 
 	// TODO replace it with tag management
 	private manageSlotAndBlock(finalTxt: string) {

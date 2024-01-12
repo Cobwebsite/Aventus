@@ -16,7 +16,7 @@ export class AventusDataFile extends AventusTsFile {
         this.refreshFileParsed();
     }
     protected async onValidate(): Promise<Diagnostic[]> {
-        let document = this.file.document;
+        let document = this.file.documentUser;
         this.diagnostics = this.tsLanguageService.doValidation(this.file);
         if (this.fileParsed) {
             this.diagnostics = this.diagnostics.concat(this.fileParsed.errors)
@@ -37,7 +37,7 @@ export class AventusDataFile extends AventusTsFile {
                     (classInfo) => {
                         if (!classInfo.isInterface && classInfo.convertibleName) {
                             if (!classInfo.hasStaticField(classInfo.convertibleName)) {
-                                this.diagnostics.push(createErrorTsPos(this.file.document, `Missing static property ${classInfo.convertibleName}`, classInfo.nameStart, classInfo.nameEnd, AventusErrorCode.MissingFullName));
+                                this.diagnostics.push(createErrorTsPos(this.file.documentUser, `Missing static property ${classInfo.convertibleName}`, classInfo.nameStart, classInfo.nameEnd, AventusErrorCode.MissingFullName));
                             }
                         }
                     }

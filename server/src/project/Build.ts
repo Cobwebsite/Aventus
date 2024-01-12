@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, statSync, unlinkSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "fs";
 import { EOL } from "os";
 import { join, normalize, sep } from "path";
 import { Diagnostic, DiagnosticSeverity, TextEdit } from 'vscode-languageserver';
@@ -12,7 +12,7 @@ import { AventusHTMLLanguageService } from "../language-services/html/LanguageSe
 import { AventusConfigBuild } from "../language-services/json/definition";
 import { AventusWebSCSSFile } from "../language-services/scss/File";
 import { AventusSCSSLanguageService } from "../language-services/scss/LanguageService";
-import { AventusWebComponentLogicalFile, AventusWebComponentSingleFile } from "../language-services/ts/component/File";
+import { AventusWebComponentLogicalFile } from "../language-services/ts/component/File";
 import { AventusTsFile } from "../language-services/ts/File";
 import { AventusTsFileSelector } from '../language-services/ts/FileSelector';
 import { AventusTsLanguageService, CompileTsResult } from "../language-services/ts/LanguageService";
@@ -33,6 +33,7 @@ import { InfoType } from '../language-services/ts/parser/BaseInfo';
 import { AventusBaseFile } from '../language-services/BaseFile';
 import { GenericServer } from '../GenericServer';
 import { NpmBuilder } from './BuildNpm';
+import { AventusWebComponentSingleFile } from '../language-services/ts/component/SingleFile';
 
 export type BuildErrors = { file: string, title: string }[]
 
@@ -77,6 +78,9 @@ export class Build {
 
     public get fullname() {
         return this.buildConfig.fullname;
+    }
+    public get module() {
+        return this.buildConfig.module;
     }
     public get isCoreBuild() {
         return this.project.isCoreBuild;
@@ -146,21 +150,40 @@ export class Build {
     //#region build
     private timerBuild: NodeJS.Timeout | undefined = undefined;
     public insideRebuildAll: boolean = false;
-    public async rebuildAll() {
+    public async rebuildAll(isInit: boolean = false) {
         this.allowBuild = false;
         this.insideRebuildAll = true;
         // validate
-        for (let uri in this.scssFiles) {
-            await this.scssFiles[uri].validate();
+        if (isInit) {
+            for (let uri in this.scssFiles) {
+                await this.scssFiles[uri].init();
+                await this.scssFiles[uri].validate();
+            }
+            for (let uri in this.htmlFiles) {
+                await this.htmlFiles[uri].init();
+                await this.htmlFiles[uri].validate();
+            }
+            for (let uri in this.wcFiles) {
+                await this.wcFiles[uri].init();
+                await this.wcFiles[uri].validate();
+            }
+            for (let uri in this.tsFiles) {
+                await this.tsFiles[uri].validate();
+            }
         }
-        for (let uri in this.htmlFiles) {
-            await this.htmlFiles[uri].validate();
-        }
-        for (let uri in this.tsFiles) {
-            await this.tsFiles[uri].validate();
-        }
-        for (let uri in this.wcFiles) {
-            await this.wcFiles[uri].validate();
+        else {
+            for (let uri in this.scssFiles) {
+                await this.scssFiles[uri].validate();
+            }
+            for (let uri in this.htmlFiles) {
+                await this.htmlFiles[uri].validate();
+            }
+            for (let uri in this.wcFiles) {
+                await this.wcFiles[uri].validate();
+            }
+            for (let uri in this.tsFiles) {
+                await this.tsFiles[uri].validate();
+            }
         }
 
         for (let uri in this.scssFiles) {
@@ -328,7 +351,7 @@ export class Build {
      */
     private async writeBuildCode(localCode: {
         code: string[], codeNoNamespaceBefore: string[], codeNoNamespaceAfter: string[], classesName: { [name: string]: { type: InfoType, isExported: boolean, convertibleName: string } }, stylesheets: { [name: string]: string }
-    }, libSrc: string, outputs:string[]): Promise<BuildErrors> {
+    }, libSrc: string, outputs: string[]): Promise<BuildErrors> {
         let result: BuildErrors = []
         if (outputs && outputs.length > 0) {
             let finalTxt = '';
@@ -665,7 +688,7 @@ export class Build {
                         let txt = "The name " + compileInfo.classScript + " is registered more than once.";
                         let info = currentFile.fileParsed?.getBaseInfo(compileInfo.classScript);
                         if (info) {
-                            this.addDiagnostic(currentFile, createErrorTsPos(currentFile.file.document, txt, info.nameStart, info.nameEnd, AventusErrorCode.SameNameFound));
+                            this.addDiagnostic(currentFile, createErrorTsPos(currentFile.file.documentUser, txt, info.nameStart, info.nameEnd, AventusErrorCode.SameNameFound));
                         }
                         else {
                             throw 'Please contact the support its an unknow case'
@@ -674,7 +697,7 @@ export class Build {
                         let oldFile = this.tsFiles[localClass[compileInfo.classScript].uri]
                         info = oldFile.fileParsed?.getBaseInfo(compileInfo.classScript);
                         if (info) {
-                            this.addDiagnostic(oldFile, createErrorTsPos(oldFile.file.document, txt, info.nameStart, info.nameEnd, AventusErrorCode.SameNameFound));
+                            this.addDiagnostic(oldFile, createErrorTsPos(oldFile.file.documentUser, txt, info.nameStart, info.nameEnd, AventusErrorCode.SameNameFound));
                         }
                         else {
                             throw 'Please contact the support its an unknow case'
@@ -1062,8 +1085,8 @@ export class Build {
     private getAllFullnames() {
         let result: { [module: string]: string[] } = {}
 
-        const insert = (fullname:string) => {
-            if(fullname.startsWith("!staticClass_")) return;
+        const insert = (fullname: string) => {
+            if (fullname.startsWith("!staticClass_")) return;
             let moduleName = fullname.split(".")[0];
             if (!result[moduleName]) {
                 result[moduleName] = []
@@ -1098,9 +1121,6 @@ export class Build {
                 }
             }
         }
-
-        writeFileSync("D:\\test\\debug.json", JSON.stringify(result));
-
         return result;
     }
     //#endregion
@@ -1112,12 +1132,12 @@ export class Build {
     private async onNewFile(file: AventusFile) {
         if (this.buildConfig.inputPathRegex) {
             if (file.path.match(this.buildConfig.inputPathRegex)) {
-                this.registerFile(file);
+                this.registerFile(file, false);
             }
         }
         if (this.buildConfig.outsideModulePathRegex) {
             if (file.path.match(this.buildConfig.outsideModulePathRegex)) {
-                this.registerFile(file);
+                this.registerFile(file, false);
                 this.noNamespaceUri[file.uri] = true;
             }
         }
@@ -1137,13 +1157,13 @@ export class Build {
         if (this.buildConfig.inputPathRegex) {
             let files: AventusFile[] = fileManager.getFilesMatching(this.buildConfig.inputPathRegex);
             for (let file of files) {
-                this.registerFile(file);
+                this.registerFile(file, true);
             }
         }
         if (this.buildConfig.outsideModulePathRegex) {
             let files: AventusFile[] = fileManager.getFilesMatching(this.buildConfig.outsideModulePathRegex);
             for (let file of files) {
-                this.registerFile(file);
+                this.registerFile(file, true);
                 this.noNamespaceUri[file.uri] = true;
             }
         }
@@ -1165,31 +1185,34 @@ export class Build {
             console.log("loaded all files needed");
         }
         this.allowBuild = true;
-        await this.rebuildAll();
+        await this.rebuildAll(true);
     }
     /**
      * Register one file inside this build
      * @param file 
      */
-    private async registerFile(file: AventusFile) {
+    private async registerFile(file: AventusFile, isInit: boolean) {
         if (file.uri.endsWith(AventusExtension.ComponentStyle)) {
             if (!this.scssFiles[file.uri]) {
                 this.scssFiles[file.uri] = new AventusWebSCSSFile(file, this);
-                await this.scssFiles[file.uri].init()
+                if (!isInit)
+                    await this.scssFiles[file.uri].init()
                 this.registerOnFileDelete(file);
             }
         }
         else if (file.uri.endsWith(AventusExtension.ComponentView)) {
             if (!this.htmlFiles[file.uri]) {
                 this.htmlFiles[file.uri] = new AventusHTMLFile(file, this);
-                await this.htmlFiles[file.uri].init()
+                if (!isInit)
+                    await this.htmlFiles[file.uri].init()
                 this.registerOnFileDelete(file);
             }
         }
         else if (file.uri.endsWith(AventusExtension.Component)) {
             if (!this.wcFiles[file.uri]) {
                 this.wcFiles[file.uri] = new AventusWebComponentSingleFile(file, this);
-                await this.wcFiles[file.uri].init();
+                if (!isInit)
+                    await this.wcFiles[file.uri].init();
                 this.registerOnFileDelete(file);
             }
         }

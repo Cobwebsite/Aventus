@@ -238,15 +238,11 @@ export abstract class BaseInfo {
      * @param name 
      * @param isStrongDependance 
      */
-    protected addDependance(type: TypeNode, isStrongDependance: boolean): string[] {
+    protected addDependance(type: TypeNode, isStrongDependance: boolean): void {
         // TODO : add scope declaration variable
-        let result: string[] = [];
         const loop = (info: TypeInfo) => {
             if (info.kind == "type") {
-                let fullName = this.addDependanceName(info.value, isStrongDependance, info.start, info.endNonGeneric);
-                if (fullName !== null) {
-                    result.push(fullName);
-                }
+                this.addDependanceName(info.value, isStrongDependance, info.start, info.endNonGeneric);
                 for (let nested of info.nested) {
                     loop(nested);
                 }
@@ -267,13 +263,64 @@ export abstract class BaseInfo {
             }
         }
         loop(new TypeInfo(type));
-
-
-        return result;
     }
-    protected addDependanceName(name: string, isStrongDependance: boolean, start: number, end: number): string | null {
+    /**
+     * return the fullName
+     * @param name 
+     * @param isStrongDependance 
+     */
+    protected addDependanceWaitName(type: TypeNode, isStrongDependance: boolean, cb: (names: string[]) => void): void {
+        // TODO : add scope declaration variable
+        let result: string[] = [];
+        let nb = 0;
+        let validated = false;
+        const validate = () => {
+            if (!validated && nb == 0) {
+                validated = true;
+                cb(result);
+            }
+        }
+        const loop = (info: TypeInfo) => {
+            if (info.kind == "type") {
+                nb++;
+                this.addDependanceName(info.value, isStrongDependance, info.start, info.endNonGeneric, (fullName) => {
+                    if (fullName) result.push(fullName);
+                    nb--;
+                    validate();
+                });
+                for (let nested of info.nested) {
+                    loop(nested);
+                }
+                for (let generic of info.genericValue) {
+                    loop(generic);
+                }
+            }
+            else if (info.kind == "typeLiteral" || info.kind == "function") {
+                for (let nested of info.nested) {
+                    loop(nested);
+                }
+            }
+
+            else if (info.kind == "union") {
+                for (let nested of info.nested) {
+                    loop(nested);
+                }
+            }
+        }
+        loop(new TypeInfo(type));
+        validate();
+    }
+    protected addDependanceName(name: string, isStrongDependance: boolean, start: number, end: number, onNameTemp?: ((name?: string) => void)): void {
+        let onName:(name?: string) => void
+        if (!onNameTemp) {
+            onName = () => { }
+        }
+        else {
+            onName = onNameTemp;
+        }
         if (!name || name == "constructor" || name == "toString") {
-            return null
+            onName();
+            return
         }
         if (this.debug) {
             console.log("try add dependance " + name);
@@ -285,7 +332,8 @@ export abstract class BaseInfo {
         }
         // if same class
         if (name == this.fullName) {
-            return null;
+            onName();
+            return
         }
         // if its come from js native
         if (BaseLibInfo.exists(name)) {
@@ -294,7 +342,8 @@ export abstract class BaseInfo {
                 !this.parserInfo.waitingImports[name] &&
                 !this.parserInfo.npmImports[name]
             ) {
-                return null;
+                onName();
+                return
             }
         }
 
@@ -308,7 +357,8 @@ export abstract class BaseInfo {
             let key = start + "_" + end;
             if (!this.dependancesLocations[name].locations) {
                 GenericServer.showErrorMessage("For the admin : you can add " + name + " as dependance to avoid");
-                return null;
+                onName();
+                return
             }
             if (!this.dependancesLocations[name].locations[key]) {
                 this.dependancesLocations[name].locations[key] = {
@@ -320,13 +370,16 @@ export abstract class BaseInfo {
 
 
         if (!this.addDependanceNameCustomCheck(name)) {
-            return null;
+            onName();
+            return
         }
         if (this.dependancePrevented.includes(name)) {
-            return null;
+            onName();
+            return
         }
         if (this.dependanceNameLoaded.includes(name)) {
-            return null;
+            onName();
+            return
         }
         this.dependanceNameLoaded.push(name);
 
@@ -337,7 +390,8 @@ export abstract class BaseInfo {
                 uri: "@external",
                 isStrong: isStrongDependance
             });
-            return name;
+            onName(name);
+            return;
         }
         if (this.parserInfo.internalObjects[name]) {
             let fullName = this.parserInfo.internalObjects[name].fullname
@@ -354,7 +408,8 @@ export abstract class BaseInfo {
             }
             if (this.dependancesLocations[name])
                 this.dependancesLocations[name].replacement = fullName;
-            return fullName;
+            onName(fullName);
+            return;
         }
 
         if (this.parserInfo.imports[name]) {
@@ -370,7 +425,8 @@ export abstract class BaseInfo {
             }
             if (this.dependancesLocations[name])
                 this.dependancesLocations[name].replacement = fullName;
-            return fullName;
+            onName(fullName);
+            return
         }
         else if (this.parserInfo.waitingImports[name]) {
             // TODO maybe return a specific value to parsed after file is ready
@@ -381,7 +437,9 @@ export abstract class BaseInfo {
                 let fullName = this.parserInfo.imports[name].fullName
                 if (this.dependancesLocations[name])
                     this.dependancesLocations[name].replacement = fullName;
+                onName(fullName);
             })
+            return;
         }
 
         if (this.parserInfo.npmImports[name]) {
@@ -397,7 +455,8 @@ export abstract class BaseInfo {
                 let md5uri = md5(this.parserInfo.npmImports[name].uri);
                 this.dependancesLocations[name].replacement = "npmCompilation['" + md5uri + "']." + name;
             }
-            return name;
+            onName(name);
+            return;
         }
         // should be a lib dependances outside the module
         this.dependances.push({
@@ -408,7 +467,8 @@ export abstract class BaseInfo {
         if (this.debug) {
             console.log("add dependance " + name + " : external");
         }
-        return name;
+        onName(name);
+        return;
     }
 
     protected addDependanceNameCustomCheck(name: string): boolean {

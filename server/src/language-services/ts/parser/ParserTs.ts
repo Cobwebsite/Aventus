@@ -42,7 +42,7 @@ export class ParserTs {
     private static parsedDoc: { [uri: string]: { version: number, result: ParserTs } } = {};
     public static parse(document: AventusFile, isLib: boolean, build: Build): ParserTs {
         if (ParserTs.parsedDoc[document.uri]) {
-            if (this.parsedDoc[document.uri].version == document.version) {
+            if (this.parsedDoc[document.uri].version == document.versionUser) {
                 return this.parsedDoc[document.uri].result;
             }
         }
@@ -156,16 +156,16 @@ export class ParserTs {
 
     private constructor(file: AventusFile, isLib: boolean, build: Build) {
         this.build = build;
-        this.build.npmBuilder.unregister(file.document.uri);
+        this.build.npmBuilder.unregister(file.documentUser.uri);
         this.file = file;
         ParserTs.parsedDoc[file.uri] = {
-            version: file.version,
+            version: file.versionUser,
             result: this,
         }
 
         ParserTs.parsingDocs.push(this);
-        this.content = file.document.getText();
-        this._document = file.document;
+        this.content = file.documentInternal.getText();
+        this._document = file.documentInternal;
         this.isLib = isLib;
         let srcFile = createSourceFile("sample.ts", this.content, ScriptTarget.ESNext, true);
         this.quickLoadRoot(srcFile);
@@ -325,20 +325,6 @@ export class ParserTs {
     private importLocal(moduleName: string, identifier: Identifier) {
         let localName = identifier.getText();
         let moduleUri = pathToUri(normalize(getFolder(uriToPath(this.document.uri)) + '/' + moduleName));
-
-        if (moduleUri.endsWith(AventusExtension.Component)) {
-            if (this.waitingImports[localName]) {
-                return;
-            }
-            this.waitingImports[localName] = [];
-            if (!ParserTs.waitingUri[moduleUri]) {
-                ParserTs.waitingUri[moduleUri] = [];
-            }
-            ParserTs.waitingUri[moduleUri].push(() => {
-                this.asyncImportLocal(moduleUri, localName, identifier);
-            })
-            return;
-        }
 
         if (!ParserTs.parsedDoc[moduleUri]) {
             let file = FilesManager.getInstance().getByUri(moduleUri);

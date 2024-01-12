@@ -1,3 +1,5 @@
+import { TextEdit } from 'vscode-languageserver';
+
 export type InterestPoint = {
 	start: number,
 	end: number,
@@ -28,29 +30,21 @@ export type ActionElement = {
 	positions: { start: number, end: number }[]
 }
 
-export type ActionChange = {
-	id: string,
-	attrName: string | '@HTML';
-	render: string;
-	isBool?: boolean;
-	path?: string;
-	positions?: { start: number, end: number }[]
-};
+
 export type ActionInjection = {
 	id: string,
 	injectionName: string;
 	inject: string;
-	path?: string;
-	position?: { start: number, end: number }
+	once?: boolean
 };
 export type ActionBindings = {
 	id: string,
-	valueName: string,
+	injectionName: string,
+	inject: string;
+	extract: string;
 	eventNames: string[],
-	tagName?: string,
 	isCallback?: boolean,
-	path?: string,
-	position?: { start: number, end: number }
+	once?: boolean
 };
 export type ActionEvent = {
 	id: string,
@@ -60,38 +54,81 @@ export type ActionEvent = {
 	tagName?: string,
 	position?: { start: number, end: number }
 };
-export interface ActionPressEvent {
+export type ActionPressEvent = {
 	id: string,
 	[key: PressEventMapValues]: {
 		value: string,
-		start: number, 
+		start: number,
 		end: number
 	} | string,
 };
-export interface ActionLoop {
-	loopId: number,
+export type ActionLoop = {
+	templateId: number,
 	anchorId: string,
 	template: string,
-	from: string,
-	index: string,
-	item: string,
 	actions: HtmlTemplateResult,
-	loopParentId: number | null,
-	positionFrom: { start: number, end: number }
+	parentId?: number,
+	simple?: {
+		data: string,
+		item?: string,
+		index?: string,
+	},
+	func?: string
 };
+export type ActionIfPart = {
+	template: string,
+	templateId: number,
+	condition: string,
+	templateAction: HtmlTemplateResult,
+	once?: boolean
+}
+export type ActionIf = {
+	parentId?: number,
+	anchorId: string,
+	parts: ActionIfPart[]
+}
+export type ActionChange = {
+	positions: {
+		start: number,
+		end: number,
+	}[],
+	name: string,
+	txt: string,
+	variables: string[],
+	once?: boolean
+};
+export type ActionContextEdit = {
+	fct: string,
+	once?: boolean
+}
 
 export type HtmlTemplateResult = {
 	elements: ActionElement[],
 	content: {
-		[contextProp: string]: ActionChange[];
+		[id_attr: string]: {
+			fct: string,
+			once: boolean
+		}
 	},
-	injection: {
-		[contextProp: string]: ActionInjection[];
-	};
-	bindings: {
-		[contextProp: string]: ActionBindings[];
-	};
+	injection: ActionInjection[];
+	bindings: (ActionBindings & { tagName: string })[];
 	events: ActionEvent[];
 	pressEvents: ActionPressEvent[];
 	loops: ActionLoop[];
+	ifs: ActionIf[];
+	contextEdits: ActionContextEdit[];
 };
+
+
+export type HTMLFormat = {
+	edit: {
+		newText: string;
+		range: {
+			start: number,
+			end: number
+		}
+	},
+	kind: 'fct' | 'loop' | 'if' | 'context',
+	start: number,
+	end: number
+}

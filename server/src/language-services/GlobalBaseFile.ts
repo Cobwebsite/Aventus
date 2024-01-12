@@ -77,12 +77,12 @@ export abstract class AventusGlobalBaseFile {
     }
     public triggerSave(): void {
         if (this.file instanceof InternalAventusFile) {
-            this.file.triggerSave(this.file.document);
+            this.file.triggerSave();
         }
     }
-    public triggerContentChange(): void {
+    public async triggerContentChange(): Promise<void> {
         if (this.file instanceof InternalAventusFile) {
-            this.file.triggerContentChange(this.file.document);
+            await this.file.triggerContentChange(this.file.documentUser);
         }
     }
     protected abstract onContentChange(): Promise<void>;

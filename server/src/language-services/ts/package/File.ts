@@ -69,7 +69,7 @@ export class AventusPackageFile extends AventusBaseFile {
 		let result = this.separeSection();
 		if (result) {
 			// definition TS
-			let documentTs = TextDocument.create(this.file.uri, AventusLanguageId.TypeScript, this.file.version, result.jsDef);
+			let documentTs = TextDocument.create(this.file.uri, AventusLanguageId.TypeScript, this.file.versionUser, result.jsDef);
 			if (!this.tsFile) {
 				this.tsFile = new InternalAventusFile(documentTs);
 				this.tsDef = new AventusPackageFileTs(this.tsFile, this.build);
@@ -121,48 +121,48 @@ export class AventusPackageFile extends AventusBaseFile {
 
 
 	private separeSection() {
-		if (this.file.content.match(/\/\/#region js def \/\/((\s|\S)*)\/\/#endregion js def \/\//g)) {
-			let regexInfo = /^\/\/ (\S+):([0-9]+)\.([0-9]+)\.([0-9]+)$/gm.exec(this.file.content);
+		if (this.file.contentUser.match(/\/\/#region js def \/\/((\s|\S)*)\/\/#endregion js def \/\//g)) {
+			let regexInfo = /^\/\/ (\S+):([0-9]+)\.([0-9]+)\.([0-9]+)$/gm.exec(this.file.contentUser);
 			if (regexInfo) {
 				this.name = regexInfo[1];
 				this.version.major = Number(regexInfo[2]);
 				this.version.minor = Number(regexInfo[3]);
 				this.version.patch = Number(regexInfo[4]);
 			}
-			let jsDefToImport = /\/\/#region js def \/\/((\s|\S)*)\/\/#endregion js def \/\//g.exec(this.file.content);
+			let jsDefToImport = /\/\/#region js def \/\/((\s|\S)*)\/\/#endregion js def \/\//g.exec(this.file.contentUser);
 			let jsDef = "";
 			if (jsDefToImport) {
 				this.tsDefStart = jsDefToImport.index + 15;
 				jsDef = jsDefToImport[1];
 			}
 
-			let jsSrcToImport = /\/\/#region js src \/\/((\s|\S)*)\/\/#endregion js src \/\//g.exec(this.file.content);
+			let jsSrcToImport = /\/\/#region js src \/\/((\s|\S)*)\/\/#endregion js src \/\//g.exec(this.file.contentUser);
 			let jsSrc = "";
 			if (jsSrcToImport) {
 				this.tsDefStart = jsSrcToImport.index + 15;
 				jsSrc = jsSrcToImport[1];
 			}
 
-			let scssToImport = /\/\/#region css \/\/((\s|\S)*)\/\/#endregion css \/\//g.exec(this.file.content);
+			let scssToImport = /\/\/#region css \/\/((\s|\S)*)\/\/#endregion css \/\//g.exec(this.file.contentUser);
 			let scssTxt = "";
 			if (scssToImport) {
 				scssTxt = scssToImport[1];
 			}
 
-			let scssDefToImport = /\/\/#region css def \/\/((\s|\S)*)\/\/#endregion css def \/\//g.exec(this.file.content);
+			let scssDefToImport = /\/\/#region css def \/\/((\s|\S)*)\/\/#endregion css def \/\//g.exec(this.file.contentUser);
 			let scssDefTxt = "";
 			if (scssDefToImport) {
 				scssDefTxt = scssDefToImport[1];
 			}
 
 
-			let htmlToImport = /\/\/#region html \/\/((\s|\S)*)\/\/#endregion html \/\//g.exec(this.file.content);
+			let htmlToImport = /\/\/#region html \/\/((\s|\S)*)\/\/#endregion html \/\//g.exec(this.file.contentUser);
 			let htmlTxt = "";
 			if (htmlToImport) {
 				htmlTxt = htmlToImport[1];
 			}
 
-			let depsToImport = /\/\/#region dependances \/\/((\s|\S)*)\/\/#endregion dependances \/\//g.exec(this.file.content);
+			let depsToImport = /\/\/#region dependances \/\/((\s|\S)*)\/\/#endregion dependances \/\//g.exec(this.file.contentUser);
 			let depsTxt = "";
 			if (depsToImport) {
 				depsTxt = depsToImport[1];
@@ -207,8 +207,8 @@ export class AventusPackageFile extends AventusBaseFile {
 	}
 	protected async onDefinition(document: AventusFile, position: Position): Promise<Definition | null> {
 		if (this.tsFile) {
-			let currentOffset = document.document.offsetAt(position);
-			let newPosition = this.tsFile.document.positionAt(currentOffset - this.tsDefStart)
+			let currentOffset = document.documentUser.offsetAt(position);
+			let newPosition = this.tsFile.documentUser.positionAt(currentOffset - this.tsDefStart)
 			return await this.tsFile.getDefinition(newPosition);
 		}
 		return null;
@@ -233,8 +233,8 @@ export class AventusPackageFile extends AventusBaseFile {
 	}
 
 	private transformPosition(fileFrom: AventusBaseFile, positionFrom: Position, fileTo: AventusBaseFile, offset: number): Position {
-		let currentOffset = fileFrom.file.document.offsetAt(positionFrom);
-		return fileTo.file.document.positionAt(currentOffset - offset);
+		let currentOffset = fileFrom.file.documentUser.offsetAt(positionFrom);
+		return fileTo.file.documentUser.positionAt(currentOffset - offset);
 	}
 }
 

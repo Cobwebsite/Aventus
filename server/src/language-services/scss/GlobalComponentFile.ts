@@ -61,7 +61,7 @@ export class AventusGlobalComponentSCSSFile extends AventusBaseFile {
 
 			let errorMsgTxt = "|error|";
 			const _loadContent = (file: AventusFile): string => {
-				let textToSearch = file.content;
+				let textToSearch = file.contentUser;
 				//remove comment 
 				textToSearch = textToSearch.replace(/\/\*[\s\S]*?\*\/|([^:]|^)\/\/.*$/gm, '$1');
 
@@ -155,7 +155,7 @@ export class AventusGlobalComponentSCSSFile extends AventusBaseFile {
 
 	//#region dependances
 	private loadDependances() {
-		let text = this.file.content;
+		let text = this.file.contentUser;
 		let textToSearch = text.replace(/\/\*[\s\S]*?\*\/|([^:]|^)\/\/.*$/gm, '$1')
 		let regex = /@import *?('|")(\S*?)('|");?/g;
 		let arrMatch: RegExpExecArray | null = null;
@@ -168,7 +168,7 @@ export class AventusGlobalComponentSCSSFile extends AventusBaseFile {
 			if (!fileDependance) {
 				let start = text.indexOf(arrMatch[0]);
 				let end = start + arrMatch[0].length;
-				this.diagnostics.push(createErrorScssPos(this.file.document, "Can't load this file", start, end));
+				this.diagnostics.push(createErrorScssPos(this.file.documentUser, "Can't load this file", start, end));
 			}
 			else {
 				this.addDependance(fileDependance);

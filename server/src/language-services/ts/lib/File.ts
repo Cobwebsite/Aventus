@@ -4,7 +4,6 @@ import { AventusFile } from '../../../files/AventusFile';
 import { Build } from '../../../project/Build';
 import { genericTsCompile } from "../compiler";
 import { AventusTsFile } from "../File";
-import { ClassInfo } from '../parser/ClassInfo';
 import { createErrorTsPos } from '../../../tools';
 
 export class AventusLibFile extends AventusTsFile {
@@ -28,7 +27,7 @@ export class AventusLibFile extends AventusTsFile {
                 (classInfo) => {
                     if (!classInfo.isInterface && classInfo.convertibleName) {
                         if (!classInfo.hasStaticField(classInfo.convertibleName)) {
-                            this.diagnostics.push(createErrorTsPos(this.file.document, `Missing static property ${classInfo.convertibleName}`, classInfo.nameStart, classInfo.nameEnd, AventusErrorCode.MissingFullName));
+                            this.diagnostics.push(createErrorTsPos(this.file.documentUser, `Missing static property ${classInfo.convertibleName}`, classInfo.nameStart, classInfo.nameEnd, AventusErrorCode.MissingFullName));
                         }
                     }
                 }

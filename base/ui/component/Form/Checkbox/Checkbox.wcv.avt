@@ -3,4 +3,4 @@
 		<path d="M4.89163 13.2687L9.16582 17.5427L18.7085 8" />
 	</svg>
 </span>
-<label>{{label}}</label>
+<label>{{this.label}}</label>

@@ -24,6 +24,10 @@ export abstract class AventusTsFile extends AventusBaseFile {
         return [...this.diagnostics];
     }
 
+    public get version(): number {
+        return this.file.versionUser;
+    }
+
     protected abstract get extension(): string;
     public fileParsed: ParserTs | null = null;
 
@@ -41,23 +45,30 @@ export abstract class AventusTsFile extends AventusBaseFile {
 
     protected refreshFileParsed(isLib: boolean = false): void {
         this.fileParsed = ParserTs.parse(this.file, isLib, this.build);
-        this._contentForLanguageService = this.file.document.getText();
+        this._contentForLanguageService = this.file.documentInternal.getText();
         if (!isLib) {
-            for (let _namespace of this.fileParsed.namespaces) {
-                let diff = _namespace.bodyStart - _namespace.start;
-                let empty = "";
-                for (let i = 0; i < diff; i++) { empty += " " }
-                let firstPart = this._contentForLanguageService.substring(0, _namespace.start);
-                let lastPart = this._contentForLanguageService.substring(_namespace.bodyStart, this._contentForLanguageService.length);
-                this._contentForLanguageService = firstPart + empty + lastPart;
+            this.replaceNamespace();
+        }
+    }
 
-                diff = _namespace.end - _namespace.bodyEnd;
-                empty = "";
-                for (let i = 0; i < diff; i++) { empty += " " }
-                firstPart = this._contentForLanguageService.substring(0, _namespace.bodyEnd);
-                lastPart = this._contentForLanguageService.substring(_namespace.end, this._contentForLanguageService.length);
-                this._contentForLanguageService = firstPart + empty + lastPart;
-            }
+    protected replaceNamespace() {
+        if (!this.fileParsed) {
+            return;
+        }
+        for (let _namespace of this.fileParsed.namespaces) {
+            let diff = _namespace.bodyStart - _namespace.start;
+            let empty = "";
+            for (let i = 0; i < diff; i++) { empty += " " }
+            let firstPart = this._contentForLanguageService.substring(0, _namespace.start);
+            let lastPart = this._contentForLanguageService.substring(_namespace.bodyStart, this._contentForLanguageService.length);
+            this._contentForLanguageService = firstPart + empty + lastPart;
+
+            diff = _namespace.end - _namespace.bodyEnd;
+            empty = "";
+            for (let i = 0; i < diff; i++) { empty += " " }
+            firstPart = this._contentForLanguageService.substring(0, _namespace.bodyEnd);
+            lastPart = this._contentForLanguageService.substring(_namespace.end, this._contentForLanguageService.length);
+            this._contentForLanguageService = firstPart + empty + lastPart;
         }
     }
 
@@ -83,13 +94,13 @@ export abstract class AventusTsFile extends AventusBaseFile {
         if (!rules.allow_function) {
             for (let fctName in struct.functions) {
                 let fct = struct.functions[fctName];
-                this.diagnostics.push(createErrorTsPos(this.file.document, `Function can only be used inside lib.avt file`, fct.nameStart, fct.nameEnd, AventusErrorCode.FunctionNotAllowed));
+                this.diagnostics.push(createErrorTsPos(this.file.documentInternal, `Function can only be used inside lib.avt file`, fct.nameStart, fct.nameEnd, AventusErrorCode.FunctionNotAllowed));
             }
         }
         if (!rules.allow_variables) {
             for (let varName in struct.variables) {
                 let varr = struct.variables[varName];
-                this.diagnostics.push(createErrorTsPos(this.file.document, `Variables can only be used inside lib.avt file`, varr.nameStart, varr.nameEnd, AventusErrorCode.VariableNotAllowed));
+                this.diagnostics.push(createErrorTsPos(this.file.documentInternal, `Variables can only be used inside lib.avt file`, varr.nameStart, varr.nameEnd, AventusErrorCode.VariableNotAllowed));
             }
         }
         if (rules.class_extend || rules.class_implement || rules.interface || rules.customClassRules) {
@@ -102,7 +113,7 @@ export abstract class AventusTsFile extends AventusBaseFile {
             for (let className in struct.classes) {
                 let classTemp = struct.classes[className];
 
-                for(let customClassRule of rules.customClassRules){
+                for (let customClassRule of rules.customClassRules) {
                     customClassRule(classTemp);
                 }
                 if (classTemp.isInterface) {
@@ -114,7 +125,7 @@ export abstract class AventusTsFile extends AventusBaseFile {
                         }
                     }
                     if (!foundInterface) {
-                        this.diagnostics.push(createErrorTsPos(this.file.document, 'Interface ' + classTemp.name + ' must extend ' + rules.interface.join(" or "), classTemp.nameStart, classTemp.nameEnd, AventusErrorCode.MissingExtension));
+                        this.diagnostics.push(createErrorTsPos(this.file.documentInternal, 'Interface ' + classTemp.name + ' must extend ' + rules.interface.join(" or "), classTemp.nameStart, classTemp.nameEnd, AventusErrorCode.MissingExtension));
                     }
                 }
                 else {
@@ -133,10 +144,10 @@ export abstract class AventusTsFile extends AventusBaseFile {
                         }
                     }
                     if (!foundClassImplement) {
-                        this.diagnostics.push(createErrorTsPos(this.file.document, 'Class ' + classTemp.name + ' must implement ' + rules.class_implement.join(" or "), classTemp.nameStart, classTemp.nameEnd, AventusErrorCode.MissingImplementation));
+                        this.diagnostics.push(createErrorTsPos(this.file.documentInternal, 'Class ' + classTemp.name + ' must implement ' + rules.class_implement.join(" or "), classTemp.nameStart, classTemp.nameEnd, AventusErrorCode.MissingImplementation));
                     }
                     if (!foundClassExtend) {
-                        this.diagnostics.push(createErrorTsPos(this.file.document, 'Class ' + classTemp.name + ' must extend ' + rules.class_extend.join(" or "), classTemp.nameStart, classTemp.nameEnd, AventusErrorCode.MissingExtension));
+                        this.diagnostics.push(createErrorTsPos(this.file.documentInternal, 'Class ' + classTemp.name + ' must extend ' + rules.class_extend.join(" or "), classTemp.nameStart, classTemp.nameEnd, AventusErrorCode.MissingExtension));
                     }
                 }
             }

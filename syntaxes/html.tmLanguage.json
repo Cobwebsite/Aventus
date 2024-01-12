@@ -20,28 +20,44 @@
 	},
 	"patterns": [
 		{
-			"include": "#xml-processing"
-		},
-		{
-			"include": "#comment"
-		},
-		{
-			"include": "#doctype"
-		},
-		{
-			"include": "#cdata"
-		},
-		{
-			"include": "#tags-valid"
-		},
-		{
-			"include": "#tags-invalid"
-		},
-		{
-			"include": "#entities"
+			"include": "#basics"
 		}
 	],
 	"repository": {
+		"basics": {
+			"patterns": [
+				{
+					"include": "#xml-processing"
+				},
+				{
+					"include": "#comment"
+				},
+				{
+					"include": "#doctype"
+				},
+				{
+					"include": "#cdata"
+				},
+				{
+					"include": "#tags-valid"
+				},
+				{
+					"include": "#tags-invalid"
+				},
+				{
+					"include": "#entities"
+				},
+				{
+					"include": "#for"
+				},
+				{
+					"include": "#if"
+				},
+				{
+					"include": "#context"
+				}
+			]
+		},
 		"attribute": {
 			"patterns": [
 				{
@@ -352,7 +368,7 @@
 					]
 				},
 				{
-					"begin": "(@element|:injection)(?![\\w:-])",
+					"begin": "@element(?![\\w:-])",
 					"beginCaptures": {
 						"0": {
 							"name": "aventus.wcv.attribute"
@@ -406,9 +422,6 @@
 						},
 						"2": {
 							"name": "aventus.wcv.fctvalue"
-						},
-						"4": {
-							"name": "aventus.wcv.propvalue"
 						}
 					},
 					"comment": "Aventus element attribute",
@@ -443,69 +456,7 @@
 									"name": "string.quoted.double.html",
 									"patterns": [
 										{
-											"match": "[a-zA-Z0-9_]+",
-											"name": "aventus.wcv.propvalue"
-										}
-									]
-								}
-							]
-						}
-					]
-				},
-				{
-					"begin": "@for(?![\\w:-])",
-					"beginCaptures": {
-						"0": {
-							"name": "aventus.wcv.attribute"
-						}
-					},
-					"comment": "Aventus element attribute",
-					"end": "(?=\\s*+[^=\\s])",
-					"patterns": [
-						{
-							"begin": "=",
-							"beginCaptures": {
-								"0": {
-									"name": "punctuation.separator.key-value.html"
-								}
-							},
-							"end": "(?<=[^\\s=])(?!\\s*=)|(?=/?>)",
-							"patterns": [
-								{
-									"match": "([^\\s\"'=<>`/]|/(?!>))+",
-									"name": "string.unquoted.html"
-								},
-								{
-									"begin": "\"",
-									"beginCaptures": {
-										"0": {
-											"name": "punctuation.definition.string.begin.html"
-										}
-									},
-									"end": "\"",
-									"endCaptures": {
-										"0": {
-											"name": "punctuation.definition.string.end.html"
-										}
-									},
-									"name": "string.quoted.double.html",
-									"patterns": [
-										{
-											"match": "([a-zA-Z0-9_\\.\\s]*)(,([a-zA-Z0-9_\\.\\s]*))? in ([a-zA-Z0-9_\\.]*?)(?=\")",
-											"captures": {
-												"0": {
-													"name": "aventus.wcv.attribute"
-												},
-												"1": {
-													"name": "aventus.wcv.propvalue"
-												},
-												"3": {
-													"name": "aventus.wcv.propvalue"
-												},
-												"4": {
-													"name": "aventus.wcv.propvalue"
-												}
-											}
+											"include": "source.js"
 										}
 									]
 								}
@@ -576,6 +527,74 @@
 										{
 											"match": ".*?'",
 											"name": "aventus.wcv.fctvalue"
+										}
+									]
+								}
+							]
+						}
+					]
+				},
+				{
+					"begin": ":([a-zA-Z_\\-])*?(?![\\w:-])",
+					"beginCaptures": {
+						"0": {
+							"name": "aventus.wcv.attribute"
+						}
+					},
+					"comment": "Aventus element attribute",
+					"end": "(?=\\s*+[^=\\s])",
+					"name": "meta.attribute.$1.html",
+					"patterns": [
+						{
+							"begin": "=",
+							"beginCaptures": {
+								"0": {
+									"name": "punctuation.separator.key-value.html"
+								}
+							},
+							"end": "(?<=[^\\s=])(?!\\s*=)|(?=/?>)",
+							"patterns": [
+								{
+									"match": "([^\\s\"'=<>`/]|/(?!>))+",
+									"name": "string.unquoted.html"
+								},
+								{
+									"begin": "\"",
+									"beginCaptures": {
+										"0": {
+											"name": "punctuation.definition.string.begin.html"
+										}
+									},
+									"end": "\"",
+									"endCaptures": {
+										"0": {
+											"name": "punctuation.definition.string.end.html"
+										}
+									},
+									"name": "string.quoted.double.html",
+									"patterns": [
+										{
+											"include": "source.js"
+										}
+									]
+								},
+								{
+									"begin": "'",
+									"beginCaptures": {
+										"0": {
+											"name": "punctuation.definition.string.begin.html"
+										}
+									},
+									"end": "'",
+									"endCaptures": {
+										"0": {
+											"name": "punctuation.definition.string.end.html"
+										}
+									},
+									"name": "string.quoted.single.html",
+									"patterns": [
+										{
+											"include": "source.js"
 										}
 									]
 								}
@@ -805,16 +824,99 @@
 					"name": "invalid.illegal.ambiguous-ampersand.html"
 				},
 				{
-					"match": "(\\{\\{)(.*?)(\\}\\})",
-					"captures": {
+					"begin": "({{)",
+					"beginCaptures": {
 						"1": {
-							"name":"aventus.wcv.changingstart"
-						},
-						"2": {
-							"name": "aventus.wcv.changingtext"
-						},
-						"3": {
-							"name": "aventus.wcv.changingstop"
+							"name": "aventus.wcv.changingstart"
+						}
+					},
+					"end": "}}",
+					"endCaptures": {
+						"0": {
+							"name": "aventus.wcv.changingstart"
+						}
+					},
+					"patterns": [
+						{
+							"include": "source.js"
+						}
+					]
+				}
+			]
+		},
+		"for": {
+			"patterns": [
+				{
+					"begin": "(for *\\(.*?\\) *\\{)",
+					"beginCaptures": {
+						"0": {
+							"patterns": [
+								{
+									"include": "source.js"
+								}
+							]
+						}
+					},
+					"end": "}",
+					"endCaptures": {
+						"0": {
+							"patterns": [
+								{
+									"include": "source.js"
+								}
+							]
+						}
+					},
+					"patterns": [
+						{
+							"include": "#basics"
+						}
+					]
+				}
+			]
+		},
+		"if": {
+			"patterns": [
+				{
+					"begin": "(if|else if|else)\\s*(\\([\\s|\\S]*?\\))?\\s*\\{",
+					"beginCaptures": {
+						"0": {
+							"patterns": [
+								{
+									"include": "source.js"
+								}
+							]
+						}
+					},
+					"end": "}",
+					"endCaptures": {
+						"0": {
+							"patterns": [
+								{
+									"include": "source.js"
+								}
+							]
+						}
+					},
+					"patterns": [
+						{
+							"include": "#basics"
+						}
+					]
+				}
+			]
+		},
+		"context": {
+			"patterns": [
+				{
+					"match": "@Context\\(.*?\\)",
+					"captures": {
+						"0": {
+							"patterns": [
+								{
+									"include": "source.js"
+								}
+							]
 						}
 					}
 				}

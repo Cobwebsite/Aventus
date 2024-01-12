@@ -31,16 +31,17 @@ import { RequiredDecorator } from '../../parser/decorators/RequiredDecorator';
 import { AliasInfo } from '../../parser/AliasInfo';
 import { WatchDecorator } from '../../parser/decorators/WatchDecorator';
 import { ParserHtml } from '../../../html/parser/ParserHtml';
-import { ActionBindings, ActionChange, ActionElement, ActionEvent, ActionInjection, ActionLoop, ActionPressEvent, HtmlTemplateResult, pressEventMap } from '../../../html/parser/definition';
+import { ActionBindings, ActionElement, ActionEvent, ActionIf, ActionIfPart, ActionInjection, ActionLoop, ActionPressEvent, HtmlTemplateResult, pressEventMap } from '../../../html/parser/definition';
 import { DefaultStateActiveDecorator } from '../../parser/decorators/DefaultStateActiveDecorator';
 import { DefaultStateInactiveDecorator } from '../../parser/decorators/DefaultStateInactiveDecorator';
 import { BindThisDecorator } from '../../parser/decorators/BindThisDecorator';
+import { EffectDecorator, EffectDecoratorOption } from '../../parser/decorators/EffectDecorator';
 
 
 export class AventusWebcomponentCompiler {
     public static getVersion(logicalFile: AventusWebComponentLogicalFile, build: Build) {
         let version = {
-            ts: logicalFile.file.version,
+            ts: logicalFile.file.documentUser.version,
             scss: -1,
             html: -1
         }
@@ -138,13 +139,21 @@ export class AventusWebcomponentCompiler {
         }
         this.scssTxt = scssFile ? scssFile.compileResult : '';
         this.htmlFile = htmlFile;
-        if (htmlFile) {
-            this.htmlParsed = htmlFile.fileParsed;
+        if (this.htmlFile) {
+            this.htmlParsed = this.htmlFile.fileParsed;
             this.htmlFile.tsErrors = [];
         }
-        this.result.diagnostics = build.tsLanguageService.doValidation(this.file);
+        let nativeDiags = build.tsLanguageService.doValidation(this.file);
+        let methodName = this.logicalFile.viewMethodName;
+        for (let i = 0; i < nativeDiags.length; i++) {
+            if (nativeDiags[i].message.startsWith("'" + methodName)) {
+                nativeDiags.splice(i, 1);
+                i--;
+            }
+        }
+        this.result.diagnostics = nativeDiags;
         this.template = AventusWebcomponentTemplate();
-        this.document = logicalFile.file.document;
+        this.document = logicalFile.file.documentInternal;
         this.build = build;
         this.fileParsed = logicalFile.fileParsed;
     }
@@ -434,6 +443,7 @@ export class AventusWebcomponentCompiler {
         this.writeFileReplaceVar("style", this.scssTxt);
         this.writeFileFields();
         this.writeFileMethods();
+        this.writeWatchableElements();
         this.writeFileConstructor();
         this.template = this.template.replace(/\|\!\*(.*?)\*\!\|/g, "{{$1}}");
         this.template = this.removeWhiteSpaceLines(this.template);
@@ -482,8 +492,8 @@ export class AventusWebcomponentCompiler {
     private writeFileTemplateHtml() {
         let htmlTxt = "";
         if (this.htmlParsed) {
-            let slots = this.htmlParsed.getSlotsInfoTxt(this.className);
-            let blocks = this.htmlParsed.getBlocksInfoTxt(this.className);
+            let slots = this.htmlParsed.getSlotsInfoTxt();
+            let blocks = this.htmlParsed.getBlocksInfoTxt();
             if (slots.length + blocks.length > 0) {
                 let superTxt = EOL + "super.__getHtml();";
                 let slotsTxt = "";
@@ -642,110 +652,76 @@ export class AventusWebcomponentCompiler {
         }
         this.writeFileReplaceVar('variables', variablesSimpleTxt);
     }
+
+    private getGetterAndSetter(field: CustomFieldModel, type: TypeInfo, isProp: boolean): string {
+        let result = "";
+        let key = field.name;
+        let propTxt = isProp ? 'Prop' : 'Attr'
+        if (type.kind == "string" || type.kind == "literal" || type.kind == "union") {
+            result += `get '${key}'() { return this.getString${propTxt}('${key}') }
+    set '${key}'(val) { this.setStringAttr('${key}', val) }${EOL}`;
+        }
+        else if (type.kind == "number") {
+            result += `get '${key}'() { return this.getNumber${propTxt}('${key}') }
+    set '${key}'(val) { this.setNumberAttr('${key}', val) }${EOL}`;
+        }
+        else if (type.kind == "boolean") {
+            this.listBoolProperties.push('"' + key + '"');
+            result += `get '${key}'() { return this.getBool${propTxt}('${key}') }
+    set '${key}'(val) { this.setBoolAttr('${key}', val) }${EOL}`;
+        }
+        else if (type.kind === "type" && type.value == "Date") {
+            result += `get '${key}'() { return this.getDate${propTxt}('${key}') }
+    set '${key}'(val) { this.setDateAttr('${key}', val) }${EOL}`;
+        }
+        else if (type.kind === "type" && type.value == "DateTime") {
+            result += `get '${key}'() { return this.getDateTime${propTxt}('${key}') }
+    set '${key}'(val) { this.setDateTimeAttr('${key}', val) }${EOL}`;
+        }
+        return result;
+    }
+    private getDefaultValueAttr(field: CustomFieldModel, type: TypeInfo): string {
+        let result = "";
+        let key = field.name;
+        if (type.kind == "boolean") {
+            if (field.defaultValue !== null && field.defaultValue !== "false") {
+                result += "if(!this.hasAttribute('" + key + "')) {this.setAttribute('" + key + "' ,'true'); }" + EOL;
+            }
+            else {
+                //If default set to false, we refresh the attribute to set it to false and not undefined
+                result += "if(!this.hasAttribute('" + key + "')) { this.attributeChangedCallback('" + key + "', false, false); }" + EOL;
+            }
+        }
+        else if (type.kind == "type" && (type.value == "Date" || type.value == "DateTime")) {
+            if (field.defaultValue !== null) {
+                result += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = " + field.defaultValue + "; }" + EOL;
+            }
+            else {
+                result += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = undefined; }" + EOL;
+            }
+        }
+        else {
+            if (field.defaultValue !== null) {
+                result += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = " + field.defaultValue + "; }" + EOL;
+            }
+            else {
+                result += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = undefined; }" + EOL;
+            }
+        }
+
+        return result;
+    }
     private writeFileFieldsAttribute(fields: CustomFieldModel[]) {
         let defaultValue = "";
         let getterSetter = "";
-        var _createDefaultValue = (field: CustomFieldModel, type: TypeInfo) => {
-            let key = field.name;
-            if (type.kind == "boolean") {
-                if (field.defaultValue !== null && field.defaultValue !== "false") {
-                    defaultValue += "if(!this.hasAttribute('" + key + "')) {this.setAttribute('" + key + "' ,'true'); }" + EOL;
-                }
-                else {
-                    //If default set to false, we refresh the attribute to set it to false and not undefined
-                    defaultValue += "if(!this.hasAttribute('" + key + "')) { this.attributeChangedCallback('" + key + "', false, false); }" + EOL;
-                }
-            }
-            else if (type.kind == "type" && (type.value == "Date" || type.value == "DateTime")) {
-                if (field.defaultValue !== null) {
-                    defaultValue += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = " + field.defaultValue + "; }" + EOL;
-                }
-                else {
-                    defaultValue += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = undefined; }" + EOL;
-                }
-            }
-            else {
-                if (field.defaultValue !== null) {
-                    defaultValue += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = " + field.defaultValue + "; }" + EOL;
-                }
-                else {
-                    defaultValue += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = undefined; }" + EOL;
-                }
-            }
-        }
-        var _createGetterSetter = (field: CustomFieldModel, type: TypeInfo) => {
-            let key = field.name;
-            if (type.kind == "string" || type.kind == "literal" || type.kind == "union") {
-                getterSetter += `get '${key}'() {
-                    return this.getAttribute('${key}') ?? undefined;
-                }
-                set '${key}'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('${key}')}
-                    else{this.setAttribute('${key}',val)}
-                }${EOL}`;
-            }
-            else if (type.kind == "number") {
-                getterSetter += `get '${key}'() {
-                    return Number(this.getAttribute('${key}'));
-                }
-                set '${key}'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('${key}')}
-                    else{this.setAttribute('${key}',val)}
-                }${EOL}`;
-            }
-            else if (type.kind == "boolean") {
-                this.listBoolProperties.push('"' + key + '"');
-                getterSetter += `get '${key}'() {
-                return this.hasAttribute('${key}');
-            }
-            set '${key}'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('${key}', 'true');
-                } else{
-                    this.removeAttribute('${key}');
-                }
-            }${EOL}`;
-            }
-            else if (type.kind === "type" && type.value == "Date") {
-                getterSetter += `
-                get '${key}'() {
-                    if(!this.hasAttribute('${key}')) {
-                        return undefined;
-                    }
-                    return this.stringToDate(this.getAttribute('${key}'));
-                }
-                set '${key}'(val) {
-                    let valTxt = this.dateToString(val);
-                    if(valTxt === null){this.removeAttribute('${key}')}
-                    else { this.setAttribute('${key}', valTxt); }
-                }
-                `;
-            }
-            else if (type.kind === "type" && type.value == "DateTime") {
-                getterSetter += `
-                get '${key}'() {
-                    if(!this.hasAttribute('${key}')) {
-                        return undefined;
-                    }
-                    return this.stringToDateTime(this.getAttribute('${key}'));
-                }
-                set '${key}'(val) {
-                    let valTxt = this.dateTimeToString(val);
-                    if(valTxt === null){ this.removeAttribute('${key}') }
-                    else { this.setAttribute('${key}', valTxt); }
-                }
-                `;
-            }
-        }
 
         for (let field of fields) {
             let type = this.validateTypeForProp(this.document, field);
             if (!type) {
                 continue;
             }
-            _createDefaultValue(field, type);
-            _createGetterSetter(field, type);
+            defaultValue += this.getDefaultValueAttr(field, type);
+            getterSetter += this.getGetterAndSetter(field, type, false);
             this.createHtmlDoc(field, type);
 
             this.upgradeAttributes += 'this.__upgradeProperty(\'' + field.name.toLowerCase() + '\');' + EOL;
@@ -762,97 +738,7 @@ export class AventusWebcomponentCompiler {
         let getterSetter = "";
         let onChange = "";
         let variablesWatched: string[] = [];
-        var _createDefaultValue = (field: CustomFieldModel, type: TypeInfo) => {
-            let key = field.name;
-            if (type.kind == "boolean") {
-                if (field.defaultValue !== null && field.defaultValue !== "false") {
-                    defaultValue += "if(!this.hasAttribute('" + key + "')) {this.setAttribute('" + key + "' ,'true'); }" + EOL;
-                }
-                else {
-                    //If default set to false, we refresh the attribute to set it to false and not undefined
-                    defaultValue += "if(!this.hasAttribute('" + key + "')) { this.attributeChangedCallback('" + key + "', false, false); }" + EOL;
-                }
-            }
-            else if (type.kind == "type" && (type.value == "Date" || type.value == "DateTime")) {
-                if (field.defaultValue !== null) {
-                    defaultValue += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = " + field.defaultValue + "; }" + EOL;
-                }
-                else {
-                    defaultValue += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = undefined; }" + EOL;
-                }
-            }
-            else {
-                if (field.defaultValue !== null) {
-                    defaultValue += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = " + field.defaultValue + "; }" + EOL;
-                }
-                else {
-                    defaultValue += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = undefined; }" + EOL;
-                }
-            }
-        }
-        var _createGetterSetter = (field: CustomFieldModel, type: TypeInfo) => {
-            let key = field.name;
-            if (type.kind == "string" || type.kind == "literal" || type.kind == "union") {
-                getterSetter += `get '${key}'() {
-                    return this.getAttribute('${key}') ?? undefined;
-                }
-                set '${key}'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('${key}')}
-                    else{this.setAttribute('${key}',val)}
-                }${EOL}`;
-            }
-            else if (type.kind == "number") {
-                getterSetter += `get '${key}'() {
-                    return Number(this.getAttribute('${key}'));
-                }
-                set '${key}'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('${key}')}
-                    else{this.setAttribute('${key}',val)}
-                }${EOL}`;
-            }
-            else if (type.kind == "boolean") {
-                this.listBoolProperties.push('"' + key + '"');
-                getterSetter += `get '${key}'() {
-                return this.hasAttribute('${key}');
-            }
-            set '${key}'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('${key}', 'true');
-                } else{
-                    this.removeAttribute('${key}');
-                }
-            }${EOL}`;
-            }
-            else if (type.kind === "type" && type.value == "Date") {
-                getterSetter += `
-                get '${key}'() {
-                    if(!this.hasAttribute('${key}')) { return undefined; }
-                    return this.stringToDate(this.getAttribute('${key}'));
-                }
-                set '${key}'(val) {
-                    let valTxt = this.dateToString(val);
-                    if(valTxt === null){this.removeAttribute('${key}')}
-                    else { this.setAttribute('${key}', valTxt) }
-                }
-                `;
-            }
-            else if (type.kind === "type" && type.value == "DateTime") {
-                getterSetter += `
-                get '${key}'() {
-                    if(!this.hasAttribute('${key}')) {
-                        return undefined;
-                    }
-                    return this.stringToDateTime(this.getAttribute('${key}'));
-                }
-                set '${key}'(val) {
-                    let valTxt = this.dateTimeToString(val);
-                    if(valTxt === null){this.removeAttribute('${key}')}
-                    else { this.setAttribute('${key}', valTxt); }
-                }
-                `;
-            }
-        }
+
         for (let property of properties) {
             let field = property.field;
             let type = this.validateTypeForProp(this.document, field)
@@ -860,8 +746,8 @@ export class AventusWebcomponentCompiler {
                 continue;
             }
 
-            _createDefaultValue(field, type);
-            _createGetterSetter(field, type);
+            defaultValue += this.getDefaultValueAttr(field, type);
+            getterSetter += this.getGetterAndSetter(field, type, true);
             this.createHtmlDoc(field, type);
 
             this.upgradeAttributes += 'this.__upgradeProperty(\'' + field.name.toLowerCase() + '\');' + EOL;
@@ -894,17 +780,18 @@ export class AventusWebcomponentCompiler {
     }
     private writeFileFieldsWatch(watches: { field: CustomFieldModel, fctTxt: string | null }[]) {
         let getterSetter = "";
-        let variableProxyTxt = "";
+        let defaultValueWatch = "";
         for (let watch of watches) {
             let field = watch.field;
 
             if (field.defaultValue === null || field.defaultValue == "undefined") {
                 this.result.diagnostics.push(createErrorTsPos(this.document, "A watchable prop must be initialized", field.nameStart, field.nameEnd, AventusErrorCode.MissingInit));
             }
-            let watchAction = `this.__addWatchesActions("${field.name}");`;
             if (watch.fctTxt) {
-                let fctTxt = this.transpileMethodNoRun(watch.fctTxt);
-                watchAction = `this.__addWatchesActions("${field.name}", ${fctTxt});`;
+                this.watchProperties[field.name] = this.transpileMethodNoRun(watch.fctTxt);
+            }
+            else {
+                this.watchProperties[field.name] = "";
             }
 
             getterSetter += `get '${field.name}'() {
@@ -914,38 +801,15 @@ export class AventusWebcomponentCompiler {
 						this.__watch["${field.name}"] = val;
 					}`+ EOL;
 
-            variableProxyTxt += `${watchAction}` + EOL;
-            this.defaultValueTxt += `if(!this["${field.name}"]){ this["${field.name}"] = ${field.defaultValue?.replace(/\\"/g, '')};}` + EOL;
+            defaultValueWatch += `w["${field.name}"] = ${field.defaultValue?.replace(/\\"/g, '')};` + EOL;
             this.foundedWatch.push(field.name);
         }
 
-        let debugWatchTxt = '';
-        if (this.debuggerDecorator?.enableWatchHistory) {
-            debugWatchTxt = `if(this.__watch){
-this.__watch.enableHistory();
-this.getWatchHistory = () => {
-    return this.__watch.getHistory();
-}
-this.clearWatchHistory = () => {
-    return this.__watch.clearHistory();
-}
-}`
+        if (defaultValueWatch.length > 0) {
+            defaultValueWatch = `__defaultValuesWatch(w) { super.__defaultValuesWatch(w); ${defaultValueWatch} }`;
         }
-        if (variableProxyTxt.length > 0) {
+        this.writeFileReplaceVar("defaultValueWatch", defaultValueWatch);
 
-            variableProxyTxt = `__registerWatchesActions() {
-                ${variableProxyTxt}
-                super.__registerWatchesActions();
-                ${debugWatchTxt}
-            }`
-        }
-        else if (debugWatchTxt.length > 0) {
-            variableProxyTxt = `__registerWatchesActions() {
-                super.__registerWatchesActions();
-                ${debugWatchTxt}
-            }`
-        }
-        this.writeFileReplaceVar("watchesChangeCb", variableProxyTxt);
         this.writeFileReplaceVar("getterSetterWatch", getterSetter);
     }
 
@@ -968,596 +832,6 @@ this.clearWatchHistory = () => {
         this.writeFileReplaceVar("listBool", listBoolTxt);
     }
 
-
-
-    private variablesInViewDynamic = "";
-    private writeViewInfo(template: HtmlTemplateResult, isMain: boolean, localVars: string[] = [], loopInfo?: ActionLoop) {
-        const finalViewResult: any = {};
-        let finalTxt = "";
-
-        //#region elements
-        let elements = template.elements;
-        let resultElements: { name: string, ids: string[], isArray?: boolean }[] = []
-        for (let element of elements) {
-            let fieldName = element.name;
-            if (this.allFields[fieldName]) {
-                let field = this.allFields[fieldName];
-                if (field.propType == "ViewElement") {
-                    if (!element.useLive) {
-                        for (let decorator of field.decorators) {
-                            let viewElTemp = ViewElementDecorator.is(decorator);
-                            if (viewElTemp) {
-                                element.useLive = viewElTemp.useLive;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (element.useLive) {
-                        let querySelectorTxt = element.ids.map(id => `[_id="${id}"]`).join("|");
-                        if (element.isArray) {
-                            this.variablesInViewDynamic += `get ${fieldName} () { var list = Array.from(this.shadowRoot.querySelectorAll('${querySelectorTxt}')); return list; }` + EOL;
-                        }
-                        else {
-                            this.variablesInViewDynamic += `get ${fieldName} () { return this.shadowRoot.querySelector('${querySelectorTxt}'); }` + EOL;
-                        }
-                    }
-                    else {
-                        if (element.isArray) {
-                            resultElements.push({
-                                name: element.name,
-                                ids: element.ids,
-                                isArray: true
-                            })
-                        }
-                        else {
-                            resultElements.push({
-                                name: element.name,
-                                ids: element.ids,
-                            })
-                        }
-                    }
-                }
-                else {
-                    this.result.diagnostics.push(createErrorTsPos(this.document, "You must add the decorator @ViewElement for " + fieldName, field.nameStart, field.nameEnd, AventusErrorCode.MissingViewElement));
-                }
-                delete this.viewsElements[fieldName];
-            }
-            else {
-                this.createMissingViewElement(element);
-            }
-
-
-        }
-        if (resultElements.length > 0) {
-            finalViewResult.elements = resultElements;
-        }
-        //#endregion
-
-        //#region content
-        let contents = template.content;
-        let resultContents: { [contextProp: string]: ActionChange[] } = {}
-        for (let propName in contents) {
-            if (this.allFields[propName]) {
-                let field = this.allFields[propName];
-                if (field.propType == "Property") {
-                    if (!resultContents[propName]) {
-                        resultContents[propName] = [];
-                    }
-                    if (field.type.kind == "boolean") {
-                        for (let content of contents[propName]) {
-                            resultContents[propName].push({
-                                id: content.id,
-                                attrName: content.attrName,
-                                render: content.render,
-                                isBool: true
-                            })
-                        }
-                    }
-                    else {
-                        for (let content of contents[propName]) {
-                            resultContents[propName].push({
-                                id: content.id,
-                                attrName: content.attrName,
-                                render: content.render
-                            })
-                        }
-                    }
-                }
-                else if (field.propType == "Watch") {
-                    if (!resultContents[propName]) {
-                        resultContents[propName] = [];
-                    }
-                    for (let content of contents[propName]) {
-                        resultContents[propName].push({
-                            id: content.id,
-                            attrName: content.attrName,
-                            render: content.render,
-                            path: content.path
-                        })
-                    }
-                }
-                else {
-                    this.result.diagnostics.push(createErrorTsPos(this.document, "The variable " + propName + " must be a property or a watch for template update", field.nameStart, field.nameEnd, AventusErrorCode.MissingWatchable));
-                }
-            }
-            else if (localVars.includes(propName)) {
-                if (!resultContents[propName]) {
-                    resultContents[propName] = [];
-                }
-                for (let content of contents[propName]) {
-                    resultContents[propName].push({
-                        id: content.id,
-                        attrName: content.attrName,
-                        render: content.render,
-                        path: content.path
-                    })
-                }
-            }
-            else {
-                let errorTxt = "Missing property or watch #" + propName + " for template update"
-                this.result.diagnostics.push(createErrorTsSection(this.document, errorTxt, "props", AventusErrorCode.MissingProp));
-                if (this.htmlFile) {
-                    for (let content of contents[propName]) {
-                        if (content.positions) {
-                            for (let position of content.positions) {
-                                this.htmlFile.tsErrors.push(createErrorHTMLPos(this.htmlFile.file.document, errorTxt, position.start, position.end));
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        if (Object.keys(resultContents).length > 0) {
-            finalViewResult.content = resultContents;
-        }
-        //#endregion
-
-        //#region injection
-        let injections = template.injection;
-        let resultInjections: { [contextProp: string]: ActionInjection[] } = {}
-        for (let propName in injections) {
-            if (this.allFields[propName]) {
-                let field = this.allFields[propName];
-                if (field.propType == "Property" || field.propType == "Watch") {
-                    let isWatch = field.propType == "Watch";
-                    if (!resultInjections[propName]) {
-                        resultInjections[propName] = [];
-                    }
-                    for (let injection of injections[propName]) {
-                        let temp: ActionInjection = {
-                            id: injection.id,
-                            injectionName: injection.injectionName,
-                            inject: injection.inject,
-                        }
-                        if (isWatch) {
-                            temp.path = injection.path;
-                        }
-                        resultInjections[propName].push(temp)
-                    }
-                }
-                else {
-                    this.result.diagnostics.push(createErrorTsPos(this.document, "The variable " + propName + " must be a property or a watch for injection", field.nameStart, field.nameEnd, AventusErrorCode.MissingWatchable));
-                }
-            }
-            else if (localVars.includes(propName)) {
-                if (!resultInjections[propName]) {
-                    resultInjections[propName] = [];
-                }
-                for (let injection of injections[propName]) {
-                    resultInjections[propName].push({
-                        id: injection.id,
-                        injectionName: injection.injectionName,
-                        inject: injection.inject,
-                        path: injection.path
-                    })
-                }
-            }
-            else {
-                let errorTxt = "Missing property or watch #" + propName + " for injection"
-                this.result.diagnostics.push(createErrorTsSection(this.document, errorTxt, "props", AventusErrorCode.MissingProp));
-                if (this.htmlFile) {
-                    for (let injection of injections[propName]) {
-                        if (injection.position) {
-                            this.htmlFile.tsErrors.push(createErrorHTMLPos(this.htmlFile.file.document, errorTxt, injection.position.start, injection.position.end));
-                        }
-                    }
-                }
-            }
-        }
-        if (Object.keys(resultInjections).length > 0) {
-            finalViewResult.injection = resultInjections;
-        }
-        //#endregion
-
-        //#region bindings
-        let bindings = template.bindings;
-        let resultBindings: { [contextProp: string]: ActionBindings[] } = {}
-        for (let propName in bindings) {
-            if (this.allFields[propName]) {
-                let field = this.allFields[propName];
-                if (field.propType == "Property" || field.propType == "Watch") {
-                    if (!resultBindings[propName]) {
-                        resultBindings[propName] = [];
-                    }
-                    let isWatch = field.propType == "Watch";
-                    for (let binding of bindings[propName]) {
-                        let temp: ActionBindings = {
-                            id: binding.id,
-                            valueName: binding.valueName,
-                            eventNames: binding.eventNames,
-                        }
-                        if (isWatch) {
-                            temp.path = binding.path;
-                        }
-                        if (binding.eventNames.length == 1 && binding.tagName) {
-                            let definition = this.build.getWebComponentDefinition(binding.tagName);
-                            let eventName = binding.eventNames[0];
-                            if (definition) {
-                                if (definition.class.properties[eventName]) {
-                                    let type = definition.class.properties[eventName].type.value;
-                                    if (ListCallbacks.includes(type)) {
-                                        temp.isCallback = true;
-                                    }
-                                }
-                            }
-                        }
-                        resultBindings[propName].push(temp);
-                    }
-                }
-                else {
-                    this.result.diagnostics.push(createErrorTsPos(this.document, "The variable " + propName + " must be a property or a watch for bindings", field.nameStart, field.nameEnd, AventusErrorCode.MissingWatchable));
-                }
-            }
-            else if (localVars.includes(propName)) {
-                for (let binding of bindings[propName]) {
-                    let temp: ActionBindings = {
-                        id: binding.id,
-                        valueName: binding.valueName,
-                        eventNames: binding.eventNames,
-                        path: binding.path
-                    }
-                    if (binding.eventNames.length == 1 && binding.tagName) {
-                        let definition = this.build.getWebComponentDefinition(binding.tagName);
-                        let eventName = binding.eventNames[0];
-                        if (definition) {
-                            if (definition.class.properties[eventName]) {
-                                let type = definition.class.properties[eventName].type.value
-                                if (ListCallbacks.includes(type)) {
-                                    temp.isCallback = true;
-                                }
-                            }
-                        }
-                    }
-                    resultBindings[propName].push(temp);
-                }
-            }
-            else {
-                let errorTxt = "Missing property or watch #" + propName + " for bindings";
-                this.result.diagnostics.push(createErrorTsSection(this.document, errorTxt, "props", AventusErrorCode.MissingProp));
-                if (this.htmlFile) {
-                    for (let binding of bindings[propName]) {
-                        if (binding.position) {
-                            this.htmlFile.tsErrors.push(createErrorHTMLPos(this.htmlFile.file.document, errorTxt, binding.position.start, binding.position.end));
-                        }
-                    }
-                }
-            }
-        }
-        if (Object.keys(resultBindings).length > 0) {
-            finalViewResult.bindings = resultBindings;
-        }
-        //#endregion
-
-        //#region events
-        let resultEvents: ActionEvent[] = [];
-        for (let event of template.events) {
-            if (this.methodsName.includes(event.fct)) {
-                let temp: ActionEvent = {
-                    eventName: event.eventName,
-                    id: event.id,
-                    fct: `@_@(e, c) => c.component.${event.fct}(e)@_@`,
-                }
-                if (event.tagName) {
-                    let definition = this.build.getWebComponentDefinition(event.tagName);
-                    let eventName = event.eventName;
-                    if (definition) {
-                        if (definition.class.properties[eventName]) {
-                            let type = definition.class.properties[eventName].type.value
-                            if (ListCallbacks.includes(type)) {
-                                temp.isCallback = true;
-                                temp.fct = `@_@(c, ...args) => c.component.${event.fct}.apply(c.component, args)@_@`;
-                            }
-                        }
-                    }
-                }
-                resultEvents.push(temp);
-            }
-            else if (event.position) {
-                this.createMissingMethod(event.fct, event.position.start, event.position.end);
-            }
-        }
-        if (resultEvents.length > 0) {
-            finalViewResult.events = resultEvents;
-        }
-        //#endregion
-
-        //#region pressEvents
-        let resultPressEvents: ActionPressEvent[] = [];
-        let fcts = [
-            pressEventMap['@dblpress'],
-            pressEventMap['@drag'],
-            pressEventMap['@drag-end'],
-            pressEventMap['@drag-start'],
-            pressEventMap['@longpress'],
-            pressEventMap['@press'],
-            pressEventMap['@press-start'],
-            pressEventMap['@press-stop'],
-        ];
-        let props = [
-            pressEventMap['@dblpress-delay'],
-            pressEventMap['@longpress-delay'],
-        ]
-        for (let pressEvent of template.pressEvents) {
-            let tempPressEvent: ActionPressEvent = {
-                id: pressEvent.id
-            };
-            for (let key in pressEvent) {
-                let currentEvent = pressEvent[key];
-                if (currentEvent instanceof Object) {
-                    if (fcts.includes(key)) {
-                        if (!this.methodsName.includes(currentEvent.value)) {
-                            this.createMissingMethod(currentEvent.value, currentEvent.start, currentEvent.end);
-                        }
-                        else {
-                            tempPressEvent[key] = `@_@(e, pressInstance, c) => { c.component.${currentEvent.value}(e, pressInstance); }@_@`;
-                        }
-                    }
-                    else if (props.includes(key)) {
-                        tempPressEvent[key] = `@_@${currentEvent.value}@_@`
-                    }
-                }
-
-            }
-            resultPressEvents.push(tempPressEvent)
-        }
-        if (resultPressEvents.length > 0) {
-            finalViewResult.pressEvents = resultPressEvents;
-        }
-        //#endregion
-
-        if (Object.keys(finalViewResult).length > 0) {
-            let finalViewResultTxt = JSON.stringify(finalViewResult, null, 2).replace(/"@_@(.*?)@_@"/g, "$1").replace(/\\"/g, '"')
-            if (isMain) {
-                finalTxt = `this.__getStatic().__template.setActions(${finalViewResultTxt});` + EOL;
-                let globalVars = this.htmlParsed?.getVariables()?.globalVars;
-                if (globalVars && globalVars.length > 0) {
-                    finalTxt += `this.__getStatic().__template.setSchema({globals:${JSON.stringify(globalVars)}});` + EOL;
-                }
-            }
-            else if (loopInfo) {
-                finalTxt = `const templ${loopInfo.loopId} = new Aventus.WebComponentTemplate(this);` + EOL;
-                finalTxt += `templ${loopInfo.loopId}.setTemplate(\`${loopInfo.template}\`);` + EOL;
-                finalTxt += `templ${loopInfo.loopId}.setActions(${finalViewResultTxt});` + EOL;
-                if (!loopInfo.loopParentId) {
-                    finalTxt += `this.__getStatic().__template.addLoop({
-                        anchorId: '${loopInfo.anchorId}',
-                        data: '${loopInfo.from}',
-                        index: '${loopInfo.index}',
-                        item: '${loopInfo.item}',
-                        template: templ${loopInfo.loopId}
-                    });`+ EOL;
-                }
-                else {
-                    finalTxt += `templ${loopInfo.loopParentId}.addLoop({
-                        anchorId: '${loopInfo.anchorId}',
-                        data: '${loopInfo.from}',
-                        index: '${loopInfo.index}',
-                        item: '${loopInfo.item}',
-                        template: templ${loopInfo.loopId}
-                    });`+ EOL;
-                }
-            }
-        }
-        else if (isMain) {
-            let globalVars = this.htmlParsed?.getVariables()?.globalVars;
-            if (globalVars && globalVars.length > 0) {
-                finalTxt += `this.__getStatic().__template.setSchema({globals:${JSON.stringify(globalVars)}});` + EOL;
-            }
-        }
-
-        for (let loop of template.loops) {
-            let newLocal = [...localVars];
-            newLocal.push(loop.item);
-            newLocal.push(loop.index);
-            let fromName = loop.from.split(".")[0]
-            if (!localVars.includes(fromName)) {
-                let field = this.allFields[fromName];
-                if (!field) {
-                    let errorTxt = "Missing watch #" + fromName + " for loop";
-                    this.result.diagnostics.push(createErrorTsSection(this.document, errorTxt, "props", AventusErrorCode.MissingProp));
-                    if (this.htmlFile) {
-                        if (loop.positionFrom) {
-                            this.htmlFile.tsErrors.push(createErrorHTMLPos(this.htmlFile.file.document, errorTxt, loop.positionFrom.start, loop.positionFrom.end));
-                        }
-                    }
-                }
-                else if (field.propType != "Watch") {
-                    this.result.diagnostics.push(createErrorTsPos(this.document, "The variable " + fromName + " must be a watch for loop", field.nameStart, field.nameEnd, AventusErrorCode.MissingWatchable));
-                }
-            }
-            finalTxt += this.writeViewInfo(loop.actions, false, newLocal, loop);
-        }
-
-        if (isMain) {
-            if (finalTxt.length > 0) {
-                finalTxt = `__registerTemplateAction() { super.__registerTemplateAction();${EOL}${finalTxt} }`;
-            }
-            this.writeFileReplaceVar("templateAction", finalTxt);
-            this.writeFileReplaceVar("variablesInViewDynamic", this.variablesInViewDynamic);
-        }
-        else if (finalTxt.length > 0) {
-            finalTxt += EOL;
-        }
-
-        return finalTxt;
-    }
-
-    //#region utils
-    private createHtmlDoc(field: CustomFieldModel, type: TypeInfo) {
-        if (this.htmlDoc) {
-            let definedValues: {
-                name: string;
-                description: string;
-            }[] = [];
-            let realType: CustomTypeAttribute = "string";
-            if (type.kind == "literal") {
-                let value = type.value;
-                if (value.startsWith("'") || value.startsWith('"')) {
-                    value = value.substring(1);
-                }
-                if (value.endsWith("'") || value.endsWith('"')) {
-                    value = value.substring(0, value.length - 1);
-                }
-                definedValues.push({
-                    name: value,
-                    description: ""
-                });
-
-            }
-            else if (type.kind == "union") {
-                for (let nested of type.nested) {
-                    let value = nested.value;
-                    if (value.startsWith("'") || value.startsWith('"')) {
-                        value = value.substring(1);
-                    }
-                    if (value.endsWith("'") || value.endsWith('"')) {
-                        value = value.substring(0, value.length - 1);
-                    }
-                    definedValues.push({
-                        name: value,
-                        description: ""
-                    });
-                }
-            }
-            else if (type.kind == "boolean") {
-                realType = "boolean";
-            }
-            else if (type.kind == "number") {
-                realType = "number";
-            }
-            else if (type.kind == "type" && type.value == "Date") {
-                realType = "Date";
-            }
-            else if (type.kind == "type" && type.value == "DateTime") {
-                realType = "DateTime";
-            }
-            this.htmlDoc[this.tagName].attributes[field.name] = {
-                name: field.name,
-                description: field.documentation.join(EOL),
-                type: realType,
-                values: definedValues
-            }
-        }
-    }
-    private writeFileReplaceVar(variable: string, value: string | number) {
-        let regex = new RegExp("\\$" + variable + "\\$", "g");
-        this.template = this.template.replace(regex, value + "");
-    }
-    private createMissingMethod(methodName: string, start: number, end: number) {
-        if (!this.htmlParsed) {
-            return
-        }
-        if (this.result.missingMethods.position == -1) {
-            let startPos = getSectionStart(this.file, "methods");
-            this.result.missingMethods.position = startPos;
-        }
-        let errorTxt = "missing method " + methodName;
-        if (this.result.missingMethods.position != -1) {
-            if (!this.result.missingMethods.elements.includes(methodName)) {
-                this.result.missingMethods.elements.push(methodName);
-                this.result.diagnostics.push(createErrorTsSection(this.document, errorTxt, "methods", AventusErrorCode.MissingMethod))
-            }
-        }
-        else {
-            this.result.diagnostics.push(createErrorTsSection(this.document, errorTxt, "methods", AventusErrorCode.MissingMethod))
-        }
-        if (this.htmlFile) {
-            this.htmlFile.tsErrors.push(createErrorHTMLPos(this.htmlFile.file.document, errorTxt, start, end));
-        }
-    }
-    private createMissingViewElement(element: ActionElement) {
-        let typesToWrite: string[] = []
-        for (let tag in element.tags) {
-            let type = this.build.htmlLanguageService.getClassByTag(tag);
-            let finalType = "";
-            if (type) {
-                finalType = type;
-            }
-            else {
-                let type = this.build.htmlLanguageService.getGenericHTML(tag);
-                if (type) {
-                    finalType = type;
-                }
-                else {
-                    finalType = "HTMLElement";
-                }
-            }
-            if (element.tags[tag] > 1) {
-                finalType += '[]'
-            }
-            typesToWrite.push(finalType);
-        }
-
-        let finalTypeTxt = "";
-        if (typesToWrite.length == 1) {
-            finalTypeTxt = typesToWrite[0];
-        }
-        else if (typesToWrite.length > 1) {
-            for (let i = 0; i < typesToWrite.length; i++) {
-                typesToWrite[i] = typesToWrite[i].replace("[]", "");
-            }
-            finalTypeTxt = "(" + typesToWrite.join(" | ") + ")[]";
-        }
-        let errorTxt = "Missing variable view element" + element.name;
-        this.result.missingViewElements.elements[element.name] = finalTypeTxt;
-        this.result.diagnostics.push(createErrorTsSection(this.document, errorTxt, "variables", AventusErrorCode.MissingViewElement));
-
-        if (this.htmlFile) {
-            for (let position of element.positions) {
-                this.htmlFile.tsErrors.push(createErrorHTMLPos(this.htmlFile.file.document, errorTxt, position.start, position.end));
-            }
-        }
-    }
-    private createUnusedViewElement(field: CustomFieldModel) {
-        let name = field.name;
-        if (this.overrideViewDecorator) {
-            if (this.overrideViewDecorator.removeViewVariables.indexOf(name) == -1) {
-                this.result.diagnostics.push(
-                    createErrorTsPos(
-                        this.document,
-                        "Can't find the variable " + name + " inside the view",
-                        field.nameStart,
-                        field.nameEnd, AventusErrorCode.viewElementNotFound,
-                        { start: field.start, end: field.end }
-                    )
-                );
-            }
-        }
-        else {
-            this.result.diagnostics.push(createErrorTsPos(
-                this.document,
-                "Can't find the variable " + name + " inside the view",
-                field.nameStart,
-                field.nameEnd, AventusErrorCode.viewElementNotFound,
-                { start: field.start, end: field.end }
-            ));
-        }
-    }
-    //#endregion
-
-    //#endregion
-
     private writeFileMethods() {
         let tempStateList: {
             [statePattern: string]: {
@@ -1575,10 +849,17 @@ this.clearWatchHistory = () => {
             let fullTxt = ""
             for (let methodName in this.classInfo.methods) {
                 let method = this.classInfo.methods[methodName];
+                if (!method.mustBeCompiled) continue;
                 fullTxt += method.compiledContent + EOL;
                 for (let decorator of method.decorators) {
                     if (BindThisDecorator.is(decorator)) {
                         this.extraConstructorCode.push(`this.${methodName}=this.${methodName}.bind(this)`);
+                        continue;
+                    }
+
+                    let effectDecorator = EffectDecorator.is(decorator);
+                    if (effectDecorator) {
+                        this.watchFunctions[methodName] = effectDecorator.options;
                         continue;
                     }
 
@@ -1668,6 +949,499 @@ this.clearWatchHistory = () => {
         }
         this.writeFileReplaceVar("states", statesTxt)
     }
+
+    private variablesInViewDynamic = "";
+    private writeViewInfo(template: HtmlTemplateResult, isMain: boolean, loopInfo?: ActionLoop, ifInfo?: ActionIfPart) {
+        const finalViewResult: any = {};
+        let finalTxt = "";
+
+        //#region elements
+        let elements = template.elements;
+        let resultElements: { name: string, ids: string[], isArray?: boolean }[] = []
+        for (let element of elements) {
+            let fieldName = element.name;
+            if (this.allFields[fieldName]) {
+                let field = this.allFields[fieldName];
+                if (field.propType == "ViewElement") {
+                    element.useLive = isMain ? false : true
+                    for (let decorator of field.decorators) {
+                        let viewElTemp = ViewElementDecorator.is(decorator);
+                        if (viewElTemp && viewElTemp.useLive !== undefined) {
+                            element.useLive = viewElTemp.useLive;
+                            break;
+                        }
+                    }
+
+                    if (element.useLive) {
+                        let querySelectorTxt = element.ids.map(id => `[_id="${id}"]`).join("|");
+                        if (field.type.isArray || element.isArray) {
+                            this.variablesInViewDynamic += `get ${fieldName} () { var list = Array.from(this.shadowRoot.querySelectorAll('${querySelectorTxt}')); return list; }` + EOL;
+                        }
+                        else {
+                            this.variablesInViewDynamic += `get ${fieldName} () { return this.shadowRoot.querySelector('${querySelectorTxt}'); }` + EOL;
+                        }
+                    }
+                    else {
+                        if (element.isArray) {
+                            resultElements.push({
+                                name: element.name,
+                                ids: element.ids,
+                                isArray: true
+                            })
+                        }
+                        else {
+                            resultElements.push({
+                                name: element.name,
+                                ids: element.ids,
+                            })
+                        }
+                    }
+                }
+                else {
+                    this.result.diagnostics.push(createErrorTsPos(this.document, "You must add the decorator @ViewElement for " + fieldName, field.nameStart, field.nameEnd, AventusErrorCode.MissingViewElement));
+                }
+                delete this.viewsElements[fieldName];
+            }
+            else {
+                this.createMissingViewElement(element);
+            }
+
+
+        }
+        if (resultElements.length > 0) {
+            finalViewResult.elements = resultElements;
+        }
+        //#endregion
+
+        //#region content
+        let contents = template.content;
+        let contentResult: { [id_attr: string]: { fct: string, once?: boolean } } = {}
+        for (let key in contents) {
+            contentResult[key] = {
+                fct: `@_@${contents[key].fct}@_@`
+            }
+            if (contents[key].once) {
+                contentResult[key].once = true;
+            }
+        }
+        if (Object.keys(contentResult).length > 0) {
+            finalViewResult.content = contentResult;
+        }
+        //#endregion
+
+        //#region injection
+        if (template.injection.length > 0) {
+            finalViewResult.injection = template.injection;
+        }
+        //#endregion
+
+        //#region bindings
+        let bindings = template.bindings;
+        let resultBindings: ActionBindings[] = []
+        for (let binding of bindings) {
+            let temp: ActionBindings = {
+                id: binding.id,
+                injectionName: binding.injectionName,
+                eventNames: binding.eventNames,
+                inject: binding.inject,
+                extract: binding.extract
+            }
+            if (binding.once) {
+                temp.once = binding.once;
+            }
+            if (binding.eventNames.length == 1 && binding.tagName) {
+                let definition = this.build.getWebComponentDefinition(binding.tagName);
+                let eventName = binding.eventNames[0];
+                if (definition) {
+                    if (definition.class.properties[eventName]) {
+                        let type = definition.class.properties[eventName].type.value;
+                        if (ListCallbacks.includes(type)) {
+                            temp.isCallback = true;
+                        }
+                    }
+                }
+            }
+            resultBindings.push(temp);
+        }
+        if (resultBindings.length > 0) {
+            finalViewResult.bindings = resultBindings;
+        }
+        //#endregion
+
+        //#region events
+        let resultEvents: ActionEvent[] = [];
+        for (let event of template.events) {
+            if (this.methodsName.includes(event.fct)) {
+                let temp: ActionEvent = {
+                    eventName: event.eventName,
+                    id: event.id,
+                    fct: `@_@(e, c) => c.comp.${event.fct}(e)@_@`,
+                }
+                if (event.tagName) {
+                    let definition = this.build.getWebComponentDefinition(event.tagName);
+                    let eventName = event.eventName;
+                    if (definition) {
+                        if (definition.class.properties[eventName]) {
+                            let type = definition.class.properties[eventName].type.value
+                            if (ListCallbacks.includes(type)) {
+                                temp.isCallback = true;
+                                temp.fct = `@_@(c, ...args) => c.comp.${event.fct}.apply(c.comp, args)@_@`;
+                            }
+                        }
+                    }
+                }
+                resultEvents.push(temp);
+            }
+            else if (event.position) {
+                this.createMissingMethod(event.fct, event.position.start, event.position.end);
+            }
+        }
+        if (resultEvents.length > 0) {
+            finalViewResult.events = resultEvents;
+        }
+        //#endregion
+
+        //#region pressEvents
+        let resultPressEvents: ActionPressEvent[] = [];
+        let fcts = [
+            pressEventMap['@dblpress'],
+            pressEventMap['@drag'],
+            pressEventMap['@drag-end'],
+            pressEventMap['@drag-start'],
+            pressEventMap['@longpress'],
+            pressEventMap['@press'],
+            pressEventMap['@press-start'],
+            pressEventMap['@press-stop'],
+        ];
+        let props = [
+            pressEventMap['@dblpress-delay'],
+            pressEventMap['@longpress-delay'],
+        ]
+        for (let pressEvent of template.pressEvents) {
+            let tempPressEvent: ActionPressEvent = {
+                id: pressEvent.id
+            };
+            for (let key in pressEvent) {
+                let currentEvent = pressEvent[key];
+                if (currentEvent instanceof Object) {
+                    if (fcts.includes(key)) {
+                        if (!this.methodsName.includes(currentEvent.value)) {
+                            this.createMissingMethod(currentEvent.value, currentEvent.start, currentEvent.end);
+                        }
+                        else {
+                            tempPressEvent[key] = `@_@(e, pressInstance, c) => { c.comp.${currentEvent.value}(e, pressInstance); }@_@`;
+                        }
+                    }
+                    else if (props.includes(key)) {
+                        tempPressEvent[key] = `@_@${currentEvent.value}@_@`
+                    }
+                }
+
+            }
+            resultPressEvents.push(tempPressEvent)
+        }
+        if (resultPressEvents.length > 0) {
+            finalViewResult.pressEvents = resultPressEvents;
+        }
+        //#endregion
+
+        //#region contextEdit
+        if (template.contextEdits.length > 0) {
+            finalViewResult.contextEdits = template.contextEdits;
+        }
+        //#endregion
+
+
+        if (Object.keys(finalViewResult).length > 0 || loopInfo || ifInfo) {
+            let finalViewResultTxt = JSON.stringify(finalViewResult, null, 2).replace(/"@_@(.*?)@_@"/g, "$1").replace(/\\"/g, '"')
+            if (isMain) {
+                finalTxt = `this.__getStatic().__template.setActions(${finalViewResultTxt});` + EOL;
+            }
+            else if (loopInfo) {
+                finalTxt = `const templ${loopInfo.templateId} = new Aventus.Template(this);` + EOL;
+                finalTxt += `templ${loopInfo.templateId}.setTemplate(\`${loopInfo.template}\`);` + EOL;
+                if (Object.keys(finalViewResult).length > 0)
+                    finalTxt += `templ${loopInfo.templateId}.setActions(${finalViewResultTxt});` + EOL;
+                const parent = loopInfo.parentId === undefined ? 'this.__getStatic().__template' : `templ${loopInfo.parentId}`
+                finalTxt += `${parent}.addLoop({
+                    anchorId: '${loopInfo.anchorId}',
+                    template: templ${loopInfo.templateId},
+                `;
+                if (loopInfo.simple) {
+                    finalTxt += `simple:{data: "${loopInfo.simple.data}"`;
+                    if (loopInfo.simple.index) {
+                        finalTxt += `,index:"${loopInfo.simple.index}"`;
+                    }
+                    if (loopInfo.simple.item) {
+                        finalTxt += `,item:"${loopInfo.simple.item}"`;
+                    }
+                    finalTxt += `}` + EOL;
+                }
+                else {
+                    finalTxt += `func: ${loopInfo.func}` + EOL
+                }
+                finalTxt += `});` + EOL;
+            }
+            else if (ifInfo) {
+                finalTxt = `const templ${ifInfo.templateId} = new Aventus.Template(this);` + EOL;
+                finalTxt += `templ${ifInfo.templateId}.setTemplate(\`${ifInfo.template}\`);` + EOL;
+                if (Object.keys(finalViewResult).length > 0)
+                    finalTxt += `templ${ifInfo.templateId}.setActions(${finalViewResultTxt});` + EOL;
+            }
+        }
+
+        for (let loop of template.loops) {
+            finalTxt += this.writeViewInfo(loop.actions, false, loop);
+        }
+        for (let _if of template.ifs) {
+            let partTxt = "";
+            for (let part of _if.parts) {
+                finalTxt += this.writeViewInfo(part.templateAction, false, undefined, part);
+                let once = part.once ? 'once: true,' : ''
+                partTxt += `{${once}
+                    condition: ${part.condition},
+                    template: templ${part.templateId}
+                },`
+            }
+
+            if (partTxt.length > 0) {
+                partTxt = partTxt.slice(0, partTxt.length - 1);
+            }
+            const parent = _if.parentId === undefined ? 'this.__getStatic().__template' : `templ${_if.parentId}`
+            finalTxt += `${parent}.addIf({
+                    anchorId: '${_if.anchorId}',
+                    parts: [${partTxt}]
+            })`;
+        }
+
+        if (isMain) {
+            if (finalTxt.length > 0) {
+                finalTxt = `__registerTemplateAction() { super.__registerTemplateAction();${EOL}${finalTxt} }`;
+            }
+            this.writeFileReplaceVar("templateAction", finalTxt);
+            this.writeFileReplaceVar("variablesInViewDynamic", this.variablesInViewDynamic);
+        }
+        else if (finalTxt.length > 0) {
+            finalTxt += EOL;
+        }
+
+        return finalTxt;
+    }
+
+    private watchProperties: { [name: string]: string } = {}
+    private watchFunctions: { [name: string]: EffectDecoratorOption } = {}
+    private writeWatchableElements() {
+        let variableProxyTxt = "";
+
+        for (let prop in this.watchProperties) {
+            if (this.watchProperties[prop]) {
+                variableProxyTxt += `this.__addWatchesActions("${prop}", ${this.watchProperties[prop]});` + EOL
+            }
+            else {
+                variableProxyTxt += `this.__addWatchesActions("${prop}");` + EOL
+            }
+        }
+
+        if (Object.keys(this.watchFunctions).length > 0) {
+            let functionList: string[] = [];
+            for (let name in this.watchFunctions) {
+                if (this.watchFunctions[name].autoInit) {
+                    functionList.push(`{ name: "${name}", autoInit: true }`)
+                }
+                else {
+                    functionList.push(`"${name}"`);
+                }
+            }
+            variableProxyTxt += `this.__addWatchesFunctions([${EOL}${functionList.join(",\n")}${EOL}]);` + EOL;
+        }
+
+
+
+        let debugWatchTxt = '';
+        if (this.debuggerDecorator?.enableWatchHistory) {
+            debugWatchTxt = `if(this.__watch){
+this.__watch.enableHistory();
+this.getWatchHistory = () => {
+    return this.__watch.getHistory();
+}
+this.clearWatchHistory = () => {
+    return this.__watch.clearHistory();
+}
+}`
+        }
+        if (variableProxyTxt.length > 0) {
+            variableProxyTxt = `__registerWatchesActions() {
+    ${variableProxyTxt}
+    super.__registerWatchesActions();
+    ${debugWatchTxt}
+}`
+        }
+        else if (debugWatchTxt.length > 0) {
+            variableProxyTxt = `__registerWatchesActions() {
+    super.__registerWatchesActions();
+    ${debugWatchTxt}
+}`
+        }
+
+        this.writeFileReplaceVar("watchesChangeCb", variableProxyTxt);
+    }
+
+    //#region utils
+    private createHtmlDoc(field: CustomFieldModel, type: TypeInfo) {
+        if (this.htmlDoc) {
+            let definedValues: {
+                name: string;
+                description: string;
+            }[] = [];
+            let realType: CustomTypeAttribute = "string";
+            if (type.kind == "literal") {
+                let value = type.value;
+                if (value.startsWith("'") || value.startsWith('"')) {
+                    value = value.substring(1);
+                }
+                if (value.endsWith("'") || value.endsWith('"')) {
+                    value = value.substring(0, value.length - 1);
+                }
+                definedValues.push({
+                    name: value,
+                    description: ""
+                });
+
+            }
+            else if (type.kind == "union") {
+                for (let nested of type.nested) {
+                    let value = nested.value;
+                    if (value.startsWith("'") || value.startsWith('"')) {
+                        value = value.substring(1);
+                    }
+                    if (value.endsWith("'") || value.endsWith('"')) {
+                        value = value.substring(0, value.length - 1);
+                    }
+                    definedValues.push({
+                        name: value,
+                        description: ""
+                    });
+                }
+            }
+            else if (type.kind == "boolean") {
+                realType = "boolean";
+            }
+            else if (type.kind == "number") {
+                realType = "number";
+            }
+            else if (type.kind == "type" && type.value == "Date") {
+                realType = "Date";
+            }
+            else if (type.kind == "type" && type.value == "DateTime") {
+                realType = "DateTime";
+            }
+            this.htmlDoc[this.tagName].attributes[field.name] = {
+                name: field.name,
+                description: field.documentation.join(EOL),
+                type: realType,
+                values: definedValues
+            }
+        }
+    }
+    private writeFileReplaceVar(variable: string, value: string | number) {
+        let regex = new RegExp("\\$" + variable + "\\$", "g");
+        this.template = this.template.replace(regex, value + "");
+    }
+    private createMissingMethod(methodName: string, start: number, end: number) {
+        if (!this.htmlParsed) {
+            return
+        }
+        if (this.result.missingMethods.position == -1) {
+            let startPos = getSectionStart(this.file, "methods");
+            this.result.missingMethods.position = startPos;
+        }
+        let errorTxt = "missing method " + methodName;
+        if (this.result.missingMethods.position != -1) {
+            if (!this.result.missingMethods.elements.includes(methodName)) {
+                this.result.missingMethods.elements.push(methodName);
+                this.result.diagnostics.push(createErrorTsSection(this.document, errorTxt, "methods", AventusErrorCode.MissingMethod))
+            }
+        }
+        else {
+            this.result.diagnostics.push(createErrorTsSection(this.document, errorTxt, "methods", AventusErrorCode.MissingMethod))
+        }
+        if (this.htmlFile) {
+            this.htmlFile.tsErrors.push(createErrorHTMLPos(this.htmlFile.file.documentUser, errorTxt, start, end));
+        }
+    }
+    private createMissingViewElement(element: ActionElement) {
+        let typesToWrite: string[] = []
+        for (let tag in element.tags) {
+            let type = this.build.htmlLanguageService.getClassByTag(tag);
+            let finalType = "";
+            if (type) {
+                finalType = type;
+            }
+            else {
+                let type = this.build.htmlLanguageService.getGenericHTML(tag);
+                if (type) {
+                    finalType = type;
+                }
+                else {
+                    finalType = "HTMLElement";
+                }
+            }
+            if (element.tags[tag] > 1) {
+                finalType += '[]'
+            }
+            typesToWrite.push(finalType);
+        }
+
+        let finalTypeTxt = "";
+        if (typesToWrite.length == 1) {
+            finalTypeTxt = typesToWrite[0];
+        }
+        else if (typesToWrite.length > 1) {
+            for (let i = 0; i < typesToWrite.length; i++) {
+                typesToWrite[i] = typesToWrite[i].replace("[]", "");
+            }
+            finalTypeTxt = "(" + typesToWrite.join(" | ") + ")[]";
+        }
+        let errorTxt = "Missing variable view element" + element.name;
+        this.result.missingViewElements.elements[element.name] = finalTypeTxt;
+        this.result.diagnostics.push(createErrorTsSection(this.document, errorTxt, "variables", AventusErrorCode.MissingViewElement));
+
+        if (this.htmlFile) {
+            for (let position of element.positions) {
+                this.htmlFile.tsErrors.push(createErrorHTMLPos(this.htmlFile.file.documentUser, errorTxt, position.start, position.end));
+            }
+        }
+    }
+    private createUnusedViewElement(field: CustomFieldModel) {
+        let name = field.name;
+        if (this.overrideViewDecorator) {
+            if (this.overrideViewDecorator.removeViewVariables.indexOf(name) == -1) {
+                this.result.diagnostics.push(
+                    createErrorTsPos(
+                        this.document,
+                        "Can't find the variable " + name + " inside the view",
+                        field.nameStart,
+                        field.nameEnd, AventusErrorCode.viewElementNotFound,
+                        { start: field.start, end: field.end }
+                    )
+                );
+            }
+        }
+        else {
+            this.result.diagnostics.push(createErrorTsPos(
+                this.document,
+                "Can't find the variable " + name + " inside the view",
+                field.nameStart,
+                field.nameEnd, AventusErrorCode.viewElementNotFound,
+                { start: field.start, end: field.end }
+            ));
+        }
+    }
+    //#endregion
+
+    //#endregion
+
+
 
     //#endregion
 

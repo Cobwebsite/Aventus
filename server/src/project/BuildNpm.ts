@@ -249,7 +249,7 @@ export class NpmBuilder {
 			}
 		} catch (e) {
 			let uri = this.build.fullname + "_npmErrors";
-			DebugFileAdd.send(uri, e + "");
+			DebugFileAdd.send(uri, (e + "").replace(/\0/g, ""));
 			response.errors.push({
 				title: "Npm compilation errors",
 				file: uri

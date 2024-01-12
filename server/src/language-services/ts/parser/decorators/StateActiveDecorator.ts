@@ -35,7 +35,7 @@ export class StateParser {
 			let stateName = decorator.arguments[0].value;
 			if (decorator.arguments[0].type == "identifier") {
 				let splitted = decorator.arguments[0].value.split(".");
-				const remplacement = decorator.baseInfo.dependancesLocations[splitted[0]]?.replacement;
+				const remplacement = decorator.baseInfo?.dependancesLocations[splitted[0]]?.replacement;
 				if (remplacement) {
 					splitted[0] = remplacement;
 				}
@@ -45,7 +45,7 @@ export class StateParser {
 
 			if (decorator.arguments.length > 1) {
 				let managerName = decorator.arguments[1].value;
-				const remplacement = decorator.baseInfo.dependancesLocations[managerName]?.replacement;
+				const remplacement = decorator.baseInfo?.dependancesLocations[managerName]?.replacement;
 				if (remplacement) {
 					managerName = remplacement;
 				}

@@ -1,25 +1,23 @@
 import { EOL } from 'os';
 import { normalize, sep } from 'path';
-import { CodeFixAction, CompilerOptions, CompletionInfo, createLanguageService, Diagnostic as DiagnosticTs, displayPartsToString, Extension, flattenDiagnosticMessageText, FormatCodeSettings, GetCompletionsAtPositionOptions, ImportsNotUsedAsValues, IndentStyle, JsxEmit, LanguageService, LanguageServiceHost, ModuleDetectionKind, ModuleResolutionKind, RenameInfo, ResolvedModule, ResolvedModuleFull, resolveModuleName, ScriptKind, ScriptTarget, SemicolonPreference, transpile, WithMetadata } from 'typescript';
+import { CodeFixAction, CompilerOptions, CompletionInfo, createLanguageService, Diagnostic as DiagnosticTs, displayPartsToString, Extension, flattenDiagnosticMessageText, FormatCodeSettings, GetCompletionsAtPositionOptions, IndentStyle, JsxEmit, LanguageService, LanguageServiceHost, ModuleDetectionKind, ModuleResolutionKind, RenameInfo, ResolvedModule, ResolvedModuleFull, resolveModuleName, ScriptKind, ScriptTarget, SemicolonPreference, transpile, WithMetadata, UserPreferences, getTokenAtPosition } from 'typescript';
 import { CodeAction, CodeLens, CompletionItem, CompletionItemKind, CompletionList, Definition, Diagnostic, DiagnosticSeverity, DiagnosticTag, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver';
 import { AventusExtension, AventusLanguageId } from '../../definition';
-import { AventusFile, InternalAventusFile } from '../../files/AventusFile';
+import { AventusFile } from '../../files/AventusFile';
 import { Build } from '../../project/Build';
-import { Debug, convertRange, uriToPath } from '../../tools';
+import { convertRange, getWordAtText, uriToPath } from '../../tools';
 import { AventusTsFile } from './File';
 import { loadLibrary, loadTypescriptLib } from './libLoader';
 import { BaseInfo, InfoType } from './parser/BaseInfo';
 import { ClassInfo } from './parser/ClassInfo';
-import { DecoratorInfo } from './parser/DecoratorInfo';
 import { DebuggerDecorator } from './parser/decorators/DebuggerDecorator';
 import { RequiredDecorator } from './parser/decorators/RequiredDecorator';
 import { DefinitionCorrector } from './parser/DefinitionCorrector';
 import { TypeInfo } from './parser/TypeInfo';
 import { ForeignKeyDecorator } from './parser/decorators/ForeignKeyDecorator';
 import { ParserTs } from './parser/ParserTs';
-import { existsSync, writeFileSync } from 'fs';
+import { existsSync } from 'fs';
 import { FilesManager } from '../../files/FilesManager';
-import { EditFile } from '../../notification/EditFile';
 import { VariableInfo } from './parser/VariableInfo';
 import { BindThisDecorator } from './parser/decorators/BindThisDecorator';
 import { EnumInfo } from './parser/EnumInfo';
@@ -52,16 +50,19 @@ export class AventusTsLanguageService {
             },
             getScriptVersion: (fileName: string) => {
                 if (this.filesLoaded[fileName]) {
-                    return String(this.filesLoaded[fileName].file.version);
+                    return String(this.filesLoaded[fileName].file.versionUser + 1);
                 }
                 return '1';
             },
             getScriptSnapshot: (fileName: string) => {
-                let text = '';
+                let text: string | undefined = '';
                 if (this.filesLoaded[fileName]) {
-                    text = this.filesLoaded[fileName].file.content;
+                    text = this.filesLoaded[fileName].file.contentInternal;
                 } else {
                     text = loadLibrary(fileName);
+                }
+                if (text === undefined) {
+                    return undefined;
                 }
                 return {
                     getText: (start, end) => text?.substring(start, end) || '',
@@ -73,7 +74,7 @@ export class AventusTsLanguageService {
             getDefaultLibFileName: (_options: CompilerOptions) => 'es2022.full',
             readFile: (fileName: string, _encoding?: string | undefined): string | undefined => {
                 if (this.filesLoaded[fileName]) {
-                    return this.filesLoaded[fileName].file.content;
+                    return this.filesLoaded[fileName].file.contentInternal;
                 } else {
                     return loadLibrary(fileName);
                 }
@@ -130,16 +131,19 @@ export class AventusTsLanguageService {
             },
             getScriptVersion: (fileName: string) => {
                 if (this.filesLoaded[fileName]) {
-                    return String(this.filesLoaded[fileName].file.version);
+                    return String(this.filesLoaded[fileName].version + 1);
                 }
                 return '1';
             },
             getScriptSnapshot: (fileName: string) => {
-                let text = '';
+                let text: string | undefined = '';
                 if (this.filesLoaded[fileName]) {
                     text = this.filesLoaded[fileName].contentForLanguageService;
                 } else {
                     text = loadLibrary(fileName);
+                }
+                if (text === undefined) {
+                    return undefined;
                 }
                 return {
                     getText: (start, end) => text?.substring(start, end) || '',
@@ -224,7 +228,7 @@ export class AventusTsLanguageService {
                 let msg = `${flattenDiagnosticMessageText(diag.messageText, '\n')}`
                 if (diag.reportsUnnecessary) {
                     result.push({
-                        range: convertRange(file.document, diag),
+                        range: convertRange(file.documentInternal, diag),
                         severity: DiagnosticSeverity.Hint,
                         source: AventusLanguageId.TypeScript,
                         message: msg,
@@ -233,7 +237,7 @@ export class AventusTsLanguageService {
                 }
                 else {
                     result.push({
-                        range: convertRange(file.document, diag),
+                        range: convertRange(file.documentInternal, diag),
                         severity: DiagnosticSeverity.Error,
                         source: AventusLanguageId.TypeScript,
                         message: msg,
@@ -249,10 +253,10 @@ export class AventusTsLanguageService {
 
     public async doComplete(file: AventusFile, position: Position): Promise<CompletionList> {
         try {
-            let document = file.document;
+            let document = file.documentInternal;
 
             let offset = document.offsetAt(position);
-            let replaceRange = convertRange(document, getWordAtText(document.getText(), offset, JS_WORD_REGEX));
+            let replaceRange = convertRange(document, getWordAtText(document.getText(), offset));
             let completions: WithMetadata<CompletionInfo> | undefined;
             try {
                 completions = this.languageService.getCompletionsAtPosition(document.uri, offset, completionOptions);
@@ -314,7 +318,7 @@ export class AventusTsLanguageService {
                         myData.offset,
                         item.label,
                         {},
-                        tsFile.file.content,
+                        tsFile.file.contentInternal,
                         completionOptions,
                         item.data);
 
@@ -336,7 +340,7 @@ export class AventusTsLanguageService {
 
                                         item.additionalTextEdits.push({
                                             newText: txtChange.newText,
-                                            range: convertRange(tsFile.file.document, txtChange.span)
+                                            range: convertRange(tsFile.file.documentInternal, txtChange.span)
                                         });
                                     }
                                 }
@@ -355,7 +359,7 @@ export class AventusTsLanguageService {
 
     public async doHover(file: AventusFile, position: Position): Promise<Hover | null> {
         try {
-            let info = this.languageService.getQuickInfoAtPosition(file.uri, file.document.offsetAt(position));
+            let info = this.languageService.getQuickInfoAtPosition(file.uri, file.documentInternal.offsetAt(position));
             if (info) {
 
                 let textDoc: string[] = []
@@ -367,27 +371,6 @@ export class AventusTsLanguageService {
                         }
                     }
                 }
-                // if (info.tags) {
-                //     for (let tag of info.tags) {
-                //         let tagInfo: string[] = [];
-                //         if (tag.text) {
-                //             let txt = tag.text.map(t => t.text).join("");
-                //             let parts = txt.split("\n");
-                //             for (let part of parts) {
-                //                 part = part.trim();
-                //                 if (part.length > 0) {
-                //                     tagInfo.push(part);
-                //                 }
-                //             }
-                //         }
-                //         if (tagInfo.length > 1) {
-                //             textDoc.push("***" + tag.name + "*** \r\n \r\n&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;" + tagInfo.join('\r\n \r\n&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'))
-                //         }
-                //         else if (tagInfo.length == 1) {
-                //             textDoc.push("***" + tag.name + "*** - " + tagInfo[0])
-                //         }
-                //     }
-                // }
 
                 let value: string = "";
                 if (info.displayParts) {
@@ -400,7 +383,7 @@ export class AventusTsLanguageService {
 
                 value += textDoc.join(' \n');
                 return {
-                    range: convertRange(file.document, info.textSpan),
+                    range: convertRange(file.documentInternal, info.textSpan),
                     contents: {
                         kind: 'markdown',
                         value: value
@@ -413,9 +396,27 @@ export class AventusTsLanguageService {
         return null;
     }
 
+    public getType(file: AventusFile, offset: number): string | undefined {
+        try {
+            let program = this.languageService.getProgram();
+            if (!program) return undefined;
+
+            let srcFile = program.getSourceFile(file.uri);
+            if (!srcFile) return undefined;
+            let node = getTokenAtPosition(srcFile, offset);
+            let typeChecker = program.getTypeChecker()
+            let type = typeChecker.getTypeAtLocation(node);
+            let typeName = typeChecker.typeToString(type)
+            return typeName;
+        } catch (e) {
+            console.log(e);
+        }
+        return undefined;
+    }
+
     public async findDefinition(file: AventusFile, position: Position): Promise<Definition | null> {
         try {
-            let definition = this.languageService.getDefinitionAtPosition(file.uri, file.document.offsetAt(position));
+            let definition = this.languageService.getDefinitionAtPosition(file.uri, file.documentInternal.offsetAt(position));
             if (definition && definition.length > 0) {
                 let d = definition[0];
                 if (d.fileName.endsWith(".avt.ts")) {
@@ -425,7 +426,7 @@ export class AventusTsLanguageService {
                 if (realDoc) {
                     return {
                         uri: realDoc.file.uri,
-                        range: convertRange(realDoc.file.document, d.textSpan)
+                        range: convertRange(realDoc.file.documentInternal, d.textSpan)
                     };
                 }
             }
@@ -434,9 +435,9 @@ export class AventusTsLanguageService {
         }
         return null;
     }
-    public async format(file: AventusFile, range: Range, formatParams: FormattingOptions): Promise<TextEdit[]> {
+    public async format(file: AventusFile, range: Range, formatParams: FormattingOptions, semiColon: boolean = true): Promise<TextEdit[]> {
         try {
-            let document = file.document;
+            let document = file.documentInternal;
             let start = document.offsetAt(range.start);
             let end = document.offsetAt(range.end);
             let lastLineRange: null | Range = null;
@@ -445,6 +446,12 @@ export class AventusTsLanguageService {
                 lastLineRange = Range.create(Position.create(range.end.line, 0), range.end);
             }
             let options = { ...formatingOptions };
+            if (semiColon) {
+                options.semicolons = SemicolonPreference.Insert;
+            }
+            else {
+                options.semicolons = SemicolonPreference.Remove;
+            }
 
             let edits = this.languageServiceNamespace.getFormattingEditsForRange(document.uri, start, end, options);
             if (edits) {
@@ -475,7 +482,7 @@ export class AventusTsLanguageService {
         let result: CodeAction[] = [];
         try {
             let parsedFile = ParserTs.parse(file, false, this.build);
-            let document = file.document;
+            let document = file.documentInternal;
             const syntaxDiagnostics: DiagnosticTs[] = this.languageService.getSyntacticDiagnostics(document.uri);
             const semanticDiagnostics: DiagnosticTs[] = this.languageService.getSemanticDiagnostics(document.uri);
             let codes: number[] = [];
@@ -601,14 +608,14 @@ export class AventusTsLanguageService {
     public async onReferences(file: AventusFile, position: Position): Promise<Location[]> {
         let result: Location[] = []
         try {
-            let offset = file.document.offsetAt(position);
+            let offset = file.documentInternal.offsetAt(position);
             let referencedSymbols = this.languageService.findReferences(file.uri, offset);
             if (referencedSymbols) {
                 for (let referencedSymbol of referencedSymbols) {
                     for (let reference of referencedSymbol.references) {
                         if (this.filesLoaded[reference.fileName]) {
-                            let startPos = this.filesLoaded[reference.fileName].file.document.positionAt(reference.textSpan.start)
-                            let endPos = this.filesLoaded[reference.fileName].file.document.positionAt(reference.textSpan.start + reference.textSpan.length)
+                            let startPos = this.filesLoaded[reference.fileName].file.documentInternal.positionAt(reference.textSpan.start)
+                            let endPos = this.filesLoaded[reference.fileName].file.documentInternal.positionAt(reference.textSpan.start + reference.textSpan.length)
                             result.push(Location.create(reference.fileName, {
                                 start: startPos,
                                 end: endPos
@@ -630,7 +637,7 @@ export class AventusTsLanguageService {
             if (currentFile && currentFile.fileParsed) {
                 let _createCodeLens = async (instances: BaseInfo[]) => {
                     for (let instance of instances) {
-                        let startPos = file.document.positionAt(instance.start)
+                        let startPos = file.documentInternal.positionAt(instance.start)
                         let refs = await this.onReferences(file, startPos);
                         let title = refs.length > 1 ? refs.length + ' references' : refs.length + ' reference';
                         result.push({
@@ -654,7 +661,7 @@ export class AventusTsLanguageService {
 
             let propSection = getSectionStart(file, 'props');
             if (propSection != -1) {
-                let position = file.document.positionAt(propSection)
+                let position = file.documentInternal.positionAt(propSection)
                 result.push({
                     range: {
                         start: position,
@@ -674,12 +681,13 @@ export class AventusTsLanguageService {
     }
     public async onRename(file: AventusFile, position: Position, newName: string): Promise<WorkspaceEdit | null> {
         let references = this.languageService.getFileReferences(file.uri);
-        let offset: number = file.document.offsetAt(position);
-        let renameInfo: RenameInfo = this.languageService.getRenameInfo(file.uri, offset)
+        let offset: number = file.documentInternal.offsetAt(position);
+        let pref: UserPreferences = {};
+        let renameInfo: RenameInfo = this.languageService.getRenameInfo(file.uri, offset, pref)
         if (!renameInfo.canRename) {
             return null;
         }
-        let renameLocations = this.languageService.findRenameLocations(file.uri, offset, false, false);
+        let renameLocations = this.languageService.findRenameLocations(file.uri, offset, false, false, pref);
         if (!renameLocations) {
             return null;
         }
@@ -698,8 +706,8 @@ export class AventusTsLanguageService {
                     let textEdit: TextEdit = {
                         newText: newName,
                         range: {
-                            start: this.filesLoaded[renameLocation.fileName].file.document.positionAt(renameLocation.textSpan.start),
-                            end: this.filesLoaded[renameLocation.fileName].file.document.positionAt(renameLocation.textSpan.start + renameLocation.textSpan.length)
+                            start: this.filesLoaded[renameLocation.fileName].file.documentInternal.positionAt(renameLocation.textSpan.start),
+                            end: this.filesLoaded[renameLocation.fileName].file.documentInternal.positionAt(renameLocation.textSpan.start + renameLocation.textSpan.length)
                         }
                     }
                     res.changes[renameLocation.fileName].push(textEdit);
@@ -716,7 +724,6 @@ export class AventusTsLanguageService {
         for (let reference of references) {
             let file = FilesManager.getInstance().getByUri(reference.fileName);
             if (file) {
-                let oldEnd = file.document.positionAt(file.content.length);
                 let textEdits: TextEdit[] = [];
                 let splittedFile = file.folderUri.split("/");
                 let splittedNewUri = newUri.split("/");
@@ -748,8 +755,8 @@ export class AventusTsLanguageService {
                 textEdits.push({
                     newText: newTextArr.join("/"),
                     range: {
-                        start: file.document.positionAt(reference.textSpan.start),
-                        end: file.document.positionAt(reference.textSpan.start + reference.textSpan.length)
+                        start: file.documentInternal.positionAt(reference.textSpan.start),
+                        end: file.documentInternal.positionAt(reference.textSpan.start + reference.textSpan.length)
                     }
                 })
 
@@ -772,7 +779,7 @@ export class AventusTsLanguageService {
         })
         return txt;
     }
-    
+
     private static replaceFirstExport(txt: string): string {
         return txt.replace(/^\s*export\s+(class|interface|enum|type|abstract|function)/m, "$1");
     }
@@ -904,7 +911,7 @@ export class AventusTsLanguageService {
                 txt = this.addBindThis(element, txt);
             }
 
-           
+
             txt = this.removeComments(txt);
             txt = this.replaceFirstExport(txt);
 
@@ -1076,7 +1083,6 @@ export type CompileTsResult = {
     convertibleName: string
 }
 
-const JS_WORD_REGEX = /(-?\d*\.\d\w*)|([^\`\~\!\@\#\%\^\&\*\(\)\-\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\?\s]+)/g;
 
 const compilerOptionsRead: CompilerOptions = {
     allowNonTsExtensions: true,
@@ -1254,31 +1260,8 @@ function convertKind(kind: string): CompletionItemKind {
             return CompletionItemKind.Property;
     }
 }
-function isNewlineCharacter(charCode: number) {
-    return charCode === '\r'.charCodeAt(0) || charCode === '\n'.charCodeAt(0);
-}
-function getWordAtText(text: string, offset: number, wordDefinition: RegExp): { start: number; length: number } {
-    let lineStart = offset;
-    while (lineStart > 0 && !isNewlineCharacter(text.charCodeAt(lineStart - 1))) {
-        lineStart--;
-    }
-    const offsetInLine = offset - lineStart;
-    const lineText = text.substr(lineStart);
 
-    // make a copy of the regex as to not keep the state
-    const flags = wordDefinition.ignoreCase ? 'gi' : 'g';
-    wordDefinition = new RegExp(wordDefinition.source, flags);
 
-    let match = wordDefinition.exec(lineText);
-    while (match && match.index + match[0].length < offsetInLine) {
-        match = wordDefinition.exec(lineText);
-    }
-    if (match && match.index <= offsetInLine) {
-        return { start: match.index + lineStart, length: match[0].length };
-    }
-
-    return { start: offset, length: 0 };
-}
 function simplifyPath(importPathTxt, currentPath) {
     importPathTxt = decodeURIComponent(importPathTxt);
     if (importPathTxt.startsWith("custom://")) {
@@ -1346,7 +1329,7 @@ function repeat(value: string, count: number) {
 export type SectionType = "static" | "props" | "variables" | "states" | "constructor" | "methods";
 export function getSectionStart(file: AventusFile, sectionName: SectionType): number {
     let regex = new RegExp("//#region " + sectionName + "(\\s|\\S)*?//#endregion")
-    let match = regex.exec(file.document.getText());
+    let match = regex.exec(file.documentInternal.getText());
     if (match) {
         return match.index + 10 + sectionName.length;
     }

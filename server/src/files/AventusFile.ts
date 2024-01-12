@@ -7,6 +7,7 @@ import { AventusLanguageId } from '../definition';
 import { GenericServer } from '../GenericServer';
 
 export type onValidateType = (document: AventusFile) => Promise<Diagnostic[]>;
+export type onCanContentChangeType = (document: TextDocument) => boolean;
 export type onContentChangeType = (document: AventusFile) => Promise<void>;
 export type onCompletionType = (document: AventusFile, position: Position) => Promise<CompletionList>;
 export type onCompletionResolveType = (document: AventusFile, item: CompletionItem) => Promise<CompletionItem>;
@@ -18,16 +19,20 @@ export type onReferencesType = (document: AventusFile, position: Position) => Pr
 export type onCodeLensType = (document: AventusFile) => Promise<CodeLens[]>;
 export type onRenameType = (document: AventusFile, position: Position, newName: string) => Promise<WorkspaceEdit | null>;
 export type onGetBuildType = () => Build[];
+export type onGetFileApplyTextEditsType = () => TextDocument;
 
 export interface AventusFile {
-    document: TextDocument;
+    readonly documentUser: TextDocument;
+    readonly documentInternal: TextDocument;
     uri: string;
     path: string;
-    version: number;
-    content: string;
+    versionUser: number;
+    contentUser: string;
+    contentInternal: string;
     folderUri: string;
     folderPath: string;
     shortname: string;
+    linkInternalAndUser: boolean;
 
     getBuild(): Build[]
     onGetBuild(cb: onGetBuildType): string;
@@ -36,6 +41,9 @@ export interface AventusFile {
     validate(sendDiagnostics?: boolean): Promise<Diagnostic[]>;
     onValidate(cb: onValidateType): string;
     removeOnValidate(uuid: string): void;
+
+    onCanContentChange(cb: onCanContentChangeType): string;
+    removeOnCanContentChange(uuid: string): void;
 
     onContentChange(cb: onContentChangeType): string;
     removeOnContentChange(uuid: string): void;
@@ -74,29 +82,53 @@ export interface AventusFile {
     removeOnRename(uuid: string): void;
 }
 export class InternalAventusFile implements AventusFile {
-    public document: TextDocument;
+    private _documentUser: TextDocument;
+    private _documentInternal: TextDocument;
+
+    public get documentUser(): TextDocument {
+        return this._documentUser;
+    }
+    public get documentInternal(): TextDocument {
+        return this._documentInternal;
+    }
+
+    public linkInternalAndUser: boolean = true;
+
+    public setDocumentInternal(value: TextDocument) {
+        this._documentInternal = value;
+        this._versionInternal = value.version;
+    }
 
     public constructor(document: TextDocument) {
-        this.document = document;
-        this._version = this.document.version;
+        this._documentUser = document;
+        this._documentInternal = document;
+        this._versionUser = document.version;
+        this._versionInternal = document.version;
     }
 
     get uri() {
-        return this.document.uri;
+        return this.documentUser.uri;
     }
     get path() {
-        return uriToPath(this.document.uri);
+        return uriToPath(this.uri);
     }
-    private _version: number = 0;
-    get version() {
-        return this._version;
+    private _versionUser: number = 0;
+    get versionUser() {
+        return this._versionUser;
+    }
+    private _versionInternal: number = 0;
+    get versionInternal() {
+        return this._versionInternal;
     }
 
-    get content() {
-        return this.document.getText();
+    get contentUser() {
+        return this.documentUser.getText()
+    }
+    get contentInternal() {
+        return this.documentInternal.getText()
     }
     get folderUri() {
-        return getFolder(this.document.uri);
+        return getFolder(this.uri);
     }
     get folderPath() {
         return getFolder(this.path);
@@ -184,8 +216,13 @@ export class InternalAventusFile implements AventusFile {
     private waitingDocContentChange: { [uri: string]: TextDocument | true } = {};
     private resolveContentChange: { [uri: string]: { [version: number]: (() => void)[] } } = {};
 
+
     public triggerContentChange(document: TextDocument): Promise<void> {
         return new Promise<void>((resolve) => {
+            if (!this.triggerCanContentChange(document)) {
+                resolve();
+                return;
+            }
             setTimeout(() => {
                 if (!this.waitingDocContentChange[document.uri]) {
                     this.waitingDocContentChange[document.uri] = true;
@@ -210,8 +247,12 @@ export class InternalAventusFile implements AventusFile {
 
     private async triggerContentChangeNoBuffer(document: TextDocument) {
         let parsingVersion = document.version;
-        this.document = document;
-        this._version = this.document.version;
+        this._documentUser = document;
+        this._versionUser = document.version;
+        if (this.linkInternalAndUser) {
+            this._documentInternal = document;
+            this._versionInternal = document.version;
+        }
 
         let proms: Promise<void>[] = [];
         for (let uuid in this.onContentChangeCb) {
@@ -224,7 +265,6 @@ export class InternalAventusFile implements AventusFile {
         this.delayValidate = setTimeout(async () => {
             this.validate();
         }, 500)
-
         let versions = Object.keys(this.resolveContentChange[document.uri]);
         for (let version of versions) {
             let v = Number(version);
@@ -265,19 +305,40 @@ export class InternalAventusFile implements AventusFile {
         delete this.onContentChangeCb[uuid];
     }
 
+    private onCanContentChangeCb: { [uuid: string]: onCanContentChangeType } = {};
+    public triggerCanContentChange(document: TextDocument): boolean {
+        for (let uuid in this.onCanContentChangeCb) {
+            if (!this.onCanContentChangeCb[uuid](document)) {
+                return false;
+            }
+        }
+        return true;
+    }
+    public onCanContentChange(cb: onCanContentChangeType): string {
+        let uuid = randomUUID();
+        while (this.onCanContentChangeCb[uuid] != undefined) {
+            uuid = randomUUID();
+        }
+        this.onCanContentChangeCb[uuid] = cb;
+        return uuid;
+    }
+    public removeOnCanContentChange(uuid: string): void {
+        delete this.onCanContentChangeCb[uuid];
+    }
+
     //#endregion
 
     //#region apply edit
-    public applyTextEdits(transformations: TextEdit[]) {
-        let content = this.document.getText();
-        transformations.sort((a, b) => this.document.offsetAt(b.range.end) - this.document.offsetAt(a.range.end)); // order from end file to start file
+    public async applyTextEdits(transformations: TextEdit[]) {
+        let content = this.contentUser;
+        transformations.sort((a, b) => this.documentUser.offsetAt(b.range.end) - this.documentUser.offsetAt(a.range.end)); // order from end file to start file
         for (let transformation of transformations) {
-            let start = this.document.offsetAt(transformation.range.start);
-            let end = this.document.offsetAt(transformation.range.end);
+            let start = this.documentUser.offsetAt(transformation.range.start);
+            let end = this.documentUser.offsetAt(transformation.range.end);
             content = content.slice(0, start) + transformation.newText + content.slice(end, content.length);
         }
-        let newDocument = TextDocument.create(this.uri, AventusLanguageId.TypeScript, this.version + 1, content);
-        this.triggerContentChange(newDocument);
+        let newDocument = TextDocument.create(this.uri, AventusLanguageId.TypeScript, this.documentUser.version + 1, content);
+        await this.triggerContentChange(newDocument);
     }
     //#endregion
 
@@ -285,8 +346,7 @@ export class InternalAventusFile implements AventusFile {
 
     private onSaveCb: { [uuid: string]: (document: AventusFile) => Promise<void> } = {};
 
-    public async triggerSave(document: TextDocument): Promise<void> {
-        this.document = document;
+    public async triggerSave(): Promise<void> {
         for (let uuid in this.onSaveCb) {
             await this.onSaveCb[uuid](this);
         }
@@ -395,21 +455,6 @@ export class InternalAventusFile implements AventusFile {
         for (let uuid in this.onCompletionResolveCb) {
             proms.push(this.onCompletionResolveCb[uuid](this, item));
         }
-        // let promsResult = await Promise.all(proms);
-        // actually the object is edited inside the methods => maybe it ll not work with other languageservice than TS
-
-        // for (let promResult of promsResult) {
-        //     if (promResult.additionalTextEdits) {
-        //         if (!result.additionalTextEdits) {
-        //             result.additionalTextEdits = [];
-        //         }
-        //         for (let additionalTextEdit of promResult.additionalTextEdits) {
-        //             if (result.additionalTextEdits.indexOf(additionalTextEdit) != -1) {
-        //                 result.additionalTextEdits.push(additionalTextEdit);
-        //             }
-        //         }
-        //     }
-        // }
         return result;
     }
 
@@ -496,8 +541,8 @@ export class InternalAventusFile implements AventusFile {
         let result: { [key: string]: TextEdit } = {};
         let proms: Promise<TextEdit[]>[] = [];
         let range = {
-            start: this.document.positionAt(0),
-            end: this.document.positionAt(this.document.getText().length)
+            start: this.documentUser.positionAt(0),
+            end: this.documentUser.positionAt(this.documentUser.getText().length)
         };
         for (let uuid in this.onFormattingCb) {
             proms.push(this.onFormattingCb[uuid](this, range, options));

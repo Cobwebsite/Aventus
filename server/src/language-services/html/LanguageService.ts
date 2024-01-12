@@ -1,16 +1,18 @@
-import { getLanguageService, IAttributeData, ITagData, IValueData, LanguageService, TokenType } from "vscode-html-languageservice";
-import { CompletionItemKind, CompletionList, Definition, Diagnostic, FormattingOptions, Hover, Location, Position, Range, TextEdit } from "vscode-languageserver";
+import { getLanguageService, IAttributeData, InsertTextFormat, InsertTextMode, ITagData, IValueData, LanguageService, TokenType } from "vscode-html-languageservice";
+import { CompletionItem, CompletionItemKind, CompletionList, Definition, Diagnostic, FormattingOptions, Hover, Location, Position, Range, TextEdit } from "vscode-languageserver";
 import { AventusLanguageId } from "../../definition";
 import { AventusFile } from '../../files/AventusFile';
 import { Build } from "../../project/Build";
 import { CustomTypeAttribute } from "../ts/component/compiler/def";
 import { AventusWebComponentLogicalFile } from '../ts/component/File';
-import { allGenericTags, defaultAttrs } from './defaultTags';
+import { allGenericTags, defaultAttrs, defaultSnippet } from './defaultTags';
 import { AventusHTMLFile } from './File';
 import { HTMLDoc } from "./helper/definition";
 import { MethodInfo } from '../ts/parser/MethodInfo';
 import { PropertyInfo } from '../ts/parser/PropertyInfo';
 import { ClassInfo } from '../ts/parser/ClassInfo';
+import { TextDocument } from 'vscode-languageserver-textdocument';
+import { convertRange, getWordAtText } from '../../tools';
 
 
 export class AventusHTMLLanguageService {
@@ -118,10 +120,10 @@ export class AventusHTMLLanguageService {
         return [];
     }
     public async doComplete(file: AventusFile, position: Position): Promise<CompletionList> {
-        let docHTML = this.languageService.parseHTMLDocument(file.document);
+        let docHTML = this.languageService.parseHTMLDocument(file.documentUser);
         if (docHTML) {
             this.isAutoComplete = true;
-            let result = this.languageService.doComplete(file.document, position, docHTML);
+            let result = this.languageService.doComplete(file.documentUser, position, docHTML);
             this.isAutoComplete = false;
             for (let temp of result.items) {
                 if (temp.label.startsWith("!!")) {
@@ -152,10 +154,31 @@ export class AventusHTMLLanguageService {
                     }
                 }
             }
+            result.items = result.items.concat(this.doCustomComplete(file, position));
             return result;
         }
         return { isIncomplete: false, items: [] };
     }
+
+    private doCustomComplete(file: AventusFile, position: Position): CompletionItem[] {
+        let result: CompletionItem[] = [];
+        let offset = file.documentUser.offsetAt(position);
+        let replaceRange = convertRange(file.documentUser, getWordAtText(file.documentUser.getText(), offset));
+        let txt = file.documentUser.getText().slice(file.documentUser.offsetAt(replaceRange.start), file.documentUser.offsetAt(replaceRange.end));
+        for (let key in defaultSnippet) {
+            if (key.startsWith(txt)) {
+                result.push({
+                    label: key,
+                    kind: CompletionItemKind.Snippet,
+                    insertText: defaultSnippet[key],
+                    insertTextFormat: InsertTextFormat.Snippet,
+                    insertTextMode: InsertTextMode.adjustIndentation
+                })
+            }
+        }
+        return result;
+    }
+
     public async doHover(file: AventusHTMLFile, position: Position): Promise<Hover | null> {
         let info = this.getLinkToLogic(file, position);
         if (info) {
@@ -168,15 +191,15 @@ export class AventusHTMLLanguageService {
 
         }
         else {
-            let docHTML = this.languageService.parseHTMLDocument(file.file.document);
+            let docHTML = this.languageService.parseHTMLDocument(file.file.documentUser);
             if (docHTML) {
-                return this.languageService.doHover(file.file.document, position, docHTML)
+                return this.languageService.doHover(file.file.documentUser, position, docHTML)
             }
         }
         return null;
     }
-    public async format(file: AventusFile, range: Range, formatParams: FormattingOptions): Promise<TextEdit[]> {
-        return this.languageService.format(file.document, range, formatParams);
+    public async format(document: TextDocument, range: Range, formatParams: FormattingOptions): Promise<TextEdit[]> {
+        return this.languageService.format(document, range, formatParams);
     }
     public async onDefinition(file: AventusHTMLFile, position: Position): Promise<Definition | null> {
         let info = this.getLinkToLogic(file, position);
@@ -185,8 +208,8 @@ export class AventusHTMLLanguageService {
             return {
                 uri: tsFile.file.uri,
                 range: {
-                    start: tsFile.file.document.positionAt(info.nameStart),
-                    end: tsFile.file.document.positionAt(info.nameEnd)
+                    start: tsFile.file.documentUser.positionAt(info.nameStart),
+                    end: tsFile.file.documentUser.positionAt(info.nameEnd)
                 }
             }
         }
@@ -200,14 +223,14 @@ export class AventusHTMLLanguageService {
             }
         }
 
-        
+
         return null;
     }
     //#endregion
 
 
     private getLinkToLogic(file: AventusHTMLFile, position: Position): MethodInfo | PropertyInfo | ClassInfo | null {
-        let offset = file.file.document.offsetAt(position);
+        let offset = file.file.documentUser.offsetAt(position);
         let tsFile = file.tsFile;
         let classInfo = tsFile?.fileParsed?.classes[tsFile.getComponentName()]
         if (tsFile && classInfo && file.fileParsed) {
@@ -251,7 +274,7 @@ export class AventusHTMLLanguageService {
 
     public getLinkToStyle(file: AventusHTMLFile, position: Position): Location[] {
         let result: Location[] = [];
-        let offset = file.file.document.offsetAt(position);
+        let offset = file.file.documentUser.offsetAt(position);
         let scssFile = file.scssFile;
         if (scssFile && file.fileParsed) {
             for (let points of file.fileParsed.styleLinks) {
@@ -260,8 +283,8 @@ export class AventusHTMLLanguageService {
                     result.push({
                         uri: scssFile.file.uri,
                         range: {
-                            start: scssFile.file.document.positionAt(points[1].start),
-                            end: scssFile.file.document.positionAt(points[1].end)
+                            start: scssFile.file.documentUser.positionAt(points[1].start),
+                            end: scssFile.file.documentUser.positionAt(points[1].end)
                         }
                     });
                 }
