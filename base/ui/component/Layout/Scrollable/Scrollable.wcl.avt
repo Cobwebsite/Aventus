@@ -491,6 +491,7 @@ namespace Layout {
             else if(this.y_scroll_visible) {
                 this.y_scroll_visible = false;
                 this.calculatePositionScrollerContainer('y');
+                this.calculateSizeScroller('y');
                 this.scrollDirection('y', 0);
             }
 
@@ -505,6 +506,7 @@ namespace Layout {
             else if(this.x_scroll_visible) {
                 this.x_scroll_visible = false;
                 this.calculatePositionScrollerContainer('x');
+                this.calculateSizeScroller('x');
                 this.scrollDirection('x', 0);
             }
 

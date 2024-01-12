@@ -34,6 +34,8 @@ import { AventusBaseFile } from '../language-services/BaseFile';
 import { GenericServer } from '../GenericServer';
 import { NpmBuilder } from './BuildNpm';
 
+export type BuildErrors = { file: string, title: string }[]
+
 export class Build {
     public project: Project;
     private buildConfig: AventusConfigBuild;
@@ -184,7 +186,7 @@ export class Build {
         }
     }
     public async build() {
-        if(!this.initDone) {
+        if (!this.initDone) {
             return;
         }
         let delay = GenericServer.delayBetweenBuild();
@@ -240,10 +242,11 @@ export class Build {
             console.log("building " + this.buildConfig.fullname);
         }
         this.clearDiagnostics();
+        let buildErrors: BuildErrors = []
         let compilationInfo = await this.buildOrderCompilationInfo();
         let result = await this.buildLocalCode(compilationInfo.toCompile, this.buildConfig.module);
 
-        await this.writeBuildCode(result, compilationInfo.libSrc);
+        buildErrors = await this.writeBuildCode(result, compilationInfo.libSrc, this.buildConfig.outputFile);
         let srcInfo = {
             namespace: this.buildConfig.module,
             available: result.codeRenderInJs,
@@ -253,7 +256,7 @@ export class Build {
             this.writeBuildDocumentation(outputPackage, result, srcInfo)
         }
 
-        Compiled.send(this.buildConfig.fullname);
+        Compiled.send(this.buildConfig.fullname, buildErrors);
         if (this.reloadPage) {
             this.reloadPage = false;
             HttpServer.getInstance().reload();
@@ -325,10 +328,13 @@ export class Build {
      */
     private async writeBuildCode(localCode: {
         code: string[], codeNoNamespaceBefore: string[], codeNoNamespaceAfter: string[], classesName: { [name: string]: { type: InfoType, isExported: boolean, convertibleName: string } }, stylesheets: { [name: string]: string }
-    }, libSrc: string) {
-        if (this.buildConfig.outputFile && this.buildConfig.outputFile.length > 0) {
+    }, libSrc: string, outputs:string[]): Promise<BuildErrors> {
+        let result: BuildErrors = []
+        if (outputs && outputs.length > 0) {
             let finalTxt = '';
-            finalTxt += await this.npmBuilder.compile();
+            let npmResult = await this.npmBuilder.compile();
+            result = [...result, ...npmResult.errors];
+            finalTxt += npmResult.result;
             finalTxt += libSrc + EOL;
             let stylesheets: string[] = [];
             for (let name in localCode.stylesheets) {
@@ -343,7 +349,7 @@ export class Build {
                 stylesheets
             );
 
-            for (let outputFile of this.buildConfig.outputFile) {
+            for (let outputFile of outputs) {
                 let folderPath = getFolder(outputFile.replace(/\\/g, "/"));
                 if (!existsSync(folderPath)) {
                     mkdirSync(folderPath, { recursive: true });
@@ -367,6 +373,8 @@ export class Build {
                 writeFileSync(outputFile, finalTxt);
             }
         }
+
+        return result;
     }
     /**
      * Write the code inside the exported .package.avt
@@ -1051,6 +1059,50 @@ export class Build {
         return result;
     }
 
+    private getAllFullnames() {
+        let result: { [module: string]: string[] } = {}
+
+        const insert = (fullname:string) => {
+            if(fullname.startsWith("!staticClass_")) return;
+            let moduleName = fullname.split(".")[0];
+            if (!result[moduleName]) {
+                result[moduleName] = []
+            }
+            result[moduleName].push(fullname);
+
+        }
+
+        for (let fileUri in this.tsFiles) {
+            let currentFile = this.tsFiles[fileUri];
+            for (let compileInfo of currentFile.compileResult) {
+                if (compileInfo.classScript !== "") {
+                    insert(compileInfo.classScript);
+                }
+            }
+        }
+
+        for (let libUri of this.dependanceNeedUris) {
+            let infos = this.externalPackageInformation.getInformationsRequired(libUri);
+            for (let info of infos) {
+                if (info.code) {
+                    insert(info.fullName);
+                }
+            }
+        }
+
+        for (let libUri of this.dependanceFullUris) {
+            let infos = this.externalPackageInformation.getFullInformations(libUri);
+            for (let info of infos) {
+                if (info.code) {
+                    insert(info.fullName);
+                }
+            }
+        }
+
+        writeFileSync("D:\\test\\debug.json", JSON.stringify(result));
+
+        return result;
+    }
     //#endregion
 
     /**
@@ -1303,8 +1355,7 @@ export class Build {
                 change.oldUri.endsWith(AventusExtension.ComponentLogic) ||
                 change.oldUri.endsWith(AventusExtension.Data) ||
                 change.oldUri.endsWith(AventusExtension.Lib) ||
-                change.oldUri.endsWith(AventusExtension.RAM) ||
-                change.oldUri.endsWith(AventusExtension.Socket)
+                change.oldUri.endsWith(AventusExtension.RAM)
             ) {
                 return await this.tsLanguageService.onRenameFile(change.oldUri, change.newUri);
             }

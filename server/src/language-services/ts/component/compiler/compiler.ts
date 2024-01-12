@@ -245,7 +245,7 @@ export class AventusWebcomponentCompiler {
             let tempTagName = TagNameDecorator.is(decorator);
             if (tempTagName && tempTagName.tagName) {
                 if (tempTagName.tagName.indexOf("-") == -1 || tempTagName.tagName.toLowerCase() != tempTagName.tagName) {
-                    this.result.diagnostics.push(createErrorTsPos(this.document, "tag name must be in lower case and have a - inside", decorator.start, decorator.end, AventusErrorCode.TagLower));
+                    this.result.diagnostics.push(createErrorTsPos(this.document, "tag name must be in lower case and have a - inside", decorator.contentStart, decorator.contentEnd, AventusErrorCode.TagLower));
                 }
                 else {
                     this.tagName = tempTagName.tagName;
@@ -281,7 +281,7 @@ export class AventusWebcomponentCompiler {
         }
     }
     private getClassName(classInfo: ClassInfo) {
-        let splittedName = classInfo.name.match(/([A-Z][a-z]*)|([0-9][a-z]*)/g);
+        let splittedName = classInfo.name.match(/([A-Z][a-z]*)|([0-9]+[a-z]*)/g);
         if (splittedName) {
             let componentPrefixes = this.build.getComponentPrefix().split("-");
             for (let i = 0; i < componentPrefixes.length; i++) {
@@ -451,7 +451,13 @@ export class AventusWebcomponentCompiler {
             this.writeFileReplaceVar("fullname", "const " + this.fullName);
             this.writeFileReplaceVar("namespace", this.fullName + ".Namespace=`${moduleName}`;");
         }
-        if(this.build.namespaces.includes(this.fullName)) {
+        if (this.classInfo?.isAbstract) {
+            this.writeFileReplaceVar("tag", "");
+        }
+        else {
+            this.writeFileReplaceVar("tag", this.fullName + ".Tag=`" + this.tagName + "`;");
+        }
+        if (this.build.namespaces.includes(this.fullName)) {
             this.writeFileReplaceVar("namespaceStart", '_n = ' + this.fullName + ';' + EOL);
             this.writeFileReplaceVar("namespaceEnd", EOL + 'Object.assign(' + this.fullName + ', _n);' + EOL);
         }
@@ -459,8 +465,8 @@ export class AventusWebcomponentCompiler {
             this.writeFileReplaceVar("namespaceStart", '');
             this.writeFileReplaceVar("namespaceEnd", '');
         }
-        if(this.classInfo?.isExported) {
-            this.writeFileReplaceVar("exported", "_." + this.fullName + "=" + this.fullName+";");
+        if (this.classInfo?.isExported) {
+            this.writeFileReplaceVar("exported", "_." + this.fullName + "=" + this.fullName + ";");
         }
         else {
             this.writeFileReplaceVar("exported", "");
@@ -469,12 +475,8 @@ export class AventusWebcomponentCompiler {
             this.writeFileReplaceVar("definition", "")
         }
         else {
-            if (this.build.isCoreBuild) {
-                this.writeFileReplaceVar("definition", "if(!window.customElements.get('" + this.tagName + "')){window.customElements.define('" + this.tagName + "', " + this.fullName + ");WebComponentInstance.registerDefinition(" + this.fullName + ");}")
-            }
-            else {
-                this.writeFileReplaceVar("definition", "if(!window.customElements.get('" + this.tagName + "')){window.customElements.define('" + this.tagName + "', " + this.fullName + ");Aventus.WebComponentInstance.registerDefinition(" + this.fullName + ");}")
-            }
+            let aventusName = this.build.isCoreBuild ? "" : "Aventus.";
+            this.writeFileReplaceVar("definition", "if(!window.customElements.get('" + this.tagName + "')){window.customElements.define('" + this.tagName + "', " + this.fullName + ");" + aventusName + "WebComponentInstance.registerDefinition(" + this.fullName + ");}")
         }
     }
     private writeFileTemplateHtml() {
@@ -626,11 +628,11 @@ export class AventusWebcomponentCompiler {
         if (this.classInfo) {
             for (let fieldName in this.classInfo.propertiesStatic) {
                 let field = this.classInfo.propertiesStatic[fieldName];
-                fullTxt += AventusTsLanguageService.removeDecoratorFromContent(field.compiledContent, field.decorators) + EOL;
+                fullTxt += field.compiledContent + EOL;
             }
         }
         for (let field of fields) {
-            fullTxt += AventusTsLanguageService.removeDecoratorFromContent(field.compiledContent, field.decorators) + EOL;
+            fullTxt += field.compiledContent + EOL;
         }
         let fullClassFields = `class MyCompilationClassAventus {${fullTxt}}`;
         let fieldsCompiled = transpile(fullClassFields, AventusTsLanguageService.getCompilerOptionsCompile());
@@ -1573,7 +1575,7 @@ this.clearWatchHistory = () => {
             let fullTxt = ""
             for (let methodName in this.classInfo.methods) {
                 let method = this.classInfo.methods[methodName];
-                fullTxt += AventusTsLanguageService.removeDecoratorFromContent(method.compiledContent, method.decorators) + EOL;
+                fullTxt += method.compiledContent + EOL;
                 for (let decorator of method.decorators) {
                     if (BindThisDecorator.is(decorator)) {
                         this.extraConstructorCode.push(`this.${methodName}=this.${methodName}.bind(this)`);
@@ -1670,8 +1672,6 @@ this.clearWatchHistory = () => {
     //#endregion
 
     //#region prepare doc
-
-
     private prepareDocSCSS() {
         let customCssProperties: SCSSDoc = {
             [this.tagName]: AventusSCSSLanguageService.getCustomProperty(this.scssTxt)
@@ -1696,7 +1696,7 @@ this.clearWatchHistory = () => {
         }
         return methodTxt;
     }
-    
+
     private transpileMethodNoRun(methodTxt) {
         methodTxt = this.prepareMethodToTranspile(methodTxt);
         let method = transpile(methodTxt, AventusTsLanguageService.getCompilerOptionsCompile()).trim();

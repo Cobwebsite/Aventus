@@ -1,17 +1,19 @@
 import { join } from "path";
-import { ExtensionContext, Location, MarkdownString, Position, Range, Uri, languages, workspace } from "vscode";
+import { ExtensionContext, Location, MarkdownString, Position, Range, Uri, commands, languages, workspace } from "vscode";
 import { ExecuteCommandSignature, LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from "vscode-languageclient";
 import { Commands } from "./cmds";
 import { AvenutsVsComponent } from "./component";
 import { FileSystem } from './file-system/FileSystem';
 import { Notifications } from "./notification";
-import { OpenAventusFolder } from './cmds/file-system/OpenAventusFolder';
+import { DebugFile } from './file-system/DebugFile';
+import { CommandsInternal } from './cmds-internal';
 
 export class Client {
     private _context: ExtensionContext | undefined = undefined;
     private client: LanguageClient | undefined = undefined;
     public components: AvenutsVsComponent | undefined = undefined;
     private fileSystem: FileSystem | undefined = undefined;
+    public debugFile!: DebugFile;
 
     public get context() {
         return this._context;
@@ -19,6 +21,9 @@ export class Client {
 
 
     public init(context: ExtensionContext) {
+        this.debugFile = new DebugFile();
+        context.subscriptions.push(workspace.registerTextDocumentContentProvider(DebugFile.schema, this.debugFile));
+
         this.components = new AvenutsVsComponent();
         this._context = context;
         let serverOptions = this.createServerOption(context.asAbsolutePath(
@@ -105,7 +110,7 @@ export class Client {
         };
     }
 
-    private async commandMiddleware(command: string, args: any[]): Promise<any[]> {
+    private async commandMiddleware(command: string, args: any[]): Promise<any[] | null> {
         let result: any[] = args;
         if (Commands.allCommandes[command]) {
             result = await Commands.allCommandes[command].middleware(args);
@@ -119,6 +124,10 @@ export class Client {
                 this.client.onNotification(cmdName, (params) => {
                     (Notifications.allNotifications[cmdName].action as any).call(Notifications.allNotifications[cmdName], ...params)
                 });
+            }
+
+            for(let command in CommandsInternal.allCommandes) {
+                commands.registerCommand(command, CommandsInternal.allCommandes[command].middleware)
             }
         }
     }

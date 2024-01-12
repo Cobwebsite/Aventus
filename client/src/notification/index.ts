@@ -4,6 +4,7 @@ import { AskSelectMultiple } from './AskSelectMultiple';
 import { CloseFile } from "./CloseFile";
 import { Compiled } from "./Compiled";
 import { CompiledPart } from "./CompiledPart";
+import { DebugFileAdd } from './DebugFileAdd';
 import { EditFile } from './EditFile';
 import { ServerStart } from './httpServer/ServerStart';
 import { ServerStop } from './httpServer/ServerStop';
@@ -43,6 +44,7 @@ export const Notifications = {
         [AskSelectMultiple.cmd]: AskSelectMultiple,
         [Popup.cmd]: Popup,
         [LoadingStart.cmd]: LoadingStart,
-        [LoadingStop.cmd]: LoadingStop
+        [LoadingStop.cmd]: LoadingStop,
+        [DebugFileAdd.cmd]: DebugFileAdd,
     },
 }

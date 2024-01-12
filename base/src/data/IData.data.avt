@@ -1,3 +1,4 @@
+import { Json } from "../tools/Json.lib.avt";
 import { DataManager } from "./DataManager.lib.avt";
 
 export interface IData {
@@ -19,7 +20,7 @@ export abstract class Data implements IData {
     /**
      * The current namespace
      */
-    public static readonly Namespace: string  = "";
+    public static readonly Namespace: string = "";
     /**
      * Get the unique type for the data. Define it as the namespace + class name
      */
@@ -48,15 +49,9 @@ export abstract class Data implements IData {
      * Get a JSON for the current object
      */
     public toJSON() {
-        let result = { $type: this.$type };
-        let props = Object.getOwnPropertyNames(this);
-        for(let prop of props) {
-            let propInfo = Object.getOwnPropertyDescriptor(this, prop);
-            if(propInfo?.writable) {
-                result[prop] = this[prop];
-            }
-        }
-
-        return result;
+        let toAvoid: string[] = ['className', 'namespace'];
+        return Json.classToJson(this, {
+            isValidKey: (key) => !toAvoid.includes(key)
+        });
     }
 }

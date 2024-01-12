@@ -242,7 +242,7 @@ export class TagInfo {
 				result.injection[simpleName].push({
 					id: id,
 					injectionName: injection.injectedName,
-					inject: `@_@(c) => c.${injection.variableName}@_@`,
+					inject: `@_@(c) => c.${injection.variableName.split(".").join("?.")}@_@`,
 					path: injection.variableName,
 					position: {
 						start: injection.start,
@@ -512,17 +512,19 @@ export class AttributeInfo {
 		}
 		else {
 			let parsed = parseTxt(value, this.valueStart);
-			if (parsed.variables.length > 0) {
+			if (Object.keys(parsed.variables).length > 0) {
 				this.tag.createId();
-				for (var i = 0; i < parsed.variables.length; i++) {
-					let variableName = parsed.variables[i];
+				for(let shortName in parsed.variables) {
+					for (var i = 0; i < parsed.variables[shortName].length; i++) {
+						let variableName = parsed.variables[shortName][i];
 
-					this.tag.changes.push({
-						prop: this.name,
-						value: parsed.value,
-						variableName,
-						positions: parsed.variablesPosition[variableName] || []
-					});
+						this.tag.changes.push({
+							prop: this.name,
+							value: parsed.value,
+							variableName,
+							positions: parsed.variablesPosition[shortName] || []
+						});
+					}
 				}
 				this.mustBeAdded = false;
 			}
@@ -550,17 +552,22 @@ export class ContentInfo {
 	private manageVariables() {
 		let content = this.content;
 		let parsed = parseTxt(content, this.start);
-		if (parsed.variables.length > 0) {
+		if (Object.keys(parsed.variables).length > 0) {
 			this.tag.createId();
-			for (var i = 0; i < parsed.variables.length; i++) {
-				let variableName = parsed.variables[i];
 
-				this.tag.changes.push({
-					value: parsed.value,
-					variableName,
-					positions: parsed.variablesPosition[variableName] || []
-				});
+			for(let shortname in parsed.variables) {
+				for (var i = 0; i < parsed.variables[shortname].length; i++) {
+					let variableName = parsed.variables[shortname][i];
+	
+					this.tag.changes.push({
+						value: parsed.value,
+						variableName,
+						positions: parsed.variablesPosition[shortname] || []
+					});
+				}
 			}
+
+			
 			this.mustBeAdded = false;
 		}
 	}
@@ -575,9 +582,9 @@ export class ContentInfo {
 }
 
 function parseTxt(value: string, valueStart: number) {
-	let result: { errors: string[], variables: string[], value: string, variablesPosition: { [key: string]: { start: number, end: number }[] } } = {
+	let result: { errors: string[], variables: { [shortname: string]: string[] }, value: string, variablesPosition: { [key: string]: { start: number, end: number }[] } } = {
 		errors: [],
-		variables: [],
+		variables: {},
 		value: value,
 		variablesPosition: {}
 	}
@@ -592,12 +599,15 @@ function parseTxt(value: string, valueStart: number) {
 			result.errors.push("Code execution ll be implemented soon, right now you can only use variables");
 			//ParserHtml.addError(this.valueStart, this.valueEnd, "Code execution ll be implemented soon, right now you can only use variables");
 		}
-		finalValue = finalValue.replace(m[0], '${c.__P(c.' + fullVariablePath + ')}');
+		finalValue = finalValue.replace(m[0], '${c.__P(c.' + fullVariablePath.split(".").join("?.") + ')}');
 
 		let variableName = fullVariablePath.split(".")[0];
-		if (!result.variables.includes(variableName)) {
-			result.variables.push(variableName);
+		if (!result.variables[variableName]) {
+			result.variables[variableName] = [];
 			result.variablesPosition[variableName] = [];
+		}
+		if (!result.variables[variableName].includes(fullVariablePath)) {
+			result.variables[variableName].push(fullVariablePath)
 		}
 		let start = valueStart + m.index;
 		let end = valueStart + m.index + m[0].length;

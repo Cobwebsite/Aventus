@@ -1,9 +1,10 @@
+import type { Enum, EnumValue } from "./Enum.lib.avt";
 
-export class GenericError<T extends number = number> {
+export class GenericError<T extends (number | Enum) = number> {
     /**
      * Code for the error
      */
-    public code: T;
+    public code: EnumValue<T>;
     /**
      * Description of the error
      */
@@ -11,7 +12,7 @@ export class GenericError<T extends number = number> {
 
     public details: any[] = [];
 
-    public constructor(code: T, message: string) {
+    public constructor(code: EnumValue<T>, message: string) {
         this.code = code;
         this.message = message;
     }

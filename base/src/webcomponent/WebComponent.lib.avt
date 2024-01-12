@@ -1,8 +1,8 @@
 import { WebComponentTemplate, WebComponentTemplateInstance } from "./WebComponentTemplate.lib.avt";
 import { Style } from "./Style.lib.avt";
 import { PressManager } from "../lib/PressManager.lib.avt";
-import { State } from "../state/State.lib.avt";
-import { StateManager, type StateSlug } from "../state/StateManager.lib.avt";
+import { State } from "../state/State.state.avt";
+import { StateManager, type StateSlug } from "../state/StateManager.state.avt";
 import { ElementExtension } from "./ElementExtension.lib.avt";
 import { Instance } from "../lib/Instance.lib.avt";
 import { WatchAction, Watcher } from "../lib/Watcher.lib.avt";
@@ -119,6 +119,10 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
      */
     public static readonly Namespace: string = "";
     /**
+     * The current Tag / empty if abstract class
+     */
+    public static readonly Tag: string = "";
+    /**
      * Get the unique type for the data. Define it as the namespace + class name
      */
     public static get Fullname(): string { return this.Namespace + "." + this.name; }
@@ -137,16 +141,25 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
     }
 
     /**
+     * The current tag
+     */
+    public get tag(): string {
+        return this.constructor['Tag'];
+    }
+
+    /**
     * Get the unique type for the data. Define it as the namespace + class name
     */
     public get $type(): string {
         return this.constructor['Fullname'];
     }
 
-    private __onChangeFct: { [key: string]: ((path: string) => void)[]; } = {};
+    @Internal()
+    public __onChangeFct: { [key: string]: ((path: string) => void)[]; } = {};
 
     private __watch: any;
-    private __watchActions: { [key: string]: ((target: WebComponent, action: WatchAction, path: string, value: any) => void)[]; } = {};
+    @Internal()
+    public __watchActions: { [key: string]: ((target: WebComponent, action: WatchAction, path: string, value: any) => void)[]; } = {};
     private __watchActionsCb: { [key: string]: (type: WatchAction, path: string, element: any) => void; } = {};
     private __pressManagers: PressManager[] = [];
 

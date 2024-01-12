@@ -6,6 +6,8 @@ import { TypeInfo } from './TypeInfo';
 import { DecoratorInfo } from './DecoratorInfo';
 import { DependancesDecorator } from './decorators/DependancesDecorator';
 import * as md5 from 'md5';
+import { GenericServer } from '../../../GenericServer';
+import { InternalDecorator } from './decorators/InternalDecorator';
 
 
 export enum InfoType {
@@ -17,6 +19,14 @@ export enum InfoType {
     variable,
     enum
 }
+
+type DependanceType = {
+    fullName: string,
+    uri: string, // @local (same file), @external (lib), @npm (npm), file uri (same build) 
+    isStrong: boolean,
+}
+
+export type SupportedRootNodes = ClassDeclaration | EnumDeclaration | InterfaceDeclaration | TypeAliasDeclaration | FunctionDeclaration | VariableDeclaration | MethodDeclaration
 
 export abstract class BaseInfo {
     private static infoByShortName: { [shortName: string]: BaseInfo } = {};
@@ -53,37 +63,15 @@ export abstract class BaseInfo {
     public decorators: DecoratorInfo[] = [];
 
     // public dependancesFullName: string[] = [];
-    public dependances: {
-        fullName: string,
-        uri: string, // @local (same file), @external (lib), @npm (npm), file uri (same build) 
-        isStrong: boolean,
-    }[] = []
+    public dependances: DependanceType[] = []
     public compiled: string = "";
     public documentation: string[] = [];
     public isExported: boolean = false;
     private _parserInfo: ParserTs;
     public content: string = "";
+    public compileTransformations: { [key: string]: { newText: string, start: number, end: number } } = {};
     public get compiledContent(): string {
-        let txt = this.content;
-        let transformations: { newText: string, start: number, end: number }[] = [];
-        for (let depName in this.dependancesLocations) {
-            let replacement = this.dependancesLocations[depName].replacement;
-            if (replacement) {
-                for (let locationKey in this.dependancesLocations[depName].locations) {
-                    let location = this.dependancesLocations[depName].locations[locationKey];
-                    transformations.push({
-                        newText: replacement,
-                        start: location.start - this.start,
-                        end: location.end - this.start,
-                    })
-                }
-            }
-        }
-        transformations.sort((a, b) => b.end - a.end); // order from end file to start file
-        for (let transformation of transformations) {
-            txt = txt.slice(0, transformation.start) + transformation.newText + txt.slice(transformation.end, txt.length);
-        }
-        return txt;
+        return BaseInfo.getContent(this.content, this.start, this.end, this.dependancesLocations, this.compileTransformations);
     }
     public get fileUri() {
         return this.document.uri;
@@ -104,10 +92,10 @@ export abstract class BaseInfo {
         return this._parserInfo;
     }
 
-    constructor(node: ClassDeclaration | EnumDeclaration | InterfaceDeclaration | TypeAliasDeclaration | FunctionDeclaration | VariableDeclaration | MethodDeclaration, namespaces: string[], parserInfo: ParserTs, autoLoadDepDecorator: boolean = true) {
+    constructor(node: SupportedRootNodes, namespaces: string[], parserInfo: ParserTs, autoLoadDepDecorator: boolean = true) {
         this._parserInfo = parserInfo;
         this.document = parserInfo.document;
-        this.decorators = DecoratorInfo.buildDecorator(node);
+        this.decorators = DecoratorInfo.buildDecorator(node, this);
         this.dependancesLocations = {};
         if (node.name) {
             this.start = node.getStart();
@@ -127,15 +115,23 @@ export abstract class BaseInfo {
                     this.documentation.push(jsDoc.comment);
                 }
             }
+            if (autoLoadDepDecorator) {
+                this.loadDependancesDecorator();
+            }
             if (node.kind != SyntaxKind.VariableDeclaration) {
                 this.isExported = BaseInfo.isExported(node);
+                for (let decorator of this.decorators) {
+                    let deco = InternalDecorator.is(decorator);
+                    if (deco) {
+                        this.isExported = false;
+                        break;
+                    }
+                }
             }
             BaseInfo.infoByFullName[this.fullName] = this;
         }
 
-        if (autoLoadDepDecorator) {
-            this.loadDependancesDecorator();
-        }
+
 
     }
 
@@ -206,7 +202,10 @@ export abstract class BaseInfo {
                     this.addDependanceName(localClassName, isStrongDependance, x.getStart(), x.getEnd());
                 }
                 else {
-                    if (ParserTs.hasImport(localClassName)) {
+                    if (ParserTs.hasLocal(localClassName)) {
+                        this.addDependanceName(localClassName, isStrongDependance, x.getStart(), x.getEnd());
+                    }
+                    else if (ParserTs.hasImport(localClassName)) {
                         this.addDependanceName(localClassName, isStrongDependance, x.getStart(), x.getEnd());
                     }
                 }
@@ -273,11 +272,11 @@ export abstract class BaseInfo {
         return result;
     }
     protected addDependanceName(name: string, isStrongDependance: boolean, start: number, end: number): string | null {
+        if (!name || name == "constructor" || name == "toString") {
+            return null
+        }
         if (this.debug) {
             console.log("try add dependance " + name);
-        }
-        if (!name) {
-            return null;
         }
         let match = /<.*>/g.exec(name);
         if (match) {
@@ -290,7 +289,13 @@ export abstract class BaseInfo {
         }
         // if its come from js native
         if (BaseLibInfo.exists(name)) {
-            return null;
+            if (!this.parserInfo.internalObjects[name] &&
+                !this.parserInfo.imports[name] &&
+                !this.parserInfo.waitingImports[name] &&
+                !this.parserInfo.npmImports[name]
+            ) {
+                return null;
+            }
         }
 
         if (start > 0 && end > 0) {
@@ -301,6 +306,10 @@ export abstract class BaseInfo {
                 }
             }
             let key = start + "_" + end;
+            if (!this.dependancesLocations[name].locations) {
+                GenericServer.showErrorMessage("For the admin : you can add " + name + " as dependance to avoid");
+                return null;
+            }
             if (!this.dependancesLocations[name].locations[key]) {
                 this.dependancesLocations[name].locations[key] = {
                     start: start,
@@ -330,23 +339,22 @@ export abstract class BaseInfo {
             });
             return name;
         }
-        let types = [this.parserInfo.classes, this.parserInfo.enums, this.parserInfo.aliases, this.parserInfo.functions, this.parserInfo.variables];
-        for (let type of types) {
-            if (type[name]) {
-                // it's a class inside the same file
-                let fullName = type[name].fullName
-                this.dependances.push({
-                    fullName: "$namespace$" + fullName,
-                    uri: '@local',
-                    isStrong: isStrongDependance
-                });
-                if (this.debug) {
-                    console.log("add dependance " + name + " : same file");
-                }
-                if (this.dependancesLocations[name])
-                    this.dependancesLocations[name].replacement = fullName;
-                return fullName;
+        if (this.parserInfo.internalObjects[name]) {
+            let fullName = this.parserInfo.internalObjects[name].fullname
+            if (fullName == this.fullName) {
+                isStrongDependance = false;
             }
+            this.dependances.push({
+                fullName: "$namespace$" + fullName,
+                uri: '@local',
+                isStrong: isStrongDependance
+            });
+            if (this.debug) {
+                console.log("add dependance " + name + " : same file");
+            }
+            if (this.dependancesLocations[name])
+                this.dependancesLocations[name].replacement = fullName;
+            return fullName;
         }
 
         if (this.parserInfo.imports[name]) {
@@ -408,4 +416,47 @@ export abstract class BaseInfo {
     }
 
 
+
+    public static getContent(
+        txt: string,
+        start: number,
+        end: number,
+        dependancesLocations: { [name: string]: { replacement: string | null, locations: { [key: string]: { start: number, end: number } } } },
+        compileTransformations: { [key: string]: { newText: string, start: number, end: number } }
+    ) {
+        let transformations: { newText: string, start: number, end: number }[] = [];
+        for (let depName in dependancesLocations) {
+            let replacement = dependancesLocations[depName].replacement;
+            if (replacement) {
+                for (let locationKey in dependancesLocations[depName].locations) {
+                    let location = dependancesLocations[depName].locations[locationKey];
+                    if (location.start >= start && location.end <= end) {
+                        transformations.push({
+                            newText: replacement,
+                            start: location.start - start,
+                            end: location.end - start,
+                        })
+                    }
+                }
+            }
+        }
+        for (let key in compileTransformations) {
+            let transformation = compileTransformations[key];
+            if (transformation.start >= start && transformation.end <= end) {
+                transformations.push({
+                    newText: transformation.newText,
+                    start: transformation.start - start,
+                    end: transformation.end - start,
+                })
+            }
+        }
+        transformations.sort((a, b) => b.end - a.end); // order from end file to start file
+        let lastPos = txt.length;
+        for (let transformation of transformations) {
+            if (transformation.end > lastPos) continue;
+            txt = txt.slice(0, transformation.start) + transformation.newText + txt.slice(transformation.end, txt.length);
+            lastPos = transformation.start;
+        }
+        return txt;
+    }
 }

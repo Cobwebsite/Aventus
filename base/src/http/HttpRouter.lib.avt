@@ -4,11 +4,13 @@ import type { RouteType, MergeRoutesType } from "./type.lib.avt";
 import type { HttpRouterOptions } from "./HttpRouterOptions.lib.avt";
 import { HttpMethod } from "./HttpMethod.lib.avt";
 import { HttpRequest } from "./HttpRequest.lib.avt";
+import { createCommProxy } from "../lib/Communication.lib.avt";
 
 
 export abstract class HttpRouter {
     private _routes: any;
-    protected options: HttpRouterOptions;
+    @InternalProtected()
+    public options: HttpRouterOptions;
 
     public static WithRoute<const T extends readonly ({ type: RouteType, path: string; } | RouteType)[]>(options: T) {
         abstract class Router extends HttpRouter {
@@ -16,10 +18,10 @@ export abstract class HttpRouter {
                 super();
                 for(let route of options) {
                     if(typeof route == "function") {
-                        this._routes.addRoute(route);
+                        this._routes.add(route);
                     }
                     else {
-                        this._routes.addRoute(route.type, route.path);
+                        this._routes.add(route.type, route.path);
                     }
                 }
             }
@@ -38,74 +40,7 @@ export abstract class HttpRouter {
     }
     private createRoutesProxy() {
         if(!this._routes) {
-            var that = this;
-            var proxyData = {
-                routePath: {},
-                get(target, prop, receiver) {
-                    if(prop == "addRoute") {
-                        return (routeClass: typeof HttpRoute, path) => {
-                            try {
-                                if(!path) {
-                                    path = "";
-                                }
-                                let splitted = path.split(".");
-                                let current = this.routePath;
-                                for(let part of splitted) {
-                                    if(part != "") {
-                                        if(!current[part]) {
-                                            current[part] = {};
-                                        }
-                                        current = current[part];
-                                    }
-                                }
-                                let routeInstance = new routeClass(that);
-                                let keyFromChild: string[] = [];
-                                while(routeClass.prototype) {
-                                    let keys = Object.getOwnPropertyNames(routeClass.prototype);
-                                    for(let key of keys) {
-                                        if(key != "constructor" && !keyFromChild.includes(key)) {
-                                            keyFromChild.push(key);
-                                            current[key] = routeInstance[key].bind(routeInstance);
-                                        }
-                                    }
-                                    routeClass = Object.getPrototypeOf(routeClass);
-                                }
-                            } catch(e) {
-                                console.error(e);
-                            }
-                        };
-                    }
-                    else if(prop == "allRoutes") {
-                        return (flat) => {
-                            if(!flat) {
-                                return this.routePath;
-                            }
-                            else {
-                                let result = {};
-                                let load = (current, pathes: string[]) => {
-                                    for(let key in current) {
-                                        pathes.push(key);
-                                        if(typeof current[key] == "function") {
-                                            result[pathes.join(".")] = current[key];
-                                        }
-                                        else {
-                                            load(current[key], pathes);
-                                        }
-                                        pathes.pop();
-                                    }
-                                };
-                                load(this.routePath, []);
-                                return result;
-                            }
-                        };
-                    }
-                    else if(this.routePath[prop]) {
-                        return this.routePath[prop];
-                    }
-                    return null;
-                }
-            };
-            this._routes = new Proxy({}, proxyData);
+            this._routes = new Proxy({}, createCommProxy<HttpRoute>(this));
         }
     }
 

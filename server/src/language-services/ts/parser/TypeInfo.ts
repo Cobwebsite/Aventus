@@ -70,6 +70,7 @@ export class TypeInfo {
 			this.nested = temp.nested;
 			this.kind = temp.kind;
 			this.value = temp.value;
+			this.endNonGeneric = temp.endNonGeneric;
 		}
 		else if (node.kind === SyntaxKind.UnionType) {
 			let unionType = node as UnionTypeNode;
@@ -115,6 +116,7 @@ export class TypeInfo {
 			this.kind = temp.kind;
 			this.value = temp.value;
 			this.isArray = temp.isArray;
+			this.endNonGeneric = temp.endNonGeneric;
 		}
 		else if (node.kind == SyntaxKind.FunctionType) {
 			let fctType = node as FunctionTypeNode;

@@ -1,29 +1,46 @@
+import { Json } from "./Json.lib.avt";
 
-
-// export type JsonFormat<T> = T extends Array<infer U> ? KeysObject<U>[] : KeysObject<T>;
 type SchemaType = 'string' | 'number' | 'boolean' | 'date' | string;
+
+
+export type ClassCopyOptions = {
+    isValidKey?: (key: string) => boolean;
+    replaceKey?: (key: string) => string;
+    transformValue?: (key: string, value: any) => any;
+};
 export interface Schema {
     [key: string]: SchemaType;
 }
 
-export class Converter {
-    private static info: Map<string, new () => any> = new Map();
-    private static schema: Map<string, Schema> = new Map();
-    /**
-     * Register a unique string type for any class
-     */
-    public static register($type: string, cst: new () => any, schema?: Schema) {
-        this.info.set($type, cst);
-        if(schema) {
-            this.schema.set($type, schema);
-        }
-    }
+export interface IConverterTransform {
+    transform<T = any>(data: any): T;
+    copyValuesClass<T extends Object>(target: T, src: T, options?: ClassCopyOptions): void;
+}
+export class ConverterTransform implements IConverterTransform {
 
-    public static transform<T = any>(data: any): T {
+    public transform<T = any>(data: any): T {
         return this.transformLoop(data);
     }
 
-    private static transformLoop(data: any) {
+    protected createInstance(data): (Object & { fromJSON?: (data: any) => void; }) | undefined {
+        if(data.$type) {
+            let cst = Converter.info.get(data.$type);
+            if(cst) {
+                return new cst();
+            }
+        }
+        return undefined;
+    }
+
+    protected beforeTransformObject(obj: Object) {
+
+    }
+
+    protected afterTransformObject(obj: Object) {
+
+    }
+
+    private transformLoop(data: any) {
         if(data === null) {
             return data;
         }
@@ -39,37 +56,32 @@ export class Converter {
         }
 
         if(typeof data === 'object' && !/^\s*class\s+/.test(data.toString())) {
-            if(data.$type) {
-                if(data.$type == "AventusSharp.Map") {
-
+            let objTemp = this.createInstance(data);
+            if(objTemp) {
+                let obj = objTemp;
+                this.beforeTransformObject(obj);
+                if(obj.fromJSON) {
+                    obj.fromJSON(data);
                 }
-                let cst = this.info.get(data.$type);
-                if(cst) {
-                    let obj = new cst();
-                    let props = Object.getOwnPropertyNames(obj);
-                    for(let prop of props) {
-                        let propUpperFirst = prop[0].toUpperCase() + prop.slice(1);
-                        let value = data[prop] === undefined ? data[propUpperFirst] : data[prop];
-                        if(value !== undefined) {
-                            let propInfo = Object.getOwnPropertyDescriptor(obj, prop);
-                            if(propInfo?.writable) {
-                                if(obj[prop] instanceof Date) {
-                                    obj[prop] = value ? new Date(value) : null;
-                                }
-                                else if(obj[prop] instanceof Map) {
-                                    obj[prop].clear()
-                                    for(const keyValue of value) {
-                                        obj[prop].set(this.transformLoop(keyValue[0]), this.transformLoop(keyValue[1]));
-                                    }
-                                }
-                                else {
-                                    obj[prop] = this.transformLoop(value);
-                                }
+                else {
+                    obj = Json.classfromJson(obj, data, {
+                        transformValue: (key, value) => {
+                            if(obj[key] instanceof Date) {
+                                return value ? new Date(value) : null;
                             }
+                            else if(obj[key] instanceof Map) {
+                                let map = new Map();
+                                for(const keyValue of value) {
+                                    map.set(this.transformLoop(keyValue[0]), this.transformLoop(keyValue[1]));
+                                }
+                                return map;
+                            }
+                            return this.transformLoop(value);
                         }
-                    }
-                    return obj;
+                    });
                 }
+                this.afterTransformObject(obj);
+                return obj;
             }
 
             let result = {};
@@ -81,4 +93,82 @@ export class Converter {
 
         return data;
     }
+
+
+    public copyValuesClass<T extends Object>(target: T, src: T, options?: ClassCopyOptions): void {
+        const realOptions: Required<ClassCopyOptions> = {
+            isValidKey: options?.isValidKey ?? (() => true),
+            replaceKey: options?.replaceKey ?? ((key) => key),
+            transformValue: options?.transformValue ?? ((key, value) => value),
+        };
+
+        this.__classCopyValues(target, src, realOptions);
+    }
+
+    private __classCopyValues<T extends Object>(target: T, src: T, options: Required<ClassCopyOptions>) {
+        let props = Object.getOwnPropertyNames(target);
+        for(let prop of props) {
+            let propInfo = Object.getOwnPropertyDescriptor(target, prop);
+            if(propInfo?.writable) {
+                if(options.isValidKey(prop))
+                    target[options.replaceKey(prop)] = options.transformValue(prop, src[prop]);
+            }
+        }
+        // load custom getter / setter
+        let cstTemp = target.constructor;
+        while(cstTemp.prototype && cstTemp != Object.prototype) {
+            props = Object.getOwnPropertyNames(cstTemp.prototype);
+            for(let prop of props) {
+                let propInfo = Object.getOwnPropertyDescriptor(cstTemp.prototype, prop);
+                if(propInfo?.set && propInfo.get) {
+                    if(options.isValidKey(prop))
+                        target[options.replaceKey(prop)] = options.transformValue(prop, src[prop]);
+                }
+            }
+            cstTemp = Object.getPrototypeOf(cstTemp);
+        }
+    }
 }
+
+export class Converter {
+    public static readonly info: Map<string, new () => any> = new Map();
+    private static schema: Map<string, Schema> = new Map();
+
+    private static __converter: IConverterTransform = new ConverterTransform();
+
+    private static get converterTransform(): IConverterTransform {
+        return this.__converter;
+    }
+
+    public static setConverter(converter: IConverterTransform) {
+        this.__converter = converter;
+    }
+
+    /**
+     * Register a unique string type for any class
+     */
+    public static register($type: string, cst: new () => any, schema?: Schema) {
+        this.info.set($type, cst);
+        if(schema) {
+            this.schema.set($type, schema);
+        }
+    }
+
+    public static transform<T = any>(data: any, converter?: IConverterTransform): T {
+        if(!converter) {
+            converter = this.converterTransform;
+        }
+        return converter.transform(data);
+    }
+
+
+    public static copyValuesClass<T extends Object>(to: T, from: T, options?: ClassCopyOptions, converter?: IConverterTransform) {
+        if(!converter) {
+            converter = this.converterTransform;
+        }
+        return converter.copyValuesClass(to, from, options);
+    }
+
+}
+
+

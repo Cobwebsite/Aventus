@@ -2,7 +2,7 @@
 	"name": "aventus",
 	"displayName": "Aventus",
 	"description": "This extension allows compilation of Aventus Framework",
-	"version": "1.1.0",
+	"version": "1.1.1",
 	"license": "MIT",
 	"icon": "icons/logo.png",
 	"author": {
@@ -72,7 +72,6 @@
 					".data.avt",
 					".lib.avt",
 					".ram.avt",
-					".socket.avt",
 					".state.avt",
 					".static.avt",
 					".def.avt"
@@ -380,6 +379,10 @@
 			{
 				"command": "aventus.sharp.export",
 				"title": "Aventus : Export sharp"
+			},
+			{
+				"command": "aventus.openfile.debug",
+				"title": "Aventus : Open debug file"
 			}
 		],
 		"menus": {
@@ -637,12 +640,12 @@
 		"serve-index": "^1.9.1",
 		"terser": "^5.19.0",
 		"ts-patch": "^3.0.2",
-		"typescript": "^5.2.2",
+		"typescript": "^5.3.3",
 		"typescript-transform-paths": "^3.4.6",
 		"uglify-js": "^3.17.1",
 		"url": "^0.11.0",
 		"uuid": "^9.0.0",
-		"vscode-css-languageservice": "^6.2.10",
+		"vscode-css-languageservice": "^6.2.11",
 		"vscode-html-languageservice": "^5.0.0",
 		"vscode-json-languageservice": "^5.0.0",
 		"vscode-languageclient": "^6.1.3",

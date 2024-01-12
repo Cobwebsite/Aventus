@@ -1,0 +1,15 @@
+For the doc we need :
+
+- Display all the data - maybe join with C#
+- Display the basics components (input, btn, etc)
+	- css variables (--internal or --_)
+	- properties, attributes, watches, slots (how to documents slots?)
+	- display the methods
+	- display diffents examples that can be named
+- Display all the communications (ws and http) - maybe join with C#
+	- Display the request and the response
+	- Maybe add a custom body to test it like swagger
+- Display the rams?
+
+Do we need to merge with parent doc?
+

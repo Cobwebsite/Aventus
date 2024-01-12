@@ -17,7 +17,6 @@ export class Create {
 		{ label: "Data", detail: "Create a data" },
 		{ label: "Library", detail: "Create a library" },
 		{ label: "RAM", detail: "Create a RAM" },
-		{ label: "Socket", detail: "Create a websocket" },
 		{ label: "State", detail: "Create a state" },
 		{ label: "Custom", detail: "Create a custom template" },
 	];
@@ -111,15 +110,6 @@ export class Create {
 						return;
 					}
 					this.createLib(name, path);
-				}
-				else if (type == "Socket") {
-					const name = await GenericServer.Input({
-						title: "Provide a name for your " + type,
-					});
-					if (!name) {
-						return;
-					}
-					this.createSocket(name, path);
 				}
 				else if (type == "State") {
 					const stateType = await GenericServer.Select(Create.stateOptions, {});
@@ -346,42 +336,13 @@ export class ${className} extends Aventus.Ram<${objectName}> implements Aventus.
 		OpenFile.send(textDocument.uri);
 	}
 
-	private static createSocket(socketName: string, baseFolderUri: string) {
-		socketName = socketName.charAt(0).toUpperCase() + socketName.slice(1);
-		let newScriptPath = uriToPath(baseFolderUri + "/" + socketName + AventusExtension.Socket);
-		let newScriptUri = pathToUri(newScriptPath);
-		let defaultSocket = `
-export class LoginSocket extends Aventus.Socket implements Aventus.ISocket {
-
-	/**
-	 * Get the instance of the websocket
-	 */
-	public static getInstance() {
-		return Aventus.Instance.get(LoginSocket);
-	}
-
-	/**
-	 * @inheritdoc
-	 */
-	protected override configure(options: Aventus.SocketOptions): Aventus.SocketOptions {
-		
-		return options;
-	}
-
-}`
-		defaultSocket = this.addNamespace(defaultSocket, newScriptUri);
-		writeFileSync(newScriptPath, defaultSocket);
-		let textDocument: TextDocument = TextDocument.create(newScriptUri, AventusLanguageId.TypeScript, 0, defaultSocket);
-		FilesManager.getInstance().registerFile(textDocument);
-		OpenFile.send(newScriptUri);
-	}
 	private static createState(name: string, baseFolderUri: string, format: string) {
 		name = name.charAt(0).toUpperCase() + name.slice(1);
 		let newScriptPath = uriToPath(baseFolderUri + "/" + name + AventusExtension.State);
 		let newScriptUri = pathToUri(newScriptPath);
-		let defaultSocket = "";
+		let defaultState = "";
 		if (format == "State") {
-			defaultSocket = `export class ${name} extends Aventus.State {
+			defaultState = `export class ${name} extends Aventus.State implements Aventus.IState {
 	/**
 	 * @inheritdoc
 	 */
@@ -394,7 +355,7 @@ export class LoginSocket extends Aventus.Socket implements Aventus.ISocket {
 			if (name.endsWith("Manager")) {
 				name.replace("Manager", "");
 			}
-			defaultSocket = `export class ${name}StateManager extends Aventus.StateManager {
+			defaultState = `export class ${name}StateManager extends Aventus.StateManager implements Aventus.IStateManager {
 	/**
 	 * Get the instance of the StateManager
 	 */
@@ -405,9 +366,9 @@ export class LoginSocket extends Aventus.Socket implements Aventus.ISocket {
 }`
 		}
 
-		defaultSocket = this.addNamespace(defaultSocket, newScriptUri);
-		writeFileSync(newScriptPath, defaultSocket);
-		let textDocument: TextDocument = TextDocument.create(newScriptUri, AventusLanguageId.TypeScript, 0, defaultSocket);
+		defaultState = this.addNamespace(defaultState, newScriptUri);
+		writeFileSync(newScriptPath, defaultState);
+		let textDocument: TextDocument = TextDocument.create(newScriptUri, AventusLanguageId.TypeScript, 0, defaultState);
 		FilesManager.getInstance().registerFile(textDocument);
 		OpenFile.send(newScriptUri);
 	}

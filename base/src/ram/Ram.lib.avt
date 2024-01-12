@@ -1,7 +1,7 @@
 import { RamError, RamErrorCode, ResultRamWithError } from "./Error.lib.avt";
 import type { IData } from "../data/IData.data.avt";
-import { Converter } from "../tools/Converter.lib.avt";
 import { VoidWithError } from "../tools/Error.lib.avt";
+import { Json } from "../tools/Json.lib.avt";
 
 export interface IRam { }
 export type KeysObject<T> = { [Key in keyof T]?: any; };
@@ -37,7 +37,7 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
         updated: [],
         deleted: [],
     };
-    private recordsSubscribers: Map<Index, RamSubscribers<RamItem<T>>> = new Map();
+    protected recordsSubscribers: Map<Index, RamSubscribers<RamItem<T>>> = new Map();
     /**
      * List of stored item by index key
      */
@@ -199,6 +199,7 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
             result.errors.push(new RamError(RamErrorCode.unknow, e));
         }
     }
+
     /**
      * Merge object and create real instance of class
      */
@@ -206,23 +207,14 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
         if(!item) {
             return;
         }
-        let realObject = Converter.transform(objJson);
-        let props = Object.getOwnPropertyNames(item);
-        for(let prop of props) {
-            if(realObject[prop] !== undefined) {
-                let propInfo = Object.getOwnPropertyDescriptor(item, prop);
-                if(propInfo?.writable) {
-                    item[prop] = realObject[prop];
-                }
-            }
-        }
+        Json.classfromJson(item, objJson);
     }
     //#endregion
 
     //#region listener
     protected publish(type: 'created' | 'updated' | 'deleted', data: RamItem<T>) {
         [...this.subscribers[type]].forEach(callback => callback(data));
-        let sub = this.recordsSubscribers.has(this.getId(data));
+        let sub = this.recordsSubscribers.get(this.getId(data));
         if(sub) {
             [...sub[type]].forEach(callback => callback(data));
         }
@@ -753,9 +745,10 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
                 else {
                     this.publish('deleted', action.result);
                 }
+                this.recordsSubscribers.delete(key);
             }
             else {
-                action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't update the item " + key + " because it wasn't found inside ram"));
+                action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't delete the item " + key + " because it wasn't found inside ram"));
             }
         }
         else {

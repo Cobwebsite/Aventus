@@ -106,21 +106,24 @@ export class ParserTs {
         if (!ParserTs.currentParsingDoc) {
             return false;
         }
-        if (ParserTs.currentParsingDoc.enums[name]) {
+        if(ParserTs.currentParsingDoc.internalObjects[name]) {
             return true;
         }
-        if (ParserTs.currentParsingDoc.classes[name]) {
-            return true;
-        }
-        if (ParserTs.currentParsingDoc.aliases[name]) {
-            return true;
-        }
-        if (ParserTs.currentParsingDoc.functions[name]) {
-            return true;
-        }
-        if (ParserTs.currentParsingDoc.variables[name]) {
-            return true;
-        }
+        // if (ParserTs.currentParsingDoc.enums[name]) {
+        //     return true;
+        // }
+        // if (ParserTs.currentParsingDoc.classes[name]) {
+        //     return true;
+        // }
+        // if (ParserTs.currentParsingDoc.aliases[name]) {
+        //     return true;
+        // }
+        // if (ParserTs.currentParsingDoc.functions[name]) {
+        //     return true;
+        // }
+        // if (ParserTs.currentParsingDoc.variables[name]) {
+        //     return true;
+        // }
         return false
     }
 
@@ -142,6 +145,7 @@ export class ParserTs {
             uri: string,
         }
     } = {};
+    public internalObjects: { [name: string]: { fullname: string } } = {}
     public waitingImports: { [localName: string]: ((info: BaseInfo) => void)[] } = {};
     public aliases: { [shortName: string]: AliasInfo } = {};
     public variables: { [shortName: string]: VariableInfo } = {};
@@ -163,7 +167,9 @@ export class ParserTs {
         this.content = file.document.getText();
         this._document = file.document;
         this.isLib = isLib;
-        this.loadRoot(createSourceFile("sample.ts", this.content, ScriptTarget.ESNext, true));
+        let srcFile = createSourceFile("sample.ts", this.content, ScriptTarget.ESNext, true);
+        this.quickLoadRoot(srcFile);
+        this.loadRoot(srcFile);
         ParserTs.parsingDocs.pop();
         this.isReady = true;
         for (let cb of this.readyCb) {
@@ -184,6 +190,71 @@ export class ParserTs {
         if (!this.isReady) {
             this.readyCb.push(cb);
         }
+    }
+
+    private quickLoadRoot(node: Node) {
+        forEachChild(node, x => {
+            if (x.kind == SyntaxKind.ModuleDeclaration) {
+                let _namespace = x as ModuleDeclaration
+                if (hasFlag(_namespace.flags, NodeFlags.Namespace) && _namespace.body) {
+                    this.currentNamespace.push(_namespace.name.getText());
+                    this.quickLoadRoot(_namespace);
+                    this.currentNamespace.splice(this.currentNamespace.length - 1, 1);
+                }
+                else if (hasFlag(_namespace.flags, NodeFlags.GlobalAugmentation) && _namespace.body) {
+                    this.quickLoadRoot(_namespace);
+                }
+            }
+            else if (x.kind == SyntaxKind.ClassDeclaration || x.kind == SyntaxKind.InterfaceDeclaration) {
+                let _class = x as ClassDeclaration | InterfaceDeclaration
+                if (_class.name) {
+                    let name = _class.name.getText();
+                    this.internalObjects[name] = {
+                        fullname: [...this.currentNamespace, name].join(".")
+                    }
+                }
+            }
+            else if (x.kind == SyntaxKind.EnumDeclaration) {
+                let _enum = x as EnumDeclaration;
+                let name = _enum.name.getText();
+                this.internalObjects[name] = {
+                    fullname: [...this.currentNamespace, name].join(".")
+                }
+            }
+            else if (x.kind == SyntaxKind.TypeAliasDeclaration) {
+                let _alias = x as TypeAliasDeclaration;
+                let name = _alias.name.getText();
+                this.internalObjects[name] = {
+                    fullname: [...this.currentNamespace, name].join(".")
+                }
+            }
+            else if (x.kind == SyntaxKind.FunctionDeclaration) {
+                let _function = x as FunctionDeclaration;
+                if (_function.name) {
+                    let name = _function.name.getText();
+                    this.internalObjects[name] = {
+                        fullname: [...this.currentNamespace, name].join(".")
+                    }
+                }
+            }
+            else if (x.kind == SyntaxKind.VariableStatement) {
+                // this.loadVariableStatement(x as VariableStatement);
+                let _varStatement = x as VariableStatement;
+                for (let declaration of _varStatement.declarationList.declarations) {
+                    if (declaration.kind == SyntaxKind.VariableDeclaration) {
+                        let _var = declaration as VariableDeclaration;
+                        let name = _var.name.getText();
+                        this.internalObjects[name] = {
+                            fullname: [...this.currentNamespace, name].join(".")
+                        }
+                    }
+                }
+                
+            }
+            else if (x.kind == SyntaxKind.ModuleBlock) {
+                this.quickLoadRoot(x);
+            }
+        })
     }
 
     private loadRoot(node: Node) {
@@ -214,7 +285,6 @@ export class ParserTs {
             }
             else if (x.kind == SyntaxKind.ModuleBlock) {
                 this.loadRoot(x);
-
             }
             else if (x.kind == SyntaxKind.EndOfFileToken) {
 

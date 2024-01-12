@@ -1,11 +1,8 @@
-import { ClassDeclaration, Expression, forEachChild, SyntaxKind, Node, MethodDeclaration, PropertyDeclaration, NewExpression, PropertyAccessExpression, HeritageClause, InterfaceDeclaration, ConstructorDeclaration, ExpressionWithTypeArguments, TypeNode, TypeReferenceNode, CallExpression, GetAccessorDeclaration, SetAccessorDeclaration, FunctionBody } from "typescript";
+import { ClassDeclaration, forEachChild, SyntaxKind, MethodDeclaration, PropertyDeclaration, HeritageClause, InterfaceDeclaration, ConstructorDeclaration, ExpressionWithTypeArguments, TypeNode, TypeReferenceNode, CallExpression, GetAccessorDeclaration, SetAccessorDeclaration, FunctionBody } from "typescript";
 import { BaseInfo, InfoType } from "./BaseInfo";
-import { BaseLibInfo } from './BaseLibInfo';
-import { DecoratorInfo } from "./DecoratorInfo";
 import { MethodInfo } from "./MethodInfo";
 import { ParserTs } from "./ParserTs";
 import { PropertyInfo } from "./PropertyInfo";
-import { TypeInfo } from './TypeInfo';
 import { ConvertibleDecorator } from './decorators/ConvertibleDecorator';
 
 
@@ -20,37 +17,17 @@ export class ClassInfo extends BaseInfo {
 	public propertiesStatic: { [propName: string]: PropertyInfo } = {};
 	public isInterface: boolean = false;
 	public isAbstract: boolean = false;
-	public constructorBody: FunctionBody | undefined;
+	private constructorBody: FunctionBody | undefined;
 	public parameters: string[] = [];
 	private methodParameters: string[] = [];
 	public convertibleName: string = '';
 	public get constructorContent(): string {
-		if(!this.constructorBody) {
+		if (!this.constructorBody) {
 			return "";
 		}
-        let txt = this.constructorBody.getText();
-        let transformations: { newText: string, start: number, end: number }[] = [];
-        for (let depName in this.dependancesLocations) {
-            let replacement = this.dependancesLocations[depName].replacement;
-            if (replacement) {
-                for (let locationKey in this.dependancesLocations[depName].locations) {
-                    let location = this.dependancesLocations[depName].locations[locationKey];
-                    if(location.start >= this.constructorBody.getStart() && location.end <= this.constructorBody.getEnd()) {
-                        transformations.push({
-                            newText: replacement,
-                            start: location.start - this.constructorBody.getStart(),
-                            end: location.end - this.constructorBody.getStart(),
-                        })
-                    }
-                }
-            }
-        }
-        transformations.sort((a, b) => b.end - a.end); // order from end file to start file
-        for (let transformation of transformations) {
-            txt = txt.slice(0, transformation.start) + transformation.newText + txt.slice(transformation.end, txt.length);
-        }
-        return txt;
-    }
+		let txt = this.constructorBody.getText();
+		return BaseInfo.getContent(txt, this.constructorBody.getStart(), this.constructorBody.getEnd(), this.dependancesLocations, this.compileTransformations);
+	}
 
 	constructor(node: ClassDeclaration | InterfaceDeclaration, namespaces: string[], parserInfo: ParserTs) {
 		super(node, namespaces, parserInfo, false);
@@ -75,36 +52,30 @@ export class ClassInfo extends BaseInfo {
 				this.getClassInheritance(heritage);
 			}
 		}
-
+		
 		forEachChild(node, x => {
+			let isStrong = false;
+			let result: PropertyInfo | MethodInfo | null = null;
 			if (x.kind == SyntaxKind.Constructor) {
 				let cst = x as ConstructorDeclaration;
 				if (cst.body) {
 					this.constructorBody = cst.body
 				}
-				forEachChild(x, y => {
-					if (y.kind == SyntaxKind.Block) {
-
-						this.loadOnlyDependancesRecu(y);
-					}
-				})
 			}
 			else if (x.kind == SyntaxKind.PropertyDeclaration) {
 				let propInfo = new PropertyInfo(x as PropertyDeclaration, this.isInterface, this);
 				if (propInfo.isStatic) {
 					this.propertiesStatic[propInfo.name] = propInfo;
+					isStrong = true;
 				}
 				else {
 					this.properties[propInfo.name] = propInfo;
 				}
 				let prop = x as PropertyDeclaration;
-				if (prop.type) {
-					this.addDependance(prop.type, false);
-				}
-				else {
+				if (!prop.type) {
 					ParserTs.addError(prop.getStart(), prop.getEnd(), "You must define a type for the prop " + propInfo.name);
 				}
-				
+				result = propInfo;
 			}
 			else if (x.kind == SyntaxKind.GetAccessor) {
 				let prop = x as GetAccessorDeclaration;
@@ -115,15 +86,10 @@ export class ClassInfo extends BaseInfo {
 				else {
 					this.properties[propInfo.name] = propInfo;
 				}
-				if (prop.type) {
-					this.addDependance(prop.type, false);
-				}
-				else {
+				if (!prop.type) {
 					ParserTs.addError(prop.getStart(), prop.getEnd(), "You must define a type for the prop " + propInfo.name);
 				}
-				if(prop.body) {
-					this.loadOnlyDependancesRecu(prop.body);
-				}
+				result = propInfo;
 			}
 			else if (x.kind == SyntaxKind.SetAccessor) {
 				let prop = x as SetAccessorDeclaration;
@@ -134,15 +100,7 @@ export class ClassInfo extends BaseInfo {
 				else {
 					this.properties[propInfo.name] = propInfo;
 				}
-				if (prop.type) {
-					this.addDependance(prop.type, false);
-				}
-				else {
-					ParserTs.addError(prop.getStart(), prop.getEnd(), "You must define a type for the prop " + propInfo.name);
-				}
-				if(prop.body) {
-					this.loadOnlyDependancesRecu(prop.body);
-				}
+				result = propInfo;
 			}
 			else if (x.kind == SyntaxKind.MethodDeclaration) {
 				let method = x as MethodDeclaration;
@@ -151,34 +109,28 @@ export class ClassInfo extends BaseInfo {
 						this.methodParameters.push(param.name.getText());
 					}
 				}
-				for (let param of method.parameters) {
-					if (param.type) {
-						this.addDependance(param.type, false);
-					}
-				}
-				forEachChild(x, y => {
-					if (y.kind == SyntaxKind.Block) {
-						this.loadOnlyDependancesRecu(y);
-					}
-				})
 				let methodInfo = new MethodInfo(x as MethodDeclaration, this);
 				this.methods[methodInfo.name] = methodInfo;
 				this.methodParameters = [];
+				result = methodInfo;
 			}
 			else if (this.debug) {
 				console.log(SyntaxKind[x.kind]);
 				console.log(x.getText());
 			}
+
+			if (result) {
+				if (result.accessibilityModifierTransformation) {
+					let key = result.accessibilityModifierTransformation.start + "_" + result.accessibilityModifierTransformation.end
+					this.compileTransformations[key] = result.accessibilityModifierTransformation
+				}
+			}
+			this.loadOnlyDependancesRecu(x, 0, isStrong);
 		});
 
-		for (let decorator of this.decorators) {
-			let temp = ConvertibleDecorator.is(decorator);
-			if (temp) {
-				this.convertibleName = temp.name;
-			}
-		}
-		this.loadDependancesDecorator();
+		this.loadConvertible();
 
+		this.loadDependancesDecorator();
 	}
 	private getClassInheritance(node: HeritageClause) {
 		if (node.token == SyntaxKind.ExtendsKeyword) {
@@ -210,6 +162,20 @@ export class ClassInfo extends BaseInfo {
 					}
 				}
 			})
+		}
+	}
+
+	private loadConvertible() {
+		let current: ClassInfo | null = this;
+		while (current != null) {
+			for (let decorator of current.decorators) {
+				let temp = ConvertibleDecorator.is(decorator);
+				if (temp) {
+					this.convertibleName = temp.name;
+					return;
+				}
+			}
+			current = current.parentClass;
 		}
 	}
 

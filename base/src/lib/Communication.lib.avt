@@ -1,0 +1,93 @@
+
+export function createCommProxy<T>(that: any) {
+    let proxyData = {
+        routePath: {},
+        get(target, prop, receiver) {
+            if(prop == "add") {
+                return (cst: new (...args: any[]) => T, path) => {
+                    try {
+                        if(!path) {
+                            path = "";
+                        }
+                        let splitted = path.split(".");
+                        let current = this.routePath;
+                        for(let part of splitted) {
+                            if(part != "") {
+                                if(!current[part]) {
+                                    current[part] = {};
+                                }
+                                current = current[part];
+                            }
+                        }
+                        let instance = new cst(that);
+                        let keyFromChild: string[] = [];
+                        while(cst.prototype) {
+                            let keys = Object.getOwnPropertyNames(cst.prototype);
+                            for(let key of keys) {
+                                if(key != "constructor" && !keyFromChild.includes(key)) {
+                                    keyFromChild.push(key);
+                                    if(instance[key] instanceof Function)
+                                        current[key] = instance[key].bind(instance);
+                                    else
+                                        current[key] = instance[key];
+                                }
+                            }
+                            cst = Object.getPrototypeOf(cst);
+                        }
+
+                        let keysName = Object.getOwnPropertyNames(instance);
+                        for(let key of keysName) {
+                            if(!Object.getOwnPropertyDescriptor(current, key) && !keyFromChild.includes(key)) {
+                                keyFromChild.push(key);
+
+                                if(instance[key] instanceof Function)
+                                    instance[key] = instance[key].bind(instance);
+
+                                Object.defineProperty(current, key, {
+                                    get: () => {
+                                        return instance[key];
+                                    },
+                                    set: (value) => {
+                                        instance[key] = value;
+                                    }
+                                });
+                            }
+                        }
+
+                    } catch(e) {
+                        console.error(e);
+                    }
+                };
+            }
+            else if(prop == "getAll") {
+                return (flat) => {
+                    if(!flat) {
+                        return this.routePath;
+                    }
+                    else {
+                        let result = {};
+                        let load = (current, pathes: string[]) => {
+                            for(let key in current) {
+                                pathes.push(key);
+                                if(typeof current[key] == "function") {
+                                    result[pathes.join(".")] = current[key];
+                                }
+                                else {
+                                    load(current[key], pathes);
+                                }
+                                pathes.pop();
+                            }
+                        };
+                        load(this.routePath, []);
+                        return result;
+                    }
+                };
+            }
+            else if(this.routePath[prop]) {
+                return this.routePath[prop];
+            }
+            return null;
+        }
+    };
+	return proxyData;
+}

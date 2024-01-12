@@ -1,4 +1,2 @@
-export type Enum<T = unknown> = {
-    [id: string]: T | string;
-    [nu: number]: string;
-}
+export type Enum = { [key: string]: number | string; };
+export type EnumValue<T extends (number | Enum)> = T extends Enum ? T[keyof T] : number;

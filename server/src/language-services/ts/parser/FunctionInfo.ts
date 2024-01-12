@@ -28,6 +28,6 @@ export class FunctionInfo extends BaseInfo {
 			}
 		})
 
-
+		
 	}
 }

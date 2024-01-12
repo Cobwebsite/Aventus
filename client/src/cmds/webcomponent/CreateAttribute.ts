@@ -1,5 +1,5 @@
-import { InputBoxValidationMessage, window } from 'vscode';
-import { QuickPick } from '../../quickPick';
+import { window } from 'vscode';
+
 
 export class CreateAttribute {
 	static cmd: string = "aventus.wc.create.attribute";

@@ -1,7 +1,6 @@
 import { ArrayTypeNode, ClassDeclaration, ConstructorDeclaration, createSourceFile, EntityName, ExpressionWithTypeArguments, forEachChild, HeritageClause, MethodDeclaration, PropertyDeclaration, QualifiedName, ScriptTarget, SyntaxKind, TypeNode, TypeReferenceNode, UnionTypeNode } from 'typescript';
 import { BaseInfo } from './BaseInfo';
 import { ClassInfo } from './ClassInfo';
-import { writeFileSync } from 'fs';
 
 export class DefinitionCorrector {
 	private static allChanges: {
@@ -10,6 +9,12 @@ export class DefinitionCorrector {
 		value: string
 	}[] = [];
 	private static currentElement: ClassInfo | null;
+	/**
+	 * Set back the decorator content
+	 * @param txt 
+	 * @param element 
+	 * @returns 
+	 */
 	public static correct(txt: string, element: BaseInfo) {
 		var node = createSourceFile("sample.ts", txt, ScriptTarget.ESNext, true);
 		this.allChanges = []

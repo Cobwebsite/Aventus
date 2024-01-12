@@ -194,3 +194,26 @@ export function replaceNotImportAliases(content: string, config: AventusConfig |
     }
     return content;
 }
+
+
+export class Debug {
+    private static timers: { [name: string]: number } = {}
+
+    public static startTimer(name: string) {
+        this.timers[name] = new Date().getMilliseconds();
+    }
+
+    public static printTimer(name: string, msg?: string) {
+        if (this.timers[name]) {
+            let diff = new Date().getMilliseconds() - this.timers[name];
+            msg = msg ?? "";
+            console.log(msg + "" + diff + "ms");
+        }
+    }
+    public static stopTimer(name: string, print?: boolean, msg?: string) {
+        if (print) {
+            this.printTimer(name, msg);
+        }
+        delete this.timers[name];
+    }
+}
