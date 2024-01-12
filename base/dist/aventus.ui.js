@@ -975,45 +975,6 @@ const Uri=class Uri {
 }
 Uri.Namespace=`${moduleName}`;
 _.Uri=Uri;
-const State=class State {
-    /**
-     * Activate a custom state inside a specific manager
-     * It ll be a generic state with no information inside exept name
-     */
-    static async activate(stateName, manager) {
-        return await manager.setState(stateName);
-    }
-    /**
-     * Activate this state inside a specific manager
-     */
-    async activate(manager) {
-        return await manager.setState(this);
-    }
-    onActivate() {
-    }
-    onInactivate(nextState) {
-    }
-    async askChange(state, nextState) {
-        return true;
-    }
-}
-State.Namespace=`${moduleName}`;
-_.State=State;
-const EmptyState=class EmptyState extends State {
-    localName;
-    constructor(stateName) {
-        super();
-        this.localName = stateName;
-    }
-    /**
-     * @inheritdoc
-     */
-    get name() {
-        return this.localName;
-    }
-}
-EmptyState.Namespace=`${moduleName}`;
-_.EmptyState=EmptyState;
 const StateManager=class StateManager {
     subscribers = {};
     static canBeActivate(statePattern, stateName) {
@@ -1287,6 +1248,30 @@ const StateManager=class StateManager {
 }
 StateManager.Namespace=`${moduleName}`;
 _.StateManager=StateManager;
+const State=class State {
+    /**
+     * Activate a custom state inside a specific manager
+     * It ll be a generic state with no information inside exept name
+     */
+    static async activate(stateName, manager) {
+        return await manager.setState(stateName);
+    }
+    /**
+     * Activate this state inside a specific manager
+     */
+    async activate(manager) {
+        return await manager.setState(this);
+    }
+    onActivate() {
+    }
+    onInactivate(nextState) {
+    }
+    async askChange(state, nextState) {
+        return true;
+    }
+}
+State.Namespace=`${moduleName}`;
+_.State=State;
 const Effect=class Effect {
     callbacks = [];
     isInit = false;
