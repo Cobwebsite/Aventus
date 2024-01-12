@@ -89,4 +89,3 @@ export class Rename {
 		}, 500);
 	}
 }
-
