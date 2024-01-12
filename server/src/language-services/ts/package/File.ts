@@ -69,7 +69,7 @@ export class AventusPackageFile extends AventusBaseFile {
 		let result = this.separeSection();
 		if (result) {
 			// definition TS
-			let documentTs = TextDocument.create(this.file.uri, AventusLanguageId.TypeScript, this.file.version, result.jsDef);
+			let documentTs = TextDocument.create(this.file.uri, AventusLanguageId.TypeScript, this.file.versionUser, result.jsDef);
 			if (!this.tsFile) {
 				this.tsFile = new InternalAventusFile(documentTs);
 				this.tsDef = new AventusPackageFileTs(this.tsFile, this.build);

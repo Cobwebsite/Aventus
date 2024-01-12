@@ -93,7 +93,7 @@ export abstract class AventusBaseFile {
         }
     }
     protected onCanContentChange(document: TextDocument): boolean {
-        return this._file.version != document.version;
+        return this._file.versionUser != document.version;
     }
     protected abstract onContentChange(): Promise<void>;
     private oldResult:Diagnostic[] = [];

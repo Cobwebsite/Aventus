@@ -67,7 +67,7 @@ export class FilesManager {
             this.registerFile(textDoc);
         }
         else {
-            let newVersion = this.files[uri].version + 1;
+            let newVersion = this.files[uri].versionUser + 1;
             let textDoc = TextDocument.create(uri, extension, newVersion, content);
             this.onContentChange(textDoc);
             this.onSave(textDoc);

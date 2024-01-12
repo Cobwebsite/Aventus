@@ -105,7 +105,7 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
     protected async onContentChange(): Promise<void> {
         let result = this.splitDocument();
         const _convertSection = async (region: AventusWebComponentSingleFileRegion<AventusBaseFile>, languageId: string, newText: string) => {
-            let newDocument = TextDocument.create(this.file.uri, languageId, this.file.version, newText);
+            let newDocument = TextDocument.create(this.file.uri, languageId, this.file.versionUser, newText);
             if (region.file) {
                 await region.file.triggerContentChange(newDocument);
             }
@@ -352,9 +352,9 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
     private getDocuments() {
         let resultTxt = this.splitDocument();
 
-        let htmlFileTemp = new InternalAventusFile(TextDocument.create(this.file.uri, AventusLanguageId.HTML, this.file.version, resultTxt.htmlText));
-        let scssFileTemp = new InternalAventusFile(TextDocument.create(this.file.uri, AventusLanguageId.SCSS, this.file.version, resultTxt.cssText));
-        let tsFileTemp = new InternalAventusFile(TextDocument.create(this.file.uri, AventusLanguageId.TypeScript, this.file.version, resultTxt.scriptText));
+        let htmlFileTemp = new InternalAventusFile(TextDocument.create(this.file.uri, AventusLanguageId.HTML, this.file.versionUser, resultTxt.htmlText));
+        let scssFileTemp = new InternalAventusFile(TextDocument.create(this.file.uri, AventusLanguageId.SCSS, this.file.versionUser, resultTxt.cssText));
+        let tsFileTemp = new InternalAventusFile(TextDocument.create(this.file.uri, AventusLanguageId.TypeScript, this.file.versionUser, resultTxt.scriptText));
 
         const result = {
             html: new AventusHTMLFile(htmlFileTemp, this.build),

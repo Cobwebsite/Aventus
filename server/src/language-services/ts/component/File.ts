@@ -137,7 +137,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
     public recreateFileContent() {
         let htmlFile = this.HTMLFile;
         if (htmlFile) {
-            let htmlVersion = htmlFile.file.version ?? -1;
+            let htmlVersion = htmlFile.file.versionUser ?? -1;
             let mustWrite = false;
             let tsIsDiff = false;
             if (this.lastFileVersionCreated.js != this.file.documentUser.version) {
@@ -682,6 +682,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
     protected async onContentChange(): Promise<void> {
         this.quickParse();
         await this.runWebCompiler();
+        console.log("in");
     }
 
     protected async onSave() {

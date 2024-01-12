@@ -26,7 +26,7 @@ export interface AventusFile {
     readonly documentInternal: TextDocument;
     uri: string;
     path: string;
-    version: number;
+    versionUser: number;
     contentUser: string;
     contentInternal: string;
     folderUri: string;
@@ -96,13 +96,14 @@ export class InternalAventusFile implements AventusFile {
 
     public setDocumentInternal(value: TextDocument) {
         this._documentInternal = value;
-        this._version = value.version;
+        this._versionInternal = value.version;
     }
 
     public constructor(document: TextDocument) {
         this._documentUser = document;
         this._documentInternal = document;
-        this._version = document.version;
+        this._versionUser = document.version;
+        this._versionInternal = document.version;
     }
 
     get uri() {
@@ -111,9 +112,13 @@ export class InternalAventusFile implements AventusFile {
     get path() {
         return uriToPath(this.uri);
     }
-    private _version: number = 0;
-    get version() {
-        return this._version;
+    private _versionUser: number = 0;
+    get versionUser() {
+        return this._versionUser;
+    }
+    private _versionInternal: number = 0;
+    get versionInternal() {
+        return this._versionInternal;
     }
 
     get contentUser() {
@@ -243,10 +248,11 @@ export class InternalAventusFile implements AventusFile {
     private async triggerContentChangeNoBuffer(document: TextDocument) {
         let parsingVersion = document.version;
         this._documentUser = document;
+        this._versionUser = document.version;
         if (this.linkInternalAndUser) {
             this._documentInternal = document;
+            this._versionInternal = document.version;
         }
-        this._version = document.version;
 
         let proms: Promise<void>[] = [];
         for (let uuid in this.onContentChangeCb) {

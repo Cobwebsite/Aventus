@@ -23,7 +23,7 @@ export class ParserHtml {
 	}
 	public static parse(document: AventusHTMLFile, build: Build): ParserHtml {
 		if (ParserHtml.parsedDoc[document.file.uri]) {
-			if (this.parsedDoc[document.file.uri].version == document.file.version) {
+			if (this.parsedDoc[document.file.uri].version == document.file.versionUser) {
 				return this.parsedDoc[document.file.uri].result;
 			}
 		}
@@ -117,7 +117,7 @@ export class ParserHtml {
 	}
 	public static refreshStyle(document: AventusHTMLFile, build: Build) {
 		if (ParserHtml.parsedDoc[document.file.uri]) {
-			if (this.parsedDoc[document.file.uri].version == document.file.version) {
+			if (this.parsedDoc[document.file.uri].version == document.file.versionUser) {
 				let doc = this.parsedDoc[document.file.uri];
 				doc.result.styleLinks = [];
 				doc.result.rules = document.scssFile?.rules ?? new Map();
@@ -367,12 +367,12 @@ export class ParserHtml {
 		this.build = build;
 		this.htmlFile = document;
 		ParserHtml.parsedDoc[document.file.uri] = {
-			version: document.file.version,
+			version: document.file.versionUser,
 			result: this,
 		}
 		let fileContent = this.getFileContent(document.file.documentUser);
 		this.rules = document.scssFile?.rules ?? new Map();
-		this.document = TextDocument.create(document.file.uri, document.file.documentUser.languageId, document.file.version, fileContent);
+		this.document = TextDocument.create(document.file.uri, document.file.documentUser.languageId, document.file.versionUser, fileContent);
 		ParserHtml.currentParsingDoc = this;
 		this.uri = document.file.uri;
 		ParserHtml.idElement = 0;

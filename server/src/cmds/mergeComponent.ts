@@ -19,16 +19,16 @@ export class MergeComponent {
 
 		let maxVersion = 0;
 		let jsDoc = FilesManager.getInstance().getByUri(fileUriNoExtension + AventusExtension.ComponentLogic);
-		if (jsDoc && jsDoc.version > maxVersion) { maxVersion = jsDoc.version; }
+		if (jsDoc && jsDoc.versionUser > maxVersion) { maxVersion = jsDoc.versionUser; }
 		let jsTxt = jsDoc ? jsDoc.contentUser : "";
 
 		let scssDoc = FilesManager.getInstance().getByUri(fileUriNoExtension + AventusExtension.ComponentStyle);
-		if (scssDoc && scssDoc.version > maxVersion) { maxVersion = scssDoc.version; }
+		if (scssDoc && scssDoc.versionUser > maxVersion) { maxVersion = scssDoc.versionUser; }
 		let scssTxt = scssDoc ? scssDoc.contentUser : "";
 
 
 		let htmlDoc = FilesManager.getInstance().getByUri(fileUriNoExtension + AventusExtension.ComponentView);
-		if (htmlDoc && htmlDoc.version > maxVersion) { maxVersion = htmlDoc.version; }
+		if (htmlDoc && htmlDoc.versionUser > maxVersion) { maxVersion = htmlDoc.versionUser; }
 		let htmlTxt = htmlDoc ? htmlDoc.contentUser : "";
 
 

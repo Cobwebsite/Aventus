@@ -17,12 +17,12 @@ export const TYPESCRIPT_LIB_SOURCE = () => join(serverFolder(), 'node_modules/ty
 export const AVENTUS_DEF_BASE_PATH = () => join(serverFolder(), 'lib/Aventus@Main.package.avt');
 export const AVENTUS_DEF_UI_PATH = () => join(serverFolder(), 'lib/Aventus@UI.package.avt');
 export const AVENTUS_DEF_SHARP_PATH = () => join(serverFolder(), 'lib/Aventus@Sharp.package.avt');
-const NODE_MODULES = () =>join(serverFolder(), 'node_modules');
+const NODE_MODULES = () => join(serverFolder(), 'node_modules');
 
 const libsTypescript: string[] = [];
 
-export function loadTypescriptLib(){
-	if(libsTypescript.length > 0) {
+export function loadTypescriptLib() {
+	if (libsTypescript.length > 0) {
 		return;
 	}
 	let files = readdirSync(TYPESCRIPT_LIB_SOURCE());
@@ -33,7 +33,7 @@ export function loadTypescriptLib(){
 	}
 }
 
-export function loadLibrary(name: string): string {
+export function loadLibrary(name: string): string | undefined {
 	let content = contents[name];
 	if (typeof content === 'string') {
 		return content;
@@ -63,10 +63,10 @@ export function loadLibrary(name: string): string {
 			showError = false;
 		}
 	}
-	else if(name.startsWith("node_modules/@types/typescript__")){
+	else if (name.startsWith("node_modules/@types/typescript__")) {
 		showError = false;
 	}
-	else if(libsTypescript.includes(name)) {
+	else if (libsTypescript.includes(name)) {
 		libPath = join(TYPESCRIPT_LIB_SOURCE(), name); // from source
 	}
 
@@ -75,7 +75,7 @@ export function loadLibrary(name: string): string {
 			content = readFileSync(libPath).toString();
 		}
 		else if (showError) {
-			console.error(`Unable to load library ${name} at ${libPath}`);
+			//console.error(`Unable to load library ${name} at ${libPath}`);
 		}
 		if (content !== undefined) {
 			contents[name] = content;

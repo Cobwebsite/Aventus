@@ -30,7 +30,7 @@ export class ImportViewElement {
 						let begin = file.contentUser.slice(0, position);
 						let end = file.contentUser.slice(position + 1, file.contentUser.length);
 						let txt = begin + info.text + end;
-						let newDocument = TextDocument.create(file.uri, AventusLanguageId.TypeScript, file.version + 1, txt);
+						let newDocument = TextDocument.create(file.uri, AventusLanguageId.TypeScript, file.versionUser + 1, txt);
 						await (file as InternalAventusFile).triggerContentChange(newDocument);
 						let textEdits = await (file as InternalAventusFile).getFormatting({
 							insertSpaces: true,

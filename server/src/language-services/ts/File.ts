@@ -25,7 +25,7 @@ export abstract class AventusTsFile extends AventusBaseFile {
     }
 
     public get version(): number {
-        return this.file.version;
+        return this.file.versionUser;
     }
 
     protected abstract get extension(): string;

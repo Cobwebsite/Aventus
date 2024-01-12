@@ -59,7 +59,7 @@ export class CreateAttribute {
 			let begin = file.contentUser.slice(0, position);
 			let end = file.contentUser.slice(position + 1, file.contentUser.length);
 			let txt = begin + newTxt + end;
-			let newDocument = TextDocument.create(file.uri, AventusLanguageId.TypeScript, file.version + 1, txt);
+			let newDocument = TextDocument.create(file.uri, AventusLanguageId.TypeScript, file.versionUser + 1, txt);
 			await (file as InternalAventusFile).triggerContentChange(newDocument);
 			writeFileSync(file.folderPath + "\\debug.ts", txt);
 			let textEdits = await (file as InternalAventusFile).getFormatting({

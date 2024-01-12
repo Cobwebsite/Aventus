@@ -50,16 +50,19 @@ export class AventusTsLanguageService {
             },
             getScriptVersion: (fileName: string) => {
                 if (this.filesLoaded[fileName]) {
-                    return String(this.filesLoaded[fileName].file.version + 1);
+                    return String(this.filesLoaded[fileName].file.versionUser + 1);
                 }
                 return '1';
             },
             getScriptSnapshot: (fileName: string) => {
-                let text = '';
+                let text: string | undefined = '';
                 if (this.filesLoaded[fileName]) {
                     text = this.filesLoaded[fileName].file.contentInternal;
                 } else {
                     text = loadLibrary(fileName);
+                }
+                if (text === undefined) {
+                    return undefined;
                 }
                 return {
                     getText: (start, end) => text?.substring(start, end) || '',
@@ -133,11 +136,14 @@ export class AventusTsLanguageService {
                 return '1';
             },
             getScriptSnapshot: (fileName: string) => {
-                let text = '';
+                let text: string | undefined = '';
                 if (this.filesLoaded[fileName]) {
                     text = this.filesLoaded[fileName].contentForLanguageService;
                 } else {
                     text = loadLibrary(fileName);
+                }
+                if (text === undefined) {
+                    return undefined;
                 }
                 return {
                     getText: (start, end) => text?.substring(start, end) || '',
