@@ -1,6 +1,6 @@
 # Change Log
 
-## 1.1.1 (--)
+## 1.1.1 (2024-01-12d)
 
 ### Bug Fixes
  - Correct dependances parsing
