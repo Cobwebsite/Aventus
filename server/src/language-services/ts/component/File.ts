@@ -682,7 +682,6 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
     protected async onContentChange(): Promise<void> {
         this.quickParse();
         await this.runWebCompiler();
-        console.log("in");
     }
 
     protected async onSave() {
