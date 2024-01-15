@@ -62,11 +62,11 @@ declare global {
      */
     function ForeignKey(ref: ConstructorConstraint<Aventus.IData>);
     /**
-     * Define a public property that will be trasnformed to private once compiled
+     * Define a public property that will be transformed to private once compiled
      */
     function Internal();
     /**
-     * Define a public property that will be trasnformed to protected once compiled
+     * Define a public property that will be transformed to protected once compiled
      */
     function InternalProtected();
 

@@ -42,7 +42,7 @@ export class ParserTs {
     private static parsedDoc: { [uri: string]: { version: number, result: ParserTs } } = {};
     public static parse(document: AventusFile, isLib: boolean, build: Build): ParserTs {
         if (ParserTs.parsedDoc[document.uri]) {
-            if (this.parsedDoc[document.uri].version == document.versionUser) {
+            if (this.parsedDoc[document.uri].version == document.versionInternal) {
                 return this.parsedDoc[document.uri].result;
             }
         }
@@ -159,7 +159,7 @@ export class ParserTs {
         this.build.npmBuilder.unregister(file.documentUser.uri);
         this.file = file;
         ParserTs.parsedDoc[file.uri] = {
-            version: file.versionUser,
+            version: file.versionInternal,
             result: this,
         }
 

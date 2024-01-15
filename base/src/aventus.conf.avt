@@ -19,7 +19,8 @@
                 "./attributes/",
                 "./extension/"
             ],
-            "outputPackage": "../../lib/Aventus@Main.package.avt"
+            "outputPackage": "../../lib/Aventus@Main.package.avt",
+            "outputFile": "../dist/aventus.js"
         }
     ]
 }

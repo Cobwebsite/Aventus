@@ -550,7 +550,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
 
     private __registerPropToWatcher(name: string) {
         if(Watcher._register) {
-            Watcher._register.register(this.getReceiver(name), name, Watcher._register.version);
+            Watcher._register.register(this.getReceiver(name), name, Watcher._register.version, name);
         }
     }
 
@@ -655,7 +655,8 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
                     for(let fct of this.__subscribes) {
                         fct(WatchAction.UPDATED, name, that[name]);
                     }
-                }
+                },
+                __path: name
             };
             this.__propertyReceivers[name] = result;
         }

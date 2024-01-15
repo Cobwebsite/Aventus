@@ -27,6 +27,7 @@ export interface AventusFile {
     uri: string;
     path: string;
     versionUser: number;
+    versionInternal: number;
     contentUser: string;
     contentInternal: string;
     folderUri: string;

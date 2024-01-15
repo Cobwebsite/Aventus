@@ -1,6 +1,7 @@
 import { Computed, ComputedNoRecomputed, Effect, WatchAction, Watcher, type WatcherFunction } from "../lib/Watcher.lib.avt";
 import { PressManager, type PressManagerOptions } from "../lib/PressManager.lib.avt";
 import { WebComponent } from "./WebComponent.lib.avt";
+import { getValueFromObject, setValueToObject } from "../tools/CompareObject.lib.avt";
 
 type TemplateHTML = { slots: { [name: string]: string; }, blocks: { [name: string]: string; }; };
 
@@ -72,31 +73,6 @@ type ContextEdit = {
 };
 
 export class Template {
-    public static setValueToItem(path: string, obj: any, value: any) {
-        let splitted = path.split(".");
-        for(let i = 0; i < splitted.length - 1; i++) {
-            let split = splitted[i];
-            if(!obj[split]) {
-                obj[split] = {};
-            }
-            obj = obj[split];
-        }
-        obj[splitted[splitted.length - 1]] = value;
-    }
-    public static getValueFromItem(path: string, obj: any) {
-        let splitted = path.split(".");
-        for(let i = 0; i < splitted.length - 1; i++) {
-            let split = splitted[i];
-            if(!obj[split] || typeof obj[split] !== 'object') {
-                return undefined;
-            }
-            obj = obj[split];
-        }
-        if(!obj || typeof obj !== 'object') {
-            return undefined;
-        }
-        return obj[splitted[splitted.length - 1]];
-    }
     public static validatePath(path: string, pathToCheck: string) {
         if(pathToCheck.startsWith(path)) {
             return true;
@@ -351,10 +327,10 @@ export class TemplateInstance {
                     }
                 }
                 if(element.isArray) {
-                    Template.setValueToItem(element.name, this.component, components);
+                    setValueToObject(element.name, this.component, components);
                 }
                 else if(components[0]) {
-                    Template.setValueToItem(element.name, this.component, components[0]);
+                    setValueToObject(element.name, this.component, components[0]);
                 }
             }
         }
@@ -372,14 +348,15 @@ export class TemplateInstance {
         let computed = new _class(() => {
             return edit.fct(this.context);
         });
-        computed.subscribe(() => {
+        computed.subscribe((action, path, value) => {
             for(let key in computed.value) {
-                this.context.data[key] = computed.value[key];
+                let newValue = computed.value[key];
+                this.context.updateWatch(key, newValue)
             }
         });
         this.computeds.push(computed);
         for(let key in computed.value) {
-            this.context.data[key] = computed.value[key];
+            this.context.registerWatch(key, computed.value[key])
         }
     }
 
@@ -401,7 +378,7 @@ export class TemplateInstance {
         }
         if(event.isCallback) {
             for(let el of this._components[event.id]) {
-                let cb = Template.getValueFromItem(event.eventName, el);
+                let cb = getValueFromObject(event.eventName, el);
                 cb?.add((...args) => {
                     // TODO check if it's working
                     event.fct(this.context, args);
@@ -543,9 +520,9 @@ export class TemplateInstance {
             this.firstRenderCb.push(() => {
                 for(var el of this._components[binding.id]) {
                     for(let fct of binding.eventNames) {
-                        let cb = Template.getValueFromItem(fct, el);
+                        let cb = getValueFromObject(fct, el);
                         cb?.add((value) => {
-                            let valueToSet = Template.getValueFromItem(binding.injectionName, el);
+                            let valueToSet = getValueFromObject(binding.injectionName, el);
                             isLocalChange = true;
                             binding.extract(this.context, valueToSet);
                             isLocalChange = false;
@@ -559,7 +536,7 @@ export class TemplateInstance {
                 for(var el of this._components[binding.id]) {
                     for(let fct of binding.eventNames) {
                         el.addEventListener(fct, (e) => {
-                            let valueToSet = Template.getValueFromItem(binding.injectionName, e.target);
+                            let valueToSet = getValueFromObject(binding.injectionName, e.target);
                             isLocalChange = true;
                             binding.extract(this.context, valueToSet);
                             isLocalChange = false;
@@ -872,13 +849,13 @@ export class TemplateContext {
         let _class = mustBeRecomputed ? Computed : ComputedNoRecomputed;
         if(!dataName.startsWith("this.")) {
             getItems = new _class(() => {
-                return Template.getValueFromItem(dataName, this.data);
+                return getValueFromObject(dataName, this.data);
             });
         }
         else {
             dataName = dataName.replace(/^this\./, '');
             getItems = new _class(() => {
-                return Template.getValueFromItem(dataName, this.comp);
+                return getValueFromObject(dataName, this.comp);
             });
         }
 
@@ -925,14 +902,14 @@ export class TemplateContext {
         // let items: any[] | {};
         // if(!dataName.startsWith("this.")) {
         //     let comp = new Computed(() => {
-        //         return Template.getValueFromItem(dataName, this.data);
+        //         return getValueFromObject(dataName, this.data);
         //     });
         //     items = comp.value;
         //     fullName = comp.callbacks[comp.callbacks.length - 1].path;
         // }
         // else {
         //     fullName = dataName.replace(/^this\./, '');
-        //     items = Template.getValueFromItem(fullName, this.comp);
+        //     items = getValueFromObject(fullName, this.comp);
         // }
 
         // if(Array.isArray(items)) {
@@ -973,14 +950,26 @@ export class TemplateContext {
         this.computeds = [];
     }
 
+    public registerWatch(name: string, value: any) {
+        let that = this;
+        that.watch[name] = value;
+        Object.defineProperty(that.data, name, {
+            get() {
+                return that.watch[name];
+            }
+        });
+    }
+    public updateWatch(name: string, value: any) {
+        this.watch[name] = value;
+    }
 
     public getValueFromItem(name: string) {
-        let result = Template.getValueFromItem(name, this.data);
+        let result = getValueFromObject(name, this.data);
         if(result !== undefined) {
             return result;
         }
 
-        result = Template.getValueFromItem(name, this.comp);
+        result = getValueFromObject(name, this.comp);
         if(result !== undefined) {
             return result;
         }
@@ -988,7 +977,7 @@ export class TemplateContext {
         return undefined;
     }
     public setValueToItem(name: string, value: any) {
-        Template.setValueToItem(name, this.comp, value);
+        setValueToObject(name, this.comp, value);
     }
 }
 

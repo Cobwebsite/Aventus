@@ -1,6 +1,16 @@
 # Change Log
 
-## 1.1.1 (2024-01-12d)
+## 1.2.0 ()
+
+### Bug Fixes
+ - Correct Watcher to have right path on callback based on where subscribe is called
+
+### Features
+ - Change templating by adding for and if inside wcv.avt
+ - Add (Effect|Computed)NoRecomputed to calculate dependance graph only during first query
+
+
+## 1.1.1 (2024-01-12)
 
 ### Bug Fixes
  - Correct dependances parsing
@@ -9,7 +19,7 @@
  - Prevent undefined value inside the webcomponent template
  - Correct 2 times public when auto creating methods from parent
  - Replace Decorators by position instead of using regex
- - Increase performance by avoiding buffering whne typing fast inside big file
+ - Increase performance by avoiding buffering when typing fast inside big file
 
 ### Features
  - Add error when npm build failed

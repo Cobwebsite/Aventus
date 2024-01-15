@@ -3,6 +3,7 @@ export type JsonToOptions = {
     isValidKey?: (key: string) => boolean;
     replaceKey?: (key: string) => string;
     transformValue?: (key: string, value: any) => any;
+    beforeEnd?: (result: { [key: string | number]: any; }) => { [key: string | number]: any; };
 };
 
 export type JsonFromOptions = {
@@ -15,6 +16,7 @@ export class Json {
             isValidKey: options?.isValidKey ?? (() => true),
             replaceKey: options?.replaceKey ?? ((key) => key),
             transformValue: options?.transformValue ?? ((key, value) => value),
+            beforeEnd: options?.beforeEnd ?? ((res) => res)
         };
         return this.__classToJson(obj, realOptions);
     }
@@ -41,9 +43,8 @@ export class Json {
                 }
             }
             cst = Object.getPrototypeOf(cst);
-
         }
-
+        result = options.beforeEnd(result);
         return result;
     }
 

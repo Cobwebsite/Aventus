@@ -311,7 +311,7 @@ export abstract class BaseInfo {
         validate();
     }
     protected addDependanceName(name: string, isStrongDependance: boolean, start: number, end: number, onNameTemp?: ((name?: string) => void)): void {
-        let onName:(name?: string) => void
+        let onName: (name?: string) => void
         if (!onNameTemp) {
             onName = () => { }
         }
@@ -437,6 +437,11 @@ export abstract class BaseInfo {
                 let fullName = this.parserInfo.imports[name].fullName
                 if (this.dependancesLocations[name])
                     this.dependancesLocations[name].replacement = fullName;
+                this.dependances.push({
+                    fullName: "$namespace$" + fullName,
+                    uri: this.parserInfo.imports[name].fileUri,
+                    isStrong: isStrongDependance
+                });
                 onName(fullName);
             })
             return;

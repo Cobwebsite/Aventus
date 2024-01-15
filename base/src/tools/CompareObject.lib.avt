@@ -56,3 +56,34 @@ export function compareObject(obj1, obj2) {
         return obj1 === obj2;
     }
 }
+
+export function getValueFromObject(path: string, obj: any) {
+    path = path.replace(/\[(.*?)\]/g, '.$1');
+    if(path == "") {
+        return obj;
+    }
+    let splitted = path.split(".");
+    for(let i = 0; i < splitted.length - 1; i++) {
+        let split = splitted[i];
+        if(!obj[split] || typeof obj[split] !== 'object') {
+            return undefined;
+        }
+        obj = obj[split];
+    }
+    if(!obj || typeof obj !== 'object') {
+        return undefined;
+    }
+    return obj[splitted[splitted.length - 1]];
+}
+export function setValueToObject(path: string, obj: any, value: any) {
+    path = path.replace(/\[(.*?)\]/g, '.$1');
+    let splitted = path.split(".");
+    for(let i = 0; i < splitted.length - 1; i++) {
+        let split = splitted[i];
+        if(!obj[split]) {
+            obj[split] = {};
+        }
+        obj = obj[split];
+    }
+    obj[splitted[splitted.length - 1]] = value;
+}
