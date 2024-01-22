@@ -33,6 +33,7 @@ export class AventusStaticFile extends AventusTsFile {
             classDoc: '',
             classScript: '!staticClass_' + hash,
             compiled: this.file.contentUser,
+            hotReload: '',
             docVisible: docVisible,
             docInvisible: '',
             debugTxt: '',

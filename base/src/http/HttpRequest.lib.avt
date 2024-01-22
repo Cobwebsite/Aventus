@@ -51,17 +51,18 @@ export class HttpRequest {
     }
 
 
-    public async query(router: HttpRouter): Promise<ResultWithError<Response>> {
+    public async query(router?: HttpRouter): Promise<ResultWithError<Response>> {
         let result = new ResultWithError<Response>();
         try {
-            result.result = await fetch(router.options.url + this.url, this.request);
+            const fullUrl = router ? router.options.url + this.url : this.url;
+            result.result = await fetch(fullUrl, this.request);
         } catch(e) {
             result.errors.push(new HttpError(HttpErrorCode.unknow, e));
         }
         return result;
     }
 
-    public async queryVoid<T>(router: HttpRouter): Promise<VoidWithError> {
+    public async queryVoid<T>(router?: HttpRouter): Promise<VoidWithError> {
         let resultTemp = await this.query(router);
         let result = new VoidWithError();
         if(!resultTemp.success) {
@@ -87,7 +88,7 @@ export class HttpRequest {
         return result;
     }
 
-    public async queryJSON<T>(router: HttpRouter): Promise<ResultWithError<T>> {
+    public async queryJSON<T>(router?: HttpRouter): Promise<ResultWithError<T>> {
         let resultTemp = await this.query(router);
         let result = new ResultWithError<T>();
         if(!resultTemp.success) {
@@ -116,7 +117,7 @@ export class HttpRequest {
         return result;
     }
 
-    public async queryTxt(router: HttpRouter): Promise<ResultWithError<string>> {
+    public async queryTxt(router?: HttpRouter): Promise<ResultWithError<string>> {
         let resultTemp = await this.query(router);
         let result = new ResultWithError<string>();
         if(!resultTemp.success) {

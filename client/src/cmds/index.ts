@@ -22,6 +22,7 @@ import { ReceiveSelectMultiple } from './ReceiveSelectMultiple';
 import { MergeComponent } from './MergeComponent';
 import { SplitComponent } from './SplitComponent';
 import { SharpExport } from './sharp/Export';
+import { ReloadSettings } from './ReloadSettings';
 
 
 export const Commands = {
@@ -49,6 +50,7 @@ export const Commands = {
         [PopupResponse.cmd]: PopupResponse,
         [MergeComponent.cmd]: MergeComponent,
         [SplitComponent.cmd]: SplitComponent,
-        [SharpExport.cmd]: SharpExport
+        [SharpExport.cmd]: SharpExport,
+        [ReloadSettings.cmd]: ReloadSettings,
     },
 }

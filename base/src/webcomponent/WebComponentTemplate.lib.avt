@@ -351,12 +351,12 @@ export class TemplateInstance {
         computed.subscribe((action, path, value) => {
             for(let key in computed.value) {
                 let newValue = computed.value[key];
-                this.context.updateWatch(key, newValue)
+                this.context.updateWatch(key, newValue);
             }
         });
         this.computeds.push(computed);
         for(let key in computed.value) {
-            this.context.registerWatch(key, computed.value[key])
+            this.context.registerWatch(key, computed.value[key]);
         }
     }
 
@@ -756,7 +756,8 @@ export class TemplateInstance {
             }
 
             currentActive = newActive;
-            anchor.parentNode?.insertBefore(instances[currentActive].content, anchor);
+            if(instances[currentActive])
+                anchor.parentNode?.insertBefore(instances[currentActive].content, anchor);
         };
 
         for(let i = 0; i < _if.parts.length; i++) {

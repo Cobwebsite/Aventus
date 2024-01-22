@@ -25,6 +25,7 @@ import { ReceiveSelect } from "./ReceiveSelect";
 import { ReceiveSelectMultiple } from "./ReceiveSelectMultiple";
 import { ImportTemplate } from "./file-system/ImportTemplate";
 import { SharpExport } from './sharp/Export';
+import { ReloadSettings } from './ReloadSettings';
 
 export const Commands = {
     allCommandes: {
@@ -53,7 +54,8 @@ export const Commands = {
         [ReceiveSelect.cmd]: ReceiveSelect,
         [ReceiveSelectMultiple.cmd]: ReceiveSelectMultiple,
         [ImportTemplate.cmd]: ImportTemplate,
-        [SharpExport.cmd]: SharpExport
+        [SharpExport.cmd]: SharpExport,
+        [ReloadSettings.cmd]: ReloadSettings,
     },
     execute: function (params: ExecuteCommandParams) {
         let cmd = this.allCommandes[params.command];

@@ -119,11 +119,11 @@ export class AventusHTMLLanguageService {
     public async doValidation(file: AventusFile): Promise<Diagnostic[]> {
         return [];
     }
-    public async doComplete(file: AventusFile, position: Position): Promise<CompletionList> {
-        let docHTML = this.languageService.parseHTMLDocument(file.documentUser);
+    public async doComplete(htmlFile: AventusHTMLFile, position: Position): Promise<CompletionList> {
+        let docHTML = this.languageService.parseHTMLDocument(htmlFile.file.documentUser);
         if (docHTML) {
             this.isAutoComplete = true;
-            let result = this.languageService.doComplete(file.documentUser, position, docHTML);
+            let result = this.languageService.doComplete(htmlFile.file.documentUser, position, docHTML);
             this.isAutoComplete = false;
             for (let temp of result.items) {
                 if (temp.label.startsWith("!!")) {
@@ -154,17 +154,30 @@ export class AventusHTMLLanguageService {
                     }
                 }
             }
-            result.items = result.items.concat(this.doCustomComplete(file, position));
+            result.items = result.items.concat(this.doCustomComplete(htmlFile, position));
             return result;
         }
         return { isIncomplete: false, items: [] };
     }
 
-    private doCustomComplete(file: AventusFile, position: Position): CompletionItem[] {
+    private doCustomComplete(htmlFile: AventusHTMLFile, position: Position): CompletionItem[] {
         let result: CompletionItem[] = [];
-        let offset = file.documentUser.offsetAt(position);
-        let replaceRange = convertRange(file.documentUser, getWordAtText(file.documentUser.getText(), offset));
-        let txt = file.documentUser.getText().slice(file.documentUser.offsetAt(replaceRange.start), file.documentUser.offsetAt(replaceRange.end));
+        if(!htmlFile.fileParsed) return result;
+        let doc = htmlFile.file.documentUser;
+        let offset = doc.offsetAt(position);
+        for(let tag of htmlFile.fileParsed.tags) {
+            if(offset < tag.start) {
+                break;
+            }
+
+            if(offset >= tag.openTagStart && offset <= tag.openTagEnd) {
+                return result;
+            } 
+        }
+        
+       
+        let replaceRange = convertRange(doc, getWordAtText(doc.getText(), offset));
+        let txt = doc.getText().slice(doc.offsetAt(replaceRange.start), doc.offsetAt(replaceRange.end));
         for (let key in defaultSnippet) {
             if (key.startsWith(txt)) {
                 result.push({

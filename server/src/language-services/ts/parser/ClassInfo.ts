@@ -29,6 +29,14 @@ export class ClassInfo extends BaseInfo {
 		return BaseInfo.getContent(txt, this.constructorBody.getStart(), this.constructorBody.getEnd(), this.dependancesLocations, this.compileTransformations);
 	}
 
+	public get constructorContentHotReload(): string {
+		if (!this.constructorBody) {
+			return "";
+		}
+		let txt = this.constructorBody.getText();
+		return BaseInfo.getContentHotReload(txt, this.constructorBody.getStart(), this.constructorBody.getEnd(), this.dependancesLocations, this.compileTransformations);
+	}
+
 	constructor(node: ClassDeclaration | InterfaceDeclaration, namespaces: string[], parserInfo: ParserTs) {
 		super(node, namespaces, parserInfo, false);
 
@@ -52,7 +60,7 @@ export class ClassInfo extends BaseInfo {
 				this.getClassInheritance(heritage);
 			}
 		}
-		
+
 		forEachChild(node, x => {
 			let isStrong = false;
 			let result: PropertyInfo | MethodInfo | null = null;
@@ -95,10 +103,10 @@ export class ClassInfo extends BaseInfo {
 				let prop = x as SetAccessorDeclaration;
 				let propInfo = new PropertyInfo(prop, this.isInterface, this);
 				if (propInfo.isStatic) {
-					this.propertiesStatic[propInfo.name] = propInfo;
+					this.propertiesStatic["°set°"+propInfo.name] = propInfo;
 				}
 				else {
-					this.properties[propInfo.name] = propInfo;
+					this.properties["°set°"+propInfo.name] = propInfo;
 				}
 				result = propInfo;
 			}
@@ -118,6 +126,8 @@ export class ClassInfo extends BaseInfo {
 				console.log(SyntaxKind[x.kind]);
 				console.log(x.getText());
 			}
+
+			
 
 			if (result) {
 				if (result.accessibilityModifierTransformation) {
@@ -148,7 +158,7 @@ export class ClassInfo extends BaseInfo {
 							}
 						}
 					});
-					
+
 					forEachChild(x, y => {
 						this.loadOnlyDependancesRecu(y, 0, true);
 					})
@@ -163,7 +173,7 @@ export class ClassInfo extends BaseInfo {
 							this.implements.push(names[0]);
 						}
 					});
-					
+
 				}
 			})
 		}

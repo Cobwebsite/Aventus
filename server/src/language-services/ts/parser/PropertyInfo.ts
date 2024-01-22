@@ -13,7 +13,9 @@ export class PropertyInfo {
     public nameEnd: number = 0;
     public documentation: string[] = [];
     public decorators: DecoratorInfo[] = [];
-    public defaultValue: string | null = null;
+    public defaultValueTxt: string | null = null;
+    public defaultValueStart: number = 0;
+    public defaultValueEnd: number = 0;
     public content: string = "";
     public type: TypeInfo;
     public prop: PropType;
@@ -31,6 +33,18 @@ export class PropertyInfo {
     public accessibilityModifierTransformation?: { newText: string, start: number, end: number };
     public get compiledContent(): string {
         return BaseInfo.getContent(this.content, this.start, this.end, this._class.dependancesLocations, this._class.compileTransformations);
+    }
+    public get compiledContentHotReload(): string {
+        return BaseInfo.getContentHotReload(this.content, this.start, this.end, this._class.dependancesLocations, this._class.compileTransformations);
+    }
+
+    public get defaultValue(): string |null {
+        if(this.defaultValueTxt === null) return null;
+        return BaseInfo.getContent(this.defaultValueTxt, this.defaultValueStart, this.defaultValueEnd, this._class.dependancesLocations, this._class.compileTransformations);
+    }
+    public get defaultValueHotReload(): string |null {
+        if(this.defaultValueTxt === null) return null;
+        return BaseInfo.getContentHotReload(this.defaultValueTxt, this.defaultValueStart, this.defaultValueEnd, this._class.dependancesLocations, this._class.compileTransformations);
     }
 
     constructor(prop: PropType, isInsideInterface: boolean, _class: ClassInfo) {
@@ -159,7 +173,9 @@ export class PropertyInfo {
     private loadInitializer(prop: PropType) {
         let propInfo = prop as PropertyDeclaration;
         if (propInfo.initializer) {
-            this.defaultValue = propInfo.initializer.getText();
+            this.defaultValueTxt = propInfo.initializer.getText();
+            this.defaultValueStart = propInfo.initializer.getStart();
+            this.defaultValueEnd = propInfo.initializer.getEnd();
         }
     }
 }

@@ -622,6 +622,7 @@ export class ForLoop {
 	public constructor(_for: ForOfStatement | ForInStatement | ForStatement, sliceText: (start: number, end?: number) => string) {
 		this.sliceText = sliceText;
 		this.idTemplate = ParserHtml.createIdTemplate();
+		this.variables = ParserHtml.getVariables();
 		if (_for.kind == SyntaxKind.ForOfStatement || _for.kind == SyntaxKind.ForInStatement) {
 			this.isSimple = true;
 			this.loadForInOf(_for);
@@ -631,7 +632,7 @@ export class ForLoop {
 		}
 		this.loopName = ParserHtml.getCustomFctName() ?? "";
 
-		this.variables = ParserHtml.getVariables();
+		
 	}
 
 
@@ -767,7 +768,7 @@ export class ForLoop {
 		}
 
 		if (!this.checkIsSimple(init, condition, transform)) {
-			let fctName = ParserHtml.getCustomFctName(1) ?? ""
+			let fctName = ParserHtml.getCustomFctName(1) ?? "";
 			let variables = anaylseVariables(loopTxt, this.variables);
 			let params = variables.map(p => "c.data." + p).join(",");
 			this.complex = {
@@ -839,7 +840,7 @@ export type IfInfoCondition = {
 
 };
 export class IfInfo {
-	public static readonly tagName = "i";
+	public static readonly tagName = "if";
 	public statements: { txt: string }[] = []
 	public idsTemplate: number[] = [];
 	public defaultVariables: string[] = [];
@@ -919,7 +920,7 @@ export class IfInfo {
 					}
 					loadBlocks(y as IfStatement, depth + 1, elseStart);
 				}
-				else if (y.kind == SyntaxKind.BinaryExpression) {
+				else if (SyntaxKind[y.kind].includes("Expression")) {
 					let fctName = ParserHtml.getCustomFctName(this.conditions.length) ?? '';
 					let fctTxt = this.sliceText(y.getStart(), y.getEnd())
 					let varsType = anaylseVariables(fctTxt, this.defaultVariables);

@@ -8,7 +8,7 @@ import { ParserHtml } from './parser/ParserHtml';
 import { AventusWebSCSSFile } from '../scss/File';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { ActionChange } from './parser/definition';
-import { ForLoop, IfInfoCondition } from './parser/TagInfo';
+import { ContextEditing, ForLoop, IfInfo, IfInfoCondition } from './parser/TagInfo';
 
 
 export class AventusHTMLFile extends AventusBaseFile {
@@ -89,7 +89,7 @@ export class AventusHTMLFile extends AventusBaseFile {
         if (resultTemp) {
             return resultTemp;
         }
-        return this.build.htmlLanguageService.doComplete(document, position);
+        return this.build.htmlLanguageService.doComplete(this, position);
     }
     protected async onCompletionResolve(document: AventusFile, item: CompletionItem): Promise<CompletionItem> {
         return item;
@@ -195,11 +195,11 @@ export class AventusHTMLFile extends AventusBaseFile {
                 txt = txt.slice(0, transformation.start) + transformation.txt + txt.slice(transformation.end);
             }
             txt = txt.slice(0, txt.length - 1)
-            replacements['<l id="' + key + '">'] = txt;
+            replacements['<' + ForLoop.tagName + ' id="' + key + '">'] = txt;
         }
         for (let loop of this.fileParsed.loops) {
             if (!mapLoop.has(loop)) {
-                replacements['<l id="' + loop.idTemplate + '">'] = loop.loopTxt.slice(0, loop.loopTxt.length - 1);
+                replacements['<' + ForLoop.tagName + ' id="' + loop.idTemplate + '">'] = loop.loopTxt.slice(0, loop.loopTxt.length - 1);
             }
         }
         for (let [condition, transformations] of mapCondition) {
@@ -215,7 +215,7 @@ export class AventusHTMLFile extends AventusBaseFile {
             else if (condition.type == "elif") {
                 txt = 'else if(' + txt + ') {'
             }
-            replacements['<i id="' + key + '">'] = txt;
+            replacements['<' + IfInfo.tagName + ' id="' + key + '">'] = txt;
         }
         for (let _if of this.fileParsed.ifs) {
             for (let condition of _if.conditions) {
@@ -227,21 +227,21 @@ export class AventusHTMLFile extends AventusBaseFile {
                     else if (condition.type == "elif") {
                         txt = 'else if(' + txt + ') {'
                     }
-                    replacements['<i id="' + condition.idTemplate + '">'] = txt;
+                    replacements['<' + IfInfo.tagName + ' id="' + condition.idTemplate + '">'] = txt;
                 }
             }
             if (_if.conditions.length != _if.idsTemplate.length) {
-                replacements['<i id="' + _if.idsTemplate[_if.idsTemplate.length - 1] + '">'] = 'else {';
+                replacements['<' + IfInfo.tagName + ' id="' + _if.idsTemplate[_if.idsTemplate.length - 1] + '">'] = 'else {';
             }
         }
         for (let edit of this.fileParsed.contextEdits) {
             let name = edit.mapping.length > 0 ? edit.mapping[0] : '';
             let src = edit.mapping.length > 1 ? edit.mapping[1] : '';
             let txt = '@Context(' + name + ', ' + src + ')'
-            replacements['<c id="' + edit.id + '"></c>'] = txt;
+            replacements['<' + ContextEditing.tagName + ' id="' + edit.id + '"></' + ContextEditing.tagName + '>'] = txt;
         }
-        replacements['</l>'] = "}"
-        replacements['</i>'] = "}"
+        replacements['</' + ForLoop.tagName + '>'] = "}"
+        replacements['</' + IfInfo.tagName + '>'] = "}"
         return replacements;
     }
     private async applyHtmlFormatting(file: AventusFile, range: Range, options: FormattingOptions, replacements: { [src: string]: string }): Promise<TextEdit[]> {

@@ -8,6 +8,7 @@ import { DependancesDecorator } from './decorators/DependancesDecorator';
 import * as md5 from 'md5';
 import { GenericServer } from '../../../GenericServer';
 import { InternalDecorator } from './decorators/InternalDecorator';
+import { Build } from '../../../project/Build';
 
 
 export enum InfoType {
@@ -73,6 +74,9 @@ export abstract class BaseInfo {
     public get compiledContent(): string {
         return BaseInfo.getContent(this.content, this.start, this.end, this.dependancesLocations, this.compileTransformations);
     }
+    public get compiledContentHotReload(): string {
+        return BaseInfo.getContentHotReload(this.content, this.start, this.end, this.dependancesLocations, this.compileTransformations);
+    }
     public get fileUri() {
         return this.document.uri;
     }
@@ -83,10 +87,12 @@ export abstract class BaseInfo {
     public dependancesLocations: {
         [name: string]: {
             replacement: string | null,
+            hotReloadReplacement: string | null,
             locations: { [key: string]: { start: number, end: number } }
         }
     } = {};
     public infoType: InfoType = InfoType.none;
+    public build: Build;
 
     public get parserInfo() {
         return this._parserInfo;
@@ -97,6 +103,7 @@ export abstract class BaseInfo {
         this.document = parserInfo.document;
         this.decorators = DecoratorInfo.buildDecorator(node, this);
         this.dependancesLocations = {};
+        this.build = parserInfo.build;
         if (node.name) {
             this.start = node.getStart();
             this.end = node.getEnd();
@@ -168,11 +175,9 @@ export abstract class BaseInfo {
             let exp = (x as PropertyAccessExpression);
             let txt = exp.name.getText();
             let baseInfo = ParserTs.getBaseInfo(txt);
-            if (baseInfo) {
+            if (baseInfo && exp.expression.getText() + "." + txt == baseInfo.fullName) {
                 // when static call on external class
-                if (exp.expression.getText() + "." + txt == baseInfo.fullName) {
-                    this.addDependanceName(baseInfo.fullName, isStrongDependance, exp.expression.getStart(), exp.expression.getEnd());
-                }
+                this.addDependanceName(baseInfo.fullName, isStrongDependance, exp.expression.getStart(), exp.expression.getEnd());
             }
             else {
                 // when static call on local class
@@ -192,7 +197,18 @@ export abstract class BaseInfo {
             if (x.parent.kind == SyntaxKind.PropertyAccessExpression) {
                 return;
             }
-            else if (x.parent.kind >= SyntaxKind.VariableDeclaration && x.parent.kind <= SyntaxKind.JsxExpression) {
+            if (x.parent.kind >= SyntaxKind.VariableDeclaration && x.parent.kind <= SyntaxKind.JsxExpression) {
+                return;
+            }
+            if ([
+                SyntaxKind.PropertyDeclaration,
+                SyntaxKind.MethodDeclaration,
+                SyntaxKind.ClassStaticBlockDeclaration,
+
+            ].includes(x.parent.kind)) {
+                return;
+            }
+            if (x.parent.kind == SyntaxKind.MethodDeclaration) {
                 return;
             }
             let localClassName = x.getText();
@@ -351,7 +367,8 @@ export abstract class BaseInfo {
             if (!this.dependancesLocations[name]) {
                 this.dependancesLocations[name] = {
                     locations: {},
-                    replacement: null
+                    replacement: null,
+                    hotReloadReplacement: null
                 }
             }
             let key = start + "_" + end;
@@ -395,6 +412,7 @@ export abstract class BaseInfo {
         }
         if (this.parserInfo.internalObjects[name]) {
             let fullName = this.parserInfo.internalObjects[name].fullname
+            let hotReloadName = [...this.build.namespaces, fullName].join(".");
             if (fullName == this.fullName) {
                 isStrongDependance = false;
             }
@@ -406,8 +424,10 @@ export abstract class BaseInfo {
             if (this.debug) {
                 console.log("add dependance " + name + " : same file");
             }
-            if (this.dependancesLocations[name])
+            if (this.dependancesLocations[name]) {
                 this.dependancesLocations[name].replacement = fullName;
+                this.dependancesLocations[name].hotReloadReplacement = hotReloadName;
+            }
             onName(fullName);
             return;
         }
@@ -415,6 +435,7 @@ export abstract class BaseInfo {
         if (this.parserInfo.imports[name]) {
             // it's an imported class
             let fullName = this.parserInfo.imports[name].fullName
+            let hotReloadName = [...this.build.namespaces, fullName].join(".");
             this.dependances.push({
                 fullName: "$namespace$" + fullName,
                 uri: this.parserInfo.imports[name].fileUri,
@@ -423,8 +444,10 @@ export abstract class BaseInfo {
             if (this.debug) {
                 console.log("add dependance " + name + " : imported file");
             }
-            if (this.dependancesLocations[name])
+            if (this.dependancesLocations[name]) {
                 this.dependancesLocations[name].replacement = fullName;
+                this.dependancesLocations[name].hotReloadReplacement = hotReloadName;
+            }
             onName(fullName);
             return
         }
@@ -434,9 +457,13 @@ export abstract class BaseInfo {
                 console.log("add dependance " + name + " : but waiting import file");
             }
             this.parserInfo.waitingImports[name].push((info) => {
-                let fullName = this.parserInfo.imports[name].fullName
-                if (this.dependancesLocations[name])
+                let fullName = this.parserInfo.imports[name].fullName;
+                let hotReloadName = [...this.build.namespaces, fullName].join(".");
+
+                if (this.dependancesLocations[name]) {
                     this.dependancesLocations[name].replacement = fullName;
+                    this.dependancesLocations[name].hotReloadReplacement = hotReloadName;
+                }
                 this.dependances.push({
                     fullName: "$namespace$" + fullName,
                     uri: this.parserInfo.imports[name].fileUri,
@@ -481,17 +508,31 @@ export abstract class BaseInfo {
     }
 
 
-
-    public static getContent(
+    public static getContent(txt: string,
+        start: number,
+        end: number,
+        dependancesLocations: { [name: string]: { replacement: string | null, hotReloadReplacement: string | null, locations: { [key: string]: { start: number, end: number } } } },
+        compileTransformations: { [key: string]: { newText: string, start: number, end: number } }) {
+        return this._getContent(txt, start, end, dependancesLocations, compileTransformations, false);
+    }
+    public static getContentHotReload(txt: string,
+        start: number,
+        end: number,
+        dependancesLocations: { [name: string]: { replacement: string | null, hotReloadReplacement: string | null, locations: { [key: string]: { start: number, end: number } } } },
+        compileTransformations: { [key: string]: { newText: string, start: number, end: number } }) {
+        return this._getContent(txt, start, end, dependancesLocations, compileTransformations, true);
+    }
+    private static _getContent(
         txt: string,
         start: number,
         end: number,
-        dependancesLocations: { [name: string]: { replacement: string | null, locations: { [key: string]: { start: number, end: number } } } },
-        compileTransformations: { [key: string]: { newText: string, start: number, end: number } }
+        dependancesLocations: { [name: string]: { replacement: string | null, hotReloadReplacement: string | null, locations: { [key: string]: { start: number, end: number } } } },
+        compileTransformations: { [key: string]: { newText: string, start: number, end: number } },
+        isHotReload: boolean
     ) {
         let transformations: { newText: string, start: number, end: number }[] = [];
         for (let depName in dependancesLocations) {
-            let replacement = dependancesLocations[depName].replacement;
+            let replacement = isHotReload ? dependancesLocations[depName].hotReloadReplacement : dependancesLocations[depName].replacement;
             if (replacement) {
                 for (let locationKey in dependancesLocations[depName].locations) {
                     let location = dependancesLocations[depName].locations[locationKey];

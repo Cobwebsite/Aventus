@@ -97,10 +97,12 @@ namespace Navigation {
                         await element.show();
                         this.oldPage = element;
                         this.activePath = path;
-                        if(window.location.pathname != currentState.name) {
+                        let title = element.pageTitle();
+                        if(title !== undefined)
+                            document.title = title;
+                        if(this.bindToUrl() && window.location.pathname != currentState.name) {
                             let newUrl = window.location.origin + currentState.name;
-                            document.title = element.pageTitle();
-                            window.history.pushState({}, element.pageTitle(), newUrl);
+                            window.history.pushState({}, title ?? "", newUrl);
                         }
                         this.onNewPage(oldUrl, oldPage, path, element);
                     });
@@ -139,6 +141,16 @@ namespace Navigation {
         public getSlugs() {
             return this.stateManager.getStateSlugs(this.activePath);
         }
+
+
+        protected bindToUrl(): boolean {
+            return true;
+        }
+
+        protected defaultUrl(): string | undefined {
+            return "/";
+        }
+
         protected override postCreation(): void {
             this.register();
             let oldUrl = window.localStorage.getItem("navigation_url");
@@ -146,16 +158,25 @@ namespace Navigation {
                 Aventus.State.activate(oldUrl, this.stateManager);
                 window.localStorage.removeItem("navigation_url");
             }
-            else {
+            else if(this.bindToUrl()) {
                 Aventus.State.activate(window.location.pathname, this.stateManager);
             }
-            window.onpopstate = (e) => {
-                if(window.location.pathname != this.stateManager.getState()?.name) {
-                    Aventus.State.activate(window.location.pathname, this.stateManager);
+            else {
+                let defaultUrl = this.defaultUrl();
+                if(defaultUrl) {
+                    Aventus.State.activate(defaultUrl, this.stateManager);
                 }
-            };
+            }
+
+            if(this.bindToUrl()) {
+                window.onpopstate = (e) => {
+                    if(window.location.pathname != this.stateManager.getState()?.name) {
+                        Aventus.State.activate(window.location.pathname, this.stateManager);
+                    }
+                };
+            }
         }
         //#endregion
 
-    }
 }
+                        }

@@ -1688,10 +1688,16 @@ const Watcher=class Watcher {
         setProxyPath(realProxy, '');
         return realProxy;
     }
+    /**
+     * Create a computed variable that will watch any changes
+     */
     static computed(fct) {
         const comp = new Computed(fct);
         return comp;
     }
+    /**
+     * Create an effect variable that will watch any changes
+     */
     static effect(fct) {
         const comp = new Effect(fct);
         return comp;
@@ -2788,7 +2794,8 @@ const TemplateInstance=class TemplateInstance {
                     instance.content.appendChild(instance.lastChild);
             }
             currentActive = newActive;
-            anchor.parentNode?.insertBefore(instances[currentActive].content, anchor);
+            if (instances[currentActive])
+                anchor.parentNode?.insertBefore(instances[currentActive].content, anchor);
         };
         for (let i = 0; i < _if.parts.length; i++) {
             const part = _if.parts[i];
@@ -4968,7 +4975,8 @@ const HttpRequest=class HttpRequest {
     async query(router) {
         let result = new ResultWithError();
         try {
-            result.result = await fetch(router.options.url + this.url, this.request);
+            const fullUrl = router ? router.options.url + this.url : this.url;
+            result.result = await fetch(fullUrl, this.request);
         }
         catch (e) {
             result.errors.push(new HttpError(HttpErrorCode.unknow, e));
@@ -8559,7 +8567,8 @@ const TemplateInstance=class TemplateInstance {
                     instance.content.appendChild(instance.lastChild);
             }
             currentActive = newActive;
-            anchor.parentNode?.insertBefore(instances[currentActive].content, anchor);
+            if (instances[currentActive])
+                anchor.parentNode?.insertBefore(instances[currentActive].content, anchor);
         };
         for (let i = 0; i < _if.parts.length; i++) {
             const part = _if.parts[i];

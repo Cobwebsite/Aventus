@@ -151,7 +151,7 @@ export class ParserTs {
     public variables: { [shortName: string]: VariableInfo } = {};
     public isLib: boolean = false;
     public isReady: boolean = false;
-    private build: Build;
+    public build: Build;
     private file: AventusFile;
 
     private constructor(file: AventusFile, isLib: boolean, build: Build) {

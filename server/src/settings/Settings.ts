@@ -34,11 +34,14 @@ const defaultSettings: Settings = {
 	templatePath: [],
 	projectPath: []
 }
+function getDefaultSettings() {
+	return JSON.parse(JSON.stringify(defaultSettings));
+}
 
 export class SettingsManager {
 	private static instance: SettingsManager;
 
-	private _settings: Settings = defaultSettings;
+	private _settings: Settings = getDefaultSettings();
 
 	public get settings() {
 		return this._settings;
@@ -54,7 +57,7 @@ export class SettingsManager {
 	private constructor() { }
 
 	public setSettings(newSettings: any) {
-		this.mergeDeep(this._settings, newSettings);
+		this._settings = this.mergeDeep(getDefaultSettings(), newSettings);
 		let cbs = [...this.cbOnSettingsChange];
 		for (let cb of cbs) {
 			cb();

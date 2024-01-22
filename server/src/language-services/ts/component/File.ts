@@ -271,7 +271,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
 
 
                         if (!_for.isSimple) {
-                            newContent += `${t}/** */\n${t}private ${_for.complex.loopName}() {\n
+                            newContent += `${t}/** */\n${t}private ${_for.complex.loopName}(${parameters.join(",")}) {\n
                                 ${_for.complex.init.join(";\n")}
                                 return {
                                     transform:() => {
@@ -723,7 +723,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                         }
                         else {
                             reloadComp = true;
-                            srcToUpdate = result.compiled;
+                            srcToUpdate = result.hotReload;
                             compName = result.classScript;
                             classInfo = this.fileParsed?.classes[compName]
                         }
@@ -732,8 +732,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
             }
         }
         if (!this.build.reloadPage && reloadComp && classInfo) {
-            srcToUpdate = srcToUpdate.slice(srcToUpdate.indexOf("="));
-            srcToUpdate = srcToUpdate.replace(/if\(\!window\.customElements\.get\(.*$/gm, '');
+            //srcToUpdate = srcToUpdate.replace(/if\(\!window\.customElements\.get\(.*$/gm, '');
 
             let namespace = this.buildNamespace;
             if (classInfo.namespace) {

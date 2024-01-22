@@ -21,6 +21,7 @@ import { FilesManager } from '../../files/FilesManager';
 import { VariableInfo } from './parser/VariableInfo';
 import { BindThisDecorator } from './parser/decorators/BindThisDecorator';
 import { EnumInfo } from './parser/EnumInfo';
+import { HttpServer } from '../../live-server/HttpServer';
 
 
 
@@ -876,6 +877,7 @@ export class AventusTsLanguageService {
     public static compileTs(element: BaseInfo, file: AventusTsFile): CompileTsResult {
         let result: CompileTsResult = {
             compiled: "",
+            hotReload: "",
             docVisible: "",
             docInvisible: "",
             dependances: element.dependances,
@@ -892,6 +894,7 @@ export class AventusTsLanguageService {
             let additionContent = "";
             // prepare content
             let txt = element.compiledContent;
+            let txtHotReload = element.compiledContentHotReload;
             if (element instanceof ClassInfo && !element.isInterface) {
                 if (element.implements.includes('Aventus.IData')) {
                     additionContent += element.fullName + ".$schema=" + this.prepareDataSchema(element) + ";";
@@ -914,9 +917,13 @@ export class AventusTsLanguageService {
 
             txt = this.removeComments(txt);
             txt = this.replaceFirstExport(txt);
-
-
             result.compiled = transpile(txt, compilerOptionsCompile) + additionContent;
+
+            if (HttpServer.isRunning) {
+                txtHotReload = this.removeComments(txtHotReload);
+                txtHotReload = this.replaceFirstExport(txtHotReload);
+                result.hotReload = transpile(txtHotReload, compilerOptionsCompile);
+            }
             if (element instanceof VariableInfo) {
                 result.compiled = element.type + " " + result.compiled;
             }
@@ -1066,6 +1073,7 @@ export class AventusTsLanguageService {
 //#region definition const + tools function
 export type CompileTsResult = {
     compiled: string,
+    hotReload: string,
     docVisible: string,
     docInvisible: string,
     dependances: {

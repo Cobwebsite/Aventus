@@ -22,6 +22,9 @@ export class MethodInfo {
     public get compiledContent(): string {
         return BaseInfo.getContent(this.content, this.start, this.end, this._class.dependancesLocations, this._class.compileTransformations);
     }
+    public get compiledContentHotReload(): string {
+        return BaseInfo.getContentHotReload(this.content, this.start, this.end, this._class.dependancesLocations, this._class.compileTransformations);
+    }
 
     constructor(method: MethodDeclaration, _class: ClassInfo) {
         this._class = _class;

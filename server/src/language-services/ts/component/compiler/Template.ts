@@ -35,7 +35,7 @@ export function AventusWebcomponentTemplate() {
     $listBool$
 
     $methods$
-}
+}//todelete for hmr °
 $namespace$
 $tag$
 $exported$

@@ -290,7 +290,7 @@ export class ParserHtml {
 	private document: TextDocument;
 
 	private rootTags: TagInfo[] = [];
-	private tags: TagInfo[] = [];
+	public tags: TagInfo[] = [];
 
 
 	public blocksInfo: { [name: string]: string } = {}

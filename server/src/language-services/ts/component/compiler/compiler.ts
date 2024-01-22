@@ -36,6 +36,7 @@ import { DefaultStateActiveDecorator } from '../../parser/decorators/DefaultStat
 import { DefaultStateInactiveDecorator } from '../../parser/decorators/DefaultStateInactiveDecorator';
 import { BindThisDecorator } from '../../parser/decorators/BindThisDecorator';
 import { EffectDecorator, EffectDecoratorOption } from '../../parser/decorators/EffectDecorator';
+import { HttpServer } from '../../../../live-server/HttpServer';
 
 
 export class AventusWebcomponentCompiler {
@@ -65,6 +66,7 @@ export class AventusWebcomponentCompiler {
     private logicalFile: AventusWebComponentLogicalFile;
     private scssTxt: string = "";
     private template: string;
+    private templateHotReload: string;
     private document: TextDocument;
     private build: Build;
     private fileParsed: ParserTs | null;
@@ -83,6 +85,7 @@ export class AventusWebcomponentCompiler {
 
     private listBoolProperties: string[] = [];
     private defaultValueTxt: string = "";
+    private defaultValueHotReloadTxt: string = "";
     private foundedWatch: string[] = [];
     private result: CompileComponentResult = {
         diagnostics: [],
@@ -96,6 +99,7 @@ export class AventusWebcomponentCompiler {
         debug: ''
     }
     private componentResult: CompileTsResult = {
+        hotReload: "",
         compiled: "",
         docVisible: "",
         docInvisible: "",
@@ -153,6 +157,7 @@ export class AventusWebcomponentCompiler {
         }
         this.result.diagnostics = nativeDiags;
         this.template = AventusWebcomponentTemplate();
+        this.templateHotReload = AventusWebcomponentTemplate();
         this.document = logicalFile.file.documentInternal;
         this.build = build;
         this.fileParsed = logicalFile.fileParsed;
@@ -231,9 +236,13 @@ export class AventusWebcomponentCompiler {
             this.addViewElementToDependance();
             this.writeFile();
 
-            this.componentResult.compiled = this.template;
+            this.componentResult.compiled = this.template.replace("//todelete for hmr °", "");
+            if (HttpServer.isRunning) {
+                this.componentResult.hotReload = this.templateHotReload.split("//todelete for hmr °")[0];
+                this.componentResult.hotReload = this.componentResult.hotReload.slice(this.componentResult.hotReload.indexOf("=") + 1);
+            }
             if (this.debuggerDecorator && this.debuggerDecorator.writeCompiled) {
-                this.componentResult.debugTxt = this.template;
+                this.componentResult.debugTxt = this.componentResult.compiled;
             }
 
             this.result.result.push(this.componentResult);
@@ -379,7 +388,7 @@ export class AventusWebcomponentCompiler {
             if (!found) {
                 cloneProp.propType = 'Simple';
                 cloneProp.inParent = !isBase;
-                result[property.name] = cloneProp;
+                result[propName] = cloneProp;
             }
         }
         return result;
@@ -447,6 +456,9 @@ export class AventusWebcomponentCompiler {
         this.writeFileConstructor();
         this.template = this.template.replace(/\|\!\*(.*?)\*\!\|/g, "{{$1}}");
         this.template = this.removeWhiteSpaceLines(this.template);
+
+        this.templateHotReload = this.templateHotReload.replace(/\|\!\*(.*?)\*\!\|/g, "{{$1}}");
+        this.templateHotReload = this.removeWhiteSpaceLines(this.templateHotReload);
     }
 
     private writeFileName() {
@@ -521,35 +533,40 @@ export class AventusWebcomponentCompiler {
     }
     private writeFileConstructor() {
         if (this.classInfo) {
-            let constructorBodyTxt = "";
-            let constructorBody = this.classInfo.constructorContent;
-            if (constructorBody.length > 0) {
-                constructorBodyTxt = `constructor() ` + constructorBody
+            const classInfo = this.classInfo;
+            const generateTxt = (constructorBody: string) => {
+                let constructorBodyTxt = "";
+                if (constructorBody.length > 0) {
+                    constructorBodyTxt = `constructor() ` + constructorBody
+                }
+
+                if (classInfo.isAbstract) {
+                    if (constructorBodyTxt.length > 0) {
+                        constructorBodyTxt = constructorBodyTxt.slice(0, constructorBodyTxt.length - 1);
+                        constructorBodyTxt += EOL + 'if (this.constructor == ' + this.className + ') { throw "can\'t instanciate an abstract class"; }';
+                        constructorBodyTxt += ' }'
+                    }
+                    else {
+                        constructorBodyTxt = 'constructor() { super(); if (this.constructor == ' + this.className + ') { throw "can\'t instanciate an abstract class"; } }';
+                    }
+                }
+
+                if (this.extraConstructorCode.length > 0) {
+                    if (constructorBodyTxt.length > 0) {
+                        constructorBodyTxt = constructorBodyTxt.slice(0, constructorBodyTxt.length - 1);
+                        constructorBodyTxt += EOL + this.extraConstructorCode.join(EOL);
+                        constructorBodyTxt += ' }'
+                    }
+                    else {
+                        constructorBodyTxt = 'constructor() { super(); ' + EOL + this.extraConstructorCode.join(EOL) + ' }';
+                    }
+                }
+                return constructorBodyTxt;
             }
 
-            if (this.classInfo.isAbstract) {
-                if (constructorBodyTxt.length > 0) {
-                    constructorBodyTxt = constructorBodyTxt.slice(0, constructorBodyTxt.length - 1);
-                    constructorBodyTxt += EOL + 'if (this.constructor == ' + this.className + ') { throw "can\'t instanciate an abstract class"; }';
-                    constructorBodyTxt += ' }'
-                }
-                else {
-                    constructorBodyTxt = 'constructor() { super(); if (this.constructor == ' + this.className + ') { throw "can\'t instanciate an abstract class"; } }';
-                }
-            }
-
-            if (this.extraConstructorCode.length > 0) {
-                if (constructorBodyTxt.length > 0) {
-                    constructorBodyTxt = constructorBodyTxt.slice(0, constructorBodyTxt.length - 1);
-                    constructorBodyTxt += EOL + this.extraConstructorCode.join(EOL);
-                    constructorBodyTxt += ' }'
-                }
-                else {
-                    constructorBodyTxt = 'constructor() { super(); ' + EOL + this.extraConstructorCode.join(EOL) + ' }';
-                }
-            }
-
-            this.writeFileReplaceVar("constructor", constructorBodyTxt);
+            this.writeFileReplaceVar("constructor", generateTxt(this.classInfo.constructorContent), false);
+            if (HttpServer.isRunning)
+                this.writeFileHotReloadReplaceVar("constructor", generateTxt(this.classInfo.constructorContentHotReload));
 
         }
     }
@@ -633,16 +650,20 @@ export class AventusWebcomponentCompiler {
             return;
         }
         let variablesSimpleTxt = "";
+        let variablesSimpleHotReloadTxt = "";
 
         let fullTxt = "";
+        let fullTxtHotReload = "";
         if (this.classInfo) {
             for (let fieldName in this.classInfo.propertiesStatic) {
                 let field = this.classInfo.propertiesStatic[fieldName];
                 fullTxt += field.compiledContent + EOL;
+                fullTxtHotReload += field.compiledContentHotReload + EOL;
             }
         }
         for (let field of fields) {
             fullTxt += field.compiledContent + EOL;
+            fullTxtHotReload += field.compiledContentHotReload + EOL;
         }
         let fullClassFields = `class MyCompilationClassAventus {${fullTxt}}`;
         let fieldsCompiled = transpile(fullClassFields, AventusTsLanguageService.getCompilerOptionsCompile());
@@ -650,7 +671,17 @@ export class AventusWebcomponentCompiler {
         if (matchContent) {
             variablesSimpleTxt = matchContent[1].trim();
         }
-        this.writeFileReplaceVar('variables', variablesSimpleTxt);
+        this.writeFileReplaceVar('variables', variablesSimpleTxt, false);
+
+        if (HttpServer.isRunning) {
+            let fullClassFieldsHotReload = `class MyCompilationClassAventus {${fullTxtHotReload}}`;
+            let fieldsCompiledHotReload = transpile(fullClassFieldsHotReload, AventusTsLanguageService.getCompilerOptionsCompile());
+            let matchContentHotReload = /\{((\s|\S)*)\}/gm.exec(fieldsCompiledHotReload);
+            if (matchContentHotReload) {
+                variablesSimpleHotReloadTxt = matchContentHotReload[1].trim();
+            }
+            this.writeFileHotReloadReplaceVar('variables', variablesSimpleHotReloadTxt);
+        }
     }
 
     private getGetterAndSetter(field: CustomFieldModel, type: TypeInfo, isProp: boolean): string {
@@ -680,11 +711,12 @@ export class AventusWebcomponentCompiler {
         }
         return result;
     }
-    private getDefaultValueAttr(field: CustomFieldModel, type: TypeInfo): string {
+    private getDefaultValueAttr(field: CustomFieldModel, type: TypeInfo, isHotReload: boolean): string {
         let result = "";
         let key = field.name;
+        let defaultValue = isHotReload ? field.defaultValueHotReload : field.defaultValue;
         if (type.kind == "boolean") {
-            if (field.defaultValue !== null && field.defaultValue !== "false") {
+            if (defaultValue !== null && defaultValue !== "false") {
                 result += "if(!this.hasAttribute('" + key + "')) {this.setAttribute('" + key + "' ,'true'); }" + EOL;
             }
             else {
@@ -693,16 +725,16 @@ export class AventusWebcomponentCompiler {
             }
         }
         else if (type.kind == "type" && (type.value == "Date" || type.value == "DateTime")) {
-            if (field.defaultValue !== null) {
-                result += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = " + field.defaultValue + "; }" + EOL;
+            if (defaultValue !== null) {
+                result += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = " + defaultValue + "; }" + EOL;
             }
             else {
                 result += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = undefined; }" + EOL;
             }
         }
         else {
-            if (field.defaultValue !== null) {
-                result += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = " + field.defaultValue + "; }" + EOL;
+            if (defaultValue !== null) {
+                result += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = " + defaultValue + "; }" + EOL;
             }
             else {
                 result += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = undefined; }" + EOL;
@@ -714,21 +746,28 @@ export class AventusWebcomponentCompiler {
     private writeFileFieldsAttribute(fields: CustomFieldModel[]) {
         let defaultValue = "";
         let getterSetter = "";
+        let defaultValueHotReload = "";
 
         for (let field of fields) {
             let type = this.validateTypeForProp(this.document, field);
             if (!type) {
                 continue;
             }
-            defaultValue += this.getDefaultValueAttr(field, type);
+            defaultValue += this.getDefaultValueAttr(field, type, false);
             getterSetter += this.getGetterAndSetter(field, type, false);
             this.createHtmlDoc(field, type);
-
             this.upgradeAttributes += 'this.__upgradeProperty(\'' + field.name.toLowerCase() + '\');' + EOL;
+
+            if (HttpServer.isRunning) {
+                defaultValueHotReload += this.getDefaultValueAttr(field, type, true)
+            }
         }
 
         if (defaultValue.length > 0) {
             this.defaultValueTxt += defaultValue
+        }
+        if (defaultValueHotReload.length > 0) {
+            this.defaultValueHotReloadTxt += defaultValueHotReload
         }
         this.writeFileReplaceVar("getterSetterAttr", getterSetter);
     }
@@ -738,6 +777,7 @@ export class AventusWebcomponentCompiler {
         let getterSetter = "";
         let onChange = "";
         let variablesWatched: string[] = [];
+        let defaultValueHotReload = "";
 
         for (let property of properties) {
             let field = property.field;
@@ -746,21 +786,29 @@ export class AventusWebcomponentCompiler {
                 continue;
             }
 
-            defaultValue += this.getDefaultValueAttr(field, type);
+            defaultValue += this.getDefaultValueAttr(field, type, false);
             getterSetter += this.getGetterAndSetter(field, type, true);
             this.createHtmlDoc(field, type);
 
             this.upgradeAttributes += 'this.__upgradeProperty(\'' + field.name.toLowerCase() + '\');' + EOL;
             variablesWatched.push(field.name.toLowerCase());
 
+            // TODO replace decorator content for namespace
             if (property.fctTxt) {
                 let fctTxt = this.transpileMethodNoRun(property.fctTxt);
                 onChange += `this.__addPropertyActions("${field.name}", ${fctTxt});` + EOL;
+            }
+
+            if (HttpServer.isRunning) {
+                defaultValueHotReload += this.getDefaultValueAttr(field, type, true)
             }
         }
 
         if (defaultValue.length > 0) {
             this.defaultValueTxt += defaultValue;
+        }
+        if (defaultValueHotReload.length > 0) {
+            this.defaultValueHotReloadTxt += defaultValueHotReload
         }
         this.writeFileReplaceVar("getterSetterProp", getterSetter);
 
@@ -769,6 +817,7 @@ export class AventusWebcomponentCompiler {
         if (onChange.length > 0) {
             onChange = `__registerPropertiesActions() { super.__registerPropertiesActions(); ${onChange} }`
         }
+        // TODO replace inside hotreload
         this.writeFileReplaceVar("propertiesChangeCb", onChange);
 
         let variablesWatchedTxt = '';
@@ -781,12 +830,10 @@ export class AventusWebcomponentCompiler {
     private writeFileFieldsWatch(watches: { field: CustomFieldModel, fctTxt: string | null }[]) {
         let getterSetter = "";
         let defaultValueWatch = "";
+        let defaultValueWatchHotReload = "";
         for (let watch of watches) {
             let field = watch.field;
 
-            if (field.defaultValue === null || field.defaultValue == "undefined") {
-                this.result.diagnostics.push(createErrorTsPos(this.document, "A watchable prop must be initialized", field.nameStart, field.nameEnd, AventusErrorCode.MissingInit));
-            }
             if (watch.fctTxt) {
                 this.watchProperties[field.name] = this.transpileMethodNoRun(watch.fctTxt);
             }
@@ -803,12 +850,20 @@ export class AventusWebcomponentCompiler {
 
             defaultValueWatch += `w["${field.name}"] = ${field.defaultValue?.replace(/\\"/g, '')};` + EOL;
             this.foundedWatch.push(field.name);
+
+            if (HttpServer.isRunning) {
+                defaultValueWatchHotReload += `w["${field.name}"] = ${field.defaultValueHotReload?.replace(/\\"/g, '')};` + EOL;
+            }
         }
 
         if (defaultValueWatch.length > 0) {
             defaultValueWatch = `__defaultValuesWatch(w) { super.__defaultValuesWatch(w); ${defaultValueWatch} }`;
         }
-        this.writeFileReplaceVar("defaultValueWatch", defaultValueWatch);
+        this.writeFileReplaceVar("defaultValueWatch", defaultValueWatch, false);
+        if (defaultValueWatchHotReload.length > 0) {
+            defaultValueWatchHotReload = `__defaultValuesWatch(w) { super.__defaultValuesWatch(w); ${defaultValueWatchHotReload} }`;
+        }
+        this.writeFileHotReloadReplaceVar("defaultValueWatch", defaultValueWatchHotReload);
 
         this.writeFileReplaceVar("getterSetterWatch", getterSetter);
     }
@@ -822,7 +877,16 @@ export class AventusWebcomponentCompiler {
         if (this.defaultValueTxt.length > 0) {
             txt = `__defaultValues() { super.__defaultValues(); ${this.defaultValueTxt} }`;
         }
-        this.writeFileReplaceVar("defaultValue", txt);
+        this.writeFileReplaceVar("defaultValue", txt, false);
+
+        if (HttpServer.isRunning) {
+            // default value
+            let txt = "";
+            if (this.defaultValueHotReloadTxt.length > 0) {
+                txt = `__defaultValues() { super.__defaultValues(); ${this.defaultValueHotReloadTxt} }`;
+            }
+            this.writeFileHotReloadReplaceVar("defaultValue", txt);
+        }
 
         // write boolean list 
         let listBoolTxt = "";
@@ -844,13 +908,17 @@ export class AventusWebcomponentCompiler {
         } = {}
 
         let methodsTxt = "";
+        let methodsTxtHotReload = "";
         let defaultStateTxt = "";
         if (this.classInfo) {
             let fullTxt = ""
+            let fullTxtHotReload = ""
             for (let methodName in this.classInfo.methods) {
                 let method = this.classInfo.methods[methodName];
                 if (!method.mustBeCompiled) continue;
                 fullTxt += method.compiledContent + EOL;
+                if (HttpServer.isRunning)
+                    fullTxtHotReload += method.compiledContentHotReload + EOL;
                 for (let decorator of method.decorators) {
                     if (BindThisDecorator.is(decorator)) {
                         this.extraConstructorCode.push(`this.${methodName}=this.${methodName}.bind(this)`);
@@ -913,8 +981,19 @@ export class AventusWebcomponentCompiler {
             if (matchContent) {
                 methodsTxt = matchContent[1].trim();
             }
+
+            if (HttpServer.isRunning) {
+                let fullClassFctHotReload = `class MyCompilationClassAventus {${fullTxtHotReload}}`;
+                let fctCompiledHotReload = transpile(fullClassFctHotReload, AventusTsLanguageService.getCompilerOptionsCompile());
+                let matchContentHotReload = /\{((\s|\S)*)\}/gm.exec(fctCompiledHotReload);
+                if (matchContentHotReload) {
+                    methodsTxtHotReload = matchContentHotReload[1].trim();
+                }
+            }
         }
-        this.writeFileReplaceVar("methods", methodsTxt);
+        this.writeFileReplaceVar("methods", methodsTxt, false);
+        this.writeFileHotReloadReplaceVar("methods", methodsTxtHotReload);
+
 
         let statesTxt = "";
         for (let statePattern in tempStateList) {
@@ -1343,9 +1422,16 @@ this.clearWatchHistory = () => {
             }
         }
     }
-    private writeFileReplaceVar(variable: string, value: string | number) {
+    private writeFileReplaceVar(variable: string, value: string | number, writeToHotReload: boolean = true) {
         let regex = new RegExp("\\$" + variable + "\\$", "g");
         this.template = this.template.replace(regex, value + "");
+        if (writeToHotReload) {
+            this.templateHotReload = this.templateHotReload.replace(regex, value + "");
+        }
+    }
+    private writeFileHotReloadReplaceVar(variable: string, value: string | number) {
+        let regex = new RegExp("\\$" + variable + "\\$", "g");
+        this.templateHotReload = this.templateHotReload.replace(regex, value + "");
     }
     private createMissingMethod(methodName: string, start: number, end: number) {
         if (!this.htmlParsed) {

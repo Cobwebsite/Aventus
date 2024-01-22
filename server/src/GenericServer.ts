@@ -74,6 +74,9 @@ export class GenericServer {
 	public static get localTemplateManager() {
 		return this.instance._localTemplate;
 	}
+	public static refreshSettings() {
+		return this.instance.loadSettings();
+	}
 
 
 	protected connection: IConnection;

@@ -1688,10 +1688,16 @@ const Watcher=class Watcher {
         setProxyPath(realProxy, '');
         return realProxy;
     }
+    /**
+     * Create a computed variable that will watch any changes
+     */
     static computed(fct) {
         const comp = new Computed(fct);
         return comp;
     }
+    /**
+     * Create an effect variable that will watch any changes
+     */
     static effect(fct) {
         const comp = new Effect(fct);
         return comp;
@@ -2788,7 +2794,8 @@ const TemplateInstance=class TemplateInstance {
                     instance.content.appendChild(instance.lastChild);
             }
             currentActive = newActive;
-            anchor.parentNode?.insertBefore(instances[currentActive].content, anchor);
+            if (instances[currentActive])
+                anchor.parentNode?.insertBefore(instances[currentActive].content, anchor);
         };
         for (let i = 0; i < _if.parts.length; i++) {
             const part = _if.parts[i];
@@ -5666,10 +5673,12 @@ Navigation.Router = class Router extends Aventus.WebComponent {
                     await element.show();
                     this.oldPage = element;
                     this.activePath = path;
-                    if (window.location.pathname != currentState.name) {
+                    let title = element.pageTitle();
+                    if (title !== undefined)
+                        document.title = title;
+                    if (this.bindToUrl() && window.location.pathname != currentState.name) {
                         let newUrl = window.location.origin + currentState.name;
-                        document.title = element.pageTitle();
-                        window.history.pushState({}, element.pageTitle(), newUrl);
+                        window.history.pushState({}, title ?? "", newUrl);
                     }
                     this.onNewPage(oldUrl, oldPage, path, element);
                 });
@@ -5705,6 +5714,12 @@ Navigation.Router = class Router extends Aventus.WebComponent {
     getSlugs() {
         return this.stateManager.getStateSlugs(this.activePath);
     }
+    bindToUrl() {
+        return true;
+    }
+    defaultUrl() {
+        return "/";
+    }
     postCreation() {
         this.register();
         let oldUrl = window.localStorage.getItem("navigation_url");
@@ -5712,14 +5727,22 @@ Navigation.Router = class Router extends Aventus.WebComponent {
             Aventus.State.activate(oldUrl, this.stateManager);
             window.localStorage.removeItem("navigation_url");
         }
-        else {
+        else if (this.bindToUrl()) {
             Aventus.State.activate(window.location.pathname, this.stateManager);
         }
-        window.onpopstate = (e) => {
-            if (window.location.pathname != this.stateManager.getState()?.name) {
-                Aventus.State.activate(window.location.pathname, this.stateManager);
+        else {
+            let defaultUrl = this.defaultUrl();
+            if (defaultUrl) {
+                Aventus.State.activate(defaultUrl, this.stateManager);
             }
-        };
+        }
+        if (this.bindToUrl()) {
+            window.onpopstate = (e) => {
+                if (window.location.pathname != this.stateManager.getState()?.name) {
+                    Aventus.State.activate(window.location.pathname, this.stateManager);
+                }
+            };
+        }
     }
 }
 Navigation.Router.Namespace=`${moduleName}.Navigation`;
@@ -5759,11 +5782,18 @@ Navigation.Page = class Page extends Aventus.WebComponent {
     __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('visible')) { this.attributeChangedCallback('visible', false, false); } }
     __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('visible'); }
     __listBoolProps() { return ["visible"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    pageTitle() {
+        return undefined;
+    }
     async show() {
         this.visible = true;
     }
     async hide() {
         this.visible = false;
+    }
+    onShow() {
+    }
+    onHide() {
     }
 }
 Navigation.Page.Namespace=`${moduleName}.Navigation`;
