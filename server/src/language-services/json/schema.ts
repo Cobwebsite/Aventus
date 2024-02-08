@@ -26,10 +26,26 @@ export const AventusConfigSchema: JSONSchema = {
             description: "Identifier to prefix all your components (in lower case)",
             pattern: "^[a-z\-]{2,}$",
         },
+        "dependances": { "$ref": "#/$defs/dependances" },
+        "namespaceStrategy": {
+            type: "string",
+            enum: ["manual", "followFolders", "followFoldersCamelCase", "rules"],
+            description: "Stragety to generate namespace",
+            default: "manual"
+        },
+        "namespaceRules": {
+            type: "object",
+            description: "Rules to define namespace when namespaceStrategy is rules"
+        },
+        "namespaceRoot": {
+            type: "string",
+            description: "Root directory to define namespace when namespaceStrategy is followFolders"
+        },
         "build": {
             type: "array",
             items: {
                 type: "object",
+                additionalProperties: false,
                 properties: {
                     "name": {
                         type: "string",
@@ -55,74 +71,52 @@ export const AventusConfigSchema: JSONSchema = {
                         description: "Identifier to prefix all your components (in lower case)",
                         pattern: "^[a-z\-]{2,}$",
                     },
-                    "inputPath": {
+                    "src": {
                         type: "array",
                         items: { type: "string" },
-                        description: "List of all pathes to import inside this build"
+                        description: "List of all pathes to listen watch"
                     },
-                    "outsideModulePath": {
+                    "outsideModule": {
                         type: "array",
                         items: { type: "string" },
                         description: "List of all pathes to import outside the module"
                     },
-                    "outputFile": {
-                        type: ["string", "array"],
-                        items: {
-                            type: "string",
-                            pattern: "^\\S+\\.js",
-                        },
-                        pattern: "^\\S+\\.js",
-                        description: "The script file generated path"
-                    },
-                    "outputPackage": {
-                        type: ["string", "array"],
-                        items: {
-                            type: "string",
-                            pattern: "^\\S+\\.package\\.avt",
-                        },
-                        pattern: "^\\S+\\.package\\.avt",
-                        description: "The package file generated path (for lib)"
-                    },
-                    "dependances": {
+                    "compile": {
                         type: "array",
-                        description: "List of dependances for this build",
                         items: {
                             type: "object",
+                            additionalProperties: false,
                             properties: {
-                                uri: {
-                                    type: "string",
-                                    description: "Where to find the package or the json file"
+                                "input": {
+                                    type: ["string", "array"],
+                                    items: { type: "string" },
+                                    description: "List of all pathes to import inside this build"
                                 },
-                                version: {
-                                    type: "string",
-                                    pattern: "^[0-9x]+\.[0-9x]+\.[0-9x]+$",
-                                    description: "The version to use for this file. (default is x.x.x)",
-                                    default: "x.x.x",
-                                },
-                                include: {
-                                    type: "string",
-                                    description: "Determine if the package must be included inside the final export. (default is need)",
-                                    enum: ['none', 'need', 'full'],
-                                    default: "need"
-                                },
-                                subDependancesInclude: {
-                                    type: "array",
-                                    description: "Inclusion pattern for each lib. You can use a star to select everythink. If nothink find for a lib, the need value ll be used",
+                                "output": {
+                                    type: ["string", "array"],
                                     items: {
-                                        type: "object",
-                                        patternProperties: {
-                                            "^\\S+$": {
-                                                type: "string",
-                                                enum: ['none', 'need', 'full'],
-                                                default: "need"
-                                            }
-                                        },
-                                    }
-                                }
-                            },
-                            required: ["uri"]
+                                        type: "string",
+                                        pattern: "^\\S+\\.js",
+                                    },
+                                    pattern: "^\\S+\\.js",
+                                    description: "The script file generated path"
+                                },
+                                "compressed": {
+                                    type: "boolean"
+                                },
+                                "package": {
+                                    type: ["string", "array"],
+                                    items: {
+                                        type: "string",
+                                        pattern: "^\\S+\\.package\\.avt",
+                                    },
+                                    pattern: "^\\S+\\.package\\.avt",
+                                    description: "The package file generated path (for lib)"
+                                },
+                            }
                         }
                     },
+                    "dependances": { "$ref": "#/$defs/dependances" },
                     "module": {
                         type: "string",
                         pattern: "^[a-zA-Z0-9_]+$",
@@ -141,7 +135,6 @@ export const AventusConfigSchema: JSONSchema = {
                     "namespaceRoot": {
                         type: "string",
                         description: "Root directory to define namespace when namespaceStrategy is followFolders"
-
                     },
                     "avoidParsingInsideTags": {
                         type: "array",
@@ -151,34 +144,7 @@ export const AventusConfigSchema: JSONSchema = {
                         },
                         description: "List of html tag that mustn't be parsed by the html compiler"
                     },
-                    "componentStyle": {
-                        type: "array",
-                        items: {
-                            type: "object",
-                            properties: {
-                                "name": {
-                                    type: "string",
-                                    pattern: "^[a-zA-Z0-9_@]+$",
-                                    description: "The name of stylesheet"
-                                },
-                                "path": {
-                                    type: "string",
-                                    pattern: "^\\S+\\.gwcs.avt$",
-                                    description: "Where the file is located"
-                                },
-                                "outputFile": {
-                                    type: "string",
-                                    pattern: "^\\S+\\.css$",
-                                    description: "If set, the css will be exported outisde of the .js file"
-                                }
-                            },
-                            required: ["name", "path"]
-                        },
-                        description: "Indicate the global style to load"
-                    },
-                    "compressed": {
-                        type: "boolean"
-                    },
+                    
                     "nodeModulesDir": {
                         type: ["string", "array"],
                         items: {
@@ -187,8 +153,7 @@ export const AventusConfigSchema: JSONSchema = {
                         description: "The dirs where node_modules are located"
                     },
                 },
-                required: ["name", "inputPath"],
-                additionalProperties: false
+                required: ["name", "src"]
             },
             minItems: 1
         },
@@ -196,17 +161,18 @@ export const AventusConfigSchema: JSONSchema = {
             type: "array",
             items: {
                 type: "object",
+                additionalProperties: false,
                 properties: {
                     "name": {
                         type: "string",
                         description: "Part name for the static export",
                         pattern: "^[a-zA-Z0-9_]+$",
                     },
-                    "inputPath": {
+                    "input": {
                         type: "string",
                         description: "Input path to watch to export as static files"
                     },
-                    "outputPath": {
+                    "output": {
                         type: ["string", "array"],
                         items: {
                             type: "string",
@@ -214,8 +180,7 @@ export const AventusConfigSchema: JSONSchema = {
                         description: "Define where to export static files"
                     }
                 },
-                required: ["name", "inputPath", "outputPath"],
-                additionalProperties: false
+                required: ["name", "input", "output"]
             }
         },
         "avoidParsingInsideTags": {
@@ -230,7 +195,50 @@ export const AventusConfigSchema: JSONSchema = {
             type: "object"
         }
     },
-    "required": ["build", "module"]
+    "required": ["build", "module"],
+    "$defs": {
+        "dependances": {
+            type: "array",
+            description: "List of dependances for this build",
+            items: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                    uri: {
+                        type: "string",
+                        description: "Where to find the package or the json file"
+                    },
+                    version: {
+                        type: "string",
+                        pattern: "^[0-9x]+\.[0-9x]+\.[0-9x]+$",
+                        description: "The version to use for this file. (default is x.x.x)",
+                        default: "x.x.x",
+                    },
+                    include: {
+                        type: "string",
+                        description: "Determine if the package must be included inside the final export. (default is need)",
+                        enum: ['none', 'need', 'full'],
+                        default: "need"
+                    },
+                    subDependancesInclude: {
+                        type: "array",
+                        description: "Inclusion pattern for each lib. You can use a star to select everythink. If nothink find for a lib, the need value ll be used",
+                        items: {
+                            type: "object",
+                            patternProperties: {
+                                "^\\S+$": {
+                                    type: "string",
+                                    enum: ['none', 'need', 'full'],
+                                    default: "need"
+                                }
+                            },
+                        }
+                    }
+                },
+                required: ["uri"]
+            }
+        }
+    }
 };
 
 export const AventusTemplateSchema: JSONSchema = {
@@ -251,6 +259,7 @@ export const AventusTemplateSchema: JSONSchema = {
             patternProperties: {
                 "^.*$": {
                     type: "object",
+                    additionalProperties: false,
                     properties: {
                         "question": { type: "string" },
                         "type": { type: "string", enum: ["input", "select"] },
@@ -260,6 +269,7 @@ export const AventusTemplateSchema: JSONSchema = {
                             type: "array",
                             items: {
                                 type: "object",
+                                additionalProperties: false,
                                 properties: {
                                     "pattern": {
                                         type: "string"

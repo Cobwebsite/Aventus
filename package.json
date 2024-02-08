@@ -45,7 +45,6 @@
 				"id": "Aventus SCSS",
 				"extensions": [
 					".wcs.avt",
-					".gwcs.avt",
 					".gs.avt"
 				],
 				"configuration": "./syntaxes/scss-language-configuration.json",
@@ -383,6 +382,10 @@
 			{
 				"command": "aventus.openfile.debug",
 				"title": "Aventus : Open debug file"
+			},
+			{
+				"command": "aventus.reloadSettings",
+				"title": "Aventus : Reload settings"
 			}
 		],
 		"menus": {
@@ -416,6 +419,11 @@
 					"when": "resourceFilename == aventus.sharp.avt",
 					"command": "aventus.sharp.export",
 					"group": "navigation@-50"
+				},
+				{
+					"when": "resourceFilename =~ /^.*\\.cs/",
+					"command": "aventus.sharp.export",
+					"group": "navigation@-50"
 				}
 			],
 			"editor/context": [
@@ -446,6 +454,11 @@
 				},
 				{
 					"when": "resourceFilename == aventus.sharp.avt",
+					"command": "aventus.sharp.export",
+					"group": "navigation@-50"
+				},
+				{
+					"when": "resourceFilename =~ /^.*\\.cs/",
 					"command": "aventus.sharp.export",
 					"group": "navigation@-50"
 				}
@@ -529,6 +542,10 @@
 				},
 				{
 					"command": "aventus.dependances.show",
+					"when": "false"
+				},
+				{
+					"command": "aventus.reloadSettings",
 					"when": "false"
 				}
 			]

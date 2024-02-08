@@ -6,98 +6,6 @@ const _ = {};
 
 
 let _n;
-var WatchAction;
-(function (WatchAction) {
-    WatchAction[WatchAction["CREATED"] = 0] = "CREATED";
-    WatchAction[WatchAction["UPDATED"] = 1] = "UPDATED";
-    WatchAction[WatchAction["DELETED"] = 2] = "DELETED";
-})(WatchAction || (WatchAction = {}));
-
-_.WatchAction=WatchAction;
-const compareObject=function compareObject(obj1, obj2) {
-    if (Array.isArray(obj1)) {
-        if (!Array.isArray(obj2)) {
-            return false;
-        }
-        obj2 = obj2.slice();
-        if (obj1.length !== obj2.length) {
-            return false;
-        }
-        for (let i = 0; i < obj1.length; i++) {
-            let foundElement = false;
-            for (let j = 0; j < obj2.length; j++) {
-                if (compareObject(obj1[i], obj2[j])) {
-                    obj2.splice(j, 1);
-                    foundElement = true;
-                    break;
-                }
-            }
-            if (!foundElement) {
-                return false;
-            }
-        }
-        return true;
-    }
-    else if (obj1 instanceof Date) {
-        return obj1.toString() === obj2.toString();
-    }
-    else if (typeof obj1 === 'object' && obj1 !== undefined && obj1 !== null) {
-        if (typeof obj2 !== 'object' || obj2 === undefined || obj2 === null) {
-            return false;
-        }
-        if (Object.keys(obj1).length !== Object.keys(obj2).length) {
-            return false;
-        }
-        for (let key in obj1) {
-            if (!(key in obj2)) {
-                return false;
-            }
-            if (!compareObject(obj1[key], obj2[key])) {
-                return false;
-            }
-        }
-        return true;
-    }
-    else {
-        return obj1 === obj2;
-    }
-}
-
-_.compareObject=compareObject;
-const setValueToObject=function setValueToObject(path, obj, value) {
-    path = path.replace(/\[(.*?)\]/g, '.$1');
-    let splitted = path.split(".");
-    for (let i = 0; i < splitted.length - 1; i++) {
-        let split = splitted[i];
-        if (!obj[split]) {
-            obj[split] = {};
-        }
-        obj = obj[split];
-    }
-    obj[splitted[splitted.length - 1]] = value;
-}
-
-_.setValueToObject=setValueToObject;
-const getValueFromObject=function getValueFromObject(path, obj) {
-    path = path.replace(/\[(.*?)\]/g, '.$1');
-    if (path == "") {
-        return obj;
-    }
-    let splitted = path.split(".");
-    for (let i = 0; i < splitted.length - 1; i++) {
-        let split = splitted[i];
-        if (!obj[split] || typeof obj[split] !== 'object') {
-            return undefined;
-        }
-        obj = obj[split];
-    }
-    if (!obj || typeof obj !== 'object') {
-        return undefined;
-    }
-    return obj[splitted[splitted.length - 1]];
-}
-
-_.getValueFromObject=getValueFromObject;
 const ElementExtension=class ElementExtension {
     /**
      * Find a parent by tagname if exist Static.findParentByTag(this, "av-img")
@@ -359,7 +267,7 @@ const Style=class Style {
     static instance;
     static noAnimation;
     static defaultStyleSheets = {
-        "@general": `:host{display:inline-block;box-sizing:border-box}:host *{box-sizing:border-box}`,
+        "@default": `:host{display:inline-block;box-sizing:border-box}:host *{box-sizing:border-box}`,
     };
     static store(name, content) {
         this.getInstance().store(name, content);
@@ -418,6 +326,20 @@ const Style=class Style {
 }
 Style.Namespace=`${moduleName}`;
 _.Style=Style;
+const setValueToObject=function setValueToObject(path, obj, value) {
+    path = path.replace(/\[(.*?)\]/g, '.$1');
+    let splitted = path.split(".");
+    for (let i = 0; i < splitted.length - 1; i++) {
+        let split = splitted[i];
+        if (!obj[split]) {
+            obj[split] = {};
+        }
+        obj = obj[split];
+    }
+    obj[splitted[splitted.length - 1]] = value;
+}
+
+_.setValueToObject=setValueToObject;
 const Callback=class Callback {
     callbacks = [];
     /**
@@ -560,396 +482,84 @@ const Mutex=class Mutex {
 }
 Mutex.Namespace=`${moduleName}`;
 _.Mutex=Mutex;
-const PressManager=class PressManager {
-    static create(options) {
-        if (Array.isArray(options.element)) {
-            let result = [];
-            for (let el of options.element) {
-                let cloneOpt = { ...options };
-                cloneOpt.element = el;
-                result.push(new PressManager(cloneOpt));
-            }
-            return result;
+const compareObject=function compareObject(obj1, obj2) {
+    if (Array.isArray(obj1)) {
+        if (!Array.isArray(obj2)) {
+            return false;
         }
-        else {
-            return new PressManager(options);
+        obj2 = obj2.slice();
+        if (obj1.length !== obj2.length) {
+            return false;
         }
-    }
-    options;
-    element;
-    delayDblPress = 150;
-    delayLongPress = 700;
-    nbPress = 0;
-    offsetDrag = 20;
-    state = {
-        oneActionTriggered: false,
-        isMoving: false,
-    };
-    startPosition = { x: 0, y: 0 };
-    customFcts = {};
-    timeoutDblPress = 0;
-    timeoutLongPress = 0;
-    downEventSaved;
-    actionsName = {
-        press: "press",
-        longPress: "longPress",
-        dblPress: "dblPress",
-        drag: "drag"
-    };
-    useDblPress = false;
-    stopPropagation = () => true;
-    functionsBinded = {
-        downAction: (e) => { },
-        upAction: (e) => { },
-        moveAction: (e) => { },
-        childPressStart: (e) => { },
-        childPressEnd: (e) => { },
-        childPress: (e) => { },
-        childDblPress: (e) => { },
-        childLongPress: (e) => { },
-        childDragStart: (e) => { },
-    };
-    /**
-     * @param {*} options - The options
-     * @param {HTMLElement | HTMLElement[]} options.element - The element to manage
-     */
-    constructor(options) {
-        if (options.element === void 0) {
-            throw 'You must provide an element';
-        }
-        this.element = options.element;
-        this.checkDragConstraint(options);
-        this.assignValueOption(options);
-        this.options = options;
-        this.init();
-    }
-    /**
-     * Get the current element focused by the PressManager
-     */
-    getElement() {
-        return this.element;
-    }
-    checkDragConstraint(options) {
-        if (options.onDrag !== void 0) {
-            if (options.onDragStart === void 0) {
-                options.onDragStart = (e) => { };
-            }
-            if (options.onDragEnd === void 0) {
-                options.onDragEnd = (e) => { };
-            }
-        }
-        if (options.onDragStart !== void 0) {
-            if (options.onDrag === void 0) {
-                options.onDrag = (e) => { };
-            }
-            if (options.onDragEnd === void 0) {
-                options.onDragEnd = (e) => { };
-            }
-        }
-        if (options.onDragEnd !== void 0) {
-            if (options.onDragStart === void 0) {
-                options.onDragStart = (e) => { };
-            }
-            if (options.onDrag === void 0) {
-                options.onDrag = (e) => { };
-            }
-        }
-    }
-    assignValueOption(options) {
-        if (options.delayDblPress !== undefined) {
-            this.delayDblPress = options.delayDblPress;
-        }
-        if (options.delayLongPress !== undefined) {
-            this.delayLongPress = options.delayLongPress;
-        }
-        if (options.offsetDrag !== undefined) {
-            this.offsetDrag = options.offsetDrag;
-        }
-        if (options.onDblPress !== undefined) {
-            this.useDblPress = true;
-        }
-        if (options.forceDblPress) {
-            this.useDblPress = true;
-        }
-        if (typeof options.stopPropagation == 'function') {
-            this.stopPropagation = options.stopPropagation;
-        }
-        else if (options.stopPropagation === false) {
-            this.stopPropagation = () => false;
-        }
-        if (!options.buttonAllowed)
-            options.buttonAllowed = [0];
-    }
-    bindAllFunction() {
-        this.functionsBinded.downAction = this.downAction.bind(this);
-        this.functionsBinded.moveAction = this.moveAction.bind(this);
-        this.functionsBinded.upAction = this.upAction.bind(this);
-        this.functionsBinded.childDblPress = this.childDblPress.bind(this);
-        this.functionsBinded.childDragStart = this.childDragStart.bind(this);
-        this.functionsBinded.childLongPress = this.childLongPress.bind(this);
-        this.functionsBinded.childPress = this.childPress.bind(this);
-        this.functionsBinded.childPressStart = this.childPressStart.bind(this);
-        this.functionsBinded.childPressEnd = this.childPressEnd.bind(this);
-    }
-    init() {
-        this.bindAllFunction();
-        this.element.addEventListener("pointerdown", this.functionsBinded.downAction);
-        this.element.addEventListener("trigger_pointer_press", this.functionsBinded.childPress);
-        this.element.addEventListener("trigger_pointer_pressstart", this.functionsBinded.childPressStart);
-        this.element.addEventListener("trigger_pointer_pressend", this.functionsBinded.childPressEnd);
-        this.element.addEventListener("trigger_pointer_dblpress", this.functionsBinded.childDblPress);
-        this.element.addEventListener("trigger_pointer_longpress", this.functionsBinded.childLongPress);
-        this.element.addEventListener("trigger_pointer_dragstart", this.functionsBinded.childDragStart);
-    }
-    downAction(e) {
-        if (!this.options.buttonAllowed?.includes(e.button)) {
-            return;
-        }
-        this.downEventSaved = e;
-        if (this.stopPropagation()) {
-            e.stopImmediatePropagation();
-        }
-        this.customFcts = {};
-        if (this.nbPress == 0) {
-            this.state.oneActionTriggered = false;
-            clearTimeout(this.timeoutDblPress);
-        }
-        this.startPosition = { x: e.pageX, y: e.pageY };
-        document.addEventListener("pointerup", this.functionsBinded.upAction);
-        document.addEventListener("pointermove", this.functionsBinded.moveAction);
-        this.timeoutLongPress = setTimeout(() => {
-            if (!this.state.oneActionTriggered) {
-                if (this.options.onLongPress) {
-                    this.state.oneActionTriggered = true;
-                    this.options.onLongPress(e, this);
-                    this.triggerEventToParent(this.actionsName.longPress, e);
-                }
-                else {
-                    this.emitTriggerFunction(this.actionsName.longPress, e);
+        for (let i = 0; i < obj1.length; i++) {
+            let foundElement = false;
+            for (let j = 0; j < obj2.length; j++) {
+                if (compareObject(obj1[i], obj2[j])) {
+                    obj2.splice(j, 1);
+                    foundElement = true;
+                    break;
                 }
             }
-        }, this.delayLongPress);
-        if (this.options.onPressStart) {
-            this.options.onPressStart(e, this);
-            this.emitTriggerFunctionParent("pressstart", e);
+            if (!foundElement) {
+                return false;
+            }
         }
-        else {
-            this.emitTriggerFunction("pressstart", e);
-        }
+        return true;
     }
-    upAction(e) {
-        if (this.stopPropagation()) {
-            e.stopImmediatePropagation();
-        }
-        document.removeEventListener("pointerup", this.functionsBinded.upAction);
-        document.removeEventListener("pointermove", this.functionsBinded.moveAction);
-        clearTimeout(this.timeoutLongPress);
-        if (this.state.isMoving) {
-            this.state.isMoving = false;
-            if (this.options.onDragEnd) {
-                this.options.onDragEnd(e, this);
-            }
-            else if (this.customFcts.src && this.customFcts.onDragEnd) {
-                this.customFcts.onDragEnd(e, this.customFcts.src);
-            }
-        }
-        else {
-            if (this.useDblPress) {
-                this.nbPress++;
-                if (this.nbPress == 2) {
-                    if (!this.state.oneActionTriggered) {
-                        this.state.oneActionTriggered = true;
-                        this.nbPress = 0;
-                        if (this.options.onDblPress) {
-                            this.options.onDblPress(e, this);
-                            this.triggerEventToParent(this.actionsName.dblPress, e);
-                        }
-                        else {
-                            this.emitTriggerFunction(this.actionsName.dblPress, e);
-                        }
-                    }
-                }
-                else if (this.nbPress == 1) {
-                    this.timeoutDblPress = setTimeout(() => {
-                        this.nbPress = 0;
-                        if (!this.state.oneActionTriggered) {
-                            if (this.options.onPress) {
-                                this.state.oneActionTriggered = true;
-                                this.options.onPress(e, this);
-                                this.triggerEventToParent(this.actionsName.press, e);
-                            }
-                            else {
-                                this.emitTriggerFunction(this.actionsName.press, e);
-                            }
-                        }
-                    }, this.delayDblPress);
-                }
-            }
-            else {
-                if (!this.state.oneActionTriggered) {
-                    if (this.options.onPress) {
-                        this.state.oneActionTriggered = true;
-                        this.options.onPress(e, this);
-                        this.triggerEventToParent(this.actionsName.press, e);
-                    }
-                    else {
-                        this.emitTriggerFunction("press", e);
-                    }
-                }
-            }
-        }
-        if (this.options.onPressEnd) {
-            this.options.onPressEnd(e, this);
-            this.emitTriggerFunctionParent("pressend", e);
-        }
-        else {
-            this.emitTriggerFunction("pressend", e);
-        }
+    else if (obj1 instanceof Date) {
+        return obj1.toString() === obj2.toString();
     }
-    moveAction(e) {
-        if (!this.state.isMoving && !this.state.oneActionTriggered) {
-            if (this.stopPropagation()) {
-                e.stopImmediatePropagation();
+    else if (typeof obj1 === 'object' && obj1 !== undefined && obj1 !== null) {
+        if (typeof obj2 !== 'object' || obj2 === undefined || obj2 === null) {
+            return false;
+        }
+        if (Object.keys(obj1).length !== Object.keys(obj2).length) {
+            return false;
+        }
+        for (let key in obj1) {
+            if (!(key in obj2)) {
+                return false;
             }
-            let xDist = e.pageX - this.startPosition.x;
-            let yDist = e.pageY - this.startPosition.y;
-            let distance = Math.sqrt(xDist * xDist + yDist * yDist);
-            if (distance > this.offsetDrag && this.downEventSaved) {
-                this.state.oneActionTriggered = true;
-                if (this.options.onDragStart) {
-                    this.state.isMoving = true;
-                    this.options.onDragStart(this.downEventSaved, this);
-                    this.triggerEventToParent(this.actionsName.drag, e);
-                }
-                else {
-                    this.emitTriggerFunction("dragstart", this.downEventSaved);
-                }
+            if (!compareObject(obj1[key], obj2[key])) {
+                return false;
             }
         }
-        else if (this.state.isMoving) {
-            if (this.options.onDrag) {
-                this.options.onDrag(e, this);
-            }
-            else if (this.customFcts.src && this.customFcts.onDrag) {
-                this.customFcts.onDrag(e, this.customFcts.src);
-            }
-        }
+        return true;
     }
-    triggerEventToParent(eventName, pointerEvent) {
-        if (this.element.parentNode) {
-            this.element.parentNode.dispatchEvent(new CustomEvent("pressaction_trigger", {
-                bubbles: true,
-                cancelable: false,
-                composed: true,
-                detail: {
-                    target: this.element,
-                    eventName: eventName,
-                    realEvent: pointerEvent
-                }
-            }));
-        }
-    }
-    childPressStart(e) {
-        if (this.options.onPressStart) {
-            this.options.onPressStart(e.detail.realEvent, this);
-        }
-    }
-    childPressEnd(e) {
-        if (this.options.onPressEnd) {
-            this.options.onPressEnd(e.detail.realEvent, this);
-        }
-    }
-    childPress(e) {
-        if (this.options.onPress) {
-            if (this.stopPropagation()) {
-                e.stopImmediatePropagation();
-            }
-            e.detail.state.oneActionTriggered = true;
-            this.options.onPress(e.detail.realEvent, this);
-            this.triggerEventToParent(this.actionsName.press, e.detail.realEvent);
-        }
-    }
-    childDblPress(e) {
-        if (this.options.onDblPress) {
-            if (this.stopPropagation()) {
-                e.stopImmediatePropagation();
-            }
-            if (e.detail.state) {
-                e.detail.state.oneActionTriggered = true;
-            }
-            this.options.onDblPress(e.detail.realEvent, this);
-            this.triggerEventToParent(this.actionsName.dblPress, e.detail.realEvent);
-        }
-    }
-    childLongPress(e) {
-        if (this.options.onLongPress) {
-            if (this.stopPropagation()) {
-                e.stopImmediatePropagation();
-            }
-            e.detail.state.oneActionTriggered = true;
-            this.options.onLongPress(e.detail.realEvent, this);
-            this.triggerEventToParent(this.actionsName.longPress, e.detail.realEvent);
-        }
-    }
-    childDragStart(e) {
-        if (this.options.onDragStart) {
-            if (this.stopPropagation()) {
-                e.stopImmediatePropagation();
-            }
-            e.detail.state.isMoving = true;
-            e.detail.customFcts.src = this;
-            e.detail.customFcts.onDrag = this.options.onDrag;
-            e.detail.customFcts.onDragEnd = this.options.onDragEnd;
-            e.detail.customFcts.offsetDrag = this.options.offsetDrag;
-            this.options.onDragStart(e.detail.realEvent, this);
-            this.triggerEventToParent(this.actionsName.drag, e.detail.realEvent);
-        }
-    }
-    emitTriggerFunctionParent(action, e) {
-        let el = this.element.parentElement;
-        if (el == null) {
-            let parentNode = this.element.parentNode;
-            if (parentNode instanceof ShadowRoot) {
-                this.emitTriggerFunction(action, e, parentNode.host);
-            }
-        }
-        else {
-            this.emitTriggerFunction(action, e, el);
-        }
-    }
-    emitTriggerFunction(action, e, el) {
-        let ev = new CustomEvent("trigger_pointer_" + action, {
-            bubbles: true,
-            cancelable: true,
-            composed: true,
-            detail: {
-                state: this.state,
-                customFcts: this.customFcts,
-                realEvent: e
-            }
-        });
-        if (!el) {
-            el = this.element;
-        }
-        el.dispatchEvent(ev);
-    }
-    /**
-     * Destroy the Press instance byremoving all events
-     */
-    destroy() {
-        if (this.element) {
-            this.element.removeEventListener("pointerdown", this.functionsBinded.downAction);
-            this.element.removeEventListener("trigger_pointer_press", this.functionsBinded.childPress);
-            this.element.removeEventListener("trigger_pointer_pressstart", this.functionsBinded.childPressStart);
-            this.element.removeEventListener("trigger_pointer_pressend", this.functionsBinded.childPressEnd);
-            this.element.removeEventListener("trigger_pointer_dblpress", this.functionsBinded.childDblPress);
-            this.element.removeEventListener("trigger_pointer_longpress", this.functionsBinded.childLongPress);
-            this.element.removeEventListener("trigger_pointer_dragstart", this.functionsBinded.childDragStart);
-        }
+    else {
+        return obj1 === obj2;
     }
 }
-PressManager.Namespace=`${moduleName}`;
-_.PressManager=PressManager;
+
+_.compareObject=compareObject;
+const getValueFromObject=function getValueFromObject(path, obj) {
+    path = path.replace(/\[(.*?)\]/g, '.$1');
+    if (path == "") {
+        return obj;
+    }
+    let splitted = path.split(".");
+    for (let i = 0; i < splitted.length - 1; i++) {
+        let split = splitted[i];
+        if (!obj[split] || typeof obj[split] !== 'object') {
+            return undefined;
+        }
+        obj = obj[split];
+    }
+    if (!obj || typeof obj !== 'object') {
+        return undefined;
+    }
+    return obj[splitted[splitted.length - 1]];
+}
+
+_.getValueFromObject=getValueFromObject;
+var WatchAction;
+(function (WatchAction) {
+    WatchAction[WatchAction["CREATED"] = 0] = "CREATED";
+    WatchAction[WatchAction["UPDATED"] = 1] = "UPDATED";
+    WatchAction[WatchAction["DELETED"] = 2] = "DELETED";
+})(WatchAction || (WatchAction = {}));
+
+_.WatchAction=WatchAction;
 const Effect=class Effect {
     callbacks = [];
     isInit = false;
@@ -1705,6 +1315,449 @@ const Watcher=class Watcher {
 }
 Watcher.Namespace=`${moduleName}`;
 _.Watcher=Watcher;
+const Computed=class Computed extends Effect {
+    _value;
+    __path = "*";
+    get value() {
+        if (!this.isInit) {
+            this.init();
+        }
+        Watcher._register?.register(this, "*", Watcher._register.version, "*");
+        return this._value;
+    }
+    autoInit() {
+        return false;
+    }
+    constructor(fct) {
+        super(fct);
+    }
+    init() {
+        this.isInit = true;
+        this.computedValue();
+    }
+    computedValue() {
+        this._value = this.run();
+    }
+    onChange(action, changePath, value) {
+        if (!this.checkCanChange(action, changePath, value)) {
+            return;
+        }
+        let oldValue = this._value;
+        this.computedValue();
+        if (oldValue === this._value) {
+            return;
+        }
+        for (let fct of this.__subscribes) {
+            fct(action, changePath, value);
+        }
+    }
+}
+Computed.Namespace=`${moduleName}`;
+_.Computed=Computed;
+const ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
+    init() {
+        this.isInit = true;
+        Watcher._registering.push(this);
+        this._value = this.fct();
+        Watcher._registering.splice(Watcher._registering.length - 1, 1);
+    }
+    computedValue() {
+        this._value = this.fct();
+    }
+    run() { }
+}
+ComputedNoRecomputed.Namespace=`${moduleName}`;
+_.ComputedNoRecomputed=ComputedNoRecomputed;
+const PressManager=class PressManager {
+    static create(options) {
+        if (Array.isArray(options.element)) {
+            let result = [];
+            for (let el of options.element) {
+                let cloneOpt = { ...options };
+                cloneOpt.element = el;
+                result.push(new PressManager(cloneOpt));
+            }
+            return result;
+        }
+        else {
+            return new PressManager(options);
+        }
+    }
+    options;
+    element;
+    delayDblPress = 150;
+    delayLongPress = 700;
+    nbPress = 0;
+    offsetDrag = 20;
+    state = {
+        oneActionTriggered: false,
+        isMoving: false,
+    };
+    startPosition = { x: 0, y: 0 };
+    customFcts = {};
+    timeoutDblPress = 0;
+    timeoutLongPress = 0;
+    downEventSaved;
+    actionsName = {
+        press: "press",
+        longPress: "longPress",
+        dblPress: "dblPress",
+        drag: "drag"
+    };
+    useDblPress = false;
+    stopPropagation = () => true;
+    functionsBinded = {
+        downAction: (e) => { },
+        upAction: (e) => { },
+        moveAction: (e) => { },
+        childPressStart: (e) => { },
+        childPressEnd: (e) => { },
+        childPress: (e) => { },
+        childDblPress: (e) => { },
+        childLongPress: (e) => { },
+        childDragStart: (e) => { },
+    };
+    /**
+     * @param {*} options - The options
+     * @param {HTMLElement | HTMLElement[]} options.element - The element to manage
+     */
+    constructor(options) {
+        if (options.element === void 0) {
+            throw 'You must provide an element';
+        }
+        this.element = options.element;
+        this.checkDragConstraint(options);
+        this.assignValueOption(options);
+        this.options = options;
+        this.init();
+    }
+    /**
+     * Get the current element focused by the PressManager
+     */
+    getElement() {
+        return this.element;
+    }
+    checkDragConstraint(options) {
+        if (options.onDrag !== void 0) {
+            if (options.onDragStart === void 0) {
+                options.onDragStart = (e) => { };
+            }
+            if (options.onDragEnd === void 0) {
+                options.onDragEnd = (e) => { };
+            }
+        }
+        if (options.onDragStart !== void 0) {
+            if (options.onDrag === void 0) {
+                options.onDrag = (e) => { };
+            }
+            if (options.onDragEnd === void 0) {
+                options.onDragEnd = (e) => { };
+            }
+        }
+        if (options.onDragEnd !== void 0) {
+            if (options.onDragStart === void 0) {
+                options.onDragStart = (e) => { };
+            }
+            if (options.onDrag === void 0) {
+                options.onDrag = (e) => { };
+            }
+        }
+    }
+    assignValueOption(options) {
+        if (options.delayDblPress !== undefined) {
+            this.delayDblPress = options.delayDblPress;
+        }
+        if (options.delayLongPress !== undefined) {
+            this.delayLongPress = options.delayLongPress;
+        }
+        if (options.offsetDrag !== undefined) {
+            this.offsetDrag = options.offsetDrag;
+        }
+        if (options.onDblPress !== undefined) {
+            this.useDblPress = true;
+        }
+        if (options.forceDblPress) {
+            this.useDblPress = true;
+        }
+        if (typeof options.stopPropagation == 'function') {
+            this.stopPropagation = options.stopPropagation;
+        }
+        else if (options.stopPropagation === false) {
+            this.stopPropagation = () => false;
+        }
+        if (!options.buttonAllowed)
+            options.buttonAllowed = [0];
+    }
+    bindAllFunction() {
+        this.functionsBinded.downAction = this.downAction.bind(this);
+        this.functionsBinded.moveAction = this.moveAction.bind(this);
+        this.functionsBinded.upAction = this.upAction.bind(this);
+        this.functionsBinded.childDblPress = this.childDblPress.bind(this);
+        this.functionsBinded.childDragStart = this.childDragStart.bind(this);
+        this.functionsBinded.childLongPress = this.childLongPress.bind(this);
+        this.functionsBinded.childPress = this.childPress.bind(this);
+        this.functionsBinded.childPressStart = this.childPressStart.bind(this);
+        this.functionsBinded.childPressEnd = this.childPressEnd.bind(this);
+    }
+    init() {
+        this.bindAllFunction();
+        this.element.addEventListener("pointerdown", this.functionsBinded.downAction);
+        this.element.addEventListener("trigger_pointer_press", this.functionsBinded.childPress);
+        this.element.addEventListener("trigger_pointer_pressstart", this.functionsBinded.childPressStart);
+        this.element.addEventListener("trigger_pointer_pressend", this.functionsBinded.childPressEnd);
+        this.element.addEventListener("trigger_pointer_dblpress", this.functionsBinded.childDblPress);
+        this.element.addEventListener("trigger_pointer_longpress", this.functionsBinded.childLongPress);
+        this.element.addEventListener("trigger_pointer_dragstart", this.functionsBinded.childDragStart);
+    }
+    downAction(e) {
+        if (!this.options.buttonAllowed?.includes(e.button)) {
+            return;
+        }
+        this.downEventSaved = e;
+        if (this.stopPropagation()) {
+            e.stopImmediatePropagation();
+        }
+        this.customFcts = {};
+        if (this.nbPress == 0) {
+            this.state.oneActionTriggered = false;
+            clearTimeout(this.timeoutDblPress);
+        }
+        this.startPosition = { x: e.pageX, y: e.pageY };
+        document.addEventListener("pointerup", this.functionsBinded.upAction);
+        document.addEventListener("pointermove", this.functionsBinded.moveAction);
+        this.timeoutLongPress = setTimeout(() => {
+            if (!this.state.oneActionTriggered) {
+                if (this.options.onLongPress) {
+                    this.state.oneActionTriggered = true;
+                    this.options.onLongPress(e, this);
+                    this.triggerEventToParent(this.actionsName.longPress, e);
+                }
+                else {
+                    this.emitTriggerFunction(this.actionsName.longPress, e);
+                }
+            }
+        }, this.delayLongPress);
+        if (this.options.onPressStart) {
+            this.options.onPressStart(e, this);
+            this.emitTriggerFunctionParent("pressstart", e);
+        }
+        else {
+            this.emitTriggerFunction("pressstart", e);
+        }
+    }
+    upAction(e) {
+        if (this.stopPropagation()) {
+            e.stopImmediatePropagation();
+        }
+        document.removeEventListener("pointerup", this.functionsBinded.upAction);
+        document.removeEventListener("pointermove", this.functionsBinded.moveAction);
+        clearTimeout(this.timeoutLongPress);
+        if (this.state.isMoving) {
+            this.state.isMoving = false;
+            if (this.options.onDragEnd) {
+                this.options.onDragEnd(e, this);
+            }
+            else if (this.customFcts.src && this.customFcts.onDragEnd) {
+                this.customFcts.onDragEnd(e, this.customFcts.src);
+            }
+        }
+        else {
+            if (this.useDblPress) {
+                this.nbPress++;
+                if (this.nbPress == 2) {
+                    if (!this.state.oneActionTriggered) {
+                        this.state.oneActionTriggered = true;
+                        this.nbPress = 0;
+                        if (this.options.onDblPress) {
+                            this.options.onDblPress(e, this);
+                            this.triggerEventToParent(this.actionsName.dblPress, e);
+                        }
+                        else {
+                            this.emitTriggerFunction(this.actionsName.dblPress, e);
+                        }
+                    }
+                }
+                else if (this.nbPress == 1) {
+                    this.timeoutDblPress = setTimeout(() => {
+                        this.nbPress = 0;
+                        if (!this.state.oneActionTriggered) {
+                            if (this.options.onPress) {
+                                this.state.oneActionTriggered = true;
+                                this.options.onPress(e, this);
+                                this.triggerEventToParent(this.actionsName.press, e);
+                            }
+                            else {
+                                this.emitTriggerFunction(this.actionsName.press, e);
+                            }
+                        }
+                    }, this.delayDblPress);
+                }
+            }
+            else {
+                if (!this.state.oneActionTriggered) {
+                    if (this.options.onPress) {
+                        this.state.oneActionTriggered = true;
+                        this.options.onPress(e, this);
+                        this.triggerEventToParent(this.actionsName.press, e);
+                    }
+                    else {
+                        this.emitTriggerFunction("press", e);
+                    }
+                }
+            }
+        }
+        if (this.options.onPressEnd) {
+            this.options.onPressEnd(e, this);
+            this.emitTriggerFunctionParent("pressend", e);
+        }
+        else {
+            this.emitTriggerFunction("pressend", e);
+        }
+    }
+    moveAction(e) {
+        if (!this.state.isMoving && !this.state.oneActionTriggered) {
+            if (this.stopPropagation()) {
+                e.stopImmediatePropagation();
+            }
+            let xDist = e.pageX - this.startPosition.x;
+            let yDist = e.pageY - this.startPosition.y;
+            let distance = Math.sqrt(xDist * xDist + yDist * yDist);
+            if (distance > this.offsetDrag && this.downEventSaved) {
+                this.state.oneActionTriggered = true;
+                if (this.options.onDragStart) {
+                    this.state.isMoving = true;
+                    this.options.onDragStart(this.downEventSaved, this);
+                    this.triggerEventToParent(this.actionsName.drag, e);
+                }
+                else {
+                    this.emitTriggerFunction("dragstart", this.downEventSaved);
+                }
+            }
+        }
+        else if (this.state.isMoving) {
+            if (this.options.onDrag) {
+                this.options.onDrag(e, this);
+            }
+            else if (this.customFcts.src && this.customFcts.onDrag) {
+                this.customFcts.onDrag(e, this.customFcts.src);
+            }
+        }
+    }
+    triggerEventToParent(eventName, pointerEvent) {
+        if (this.element.parentNode) {
+            this.element.parentNode.dispatchEvent(new CustomEvent("pressaction_trigger", {
+                bubbles: true,
+                cancelable: false,
+                composed: true,
+                detail: {
+                    target: this.element,
+                    eventName: eventName,
+                    realEvent: pointerEvent
+                }
+            }));
+        }
+    }
+    childPressStart(e) {
+        if (this.options.onPressStart) {
+            this.options.onPressStart(e.detail.realEvent, this);
+        }
+    }
+    childPressEnd(e) {
+        if (this.options.onPressEnd) {
+            this.options.onPressEnd(e.detail.realEvent, this);
+        }
+    }
+    childPress(e) {
+        if (this.options.onPress) {
+            if (this.stopPropagation()) {
+                e.stopImmediatePropagation();
+            }
+            e.detail.state.oneActionTriggered = true;
+            this.options.onPress(e.detail.realEvent, this);
+            this.triggerEventToParent(this.actionsName.press, e.detail.realEvent);
+        }
+    }
+    childDblPress(e) {
+        if (this.options.onDblPress) {
+            if (this.stopPropagation()) {
+                e.stopImmediatePropagation();
+            }
+            if (e.detail.state) {
+                e.detail.state.oneActionTriggered = true;
+            }
+            this.options.onDblPress(e.detail.realEvent, this);
+            this.triggerEventToParent(this.actionsName.dblPress, e.detail.realEvent);
+        }
+    }
+    childLongPress(e) {
+        if (this.options.onLongPress) {
+            if (this.stopPropagation()) {
+                e.stopImmediatePropagation();
+            }
+            e.detail.state.oneActionTriggered = true;
+            this.options.onLongPress(e.detail.realEvent, this);
+            this.triggerEventToParent(this.actionsName.longPress, e.detail.realEvent);
+        }
+    }
+    childDragStart(e) {
+        if (this.options.onDragStart) {
+            if (this.stopPropagation()) {
+                e.stopImmediatePropagation();
+            }
+            e.detail.state.isMoving = true;
+            e.detail.customFcts.src = this;
+            e.detail.customFcts.onDrag = this.options.onDrag;
+            e.detail.customFcts.onDragEnd = this.options.onDragEnd;
+            e.detail.customFcts.offsetDrag = this.options.offsetDrag;
+            this.options.onDragStart(e.detail.realEvent, this);
+            this.triggerEventToParent(this.actionsName.drag, e.detail.realEvent);
+        }
+    }
+    emitTriggerFunctionParent(action, e) {
+        let el = this.element.parentElement;
+        if (el == null) {
+            let parentNode = this.element.parentNode;
+            if (parentNode instanceof ShadowRoot) {
+                this.emitTriggerFunction(action, e, parentNode.host);
+            }
+        }
+        else {
+            this.emitTriggerFunction(action, e, el);
+        }
+    }
+    emitTriggerFunction(action, e, el) {
+        let ev = new CustomEvent("trigger_pointer_" + action, {
+            bubbles: true,
+            cancelable: true,
+            composed: true,
+            detail: {
+                state: this.state,
+                customFcts: this.customFcts,
+                realEvent: e
+            }
+        });
+        if (!el) {
+            el = this.element;
+        }
+        el.dispatchEvent(ev);
+    }
+    /**
+     * Destroy the Press instance byremoving all events
+     */
+    destroy() {
+        if (this.element) {
+            this.element.removeEventListener("pointerdown", this.functionsBinded.downAction);
+            this.element.removeEventListener("trigger_pointer_press", this.functionsBinded.childPress);
+            this.element.removeEventListener("trigger_pointer_pressstart", this.functionsBinded.childPressStart);
+            this.element.removeEventListener("trigger_pointer_pressend", this.functionsBinded.childPressEnd);
+            this.element.removeEventListener("trigger_pointer_dblpress", this.functionsBinded.childDblPress);
+            this.element.removeEventListener("trigger_pointer_longpress", this.functionsBinded.childLongPress);
+            this.element.removeEventListener("trigger_pointer_dragstart", this.functionsBinded.childDragStart);
+        }
+    }
+}
+PressManager.Namespace=`${moduleName}`;
+_.PressManager=PressManager;
 const Uri=class Uri {
     static prepare(uri) {
         let params = [];
@@ -1761,6 +1814,24 @@ const Uri=class Uri {
         }
         return from.regex.test(current);
     }
+    static normalize(path) {
+        const isAbsolute = path.startsWith('/');
+        const parts = path.split('/');
+        const normalizedParts = [];
+        for (let i = 0; i < parts.length; i++) {
+            if (parts[i] === '..') {
+                normalizedParts.pop();
+            }
+            else if (parts[i] !== '.' && parts[i] !== '') {
+                normalizedParts.push(parts[i]);
+            }
+        }
+        let normalizedPath = normalizedParts.join('/');
+        if (isAbsolute) {
+            normalizedPath = '/' + normalizedPath;
+        }
+        return normalizedPath;
+    }
 }
 Uri.Namespace=`${moduleName}`;
 _.Uri=Uri;
@@ -1811,6 +1882,7 @@ const StateManager=class StateManager {
     }
     activeState;
     changeStateMutex = new Mutex();
+    canChangeStateCbs = [];
     afterStateChanged = new Callback();
     /**
      * Subscribe actions for a state or a state list
@@ -1933,6 +2005,9 @@ const StateManager=class StateManager {
     assignDefaultState(stateName) {
         return new EmptyState(stateName);
     }
+    canChangeState(cb) {
+        this.canChangeStateCbs.push(cb);
+    }
     /**
      * Activate a current state
      */
@@ -1949,6 +2024,11 @@ const StateManager=class StateManager {
                 this._log("state is undefined", "error");
                 this.changeStateMutex.release();
                 return false;
+            }
+            for (let cb of this.canChangeStateCbs) {
+                if (!(await cb(stateToUse))) {
+                    return false;
+                }
             }
             let canChange = true;
             if (this.activeState) {
@@ -2076,59 +2156,6 @@ const StateManager=class StateManager {
 }
 StateManager.Namespace=`${moduleName}`;
 _.StateManager=StateManager;
-const Computed=class Computed extends Effect {
-    _value;
-    __path = "*";
-    get value() {
-        if (!this.isInit) {
-            this.init();
-        }
-        Watcher._register?.register(this, "*", Watcher._register.version, "*");
-        return this._value;
-    }
-    autoInit() {
-        return false;
-    }
-    constructor(fct) {
-        super(fct);
-    }
-    init() {
-        this.isInit = true;
-        this.computedValue();
-    }
-    computedValue() {
-        this._value = this.run();
-    }
-    onChange(action, changePath, value) {
-        if (!this.checkCanChange(action, changePath, value)) {
-            return;
-        }
-        let oldValue = this._value;
-        this.computedValue();
-        if (oldValue === this._value) {
-            return;
-        }
-        for (let fct of this.__subscribes) {
-            fct(action, changePath, value);
-        }
-    }
-}
-Computed.Namespace=`${moduleName}`;
-_.Computed=Computed;
-const ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
-    init() {
-        this.isInit = true;
-        Watcher._registering.push(this);
-        this._value = this.fct();
-        Watcher._registering.splice(Watcher._registering.length - 1, 1);
-    }
-    computedValue() {
-        this._value = this.fct();
-    }
-    run() { }
-}
-ComputedNoRecomputed.Namespace=`${moduleName}`;
-_.ComputedNoRecomputed=ComputedNoRecomputed;
 const TemplateContext=class TemplateContext {
     data = {};
     comp;
@@ -3117,7 +3144,7 @@ const WebComponent=class WebComponent extends HTMLElement {
     static __template;
     __templateInstance;
     styleBefore(addStyle) {
-        addStyle("@general");
+        addStyle("@default");
     }
     styleAfter(addStyle) {
     }
@@ -4282,6 +4309,116 @@ _.Layout = {};
 const Form = {};
 _.Form = {};
 let _n;
+const ProgressCircle = class ProgressCircle extends Aventus.WebComponent {
+    static get observedAttributes() {return ["value", "stroke_width"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'value'() { return this.getNumberProp('value') }
+    set 'value'(val) { this.setNumberAttr('value', val) }get 'stroke_width'() { return this.getNumberProp('stroke_width') }
+    set 'stroke_width'(val) { this.setNumberAttr('stroke_width', val) }    svg;
+    backCircle;
+    percentCircle;
+    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("value", ((target) => {
+    target.render();
+}));this.__addPropertyActions("stroke_width", ((target) => {
+    target.render();
+})); }
+    static __style = `:host{--_progress-circle-back-circle-color: var(--progress-circle-back-circle-color, rgba(191, 219, 254, .5));--_progress-circle-percent-circle-color: var(--progress-circle-percent-circle-color, #3b82f6);--_progress-circle-transition: var(--progress-circle-transition, stroke 0.3s cubic-bezier(.4, 0, .2, 1), stroke-dashoffset 0.3s cubic-bezier(.4, 0, .2, 1))}:host{align-items:center;aspect-ratio:1/1;display:flex;flex-direction:column;justify-content:center;position:relative;width:60px}:host .container{align-items:center;display:flex;flex-direction:column;height:100%;justify-content:center;position:relative;width:100%}:host .container svg{height:100%;transform:rotate(-90deg);width:100%}:host .container svg .back-circle{fill:rgba(0,0,0,0);stroke:var(--_progress-circle-back-circle-color);transition:stroke linear .2s}:host .container svg .percent-circle{fill:rgba(0,0,0,0);stroke:var(--_progress-circle-percent-circle-color);transition:var(--_progress-circle-transition)}:host .content{display:flex;position:absolute}`;
+    __getStatic() {
+        return ProgressCircle;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(ProgressCircle.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<div class="container" _id="progresscircle_0"></div><div class="content">	<slot></slot></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "elements": [
+    {
+      "name": "containerEl",
+      "ids": [
+        "progresscircle_0"
+      ]
+    }
+  ]
+}); }
+    getClassName() {
+        return "ProgressCircle";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('value')){ this['value'] = 40; }if(!this.hasAttribute('stroke_width')){ this['stroke_width'] = 6; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('value');this.__upgradeProperty('stroke_width'); }
+    getLimitedValue(input) {
+        if (input === undefined) {
+            return 0;
+        }
+        else if (input > 100) {
+            return 100;
+        }
+        else {
+            return input;
+        }
+    }
+    render() {
+        let min = Math.min(this.offsetWidth, this.offsetHeight);
+        if (min == 0)
+            return;
+        const value = this.getLimitedValue(this.value);
+        const radius = min / 2;
+        const strokeWidth = this.stroke_width;
+        const normalizedRadius = radius - strokeWidth / 2;
+        const circumference = normalizedRadius * 2 * Math.PI;
+        const strokeDashoffset = (value / 100) * circumference;
+        const offset = circumference - strokeDashoffset;
+        let appendSvg = false;
+        if (!this.svg) {
+            appendSvg = true;
+            this.svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        }
+        this.svg.setAttribute("width", radius * 2 + "");
+        this.svg.setAttribute("height", radius * 2 + "");
+        this.svg.setAttribute("viewBox", "0 0 " + (radius * 2) + " " + (radius * 2));
+        if (!this.backCircle) {
+            this.backCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            this.svg.appendChild(this.backCircle);
+        }
+        this.backCircle.classList.add("back-circle");
+        this.backCircle.setAttribute("r", normalizedRadius + "");
+        this.backCircle.setAttribute("cx", radius + "");
+        this.backCircle.setAttribute("cy", radius + "");
+        this.backCircle.setAttribute("stroke-width", strokeWidth + "");
+        this.backCircle.setAttribute("stroke-linecap", "round");
+        if (!this.percentCircle) {
+            this.percentCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            this.svg.appendChild(this.percentCircle);
+        }
+        this.percentCircle.classList.add("percent-circle");
+        this.percentCircle.setAttribute("r", normalizedRadius + "");
+        this.percentCircle.setAttribute("cx", radius + "");
+        this.percentCircle.setAttribute("cy", radius + "");
+        this.percentCircle.setAttribute("stroke-width", strokeWidth + "");
+        this.percentCircle.setAttribute("stroke-dasharray", circumference + " " + circumference);
+        this.percentCircle.setAttribute("stroke-dashoffset", offset + "");
+        this.percentCircle.setAttribute("stroke-linecap", "round");
+        if (appendSvg) {
+            this.containerEl.appendChild(this.svg);
+        }
+    }
+    postCreation() {
+        new Aventus.ResizeObserver(() => {
+            this.render();
+        }).observe(this);
+        this.render();
+    }
+}
+ProgressCircle.Namespace=`${moduleName}`;
+ProgressCircle.Tag=`av-progress-circle`;
+_.ProgressCircle=ProgressCircle;
+if(!window.customElements.get('av-progress-circle')){window.customElements.define('av-progress-circle', ProgressCircle);Aventus.WebComponentInstance.registerDefinition(ProgressCircle);}
+
 const RouterStateManager=class RouterStateManager extends Aventus.StateManager {
     static getInstance() {
         return Aventus.Instance.get(RouterStateManager);
@@ -4317,7 +4454,16 @@ Navigation.RouterLink = class RouterLink extends Aventus.WebComponent {
         new Aventus.PressManager({
             element: this,
             onPress: () => {
-                Aventus.State.activate(this.state, Aventus.Instance.get(RouterStateManager));
+                let state = this.state;
+                if (this.state.startsWith(".")) {
+                    state = Aventus.Instance.get(RouterStateManager).getState()?.name ?? "";
+                    if (!state.endsWith("/")) {
+                        state += "/";
+                    }
+                    state += this.state;
+                    state = Aventus.Uri.normalize(state);
+                }
+                Aventus.State.activate(state, Aventus.Instance.get(RouterStateManager));
             }
         });
     }
@@ -4542,6 +4688,59 @@ Layout.DynamicCol.Namespace=`${moduleName}.Layout`;
 Layout.DynamicCol.Tag=`av-dynamic-col`;
 _.Layout.DynamicCol=Layout.DynamicCol;
 if(!window.customElements.get('av-dynamic-col')){window.customElements.define('av-dynamic-col', Layout.DynamicCol);Aventus.WebComponentInstance.registerDefinition(Layout.DynamicCol);}
+
+const Collapse = class Collapse extends Aventus.WebComponent {
+    get 'open'() { return this.getBoolAttr('open') }
+    set 'open'(val) { this.setBoolAttr('open', val) }get 'no_animation'() { return this.getBoolAttr('no_animation') }
+    set 'no_animation'(val) { this.setBoolAttr('no_animation', val) }    static __style = `:host{--_collapse-transition-duration: var(--collapse-transition-duration, 0.5s);--_collapse-transition-timing-function: var(--collapse-transition-timing-function, cubic-bezier(0.65, 0, 0.15, 1))}:host .title{cursor:pointer;-webkit-tap-highlight-color:rgba(0,0,0,0)}:host .collapse{display:grid;grid-template-rows:0fr;transition-duration:var(--_collapse-transition-duration);transition-timing-function:var(--_collapse-transition-timing-function);transition-property:grid-template-rows}:host .collapse .content{overflow:hidden}:host([open]) .collapse{grid-template-rows:1fr}:host([no_animation]) .collapse{transition:none}`;
+    __getStatic() {
+        return Collapse;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Collapse.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'header':`<slot name="header"></slot>`,'default':`<slot></slot>` }, 
+        blocks: { 'default':`<div class="title" _id="collapse_0">    <slot name="header"></slot></div><div class="collapse" _id="collapse_1">    <div class="content">        <slot></slot>    </div></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "events": [
+    {
+      "eventName": "transitionend",
+      "id": "collapse_1",
+      "fct": (e, c) => c.comp.transitionEnd(e)
+    }
+  ],
+  "pressEvents": [
+    {
+      "id": "collapse_0",
+      "onPress": (e, pressInstance, c) => { c.comp.toggleOpen(e, pressInstance); }
+    }
+  ]
+}); }
+    getClassName() {
+        return "Collapse";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('open')) { this.attributeChangedCallback('open', false, false); }if(!this.hasAttribute('no_animation')) { this.attributeChangedCallback('no_animation', false, false); } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('open');this.__upgradeProperty('no_animation'); }
+    __listBoolProps() { return ["open","no_animation"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    transitionEnd(e) {
+        let cst = e.constructor;
+        const new_e = new cst(e.type, e);
+        this.dispatchEvent(new_e);
+    }
+    toggleOpen() {
+        this.open = !this.open;
+    }
+}
+Collapse.Namespace=`${moduleName}`;
+Collapse.Tag=`av-collapse`;
+_.Collapse=Collapse;
+if(!window.customElements.get('av-collapse')){window.customElements.define('av-collapse', Collapse);Aventus.WebComponentInstance.registerDefinition(Collapse);}
 
 const Img = class Img extends Aventus.WebComponent {
     static get observedAttributes() {return ["src", "mode"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
@@ -5167,7 +5366,7 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
     __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("zoom", ((target) => {
     target.changeZoom();
 })); }
-    static __style = `:host{--internal-scrollbar-container-color: var(--scrollbar-container-color, transparent);--internal-scrollbar-color: var(--scrollbar-color, #757575);--internal-scrollbar-active-color: var(--scrollbar-active-color, #858585);--internal-scroller-width: var(--scroller-width, 6px);--internal-scroller-top: var(--scroller-top, 3px);--internal-scroller-bottom: var(--scroller-bottom, 3px);--internal-scroller-right: var(--scroller-right, 3px);--internal-scroller-left: var(--scroller-left, 3px)}:host{display:block;height:100%;overflow:hidden;position:relative;-webkit-user-drag:none;-khtml-user-drag:none;-moz-user-drag:none;-o-user-drag:none;width:100%}:host .scroll-main-container{display:block;height:100%;position:relative;width:100%}:host .scroll-main-container .content-zoom{display:block;height:100%;position:relative;transform-origin:0 0;width:100%;z-index:4}:host .scroll-main-container .content-zoom .content-hidder{display:block;height:100%;overflow:hidden;position:relative;width:100%}:host .scroll-main-container .content-zoom .content-hidder .content-wrapper{display:inline-block;height:100%;min-height:100%;min-width:100%;position:relative;width:100%}:host .scroll-main-container .scroller-wrapper .container-scroller{display:none;overflow:hidden;position:absolute;z-index:5;transition:transform .2s linear}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller{background-color:var(--internal-scrollbar-container-color);border-radius:5px}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller .scroller{background-color:var(--internal-scrollbar-color);border-radius:5px;cursor:pointer;position:absolute;-webkit-tap-highlight-color:rgba(0,0,0,0);touch-action:none;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .scroller.active{background-color:var(--internal-scrollbar-active-color)}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical{height:calc(100% - var(--internal-scroller-bottom)*2 - var(--internal-scroller-width));padding-left:var(--internal-scroller-left);right:var(--internal-scroller-right);top:var(--internal-scroller-bottom);transform:0;width:calc(var(--internal-scroller-width) + var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical.hide{transform:translateX(calc(var(--internal-scroller-width) + var(--internal-scroller-left)))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller .scroller{width:calc(100% - var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal{bottom:var(--internal-scroller-bottom);height:calc(var(--internal-scroller-width) + var(--internal-scroller-top));left:var(--internal-scroller-right);padding-top:var(--internal-scroller-top);transform:0;width:calc(100% - var(--internal-scroller-right)*2 - var(--internal-scroller-width))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal.hide{transform:translateY(calc(var(--internal-scroller-width) + var(--internal-scroller-top)))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller .scroller{height:calc(100% - var(--internal-scroller-top))}:host([y_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{height:auto}:host([x_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{width:auto}:host([y_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.vertical{display:block}:host([x_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.horizontal{display:block}:host([no_user_select]) .content-wrapper *{user-select:none}:host([no_user_select]) ::slotted{user-select:none}`;
+    static __style = `:host{--internal-scrollbar-container-color: var(--scrollbar-container-color, transparent);--internal-scrollbar-color: var(--scrollbar-color, #757575);--internal-scrollbar-active-color: var(--scrollbar-active-color, #858585);--internal-scroller-width: var(--scroller-width, 6px);--internal-scroller-top: var(--scroller-top, 3px);--internal-scroller-bottom: var(--scroller-bottom, 3px);--internal-scroller-right: var(--scroller-right, 3px);--internal-scroller-left: var(--scroller-left, 3px);--_scrollbar-content-padding: var(--scrollbar-content-padding, 0);--_scrollbar-container-display: var(--scrollbar-container-display, inline-block)}:host{display:block;height:100%;overflow:hidden;position:relative;-webkit-user-drag:none;-khtml-user-drag:none;-moz-user-drag:none;-o-user-drag:none;width:100%}:host .scroll-main-container{display:block;height:100%;position:relative;width:100%}:host .scroll-main-container .content-zoom{display:block;height:100%;position:relative;transform-origin:0 0;width:100%;z-index:4}:host .scroll-main-container .content-zoom .content-hidder{display:block;height:100%;overflow:hidden;position:relative;width:100%}:host .scroll-main-container .content-zoom .content-hidder .content-wrapper{display:var(--_scrollbar-container-display);height:100%;min-height:100%;min-width:100%;position:relative;width:100%;padding:var(--_scrollbar-content-padding)}:host .scroll-main-container .scroller-wrapper .container-scroller{display:none;overflow:hidden;position:absolute;transition:transform .2s linear;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller{background-color:var(--internal-scrollbar-container-color);border-radius:5px}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller .scroller{background-color:var(--internal-scrollbar-color);border-radius:5px;cursor:pointer;position:absolute;-webkit-tap-highlight-color:rgba(0,0,0,0);touch-action:none;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .scroller.active{background-color:var(--internal-scrollbar-active-color)}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical{height:calc(100% - var(--internal-scroller-bottom)*2 - var(--internal-scroller-width));padding-left:var(--internal-scroller-left);right:var(--internal-scroller-right);top:var(--internal-scroller-bottom);transform:0;width:calc(var(--internal-scroller-width) + var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical.hide{transform:translateX(calc(var(--internal-scroller-width) + var(--internal-scroller-left)))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller .scroller{width:calc(100% - var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal{bottom:var(--internal-scroller-bottom);height:calc(var(--internal-scroller-width) + var(--internal-scroller-top));left:var(--internal-scroller-right);padding-top:var(--internal-scroller-top);transform:0;width:calc(100% - var(--internal-scroller-right)*2 - var(--internal-scroller-width))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal.hide{transform:translateY(calc(var(--internal-scroller-width) + var(--internal-scroller-top)))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller .scroller{height:calc(100% - var(--internal-scroller-top))}:host([y_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{height:auto}:host([x_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{width:auto}:host([y_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.vertical{display:block}:host([x_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.horizontal{display:block}:host([no_user_select]) .content-wrapper *{user-select:none}:host([no_user_select]) ::slotted{user-select:none}`;
     constructor() {            super();            this.renderAnimation = this.createAnimation();            this.onWheel = this.onWheel.bind(this);            this.onTouchStart = this.onTouchStart.bind(this);            this.onTouchMove = this.onTouchMove.bind(this);            this.onTouchEnd = this.onTouchEnd.bind(this);            this.touchRecord = new TouchRecord();        }
     __getStatic() {
         return Scrollable;
@@ -5545,48 +5744,6 @@ Layout.Scrollable.Tag=`av-scrollable`;
 _.Layout.Scrollable=Layout.Scrollable;
 if(!window.customElements.get('av-scrollable')){window.customElements.define('av-scrollable', Layout.Scrollable);Aventus.WebComponentInstance.registerDefinition(Layout.Scrollable);}
 
-const App = class App extends Aventus.WebComponent {
-    static __style = `:host{height:100%;width:100%;margin:0;padding:0;overflow:hidden}:host .part{height:500px;width:100%}`;
-    __getStatic() {
-        return App;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(App.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<av-scrollable>	<div class="content" _id="app_0"></div></av-scrollable>` }
-    });
-}
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
-  "elements": [
-    {
-      "name": "content",
-      "ids": [
-        "app_0"
-      ]
-    }
-  ]
-}); }
-    getClassName() {
-        return "App";
-    }
-    postCreation() {
-        for (let i = 0; i <= 8000; i += 500) {
-            let div = document.createElement("DIV");
-            div.classList.add("part");
-            div.style.backgroundColor = "#" + Math.floor(Math.random() * 16777215).toString(16);
-            this.content.appendChild(div);
-        }
-    }
-}
-App.Namespace=`${moduleName}`;
-App.Tag=`av-app`;
-_.App=App;
-if(!window.customElements.get('av-app')){window.customElements.define('av-app', App);Aventus.WebComponentInstance.registerDefinition(App);}
-
 Navigation.Router = class Router extends Aventus.WebComponent {
     oldPage;
     allRoutes = {};
@@ -5598,7 +5755,7 @@ Navigation.Router = class Router extends Aventus.WebComponent {
     }
     page404;
     static __style = `:host{display:block}`;
-    constructor() {            super();            this.validError404 = this.validError404.bind(this);if (this.constructor == Router) { throw "can't instanciate an abstract class"; } }
+    constructor() {            super();            this.validError404 = this.validError404.bind(this);            this.canChangeState = this.canChangeState.bind(this);            this.stateManager.canChangeState(this.canChangeState);if (this.constructor == Router) { throw "can't instanciate an abstract class"; } }
     __getStatic() {
         return Router;
     }
@@ -5670,9 +5827,9 @@ Navigation.Router = class Router extends Aventus.WebComponent {
                     }
                     let oldPage = this.oldPage;
                     let oldUrl = this.activePath;
-                    await element.show();
                     this.oldPage = element;
                     this.activePath = path;
+                    await element.show();
                     let title = element.pageTitle();
                     if (title !== undefined)
                         document.title = title;
@@ -5713,6 +5870,9 @@ Navigation.Router = class Router extends Aventus.WebComponent {
     }
     getSlugs() {
         return this.stateManager.getStateSlugs(this.activePath);
+    }
+    async canChangeState(newState) {
+        return true;
     }
     bindToUrl() {
         return true;

@@ -803,7 +803,8 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         }
         return null;
     }
-    protected onCompletion(document: AventusFile, position: Position): Promise<CompletionList> {
+    protected async onCompletion(document: AventusFile, position: Position): Promise<CompletionList> {
+        await this.runWebCompiler();
         return this.tsLanguageService.doComplete(document, position);
     }
     protected onCompletionResolve(document: AventusFile, item: CompletionItem): Promise<CompletionItem> {

@@ -4,23 +4,19 @@
 	"build": [
 		{
 			"name": "Main",
-			"inputPath": [
+			"src": [
 				"./src/components/*"
 			],
-			"outputFile": "./dist/${{name}}.js",
-			"componentStyle": [
-				{
-					"name": "@TailwindCss",
-					"path": "./src/styles/tailwind.gwcs.avt"
-				}
-			]
+			"compile": {
+				"output": "./dist/${{name}}.js"
+			}
 		}
 	],
 	"static": [
 		{
 			"name": "Main",
-			"inputPath": "./static/",
-			"outputPath": "./dist/"
+			"input": "./static/",
+			"output": "./dist/"
 		}
 	]
 }

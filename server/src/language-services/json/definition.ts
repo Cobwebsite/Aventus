@@ -4,12 +4,11 @@ export interface AventusConfigBuild {
 	version: string,
 	disabled: boolean,
 	hideWarnings: boolean,
-	inputPath: string[],
-	inputPathRegex: RegExp,
-	outsideModulePath: string[],
+	src: string[],
+	srcPathRegex: RegExp,
+	compile: AventusConfigBuildCompile[],
+	outsideModule: string[],
 	outsideModulePathRegex: RegExp,
-	outputFile: string[],
-	outputPackage: string[],
 	module: string,
 	componentPrefix: string,
 	namespaceStrategy: 'manual' | 'followFolders' | 'followFoldersCamelCase' | 'rules'
@@ -18,15 +17,18 @@ export interface AventusConfigBuild {
 	namespaceRoot: string,
 	avoidParsingInsideTags: string[],
 	dependances: AventusConfigBuildDependance[],
-	componentStyle: {
-		name: string,
-		path: string,
-		outputFile?: string,
-	}[],
-	compressed: boolean,
 	nodeModulesDir: string
 }
 export type IncludeType = 'none' | 'need' | 'full';
+
+
+export interface AventusConfigBuildCompile {
+	input?: string[],
+	inputPathRegex: RegExp,
+	output: string[],
+	package: string[],
+	compressed?: boolean,
+}
 
 export interface AventusConfigBuildDependance {
 	uri: string,
@@ -38,9 +40,9 @@ export interface AventusConfigBuildDependance {
 }
 export interface AventusConfigStatic {
 	name: string,
-	inputPath: string,
+	input: string,
 	inputPathFolder: string,
-	outputPath: string[]
+	output: string[]
 	outputPathFolder: string[],
 }
 export interface AventusConfig {
@@ -48,8 +50,13 @@ export interface AventusConfig {
 	componentPrefix: string,
 	hideWarnings: boolean,
 	module: string;
+	dependances: AventusConfigBuildDependance[],
 	build: AventusConfigBuild[],
 	static: AventusConfigStatic[],
+	namespaceStrategy: 'manual' | 'followFolders' | 'followFoldersCamelCase' | 'rules'
+	namespaceRules: { [namespace: string]: string[] },
+	namespaceRulesRegex: { [namespace: string]: RegExp },
+	namespaceRoot: string,
 	avoidParsingInsideTags: string[],
 	aliases: {
 		[alias: string]: string

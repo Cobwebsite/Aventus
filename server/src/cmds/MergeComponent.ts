@@ -1,5 +1,5 @@
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { unlinkSync, writeFileSync } from 'fs';
+import { rmdirSync, unlinkSync, writeFileSync } from 'fs';
 import { AventusExtension, AventusLanguageId } from '../definition';
 import { FilesManager } from '../files/FilesManager';
 import { CloseFile } from '../notification/CloseFile';
@@ -8,7 +8,7 @@ import { uriToPath } from '../tools';
 
 export class MergeComponent {
 	static cmd: string = "aventus.component.merge";
-	
+
 
 	public static async run(uri: string) {
 		if (!uri) {
@@ -16,6 +16,11 @@ export class MergeComponent {
 		}
 		let regex = new RegExp("(" + AventusExtension.ComponentLogic + ")|(" + AventusExtension.ComponentView + ")|(" + AventusExtension.ComponentView + ")$");
 		let fileUriNoExtension = uri.replace(regex, '');
+
+		let splittedUri = fileUriNoExtension.split('/');
+		let filename = splittedUri.pop();
+		let foldername = splittedUri.pop();
+		let newUri = splittedUri.join('/') + '/' + filename;
 
 		let maxVersion = 0;
 		let jsDoc = FilesManager.getInstance().getByUri(fileUriNoExtension + AventusExtension.ComponentLogic);
@@ -47,7 +52,7 @@ export class MergeComponent {
 </style>
 `;
 		let compDoc = TextDocument.create(
-			fileUriNoExtension + AventusExtension.Component,
+			newUri + AventusExtension.Component,
 			AventusLanguageId.WebComponent,
 			maxVersion + 1,
 			mergeTxt
@@ -68,6 +73,8 @@ export class MergeComponent {
 			FilesManager.getInstance().onClose(htmlDoc.documentUser);
 			CloseFile.send(htmlDoc.uri);
 		}
+
+		rmdirSync(uriToPath(splittedUri.join('/') + '/' + foldername));
 
 		FilesManager.getInstance().registerFile(compDoc);
 		OpenFile.send(compDoc.uri);

@@ -1,6 +1,6 @@
 import type { Enum, EnumValue } from "./Enum.lib.avt";
 
-export class GenericError<T extends (number | Enum) = number> {
+export class GenericError<T extends (number | Enum) = any> {
     /**
      * Code for the error
      */

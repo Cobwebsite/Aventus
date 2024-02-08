@@ -235,9 +235,9 @@ export class ${className} extends Aventus.Ram<${objectName}> implements Aventus.
 		componentName = componentName.replace(/_|-([a-z])/g, (match, p1) => p1.toUpperCase());
 		let firstUpperName = componentName.charAt(0).toUpperCase() + componentName.slice(1);
 		let className = firstUpperName;
-		mkdirSync(newFolderPath);
-		let newScriptPath = newFolderPath + "/" + componentName;
 		if (isMultiple) {
+			mkdirSync(newFolderPath);
+			let newScriptPath = newFolderPath + "/" + componentName;
 			let defaultTs = `export class ${className} extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
 	//#region static
@@ -299,9 +299,8 @@ export class ${className} extends Aventus.Ram<${objectName}> implements Aventus.
 	}
 </style>
 `
-
-			writeFileSync(newScriptPath + AventusExtension.Component, defaultWc);
-			let textDocumentTs: TextDocument = TextDocument.create(pathToUri(newScriptPath + AventusExtension.Component), AventusLanguageId.WebComponent, 0, defaultWc);
+			writeFileSync(newFolderPath + AventusExtension.Component, defaultWc);
+			let textDocumentTs: TextDocument = TextDocument.create(pathToUri(newFolderPath + AventusExtension.Component), AventusLanguageId.WebComponent, 0, defaultWc);
 			FilesManager.getInstance().registerFile(textDocumentTs);
 			OpenFile.send(textDocumentTs.uri);
 		}

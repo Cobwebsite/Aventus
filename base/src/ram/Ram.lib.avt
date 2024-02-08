@@ -431,7 +431,7 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
         let result = await this.getAllWithError();
         if(result.success) {
             if(result.result) {
-                action.result = Object.values(result.result);
+                action.result = Array.from(result.result.values());
             }
             else {
                 action.result = [];

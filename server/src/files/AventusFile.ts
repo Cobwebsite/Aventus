@@ -26,6 +26,7 @@ export interface AventusFile {
     readonly documentInternal: TextDocument;
     uri: string;
     path: string;
+    name: string;
     versionUser: number;
     versionInternal: number;
     contentUser: string;
@@ -112,6 +113,9 @@ export class InternalAventusFile implements AventusFile {
     }
     get path() {
         return uriToPath(this.uri);
+    }
+    get name() {
+        return this.path.split("/").pop() ?? '';
     }
     private _versionUser: number = 0;
     get versionUser() {
@@ -266,21 +270,23 @@ export class InternalAventusFile implements AventusFile {
         this.delayValidate = setTimeout(async () => {
             this.validate();
         }, 500)
-        let versions = Object.keys(this.resolveContentChange[document.uri]);
-        for (let version of versions) {
-            let v = Number(version);
-            if (v > parsingVersion) {
-                break;
-            }
-            if (this.resolveContentChange[document.uri][version]) {
-                for (let resolve of this.resolveContentChange[document.uri][version]) {
-                    resolve();
+        if (this.resolveContentChange[document.uri]) {
+            let versions = Object.keys(this.resolveContentChange[document.uri]);
+            for (let version of versions) {
+                let v = Number(version);
+                if (v > parsingVersion) {
+                    break;
                 }
-                delete this.resolveContentChange[document.uri][version];
+                if (this.resolveContentChange[document.uri][version]) {
+                    for (let resolve of this.resolveContentChange[document.uri][version]) {
+                        resolve();
+                    }
+                    delete this.resolveContentChange[document.uri][version];
+                }
             }
-        }
-        if (Object.keys(this.resolveContentChange[document.uri]).length == 0) {
-            delete this.resolveContentChange[document.uri];
+            if (Object.keys(this.resolveContentChange[document.uri]).length == 0) {
+                delete this.resolveContentChange[document.uri];
+            }
         }
 
         let newDoc = this.waitingDocContentChange[document.uri];

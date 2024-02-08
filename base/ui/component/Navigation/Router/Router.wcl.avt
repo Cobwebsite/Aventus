@@ -20,14 +20,14 @@ namespace Navigation {
 
 
         //#region variables
-        private oldPage?: Page;
+        protected oldPage?: Page;
         @ViewElement()
         public contentEl!: HTMLDivElement;
 
-        private allRoutes: { [key: string]: RouteAsyncOption; } = {};
-        private activePath: string = "";
-        private oneStateActive: boolean = false;
-        private showPageMutex: Aventus.Mutex = new Aventus.Mutex();
+        protected allRoutes: { [key: string]: RouteAsyncOption; } = {};
+        protected activePath: string = "";
+        protected oneStateActive: boolean = false;
+        protected showPageMutex: Aventus.Mutex = new Aventus.Mutex();
         //#endregion
 
 
@@ -35,6 +35,9 @@ namespace Navigation {
         constructor() {
             super();
             this.validError404 = this.validError404.bind(this);
+            this.canChangeState = this.canChangeState.bind(this);
+
+            this.stateManager.canChangeState(this.canChangeState);
         }
         //#endregion
 
@@ -59,7 +62,7 @@ namespace Navigation {
             };
         }
 
-        private register(): void {
+        protected register(): void {
             try {
                 this.defineRoutes();
                 this.stateManager.onAfterStateChanged(this.validError404);
@@ -70,7 +73,7 @@ namespace Navigation {
                 console.log(e);
             }
         }
-        private initRoute(path: string) {
+        protected initRoute(path: string) {
             let element: Page | undefined = undefined;
             let allRoutes = this.allRoutes;
             this.stateManager.subscribe(path, {
@@ -94,9 +97,9 @@ namespace Navigation {
 
                         let oldPage = this.oldPage;
                         let oldUrl = this.activePath;
-                        await element.show();
                         this.oldPage = element;
                         this.activePath = path;
+                        await element.show();
                         let title = element.pageTitle();
                         if(title !== undefined)
                             document.title = title;
@@ -140,6 +143,10 @@ namespace Navigation {
         }
         public getSlugs() {
             return this.stateManager.getStateSlugs(this.activePath);
+        }
+
+        protected async canChangeState(newState: Aventus.State): Promise<boolean> {
+            return true;
         }
 
 

@@ -5,18 +5,22 @@
 		{
 			"name": "Main",
 			"hideWarnings": true,
-			"inputPath": [
+			"src": [
 				"./src/components/*",
 				"./src/libs/*"
 			],
-			"outputFile": "../../client/view/js/index.js"
+			"compile": [
+				{
+					"output": "../../client/view/js/index.js"
+				}
+			]
 		}
 	],
 	"static": [
 		{
 			"name": "Main",
-			"inputPath": "./src/static/",
-			"outputPath": "../../client/view/"
+			"input": "./src/static/",
+			"output": "../../client/view/"
 		}
 	]
 }

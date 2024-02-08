@@ -1,3 +1,0 @@
-<av-scrollable>
-	<div class="content" @element="content"></div>
-</av-scrollable>

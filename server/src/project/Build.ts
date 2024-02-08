@@ -9,7 +9,7 @@ import { FilesWatcher } from '../files/FilesWatcher';
 import { AventusHTMLFile } from "../language-services/html/File";
 import { HTMLDoc } from '../language-services/html/helper/definition';
 import { AventusHTMLLanguageService } from "../language-services/html/LanguageService";
-import { AventusConfigBuild } from "../language-services/json/definition";
+import { AventusConfigBuild, AventusConfigBuildCompile } from "../language-services/json/definition";
 import { AventusWebSCSSFile } from "../language-services/scss/File";
 import { AventusSCSSLanguageService } from "../language-services/scss/LanguageService";
 import { AventusWebComponentLogicalFile } from "../language-services/ts/component/File";
@@ -27,7 +27,6 @@ import { AventusGlobalSCSSLanguageService } from '../language-services/scss/Glob
 import { DependanceManager } from './DependanceManager';
 import { AventusPackageFile, AventusPackageTsFileExport, AventusPackageTsFileExportNoCode } from '../language-services/ts/package/File';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { AventusGlobalComponentSCSSFile } from '../language-services/scss/GlobalComponentFile';
 import { minify } from 'terser';
 import { InfoType } from '../language-services/ts/parser/BaseInfo';
 import { AventusBaseFile } from '../language-services/BaseFile';
@@ -44,7 +43,7 @@ export class Build {
     private onNewFileUUID: string;
     private onFileDeleteUUIDs: { [uri: string]: string } = {}
 
-    public globalComponentSCSSFiles: { [uri: string]: AventusGlobalComponentSCSSFile } = {}
+    public globalComponentSCSSFiles: { [uri: string]: AventusWebSCSSFile } = {}
     public scssFiles: { [uri: string]: AventusWebSCSSFile } = {}
     public tsFiles: { [uri: string]: AventusTsFile } = {}
     public noNamespaceUri: { [uri: string]: boolean } = {};
@@ -105,8 +104,10 @@ export class Build {
         this.htmlLanguageService = new AventusHTMLLanguageService(this);
 
         this._outputPathes = [join(DependanceManager.getInstance().getPath(), "@locals", this.buildConfig.fullname + AventusExtension.Package).replace(/\\/g, '/')];
-        for (let outputPackage of buildConfig.outputPackage) {
-            this._outputPathes.push(outputPackage.replace(/\\/g, '/'));
+        for (let compile of buildConfig.compile) {
+            for (let outputPackage of compile.package) {
+                this._outputPathes.push(outputPackage.replace(/\\/g, '/'));
+            }
         }
         this.npmBuilder = new NpmBuilder(this);
         RegisterBuild.send(project.getConfigFile().path, buildConfig.fullname);
@@ -126,7 +127,7 @@ export class Build {
         return this.project.getConfig()?.aliases ?? {};
     }
     public isFileInside(uri: string): boolean {
-        return uriToPath(uri).match(this.buildConfig.inputPathRegex) != null;
+        return uriToPath(uri).match(this.buildConfig.srcPathRegex) != null;
     }
     public getNamespace(uri: string): string {
         if (this.noNamespaceUri[uri]) {
@@ -266,17 +267,18 @@ export class Build {
         }
         this.clearDiagnostics();
         let buildErrors: BuildErrors = []
-        let compilationInfo = await this.buildOrderCompilationInfo();
-        let result = await this.buildLocalCode(compilationInfo.toCompile, this.buildConfig.module);
 
-        buildErrors = await this.writeBuildCode(result, compilationInfo.libSrc, this.buildConfig.outputFile);
-        let srcInfo = {
-            namespace: this.buildConfig.module,
-            available: result.codeRenderInJs,
-            existing: result.codeNotRenderInJs
-        }
-        for (let outputPackage of this.buildConfig.outputPackage) {
-            this.writeBuildDocumentation(outputPackage, result, srcInfo)
+        for (let compile of this.buildConfig.compile) {
+            let compilationInfo = await this.buildOrderCompilationInfo(compile);
+            let result = await this.buildLocalCode(compilationInfo.toCompile, this.buildConfig.module);
+
+            buildErrors = await this.writeBuildCode(result, compilationInfo.libSrc, compile.output, compile.compressed);
+            let srcInfo = {
+                namespace: this.buildConfig.module,
+                available: result.codeRenderInJs,
+                existing: result.codeNotRenderInJs
+            }
+            this.writeBuildDocumentation(compile.package, result, srcInfo)
         }
 
         Compiled.send(this.buildConfig.fullname, buildErrors);
@@ -351,7 +353,7 @@ export class Build {
      */
     private async writeBuildCode(localCode: {
         code: string[], codeNoNamespaceBefore: string[], codeNoNamespaceAfter: string[], classesName: { [name: string]: { type: InfoType, isExported: boolean, convertibleName: string } }, stylesheets: { [name: string]: string }
-    }, libSrc: string, outputs: string[]): Promise<BuildErrors> {
+    }, libSrc: string, outputs: string[], compressed?:boolean): Promise<BuildErrors> {
         let result: BuildErrors = []
         if (outputs && outputs.length > 0) {
             let finalTxt = '';
@@ -377,7 +379,7 @@ export class Build {
                 if (!existsSync(folderPath)) {
                     mkdirSync(folderPath, { recursive: true });
                 }
-                if (this.buildConfig.compressed) {
+                if (compressed) {
                     try {
 
                         const resultTemp = await minify({
@@ -402,7 +404,7 @@ export class Build {
     /**
      * Write the code inside the exported .package.avt
      */
-    private writeBuildDocumentation(outputPackage: string, result: {
+    private writeBuildDocumentation(outputsPackage: string[], result: {
         doc: string[],
         docNoNamespace: string[],
         docInvisible: string[],
@@ -443,11 +445,13 @@ export class Build {
         finaltxt += JSON.stringify(this.buildConfig.dependances) + EOL;
         finaltxt += "//#endregion dependances //" + EOL;
 
-        if (outputPackage) {
-            writeFileSync(outputPackage, finaltxt);
-        }
-        else if (existsSync(outputPackage)) {
-            unlinkSync(outputPackage);
+        for (let outputPackage of outputsPackage) {
+            if (outputPackage) {
+                writeFileSync(outputPackage, finaltxt);
+            }
+            else if (existsSync(outputPackage)) {
+                unlinkSync(outputPackage);
+            }
         }
 
         let pathPackages = join(DependanceManager.getInstance().getPath(), "@locals");
@@ -665,17 +669,15 @@ export class Build {
         result.codeRenderInJs = Object.values(renderInJsByFullname);
         result.codeNotRenderInJs = Object.values(notRenderInJsByFullname);
 
-        for (let compStyle of this.buildConfig.componentStyle) {
-            if (!compStyle.outputFile && this.globalComponentSCSSFiles[pathToUri(compStyle.path)]) {
-                let file = this.globalComponentSCSSFiles[pathToUri(compStyle.path)];
-                result.stylesheets[compStyle.name] = file.compileResult;
-            }
+        for(let globalCssPath in this.globalComponentSCSSFiles) {
+            let file = this.globalComponentSCSSFiles[globalCssPath];
+            result.stylesheets[file.globalName] = file.compileResult;
         }
 
         return result;
     }
 
-    private async buildOrderCompilationInfo(): Promise<{ toCompile: CompileTsResult[], libSrc: string }> {
+    private async buildOrderCompilationInfo(compileConfig: AventusConfigBuildCompile): Promise<{ toCompile: CompileTsResult[], libSrc: string }> {
         let result: { toCompile: CompileTsResult[], libSrc: string } = { toCompile: [], libSrc: '' };
         // map local information by fullname
         let localClassByFullName: { [fullName: string]: CompileTsResult } = {};
@@ -974,6 +976,9 @@ export class Build {
         // load internal file
         for (let fileUri in this.tsFiles) {
             let currentFile = this.tsFiles[fileUri];
+            if (!currentFile.file.path.match(compileConfig.inputPathRegex)) {
+                continue;
+            }
             for (let compileInfo of currentFile.compileResult) {
                 if (compileInfo.classScript !== "") {
                     loadAndOrderInfo({
@@ -1130,8 +1135,8 @@ export class Build {
      * @param file 
      */
     private async onNewFile(file: AventusFile) {
-        if (this.buildConfig.inputPathRegex) {
-            if (file.path.match(this.buildConfig.inputPathRegex)) {
+        if (this.buildConfig.srcPathRegex) {
+            if (file.path.match(this.buildConfig.srcPathRegex)) {
                 this.registerFile(file, false);
             }
         }
@@ -1154,8 +1159,8 @@ export class Build {
         this.dependanceUris = dependancesInfo.dependanceUris;
         this.externalPackageInformation.init(dependancesInfo.files);
         let fileManager = FilesManager.getInstance();
-        if (this.buildConfig.inputPathRegex) {
-            let files: AventusFile[] = fileManager.getFilesMatching(this.buildConfig.inputPathRegex);
+        if (this.buildConfig.srcPathRegex) {
+            let files: AventusFile[] = fileManager.getFilesMatching(this.buildConfig.srcPathRegex);
             for (let file of files) {
                 this.registerFile(file, true);
             }
@@ -1165,19 +1170,6 @@ export class Build {
             for (let file of files) {
                 this.registerFile(file, true);
                 this.noNamespaceUri[file.uri] = true;
-            }
-        }
-
-        for (let compStyle of this.buildConfig.componentStyle) {
-            let file = fileManager.getByPath(compStyle.path);
-            if (!file) {
-                let newDoc = TextDocument.create(pathToUri(compStyle.path), AventusLanguageId.SCSS, 0, '');
-                await fileManager.registerFile(newDoc);
-                file = fileManager.getByPath(compStyle.path);
-            }
-            if (file && !this.globalComponentSCSSFiles[file.uri]) {
-                this.globalComponentSCSSFiles[file.uri] = new AventusGlobalComponentSCSSFile(file, this, compStyle.name, compStyle.outputFile);
-                this.registerOnFileDelete(file);
             }
         }
 
@@ -1198,6 +1190,10 @@ export class Build {
                 if (!isInit)
                     await this.scssFiles[file.uri].init()
                 this.registerOnFileDelete(file);
+
+                if(this.scssFiles[file.uri].isGlobal) {
+                    this.globalComponentSCSSFiles[file.uri] = this.scssFiles[file.uri];
+                }
             }
         }
         else if (file.uri.endsWith(AventusExtension.ComponentView)) {

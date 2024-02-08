@@ -103,10 +103,10 @@ export class ClassInfo extends BaseInfo {
 				let prop = x as SetAccessorDeclaration;
 				let propInfo = new PropertyInfo(prop, this.isInterface, this);
 				if (propInfo.isStatic) {
-					this.propertiesStatic["°set°"+propInfo.name] = propInfo;
+					this.propertiesStatic["°set°" + propInfo.name] = propInfo;
 				}
 				else {
-					this.properties["°set°"+propInfo.name] = propInfo;
+					this.properties["°set°" + propInfo.name] = propInfo;
 				}
 				result = propInfo;
 			}
@@ -127,7 +127,7 @@ export class ClassInfo extends BaseInfo {
 				console.log(x.getText());
 			}
 
-			
+
 
 			if (result) {
 				if (result.accessibilityModifierTransformation) {
@@ -209,5 +209,18 @@ export class ClassInfo extends BaseInfo {
 			classToSearch = classToSearch.parentClass;
 		}
 		return false;
+	}
+	public hasField(name: string): boolean {
+		return this.getField(name) != null
+	}
+	public getField(name: string): PropertyInfo | null {
+		let classToSearch: ClassInfo | null = this;
+		while (classToSearch != null) {
+			if (classToSearch.properties[name] != undefined) {
+				return classToSearch.properties[name];
+			}
+			classToSearch = classToSearch.parentClass;
+		}
+		return null;
 	}
 }

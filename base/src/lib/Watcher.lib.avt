@@ -229,6 +229,9 @@ export class Watcher {
                         if(element instanceof Computed) {
                             return element;
                         }
+                        if(element instanceof HTMLElement) {
+                            return element;
+                        }
                         if(element instanceof Object) {
                             newProxy = new Proxy(element, this);
                         } else {

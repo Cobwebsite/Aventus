@@ -1,0 +1,104 @@
+export class ProgressCircle extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+    //#region static
+
+    //#endregion
+
+
+    //#region props
+    @Property((target: ProgressCircle) => {
+        target.render();
+    })
+    public value: number = 40;
+
+    @Property((target: ProgressCircle) => {
+        target.render();
+    })
+    public stroke_width: number = 6;
+    //#endregion
+
+
+    //#region variables
+    @ViewElement()
+    protected containerEl!: HTMLDivElement;
+
+    private svg?: SVGSVGElement;
+    private backCircle?: SVGCircleElement;
+    private percentCircle?: SVGCircleElement;
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+
+    //#region methods
+    private getLimitedValue(input: number | undefined) {
+        if(input === undefined) {
+            return 0;
+        } else if(input > 100) {
+            return 100;
+        } else {
+            return input;
+        }
+    }
+
+    protected render() {
+        let min = Math.min(this.offsetWidth, this.offsetHeight);
+        if(min == 0) return;
+        const value = this.getLimitedValue(this.value);
+        const radius = min / 2;
+        const strokeWidth = this.stroke_width;
+        const normalizedRadius = radius - strokeWidth / 2;
+        const circumference = normalizedRadius * 2 * Math.PI;
+        const strokeDashoffset = (value / 100) * circumference;
+        const offset = circumference - strokeDashoffset;
+        let appendSvg = false;
+        if(!this.svg) {
+            appendSvg = true;
+            this.svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        }
+
+        this.svg.setAttribute("width", radius * 2 + "");
+        this.svg.setAttribute("height", radius * 2 + "");
+        this.svg.setAttribute("viewBox", "0 0 " + (radius * 2) + " " + (radius * 2));
+
+        if(!this.backCircle) {
+            this.backCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            this.svg.appendChild(this.backCircle);
+        }
+        this.backCircle.classList.add("back-circle");
+        this.backCircle.setAttribute("r", normalizedRadius + "");
+        this.backCircle.setAttribute("cx", radius + "");
+        this.backCircle.setAttribute("cy", radius + "");
+        this.backCircle.setAttribute("stroke-width", strokeWidth + "");
+        this.backCircle.setAttribute("stroke-linecap", "round");
+
+
+        if(!this.percentCircle) {
+            this.percentCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            this.svg.appendChild(this.percentCircle);
+        }
+        this.percentCircle.classList.add("percent-circle");
+        this.percentCircle.setAttribute("r", normalizedRadius + "");
+        this.percentCircle.setAttribute("cx", radius + "");
+        this.percentCircle.setAttribute("cy", radius + "");
+        this.percentCircle.setAttribute("stroke-width", strokeWidth + "");
+        this.percentCircle.setAttribute("stroke-dasharray", circumference + " " + circumference);
+        this.percentCircle.setAttribute("stroke-dashoffset", offset + "");
+        this.percentCircle.setAttribute("stroke-linecap", "round");
+
+        if(appendSvg) {
+            this.containerEl.appendChild(this.svg);
+        }
+    }
+    protected override postCreation(): void {
+        new Aventus.ResizeObserver(() => {
+            this.render();
+        }).observe(this);
+        this.render();
+    }
+    //#endregion
+
+}

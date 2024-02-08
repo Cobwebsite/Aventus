@@ -1,0 +1,50 @@
+:host {
+	--_progress-circle-back-circle-color: var(--progress-circle-back-circle-color, rgba(191, 219, 254, .5));
+	--_progress-circle-percent-circle-color: var(--progress-circle-percent-circle-color, #3b82f6);
+	--_progress-circle-transition: var(--progress-circle-transition,
+			stroke 0.3s cubic-bezier(.4, 0, .2, 1),
+			stroke-dashoffset 0.3s cubic-bezier(.4, 0, .2, 1));
+}
+
+:host {
+	align-items: center;
+	aspect-ratio: 1 / 1;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	position: relative;
+	width: 60px;
+
+	.container {
+		align-items: center;
+		display: flex;
+		flex-direction: column;
+		height: 100%;
+		justify-content: center;
+		position: relative;
+		width: 100%;
+
+		svg {
+			height: 100%;
+			transform: rotate(-90deg);
+			width: 100%;
+
+			.back-circle {
+				fill: transparent;
+				stroke: var(--_progress-circle-back-circle-color);
+				transition: stroke linear 0.2s;
+			}
+
+			.percent-circle {
+				fill: transparent;
+				stroke: var(--_progress-circle-percent-circle-color);
+				transition: var(--_progress-circle-transition);
+			}
+		}
+	}
+
+	.content {
+		display: flex;
+		position: absolute;
+	}
+}

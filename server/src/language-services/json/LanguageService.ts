@@ -4,7 +4,7 @@ import { CompletionItem, CompletionList, DiagnosticSeverity, FormattingOptions, 
 import { AventusErrorCode, AventusExtension } from "../../definition";
 import { AventusFile } from '../../files/AventusFile';
 import { createErrorTs, getFolder, uriToPath } from "../../tools";
-import { AventusConfig, AventusConfigBuild, AventusConfigBuildDependance, AventusConfigStatic } from "./definition";
+import { AventusConfig, AventusConfigBuild, AventusConfigBuildCompile, AventusConfigBuildDependance, AventusConfigStatic } from "./definition";
 import { AventusConfigSchema, AventusSharpSchema, AventusTemplateSchema } from "./schema";
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { env } from 'process';
@@ -143,21 +143,118 @@ export class AventusJSONLanguageService {
     }
     private prepareBuild(configUri: string, build: AventusConfigBuild, config: AventusConfig): AventusConfigBuild {
         let baseDir = getFolder(configUri);
-        let regexs: string[] = [];
         build = {
             ...this.defaultConfigBuildValue(config),
             ...build
         }
         build.fullname = build.module + "@" + build.name;
 
-        // input
-        for (let inputPath of build.inputPath) {
+        let compiles = build.compile as Partial<AventusConfigBuildCompile>[];
+        // compile
+        for (let compile of compiles) {
+            // input
+            if (!compile.input) {
+                compile.inputPathRegex = new RegExp(".*");
+            }
+            else {
+
+                if (!Array.isArray(compile.input)) {
+                    compile.input = [compile.input];
+                }
+                let regexs: string[] = [];
+                for (let inputPath of compile.input) {
+                    let slash = "";
+                    inputPath = inputPath.replace(/\\/g, '/');
+                    if (!inputPath.startsWith("/")) {
+                        slash = "/";
+                    }
+                    let splitedInput = inputPath.split("/");
+                    if (splitedInput[splitedInput.length - 1] == "" || splitedInput[splitedInput.length - 1] == "*") {
+                        splitedInput[splitedInput.length - 1] = "*"
+                    }
+                    else if (splitedInput[splitedInput.length - 1].indexOf(".") == -1) {
+                        // its a folder but without end slash
+                        splitedInput.push("*");
+                    }
+                    inputPath = splitedInput.join("/");
+                    let regTemp = normalize(uriToPath(baseDir) + slash + inputPath).replace(/\\/g, '\\/').replace("*", ".*");
+                    regexs.push("(^" + regTemp + "$)");
+                }
+                let regexJoin = regexs.join("|");
+                if (regexJoin == "") {
+                    regexJoin = "(?!)";
+                }
+                compile.inputPathRegex = new RegExp(regexJoin);
+            }
+
+            // output
+            if (!compile.output) {
+                compile.output = [];
+            }
+            else {
+                if (!Array.isArray(compile.output)) {
+                    compile.output = [compile.output];
+                }
+                for (let i = 0; i < compile.output.length; i++) {
+                    compile.output[i] = compile.output[i].trim();
+                    if (compile.output[i].length > 0) {
+                        let regexEnvVar = /%(.*?)%/gm;
+                        let result: RegExpExecArray | null;
+                        while (result = regexEnvVar.exec(compile.output[i])) {
+                            let varName = result[1];
+                            let varValue = env[varName] ?? 'undefined';
+                            compile.output[i] = compile.output[i].replace(result[0], varValue);
+                        }
+                        let windowDisk = /^[a-zA-Z]:/gm
+                        if (!compile.output[i].startsWith("/") && !windowDisk.test(compile.output[i])) {
+                            compile.output[i] = "/" + compile.output[i];
+                            compile.output[i] = normalize(uriToPath(baseDir) + compile.output[i]);
+                        }
+                        else {
+                            compile.output[i] = normalize(compile.output[i]);
+                        }
+                    }
+                }
+            }
+
+            if (!compile.package) {
+                compile.package = [];
+            }
+            else {
+                if (!Array.isArray(compile.package)) {
+                    compile.package = [compile.package];
+                }
+                for (let i = 0; i < compile.package.length; i++) {
+                    compile.package[i] = compile.package[i].trim();
+                    if (compile.package[i].length > 0) {
+                        let regexEnvVar = /%(.*?)%/gm;
+                        let result: RegExpExecArray | null;
+                        while (result = regexEnvVar.exec(compile.package[i])) {
+                            let varName = result[1];
+                            let varValue = env[varName] ?? 'undefined';
+                            compile.package[i] = compile.package[i].replace(result[0], varValue);
+                        }
+                        let windowDisk = /^[a-zA-Z]:/gm
+                        if (!compile.package[i].startsWith("/") && !windowDisk.test(compile.package[i])) {
+                            compile.package[i] = "/" + compile.package[i];
+                            compile.package[i] = normalize(uriToPath(baseDir) + compile.package[i]);
+                        }
+                        else {
+                            compile.package[i] = normalize(compile.package[i]);
+                        }
+                    }
+                }
+            }
+        }
+        // src
+        let regexsSrc: string[] = [];
+        for (let srcPath of build.src) {
             let slash = "";
-            inputPath = inputPath.replace(/\\/g, '/');
-            if (!inputPath.startsWith("/")) {
+            srcPath = srcPath.replace(/\\/g, '/');
+            if (!srcPath.startsWith("/")) {
                 slash = "/";
             }
-            let splitedInput = inputPath.split("/");
+            let splitedInput = srcPath.split("/");
             if (splitedInput[splitedInput.length - 1] == "" || splitedInput[splitedInput.length - 1] == "*") {
                 splitedInput[splitedInput.length - 1] = "*"
             }
@@ -165,64 +262,17 @@ export class AventusJSONLanguageService {
                 // its a folder but without end slash
                 splitedInput.push("*");
             }
-            inputPath = splitedInput.join("/");
-            let regTemp = normalize(uriToPath(baseDir) + slash + inputPath).replace(/\\/g, '\\/').replace("*", ".*");
-            regexs.push("(^" + regTemp + "$)");
+            srcPath = splitedInput.join("/");
+            let regTemp = normalize(uriToPath(baseDir) + slash + srcPath).replace(/\\/g, '\\/').replace("*", ".*");
+            regexsSrc.push("(^" + regTemp + "$)");
         }
-        let regexJoin = regexs.join("|");
-        if (regexJoin == "") {
-            regexJoin = "(?!)";
+        let regexSrcJoin = regexsSrc.join("|");
+        if (regexSrcJoin == "") {
+            regexSrcJoin = "(?!)";
         }
-        build.inputPathRegex = new RegExp(regexJoin);
+        build.srcPathRegex = new RegExp(regexSrcJoin);
 
-        // output
-        if (!Array.isArray(build.outputFile)) {
-            build.outputFile = [build.outputFile];
-        }
-        for (let i = 0; i < build.outputFile.length; i++) {
-            build.outputFile[i] = build.outputFile[i].trim();
-            if (build.outputFile[i].length > 0) {
-                let regexEnvVar = /%(.*?)%/gm;
-                let result: RegExpExecArray | null;
-                while (result = regexEnvVar.exec(build.outputFile[i])) {
-                    let varName = result[1];
-                    let varValue = env[varName] ?? 'undefined';
-                    build.outputFile[i] = build.outputFile[i].replace(result[0], varValue);
-                }
-                let windowDisk = /^[a-zA-Z]:/gm
-                if (!build.outputFile[i].startsWith("/") && !windowDisk.test(build.outputFile[i])) {
-                    build.outputFile[i] = "/" + build.outputFile[i];
-                    build.outputFile[i] = normalize(uriToPath(baseDir) + build.outputFile[i]);
-                }
-                else {
-                    build.outputFile[i] = normalize(build.outputFile[i]);
-                }
-            }
-        }
 
-        if (!Array.isArray(build.outputPackage)) {
-            build.outputPackage = [build.outputPackage];
-        }
-        for (let i = 0; i < build.outputPackage.length; i++) {
-            build.outputPackage[i] = build.outputPackage[i].trim();
-            if (build.outputPackage[i].length > 0) {
-                let regexEnvVar = /%(.*?)%/gm;
-                let result: RegExpExecArray | null;
-                while (result = regexEnvVar.exec(build.outputPackage[i])) {
-                    let varName = result[1];
-                    let varValue = env[varName] ?? 'undefined';
-                    build.outputPackage[i] = build.outputPackage[i].replace(result[0], varValue);
-                }
-                let windowDisk = /^[a-zA-Z]:/gm
-                if (!build.outputPackage[i].startsWith("/") && !windowDisk.test(build.outputPackage[i])) {
-                    build.outputPackage[i] = "/" + build.outputPackage[i];
-                    build.outputPackage[i] = normalize(uriToPath(baseDir) + build.outputPackage[i]);
-                }
-                else {
-                    build.outputPackage[i] = normalize(build.outputPackage[i]);
-                }
-            }
-        }
 
         // node_modules
         build.nodeModulesDir = build.nodeModulesDir.trim();
@@ -248,22 +298,6 @@ export class AventusJSONLanguageService {
             }
         }
 
-        // component style
-        for (let styleInfo of build.componentStyle) {
-            if (styleInfo.path.length > 0) {
-                if (!styleInfo.path.startsWith("/")) {
-                    styleInfo.path = "/" + styleInfo.path;
-                }
-                styleInfo.path = normalize(uriToPath(baseDir) + styleInfo.path);
-            }
-            if (styleInfo.outputFile && styleInfo.outputFile.length > 0) {
-                if (!styleInfo.outputFile.startsWith("/")) {
-                    styleInfo.outputFile = "/" + styleInfo.outputFile;
-                }
-                styleInfo.outputFile = normalize(uriToPath(baseDir) + styleInfo.outputFile);
-            }
-        }
-
         // dependances
         let mergeDependances: AventusConfigBuildDependance[] = [];
         for (let dependance of build.dependances) {
@@ -278,9 +312,9 @@ export class AventusJSONLanguageService {
         build.dependances = mergeDependances;
 
         // no namespace
-        if (build.outsideModulePath) {
-            regexs = [];
-            for (let noNamespacePath of build.outsideModulePath) {
+        if (build.outsideModule) {
+            let regexsOutside: string[] = [];
+            for (let noNamespacePath of build.outsideModule) {
                 let slash = "";
                 noNamespacePath = noNamespacePath.replace(/\\/g, '/');
                 if (!noNamespacePath.startsWith("/")) {
@@ -296,20 +330,20 @@ export class AventusJSONLanguageService {
                 }
                 noNamespacePath = splitedInput.join("/");
                 let regTemp = normalize(uriToPath(baseDir) + slash + noNamespacePath).replace(/\\/g, '\\/').replace("*", ".*");
-                regexs.push("(^" + regTemp + "$)");
+                regexsOutside.push("(^" + regTemp + "$)");
             }
-            regexJoin = regexs.join("|");
-            if (regexJoin == "") {
-                regexJoin = "(?!)";
+            let regexOutsideJoin = regexsOutside.join("|");
+            if (regexOutsideJoin == "") {
+                regexOutsideJoin = "(?!)";
             }
-            build.outsideModulePathRegex = new RegExp(regexJoin);
+            build.outsideModulePathRegex = new RegExp(regexOutsideJoin);
         }
 
         // namespace rules
         if (build.namespaceStrategy == "rules") {
 
             for (let namespace in build.namespaceRules) {
-                regexs = [];
+                let regexsRules: string[] = [];
                 let rules = build.namespaceRules[namespace];
                 for (let rule of rules) {
                     let slash = "";
@@ -327,13 +361,13 @@ export class AventusJSONLanguageService {
                     }
                     rule = splitedInput.join("/");
                     let regTemp = normalize(uriToPath(baseDir) + slash + rule).replace(/\\/g, '\\/').replace("*", ".*");
-                    regexs.push("(^" + regTemp + "$)");
+                    regexsRules.push("(^" + regTemp + "$)");
                 }
-                regexJoin = regexs.join("|");
-                if (regexJoin == "") {
-                    regexJoin = "(?!)";
+                let regexRulesJoin = regexsRules.join("|");
+                if (regexRulesJoin == "") {
+                    regexRulesJoin = "(?!)";
                 }
-                build.namespaceRulesRegex[namespace] = new RegExp(regexJoin);
+                build.namespaceRulesRegex[namespace] = new RegExp(regexRulesJoin);
             }
         }
         else if (build.namespaceStrategy == "followFolders" || build.namespaceStrategy == "followFoldersCamelCase") {
@@ -349,25 +383,25 @@ export class AventusJSONLanguageService {
     private prepareStatic(configUri: string, _static: AventusConfigStatic): AventusConfigStatic {
         let baseDir = getFolder(configUri);
         let slash = "";
-        if (!_static.inputPath.startsWith("/")) {
+        if (!_static.input.startsWith("/")) {
             slash = "/";
         }
-        if (_static.inputPath.endsWith("*")) {
-            _static.inputPath = _static.inputPath.slice(0, -1);
+        if (_static.input.endsWith("*")) {
+            _static.input = _static.input.slice(0, -1);
         }
-        if (_static.inputPath.endsWith("/")) {
-            _static.inputPath = _static.inputPath.slice(0, -1);
+        if (_static.input.endsWith("/")) {
+            _static.input = _static.input.slice(0, -1);
         }
-        _static.inputPathFolder = normalize(uriToPath(baseDir) + slash + _static.inputPath);
+        _static.inputPathFolder = normalize(uriToPath(baseDir) + slash + _static.input);
         _static.inputPathFolder = _static.inputPathFolder.replace(/\\/g, '/')
 
         slash = "";
-        if (!Array.isArray(_static.outputPath)) {
-            _static.outputPath = [_static.outputPath];
+        if (!Array.isArray(_static.output)) {
+            _static.output = [_static.output];
         }
         _static.outputPathFolder = [];
 
-        for (let outputPath of _static.outputPath) {
+        for (let outputPath of _static.output) {
             let regexEnvVar = /%(.*?)%/gm;
             let result: RegExpExecArray | null;
             while (result = regexEnvVar.exec(outputPath)) {
@@ -403,10 +437,15 @@ export class AventusJSONLanguageService {
             hideWarnings: false,
             version: '1.0.0',
             componentPrefix: '',
+            dependances: [],
             build: [],
             static: [],
             avoidParsingInsideTags: [],
-            aliases: {}
+            aliases: {},
+            namespaceRules: {},
+            namespaceRulesRegex: {},
+            namespaceStrategy: 'manual',
+            namespaceRoot: './'
         }
     }
     private defaultConfigBuildValue(config: AventusConfig): AventusConfigBuild {
@@ -416,22 +455,19 @@ export class AventusJSONLanguageService {
             version: config.version,
             disabled: false,
             hideWarnings: config.hideWarnings,
-            inputPath: [],
-            inputPathRegex: new RegExp('(?!)'),
-            outsideModulePath: [],
+            src: [],
+            compile: [],
+            srcPathRegex: new RegExp('(?!)'),
+            outsideModule: [],
             outsideModulePathRegex: new RegExp('(?!)'),
-            outputFile: [],
-            outputPackage: [],
             module: config.module,
             componentPrefix: config.componentPrefix,
-            namespaceStrategy: 'manual',
-            namespaceRules: {},
-            namespaceRulesRegex: {},
-            namespaceRoot: './',
-            dependances: [],
+            namespaceStrategy: config.namespaceStrategy,
+            namespaceRules: { ...config.namespaceRules },
+            namespaceRulesRegex: { ...config.namespaceRulesRegex },
+            namespaceRoot: config.namespaceRoot,
+            dependances: [...config.dependances],
             avoidParsingInsideTags: [...config.avoidParsingInsideTags],
-            componentStyle: [],
-            compressed: false,
             nodeModulesDir: ''
         }
     }

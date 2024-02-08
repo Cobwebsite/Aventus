@@ -1,0 +1,35 @@
+:host {
+	--_collapse-transition-duration: var(--collapse-transition-duration, 0.5s);
+	--_collapse-transition-timing-function: var(--collapse-transition-timing-function, cubic-bezier(0.65, 0, 0.15, 1));
+}
+
+:host {
+	.title {
+		cursor: pointer;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	.collapse {
+		display: grid;
+		grid-template-rows: 0fr;
+		transition-duration: var(--_collapse-transition-duration);
+		transition-timing-function: var(--_collapse-transition-timing-function);
+		transition-property: grid-template-rows;
+
+		.content {
+			overflow: hidden;
+		}
+	}
+}
+
+:host([open]) {
+	.collapse {
+		grid-template-rows: 1fr;
+	}
+}
+
+:host([no_animation]) {
+	.collapse {
+		transition: none;
+	}
+}

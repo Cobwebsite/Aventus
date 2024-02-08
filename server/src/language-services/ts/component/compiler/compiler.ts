@@ -666,7 +666,12 @@ export class AventusWebcomponentCompiler {
             fullTxtHotReload += field.compiledContentHotReload + EOL;
         }
         let fullClassFields = `class MyCompilationClassAventus {${fullTxt}}`;
-        let fieldsCompiled = transpile(fullClassFields, AventusTsLanguageService.getCompilerOptionsCompile());
+        let fieldsCompiled = "";
+        try {
+            fieldsCompiled = transpile(fullClassFields, AventusTsLanguageService.getCompilerOptionsCompile());
+        } catch (e) {
+
+        }
         let matchContent = /\{((\s|\S)*)\}/gm.exec(fieldsCompiled);
         if (matchContent) {
             variablesSimpleTxt = matchContent[1].trim();
@@ -675,7 +680,12 @@ export class AventusWebcomponentCompiler {
 
         if (HttpServer.isRunning) {
             let fullClassFieldsHotReload = `class MyCompilationClassAventus {${fullTxtHotReload}}`;
-            let fieldsCompiledHotReload = transpile(fullClassFieldsHotReload, AventusTsLanguageService.getCompilerOptionsCompile());
+            let fieldsCompiledHotReload = "";
+            try {
+                fieldsCompiledHotReload = transpile(fullClassFieldsHotReload, AventusTsLanguageService.getCompilerOptionsCompile());
+            } catch (e) {
+
+            }
             let matchContentHotReload = /\{((\s|\S)*)\}/gm.exec(fieldsCompiledHotReload);
             if (matchContentHotReload) {
                 variablesSimpleHotReloadTxt = matchContentHotReload[1].trim();
@@ -897,136 +907,140 @@ export class AventusWebcomponentCompiler {
     }
 
     private writeFileMethods() {
-        let tempStateList: {
-            [statePattern: string]: {
-                [managerName: string]: {
-                    active: string[],
-                    inactive: string[],
-                    askChange: string[],
+        try {
+            let tempStateList: {
+                [statePattern: string]: {
+                    [managerName: string]: {
+                        active: string[],
+                        inactive: string[],
+                        askChange: string[],
+                    };
                 };
-            };
-        } = {}
+            } = {}
 
-        let methodsTxt = "";
-        let methodsTxtHotReload = "";
-        let defaultStateTxt = "";
-        if (this.classInfo) {
-            let fullTxt = ""
-            let fullTxtHotReload = ""
-            for (let methodName in this.classInfo.methods) {
-                let method = this.classInfo.methods[methodName];
-                if (!method.mustBeCompiled) continue;
-                fullTxt += method.compiledContent + EOL;
-                if (HttpServer.isRunning)
-                    fullTxtHotReload += method.compiledContentHotReload + EOL;
-                for (let decorator of method.decorators) {
-                    if (BindThisDecorator.is(decorator)) {
-                        this.extraConstructorCode.push(`this.${methodName}=this.${methodName}.bind(this)`);
-                        continue;
-                    }
+            let methodsTxt = "";
+            let methodsTxtHotReload = "";
+            let defaultStateTxt = "";
+            if (this.classInfo) {
+                let fullTxt = ""
+                let fullTxtHotReload = ""
+                for (let methodName in this.classInfo.methods) {
+                    let method = this.classInfo.methods[methodName];
+                    if (!method.mustBeCompiled) continue;
+                    fullTxt += method.compiledContent + EOL;
+                    if (HttpServer.isRunning)
+                        fullTxtHotReload += method.compiledContentHotReload + EOL;
+                    for (let decorator of method.decorators) {
+                        if (BindThisDecorator.is(decorator)) {
+                            this.extraConstructorCode.push(`this.${methodName}=this.${methodName}.bind(this)`);
+                            continue;
+                        }
 
-                    let effectDecorator = EffectDecorator.is(decorator);
-                    if (effectDecorator) {
-                        this.watchFunctions[methodName] = effectDecorator.options;
-                        continue;
-                    }
+                        let effectDecorator = EffectDecorator.is(decorator);
+                        if (effectDecorator) {
+                            this.watchFunctions[methodName] = effectDecorator.options;
+                            continue;
+                        }
 
-                    // gestion des states
-                    let basicState: StateChangeDecorator | StateActiveDecorator | StateInactiveDecorator | null = null;
-                    let tempChange = StateChangeDecorator.is(decorator);
-                    if (tempChange) {
-                        basicState = tempChange;
-                    }
-                    else {
-                        let tempActive = StateActiveDecorator.is(decorator);
-                        if (tempActive) {
-                            basicState = tempActive;
+                        // gestion des states
+                        let basicState: StateChangeDecorator | StateActiveDecorator | StateInactiveDecorator | null = null;
+                        let tempChange = StateChangeDecorator.is(decorator);
+                        if (tempChange) {
+                            basicState = tempChange;
                         }
                         else {
-                            let tempInactive = StateInactiveDecorator.is(decorator);
-                            if (tempInactive) {
-                                basicState = tempInactive;
+                            let tempActive = StateActiveDecorator.is(decorator);
+                            if (tempActive) {
+                                basicState = tempActive;
                             }
-                        }
-                    }
-                    let defActive: DefaultStateActiveDecorator | null;
-                    let defInactive: DefaultStateInactiveDecorator | null;
-
-                    if (basicState !== null) {
-                        if (decorator.arguments.length > 0) {
-                            if (!tempStateList[basicState.stateName]) {
-                                tempStateList[basicState.stateName] = {};
-                            }
-                            if (!tempStateList[basicState.stateName][basicState.managerName]) {
-                                tempStateList[basicState.stateName][basicState.managerName] = {
-                                    active: [],
-                                    inactive: [],
-                                    askChange: []
+                            else {
+                                let tempInactive = StateInactiveDecorator.is(decorator);
+                                if (tempInactive) {
+                                    basicState = tempInactive;
                                 }
                             }
-                            tempStateList[basicState.stateName][basicState.managerName][basicState.functionName].push(method.name);
+                        }
+                        let defActive: DefaultStateActiveDecorator | null;
+                        let defInactive: DefaultStateInactiveDecorator | null;
+
+                        if (basicState !== null) {
+                            if (decorator.arguments.length > 0) {
+                                if (!tempStateList[basicState.stateName]) {
+                                    tempStateList[basicState.stateName] = {};
+                                }
+                                if (!tempStateList[basicState.stateName][basicState.managerName]) {
+                                    tempStateList[basicState.stateName][basicState.managerName] = {
+                                        active: [],
+                                        inactive: [],
+                                        askChange: []
+                                    }
+                                }
+                                tempStateList[basicState.stateName][basicState.managerName][basicState.functionName].push(method.name);
+                            }
+                        }
+                        else if ((defActive = DefaultStateActiveDecorator.is(decorator))) {
+                            defaultStateTxt += `this.__addActiveDefState(${defActive.managerName}, this.${method.name});` + EOL;
+                        }
+                        else if ((defInactive = DefaultStateInactiveDecorator.is(decorator))) {
+                            defaultStateTxt += `this.__addInactiveDefState(${defInactive.managerName}, this.${method.name});` + EOL;
                         }
                     }
-                    else if ((defActive = DefaultStateActiveDecorator.is(decorator))) {
-                        defaultStateTxt += `this.__addActiveDefState(${defActive.managerName}, this.${method.name});` + EOL;
-                    }
-                    else if ((defInactive = DefaultStateInactiveDecorator.is(decorator))) {
-                        defaultStateTxt += `this.__addInactiveDefState(${defInactive.managerName}, this.${method.name});` + EOL;
-                    }
                 }
-            }
-            let fullClassFct = `class MyCompilationClassAventus {${fullTxt}}`;
-            let fctCompiled = transpile(fullClassFct, AventusTsLanguageService.getCompilerOptionsCompile());
-            let matchContent = /\{((\s|\S)*)\}/gm.exec(fctCompiled);
-            if (matchContent) {
-                methodsTxt = matchContent[1].trim();
-            }
+                let fullClassFct = `class MyCompilationClassAventus {${fullTxt}}`;
+                let fctCompiled = transpile(fullClassFct, AventusTsLanguageService.getCompilerOptionsCompile());
+                let matchContent = /\{((\s|\S)*)\}/gm.exec(fctCompiled);
+                if (matchContent) {
+                    methodsTxt = matchContent[1].trim();
+                }
 
-            if (HttpServer.isRunning) {
-                let fullClassFctHotReload = `class MyCompilationClassAventus {${fullTxtHotReload}}`;
-                let fctCompiledHotReload = transpile(fullClassFctHotReload, AventusTsLanguageService.getCompilerOptionsCompile());
-                let matchContentHotReload = /\{((\s|\S)*)\}/gm.exec(fctCompiledHotReload);
-                if (matchContentHotReload) {
-                    methodsTxtHotReload = matchContentHotReload[1].trim();
+                if (HttpServer.isRunning) {
+                    let fullClassFctHotReload = `class MyCompilationClassAventus {${fullTxtHotReload}}`;
+                    let fctCompiledHotReload = transpile(fullClassFctHotReload, AventusTsLanguageService.getCompilerOptionsCompile());
+                    let matchContentHotReload = /\{((\s|\S)*)\}/gm.exec(fctCompiledHotReload);
+                    if (matchContentHotReload) {
+                        methodsTxtHotReload = matchContentHotReload[1].trim();
+                    }
                 }
             }
-        }
-        this.writeFileReplaceVar("methods", methodsTxt, false);
-        this.writeFileHotReloadReplaceVar("methods", methodsTxtHotReload);
+            this.writeFileReplaceVar("methods", methodsTxt, false);
+            this.writeFileHotReloadReplaceVar("methods", methodsTxtHotReload);
 
 
-        let statesTxt = "";
-        for (let statePattern in tempStateList) {
-            for (let managerName in tempStateList[statePattern]) {
-                let currentAction = tempStateList[statePattern][managerName];
-                statesTxt += `this.__createStatesList(${statePattern}, ${managerName});`;
-                if (currentAction.active.length > 0) {
-                    let fctTxt = "";
-                    for (let fctName of currentAction.active) {
-                        fctTxt += "that." + fctName + "(state, slugs);"
+            let statesTxt = "";
+            for (let statePattern in tempStateList) {
+                for (let managerName in tempStateList[statePattern]) {
+                    let currentAction = tempStateList[statePattern][managerName];
+                    statesTxt += `this.__createStatesList(${statePattern}, ${managerName});`;
+                    if (currentAction.active.length > 0) {
+                        let fctTxt = "";
+                        for (let fctName of currentAction.active) {
+                            fctTxt += "that." + fctName + "(state, slugs);"
+                        }
+                        statesTxt += `this.__addActiveState(${statePattern}, ${managerName}, (state, slugs) => { that.__inactiveDefaultState(${managerName}); ${fctTxt}})` + EOL;
                     }
-                    statesTxt += `this.__addActiveState(${statePattern}, ${managerName}, (state, slugs) => { that.__inactiveDefaultState(${managerName}); ${fctTxt}})` + EOL;
-                }
-                if (currentAction.inactive.length > 0) {
-                    let fctTxt = "";
-                    for (let fctName of currentAction.inactive) {
-                        fctTxt += "that." + fctName + "(state, nextState, slugs);"
+                    if (currentAction.inactive.length > 0) {
+                        let fctTxt = "";
+                        for (let fctName of currentAction.inactive) {
+                            fctTxt += "that." + fctName + "(state, nextState, slugs);"
+                        }
+                        statesTxt += `this.__addInactiveState(${statePattern}, ${managerName}, (state, nextState, slugs) => { ${fctTxt}that.__activeDefaultState(nextState, ${managerName});})` + EOL;
                     }
-                    statesTxt += `this.__addInactiveState(${statePattern}, ${managerName}, (state, nextState, slugs) => { ${fctTxt}that.__activeDefaultState(nextState, ${managerName});})` + EOL;
-                }
-                if (currentAction.askChange.length > 0) {
-                    let fctTxt = "";
-                    for (let fctName of currentAction.askChange) {
-                        fctTxt += "if(!await that." + fctName + "(state, nextState, slugs)){return false;}" + EOL;
+                    if (currentAction.askChange.length > 0) {
+                        let fctTxt = "";
+                        for (let fctName of currentAction.askChange) {
+                            fctTxt += "if(!await that." + fctName + "(state, nextState, slugs)){return false;}" + EOL;
+                        }
+                        statesTxt += `this.__addAskChangeState(${statePattern}, ${managerName}, async (state, nextState, slugs) => { ${fctTxt} return true;})` + EOL;
                     }
-                    statesTxt += `this.__addAskChangeState(${statePattern}, ${managerName}, async (state, nextState, slugs) => { ${fctTxt} return true;})` + EOL;
                 }
             }
+            if (statesTxt.length > 0 || defaultStateTxt.length > 0) {
+                statesTxt = `__createStates() { super.__createStates(); let that = this; ${defaultStateTxt} ${statesTxt} }`
+            }
+            this.writeFileReplaceVar("states", statesTxt)
+        } catch (e) {
+
         }
-        if (statesTxt.length > 0 || defaultStateTxt.length > 0) {
-            statesTxt = `__createStates() { super.__createStates(); let that = this; ${defaultStateTxt} ${statesTxt} }`
-        }
-        this.writeFileReplaceVar("states", statesTxt)
     }
 
     private variablesInViewDynamic = "";
@@ -1132,8 +1146,9 @@ export class AventusWebcomponentCompiler {
                 let definition = this.build.getWebComponentDefinition(binding.tagName);
                 let eventName = binding.eventNames[0];
                 if (definition) {
-                    if (definition.class.properties[eventName]) {
-                        let type = definition.class.properties[eventName].type.value;
+                    let field = definition.class.getField(eventName);
+                    if (field) {
+                        let type = field.type.value;
                         if (ListCallbacks.includes(type)) {
                             temp.isCallback = true;
                         }
@@ -1160,8 +1175,9 @@ export class AventusWebcomponentCompiler {
                     let definition = this.build.getWebComponentDefinition(event.tagName);
                     let eventName = event.eventName;
                     if (definition) {
-                        if (definition.class.properties[eventName]) {
-                            let type = definition.class.properties[eventName].type.value
+                        let field = definition.class.getField(eventName);
+                        if (field) {
+                            let type = field.type.value
                             if (ListCallbacks.includes(type)) {
                                 temp.isCallback = true;
                                 temp.fct = `@_@(c, ...args) => c.comp.${event.fct}.apply(c.comp, args)@_@`;
@@ -1290,7 +1306,7 @@ export class AventusWebcomponentCompiler {
             finalTxt += `${parent}.addIf({
                     anchorId: '${_if.anchorId}',
                     parts: [${partTxt}]
-            })`;
+            });` + EOL;
         }
 
         if (isMain) {
@@ -1557,13 +1573,18 @@ this.clearWatchHistory = () => {
         return methodTxt;
     }
 
-    private transpileMethodNoRun(methodTxt) {
-        methodTxt = this.prepareMethodToTranspile(methodTxt);
-        let method = transpile(methodTxt, AventusTsLanguageService.getCompilerOptionsCompile()).trim();
-        method = method.substring(0, method.length - 1);
-        method = "(" + method + ")";
-        // method = minify(method, { mangle: false }).code;
-        return method;
+    private transpileMethodNoRun(methodTxt): string {
+        try {
+            methodTxt = this.prepareMethodToTranspile(methodTxt);
+            let method = transpile(methodTxt, AventusTsLanguageService.getCompilerOptionsCompile()).trim();
+            method = method.substring(0, method.length - 1);
+            method = "(" + method + ")";
+            // method = minify(method, { mangle: false }).code;
+            return method;
+        } catch (e) {
+
+        }
+        return "";
     }
 
     private _validateTypeForProp(currentDoc: TextDocument, field: PropertyInfo, type: TypeInfo): TypeInfo | null {

@@ -269,7 +269,7 @@ export class GenericServer {
 		if (document.uri.endsWith(AventusExtension.ComponentStyle)) {
 			return true;
 		}
-		if (document.uri.endsWith(AventusExtension.ComponentGlobalStyle)) {
+		if (document.uri.endsWith(AventusExtension.Component)) {
 			return true;
 		}
 		if (document.uri.endsWith(AventusExtension.GlobalStyle)) {

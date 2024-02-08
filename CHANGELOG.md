@@ -8,6 +8,14 @@
 ### Features
  - Change templating by adding for and if inside wcv.avt
  - Add (Effect|Computed)NoRecomputed to calculate dependance graph only during first query
+ - Add File support inside HttpRequest
+ - Add Prefix inside HttpRoute
+ - StateManager can allow or deny state change
+ - Simplify aventus.conf.avt
+ - Replace global webcomponent style (.gwcs.avt) by a normal style file stating with a @
+ - Support ./* and ../* inside the state manager
+ - When creating *.wc.avt it does not create a folder
+ 
 
 
 ## 1.1.1 (2024-01-12)

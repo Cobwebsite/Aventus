@@ -178,7 +178,7 @@ export class Template {
 					exportPath = exportPath.replace(regex, this.currentVars[varName]);
 				}
 				exportPath = normalize(exportPath);
-				if (statSync(templatePath).isDirectory()) {
+				if (statSync(templatePath).isDirectory() && file != '.git') {
 					mkdirSync(exportPath);
 					_internalLoop(templatePath);
 				}

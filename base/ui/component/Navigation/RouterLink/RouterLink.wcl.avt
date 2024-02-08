@@ -36,7 +36,16 @@ namespace Navigation {
             new Aventus.PressManager({
                 element: this,
                 onPress: () => {
-                    Aventus.State.activate(this.state, Aventus.Instance.get(RouterStateManager));
+                    let state = this.state;
+                    if(this.state.startsWith(".")) {
+                        state = Aventus.Instance.get(RouterStateManager).getState()?.name ?? "";
+                        if(!state.endsWith("/")) {
+                            state += "/";
+                        }
+                        state += this.state;
+                        state = Aventus.Uri.normalize(state);
+                    }
+                    Aventus.State.activate(state, Aventus.Instance.get(RouterStateManager));
                 }
             });
         }

@@ -281,7 +281,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
     private static __template: Template;
     private __templateInstance?: TemplateInstance;
     protected styleBefore(addStyle: (name: string) => void): void {
-        addStyle("@general");
+        addStyle("@default");
     }
     protected styleAfter(addStyle: (name: string) => void): void {
     }

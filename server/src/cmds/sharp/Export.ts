@@ -7,6 +7,7 @@ import { uriToPath } from '../../tools';
 import { Loading } from '../../notification/Loading';
 import { FilesManager } from '../../files/FilesManager';
 import { SelectItem } from '../../IConnection';
+import { AventusExtension } from '../../definition';
 
 export class SharpExport {
 	static cmd: string = "aventus.sharp.export";
@@ -17,7 +18,7 @@ export class SharpExport {
 			return;
 		}
 
-		if (!uri) {
+		if (!uri || !uri.endsWith(AventusExtension.CsharpConfig)) {
 			let filesUri = FilesManager.getInstance().csharpFilesUri;
 			if (filesUri.length == 1) {
 				uri = filesUri[0];

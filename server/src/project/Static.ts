@@ -89,9 +89,6 @@ export class Static {
                             resultPath = resultPath.replace(AventusExtension.GlobalStyle, ".css")
                             this.project.scssFiles[pathToUri(filePath)]?.addOutPath(resultPath);
                         }
-                        else if (filePath.endsWith(AventusExtension.ComponentGlobalStyle)) {
-
-                        }
                     }
                     else {
                         copyFile(filePath, resultPath);

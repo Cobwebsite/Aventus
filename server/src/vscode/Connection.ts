@@ -10,6 +10,7 @@ import { AskSelectMultiple } from '../notification/AskSelectMultiple';
 import { Popup } from '../notification/Popup';
 import { dirname } from 'path';
 import { FilesManager } from '../files/FilesManager';
+import { AventusLanguageId } from '../definition';
 
 export class VsCodeConnection implements IConnection {
 
@@ -107,7 +108,7 @@ export class VsCodeConnection implements IConnection {
 					},
 					renameProvider: true,
 					colorProvider: {
-						documentSelector: [{ language: "Aventus SCSS" }]
+						documentSelector: [{ language: AventusLanguageId.SCSS }, { language: AventusLanguageId.WebComponent }]
 					}
 				}
 			};

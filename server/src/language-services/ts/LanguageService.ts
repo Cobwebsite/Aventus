@@ -218,6 +218,7 @@ export class AventusTsLanguageService {
     }
 
 
+
     public doValidation(file: AventusFile): Diagnostic[] {
         try {
             let result: Diagnostic[] = [];
@@ -247,7 +248,7 @@ export class AventusTsLanguageService {
             }
             return result;
         } catch (e) {
-            console.error(e);
+            this.printCatchError(e);
         }
         return [];
     }
@@ -262,7 +263,7 @@ export class AventusTsLanguageService {
             try {
                 completions = this.languageService.getCompletionsAtPosition(document.uri, offset, completionOptions);
             } catch (e) {
-                console.error(e);
+                this.printCatchError(e);
             }
             if (!completions) {
                 return { isIncomplete: false, items: [] };
@@ -272,6 +273,9 @@ export class AventusTsLanguageService {
             for (let i = 0; i < completions.entries.length; i++) {
                 let entry = completions.entries[i];
                 let remplacement = entry.insertText ? entry.insertText : entry.name
+                if (remplacement.startsWith(".?")) {
+                    remplacement = remplacement.substring(1);
+                }
                 let customData = {
                     languageId: AventusLanguageId.TypeScript,
                     offset: offset,
@@ -292,7 +296,7 @@ export class AventusTsLanguageService {
             }
             return { isIncomplete: false, items: items };
         } catch (e) {
-            console.error(e);
+            this.printCatchError(e);
         }
         return { isIncomplete: false, items: [] };
     }
@@ -352,7 +356,7 @@ export class AventusTsLanguageService {
                 }
             }
         } catch (e) {
-            console.error(e);
+            this.printCatchError(e);
         }
         return item;
     }
@@ -392,7 +396,7 @@ export class AventusTsLanguageService {
                 };
             }
         } catch (e) {
-            console.error(e);
+            this.printCatchError(e);
         }
         return null;
     }
@@ -410,7 +414,7 @@ export class AventusTsLanguageService {
             let typeName = typeChecker.typeToString(type)
             return typeName;
         } catch (e) {
-            console.log(e);
+            this.printCatchError(e);
         }
         return undefined;
     }
@@ -432,7 +436,7 @@ export class AventusTsLanguageService {
                 }
             }
         } catch (e) {
-            console.error(e);
+            this.printCatchError(e);
         }
         return null;
     }
@@ -474,7 +478,7 @@ export class AventusTsLanguageService {
                 return result;
             }
         } catch (e) {
-            console.error(e);
+            this.printCatchError(e);
         }
         return [];
     }
@@ -601,7 +605,7 @@ export class AventusTsLanguageService {
                 })
             }
         } catch (e) {
-            console.error(e);
+            this.printCatchError(e);
         }
         return result;
     }
@@ -626,7 +630,7 @@ export class AventusTsLanguageService {
                 }
             }
         } catch (e) {
-            console.error(e);
+            this.printCatchError(e);
         }
         return result;
     }
@@ -676,7 +680,7 @@ export class AventusTsLanguageService {
                 })
             }
         } catch (e) {
-            console.error(e);
+            this.printCatchError(e);
         }
         return result;
     }
@@ -1010,8 +1014,8 @@ export class AventusTsLanguageService {
                     result.required = true;
                 }
             }
-        } catch (e) {
-            console.error(e);
+        } catch (e: any) {
+            this.printCatchError(e);
         }
         return result;
     }
@@ -1062,12 +1066,21 @@ export class AventusTsLanguageService {
             let ls: LanguageService = createLanguageService(host);
             return ls.getEmitOutput("temp.js", true, true).outputFiles[0].text.replace(/^declare /g, '');
         } catch (e) {
-            console.error(e);
+            this.printCatchError(e);
         }
         return "";
     }
     public static getCompilerOptionsCompile(): CompilerOptions {
         return compilerOptionsCompile;
+    }
+
+    private printCatchError(e: any) {
+        AventusTsLanguageService.printCatchError(e);
+    }
+    private static printCatchError(e: any) {
+        let regex = /^Debug Failure\. Expected \d+ <= \d+$/g;
+        if (!regex.test(e.message))
+            console.error(e);
     }
 }
 //#region definition const + tools function

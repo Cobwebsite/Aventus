@@ -5,7 +5,7 @@
         {
             "name": "Main",
             "hideWarnings": true,
-            "inputPath": [
+            "src": [
                 "./data/",
                 "./lib/",
                 "./ram/",
@@ -15,12 +15,15 @@
                 "./tools/",
                 "./webcomponent/"
             ],
-            "outsideModulePath": [
+            "compile": [{
+				"package": "../../lib/Aventus@Main.package.avt",
+                "output": "../dist/aventus.js"
+			}],
+            "outsideModule": [
                 "./attributes/",
                 "./extension/"
-            ],
-            "outputPackage": "../../lib/Aventus@Main.package.avt",
-            "outputFile": "../dist/aventus.js"
+            ]
+            
         }
     ]
 }

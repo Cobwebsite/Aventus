@@ -38,4 +38,7 @@ export class HttpRoute {
         this.router = router;
     }
 
+    public getPrefix(): string {
+        return "";
+    }
 }

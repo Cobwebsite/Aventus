@@ -76,4 +76,26 @@ export class Uri {
 
         return from.regex.test(current);
     }
+
+    public static normalize(path: string) {
+        const isAbsolute = path.startsWith('/');
+        const parts = path.split('/');
+        const normalizedParts: string[] = [];
+
+        for(let i = 0; i < parts.length; i++) {
+            if(parts[i] === '..') {
+                normalizedParts.pop();
+            } else if(parts[i] !== '.' && parts[i] !== '') {
+                normalizedParts.push(parts[i]);
+            }
+        }
+
+        let normalizedPath = normalizedParts.join('/');
+
+        if (isAbsolute) {
+            normalizedPath = '/' + normalizedPath;
+        }
+
+        return normalizedPath;
+    }
 }

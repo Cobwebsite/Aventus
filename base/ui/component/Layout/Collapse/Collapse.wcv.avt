@@ -1,0 +1,8 @@
+<div class="title" @press="toggleOpen">
+    <slot name="header"></slot>
+</div>
+<div class="collapse" @transitionend="transitionEnd">
+    <div class="content">
+        <slot></slot>
+    </div>
+</div>

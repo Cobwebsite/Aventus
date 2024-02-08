@@ -30,6 +30,34 @@ export class HttpRequest {
         this.request.method = method;
     }
 
+    private objectToFormData(obj: { [key: string | number]: any; }, formData?: FormData, parentKey?: string): FormData {
+        formData = formData || new FormData();
+        for(const key in obj) {
+            if(obj.hasOwnProperty(key)) {
+                const value = obj[key];
+
+                const newKey = parentKey ? `${parentKey}[${key}]` : key;
+
+                if(typeof value === 'object' && value !== null && !(value instanceof File)) {
+                    if(Array.isArray(value)) {
+                        // Handle array
+                        value.forEach((arrayItem, index) => {
+                            const arrayKey = `${newKey}[${index}]`;
+                            this.objectToFormData({ [arrayKey]: arrayItem }, formData);
+                        });
+                    } else {
+                        // Recursively handle nested object
+                        this.objectToFormData(value, formData, newKey);
+                    }
+                } else {
+                    // Add simple key-value pair to FormData
+                    formData.append(newKey, value);
+                }
+            }
+        }
+
+        return formData;
+    }
     private prepareBody(data?: { [key: string | number]: any; } | FormData) {
         if(!data) {
             return;
@@ -38,8 +66,25 @@ export class HttpRequest {
             this.request.body = data;
         }
         else {
-            this.request.body = JSON.stringify(data);
-            this.setHeader("Content-Type", "Application/json");
+            let useFormData = false;
+            for(let key in data) {
+                if(data[key] instanceof File) {
+                    useFormData = true;
+                    break;
+                }
+                else if(Array.isArray(data[key]) && data[key].length > 0 && data[key][0] instanceof File) {
+                    useFormData = true;
+                    break;
+                }
+            }
+
+            if(useFormData) {
+                this.request.body = this.objectToFormData(data);
+            }
+            else {
+                this.request.body = JSON.stringify(data);
+                this.setHeader("Content-Type", "Application/json");
+            }
         }
     }
 
