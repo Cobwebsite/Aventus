@@ -673,6 +673,8 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         this._componentClassName = quickParse.className;
         this.writeHtml = quickParse.writeHtml;
         this.writeTs = quickParse.writeTs;
+        if (quickParse.tagName)
+            this.build.htmlLanguageService.addInternalTagUri(quickParse.tagName, this.file.uri, this._componentClassName);
         let space = "";
         for (let i = 0; i < quickParse.whiteSpaceBefore + 4; i++) {
             space += " ";
@@ -748,7 +750,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         await super.onDelete();
         this.build.scssLanguageService.removeInternalDefinition(this.file.uri);
         this.build.htmlLanguageService.removeInternalDefinition(this.file.uri);
-
+        this.build.htmlLanguageService.removeInternalTagUri(this.file.uri);
     }
 
     public async doViewCompletion(htmlPosition: Position): Promise<CompletionList | null> {

@@ -25,6 +25,7 @@ export class AventusHTMLLanguageService {
     private extenalDocumentation: { [key: string]: HTMLDoc } = {};
     private internalDocumentation: { [key: string]: HTMLDoc } = {};
     private internalDocumentationReverse: { [className: string]: AventusWebComponentLogicalFile } = {};
+    private internalTagUri: { [tag: string]: { uri: string, fullname: string } } = {};
 
     public constructor(build: Build) {
         this.languageService = this.getHTMLLanguageService();
@@ -162,20 +163,20 @@ export class AventusHTMLLanguageService {
 
     private doCustomComplete(htmlFile: AventusHTMLFile, position: Position): CompletionItem[] {
         let result: CompletionItem[] = [];
-        if(!htmlFile.fileParsed) return result;
+        if (!htmlFile.fileParsed) return result;
         let doc = htmlFile.file.documentUser;
         let offset = doc.offsetAt(position);
-        for(let tag of htmlFile.fileParsed.tags) {
-            if(offset < tag.start) {
+        for (let tag of htmlFile.fileParsed.tags) {
+            if (offset < tag.start) {
                 break;
             }
 
-            if(offset >= tag.openTagStart && offset <= tag.openTagEnd) {
+            if (offset >= tag.openTagStart && offset <= tag.openTagEnd) {
                 return result;
-            } 
+            }
         }
-        
-       
+
+
         let replaceRange = convertRange(doc, getWordAtText(doc.getText(), offset));
         let txt = doc.getText().slice(doc.offsetAt(replaceRange.start), doc.offsetAt(replaceRange.end));
         for (let key in defaultSnippet) {
@@ -387,6 +388,21 @@ export class AventusHTMLLanguageService {
         }
         delete this.internalDocumentation[uri];
         this.rebuildDefinition();
+    }
+
+    public getInternalTagUri(tag: string): { uri: string, fullname: string } | undefined {
+        return this.internalTagUri[tag];
+    }
+    public addInternalTagUri(tag: string, uri: string, fullname: string) {
+        this.internalTagUri[tag] = {uri, fullname};
+    }
+    public removeInternalTagUri(uri: string) {
+        for (let tag in this.internalTagUri) {
+            if (this.internalTagUri[tag].uri == uri) {
+                delete this.internalTagUri[tag];
+                return;
+            }
+        }
     }
     //#endregion
 }

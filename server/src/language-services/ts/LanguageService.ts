@@ -1084,16 +1084,17 @@ export class AventusTsLanguageService {
     }
 }
 //#region definition const + tools function
+export type CompileDependance = {
+    fullName: string,
+    uri: string,
+    isStrong: boolean,
+}
 export type CompileTsResult = {
     compiled: string,
     hotReload: string,
     docVisible: string,
     docInvisible: string,
-    dependances: {
-        fullName: string,
-        uri: string,
-        isStrong: boolean,
-    }[],
+    dependances: CompileDependance[],
     classScript: string,
     classDoc: string,
     debugTxt: string,
@@ -1101,7 +1102,8 @@ export type CompileTsResult = {
     required: boolean,
     type: InfoType,
     isExported: boolean,
-    convertibleName: string
+    convertibleName: string,
+    tagName?: string,
 }
 
 

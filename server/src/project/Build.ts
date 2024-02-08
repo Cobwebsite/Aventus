@@ -15,7 +15,7 @@ import { AventusSCSSLanguageService } from "../language-services/scss/LanguageSe
 import { AventusWebComponentLogicalFile } from "../language-services/ts/component/File";
 import { AventusTsFile } from "../language-services/ts/File";
 import { AventusTsFileSelector } from '../language-services/ts/FileSelector';
-import { AventusTsLanguageService, CompileTsResult } from "../language-services/ts/LanguageService";
+import { AventusTsLanguageService, CompileDependance, CompileTsResult } from "../language-services/ts/LanguageService";
 import { ClassInfo } from '../language-services/ts/parser/ClassInfo';
 import { HttpServer } from '../live-server/HttpServer';
 import { Compiled } from '../notification/Compiled';
@@ -33,6 +33,7 @@ import { AventusBaseFile } from '../language-services/BaseFile';
 import { GenericServer } from '../GenericServer';
 import { NpmBuilder } from './BuildNpm';
 import { AventusWebComponentSingleFile } from '../language-services/ts/component/SingleFile';
+import { DebugFileAdd } from '../notification/DebugFileAdd';
 
 export type BuildErrors = { file: string, title: string }[]
 
@@ -69,6 +70,7 @@ export class Build {
     public htmlLanguageService: AventusHTMLLanguageService;
     private allowBuild: boolean = true;
     private initDone: boolean = false;
+    private _filesLoaded: boolean = false;
 
     public reloadPage: boolean = false;
     private _outputPathes: string[] = [];
@@ -93,6 +95,10 @@ export class Build {
 
     public get outputPathes(): string[] {
         return this._outputPathes;
+    }
+
+    public get filesLoaded(): boolean {
+        return this._filesLoaded;
     }
 
     public constructor(project: Project, buildConfig: AventusConfigBuild) {
@@ -273,6 +279,9 @@ export class Build {
             let result = await this.buildLocalCode(compilationInfo.toCompile, this.buildConfig.module);
 
             buildErrors = await this.writeBuildCode(result, compilationInfo.libSrc, compile.output, compile.compressed);
+
+            buildErrors = [...buildErrors, ...compilationInfo.errors]
+
             let srcInfo = {
                 namespace: this.buildConfig.module,
                 available: result.codeRenderInJs,
@@ -353,7 +362,7 @@ export class Build {
      */
     private async writeBuildCode(localCode: {
         code: string[], codeNoNamespaceBefore: string[], codeNoNamespaceAfter: string[], classesName: { [name: string]: { type: InfoType, isExported: boolean, convertibleName: string } }, stylesheets: { [name: string]: string }
-    }, libSrc: string, outputs: string[], compressed?:boolean): Promise<BuildErrors> {
+    }, libSrc: string, outputs: string[], compressed?: boolean): Promise<BuildErrors> {
         let result: BuildErrors = []
         if (outputs && outputs.length > 0) {
             let finalTxt = '';
@@ -574,6 +583,7 @@ export class Build {
                                 type: info.type,
                                 isExported: info.isExported,
                                 convertibleName: info.convertibleName,
+                                tagName: info.tagName
                             };
                         }
                     }
@@ -589,6 +599,7 @@ export class Build {
                                 type: info.type,
                                 isExported: info.isExported,
                                 convertibleName: info.convertibleName,
+                                tagName: info.tagName
                             }
                         }
                     }
@@ -636,7 +647,8 @@ export class Build {
                             required: info.required,
                             type: info.type,
                             isExported: info.isExported,
-                            convertibleName: info.convertibleName
+                            convertibleName: info.convertibleName,
+                            tagName: info.tagName
                         }
                     }
                 }
@@ -669,7 +681,7 @@ export class Build {
         result.codeRenderInJs = Object.values(renderInJsByFullname);
         result.codeNotRenderInJs = Object.values(notRenderInJsByFullname);
 
-        for(let globalCssPath in this.globalComponentSCSSFiles) {
+        for (let globalCssPath in this.globalComponentSCSSFiles) {
             let file = this.globalComponentSCSSFiles[globalCssPath];
             result.stylesheets[file.globalName] = file.compileResult;
         }
@@ -677,8 +689,10 @@ export class Build {
         return result;
     }
 
-    private async buildOrderCompilationInfo(compileConfig: AventusConfigBuildCompile): Promise<{ toCompile: CompileTsResult[], libSrc: string }> {
-        let result: { toCompile: CompileTsResult[], libSrc: string } = { toCompile: [], libSrc: '' };
+    private async buildOrderCompilationInfo(compileConfig: AventusConfigBuildCompile): Promise<{ toCompile: CompileTsResult[], libSrc: string, errors: BuildErrors }> {
+        let result: { toCompile: CompileTsResult[], libSrc: string, errors: BuildErrors } = { toCompile: [], libSrc: '', errors: [] };
+        let tags: { [tag: string]: string } = {};
+        let errorsTxt: string[] = [];
         // map local information by fullname
         let localClassByFullName: { [fullName: string]: CompileTsResult } = {};
         let localClass: { [name: string]: CompileTsResult } = {};
@@ -750,7 +764,7 @@ export class Build {
                 if (info.isStrong) {
                     // loop on a strong dependance => infinite loop 
                     if (alreadyLookedStrong[fullName] !== undefined) {
-                        console.log("error impossible");
+                        errorsTxt.push('You have an infinite loop with your strong dependance [' + fullName + ']');
                         return indexByUri;
                     }
 
@@ -852,6 +866,14 @@ export class Build {
                     }
 
                     if (promises.length == 0) {
+                        if (infoInternal.tagName) {
+                            if (!tags[infoInternal.tagName]) {
+                                tags[infoInternal.tagName] = infoInternal.classScript;
+                            }
+                            else {
+                                errorsTxt.push("The tag <" + infoInternal.tagName + '> is declared by ' + tags[infoInternal.tagName] + ' and ' + infoInternal.classScript);
+                            }
+                        }
                         result.toCompile.splice(insertIndex, 0, infoInternal);
                         loadedInfoInternal.splice(insertIndex, 0, fullName);
                         for (const cb of alreadyLooked[fullName]) {
@@ -882,6 +904,7 @@ export class Build {
 
                     let insertIndex = 0;
                     if (infoExternal.content != 'noCode') {
+
                         for (let dependance of infoExternal.content.dependances) {
                             let cloneBeforeLoop = { ...indexByUri };
                             let strongDep = dependance.isStrong ? alreadyLookedStrong : {};
@@ -908,6 +931,15 @@ export class Build {
                     }
 
                     if (promises.length == 0) {
+                        if (infoExternal.content != 'noCode' && infoExternal.content.tagName) {
+                            let tagName = infoExternal.content.tagName;
+                            if (!tags[tagName]) {
+                                tags[tagName] = infoExternal.content.fullName;
+                            }
+                            else {
+                                errorsTxt.push("The tag <" + infoExternal.content.tagName + '> is declared by ' + tags[tagName] + ' and ' + infoExternal.content.fullName);
+                            }
+                        }
                         loadedInfoExternal[uri].splice(insertIndex, 0, fullName);
                         indexByUri[uri] = loadedInfoExternal[uri].length;
                         for (const cb of alreadyLooked[fullName]) {
@@ -1083,6 +1115,14 @@ export class Build {
         result.libSrc = libSrc.join(EOL);
 
 
+        if (errorsTxt.length > 0) {
+            let uri = this.buildConfig.fullname + "_dependanceErrors";
+            DebugFileAdd.send(uri, errorsTxt.join("\r\n"));
+            result.errors.push({
+                title: "Dependances errors",
+                file: uri
+            })
+        }
 
         return result;
     }
@@ -1177,6 +1217,7 @@ export class Build {
             console.log("loaded all files needed");
         }
         this.allowBuild = true;
+        this._filesLoaded = true;
         await this.rebuildAll(true);
     }
     /**
@@ -1191,7 +1232,7 @@ export class Build {
                     await this.scssFiles[file.uri].init()
                 this.registerOnFileDelete(file);
 
-                if(this.scssFiles[file.uri].isGlobal) {
+                if (this.scssFiles[file.uri].isGlobal) {
                     this.globalComponentSCSSFiles[file.uri] = this.scssFiles[file.uri];
                 }
             }
@@ -1258,6 +1299,31 @@ export class Build {
             }
         }
         return;
+    }
+    public getWebComponentTagDependance(tagName: string): CompileDependance | null {
+        let result = this.htmlLanguageService.getInternalTagUri(tagName);
+        if (result) {
+            return {
+                fullName: result.fullname,
+                uri: result.uri,
+                isStrong: false
+            }
+        }
+
+        let definition = this.getWebComponentDefinition(tagName);
+        if (definition) {
+            let uri = definition.class.fileUri;
+            if (!definition.isLocal) {
+                uri = "@external";
+            }
+            return {
+                fullName: definition.class.fullName,
+                uri,
+                isStrong: false
+            }
+        }
+
+        return null;
     }
     public getWebComponentDefinition(tagName: string, searchInsideProject: boolean = false): { class: ClassInfo, isLocal: boolean } | undefined {
         let localInfo = this.htmlLanguageService.getInternalDefinition(tagName);

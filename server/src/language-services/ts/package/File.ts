@@ -22,6 +22,7 @@ export interface AventusPackageTsFileExport {
 	noNamespace?: "before" | "after" | undefined;
 	isExported: boolean,
 	convertibleName: string,
+	tagName?: string,
 }
 export interface AventusPackageTsFileExportNoCode {
 	fullName: string;

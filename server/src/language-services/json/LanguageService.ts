@@ -79,7 +79,7 @@ export class AventusJSONLanguageService {
         let jsonDoc = this.languageService.parseJSONDocument(document);
         let errors = await this.languageService.doValidation(document, jsonDoc);
         if (errors.length == 0) {
-            let configTxt = document.getText();
+            let configTxt = this.removeComments(document.getText());
             try {
                 JSON.parse(configTxt);
                 return errors;
@@ -100,7 +100,7 @@ export class AventusJSONLanguageService {
         let jsonDoc = this.languageService.parseJSONDocument(document);
         let errors = await this.languageService.doValidation(document, jsonDoc, undefined, AventusConfigSchema);
         if (errors.length == 0) {
-            let configTxt = document.getText();
+            let configTxt = this.removeComments(document.getText());
             try {
                 let resultConfig: AventusConfig = JSON.parse(configTxt);
                 resultConfig = this.prepareConfigFile(document.uri, resultConfig);
@@ -482,4 +482,19 @@ export class AventusJSONLanguageService {
     }
     //#endregion
 
+
+    private removeComments(txt: string): string {
+        let regex = /(\".*?\"|\'.*?\')|(\/\*.*?\*\/|\/\/[^(\r\n|\n)]*$)/gm
+        txt = txt.replace(regex, (match, grp1, grp2) => {
+            if (grp2) {
+                let result = "";
+                for(let i = 0;i<grp2.length;i++) {
+                    result += " "
+                }
+                return result;
+            }
+            return grp1;
+        })
+        return txt;
+    }
 }

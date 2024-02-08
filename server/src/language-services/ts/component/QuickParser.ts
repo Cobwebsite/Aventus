@@ -13,6 +13,7 @@ import { hasFlag } from '../parser/tools';
 import { Build } from '../../../project/Build';
 import { DecoratorInfo } from '../parser/DecoratorInfo';
 import { DebuggerDecorator } from '../parser/decorators/DebuggerDecorator';
+import { TagNameDecorator } from '../parser/decorators/TagNameDecorator';
 
 export class QuickParser {
 
@@ -26,15 +27,18 @@ export class QuickParser {
 	private currentNamespace: string[] = []
 	public fullname: string = "";
 	public className: string = "";
+	public tagName: string | null = null;
 	public whiteSpaceBefore: number = 0;
 	public writeHtml: boolean = false;
 	public writeTs: boolean = false;
+	private prefixes: string[];
 
 	private constructor(content: string, build: Build) {
 		this.currentNamespace.push(build.module);
 		if (build.isCoreBuild) {
 			this.AventusDefaultComponent = "DefaultComponent";
 		}
+		this.prefixes = build.getComponentPrefix().split("-")
 		this.loadRoot(createSourceFile("sample.ts", content, ScriptTarget.ESNext, true));
 	}
 
@@ -96,6 +100,27 @@ export class QuickParser {
 										if (debugDeco.writeComponentTs) {
 											this.writeTs = true;
 										}
+										continue;
+									}
+
+									let tagNameDeco = TagNameDecorator.is(decorator)
+									if (tagNameDeco) {
+										this.tagName = tagNameDeco.tagName;
+									}
+								}
+
+								if (this.tagName == null) {
+									let splittedName = this.className.match(/([A-Z][a-z]*)|([0-9]+[a-z]*)/g);
+									if (splittedName) {
+										for (let i = 0; i < this.prefixes.length; i++) {
+											let componentPrefix = this.prefixes[i];
+											if (componentPrefix.length > 0 && splittedName[i].toLowerCase() != componentPrefix.toLowerCase()) {
+												// no special tag => add one
+												splittedName.splice(0, 0, this.prefixes.join("-").toLowerCase());
+												break;
+											}
+										}
+										this.tagName = splittedName.join("-").toLowerCase();
 									}
 								}
 								return true;

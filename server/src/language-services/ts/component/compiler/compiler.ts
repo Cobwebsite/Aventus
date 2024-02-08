@@ -8,7 +8,7 @@ import { AventusWebComponentLogicalFile } from "../File";
 import { CompileComponentResult, CustomFieldModel, CustomTypeAttribute, ListCallbacks } from "./def";
 import { AventusWebcomponentTemplate } from "./Template";
 import { transpile } from "typescript";
-import { AventusTsLanguageService, CompileTsResult, getSectionStart } from "../../LanguageService";
+import { AventusTsLanguageService, CompileDependance, CompileTsResult, getSectionStart } from "../../LanguageService";
 import { EOL } from "os";
 import { HTMLDoc } from "../../../html/helper/definition";
 import { SCSSDoc } from "../../../scss/helper/CSSNode";
@@ -112,6 +112,7 @@ export class AventusWebcomponentCompiler {
         type: InfoType.class,
         isExported: true,
         convertibleName: '',
+        tagName: '',
     }
     private parentClassName: string = "";
     private overrideViewDecorator: OverrideViewDecorator | null = null;
@@ -236,6 +237,7 @@ export class AventusWebcomponentCompiler {
             this.addViewElementToDependance();
             this.writeFile();
 
+            this.componentResult.tagName = this.tagName;
             this.componentResult.compiled = this.template.replace("//todelete for hmr °", "");
             if (HttpServer.isRunning) {
                 this.componentResult.hotReload = this.templateHotReload.split("//todelete for hmr °")[0];
@@ -406,22 +408,15 @@ export class AventusWebcomponentCompiler {
                 if (interestPoint.type == "tag") {
                     if (!addedDep.includes(interestPoint.name)) {
                         addedDep.push(interestPoint.name);
-                        let type = this.build.getWebComponentDefinition(interestPoint.name);
-                        if (type) {
+                        let dependance = this.build.getWebComponentTagDependance(interestPoint.name);
+                        if (dependance) {
                             for (let dep of this.componentResult.dependances) {
-                                if (dep.fullName == type.class.fullName) {
+                                if (dep.fullName == dependance.fullName) {
                                     return;
                                 }
                             }
-                            let uri = type.class.fileUri;
-                            if (!type.isLocal) {
-                                uri = "@external";
-                            }
-                            this.componentResult.dependances.push({
-                                fullName: type.class.fullName,
-                                uri: uri,
-                                isStrong: false,
-                            })
+                            
+                            this.componentResult.dependances.push(dependance)
                         }
                     }
 
