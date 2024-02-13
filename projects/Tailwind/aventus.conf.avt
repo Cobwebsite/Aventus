@@ -7,9 +7,9 @@
 			"src": [
 				"./src/components/*"
 			],
-			"compile": {
+			"compile": [{
 				"output": "./dist/${{name}}.js"
-			}
+			}]
 		}
 	],
 	"static": [

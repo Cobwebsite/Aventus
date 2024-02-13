@@ -33,13 +33,14 @@ export class Client {
         this.client = new LanguageClient('Aventus', 'Aventus', serverOptions, this.createClientOption(context));
         this.client.onReady().then(() => {
             this.addNotification();
+            workspace.onDidChangeConfiguration(() => {
+                ReloadSettings.execute();
+            })
         })
         // Start the client. This will also launch the server
         context.subscriptions.push(this.client.start());
 
-        workspace.onDidChangeConfiguration(() => {
-            ReloadSettings.execute();
-        })
+       
     }
     public stop(): Thenable<void> | undefined {
         if (this.fileSystem) {

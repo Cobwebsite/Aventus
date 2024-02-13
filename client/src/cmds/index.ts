@@ -23,6 +23,7 @@ import { MergeComponent } from './MergeComponent';
 import { SplitComponent } from './SplitComponent';
 import { SharpExport } from './sharp/Export';
 import { ReloadSettings } from './ReloadSettings';
+import { CreateCSSVariable } from './webcomponent/CreateCSSVariable';
 
 
 export const Commands = {
@@ -33,6 +34,7 @@ export const Commands = {
         [BuildProject.cmd]: BuildProject,
         [StaticExport.cmd]: StaticExport,
         [AddConfigSection.cmd]: AddConfigSection,
+        [CreateCSSVariable.cmd]: CreateCSSVariable,
         [CreateAttribute.cmd]: CreateAttribute,
         [CreateProperty.cmd]: CreateProperty,
         [CreateWatch.cmd]: CreateWatch,

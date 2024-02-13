@@ -11,10 +11,9 @@
 				"./src/ram/*",
 				"./src/socket/*"
 			],
-			"compile": {
+			"compile": [{
 				"output": "./dist/${{name}}.js"
-			} 
-			
+			}]
 		}
 	],
 	"static": [

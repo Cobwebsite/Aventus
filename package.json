@@ -328,6 +328,10 @@
 				"title": "Aventus : Add Config Section"
 			},
 			{
+				"command": "aventus.wc.create.cssvar",
+				"title": "Aventus : Create style variable"
+			},
+			{
 				"command": "aventus.wc.create.attribute",
 				"title": "Aventus : Create attribute"
 			},
@@ -428,6 +432,10 @@
 			],
 			"editor/context": [
 				{
+					"when": "resourceFilename =~ /^.*\\.(wcs|wc).avt/",
+					"command": "aventus.wc.create.cssvar"
+				},
+				{
 					"when": "resourceFilename =~ /^.*\\.(wcl|wc).avt/",
 					"command": "aventus.wc.create.attribute"
 				},
@@ -505,6 +513,10 @@
 					"when": "editorTextFocus && resourceFilename == aventus.conf.avt"
 				},
 				{
+					"command": "aventus.wc.create.cssvar",
+					"when": "false"
+				},
+				{
 					"command": "aventus.wc.create.attribute",
 					"when": "editorTextFocus && resourceFilename =~ /^.*\\.(wcl|wc).avt/"
 				},
@@ -556,6 +568,12 @@
 				"key": "f5",
 				"mac": "f5",
 				"when": "editorTextFocus && resourceFilename =~ /^.*\\.avt/"
+			},
+			{
+				"command": "aventus.wc.create.cssvar",
+				"key": "ctrl+k ctrl+numpad1",
+				"mac": "cmd+f1",
+				"when": "editorTextFocus && resourceFilename =~ /^.*\\.(wcs).avt/"
 			},
 			{
 				"command": "aventus.wc.create.attribute",

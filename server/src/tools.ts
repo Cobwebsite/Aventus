@@ -227,21 +227,47 @@ export function getWordAtText(text: string, offset: number): { start: number; le
 
 export class Debug {
     private static timers: { [name: string]: number } = {}
+    private static timersCumulative: { [name: string]: number } = {}
 
     public static startTimer(name: string) {
-        this.timers[name] = new Date().getMilliseconds();
+        this.timers[name] = new Date().getTime();
+    }
+    public static startTimerCumluative(name: string) {
+        this.timers[name] = new Date().getTime();
+        if (!this.timersCumulative[name])
+            this.timersCumulative[name] = 0;
+    }
+    public static stopTimerCumluative(name: string) {
+        if (this.timers[name]) {
+            let diff = new Date().getTime() - this.timers[name];
+            this.timersCumulative[name] += diff;
+            delete this.timers[name]
+        }
+    }
+    public static printTimerCumluative(name: string, lvl: number, msg?: string) {
+        if (this.timersCumulative[name]) {
+            msg = msg ?? name + " : ";
+            for (let i = 0; i < lvl; i++) {
+                msg = "\t" + msg;
+            }
+            console.log(msg + "" + this.timersCumulative[name] + "ms");
+        }
     }
 
-    public static printTimer(name: string, msg?: string) {
+    public static printTimer(name: string, lvl: number, msg?: string) {
         if (this.timers[name]) {
-            let diff = new Date().getMilliseconds() - this.timers[name];
+            let diff = new Date().getTime() - this.timers[name];
             msg = msg ?? "";
+            for (let i = 0; i < lvl; i++) {
+                msg = "\t" + msg;
+            }
             console.log(msg + "" + diff + "ms");
         }
     }
-    public static stopTimer(name: string, print?: boolean, msg?: string) {
+    public static stopTimer(name: string, lvl: number = 0, print: boolean = true, msg?: string) {
         if (print) {
-            this.printTimer(name, msg);
+            if (!msg) msg = name + " : ";
+            this.printTimer(name, lvl, msg);
         }
         delete this.timers[name];
     }

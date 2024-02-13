@@ -4,6 +4,7 @@
 
 ### Bug Fixes
  - Correct Watcher to have right path on callback based on where subscribe is called
+ - Prevent exporting two times the same tags inside the same output file
 
 ### Features
  - Change templating by adding for and if inside wcv.avt
@@ -15,7 +16,7 @@
  - Replace global webcomponent style (.gwcs.avt) by a normal style file stating with a @
  - Support ./* and ../* inside the state manager
  - When creating *.wc.avt it does not create a folder
- 
+ - Add command to create variable inside *.wcs.avt
 
 
 ## 1.1.1 (2024-01-12)

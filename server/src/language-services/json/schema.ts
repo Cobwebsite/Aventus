@@ -144,7 +144,7 @@ export const AventusConfigSchema: JSONSchema = {
                         },
                         description: "List of html tag that mustn't be parsed by the html compiler"
                     },
-                    
+
                     "nodeModulesDir": {
                         type: ["string", "array"],
                         items: {
@@ -367,7 +367,8 @@ export const AventusSharpSchema: JSONSchema = {
                 variableRoutesName: { type: "string", default: "generatedHttpRoutes" },
                 uri: { type: "string", default: "", pattern: "^(?=\s*$)|^(\\/[a-zA-Z0-9_-]+?){1,}$" },
                 host: { type: "string", default: "https://localhost:5000", pattern: "^http(s)?:\\/\\/[a-zA-Z0-9_-]*?(:[0-9]{3,4})?$" },
-                parent: { type: "string", default: "Aventus.HttpRouter" }
+                parent: { type: "string", default: "Aventus.HttpRouter" },
+                namespace: { type: "string", default: "Routes" }
             }
         }
     },

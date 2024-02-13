@@ -37,6 +37,23 @@ import { DebugFileAdd } from '../notification/DebugFileAdd';
 
 export type BuildErrors = { file: string, title: string }[]
 
+type LocalCodeResult = {
+    codeNoNamespaceBefore: string[],
+    code: string[],
+    codeNoNamespaceAfter: string[],
+    doc: string[],
+    docNoNamespace: string[],
+    docInvisible: string[],
+    classesName: { [className: string]: { type: InfoType, isExported: boolean, convertibleName: string } },
+
+    stylesheets: { [name: string]: string },
+
+    codeRenderInJs: AventusPackageTsFileExport[],
+    codeNotRenderInJs: AventusPackageTsFileExportNoCode[],
+
+    htmlDoc: HTMLDoc
+};
+
 export class Build {
     public project: Project;
     private buildConfig: AventusConfigBuild;
@@ -162,21 +179,22 @@ export class Build {
         this.insideRebuildAll = true;
         // validate
         if (isInit) {
+            for (let uri in this.wcFiles) {
+                await this.wcFiles[uri].init();
+            }
             for (let uri in this.scssFiles) {
                 await this.scssFiles[uri].init();
                 await this.scssFiles[uri].validate();
             }
+
             for (let uri in this.htmlFiles) {
                 await this.htmlFiles[uri].init();
                 await this.htmlFiles[uri].validate();
             }
-            for (let uri in this.wcFiles) {
-                await this.wcFiles[uri].init();
-                await this.wcFiles[uri].validate();
-            }
             for (let uri in this.tsFiles) {
                 await this.tsFiles[uri].validate();
             }
+
         }
         else {
             for (let uri in this.scssFiles) {
@@ -185,9 +203,9 @@ export class Build {
             for (let uri in this.htmlFiles) {
                 await this.htmlFiles[uri].validate();
             }
-            for (let uri in this.wcFiles) {
-                await this.wcFiles[uri].validate();
-            }
+            // for (let uri in this.wcFiles) {
+            //     await this.wcFiles[uri].validate();
+            // }
             for (let uri in this.tsFiles) {
                 await this.tsFiles[uri].validate();
             }
@@ -213,6 +231,7 @@ export class Build {
         }
         else {
             await this._build();
+
         }
     }
     public async build() {
@@ -302,9 +321,10 @@ export class Build {
         let splittedNames = namespace.split(".");
         finalTxt += codeBefore.join(EOL) + EOL;
         if (code.length > 0) {
+            let baseName = '';
+
             finalTxt += "var " + splittedNames[0] + ";" + EOL;
             // create intermediate namespace
-            let baseName = '';
             for (let i = 0; i < splittedNames.length; i++) {
                 if (baseName != "") { baseName += '.' + splittedNames[i]; }
                 else { baseName = splittedNames[i] }
@@ -354,6 +374,7 @@ export class Build {
         }
         finalTxt += codeAfter.join(EOL) + EOL;
         finalTxt = finalTxt.trim() + EOL;
+
         return finalTxt;
     }
 
@@ -413,13 +434,7 @@ export class Build {
     /**
      * Write the code inside the exported .package.avt
      */
-    private writeBuildDocumentation(outputsPackage: string[], result: {
-        doc: string[],
-        docNoNamespace: string[],
-        docInvisible: string[],
-        htmlDoc: HTMLDoc,
-        stylesheets: { [name: string]: string }
-    }, srcInfo: {
+    private writeBuildDocumentation(outputsPackage: string[], result: LocalCodeResult, srcInfo: {
         namespace: string,
         available: AventusPackageTsFileExport[],
         existing: AventusPackageTsFileExportNoCode[]
@@ -429,12 +444,18 @@ export class Build {
 
         let finaltxtJs = "";
         finaltxtJs = "declare global {" + EOL;
-        finaltxtJs += "\tdeclare namespace " + this.buildConfig.module + "{" + EOL;
+        finaltxtJs += "\nnamespace " + this.buildConfig.module + "{" + EOL;
         finaltxtJs += result.doc.join(EOL) + EOL;
         finaltxtJs += "\t}";
         result.docNoNamespace.length > 0 ? (finaltxtJs += EOL + result.docNoNamespace.join(EOL) + EOL) : (finaltxtJs += EOL)
-        finaltxtJs += "}";
-        result.docInvisible.length > 0 ? (finaltxtJs += EOL + result.docInvisible.join(EOL) + EOL) : (finaltxtJs += EOL)
+        finaltxtJs += "}" + EOL;
+
+        if (result.docInvisible.length > 0) {
+            finaltxtJs += "declare module ___" + this.buildConfig.module + " {" + EOL;
+            finaltxtJs += result.docInvisible.join(EOL);
+            finaltxtJs += "}"
+        }
+        // result.docInvisible.length > 0 ? (finaltxtJs += EOL + result.docInvisible.join(EOL) + EOL) : (finaltxtJs += EOL)
 
         let finaltxt = "// " + this.buildConfig.fullname + ":" + this.buildConfig.version + EOL;
         finaltxt += "//#region js def //" + EOL + finaltxtJs;
@@ -474,23 +495,8 @@ export class Build {
     /**
      * Build the code for the current project after order
      */
-    private async buildLocalCode(toCompile: CompileTsResult[], namespace: string) {
-        let result: {
-            codeNoNamespaceBefore: string[],
-            code: string[],
-            codeNoNamespaceAfter: string[],
-            doc: string[],
-            docNoNamespace: string[],
-            docInvisible: string[],
-            classesName: { [className: string]: { type: InfoType, isExported: boolean, convertibleName: string } },
-
-            stylesheets: { [name: string]: string },
-
-            codeRenderInJs: AventusPackageTsFileExport[],
-            codeNotRenderInJs: AventusPackageTsFileExportNoCode[],
-
-            htmlDoc: HTMLDoc
-        } = {
+    private async buildLocalCode(toCompile: CompileTsResult[], namespace: string): Promise<LocalCodeResult> {
+        let result: LocalCodeResult = {
             codeNoNamespaceBefore: [],
             code: [],
             codeNoNamespaceAfter: [],
@@ -622,7 +628,7 @@ export class Build {
                     result.docNoNamespace.push(info.docVisible);
                 }
                 if (info.docInvisible != "") {
-                    result.doc.push(info.docInvisible);
+                    result.docInvisible.push(info.docInvisible);
                 }
                 addHTMLDoc(info, false);
             }
@@ -672,7 +678,7 @@ export class Build {
                     result.doc.push(info.docVisible);
                 }
                 if (info.docInvisible != "") {
-                    result.doc.push(info.docInvisible);
+                    result.docInvisible.push(info.docInvisible);
                 }
                 addHTMLDoc(info, true);
             }

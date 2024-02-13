@@ -26,6 +26,7 @@ import { ReceiveSelectMultiple } from "./ReceiveSelectMultiple";
 import { ImportTemplate } from "./file-system/ImportTemplate";
 import { SharpExport } from './sharp/Export';
 import { ReloadSettings } from './ReloadSettings';
+import { CreateCSSVariable } from './webcomponent/CreateCSSVariable';
 
 export const Commands = {
     allCommandes: {
@@ -40,6 +41,7 @@ export const Commands = {
         [SplitComponent.cmd]: SplitComponent,
         [StaticExport.cmd]: StaticExport,
         [AddConfigSection.cmd]: AddConfigSection,
+        [CreateCSSVariable.cmd]: CreateCSSVariable,
         [CreateAttribute.cmd]: CreateAttribute,
         [CreateProperty.cmd]: CreateProperty,
         [CreateWatch.cmd]: CreateWatch,

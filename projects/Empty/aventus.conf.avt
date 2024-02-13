@@ -7,9 +7,9 @@
 			"src": [
 				"./src/*"
 			],
-			"compile": {
+			"compile": [{
 				"output": "./dist/${{name}}.js"
-			}
+			}]
 		}
 	]
 }

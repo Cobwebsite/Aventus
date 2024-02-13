@@ -415,7 +415,7 @@ export class AventusWebcomponentCompiler {
                                     return;
                                 }
                             }
-                            
+
                             this.componentResult.dependances.push(dependance)
                         }
                     }

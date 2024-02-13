@@ -8,7 +8,6 @@ import { EditFile } from '../../notification/EditFile';
 import { GenericServer } from '../../GenericServer';
 import { SelectItem } from '../../IConnection';
 import { reorderList } from '../../tools';
-import { writeFileSync } from 'fs';
 
 export class CreateAttribute {
 	static cmd: string = "aventus.wc.create.attribute";
@@ -61,7 +60,6 @@ export class CreateAttribute {
 			let txt = begin + newTxt + end;
 			let newDocument = TextDocument.create(file.uri, AventusLanguageId.TypeScript, file.versionUser + 1, txt);
 			await (file as InternalAventusFile).triggerContentChange(newDocument);
-			writeFileSync(file.folderPath + "\\debug.ts", txt);
 			let textEdits = await (file as InternalAventusFile).getFormatting({
 				insertSpaces: true,
 				tabSize: 4

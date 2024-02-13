@@ -39,7 +39,7 @@ export class AventusHTMLFile extends AventusBaseFile {
     }
 
     public async init(): Promise<void> {
-        await this.compile();
+        await this.refreshFileParsed();
     }
     /**
      * return true if doc changed
@@ -112,6 +112,7 @@ export class AventusHTMLFile extends AventusBaseFile {
         return this.build.htmlLanguageService.onDefinition(this, position);
     }
     protected async onFormatting(file: AventusFile, range: Range, options: FormattingOptions): Promise<TextEdit[]> {
+        await this.compile();
         let replacements = await this.applyJsFormatting(range, options);
         return this.applyHtmlFormatting(file, range, options, replacements);
     }

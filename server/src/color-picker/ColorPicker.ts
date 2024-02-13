@@ -99,7 +99,7 @@ export class ColorPicker {
 			}
 			this.colorTxtList = colors;
 		}
-		let regex = new RegExp("(?<![\\w\\d.\"'&$-])("+ this.colorTxtList.join("|") +")(?![\\w\\d])", "gi");
+		let regex = new RegExp("(?<![\\w\\d.\"'&$-])("+ this.colorTxtList.join("|") +")(?![-\\w\\d])", "gi");
 		const matchesNamed = text.matchAll(regex);
 		if (matchesNamed) {
 			for (let match of matchesNamed) {

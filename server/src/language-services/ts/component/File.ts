@@ -104,7 +104,8 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                 if (!this.isCompiling) {
                     this.isCompiling = true;
                     this.recreateFileContent();
-                    this._compilationResult = new AventusWebcomponentCompiler(this, this.build).compile();
+                    let compiler = new AventusWebcomponentCompiler(this, this.build);
+                    this._compilationResult = compiler.compile();
                     this.build.scssLanguageService.addInternalDefinition(this.file.uri, this._compilationResult.scssDoc);
                     this.build.htmlLanguageService.addInternalDefinition(this.file.uri, this._compilationResult.htmlDoc, this);
                     this.isCompiling = false;
@@ -157,8 +158,11 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                 if (this.componentEnd >= 0) {
                     let v = this.file.documentUser.version + htmlVersion + 1 // use +1 to allow version to be bigger than 0 at start
                     let oldContent = this.file.documentUser.getText();
-                    newContent = oldContent.slice(0, this.componentEnd - 1) + "\n";
-
+                    let startLine = 1;
+                    while (["}", " ", "\t"].includes(oldContent[this.componentEnd - startLine])) {
+                        startLine++;
+                    }
+                    newContent = oldContent.slice(0, this.componentEnd - startLine);
                     this.viewMethodsInfo = [];
                     let returnAddedLength = 0;
 
@@ -196,7 +200,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                                     let diff = center - _for.start;
                                     let position = start + diff;
                                     let text = _for.loopTxt.slice(info.start - _for.start, info.end - _for.start)
-                                    let typeName = this.tsLanguageService.getType(this.file, position) ?? "any";
+                                    let typeName = this.tsLanguageService.getType(this, position) ?? "any";
                                     this.typeInfered[text] = typeName;
                                 }
 
@@ -223,7 +227,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                                     let center = Math.floor((info.start + info.end) / 2);
                                     let diff = center - edit.start;
                                     let position = start + diff;
-                                    let typeName = this.tsLanguageService.getType(this.file, position) ?? "any";
+                                    let typeName = this.tsLanguageService.getType(this, position) ?? "any";
                                     this.typeInfered[info.txt] = typeName;
                                 }
                             }
@@ -239,11 +243,11 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                         let parameters: string[] = getParameters(_for.variables);
 
                         let t = this._space;
-                        newContent += `${t}/** */\n${t}@NoCompile()\n${t}private ${_for.loopName}(${parameters.join(",")}): void {\n`;
+                        newContent += `\n${t}/** */\n${t}@NoCompile()\n${t}private ${_for.loopName}(${parameters.join(",")}): void {\n`;
                         let start = newContent.length;
                         newContent += _for.loopTxt + "\n";
                         let end = newContent.length;
-                        newContent += t + '}\n';
+                        newContent += t + '}';
 
                         const wrapper = function () {
                             let result: ViewMethodInfo = {
@@ -271,7 +275,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
 
 
                         if (!_for.isSimple) {
-                            newContent += `${t}/** */\n${t}private ${_for.complex.loopName}(${parameters.join(",")}) {\n
+                            newContent += `\n${t}/** */\n${t}private ${_for.complex.loopName}(${parameters.join(",")}) {\n
                                 ${_for.complex.init.join(";\n")}
                                 return {
                                     transform:() => {
@@ -320,11 +324,11 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
 
                         // TODO correct indentation
                         let t = this._space;
-                        newContent += `${t}/** */\n${t}private ${method.name}(${parameters.join(",")}): ${resultType} {\n`;
+                        newContent += `\n${t}/** */\n${t}private ${method.name}(${parameters.join(",")}): ${resultType} {\n`;
                         let start = newContent.length;
                         newContent += methodTxt + "\n";
                         let end = newContent.length;
-                        newContent += t + '}\n';
+                        newContent += t + '}';
 
 
                         const wrapper = function (rPos: number, returnLength: number) {
@@ -382,11 +386,11 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                             let parameters: string[] = getParameters(condition.variables);
                             // TODO correct indentation
                             let t = this._space;
-                            newContent += `${t}/** */\n${t}private ${condition.fctName}(${parameters.join(",")}): NotVoid {\n`;
+                            newContent += `\n${t}/** */\n${t}private ${condition.fctName}(${parameters.join(",")}): NotVoid {\n`;
                             let start = newContent.length;
                             newContent += conditionTxt + "\n";
                             let end = newContent.length;
-                            newContent += t + '}\n';
+                            newContent += t + '}';
 
                             const wrapper = function (rPos: number, returnLength: number) {
                                 let result: ViewMethodInfo = {
@@ -421,11 +425,11 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                         let parameters: string[] = getParameters(edit.variables);
 
                         let t = this._space;
-                        newContent += `${t}/** */\n${t}private ${edit.editName}(${parameters.join(",")}): { [key: string]: any } {\n`;
+                        newContent += `\n${t}/** */\n${t}private ${edit.editName}(${parameters.join(",")}): { [key: string]: any } {\n`;
                         let start = newContent.length;
                         newContent += edit.fctTs + "\n";
                         let end = newContent.length;
-                        newContent += t + '}\n';
+                        newContent += t + '}';
 
                         const wrapper = function () {
                             let result: ViewMethodInfo = {
@@ -480,11 +484,11 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
 
                         // TODO correct indentation
                         let t = this._space;
-                        newContent += `${t}/** */\n${t}private ${injection.injectFctName}(${parameters.join(",")}): NotVoid {\n`;
+                        newContent += `\n${t}/** */\n${t}private ${injection.injectFctName}(${parameters.join(",")}): NotVoid {\n`;
                         let start = newContent.length;
                         newContent += injectionTxt + "\n";
                         let end = newContent.length;
-                        newContent += t + '}\n';
+                        newContent += t + '}';
 
 
                         const wrapper = function (rPos: number, returnLength: number) {
@@ -544,14 +548,14 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
 
                         // TODO correct indentation
                         let t = this._space;
-                        newContent += `${t}/** */\n${t}private ${binding.extractFctName}(${parameters.join(",")}): void {\n`;
+                        newContent += `\n${t}/** */\n${t}private ${binding.extractFctName}(${parameters.join(",")}): void {\n`;
                         let start = newContent.length;
                         newContent += extractTxt + "\n";
                         let end = newContent.length;
-                        newContent += t + '}\n';
+                        newContent += t + '}';
                     }
 
-                    newContent += oldContent.slice(this.componentEnd - 1);
+                    newContent += oldContent.slice(this.componentEnd - startLine);
                     if (this.file instanceof InternalAventusFile) {
                         this.file.setDocumentInternal(TextDocument.create(this.file.documentUser.uri, this.file.documentUser.languageId, v, newContent));
                     }

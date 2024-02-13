@@ -1,7 +1,8 @@
 // Aventus@UI:1.0.0
 //#region js def //
 declare global {
-	declare namespace Aventus{
+
+namespace Aventus{
 class ProgressCircle extends Aventus.WebComponent implements Aventus.DefaultComponent {
     @Property((target: ProgressCircle) => {
         target.render();
