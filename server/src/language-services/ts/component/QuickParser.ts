@@ -32,6 +32,7 @@ export class QuickParser {
 	public writeHtml: boolean = false;
 	public writeTs: boolean = false;
 	private prefixes: string[];
+	private isAbstract: boolean = false;
 
 	private constructor(content: string, build: Build) {
 		this.currentNamespace.push(build.module);
@@ -79,6 +80,13 @@ export class QuickParser {
 		if (whiteSpaceBefore) {
 			this.whiteSpaceBefore = whiteSpaceBefore[0].length;
 		}
+		if (node.modifiers) {
+			for (let modifier of node.modifiers) {
+				if (modifier.kind == SyntaxKind.AbstractKeyword) {
+					this.isAbstract = true;
+				}
+			}
+		}
 		if (node.name && node.heritageClauses) {
 			let name = node.name;
 			for (let heritage of node.heritageClauses) {
@@ -103,13 +111,15 @@ export class QuickParser {
 										continue;
 									}
 
-									let tagNameDeco = TagNameDecorator.is(decorator)
-									if (tagNameDeco) {
-										this.tagName = tagNameDeco.tagName;
+									if (!this.isAbstract) {
+										let tagNameDeco = TagNameDecorator.is(decorator)
+										if (tagNameDeco) {
+											this.tagName = tagNameDeco.tagName;
+										}
 									}
 								}
 
-								if (this.tagName == null) {
+								if (!this.isAbstract && this.tagName == null) {
 									let splittedName = this.className.match(/([A-Z][a-z]*)|([0-9]+[a-z]*)/g);
 									if (splittedName) {
 										for (let i = 0; i < this.prefixes.length; i++) {

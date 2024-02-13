@@ -1,7 +1,8 @@
 import { RamError, RamErrorCode, ResultRamWithError } from "./Error.lib.avt";
 import type { IData } from "../data/IData.data.avt";
-import { VoidWithError } from "../tools/Error.lib.avt";
+import { ResultWithError, VoidWithError } from "../tools/Error.lib.avt";
 import { Json } from "../tools/Json.lib.avt";
+import { ActionGuard, Mutex } from "../tools/Mutex.lib.avt";
 
 export interface IRam { }
 export type KeysObject<T> = { [Key in keyof T]?: any; };
@@ -43,7 +44,7 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
      */
     protected records: Map<Index, RamItem<T>> = new Map();
 
-    protected getAllInPorgress: ((action: ResultRamWithError<Map<Index, RamItem<T>>>) => void)[] | undefined;
+    protected actionGuard: ActionGuard = new ActionGuard();
 
     protected constructor() {
         if(this.constructor == GenericRam) {
@@ -177,7 +178,7 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
     /**
      * Add element inside Ram or update it. The instance inside the ram is unique and ll never be replaced
      */
-    protected addOrUpdateData(item: KeysObject<T>, result: ResultRamWithError<RamItem<T>>): void {
+    protected addOrUpdateData(item: KeysObject<T>, result: ResultWithError<RamItem<T>>): void {
         try {
             let idWithError = this.getIdWithError(item);
             if(idWithError.success && idWithError.result !== undefined) {
@@ -292,22 +293,25 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
         }
         return undefined;
     }
+
     /**
      * Get an item by id if exist
      */
     public async getByIdWithError(id: Index): Promise<ResultRamWithError<RamItem<T>>> {
-        let action: ResultRamWithError<RamItem<T>> = new ResultRamWithError();
-        await this.beforeGetById(id, action);
-        if(action.success) {
-            if(this.records.has(id)) {
-                action.result = this.records.get(id);
-                await this.afterGetById(action);
+        return this.actionGuard.run(['getByIdWithError', id], async () => {
+            let action: ResultRamWithError<RamItem<T>> = new ResultRamWithError();
+            await this.beforeGetById(id, action);
+            if(action.success) {
+                if(this.records.has(id)) {
+                    action.result = this.records.get(id);
+                    await this.afterGetById(action);
+                }
+                else {
+                    action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't find the item " + id + " inside ram"));
+                }
             }
-            else {
-                action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't find the item " + id + " inside ram"));
-            }
-        }
-        return action;
+            return action;
+        });
     }
     /**
      * Trigger before getting an item by id
@@ -332,24 +336,26 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
      * Get multiple items by ids
      */
     public async getByIdsWithError(ids: Index[]): Promise<ResultRamWithError<RamItem<T>[]>> {
-        let action: ResultRamWithError<RamItem<T>[]> = new ResultRamWithError();
-        action.result = [];
-        await this.beforeGetByIds(ids, action);
-        if(action.success) {
-            for(let id of ids) {
-                let rec = this.records.get(id);
-                if(rec) {
-                    action.result.push(rec);
-                }
-                else {
-                    action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't find the item " + id + " inside ram"));
-                }
-            }
+        return this.actionGuard.run(['getByIdsWithError', ids], async () => {
+            let action: ResultRamWithError<RamItem<T>[]> = new ResultRamWithError();
+            action.result = [];
+            await this.beforeGetByIds(ids, action);
             if(action.success) {
-                await this.afterGetByIds(action);
+                for(let id of ids) {
+                    let rec = this.records.get(id);
+                    if(rec) {
+                        action.result.push(rec);
+                    }
+                    else {
+                        action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't find the item " + id + " inside ram"));
+                    }
+                }
+                if(action.success) {
+                    await this.afterGetByIds(action);
+                }
             }
-        }
-        return action;
+            return action;
+        });
     };
     /**
      * Trigger before getting a list of items by id
@@ -374,39 +380,19 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
      * Get all elements inside the Ram
      */
     public async getAllWithError(): Promise<ResultRamWithError<Map<Index, RamItem<T>>>> {
-        let action: ResultRamWithError<Map<Index, RamItem<T>>> = new ResultRamWithError();
-        if(!this.getAllInPorgress) {
-            this.getAllInPorgress = [];
+        return this.actionGuard.run(['getAllWithError'], async () => {
+            let action: ResultRamWithError<Map<Index, RamItem<T>>> = new ResultRamWithError();
             action.result = new Map();
             await this.beforeGetAll(action);
             if(action.success) {
                 action.result = this.records;
                 await this.afterGetAll(action);
             }
-            for(let cb of this.getAllInPorgress) {
-                cb(action);
-            }
-            this.getAllInPorgress = undefined;
-        }
-        else {
-            action = await this.getAllWaiting();
-        }
-
-        return action;
+            return action;
+        });
     };
 
-    private getAllWaiting(): Promise<ResultRamWithError<Map<Index, RamItem<T>>>> {
-        return new Promise<ResultRamWithError<Map<Index, RamItem<T>>>>((resolve, reject) => {
-            if(this.getAllInPorgress) {
-                this.getAllInPorgress.push((action) => {
-                    let actionTemp: ResultRamWithError<Map<Index, RamItem<T>>> = new ResultRamWithError();
-                    actionTemp.result = action.result;
-                    actionTemp.errors = action.errors;
-                    resolve(action);
-                });
-            }
-        });
-    }
+
     /**
      * Trigger before getting all items inside Ram
      */
@@ -496,29 +482,31 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
         return await this._create(item, false);
     }
     private async _create(item: T, fromList: boolean): Promise<ResultRamWithError<RamItem<T>>> {
-        let action: ResultRamWithError<RamItem<T>> = new ResultRamWithError();
-        await this.beforeCreateItem(item, fromList, action);
-        if(action.success) {
-            if(action.result) { item = action.result; }
-            let resultTemp = this.getIdWithError(item);
-            if(resultTemp.success) {
-                this.addOrUpdateData(item, action);
-                if(!action.success) {
-                    return action;
+        return this.actionGuard.run(['_create', item], async () => {
+            let action: ResultRamWithError<RamItem<T>> = new ResultRamWithError();
+            await this.beforeCreateItem(item, fromList, action);
+            if(action.success) {
+                if(action.result) { item = action.result; }
+                let resultTemp = this.getIdWithError(item);
+                if(resultTemp.success) {
+                    this.addOrUpdateData(item, action);
+                    if(!action.success) {
+                        return action;
+                    }
+                    await this.afterCreateItem(action, fromList);
+                    if(!action.success) {
+                        action.result = undefined;
+                    }
+                    else if(action.result) {
+                        this.publish('created', action.result);
+                    }
                 }
-                await this.afterCreateItem(action, fromList);
-                if(!action.success) {
-                    action.result = undefined;
-                }
-                else if(action.result) {
-                    this.publish('created', action.result);
+                else {
+                    action.errors = resultTemp.errors;
                 }
             }
-            else {
-                action.errors = resultTemp.errors;
-            }
-        }
-        return action;
+            return action;
+        });
     }
     /**
      * Trigger before creating a list of items
@@ -594,39 +582,41 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
         return await this._update(item, false);
     }
     private async _update(item: T, fromList: boolean): Promise<ResultRamWithError<RamItem<T>>> {
-        let action: ResultRamWithError<RamItem<T>> = new ResultRamWithError();
-        let resultTemp = await this.getIdWithError(item);
-        if(resultTemp.success && resultTemp.result !== undefined) {
-            let key = resultTemp.result;
-            if(this.records.has(key)) {
-                await this.beforeUpdateItem(item, fromList, action);
-                if(!action.success) {
-                    return action;
+        return this.actionGuard.run(['_update', item], async () => {
+            let action: ResultRamWithError<RamItem<T>> = new ResultRamWithError();
+            let resultTemp = await this.getIdWithError(item);
+            if(resultTemp.success && resultTemp.result !== undefined) {
+                let key = resultTemp.result;
+                if(this.records.has(key)) {
+                    await this.beforeUpdateItem(item, fromList, action);
+                    if(!action.success) {
+                        return action;
+                    }
+                    if(action.result) {
+                        item = action.result;
+                    }
+                    this.addOrUpdateData(item, action);
+                    if(!action.success) {
+                        return action;
+                    }
+                    await this.afterUpdateItem(action, fromList);
+                    if(!action.success) {
+                        action.result = undefined;
+                    }
+                    else if(action.result) {
+                        this.publish('updated', action.result);
+                    }
                 }
-                if(action.result) {
-                    item = action.result;
-                }
-                this.addOrUpdateData(item, action);
-                if(!action.success) {
-                    return action;
-                }
-                await this.afterUpdateItem(action, fromList);
-                if(!action.success) {
-                    action.result = undefined;
-                }
-                else if(action.result) {
-                    this.publish('updated', action.result);
+                else {
+                    action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't update the item " + key + " because it wasn't found inside ram"));
                 }
             }
             else {
-                action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't update the item " + key + " because it wasn't found inside ram"));
+                action.errors = resultTemp.errors;
             }
-        }
-        else {
-            action.errors = resultTemp.errors;
-        }
 
-        return action;
+            return action;
+        });
     };
     /**
      * Trigger before updating a list of items
@@ -724,37 +714,39 @@ export abstract class GenericRam<Index, T extends IData> implements IRam {
         return result;
     }
     private async _delete(item: T, fromList: boolean): Promise<ResultRamWithError<RamItem<T>>> {
-        let action: ResultRamWithError<RamItem<T>> = new ResultRamWithError();
-        let resultTemp = await this.getIdWithError(item);
-        if(resultTemp.success && resultTemp.result) {
-            let key = resultTemp.result;
-            let oldItem = this.records.get(key);
-            if(oldItem) {
-                let deleteResult = new VoidWithError();
-                await this.beforeDeleteItem(oldItem, fromList, deleteResult);
-                if(!deleteResult.success) {
-                    action.errors = deleteResult.errors;
-                    return action;
-                }
-                this.records.delete(key);
-                action.result = oldItem;
-                await this.afterDeleteItem(action, fromList);
-                if(!action.success) {
-                    action.result = undefined;
+        return this.actionGuard.run(['_delete', item], async () => {
+            let action: ResultRamWithError<RamItem<T>> = new ResultRamWithError();
+            let resultTemp = await this.getIdWithError(item);
+            if(resultTemp.success && resultTemp.result) {
+                let key = resultTemp.result;
+                let oldItem = this.records.get(key);
+                if(oldItem) {
+                    let deleteResult = new VoidWithError();
+                    await this.beforeDeleteItem(oldItem, fromList, deleteResult);
+                    if(!deleteResult.success) {
+                        action.errors = deleteResult.errors;
+                        return action;
+                    }
+                    this.records.delete(key);
+                    action.result = oldItem;
+                    await this.afterDeleteItem(action, fromList);
+                    if(!action.success) {
+                        action.result = undefined;
+                    }
+                    else {
+                        this.publish('deleted', action.result);
+                    }
+                    this.recordsSubscribers.delete(key);
                 }
                 else {
-                    this.publish('deleted', action.result);
+                    action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't delete the item " + key + " because it wasn't found inside ram"));
                 }
-                this.recordsSubscribers.delete(key);
             }
             else {
-                action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't delete the item " + key + " because it wasn't found inside ram"));
+                action.errors = resultTemp.errors;
             }
-        }
-        else {
-            action.errors = resultTemp.errors;
-        }
-        return action;
+            return action;
+        });
     }
     /**
      * Trigger before deleting a list of items

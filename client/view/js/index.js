@@ -274,36 +274,43 @@ const ElementExtension=class ElementExtension {
      * Get element inside slot
      */
     static getElementsInSlot(element, slotName) {
+        let result = [];
         if (element.shadowRoot) {
             let slotEl;
             if (slotName) {
                 slotEl = element.shadowRoot.querySelector('slot[name="' + slotName + '"]');
             }
             else {
-                slotEl = element.shadowRoot.querySelector("slot");
+                slotEl = element.shadowRoot.querySelector("slot:not([name])");
+                if (!slotEl) {
+                    slotEl = element.shadowRoot.querySelector("slot");
+                }
             }
             while (true) {
                 if (!slotEl) {
-                    return [];
+                    return result;
                 }
                 var listChild = Array.from(slotEl.assignedElements());
                 if (!listChild) {
-                    return [];
+                    return result;
                 }
                 let slotFound = false;
                 for (let i = 0; i < listChild.length; i++) {
+                    let child = listChild[i];
                     if (listChild[i].nodeName == "SLOT") {
                         slotEl = listChild[i];
                         slotFound = true;
-                        break;
+                    }
+                    else if (child instanceof HTMLElement) {
+                        result.push(child);
                     }
                 }
                 if (!slotFound) {
-                    return listChild;
+                    return result;
                 }
             }
         }
-        return [];
+        return result;
     }
     /**
      * Get deeper element inside dom at the position X and Y

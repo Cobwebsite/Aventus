@@ -5,6 +5,7 @@ import { TypeInfo } from './TypeInfo';
 import { ClassInfo } from './ClassInfo';
 import { InternalDecorator, InternalProtectedDecorator } from './decorators/InternalDecorator';
 import { BaseInfo } from './BaseInfo';
+import { AventusTsLanguageService } from '../LanguageService';
 
 type PropType = PropertyDeclaration | GetAccessorDeclaration | SetAccessorDeclaration;
 export class PropertyInfo {
@@ -32,10 +33,12 @@ export class PropertyInfo {
     public _class: ClassInfo;
     public accessibilityModifierTransformation?: { newText: string, start: number, end: number };
     public get compiledContent(): string {
-        return BaseInfo.getContent(this.content, this.start, this.end, this._class.dependancesLocations, this._class.compileTransformations);
+        let txt = BaseInfo.getContent(this.content, this.start, this.end, this._class.dependancesLocations, this._class.compileTransformations);
+		return txt;
     }
     public get compiledContentHotReload(): string {
-        return BaseInfo.getContentHotReload(this.content, this.start, this.end, this._class.dependancesLocations, this._class.compileTransformations);
+        let txt = BaseInfo.getContentHotReload(this.content, this.start, this.end, this._class.dependancesLocations, this._class.compileTransformations);
+		return txt;
     }
 
     public get defaultValue(): string |null {

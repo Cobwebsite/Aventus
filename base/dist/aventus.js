@@ -274,36 +274,43 @@ const ElementExtension=class ElementExtension {
      * Get element inside slot
      */
     static getElementsInSlot(element, slotName) {
+        let result = [];
         if (element.shadowRoot) {
             let slotEl;
             if (slotName) {
                 slotEl = element.shadowRoot.querySelector('slot[name="' + slotName + '"]');
             }
             else {
-                slotEl = element.shadowRoot.querySelector("slot");
+                slotEl = element.shadowRoot.querySelector("slot:not([name])");
+                if (!slotEl) {
+                    slotEl = element.shadowRoot.querySelector("slot");
+                }
             }
             while (true) {
                 if (!slotEl) {
-                    return [];
+                    return result;
                 }
                 var listChild = Array.from(slotEl.assignedElements());
                 if (!listChild) {
-                    return [];
+                    return result;
                 }
                 let slotFound = false;
                 for (let i = 0; i < listChild.length; i++) {
+                    let child = listChild[i];
                     if (listChild[i].nodeName == "SLOT") {
                         slotEl = listChild[i];
                         slotFound = true;
-                        break;
+                    }
+                    else if (child instanceof HTMLElement) {
+                        result.push(child);
                     }
                 }
                 if (!slotFound) {
-                    return listChild;
+                    return result;
                 }
             }
         }
-        return [];
+        return result;
     }
     /**
      * Get deeper element inside dom at the position X and Y
@@ -3896,36 +3903,43 @@ const ElementExtension=class ElementExtension {
      * Get element inside slot
      */
     static getElementsInSlot(element, slotName) {
+        let result = [];
         if (element.shadowRoot) {
             let slotEl;
             if (slotName) {
                 slotEl = element.shadowRoot.querySelector('slot[name="' + slotName + '"]');
             }
             else {
-                slotEl = element.shadowRoot.querySelector("slot");
+                slotEl = element.shadowRoot.querySelector("slot:not([name])");
+                if (!slotEl) {
+                    slotEl = element.shadowRoot.querySelector("slot");
+                }
             }
             while (true) {
                 if (!slotEl) {
-                    return [];
+                    return result;
                 }
                 var listChild = Array.from(slotEl.assignedElements());
                 if (!listChild) {
-                    return [];
+                    return result;
                 }
                 let slotFound = false;
                 for (let i = 0; i < listChild.length; i++) {
+                    let child = listChild[i];
                     if (listChild[i].nodeName == "SLOT") {
                         slotEl = listChild[i];
                         slotFound = true;
-                        break;
+                    }
+                    else if (child instanceof HTMLElement) {
+                        result.push(child);
                     }
                 }
                 if (!slotFound) {
-                    return listChild;
+                    return result;
                 }
             }
         }
-        return [];
+        return result;
     }
     /**
      * Get deeper element inside dom at the position X and Y
@@ -4081,6 +4095,63 @@ const Mutex=class Mutex {
 }
 Mutex.Namespace=`${moduleName}`;
 _.Mutex=Mutex;
+const ActionGuard=class ActionGuard {
+    /**
+     * Map to store actions that are currently running.
+     * @type {Map<any[], ((res: any) => void)[]>}
+     * @private
+     */
+    runningAction = new Map();
+    /**
+     * Executes an action uniquely based on the specified keys.
+     * @template T
+     * @param {any[]} keys - The keys associated with the action.
+     * @param {() => Promise<T>} action - The action to execute.
+     * @returns {Promise<T>} A promise that resolves with the result of the action.
+     * @example
+     *
+     *
+     * const actionGuard = new Aventus.ActionGuard();
+     *
+     *
+     * const keys = ["key1", "key2"];
+     *
+     *
+     * const action = async () => {
+     *
+     *     await new Promise(resolve => setTimeout(resolve, 1000));
+     *     return "Action executed";
+     * };
+     *
+     *
+     * await actionGuard.run(keys, action)
+     *
+     */
+    run(keys, action) {
+        return new Promise(async (resolve) => {
+            let actions = this.runningAction.get(keys);
+            if (actions) {
+                actions.push((res) => {
+                    resolve(res);
+                });
+            }
+            else {
+                this.runningAction.set(keys, []);
+                let res = await action();
+                let actions = this.runningAction.get(keys);
+                if (actions) {
+                    for (let action of actions) {
+                        action(res);
+                    }
+                }
+                this.runningAction.delete(keys);
+                resolve(res);
+            }
+        });
+    }
+}
+ActionGuard.Namespace=`${moduleName}`;
+_.ActionGuard=ActionGuard;
 var RamErrorCode;
 (function (RamErrorCode) {
     RamErrorCode[RamErrorCode["unknow"] = 0] = "unknow";
@@ -4857,6 +4928,30 @@ const VoidWithError=class VoidWithError {
      * List of errors
      */
     errors = [];
+    toGeneric() {
+        const result = new VoidWithError();
+        result.errors = this.errors;
+        return result;
+    }
+    containsCode(code, type) {
+        if (type) {
+            for (let error of this.errors) {
+                if (error instanceof type) {
+                    if (error.code == code) {
+                        return true;
+                    }
+                }
+            }
+        }
+        else {
+            for (let error of this.errors) {
+                if (error.code == code) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 }
 VoidWithError.Namespace=`${moduleName}`;
 _.VoidWithError=VoidWithError;
@@ -4963,6 +5058,12 @@ const ResultWithError=class ResultWithError extends VoidWithError {
      * Result
      */
     result;
+    toGeneric() {
+        const result = new ResultWithError();
+        result.errors = this.errors;
+        result.result = this.result;
+        return result;
+    }
 }
 ResultWithError.Namespace=`${moduleName}`;
 _.ResultWithError=ResultWithError;
@@ -7124,7 +7225,7 @@ const GenericRam=class GenericRam {
      * List of stored item by index key
      */
     records = new Map();
-    getAllInPorgress;
+    actionGuard = new ActionGuard();
     constructor() {
         if (this.constructor == GenericRam) {
             throw "can't instanciate an abstract class";
@@ -7355,18 +7456,20 @@ const GenericRam=class GenericRam {
      * Get an item by id if exist
      */
     async getByIdWithError(id) {
-        let action = new ResultRamWithError();
-        await this.beforeGetById(id, action);
-        if (action.success) {
-            if (this.records.has(id)) {
-                action.result = this.records.get(id);
-                await this.afterGetById(action);
+        return this.actionGuard.run(['getByIdWithError', id], async () => {
+            let action = new ResultRamWithError();
+            await this.beforeGetById(id, action);
+            if (action.success) {
+                if (this.records.has(id)) {
+                    action.result = this.records.get(id);
+                    await this.afterGetById(action);
+                }
+                else {
+                    action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't find the item " + id + " inside ram"));
+                }
             }
-            else {
-                action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't find the item " + id + " inside ram"));
-            }
-        }
-        return action;
+            return action;
+        });
     }
     /**
      * Trigger before getting an item by id
@@ -7393,24 +7496,26 @@ const GenericRam=class GenericRam {
      * Get multiple items by ids
      */
     async getByIdsWithError(ids) {
-        let action = new ResultRamWithError();
-        action.result = [];
-        await this.beforeGetByIds(ids, action);
-        if (action.success) {
-            for (let id of ids) {
-                let rec = this.records.get(id);
-                if (rec) {
-                    action.result.push(rec);
-                }
-                else {
-                    action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't find the item " + id + " inside ram"));
-                }
-            }
+        return this.actionGuard.run(['getByIdsWithError', ids], async () => {
+            let action = new ResultRamWithError();
+            action.result = [];
+            await this.beforeGetByIds(ids, action);
             if (action.success) {
-                await this.afterGetByIds(action);
+                for (let id of ids) {
+                    let rec = this.records.get(id);
+                    if (rec) {
+                        action.result.push(rec);
+                    }
+                    else {
+                        action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't find the item " + id + " inside ram"));
+                    }
+                }
+                if (action.success) {
+                    await this.afterGetByIds(action);
+                }
             }
-        }
-        return action;
+            return action;
+        });
     }
     ;
     /**
@@ -7438,38 +7543,18 @@ const GenericRam=class GenericRam {
      * Get all elements inside the Ram
      */
     async getAllWithError() {
-        let action = new ResultRamWithError();
-        if (!this.getAllInPorgress) {
-            this.getAllInPorgress = [];
+        return this.actionGuard.run(['getAllWithError'], async () => {
+            let action = new ResultRamWithError();
             action.result = new Map();
             await this.beforeGetAll(action);
             if (action.success) {
                 action.result = this.records;
                 await this.afterGetAll(action);
             }
-            for (let cb of this.getAllInPorgress) {
-                cb(action);
-            }
-            this.getAllInPorgress = undefined;
-        }
-        else {
-            action = await this.getAllWaiting();
-        }
-        return action;
-    }
-    ;
-    getAllWaiting() {
-        return new Promise((resolve, reject) => {
-            if (this.getAllInPorgress) {
-                this.getAllInPorgress.push((action) => {
-                    let actionTemp = new ResultRamWithError();
-                    actionTemp.result = action.result;
-                    actionTemp.errors = action.errors;
-                    resolve(action);
-                });
-            }
+            return action;
         });
     }
+    ;
     /**
      * Trigger before getting all items inside Ram
      */
@@ -7558,31 +7643,33 @@ const GenericRam=class GenericRam {
         return await this._create(item, false);
     }
     async _create(item, fromList) {
-        let action = new ResultRamWithError();
-        await this.beforeCreateItem(item, fromList, action);
-        if (action.success) {
-            if (action.result) {
-                item = action.result;
-            }
-            let resultTemp = this.getIdWithError(item);
-            if (resultTemp.success) {
-                this.addOrUpdateData(item, action);
-                if (!action.success) {
-                    return action;
+        return this.actionGuard.run(['_create', item], async () => {
+            let action = new ResultRamWithError();
+            await this.beforeCreateItem(item, fromList, action);
+            if (action.success) {
+                if (action.result) {
+                    item = action.result;
                 }
-                await this.afterCreateItem(action, fromList);
-                if (!action.success) {
-                    action.result = undefined;
+                let resultTemp = this.getIdWithError(item);
+                if (resultTemp.success) {
+                    this.addOrUpdateData(item, action);
+                    if (!action.success) {
+                        return action;
+                    }
+                    await this.afterCreateItem(action, fromList);
+                    if (!action.success) {
+                        action.result = undefined;
+                    }
+                    else if (action.result) {
+                        this.publish('created', action.result);
+                    }
                 }
-                else if (action.result) {
-                    this.publish('created', action.result);
+                else {
+                    action.errors = resultTemp.errors;
                 }
             }
-            else {
-                action.errors = resultTemp.errors;
-            }
-        }
-        return action;
+            return action;
+        });
     }
     /**
      * Trigger before creating a list of items
@@ -7660,38 +7747,40 @@ const GenericRam=class GenericRam {
         return await this._update(item, false);
     }
     async _update(item, fromList) {
-        let action = new ResultRamWithError();
-        let resultTemp = await this.getIdWithError(item);
-        if (resultTemp.success && resultTemp.result !== undefined) {
-            let key = resultTemp.result;
-            if (this.records.has(key)) {
-                await this.beforeUpdateItem(item, fromList, action);
-                if (!action.success) {
-                    return action;
+        return this.actionGuard.run(['_update', item], async () => {
+            let action = new ResultRamWithError();
+            let resultTemp = await this.getIdWithError(item);
+            if (resultTemp.success && resultTemp.result !== undefined) {
+                let key = resultTemp.result;
+                if (this.records.has(key)) {
+                    await this.beforeUpdateItem(item, fromList, action);
+                    if (!action.success) {
+                        return action;
+                    }
+                    if (action.result) {
+                        item = action.result;
+                    }
+                    this.addOrUpdateData(item, action);
+                    if (!action.success) {
+                        return action;
+                    }
+                    await this.afterUpdateItem(action, fromList);
+                    if (!action.success) {
+                        action.result = undefined;
+                    }
+                    else if (action.result) {
+                        this.publish('updated', action.result);
+                    }
                 }
-                if (action.result) {
-                    item = action.result;
-                }
-                this.addOrUpdateData(item, action);
-                if (!action.success) {
-                    return action;
-                }
-                await this.afterUpdateItem(action, fromList);
-                if (!action.success) {
-                    action.result = undefined;
-                }
-                else if (action.result) {
-                    this.publish('updated', action.result);
+                else {
+                    action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't update the item " + key + " because it wasn't found inside ram"));
                 }
             }
             else {
-                action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't update the item " + key + " because it wasn't found inside ram"));
+                action.errors = resultTemp.errors;
             }
-        }
-        else {
-            action.errors = resultTemp.errors;
-        }
-        return action;
+            return action;
+        });
     }
     ;
     /**
@@ -7793,37 +7882,39 @@ const GenericRam=class GenericRam {
         return result;
     }
     async _delete(item, fromList) {
-        let action = new ResultRamWithError();
-        let resultTemp = await this.getIdWithError(item);
-        if (resultTemp.success && resultTemp.result) {
-            let key = resultTemp.result;
-            let oldItem = this.records.get(key);
-            if (oldItem) {
-                let deleteResult = new VoidWithError();
-                await this.beforeDeleteItem(oldItem, fromList, deleteResult);
-                if (!deleteResult.success) {
-                    action.errors = deleteResult.errors;
-                    return action;
-                }
-                this.records.delete(key);
-                action.result = oldItem;
-                await this.afterDeleteItem(action, fromList);
-                if (!action.success) {
-                    action.result = undefined;
+        return this.actionGuard.run(['_delete', item], async () => {
+            let action = new ResultRamWithError();
+            let resultTemp = await this.getIdWithError(item);
+            if (resultTemp.success && resultTemp.result) {
+                let key = resultTemp.result;
+                let oldItem = this.records.get(key);
+                if (oldItem) {
+                    let deleteResult = new VoidWithError();
+                    await this.beforeDeleteItem(oldItem, fromList, deleteResult);
+                    if (!deleteResult.success) {
+                        action.errors = deleteResult.errors;
+                        return action;
+                    }
+                    this.records.delete(key);
+                    action.result = oldItem;
+                    await this.afterDeleteItem(action, fromList);
+                    if (!action.success) {
+                        action.result = undefined;
+                    }
+                    else {
+                        this.publish('deleted', action.result);
+                    }
+                    this.recordsSubscribers.delete(key);
                 }
                 else {
-                    this.publish('deleted', action.result);
+                    action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't delete the item " + key + " because it wasn't found inside ram"));
                 }
-                this.recordsSubscribers.delete(key);
             }
             else {
-                action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't delete the item " + key + " because it wasn't found inside ram"));
+                action.errors = resultTemp.errors;
             }
-        }
-        else {
-            action.errors = resultTemp.errors;
-        }
-        return action;
+            return action;
+        });
     }
     /**
      * Trigger before deleting a list of items

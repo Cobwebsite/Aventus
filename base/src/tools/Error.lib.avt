@@ -30,6 +30,33 @@ export class VoidWithError<T extends GenericError = GenericError> {
      * List of errors
      */
     public errors: T[] = [];
+
+
+    public toGeneric(): VoidWithError {
+        const result = new VoidWithError();
+        result.errors = this.errors;
+        return result;
+    }
+
+    public containsCode<U extends GenericError<any>, T extends (number | Enum)>(code: EnumValue<T>, type?: new (...args) => U): boolean {
+        if(type) {
+            for(let error of this.errors) {
+                if(error instanceof type) {
+                    if(error.code == code) {
+                        return true;
+                    }
+                }
+            }
+        }
+        else {
+            for(let error of this.errors) {
+                if(error.code == code) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 }
 export class ResultWithError<U, T extends GenericError = GenericError> extends VoidWithError<T> {
 
@@ -37,4 +64,11 @@ export class ResultWithError<U, T extends GenericError = GenericError> extends V
      * Result
      */
     public result: U | undefined;
+
+    public override toGeneric(): ResultWithError<U> {
+        const result: ResultWithError<U> = new ResultWithError();
+        result.errors = this.errors;
+        result.result = this.result;
+        return result;
+    }
 }

@@ -256,6 +256,9 @@ export class NpmBuilder {
 			})
 		}
 
+		response.result = resultTxt;
+		return response
+
 		var code = {
 			"file1.js": resultTxt
 		}

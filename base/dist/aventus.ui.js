@@ -274,36 +274,43 @@ const ElementExtension=class ElementExtension {
      * Get element inside slot
      */
     static getElementsInSlot(element, slotName) {
+        let result = [];
         if (element.shadowRoot) {
             let slotEl;
             if (slotName) {
                 slotEl = element.shadowRoot.querySelector('slot[name="' + slotName + '"]');
             }
             else {
-                slotEl = element.shadowRoot.querySelector("slot");
+                slotEl = element.shadowRoot.querySelector("slot:not([name])");
+                if (!slotEl) {
+                    slotEl = element.shadowRoot.querySelector("slot");
+                }
             }
             while (true) {
                 if (!slotEl) {
-                    return [];
+                    return result;
                 }
                 var listChild = Array.from(slotEl.assignedElements());
                 if (!listChild) {
-                    return [];
+                    return result;
                 }
                 let slotFound = false;
                 for (let i = 0; i < listChild.length; i++) {
+                    let child = listChild[i];
                     if (listChild[i].nodeName == "SLOT") {
                         slotEl = listChild[i];
                         slotFound = true;
-                        break;
+                    }
+                    else if (child instanceof HTMLElement) {
+                        result.push(child);
                     }
                 }
                 if (!slotFound) {
-                    return listChild;
+                    return result;
                 }
             }
         }
-        return [];
+        return result;
     }
     /**
      * Get deeper element inside dom at the position X and Y
@@ -5582,10 +5589,27 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
     onWheel(e) {
         const DELTA_MODE = [1.0, 28.0, 500.0];
         const mode = DELTA_MODE[e.deltaMode] || DELTA_MODE[0];
-        this.addDelta({
-            x: e.deltaX * mode,
+        let newValue = {
+            x: 0,
             y: e.deltaY * mode,
-        });
+        };
+        if (!this.y_scroll && this.x_scroll) {
+            newValue = {
+                x: e.deltaY * mode,
+                y: 0,
+            };
+            if ((newValue.x > 0 && this.x != this.max.x) ||
+                (newValue.x <= 0 && this.x != 0)) {
+                e.stopPropagation();
+            }
+        }
+        else {
+            if ((newValue.y > 0 && this.y != this.max.y) ||
+                (newValue.y <= 0 && this.y != 0)) {
+                e.stopPropagation();
+            }
+        }
+        this.addDelta(newValue);
     }
     onTouchStart(e) {
         this.touchRecord.track(e);

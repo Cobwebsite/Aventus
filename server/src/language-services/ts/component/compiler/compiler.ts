@@ -237,7 +237,9 @@ export class AventusWebcomponentCompiler {
             this.addViewElementToDependance();
             this.writeFile();
 
-            this.componentResult.tagName = this.tagName;
+            if (!this.classInfo.isAbstract && !this.classInfo.isInterface) {
+                this.componentResult.tagName = this.tagName;
+            }
             this.componentResult.compiled = this.template.replace("//todelete for hmr °", "");
             if (HttpServer.isRunning) {
                 this.componentResult.hotReload = this.templateHotReload.split("//todelete for hmr °")[0];

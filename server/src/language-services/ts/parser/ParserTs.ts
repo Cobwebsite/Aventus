@@ -18,7 +18,8 @@ import {
     NamespaceImport,
     Identifier,
     VariableStatement,
-    VariableDeclaration
+    VariableDeclaration,
+    SourceFile
 } from "typescript";
 import { Diagnostic, DiagnosticSeverity, Range } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -154,6 +155,7 @@ export class ParserTs {
     public isReady: boolean = false;
     public build: Build;
     private file: AventusFile;
+    public srcFile: SourceFile;
 
     private constructor(file: AventusFile, isLib: boolean, build: Build) {
         this.build = build;
@@ -169,6 +171,7 @@ export class ParserTs {
         this._document = file.documentInternal;
         this.isLib = isLib;
         let srcFile = createSourceFile("sample.ts", this.content, ScriptTarget.ESNext, true);
+        this.srcFile = srcFile;
         this.quickLoadRoot(srcFile);
         this.loadRoot(srcFile);
         ParserTs.parsingDocs.pop();

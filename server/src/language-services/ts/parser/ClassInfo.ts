@@ -4,6 +4,7 @@ import { MethodInfo } from "./MethodInfo";
 import { ParserTs } from "./ParserTs";
 import { PropertyInfo } from "./PropertyInfo";
 import { ConvertibleDecorator } from './decorators/ConvertibleDecorator';
+import { AventusTsLanguageService } from '../LanguageService';
 
 
 export class ClassInfo extends BaseInfo {
@@ -26,7 +27,8 @@ export class ClassInfo extends BaseInfo {
 			return "";
 		}
 		let txt = this.constructorBody.getText();
-		return BaseInfo.getContent(txt, this.constructorBody.getStart(), this.constructorBody.getEnd(), this.dependancesLocations, this.compileTransformations);
+		txt = BaseInfo.getContent(txt, this.constructorBody.getStart(), this.constructorBody.getEnd(), this.dependancesLocations, this.compileTransformations);
+		return txt;
 	}
 
 	public get constructorContentHotReload(): string {
@@ -34,7 +36,8 @@ export class ClassInfo extends BaseInfo {
 			return "";
 		}
 		let txt = this.constructorBody.getText();
-		return BaseInfo.getContentHotReload(txt, this.constructorBody.getStart(), this.constructorBody.getEnd(), this.dependancesLocations, this.compileTransformations);
+		txt = BaseInfo.getContentHotReload(txt, this.constructorBody.getStart(), this.constructorBody.getEnd(), this.dependancesLocations, this.compileTransformations);
+		return txt;
 	}
 
 	constructor(node: ClassDeclaration | InterfaceDeclaration, namespaces: string[], parserInfo: ParserTs) {
@@ -122,11 +125,7 @@ export class ClassInfo extends BaseInfo {
 				this.methodParameters = [];
 				result = methodInfo;
 			}
-			else if (this.debug) {
-				console.log(SyntaxKind[x.kind]);
-				console.log(x.getText());
-			}
-
+			
 
 
 			if (result) {

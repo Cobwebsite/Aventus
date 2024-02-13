@@ -57,7 +57,6 @@ export class FilesManager {
             content = readFileSync(currentPath, 'utf8');
         }
         else {
-            // TODO check if side effects
             this.onDeletedUri(uri);
             return;
         }

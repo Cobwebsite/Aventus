@@ -1,6 +1,6 @@
 import { EOL } from 'os';
 import { normalize, sep } from 'path';
-import { CodeFixAction, CompilerOptions, CompletionInfo, createLanguageService, Diagnostic as DiagnosticTs, displayPartsToString, Extension, flattenDiagnosticMessageText, FormatCodeSettings, GetCompletionsAtPositionOptions, IndentStyle, JsxEmit, LanguageService, LanguageServiceHost, ModuleDetectionKind, ModuleResolutionKind, RenameInfo, ResolvedModule, ResolvedModuleFull, resolveModuleName, ScriptKind, ScriptTarget, SemicolonPreference, transpile, WithMetadata, UserPreferences, getTokenAtPosition } from 'typescript';
+import { CodeFixAction, CompilerOptions, CompletionInfo, createLanguageService, Diagnostic as DiagnosticTs, displayPartsToString, Extension, flattenDiagnosticMessageText, FormatCodeSettings, GetCompletionsAtPositionOptions, IndentStyle, JsxEmit, LanguageService, LanguageServiceHost, ModuleDetectionKind, ModuleResolutionKind, RenameInfo, ResolvedModule, ResolvedModuleFull, resolveModuleName, ScriptKind, ScriptTarget, SemicolonPreference, transpile, WithMetadata, UserPreferences, getTokenAtPosition, createSourceFile, isTypeReferenceNode, SourceFile } from 'typescript';
 import { CodeAction, CodeLens, CompletionItem, CompletionItemKind, CompletionList, Definition, Diagnostic, DiagnosticSeverity, DiagnosticTag, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver';
 import { AventusExtension, AventusLanguageId } from '../../definition';
 import { AventusFile } from '../../files/AventusFile';
@@ -401,17 +401,39 @@ export class AventusTsLanguageService {
         return null;
     }
 
-    public getType(file: AventusFile, offset: number): string | undefined {
+    public getType(tsFile: AventusTsFile, offset: number): string | undefined {
         try {
             let program = this.languageService.getProgram();
             if (!program) return undefined;
 
-            let srcFile = program.getSourceFile(file.uri);
+            let srcFile = program.getSourceFile(tsFile.file.uri);
             if (!srcFile) return undefined;
+            let typeChecker = program.getTypeChecker();
+
             let node = getTokenAtPosition(srcFile, offset);
-            let typeChecker = program.getTypeChecker()
             let type = typeChecker.getTypeAtLocation(node);
-            let typeName = typeChecker.typeToString(type)
+            let typeName = typeChecker.typeToString(type);
+            if (typeName.includes(".")) {
+                //its an external type => we can return
+                return typeName;
+            }
+            if (tsFile.fileParsed) {
+                // we must check type alias inside imports
+                for (let importName in tsFile.fileParsed.imports) {
+                    if (importName == typeName) {
+                        return typeName;
+                    }
+                    let importInfo = tsFile.fileParsed.imports[importName];
+                    if (importInfo.realName === undefined) {
+                        let nodeImported = getTokenAtPosition(srcFile, (importInfo.nameEnd + importInfo.nameStart) / 2);
+                        let typeImported = typeChecker.getTypeAtLocation(nodeImported);
+                        importInfo.realName = typeChecker.typeToString(typeImported);
+                    }
+                    if (typeName == importInfo.realName) {
+                        return importName;
+                    }
+                }
+            }
             return typeName;
         } catch (e) {
             this.printCatchError(e);
@@ -805,8 +827,9 @@ export class AventusTsLanguageService {
                     return type.value;
                 }
                 else {
-                    if (classInfo.parserInfo.imports[type.value]) {
-                        return '"+moduleName+".' + classInfo.parserInfo.imports[type.value].fullName;
+                    let importInfo = classInfo.parserInfo.imports[type.value]?.info
+                    if (importInfo) {
+                        return '"+moduleName+".' + importInfo.fullName;
                     }
                     return type.value;
                 }
@@ -826,11 +849,12 @@ export class AventusTsLanguageService {
                 let foreignKey = ForeignKeyDecorator.is(decorator);
                 if (foreignKey) {
                     found = true;
+                    let importInfo = classInfo.parserInfo.imports[foreignKey.refType]?.info;
                     if (foreignKey.refType.includes(".")) {
                         template[propName] = 'ref:' + foreignKey.refType;
                     }
-                    else if (classInfo.parserInfo.imports[foreignKey.refType]) {
-                        template[propName] = 'ref:"+moduleName+".' + classInfo.parserInfo.imports[foreignKey.refType].fullName;
+                    else if (importInfo) {
+                        template[propName] = 'ref:"+moduleName+".' + importInfo.fullName;
                     }
                     else {
                         template[propName] = 'ref:' + foreignKey.refType;
@@ -846,7 +870,7 @@ export class AventusTsLanguageService {
         }
         return JSON.stringify(template).replace(/\\"/g, '"');
     }
-
+    
     private static addBindThis(element: ClassInfo, txt: string) {
         let extraConstructorCode: string[] = [];
         for (let methodName in element.methods) {
@@ -933,13 +957,11 @@ export class AventusTsLanguageService {
             }
             let doc = DefinitionCorrector.correct(this.compileDocTs(txt), element);
 
-            let namespaceTxt = element.namespace;
-            if (namespaceTxt.length > 0 && element.isExported) {
-                if (doc.length > 0) {
-                    result.docVisible = "namespace " + namespaceTxt + " {\r\n" + doc + "}\r\n";
+            if (doc.length > 0) {
+                let namespaceTxt = element.namespace;
+                if (namespaceTxt.length > 0) {
+                    doc = "namespace " + namespaceTxt + " {\r\n" + doc + "}\r\n";
                 }
-            }
-            else {
                 if (element.isExported) {
                     result.docVisible = doc;
                 }
@@ -1300,11 +1322,6 @@ function simplifyPath(importPathTxt, currentPath) {
     currentDir.pop();
     let currentDirPath = normalize(currentDir.join("/")).split(sep);
     let finalImportPath = normalize(currentDir.join("/") + "/" + importPathTxt);
-    // TODO: use by WC but maybe we can remove it later
-    // let finalImportPathComponent = finalImportPath.replace(AventusExtension.ComponentLogic, AventusExtension.Component);
-    // if (wcMode.getDocumentByUri(pathToUri(finalImportPathComponent))) {
-    //     finalImportPath = finalImportPathComponent;
-    // }
     let importPath = finalImportPath.split(sep);
     for (let i = 0; i < currentDirPath.length; i++) {
         if (importPath.length > i) {
