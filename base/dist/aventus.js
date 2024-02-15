@@ -6622,6 +6622,12 @@ const Watcher=class Watcher {
                         this.useHistory = false;
                     };
                 }
+                else if (prop == "getTarget") {
+                    return () => {
+                        clearReservedNames(target);
+                        return target;
+                    };
+                }
                 else if (prop == "toJSON") {
                     if (Array.isArray(target)) {
                         return () => {
@@ -7256,6 +7262,16 @@ const GenericRam=class GenericRam {
         throw 'no key found for item';
     }
     /**
+     * Prevent adding Watch element
+     */
+    removeWatch(element) {
+        let byPass = element;
+        if (byPass.__isProxy) {
+            return byPass.getTarget();
+        }
+        return element;
+    }
+    /**
      * Add function update, onUpdate, offUpdate, delete, onDelete, offDelete
      */
     addRamAction(Base) {
@@ -7604,6 +7620,7 @@ const GenericRam=class GenericRam {
      * Create a list of items inside ram
      */
     async createListWithError(list) {
+        list = this.removeWatch(list);
         let action = new ResultRamWithError();
         action.result = [];
         await this.beforeCreateList(list, action);
@@ -7643,6 +7660,7 @@ const GenericRam=class GenericRam {
         return await this._create(item, false);
     }
     async _create(item, fromList) {
+        item = this.removeWatch(item);
         return this.actionGuard.run(['_create', item], async () => {
             let action = new ResultRamWithError();
             await this.beforeCreateItem(item, fromList, action);
@@ -7707,6 +7725,7 @@ const GenericRam=class GenericRam {
      * Update a list of items inside ram
      */
     async updateListWithError(list) {
+        list = this.removeWatch(list);
         let action = new ResultRamWithError();
         action.result = [];
         await this.beforeUpdateList(list, action);
@@ -7747,6 +7766,7 @@ const GenericRam=class GenericRam {
         return await this._update(item, false);
     }
     async _update(item, fromList) {
+        item = this.removeWatch(item);
         return this.actionGuard.run(['_update', item], async () => {
             let action = new ResultRamWithError();
             let resultTemp = await this.getIdWithError(item);
@@ -7819,6 +7839,7 @@ const GenericRam=class GenericRam {
      * Delete a list of items inside ram
      */
     async deleteListWithError(list) {
+        list = this.removeWatch(list);
         let action = new ResultRamWithError();
         action.result = [];
         let deleteResult = new VoidWithError();
@@ -7882,6 +7903,7 @@ const GenericRam=class GenericRam {
         return result;
     }
     async _delete(item, fromList) {
+        item = this.removeWatch(item);
         return this.actionGuard.run(['_delete', item], async () => {
             let action = new ResultRamWithError();
             let resultTemp = await this.getIdWithError(item);
@@ -8378,7 +8400,12 @@ const TemplateInstance=class TemplateInstance {
     renderContextEdit(edit) {
         let _class = edit.once ? ComputedNoRecomputed : Computed;
         let computed = new _class(() => {
-            return edit.fct(this.context);
+            try {
+                return edit.fct(this.context);
+            }
+            catch (e) {
+            }
+            return {};
         });
         computed.subscribe((action, path, value) => {
             for (let key in computed.value) {
@@ -8411,13 +8438,25 @@ const TemplateInstance=class TemplateInstance {
             for (let el of this._components[event.id]) {
                 let cb = getValueFromObject(event.eventName, el);
                 cb?.add((...args) => {
-                    event.fct(this.context, args);
+                    try {
+                        event.fct(this.context, args);
+                    }
+                    catch (e) {
+                        console.error(e);
+                    }
                 });
             }
         }
         else {
             for (let el of this._components[event.id]) {
-                el.addEventListener(event.eventName, (e) => { event.fct(e, this.context); });
+                el.addEventListener(event.eventName, (e) => {
+                    try {
+                        event.fct(e, this.context);
+                    }
+                    catch (e) {
+                        console.error(e);
+                    }
+                });
             }
         }
     }
@@ -8485,7 +8524,13 @@ const TemplateInstance=class TemplateInstance {
         }
         let _class = change.once ? ComputedNoRecomputed : Computed;
         let computed = new _class(() => {
-            return change.fct(this.context);
+            try {
+                return change.fct(this.context);
+            }
+            catch (e) {
+                debugger;
+            }
+            return "";
         });
         let timeout;
         computed.subscribe((action, path, value) => {

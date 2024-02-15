@@ -1014,10 +1014,12 @@ export class Build {
         // load internal file
         for (let fileUri in this.tsFiles) {
             let currentFile = this.tsFiles[fileUri];
-            if (!currentFile.file.path.match(compileConfig.inputPathRegex)) {
-                continue;
-            }
+            let uriMatch = currentFile.file.path.match(compileConfig.inputPathRegex);
+
             for (let compileInfo of currentFile.compileResult) {
+                if (!compileInfo.required && !uriMatch) {
+                    continue
+                }
                 if (compileInfo.classScript !== "") {
                     loadAndOrderInfo({
                         fullName: compileInfo.classScript,

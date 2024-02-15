@@ -324,6 +324,12 @@ export class Watcher {
                         this.useHistory = false;
                     };
                 }
+                else if(prop == "getTarget") {
+                    return () => {
+                        clearReservedNames(target)
+                        return target;
+                    }
+                }
                 else if(prop == "toJSON") {
                     if(Array.isArray(target)) {
                         return () => {

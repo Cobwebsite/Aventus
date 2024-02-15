@@ -346,7 +346,12 @@ export class TemplateInstance {
     private renderContextEdit(edit: ContextEdit) {
         let _class = edit.once ? ComputedNoRecomputed : Computed;
         let computed = new _class(() => {
-            return edit.fct(this.context);
+            try {
+                return edit.fct(this.context);
+            } catch(e) {
+
+            }
+            return {};
         });
         computed.subscribe((action, path, value) => {
             for(let key in computed.value) {
@@ -381,13 +386,24 @@ export class TemplateInstance {
                 let cb = getValueFromObject(event.eventName, el);
                 cb?.add((...args) => {
                     // TODO check if it's working
-                    event.fct(this.context, args);
+                    try {
+                        event.fct(this.context, args);
+                    } catch(e) {
+                        console.error(e);
+                    }
                 });
             }
         }
         else {
             for(let el of this._components[event.id]) {
-                el.addEventListener(event.eventName, (e) => { event.fct(e, this.context); });
+                el.addEventListener(event.eventName, (e) => {
+                    try {
+                        event.fct(e, this.context);
+                    } catch(e) {
+                        console.error(e);
+                    }
+
+                });
             }
         }
     }
@@ -458,7 +474,12 @@ export class TemplateInstance {
 
         let _class = change.once ? ComputedNoRecomputed : Computed;
         let computed = new _class(() => {
-            return change.fct(this.context);
+            try {
+                return change.fct(this.context);
+            } catch(e) {
+                debugger
+            }
+            return "";
         });
 
         let timeout: number;

@@ -847,7 +847,7 @@
 		"for": {
 			"patterns": [
 				{
-					"begin": "(for *\\(.*?\\) *\\{)",
+					"begin": "(?<!\\\\)(for *\\(.*?\\) *\\{)",
 					"beginCaptures": {
 						"0": {
 							"patterns": [
@@ -878,7 +878,7 @@
 		"if": {
 			"patterns": [
 				{
-					"begin": "(if|else if|else)\\s*(\\([\\s|\\S]*?\\))?\\s*\\{",
+					"begin": "(?<!\\\\)(if|else if|else)\\s*(\\([\\s|\\S]*?\\))?\\s*\\{",
 					"beginCaptures": {
 						"0": {
 							"patterns": [
@@ -909,7 +909,7 @@
 		"context": {
 			"patterns": [
 				{
-					"match": "@Context\\(.*?\\)",
+					"match": "(?<!\\\\)@Context\\(.*?\\)",
 					"captures": {
 						"0": {
 							"patterns": [

@@ -20,6 +20,7 @@ namespace Navigation {
         public visible!: boolean;
 
         public currentRouter?: Router;
+        protected currentState?: Aventus.State;
         //#endregion
 
 
@@ -35,14 +36,16 @@ namespace Navigation {
 
         //#region methods
         public pageTitle(): string | undefined {
-            return undefined
+            return undefined;
         }
 
-        public async show() {
+        public async show(state?: Aventus.State) {
+            this.currentState = state;
             this.visible = true;
         }
         public async hide() {
             this.visible = false;
+            this.currentState = undefined;
         }
         public onShow() {
 

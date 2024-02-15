@@ -105,5 +105,4 @@ declare global {
     function BindThis(): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void;
 
     function NoCompile(): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void;
-    function Context<T>(name: string, el: T);
 }

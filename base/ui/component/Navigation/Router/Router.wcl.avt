@@ -26,6 +26,7 @@ namespace Navigation {
 
         protected allRoutes: { [key: string]: RouteAsyncOption; } = {};
         protected activePath: string = "";
+        protected activeState?: Aventus.State;
         protected oneStateActive: boolean = false;
         protected showPageMutex: Aventus.Mutex = new Aventus.Mutex();
         //#endregion
@@ -99,7 +100,8 @@ namespace Navigation {
                         let oldUrl = this.activePath;
                         this.oldPage = element;
                         this.activePath = path;
-                        await element.show();
+                        this.activeState = currentState;
+                        await element.show(currentState);
                         let title = element.pageTitle();
                         if(title !== undefined)
                             document.title = title;
@@ -129,9 +131,10 @@ namespace Navigation {
                     if(this.oldPage && this.oldPage != this.page404) {
                         await this.oldPage.hide();
                     }
-                    await this.page404.show();
+                    this.activeState = undefined;
                     this.oldPage = this.page404;
                     this.activePath = '';
+                    await this.page404.show(this.activeState);
                 }
             }
         }
@@ -147,6 +150,10 @@ namespace Navigation {
 
         protected async canChangeState(newState: Aventus.State): Promise<boolean> {
             return true;
+        }
+
+        public navigate(state: Aventus.State | string): Promise<boolean> {
+            return this.stateManager.setState(state)
         }
 
 
@@ -185,5 +192,5 @@ namespace Navigation {
         }
         //#endregion
 
+    }
 }
-                        }

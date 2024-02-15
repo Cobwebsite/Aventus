@@ -390,6 +390,10 @@ export class ParserHtml {
 		let txt = document.getText();
 		// prevent to parse element that is escaped
 		txt = txt.replace(/\\\{\{(.*?)\}\}/g, "&#123;&#123;$1&#125;&#125;");
+		txt = txt.replace(/\\if/g, "&#105;f");
+		txt = txt.replace(/\\else/g, "&#101;lse");
+		txt = txt.replace(/\\for/g, "&#102;or");
+		txt = txt.replace(/\\@Context/g, "&#64;Context");
 		return txt;
 	}
 
@@ -686,7 +690,7 @@ export class ParserHtml {
 	private manageSlotAndBlock(finalTxt: string) {
 		let body = finalTxt;
 		let removeBody = body;
-		let regexBlock = /<block( name="(.*?)")?>((\s|\S)*?)<\/block>/g
+		let regexBlock = /<block.*?( name="(.*?)")?>((\s|\S)*?)<\/block>/g
 		let result: RegExpExecArray | null;
 		while (result = regexBlock.exec(body)) {
 			this.blocksInfo[result[2]] = result[3];
@@ -697,7 +701,7 @@ export class ParserHtml {
 			this.blocksInfo['default'] = removeBody;
 		}
 
-		let regexSlot = /<slot( name="(.*?)")?>(\s|\S)*?<\/slot>/g
+		let regexSlot = /<slot.*?( name="(.*?)")?>(\s|\S)*?<\/slot>/g
 		while (result = regexSlot.exec(body)) {
 			if (!result[2]) {
 				result[2] = "default";
