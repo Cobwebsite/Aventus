@@ -1141,14 +1141,11 @@ export class AventusWebcomponentCompiler {
             }
             if (binding.eventNames.length == 1 && binding.tagName) {
                 let definition = this.build.getWebComponentDefinition(binding.tagName);
-                let eventName = binding.eventNames[0];
                 if (definition) {
-                    let field = definition.class.getField(eventName);
-                    if (field) {
-                        let type = field.type.value;
-                        if (ListCallbacks.includes(type)) {
-                            temp.isCallback = true;
-                        }
+                    let cbName = this.isCallback(definition.class, binding.eventNames[0]);
+                    if (cbName != null) {
+                        temp.isCallback = true;
+                        binding.eventNames[0] = cbName;
                     }
                 }
             }
@@ -1170,15 +1167,12 @@ export class AventusWebcomponentCompiler {
                 }
                 if (event.tagName) {
                     let definition = this.build.getWebComponentDefinition(event.tagName);
-                    let eventName = event.eventName;
                     if (definition) {
-                        let field = definition.class.getField(eventName);
-                        if (field) {
-                            let type = field.type.value
-                            if (ListCallbacks.includes(type)) {
-                                temp.isCallback = true;
-                                temp.fct = `@_@(c, ...args) => c.comp.${event.fct}.apply(c.comp, args)@_@`;
-                            }
+                        let cbName = this.isCallback(definition.class, event.eventName);
+                        if (cbName != null) {
+                            temp.isCallback = true;
+                            event.eventName = cbName;
+                            temp.fct = `@_@(c, ...args) => c.comp.${event.fct}.apply(c.comp, ...args)@_@`;
                         }
                     }
                 }
@@ -1385,6 +1379,9 @@ this.clearWatchHistory = () => {
                 name: string;
                 description: string;
             }[] = [];
+
+            if (!field.isPublic) return;
+
             let realType: CustomTypeAttribute = "string";
             if (type.kind == "literal") {
                 let value = type.value;
@@ -1535,6 +1532,20 @@ this.clearWatchHistory = () => {
                 { start: field.start, end: field.end }
             ));
         }
+    }
+
+    private isCallback(_class: ClassInfo, name: string): string | null {
+        let eventsToLook = [name, 'on' + name, 'on' + name.charAt(0).toUpperCase() + name.slice(1)]
+        for (let _event of eventsToLook) {
+            let field = _class.getField(_event);
+            if (field) {
+                let type = field.type.value;
+                if (ListCallbacks.includes(type)) {
+                    return _event;
+                }
+            }
+        }
+        return null;
     }
     //#endregion
 

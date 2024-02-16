@@ -26,6 +26,7 @@ export class PropertyInfo {
     public isGetSet: boolean = false;
     public isInsideInterface: boolean = false;
     public isStatic: boolean = false;
+    public isPublic: boolean = true;
     public start: number = 0;
     public end: number = 0;
     public isNullable: boolean = false;
@@ -34,19 +35,19 @@ export class PropertyInfo {
     public accessibilityModifierTransformation?: { newText: string, start: number, end: number };
     public get compiledContent(): string {
         let txt = BaseInfo.getContent(this.content, this.start, this.end, this._class.dependancesLocations, this._class.compileTransformations);
-		return txt;
+        return txt;
     }
     public get compiledContentHotReload(): string {
         let txt = BaseInfo.getContentHotReload(this.content, this.start, this.end, this._class.dependancesLocations, this._class.compileTransformations);
-		return txt;
+        return txt;
     }
 
-    public get defaultValue(): string |null {
-        if(this.defaultValueTxt === null) return null;
+    public get defaultValue(): string | null {
+        if (this.defaultValueTxt === null) return null;
         return BaseInfo.getContent(this.defaultValueTxt, this.defaultValueStart, this.defaultValueEnd, this._class.dependancesLocations, this._class.compileTransformations);
     }
-    public get defaultValueHotReload(): string |null {
-        if(this.defaultValueTxt === null) return null;
+    public get defaultValueHotReload(): string | null {
+        if (this.defaultValueTxt === null) return null;
         return BaseInfo.getContentHotReload(this.defaultValueTxt, this.defaultValueStart, this.defaultValueEnd, this._class.dependancesLocations, this._class.compileTransformations);
     }
 
@@ -117,6 +118,7 @@ export class PropertyInfo {
                             end: modifier.getEnd(),
                             newText: txt
                         }
+                        this.isPublic = false;
                     }
                     accessModDefine = true;
                 }
@@ -129,10 +131,12 @@ export class PropertyInfo {
                         }
                     }
                     accessModDefine = true;
+                    this.isPublic = false;
                 }
                 else if (modifier.kind == SyntaxKind.PrivateKeyword) {
                     accessModDefine = true;
                     isPrivate = true;
+                    this.isPublic = false;
                 }
                 else if (modifier.kind == SyntaxKind.AbstractKeyword) {
                     this.isAbstract = true;

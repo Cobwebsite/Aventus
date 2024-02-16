@@ -58,6 +58,11 @@ type Loop = {
     func?: (c: TemplateContext) => LoopFct,
     simple?: LoopSimple,
 };
+type LoopRegistery = {
+    templates: TemplateInstance[],
+    computeds: Computed[],
+    sub?: (change: WatcherFunction) => void;
+};
 type If = {
     anchorId: string;
     parts: {
@@ -216,7 +221,8 @@ export class Template {
 
 
 export class TemplateInstance {
-    private context: TemplateContext;
+    @Internal()
+    public context: TemplateContext;
     public content: DocumentFragment;
     private actions: Actions;
     private component: WebComponent;
@@ -228,11 +234,7 @@ export class TemplateInstance {
     private computeds: Effect[] = [];
     private renderingComputeds: Effect[] = [];
     private loopRegisteries: {
-        [name: string]: {
-            templates: TemplateInstance[],
-            computeds: Computed[],
-            sub?: (change: WatcherFunction) => void;
-        };
+        [name: string]: LoopRegistery;
     } = {};
     private loops: Loop[] = [];
     private ifs: If[] = [];
@@ -477,7 +479,7 @@ export class TemplateInstance {
             try {
                 return change.fct(this.context);
             } catch(e) {
-                debugger
+                debugger;
             }
             return "";
         });
@@ -643,7 +645,7 @@ export class TemplateInstance {
 
         let anchor = this._components[loop.anchorId][0];
         for(let i = 0; i < result.length; i++) {
-            let context = new TemplateContext(this.component, result[i], this.context);
+            let context = new TemplateContext(this.component, result[i], this.context, this.loopRegisteries[loop.anchorId]);
             let content = loop.template.template?.content.cloneNode(true) as DocumentFragment;
             let actions = loop.template.actions;
             let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
@@ -652,6 +654,7 @@ export class TemplateInstance {
             this.loopRegisteries[loop.anchorId].templates.push(instance);
         }
     }
+
     private renderLoopSimple(loop: Loop, simple: LoopSimple) {
         this.resetLoop(loop);
         let basePath = simple.data.replace(/^this\./, '');
@@ -699,7 +702,7 @@ export class TemplateInstance {
                 if(index !== undefined) {
                     let registry = this.loopRegisteries[loop.anchorId];
                     if(action == WatchAction.CREATED) {
-                        let context = new TemplateContext(this.component, {}, this.context);
+                        let context = new TemplateContext(this.component, {}, this.context, registry);
                         context.registerLoop(simple.data, index, indexName, simple.index, simple.item);
                         let content = loop.template.template?.content.cloneNode(true) as DocumentFragment;
                         let actions = loop.template.actions;
@@ -735,7 +738,7 @@ export class TemplateInstance {
 
         let anchor = this._components[loop.anchorId][0];
         for(let i = 0; i < keys.length; i++) {
-            let context = new TemplateContext(this.component, {}, this.context);
+            let context = new TemplateContext(this.component, {}, this.context, this.loopRegisteries[loop.anchorId]);
             context.registerLoop(simple.data, i, indexName, simple.index, simple.item);
             let content = loop.template.template?.content.cloneNode(true) as DocumentFragment;
             let actions = loop.template.actions;
@@ -743,6 +746,7 @@ export class TemplateInstance {
             instance.render();
             anchor.parentNode?.insertBefore(instance.content, anchor);
             this.loopRegisteries[loop.anchorId].templates.push(instance);
+
         }
     }
 
@@ -813,9 +817,11 @@ export class TemplateContext {
     public comp: WebComponent;
     private computeds: Computed[] = [];
     private watch: any;
+    private registry?: LoopRegistery;
 
-    public constructor(component: WebComponent, data: { [key: string]: any; } = {}, parentContext?: TemplateContext) {
+    public constructor(component: WebComponent, data: { [key: string]: any; } = {}, parentContext?: TemplateContext, registry?: LoopRegistery) {
         this.comp = component;
+        this.registry = registry;
         this.watch = Watcher.get({});
         let that = this;
         for(let key in data) {
@@ -864,7 +870,7 @@ export class TemplateContext {
         return fullName;
     }
 
-    public registerLoop(dataName: string, _indexValue: number, _indexName: string, indexName?: string, itemName?: string) {
+    public registerLoop(dataName: string, _indexValue: number, _indexName: string, indexName: string | undefined, itemName: string | undefined) {
         this.watch[_indexName] = _indexValue;
         let getItems: Computed<any[]>;
         let mustBeRecomputed = /if|switch|\?|\[.+?\]/g.test(dataName);
@@ -894,7 +900,21 @@ export class TemplateContext {
             if(!items) throw 'impossible';
             let keys = Object.keys(items);
             let index = keys[_getIndex.value];
-            return items[index];
+            let element = items[index];
+            if(element === undefined && (Array.isArray(items) || !items)) {
+                debugger
+                if(this.registry) {
+                    let indexNb = Number(_getIndex.value);
+                    if(!isNaN(indexNb)) {
+                        this.registry.templates[indexNb].destructor();
+                        this.registry.templates.splice(indexNb, 1);
+                        for(let i = indexNb; i < this.registry.templates.length; i++) {
+                            this.registry.templates[i].context.decreaseIndex(_indexName);
+                        }
+                    }
+                }
+            }
+            return element;
         });
         let _getIndex: Computed<any> = new ComputedNoRecomputed(() => {
             return this.watch[_indexName];

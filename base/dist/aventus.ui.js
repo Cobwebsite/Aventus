@@ -1331,6 +1331,12 @@ const Watcher=class Watcher {
                         this.useHistory = false;
                     };
                 }
+                else if (prop == "getTarget") {
+                    return () => {
+                        clearReservedNames(target);
+                        return target;
+                    };
+                }
                 else if (prop == "toJSON") {
                     if (Array.isArray(target)) {
                         return () => {
@@ -2171,8 +2177,10 @@ const TemplateContext=class TemplateContext {
     comp;
     computeds = [];
     watch;
-    constructor(component, data = {}, parentContext) {
+    registry;
+    constructor(component, data = {}, parentContext, registry) {
         this.comp = component;
+        this.registry = registry;
         this.watch = Watcher.get({});
         let that = this;
         for (let key in data) {
@@ -2248,7 +2256,21 @@ const TemplateContext=class TemplateContext {
                 throw 'impossible';
             let keys = Object.keys(items);
             let index = keys[_getIndex.value];
-            return items[index];
+            let element = items[index];
+            if (element === undefined && (Array.isArray(items) || !items)) {
+                debugger;
+                if (this.registry) {
+                    let indexNb = Number(_getIndex.value);
+                    if (!isNaN(indexNb)) {
+                        this.registry.templates[indexNb].destructor();
+                        this.registry.templates.splice(indexNb, 1);
+                        for (let i = indexNb; i < this.registry.templates.length; i++) {
+                            this.registry.templates[i].context.decreaseIndex(_indexName);
+                        }
+                    }
+                }
+            }
+            return element;
         });
         let _getIndex = new ComputedNoRecomputed(() => {
             return this.watch[_indexName];
@@ -2448,7 +2470,12 @@ const TemplateInstance=class TemplateInstance {
     renderContextEdit(edit) {
         let _class = edit.once ? ComputedNoRecomputed : Computed;
         let computed = new _class(() => {
-            return edit.fct(this.context);
+            try {
+                return edit.fct(this.context);
+            }
+            catch (e) {
+            }
+            return {};
         });
         computed.subscribe((action, path, value) => {
             for (let key in computed.value) {
@@ -2481,13 +2508,25 @@ const TemplateInstance=class TemplateInstance {
             for (let el of this._components[event.id]) {
                 let cb = getValueFromObject(event.eventName, el);
                 cb?.add((...args) => {
-                    event.fct(this.context, args);
+                    try {
+                        event.fct(this.context, args);
+                    }
+                    catch (e) {
+                        console.error(e);
+                    }
                 });
             }
         }
         else {
             for (let el of this._components[event.id]) {
-                el.addEventListener(event.eventName, (e) => { event.fct(e, this.context); });
+                el.addEventListener(event.eventName, (e) => {
+                    try {
+                        event.fct(e, this.context);
+                    }
+                    catch (e) {
+                        console.error(e);
+                    }
+                });
             }
         }
     }
@@ -2555,7 +2594,13 @@ const TemplateInstance=class TemplateInstance {
         }
         let _class = change.once ? ComputedNoRecomputed : Computed;
         let computed = new _class(() => {
-            return change.fct(this.context);
+            try {
+                return change.fct(this.context);
+            }
+            catch (e) {
+                debugger;
+            }
+            return "";
         });
         let timeout;
         computed.subscribe((action, path, value) => {
@@ -2710,7 +2755,7 @@ const TemplateInstance=class TemplateInstance {
         }
         let anchor = this._components[loop.anchorId][0];
         for (let i = 0; i < result.length; i++) {
-            let context = new TemplateContext(this.component, result[i], this.context);
+            let context = new TemplateContext(this.component, result[i], this.context, this.loopRegisteries[loop.anchorId]);
             let content = loop.template.template?.content.cloneNode(true);
             let actions = loop.template.actions;
             let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
@@ -2761,7 +2806,7 @@ const TemplateInstance=class TemplateInstance {
                 if (index !== undefined) {
                     let registry = this.loopRegisteries[loop.anchorId];
                     if (action == WatchAction.CREATED) {
-                        let context = new TemplateContext(this.component, {}, this.context);
+                        let context = new TemplateContext(this.component, {}, this.context, registry);
                         context.registerLoop(simple.data, index, indexName, simple.index, simple.item);
                         let content = loop.template.template?.content.cloneNode(true);
                         let actions = loop.template.actions;
@@ -2793,7 +2838,7 @@ const TemplateInstance=class TemplateInstance {
         }
         let anchor = this._components[loop.anchorId][0];
         for (let i = 0; i < keys.length; i++) {
-            let context = new TemplateContext(this.component, {}, this.context);
+            let context = new TemplateContext(this.component, {}, this.context, this.loopRegisteries[loop.anchorId]);
             context.registerLoop(simple.data, i, indexName, simple.index, simple.item);
             let content = loop.template.template?.content.cloneNode(true);
             let actions = loop.template.actions;

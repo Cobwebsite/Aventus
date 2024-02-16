@@ -1331,6 +1331,12 @@ const Watcher=class Watcher {
                         this.useHistory = false;
                     };
                 }
+                else if (prop == "getTarget") {
+                    return () => {
+                        clearReservedNames(target);
+                        return target;
+                    };
+                }
                 else if (prop == "toJSON") {
                     if (Array.isArray(target)) {
                         return () => {
@@ -2171,8 +2177,10 @@ const TemplateContext=class TemplateContext {
     comp;
     computeds = [];
     watch;
-    constructor(component, data = {}, parentContext) {
+    registry;
+    constructor(component, data = {}, parentContext, registry) {
         this.comp = component;
+        this.registry = registry;
         this.watch = Watcher.get({});
         let that = this;
         for (let key in data) {
@@ -2248,7 +2256,21 @@ const TemplateContext=class TemplateContext {
                 throw 'impossible';
             let keys = Object.keys(items);
             let index = keys[_getIndex.value];
-            return items[index];
+            let element = items[index];
+            if (element === undefined && (Array.isArray(items) || !items)) {
+                debugger;
+                if (this.registry) {
+                    let indexNb = Number(_getIndex.value);
+                    if (!isNaN(indexNb)) {
+                        this.registry.templates[indexNb].destructor();
+                        this.registry.templates.splice(indexNb, 1);
+                        for (let i = indexNb; i < this.registry.templates.length; i++) {
+                            this.registry.templates[i].context.decreaseIndex(_indexName);
+                        }
+                    }
+                }
+            }
+            return element;
         });
         let _getIndex = new ComputedNoRecomputed(() => {
             return this.watch[_indexName];
@@ -2448,7 +2470,12 @@ const TemplateInstance=class TemplateInstance {
     renderContextEdit(edit) {
         let _class = edit.once ? ComputedNoRecomputed : Computed;
         let computed = new _class(() => {
-            return edit.fct(this.context);
+            try {
+                return edit.fct(this.context);
+            }
+            catch (e) {
+            }
+            return {};
         });
         computed.subscribe((action, path, value) => {
             for (let key in computed.value) {
@@ -2481,13 +2508,25 @@ const TemplateInstance=class TemplateInstance {
             for (let el of this._components[event.id]) {
                 let cb = getValueFromObject(event.eventName, el);
                 cb?.add((...args) => {
-                    event.fct(this.context, args);
+                    try {
+                        event.fct(this.context, args);
+                    }
+                    catch (e) {
+                        console.error(e);
+                    }
                 });
             }
         }
         else {
             for (let el of this._components[event.id]) {
-                el.addEventListener(event.eventName, (e) => { event.fct(e, this.context); });
+                el.addEventListener(event.eventName, (e) => {
+                    try {
+                        event.fct(e, this.context);
+                    }
+                    catch (e) {
+                        console.error(e);
+                    }
+                });
             }
         }
     }
@@ -2555,7 +2594,13 @@ const TemplateInstance=class TemplateInstance {
         }
         let _class = change.once ? ComputedNoRecomputed : Computed;
         let computed = new _class(() => {
-            return change.fct(this.context);
+            try {
+                return change.fct(this.context);
+            }
+            catch (e) {
+                debugger;
+            }
+            return "";
         });
         let timeout;
         computed.subscribe((action, path, value) => {
@@ -2710,7 +2755,7 @@ const TemplateInstance=class TemplateInstance {
         }
         let anchor = this._components[loop.anchorId][0];
         for (let i = 0; i < result.length; i++) {
-            let context = new TemplateContext(this.component, result[i], this.context);
+            let context = new TemplateContext(this.component, result[i], this.context, this.loopRegisteries[loop.anchorId]);
             let content = loop.template.template?.content.cloneNode(true);
             let actions = loop.template.actions;
             let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
@@ -2761,7 +2806,7 @@ const TemplateInstance=class TemplateInstance {
                 if (index !== undefined) {
                     let registry = this.loopRegisteries[loop.anchorId];
                     if (action == WatchAction.CREATED) {
-                        let context = new TemplateContext(this.component, {}, this.context);
+                        let context = new TemplateContext(this.component, {}, this.context, registry);
                         context.registerLoop(simple.data, index, indexName, simple.index, simple.item);
                         let content = loop.template.template?.content.cloneNode(true);
                         let actions = loop.template.actions;
@@ -2793,7 +2838,7 @@ const TemplateInstance=class TemplateInstance {
         }
         let anchor = this._components[loop.anchorId][0];
         for (let i = 0; i < keys.length; i++) {
-            let context = new TemplateContext(this.component, {}, this.context);
+            let context = new TemplateContext(this.component, {}, this.context, this.loopRegisteries[loop.anchorId]);
             context.registerLoop(simple.data, i, indexName, simple.index, simple.item);
             let content = loop.template.template?.content.cloneNode(true);
             let actions = loop.template.actions;
@@ -7026,173 +7071,6 @@ const ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
 }
 ComputedNoRecomputed.Namespace=`${moduleName}`;
 _.ComputedNoRecomputed=ComputedNoRecomputed;
-const TemplateContext=class TemplateContext {
-    data = {};
-    comp;
-    computeds = [];
-    watch;
-    constructor(component, data = {}, parentContext) {
-        this.comp = component;
-        this.watch = Watcher.get({});
-        let that = this;
-        for (let key in data) {
-            if (data[key].__isProxy) {
-                Object.defineProperty(this.data, key, {
-                    get() {
-                        return data[key];
-                    }
-                });
-            }
-            else {
-                this.watch[key] = data[key];
-                Object.defineProperty(this.data, key, {
-                    get() {
-                        return that.watch[key];
-                    }
-                });
-            }
-        }
-        if (parentContext) {
-            const descriptors = Object.getOwnPropertyDescriptors(parentContext.data);
-            for (let name in descriptors) {
-                Object.defineProperty(this.data, name, {
-                    get() {
-                        return parentContext.data[name];
-                    }
-                });
-            }
-        }
-    }
-    print(value) {
-        return value == null ? "" : value + "";
-    }
-    registerIndex() {
-        let name = "index";
-        let i = 0;
-        let fullName = name + i;
-        while (this.watch[fullName] !== undefined) {
-            i++;
-            fullName = name + i;
-        }
-        return fullName;
-    }
-    registerLoop(dataName, _indexValue, _indexName, indexName, itemName) {
-        this.watch[_indexName] = _indexValue;
-        let getItems;
-        let mustBeRecomputed = /if|switch|\?|\[.+?\]/g.test(dataName);
-        let _class = mustBeRecomputed ? Computed : ComputedNoRecomputed;
-        if (!dataName.startsWith("this.")) {
-            getItems = new _class(() => {
-                return getValueFromObject(dataName, this.data);
-            });
-        }
-        else {
-            dataName = dataName.replace(/^this\./, '');
-            getItems = new _class(() => {
-                return getValueFromObject(dataName, this.comp);
-            });
-        }
-        let getIndex = new ComputedNoRecomputed(() => {
-            let items = getItems.value;
-            if (!items)
-                throw 'impossible';
-            let keys = Object.keys(items);
-            let index = keys[_getIndex.value];
-            if (/^[0-9]+$/g.test(index))
-                return Number(index);
-            return index;
-        });
-        let getItem = new ComputedNoRecomputed(() => {
-            let items = getItems.value;
-            if (!items)
-                throw 'impossible';
-            let keys = Object.keys(items);
-            let index = keys[_getIndex.value];
-            return items[index];
-        });
-        let _getIndex = new ComputedNoRecomputed(() => {
-            return this.watch[_indexName];
-        });
-        this.computeds.push(getIndex);
-        this.computeds.push(getItem);
-        this.computeds.push(_getIndex);
-        if (itemName) {
-            Object.defineProperty(this.data, itemName, {
-                get() {
-                    return getItem.value;
-                }
-            });
-        }
-        if (indexName) {
-            Object.defineProperty(this.data, indexName, {
-                get() {
-                    return getIndex.value;
-                }
-            });
-        }
-    }
-    updateIndex(newIndex, _indexName) {
-        // let items: any[] | {};
-        // if(!dataName.startsWith("this.")) {
-        //     let comp = new Computed(() => {
-        //         return getValueFromObject(dataName, this.data);
-        //     });
-        //     fullName = dataName.replace(/^this\./, '');
-        //     items = getValueFromObject(fullName, this.comp);
-        // if(Array.isArray(items)) {
-        //     let regex = new RegExp("^(" + fullName.replace(/\./g, "\\.") + ")\\[(\\d+?)\\]");
-        //     for(let computed of computeds) {
-        //         for(let cb of computed.callbacks) {
-        //             cb.path = cb.path.replace(regex, "$1[" + newIndex + "]");
-        //     let oldKey = Object.keys(items)[this.watch[_indexName]]
-        //     let newKey = Object.keys(items)[newIndex]
-        //     let regex = new RegExp("^(" + fullName.replace(/\./g, "\\.") + "\\.)(" + oldKey + ")($|\\.)");
-        //     for (let computed of computeds) {
-        //         for (let cb of computed.callbacks) {
-        //             cb.path = cb.path.replace(regex, "$1" + newKey + "$3")
-        this.watch[_indexName] = newIndex;
-    }
-    increaseIndex(_indexName) {
-        this.updateIndex(this.watch[_indexName] + 1, _indexName);
-    }
-    decreaseIndex(_indexName) {
-        this.updateIndex(this.watch[_indexName] - 1, _indexName);
-    }
-    destructor() {
-        for (let computed of this.computeds) {
-            computed.destroy();
-        }
-        this.computeds = [];
-    }
-    registerWatch(name, value) {
-        let that = this;
-        that.watch[name] = value;
-        Object.defineProperty(that.data, name, {
-            get() {
-                return that.watch[name];
-            }
-        });
-    }
-    updateWatch(name, value) {
-        this.watch[name] = value;
-    }
-    getValueFromItem(name) {
-        let result = getValueFromObject(name, this.data);
-        if (result !== undefined) {
-            return result;
-        }
-        result = getValueFromObject(name, this.comp);
-        if (result !== undefined) {
-            return result;
-        }
-        return undefined;
-    }
-    setValueToItem(name, value) {
-        setValueToObject(name, this.comp, value);
-    }
-}
-TemplateContext.Namespace=`${moduleName}`;
-_.TemplateContext=TemplateContext;
 const EffectNoRecomputed=class EffectNoRecomputed extends Effect {
     init() {
         this.isInit = true;
@@ -8685,7 +8563,7 @@ const TemplateInstance=class TemplateInstance {
         }
         let anchor = this._components[loop.anchorId][0];
         for (let i = 0; i < result.length; i++) {
-            let context = new TemplateContext(this.component, result[i], this.context);
+            let context = new TemplateContext(this.component, result[i], this.context, this.loopRegisteries[loop.anchorId]);
             let content = loop.template.template?.content.cloneNode(true);
             let actions = loop.template.actions;
             let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
@@ -8736,7 +8614,7 @@ const TemplateInstance=class TemplateInstance {
                 if (index !== undefined) {
                     let registry = this.loopRegisteries[loop.anchorId];
                     if (action == WatchAction.CREATED) {
-                        let context = new TemplateContext(this.component, {}, this.context);
+                        let context = new TemplateContext(this.component, {}, this.context, registry);
                         context.registerLoop(simple.data, index, indexName, simple.index, simple.item);
                         let content = loop.template.template?.content.cloneNode(true);
                         let actions = loop.template.actions;
@@ -8768,7 +8646,7 @@ const TemplateInstance=class TemplateInstance {
         }
         let anchor = this._components[loop.anchorId][0];
         for (let i = 0; i < keys.length; i++) {
-            let context = new TemplateContext(this.component, {}, this.context);
+            let context = new TemplateContext(this.component, {}, this.context, this.loopRegisteries[loop.anchorId]);
             context.registerLoop(simple.data, i, indexName, simple.index, simple.item);
             let content = loop.template.template?.content.cloneNode(true);
             let actions = loop.template.actions;
@@ -8832,6 +8710,189 @@ const TemplateInstance=class TemplateInstance {
 }
 TemplateInstance.Namespace=`${moduleName}`;
 _.TemplateInstance=TemplateInstance;
+const TemplateContext=class TemplateContext {
+    data = {};
+    comp;
+    computeds = [];
+    watch;
+    registry;
+    constructor(component, data = {}, parentContext, registry) {
+        this.comp = component;
+        this.registry = registry;
+        this.watch = Watcher.get({});
+        let that = this;
+        for (let key in data) {
+            if (data[key].__isProxy) {
+                Object.defineProperty(this.data, key, {
+                    get() {
+                        return data[key];
+                    }
+                });
+            }
+            else {
+                this.watch[key] = data[key];
+                Object.defineProperty(this.data, key, {
+                    get() {
+                        return that.watch[key];
+                    }
+                });
+            }
+        }
+        if (parentContext) {
+            const descriptors = Object.getOwnPropertyDescriptors(parentContext.data);
+            for (let name in descriptors) {
+                Object.defineProperty(this.data, name, {
+                    get() {
+                        return parentContext.data[name];
+                    }
+                });
+            }
+        }
+    }
+    print(value) {
+        return value == null ? "" : value + "";
+    }
+    registerIndex() {
+        let name = "index";
+        let i = 0;
+        let fullName = name + i;
+        while (this.watch[fullName] !== undefined) {
+            i++;
+            fullName = name + i;
+        }
+        return fullName;
+    }
+    registerLoop(dataName, _indexValue, _indexName, indexName, itemName) {
+        this.watch[_indexName] = _indexValue;
+        let getItems;
+        let mustBeRecomputed = /if|switch|\?|\[.+?\]/g.test(dataName);
+        let _class = mustBeRecomputed ? Computed : ComputedNoRecomputed;
+        if (!dataName.startsWith("this.")) {
+            getItems = new _class(() => {
+                return getValueFromObject(dataName, this.data);
+            });
+        }
+        else {
+            dataName = dataName.replace(/^this\./, '');
+            getItems = new _class(() => {
+                return getValueFromObject(dataName, this.comp);
+            });
+        }
+        let getIndex = new ComputedNoRecomputed(() => {
+            let items = getItems.value;
+            if (!items)
+                throw 'impossible';
+            let keys = Object.keys(items);
+            let index = keys[_getIndex.value];
+            if (/^[0-9]+$/g.test(index))
+                return Number(index);
+            return index;
+        });
+        let getItem = new ComputedNoRecomputed(() => {
+            let items = getItems.value;
+            if (!items)
+                throw 'impossible';
+            let keys = Object.keys(items);
+            let index = keys[_getIndex.value];
+            let element = items[index];
+            if (element === undefined && (Array.isArray(items) || !items)) {
+                debugger;
+                if (this.registry) {
+                    let indexNb = Number(_getIndex.value);
+                    if (!isNaN(indexNb)) {
+                        this.registry.templates[indexNb].destructor();
+                        this.registry.templates.splice(indexNb, 1);
+                        for (let i = indexNb; i < this.registry.templates.length; i++) {
+                            this.registry.templates[i].context.decreaseIndex(_indexName);
+                        }
+                    }
+                }
+            }
+            return element;
+        });
+        let _getIndex = new ComputedNoRecomputed(() => {
+            return this.watch[_indexName];
+        });
+        this.computeds.push(getIndex);
+        this.computeds.push(getItem);
+        this.computeds.push(_getIndex);
+        if (itemName) {
+            Object.defineProperty(this.data, itemName, {
+                get() {
+                    return getItem.value;
+                }
+            });
+        }
+        if (indexName) {
+            Object.defineProperty(this.data, indexName, {
+                get() {
+                    return getIndex.value;
+                }
+            });
+        }
+    }
+    updateIndex(newIndex, _indexName) {
+        // let items: any[] | {};
+        // if(!dataName.startsWith("this.")) {
+        //     let comp = new Computed(() => {
+        //         return getValueFromObject(dataName, this.data);
+        //     });
+        //     fullName = dataName.replace(/^this\./, '');
+        //     items = getValueFromObject(fullName, this.comp);
+        // if(Array.isArray(items)) {
+        //     let regex = new RegExp("^(" + fullName.replace(/\./g, "\\.") + ")\\[(\\d+?)\\]");
+        //     for(let computed of computeds) {
+        //         for(let cb of computed.callbacks) {
+        //             cb.path = cb.path.replace(regex, "$1[" + newIndex + "]");
+        //     let oldKey = Object.keys(items)[this.watch[_indexName]]
+        //     let newKey = Object.keys(items)[newIndex]
+        //     let regex = new RegExp("^(" + fullName.replace(/\./g, "\\.") + "\\.)(" + oldKey + ")($|\\.)");
+        //     for (let computed of computeds) {
+        //         for (let cb of computed.callbacks) {
+        //             cb.path = cb.path.replace(regex, "$1" + newKey + "$3")
+        this.watch[_indexName] = newIndex;
+    }
+    increaseIndex(_indexName) {
+        this.updateIndex(this.watch[_indexName] + 1, _indexName);
+    }
+    decreaseIndex(_indexName) {
+        this.updateIndex(this.watch[_indexName] - 1, _indexName);
+    }
+    destructor() {
+        for (let computed of this.computeds) {
+            computed.destroy();
+        }
+        this.computeds = [];
+    }
+    registerWatch(name, value) {
+        let that = this;
+        that.watch[name] = value;
+        Object.defineProperty(that.data, name, {
+            get() {
+                return that.watch[name];
+            }
+        });
+    }
+    updateWatch(name, value) {
+        this.watch[name] = value;
+    }
+    getValueFromItem(name) {
+        let result = getValueFromObject(name, this.data);
+        if (result !== undefined) {
+            return result;
+        }
+        result = getValueFromObject(name, this.comp);
+        if (result !== undefined) {
+            return result;
+        }
+        return undefined;
+    }
+    setValueToItem(name, value) {
+        setValueToObject(name, this.comp, value);
+    }
+}
+TemplateContext.Namespace=`${moduleName}`;
+_.TemplateContext=TemplateContext;
 const Template=class Template {
     static validatePath(path, pathToCheck) {
         if (pathToCheck.startsWith(path)) {

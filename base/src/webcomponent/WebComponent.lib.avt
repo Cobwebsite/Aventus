@@ -728,7 +728,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
     /**
      * Get element inside slot
      */
-    public getElementsInSlot(slotName?: string) {
+    public getElementsInSlot(slotName?: string): HTMLElement[] {
         return ElementExtension.getElementsInSlot(this, slotName);
     }
     //#endregion
