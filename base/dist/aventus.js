@@ -4036,11 +4036,20 @@ const setValueToObject=function setValueToObject(path, obj, value) {
 
 _.setValueToObject=setValueToObject;
 const Mutex=class Mutex {
+    /**
+     * Array to store functions waiting for the mutex to become available.
+     * @type {((run: boolean) => void)[]}
+     */
     waitingList = [];
+    /**
+    * Indicates whether the mutex is currently locked or not.
+    * @type {boolean}
+    */
     isLocked = false;
     /**
-     * Wait the mutex to be free then get it
-     */
+    * Waits for the mutex to become available and then acquires it.
+    * @returns {Promise<boolean>} A Promise that resolves to true if the mutex was acquired successfully.
+    */
     waitOne() {
         return new Promise((resolve) => {
             if (this.isLocked) {
@@ -4067,7 +4076,7 @@ const Mutex=class Mutex {
         }
     }
     /**
-     * Release the mutex
+     * Releases the mutex, allowing only the last function in the waiting list to acquire it.
      */
     releaseOnlyLast() {
         if (this.waitingList.length > 0) {
@@ -4085,12 +4094,18 @@ const Mutex=class Mutex {
         }
     }
     /**
-     * Clear mutex
+     * Clears the mutex, removing all waiting functions and releasing the lock.
      */
     dispose() {
         this.waitingList = [];
         this.isLocked = false;
     }
+    /**
+     * Executes a callback function safely within the mutex lock and releases the lock afterward.
+     * @template T - The type of the return value of the callback function.
+     * @param {() => T} cb - The callback function to execute.
+     * @returns {Promise<T | null>} A Promise that resolves to the result of the callback function or null if an error occurs.
+     */
     async safeRun(cb) {
         let result = null;
         await this.waitOne();
@@ -4102,6 +4117,12 @@ const Mutex=class Mutex {
         await this.release();
         return result;
     }
+    /**
+     * Executes an asynchronous callback function safely within the mutex lock and releases the lock afterward.
+     * @template T - The type of the return value of the asynchronous callback function.
+     * @param {() => Promise<T>} cb - The asynchronous callback function to execute.
+     * @returns {Promise<T | null>} A Promise that resolves to the result of the asynchronous callback function or null if an error occurs.
+     */
     async safeRunAsync(cb) {
         let result = null;
         await this.waitOne();
@@ -4113,6 +4134,12 @@ const Mutex=class Mutex {
         await this.release();
         return result;
     }
+    /**
+     * Executes a callback function safely within the mutex lock, allowing only the last function in the waiting list to acquire the lock, and releases the lock afterward.
+     * @template T - The type of the return value of the callback function.
+     * @param {() => T} cb - The callback function to execute.
+     * @returns {Promise<T | null>} A Promise that resolves to the result of the callback function or null if an error occurs.
+     */
     async safeRunLast(cb) {
         let result = null;
         if (await this.waitOne()) {
@@ -4125,6 +4152,12 @@ const Mutex=class Mutex {
         }
         return result;
     }
+    /**
+     * Executes an asynchronous callback function safely within the mutex lock, allowing only the last function in the waiting list to acquire the lock, and releases the lock afterward.
+     * @template T - The type of the return value of the asynchronous callback function.
+     * @param {() => Promise<T>} cb - The asynchronous callback function to execute.
+     * @returns {Promise<T | undefined>} A Promise that resolves to the result of the asynchronous callback function or undefined if an error occurs.
+     */
     async safeRunLastAsync(cb) {
         let result;
         if (await this.waitOne()) {
@@ -4671,6 +4704,13 @@ var HttpErrorCode;
 
 _.HttpErrorCode=HttpErrorCode;
 const Json=class Json {
+    /**
+     * Converts a JavaScript class instance to a JSON object.
+     * @template T - The type of the object to convert.
+     * @param {T} obj - The object to convert to JSON.
+     * @param {JsonToOptions} [options] - Options for JSON conversion.
+     * @returns {{ [key: string | number]: any; }} Returns the JSON representation of the object.
+     */
     static classToJson(obj, options) {
         const realOptions = {
             isValidKey: options?.isValidKey ?? (() => true),
@@ -4703,13 +4743,21 @@ const Json=class Json {
         result = options.beforeEnd(result);
         return result;
     }
-    static classfromJson(obj, data, options) {
+    /**
+    * Converts a JSON object to a JavaScript class instance.
+    * @template T - The type of the object to convert.
+    * @param {T} obj - The object to populate with JSON data.
+    * @param {*} data - The JSON data to populate the object with.
+    * @param {JsonFromOptions} [options] - Options for JSON deserialization.
+    * @returns {T} Returns the populated object.
+    */
+    static classFromJson(obj, data, options) {
         let realOptions = {
             transformValue: options?.transformValue ?? ((key, value) => value),
         };
-        return this.__classfromJson(obj, data, realOptions);
+        return this.__classFromJson(obj, data, realOptions);
     }
-    static __classfromJson(obj, data, options) {
+    static __classFromJson(obj, data, options) {
         let props = Object.getOwnPropertyNames(obj);
         for (let prop of props) {
             let propUpperFirst = prop[0].toUpperCase() + prop.slice(1);
@@ -4824,7 +4872,7 @@ const ConverterTransform=class ConverterTransform {
                     obj.fromJSON(data);
                 }
                 else {
-                    obj = Json.classfromJson(obj, data, {
+                    obj = Json.classFromJson(obj, data, {
                         transformValue: (key, value) => {
                             if (obj[key] instanceof Date) {
                                 return value ? new Date(value) : null;
@@ -4885,30 +4933,65 @@ const ConverterTransform=class ConverterTransform {
 ConverterTransform.Namespace=`${moduleName}`;
 _.ConverterTransform=ConverterTransform;
 const Converter=class Converter {
+    /**
+    * Map storing information about registered types.
+    */
     static info = new Map();
+    /**
+    * Map storing schemas for registered types.
+    */
     static schema = new Map();
+    /**
+     * Internal converter instance.
+     */
     static __converter = new ConverterTransform();
+    /**
+     * Getter for the internal converter instance.
+     */
     static get converterTransform() {
         return this.__converter;
     }
+    /**
+    * Sets the converter instance.
+    * @param converter The converter instance to set.
+    */
     static setConverter(converter) {
         this.__converter = converter;
     }
     /**
-     * Register a unique string type for any class
-     */
+    * Registers a unique string type for any class.
+    * @param $type The unique string type identifier.
+    * @param cst The constructor function for the class.
+    * @param schema Optional schema for the registered type.
+    */
     static register($type, cst, schema) {
         this.info.set($type, cst);
         if (schema) {
             this.schema.set($type, schema);
         }
     }
+    /**
+     * Transforms the provided data using the current converter instance.
+     * @template T
+     * @param {*} data The data to transform.
+     * @param {IConverterTransform} [converter] Optional converter instance to use for transformation.
+     * @returns {T} Returns the transformed data.
+     */
     static transform(data, converter) {
         if (!converter) {
             converter = this.converterTransform;
         }
         return converter.transform(data);
     }
+    /**
+     * Copies values from one class instance to another using the current converter instance.
+     * @template T
+     * @param {T} to The destination class instance to copy values into.
+     * @param {T} from The source class instance to copy values from.
+     * @param {ClassCopyOptions} [options] Optional options for the copy operation.
+     * @param {IConverterTransform} [converter] Optional converter instance to use for the copy operation.
+     * @returns {T} Returns the destination class instance with copied values.
+     */
     static copyValuesClass(to, from, options, converter) {
         if (!converter) {
             converter = this.converterTransform;
@@ -4919,18 +5002,17 @@ const Converter=class Converter {
 Converter.Namespace=`${moduleName}`;
 _.Converter=Converter;
 const DataManager=class DataManager {
-    static info = new Map();
     /**
      * Register a unique string type for a data
      */
     static register($type, cst) {
-        this.info.set($type, cst);
+        Converter.register($type, cst);
     }
     /**
      * Get the contructor for the unique string type
      */
     static getConstructor($type) {
-        let result = this.info.get($type);
+        let result = Converter.info.get($type);
         if (result) {
             return result;
         }
@@ -4954,7 +5036,16 @@ const GenericError=class GenericError {
      * Description of the error
      */
     message;
+    /**
+     * Additional details related to the error.
+     * @type {any[]}
+     */
     details = [];
+    /**
+     * Creates a new instance of GenericError.
+     * @param {EnumValue<T>} code - The error code.
+     * @param {string} message - The error message.
+     */
     constructor(code, message) {
         this.code = code;
         this.message = message;
@@ -4973,11 +5064,23 @@ const VoidWithError=class VoidWithError {
      * List of errors
      */
     errors = [];
+    /**
+     * Converts the current instance to a VoidWithError object.
+     * @returns {VoidWithError} A new instance of VoidWithError with the same error list.
+     */
     toGeneric() {
         const result = new VoidWithError();
         result.errors = this.errors;
         return result;
     }
+    /**
+    * Checks if the error list contains a specific error code.
+    * @template U - The type of error, extending GenericError.
+    * @template T - The type of the error code, which extends either number or Enum.
+    * @param {EnumValue<T>} code - The error code to check for.
+    * @param {new (...args: any[]) => U} [type] - Optional constructor function of the error type.
+    * @returns {boolean} True if the error list contains the specified error code, otherwise false.
+    */
     containsCode(code, type) {
         if (type) {
             for (let error of this.errors) {
@@ -5100,9 +5203,14 @@ HttpRouter.Namespace=`${moduleName}`;
 _.HttpRouter=HttpRouter;
 const ResultWithError=class ResultWithError extends VoidWithError {
     /**
-     * Result
-     */
+      * The result value of the action.
+      * @type {U | undefined}
+      */
     result;
+    /**
+     * Converts the current instance to a ResultWithError object.
+     * @returns {ResultWithError<U>} A new instance of ResultWithError with the same error list and result value.
+     */
     toGeneric() {
         const result = new ResultWithError();
         result.errors = this.errors;
@@ -7266,7 +7374,7 @@ const GenericRam=class GenericRam {
         if (!item) {
             return;
         }
-        Json.classfromJson(item, objJson);
+        Json.classFromJson(item, objJson);
     }
     publish(type, data) {
         [...this.subscribers[type]].forEach(callback => callback(data));

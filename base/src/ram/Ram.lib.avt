@@ -218,7 +218,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
         if(!item) {
             return;
         }
-        Json.classfromJson(item, objJson);
+        Json.classFromJson(item, objJson);
     }
     //#endregion
 

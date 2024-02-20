@@ -156,7 +156,7 @@ interface ${objectName}Method {
 
 export type ${objectName}Extended = ${objectName} & ${objectName}Method;
 
-export class ${className} extends Aventus.Ram<${objectName}Extended> implements Aventus.IRam {
+export class ${className} extends Aventus.Ram<${objectName}, ${objectName}Extended> implements Aventus.IRam {
 
 	/**
 	 * Create a singleton to store data
@@ -168,13 +168,13 @@ export class ${className} extends Aventus.Ram<${objectName}Extended> implements 
 	/**
 	 * @inheritdoc
 	 */
-	public override defineIndexKey(): keyof ${objectName}Extended {
+	public override defineIndexKey(): keyof ${objectName} {
 		return 'id';
 	}
 	/**
 	 * @inheritdoc
 	 */
-	protected override getTypeForData(objJson: Aventus.KeysObject<${objectName}Extended> | ${objectName}Extended): new () => ${objectName}Extended {
+	protected override getTypeForData(objJson: Aventus.KeysObject<${objectName}> | ${objectName}): new () => ${objectName}Extended {
 		return this.add${objectName}Method(${objectName});
 	}
 

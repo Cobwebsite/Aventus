@@ -1,6 +1,9 @@
 
 /**
- * Check if two object are same
+ * Compare two objects for equality, recursively checking nested arrays, objects, and dates.
+ * @param {*} obj1 The first object to compare.
+ * @param {*} obj2 The second object to compare.
+ * @returns {boolean} Returns true if the objects are considered equal, otherwise returns false.
  */
 export function compareObject(obj1, obj2) {
     if(Array.isArray(obj1)) {
@@ -57,14 +60,28 @@ export function compareObject(obj1, obj2) {
     }
 }
 
+/**
+ * Retrieves the value from an object based on the provided path.
+ * @param {string} path The path to the desired value, using dot notation. For example, "a.b.c" for obj[a][b][c].
+ * @param {*} obj The object from which to retrieve the value.
+ * @returns {*} Returns the value at the specified path in the object. If the path is invalid or the value does not exist, returns undefined.
+ */
 export function getValueFromObject(path: string, obj: any) {
+    // Convert bracket notation to dot notation
     path = path.replace(/\[(.*?)\]/g, '.$1');
+
+     // If path is empty, return the entire object
     if(path == "") {
         return obj;
     }
+
+    // Split the path into individual keys
     let splitted = path.split(".");
+
+    // Traverse the object along the path
     for(let i = 0; i < splitted.length - 1; i++) {
         let split = splitted[i];
+        // If the current segment of the path does not exist in the object or is not an object, return undefined
         if(!obj[split] || typeof obj[split] !== 'object') {
             return undefined;
         }
@@ -73,11 +90,24 @@ export function getValueFromObject(path: string, obj: any) {
     if(!obj || typeof obj !== 'object') {
         return undefined;
     }
+    // Return the value at the last segment of the path
     return obj[splitted[splitted.length - 1]];
 }
+
+/**
+ * Sets the value in an object based on the provided path.
+ * @param {string} path The path where the value should be set, using dot notation. For example, "a.b.c" for obj[a][b][c].
+ * @param {*} obj The object in which to set the value.
+ * @param {*} value The value to set.
+ */
 export function setValueToObject(path: string, obj: any, value: any) {
+     // Convert bracket notation to dot notation
     path = path.replace(/\[(.*?)\]/g, '.$1');
+
+    // Split the path into individual keys
     let splitted = path.split(".");
+
+    // Traverse the object along the path, creating nested objects if necessary
     for(let i = 0; i < splitted.length - 1; i++) {
         let split = splitted[i];
         if(!obj[split]) {
@@ -85,5 +115,7 @@ export function setValueToObject(path: string, obj: any, value: any) {
         }
         obj = obj[split];
     }
+
+    // Set the value at the last segment of the path
     obj[splitted[splitted.length - 1]] = value;
 }

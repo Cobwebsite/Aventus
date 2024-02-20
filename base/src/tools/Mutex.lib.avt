@@ -1,8 +1,20 @@
+/**
+ * Represents a mutual exclusion (mutex) mechanism for synchronizing access to a shared resource.
+ */
 export class Mutex {
-    private waitingList: ((run: boolean) => void)[] = [];
-    private isLocked: boolean = false;
     /**
-     * Wait the mutex to be free then get it
+     * Array to store functions waiting for the mutex to become available.
+     * @type {((run: boolean) => void)[]}
+     */
+    private waitingList: ((run: boolean) => void)[] = [];
+     /**
+     * Indicates whether the mutex is currently locked or not.
+     * @type {boolean}
+     */
+    private isLocked: boolean = false;
+     /**
+     * Waits for the mutex to become available and then acquires it.
+     * @returns {Promise<boolean>} A Promise that resolves to true if the mutex was acquired successfully.
      */
     public waitOne() {
         return new Promise<boolean>((resolve) => {
@@ -31,7 +43,7 @@ export class Mutex {
     }
 
     /**
-     * Release the mutex
+     * Releases the mutex, allowing only the last function in the waiting list to acquire it.
      */
     public releaseOnlyLast() {
         if(this.waitingList.length > 0) {
@@ -50,13 +62,19 @@ export class Mutex {
     }
 
     /**
-     * Clear mutex
+     * Clears the mutex, removing all waiting functions and releasing the lock.
      */
     public dispose() {
         this.waitingList = [];
         this.isLocked = false;
     }
 
+    /**
+     * Executes a callback function safely within the mutex lock and releases the lock afterward.
+     * @template T - The type of the return value of the callback function.
+     * @param {() => T} cb - The callback function to execute.
+     * @returns {Promise<T | null>} A Promise that resolves to the result of the callback function or null if an error occurs.
+     */
     public async safeRun<T = void>(cb: () => T): Promise<T | null> {
         let result: T | null = null;
         await this.waitOne();
@@ -70,6 +88,12 @@ export class Mutex {
         return result;
     }
 
+    /**
+     * Executes an asynchronous callback function safely within the mutex lock and releases the lock afterward.
+     * @template T - The type of the return value of the asynchronous callback function.
+     * @param {() => Promise<T>} cb - The asynchronous callback function to execute.
+     * @returns {Promise<T | null>} A Promise that resolves to the result of the asynchronous callback function or null if an error occurs.
+     */
     public async safeRunAsync<T = void>(cb: () => Promise<T>): Promise<T | null> {
         let result: T | null = null;
         await this.waitOne();
@@ -83,6 +107,12 @@ export class Mutex {
         return result;
     }
 
+    /**
+     * Executes a callback function safely within the mutex lock, allowing only the last function in the waiting list to acquire the lock, and releases the lock afterward.
+     * @template T - The type of the return value of the callback function.
+     * @param {() => T} cb - The callback function to execute.
+     * @returns {Promise<T | null>} A Promise that resolves to the result of the callback function or null if an error occurs.
+     */
     public async safeRunLast<T = void>(cb: () => T): Promise<T | null> {
         let result: T | null = null;
         if(await this.waitOne()) {
@@ -96,6 +126,13 @@ export class Mutex {
         }
         return result;
     }
+    
+    /**
+     * Executes an asynchronous callback function safely within the mutex lock, allowing only the last function in the waiting list to acquire the lock, and releases the lock afterward.
+     * @template T - The type of the return value of the asynchronous callback function.
+     * @param {() => Promise<T>} cb - The asynchronous callback function to execute.
+     * @returns {Promise<T | undefined>} A Promise that resolves to the result of the asynchronous callback function or undefined if an error occurs.
+     */
     public async safeRunLastAsync<T = void>(cb: () => Promise<T>): Promise<T | undefined> {
         let result: T | undefined;
         if(await this.waitOne()) {

@@ -1535,7 +1535,13 @@ this.clearWatchHistory = () => {
     }
 
     private isCallback(_class: ClassInfo, name: string): string | null {
-        let eventsToLook = [name, 'on' + name, 'on' + name.charAt(0).toUpperCase() + name.slice(1)]
+        let eventsToLook: string[];
+        if (name.startsWith("on")) {
+            eventsToLook = [name];
+        }
+        else {
+            eventsToLook = [name, 'on' + name, 'on' + name.charAt(0).toUpperCase() + name.slice(1)];
+        }
         for (let _event of eventsToLook) {
             let field = _class.getField(_event);
             if (field) {

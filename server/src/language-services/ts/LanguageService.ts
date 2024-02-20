@@ -924,16 +924,17 @@ export class AventusTsLanguageService {
             let txt = element.compiledContent;
             let txtHotReload = element.compiledContentHotReload;
             if (element instanceof ClassInfo && !element.isInterface) {
-                if (element.implements.includes('Aventus.IData')) {
-                    additionContent += element.fullName + ".$schema=" + this.prepareDataSchema(element) + ";";
-                    additionContent += "Aventus.DataManager.register(" + element.fullName + ".Fullname, " + element.fullName + ");";
-                    result.type = InfoType.classData;
-                }
+                
                 let currentNamespaceWithDot = "";
                 if (element.namespace) {
                     currentNamespaceWithDot = "." + element.namespace
                 }
                 additionContent += element.fullName + ".Namespace=`${moduleName}" + currentNamespaceWithDot + "`;";
+                if (element.implements.includes('Aventus.IData')) {
+                    additionContent += element.fullName + ".$schema=" + this.prepareDataSchema(element) + ";";
+                    additionContent += "Aventus.DataManager.register(" + element.fullName + ".Fullname, " + element.fullName + ");";
+                    result.type = InfoType.classData;
+                }
                 if (element.convertibleName) {
                     additionContent += "Aventus.Converter.register(" + element.fullName + "." + element.convertibleName + ", " + element.fullName + ");"
                 }

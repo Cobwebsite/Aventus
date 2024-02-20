@@ -120,7 +120,7 @@ export class Watcher {
 
                     //#region add alias into the parent to notify trigger
                     element.__addAlias(proxyData.baseData, oldPath, (type, target, receiver2, value, prop2, dones) => {
-                        
+
                         let triggerPath: string;
                         if(prop2.startsWith("[") || fullInternalPath == "" || prop2 == "") {
                             triggerPath = fullInternalPath + prop2;
@@ -326,9 +326,9 @@ export class Watcher {
                 }
                 else if(prop == "getTarget") {
                     return () => {
-                        clearReservedNames(target)
+                        clearReservedNames(target);
                         return target;
-                    }
+                    };
                 }
                 else if(prop == "toJSON") {
                     if(Array.isArray(target)) {
@@ -733,14 +733,14 @@ export class Watcher {
     /**
      * Create a computed variable that will watch any changes
      */
-    public static computed<T>(fct: () => NotVoid<T>) {
+    public static computed<T>(fct: () => NotVoid<T>): Computed<T> {
         const comp = new Computed<T>(fct);
         return comp;
     }
     /**
      * Create an effect variable that will watch any changes
      */
-    public static effect(fct: () => void) {
+    public static effect(fct: () => void): Effect {
         const comp = new Effect(fct);
         return comp;
     }

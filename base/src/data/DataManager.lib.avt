@@ -2,18 +2,17 @@ import { Converter } from "../tools/Converter.lib.avt";
 import { Data } from "../data/IData.data.avt";
 
 export class DataManager {
-    private static info: Map<string, new () => Data> = new Map();
     /**
      * Register a unique string type for a data
      */
     public static register($type: string, cst: new () => Data) {
-        this.info.set($type, cst);
+        Converter.register($type, cst);
     }
     /**
      * Get the contructor for the unique string type
      */
     public static getConstructor($type: string): (new () => Data) | null {
-        let result = this.info.get($type);
+        let result = Converter.info.get($type);
         if(result) {
             return result;
         }
