@@ -690,11 +690,14 @@ const Effect=class Effect {
     }
     destroy() {
         this.isDestroy = true;
+        this.clearCallbacks();
+        this.isInit = false;
+    }
+    clearCallbacks() {
         for (let pair of this.callbacks) {
             pair.receiver.unsubscribe(pair.cb);
         }
         this.callbacks = [];
-        this.isInit = false;
     }
     subscribe(fct) {
         let index = this.__subscribes.indexOf(fct);
@@ -1323,7 +1326,8 @@ const Watcher=class Watcher {
                         cb(WatchAction[type], pathToSend, value);
                     }
                     catch (e) {
-                        console.log(e);
+                        if (e != 'impossible')
+                            console.log(e);
                     }
                 }
                 for (let [key, infos] of aliases) {
@@ -2382,6 +2386,8 @@ const TemplateContext=class TemplateContext {
         this.watch[name] = value;
     }
     getValueFromItem(name) {
+        if (!name)
+            return undefined;
         let result = getValueFromObject(name, this.data);
         if (result !== undefined) {
             return result;
@@ -2643,6 +2649,9 @@ const TemplateInstance=class TemplateInstance {
                 return change.fct(this.context);
             }
             catch (e) {
+                if (computed instanceof ComputedNoRecomputed) {
+                    computed.isInit = false;
+                }
                 debugger;
             }
             return "";
@@ -2816,6 +2825,30 @@ const TemplateInstance=class TemplateInstance {
         let basePath = simple.data.replace(/^this\./, '');
         let getElements = () => this.context.getValueFromItem(basePath);
         let elements = getElements();
+        if (!elements) {
+            let currentPath = basePath;
+            while (currentPath != '' && !elements) {
+                let splittedPath = currentPath.split(".");
+                splittedPath.pop();
+                currentPath = splittedPath.join(".");
+                elements = this.context.getValueFromItem(currentPath);
+            }
+            if (!elements && simple.data.startsWith("this.")) {
+                elements = this.component.__watch;
+            }
+            if (!elements || !elements.__isProxy) {
+                debugger;
+            }
+            const subTemp = (action, path, value) => {
+                if (basePath.startsWith(path)) {
+                    elements.unsubscribe(subTemp);
+                    this.renderLoopSimple(loop, simple);
+                    return;
+                }
+            };
+            elements.subscribe(subTemp);
+            return;
+        }
         let indexName = this.context.registerIndex();
         let keys = Object.keys(elements);
         if (elements.__isProxy) {

@@ -701,7 +701,8 @@ export class Watcher {
                     try {
                         cb(WatchAction[type] as any, pathToSend, value);
                     } catch(e) {
-                        console.log(e);
+                        if(e != 'impossible')
+                            console.log(e);
                     }
                 }
 
@@ -778,7 +779,8 @@ export class Effect {
         version: number;
     }[] = [];
 
-    protected isInit: boolean = false;
+    @InternalProtected()
+    public isInit: boolean = false;
     @InternalProtected()
     public isDestroy: boolean = false;
     protected __subscribes: WatcherChange[] = [];
@@ -882,11 +884,15 @@ export class Effect {
 
     public destroy() {
         this.isDestroy = true;
+        this.clearCallbacks();
+        this.isInit = false;
+    }
+
+    protected clearCallbacks() {
         for(let pair of this.callbacks) {
             pair.receiver.unsubscribe(pair.cb);
         }
         this.callbacks = [];
-        this.isInit = false;
     }
 
 

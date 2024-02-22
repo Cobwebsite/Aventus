@@ -156,8 +156,8 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
 
     @Internal()
     public __onChangeFct: { [key: string]: ((path: string) => void)[]; } = {};
-
-    private __watch: any;
+    @Internal()
+    public __watch: any;
     @Internal()
     public __watchActions: { [key: string]: ((target: WebComponent, action: WatchAction, path: string, value: any) => void)[]; } = {};
     private __watchActionsCb: { [key: string]: (type: WatchAction, path: string, element: any) => void; } = {};

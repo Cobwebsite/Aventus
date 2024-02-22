@@ -481,6 +481,10 @@ export class TemplateInstance {
             try {
                 return change.fct(this.context);
             } catch(e) {
+                // if failed, it can mean that the user is using a ! => we must recompute full chain 
+                if(computed instanceof ComputedNoRecomputed) {
+                    computed.isInit  = false;
+                }
                 debugger;
             }
             return "";
@@ -491,7 +495,7 @@ export class TemplateInstance {
             clearTimeout(timeout);
             // add timeout to group change that append on the same frame (for example index update)
             timeout = setTimeout(() => {
-                if(computed.isDestroy) return
+                if(computed.isDestroy) return;
                 apply();
             });
 
@@ -663,6 +667,32 @@ export class TemplateInstance {
         let basePath = simple.data.replace(/^this\./, '');
         let getElements = () => this.context.getValueFromItem(basePath);
         let elements = getElements();
+        if(!elements) {
+            let currentPath = basePath;
+
+            while(currentPath != '' && !elements) {
+                let splittedPath = currentPath.split(".");
+                splittedPath.pop();
+                currentPath = splittedPath.join(".");
+                elements = this.context.getValueFromItem(currentPath);
+            }
+            if(!elements && simple.data.startsWith("this.")) {
+                elements = this.component.__watch;
+            }
+            if(!elements || !elements.__isProxy) {
+                debugger;
+            }
+
+            const subTemp = (action, path, value) => {
+                if(basePath.startsWith(path)) {
+                    elements.unsubscribe(subTemp);
+                    this.renderLoopSimple(loop, simple)
+                    return;
+                }
+            };
+            elements.subscribe(subTemp);
+            return;
+        }
         let indexName = this.context.registerIndex();
         let keys = Object.keys(elements);
         if(elements.__isProxy) {
@@ -822,7 +852,7 @@ export class TemplateContext {
     private computeds: Computed[] = [];
     private watch: any;
     private registry?: LoopRegistery;
-    private isDestroyed:boolean = false;
+    private isDestroyed: boolean = false;
 
     public constructor(component: WebComponent, data: { [key: string]: any; } = {}, parentContext?: TemplateContext, registry?: LoopRegistery) {
         this.comp = component;
@@ -1012,6 +1042,8 @@ export class TemplateContext {
     }
 
     public getValueFromItem(name: string) {
+        if(!name) return undefined;
+
         let result = getValueFromObject(name, this.data);
         if(result !== undefined) {
             return result;
