@@ -31,12 +31,10 @@ export class CreateAttribute {
 
 		let name = await GenericServer.Input({
 			title: "Provide a name for your Attribute",
-			async validateInput(value) {
-				if (!value.match(/^[_a-z0-9]+$/g)) {
-					return 'A property must be with lowercase, number or _';
-				}
-				return null;
-			}
+			validations: [{
+				message:'A property must be with lowercase, number or _',
+				regex:'^[_a-z0-9]+$'
+			}]
 		})
 		if (!name) { return; }
 

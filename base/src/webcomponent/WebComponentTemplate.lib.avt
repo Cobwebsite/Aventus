@@ -61,7 +61,7 @@ type Loop = {
 type LoopRegistery = {
     templates: TemplateInstance[],
     computeds: Computed[],
-    sub?: (change: WatcherFunction) => void;
+    sub?: WatcherFunction;
 };
 type If = {
     anchorId: string;
@@ -238,6 +238,7 @@ export class TemplateInstance {
     } = {};
     private loops: Loop[] = [];
     private ifs: If[] = [];
+    private isDestroyed: boolean = false;
 
 
 
@@ -269,6 +270,7 @@ export class TemplateInstance {
     }
 
     public destructor() {
+        this.isDestroyed = true;
         for(let name in this.loopRegisteries) {
             for(let item of this.loopRegisteries[name].templates) {
                 item.destructor();
@@ -489,6 +491,7 @@ export class TemplateInstance {
             clearTimeout(timeout);
             // add timeout to group change that append on the same frame (for example index update)
             timeout = setTimeout(() => {
+                if(computed.isDestroy) return
                 apply();
             });
 
@@ -733,6 +736,7 @@ export class TemplateInstance {
                     }
                 }
             };
+            this.loopRegisteries[loop.anchorId].sub = sub;
             elements.subscribe(sub);
         }
 
@@ -818,6 +822,7 @@ export class TemplateContext {
     private computeds: Computed[] = [];
     private watch: any;
     private registry?: LoopRegistery;
+    private isDestroyed:boolean = false;
 
     public constructor(component: WebComponent, data: { [key: string]: any; } = {}, parentContext?: TemplateContext, registry?: LoopRegistery) {
         this.comp = component;
@@ -902,7 +907,7 @@ export class TemplateContext {
             let index = keys[_getIndex.value];
             let element = items[index];
             if(element === undefined && (Array.isArray(items) || !items)) {
-                debugger
+                debugger;
                 if(this.registry) {
                     let indexNb = Number(_getIndex.value);
                     if(!isNaN(indexNb)) {
@@ -986,6 +991,7 @@ export class TemplateContext {
 
 
     public destructor() {
+        this.isDestroyed = true;
         for(let computed of this.computeds) {
             computed.destroy();
         }

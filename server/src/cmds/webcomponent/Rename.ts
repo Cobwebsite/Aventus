@@ -10,7 +10,7 @@ import { GenericServer } from '../../GenericServer';
 
 export class Rename {
 	static cmd: string = "aventus.component.rename";
-	
+
 	public static async run(uri: string) {
 		if (!uri) {
 			return;
@@ -22,12 +22,10 @@ export class Rename {
 		let newName = await GenericServer.Input({
 			title: "New name",
 			value: oldName,
-			async validateInput(value) {
-				if (!value.match(/^[_A-Za-z0-9\-]+$/g)) {
-					return 'Your name isn\'t valid';
-				}
-				return null;
-			},
+			validations: [{
+				message: 'Your name isn\'t valid',
+				regex: '^[_A-Za-z0-9\-]+$'
+			}],
 		})
 		if (!newName) {
 			return;

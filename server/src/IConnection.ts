@@ -41,7 +41,7 @@ export interface IConnection {
 export interface InputOptions {
 	title: string,
 	value?: string,
-	validateInput?: (value: string) => Promise<string | null>,
+	validations?: { regex: string, message: string }[]
 }
 
 

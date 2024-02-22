@@ -32,12 +32,10 @@ export class CreateProperty {
 		}
 		const name = await GenericServer.Input({
 			title: "Provide a name for your Property",
-			async validateInput(value) {
-				if (!value.match(/^[_a-z0-9]+$/g)) {
-					return 'A property must be with lowercase, number or _';
-				}
-				return null;
-			},
+			validations: [{
+				message:'A property must be with lowercase, number or _',
+				regex:'^[_a-z0-9]+$'
+			}],
 			value: prefillName
 		});
 		if (!name) {

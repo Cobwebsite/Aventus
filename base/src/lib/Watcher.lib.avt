@@ -673,9 +673,18 @@ export class Watcher {
                 if(name !== "") {
                     let regex = new RegExp("^" + name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') + "(\\.|(\\[)|$)");
                     if(!regex.test(rootPath)) {
-                        continue;
+                        // it' s not a child but maybe the parent change
+                        let regex2 = new RegExp("^" + rootPath.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') + "(\\.|(\\[)|$)");
+                        if(!regex2.test(name)) {
+                            continue;
+                        }
+                        else {
+                            pathToSend = "";
+                        }
                     }
-                    pathToSend = rootPath.replace(regex, "$2");
+                    else {
+                        pathToSend = rootPath.replace(regex, "$2");
+                    }
                 }
 
                 if(name === "" && proxyData.useHistory) {
@@ -770,7 +779,8 @@ export class Effect {
     }[] = [];
 
     protected isInit: boolean = false;
-    protected isDestroy: boolean = false;
+    @InternalProtected()
+    public isDestroy: boolean = false;
     protected __subscribes: WatcherChange[] = [];
     protected __allowChanged: WatcherAllowed[] = [];
     @InternalProtected()
