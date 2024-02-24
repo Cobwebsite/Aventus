@@ -1,6 +1,6 @@
 # Change Log
 
-## 1.2.0 ()
+## 1.2.0 (2024-02-24)
 
 ### Bug Fixes
  - Correct Watcher to have right path on callback based on where subscribe is called
