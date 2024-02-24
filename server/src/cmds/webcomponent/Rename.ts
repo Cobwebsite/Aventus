@@ -3,7 +3,7 @@ import { InternalAventusFile } from '../../files/AventusFile';
 import { FilesManager } from '../../files/FilesManager';
 import { existsSync, mkdirSync, readdirSync, renameSync, rmSync, rmdirSync, writeFileSync } from 'fs';
 import { ProjectManager } from '../../project/ProjectManager';
-import { getLanguageIdByUri, uriToPath } from '../../tools';
+import { escapeRegex, getLanguageIdByUri, uriToPath } from '../../tools';
 import { CloseFile } from '../../notification/CloseFile';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { GenericServer } from '../../GenericServer';
@@ -38,11 +38,13 @@ export class Rename {
 			let oldName = splitted[splitted.length - 1]
 				.replace(AventusExtension.ComponentLogic, "");
 
+			let oldNameRegex = escapeRegex(oldName);
+
 			let oldFolderUri = logicalFile.folderUri;
-			let newFolderUri = oldFolderUri.replace(new RegExp(oldName + "$"), newName);
+			let newFolderUri = oldFolderUri.replace(new RegExp(oldNameRegex + "$"), newName);
 
 			//#region rename class name
-			let regex = new RegExp("(class +)" + oldName + " ");
+			let regex = new RegExp("(class +)" + oldNameRegex + " ");
 			let match = regex.exec(logicalFile.contentUser);
 			let transformToApply: { [uri: string]: InternalAventusFile } = {}
 			if (match) {

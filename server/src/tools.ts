@@ -187,12 +187,18 @@ export function replaceNotImportAliases(content: string, config: AventusConfig |
     for (let alias in aliases) {
         if (!alias.startsWith("@")) {
             // we replace all alias not preceded by \
-            let aliasEscaped = alias.replace(/[\\^$*+?.()|[\]{}]/g, '\\$&')
+            let aliasEscaped = escapeRegex(alias);
             let reg = new RegExp("(?<!\\\\)" + aliasEscaped, "g");
             content = content.replace(reg, aliases[alias]);
         }
     }
     return content;
+}
+
+export function escapeRegex(txt: string, avoidStar: boolean = false) {
+    if (avoidStar)
+        return txt.replace(/[\\^$+?.()|[\]{}]/g, '\\$&');
+    return txt.replace(/[\\^$*+?.()|[\]{}]/g, '\\$&');
 }
 
 function isNewlineCharacter(charCode: number) {

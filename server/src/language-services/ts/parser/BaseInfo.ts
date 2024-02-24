@@ -429,7 +429,7 @@ export abstract class BaseInfo {
         }
         if (this.parserInfo.internalObjects[name]) {
             let fullName = this.parserInfo.internalObjects[name].fullname
-            let hotReloadName = [...this.build.namespaces, fullName].join(".");
+            let hotReloadName = [this.build.module, ...this.build.namespaces, fullName].join(".");
             if (fullName == this.fullName) {
                 isStrongDependance = false;
             }
@@ -464,7 +464,7 @@ export abstract class BaseInfo {
         if (importInfo) {
             // it's an imported class
             let fullName = importInfo.fullName
-            let hotReloadName = [...this.build.namespaces, fullName].join(".");
+            let hotReloadName = [this.build.module, ...this.build.namespaces, fullName].join(".");
             this.dependances.push({
                 fullName: "$namespace$" + fullName,
                 uri: importInfo.fileUri,
@@ -497,7 +497,7 @@ export abstract class BaseInfo {
             }
             this.parserInfo.waitingImports[name].push((info) => {
                 let fullName = info.fullName;
-                let hotReloadName = [...this.build.namespaces, fullName].join(".");
+                let hotReloadName = [this.build.module, ...this.build.namespaces, fullName].join(".");
 
                 if (this.dependancesLocations[name]) {
                     let replacement = fullName;

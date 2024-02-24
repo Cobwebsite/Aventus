@@ -267,7 +267,8 @@ export class FilesManager {
     public getFilesMatching(regex: RegExp): AventusFile[] {
         let result: AventusFile[] = [];
         for (let uri in this.files) {
-            if (this.files[uri].path.match(regex)) {
+            let path = this.files[uri].path;
+            if (path.match(regex)) {
                 result.push(this.files[uri]);
             }
         }

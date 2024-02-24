@@ -1433,7 +1433,7 @@ export class Build {
             for (let split of splitted) {
                 current += split;
 
-                if (!this.namespaces.includes(current)) {
+                if (current && !this.namespaces.includes(current)) {
                     this.namespaces.push(current);
                 }
 

@@ -3,7 +3,7 @@ import { Diagnostic, getLanguageService, JSONSchema, LanguageService } from "vsc
 import { CompletionItem, CompletionList, DiagnosticSeverity, FormattingOptions, Hover, Position, Range, TextEdit } from 'vscode-languageserver';
 import { AventusErrorCode, AventusExtension } from "../../definition";
 import { AventusFile } from '../../files/AventusFile';
-import { createErrorTs, getFolder, uriToPath } from "../../tools";
+import { createErrorTs, escapeRegex, getFolder, uriToPath } from "../../tools";
 import { AventusConfig, AventusConfigBuild, AventusConfigBuildCompile, AventusConfigBuildDependance, AventusConfigStatic } from "./definition";
 import { AventusConfigSchema, AventusSharpSchema, AventusTemplateSchema } from "./schema";
 import { TextDocument } from 'vscode-languageserver-textdocument';
@@ -177,7 +177,8 @@ export class AventusJSONLanguageService {
                         splitedInput.push("*");
                     }
                     inputPath = splitedInput.join("/");
-                    let regTemp = normalize(uriToPath(baseDir) + slash + inputPath).replace(/\\/g, '\\/').replace("*", ".*");
+                    let regTemp = normalize(uriToPath(baseDir) + slash + inputPath).replace(/\\/g, '/');
+                    regTemp = escapeRegex(regTemp, true).replace("*", ".*");
                     regexs.push("(^" + regTemp + "$)");
                 }
                 let regexJoin = regexs.join("|");
@@ -263,7 +264,8 @@ export class AventusJSONLanguageService {
                 splitedInput.push("*");
             }
             srcPath = splitedInput.join("/");
-            let regTemp = normalize(uriToPath(baseDir) + slash + srcPath).replace(/\\/g, '\\/').replace("*", ".*");
+            let regTemp = normalize(uriToPath(baseDir) + slash + srcPath).replace(/\\/g, '/');
+            regTemp = escapeRegex(regTemp, true).replace("*", ".*");
             regexsSrc.push("(^" + regTemp + "$)");
         }
         let regexSrcJoin = regexsSrc.join("|");
@@ -329,7 +331,8 @@ export class AventusJSONLanguageService {
                     splitedInput.push("*");
                 }
                 noNamespacePath = splitedInput.join("/");
-                let regTemp = normalize(uriToPath(baseDir) + slash + noNamespacePath).replace(/\\/g, '\\/').replace("*", ".*");
+                let regTemp = normalize(uriToPath(baseDir) + slash + noNamespacePath).replace(/\\/g, '/');
+                regTemp = escapeRegex(regTemp, true).replace("*", ".*");
                 regexsOutside.push("(^" + regTemp + "$)");
             }
             let regexOutsideJoin = regexsOutside.join("|");
@@ -360,7 +363,8 @@ export class AventusJSONLanguageService {
                         splitedInput.push("*");
                     }
                     rule = splitedInput.join("/");
-                    let regTemp = normalize(uriToPath(baseDir) + slash + rule).replace(/\\/g, '\\/').replace("*", ".*");
+                    let regTemp = normalize(uriToPath(baseDir) + slash + rule).replace(/\\/g, '/');
+                    regTemp = escapeRegex(regTemp, true).replace("*", ".*");
                     regexsRules.push("(^" + regTemp + "$)");
                 }
                 let regexRulesJoin = regexsRules.join("|");
