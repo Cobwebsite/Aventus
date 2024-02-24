@@ -123,7 +123,9 @@ export class TagInfo {
 		if (this.isLoop) {
 			this.parentTemplateId = ParserHtml.getParentId();
 			let loop = ParserHtml.addLoopStack(Number(this.attributes["id"].value));
-			if (loop) this.loopInfo = loop
+			if (loop) {
+				this.loopInfo = loop
+			}
 		}
 		else if (this.isIf) {
 			this.parentTemplateId = ParserHtml.getParentId();
@@ -631,7 +633,7 @@ export class ForLoop {
 		}
 		this.loopName = ParserHtml.getCustomFctName() ?? "";
 
-		
+
 	}
 
 
@@ -768,19 +770,24 @@ export class ForLoop {
 
 		if (!this.checkIsSimple(init, condition, transform)) {
 			let fctName = ParserHtml.getCustomFctName(1) ?? "";
-			let variables = anaylseVariables(loopTxt, this.variables);
-			let params = variables.map(p => "c.data." + p).join(",");
 			this.complex = {
 				init,
 				condition,
 				transform,
 				apply,
 				loopName: fctName,
-				fct: `(c) => c.comp.${fctName}(${params})`
+				fct: `(c) => c.comp.${fctName}`
 			}
 		}
 	}
 
+	public recalculateVariables() {
+		this.variables = anaylseVariables(this.loopTxt, ParserHtml.getVariables())
+		if (!this.isSimple) {
+			let params = this.variables.map(p => "c.data." + p).join(",");
+			this.complex.fct += `(${params})`;
+		}
+	}
 
 	private checkIsSimple(init: string[], condition: string, transform: string[]) {
 		if (init.length != 1) {
@@ -922,20 +929,18 @@ export class IfInfo {
 				else if (SyntaxKind[y.kind].includes("Expression")) {
 					let fctName = ParserHtml.getCustomFctName(this.conditions.length) ?? '';
 					let fctTxt = this.sliceText(y.getStart(), y.getEnd())
-					let varsType = anaylseVariables(fctTxt, this.defaultVariables);
-					let params = varsType.map(p => "c.data." + p).join(",");
 
 					this.conditions.push({
 						fctName: fctName,
 						txt: fctTxt,
-						fctTxt: `(c) => c.comp.${fctName}(${params})`,
+						fctTxt: `(c) => c.comp.${fctName}`,
 						start: y.getStart(),
 						end: y.getEnd(),
 						offsetAfter: 0,
 						offsetBefore: 0,
 						idTemplate,
 						type: depth == 0 ? 'if' : 'elif',
-						variables: varsType,
+						variables: [],
 						computedOnce: isComputedOnce(fctTxt)
 					});
 				}
@@ -959,6 +964,18 @@ export class IfInfo {
 			part.once = true;
 		}
 		this.parts.push(part);
+	}
+
+	public recalculateVariables(nb: number) {
+		let variables = ParserHtml.getVariables();
+		for (let condition of this.conditions) {
+			if (condition.idTemplate == nb) {
+				let varsType = anaylseVariables(condition.txt, variables);
+				let params = varsType.map(p => "c.data." + p).join(",");
+				condition.fctTxt += `(${params})`
+				condition.variables = varsType;
+			}
+		}
 	}
 }
 

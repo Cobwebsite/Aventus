@@ -214,6 +214,7 @@ export class ParserHtml {
 		if (this.currentParsingDoc) {
 			let loop = this.currentParsingDoc.loops.find(p => p.idTemplate == nb);
 			if (loop) {
+				loop.recalculateVariables();
 				this.currentParsingDoc?.stacks.push(loop);
 				return loop;
 			}
@@ -224,6 +225,7 @@ export class ParserHtml {
 		if (this.currentParsingDoc) {
 			for (let _if of this.currentParsingDoc.ifs) {
 				if (_if.idsTemplate.includes(nb)) {
+					_if.recalculateVariables(nb);
 					this.currentParsingDoc?.stacks.push({
 						idTemplate: nb
 					});

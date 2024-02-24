@@ -6,20 +6,6 @@ const _ = {};
 
 
 let _n;
-const setValueToObject=function setValueToObject(path, obj, value) {
-    path = path.replace(/\[(.*?)\]/g, '.$1');
-    let splitted = path.split(".");
-    for (let i = 0; i < splitted.length - 1; i++) {
-        let split = splitted[i];
-        if (!obj[split]) {
-            obj[split] = {};
-        }
-        obj = obj[split];
-    }
-    obj[splitted[splitted.length - 1]] = value;
-}
-
-_.setValueToObject=setValueToObject;
 var WatchAction;
 (function (WatchAction) {
     WatchAction[WatchAction["CREATED"] = 0] = "CREATED";
@@ -78,6 +64,20 @@ const compareObject=function compareObject(obj1, obj2) {
 }
 
 _.compareObject=compareObject;
+const setValueToObject=function setValueToObject(path, obj, value) {
+    path = path.replace(/\[(.*?)\]/g, '.$1');
+    let splitted = path.split(".");
+    for (let i = 0; i < splitted.length - 1; i++) {
+        let split = splitted[i];
+        if (!obj[split]) {
+            obj[split] = {};
+        }
+        obj = obj[split];
+    }
+    obj[splitted[splitted.length - 1]] = value;
+}
+
+_.setValueToObject=setValueToObject;
 const getValueFromObject=function getValueFromObject(path, obj) {
     path = path.replace(/\[(.*?)\]/g, '.$1');
     if (path == "") {
@@ -600,6 +600,396 @@ const Mutex=class Mutex {
 }
 Mutex.Namespace=`${moduleName}`;
 _.Mutex=Mutex;
+const PressManager=class PressManager {
+    static create(options) {
+        if (Array.isArray(options.element)) {
+            let result = [];
+            for (let el of options.element) {
+                let cloneOpt = { ...options };
+                cloneOpt.element = el;
+                result.push(new PressManager(cloneOpt));
+            }
+            return result;
+        }
+        else {
+            return new PressManager(options);
+        }
+    }
+    options;
+    element;
+    delayDblPress = 150;
+    delayLongPress = 700;
+    nbPress = 0;
+    offsetDrag = 20;
+    state = {
+        oneActionTriggered: false,
+        isMoving: false,
+    };
+    startPosition = { x: 0, y: 0 };
+    customFcts = {};
+    timeoutDblPress = 0;
+    timeoutLongPress = 0;
+    downEventSaved;
+    actionsName = {
+        press: "press",
+        longPress: "longPress",
+        dblPress: "dblPress",
+        drag: "drag"
+    };
+    useDblPress = false;
+    stopPropagation = () => true;
+    functionsBinded = {
+        downAction: (e) => { },
+        upAction: (e) => { },
+        moveAction: (e) => { },
+        childPressStart: (e) => { },
+        childPressEnd: (e) => { },
+        childPress: (e) => { },
+        childDblPress: (e) => { },
+        childLongPress: (e) => { },
+        childDragStart: (e) => { },
+    };
+    /**
+     * @param {*} options - The options
+     * @param {HTMLElement | HTMLElement[]} options.element - The element to manage
+     */
+    constructor(options) {
+        if (options.element === void 0) {
+            throw 'You must provide an element';
+        }
+        this.element = options.element;
+        this.checkDragConstraint(options);
+        this.assignValueOption(options);
+        this.options = options;
+        this.init();
+    }
+    /**
+     * Get the current element focused by the PressManager
+     */
+    getElement() {
+        return this.element;
+    }
+    checkDragConstraint(options) {
+        if (options.onDrag !== void 0) {
+            if (options.onDragStart === void 0) {
+                options.onDragStart = (e) => { };
+            }
+            if (options.onDragEnd === void 0) {
+                options.onDragEnd = (e) => { };
+            }
+        }
+        if (options.onDragStart !== void 0) {
+            if (options.onDrag === void 0) {
+                options.onDrag = (e) => { };
+            }
+            if (options.onDragEnd === void 0) {
+                options.onDragEnd = (e) => { };
+            }
+        }
+        if (options.onDragEnd !== void 0) {
+            if (options.onDragStart === void 0) {
+                options.onDragStart = (e) => { };
+            }
+            if (options.onDrag === void 0) {
+                options.onDrag = (e) => { };
+            }
+        }
+    }
+    assignValueOption(options) {
+        if (options.delayDblPress !== undefined) {
+            this.delayDblPress = options.delayDblPress;
+        }
+        if (options.delayLongPress !== undefined) {
+            this.delayLongPress = options.delayLongPress;
+        }
+        if (options.offsetDrag !== undefined) {
+            this.offsetDrag = options.offsetDrag;
+        }
+        if (options.onDblPress !== undefined) {
+            this.useDblPress = true;
+        }
+        if (options.forceDblPress) {
+            this.useDblPress = true;
+        }
+        if (typeof options.stopPropagation == 'function') {
+            this.stopPropagation = options.stopPropagation;
+        }
+        else if (options.stopPropagation === false) {
+            this.stopPropagation = () => false;
+        }
+        if (!options.buttonAllowed)
+            options.buttonAllowed = [0];
+    }
+    bindAllFunction() {
+        this.functionsBinded.downAction = this.downAction.bind(this);
+        this.functionsBinded.moveAction = this.moveAction.bind(this);
+        this.functionsBinded.upAction = this.upAction.bind(this);
+        this.functionsBinded.childDblPress = this.childDblPress.bind(this);
+        this.functionsBinded.childDragStart = this.childDragStart.bind(this);
+        this.functionsBinded.childLongPress = this.childLongPress.bind(this);
+        this.functionsBinded.childPress = this.childPress.bind(this);
+        this.functionsBinded.childPressStart = this.childPressStart.bind(this);
+        this.functionsBinded.childPressEnd = this.childPressEnd.bind(this);
+    }
+    init() {
+        this.bindAllFunction();
+        this.element.addEventListener("pointerdown", this.functionsBinded.downAction);
+        this.element.addEventListener("trigger_pointer_press", this.functionsBinded.childPress);
+        this.element.addEventListener("trigger_pointer_pressstart", this.functionsBinded.childPressStart);
+        this.element.addEventListener("trigger_pointer_pressend", this.functionsBinded.childPressEnd);
+        this.element.addEventListener("trigger_pointer_dblpress", this.functionsBinded.childDblPress);
+        this.element.addEventListener("trigger_pointer_longpress", this.functionsBinded.childLongPress);
+        this.element.addEventListener("trigger_pointer_dragstart", this.functionsBinded.childDragStart);
+    }
+    downAction(e) {
+        if (!this.options.buttonAllowed?.includes(e.button)) {
+            return;
+        }
+        this.downEventSaved = e;
+        if (this.stopPropagation()) {
+            e.stopImmediatePropagation();
+        }
+        this.customFcts = {};
+        if (this.nbPress == 0) {
+            this.state.oneActionTriggered = false;
+            clearTimeout(this.timeoutDblPress);
+        }
+        this.startPosition = { x: e.pageX, y: e.pageY };
+        document.addEventListener("pointerup", this.functionsBinded.upAction);
+        document.addEventListener("pointermove", this.functionsBinded.moveAction);
+        this.timeoutLongPress = setTimeout(() => {
+            if (!this.state.oneActionTriggered) {
+                if (this.options.onLongPress) {
+                    this.state.oneActionTriggered = true;
+                    this.options.onLongPress(e, this);
+                    this.triggerEventToParent(this.actionsName.longPress, e);
+                }
+                else {
+                    this.emitTriggerFunction(this.actionsName.longPress, e);
+                }
+            }
+        }, this.delayLongPress);
+        if (this.options.onPressStart) {
+            this.options.onPressStart(e, this);
+            this.emitTriggerFunctionParent("pressstart", e);
+        }
+        else {
+            this.emitTriggerFunction("pressstart", e);
+        }
+    }
+    upAction(e) {
+        if (this.stopPropagation()) {
+            e.stopImmediatePropagation();
+        }
+        document.removeEventListener("pointerup", this.functionsBinded.upAction);
+        document.removeEventListener("pointermove", this.functionsBinded.moveAction);
+        clearTimeout(this.timeoutLongPress);
+        if (this.state.isMoving) {
+            this.state.isMoving = false;
+            if (this.options.onDragEnd) {
+                this.options.onDragEnd(e, this);
+            }
+            else if (this.customFcts.src && this.customFcts.onDragEnd) {
+                this.customFcts.onDragEnd(e, this.customFcts.src);
+            }
+        }
+        else {
+            if (this.useDblPress) {
+                this.nbPress++;
+                if (this.nbPress == 2) {
+                    if (!this.state.oneActionTriggered) {
+                        this.state.oneActionTriggered = true;
+                        this.nbPress = 0;
+                        if (this.options.onDblPress) {
+                            this.options.onDblPress(e, this);
+                            this.triggerEventToParent(this.actionsName.dblPress, e);
+                        }
+                        else {
+                            this.emitTriggerFunction(this.actionsName.dblPress, e);
+                        }
+                    }
+                }
+                else if (this.nbPress == 1) {
+                    this.timeoutDblPress = setTimeout(() => {
+                        this.nbPress = 0;
+                        if (!this.state.oneActionTriggered) {
+                            if (this.options.onPress) {
+                                this.state.oneActionTriggered = true;
+                                this.options.onPress(e, this);
+                                this.triggerEventToParent(this.actionsName.press, e);
+                            }
+                            else {
+                                this.emitTriggerFunction(this.actionsName.press, e);
+                            }
+                        }
+                    }, this.delayDblPress);
+                }
+            }
+            else {
+                if (!this.state.oneActionTriggered) {
+                    if (this.options.onPress) {
+                        this.state.oneActionTriggered = true;
+                        this.options.onPress(e, this);
+                        this.triggerEventToParent(this.actionsName.press, e);
+                    }
+                    else {
+                        this.emitTriggerFunction("press", e);
+                    }
+                }
+            }
+        }
+        if (this.options.onPressEnd) {
+            this.options.onPressEnd(e, this);
+            this.emitTriggerFunctionParent("pressend", e);
+        }
+        else {
+            this.emitTriggerFunction("pressend", e);
+        }
+    }
+    moveAction(e) {
+        if (!this.state.isMoving && !this.state.oneActionTriggered) {
+            if (this.stopPropagation()) {
+                e.stopImmediatePropagation();
+            }
+            let xDist = e.pageX - this.startPosition.x;
+            let yDist = e.pageY - this.startPosition.y;
+            let distance = Math.sqrt(xDist * xDist + yDist * yDist);
+            if (distance > this.offsetDrag && this.downEventSaved) {
+                this.state.oneActionTriggered = true;
+                if (this.options.onDragStart) {
+                    this.state.isMoving = true;
+                    this.options.onDragStart(this.downEventSaved, this);
+                    this.triggerEventToParent(this.actionsName.drag, e);
+                }
+                else {
+                    this.emitTriggerFunction("dragstart", this.downEventSaved);
+                }
+            }
+        }
+        else if (this.state.isMoving) {
+            if (this.options.onDrag) {
+                this.options.onDrag(e, this);
+            }
+            else if (this.customFcts.src && this.customFcts.onDrag) {
+                this.customFcts.onDrag(e, this.customFcts.src);
+            }
+        }
+    }
+    triggerEventToParent(eventName, pointerEvent) {
+        if (this.element.parentNode) {
+            this.element.parentNode.dispatchEvent(new CustomEvent("pressaction_trigger", {
+                bubbles: true,
+                cancelable: false,
+                composed: true,
+                detail: {
+                    target: this.element,
+                    eventName: eventName,
+                    realEvent: pointerEvent
+                }
+            }));
+        }
+    }
+    childPressStart(e) {
+        if (this.options.onPressStart) {
+            this.options.onPressStart(e.detail.realEvent, this);
+        }
+    }
+    childPressEnd(e) {
+        if (this.options.onPressEnd) {
+            this.options.onPressEnd(e.detail.realEvent, this);
+        }
+    }
+    childPress(e) {
+        if (this.options.onPress) {
+            if (this.stopPropagation()) {
+                e.stopImmediatePropagation();
+            }
+            e.detail.state.oneActionTriggered = true;
+            this.options.onPress(e.detail.realEvent, this);
+            this.triggerEventToParent(this.actionsName.press, e.detail.realEvent);
+        }
+    }
+    childDblPress(e) {
+        if (this.options.onDblPress) {
+            if (this.stopPropagation()) {
+                e.stopImmediatePropagation();
+            }
+            if (e.detail.state) {
+                e.detail.state.oneActionTriggered = true;
+            }
+            this.options.onDblPress(e.detail.realEvent, this);
+            this.triggerEventToParent(this.actionsName.dblPress, e.detail.realEvent);
+        }
+    }
+    childLongPress(e) {
+        if (this.options.onLongPress) {
+            if (this.stopPropagation()) {
+                e.stopImmediatePropagation();
+            }
+            e.detail.state.oneActionTriggered = true;
+            this.options.onLongPress(e.detail.realEvent, this);
+            this.triggerEventToParent(this.actionsName.longPress, e.detail.realEvent);
+        }
+    }
+    childDragStart(e) {
+        if (this.options.onDragStart) {
+            if (this.stopPropagation()) {
+                e.stopImmediatePropagation();
+            }
+            e.detail.state.isMoving = true;
+            e.detail.customFcts.src = this;
+            e.detail.customFcts.onDrag = this.options.onDrag;
+            e.detail.customFcts.onDragEnd = this.options.onDragEnd;
+            e.detail.customFcts.offsetDrag = this.options.offsetDrag;
+            this.options.onDragStart(e.detail.realEvent, this);
+            this.triggerEventToParent(this.actionsName.drag, e.detail.realEvent);
+        }
+    }
+    emitTriggerFunctionParent(action, e) {
+        let el = this.element.parentElement;
+        if (el == null) {
+            let parentNode = this.element.parentNode;
+            if (parentNode instanceof ShadowRoot) {
+                this.emitTriggerFunction(action, e, parentNode.host);
+            }
+        }
+        else {
+            this.emitTriggerFunction(action, e, el);
+        }
+    }
+    emitTriggerFunction(action, e, el) {
+        let ev = new CustomEvent("trigger_pointer_" + action, {
+            bubbles: true,
+            cancelable: true,
+            composed: true,
+            detail: {
+                state: this.state,
+                customFcts: this.customFcts,
+                realEvent: e
+            }
+        });
+        if (!el) {
+            el = this.element;
+        }
+        el.dispatchEvent(ev);
+    }
+    /**
+     * Destroy the Press instance byremoving all events
+     */
+    destroy() {
+        if (this.element) {
+            this.element.removeEventListener("pointerdown", this.functionsBinded.downAction);
+            this.element.removeEventListener("trigger_pointer_press", this.functionsBinded.childPress);
+            this.element.removeEventListener("trigger_pointer_pressstart", this.functionsBinded.childPressStart);
+            this.element.removeEventListener("trigger_pointer_pressend", this.functionsBinded.childPressEnd);
+            this.element.removeEventListener("trigger_pointer_dblpress", this.functionsBinded.childDblPress);
+            this.element.removeEventListener("trigger_pointer_longpress", this.functionsBinded.childLongPress);
+            this.element.removeEventListener("trigger_pointer_dragstart", this.functionsBinded.childDragStart);
+        }
+    }
+}
+PressManager.Namespace=`${moduleName}`;
+_.PressManager=PressManager;
 const Effect=class Effect {
     callbacks = [];
     isInit = false;
@@ -1376,396 +1766,6 @@ const Watcher=class Watcher {
 }
 Watcher.Namespace=`${moduleName}`;
 _.Watcher=Watcher;
-const PressManager=class PressManager {
-    static create(options) {
-        if (Array.isArray(options.element)) {
-            let result = [];
-            for (let el of options.element) {
-                let cloneOpt = { ...options };
-                cloneOpt.element = el;
-                result.push(new PressManager(cloneOpt));
-            }
-            return result;
-        }
-        else {
-            return new PressManager(options);
-        }
-    }
-    options;
-    element;
-    delayDblPress = 150;
-    delayLongPress = 700;
-    nbPress = 0;
-    offsetDrag = 20;
-    state = {
-        oneActionTriggered: false,
-        isMoving: false,
-    };
-    startPosition = { x: 0, y: 0 };
-    customFcts = {};
-    timeoutDblPress = 0;
-    timeoutLongPress = 0;
-    downEventSaved;
-    actionsName = {
-        press: "press",
-        longPress: "longPress",
-        dblPress: "dblPress",
-        drag: "drag"
-    };
-    useDblPress = false;
-    stopPropagation = () => true;
-    functionsBinded = {
-        downAction: (e) => { },
-        upAction: (e) => { },
-        moveAction: (e) => { },
-        childPressStart: (e) => { },
-        childPressEnd: (e) => { },
-        childPress: (e) => { },
-        childDblPress: (e) => { },
-        childLongPress: (e) => { },
-        childDragStart: (e) => { },
-    };
-    /**
-     * @param {*} options - The options
-     * @param {HTMLElement | HTMLElement[]} options.element - The element to manage
-     */
-    constructor(options) {
-        if (options.element === void 0) {
-            throw 'You must provide an element';
-        }
-        this.element = options.element;
-        this.checkDragConstraint(options);
-        this.assignValueOption(options);
-        this.options = options;
-        this.init();
-    }
-    /**
-     * Get the current element focused by the PressManager
-     */
-    getElement() {
-        return this.element;
-    }
-    checkDragConstraint(options) {
-        if (options.onDrag !== void 0) {
-            if (options.onDragStart === void 0) {
-                options.onDragStart = (e) => { };
-            }
-            if (options.onDragEnd === void 0) {
-                options.onDragEnd = (e) => { };
-            }
-        }
-        if (options.onDragStart !== void 0) {
-            if (options.onDrag === void 0) {
-                options.onDrag = (e) => { };
-            }
-            if (options.onDragEnd === void 0) {
-                options.onDragEnd = (e) => { };
-            }
-        }
-        if (options.onDragEnd !== void 0) {
-            if (options.onDragStart === void 0) {
-                options.onDragStart = (e) => { };
-            }
-            if (options.onDrag === void 0) {
-                options.onDrag = (e) => { };
-            }
-        }
-    }
-    assignValueOption(options) {
-        if (options.delayDblPress !== undefined) {
-            this.delayDblPress = options.delayDblPress;
-        }
-        if (options.delayLongPress !== undefined) {
-            this.delayLongPress = options.delayLongPress;
-        }
-        if (options.offsetDrag !== undefined) {
-            this.offsetDrag = options.offsetDrag;
-        }
-        if (options.onDblPress !== undefined) {
-            this.useDblPress = true;
-        }
-        if (options.forceDblPress) {
-            this.useDblPress = true;
-        }
-        if (typeof options.stopPropagation == 'function') {
-            this.stopPropagation = options.stopPropagation;
-        }
-        else if (options.stopPropagation === false) {
-            this.stopPropagation = () => false;
-        }
-        if (!options.buttonAllowed)
-            options.buttonAllowed = [0];
-    }
-    bindAllFunction() {
-        this.functionsBinded.downAction = this.downAction.bind(this);
-        this.functionsBinded.moveAction = this.moveAction.bind(this);
-        this.functionsBinded.upAction = this.upAction.bind(this);
-        this.functionsBinded.childDblPress = this.childDblPress.bind(this);
-        this.functionsBinded.childDragStart = this.childDragStart.bind(this);
-        this.functionsBinded.childLongPress = this.childLongPress.bind(this);
-        this.functionsBinded.childPress = this.childPress.bind(this);
-        this.functionsBinded.childPressStart = this.childPressStart.bind(this);
-        this.functionsBinded.childPressEnd = this.childPressEnd.bind(this);
-    }
-    init() {
-        this.bindAllFunction();
-        this.element.addEventListener("pointerdown", this.functionsBinded.downAction);
-        this.element.addEventListener("trigger_pointer_press", this.functionsBinded.childPress);
-        this.element.addEventListener("trigger_pointer_pressstart", this.functionsBinded.childPressStart);
-        this.element.addEventListener("trigger_pointer_pressend", this.functionsBinded.childPressEnd);
-        this.element.addEventListener("trigger_pointer_dblpress", this.functionsBinded.childDblPress);
-        this.element.addEventListener("trigger_pointer_longpress", this.functionsBinded.childLongPress);
-        this.element.addEventListener("trigger_pointer_dragstart", this.functionsBinded.childDragStart);
-    }
-    downAction(e) {
-        if (!this.options.buttonAllowed?.includes(e.button)) {
-            return;
-        }
-        this.downEventSaved = e;
-        if (this.stopPropagation()) {
-            e.stopImmediatePropagation();
-        }
-        this.customFcts = {};
-        if (this.nbPress == 0) {
-            this.state.oneActionTriggered = false;
-            clearTimeout(this.timeoutDblPress);
-        }
-        this.startPosition = { x: e.pageX, y: e.pageY };
-        document.addEventListener("pointerup", this.functionsBinded.upAction);
-        document.addEventListener("pointermove", this.functionsBinded.moveAction);
-        this.timeoutLongPress = setTimeout(() => {
-            if (!this.state.oneActionTriggered) {
-                if (this.options.onLongPress) {
-                    this.state.oneActionTriggered = true;
-                    this.options.onLongPress(e, this);
-                    this.triggerEventToParent(this.actionsName.longPress, e);
-                }
-                else {
-                    this.emitTriggerFunction(this.actionsName.longPress, e);
-                }
-            }
-        }, this.delayLongPress);
-        if (this.options.onPressStart) {
-            this.options.onPressStart(e, this);
-            this.emitTriggerFunctionParent("pressstart", e);
-        }
-        else {
-            this.emitTriggerFunction("pressstart", e);
-        }
-    }
-    upAction(e) {
-        if (this.stopPropagation()) {
-            e.stopImmediatePropagation();
-        }
-        document.removeEventListener("pointerup", this.functionsBinded.upAction);
-        document.removeEventListener("pointermove", this.functionsBinded.moveAction);
-        clearTimeout(this.timeoutLongPress);
-        if (this.state.isMoving) {
-            this.state.isMoving = false;
-            if (this.options.onDragEnd) {
-                this.options.onDragEnd(e, this);
-            }
-            else if (this.customFcts.src && this.customFcts.onDragEnd) {
-                this.customFcts.onDragEnd(e, this.customFcts.src);
-            }
-        }
-        else {
-            if (this.useDblPress) {
-                this.nbPress++;
-                if (this.nbPress == 2) {
-                    if (!this.state.oneActionTriggered) {
-                        this.state.oneActionTriggered = true;
-                        this.nbPress = 0;
-                        if (this.options.onDblPress) {
-                            this.options.onDblPress(e, this);
-                            this.triggerEventToParent(this.actionsName.dblPress, e);
-                        }
-                        else {
-                            this.emitTriggerFunction(this.actionsName.dblPress, e);
-                        }
-                    }
-                }
-                else if (this.nbPress == 1) {
-                    this.timeoutDblPress = setTimeout(() => {
-                        this.nbPress = 0;
-                        if (!this.state.oneActionTriggered) {
-                            if (this.options.onPress) {
-                                this.state.oneActionTriggered = true;
-                                this.options.onPress(e, this);
-                                this.triggerEventToParent(this.actionsName.press, e);
-                            }
-                            else {
-                                this.emitTriggerFunction(this.actionsName.press, e);
-                            }
-                        }
-                    }, this.delayDblPress);
-                }
-            }
-            else {
-                if (!this.state.oneActionTriggered) {
-                    if (this.options.onPress) {
-                        this.state.oneActionTriggered = true;
-                        this.options.onPress(e, this);
-                        this.triggerEventToParent(this.actionsName.press, e);
-                    }
-                    else {
-                        this.emitTriggerFunction("press", e);
-                    }
-                }
-            }
-        }
-        if (this.options.onPressEnd) {
-            this.options.onPressEnd(e, this);
-            this.emitTriggerFunctionParent("pressend", e);
-        }
-        else {
-            this.emitTriggerFunction("pressend", e);
-        }
-    }
-    moveAction(e) {
-        if (!this.state.isMoving && !this.state.oneActionTriggered) {
-            if (this.stopPropagation()) {
-                e.stopImmediatePropagation();
-            }
-            let xDist = e.pageX - this.startPosition.x;
-            let yDist = e.pageY - this.startPosition.y;
-            let distance = Math.sqrt(xDist * xDist + yDist * yDist);
-            if (distance > this.offsetDrag && this.downEventSaved) {
-                this.state.oneActionTriggered = true;
-                if (this.options.onDragStart) {
-                    this.state.isMoving = true;
-                    this.options.onDragStart(this.downEventSaved, this);
-                    this.triggerEventToParent(this.actionsName.drag, e);
-                }
-                else {
-                    this.emitTriggerFunction("dragstart", this.downEventSaved);
-                }
-            }
-        }
-        else if (this.state.isMoving) {
-            if (this.options.onDrag) {
-                this.options.onDrag(e, this);
-            }
-            else if (this.customFcts.src && this.customFcts.onDrag) {
-                this.customFcts.onDrag(e, this.customFcts.src);
-            }
-        }
-    }
-    triggerEventToParent(eventName, pointerEvent) {
-        if (this.element.parentNode) {
-            this.element.parentNode.dispatchEvent(new CustomEvent("pressaction_trigger", {
-                bubbles: true,
-                cancelable: false,
-                composed: true,
-                detail: {
-                    target: this.element,
-                    eventName: eventName,
-                    realEvent: pointerEvent
-                }
-            }));
-        }
-    }
-    childPressStart(e) {
-        if (this.options.onPressStart) {
-            this.options.onPressStart(e.detail.realEvent, this);
-        }
-    }
-    childPressEnd(e) {
-        if (this.options.onPressEnd) {
-            this.options.onPressEnd(e.detail.realEvent, this);
-        }
-    }
-    childPress(e) {
-        if (this.options.onPress) {
-            if (this.stopPropagation()) {
-                e.stopImmediatePropagation();
-            }
-            e.detail.state.oneActionTriggered = true;
-            this.options.onPress(e.detail.realEvent, this);
-            this.triggerEventToParent(this.actionsName.press, e.detail.realEvent);
-        }
-    }
-    childDblPress(e) {
-        if (this.options.onDblPress) {
-            if (this.stopPropagation()) {
-                e.stopImmediatePropagation();
-            }
-            if (e.detail.state) {
-                e.detail.state.oneActionTriggered = true;
-            }
-            this.options.onDblPress(e.detail.realEvent, this);
-            this.triggerEventToParent(this.actionsName.dblPress, e.detail.realEvent);
-        }
-    }
-    childLongPress(e) {
-        if (this.options.onLongPress) {
-            if (this.stopPropagation()) {
-                e.stopImmediatePropagation();
-            }
-            e.detail.state.oneActionTriggered = true;
-            this.options.onLongPress(e.detail.realEvent, this);
-            this.triggerEventToParent(this.actionsName.longPress, e.detail.realEvent);
-        }
-    }
-    childDragStart(e) {
-        if (this.options.onDragStart) {
-            if (this.stopPropagation()) {
-                e.stopImmediatePropagation();
-            }
-            e.detail.state.isMoving = true;
-            e.detail.customFcts.src = this;
-            e.detail.customFcts.onDrag = this.options.onDrag;
-            e.detail.customFcts.onDragEnd = this.options.onDragEnd;
-            e.detail.customFcts.offsetDrag = this.options.offsetDrag;
-            this.options.onDragStart(e.detail.realEvent, this);
-            this.triggerEventToParent(this.actionsName.drag, e.detail.realEvent);
-        }
-    }
-    emitTriggerFunctionParent(action, e) {
-        let el = this.element.parentElement;
-        if (el == null) {
-            let parentNode = this.element.parentNode;
-            if (parentNode instanceof ShadowRoot) {
-                this.emitTriggerFunction(action, e, parentNode.host);
-            }
-        }
-        else {
-            this.emitTriggerFunction(action, e, el);
-        }
-    }
-    emitTriggerFunction(action, e, el) {
-        let ev = new CustomEvent("trigger_pointer_" + action, {
-            bubbles: true,
-            cancelable: true,
-            composed: true,
-            detail: {
-                state: this.state,
-                customFcts: this.customFcts,
-                realEvent: e
-            }
-        });
-        if (!el) {
-            el = this.element;
-        }
-        el.dispatchEvent(ev);
-    }
-    /**
-     * Destroy the Press instance byremoving all events
-     */
-    destroy() {
-        if (this.element) {
-            this.element.removeEventListener("pointerdown", this.functionsBinded.downAction);
-            this.element.removeEventListener("trigger_pointer_press", this.functionsBinded.childPress);
-            this.element.removeEventListener("trigger_pointer_pressstart", this.functionsBinded.childPressStart);
-            this.element.removeEventListener("trigger_pointer_pressend", this.functionsBinded.childPressEnd);
-            this.element.removeEventListener("trigger_pointer_dblpress", this.functionsBinded.childDblPress);
-            this.element.removeEventListener("trigger_pointer_longpress", this.functionsBinded.childLongPress);
-            this.element.removeEventListener("trigger_pointer_dragstart", this.functionsBinded.childDragStart);
-        }
-    }
-}
-PressManager.Namespace=`${moduleName}`;
-_.PressManager=PressManager;
 const Uri=class Uri {
     static prepare(uri) {
         let params = [];
@@ -2211,7 +2211,10 @@ const ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
         Watcher._registering.splice(Watcher._registering.length - 1, 1);
     }
     computedValue() {
-        this._value = this.fct();
+        if (this.isInit)
+            this._value = this.fct();
+        else
+            this.init();
     }
     run() { }
 }
@@ -2270,12 +2273,12 @@ const TemplateContext=class TemplateContext {
         }
         return fullName;
     }
-    registerLoop(dataName, _indexValue, _indexName, indexName, itemName) {
+    registerLoop(dataName, _indexValue, _indexName, indexName, itemName, onThis) {
         this.watch[_indexName] = _indexValue;
         let getItems;
         let mustBeRecomputed = /if|switch|\?|\[.+?\]/g.test(dataName);
         let _class = mustBeRecomputed ? Computed : ComputedNoRecomputed;
-        if (!dataName.startsWith("this.")) {
+        if (!onThis) {
             getItems = new _class(() => {
                 return getValueFromObject(dataName, this.data);
             });
@@ -2384,6 +2387,22 @@ const TemplateContext=class TemplateContext {
     }
     updateWatch(name, value) {
         this.watch[name] = value;
+    }
+    normalizePath(path) {
+        path = path.replace(/^this\./, '');
+        const regex = /\[(.*?)\]/g;
+        let m;
+        while ((m = regex.exec(path)) !== null) {
+            if (m.index === regex.lastIndex) {
+                regex.lastIndex++;
+            }
+            let name = m[1];
+            let result = getValueFromObject(name, this.data);
+            if (result !== undefined) {
+                path = path.replace(m[0], `[${result}]`);
+            }
+        }
+        return path;
     }
     getValueFromItem(name) {
         if (!name)
@@ -2649,10 +2668,15 @@ const TemplateInstance=class TemplateInstance {
                 return change.fct(this.context);
             }
             catch (e) {
-                if (computed instanceof ComputedNoRecomputed) {
-                    computed.isInit = false;
+                if (e instanceof TypeError && e.message.startsWith("Cannot read properties of undefined")) {
+                    if (computed instanceof ComputedNoRecomputed) {
+                        computed.isInit = false;
+                    }
                 }
-                debugger;
+                else {
+                    console.log(e);
+                    debugger;
+                }
             }
             return "";
         });
@@ -2676,7 +2700,20 @@ const TemplateInstance=class TemplateInstance {
             return;
         let _class = injection.once ? ComputedNoRecomputed : Computed;
         let computed = new _class(() => {
-            return injection.inject(this.context);
+            try {
+                return injection.inject(this.context);
+            }
+            catch (e) {
+                if (e instanceof TypeError && e.message.startsWith("Cannot read properties of undefined")) {
+                    if (computed instanceof ComputedNoRecomputed) {
+                        computed.isInit = false;
+                    }
+                }
+                else {
+                    console.log(e);
+                    debugger;
+                }
+            }
         });
         this.computeds.push(computed);
         computed.subscribe(() => {
@@ -2694,7 +2731,20 @@ const TemplateInstance=class TemplateInstance {
         let isLocalChange = false;
         let _class = binding.once ? ComputedNoRecomputed : Computed;
         let computed = new _class(() => {
-            return binding.inject(this.context);
+            try {
+                return binding.inject(this.context);
+            }
+            catch (e) {
+                if (e instanceof TypeError && e.message.startsWith("Cannot read properties of undefined")) {
+                    if (computed instanceof ComputedNoRecomputed) {
+                        computed.isInit = false;
+                    }
+                }
+                else {
+                    console.log(e);
+                    debugger;
+                }
+            }
         });
         this.computeds.push(computed);
         computed.subscribe(() => {
@@ -2755,22 +2805,16 @@ const TemplateInstance=class TemplateInstance {
             this.renderLoopSimple(loop, loop.simple);
         }
     }
-    resetLoop(loop) {
-        if (this.loopRegisteries[loop.anchorId]) {
-            for (let item of this.loopRegisteries[loop.anchorId].templates) {
+    resetLoopComplex(anchorId) {
+        if (this.loopRegisteries[anchorId]) {
+            for (let item of this.loopRegisteries[anchorId].templates) {
                 item.destructor();
             }
-            for (let item of this.loopRegisteries[loop.anchorId].computeds) {
+            for (let item of this.loopRegisteries[anchorId].computeds) {
                 item.destroy();
             }
-            if (loop.simple && this.loopRegisteries[loop.anchorId].sub) {
-                let elements = this.context.getValueFromItem(loop.simple.data.replace(/^this\./, ''));
-                if (elements) {
-                    elements.unsubscribe(this.loopRegisteries[loop.anchorId].sub);
-                }
-            }
         }
-        this.loopRegisteries[loop.anchorId] = {
+        this.loopRegisteries[anchorId] = {
             templates: [],
             computeds: [],
         };
@@ -2784,7 +2828,7 @@ const TemplateInstance=class TemplateInstance {
             condition: fctsTemp.condition,
             transform: fctsTemp.transform ?? (() => { })
         };
-        this.resetLoop(loop);
+        this.resetLoopComplex(loop.anchorId);
         let computedsCondition = [];
         let alreadyRecreated = false;
         const createComputedCondition = () => {
@@ -2820,9 +2864,17 @@ const TemplateInstance=class TemplateInstance {
             this.loopRegisteries[loop.anchorId].templates.push(instance);
         }
     }
+    resetLoopSimple(anchorId, basePath) {
+        let elements = this.context.getValueFromItem(basePath);
+        if (elements && this.loopRegisteries[anchorId]) {
+            elements.unsubscribe(this.loopRegisteries[anchorId].sub);
+        }
+        this.resetLoopComplex(anchorId);
+    }
     renderLoopSimple(loop, simple) {
-        this.resetLoop(loop);
-        let basePath = simple.data.replace(/^this\./, '');
+        let onThis = simple.data.startsWith("this.");
+        let basePath = this.context.normalizePath(simple.data);
+        this.resetLoopSimple(loop.anchorId, basePath);
         let getElements = () => this.context.getValueFromItem(basePath);
         let elements = getElements();
         if (!elements) {
@@ -2833,7 +2885,7 @@ const TemplateInstance=class TemplateInstance {
                 currentPath = splittedPath.join(".");
                 elements = this.context.getValueFromItem(currentPath);
             }
-            if (!elements && simple.data.startsWith("this.")) {
+            if (!elements && onThis) {
                 elements = this.component.__watch;
             }
             if (!elements || !elements.__isProxy) {
@@ -2887,7 +2939,7 @@ const TemplateInstance=class TemplateInstance {
                     let registry = this.loopRegisteries[loop.anchorId];
                     if (action == WatchAction.CREATED) {
                         let context = new TemplateContext(this.component, {}, this.context, registry);
-                        context.registerLoop(simple.data, index, indexName, simple.index, simple.item);
+                        context.registerLoop(basePath, index, indexName, simple.index, simple.item, onThis);
                         let content = loop.template.template?.content.cloneNode(true);
                         let actions = loop.template.actions;
                         let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
@@ -2920,7 +2972,7 @@ const TemplateInstance=class TemplateInstance {
         let anchor = this._components[loop.anchorId][0];
         for (let i = 0; i < keys.length; i++) {
             let context = new TemplateContext(this.component, {}, this.context, this.loopRegisteries[loop.anchorId]);
-            context.registerLoop(simple.data, i, indexName, simple.index, simple.item);
+            context.registerLoop(basePath, i, indexName, simple.index, simple.item, onThis);
             let content = loop.template.template?.content.cloneNode(true);
             let actions = loop.template.actions;
             let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
@@ -7266,7 +7318,10 @@ const ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
         Watcher._registering.splice(Watcher._registering.length - 1, 1);
     }
     computedValue() {
-        this._value = this.fct();
+        if (this.isInit)
+            this._value = this.fct();
+        else
+            this.init();
     }
     run() { }
 }
@@ -7279,7 +7334,11 @@ const EffectNoRecomputed=class EffectNoRecomputed extends Effect {
         this.fct();
         Watcher._registering.splice(Watcher._registering.length - 1, 1);
     }
-    run() { }
+    run() {
+        if (!this.isInit) {
+            this.init();
+        }
+    }
 }
 EffectNoRecomputed.Namespace=`${moduleName}`;
 _.EffectNoRecomputed=EffectNoRecomputed;
@@ -8609,10 +8668,15 @@ const TemplateInstance=class TemplateInstance {
                 return change.fct(this.context);
             }
             catch (e) {
-                if (computed instanceof ComputedNoRecomputed) {
-                    computed.isInit = false;
+                if (e instanceof TypeError && e.message.startsWith("Cannot read properties of undefined")) {
+                    if (computed instanceof ComputedNoRecomputed) {
+                        computed.isInit = false;
+                    }
                 }
-                debugger;
+                else {
+                    console.log(e);
+                    debugger;
+                }
             }
             return "";
         });
@@ -8636,7 +8700,20 @@ const TemplateInstance=class TemplateInstance {
             return;
         let _class = injection.once ? ComputedNoRecomputed : Computed;
         let computed = new _class(() => {
-            return injection.inject(this.context);
+            try {
+                return injection.inject(this.context);
+            }
+            catch (e) {
+                if (e instanceof TypeError && e.message.startsWith("Cannot read properties of undefined")) {
+                    if (computed instanceof ComputedNoRecomputed) {
+                        computed.isInit = false;
+                    }
+                }
+                else {
+                    console.log(e);
+                    debugger;
+                }
+            }
         });
         this.computeds.push(computed);
         computed.subscribe(() => {
@@ -8654,7 +8731,20 @@ const TemplateInstance=class TemplateInstance {
         let isLocalChange = false;
         let _class = binding.once ? ComputedNoRecomputed : Computed;
         let computed = new _class(() => {
-            return binding.inject(this.context);
+            try {
+                return binding.inject(this.context);
+            }
+            catch (e) {
+                if (e instanceof TypeError && e.message.startsWith("Cannot read properties of undefined")) {
+                    if (computed instanceof ComputedNoRecomputed) {
+                        computed.isInit = false;
+                    }
+                }
+                else {
+                    console.log(e);
+                    debugger;
+                }
+            }
         });
         this.computeds.push(computed);
         computed.subscribe(() => {
@@ -8715,22 +8805,16 @@ const TemplateInstance=class TemplateInstance {
             this.renderLoopSimple(loop, loop.simple);
         }
     }
-    resetLoop(loop) {
-        if (this.loopRegisteries[loop.anchorId]) {
-            for (let item of this.loopRegisteries[loop.anchorId].templates) {
+    resetLoopComplex(anchorId) {
+        if (this.loopRegisteries[anchorId]) {
+            for (let item of this.loopRegisteries[anchorId].templates) {
                 item.destructor();
             }
-            for (let item of this.loopRegisteries[loop.anchorId].computeds) {
+            for (let item of this.loopRegisteries[anchorId].computeds) {
                 item.destroy();
             }
-            if (loop.simple && this.loopRegisteries[loop.anchorId].sub) {
-                let elements = this.context.getValueFromItem(loop.simple.data.replace(/^this\./, ''));
-                if (elements) {
-                    elements.unsubscribe(this.loopRegisteries[loop.anchorId].sub);
-                }
-            }
         }
-        this.loopRegisteries[loop.anchorId] = {
+        this.loopRegisteries[anchorId] = {
             templates: [],
             computeds: [],
         };
@@ -8744,7 +8828,7 @@ const TemplateInstance=class TemplateInstance {
             condition: fctsTemp.condition,
             transform: fctsTemp.transform ?? (() => { })
         };
-        this.resetLoop(loop);
+        this.resetLoopComplex(loop.anchorId);
         let computedsCondition = [];
         let alreadyRecreated = false;
         const createComputedCondition = () => {
@@ -8780,9 +8864,17 @@ const TemplateInstance=class TemplateInstance {
             this.loopRegisteries[loop.anchorId].templates.push(instance);
         }
     }
+    resetLoopSimple(anchorId, basePath) {
+        let elements = this.context.getValueFromItem(basePath);
+        if (elements && this.loopRegisteries[anchorId]) {
+            elements.unsubscribe(this.loopRegisteries[anchorId].sub);
+        }
+        this.resetLoopComplex(anchorId);
+    }
     renderLoopSimple(loop, simple) {
-        this.resetLoop(loop);
-        let basePath = simple.data.replace(/^this\./, '');
+        let onThis = simple.data.startsWith("this.");
+        let basePath = this.context.normalizePath(simple.data);
+        this.resetLoopSimple(loop.anchorId, basePath);
         let getElements = () => this.context.getValueFromItem(basePath);
         let elements = getElements();
         if (!elements) {
@@ -8793,7 +8885,7 @@ const TemplateInstance=class TemplateInstance {
                 currentPath = splittedPath.join(".");
                 elements = this.context.getValueFromItem(currentPath);
             }
-            if (!elements && simple.data.startsWith("this.")) {
+            if (!elements && onThis) {
                 elements = this.component.__watch;
             }
             if (!elements || !elements.__isProxy) {
@@ -8847,7 +8939,7 @@ const TemplateInstance=class TemplateInstance {
                     let registry = this.loopRegisteries[loop.anchorId];
                     if (action == WatchAction.CREATED) {
                         let context = new TemplateContext(this.component, {}, this.context, registry);
-                        context.registerLoop(simple.data, index, indexName, simple.index, simple.item);
+                        context.registerLoop(basePath, index, indexName, simple.index, simple.item, onThis);
                         let content = loop.template.template?.content.cloneNode(true);
                         let actions = loop.template.actions;
                         let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
@@ -8880,7 +8972,7 @@ const TemplateInstance=class TemplateInstance {
         let anchor = this._components[loop.anchorId][0];
         for (let i = 0; i < keys.length; i++) {
             let context = new TemplateContext(this.component, {}, this.context, this.loopRegisteries[loop.anchorId]);
-            context.registerLoop(simple.data, i, indexName, simple.index, simple.item);
+            context.registerLoop(basePath, i, indexName, simple.index, simple.item, onThis);
             let content = loop.template.template?.content.cloneNode(true);
             let actions = loop.template.actions;
             let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
@@ -8996,12 +9088,12 @@ const TemplateContext=class TemplateContext {
         }
         return fullName;
     }
-    registerLoop(dataName, _indexValue, _indexName, indexName, itemName) {
+    registerLoop(dataName, _indexValue, _indexName, indexName, itemName, onThis) {
         this.watch[_indexName] = _indexValue;
         let getItems;
         let mustBeRecomputed = /if|switch|\?|\[.+?\]/g.test(dataName);
         let _class = mustBeRecomputed ? Computed : ComputedNoRecomputed;
-        if (!dataName.startsWith("this.")) {
+        if (!onThis) {
             getItems = new _class(() => {
                 return getValueFromObject(dataName, this.data);
             });
@@ -9110,6 +9202,22 @@ const TemplateContext=class TemplateContext {
     }
     updateWatch(name, value) {
         this.watch[name] = value;
+    }
+    normalizePath(path) {
+        path = path.replace(/^this\./, '');
+        const regex = /\[(.*?)\]/g;
+        let m;
+        while ((m = regex.exec(path)) !== null) {
+            if (m.index === regex.lastIndex) {
+                regex.lastIndex++;
+            }
+            let name = m[1];
+            let result = getValueFromObject(name, this.data);
+            if (result !== undefined) {
+                path = path.replace(m[0], `[${result}]`);
+            }
+        }
+        return path;
     }
     getValueFromItem(name) {
         if (!name)

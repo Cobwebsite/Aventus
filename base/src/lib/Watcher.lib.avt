@@ -923,7 +923,11 @@ export class EffectNoRecomputed extends Effect {
         Watcher._registering.splice(Watcher._registering.length - 1, 1);
     }
 
-    protected override run() { }
+    protected override run() {
+        if(!this.isInit) {
+            this.init();
+        }
+    }
 }
 
 /**
@@ -990,7 +994,10 @@ export class ComputedNoRecomputed<T = any> extends Computed<T> {
     }
 
     protected override computedValue() {
-        this._value = this.fct() as T;
+        if(this.isInit)
+            this._value = this.fct() as T;
+        else
+            this.init();
     }
 
     protected override run() { }
