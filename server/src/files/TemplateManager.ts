@@ -21,6 +21,7 @@ export class TemplateManager {
 		SettingsManager.getInstance().onSettingsChange(() => {
 			this.loadTemplates();
 		})
+		this.validateEmptyFolder();
 	}
 
 	public loadTemplates() {
@@ -166,7 +167,30 @@ export class TemplateManager {
 			}
 			this.loadedProjects = this.readTemplates(this.projectPath);
 		}
+	}
 
+	public validateEmptyFolder() {
+		let projectsFolder = GenericServer.extensionPath + sep + "projects";
+
+		const checkOrCreate = (path: string | string[]) => {
+			try {
+				if (Array.isArray(path)) {
+					path = path.join(sep);
+				}
+				if (!existsSync(path)) {
+					mkdirSync(path)
+				}
+			} catch (e) { }
+		}
+
+		checkOrCreate([projectsFolder, "Default"]);
+		checkOrCreate([projectsFolder, "Default", "src"]);
+		checkOrCreate([projectsFolder, "Default", "src", "components"]);
+		checkOrCreate([projectsFolder, "Default", "src", "data"]);
+		checkOrCreate([projectsFolder, "Default", "src", "lib"]);
+		checkOrCreate([projectsFolder, "Default", "src", "ram"]);
+		checkOrCreate([projectsFolder, "Default", "src", "states"]);
+		checkOrCreate([projectsFolder, "Default", "src", "static"]);
 	}
 
 

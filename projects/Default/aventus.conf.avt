@@ -9,7 +9,7 @@
 				"./src/data/*",
 				"./src/lib/*",
 				"./src/ram/*",
-				"./src/socket/*"
+				"./src/states/*"
 			],
 			"compile": [{
 				"output": "./dist/${{name}}.js"

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "tailwind": "npx tailwindcss -i ./tailwind.css -o ./src/styles/@tailwind.wcs.avt --watch"
+    "tailwind": "npx tailwindcss -i ./tailwind.css -o ./src/components/@TailwindCss.gwcs.avt --watch"
   },
   "devDependencies": {
     "tailwindcss": "^3.3.2"

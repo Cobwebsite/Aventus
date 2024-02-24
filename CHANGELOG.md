@@ -5,6 +5,7 @@
 ### Bug Fixes
  - Correct Watcher to have right path on callback based on where subscribe is called
  - Prevent exporting two times the same tags inside the same output file
+ - Correct using regex char inside directory
 
 ### Features
  - Change templating by adding for and if inside wcv.avt

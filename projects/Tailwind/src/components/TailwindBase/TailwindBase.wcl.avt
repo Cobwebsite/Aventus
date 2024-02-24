@@ -21,9 +21,9 @@ export class TailwindBase extends Aventus.WebComponent implements Aventus.Defaul
 	
 	
 	//#region methods
-	protected override styleAfter(): string[] {
-        return ["@TailwindCss"];
-    }
+	protected override styleAfter(addStyle: (name: string) => void): void {
+		addStyle("@TailwindCss");
+	}
 	//#endregion
 	
 }
