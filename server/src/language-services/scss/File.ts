@@ -38,6 +38,14 @@ export class AventusWebSCSSFile extends AventusBaseFile {
         return null;
     }
 
+    public get isGlobal(): boolean {
+        return this.file.name.startsWith("@");
+    }
+    public get globalName(): string {
+        let name = this.file.name.replace(AventusExtension.ComponentStyle, "");
+        return name;
+    }
+
     public constructor(file: AventusFile, build: Build) {
         super(file, build);
         this.namespace = this.build.getNamespace(file.uri);
@@ -77,7 +85,7 @@ export class AventusWebSCSSFile extends AventusBaseFile {
 
             let errorMsgTxt = "|error|";
             const _loadContent = (file: AventusFile): string => {
-                let textToSearch = file.content;
+                let textToSearch = file.contentUser;
                 //remove comment 
                 textToSearch = textToSearch.replace(/\/\*[\s\S]*?\*\/|([^:]|^)\/\/.*$/gm, '$1');
 
@@ -111,23 +119,28 @@ export class AventusWebSCSSFile extends AventusBaseFile {
             if (newCompiledTxt != this.compiledTxt) {
                 this.compiledVersion++;
                 this.compiledTxt = newCompiledTxt;
-                let tsFile = this.build.tsFiles[this.file.uri.replace(AventusExtension.ComponentStyle, AventusExtension.ComponentLogic)];
-                if (tsFile instanceof AventusWebComponentLogicalFile && triggerSave) {
-                    tsFile.canUpdateComponent = false;
-                    await tsFile.triggerSave();
-                    if (tsFile.compilationResult) {
-                        let namespace = this.namespace;
-                        let namespaceFile = tsFile.fileParsed?.classes[tsFile.compilationResult.componentName].namespace;
-                        if (namespaceFile) {
-                            namespace += namespaceFile;
+                if (this.isGlobal) {
+                    HttpServer.getInstance().updateGlobalCSS(this.globalName, this.compiledTxt);
+                    this.build.build();
+                }
+                else {
+                    let tsFile = this.build.tsFiles[this.file.uri.replace(AventusExtension.ComponentStyle, AventusExtension.ComponentLogic)];
+                    if (tsFile instanceof AventusWebComponentLogicalFile && triggerSave) {
+                        tsFile.canUpdateComponent = false;
+                        await tsFile.triggerSave();
+                        if (tsFile.compilationResult) {
+                            let namespace = this.namespace;
+                            let namespaceFile = tsFile.fileParsed?.classes[tsFile.compilationResult.componentName].namespace;
+                            if (namespaceFile) {
+                                namespace += namespaceFile;
+                            }
+                            if (namespace.length > 0 && !namespace.endsWith(".")) {
+                                namespace += '.';
+                            }
+                            HttpServer.getInstance().updateCSS(this.compiledTxt, namespace + tsFile.compilationResult.componentName, [])
                         }
-                        if (namespace.length > 0 && !namespace.endsWith(".")) {
-                            namespace += '.';
-                        }
-                        HttpServer.getInstance().updateCSS(this.compiledTxt, namespace + tsFile.compilationResult.componentName, [])
                     }
                 }
-
 
             }
 
@@ -189,7 +202,7 @@ export class AventusWebSCSSFile extends AventusBaseFile {
 
     //#region dependances
     private async loadDependances() {
-        let text = this.file.content;
+        let text = this.file.contentUser;
         let textToSearch = text.replace(/\/\*[\s\S]*?\*\/|([^:]|^)\/\/.*$/gm, '$1')
         let regex = /@import *?('|")(\S*?)('|");?/g;
         let arrMatch: RegExpExecArray | null = null;
@@ -202,7 +215,7 @@ export class AventusWebSCSSFile extends AventusBaseFile {
             if (!fileDependance) {
                 let start = text.indexOf(arrMatch[0]);
                 let end = start + arrMatch[0].length;
-                this.diagnostics.push(createErrorScssPos(this.file.document, "Can't load this file", start, end));
+                this.diagnostics.push(createErrorScssPos(this.file.documentUser, "Can't load this file", start, end));
             }
             else {
                 await this.addDependance(fileDependance);

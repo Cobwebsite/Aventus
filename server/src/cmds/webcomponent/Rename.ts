@@ -3,14 +3,14 @@ import { InternalAventusFile } from '../../files/AventusFile';
 import { FilesManager } from '../../files/FilesManager';
 import { existsSync, mkdirSync, readdirSync, renameSync, rmSync, rmdirSync, writeFileSync } from 'fs';
 import { ProjectManager } from '../../project/ProjectManager';
-import { getLanguageIdByUri, uriToPath } from '../../tools';
+import { escapeRegex, getLanguageIdByUri, uriToPath } from '../../tools';
 import { CloseFile } from '../../notification/CloseFile';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { GenericServer } from '../../GenericServer';
 
 export class Rename {
 	static cmd: string = "aventus.component.rename";
-	
+
 	public static async run(uri: string) {
 		if (!uri) {
 			return;
@@ -22,12 +22,10 @@ export class Rename {
 		let newName = await GenericServer.Input({
 			title: "New name",
 			value: oldName,
-			async validateInput(value) {
-				if (!value.match(/^[_A-Za-z0-9\-]+$/g)) {
-					return 'Your name isn\'t valid';
-				}
-				return null;
-			},
+			validations: [{
+				message: 'Your name isn\'t valid',
+				regex: '^[_A-Za-z0-9\-]+$'
+			}],
 		})
 		if (!newName) {
 			return;
@@ -36,20 +34,22 @@ export class Rename {
 		let logicalFile = FilesManager.getInstance().getByUri(uri);
 		if (logicalFile && logicalFile instanceof InternalAventusFile) {
 			let filesManager = FilesManager.getInstance();
-			let splitted = logicalFile.document.uri.split('/')
+			let splitted = logicalFile.documentUser.uri.split('/')
 			let oldName = splitted[splitted.length - 1]
 				.replace(AventusExtension.ComponentLogic, "");
 
+			let oldNameRegex = escapeRegex(oldName);
+
 			let oldFolderUri = logicalFile.folderUri;
-			let newFolderUri = oldFolderUri.replace(new RegExp(oldName + "$"), newName);
+			let newFolderUri = oldFolderUri.replace(new RegExp(oldNameRegex + "$"), newName);
 
 			//#region rename class name
-			let regex = new RegExp("(class +)" + oldName + " ");
-			let match = regex.exec(logicalFile.content);
+			let regex = new RegExp("(class +)" + oldNameRegex + " ");
+			let match = regex.exec(logicalFile.contentUser);
 			let transformToApply: { [uri: string]: InternalAventusFile } = {}
 			if (match) {
 				let offset = match.index + match[1].length;
-				let position = logicalFile.document.positionAt(offset);
+				let position = logicalFile.documentUser.positionAt(offset);
 				let transformations = await logicalFile.getRename(position, newName);
 				if (transformations && transformations.changes) {
 					for (let uri in transformations.changes) {
@@ -101,7 +101,7 @@ export class Rename {
 			setTimeout(() => {
 				// use filesystem to avoid editor to open files
 				for (let uri in transformToApply) {
-					writeFileSync(uriToPath(uri), transformToApply[uri].content);
+					writeFileSync(uriToPath(uri), transformToApply[uri].contentUser);
 				}
 
 				mkdirSync(uriToPath(newFolderUri));
@@ -113,8 +113,8 @@ export class Rename {
 					CloseFile.send(oldUri);
 					let oldFile = filesManager.getByUri(oldUri);
 					if (oldFile) {
-						filesManager.registerFile(TextDocument.create(newUri, getLanguageIdByUri(newUri), 1, oldFile.content));
-						filesManager.onClose(oldFile?.document)
+						filesManager.registerFile(TextDocument.create(newUri, getLanguageIdByUri(newUri), 1, oldFile.contentUser));
+						filesManager.onClose(oldFile?.documentUser)
 					}
 				}
 				let oldFolderPath = uriToPath(oldFolderUri);

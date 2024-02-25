@@ -46,6 +46,7 @@ export abstract class StateManager implements IStateManager {
 
     protected activeState?: State;
     protected changeStateMutex: Mutex = new Mutex();
+    protected canChangeStateCbs: ((newState: State) => Promise<boolean>)[] = [];
 
     private afterStateChanged: Callback<() => void> = new Callback();
 
@@ -183,6 +184,9 @@ export abstract class StateManager implements IStateManager {
         return new EmptyState(stateName);
     }
 
+    public canChangeState(cb: (newState: State) => Promise<boolean>): void {
+        this.canChangeStateCbs.push(cb);
+    }
     /**
      * Activate a current state
      */
@@ -199,6 +203,11 @@ export abstract class StateManager implements IStateManager {
                 this._log("state is undefined", "error");
                 this.changeStateMutex.release();
                 return false;
+            }
+            for(let cb of this.canChangeStateCbs) { 
+                if(! (await cb(stateToUse))) {
+                    return false;
+                }
             }
             let canChange = true;
             if(this.activeState) {

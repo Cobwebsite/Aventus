@@ -1,6 +1,7 @@
 import { CodeAction, CodeLens, CompletionItem, CompletionList, Definition, Diagnostic, DiagnosticSeverity, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from "vscode-languageserver";
 import { AventusFile, InternalAventusFile } from '../files/AventusFile';
 import { Build } from "../project/Build";
+import { TextDocument } from 'vscode-languageserver-textdocument';
 
 
 export abstract class AventusBaseFile {
@@ -24,6 +25,7 @@ export abstract class AventusBaseFile {
 
 
     private uuidEvents = {
+        onCanContentChange: '',
         onContentChange: '',
         onValidate: '',
         onSave: '',
@@ -37,9 +39,10 @@ export abstract class AventusBaseFile {
         onReferences: '',
         onCodeLens: '',
         onGetBuild: '',
-        onRename: ''
+        onRename: '',
     }
     private addEvents(): void {
+        this.uuidEvents.onCanContentChange = this.file.onCanContentChange(this.onCanContentChange.bind(this));
         this.uuidEvents.onContentChange = this.file.onContentChange(this.onContentChange.bind(this));
         this.uuidEvents.onValidate = this.file.onValidate(this._onValidate.bind(this));
         this.uuidEvents.onSave = this.file.onSave(this.onSave.bind(this));
@@ -56,6 +59,7 @@ export abstract class AventusBaseFile {
         this.uuidEvents.onRename = this.file.onRename(this.onRename.bind(this));
     }
     public removeEvents(): void {
+        this.file.removeOnCanContentChange(this.uuidEvents.onCanContentChange);
         this.file.removeOnContentChange(this.uuidEvents.onContentChange);
         this.file.removeOnValidate(this.uuidEvents.onValidate);
         this.file.removeOnSave(this.uuidEvents.onSave);
@@ -80,21 +84,27 @@ export abstract class AventusBaseFile {
     }
     public async triggerSave(): Promise<void> {
         if (this.file instanceof InternalAventusFile) {
-            await this.file.triggerSave(this.file.document);
+            await this.file.triggerSave();
         }
     }
-    public triggerContentChange(): void {
+    public async triggerContentChange(document: TextDocument): Promise<void> {
         if (this.file instanceof InternalAventusFile) {
-            this.file.triggerContentChange(this.file.document);
+            await this.file.triggerContentChange(document);
         }
+    }
+    protected onCanContentChange(document: TextDocument): boolean {
+        return this._file.versionUser != document.version;
     }
     protected abstract onContentChange(): Promise<void>;
+    private oldResult:Diagnostic[] = [];
     private async _onValidate(): Promise<Diagnostic[]> {
         let result = this._build.diagnostics.get(this) ?? [];
         result = [...result, ...await this.onValidate()];
         if (this.build && this.build.hideWarnings) {
             result = result.filter(p => p.severity != DiagnosticSeverity.Warning)
         }
+        this.oldResult = result;
+        
         return result;
     }
     protected abstract onValidate(): Promise<Diagnostic[]>;

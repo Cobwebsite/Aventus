@@ -8,7 +8,7 @@ import { AventusWebComponentLogicalFile } from "../File";
 import { CompileComponentResult, CustomFieldModel, CustomTypeAttribute, ListCallbacks } from "./def";
 import { AventusWebcomponentTemplate } from "./Template";
 import { transpile } from "typescript";
-import { AventusTsLanguageService, CompileTsResult, getSectionStart } from "../../LanguageService";
+import { AventusTsLanguageService, CompileDependance, CompileTsResult, getSectionStart } from "../../LanguageService";
 import { EOL } from "os";
 import { HTMLDoc } from "../../../html/helper/definition";
 import { SCSSDoc } from "../../../scss/helper/CSSNode";
@@ -31,16 +31,18 @@ import { RequiredDecorator } from '../../parser/decorators/RequiredDecorator';
 import { AliasInfo } from '../../parser/AliasInfo';
 import { WatchDecorator } from '../../parser/decorators/WatchDecorator';
 import { ParserHtml } from '../../../html/parser/ParserHtml';
-import { ActionBindings, ActionChange, ActionElement, ActionEvent, ActionInjection, ActionLoop, ActionPressEvent, HtmlTemplateResult, pressEventMap } from '../../../html/parser/definition';
+import { ActionBindings, ActionElement, ActionEvent, ActionIf, ActionIfPart, ActionInjection, ActionLoop, ActionPressEvent, HtmlTemplateResult, pressEventMap } from '../../../html/parser/definition';
 import { DefaultStateActiveDecorator } from '../../parser/decorators/DefaultStateActiveDecorator';
 import { DefaultStateInactiveDecorator } from '../../parser/decorators/DefaultStateInactiveDecorator';
 import { BindThisDecorator } from '../../parser/decorators/BindThisDecorator';
+import { EffectDecorator, EffectDecoratorOption } from '../../parser/decorators/EffectDecorator';
+import { HttpServer } from '../../../../live-server/HttpServer';
 
 
 export class AventusWebcomponentCompiler {
     public static getVersion(logicalFile: AventusWebComponentLogicalFile, build: Build) {
         let version = {
-            ts: logicalFile.file.version,
+            ts: logicalFile.file.documentUser.version,
             scss: -1,
             html: -1
         }
@@ -64,6 +66,7 @@ export class AventusWebcomponentCompiler {
     private logicalFile: AventusWebComponentLogicalFile;
     private scssTxt: string = "";
     private template: string;
+    private templateHotReload: string;
     private document: TextDocument;
     private build: Build;
     private fileParsed: ParserTs | null;
@@ -82,6 +85,7 @@ export class AventusWebcomponentCompiler {
 
     private listBoolProperties: string[] = [];
     private defaultValueTxt: string = "";
+    private defaultValueHotReloadTxt: string = "";
     private foundedWatch: string[] = [];
     private result: CompileComponentResult = {
         diagnostics: [],
@@ -95,6 +99,7 @@ export class AventusWebcomponentCompiler {
         debug: ''
     }
     private componentResult: CompileTsResult = {
+        hotReload: "",
         compiled: "",
         docVisible: "",
         docInvisible: "",
@@ -107,6 +112,7 @@ export class AventusWebcomponentCompiler {
         type: InfoType.class,
         isExported: true,
         convertibleName: '',
+        tagName: '',
     }
     private parentClassName: string = "";
     private overrideViewDecorator: OverrideViewDecorator | null = null;
@@ -138,13 +144,22 @@ export class AventusWebcomponentCompiler {
         }
         this.scssTxt = scssFile ? scssFile.compileResult : '';
         this.htmlFile = htmlFile;
-        if (htmlFile) {
-            this.htmlParsed = htmlFile.fileParsed;
+        if (this.htmlFile) {
+            this.htmlParsed = this.htmlFile.fileParsed;
             this.htmlFile.tsErrors = [];
         }
-        this.result.diagnostics = build.tsLanguageService.doValidation(this.file);
+        let nativeDiags = build.tsLanguageService.doValidation(this.file);
+        let methodName = this.logicalFile.viewMethodName;
+        for (let i = 0; i < nativeDiags.length; i++) {
+            if (nativeDiags[i].message.startsWith("'" + methodName)) {
+                nativeDiags.splice(i, 1);
+                i--;
+            }
+        }
+        this.result.diagnostics = nativeDiags;
         this.template = AventusWebcomponentTemplate();
-        this.document = logicalFile.file.document;
+        this.templateHotReload = AventusWebcomponentTemplate();
+        this.document = logicalFile.file.documentInternal;
         this.build = build;
         this.fileParsed = logicalFile.fileParsed;
     }
@@ -222,9 +237,16 @@ export class AventusWebcomponentCompiler {
             this.addViewElementToDependance();
             this.writeFile();
 
-            this.componentResult.compiled = this.template;
+            if (!this.classInfo.isAbstract && !this.classInfo.isInterface) {
+                this.componentResult.tagName = this.tagName;
+            }
+            this.componentResult.compiled = this.template.replace("//todelete for hmr °", "");
+            if (HttpServer.isRunning) {
+                this.componentResult.hotReload = this.templateHotReload.split("//todelete for hmr °")[0];
+                this.componentResult.hotReload = this.componentResult.hotReload.slice(this.componentResult.hotReload.indexOf("=") + 1);
+            }
             if (this.debuggerDecorator && this.debuggerDecorator.writeCompiled) {
-                this.componentResult.debugTxt = this.template;
+                this.componentResult.debugTxt = this.componentResult.compiled;
             }
 
             this.result.result.push(this.componentResult);
@@ -370,7 +392,7 @@ export class AventusWebcomponentCompiler {
             if (!found) {
                 cloneProp.propType = 'Simple';
                 cloneProp.inParent = !isBase;
-                result[property.name] = cloneProp;
+                result[propName] = cloneProp;
             }
         }
         return result;
@@ -388,22 +410,15 @@ export class AventusWebcomponentCompiler {
                 if (interestPoint.type == "tag") {
                     if (!addedDep.includes(interestPoint.name)) {
                         addedDep.push(interestPoint.name);
-                        let type = this.build.getWebComponentDefinition(interestPoint.name);
-                        if (type) {
+                        let dependance = this.build.getWebComponentTagDependance(interestPoint.name);
+                        if (dependance) {
                             for (let dep of this.componentResult.dependances) {
-                                if (dep.fullName == type.class.fullName) {
+                                if (dep.fullName == dependance.fullName) {
                                     return;
                                 }
                             }
-                            let uri = type.class.fileUri;
-                            if (!type.isLocal) {
-                                uri = "@external";
-                            }
-                            this.componentResult.dependances.push({
-                                fullName: type.class.fullName,
-                                uri: uri,
-                                isStrong: false,
-                            })
+
+                            this.componentResult.dependances.push(dependance)
                         }
                     }
 
@@ -434,9 +449,13 @@ export class AventusWebcomponentCompiler {
         this.writeFileReplaceVar("style", this.scssTxt);
         this.writeFileFields();
         this.writeFileMethods();
+        this.writeWatchableElements();
         this.writeFileConstructor();
         this.template = this.template.replace(/\|\!\*(.*?)\*\!\|/g, "{{$1}}");
         this.template = this.removeWhiteSpaceLines(this.template);
+
+        this.templateHotReload = this.templateHotReload.replace(/\|\!\*(.*?)\*\!\|/g, "{{$1}}");
+        this.templateHotReload = this.removeWhiteSpaceLines(this.templateHotReload);
     }
 
     private writeFileName() {
@@ -482,8 +501,8 @@ export class AventusWebcomponentCompiler {
     private writeFileTemplateHtml() {
         let htmlTxt = "";
         if (this.htmlParsed) {
-            let slots = this.htmlParsed.getSlotsInfoTxt(this.className);
-            let blocks = this.htmlParsed.getBlocksInfoTxt(this.className);
+            let slots = this.htmlParsed.getSlotsInfoTxt();
+            let blocks = this.htmlParsed.getBlocksInfoTxt();
             if (slots.length + blocks.length > 0) {
                 let superTxt = EOL + "super.__getHtml();";
                 let slotsTxt = "";
@@ -511,35 +530,40 @@ export class AventusWebcomponentCompiler {
     }
     private writeFileConstructor() {
         if (this.classInfo) {
-            let constructorBodyTxt = "";
-            let constructorBody = this.classInfo.constructorContent;
-            if (constructorBody.length > 0) {
-                constructorBodyTxt = `constructor() ` + constructorBody
+            const classInfo = this.classInfo;
+            const generateTxt = (constructorBody: string) => {
+                let constructorBodyTxt = "";
+                if (constructorBody.length > 0) {
+                    constructorBodyTxt = `constructor() ` + constructorBody
+                }
+
+                if (classInfo.isAbstract) {
+                    if (constructorBodyTxt.length > 0) {
+                        constructorBodyTxt = constructorBodyTxt.slice(0, constructorBodyTxt.length - 1);
+                        constructorBodyTxt += EOL + 'if (this.constructor == ' + this.className + ') { throw "can\'t instanciate an abstract class"; }';
+                        constructorBodyTxt += ' }'
+                    }
+                    else {
+                        constructorBodyTxt = 'constructor() { super(); if (this.constructor == ' + this.className + ') { throw "can\'t instanciate an abstract class"; } }';
+                    }
+                }
+
+                if (this.extraConstructorCode.length > 0) {
+                    if (constructorBodyTxt.length > 0) {
+                        constructorBodyTxt = constructorBodyTxt.slice(0, constructorBodyTxt.length - 1);
+                        constructorBodyTxt += EOL + this.extraConstructorCode.join(EOL);
+                        constructorBodyTxt += ' }'
+                    }
+                    else {
+                        constructorBodyTxt = 'constructor() { super(); ' + EOL + this.extraConstructorCode.join(EOL) + ' }';
+                    }
+                }
+                return constructorBodyTxt;
             }
 
-            if (this.classInfo.isAbstract) {
-                if (constructorBodyTxt.length > 0) {
-                    constructorBodyTxt = constructorBodyTxt.slice(0, constructorBodyTxt.length - 1);
-                    constructorBodyTxt += EOL + 'if (this.constructor == ' + this.className + ') { throw "can\'t instanciate an abstract class"; }';
-                    constructorBodyTxt += ' }'
-                }
-                else {
-                    constructorBodyTxt = 'constructor() { super(); if (this.constructor == ' + this.className + ') { throw "can\'t instanciate an abstract class"; } }';
-                }
-            }
-
-            if (this.extraConstructorCode.length > 0) {
-                if (constructorBodyTxt.length > 0) {
-                    constructorBodyTxt = constructorBodyTxt.slice(0, constructorBodyTxt.length - 1);
-                    constructorBodyTxt += EOL + this.extraConstructorCode.join(EOL);
-                    constructorBodyTxt += ' }'
-                }
-                else {
-                    constructorBodyTxt = 'constructor() { super(); ' + EOL + this.extraConstructorCode.join(EOL) + ' }';
-                }
-            }
-
-            this.writeFileReplaceVar("constructor", constructorBodyTxt);
+            this.writeFileReplaceVar("constructor", generateTxt(this.classInfo.constructorContent), false);
+            if (HttpServer.isRunning)
+                this.writeFileHotReloadReplaceVar("constructor", generateTxt(this.classInfo.constructorContentHotReload));
 
         }
     }
@@ -623,136 +647,134 @@ export class AventusWebcomponentCompiler {
             return;
         }
         let variablesSimpleTxt = "";
+        let variablesSimpleHotReloadTxt = "";
 
         let fullTxt = "";
+        let fullTxtHotReload = "";
         if (this.classInfo) {
             for (let fieldName in this.classInfo.propertiesStatic) {
                 let field = this.classInfo.propertiesStatic[fieldName];
                 fullTxt += field.compiledContent + EOL;
+                fullTxtHotReload += field.compiledContentHotReload + EOL;
             }
         }
         for (let field of fields) {
             fullTxt += field.compiledContent + EOL;
+            fullTxtHotReload += field.compiledContentHotReload + EOL;
         }
         let fullClassFields = `class MyCompilationClassAventus {${fullTxt}}`;
-        let fieldsCompiled = transpile(fullClassFields, AventusTsLanguageService.getCompilerOptionsCompile());
+        let fieldsCompiled = "";
+        try {
+            fieldsCompiled = transpile(fullClassFields, AventusTsLanguageService.getCompilerOptionsCompile());
+        } catch (e) {
+
+        }
         let matchContent = /\{((\s|\S)*)\}/gm.exec(fieldsCompiled);
         if (matchContent) {
             variablesSimpleTxt = matchContent[1].trim();
         }
-        this.writeFileReplaceVar('variables', variablesSimpleTxt);
+        this.writeFileReplaceVar('variables', variablesSimpleTxt, false);
+
+        if (HttpServer.isRunning) {
+            let fullClassFieldsHotReload = `class MyCompilationClassAventus {${fullTxtHotReload}}`;
+            let fieldsCompiledHotReload = "";
+            try {
+                fieldsCompiledHotReload = transpile(fullClassFieldsHotReload, AventusTsLanguageService.getCompilerOptionsCompile());
+            } catch (e) {
+
+            }
+            let matchContentHotReload = /\{((\s|\S)*)\}/gm.exec(fieldsCompiledHotReload);
+            if (matchContentHotReload) {
+                variablesSimpleHotReloadTxt = matchContentHotReload[1].trim();
+            }
+            this.writeFileHotReloadReplaceVar('variables', variablesSimpleHotReloadTxt);
+        }
+    }
+
+    private getGetterAndSetter(field: CustomFieldModel, type: TypeInfo, isProp: boolean): string {
+        let result = "";
+        let key = field.name;
+        let propTxt = isProp ? 'Prop' : 'Attr'
+        if (type.kind == "string" || type.kind == "literal" || type.kind == "union") {
+            result += `get '${key}'() { return this.getString${propTxt}('${key}') }
+    set '${key}'(val) { this.setStringAttr('${key}', val) }${EOL}`;
+        }
+        else if (type.kind == "number") {
+            result += `get '${key}'() { return this.getNumber${propTxt}('${key}') }
+    set '${key}'(val) { this.setNumberAttr('${key}', val) }${EOL}`;
+        }
+        else if (type.kind == "boolean") {
+            this.listBoolProperties.push('"' + key + '"');
+            result += `get '${key}'() { return this.getBool${propTxt}('${key}') }
+    set '${key}'(val) { this.setBoolAttr('${key}', val) }${EOL}`;
+        }
+        else if (type.kind === "type" && type.value == "Date") {
+            result += `get '${key}'() { return this.getDate${propTxt}('${key}') }
+    set '${key}'(val) { this.setDateAttr('${key}', val) }${EOL}`;
+        }
+        else if (type.kind === "type" && type.value == "DateTime") {
+            result += `get '${key}'() { return this.getDateTime${propTxt}('${key}') }
+    set '${key}'(val) { this.setDateTimeAttr('${key}', val) }${EOL}`;
+        }
+        return result;
+    }
+    private getDefaultValueAttr(field: CustomFieldModel, type: TypeInfo, isHotReload: boolean): string {
+        let result = "";
+        let key = field.name;
+        let defaultValue = isHotReload ? field.defaultValueHotReload : field.defaultValue;
+        if (type.kind == "boolean") {
+            if (defaultValue !== null && defaultValue !== "false") {
+                result += "if(!this.hasAttribute('" + key + "')) {this.setAttribute('" + key + "' ,'true'); }" + EOL;
+            }
+            else {
+                //If default set to false, we refresh the attribute to set it to false and not undefined
+                result += "if(!this.hasAttribute('" + key + "')) { this.attributeChangedCallback('" + key + "', false, false); }" + EOL;
+            }
+        }
+        else if (type.kind == "type" && (type.value == "Date" || type.value == "DateTime")) {
+            if (defaultValue !== null) {
+                result += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = " + defaultValue + "; }" + EOL;
+            }
+            else {
+                result += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = undefined; }" + EOL;
+            }
+        }
+        else {
+            if (defaultValue !== null) {
+                result += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = " + defaultValue + "; }" + EOL;
+            }
+            else {
+                result += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = undefined; }" + EOL;
+            }
+        }
+
+        return result;
     }
     private writeFileFieldsAttribute(fields: CustomFieldModel[]) {
         let defaultValue = "";
         let getterSetter = "";
-        var _createDefaultValue = (field: CustomFieldModel, type: TypeInfo) => {
-            let key = field.name;
-            if (type.kind == "boolean") {
-                if (field.defaultValue !== null && field.defaultValue !== "false") {
-                    defaultValue += "if(!this.hasAttribute('" + key + "')) {this.setAttribute('" + key + "' ,'true'); }" + EOL;
-                }
-                else {
-                    //If default set to false, we refresh the attribute to set it to false and not undefined
-                    defaultValue += "if(!this.hasAttribute('" + key + "')) { this.attributeChangedCallback('" + key + "', false, false); }" + EOL;
-                }
-            }
-            else if (type.kind == "type" && (type.value == "Date" || type.value == "DateTime")) {
-                if (field.defaultValue !== null) {
-                    defaultValue += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = " + field.defaultValue + "; }" + EOL;
-                }
-                else {
-                    defaultValue += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = undefined; }" + EOL;
-                }
-            }
-            else {
-                if (field.defaultValue !== null) {
-                    defaultValue += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = " + field.defaultValue + "; }" + EOL;
-                }
-                else {
-                    defaultValue += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = undefined; }" + EOL;
-                }
-            }
-        }
-        var _createGetterSetter = (field: CustomFieldModel, type: TypeInfo) => {
-            let key = field.name;
-            if (type.kind == "string" || type.kind == "literal" || type.kind == "union") {
-                getterSetter += `get '${key}'() {
-                    return this.getAttribute('${key}') ?? undefined;
-                }
-                set '${key}'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('${key}')}
-                    else{this.setAttribute('${key}',val)}
-                }${EOL}`;
-            }
-            else if (type.kind == "number") {
-                getterSetter += `get '${key}'() {
-                    return Number(this.getAttribute('${key}'));
-                }
-                set '${key}'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('${key}')}
-                    else{this.setAttribute('${key}',val)}
-                }${EOL}`;
-            }
-            else if (type.kind == "boolean") {
-                this.listBoolProperties.push('"' + key + '"');
-                getterSetter += `get '${key}'() {
-                return this.hasAttribute('${key}');
-            }
-            set '${key}'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('${key}', 'true');
-                } else{
-                    this.removeAttribute('${key}');
-                }
-            }${EOL}`;
-            }
-            else if (type.kind === "type" && type.value == "Date") {
-                getterSetter += `
-                get '${key}'() {
-                    if(!this.hasAttribute('${key}')) {
-                        return undefined;
-                    }
-                    return this.stringToDate(this.getAttribute('${key}'));
-                }
-                set '${key}'(val) {
-                    let valTxt = this.dateToString(val);
-                    if(valTxt === null){this.removeAttribute('${key}')}
-                    else { this.setAttribute('${key}', valTxt); }
-                }
-                `;
-            }
-            else if (type.kind === "type" && type.value == "DateTime") {
-                getterSetter += `
-                get '${key}'() {
-                    if(!this.hasAttribute('${key}')) {
-                        return undefined;
-                    }
-                    return this.stringToDateTime(this.getAttribute('${key}'));
-                }
-                set '${key}'(val) {
-                    let valTxt = this.dateTimeToString(val);
-                    if(valTxt === null){ this.removeAttribute('${key}') }
-                    else { this.setAttribute('${key}', valTxt); }
-                }
-                `;
-            }
-        }
+        let defaultValueHotReload = "";
 
         for (let field of fields) {
             let type = this.validateTypeForProp(this.document, field);
             if (!type) {
                 continue;
             }
-            _createDefaultValue(field, type);
-            _createGetterSetter(field, type);
+            defaultValue += this.getDefaultValueAttr(field, type, false);
+            getterSetter += this.getGetterAndSetter(field, type, false);
             this.createHtmlDoc(field, type);
-
             this.upgradeAttributes += 'this.__upgradeProperty(\'' + field.name.toLowerCase() + '\');' + EOL;
+
+            if (HttpServer.isRunning) {
+                defaultValueHotReload += this.getDefaultValueAttr(field, type, true)
+            }
         }
 
         if (defaultValue.length > 0) {
             this.defaultValueTxt += defaultValue
+        }
+        if (defaultValueHotReload.length > 0) {
+            this.defaultValueHotReloadTxt += defaultValueHotReload
         }
         this.writeFileReplaceVar("getterSetterAttr", getterSetter);
     }
@@ -762,97 +784,8 @@ export class AventusWebcomponentCompiler {
         let getterSetter = "";
         let onChange = "";
         let variablesWatched: string[] = [];
-        var _createDefaultValue = (field: CustomFieldModel, type: TypeInfo) => {
-            let key = field.name;
-            if (type.kind == "boolean") {
-                if (field.defaultValue !== null && field.defaultValue !== "false") {
-                    defaultValue += "if(!this.hasAttribute('" + key + "')) {this.setAttribute('" + key + "' ,'true'); }" + EOL;
-                }
-                else {
-                    //If default set to false, we refresh the attribute to set it to false and not undefined
-                    defaultValue += "if(!this.hasAttribute('" + key + "')) { this.attributeChangedCallback('" + key + "', false, false); }" + EOL;
-                }
-            }
-            else if (type.kind == "type" && (type.value == "Date" || type.value == "DateTime")) {
-                if (field.defaultValue !== null) {
-                    defaultValue += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = " + field.defaultValue + "; }" + EOL;
-                }
-                else {
-                    defaultValue += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = undefined; }" + EOL;
-                }
-            }
-            else {
-                if (field.defaultValue !== null) {
-                    defaultValue += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = " + field.defaultValue + "; }" + EOL;
-                }
-                else {
-                    defaultValue += "if(!this.hasAttribute('" + key + "')){ this['" + key + "'] = undefined; }" + EOL;
-                }
-            }
-        }
-        var _createGetterSetter = (field: CustomFieldModel, type: TypeInfo) => {
-            let key = field.name;
-            if (type.kind == "string" || type.kind == "literal" || type.kind == "union") {
-                getterSetter += `get '${key}'() {
-                    return this.getAttribute('${key}') ?? undefined;
-                }
-                set '${key}'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('${key}')}
-                    else{this.setAttribute('${key}',val)}
-                }${EOL}`;
-            }
-            else if (type.kind == "number") {
-                getterSetter += `get '${key}'() {
-                    return Number(this.getAttribute('${key}'));
-                }
-                set '${key}'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('${key}')}
-                    else{this.setAttribute('${key}',val)}
-                }${EOL}`;
-            }
-            else if (type.kind == "boolean") {
-                this.listBoolProperties.push('"' + key + '"');
-                getterSetter += `get '${key}'() {
-                return this.hasAttribute('${key}');
-            }
-            set '${key}'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('${key}', 'true');
-                } else{
-                    this.removeAttribute('${key}');
-                }
-            }${EOL}`;
-            }
-            else if (type.kind === "type" && type.value == "Date") {
-                getterSetter += `
-                get '${key}'() {
-                    if(!this.hasAttribute('${key}')) { return undefined; }
-                    return this.stringToDate(this.getAttribute('${key}'));
-                }
-                set '${key}'(val) {
-                    let valTxt = this.dateToString(val);
-                    if(valTxt === null){this.removeAttribute('${key}')}
-                    else { this.setAttribute('${key}', valTxt) }
-                }
-                `;
-            }
-            else if (type.kind === "type" && type.value == "DateTime") {
-                getterSetter += `
-                get '${key}'() {
-                    if(!this.hasAttribute('${key}')) {
-                        return undefined;
-                    }
-                    return this.stringToDateTime(this.getAttribute('${key}'));
-                }
-                set '${key}'(val) {
-                    let valTxt = this.dateTimeToString(val);
-                    if(valTxt === null){this.removeAttribute('${key}')}
-                    else { this.setAttribute('${key}', valTxt); }
-                }
-                `;
-            }
-        }
+        let defaultValueHotReload = "";
+
         for (let property of properties) {
             let field = property.field;
             let type = this.validateTypeForProp(this.document, field)
@@ -860,21 +793,29 @@ export class AventusWebcomponentCompiler {
                 continue;
             }
 
-            _createDefaultValue(field, type);
-            _createGetterSetter(field, type);
+            defaultValue += this.getDefaultValueAttr(field, type, false);
+            getterSetter += this.getGetterAndSetter(field, type, true);
             this.createHtmlDoc(field, type);
 
             this.upgradeAttributes += 'this.__upgradeProperty(\'' + field.name.toLowerCase() + '\');' + EOL;
             variablesWatched.push(field.name.toLowerCase());
 
+            // TODO replace decorator content for namespace
             if (property.fctTxt) {
                 let fctTxt = this.transpileMethodNoRun(property.fctTxt);
                 onChange += `this.__addPropertyActions("${field.name}", ${fctTxt});` + EOL;
+            }
+
+            if (HttpServer.isRunning) {
+                defaultValueHotReload += this.getDefaultValueAttr(field, type, true)
             }
         }
 
         if (defaultValue.length > 0) {
             this.defaultValueTxt += defaultValue;
+        }
+        if (defaultValueHotReload.length > 0) {
+            this.defaultValueHotReloadTxt += defaultValueHotReload
         }
         this.writeFileReplaceVar("getterSetterProp", getterSetter);
 
@@ -883,6 +824,7 @@ export class AventusWebcomponentCompiler {
         if (onChange.length > 0) {
             onChange = `__registerPropertiesActions() { super.__registerPropertiesActions(); ${onChange} }`
         }
+        // TODO replace inside hotreload
         this.writeFileReplaceVar("propertiesChangeCb", onChange);
 
         let variablesWatchedTxt = '';
@@ -894,17 +836,16 @@ export class AventusWebcomponentCompiler {
     }
     private writeFileFieldsWatch(watches: { field: CustomFieldModel, fctTxt: string | null }[]) {
         let getterSetter = "";
-        let variableProxyTxt = "";
+        let defaultValueWatch = "";
+        let defaultValueWatchHotReload = "";
         for (let watch of watches) {
             let field = watch.field;
 
-            if (field.defaultValue === null || field.defaultValue == "undefined") {
-                this.result.diagnostics.push(createErrorTsPos(this.document, "A watchable prop must be initialized", field.nameStart, field.nameEnd, AventusErrorCode.MissingInit));
-            }
-            let watchAction = `this.__addWatchesActions("${field.name}");`;
             if (watch.fctTxt) {
-                let fctTxt = this.transpileMethodNoRun(watch.fctTxt);
-                watchAction = `this.__addWatchesActions("${field.name}", ${fctTxt});`;
+                this.watchProperties[field.name] = this.transpileMethodNoRun(watch.fctTxt);
+            }
+            else {
+                this.watchProperties[field.name] = "";
             }
 
             getterSetter += `get '${field.name}'() {
@@ -914,38 +855,23 @@ export class AventusWebcomponentCompiler {
 						this.__watch["${field.name}"] = val;
 					}`+ EOL;
 
-            variableProxyTxt += `${watchAction}` + EOL;
-            this.defaultValueTxt += `if(!this["${field.name}"]){ this["${field.name}"] = ${field.defaultValue?.replace(/\\"/g, '')};}` + EOL;
+            defaultValueWatch += `w["${field.name}"] = ${field.defaultValue?.replace(/\\"/g, '')};` + EOL;
             this.foundedWatch.push(field.name);
+
+            if (HttpServer.isRunning) {
+                defaultValueWatchHotReload += `w["${field.name}"] = ${field.defaultValueHotReload?.replace(/\\"/g, '')};` + EOL;
+            }
         }
 
-        let debugWatchTxt = '';
-        if (this.debuggerDecorator?.enableWatchHistory) {
-            debugWatchTxt = `if(this.__watch){
-this.__watch.enableHistory();
-this.getWatchHistory = () => {
-    return this.__watch.getHistory();
-}
-this.clearWatchHistory = () => {
-    return this.__watch.clearHistory();
-}
-}`
+        if (defaultValueWatch.length > 0) {
+            defaultValueWatch = `__defaultValuesWatch(w) { super.__defaultValuesWatch(w); ${defaultValueWatch} }`;
         }
-        if (variableProxyTxt.length > 0) {
+        this.writeFileReplaceVar("defaultValueWatch", defaultValueWatch, false);
+        if (defaultValueWatchHotReload.length > 0) {
+            defaultValueWatchHotReload = `__defaultValuesWatch(w) { super.__defaultValuesWatch(w); ${defaultValueWatchHotReload} }`;
+        }
+        this.writeFileHotReloadReplaceVar("defaultValueWatch", defaultValueWatchHotReload);
 
-            variableProxyTxt = `__registerWatchesActions() {
-                ${variableProxyTxt}
-                super.__registerWatchesActions();
-                ${debugWatchTxt}
-            }`
-        }
-        else if (debugWatchTxt.length > 0) {
-            variableProxyTxt = `__registerWatchesActions() {
-                super.__registerWatchesActions();
-                ${debugWatchTxt}
-            }`
-        }
-        this.writeFileReplaceVar("watchesChangeCb", variableProxyTxt);
         this.writeFileReplaceVar("getterSetterWatch", getterSetter);
     }
 
@@ -958,7 +884,16 @@ this.clearWatchHistory = () => {
         if (this.defaultValueTxt.length > 0) {
             txt = `__defaultValues() { super.__defaultValues(); ${this.defaultValueTxt} }`;
         }
-        this.writeFileReplaceVar("defaultValue", txt);
+        this.writeFileReplaceVar("defaultValue", txt, false);
+
+        if (HttpServer.isRunning) {
+            // default value
+            let txt = "";
+            if (this.defaultValueHotReloadTxt.length > 0) {
+                txt = `__defaultValues() { super.__defaultValues(); ${this.defaultValueHotReloadTxt} }`;
+            }
+            this.writeFileHotReloadReplaceVar("defaultValue", txt);
+        }
 
         // write boolean list 
         let listBoolTxt = "";
@@ -968,10 +903,145 @@ this.clearWatchHistory = () => {
         this.writeFileReplaceVar("listBool", listBoolTxt);
     }
 
+    private writeFileMethods() {
+        try {
+            let tempStateList: {
+                [statePattern: string]: {
+                    [managerName: string]: {
+                        active: string[],
+                        inactive: string[],
+                        askChange: string[],
+                    };
+                };
+            } = {}
 
+            let methodsTxt = "";
+            let methodsTxtHotReload = "";
+            let defaultStateTxt = "";
+            if (this.classInfo) {
+                let fullTxt = ""
+                let fullTxtHotReload = ""
+                for (let methodName in this.classInfo.methods) {
+                    let method = this.classInfo.methods[methodName];
+                    if (!method.mustBeCompiled) continue;
+                    fullTxt += method.compiledContent + EOL;
+                    if (HttpServer.isRunning)
+                        fullTxtHotReload += method.compiledContentHotReload + EOL;
+                    for (let decorator of method.decorators) {
+                        if (BindThisDecorator.is(decorator)) {
+                            this.extraConstructorCode.push(`this.${methodName}=this.${methodName}.bind(this)`);
+                            continue;
+                        }
+
+                        let effectDecorator = EffectDecorator.is(decorator);
+                        if (effectDecorator) {
+                            this.watchFunctions[methodName] = effectDecorator.options;
+                            continue;
+                        }
+
+                        // gestion des states
+                        let basicState: StateChangeDecorator | StateActiveDecorator | StateInactiveDecorator | null = null;
+                        let tempChange = StateChangeDecorator.is(decorator);
+                        if (tempChange) {
+                            basicState = tempChange;
+                        }
+                        else {
+                            let tempActive = StateActiveDecorator.is(decorator);
+                            if (tempActive) {
+                                basicState = tempActive;
+                            }
+                            else {
+                                let tempInactive = StateInactiveDecorator.is(decorator);
+                                if (tempInactive) {
+                                    basicState = tempInactive;
+                                }
+                            }
+                        }
+                        let defActive: DefaultStateActiveDecorator | null;
+                        let defInactive: DefaultStateInactiveDecorator | null;
+
+                        if (basicState !== null) {
+                            if (decorator.arguments.length > 0) {
+                                if (!tempStateList[basicState.stateName]) {
+                                    tempStateList[basicState.stateName] = {};
+                                }
+                                if (!tempStateList[basicState.stateName][basicState.managerName]) {
+                                    tempStateList[basicState.stateName][basicState.managerName] = {
+                                        active: [],
+                                        inactive: [],
+                                        askChange: []
+                                    }
+                                }
+                                tempStateList[basicState.stateName][basicState.managerName][basicState.functionName].push(method.name);
+                            }
+                        }
+                        else if ((defActive = DefaultStateActiveDecorator.is(decorator))) {
+                            defaultStateTxt += `this.__addActiveDefState(${defActive.managerName}, this.${method.name});` + EOL;
+                        }
+                        else if ((defInactive = DefaultStateInactiveDecorator.is(decorator))) {
+                            defaultStateTxt += `this.__addInactiveDefState(${defInactive.managerName}, this.${method.name});` + EOL;
+                        }
+                    }
+                }
+                let fullClassFct = `class MyCompilationClassAventus {${fullTxt}}`;
+                let fctCompiled = transpile(fullClassFct, AventusTsLanguageService.getCompilerOptionsCompile());
+                let matchContent = /\{((\s|\S)*)\}/gm.exec(fctCompiled);
+                if (matchContent) {
+                    methodsTxt = matchContent[1].trim();
+                }
+
+                if (HttpServer.isRunning) {
+                    let fullClassFctHotReload = `class MyCompilationClassAventus {${fullTxtHotReload}}`;
+                    let fctCompiledHotReload = transpile(fullClassFctHotReload, AventusTsLanguageService.getCompilerOptionsCompile());
+                    let matchContentHotReload = /\{((\s|\S)*)\}/gm.exec(fctCompiledHotReload);
+                    if (matchContentHotReload) {
+                        methodsTxtHotReload = matchContentHotReload[1].trim();
+                    }
+                }
+            }
+            this.writeFileReplaceVar("methods", methodsTxt, false);
+            this.writeFileHotReloadReplaceVar("methods", methodsTxtHotReload);
+
+
+            let statesTxt = "";
+            for (let statePattern in tempStateList) {
+                for (let managerName in tempStateList[statePattern]) {
+                    let currentAction = tempStateList[statePattern][managerName];
+                    statesTxt += `this.__createStatesList(${statePattern}, ${managerName});`;
+                    if (currentAction.active.length > 0) {
+                        let fctTxt = "";
+                        for (let fctName of currentAction.active) {
+                            fctTxt += "that." + fctName + "(state, slugs);"
+                        }
+                        statesTxt += `this.__addActiveState(${statePattern}, ${managerName}, (state, slugs) => { that.__inactiveDefaultState(${managerName}); ${fctTxt}})` + EOL;
+                    }
+                    if (currentAction.inactive.length > 0) {
+                        let fctTxt = "";
+                        for (let fctName of currentAction.inactive) {
+                            fctTxt += "that." + fctName + "(state, nextState, slugs);"
+                        }
+                        statesTxt += `this.__addInactiveState(${statePattern}, ${managerName}, (state, nextState, slugs) => { ${fctTxt}that.__activeDefaultState(nextState, ${managerName});})` + EOL;
+                    }
+                    if (currentAction.askChange.length > 0) {
+                        let fctTxt = "";
+                        for (let fctName of currentAction.askChange) {
+                            fctTxt += "if(!await that." + fctName + "(state, nextState, slugs)){return false;}" + EOL;
+                        }
+                        statesTxt += `this.__addAskChangeState(${statePattern}, ${managerName}, async (state, nextState, slugs) => { ${fctTxt} return true;})` + EOL;
+                    }
+                }
+            }
+            if (statesTxt.length > 0 || defaultStateTxt.length > 0) {
+                statesTxt = `__createStates() { super.__createStates(); let that = this; ${defaultStateTxt} ${statesTxt} }`
+            }
+            this.writeFileReplaceVar("states", statesTxt)
+        } catch (e) {
+
+        }
+    }
 
     private variablesInViewDynamic = "";
-    private writeViewInfo(template: HtmlTemplateResult, isMain: boolean, localVars: string[] = [], loopInfo?: ActionLoop) {
+    private writeViewInfo(template: HtmlTemplateResult, isMain: boolean, loopInfo?: ActionLoop, ifInfo?: ActionIfPart) {
         const finalViewResult: any = {};
         let finalTxt = "";
 
@@ -983,19 +1053,18 @@ this.clearWatchHistory = () => {
             if (this.allFields[fieldName]) {
                 let field = this.allFields[fieldName];
                 if (field.propType == "ViewElement") {
-                    if (!element.useLive) {
-                        for (let decorator of field.decorators) {
-                            let viewElTemp = ViewElementDecorator.is(decorator);
-                            if (viewElTemp) {
-                                element.useLive = viewElTemp.useLive;
-                                break;
-                            }
+                    element.useLive = isMain ? false : true
+                    for (let decorator of field.decorators) {
+                        let viewElTemp = ViewElementDecorator.is(decorator);
+                        if (viewElTemp && viewElTemp.useLive !== undefined) {
+                            element.useLive = viewElTemp.useLive;
+                            break;
                         }
                     }
 
                     if (element.useLive) {
                         let querySelectorTxt = element.ids.map(id => `[_id="${id}"]`).join("|");
-                        if (element.isArray) {
+                        if (field.type.isArray || element.isArray) {
                             this.variablesInViewDynamic += `get ${fieldName} () { var list = Array.from(this.shadowRoot.querySelectorAll('${querySelectorTxt}')); return list; }` + EOL;
                         }
                         else {
@@ -1036,215 +1105,53 @@ this.clearWatchHistory = () => {
 
         //#region content
         let contents = template.content;
-        let resultContents: { [contextProp: string]: ActionChange[] } = {}
-        for (let propName in contents) {
-            if (this.allFields[propName]) {
-                let field = this.allFields[propName];
-                if (field.propType == "Property") {
-                    if (!resultContents[propName]) {
-                        resultContents[propName] = [];
-                    }
-                    if (field.type.kind == "boolean") {
-                        for (let content of contents[propName]) {
-                            resultContents[propName].push({
-                                id: content.id,
-                                attrName: content.attrName,
-                                render: content.render,
-                                isBool: true
-                            })
-                        }
-                    }
-                    else {
-                        for (let content of contents[propName]) {
-                            resultContents[propName].push({
-                                id: content.id,
-                                attrName: content.attrName,
-                                render: content.render
-                            })
-                        }
-                    }
-                }
-                else if (field.propType == "Watch") {
-                    if (!resultContents[propName]) {
-                        resultContents[propName] = [];
-                    }
-                    for (let content of contents[propName]) {
-                        resultContents[propName].push({
-                            id: content.id,
-                            attrName: content.attrName,
-                            render: content.render,
-                            path: content.path
-                        })
-                    }
-                }
-                else {
-                    this.result.diagnostics.push(createErrorTsPos(this.document, "The variable " + propName + " must be a property or a watch for template update", field.nameStart, field.nameEnd, AventusErrorCode.MissingWatchable));
-                }
+        let contentResult: { [id_attr: string]: { fct: string, once?: boolean } } = {}
+        for (let key in contents) {
+            contentResult[key] = {
+                fct: `@_@${contents[key].fct}@_@`
             }
-            else if (localVars.includes(propName)) {
-                if (!resultContents[propName]) {
-                    resultContents[propName] = [];
-                }
-                for (let content of contents[propName]) {
-                    resultContents[propName].push({
-                        id: content.id,
-                        attrName: content.attrName,
-                        render: content.render,
-                        path: content.path
-                    })
-                }
-            }
-            else {
-                let errorTxt = "Missing property or watch #" + propName + " for template update"
-                this.result.diagnostics.push(createErrorTsSection(this.document, errorTxt, "props", AventusErrorCode.MissingProp));
-                if (this.htmlFile) {
-                    for (let content of contents[propName]) {
-                        if (content.positions) {
-                            for (let position of content.positions) {
-                                this.htmlFile.tsErrors.push(createErrorHTMLPos(this.htmlFile.file.document, errorTxt, position.start, position.end));
-                            }
-                        }
-                    }
-                }
+            if (contents[key].once) {
+                contentResult[key].once = true;
             }
         }
-        if (Object.keys(resultContents).length > 0) {
-            finalViewResult.content = resultContents;
+        if (Object.keys(contentResult).length > 0) {
+            finalViewResult.content = contentResult;
         }
         //#endregion
 
         //#region injection
-        let injections = template.injection;
-        let resultInjections: { [contextProp: string]: ActionInjection[] } = {}
-        for (let propName in injections) {
-            if (this.allFields[propName]) {
-                let field = this.allFields[propName];
-                if (field.propType == "Property" || field.propType == "Watch") {
-                    let isWatch = field.propType == "Watch";
-                    if (!resultInjections[propName]) {
-                        resultInjections[propName] = [];
-                    }
-                    for (let injection of injections[propName]) {
-                        let temp: ActionInjection = {
-                            id: injection.id,
-                            injectionName: injection.injectionName,
-                            inject: injection.inject,
-                        }
-                        if (isWatch) {
-                            temp.path = injection.path;
-                        }
-                        resultInjections[propName].push(temp)
-                    }
-                }
-                else {
-                    this.result.diagnostics.push(createErrorTsPos(this.document, "The variable " + propName + " must be a property or a watch for injection", field.nameStart, field.nameEnd, AventusErrorCode.MissingWatchable));
-                }
-            }
-            else if (localVars.includes(propName)) {
-                if (!resultInjections[propName]) {
-                    resultInjections[propName] = [];
-                }
-                for (let injection of injections[propName]) {
-                    resultInjections[propName].push({
-                        id: injection.id,
-                        injectionName: injection.injectionName,
-                        inject: injection.inject,
-                        path: injection.path
-                    })
-                }
-            }
-            else {
-                let errorTxt = "Missing property or watch #" + propName + " for injection"
-                this.result.diagnostics.push(createErrorTsSection(this.document, errorTxt, "props", AventusErrorCode.MissingProp));
-                if (this.htmlFile) {
-                    for (let injection of injections[propName]) {
-                        if (injection.position) {
-                            this.htmlFile.tsErrors.push(createErrorHTMLPos(this.htmlFile.file.document, errorTxt, injection.position.start, injection.position.end));
-                        }
-                    }
-                }
-            }
-        }
-        if (Object.keys(resultInjections).length > 0) {
-            finalViewResult.injection = resultInjections;
+        if (template.injection.length > 0) {
+            finalViewResult.injection = template.injection;
         }
         //#endregion
 
         //#region bindings
         let bindings = template.bindings;
-        let resultBindings: { [contextProp: string]: ActionBindings[] } = {}
-        for (let propName in bindings) {
-            if (this.allFields[propName]) {
-                let field = this.allFields[propName];
-                if (field.propType == "Property" || field.propType == "Watch") {
-                    if (!resultBindings[propName]) {
-                        resultBindings[propName] = [];
-                    }
-                    let isWatch = field.propType == "Watch";
-                    for (let binding of bindings[propName]) {
-                        let temp: ActionBindings = {
-                            id: binding.id,
-                            valueName: binding.valueName,
-                            eventNames: binding.eventNames,
-                        }
-                        if (isWatch) {
-                            temp.path = binding.path;
-                        }
-                        if (binding.eventNames.length == 1 && binding.tagName) {
-                            let definition = this.build.getWebComponentDefinition(binding.tagName);
-                            let eventName = binding.eventNames[0];
-                            if (definition) {
-                                if (definition.class.properties[eventName]) {
-                                    let type = definition.class.properties[eventName].type.value;
-                                    if (ListCallbacks.includes(type)) {
-                                        temp.isCallback = true;
-                                    }
-                                }
-                            }
-                        }
-                        resultBindings[propName].push(temp);
-                    }
-                }
-                else {
-                    this.result.diagnostics.push(createErrorTsPos(this.document, "The variable " + propName + " must be a property or a watch for bindings", field.nameStart, field.nameEnd, AventusErrorCode.MissingWatchable));
-                }
+        let resultBindings: ActionBindings[] = []
+        for (let binding of bindings) {
+            let temp: ActionBindings = {
+                id: binding.id,
+                injectionName: binding.injectionName,
+                eventNames: binding.eventNames,
+                inject: binding.inject,
+                extract: binding.extract
             }
-            else if (localVars.includes(propName)) {
-                for (let binding of bindings[propName]) {
-                    let temp: ActionBindings = {
-                        id: binding.id,
-                        valueName: binding.valueName,
-                        eventNames: binding.eventNames,
-                        path: binding.path
-                    }
-                    if (binding.eventNames.length == 1 && binding.tagName) {
-                        let definition = this.build.getWebComponentDefinition(binding.tagName);
-                        let eventName = binding.eventNames[0];
-                        if (definition) {
-                            if (definition.class.properties[eventName]) {
-                                let type = definition.class.properties[eventName].type.value
-                                if (ListCallbacks.includes(type)) {
-                                    temp.isCallback = true;
-                                }
-                            }
-                        }
-                    }
-                    resultBindings[propName].push(temp);
-                }
+            if (binding.once) {
+                temp.once = binding.once;
             }
-            else {
-                let errorTxt = "Missing property or watch #" + propName + " for bindings";
-                this.result.diagnostics.push(createErrorTsSection(this.document, errorTxt, "props", AventusErrorCode.MissingProp));
-                if (this.htmlFile) {
-                    for (let binding of bindings[propName]) {
-                        if (binding.position) {
-                            this.htmlFile.tsErrors.push(createErrorHTMLPos(this.htmlFile.file.document, errorTxt, binding.position.start, binding.position.end));
-                        }
+            if (binding.eventNames.length == 1 && binding.tagName) {
+                let definition = this.build.getWebComponentDefinition(binding.tagName);
+                if (definition) {
+                    let cbName = this.isCallback(definition.class, binding.eventNames[0]);
+                    if (cbName != null) {
+                        temp.isCallback = true;
+                        binding.eventNames[0] = cbName;
                     }
                 }
             }
+            resultBindings.push(temp);
         }
-        if (Object.keys(resultBindings).length > 0) {
+        if (resultBindings.length > 0) {
             finalViewResult.bindings = resultBindings;
         }
         //#endregion
@@ -1256,18 +1163,16 @@ this.clearWatchHistory = () => {
                 let temp: ActionEvent = {
                     eventName: event.eventName,
                     id: event.id,
-                    fct: `@_@(e, c) => c.component.${event.fct}(e)@_@`,
+                    fct: `@_@(e, c) => c.comp.${event.fct}(e)@_@`,
                 }
                 if (event.tagName) {
                     let definition = this.build.getWebComponentDefinition(event.tagName);
-                    let eventName = event.eventName;
                     if (definition) {
-                        if (definition.class.properties[eventName]) {
-                            let type = definition.class.properties[eventName].type.value
-                            if (ListCallbacks.includes(type)) {
-                                temp.isCallback = true;
-                                temp.fct = `@_@(c, ...args) => c.component.${event.fct}.apply(c.component, args)@_@`;
-                            }
+                        let cbName = this.isCallback(definition.class, event.eventName);
+                        if (cbName != null) {
+                            temp.isCallback = true;
+                            event.eventName = cbName;
+                            temp.fct = `@_@(c, ...args) => c.comp.${event.fct}.apply(c.comp, ...args)@_@`;
                         }
                     }
                 }
@@ -1310,7 +1215,7 @@ this.clearWatchHistory = () => {
                             this.createMissingMethod(currentEvent.value, currentEvent.start, currentEvent.end);
                         }
                         else {
-                            tempPressEvent[key] = `@_@(e, pressInstance, c) => { c.component.${currentEvent.value}(e, pressInstance); }@_@`;
+                            tempPressEvent[key] = `@_@(e, pressInstance, c) => { c.comp.${currentEvent.value}(e, pressInstance); }@_@`;
                         }
                     }
                     else if (props.includes(key)) {
@@ -1326,67 +1231,73 @@ this.clearWatchHistory = () => {
         }
         //#endregion
 
-        if (Object.keys(finalViewResult).length > 0) {
+        //#region contextEdit
+        if (template.contextEdits.length > 0) {
+            finalViewResult.contextEdits = template.contextEdits;
+        }
+        //#endregion
+
+
+        if (Object.keys(finalViewResult).length > 0 || loopInfo || ifInfo) {
             let finalViewResultTxt = JSON.stringify(finalViewResult, null, 2).replace(/"@_@(.*?)@_@"/g, "$1").replace(/\\"/g, '"')
             if (isMain) {
                 finalTxt = `this.__getStatic().__template.setActions(${finalViewResultTxt});` + EOL;
-                let globalVars = this.htmlParsed?.getVariables()?.globalVars;
-                if (globalVars && globalVars.length > 0) {
-                    finalTxt += `this.__getStatic().__template.setSchema({globals:${JSON.stringify(globalVars)}});` + EOL;
-                }
             }
             else if (loopInfo) {
-                finalTxt = `const templ${loopInfo.loopId} = new Aventus.WebComponentTemplate(this);` + EOL;
-                finalTxt += `templ${loopInfo.loopId}.setTemplate(\`${loopInfo.template}\`);` + EOL;
-                finalTxt += `templ${loopInfo.loopId}.setActions(${finalViewResultTxt});` + EOL;
-                if (!loopInfo.loopParentId) {
-                    finalTxt += `this.__getStatic().__template.addLoop({
-                        anchorId: '${loopInfo.anchorId}',
-                        data: '${loopInfo.from}',
-                        index: '${loopInfo.index}',
-                        item: '${loopInfo.item}',
-                        template: templ${loopInfo.loopId}
-                    });`+ EOL;
+                finalTxt = `const templ${loopInfo.templateId} = new Aventus.Template(this);` + EOL;
+                finalTxt += `templ${loopInfo.templateId}.setTemplate(\`${loopInfo.template}\`);` + EOL;
+                if (Object.keys(finalViewResult).length > 0)
+                    finalTxt += `templ${loopInfo.templateId}.setActions(${finalViewResultTxt});` + EOL;
+                const parent = loopInfo.parentId === undefined ? 'this.__getStatic().__template' : `templ${loopInfo.parentId}`
+                finalTxt += `${parent}.addLoop({
+                    anchorId: '${loopInfo.anchorId}',
+                    template: templ${loopInfo.templateId},
+                `;
+                if (loopInfo.simple) {
+                    finalTxt += `simple:{data: "${loopInfo.simple.data}"`;
+                    if (loopInfo.simple.index) {
+                        finalTxt += `,index:"${loopInfo.simple.index}"`;
+                    }
+                    if (loopInfo.simple.item) {
+                        finalTxt += `,item:"${loopInfo.simple.item}"`;
+                    }
+                    finalTxt += `}` + EOL;
                 }
                 else {
-                    finalTxt += `templ${loopInfo.loopParentId}.addLoop({
-                        anchorId: '${loopInfo.anchorId}',
-                        data: '${loopInfo.from}',
-                        index: '${loopInfo.index}',
-                        item: '${loopInfo.item}',
-                        template: templ${loopInfo.loopId}
-                    });`+ EOL;
+                    finalTxt += `func: ${loopInfo.func}` + EOL
                 }
+                finalTxt += `});` + EOL;
             }
-        }
-        else if (isMain) {
-            let globalVars = this.htmlParsed?.getVariables()?.globalVars;
-            if (globalVars && globalVars.length > 0) {
-                finalTxt += `this.__getStatic().__template.setSchema({globals:${JSON.stringify(globalVars)}});` + EOL;
+            else if (ifInfo) {
+                finalTxt = `const templ${ifInfo.templateId} = new Aventus.Template(this);` + EOL;
+                finalTxt += `templ${ifInfo.templateId}.setTemplate(\`${ifInfo.template}\`);` + EOL;
+                if (Object.keys(finalViewResult).length > 0)
+                    finalTxt += `templ${ifInfo.templateId}.setActions(${finalViewResultTxt});` + EOL;
             }
         }
 
         for (let loop of template.loops) {
-            let newLocal = [...localVars];
-            newLocal.push(loop.item);
-            newLocal.push(loop.index);
-            let fromName = loop.from.split(".")[0]
-            if (!localVars.includes(fromName)) {
-                let field = this.allFields[fromName];
-                if (!field) {
-                    let errorTxt = "Missing watch #" + fromName + " for loop";
-                    this.result.diagnostics.push(createErrorTsSection(this.document, errorTxt, "props", AventusErrorCode.MissingProp));
-                    if (this.htmlFile) {
-                        if (loop.positionFrom) {
-                            this.htmlFile.tsErrors.push(createErrorHTMLPos(this.htmlFile.file.document, errorTxt, loop.positionFrom.start, loop.positionFrom.end));
-                        }
-                    }
-                }
-                else if (field.propType != "Watch") {
-                    this.result.diagnostics.push(createErrorTsPos(this.document, "The variable " + fromName + " must be a watch for loop", field.nameStart, field.nameEnd, AventusErrorCode.MissingWatchable));
-                }
+            finalTxt += this.writeViewInfo(loop.actions, false, loop);
+        }
+        for (let _if of template.ifs) {
+            let partTxt = "";
+            for (let part of _if.parts) {
+                finalTxt += this.writeViewInfo(part.templateAction, false, undefined, part);
+                let once = part.once ? 'once: true,' : ''
+                partTxt += `{${once}
+                    condition: ${part.condition},
+                    template: templ${part.templateId}
+                },`
             }
-            finalTxt += this.writeViewInfo(loop.actions, false, newLocal, loop);
+
+            if (partTxt.length > 0) {
+                partTxt = partTxt.slice(0, partTxt.length - 1);
+            }
+            const parent = _if.parentId === undefined ? 'this.__getStatic().__template' : `templ${_if.parentId}`
+            finalTxt += `${parent}.addIf({
+                    anchorId: '${_if.anchorId}',
+                    parts: [${partTxt}]
+            });` + EOL;
         }
 
         if (isMain) {
@@ -1403,6 +1314,64 @@ this.clearWatchHistory = () => {
         return finalTxt;
     }
 
+    private watchProperties: { [name: string]: string } = {}
+    private watchFunctions: { [name: string]: EffectDecoratorOption } = {}
+    private writeWatchableElements() {
+        let variableProxyTxt = "";
+
+        for (let prop in this.watchProperties) {
+            if (this.watchProperties[prop]) {
+                variableProxyTxt += `this.__addWatchesActions("${prop}", ${this.watchProperties[prop]});` + EOL
+            }
+            else {
+                variableProxyTxt += `this.__addWatchesActions("${prop}");` + EOL
+            }
+        }
+
+        if (Object.keys(this.watchFunctions).length > 0) {
+            let functionList: string[] = [];
+            for (let name in this.watchFunctions) {
+                if (this.watchFunctions[name].autoInit) {
+                    functionList.push(`{ name: "${name}", autoInit: true }`)
+                }
+                else {
+                    functionList.push(`"${name}"`);
+                }
+            }
+            variableProxyTxt += `this.__addWatchesFunctions([${EOL}${functionList.join(",\n")}${EOL}]);` + EOL;
+        }
+
+
+
+        let debugWatchTxt = '';
+        if (this.debuggerDecorator?.enableWatchHistory) {
+            debugWatchTxt = `if(this.__watch){
+this.__watch.enableHistory();
+this.getWatchHistory = () => {
+    return this.__watch.getHistory();
+}
+this.clearWatchHistory = () => {
+    return this.__watch.clearHistory();
+}
+}`
+        }
+        if (variableProxyTxt.length > 0) {
+            variableProxyTxt = `__registerWatchesActions() {
+    ${variableProxyTxt}
+    super.__registerWatchesActions();
+    ${debugWatchTxt}
+}`
+        }
+        else if (debugWatchTxt.length > 0) {
+            variableProxyTxt = `__registerWatchesActions() {
+    super.__registerWatchesActions();
+    ${debugWatchTxt}
+}`
+        }
+
+        this.writeFileReplaceVar("watchesChangeCb", variableProxyTxt);
+    }
+
     //#region utils
     private createHtmlDoc(field: CustomFieldModel, type: TypeInfo) {
         if (this.htmlDoc) {
@@ -1410,6 +1379,9 @@ this.clearWatchHistory = () => {
                 name: string;
                 description: string;
             }[] = [];
+
+            if (!field.isPublic) return;
+
             let realType: CustomTypeAttribute = "string";
             if (type.kind == "literal") {
                 let value = type.value;
@@ -1460,9 +1432,16 @@ this.clearWatchHistory = () => {
             }
         }
     }
-    private writeFileReplaceVar(variable: string, value: string | number) {
+    private writeFileReplaceVar(variable: string, value: string | number, writeToHotReload: boolean = true) {
         let regex = new RegExp("\\$" + variable + "\\$", "g");
         this.template = this.template.replace(regex, value + "");
+        if (writeToHotReload) {
+            this.templateHotReload = this.templateHotReload.replace(regex, value + "");
+        }
+    }
+    private writeFileHotReloadReplaceVar(variable: string, value: string | number) {
+        let regex = new RegExp("\\$" + variable + "\\$", "g");
+        this.templateHotReload = this.templateHotReload.replace(regex, value + "");
     }
     private createMissingMethod(methodName: string, start: number, end: number) {
         if (!this.htmlParsed) {
@@ -1483,7 +1462,7 @@ this.clearWatchHistory = () => {
             this.result.diagnostics.push(createErrorTsSection(this.document, errorTxt, "methods", AventusErrorCode.MissingMethod))
         }
         if (this.htmlFile) {
-            this.htmlFile.tsErrors.push(createErrorHTMLPos(this.htmlFile.file.document, errorTxt, start, end));
+            this.htmlFile.tsErrors.push(createErrorHTMLPos(this.htmlFile.file.documentUser, errorTxt, start, end));
         }
     }
     private createMissingViewElement(element: ActionElement) {
@@ -1525,7 +1504,7 @@ this.clearWatchHistory = () => {
 
         if (this.htmlFile) {
             for (let position of element.positions) {
-                this.htmlFile.tsErrors.push(createErrorHTMLPos(this.htmlFile.file.document, errorTxt, position.start, position.end));
+                this.htmlFile.tsErrors.push(createErrorHTMLPos(this.htmlFile.file.documentUser, errorTxt, position.start, position.end));
             }
         }
     }
@@ -1554,120 +1533,31 @@ this.clearWatchHistory = () => {
             ));
         }
     }
-    //#endregion
 
-    //#endregion
-
-    private writeFileMethods() {
-        let tempStateList: {
-            [statePattern: string]: {
-                [managerName: string]: {
-                    active: string[],
-                    inactive: string[],
-                    askChange: string[],
-                };
-            };
-        } = {}
-
-        let methodsTxt = "";
-        let defaultStateTxt = "";
-        if (this.classInfo) {
-            let fullTxt = ""
-            for (let methodName in this.classInfo.methods) {
-                let method = this.classInfo.methods[methodName];
-                fullTxt += method.compiledContent + EOL;
-                for (let decorator of method.decorators) {
-                    if (BindThisDecorator.is(decorator)) {
-                        this.extraConstructorCode.push(`this.${methodName}=this.${methodName}.bind(this)`);
-                        continue;
-                    }
-
-                    // gestion des states
-                    let basicState: StateChangeDecorator | StateActiveDecorator | StateInactiveDecorator | null = null;
-                    let tempChange = StateChangeDecorator.is(decorator);
-                    if (tempChange) {
-                        basicState = tempChange;
-                    }
-                    else {
-                        let tempActive = StateActiveDecorator.is(decorator);
-                        if (tempActive) {
-                            basicState = tempActive;
-                        }
-                        else {
-                            let tempInactive = StateInactiveDecorator.is(decorator);
-                            if (tempInactive) {
-                                basicState = tempInactive;
-                            }
-                        }
-                    }
-                    let defActive: DefaultStateActiveDecorator | null;
-                    let defInactive: DefaultStateInactiveDecorator | null;
-
-                    if (basicState !== null) {
-                        if (decorator.arguments.length > 0) {
-                            if (!tempStateList[basicState.stateName]) {
-                                tempStateList[basicState.stateName] = {};
-                            }
-                            if (!tempStateList[basicState.stateName][basicState.managerName]) {
-                                tempStateList[basicState.stateName][basicState.managerName] = {
-                                    active: [],
-                                    inactive: [],
-                                    askChange: []
-                                }
-                            }
-                            tempStateList[basicState.stateName][basicState.managerName][basicState.functionName].push(method.name);
-                        }
-                    }
-                    else if ((defActive = DefaultStateActiveDecorator.is(decorator))) {
-                        defaultStateTxt += `this.__addActiveDefState(${defActive.managerName}, this.${method.name});` + EOL;
-                    }
-                    else if ((defInactive = DefaultStateInactiveDecorator.is(decorator))) {
-                        defaultStateTxt += `this.__addInactiveDefState(${defInactive.managerName}, this.${method.name});` + EOL;
-                    }
-                }
-            }
-            let fullClassFct = `class MyCompilationClassAventus {${fullTxt}}`;
-            let fctCompiled = transpile(fullClassFct, AventusTsLanguageService.getCompilerOptionsCompile());
-            let matchContent = /\{((\s|\S)*)\}/gm.exec(fctCompiled);
-            if (matchContent) {
-                methodsTxt = matchContent[1].trim();
-            }
+    private isCallback(_class: ClassInfo, name: string): string | null {
+        let eventsToLook: string[];
+        if (name.startsWith("on")) {
+            eventsToLook = [name];
         }
-        this.writeFileReplaceVar("methods", methodsTxt);
-
-        let statesTxt = "";
-        for (let statePattern in tempStateList) {
-            for (let managerName in tempStateList[statePattern]) {
-                let currentAction = tempStateList[statePattern][managerName];
-                statesTxt += `this.__createStatesList(${statePattern}, ${managerName});`;
-                if (currentAction.active.length > 0) {
-                    let fctTxt = "";
-                    for (let fctName of currentAction.active) {
-                        fctTxt += "that." + fctName + "(state, slugs);"
-                    }
-                    statesTxt += `this.__addActiveState(${statePattern}, ${managerName}, (state, slugs) => { that.__inactiveDefaultState(${managerName}); ${fctTxt}})` + EOL;
-                }
-                if (currentAction.inactive.length > 0) {
-                    let fctTxt = "";
-                    for (let fctName of currentAction.inactive) {
-                        fctTxt += "that." + fctName + "(state, nextState, slugs);"
-                    }
-                    statesTxt += `this.__addInactiveState(${statePattern}, ${managerName}, (state, nextState, slugs) => { ${fctTxt}that.__activeDefaultState(nextState, ${managerName});})` + EOL;
-                }
-                if (currentAction.askChange.length > 0) {
-                    let fctTxt = "";
-                    for (let fctName of currentAction.askChange) {
-                        fctTxt += "if(!await that." + fctName + "(state, nextState, slugs)){return false;}" + EOL;
-                    }
-                    statesTxt += `this.__addAskChangeState(${statePattern}, ${managerName}, async (state, nextState, slugs) => { ${fctTxt} return true;})` + EOL;
+        else {
+            eventsToLook = [name, 'on' + name, 'on' + name.charAt(0).toUpperCase() + name.slice(1)];
+        }
+        for (let _event of eventsToLook) {
+            let field = _class.getField(_event);
+            if (field) {
+                let type = field.type.value;
+                if (ListCallbacks.includes(type)) {
+                    return _event;
                 }
             }
         }
-        if (statesTxt.length > 0 || defaultStateTxt.length > 0) {
-            statesTxt = `__createStates() { super.__createStates(); let that = this; ${defaultStateTxt} ${statesTxt} }`
-        }
-        this.writeFileReplaceVar("states", statesTxt)
+        return null;
     }
+    //#endregion
+
+    //#endregion
+
+
 
     //#endregion
 
@@ -1697,13 +1587,18 @@ this.clearWatchHistory = () => {
         return methodTxt;
     }
 
-    private transpileMethodNoRun(methodTxt) {
-        methodTxt = this.prepareMethodToTranspile(methodTxt);
-        let method = transpile(methodTxt, AventusTsLanguageService.getCompilerOptionsCompile()).trim();
-        method = method.substring(0, method.length - 1);
-        method = "(" + method + ")";
-        // method = minify(method, { mangle: false }).code;
-        return method;
+    private transpileMethodNoRun(methodTxt): string {
+        try {
+            methodTxt = this.prepareMethodToTranspile(methodTxt);
+            let method = transpile(methodTxt, AventusTsLanguageService.getCompilerOptionsCompile()).trim();
+            method = method.substring(0, method.length - 1);
+            method = "(" + method + ")";
+            // method = minify(method, { mangle: false }).code;
+            return method;
+        } catch (e) {
+
+        }
+        return "";
     }
 
     private _validateTypeForProp(currentDoc: TextDocument, field: PropertyInfo, type: TypeInfo): TypeInfo | null {

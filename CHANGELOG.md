@@ -1,6 +1,26 @@
 # Change Log
 
-## 1.1.1 (2024-01-12d)
+## 1.2.0 (2024-02-24)
+
+### Bug Fixes
+ - Correct Watcher to have right path on callback based on where subscribe is called
+ - Prevent exporting two times the same tags inside the same output file
+ - Correct using regex char inside directory
+
+### Features
+ - Change templating by adding for and if inside wcv.avt
+ - Add (Effect|Computed)NoRecomputed to calculate dependance graph only during first query
+ - Add File support inside HttpRequest
+ - Add Prefix inside HttpRoute
+ - StateManager can allow or deny state change
+ - Simplify aventus.conf.avt
+ - Replace global webcomponent style (.gwcs.avt) by a normal style file stating with a @
+ - Support ./* and ../* inside the state manager
+ - When creating *.wc.avt it does not create a folder
+ - Add command to create variable inside *.wcs.avt
+
+
+## 1.1.1 (2024-01-12)
 
 ### Bug Fixes
  - Correct dependances parsing
@@ -9,7 +29,7 @@
  - Prevent undefined value inside the webcomponent template
  - Correct 2 times public when auto creating methods from parent
  - Replace Decorators by position instead of using regex
- - Increase performance by avoiding buffering whne typing fast inside big file
+ - Increase performance by avoiding buffering when typing fast inside big file
 
 ### Features
  - Add error when npm build failed

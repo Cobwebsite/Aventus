@@ -5,6 +5,7 @@ import { TypeInfo } from './TypeInfo';
 import { ClassInfo } from './ClassInfo';
 import { InternalDecorator, InternalProtectedDecorator } from './decorators/InternalDecorator';
 import { BaseInfo } from './BaseInfo';
+import { AventusTsLanguageService } from '../LanguageService';
 
 type PropType = PropertyDeclaration | GetAccessorDeclaration | SetAccessorDeclaration;
 export class PropertyInfo {
@@ -13,7 +14,9 @@ export class PropertyInfo {
     public nameEnd: number = 0;
     public documentation: string[] = [];
     public decorators: DecoratorInfo[] = [];
-    public defaultValue: string | null = null;
+    public defaultValueTxt: string | null = null;
+    public defaultValueStart: number = 0;
+    public defaultValueEnd: number = 0;
     public content: string = "";
     public type: TypeInfo;
     public prop: PropType;
@@ -23,6 +26,7 @@ export class PropertyInfo {
     public isGetSet: boolean = false;
     public isInsideInterface: boolean = false;
     public isStatic: boolean = false;
+    public isPublic: boolean = true;
     public start: number = 0;
     public end: number = 0;
     public isNullable: boolean = false;
@@ -30,7 +34,21 @@ export class PropertyInfo {
     public _class: ClassInfo;
     public accessibilityModifierTransformation?: { newText: string, start: number, end: number };
     public get compiledContent(): string {
-        return BaseInfo.getContent(this.content, this.start, this.end, this._class.dependancesLocations, this._class.compileTransformations);
+        let txt = BaseInfo.getContent(this.content, this.start, this.end, this._class.dependancesLocations, this._class.compileTransformations);
+        return txt;
+    }
+    public get compiledContentHotReload(): string {
+        let txt = BaseInfo.getContentHotReload(this.content, this.start, this.end, this._class.dependancesLocations, this._class.compileTransformations);
+        return txt;
+    }
+
+    public get defaultValue(): string | null {
+        if (this.defaultValueTxt === null) return null;
+        return BaseInfo.getContent(this.defaultValueTxt, this.defaultValueStart, this.defaultValueEnd, this._class.dependancesLocations, this._class.compileTransformations);
+    }
+    public get defaultValueHotReload(): string | null {
+        if (this.defaultValueTxt === null) return null;
+        return BaseInfo.getContentHotReload(this.defaultValueTxt, this.defaultValueStart, this.defaultValueEnd, this._class.dependancesLocations, this._class.compileTransformations);
     }
 
     constructor(prop: PropType, isInsideInterface: boolean, _class: ClassInfo) {
@@ -100,6 +118,7 @@ export class PropertyInfo {
                             end: modifier.getEnd(),
                             newText: txt
                         }
+                        this.isPublic = false;
                     }
                     accessModDefine = true;
                 }
@@ -112,10 +131,12 @@ export class PropertyInfo {
                         }
                     }
                     accessModDefine = true;
+                    this.isPublic = false;
                 }
                 else if (modifier.kind == SyntaxKind.PrivateKeyword) {
                     accessModDefine = true;
                     isPrivate = true;
+                    this.isPublic = false;
                 }
                 else if (modifier.kind == SyntaxKind.AbstractKeyword) {
                     this.isAbstract = true;
@@ -159,7 +180,9 @@ export class PropertyInfo {
     private loadInitializer(prop: PropType) {
         let propInfo = prop as PropertyDeclaration;
         if (propInfo.initializer) {
-            this.defaultValue = propInfo.initializer.getText();
+            this.defaultValueTxt = propInfo.initializer.getText();
+            this.defaultValueStart = propInfo.initializer.getStart();
+            this.defaultValueEnd = propInfo.initializer.getEnd();
         }
     }
 }

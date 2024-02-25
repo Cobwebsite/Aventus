@@ -6,6 +6,98 @@ const _ = {};
 
 
 let _n;
+var WatchAction;
+(function (WatchAction) {
+    WatchAction[WatchAction["CREATED"] = 0] = "CREATED";
+    WatchAction[WatchAction["UPDATED"] = 1] = "UPDATED";
+    WatchAction[WatchAction["DELETED"] = 2] = "DELETED";
+})(WatchAction || (WatchAction = {}));
+
+_.WatchAction=WatchAction;
+const compareObject=function compareObject(obj1, obj2) {
+    if (Array.isArray(obj1)) {
+        if (!Array.isArray(obj2)) {
+            return false;
+        }
+        obj2 = obj2.slice();
+        if (obj1.length !== obj2.length) {
+            return false;
+        }
+        for (let i = 0; i < obj1.length; i++) {
+            let foundElement = false;
+            for (let j = 0; j < obj2.length; j++) {
+                if (compareObject(obj1[i], obj2[j])) {
+                    obj2.splice(j, 1);
+                    foundElement = true;
+                    break;
+                }
+            }
+            if (!foundElement) {
+                return false;
+            }
+        }
+        return true;
+    }
+    else if (obj1 instanceof Date) {
+        return obj1.toString() === obj2.toString();
+    }
+    else if (typeof obj1 === 'object' && obj1 !== undefined && obj1 !== null) {
+        if (typeof obj2 !== 'object' || obj2 === undefined || obj2 === null) {
+            return false;
+        }
+        if (Object.keys(obj1).length !== Object.keys(obj2).length) {
+            return false;
+        }
+        for (let key in obj1) {
+            if (!(key in obj2)) {
+                return false;
+            }
+            if (!compareObject(obj1[key], obj2[key])) {
+                return false;
+            }
+        }
+        return true;
+    }
+    else {
+        return obj1 === obj2;
+    }
+}
+
+_.compareObject=compareObject;
+const setValueToObject=function setValueToObject(path, obj, value) {
+    path = path.replace(/\[(.*?)\]/g, '.$1');
+    let splitted = path.split(".");
+    for (let i = 0; i < splitted.length - 1; i++) {
+        let split = splitted[i];
+        if (!obj[split]) {
+            obj[split] = {};
+        }
+        obj = obj[split];
+    }
+    obj[splitted[splitted.length - 1]] = value;
+}
+
+_.setValueToObject=setValueToObject;
+const getValueFromObject=function getValueFromObject(path, obj) {
+    path = path.replace(/\[(.*?)\]/g, '.$1');
+    if (path == "") {
+        return obj;
+    }
+    let splitted = path.split(".");
+    for (let i = 0; i < splitted.length - 1; i++) {
+        let split = splitted[i];
+        if (!obj[split] || typeof obj[split] !== 'object') {
+            return undefined;
+        }
+        obj = obj[split];
+    }
+    if (!obj || typeof obj !== 'object') {
+        return undefined;
+    }
+    return obj[splitted[splitted.length - 1]];
+}
+
+_.getValueFromObject=getValueFromObject;
 const ElementExtension=class ElementExtension {
     /**
      * Find a parent by tagname if exist Static.findParentByTag(this, "av-img")
@@ -182,36 +274,43 @@ const ElementExtension=class ElementExtension {
      * Get element inside slot
      */
     static getElementsInSlot(element, slotName) {
+        let result = [];
         if (element.shadowRoot) {
             let slotEl;
             if (slotName) {
                 slotEl = element.shadowRoot.querySelector('slot[name="' + slotName + '"]');
             }
             else {
-                slotEl = element.shadowRoot.querySelector("slot");
+                slotEl = element.shadowRoot.querySelector("slot:not([name])");
+                if (!slotEl) {
+                    slotEl = element.shadowRoot.querySelector("slot");
+                }
             }
             while (true) {
                 if (!slotEl) {
-                    return [];
+                    return result;
                 }
                 var listChild = Array.from(slotEl.assignedElements());
                 if (!listChild) {
-                    return [];
+                    return result;
                 }
                 let slotFound = false;
                 for (let i = 0; i < listChild.length; i++) {
+                    let child = listChild[i];
                     if (listChild[i].nodeName == "SLOT") {
                         slotEl = listChild[i];
                         slotFound = true;
-                        break;
+                    }
+                    else if (child instanceof HTMLElement) {
+                        result.push(child);
                     }
                 }
                 if (!slotFound) {
-                    return listChild;
+                    return result;
                 }
             }
         }
-        return [];
+        return result;
     }
     /**
      * Get deeper element inside dom at the position X and Y
@@ -267,7 +366,7 @@ const Style=class Style {
     static instance;
     static noAnimation;
     static defaultStyleSheets = {
-        "@general": `:host{display:inline-block;box-sizing:border-box}:host *{box-sizing:border-box}`,
+        "@default": `:host{display:inline-block;box-sizing:border-box}:host *{box-sizing:border-box}`,
     };
     static store(name, content) {
         this.getInstance().store(name, content);
@@ -326,56 +425,6 @@ const Style=class Style {
 }
 Style.Namespace=`${moduleName}`;
 _.Style=Style;
-const compareObject=function compareObject(obj1, obj2) {
-    if (Array.isArray(obj1)) {
-        if (!Array.isArray(obj2)) {
-            return false;
-        }
-        obj2 = obj2.slice();
-        if (obj1.length !== obj2.length) {
-            return false;
-        }
-        for (let i = 0; i < obj1.length; i++) {
-            let foundElement = false;
-            for (let j = 0; j < obj2.length; j++) {
-                if (compareObject(obj1[i], obj2[j])) {
-                    obj2.splice(j, 1);
-                    foundElement = true;
-                    break;
-                }
-            }
-            if (!foundElement) {
-                return false;
-            }
-        }
-        return true;
-    }
-    else if (obj1 instanceof Date) {
-        return obj1.toString() === obj2.toString();
-    }
-    else if (obj1 !== null && typeof obj1 == 'object') {
-        if (obj2 === null || typeof obj1 !== 'object') {
-            return false;
-        }
-        if (Object.keys(obj1).length !== Object.keys(obj2).length) {
-            return false;
-        }
-        for (let key in obj1) {
-            if (!(key in obj2)) {
-                return false;
-            }
-            if (!compareObject(obj1[key], obj2[key])) {
-                return false;
-            }
-        }
-        return true;
-    }
-    else {
-        return obj1 === obj2;
-    }
-}
-
-_.compareObject=compareObject;
 const Callback=class Callback {
     callbacks = [];
     /**
@@ -414,11 +463,20 @@ const Callback=class Callback {
 Callback.Namespace=`${moduleName}`;
 _.Callback=Callback;
 const Mutex=class Mutex {
+    /**
+     * Array to store functions waiting for the mutex to become available.
+     * @type {((run: boolean) => void)[]}
+     */
     waitingList = [];
+    /**
+    * Indicates whether the mutex is currently locked or not.
+    * @type {boolean}
+    */
     isLocked = false;
     /**
-     * Wait the mutex to be free then get it
-     */
+    * Waits for the mutex to become available and then acquires it.
+    * @returns {Promise<boolean>} A Promise that resolves to true if the mutex was acquired successfully.
+    */
     waitOne() {
         return new Promise((resolve) => {
             if (this.isLocked) {
@@ -445,7 +503,7 @@ const Mutex=class Mutex {
         }
     }
     /**
-     * Release the mutex
+     * Releases the mutex, allowing only the last function in the waiting list to acquire it.
      */
     releaseOnlyLast() {
         if (this.waitingList.length > 0) {
@@ -463,12 +521,18 @@ const Mutex=class Mutex {
         }
     }
     /**
-     * Clear mutex
+     * Clears the mutex, removing all waiting functions and releasing the lock.
      */
     dispose() {
         this.waitingList = [];
         this.isLocked = false;
     }
+    /**
+     * Executes a callback function safely within the mutex lock and releases the lock afterward.
+     * @template T - The type of the return value of the callback function.
+     * @param {() => T} cb - The callback function to execute.
+     * @returns {Promise<T | null>} A Promise that resolves to the result of the callback function or null if an error occurs.
+     */
     async safeRun(cb) {
         let result = null;
         await this.waitOne();
@@ -480,6 +544,12 @@ const Mutex=class Mutex {
         await this.release();
         return result;
     }
+    /**
+     * Executes an asynchronous callback function safely within the mutex lock and releases the lock afterward.
+     * @template T - The type of the return value of the asynchronous callback function.
+     * @param {() => Promise<T>} cb - The asynchronous callback function to execute.
+     * @returns {Promise<T | null>} A Promise that resolves to the result of the asynchronous callback function or null if an error occurs.
+     */
     async safeRunAsync(cb) {
         let result = null;
         await this.waitOne();
@@ -491,6 +561,12 @@ const Mutex=class Mutex {
         await this.release();
         return result;
     }
+    /**
+     * Executes a callback function safely within the mutex lock, allowing only the last function in the waiting list to acquire the lock, and releases the lock afterward.
+     * @template T - The type of the return value of the callback function.
+     * @param {() => T} cb - The callback function to execute.
+     * @returns {Promise<T | null>} A Promise that resolves to the result of the callback function or null if an error occurs.
+     */
     async safeRunLast(cb) {
         let result = null;
         if (await this.waitOne()) {
@@ -503,6 +579,12 @@ const Mutex=class Mutex {
         }
         return result;
     }
+    /**
+     * Executes an asynchronous callback function safely within the mutex lock, allowing only the last function in the waiting list to acquire the lock, and releases the lock afterward.
+     * @template T - The type of the return value of the asynchronous callback function.
+     * @param {() => Promise<T>} cb - The asynchronous callback function to execute.
+     * @returns {Promise<T | undefined>} A Promise that resolves to the result of the asynchronous callback function or undefined if an error occurs.
+     */
     async safeRunLastAsync(cb) {
         let result;
         if (await this.waitOne()) {
@@ -518,14 +600,6 @@ const Mutex=class Mutex {
 }
 Mutex.Namespace=`${moduleName}`;
 _.Mutex=Mutex;
-var WatchAction;
-(function (WatchAction) {
-    WatchAction[WatchAction["CREATED"] = 0] = "CREATED";
-    WatchAction[WatchAction["UPDATED"] = 1] = "UPDATED";
-    WatchAction[WatchAction["DELETED"] = 2] = "DELETED";
-})(WatchAction || (WatchAction = {}));
-
-_.WatchAction=WatchAction;
 const PressManager=class PressManager {
     static create(options) {
         if (Array.isArray(options.element)) {
@@ -916,6 +990,782 @@ const PressManager=class PressManager {
 }
 PressManager.Namespace=`${moduleName}`;
 _.PressManager=PressManager;
+const Effect=class Effect {
+    callbacks = [];
+    isInit = false;
+    isDestroy = false;
+    __subscribes = [];
+    __allowChanged = [];
+    version = 0;
+    fct;
+    constructor(fct) {
+        this.fct = fct;
+        if (this.autoInit()) {
+            this.init();
+        }
+    }
+    autoInit() {
+        return true;
+    }
+    init() {
+        this.isInit = true;
+        this.run();
+    }
+    run() {
+        this.version++;
+        Watcher._registering.push(this);
+        let result = this.fct();
+        Watcher._registering.splice(Watcher._registering.length - 1, 1);
+        for (let i = 0; i < this.callbacks.length; i++) {
+            if (this.callbacks[i].version != this.version) {
+                this.callbacks[i].receiver.unsubscribe(this.callbacks[i].cb);
+                this.callbacks.splice(i, 1);
+                i--;
+            }
+        }
+        return result;
+    }
+    register(receiver, path, version, fullPath) {
+        for (let info of this.callbacks) {
+            if (info.receiver == receiver && info.path == path && receiver.__path == info.registerPath) {
+                info.version = version;
+                info.fullPath = fullPath;
+                return;
+            }
+        }
+        let cb;
+        if (path == "*") {
+            cb = (action, changePath, value) => { this.onChange(action, changePath, value); };
+        }
+        else {
+            cb = (action, changePath, value) => {
+                let full = fullPath;
+                if (changePath == path) {
+                    this.onChange(action, changePath, value);
+                }
+            };
+        }
+        this.callbacks.push({
+            receiver,
+            path,
+            registerPath: receiver.__path,
+            cb,
+            version,
+            fullPath
+        });
+        receiver.subscribe(cb);
+    }
+    canChange(fct) {
+        this.__allowChanged.push(fct);
+    }
+    checkCanChange(action, changePath, value) {
+        if (this.isDestroy) {
+            return false;
+        }
+        for (let fct of this.__allowChanged) {
+            if (!fct(action, changePath, value)) {
+                return false;
+            }
+        }
+        return true;
+    }
+    onChange(action, changePath, value) {
+        if (!this.checkCanChange(action, changePath, value)) {
+            return;
+        }
+        this.run();
+        for (let fct of this.__subscribes) {
+            fct(action, changePath, value);
+        }
+    }
+    destroy() {
+        this.isDestroy = true;
+        this.clearCallbacks();
+        this.isInit = false;
+    }
+    clearCallbacks() {
+        for (let pair of this.callbacks) {
+            pair.receiver.unsubscribe(pair.cb);
+        }
+        this.callbacks = [];
+    }
+    subscribe(fct) {
+        let index = this.__subscribes.indexOf(fct);
+        if (index == -1) {
+            this.__subscribes.push(fct);
+        }
+    }
+    unsubscribe(fct) {
+        let index = this.__subscribes.indexOf(fct);
+        if (index > -1) {
+            this.__subscribes.splice(index, 1);
+        }
+    }
+}
+Effect.Namespace=`${moduleName}`;
+_.Effect=Effect;
+const Watcher=class Watcher {
+    static _registering = [];
+    static get _register() {
+        return this._registering[this._registering.length - 1];
+    }
+    /**
+     * Transform object into a watcher
+     */
+    static get(obj, onDataChanged) {
+        if (obj == undefined) {
+            console.error("You must define an objet / array for your proxy");
+            return;
+        }
+        if (obj.__isProxy) {
+            if (onDataChanged)
+                obj.subscribe(onDataChanged);
+            return obj;
+        }
+        const reservedName = {
+            __path: '__path',
+        };
+        const clearReservedNames = (data) => {
+            if (data instanceof Object && !data.__isProxy) {
+                for (let key in reservedName) {
+                    delete data[key];
+                }
+            }
+        };
+        let setProxyPath = (newProxy, newPath) => {
+            if (newProxy instanceof Object && newProxy.__isProxy) {
+                newProxy.__path = newPath;
+            }
+        };
+        let jsonReplacer = (key, value) => {
+            if (reservedName[key])
+                return undefined;
+            return value;
+        };
+        let addAlias = (otherBaseData, name, cb) => {
+            let cbs = aliases.get(otherBaseData);
+            if (!cbs) {
+                cbs = [];
+                aliases.set(otherBaseData, cbs);
+            }
+            cbs.push({
+                name: name,
+                fct: cb
+            });
+        };
+        let deleteAlias = (otherBaseData, name) => {
+            let cbs = aliases.get(otherBaseData);
+            if (!cbs)
+                return;
+            for (let i = 0; i < cbs.length; i++) {
+                if (cbs[i].name == name) {
+                    cbs.splice(i, 1);
+                    if (cbs.length == 0) {
+                        aliases.delete(otherBaseData);
+                    }
+                    return;
+                }
+            }
+        };
+        let replaceByAlias = (target, element, prop, receiver) => {
+            let fullInternalPath = "";
+            if (Array.isArray(target)) {
+                if (prop != "length") {
+                    if (target.__path) {
+                        fullInternalPath = target.__path;
+                    }
+                    fullInternalPath += "[" + prop + "]";
+                }
+            }
+            else {
+                if (target.__path) {
+                    fullInternalPath = target.__path + '.';
+                }
+                fullInternalPath += prop;
+            }
+            if (receiver && internalAliases[fullInternalPath]) {
+                internalAliases[fullInternalPath].unbind();
+            }
+            if (element instanceof Object && element.__isProxy) {
+                let root = element.__root;
+                if (root != proxyData.baseData) {
+                    let oldPath = element.__path;
+                    let unbindElement = getValueFromObject(oldPath, root);
+                    if (receiver == null) {
+                        receiver = getValueFromObject(target.__path, realProxy);
+                        if (internalAliases[fullInternalPath]) {
+                            internalAliases[fullInternalPath].unbind();
+                        }
+                    }
+                    let result = Reflect.set(target, prop, unbindElement, receiver);
+                    element.__addAlias(proxyData.baseData, oldPath, (type, target, receiver2, value, prop2, dones) => {
+                        let triggerPath;
+                        if (prop2.startsWith("[") || fullInternalPath == "" || prop2 == "") {
+                            triggerPath = fullInternalPath + prop2;
+                        }
+                        else {
+                            triggerPath = fullInternalPath + "." + prop2;
+                        }
+                        triggerPath = triggerPath.replace(/\[(.*?)\]/g, '.$1');
+                        if (type == 'DELETED' && internalAliases[triggerPath]) {
+                            internalAliases[triggerPath].unbind();
+                        }
+                        let splitted = triggerPath.split(".");
+                        let newProp = splitted.pop();
+                        let newReceiver = getValueFromObject(splitted.join("."), realProxy);
+                        trigger(type, target, newReceiver, value, newProp, dones);
+                    });
+                    internalAliases[fullInternalPath] = {
+                        unbind: () => {
+                            delete internalAliases[fullInternalPath];
+                            element.__deleteAlias(proxyData.baseData, oldPath);
+                            deleteAlias(root, prop);
+                        }
+                    };
+                    addAlias(root, prop, (type, target, receiver2, value, prop2, dones) => {
+                        let proxy = element.__getProxy;
+                        let triggerPath;
+                        if (prop2.startsWith("[") || oldPath == "" || prop2 == "") {
+                            triggerPath = oldPath + prop2;
+                        }
+                        else {
+                            triggerPath = oldPath + "." + prop2;
+                        }
+                        triggerPath = triggerPath.replace(/\[(.*?)\]/g, '.$1');
+                        let splitted = triggerPath.split(".");
+                        let newProp = splitted.pop();
+                        let newReceiver = getValueFromObject(splitted.join("."), proxy);
+                        element.__trigger(type, target, newReceiver, value, newProp, dones);
+                    });
+                    return unbindElement;
+                }
+            }
+            return element;
+        };
+        let currentTrace = new Error().stack?.split("\n") ?? [];
+        currentTrace.shift();
+        currentTrace.shift();
+        const aliases = new Map();
+        const internalAliases = {};
+        let proxyData = {
+            baseData: {},
+            callbacks: {},
+            callbacksReverse: new Map(),
+            avoidUpdate: [],
+            pathToRemove: [],
+            history: [{
+                    object: JSON.parse(JSON.stringify(obj, jsonReplacer)),
+                    trace: currentTrace,
+                    action: 'init',
+                    path: ''
+                }],
+            useHistory: false,
+            getProxyObject(target, element, prop) {
+                let newProxy;
+                element = replaceByAlias(target, element, prop, null);
+                if (element instanceof Object && element.__isProxy) {
+                    newProxy = element;
+                }
+                else {
+                    try {
+                        if (element instanceof Computed) {
+                            return element;
+                        }
+                        if (element instanceof HTMLElement) {
+                            return element;
+                        }
+                        if (element instanceof Object) {
+                            newProxy = new Proxy(element, this);
+                        }
+                        else {
+                            return element;
+                        }
+                    }
+                    catch {
+                        return element;
+                    }
+                }
+                let newPath = '';
+                if (Array.isArray(target)) {
+                    if (/^[0-9]*$/g.exec(prop)) {
+                        if (target.__path) {
+                            newPath = target.__path;
+                        }
+                        newPath += "[" + prop + "]";
+                        setProxyPath(newProxy, newPath);
+                    }
+                    else {
+                        newPath += "." + prop;
+                        setProxyPath(newProxy, newPath);
+                    }
+                }
+                else if (element instanceof Date) {
+                    return element;
+                }
+                else {
+                    if (target.__path) {
+                        newPath = target.__path + '.';
+                    }
+                    newPath += prop;
+                    setProxyPath(newProxy, newPath);
+                }
+                return newProxy;
+            },
+            tryCustomFunction(target, prop, receiver) {
+                if (prop == "__isProxy") {
+                    return true;
+                }
+                else if (prop == "__getProxy") {
+                    return realProxy;
+                }
+                else if (prop == "__root") {
+                    return this.baseData;
+                }
+                else if (prop == "__callbacks") {
+                    return this.callbacks;
+                }
+                else if (prop == "subscribe") {
+                    let path = receiver.__path;
+                    return (cb) => {
+                        if (!this.callbacks[path]) {
+                            this.callbacks[path] = [];
+                        }
+                        this.callbacks[path].push(cb);
+                        this.callbacksReverse.set(cb, path);
+                    };
+                }
+                else if (prop == "unsubscribe") {
+                    return (cb) => {
+                        let oldPath = this.callbacksReverse.get(cb);
+                        if (oldPath === undefined)
+                            return;
+                        if (!this.callbacks[oldPath]) {
+                            return;
+                        }
+                        let index = this.callbacks[oldPath].indexOf(cb);
+                        if (index > -1) {
+                            this.callbacks[oldPath].splice(index, 1);
+                        }
+                        this.callbacksReverse.delete(cb);
+                    };
+                }
+                else if (prop == "getHistory") {
+                    return () => {
+                        return this.history;
+                    };
+                }
+                else if (prop == "clearHistory") {
+                    this.history = [];
+                }
+                else if (prop == "enableHistory") {
+                    return () => {
+                        this.useHistory = true;
+                    };
+                }
+                else if (prop == "disableHistory") {
+                    return () => {
+                        this.useHistory = false;
+                    };
+                }
+                else if (prop == "getTarget") {
+                    return () => {
+                        clearReservedNames(target);
+                        return target;
+                    };
+                }
+                else if (prop == "toJSON") {
+                    if (Array.isArray(target)) {
+                        return () => {
+                            let result = [];
+                            for (let element of target) {
+                                result.push(element);
+                            }
+                            return result;
+                        };
+                    }
+                    return () => {
+                        let result = {};
+                        for (let key of Object.keys(target)) {
+                            if (reservedName[key]) {
+                                continue;
+                            }
+                            result[key] = target[key];
+                        }
+                        return result;
+                    };
+                }
+                else if (prop == "__addAlias") {
+                    return addAlias;
+                }
+                else if (prop == "__deleteAlias") {
+                    return deleteAlias;
+                }
+                else if (prop == "__trigger") {
+                    return trigger;
+                }
+                return undefined;
+            },
+            get(target, prop, receiver) {
+                if (reservedName[prop]) {
+                    return target[prop];
+                }
+                let customResult = this.tryCustomFunction(target, prop, receiver);
+                if (customResult !== undefined) {
+                    return customResult;
+                }
+                let element = target[prop];
+                if (typeof (element) == 'function') {
+                    if (Array.isArray(target)) {
+                        let result;
+                        if (prop == 'push') {
+                            if (target.__isProxy) {
+                                result = (el) => {
+                                    let index = target.push(el);
+                                    return index;
+                                };
+                            }
+                            else {
+                                result = (el) => {
+                                    let index = target.push(el);
+                                    target.splice(target.length - 1, 1, el);
+                                    trigger('CREATED', target, receiver, receiver[index - 1], "[" + (index - 1) + "]");
+                                    trigger('UPDATED', target, receiver, target.length, "length");
+                                    return index;
+                                };
+                            }
+                        }
+                        else if (prop == 'splice') {
+                            if (target.__isProxy) {
+                                result = (index, nbRemove, ...insert) => {
+                                    let res = target.splice(index, nbRemove, ...insert);
+                                    return res;
+                                };
+                            }
+                            else {
+                                result = (index, nbRemove, ...insert) => {
+                                    let oldValues = [];
+                                    for (let i = index; i < index + nbRemove; i++) {
+                                        oldValues.push(receiver[i]);
+                                    }
+                                    let updateLength = nbRemove != insert.length;
+                                    let res = target.splice(index, nbRemove, ...insert);
+                                    for (let i = 0; i < oldValues.length; i++) {
+                                        trigger('DELETED', target, receiver, oldValues[i], "[" + index + "]");
+                                    }
+                                    for (let i = 0; i < insert.length; i++) {
+                                        target.splice((index + i), 1, insert[i]);
+                                        trigger('CREATED', target, receiver, receiver[(index + i)], "[" + (index + i) + "]");
+                                    }
+                                    // for(let i = fromIndex, j = 0; i < target.length; i++, j++) {
+                                    //     let proxyEl = this.getProxyObject(target, target[i], i);
+                                    //     let recuUpdate = (childEl) => {
+                                    //         if(Array.isArray(childEl)) {
+                                    //             for(let i = 0; i < childEl.length; i++) {
+                                    //                 if(childEl[i] instanceof Object && childEl[i].__path) {
+                                    //                     let newProxyEl = this.getProxyObject(childEl, childEl[i], i);
+                                    //                     recuUpdate(newProxyEl);
+                                    //         else if(childEl instanceof Object && !(childEl instanceof Date)) {
+                                    //             for(let key in childEl) {
+                                    //                 if(childEl[key] instanceof Object && childEl[key].__path) {
+                                    //                     let newProxyEl = this.getProxyObject(childEl, childEl[key], key);
+                                    //                     recuUpdate(newProxyEl);
+                                    //     recuUpdate(proxyEl);
+                                    if (updateLength)
+                                        trigger('UPDATED', target, receiver, target.length, "length");
+                                    return res;
+                                };
+                            }
+                        }
+                        else if (prop == 'pop') {
+                            if (target.__isProxy) {
+                                result = () => {
+                                    let res = target.pop();
+                                    return res;
+                                };
+                            }
+                            else {
+                                result = () => {
+                                    let index = target.length - 1;
+                                    let oldValue = receiver.length ? receiver[receiver.length] : undefined;
+                                    let res = target.pop();
+                                    trigger('DELETED', target, receiver, oldValue, "[" + index + "]");
+                                    trigger('UPDATED', target, receiver, target.length, "length");
+                                    return res;
+                                };
+                            }
+                        }
+                        else {
+                            result = element.bind(target);
+                        }
+                        return result;
+                    }
+                    return element.bind(target);
+                }
+                if (element instanceof Computed) {
+                    return element.value;
+                }
+                if (Watcher._registering.length > 0) {
+                    let currentPath;
+                    let fullPath;
+                    let isArray = Array.isArray(receiver);
+                    if (isArray && /^[0-9]*$/g.exec(prop)) {
+                        fullPath = receiver.__path + "[" + prop + "]";
+                        currentPath = "[" + prop + "]";
+                    }
+                    else {
+                        fullPath = receiver.__path ? receiver.__path + '.' + prop : prop;
+                        currentPath = prop;
+                    }
+                    Watcher._register?.register(receiver, currentPath, Watcher._register.version, fullPath);
+                }
+                if (typeof (element) == 'object') {
+                    return this.getProxyObject(target, element, prop);
+                }
+                return Reflect.get(target, prop, receiver);
+            },
+            set(target, prop, value, receiver) {
+                value = replaceByAlias(target, value, prop, receiver);
+                let triggerChange = false;
+                if (!reservedName[prop]) {
+                    if (Array.isArray(target)) {
+                        if (prop != "length") {
+                            triggerChange = true;
+                        }
+                    }
+                    else {
+                        let oldValue = Reflect.get(target, prop, receiver);
+                        if (!compareObject(value, oldValue)) {
+                            triggerChange = true;
+                        }
+                    }
+                }
+                let result = Reflect.set(target, prop, value, receiver);
+                if (triggerChange) {
+                    let index = this.avoidUpdate.indexOf(prop);
+                    if (index == -1) {
+                        trigger('UPDATED', target, receiver, value, prop);
+                    }
+                    else {
+                        this.avoidUpdate.splice(index, 1);
+                    }
+                }
+                return result;
+            },
+            deleteProperty(target, prop) {
+                let triggerChange = false;
+                let pathToDelete = '';
+                if (!reservedName[prop]) {
+                    if (Array.isArray(target)) {
+                        if (prop != "length") {
+                            if (target.__path) {
+                                pathToDelete = target.__path;
+                            }
+                            pathToDelete += "[" + prop + "]";
+                            triggerChange = true;
+                        }
+                    }
+                    else {
+                        if (target.__path) {
+                            pathToDelete = target.__path + '.';
+                        }
+                        pathToDelete += prop;
+                        triggerChange = true;
+                    }
+                }
+                if (internalAliases[pathToDelete]) {
+                    internalAliases[pathToDelete].unbind();
+                }
+                if (target.hasOwnProperty(prop)) {
+                    let oldValue = target[prop];
+                    if (oldValue instanceof Effect) {
+                        oldValue.destroy();
+                    }
+                    delete target[prop];
+                    if (triggerChange) {
+                        clearReservedNames(oldValue);
+                        trigger('DELETED', target, null, oldValue, prop);
+                    }
+                    return true;
+                }
+                return false;
+            },
+            defineProperty(target, prop, descriptor) {
+                let triggerChange = false;
+                let newPath = '';
+                if (!reservedName[prop]) {
+                    if (Array.isArray(target)) {
+                        if (prop != "length") {
+                            if (target.__path) {
+                                newPath = target.__path;
+                            }
+                            newPath += "[" + prop + "]";
+                            if (!target.hasOwnProperty(prop)) {
+                                triggerChange = true;
+                            }
+                        }
+                    }
+                    else {
+                        if (target.__path) {
+                            newPath = target.__path + '.';
+                        }
+                        newPath += prop;
+                        if (!target.hasOwnProperty(prop)) {
+                            triggerChange = true;
+                        }
+                    }
+                }
+                let result = Reflect.defineProperty(target, prop, descriptor);
+                if (triggerChange) {
+                    this.avoidUpdate.push(prop);
+                    let proxyEl = this.getProxyObject(target, descriptor.value, prop);
+                    target[prop] = proxyEl;
+                    trigger('CREATED', target, null, proxyEl, prop);
+                }
+                return result;
+            },
+            ownKeys(target) {
+                let result = Reflect.ownKeys(target);
+                for (let i = 0; i < result.length; i++) {
+                    if (reservedName[result[i]]) {
+                        result.splice(i, 1);
+                        i--;
+                    }
+                }
+                return result;
+            },
+        };
+        if (onDataChanged) {
+            proxyData.callbacks[''] = [onDataChanged];
+        }
+        const trigger = (type, target, receiver, value, prop, dones = []) => {
+            if (target.__isProxy) {
+                return;
+            }
+            let rootPath;
+            if (receiver == null) {
+                rootPath = target.__path;
+            }
+            else {
+                rootPath = receiver.__path;
+            }
+            if (rootPath != "") {
+                if (Array.isArray(target)) {
+                    if (!prop.startsWith("[")) {
+                        if (/^[0-9]*$/g.exec(prop)) {
+                            rootPath += "[" + prop + "]";
+                        }
+                        else {
+                            rootPath += "." + prop;
+                        }
+                    }
+                    else {
+                        rootPath += prop;
+                    }
+                }
+                else {
+                    if (!prop.startsWith("[")) {
+                        rootPath += ".";
+                    }
+                    rootPath += prop;
+                }
+            }
+            else {
+                rootPath = prop;
+            }
+            let stacks = [];
+            if (proxyData.useHistory) {
+                let allStacks = new Error().stack?.split("\n") ?? [];
+                for (let i = allStacks.length - 1; i >= 0; i--) {
+                    let current = allStacks[i].trim().replace("at ", "");
+                    if (current.startsWith("Object.set") || current.startsWith("Proxy.result")) {
+                        break;
+                    }
+                    stacks.push(current);
+                }
+            }
+            dones.push(proxyData.baseData);
+            let aliasesDone = [];
+            for (let name in proxyData.callbacks) {
+                let pathToSend = rootPath;
+                if (name !== "") {
+                    let regex = new RegExp("^" + name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') + "(\\.|(\\[)|$)");
+                    if (!regex.test(rootPath)) {
+                        let regex2 = new RegExp("^" + rootPath.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') + "(\\.|(\\[)|$)");
+                        if (!regex2.test(name)) {
+                            continue;
+                        }
+                        else {
+                            pathToSend = "";
+                        }
+                    }
+                    else {
+                        pathToSend = rootPath.replace(regex, "$2");
+                    }
+                }
+                if (name === "" && proxyData.useHistory) {
+                    proxyData.history.push({
+                        object: JSON.parse(JSON.stringify(proxyData.baseData, jsonReplacer)),
+                        trace: stacks.reverse(),
+                        action: WatchAction[type],
+                        path: pathToSend
+                    });
+                }
+                let cbs = [...proxyData.callbacks[name]];
+                for (let cb of cbs) {
+                    try {
+                        cb(WatchAction[type], pathToSend, value);
+                    }
+                    catch (e) {
+                        if (e != 'impossible')
+                            console.log(e);
+                    }
+                }
+                for (let [key, infos] of aliases) {
+                    if (!dones.includes(key)) {
+                        for (let info of infos) {
+                            if (info.name == name) {
+                                aliasesDone.push(key);
+                                info.fct(type, target, receiver, value, prop, dones);
+                            }
+                        }
+                    }
+                }
+            }
+            for (let [key, infos] of aliases) {
+                if (!dones.includes(key) && !aliasesDone.includes(key)) {
+                    for (let info of infos) {
+                        let regex = new RegExp("^" + info.name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') + "(\\.|(\\[)|$)");
+                        if (!regex.test(rootPath)) {
+                            continue;
+                        }
+                        let name = rootPath.replace(regex, "$2");
+                        info.fct(type, target, receiver, value, name, dones);
+                    }
+                }
+            }
+        };
+        var realProxy = new Proxy(obj, proxyData);
+        proxyData.baseData = obj;
+        setProxyPath(realProxy, '');
+        return realProxy;
+    }
+    /**
+     * Create a computed variable that will watch any changes
+     */
+    static computed(fct) {
+        const comp = new Computed(fct);
+        return comp;
+    }
+    /**
+     * Create an effect variable that will watch any changes
+     */
+    static effect(fct) {
+        const comp = new Effect(fct);
+        return comp;
+    }
+}
+Watcher.Namespace=`${moduleName}`;
+_.Watcher=Watcher;
 const Uri=class Uri {
     static prepare(uri) {
         let params = [];
@@ -972,9 +1822,66 @@ const Uri=class Uri {
         }
         return from.regex.test(current);
     }
+    static normalize(path) {
+        const isAbsolute = path.startsWith('/');
+        const parts = path.split('/');
+        const normalizedParts = [];
+        for (let i = 0; i < parts.length; i++) {
+            if (parts[i] === '..') {
+                normalizedParts.pop();
+            }
+            else if (parts[i] !== '.' && parts[i] !== '') {
+                normalizedParts.push(parts[i]);
+            }
+        }
+        let normalizedPath = normalizedParts.join('/');
+        if (isAbsolute) {
+            normalizedPath = '/' + normalizedPath;
+        }
+        return normalizedPath;
+    }
 }
 Uri.Namespace=`${moduleName}`;
 _.Uri=Uri;
+const State=class State {
+    /**
+     * Activate a custom state inside a specific manager
+     * It ll be a generic state with no information inside exept name
+     */
+    static async activate(stateName, manager) {
+        return await manager.setState(stateName);
+    }
+    /**
+     * Activate this state inside a specific manager
+     */
+    async activate(manager) {
+        return await manager.setState(this);
+    }
+    onActivate() {
+    }
+    onInactivate(nextState) {
+    }
+    async askChange(state, nextState) {
+        return true;
+    }
+}
+State.Namespace=`${moduleName}`;
+_.State=State;
+const EmptyState=class EmptyState extends State {
+    localName;
+    constructor(stateName) {
+        super();
+        this.localName = stateName;
+    }
+    /**
+     * @inheritdoc
+     */
+    get name() {
+        return this.localName;
+    }
+}
+EmptyState.Namespace=`${moduleName}`;
+_.EmptyState=EmptyState;
 const StateManager=class StateManager {
     subscribers = {};
     static canBeActivate(statePattern, stateName) {
@@ -983,6 +1890,7 @@ const StateManager=class StateManager {
     }
     activeState;
     changeStateMutex = new Mutex();
+    canChangeStateCbs = [];
     afterStateChanged = new Callback();
     /**
      * Subscribe actions for a state or a state list
@@ -1105,6 +2013,9 @@ const StateManager=class StateManager {
     assignDefaultState(stateName) {
         return new EmptyState(stateName);
     }
+    canChangeState(cb) {
+        this.canChangeStateCbs.push(cb);
+    }
     /**
      * Activate a current state
      */
@@ -1121,6 +2032,11 @@ const StateManager=class StateManager {
                 this._log("state is undefined", "error");
                 this.changeStateMutex.release();
                 return false;
+            }
+            for (let cb of this.canChangeStateCbs) {
+                if (!(await cb(stateToUse))) {
+                    return false;
+                }
             }
             let canChange = true;
             if (this.activeState) {
@@ -1248,103 +2164,14 @@ const StateManager=class StateManager {
 }
 StateManager.Namespace=`${moduleName}`;
 _.StateManager=StateManager;
-const State=class State {
-    /**
-     * Activate a custom state inside a specific manager
-     * It ll be a generic state with no information inside exept name
-     */
-    static async activate(stateName, manager) {
-        return await manager.setState(stateName);
-    }
-    /**
-     * Activate this state inside a specific manager
-     */
-    async activate(manager) {
-        return await manager.setState(this);
-    }
-    onActivate() {
-    }
-    onInactivate(nextState) {
-    }
-    async askChange(state, nextState) {
-        return true;
-    }
-}
-State.Namespace=`${moduleName}`;
-_.State=State;
-const Effect=class Effect {
-    callbacks = [];
-    isInit = false;
-    __subscribes = [];
-    fct;
-    constructor(fct) {
-        this.fct = fct;
-        if (this.autoInit()) {
-            this.init();
-        }
-    }
-    autoInit() {
-        return true;
-    }
-    init() {
-        this.isInit = true;
-        Watcher._registering.push(this);
-        this.fct();
-        Watcher._registering.splice(Watcher._registering.length - 1, 1);
-    }
-    register(receiver, path) {
-        const cb = (action, changePath, value) => {
-            if (path == changePath) {
-                this.onChange();
-            }
-        };
-        for (let info of this.callbacks) {
-            if (info.receiver == receiver && info.path == path) {
-                return;
-            }
-        }
-        this.callbacks.push({
-            receiver,
-            path,
-            cb
-        });
-        receiver.__subscribe(cb);
-    }
-    onChange() {
-        this.fct();
-        for (let fct of this.__subscribes) {
-            fct(WatchAction.UPDATED, "", undefined);
-        }
-    }
-    destroy() {
-        for (let pair of this.callbacks) {
-            pair.receiver.__unsubscribe(pair.cb);
-        }
-        this.callbacks = [];
-        this.isInit = false;
-    }
-    __subscribe(fct) {
-        let index = this.__subscribes.indexOf(fct);
-        if (index == -1) {
-            this.__subscribes.push(fct);
-        }
-    }
-    __unsubscribe(fct) {
-        let index = this.__subscribes.indexOf(fct);
-        if (index > -1) {
-            this.__subscribes.splice(index, 1);
-        }
-    }
-}
-Effect.Namespace=`${moduleName}`;
-_.Effect=Effect;
 const Computed=class Computed extends Effect {
     _value;
+    __path = "*";
     get value() {
         if (!this.isInit) {
             this.init();
         }
-        Watcher._register?.register(this, "");
+        Watcher._register?.register(this, "*", Watcher._register.version, "*");
         return this._value;
     }
     autoInit() {
@@ -1355,620 +2182,248 @@ const Computed=class Computed extends Effect {
     }
     init() {
         this.isInit = true;
-        Watcher._registering.push(this);
-        this._value = this.fct();
-        Watcher._registering.splice(Watcher._registering.length - 1, 1);
+        this.computedValue();
     }
-    onChange() {
-        this._value = this.fct();
+    computedValue() {
+        this._value = this.run();
+    }
+    onChange(action, changePath, value) {
+        if (!this.checkCanChange(action, changePath, value)) {
+            return;
+        }
+        let oldValue = this._value;
+        this.computedValue();
+        if (oldValue === this._value) {
+            return;
+        }
         for (let fct of this.__subscribes) {
-            fct(WatchAction.UPDATED, "", this._value);
+            fct(action, changePath, value);
         }
     }
 }
 Computed.Namespace=`${moduleName}`;
 _.Computed=Computed;
-const Watcher=class Watcher {
-    static __maxProxyData = 0;
-    static _registering = [];
-    static get _register() {
-        return this._registering[this._registering.length - 1];
+const ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
+    init() {
+        this.isInit = true;
+        Watcher._registering.push(this);
+        this._value = this.fct();
+        Watcher._registering.splice(Watcher._registering.length - 1, 1);
     }
-    /**
-     * Transform object into a watcher
-     */
-    static get(obj, onDataChanged) {
-        if (obj == undefined) {
-            console.error("You must define an objet / array for your proxy");
-            return;
-        }
-        if (obj.__isProxy) {
-            obj.__subscribe(onDataChanged);
-            return obj;
-        }
-        Watcher.__maxProxyData++;
-        const reservedName = {
-            __path: '__path',
-            __proxyData: '__proxyData',
-        };
-        let setProxyPath = (newProxy, newPath) => {
-            if (newProxy instanceof Object && newProxy.__isProxy) {
-                newProxy.__path = newPath;
-                if (!newProxy.__proxyData) {
-                    newProxy.__proxyData = {};
-                }
-                if (!newProxy.__proxyData[newPath]) {
-                    newProxy.__proxyData[newPath] = [];
-                }
-                if (newProxy.__proxyData[newPath].indexOf(proxyData) == -1) {
-                    newProxy.__proxyData[newPath].push(proxyData);
-                }
-            }
-        };
-        let removeProxyPath = (oldValue, pathToDelete, recursive = true) => {
-            if (oldValue instanceof Object && oldValue.__isProxy) {
-                let allProxies = oldValue.__proxyData;
-                for (let triggerPath in allProxies) {
-                    if (triggerPath == pathToDelete) {
-                        for (let i = 0; i < allProxies[triggerPath].length; i++) {
-                            if (allProxies[triggerPath][i] == proxyData) {
-                                allProxies[triggerPath].splice(i, 1);
-                                i--;
-                            }
-                        }
-                        if (allProxies[triggerPath].length == 0) {
-                            delete allProxies[triggerPath];
-                            if (Object.keys(allProxies).length == 0) {
-                                delete oldValue.__proxyData;
-                            }
-                        }
+    computedValue() {
+        if (this.isInit)
+            this._value = this.fct();
+        else
+            this.init();
+    }
+    run() { }
+}
+ComputedNoRecomputed.Namespace=`${moduleName}`;
+_.ComputedNoRecomputed=ComputedNoRecomputed;
+const TemplateContext=class TemplateContext {
+    data = {};
+    comp;
+    computeds = [];
+    watch;
+    registry;
+    isDestroyed = false;
+    constructor(component, data = {}, parentContext, registry) {
+        this.comp = component;
+        this.registry = registry;
+        this.watch = Watcher.get({});
+        let that = this;
+        for (let key in data) {
+            if (data[key].__isProxy) {
+                Object.defineProperty(this.data, key, {
+                    get() {
+                        return data[key];
                     }
-                }
-            }
-        };
-        let jsonReplacer = (key, value) => {
-            if (reservedName[key])
-                return undefined;
-            return value;
-        };
-        let currentTrace = new Error().stack?.split("\n") ?? [];
-        currentTrace.shift();
-        currentTrace.shift();
-        let onlyDuringInit = true;
-        let proxyData = {
-            baseData: {},
-            id: Watcher.__maxProxyData,
-            callbacks: [onDataChanged],
-            avoidUpdate: [],
-            pathToRemove: [],
-            history: [{
-                    object: JSON.parse(JSON.stringify(obj, jsonReplacer)),
-                    trace: currentTrace,
-                    action: 'init',
-                    path: ''
-                }],
-            useHistory: false,
-            getProxyObject(target, element, prop) {
-                let newProxy;
-                if (element instanceof Object && element.__isProxy) {
-                    newProxy = element;
-                }
-                else {
-                    try {
-                        if (element instanceof Computed) {
-                            return element;
-                        }
-                        if (element instanceof Object) {
-                            newProxy = new Proxy(element, this);
-                        }
-                        else {
-                            return element;
-                        }
-                    }
-                    catch {
-                        return element;
-                    }
-                }
-                let newPath = '';
-                if (Array.isArray(target)) {
-                    if (prop != "length") {
-                        if (target.__path) {
-                            newPath = target.__path;
-                        }
-                        newPath += "[" + prop + "]";
-                        setProxyPath(newProxy, newPath);
-                    }
-                }
-                else if (element instanceof Date) {
-                    return element;
-                }
-                else {
-                    if (target.__path) {
-                        newPath = target.__path + '.';
-                    }
-                    newPath += prop;
-                    setProxyPath(newProxy, newPath);
-                }
-                return newProxy;
-            },
-            tryCustomFunction(target, prop, receiver) {
-                if (prop == "__isProxy") {
-                    return true;
-                }
-                else if (prop == "__subscribe") {
-                    return (cb) => {
-                        this.callbacks.push(cb);
-                    };
-                }
-                else if (prop == "__unsubscribe") {
-                    return (cb) => {
-                        let index = this.callbacks.indexOf(cb);
-                        if (index > -1) {
-                            this.callbacks.splice(index, 1);
-                        }
-                    };
-                }
-                else if (prop == "__proxyId") {
-                    return this.id;
-                }
-                else if (prop == "getHistory") {
-                    return () => {
-                        return this.history;
-                    };
-                }
-                else if (prop == "clearHistory") {
-                    this.history = [];
-                }
-                else if (prop == "enableHistory") {
-                    return () => {
-                        this.useHistory = true;
-                    };
-                }
-                else if (prop == "disableHistory") {
-                    return () => {
-                        this.useHistory = false;
-                    };
-                }
-                else if (prop == "__getTarget" && onlyDuringInit) {
-                    return () => {
-                        return target;
-                    };
-                }
-                else if (prop == "toJSON") {
-                    return () => {
-                        let result = {};
-                        for (let key of Object.keys(target)) {
-                            if (reservedName[key]) {
-                                continue;
-                            }
-                            result[key] = target[key];
-                        }
-                        return result;
-                    };
-                }
-                return undefined;
-            },
-            get(target, prop, receiver) {
-                if (reservedName[prop]) {
-                    return target[prop];
-                }
-                let customResult = this.tryCustomFunction(target, prop, receiver);
-                if (customResult !== undefined) {
-                    return customResult;
-                }
-                let element = target[prop];
-                if (typeof (element) == 'function') {
-                    if (Array.isArray(target)) {
-                        let result;
-                        if (prop == 'push') {
-                            if (target.__isProxy) {
-                                result = (el) => {
-                                    let index = target.push(el);
-                                    return index;
-                                };
-                            }
-                            else {
-                                result = (el) => {
-                                    let index = target.push(el);
-                                    let proxyEl = this.getProxyObject(target, el, (index - 1));
-                                    target.splice(target.length - 1, 1, proxyEl);
-                                    trigger('CREATED', target, receiver, proxyEl, "[" + (index - 1) + "]");
-                                    return index;
-                                };
-                            }
-                        }
-                        else if (prop == 'splice') {
-                            if (target.__isProxy) {
-                                result = (index, nbRemove, ...insert) => {
-                                    let res = target.splice(index, nbRemove, ...insert);
-                                    return res;
-                                };
-                            }
-                            else {
-                                result = (index, nbRemove, ...insert) => {
-                                    let res = target.splice(index, nbRemove, ...insert);
-                                    let path = target.__path ? target.__path : '';
-                                    for (let i = 0; i < res.length; i++) {
-                                        trigger('DELETED', target, receiver, res[i], "[" + index + "]");
-                                        removeProxyPath(res[i], path + "[" + (index + i) + "]");
-                                    }
-                                    for (let i = 0; i < insert.length; i++) {
-                                        let proxyEl = this.getProxyObject(target, insert[i], (index + i));
-                                        target.splice((index + i), 1, proxyEl);
-                                        trigger('CREATED', target, receiver, proxyEl, "[" + (index + i) + "]");
-                                    }
-                                    let fromIndex = index + insert.length;
-                                    let baseDiff = index - insert.length + res.length + 1;
-                                    for (let i = fromIndex, j = 0; i < target.length; i++, j++) {
-                                        let oldPath = path + "[" + (j + baseDiff) + "]";
-                                        removeProxyPath(target[i], oldPath, false);
-                                        let proxyEl = this.getProxyObject(target, target[i], i);
-                                        let recuUpdate = (childEl) => {
-                                            if (Array.isArray(childEl)) {
-                                                for (let i = 0; i < childEl.length; i++) {
-                                                    if (childEl[i] instanceof Object && childEl[i].__path) {
-                                                        let oldPathRecu = proxyEl[i].__path.replace(proxyEl.__path, oldPath);
-                                                        removeProxyPath(childEl[i], oldPathRecu, false);
-                                                        let newProxyEl = this.getProxyObject(childEl, childEl[i], i);
-                                                        recuUpdate(newProxyEl);
-                                                    }
-                                                }
-                                            }
-                                            else if (childEl instanceof Object && !(childEl instanceof Date)) {
-                                                for (let key in childEl) {
-                                                    if (childEl[key] instanceof Object && childEl[key].__path) {
-                                                        let oldPathRecu = proxyEl[key].__path.replace(proxyEl.__path, oldPath);
-                                                        removeProxyPath(childEl[key], oldPathRecu, false);
-                                                        let newProxyEl = this.getProxyObject(childEl, childEl[key], key);
-                                                        recuUpdate(newProxyEl);
-                                                    }
-                                                }
-                                            }
-                                        };
-                                        recuUpdate(proxyEl);
-                                    }
-                                    return res;
-                                };
-                            }
-                        }
-                        else if (prop == 'pop') {
-                            if (target.__isProxy) {
-                                result = () => {
-                                    let res = target.pop();
-                                    return res;
-                                };
-                            }
-                            else {
-                                result = () => {
-                                    let index = target.length - 1;
-                                    let res = target.pop();
-                                    let path = target.__path ? target.__path : '';
-                                    trigger('DELETED', target, receiver, res, "[" + index + "]");
-                                    removeProxyPath(res, path + "[" + index + "]");
-                                    return res;
-                                };
-                            }
-                        }
-                        else {
-                            result = element.bind(target);
-                        }
-                        return result;
-                    }
-                    return element.bind(target);
-                }
-                if (element instanceof Computed) {
-                    return element.value;
-                }
-                if (typeof (element) == 'object') {
-                    if (Watcher._registering.length > 0) {
-                        const currentPath = receiver.__path ? receiver.__path + '.' + prop : prop;
-                        Watcher._register?.register(receiver, currentPath);
-                    }
-                    return this.getProxyObject(target, element, prop);
-                }
-                let resultTemp = Reflect.get(target, prop, receiver);
-                if (Watcher._registering.length > 0) {
-                    const currentPath = receiver.__path ? receiver.__path + '.' + prop : prop;
-                    Watcher._register?.register(receiver, currentPath);
-                }
-                return resultTemp;
-            },
-            set(target, prop, value, receiver) {
-                let triggerChange = false;
-                if (!reservedName[prop]) {
-                    if (Array.isArray(target)) {
-                        if (prop != "length") {
-                            triggerChange = true;
-                        }
-                    }
-                    else {
-                        let oldValue = Reflect.get(target, prop, receiver);
-                        if (!compareObject(value, oldValue)) {
-                            triggerChange = true;
-                        }
-                    }
-                }
-                let result = Reflect.set(target, prop, value, receiver);
-                if (triggerChange) {
-                    let index = this.avoidUpdate.indexOf(prop);
-                    if (index == -1) {
-                        trigger('UPDATED', target, receiver, value, prop);
-                    }
-                    else {
-                        this.avoidUpdate.splice(index, 1);
-                    }
-                }
-                return result;
-            },
-            deleteProperty(target, prop) {
-                let triggerChange = false;
-                let pathToDelete = '';
-                if (!reservedName[prop]) {
-                    if (Array.isArray(target)) {
-                        if (prop != "length") {
-                            if (target.__path) {
-                                pathToDelete = target.__path;
-                            }
-                            pathToDelete += "[" + prop + "]";
-                            triggerChange = true;
-                        }
-                    }
-                    else {
-                        if (target.__path) {
-                            pathToDelete = target.__path + '.';
-                        }
-                        pathToDelete += prop;
-                        triggerChange = true;
-                    }
-                }
-                if (target.hasOwnProperty(prop)) {
-                    let oldValue = target[prop];
-                    if (oldValue instanceof Effect) {
-                        oldValue.destroy();
-                    }
-                    delete target[prop];
-                    if (triggerChange) {
-                        trigger('DELETED', target, null, oldValue, prop);
-                        removeProxyPath(oldValue, pathToDelete);
-                    }
-                    return true;
-                }
-                return false;
-            },
-            defineProperty(target, prop, descriptor) {
-                let triggerChange = false;
-                let newPath = '';
-                if (!reservedName[prop]) {
-                    if (Array.isArray(target)) {
-                        if (prop != "length") {
-                            if (target.__path) {
-                                newPath = target.__path;
-                            }
-                            newPath += "[" + prop + "]";
-                            if (!target.hasOwnProperty(prop)) {
-                                triggerChange = true;
-                            }
-                        }
-                    }
-                    else {
-                        if (target.__path) {
-                            newPath = target.__path + '.';
-                        }
-                        newPath += prop;
-                        if (!target.hasOwnProperty(prop)) {
-                            triggerChange = true;
-                        }
-                    }
-                }
-                let result = Reflect.defineProperty(target, prop, descriptor);
-                if (triggerChange) {
-                    this.avoidUpdate.push(prop);
-                    let proxyEl = this.getProxyObject(target, descriptor.value, prop);
-                    target[prop] = proxyEl;
-                    trigger('CREATED', target, null, proxyEl, prop);
-                }
-                return result;
-            },
-            ownKeys(target) {
-                let result = Reflect.ownKeys(target);
-                for (let i = 0; i < result.length; i++) {
-                    if (reservedName[result[i]]) {
-                        result.splice(i, 1);
-                        i--;
-                    }
-                }
-                return result;
-            },
-        };
-        const trigger = (type, target, receiver, value, prop) => {
-            if (target.__isProxy) {
-                return;
-            }
-            let allProxies = target.__proxyData;
-            let receiverId = 0;
-            if (receiver == null) {
-                receiverId = proxyData.id;
+                });
             }
             else {
-                receiverId = receiver.__proxyId;
+                this.watch[key] = data[key];
+                Object.defineProperty(this.data, key, {
+                    get() {
+                        return that.watch[key];
+                    }
+                });
             }
-            if (proxyData.id == receiverId) {
-                let stacks = [];
-                if (proxyData.useHistory) {
-                    let allStacks = new Error().stack?.split("\n") ?? [];
-                    for (let i = allStacks.length - 1; i >= 0; i--) {
-                        let current = allStacks[i].trim().replace("at ", "");
-                        if (current.startsWith("Object.set") || current.startsWith("Proxy.result")) {
-                            break;
+        }
+        if (parentContext) {
+            const descriptors = Object.getOwnPropertyDescriptors(parentContext.data);
+            for (let name in descriptors) {
+                Object.defineProperty(this.data, name, {
+                    get() {
+                        return parentContext.data[name];
+                    }
+                });
+            }
+        }
+    }
+    print(value) {
+        return value == null ? "" : value + "";
+    }
+    registerIndex() {
+        let name = "index";
+        let i = 0;
+        let fullName = name + i;
+        while (this.watch[fullName] !== undefined) {
+            i++;
+            fullName = name + i;
+        }
+        return fullName;
+    }
+    registerLoop(dataName, _indexValue, _indexName, indexName, itemName, onThis) {
+        this.watch[_indexName] = _indexValue;
+        let getItems;
+        let mustBeRecomputed = /if|switch|\?|\[.+?\]/g.test(dataName);
+        let _class = mustBeRecomputed ? Computed : ComputedNoRecomputed;
+        if (!onThis) {
+            getItems = new _class(() => {
+                return getValueFromObject(dataName, this.data);
+            });
+        }
+        else {
+            dataName = dataName.replace(/^this\./, '');
+            getItems = new _class(() => {
+                return getValueFromObject(dataName, this.comp);
+            });
+        }
+        let getIndex = new ComputedNoRecomputed(() => {
+            let items = getItems.value;
+            if (!items)
+                throw 'impossible';
+            let keys = Object.keys(items);
+            let index = keys[_getIndex.value];
+            if (/^[0-9]+$/g.test(index))
+                return Number(index);
+            return index;
+        });
+        let getItem = new ComputedNoRecomputed(() => {
+            let items = getItems.value;
+            if (!items)
+                throw 'impossible';
+            let keys = Object.keys(items);
+            let index = keys[_getIndex.value];
+            let element = items[index];
+            if (element === undefined && (Array.isArray(items) || !items)) {
+                debugger;
+                if (this.registry) {
+                    let indexNb = Number(_getIndex.value);
+                    if (!isNaN(indexNb)) {
+                        this.registry.templates[indexNb].destructor();
+                        this.registry.templates.splice(indexNb, 1);
+                        for (let i = indexNb; i < this.registry.templates.length; i++) {
+                            this.registry.templates[i].context.decreaseIndex(_indexName);
                         }
-                        stacks.push(current);
                     }
                 }
-                for (let triggerPath in allProxies) {
-                    for (let currentProxyData of allProxies[triggerPath]) {
-                        let pathToSend = triggerPath;
-                        if (pathToSend != "") {
-                            if (Array.isArray(target)) {
-                                if (!prop.startsWith("[")) {
-                                    pathToSend += "[" + prop + "]";
-                                }
-                                else {
-                                    pathToSend += prop;
-                                }
-                            }
-                            else {
-                                if (!prop.startsWith("[")) {
-                                    pathToSend += ".";
-                                }
-                                pathToSend += prop;
-                            }
-                        }
-                        else {
-                            pathToSend = prop;
-                        }
-                        if (proxyData.useHistory) {
-                            proxyData.history.push({
-                                object: JSON.parse(JSON.stringify(currentProxyData.baseData, jsonReplacer)),
-                                trace: stacks.reverse(),
-                                action: WatchAction[type],
-                                path: pathToSend
-                            });
-                        }
-                        [...currentProxyData.callbacks].forEach((cb) => {
-                            cb(WatchAction[type], pathToSend, value);
-                        });
-                    }
-                }
             }
-        };
-        var realProxy = new Proxy(obj, proxyData);
-        proxyData.baseData = realProxy.__getTarget();
-        onlyDuringInit = false;
-        setProxyPath(realProxy, '');
-        return realProxy;
-    }
-    static computed(fct) {
-        const comp = new Computed(fct);
-        return comp;
-    }
-    static effect(fct) {
-        const comp = new Effect(fct);
-        return comp;
-    }
-}
-Watcher.Namespace=`${moduleName}`;
-_.Watcher=Watcher;
-const WebComponentTemplateContext=class WebComponentTemplateContext {
-    __changes = {};
-    component;
-    fctsToRemove = [];
-    c = {
-        __P: (value) => {
-            return value == null ? "" : value + "";
+            return element;
+        });
+        let _getIndex = new ComputedNoRecomputed(() => {
+            return this.watch[_indexName];
+        });
+        this.computeds.push(getIndex);
+        this.computeds.push(getItem);
+        this.computeds.push(_getIndex);
+        if (itemName) {
+            Object.defineProperty(this.data, itemName, {
+                get() {
+                    return getItem.value;
+                }
+            });
         }
-    };
-    isRendered = false;
-    schema;
-    constructor(component, schema, locals) {
-        this.component = component;
-        this.schema = { ...schema };
-        for (let key in locals) {
-            this.schema.locals[key] = locals[key];
+        if (indexName) {
+            Object.defineProperty(this.data, indexName, {
+                get() {
+                    return getIndex.value;
+                }
+            });
         }
-        this.buildSchema();
+    }
+    updateIndex(newIndex, _indexName) {
+        // let items: any[] | {};
+        // if(!dataName.startsWith("this.")) {
+        //     let comp = new Computed(() => {
+        //         return getValueFromObject(dataName, this.data);
+        //     });
+        //     fullName = dataName.replace(/^this\./, '');
+        //     items = getValueFromObject(fullName, this.comp);
+        // if(Array.isArray(items)) {
+        //     let regex = new RegExp("^(" + fullName.replace(/\./g, "\\.") + ")\\[(\\d+?)\\]");
+        //     for(let computed of computeds) {
+        //         for(let cb of computed.callbacks) {
+        //             cb.path = cb.path.replace(regex, "$1[" + newIndex + "]");
+        //     let oldKey = Object.keys(items)[this.watch[_indexName]]
+        //     let newKey = Object.keys(items)[newIndex]
+        //     let regex = new RegExp("^(" + fullName.replace(/\./g, "\\.") + "\\.)(" + oldKey + ")($|\\.)");
+        //     for (let computed of computeds) {
+        //         for (let cb of computed.callbacks) {
+        //             cb.path = cb.path.replace(regex, "$1" + newKey + "$3")
+        this.watch[_indexName] = newIndex;
+    }
+    increaseIndex(_indexName) {
+        this.updateIndex(this.watch[_indexName] + 1, _indexName);
+    }
+    decreaseIndex(_indexName) {
+        this.updateIndex(this.watch[_indexName] - 1, _indexName);
     }
     destructor() {
-        for (let toRemove of this.fctsToRemove) {
-            let index = this.component.__onChangeFct[toRemove.name].indexOf(toRemove.fct);
-            if (index != -1) {
-                this.component.__onChangeFct[toRemove.name].splice(index, 1);
-            }
+        this.isDestroyed = true;
+        for (let computed of this.computeds) {
+            computed.destroy();
         }
+        this.computeds = [];
     }
-    buildSchema() {
-        for (let global of this.schema.globals) {
-            this.createGlobal(global);
-        }
-        for (let item in this.schema.loops) {
-            this.createLoop(item, this.schema.loops[item].index, this.schema.loops[item].data);
-        }
-        for (let key in this.schema.locals) {
-            this.createLocal(key, this.schema.locals[key]);
-        }
-    }
-    createGlobal(global) {
-        let comp = this.component;
-        Object.defineProperty(this.c, global, {
+    registerWatch(name, value) {
+        let that = this;
+        that.watch[name] = value;
+        Object.defineProperty(that.data, name, {
             get() {
-                return WebComponentTemplate.getValueFromItem(global, comp);
-            },
-            set(value) {
-                WebComponentTemplate.setValueToItem(global, comp, value);
+                return that.watch[name];
             }
         });
-        let name = global.split(".")[0];
-        this.__changes[name] = [];
-        if (!this.component.__onChangeFct[name]) {
-            this.component.__onChangeFct[name] = [];
+    }
+    updateWatch(name, value) {
+        this.watch[name] = value;
+    }
+    normalizePath(path) {
+        path = path.replace(/^this\./, '');
+        const regex = /\[(.*?)\]/g;
+        let m;
+        while ((m = regex.exec(path)) !== null) {
+            if (m.index === regex.lastIndex) {
+                regex.lastIndex++;
+            }
+            let name = m[1];
+            let result = getValueFromObject(name, this.data);
+            if (result !== undefined) {
+                path = path.replace(m[0], `[${result}]`);
+            }
         }
-        let fct = (path) => {
-            if (this.isRendered) {
-                for (let change of this.__changes[name]) {
-                    change(path);
-                }
-            }
-        };
-        this.fctsToRemove.push({ name, fct });
-        this.component.__onChangeFct[name].push(fct);
+        return path;
     }
-    createLoop(item, index, data) {
-        Object.defineProperty(this.c, item, {
-            get() {
-                let indexValue = this[index];
-                return WebComponentTemplate.getValueFromItem(data, this)[indexValue];
-            }
-        });
-        let name = data.split(".")[0];
-        this.__changes[item] = [];
-        this.__changes[name].push((path) => {
-            if (this.isRendered) {
-                let currentPath = `${data}[${this.c[index]}]`;
-                if (path.startsWith(currentPath)) {
-                    let localPath = path.replace(currentPath, item);
-                    for (let change of this.__changes[item]) {
-                        change(localPath);
-                    }
-                }
-            }
-        });
-    }
-    createLocal(key, value) {
-        let changes = this.__changes;
-        let v = value;
-        Object.defineProperty(this.c, key, {
-            get() {
-                return v;
-            },
-            set(value) {
-                v = value;
-                if (changes[key]) {
-                    for (let change of changes[key]) {
-                        change(key);
-                    }
-                }
-            }
-        });
-    }
-    addChange(on, fct) {
-        if (!this.__changes[on]) {
-            this.__changes[on] = [];
+    getValueFromItem(name) {
+        if (!name)
+            return undefined;
+        let result = getValueFromObject(name, this.data);
+        if (result !== undefined) {
+            return result;
         }
-        this.__changes[on].push(fct);
+        result = getValueFromObject(name, this.comp);
+        if (result !== undefined) {
+            return result;
+        }
+        return undefined;
+    }
+    setValueToItem(name, value) {
+        setValueToObject(name, this.comp, value);
     }
 }
-WebComponentTemplateContext.Namespace=`${moduleName}`;
-_.WebComponentTemplateContext=WebComponentTemplateContext;
-const WebComponentTemplateInstance=class WebComponentTemplateInstance {
+TemplateContext.Namespace=`${moduleName}`;
+_.TemplateContext=TemplateContext;
+const TemplateInstance=class TemplateInstance {
     context;
     content;
     actions;
@@ -1976,23 +2431,28 @@ const WebComponentTemplateInstance=class WebComponentTemplateInstance {
     _components = {};
     firstRenderUniqueCb = {};
     firstRenderCb = [];
-    fctsToRemove = [];
-    loopRegisteries = {};
     firstChild;
     lastChild;
+    computeds = [];
+    renderingComputeds = [];
+    loopRegisteries = {};
     loops = [];
-    constructor(context, content, actions, component, loops) {
-        this.context = context;
+    ifs = [];
+    isDestroyed = false;
+    constructor(component, content, actions, loops, ifs, context) {
+        this.component = component;
         this.content = content;
         this.actions = actions;
-        this.component = component;
+        this.ifs = ifs;
         this.loops = loops;
-        this.firstChild = content.firstChild;
-        this.lastChild = content.lastChild;
+        this.context = context ? context : new TemplateContext(component);
+        this.firstChild = content.firstElementChild;
+        this.lastChild = content.lastElementChild;
         this.selectElements();
         this.transformActionsListening();
     }
     render() {
+        this.updateContext();
         this.bindEvents();
         for (let cb of this.firstRenderCb) {
             cb();
@@ -2001,16 +2461,46 @@ const WebComponentTemplateInstance=class WebComponentTemplateInstance {
             this.firstRenderUniqueCb[key]();
         }
         this.renderSubTemplate();
-        this.context.isRendered = true;
     }
     destructor() {
-        this.firstChild.remove();
-        this.context.destructor();
-        for (let toRemove of this.fctsToRemove) {
-            let index = this.component.__watchActions[toRemove.name].indexOf(toRemove.fct);
-            if (index != -1) {
-                this.component.__watchActions[toRemove.name].splice(index, 1);
+        this.isDestroyed = true;
+        for (let name in this.loopRegisteries) {
+            for (let item of this.loopRegisteries[name].templates) {
+                item.destructor();
             }
+            for (let item of this.loopRegisteries[name].computeds) {
+                item.destroy();
+            }
+        }
+        this.loopRegisteries = {};
+        this.context.destructor();
+        for (let computed of this.computeds) {
+            computed.destroy();
+        }
+        for (let computed of this.renderingComputeds) {
+            computed.destroy();
+        }
+        this.computeds = [];
+        this.removeFromDOM();
+    }
+    removeFromDOM(avoidTrigger = false) {
+        if (avoidTrigger) {
+            let node = this.firstChild;
+            while (node && node != this.lastChild) {
+                let next = node.nextElementSibling;
+                node.parentNode?.removeChild(node);
+                node = next;
+            }
+            this.lastChild?.parentNode?.removeChild(this.lastChild);
+        }
+        else {
+            let node = this.firstChild;
+            while (node && node != this.lastChild) {
+                let next = node.nextElementSibling;
+                node.remove();
+                node = next;
+            }
+            this.lastChild?.remove();
         }
     }
     selectElements() {
@@ -2032,12 +2522,40 @@ const WebComponentTemplateInstance=class WebComponentTemplateInstance {
                     }
                 }
                 if (element.isArray) {
-                    WebComponentTemplate.setValueToItem(element.name, this.component, components);
+                    setValueToObject(element.name, this.component, components);
                 }
                 else if (components[0]) {
-                    WebComponentTemplate.setValueToItem(element.name, this.component, components[0]);
+                    setValueToObject(element.name, this.component, components[0]);
                 }
             }
+        }
+    }
+    updateContext() {
+        if (this.actions.contextEdits) {
+            for (let contextEdit of this.actions.contextEdits) {
+                this.renderContextEdit(contextEdit);
+            }
+        }
+    }
+    renderContextEdit(edit) {
+        let _class = edit.once ? ComputedNoRecomputed : Computed;
+        let computed = new _class(() => {
+            try {
+                return edit.fct(this.context);
+            }
+            catch (e) {
+            }
+            return {};
+        });
+        computed.subscribe((action, path, value) => {
+            for (let key in computed.value) {
+                let newValue = computed.value[key];
+                this.context.updateWatch(key, newValue);
+            }
+        });
+        this.computeds.push(computed);
+        for (let key in computed.value) {
+            this.context.registerWatch(key, computed.value[key]);
         }
     }
     bindEvents() {
@@ -2058,15 +2576,27 @@ const WebComponentTemplateInstance=class WebComponentTemplateInstance {
         }
         if (event.isCallback) {
             for (let el of this._components[event.id]) {
-                let cb = WebComponentTemplate.getValueFromItem(event.eventName, el);
+                let cb = getValueFromObject(event.eventName, el);
                 cb?.add((...args) => {
-                    event.fct(this.context, args);
+                    try {
+                        event.fct(this.context, args);
+                    }
+                    catch (e) {
+                        console.error(e);
+                    }
                 });
             }
         }
         else {
             for (let el of this._components[event.id]) {
-                el.addEventListener(event.eventName, (e) => { event.fct(e, this.context); });
+                el.addEventListener(event.eventName, (e) => {
+                    try {
+                        event.fct(e, this.context);
+                    }
+                    catch (e) {
+                        console.error(e);
+                    }
+                });
             }
         }
     }
@@ -2091,164 +2621,156 @@ const WebComponentTemplateInstance=class WebComponentTemplateInstance {
     transformActionsListening() {
         if (this.actions.content) {
             for (let name in this.actions.content) {
-                for (let change of this.actions.content[name]) {
-                    this.transformChangeAction(name, change);
-                }
+                this.transformChangeAction(name, this.actions.content[name]);
             }
         }
         if (this.actions.injection) {
-            for (let name in this.actions.injection) {
-                for (let injection of this.actions.injection[name]) {
-                    this.transformInjectionAction(name, injection);
-                }
+            for (let injection of this.actions.injection) {
+                this.transformInjectionAction(injection);
             }
         }
         if (this.actions.bindings) {
-            for (let name in this.actions.bindings) {
-                for (let binding of this.actions.bindings[name]) {
-                    this.transformBindigAction(name, binding);
-                }
+            for (let binding of this.actions.bindings) {
+                this.transformBindigAction(binding);
             }
         }
     }
     transformChangeAction(name, change) {
-        if (!this._components[change.id])
+        const [id, attr] = name.split("°");
+        if (!this._components[id])
             return;
-        let key = change.id + "_" + change.attrName;
-        if (change.attrName == "@HTML") {
-            if (change.path) {
-                this.context.addChange(name, (path) => {
-                    if (WebComponentTemplate.validatePath(path, change.path ?? '')) {
-                        for (const el of this._components[change.id]) {
-                            el.innerHTML = change.render(this.context.c);
-                        }
-                    }
-                });
-            }
-            else {
-                this.context.addChange(name, (path) => {
-                    for (const el of this._components[change.id]) {
-                        el.innerHTML = change.render(this.context.c);
-                    }
-                });
-            }
-            if (!this.firstRenderUniqueCb[key]) {
-                this.firstRenderUniqueCb[key] = () => {
-                    for (const el of this._components[change.id]) {
-                        el.innerHTML = change.render(this.context.c);
-                    }
-                };
-            }
-        }
-        else if (change.isBool) {
-            this.context.addChange(name, () => {
-                for (const el of this._components[change.id]) {
-                    if (this.context.c[name]) {
-                        el.setAttribute(change.attrName, "true");
-                    }
-                    else {
-                        el.removeAttribute(change.attrName);
-                    }
-                }
-            });
-            if (!this.firstRenderUniqueCb[key]) {
-                this.firstRenderUniqueCb[key] = () => {
-                    for (const el of this._components[change.id]) {
-                        if (this.context.c[name]) {
-                            el.setAttribute(change.attrName, "true");
-                        }
-                        else {
-                            el.removeAttribute(change.attrName);
-                        }
-                    }
-                };
-            }
+        let apply = () => { };
+        if (attr == "@HTML") {
+            apply = () => {
+                let value = this.context.print(computed.value);
+                for (const el of this._components[id])
+                    el.innerHTML = value;
+            };
         }
         else {
-            if (change.path) {
-                this.context.addChange(name, (path) => {
-                    if (WebComponentTemplate.validatePath(path, change.path ?? '')) {
-                        for (const el of this._components[change.id]) {
-                            el.setAttribute(change.attrName, change.render(this.context.c));
-                        }
+            apply = () => {
+                let value = this.context.print(computed.value);
+                if (value === "false") {
+                    for (const el of this._components[id]) {
+                        el.removeAttribute(attr);
                     }
-                });
-            }
-            else {
-                this.context.addChange(name, (path) => {
-                    for (const el of this._components[change.id]) {
-                        el.setAttribute(change.attrName, change.render(this.context.c));
+                }
+                else {
+                    for (const el of this._components[id]) {
+                        el.setAttribute(attr, value);
                     }
-                });
-            }
-            if (!this.firstRenderUniqueCb[key]) {
-                this.firstRenderUniqueCb[key] = () => {
-                    for (const el of this._components[change.id]) {
-                        el.setAttribute(change.attrName, change.render(this.context.c));
-                    }
-                };
-            }
+                }
+            };
         }
+        let _class = change.once ? ComputedNoRecomputed : Computed;
+        let computed = new _class(() => {
+            try {
+                return change.fct(this.context);
+            }
+            catch (e) {
+                if (e instanceof TypeError && e.message.startsWith("Cannot read properties of undefined")) {
+                    if (computed instanceof ComputedNoRecomputed) {
+                        computed.isInit = false;
+                    }
+                }
+                else {
+                    console.log(e);
+                    debugger;
+                }
+            }
+            return "";
+        });
+        let timeout;
+        computed.subscribe((action, path, value) => {
+            clearTimeout(timeout);
+            // add timeout to group change that append on the same frame (for example index update)
+            timeout = setTimeout(() => {
+                if (computed.isDestroy)
+                    return;
+                apply();
+            });
+        });
+        this.renderingComputeds.push(computed);
+        this.firstRenderUniqueCb[name] = () => {
+            apply();
+        };
     }
-    transformInjectionAction(name, injection) {
+    transformInjectionAction(injection) {
         if (!this._components[injection.id])
             return;
-        if (injection.path) {
-            this.context.addChange(name, (path) => {
-                if (WebComponentTemplate.validatePath(path, injection.path ?? '')) {
-                    for (const el of this._components[injection.id]) {
-                        el[injection.injectionName] = injection.inject(this.context.c);
+        let _class = injection.once ? ComputedNoRecomputed : Computed;
+        let computed = new _class(() => {
+            try {
+                return injection.inject(this.context);
+            }
+            catch (e) {
+                if (e instanceof TypeError && e.message.startsWith("Cannot read properties of undefined")) {
+                    if (computed instanceof ComputedNoRecomputed) {
+                        computed.isInit = false;
                     }
                 }
-            });
-        }
-        else {
-            this.context.addChange(name, (path) => {
-                for (const el of this._components[injection.id]) {
-                    el[injection.injectionName] = injection.inject(this.context.c);
+                else {
+                    console.log(e);
+                    debugger;
                 }
-            });
-        }
+            }
+        });
+        this.computeds.push(computed);
+        computed.subscribe(() => {
+            for (const el of this._components[injection.id]) {
+                el[injection.injectionName] = computed.value;
+            }
+        });
         this.firstRenderCb.push(() => {
             for (const el of this._components[injection.id]) {
-                el[injection.injectionName] = injection.inject(this.context.c);
+                el[injection.injectionName] = computed.value;
             }
         });
     }
-    transformBindigAction(name, binding) {
-        if (!this._components[binding.id])
-            return;
-        if (binding.path) {
-            this.context.addChange(name, (path) => {
-                let bindingPath = binding.path ?? '';
-                if (WebComponentTemplate.validatePath(path, bindingPath)) {
-                    let valueToSet = WebComponentTemplate.getValueFromItem(bindingPath, this.context.c);
-                    for (const el of this._components[binding.id]) {
-                        WebComponentTemplate.setValueToItem(binding.valueName, el, valueToSet);
+    transformBindigAction(binding) {
+        let isLocalChange = false;
+        let _class = binding.once ? ComputedNoRecomputed : Computed;
+        let computed = new _class(() => {
+            try {
+                return binding.inject(this.context);
+            }
+            catch (e) {
+                if (e instanceof TypeError && e.message.startsWith("Cannot read properties of undefined")) {
+                    if (computed instanceof ComputedNoRecomputed) {
+                        computed.isInit = false;
                     }
                 }
-            });
-        }
-        else {
-            binding.path = name;
-            this.context.addChange(name, (path) => {
-                let valueToSet = WebComponentTemplate.getValueFromItem(name, this.context.c);
-                for (const el of this._components[binding.id]) {
-                    WebComponentTemplate.setValueToItem(binding.valueName, el, valueToSet);
+                else {
+                    console.log(e);
+                    debugger;
                 }
-            });
-        }
+            }
+        });
+        this.computeds.push(computed);
+        computed.subscribe(() => {
+            if (isLocalChange)
+                return;
+            for (const el of this._components[binding.id]) {
+                el[binding.injectionName] = computed.value;
+            }
+        });
+        this.firstRenderCb.push(() => {
+            for (const el of this._components[binding.id]) {
+                el[binding.injectionName] = computed.value;
+            }
+        });
         if (binding.isCallback) {
             this.firstRenderCb.push(() => {
                 for (var el of this._components[binding.id]) {
                     for (let fct of binding.eventNames) {
-                        let cb = WebComponentTemplate.getValueFromItem(fct, el);
+                        let cb = getValueFromObject(fct, el);
                         cb?.add((value) => {
-                            WebComponentTemplate.setValueToItem(binding.path ?? '', this.context.c, value);
+                            let valueToSet = getValueFromObject(binding.injectionName, el);
+                            isLocalChange = true;
+                            binding.extract(this.context, valueToSet);
+                            isLocalChange = false;
                         });
                     }
-                    let valueToSet = WebComponentTemplate.getValueFromItem(binding.path ?? '', this.context.c);
-                    WebComponentTemplate.setValueToItem(binding.valueName, el, valueToSet);
                 }
             });
         }
@@ -2257,124 +2779,263 @@ const WebComponentTemplateInstance=class WebComponentTemplateInstance {
                 for (var el of this._components[binding.id]) {
                     for (let fct of binding.eventNames) {
                         el.addEventListener(fct, (e) => {
-                            let valueToSet = WebComponentTemplate.getValueFromItem(binding.valueName, e.target);
-                            WebComponentTemplate.setValueToItem(binding.path ?? '', this.context.c, valueToSet);
+                            let valueToSet = getValueFromObject(binding.injectionName, e.target);
+                            isLocalChange = true;
+                            binding.extract(this.context, valueToSet);
+                            isLocalChange = false;
                         });
                     }
-                    let valueToSet = WebComponentTemplate.getValueFromItem(binding.path ?? '', this.context.c);
-                    WebComponentTemplate.setValueToItem(binding.valueName, el, valueToSet);
                 }
             });
         }
     }
     renderSubTemplate() {
         for (let loop of this.loops) {
-            let localContext = JSON.parse(JSON.stringify(this.context.schema));
-            localContext.loops[loop.item] = {
-                data: loop.data,
-                index: loop.index,
-            };
-            this.renderLoop(loop, localContext);
-            this.registerLoopWatchEvent(loop, localContext);
+            this.renderLoop(loop);
+        }
+        for (let _if of this.ifs) {
+            this.renderIf(_if);
         }
     }
-    renderLoop(loop, localContext) {
-        if (this.loopRegisteries[loop.anchorId]) {
-            for (let item of this.loopRegisteries[loop.anchorId]) {
+    renderLoop(loop) {
+        if (loop.func) {
+            this.renderLoopComplex(loop);
+        }
+        else if (loop.simple) {
+            this.renderLoopSimple(loop, loop.simple);
+        }
+    }
+    resetLoopComplex(anchorId) {
+        if (this.loopRegisteries[anchorId]) {
+            for (let item of this.loopRegisteries[anchorId].templates) {
                 item.destructor();
             }
+            for (let item of this.loopRegisteries[anchorId].computeds) {
+                item.destroy();
+            }
         }
-        this.loopRegisteries[loop.anchorId] = [];
-        let result = WebComponentTemplate.getValueFromItem(loop.data, this.context.c);
+        this.loopRegisteries[anchorId] = {
+            templates: [],
+            computeds: [],
+        };
+    }
+    renderLoopComplex(loop) {
+        if (!loop.func)
+            return;
+        let fctsTemp = loop.func.bind(this.component)(this.context);
+        let fcts = {
+            apply: fctsTemp.apply,
+            condition: fctsTemp.condition,
+            transform: fctsTemp.transform ?? (() => { })
+        };
+        this.resetLoopComplex(loop.anchorId);
+        let computedsCondition = [];
+        let alreadyRecreated = false;
+        const createComputedCondition = () => {
+            let compCondition = new Computed(() => {
+                return fcts.condition();
+            });
+            compCondition.value;
+            compCondition.subscribe((action, path, value) => {
+                if (!alreadyRecreated) {
+                    alreadyRecreated = true;
+                    this.renderLoopComplex(loop);
+                }
+            });
+            computedsCondition.push(compCondition);
+            this.loopRegisteries[loop.anchorId].computeds.push(compCondition);
+            return compCondition;
+        };
+        let result = [];
+        let compCondition = createComputedCondition();
+        while (compCondition.value) {
+            result.push(fcts.apply());
+            fcts.transform();
+            compCondition = createComputedCondition();
+        }
         let anchor = this._components[loop.anchorId][0];
         for (let i = 0; i < result.length; i++) {
-            let context = new WebComponentTemplateContext(this.component, localContext, { [loop.index]: i });
+            let context = new TemplateContext(this.component, result[i], this.context, this.loopRegisteries[loop.anchorId]);
             let content = loop.template.template?.content.cloneNode(true);
             let actions = loop.template.actions;
-            let instance = new WebComponentTemplateInstance(context, content, actions, this.component, loop.template.loops);
+            let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
             instance.render();
             anchor.parentNode?.insertBefore(instance.content, anchor);
-            this.loopRegisteries[loop.anchorId].push(instance);
+            this.loopRegisteries[loop.anchorId].templates.push(instance);
         }
     }
-    registerLoopWatchEvent(loop, localContext) {
-        let fullPath = loop.data;
-        let watchName = fullPath.split(".")[0];
-        if (!this.component.__watchActions[watchName]) {
-            this.component.__watchActions[watchName] = [];
+    resetLoopSimple(anchorId, basePath) {
+        let elements = this.context.getValueFromItem(basePath);
+        if (elements && this.loopRegisteries[anchorId]) {
+            elements.unsubscribe(this.loopRegisteries[anchorId].sub);
         }
-        let regex = new RegExp(fullPath.replace(/\./g, "\\.") + "\\[(\\d+?)\\]$");
-        this.component.__watchActions[watchName].push((element, action, path, value) => {
-            if (path == fullPath) {
-                this.renderLoop(loop, localContext);
+        this.resetLoopComplex(anchorId);
+    }
+    renderLoopSimple(loop, simple) {
+        let onThis = simple.data.startsWith("this.");
+        let basePath = this.context.normalizePath(simple.data);
+        this.resetLoopSimple(loop.anchorId, basePath);
+        let getElements = () => this.context.getValueFromItem(basePath);
+        let elements = getElements();
+        if (!elements) {
+            let currentPath = basePath;
+            while (currentPath != '' && !elements) {
+                let splittedPath = currentPath.split(".");
+                splittedPath.pop();
+                currentPath = splittedPath.join(".");
+                elements = this.context.getValueFromItem(currentPath);
+            }
+            if (!elements && onThis) {
+                elements = this.component.__watch;
+            }
+            if (!elements || !elements.__isProxy) {
+                debugger;
+            }
+            const subTemp = (action, path, value) => {
+                if (basePath.startsWith(path)) {
+                    elements.unsubscribe(subTemp);
+                    this.renderLoopSimple(loop, simple);
+                    return;
+                }
+            };
+            elements.subscribe(subTemp);
+            return;
+        }
+        let indexName = this.context.registerIndex();
+        let keys = Object.keys(elements);
+        if (elements.__isProxy) {
+            let regexArray = new RegExp("^\\[(\\d+?)\\]$");
+            let regexObject = new RegExp("^([^\\.]*)$");
+            let sub = (action, path, value) => {
+                if (path == "") {
+                    this.renderLoopSimple(loop, simple);
+                    return;
+                }
+                if (action == WatchAction.UPDATED) {
+                    return;
+                }
+                let index = undefined;
+                regexArray.lastIndex = 0;
+                regexObject.lastIndex = 0;
+                let resultArray = regexArray.exec(path);
+                if (resultArray) {
+                    index = Number(resultArray[1]);
+                }
+                else {
+                    let resultObject = regexObject.exec(path);
+                    if (resultObject) {
+                        let oldKey = resultObject[1];
+                        if (action == WatchAction.CREATED) {
+                            keys = Object.keys(getElements());
+                            index = keys.indexOf(oldKey);
+                        }
+                        else if (action == WatchAction.DELETED) {
+                            index = keys.indexOf(oldKey);
+                            keys = Object.keys(getElements());
+                        }
+                    }
+                }
+                if (index !== undefined) {
+                    let registry = this.loopRegisteries[loop.anchorId];
+                    if (action == WatchAction.CREATED) {
+                        let context = new TemplateContext(this.component, {}, this.context, registry);
+                        context.registerLoop(basePath, index, indexName, simple.index, simple.item, onThis);
+                        let content = loop.template.template?.content.cloneNode(true);
+                        let actions = loop.template.actions;
+                        let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
+                        instance.render();
+                        let anchor;
+                        if (index < registry.templates.length) {
+                            anchor = registry.templates[index].firstChild;
+                        }
+                        else {
+                            anchor = this._components[loop.anchorId][0];
+                        }
+                        anchor?.parentNode?.insertBefore(instance.content, anchor);
+                        registry.templates.splice(index, 0, instance);
+                        for (let i = index + 1; i < registry.templates.length; i++) {
+                            registry.templates[i].context.increaseIndex(indexName);
+                        }
+                    }
+                    else if (action == WatchAction.DELETED) {
+                        registry.templates[index].destructor();
+                        registry.templates.splice(index, 1);
+                        for (let i = index; i < registry.templates.length; i++) {
+                            registry.templates[i].context.decreaseIndex(indexName);
+                        }
+                    }
+                }
+            };
+            this.loopRegisteries[loop.anchorId].sub = sub;
+            elements.subscribe(sub);
+        }
+        let anchor = this._components[loop.anchorId][0];
+        for (let i = 0; i < keys.length; i++) {
+            let context = new TemplateContext(this.component, {}, this.context, this.loopRegisteries[loop.anchorId]);
+            context.registerLoop(basePath, i, indexName, simple.index, simple.item, onThis);
+            let content = loop.template.template?.content.cloneNode(true);
+            let actions = loop.template.actions;
+            let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
+            instance.render();
+            anchor.parentNode?.insertBefore(instance.content, anchor);
+            this.loopRegisteries[loop.anchorId].templates.push(instance);
+        }
+    }
+    renderIf(_if) {
+        let computeds = [];
+        let instances = [];
+        let anchor = this._components[_if.anchorId][0];
+        let currentActive = -1;
+        const calculateActive = () => {
+            let newActive = -1;
+            for (let i = 0; i < _if.parts.length; i++) {
+                if (computeds[i].value) {
+                    newActive = i;
+                    break;
+                }
+            }
+            if (newActive == currentActive) {
                 return;
             }
-            regex.lastIndex = 0;
-            let result = regex.exec(path);
-            if (result) {
-                let registry = this.loopRegisteries[loop.anchorId];
-                let index = Number(result[1]);
-                if (action == WatchAction.CREATED) {
-                    let context = new WebComponentTemplateContext(this.component, localContext, { [loop.index]: index });
-                    let content = loop.template.template?.content.cloneNode(true);
-                    let actions = loop.template.actions;
-                    let instance = new WebComponentTemplateInstance(context, content, actions, this.component, loop.template.loops);
-                    instance.render();
-                    let anchor;
-                    if (index < registry.length) {
-                        anchor = registry[index].firstChild;
-                    }
-                    else {
-                        anchor = this._components[loop.anchorId][0];
-                    }
-                    anchor.parentNode?.insertBefore(instance.content, anchor);
-                    registry.splice(index, 0, instance);
-                    for (let i = index + 1; i < registry.length; i++) {
-                        registry[i].context.c[loop.index] = registry[i].context.c[loop.index] + 1;
-                    }
+            if (currentActive != -1) {
+                let instance = instances[currentActive];
+                let node = instance.firstChild;
+                while (node && node != instance.lastChild) {
+                    let next = node.nextElementSibling;
+                    instance.content.appendChild(node);
+                    node = next;
                 }
-                else if (action == WatchAction.UPDATED) {
-                    registry[index].render();
-                }
-                else if (action == WatchAction.DELETED) {
-                    registry[index].destructor();
-                    registry.splice(index, 1);
-                    for (let i = index; i < registry.length; i++) {
-                        registry[i].context.c[loop.index] = registry[i].context.c[loop.index] - 1;
-                    }
-                }
+                if (instance.lastChild)
+                    instance.content.appendChild(instance.lastChild);
             }
-        });
+            currentActive = newActive;
+            if (instances[currentActive])
+                anchor.parentNode?.insertBefore(instances[currentActive].content, anchor);
+        };
+        for (let i = 0; i < _if.parts.length; i++) {
+            const part = _if.parts[i];
+            let _class = part.once ? ComputedNoRecomputed : Computed;
+            let computed = new _class(() => {
+                return part.condition(this.context);
+            });
+            computeds.push(computed);
+            computed.subscribe(() => {
+                calculateActive();
+            });
+            this.computeds.push(computed);
+            let context = new TemplateContext(this.component, {}, this.context);
+            let content = part.template.template?.content.cloneNode(true);
+            let actions = part.template.actions;
+            let instance = new TemplateInstance(this.component, content, actions, part.template.loops, part.template.ifs, context);
+            instances.push(instance);
+            instance.render();
+        }
+        calculateActive();
     }
 }
-WebComponentTemplateInstance.Namespace=`${moduleName}`;
-_.WebComponentTemplateInstance=WebComponentTemplateInstance;
-const WebComponentTemplate=class WebComponentTemplate {
-    static setValueToItem(path, obj, value) {
-        let splitted = path.split(".");
-        for (let i = 0; i < splitted.length - 1; i++) {
-            let split = splitted[i];
-            if (!obj[split]) {
-                obj[split] = {};
-            }
-            obj = obj[split];
-        }
-        obj[splitted[splitted.length - 1]] = value;
-    }
-    static getValueFromItem(path, obj) {
-        let splitted = path.split(".");
-        for (let i = 0; i < splitted.length - 1; i++) {
-            let split = splitted[i];
-            if (!obj[split] || typeof obj[split] !== 'object') {
-                return undefined;
-            }
-            obj = obj[split];
-        }
-        if (!obj || typeof obj !== 'object') {
-            return undefined;
-        }
-        return obj[splitted[splitted.length - 1]];
-    }
+TemplateInstance.Namespace=`${moduleName}`;
+_.TemplateInstance=TemplateInstance;
+const Template=class Template {
     static validatePath(path, pathToCheck) {
         if (pathToCheck.startsWith(path)) {
             return true;
@@ -2408,18 +3069,16 @@ const WebComponentTemplate=class WebComponentTemplate {
         }
         this.template.innerHTML = currentHTML;
     }
+    /**
+     * Used by the for loop and the if
+     * @param template
+     */
     setTemplate(template) {
         this.template = document.createElement('template');
         this.template.innerHTML = template;
     }
-    contextSchema = {
-        globals: [],
-        locals: {},
-        loops: {}
-    };
     template;
     actions = {};
-    loops = [];
     setActions(actions) {
         if (!this.actions) {
             this.actions = actions;
@@ -2453,7 +3112,7 @@ const WebComponentTemplate=class WebComponentTemplate {
                             this.actions.content[contextProp] = actions.content[contextProp];
                         }
                         else {
-                            this.actions.content[contextProp] = [...actions.content[contextProp], ...this.actions.content[contextProp]];
+                            throw 'this should be impossible';
                         }
                     }
                 }
@@ -2488,40 +3147,29 @@ const WebComponentTemplate=class WebComponentTemplate {
                     }
                 }
             }
-        }
-    }
-    setSchema(contextSchema) {
-        if (contextSchema.globals) {
-            for (let glob of contextSchema.globals) {
-                if (!this.contextSchema.globals.includes(glob)) {
-                    this.contextSchema.globals.push(glob);
+            if (actions.contextEdits) {
+                if (!this.actions.contextEdits) {
+                    this.actions.contextEdits = [];
                 }
-            }
-        }
-        if (contextSchema.locals) {
-            for (let key in contextSchema.locals) {
-                this.contextSchema.locals[key] = contextSchema.locals[key];
-            }
-        }
-        if (contextSchema.loops) {
-            for (let key in contextSchema.loops) {
-                this.contextSchema.loops[key] = contextSchema.loops[key];
+                this.actions.contextEdits = [...actions.contextEdits, ...this.actions.contextEdits];
             }
         }
     }
-    createInstance(component) {
-        let context = new WebComponentTemplateContext(component, this.contextSchema, {});
-        let content = this.template?.content.cloneNode(true);
-        let actions = this.actions;
-        let instance = new WebComponentTemplateInstance(context, content, actions, component, this.loops);
-        return instance;
-    }
+    loops = [];
     addLoop(loop) {
         this.loops.push(loop);
     }
+    ifs = [];
+    addIf(_if) {
+        this.ifs.push(_if);
+    }
+    createInstance(component) {
+        let content = this.template.content.cloneNode(true);
+        return new TemplateInstance(component, content, this.actions, this.loops, this.ifs);
+    }
 }
-WebComponentTemplate.Namespace=`${moduleName}`;
-_.WebComponentTemplate=WebComponentTemplate;
+Template.Namespace=`${moduleName}`;
+_.Template=Template;
 const WebComponent=class WebComponent extends HTMLElement {
     /**
      * Add attributes informations
@@ -2577,6 +3225,8 @@ const WebComponent=class WebComponent extends HTMLElement {
     __watch;
     __watchActions = {};
     __watchActionsCb = {};
+    __watchFunctions = {};
+    __watchFunctionsComputed = {};
     __pressManagers = [];
     __isDefaultState = true;
     __defaultActiveState = new Map();
@@ -2609,6 +3259,9 @@ const WebComponent=class WebComponent extends HTMLElement {
         for (let press of this.__pressManagers) {
             press.destroy();
         }
+        for (let name in this.__watchFunctionsComputed) {
+            this.__watchFunctionsComputed[name].destroy();
+        }
         // TODO add missing info for destructor();
     }
     __addWatchesActions(name, fct) {
@@ -2629,13 +3282,38 @@ const WebComponent=class WebComponent extends HTMLElement {
             this.__watchActions[name].push(fct);
         }
     }
+    __addWatchesFunctions(infos) {
+        for (let info of infos) {
+            let realName;
+            let autoInit;
+            if (typeof info == "string") {
+                realName = info;
+                autoInit = false;
+            }
+            else {
+                realName = info.name;
+                autoInit = info.autoInit;
+            }
+            if (!this.__watchFunctions[realName]) {
+                this.__watchFunctions[realName] = { autoInit };
+            }
+        }
+    }
     __registerWatchesActions() {
         if (Object.keys(this.__watchActions).length > 0) {
             if (!this.__watch) {
-                this.__watch = Watcher.get({}, (type, path, element) => {
+                let defaultValue = {};
+                this.__defaultValuesWatch(defaultValue);
+                this.__watch = Watcher.get(defaultValue, (type, path, element) => {
                     let action = this.__watchActionsCb[path.split(".")[0]] || this.__watchActionsCb[path.split("[")[0]];
                     action(type, path, element);
                 });
+            }
+        }
+        for (let name in this.__watchFunctions) {
+            this.__watchFunctionsComputed[name] = Watcher.computed(this[name].bind(this));
+            if (this.__watchFunctions[name].autoInit) {
+                this.__watchFunctionsComputed[name].value;
             }
         }
     }
@@ -2654,7 +3332,7 @@ const WebComponent=class WebComponent extends HTMLElement {
     static __template;
     __templateInstance;
     styleBefore(addStyle) {
-        addStyle("@general");
+        addStyle("@default");
     }
     styleAfter(addStyle) {
     }
@@ -2687,7 +3365,7 @@ const WebComponent=class WebComponent extends HTMLElement {
     __renderTemplate() {
         let staticInstance = this.__getStatic();
         if (!staticInstance.__template || staticInstance.__template.cst != staticInstance) {
-            staticInstance.__template = new WebComponentTemplate(staticInstance);
+            staticInstance.__template = new Template(staticInstance);
             this.__getHtml();
             this.__registerTemplateAction();
             staticInstance.__template.generateTemplate();
@@ -2725,6 +3403,7 @@ const WebComponent=class WebComponent extends HTMLElement {
         }
     }
     __defaultValues() { }
+    __defaultValuesWatch(w) { }
     __upgradeAttributes() { }
     __listBoolProps() {
         return [];
@@ -2895,8 +3574,128 @@ const WebComponent=class WebComponent extends HTMLElement {
         console.error("error parsing boolean value " + val);
         return false;
     }
+    __registerPropToWatcher(name) {
+        if (Watcher._register) {
+            Watcher._register.register(this.getReceiver(name), name, Watcher._register.version, name);
+        }
+    }
+    getStringAttr(name) {
+        return this.getAttribute(name) ?? undefined;
+    }
+    setStringAttr(name, val) {
+        if (val === undefined || val === null) {
+            this.removeAttribute(name);
+        }
+        else {
+            this.setAttribute(name, val);
+        }
+    }
+    getStringProp(name) {
+        this.__registerPropToWatcher(name);
+        return this.getStringAttr(name);
+    }
+    getNumberAttr(name) {
+        return Number(this.getAttribute(name));
+    }
+    setNumberAttr(name, val) {
+        if (val === undefined || val === null) {
+            this.removeAttribute(name);
+        }
+        else {
+            this.setAttribute(name, val);
+        }
+    }
+    getNumberProp(name) {
+        this.__registerPropToWatcher(name);
+        return this.getNumberAttr(name);
+    }
+    getBoolAttr(name) {
+        return this.hasAttribute(name);
+    }
+    setBoolAttr(name, val) {
+        val = this.getBoolean(val);
+        if (val) {
+            this.setAttribute(name, 'true');
+        }
+        else {
+            this.removeAttribute(name);
+        }
+    }
+    getBoolProp(name) {
+        this.__registerPropToWatcher(name);
+        return this.getBoolAttr(name);
+    }
+    getDateAttr(name) {
+        if (!this.hasAttribute(name)) {
+            return undefined;
+        }
+        return this.stringToDate(this.getAttribute(name));
+    }
+    setDateAttr(name, val) {
+        let valTxt = this.dateToString(val);
+        if (valTxt === null) {
+            this.removeAttribute(name);
+        }
+        else {
+            this.setAttribute(name, valTxt);
+        }
+    }
+    getDateProp(name) {
+        this.__registerPropToWatcher(name);
+        return this.getDateAttr(name);
+    }
+    getDateTimeAttr(name) {
+        if (!this.hasAttribute(name))
+            return undefined;
+        return this.stringToDateTime(this.getAttribute(name));
+    }
+    setDateTimeAttr(name, val) {
+        let valTxt = this.dateTimeToString(val);
+        if (valTxt === null) {
+            this.removeAttribute(name);
+        }
+        else {
+            this.setAttribute(name, valTxt);
+        }
+    }
+    getDateTimeProp(name) {
+        this.__registerPropToWatcher(name);
+        return this.getDateTimeAttr(name);
+    }
+    __propertyReceivers = {};
+    getReceiver(name) {
+        if (!this.__propertyReceivers[name]) {
+            let that = this;
+            let result = {
+                __subscribes: [],
+                subscribe(fct) {
+                    let index = this.__subscribes.indexOf(fct);
+                    if (index == -1) {
+                        this.__subscribes.push(fct);
+                    }
+                },
+                unsubscribe(fct) {
+                    let index = this.__subscribes.indexOf(fct);
+                    if (index > -1) {
+                        this.__subscribes.splice(index, 1);
+                    }
+                },
+                onChange() {
+                    for (let fct of this.__subscribes) {
+                        fct(WatchAction.UPDATED, name, that[name]);
+                    }
+                },
+                __path: name
+            };
+            this.__propertyReceivers[name] = result;
+        }
+        return this.__propertyReceivers[name];
+    }
     attributeChangedCallback(name, oldValue, newValue) {
         if (oldValue !== newValue || !this.isReady) {
+            if (this.__propertyReceivers.hasOwnProperty(name)) {
+                this.__propertyReceivers[name].onChange();
+            }
             if (this.__onChangeFct.hasOwnProperty(name)) {
                 for (let fct of this.__onChangeFct[name]) {
                     fct('');
@@ -3698,6 +4497,116 @@ _.Layout = {};
 const Form = {};
 _.Form = {};
 let _n;
+const ProgressCircle = class ProgressCircle extends Aventus.WebComponent {
+    static get observedAttributes() {return ["value", "stroke_width"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'value'() { return this.getNumberProp('value') }
+    set 'value'(val) { this.setNumberAttr('value', val) }get 'stroke_width'() { return this.getNumberProp('stroke_width') }
+    set 'stroke_width'(val) { this.setNumberAttr('stroke_width', val) }    svg;
+    backCircle;
+    percentCircle;
+    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("value", ((target) => {
+    target.render();
+}));this.__addPropertyActions("stroke_width", ((target) => {
+    target.render();
+})); }
+    static __style = `:host{--_progress-circle-back-circle-color: var(--progress-circle-back-circle-color, rgba(191, 219, 254, .5));--_progress-circle-percent-circle-color: var(--progress-circle-percent-circle-color, #3b82f6);--_progress-circle-transition: var(--progress-circle-transition, stroke 0.3s cubic-bezier(.4, 0, .2, 1), stroke-dashoffset 0.3s cubic-bezier(.4, 0, .2, 1))}:host{align-items:center;aspect-ratio:1/1;display:flex;flex-direction:column;justify-content:center;position:relative;width:60px}:host .container{align-items:center;display:flex;flex-direction:column;height:100%;justify-content:center;position:relative;width:100%}:host .container svg{height:100%;transform:rotate(-90deg);width:100%}:host .container svg .back-circle{fill:rgba(0,0,0,0);stroke:var(--_progress-circle-back-circle-color);transition:stroke linear .2s}:host .container svg .percent-circle{fill:rgba(0,0,0,0);stroke:var(--_progress-circle-percent-circle-color);transition:var(--_progress-circle-transition)}:host .content{display:flex;position:absolute}`;
+    __getStatic() {
+        return ProgressCircle;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(ProgressCircle.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<div class="container" _id="progresscircle_0"></div><div class="content">	<slot></slot></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "elements": [
+    {
+      "name": "containerEl",
+      "ids": [
+        "progresscircle_0"
+      ]
+    }
+  ]
+}); }
+    getClassName() {
+        return "ProgressCircle";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('value')){ this['value'] = 40; }if(!this.hasAttribute('stroke_width')){ this['stroke_width'] = 6; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('value');this.__upgradeProperty('stroke_width'); }
+    getLimitedValue(input) {
+        if (input === undefined) {
+            return 0;
+        }
+        else if (input > 100) {
+            return 100;
+        }
+        else {
+            return input;
+        }
+    }
+    render() {
+        let min = Math.min(this.offsetWidth, this.offsetHeight);
+        if (min == 0)
+            return;
+        const value = this.getLimitedValue(this.value);
+        const radius = min / 2;
+        const strokeWidth = this.stroke_width;
+        const normalizedRadius = radius - strokeWidth / 2;
+        const circumference = normalizedRadius * 2 * Math.PI;
+        const strokeDashoffset = (value / 100) * circumference;
+        const offset = circumference - strokeDashoffset;
+        let appendSvg = false;
+        if (!this.svg) {
+            appendSvg = true;
+            this.svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        }
+        this.svg.setAttribute("width", radius * 2 + "");
+        this.svg.setAttribute("height", radius * 2 + "");
+        this.svg.setAttribute("viewBox", "0 0 " + (radius * 2) + " " + (radius * 2));
+        if (!this.backCircle) {
+            this.backCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            this.svg.appendChild(this.backCircle);
+        }
+        this.backCircle.classList.add("back-circle");
+        this.backCircle.setAttribute("r", normalizedRadius + "");
+        this.backCircle.setAttribute("cx", radius + "");
+        this.backCircle.setAttribute("cy", radius + "");
+        this.backCircle.setAttribute("stroke-width", strokeWidth + "");
+        this.backCircle.setAttribute("stroke-linecap", "round");
+        if (!this.percentCircle) {
+            this.percentCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            this.svg.appendChild(this.percentCircle);
+        }
+        this.percentCircle.classList.add("percent-circle");
+        this.percentCircle.setAttribute("r", normalizedRadius + "");
+        this.percentCircle.setAttribute("cx", radius + "");
+        this.percentCircle.setAttribute("cy", radius + "");
+        this.percentCircle.setAttribute("stroke-width", strokeWidth + "");
+        this.percentCircle.setAttribute("stroke-dasharray", circumference + " " + circumference);
+        this.percentCircle.setAttribute("stroke-dashoffset", offset + "");
+        this.percentCircle.setAttribute("stroke-linecap", "round");
+        if (appendSvg) {
+            this.containerEl.appendChild(this.svg);
+        }
+    }
+    postCreation() {
+        new Aventus.ResizeObserver(() => {
+            this.render();
+        }).observe(this);
+        this.render();
+    }
+}
+ProgressCircle.Namespace=`${moduleName}`;
+ProgressCircle.Tag=`av-progress-circle`;
+_.ProgressCircle=ProgressCircle;
+if(!window.customElements.get('av-progress-circle')){window.customElements.define('av-progress-circle', ProgressCircle);Aventus.WebComponentInstance.registerDefinition(ProgressCircle);}
+
 const RouterStateManager=class RouterStateManager extends Aventus.StateManager {
     static getInstance() {
         return Aventus.Instance.get(RouterStateManager);
@@ -3706,19 +4615,9 @@ const RouterStateManager=class RouterStateManager extends Aventus.StateManager {
 RouterStateManager.Namespace=`${moduleName}`;
 _.RouterStateManager=RouterStateManager;
 Navigation.RouterLink = class RouterLink extends Aventus.WebComponent {
-    get 'state'() {
-                    return this.getAttribute('state') ?? undefined;
-                }
-                set 'state'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('state')}
-                    else{this.setAttribute('state',val)}
-                }get 'active_state'() {
-                    return this.getAttribute('active_state') ?? undefined;
-                }
-                set 'active_state'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('active_state')}
-                    else{this.setAttribute('active_state',val)}
-                }    onActiveChange = new Aventus.Callback();
+    get 'state'() { return this.getStringAttr('state') }
+    set 'state'(val) { this.setStringAttr('state', val) }get 'active_state'() { return this.getStringAttr('active_state') }
+    set 'active_state'(val) { this.setStringAttr('active_state', val) }    onActiveChange = new Aventus.Callback();
     static __style = ``;
     __getStatic() {
         return RouterLink;
@@ -3737,13 +4636,24 @@ Navigation.RouterLink = class RouterLink extends Aventus.WebComponent {
     getClassName() {
         return "RouterLink";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('state')){ this['state'] = ""; }if(!this.hasAttribute('active_state')){ this['active_state'] = ""; } }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('state')){ this['state'] = undefined; }if(!this.hasAttribute('active_state')){ this['active_state'] = undefined; } }
     __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('state');this.__upgradeProperty('active_state'); }
     addClickEvent() {
         new Aventus.PressManager({
             element: this,
             onPress: () => {
-                Aventus.State.activate(this.state, Aventus.Instance.get(RouterStateManager));
+                if (this.state === undefined)
+                    return;
+                let state = this.state;
+                if (this.state.startsWith(".")) {
+                    state = Aventus.Instance.get(RouterStateManager).getState()?.name ?? "";
+                    if (!state.endsWith("/")) {
+                        state += "/";
+                    }
+                    state += this.state;
+                    state = Aventus.Uri.normalize(state);
+                }
+                Aventus.State.activate(state, Aventus.Instance.get(RouterStateManager));
             }
         });
     }
@@ -3752,6 +4662,8 @@ Navigation.RouterLink = class RouterLink extends Aventus.WebComponent {
         if (this.active_state) {
             activeState = this.active_state;
         }
+        if (activeState === undefined)
+            return;
         Aventus.Instance.get(RouterStateManager).subscribe(activeState, {
             active: () => {
                 this.classList.add("active");
@@ -3813,31 +4725,11 @@ const Tracker=class Tracker {
 Tracker.Namespace=`${moduleName}`;
 _.Tracker=Tracker;
 Layout.GridCol = class GridCol extends Aventus.WebComponent {
-    get 'column'() {
-                    return this.getAttribute('column') ?? undefined;
-                }
-                set 'column'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('column')}
-                    else{this.setAttribute('column',val)}
-                }get 'row'() {
-                    return this.getAttribute('row') ?? undefined;
-                }
-                set 'row'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('row')}
-                    else{this.setAttribute('row',val)}
-                }get 'c_start'() {
-                    return Number(this.getAttribute('c_start'));
-                }
-                set 'c_start'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('c_start')}
-                    else{this.setAttribute('c_start',val)}
-                }get 'c_end'() {
-                    return Number(this.getAttribute('c_end'));
-                }
-                set 'c_end'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('c_end')}
-                    else{this.setAttribute('c_end',val)}
-                }    static __style = ``;
+    get 'column'() { return this.getStringAttr('column') }
+    set 'column'(val) { this.setStringAttr('column', val) }get 'row'() { return this.getStringAttr('row') }
+    set 'row'(val) { this.setStringAttr('row', val) }get 'c_start'() { return this.getNumberAttr('c_start') }
+    set 'c_start'(val) { this.setNumberAttr('c_start', val) }get 'c_end'() { return this.getNumberAttr('c_end') }
+    set 'c_end'(val) { this.setNumberAttr('c_end', val) }    static __style = ``;
     __getStatic() {
         return GridCol;
     }
@@ -3865,13 +4757,8 @@ if(!window.customElements.get('av-grid-col')){window.customElements.define('av-g
 
 Layout.Grid = class Grid extends Aventus.WebComponent {
     static get observedAttributes() {return ["cols"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
-    get 'cols'() {
-                    return Number(this.getAttribute('cols'));
-                }
-                set 'cols'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('cols')}
-                    else{this.setAttribute('cols',val)}
-                }    static __style = `:host{display:grid}:host([cols=j]){grid-template-columns:repeat(1, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(2, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(3, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(4, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(5, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(6, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(7, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(8, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(9, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(10, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(11, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(12, minmax(0, 1fr))}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_xs="0"]){margin-right:0%}::slotted(av-grid-col[size_xs="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_xs="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_xs="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_xs="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_xs="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_xs="3"]){margin-right:25%}::slotted(av-grid-col[size_xs="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_xs="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_xs="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_xs="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_xs="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_xs="6"]){margin-right:50%}::slotted(av-grid-col[size_xs="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_xs="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_xs="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_xs="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_xs="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_xs="9"]){margin-right:75%}::slotted(av-grid-col[size_xs="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_xs="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_xs="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_xs="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_xs="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_xs="12"]){margin-right:100%}::slotted(av-grid-col[size_xs="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_sm="0"]){margin-right:0%}::slotted(av-grid-col[size_sm="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_sm="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_sm="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_sm="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_sm="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_sm="3"]){margin-right:25%}::slotted(av-grid-col[size_sm="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_sm="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_sm="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_sm="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_sm="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_sm="6"]){margin-right:50%}::slotted(av-grid-col[size_sm="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_sm="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_sm="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_sm="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_sm="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_sm="9"]){margin-right:75%}::slotted(av-grid-col[size_sm="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_sm="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_sm="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_sm="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_sm="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_sm="12"]){margin-right:100%}::slotted(av-grid-col[size_sm="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_md="0"]){margin-right:0%}::slotted(av-grid-col[size_md="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_md="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_md="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_md="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_md="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_md="3"]){margin-right:25%}::slotted(av-grid-col[size_md="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_md="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_md="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_md="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_md="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_md="6"]){margin-right:50%}::slotted(av-grid-col[size_md="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_md="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_md="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_md="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_md="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_md="9"]){margin-right:75%}::slotted(av-grid-col[size_md="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_md="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_md="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_md="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_md="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_md="12"]){margin-right:100%}::slotted(av-grid-col[size_md="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_lg="0"]){margin-right:0%}::slotted(av-grid-col[size_lg="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_lg="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_lg="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_lg="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_lg="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_lg="3"]){margin-right:25%}::slotted(av-grid-col[size_lg="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_lg="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_lg="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_lg="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_lg="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_lg="6"]){margin-right:50%}::slotted(av-grid-col[size_lg="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_lg="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_lg="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_lg="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_lg="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_lg="9"]){margin-right:75%}::slotted(av-grid-col[size_lg="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_lg="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_lg="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_lg="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_lg="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_lg="12"]){margin-right:100%}::slotted(av-grid-col[size_lg="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_xl="0"]){margin-right:0%}::slotted(av-grid-col[size_xl="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_xl="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_xl="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_xl="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_xl="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_xl="3"]){margin-right:25%}::slotted(av-grid-col[size_xl="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_xl="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_xl="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_xl="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_xl="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_xl="6"]){margin-right:50%}::slotted(av-grid-col[size_xl="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_xl="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_xl="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_xl="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_xl="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_xl="9"]){margin-right:75%}::slotted(av-grid-col[size_xl="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_xl="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_xl="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_xl="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_xl="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_xl="12"]){margin-right:100%}::slotted(av-grid-col[size_xl="12"]){width:100%}}`;
+    get 'cols'() { return this.getNumberProp('cols') }
+    set 'cols'(val) { this.setNumberAttr('cols', val) }    static __style = `:host{display:grid}:host([cols=j]){grid-template-columns:repeat(1, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(2, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(3, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(4, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(5, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(6, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(7, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(8, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(9, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(10, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(11, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(12, minmax(0, 1fr))}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_xs="0"]){margin-right:0%}::slotted(av-grid-col[size_xs="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_xs="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_xs="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_xs="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_xs="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_xs="3"]){margin-right:25%}::slotted(av-grid-col[size_xs="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_xs="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_xs="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_xs="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_xs="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_xs="6"]){margin-right:50%}::slotted(av-grid-col[size_xs="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_xs="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_xs="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_xs="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_xs="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_xs="9"]){margin-right:75%}::slotted(av-grid-col[size_xs="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_xs="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_xs="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_xs="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_xs="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_xs="12"]){margin-right:100%}::slotted(av-grid-col[size_xs="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_sm="0"]){margin-right:0%}::slotted(av-grid-col[size_sm="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_sm="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_sm="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_sm="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_sm="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_sm="3"]){margin-right:25%}::slotted(av-grid-col[size_sm="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_sm="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_sm="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_sm="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_sm="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_sm="6"]){margin-right:50%}::slotted(av-grid-col[size_sm="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_sm="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_sm="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_sm="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_sm="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_sm="9"]){margin-right:75%}::slotted(av-grid-col[size_sm="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_sm="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_sm="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_sm="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_sm="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_sm="12"]){margin-right:100%}::slotted(av-grid-col[size_sm="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_md="0"]){margin-right:0%}::slotted(av-grid-col[size_md="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_md="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_md="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_md="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_md="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_md="3"]){margin-right:25%}::slotted(av-grid-col[size_md="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_md="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_md="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_md="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_md="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_md="6"]){margin-right:50%}::slotted(av-grid-col[size_md="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_md="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_md="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_md="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_md="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_md="9"]){margin-right:75%}::slotted(av-grid-col[size_md="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_md="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_md="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_md="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_md="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_md="12"]){margin-right:100%}::slotted(av-grid-col[size_md="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_lg="0"]){margin-right:0%}::slotted(av-grid-col[size_lg="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_lg="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_lg="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_lg="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_lg="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_lg="3"]){margin-right:25%}::slotted(av-grid-col[size_lg="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_lg="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_lg="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_lg="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_lg="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_lg="6"]){margin-right:50%}::slotted(av-grid-col[size_lg="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_lg="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_lg="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_lg="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_lg="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_lg="9"]){margin-right:75%}::slotted(av-grid-col[size_lg="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_lg="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_lg="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_lg="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_lg="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_lg="12"]){margin-right:100%}::slotted(av-grid-col[size_lg="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_xl="0"]){margin-right:0%}::slotted(av-grid-col[size_xl="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_xl="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_xl="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_xl="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_xl="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_xl="3"]){margin-right:25%}::slotted(av-grid-col[size_xl="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_xl="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_xl="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_xl="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_xl="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_xl="6"]){margin-right:50%}::slotted(av-grid-col[size_xl="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_xl="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_xl="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_xl="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_xl="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_xl="9"]){margin-right:75%}::slotted(av-grid-col[size_xl="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_xl="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_xl="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_xl="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_xl="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_xl="12"]){margin-right:100%}::slotted(av-grid-col[size_xl="12"]){width:100%}}`;
     __getStatic() {
         return Grid;
     }
@@ -3898,13 +4785,8 @@ _.Layout.Grid=Layout.Grid;
 if(!window.customElements.get('av-grid')){window.customElements.define('av-grid', Layout.Grid);Aventus.WebComponentInstance.registerDefinition(Layout.Grid);}
 
 Layout.DynamicRow = class DynamicRow extends Aventus.WebComponent {
-    get 'max_width'() {
-                    return this.getAttribute('max_width') ?? undefined;
-                }
-                set 'max_width'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('max_width')}
-                    else{this.setAttribute('max_width',val)}
-                }    sizes = { "xs": 300, "sm": 540, "md": 720, "lg": 960, "xl": 1140 };
+    get 'max_width'() { return this.getStringAttr('max_width') }
+    set 'max_width'(val) { this.setStringAttr('max_width', val) }    sizes = { "xs": 300, "sm": 540, "md": 720, "lg": 960, "xl": 1140 };
     static __style = `:host{display:flex;flex-wrap:wrap;flex-direction:row;width:100%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="0"]){margin-left:0%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="0"]){margin-right:0%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="0"]){width:0%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="1"]){margin-left:8.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="1"]){margin-right:8.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="1"]){width:8.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="2"]){margin-left:16.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="2"]){margin-right:16.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="2"]){width:16.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="3"]){margin-left:25%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="3"]){margin-right:25%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="3"]){width:25%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="4"]){margin-left:33.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="4"]){margin-right:33.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="4"]){width:33.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="5"]){margin-left:41.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="5"]){margin-right:41.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="5"]){width:41.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="6"]){margin-left:50%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="6"]){margin-right:50%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="6"]){width:50%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="7"]){margin-left:58.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="7"]){margin-right:58.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="7"]){width:58.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="8"]){margin-left:66.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="8"]){margin-right:66.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="8"]){width:66.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="9"]){margin-left:75%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="9"]){margin-right:75%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="9"]){width:75%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="10"]){margin-left:83.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="10"]){margin-right:83.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="10"]){width:83.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="11"]){margin-left:91.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="11"]){margin-right:91.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="11"]){width:91.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="12"]){margin-left:100%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="12"]){margin-right:100%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="12"]){width:100%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="0"]){margin-left:0%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="0"]){margin-right:0%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="0"]){width:0%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="1"]){margin-left:8.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="1"]){margin-right:8.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="1"]){width:8.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="2"]){margin-left:16.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="2"]){margin-right:16.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="2"]){width:16.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="3"]){margin-left:25%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="3"]){margin-right:25%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="3"]){width:25%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="4"]){margin-left:33.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="4"]){margin-right:33.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="4"]){width:33.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="5"]){margin-left:41.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="5"]){margin-right:41.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="5"]){width:41.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="6"]){margin-left:50%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="6"]){margin-right:50%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="6"]){width:50%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="7"]){margin-left:58.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="7"]){margin-right:58.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="7"]){width:58.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="8"]){margin-left:66.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="8"]){margin-right:66.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="8"]){width:66.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="9"]){margin-left:75%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="9"]){margin-right:75%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="9"]){width:75%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="10"]){margin-left:83.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="10"]){margin-right:83.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="10"]){width:83.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="11"]){margin-left:91.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="11"]){margin-right:91.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="11"]){width:91.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="12"]){margin-left:100%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="12"]){margin-right:100%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="12"]){width:100%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="0"]){margin-left:0%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="0"]){margin-right:0%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="0"]){width:0%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="1"]){margin-left:8.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="1"]){margin-right:8.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="1"]){width:8.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="2"]){margin-left:16.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="2"]){margin-right:16.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="2"]){width:16.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="3"]){margin-left:25%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="3"]){margin-right:25%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="3"]){width:25%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="4"]){margin-left:33.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="4"]){margin-right:33.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="4"]){width:33.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="5"]){margin-left:41.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="5"]){margin-right:41.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="5"]){width:41.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="6"]){margin-left:50%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="6"]){margin-right:50%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="6"]){width:50%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="7"]){margin-left:58.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="7"]){margin-right:58.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="7"]){width:58.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="8"]){margin-left:66.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="8"]){margin-right:66.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="8"]){width:66.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="9"]){margin-left:75%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="9"]){margin-right:75%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="9"]){width:75%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="10"]){margin-left:83.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="10"]){margin-right:83.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="10"]){width:83.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="11"]){margin-left:91.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="11"]){margin-right:91.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="11"]){width:91.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="12"]){margin-left:100%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="12"]){margin-right:100%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="12"]){width:100%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="0"]){margin-left:0%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="0"]){margin-right:0%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="0"]){width:0%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="1"]){margin-left:8.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="1"]){margin-right:8.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="1"]){width:8.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="2"]){margin-left:16.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="2"]){margin-right:16.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="2"]){width:16.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="3"]){margin-left:25%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="3"]){margin-right:25%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="3"]){width:25%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="4"]){margin-left:33.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="4"]){margin-right:33.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="4"]){width:33.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="5"]){margin-left:41.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="5"]){margin-right:41.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="5"]){width:41.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="6"]){margin-left:50%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="6"]){margin-right:50%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="6"]){width:50%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="7"]){margin-left:58.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="7"]){margin-right:58.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="7"]){width:58.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="8"]){margin-left:66.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="8"]){margin-right:66.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="8"]){width:66.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="9"]){margin-left:75%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="9"]){margin-right:75%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="9"]){width:75%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="10"]){margin-left:83.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="10"]){margin-right:83.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="10"]){width:83.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="11"]){margin-left:91.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="11"]){margin-right:91.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="11"]){width:91.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="12"]){margin-left:100%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="12"]){margin-right:100%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="12"]){width:100%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="0"]){margin-left:0%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="0"]){margin-right:0%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="0"]){width:0%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="1"]){margin-left:8.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="1"]){margin-right:8.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="1"]){width:8.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="2"]){margin-left:16.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="2"]){margin-right:16.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="2"]){width:16.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="3"]){margin-left:25%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="3"]){margin-right:25%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="3"]){width:25%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="4"]){margin-left:33.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="4"]){margin-right:33.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="4"]){width:33.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="5"]){margin-left:41.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="5"]){margin-right:41.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="5"]){width:41.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="6"]){margin-left:50%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="6"]){margin-right:50%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="6"]){width:50%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="7"]){margin-left:58.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="7"]){margin-right:58.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="7"]){width:58.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="8"]){margin-left:66.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="8"]){margin-right:66.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="8"]){width:66.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="9"]){margin-left:75%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="9"]){margin-right:75%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="9"]){width:75%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="10"]){margin-left:83.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="10"]){margin-right:83.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="10"]){width:83.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="11"]){margin-left:91.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="11"]){margin-right:91.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="11"]){width:91.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="12"]){margin-left:100%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="12"]){margin-right:100%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="12"]){width:100%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="0"]){margin-left:0%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="0"]){margin-right:0%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="0"]){width:0%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="1"]){margin-left:8.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="1"]){margin-right:8.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="1"]){width:8.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="2"]){margin-left:16.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="2"]){margin-right:16.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="2"]){width:16.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="3"]){margin-left:25%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="3"]){margin-right:25%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="3"]){width:25%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="4"]){margin-left:33.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="4"]){margin-right:33.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="4"]){width:33.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="5"]){margin-left:41.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="5"]){margin-right:41.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="5"]){width:41.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="6"]){margin-left:50%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="6"]){margin-right:50%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="6"]){width:50%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="7"]){margin-left:58.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="7"]){margin-right:58.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="7"]){width:58.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="8"]){margin-left:66.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="8"]){margin-right:66.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="8"]){width:66.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="9"]){margin-left:75%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="9"]){margin-right:75%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="9"]){width:75%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="10"]){margin-left:83.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="10"]){margin-right:83.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="10"]){width:83.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="11"]){margin-left:91.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="11"]){margin-right:91.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="11"]){width:91.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="12"]){margin-left:100%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="12"]){margin-right:100%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="12"]){width:100%}`;
     __getStatic() {
         return DynamicRow;
@@ -3952,135 +4834,27 @@ _.Layout.DynamicRow=Layout.DynamicRow;
 if(!window.customElements.get('av-dynamic-row')){window.customElements.define('av-dynamic-row', Layout.DynamicRow);Aventus.WebComponentInstance.registerDefinition(Layout.DynamicRow);}
 
 Layout.DynamicCol = class DynamicCol extends Aventus.WebComponent {
-    get 'size'() {
-                    return Number(this.getAttribute('size'));
-                }
-                set 'size'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('size')}
-                    else{this.setAttribute('size',val)}
-                }get 'size_xs'() {
-                    return Number(this.getAttribute('size_xs'));
-                }
-                set 'size_xs'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('size_xs')}
-                    else{this.setAttribute('size_xs',val)}
-                }get 'size_sm'() {
-                    return Number(this.getAttribute('size_sm'));
-                }
-                set 'size_sm'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('size_sm')}
-                    else{this.setAttribute('size_sm',val)}
-                }get 'size_md'() {
-                    return Number(this.getAttribute('size_md'));
-                }
-                set 'size_md'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('size_md')}
-                    else{this.setAttribute('size_md',val)}
-                }get 'size_lg'() {
-                    return Number(this.getAttribute('size_lg'));
-                }
-                set 'size_lg'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('size_lg')}
-                    else{this.setAttribute('size_lg',val)}
-                }get 'size_xl'() {
-                    return Number(this.getAttribute('size_xl'));
-                }
-                set 'size_xl'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('size_xl')}
-                    else{this.setAttribute('size_xl',val)}
-                }get 'offset'() {
-                    return Number(this.getAttribute('offset'));
-                }
-                set 'offset'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('offset')}
-                    else{this.setAttribute('offset',val)}
-                }get 'offset_xs'() {
-                    return Number(this.getAttribute('offset_xs'));
-                }
-                set 'offset_xs'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('offset_xs')}
-                    else{this.setAttribute('offset_xs',val)}
-                }get 'offset_sm'() {
-                    return Number(this.getAttribute('offset_sm'));
-                }
-                set 'offset_sm'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('offset_sm')}
-                    else{this.setAttribute('offset_sm',val)}
-                }get 'offset_md'() {
-                    return Number(this.getAttribute('offset_md'));
-                }
-                set 'offset_md'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('offset_md')}
-                    else{this.setAttribute('offset_md',val)}
-                }get 'offset_lg'() {
-                    return Number(this.getAttribute('offset_lg'));
-                }
-                set 'offset_lg'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('offset_lg')}
-                    else{this.setAttribute('offset_lg',val)}
-                }get 'offset_xl'() {
-                    return Number(this.getAttribute('offset_xl'));
-                }
-                set 'offset_xl'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('offset_xl')}
-                    else{this.setAttribute('offset_xl',val)}
-                }get 'offset_right'() {
-                    return Number(this.getAttribute('offset_right'));
-                }
-                set 'offset_right'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('offset_right')}
-                    else{this.setAttribute('offset_right',val)}
-                }get 'offset_right_xs'() {
-                    return Number(this.getAttribute('offset_right_xs'));
-                }
-                set 'offset_right_xs'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('offset_right_xs')}
-                    else{this.setAttribute('offset_right_xs',val)}
-                }get 'offset_right_sm'() {
-                    return Number(this.getAttribute('offset_right_sm'));
-                }
-                set 'offset_right_sm'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('offset_right_sm')}
-                    else{this.setAttribute('offset_right_sm',val)}
-                }get 'offset_right_md'() {
-                    return Number(this.getAttribute('offset_right_md'));
-                }
-                set 'offset_right_md'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('offset_right_md')}
-                    else{this.setAttribute('offset_right_md',val)}
-                }get 'offset_right_lg'() {
-                    return Number(this.getAttribute('offset_right_lg'));
-                }
-                set 'offset_right_lg'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('offset_right_lg')}
-                    else{this.setAttribute('offset_right_lg',val)}
-                }get 'offset_right_xl'() {
-                    return Number(this.getAttribute('offset_right_xl'));
-                }
-                set 'offset_right_xl'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('offset_right_xl')}
-                    else{this.setAttribute('offset_right_xl',val)}
-                }get 'nobreak'() {
-                return this.hasAttribute('nobreak');
-            }
-            set 'nobreak'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('nobreak', 'true');
-                } else{
-                    this.removeAttribute('nobreak');
-                }
-            }get 'center'() {
-                return this.hasAttribute('center');
-            }
-            set 'center'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('center', 'true');
-                } else{
-                    this.removeAttribute('center');
-                }
-            }    static __style = `:host{display:flex;flex-direction:column;padding:0 10px;width:100%;margin-left:0;margin-right:0}:host([nobreak]){white-space:nowrap;text-overflow:ellipsis;overflow:hidden}:host([center]){text-align:center}:host([size="0"]){width:0%;display:flex}:host([offset="0"]){margin-left:0%}:host([offset-right="0"]){margin-right:0%}:host([size="1"]){width:8.3333333333%;display:flex}:host([offset="1"]){margin-left:8.3333333333%}:host([offset-right="1"]){margin-right:8.3333333333%}:host([size="2"]){width:16.6666666667%;display:flex}:host([offset="2"]){margin-left:16.6666666667%}:host([offset-right="2"]){margin-right:16.6666666667%}:host([size="3"]){width:25%;display:flex}:host([offset="3"]){margin-left:25%}:host([offset-right="3"]){margin-right:25%}:host([size="4"]){width:33.3333333333%;display:flex}:host([offset="4"]){margin-left:33.3333333333%}:host([offset-right="4"]){margin-right:33.3333333333%}:host([size="5"]){width:41.6666666667%;display:flex}:host([offset="5"]){margin-left:41.6666666667%}:host([offset-right="5"]){margin-right:41.6666666667%}:host([size="6"]){width:50%;display:flex}:host([offset="6"]){margin-left:50%}:host([offset-right="6"]){margin-right:50%}:host([size="7"]){width:58.3333333333%;display:flex}:host([offset="7"]){margin-left:58.3333333333%}:host([offset-right="7"]){margin-right:58.3333333333%}:host([size="8"]){width:66.6666666667%;display:flex}:host([offset="8"]){margin-left:66.6666666667%}:host([offset-right="8"]){margin-right:66.6666666667%}:host([size="9"]){width:75%;display:flex}:host([offset="9"]){margin-left:75%}:host([offset-right="9"]){margin-right:75%}:host([size="10"]){width:83.3333333333%;display:flex}:host([offset="10"]){margin-left:83.3333333333%}:host([offset-right="10"]){margin-right:83.3333333333%}:host([size="11"]){width:91.6666666667%;display:flex}:host([offset="11"]){margin-left:91.6666666667%}:host([offset-right="11"]){margin-right:91.6666666667%}:host([size="12"]){width:100%;display:flex}:host([offset="12"]){margin-left:100%}:host([offset-right="12"]){margin-right:100%}`;
+    get 'size'() { return this.getNumberAttr('size') }
+    set 'size'(val) { this.setNumberAttr('size', val) }get 'size_xs'() { return this.getNumberAttr('size_xs') }
+    set 'size_xs'(val) { this.setNumberAttr('size_xs', val) }get 'size_sm'() { return this.getNumberAttr('size_sm') }
+    set 'size_sm'(val) { this.setNumberAttr('size_sm', val) }get 'size_md'() { return this.getNumberAttr('size_md') }
+    set 'size_md'(val) { this.setNumberAttr('size_md', val) }get 'size_lg'() { return this.getNumberAttr('size_lg') }
+    set 'size_lg'(val) { this.setNumberAttr('size_lg', val) }get 'size_xl'() { return this.getNumberAttr('size_xl') }
+    set 'size_xl'(val) { this.setNumberAttr('size_xl', val) }get 'offset'() { return this.getNumberAttr('offset') }
+    set 'offset'(val) { this.setNumberAttr('offset', val) }get 'offset_xs'() { return this.getNumberAttr('offset_xs') }
+    set 'offset_xs'(val) { this.setNumberAttr('offset_xs', val) }get 'offset_sm'() { return this.getNumberAttr('offset_sm') }
+    set 'offset_sm'(val) { this.setNumberAttr('offset_sm', val) }get 'offset_md'() { return this.getNumberAttr('offset_md') }
+    set 'offset_md'(val) { this.setNumberAttr('offset_md', val) }get 'offset_lg'() { return this.getNumberAttr('offset_lg') }
+    set 'offset_lg'(val) { this.setNumberAttr('offset_lg', val) }get 'offset_xl'() { return this.getNumberAttr('offset_xl') }
+    set 'offset_xl'(val) { this.setNumberAttr('offset_xl', val) }get 'offset_right'() { return this.getNumberAttr('offset_right') }
+    set 'offset_right'(val) { this.setNumberAttr('offset_right', val) }get 'offset_right_xs'() { return this.getNumberAttr('offset_right_xs') }
+    set 'offset_right_xs'(val) { this.setNumberAttr('offset_right_xs', val) }get 'offset_right_sm'() { return this.getNumberAttr('offset_right_sm') }
+    set 'offset_right_sm'(val) { this.setNumberAttr('offset_right_sm', val) }get 'offset_right_md'() { return this.getNumberAttr('offset_right_md') }
+    set 'offset_right_md'(val) { this.setNumberAttr('offset_right_md', val) }get 'offset_right_lg'() { return this.getNumberAttr('offset_right_lg') }
+    set 'offset_right_lg'(val) { this.setNumberAttr('offset_right_lg', val) }get 'offset_right_xl'() { return this.getNumberAttr('offset_right_xl') }
+    set 'offset_right_xl'(val) { this.setNumberAttr('offset_right_xl', val) }get 'nobreak'() { return this.getBoolAttr('nobreak') }
+    set 'nobreak'(val) { this.setBoolAttr('nobreak', val) }get 'center'() { return this.getBoolAttr('center') }
+    set 'center'(val) { this.setBoolAttr('center', val) }    static __style = `:host{display:flex;flex-direction:column;padding:0 10px;width:100%;margin-left:0;margin-right:0}:host([nobreak]){white-space:nowrap;text-overflow:ellipsis;overflow:hidden}:host([center]){text-align:center}:host([size="0"]){width:0%;display:flex}:host([offset="0"]){margin-left:0%}:host([offset-right="0"]){margin-right:0%}:host([size="1"]){width:8.3333333333%;display:flex}:host([offset="1"]){margin-left:8.3333333333%}:host([offset-right="1"]){margin-right:8.3333333333%}:host([size="2"]){width:16.6666666667%;display:flex}:host([offset="2"]){margin-left:16.6666666667%}:host([offset-right="2"]){margin-right:16.6666666667%}:host([size="3"]){width:25%;display:flex}:host([offset="3"]){margin-left:25%}:host([offset-right="3"]){margin-right:25%}:host([size="4"]){width:33.3333333333%;display:flex}:host([offset="4"]){margin-left:33.3333333333%}:host([offset-right="4"]){margin-right:33.3333333333%}:host([size="5"]){width:41.6666666667%;display:flex}:host([offset="5"]){margin-left:41.6666666667%}:host([offset-right="5"]){margin-right:41.6666666667%}:host([size="6"]){width:50%;display:flex}:host([offset="6"]){margin-left:50%}:host([offset-right="6"]){margin-right:50%}:host([size="7"]){width:58.3333333333%;display:flex}:host([offset="7"]){margin-left:58.3333333333%}:host([offset-right="7"]){margin-right:58.3333333333%}:host([size="8"]){width:66.6666666667%;display:flex}:host([offset="8"]){margin-left:66.6666666667%}:host([offset-right="8"]){margin-right:66.6666666667%}:host([size="9"]){width:75%;display:flex}:host([offset="9"]){margin-left:75%}:host([offset-right="9"]){margin-right:75%}:host([size="10"]){width:83.3333333333%;display:flex}:host([offset="10"]){margin-left:83.3333333333%}:host([offset-right="10"]){margin-right:83.3333333333%}:host([size="11"]){width:91.6666666667%;display:flex}:host([offset="11"]){margin-left:91.6666666667%}:host([offset-right="11"]){margin-right:91.6666666667%}:host([size="12"]){width:100%;display:flex}:host([offset="12"]){margin-left:100%}:host([offset-right="12"]){margin-right:100%}`;
     __getStatic() {
         return DynamicCol;
     }
@@ -4107,31 +4881,65 @@ Layout.DynamicCol.Tag=`av-dynamic-col`;
 _.Layout.DynamicCol=Layout.DynamicCol;
 if(!window.customElements.get('av-dynamic-col')){window.customElements.define('av-dynamic-col', Layout.DynamicCol);Aventus.WebComponentInstance.registerDefinition(Layout.DynamicCol);}
 
+const Collapse = class Collapse extends Aventus.WebComponent {
+    get 'open'() { return this.getBoolAttr('open') }
+    set 'open'(val) { this.setBoolAttr('open', val) }get 'no_animation'() { return this.getBoolAttr('no_animation') }
+    set 'no_animation'(val) { this.setBoolAttr('no_animation', val) }    static __style = `:host{--_collapse-transition-duration: var(--collapse-transition-duration, 0.5s);--_collapse-transition-timing-function: var(--collapse-transition-timing-function, cubic-bezier(0.65, 0, 0.15, 1))}:host .title{cursor:pointer;-webkit-tap-highlight-color:rgba(0,0,0,0)}:host .collapse{display:grid;grid-template-rows:0fr;transition-duration:var(--_collapse-transition-duration);transition-timing-function:var(--_collapse-transition-timing-function);transition-property:grid-template-rows}:host .collapse .content{overflow:hidden}:host([open]) .collapse{grid-template-rows:1fr}:host([no_animation]) .collapse{transition:none}`;
+    __getStatic() {
+        return Collapse;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Collapse.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'header':`<slot name="header"></slot>`,'default':`<slot></slot>` }, 
+        blocks: { 'default':`<div class="title" _id="collapse_0">    <slot name="header"></slot></div><div class="collapse" _id="collapse_1">    <div class="content">        <slot></slot>    </div></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "events": [
+    {
+      "eventName": "transitionend",
+      "id": "collapse_1",
+      "fct": (e, c) => c.comp.transitionEnd(e)
+    }
+  ],
+  "pressEvents": [
+    {
+      "id": "collapse_0",
+      "onPress": (e, pressInstance, c) => { c.comp.toggleOpen(e, pressInstance); }
+    }
+  ]
+}); }
+    getClassName() {
+        return "Collapse";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('open')) { this.attributeChangedCallback('open', false, false); }if(!this.hasAttribute('no_animation')) { this.attributeChangedCallback('no_animation', false, false); } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('open');this.__upgradeProperty('no_animation'); }
+    __listBoolProps() { return ["open","no_animation"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    transitionEnd(e) {
+        let cst = e.constructor;
+        const new_e = new cst(e.type, e);
+        this.dispatchEvent(new_e);
+    }
+    toggleOpen() {
+        this.open = !this.open;
+    }
+}
+Collapse.Namespace=`${moduleName}`;
+Collapse.Tag=`av-collapse`;
+_.Collapse=Collapse;
+if(!window.customElements.get('av-collapse')){window.customElements.define('av-collapse', Collapse);Aventus.WebComponentInstance.registerDefinition(Collapse);}
+
 const Img = class Img extends Aventus.WebComponent {
     static get observedAttributes() {return ["src", "mode"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
-    get 'cache'() {
-                return this.hasAttribute('cache');
-            }
-            set 'cache'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('cache', 'true');
-                } else{
-                    this.removeAttribute('cache');
-                }
-            }    get 'src'() {
-                    return this.getAttribute('src') ?? undefined;
-                }
-                set 'src'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('src')}
-                    else{this.setAttribute('src',val)}
-                }get 'mode'() {
-                    return this.getAttribute('mode') ?? undefined;
-                }
-                set 'mode'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('mode')}
-                    else{this.setAttribute('mode',val)}
-                }    isCalculing;
+    get 'cache'() { return this.getBoolAttr('cache') }
+    set 'cache'(val) { this.setBoolAttr('cache', val) }    get 'src'() { return this.getStringProp('src') }
+    set 'src'(val) { this.setStringAttr('src', val) }get 'mode'() { return this.getStringProp('mode') }
+    set 'mode'(val) { this.setStringAttr('mode', val) }    isCalculing;
     maxCalculateSize = 10;
     ratio = 1;
     resizeObserver;
@@ -4333,57 +5141,14 @@ if(!window.customElements.get('av-form')){window.customElements.define('av-form'
 
 Form.Input = class Input extends Aventus.WebComponent {
     static get observedAttributes() {return ["value", "label"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
-    get 'required'() {
-                return this.hasAttribute('required');
-            }
-            set 'required'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('required', 'true');
-                } else{
-                    this.removeAttribute('required');
-                }
-            }get 'disabled'() {
-                return this.hasAttribute('disabled');
-            }
-            set 'disabled'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('disabled', 'true');
-                } else{
-                    this.removeAttribute('disabled');
-                }
-            }get 'min_length'() {
-                    return Number(this.getAttribute('min_length'));
-                }
-                set 'min_length'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('min_length')}
-                    else{this.setAttribute('min_length',val)}
-                }get 'max_length'() {
-                    return Number(this.getAttribute('max_length'));
-                }
-                set 'max_length'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('max_length')}
-                    else{this.setAttribute('max_length',val)}
-                }get 'pattern'() {
-                    return this.getAttribute('pattern') ?? undefined;
-                }
-                set 'pattern'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('pattern')}
-                    else{this.setAttribute('pattern',val)}
-                }    get 'value'() {
-                    return this.getAttribute('value') ?? undefined;
-                }
-                set 'value'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('value')}
-                    else{this.setAttribute('value',val)}
-                }get 'label'() {
-                    return this.getAttribute('label') ?? undefined;
-                }
-                set 'label'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('label')}
-                    else{this.setAttribute('label',val)}
-                }    customValidationRules = [];
+    get 'required'() { return this.getBoolAttr('required') }
+    set 'required'(val) { this.setBoolAttr('required', val) }get 'disabled'() { return this.getBoolAttr('disabled') }
+    set 'disabled'(val) { this.setBoolAttr('disabled', val) }get 'min_length'() { return this.getNumberAttr('min_length') }
+    set 'min_length'(val) { this.setNumberAttr('min_length', val) }get 'max_length'() { return this.getNumberAttr('max_length') }
+    set 'max_length'(val) { this.setNumberAttr('max_length', val) }get 'pattern'() { return this.getStringAttr('pattern') }
+    set 'pattern'(val) { this.setStringAttr('pattern', val) }    get 'value'() { return this.getStringProp('value') }
+    set 'value'(val) { this.setStringAttr('value', val) }get 'label'() { return this.getStringProp('label') }
+    set 'label'(val) { this.setStringAttr('label', val) }    customValidationRules = [];
     onChange = new Aventus.Callback();
     errors = [];
     __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("value", ((target) => {
@@ -4419,32 +5184,29 @@ Form.Input = class Input extends Aventus.WebComponent {
     }
   ],
   "content": {
-    "label": [
-      {
-        "id": "input_1",
-        "attrName": "@HTML",
-        "render": (c) => `${c.__P(c.label)}`
-      }
-    ]
+    "input_1°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__c3d0451e83f327f9ac50560c1fff4e87method0())}`,
+      "once": true
+    }
   },
   "events": [
     {
       "eventName": "blur",
       "id": "input_0",
-      "fct": (e, c) => c.component.validate(e)
+      "fct": (e, c) => c.comp.validate(e)
     },
     {
       "eventName": "focus",
       "id": "input_0",
-      "fct": (e, c) => c.component.clearErrors(e)
+      "fct": (e, c) => c.comp.clearErrors(e)
     },
     {
       "eventName": "input",
       "id": "input_0",
-      "fct": (e, c) => c.component.inputChange(e)
+      "fct": (e, c) => c.comp.inputChange(e)
     }
   ]
-});this.__getStatic().__template.setSchema({globals:["label"]}); }
+}); }
     getClassName() {
         return "Input";
     }
@@ -4532,6 +5294,9 @@ Form.Input = class Input extends Aventus.WebComponent {
         this.printErrors();
         return this.errors.length == 0;
     }
+    __c3d0451e83f327f9ac50560c1fff4e87method0() {
+        return this.label;
+    }
 }
 Form.Input.Namespace=`${moduleName}.Form`;
 Form.Input.Tag=`av-input`;
@@ -4540,53 +5305,21 @@ if(!window.customElements.get('av-input')){window.customElements.define('av-inpu
 
 Form.Checkbox = class Checkbox extends Aventus.WebComponent {
     static get observedAttributes() {return ["label", "checked"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
-    get 'disabled'() {
-                return this.hasAttribute('disabled');
-            }
-            set 'disabled'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('disabled', 'true');
-                } else{
-                    this.removeAttribute('disabled');
-                }
-            }get 'reverse'() {
-                return this.hasAttribute('reverse');
-            }
-            set 'reverse'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('reverse', 'true');
-                } else{
-                    this.removeAttribute('reverse');
-                }
-            }    get 'label'() {
-                    return this.getAttribute('label') ?? undefined;
-                }
-                set 'label'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('label')}
-                    else{this.setAttribute('label',val)}
-                }get 'checked'() {
-                return this.hasAttribute('checked');
-            }
-            set 'checked'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('checked', 'true');
-                } else{
-                    this.removeAttribute('checked');
-                }
-            }    get 'value'() {
+    get 'disabled'() { return this.getBoolAttr('disabled') }
+    set 'disabled'(val) { this.setBoolAttr('disabled', val) }get 'reverse'() { return this.getBoolAttr('reverse') }
+    set 'reverse'(val) { this.setBoolAttr('reverse', val) }    get 'label'() { return this.getStringProp('label') }
+    set 'label'(val) { this.setStringAttr('label', val) }get 'checked'() { return this.getBoolProp('checked') }
+    set 'checked'(val) { this.setBoolAttr('checked', val) }    get 'value'() {
 						return this.__watch["value"];
 					}
 					set 'value'(val) {
 						this.__watch["value"] = val;
 					}    onChange = new Aventus.Callback();
     __registerWatchesActions() {
-                this.__addWatchesActions("value", ((target) => {
+    this.__addWatchesActions("value", ((target) => {
     target.syncValue('value');
-}));                super.__registerWatchesActions();
-            }
+}));    super.__registerWatchesActions();
+}
     __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("checked", ((target) => {
     target.syncValue('checked');
 })); }
@@ -4614,19 +5347,17 @@ Form.Checkbox = class Checkbox extends Aventus.WebComponent {
     }
   ],
   "content": {
-    "label": [
-      {
-        "id": "checkbox_1",
-        "attrName": "@HTML",
-        "render": (c) => `${c.__P(c.label)}`
-      }
-    ]
+    "checkbox_1°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__5c369bf990a8d72e34b101c6013f3aecmethod0())}`,
+      "once": true
+    }
   }
-});this.__getStatic().__template.setSchema({globals:["label"]}); }
+}); }
     getClassName() {
         return "Checkbox";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('disabled')) { this.attributeChangedCallback('disabled', false, false); }if(!this.hasAttribute('reverse')) { this.attributeChangedCallback('reverse', false, false); }if(!this.hasAttribute('label')){ this['label'] = ""; }if(!this.hasAttribute('checked')) { this.attributeChangedCallback('checked', false, false); }if(!this["value"]){ this["value"] = false;} }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('disabled')) { this.attributeChangedCallback('disabled', false, false); }if(!this.hasAttribute('reverse')) { this.attributeChangedCallback('reverse', false, false); }if(!this.hasAttribute('label')){ this['label'] = ""; }if(!this.hasAttribute('checked')) { this.attributeChangedCallback('checked', false, false); } }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["value"] = false; }
     __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('disabled');this.__upgradeProperty('reverse');this.__upgradeProperty('label');this.__upgradeProperty('checked'); }
     __listBoolProps() { return ["disabled","reverse","checked"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     syncValue(master) {
@@ -4653,6 +5384,9 @@ Form.Checkbox = class Checkbox extends Aventus.WebComponent {
                 this.onChange.trigger([this.checked]);
             }
         });
+    }
+    __5c369bf990a8d72e34b101c6013f3aecmethod0() {
+        return this.label;
     }
 }
 Form.Checkbox.Namespace=`${moduleName}.Form`;
@@ -4755,99 +5489,17 @@ TouchRecord.Namespace=`${moduleName}`;
 _.TouchRecord=TouchRecord;
 Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
     static get observedAttributes() {return ["zoom"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
-    get 'y_scroll_visible'() {
-                return this.hasAttribute('y_scroll_visible');
-            }
-            set 'y_scroll_visible'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('y_scroll_visible', 'true');
-                } else{
-                    this.removeAttribute('y_scroll_visible');
-                }
-            }get 'x_scroll_visible'() {
-                return this.hasAttribute('x_scroll_visible');
-            }
-            set 'x_scroll_visible'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('x_scroll_visible', 'true');
-                } else{
-                    this.removeAttribute('x_scroll_visible');
-                }
-            }get 'floating_scroll'() {
-                return this.hasAttribute('floating_scroll');
-            }
-            set 'floating_scroll'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('floating_scroll', 'true');
-                } else{
-                    this.removeAttribute('floating_scroll');
-                }
-            }get 'x_scroll'() {
-                return this.hasAttribute('x_scroll');
-            }
-            set 'x_scroll'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('x_scroll', 'true');
-                } else{
-                    this.removeAttribute('x_scroll');
-                }
-            }get 'y_scroll'() {
-                return this.hasAttribute('y_scroll');
-            }
-            set 'y_scroll'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('y_scroll', 'true');
-                } else{
-                    this.removeAttribute('y_scroll');
-                }
-            }get 'auto_hide'() {
-                return this.hasAttribute('auto_hide');
-            }
-            set 'auto_hide'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('auto_hide', 'true');
-                } else{
-                    this.removeAttribute('auto_hide');
-                }
-            }get 'break'() {
-                    return Number(this.getAttribute('break'));
-                }
-                set 'break'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('break')}
-                    else{this.setAttribute('break',val)}
-                }get 'disable'() {
-                return this.hasAttribute('disable');
-            }
-            set 'disable'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('disable', 'true');
-                } else{
-                    this.removeAttribute('disable');
-                }
-            }get 'no_user_select'() {
-                return this.hasAttribute('no_user_select');
-            }
-            set 'no_user_select'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('no_user_select', 'true');
-                } else{
-                    this.removeAttribute('no_user_select');
-                }
-            }    get 'zoom'() {
-                    return Number(this.getAttribute('zoom'));
-                }
-                set 'zoom'(val) {
-                    if(val === undefined || val === null){this.removeAttribute('zoom')}
-                    else{this.setAttribute('zoom',val)}
-                }    observer;
+    get 'y_scroll_visible'() { return this.getBoolAttr('y_scroll_visible') }
+    set 'y_scroll_visible'(val) { this.setBoolAttr('y_scroll_visible', val) }get 'x_scroll_visible'() { return this.getBoolAttr('x_scroll_visible') }
+    set 'x_scroll_visible'(val) { this.setBoolAttr('x_scroll_visible', val) }get 'floating_scroll'() { return this.getBoolAttr('floating_scroll') }
+    set 'floating_scroll'(val) { this.setBoolAttr('floating_scroll', val) }get 'x_scroll'() { return this.getBoolAttr('x_scroll') }
+    set 'x_scroll'(val) { this.setBoolAttr('x_scroll', val) }get 'y_scroll'() { return this.getBoolAttr('y_scroll') }
+    set 'y_scroll'(val) { this.setBoolAttr('y_scroll', val) }get 'auto_hide'() { return this.getBoolAttr('auto_hide') }
+    set 'auto_hide'(val) { this.setBoolAttr('auto_hide', val) }get 'break'() { return this.getNumberAttr('break') }
+    set 'break'(val) { this.setNumberAttr('break', val) }get 'disable'() { return this.getBoolAttr('disable') }
+    set 'disable'(val) { this.setBoolAttr('disable', val) }get 'no_user_select'() { return this.getBoolAttr('no_user_select') }
+    set 'no_user_select'(val) { this.setBoolAttr('no_user_select', val) }    get 'zoom'() { return this.getNumberProp('zoom') }
+    set 'zoom'(val) { this.setNumberAttr('zoom', val) }    observer;
     display = { x: 0, y: 0 };
     max = {
         x: 0,
@@ -4906,7 +5558,7 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
     __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("zoom", ((target) => {
     target.changeZoom();
 })); }
-    static __style = `:host{--internal-scrollbar-container-color: var(--scrollbar-container-color, transparent);--internal-scrollbar-color: var(--scrollbar-color, #757575);--internal-scrollbar-active-color: var(--scrollbar-active-color, #858585);--internal-scroller-width: var(--scroller-width, 6px);--internal-scroller-top: var(--scroller-top, 3px);--internal-scroller-bottom: var(--scroller-bottom, 3px);--internal-scroller-right: var(--scroller-right, 3px);--internal-scroller-left: var(--scroller-left, 3px)}:host{display:block;height:100%;overflow:hidden;position:relative;-webkit-user-drag:none;-khtml-user-drag:none;-moz-user-drag:none;-o-user-drag:none;width:100%}:host .scroll-main-container{display:block;height:100%;position:relative;width:100%}:host .scroll-main-container .content-zoom{display:block;height:100%;position:relative;transform-origin:0 0;width:100%;z-index:4}:host .scroll-main-container .content-zoom .content-hidder{display:block;height:100%;overflow:hidden;position:relative;width:100%}:host .scroll-main-container .content-zoom .content-hidder .content-wrapper{display:inline-block;height:100%;min-height:100%;min-width:100%;position:relative;width:100%}:host .scroll-main-container .scroller-wrapper .container-scroller{display:none;overflow:hidden;position:absolute;z-index:5;transition:transform .2s linear}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller{background-color:var(--internal-scrollbar-container-color);border-radius:5px}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller .scroller{background-color:var(--internal-scrollbar-color);border-radius:5px;cursor:pointer;position:absolute;-webkit-tap-highlight-color:rgba(0,0,0,0);touch-action:none;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .scroller.active{background-color:var(--internal-scrollbar-active-color)}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical{height:calc(100% - var(--internal-scroller-bottom)*2 - var(--internal-scroller-width));padding-left:var(--internal-scroller-left);right:var(--internal-scroller-right);top:var(--internal-scroller-bottom);transform:0;width:calc(var(--internal-scroller-width) + var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical.hide{transform:translateX(calc(var(--internal-scroller-width) + var(--internal-scroller-left)))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller .scroller{width:calc(100% - var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal{bottom:var(--internal-scroller-bottom);height:calc(var(--internal-scroller-width) + var(--internal-scroller-top));left:var(--internal-scroller-right);padding-top:var(--internal-scroller-top);transform:0;width:calc(100% - var(--internal-scroller-right)*2 - var(--internal-scroller-width))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal.hide{transform:translateY(calc(var(--internal-scroller-width) + var(--internal-scroller-top)))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller .scroller{height:calc(100% - var(--internal-scroller-top))}:host([y_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{height:auto}:host([x_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{width:auto}:host([y_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.vertical{display:block}:host([x_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.horizontal{display:block}:host([no_user_select]) .content-wrapper *{user-select:none}:host([no_user_select]) ::slotted{user-select:none}`;
+    static __style = `:host{--internal-scrollbar-container-color: var(--scrollbar-container-color, transparent);--internal-scrollbar-color: var(--scrollbar-color, #757575);--internal-scrollbar-active-color: var(--scrollbar-active-color, #858585);--internal-scroller-width: var(--scroller-width, 6px);--internal-scroller-top: var(--scroller-top, 3px);--internal-scroller-bottom: var(--scroller-bottom, 3px);--internal-scroller-right: var(--scroller-right, 3px);--internal-scroller-left: var(--scroller-left, 3px);--_scrollbar-content-padding: var(--scrollbar-content-padding, 0);--_scrollbar-container-display: var(--scrollbar-container-display, inline-block)}:host{display:block;height:100%;min-height:inherit;min-width:inherit;overflow:hidden;position:relative;-webkit-user-drag:none;-khtml-user-drag:none;-moz-user-drag:none;-o-user-drag:none;width:100%}:host .scroll-main-container{display:block;height:100%;min-height:inherit;min-width:inherit;position:relative;width:100%}:host .scroll-main-container .content-zoom{display:block;height:100%;min-height:inherit;min-width:inherit;position:relative;transform-origin:0 0;width:100%;z-index:4}:host .scroll-main-container .content-zoom .content-hidder{display:block;height:100%;min-height:inherit;min-width:inherit;overflow:hidden;position:relative;width:100%}:host .scroll-main-container .content-zoom .content-hidder .content-wrapper{display:var(--_scrollbar-container-display);height:100%;min-height:inherit;min-width:inherit;padding:var(--_scrollbar-content-padding);position:relative;width:100%}:host .scroll-main-container .scroller-wrapper .container-scroller{display:none;overflow:hidden;position:absolute;transition:transform .2s linear;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller{background-color:var(--internal-scrollbar-container-color);border-radius:5px}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller .scroller{background-color:var(--internal-scrollbar-color);border-radius:5px;cursor:pointer;position:absolute;-webkit-tap-highlight-color:rgba(0,0,0,0);touch-action:none;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .scroller.active{background-color:var(--internal-scrollbar-active-color)}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical{height:calc(100% - var(--internal-scroller-bottom)*2 - var(--internal-scroller-width));padding-left:var(--internal-scroller-left);right:var(--internal-scroller-right);top:var(--internal-scroller-bottom);transform:0;width:calc(var(--internal-scroller-width) + var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical.hide{transform:translateX(calc(var(--internal-scroller-width) + var(--internal-scroller-left)))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller .scroller{width:calc(100% - var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal{bottom:var(--internal-scroller-bottom);height:calc(var(--internal-scroller-width) + var(--internal-scroller-top));left:var(--internal-scroller-right);padding-top:var(--internal-scroller-top);transform:0;width:calc(100% - var(--internal-scroller-right)*2 - var(--internal-scroller-width))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal.hide{transform:translateY(calc(var(--internal-scroller-width) + var(--internal-scroller-top)))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller .scroller{height:calc(100% - var(--internal-scroller-top))}:host([y_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{height:auto}:host([x_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{width:auto}:host([y_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.vertical{display:block}:host([x_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.horizontal{display:block}:host([no_user_select]) .content-wrapper *{user-select:none}:host([no_user_select]) ::slotted{user-select:none}`;
     constructor() {            super();            this.renderAnimation = this.createAnimation();            this.onWheel = this.onWheel.bind(this);            this.onTouchStart = this.onTouchStart.bind(this);            this.onTouchMove = this.onTouchMove.bind(this);            this.onTouchEnd = this.onTouchEnd.bind(this);            this.touchRecord = new TouchRecord();        }
     __getStatic() {
         return Scrollable;
@@ -4919,7 +5571,7 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
     __getHtml() {
     this.__getStatic().__template.setHTML({
         slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<div class="scroll-main-container" _id="scrollable_0">    <div class="content-zoom" _id="scrollable_1">        <div class="content-hidder" _id="scrollable_2">            <div class="content-wrapper" _id="scrollable_3">                <slot></slot>            </div>        </div>    </div>    <div class="scroller-wrapper">        <div class="container-scroller vertical" _id="scrollable_4">            <div class="shadow-scroller">                <div class="scroller" _id="scrollable_5"></div>            </div>        </div>        <div class="container-scroller horizontal" _id="scrollable_6">            <div class="shadow-scroller">                <div class="scroller" _id="scrollable_7"></div>            </div>        </div>    </div></div>` }
+        blocks: { 'default':`<div class="scroll-main-container" _id="scrollable_0">    <div class="content-zoom" _id="scrollable_1">        <div class="content-hidder" _id="scrollable_2">            <div class="content-wrapper" part="content-wrapper" _id="scrollable_3">                <slot></slot>            </div>        </div>    </div>    <div class="scroller-wrapper">        <div class="container-scroller vertical" _id="scrollable_4">            <div class="shadow-scroller">                <div class="scroller" _id="scrollable_5"></div>            </div>        </div>        <div class="container-scroller horizontal" _id="scrollable_6">            <div class="shadow-scroller">                <div class="scroller" _id="scrollable_7"></div>            </div>        </div>    </div></div>` }
     });
 }
     __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
@@ -5119,10 +5771,27 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
     onWheel(e) {
         const DELTA_MODE = [1.0, 28.0, 500.0];
         const mode = DELTA_MODE[e.deltaMode] || DELTA_MODE[0];
-        this.addDelta({
-            x: e.deltaX * mode,
+        let newValue = {
+            x: 0,
             y: e.deltaY * mode,
-        });
+        };
+        if (!this.y_scroll && this.x_scroll) {
+            newValue = {
+                x: e.deltaY * mode,
+                y: 0,
+            };
+            if ((newValue.x > 0 && this.x != this.max.x) ||
+                (newValue.x <= 0 && this.x != 0)) {
+                e.stopPropagation();
+            }
+        }
+        else {
+            if ((newValue.y > 0 && this.y != this.max.y) ||
+                (newValue.y <= 0 && this.y != 0)) {
+                e.stopPropagation();
+            }
+        }
+        this.addDelta(newValue);
     }
     onTouchStart(e) {
         this.touchRecord.track(e);
@@ -5284,52 +5953,11 @@ Layout.Scrollable.Tag=`av-scrollable`;
 _.Layout.Scrollable=Layout.Scrollable;
 if(!window.customElements.get('av-scrollable')){window.customElements.define('av-scrollable', Layout.Scrollable);Aventus.WebComponentInstance.registerDefinition(Layout.Scrollable);}
 
-const App = class App extends Aventus.WebComponent {
-    static __style = `:host{height:100%;width:100%;margin:0;padding:0;overflow:hidden}:host .part{height:500px;width:100%}`;
-    __getStatic() {
-        return App;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(App.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<av-scrollable>	<div class="content" _id="app_0"></div></av-scrollable>` }
-    });
-}
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
-  "elements": [
-    {
-      "name": "content",
-      "ids": [
-        "app_0"
-      ]
-    }
-  ]
-}); }
-    getClassName() {
-        return "App";
-    }
-    postCreation() {
-        for (let i = 0; i <= 8000; i += 500) {
-            let div = document.createElement("DIV");
-            div.classList.add("part");
-            div.style.backgroundColor = "#" + Math.floor(Math.random() * 16777215).toString(16);
-            this.content.appendChild(div);
-        }
-    }
-}
-App.Namespace=`${moduleName}`;
-App.Tag=`av-app`;
-_.App=App;
-if(!window.customElements.get('av-app')){window.customElements.define('av-app', App);Aventus.WebComponentInstance.registerDefinition(App);}
-
 Navigation.Router = class Router extends Aventus.WebComponent {
     oldPage;
     allRoutes = {};
     activePath = "";
+    activeState;
     oneStateActive = false;
     showPageMutex = new Aventus.Mutex();
     get stateManager() {
@@ -5337,7 +5965,7 @@ Navigation.Router = class Router extends Aventus.WebComponent {
     }
     page404;
     static __style = `:host{display:block}`;
-    constructor() {            super();            this.validError404 = this.validError404.bind(this);if (this.constructor == Router) { throw "can't instanciate an abstract class"; } }
+    constructor() {            super();            this.validError404 = this.validError404.bind(this);            this.canChangeState = this.canChangeState.bind(this);            this.stateManager.canChangeState(this.canChangeState);if (this.constructor == Router) { throw "can't instanciate an abstract class"; } }
     __getStatic() {
         return Router;
     }
@@ -5409,13 +6037,16 @@ Navigation.Router = class Router extends Aventus.WebComponent {
                     }
                     let oldPage = this.oldPage;
                     let oldUrl = this.activePath;
-                    await element.show();
                     this.oldPage = element;
                     this.activePath = path;
-                    if (window.location.pathname != currentState.name) {
+                    this.activeState = currentState;
+                    await element.show(currentState);
+                    let title = element.pageTitle();
+                    if (title !== undefined)
+                        document.title = title;
+                    if (this.bindToUrl() && window.location.pathname != currentState.name) {
                         let newUrl = window.location.origin + currentState.name;
-                        document.title = element.pageTitle();
-                        window.history.pushState({}, element.pageTitle(), newUrl);
+                        window.history.pushState({}, title ?? "", newUrl);
                     }
                     this.onNewPage(oldUrl, oldPage, path, element);
                 });
@@ -5437,9 +6068,10 @@ Navigation.Router = class Router extends Aventus.WebComponent {
                 if (this.oldPage && this.oldPage != this.page404) {
                     await this.oldPage.hide();
                 }
-                await this.page404.show();
+                this.activeState = undefined;
                 this.oldPage = this.page404;
                 this.activePath = '';
+                await this.page404.show(this.activeState);
             }
         }
     }
@@ -5451,6 +6083,18 @@ Navigation.Router = class Router extends Aventus.WebComponent {
     getSlugs() {
         return this.stateManager.getStateSlugs(this.activePath);
     }
+    async canChangeState(newState) {
+        return true;
+    }
+    navigate(state) {
+        return this.stateManager.setState(state);
+    }
+    bindToUrl() {
+        return true;
+    }
+    defaultUrl() {
+        return "/";
+    }
     postCreation() {
         this.register();
         let oldUrl = window.localStorage.getItem("navigation_url");
@@ -5458,14 +6102,22 @@ Navigation.Router = class Router extends Aventus.WebComponent {
             Aventus.State.activate(oldUrl, this.stateManager);
             window.localStorage.removeItem("navigation_url");
         }
-        else {
+        else if (this.bindToUrl()) {
             Aventus.State.activate(window.location.pathname, this.stateManager);
         }
-        window.onpopstate = (e) => {
-            if (window.location.pathname != this.stateManager.getState()?.name) {
-                Aventus.State.activate(window.location.pathname, this.stateManager);
+        else {
+            let defaultUrl = this.defaultUrl();
+            if (defaultUrl) {
+                Aventus.State.activate(defaultUrl, this.stateManager);
             }
-        };
+        }
+        if (this.bindToUrl()) {
+            window.onpopstate = (e) => {
+                if (window.location.pathname != this.stateManager.getState()?.name) {
+                    Aventus.State.activate(window.location.pathname, this.stateManager);
+                }
+            };
+        }
     }
 }
 Navigation.Router.Namespace=`${moduleName}.Navigation`;
@@ -5473,17 +6125,9 @@ _.Navigation.Router=Navigation.Router;
 
 Navigation.Page = class Page extends Aventus.WebComponent {
     static get observedAttributes() {return ["visible"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
-    get 'visible'() {
-                return this.hasAttribute('visible');
-            }
-            set 'visible'(val) {
-                val = this.getBoolean(val);
-                if (val) {
-                    this.setAttribute('visible', 'true');
-                } else{
-                    this.removeAttribute('visible');
-                }
-            }    currentRouter;
+    get 'visible'() { return this.getBoolProp('visible') }
+    set 'visible'(val) { this.setBoolAttr('visible', val) }    currentRouter;
+    currentState;
     __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("visible", ((target) => {
     if (target.visible) {
         target.onShow();
@@ -5514,11 +6158,20 @@ Navigation.Page = class Page extends Aventus.WebComponent {
     __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('visible')) { this.attributeChangedCallback('visible', false, false); } }
     __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('visible'); }
     __listBoolProps() { return ["visible"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
-    async show() {
+    pageTitle() {
+        return undefined;
+    }
+    async show(state) {
+        this.currentState = state;
         this.visible = true;
     }
     async hide() {
         this.visible = false;
+        this.currentState = undefined;
+    }
+    onShow() {
+    }
+    onHide() {
     }
 }
 Navigation.Page.Namespace=`${moduleName}.Navigation`;

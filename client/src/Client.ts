@@ -7,6 +7,7 @@ import { FileSystem } from './file-system/FileSystem';
 import { Notifications } from "./notification";
 import { DebugFile } from './file-system/DebugFile';
 import { CommandsInternal } from './cmds-internal';
+import { ReloadSettings } from './cmds/ReloadSettings';
 
 export class Client {
     private _context: ExtensionContext | undefined = undefined;
@@ -23,7 +24,7 @@ export class Client {
     public init(context: ExtensionContext) {
         this.debugFile = new DebugFile();
         context.subscriptions.push(workspace.registerTextDocumentContentProvider(DebugFile.schema, this.debugFile));
-
+        
         this.components = new AvenutsVsComponent();
         this._context = context;
         let serverOptions = this.createServerOption(context.asAbsolutePath(
@@ -32,9 +33,14 @@ export class Client {
         this.client = new LanguageClient('Aventus', 'Aventus', serverOptions, this.createClientOption(context));
         this.client.onReady().then(() => {
             this.addNotification();
+            workspace.onDidChangeConfiguration(() => {
+                ReloadSettings.execute();
+            })
         })
         // Start the client. This will also launch the server
         context.subscriptions.push(this.client.start());
+
+       
     }
     public stop(): Thenable<void> | undefined {
         if (this.fileSystem) {

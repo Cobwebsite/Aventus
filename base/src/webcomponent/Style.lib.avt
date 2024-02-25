@@ -2,7 +2,7 @@ export class Style {
     private static instance: Style;
     public static noAnimation: CSSStyleSheet;
     private static defaultStyleSheets: { [name: string]: string; } = {
-        "@general": `:host{display:inline-block;box-sizing:border-box}:host *{box-sizing:border-box}`,
+        "@default": `:host{display:inline-block;box-sizing:border-box}:host *{box-sizing:border-box}`,
     };
 
     public static store(name: string, content: string) {

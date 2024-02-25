@@ -354,10 +354,32 @@ namespace Layout {
         private onWheel(e: WheelEvent) {
             const DELTA_MODE = [1.0, 28.0, 500.0];
             const mode = DELTA_MODE[e.deltaMode] || DELTA_MODE[0];
-            this.addDelta({
-                x: e.deltaX * mode,
+            let newValue = {
+                x: 0,
                 y: e.deltaY * mode,
-            });
+            }
+            if(!this.y_scroll && this.x_scroll) {
+                newValue = {
+                    x: e.deltaY * mode,
+                    y: 0,
+                }
+                if(
+                    (newValue.x > 0 && this.x != this.max.x) || 
+                    (newValue.x <= 0 && this.x != 0)
+                ) {
+                    e.stopPropagation();
+                }
+            }
+            else {
+                if(
+                    (newValue.y > 0 && this.y != this.max.y) || 
+                    (newValue.y <= 0 && this.y != 0)
+                ) {
+                    e.stopPropagation();
+                }
+            }
+
+            this.addDelta(newValue);
         }
 
 

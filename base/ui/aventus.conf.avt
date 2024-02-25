@@ -5,22 +5,24 @@
         {
             "hideWarnings": true,
             "name": "UI",
-            "inputPath": [
+            "src": [
                 "./component/",
                 "./lib/",
                 "./test/"
             ],
+            "compile": [{
+                "package": "../../lib/Aventus@UI.package.avt",
+                "output": "../dist/aventus.ui.js"
+            }],
             "namespaceStrategy": "followFolders",
-            "namespaceRoot": "./component/",
-            "outputPackage": "../../lib/Aventus@UI.package.avt",
-            "outputFile": "../dist/aventus.ui.js"
+            "namespaceRoot": "./component/"
         }
     ],
     "static": [
         {
             "name": "static",
-            "inputPath": "./static/",
-            "outputPath": "../dist/"
+            "input": "./static/",
+            "output": "../dist/"
         }
     ]
 }

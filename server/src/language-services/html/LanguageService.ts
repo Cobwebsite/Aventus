@@ -1,16 +1,18 @@
-import { getLanguageService, IAttributeData, ITagData, IValueData, LanguageService, TokenType } from "vscode-html-languageservice";
-import { CompletionItemKind, CompletionList, Definition, Diagnostic, FormattingOptions, Hover, Location, Position, Range, TextEdit } from "vscode-languageserver";
+import { getLanguageService, IAttributeData, InsertTextFormat, InsertTextMode, ITagData, IValueData, LanguageService, TokenType } from "vscode-html-languageservice";
+import { CompletionItem, CompletionItemKind, CompletionList, Definition, Diagnostic, FormattingOptions, Hover, Location, Position, Range, TextEdit } from "vscode-languageserver";
 import { AventusLanguageId } from "../../definition";
 import { AventusFile } from '../../files/AventusFile';
 import { Build } from "../../project/Build";
 import { CustomTypeAttribute } from "../ts/component/compiler/def";
 import { AventusWebComponentLogicalFile } from '../ts/component/File';
-import { allGenericTags, defaultAttrs } from './defaultTags';
+import { allGenericTags, defaultAttrs, defaultSnippet } from './defaultTags';
 import { AventusHTMLFile } from './File';
 import { HTMLDoc } from "./helper/definition";
 import { MethodInfo } from '../ts/parser/MethodInfo';
 import { PropertyInfo } from '../ts/parser/PropertyInfo';
 import { ClassInfo } from '../ts/parser/ClassInfo';
+import { TextDocument } from 'vscode-languageserver-textdocument';
+import { convertRange, getWordAtText } from '../../tools';
 
 
 export class AventusHTMLLanguageService {
@@ -23,6 +25,7 @@ export class AventusHTMLLanguageService {
     private extenalDocumentation: { [key: string]: HTMLDoc } = {};
     private internalDocumentation: { [key: string]: HTMLDoc } = {};
     private internalDocumentationReverse: { [className: string]: AventusWebComponentLogicalFile } = {};
+    private internalTagUri: { [tag: string]: { uri: string, fullname: string } } = {};
 
     public constructor(build: Build) {
         this.languageService = this.getHTMLLanguageService();
@@ -117,11 +120,11 @@ export class AventusHTMLLanguageService {
     public async doValidation(file: AventusFile): Promise<Diagnostic[]> {
         return [];
     }
-    public async doComplete(file: AventusFile, position: Position): Promise<CompletionList> {
-        let docHTML = this.languageService.parseHTMLDocument(file.document);
+    public async doComplete(htmlFile: AventusHTMLFile, position: Position): Promise<CompletionList> {
+        let docHTML = this.languageService.parseHTMLDocument(htmlFile.file.documentUser);
         if (docHTML) {
             this.isAutoComplete = true;
-            let result = this.languageService.doComplete(file.document, position, docHTML);
+            let result = this.languageService.doComplete(htmlFile.file.documentUser, position, docHTML);
             this.isAutoComplete = false;
             for (let temp of result.items) {
                 if (temp.label.startsWith("!!")) {
@@ -152,10 +155,44 @@ export class AventusHTMLLanguageService {
                     }
                 }
             }
+            result.items = result.items.concat(this.doCustomComplete(htmlFile, position));
             return result;
         }
         return { isIncomplete: false, items: [] };
     }
+
+    private doCustomComplete(htmlFile: AventusHTMLFile, position: Position): CompletionItem[] {
+        let result: CompletionItem[] = [];
+        if (!htmlFile.fileParsed) return result;
+        let doc = htmlFile.file.documentUser;
+        let offset = doc.offsetAt(position);
+        for (let tag of htmlFile.fileParsed.tags) {
+            if (offset < tag.start) {
+                break;
+            }
+
+            if (offset >= tag.openTagStart && offset <= tag.openTagEnd) {
+                return result;
+            }
+        }
+
+
+        let replaceRange = convertRange(doc, getWordAtText(doc.getText(), offset));
+        let txt = doc.getText().slice(doc.offsetAt(replaceRange.start), doc.offsetAt(replaceRange.end));
+        for (let key in defaultSnippet) {
+            if (key.startsWith(txt)) {
+                result.push({
+                    label: key,
+                    kind: CompletionItemKind.Snippet,
+                    insertText: defaultSnippet[key],
+                    insertTextFormat: InsertTextFormat.Snippet,
+                    insertTextMode: InsertTextMode.adjustIndentation
+                })
+            }
+        }
+        return result;
+    }
+
     public async doHover(file: AventusHTMLFile, position: Position): Promise<Hover | null> {
         let info = this.getLinkToLogic(file, position);
         if (info) {
@@ -168,15 +205,15 @@ export class AventusHTMLLanguageService {
 
         }
         else {
-            let docHTML = this.languageService.parseHTMLDocument(file.file.document);
+            let docHTML = this.languageService.parseHTMLDocument(file.file.documentUser);
             if (docHTML) {
-                return this.languageService.doHover(file.file.document, position, docHTML)
+                return this.languageService.doHover(file.file.documentUser, position, docHTML)
             }
         }
         return null;
     }
-    public async format(file: AventusFile, range: Range, formatParams: FormattingOptions): Promise<TextEdit[]> {
-        return this.languageService.format(file.document, range, formatParams);
+    public async format(document: TextDocument, range: Range, formatParams: FormattingOptions): Promise<TextEdit[]> {
+        return this.languageService.format(document, range, formatParams);
     }
     public async onDefinition(file: AventusHTMLFile, position: Position): Promise<Definition | null> {
         let info = this.getLinkToLogic(file, position);
@@ -185,8 +222,8 @@ export class AventusHTMLLanguageService {
             return {
                 uri: tsFile.file.uri,
                 range: {
-                    start: tsFile.file.document.positionAt(info.nameStart),
-                    end: tsFile.file.document.positionAt(info.nameEnd)
+                    start: tsFile.file.documentUser.positionAt(info.nameStart),
+                    end: tsFile.file.documentUser.positionAt(info.nameEnd)
                 }
             }
         }
@@ -200,14 +237,14 @@ export class AventusHTMLLanguageService {
             }
         }
 
-        
+
         return null;
     }
     //#endregion
 
 
     private getLinkToLogic(file: AventusHTMLFile, position: Position): MethodInfo | PropertyInfo | ClassInfo | null {
-        let offset = file.file.document.offsetAt(position);
+        let offset = file.file.documentUser.offsetAt(position);
         let tsFile = file.tsFile;
         let classInfo = tsFile?.fileParsed?.classes[tsFile.getComponentName()]
         if (tsFile && classInfo && file.fileParsed) {
@@ -251,7 +288,7 @@ export class AventusHTMLLanguageService {
 
     public getLinkToStyle(file: AventusHTMLFile, position: Position): Location[] {
         let result: Location[] = [];
-        let offset = file.file.document.offsetAt(position);
+        let offset = file.file.documentUser.offsetAt(position);
         let scssFile = file.scssFile;
         if (scssFile && file.fileParsed) {
             for (let points of file.fileParsed.styleLinks) {
@@ -260,8 +297,8 @@ export class AventusHTMLLanguageService {
                     result.push({
                         uri: scssFile.file.uri,
                         range: {
-                            start: scssFile.file.document.positionAt(points[1].start),
-                            end: scssFile.file.document.positionAt(points[1].end)
+                            start: scssFile.file.documentUser.positionAt(points[1].start),
+                            end: scssFile.file.documentUser.positionAt(points[1].end)
                         }
                     });
                 }
@@ -351,6 +388,21 @@ export class AventusHTMLLanguageService {
         }
         delete this.internalDocumentation[uri];
         this.rebuildDefinition();
+    }
+
+    public getInternalTagUri(tag: string): { uri: string, fullname: string } | undefined {
+        return this.internalTagUri[tag];
+    }
+    public addInternalTagUri(tag: string, uri: string, fullname: string) {
+        this.internalTagUri[tag] = {uri, fullname};
+    }
+    public removeInternalTagUri(uri: string) {
+        for (let tag in this.internalTagUri) {
+            if (this.internalTagUri[tag].uri == uri) {
+                delete this.internalTagUri[tag];
+                return;
+            }
+        }
     }
     //#endregion
 }

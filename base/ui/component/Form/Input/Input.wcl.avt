@@ -1,9 +1,6 @@
 import type { FormElement } from "../Form/FormElement.lib.avt";
 
 namespace Form {
-    @Debugger({
-        writeCompiled: true
-    })
     export class Input extends Aventus.WebComponent implements Aventus.DefaultComponent, FormElement<string> {
 
         //#region static

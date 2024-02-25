@@ -40,7 +40,7 @@ export class AventusSCSSLanguageService {
 
     public async doValidation(file: AventusFile): Promise<Diagnostic[]> {
         let diagnostics: Diagnostic[] = [];
-        diagnostics = this.languageService.doValidation(file.document, this.languageService.parseStylesheet(file.document));
+        diagnostics = this.languageService.doValidation(file.documentUser, this.languageService.parseStylesheet(file.documentUser));
         // care css-lcurlyexpected  => be sure to have utf-8 encoding
         for (let i = 0; i < diagnostics.length; i++) {
             if (diagnostics[i].code == "emptyRules") {
@@ -53,7 +53,7 @@ export class AventusSCSSLanguageService {
     public async doComplete(file: AventusFile, position: Position): Promise<CompletionList> {
         let founded: string[] = [];
         let result: CompletionList = { isIncomplete: false, items: [] };
-        result = this.languageService.doComplete(file.document, position, this.languageService.parseStylesheet(file.document));
+        result = this.languageService.doComplete(file.documentUser, position, this.languageService.parseStylesheet(file.documentUser));
         let items: { [label: string]: CompletionItem } = {};
         for (let item of result.items) {
             items[item.label] = item;
@@ -109,7 +109,7 @@ export class AventusSCSSLanguageService {
                 }
             }
         }
-        return this.languageService.doHover(file.document, position, this.languageService.parseStylesheet(file.document));
+        return this.languageService.doHover(file.documentUser, position, this.languageService.parseStylesheet(file.documentUser));
     }
 
     public async findDefinition(file: AventusFile, position: Position): Promise<Definition | null> {
@@ -123,7 +123,7 @@ export class AventusSCSSLanguageService {
                 }
             }
         }
-        return this.languageService.findDefinition(file.document, position, this.languageService.parseStylesheet(file.document))
+        return this.languageService.findDefinition(file.documentUser, position, this.languageService.parseStylesheet(file.documentUser))
     }
     async format(file: AventusFile, range: Range, formatParams: FormattingOptions): Promise<TextEdit[]> {
         let formatConfig: CSSFormatConfiguration = {
@@ -134,7 +134,7 @@ export class AventusSCSSLanguageService {
             insertSpaces: false,
             tabSize: 4,
         }
-        let document = file.document;
+        let document = file.documentUser;
         let result = await this.languageService.format(document, range, formatConfig);
         if (result.length == 1) {
             let start = document.offsetAt(result[0].range.start)
@@ -162,13 +162,13 @@ export class AventusSCSSLanguageService {
 
     }
     async doCodeAction(file: AventusFile, range: Range): Promise<CodeAction[]> {
-        let docSCSS = this.languageService.parseStylesheet(file.document)
-        let codeActionContext = CodeActionContext.create(this.languageService.doValidation(file.document, docSCSS))
-        return this.languageService.doCodeActions2(file.document, range, codeActionContext, docSCSS);
+        let docSCSS = this.languageService.parseStylesheet(file.documentUser)
+        let codeActionContext = CodeActionContext.create(this.languageService.doValidation(file.documentUser, docSCSS))
+        return this.languageService.doCodeActions2(file.documentUser, range, codeActionContext, docSCSS);
     }
     public async onReferences(file: AventusFile, position: Position): Promise<Location[]> {
-        let docSCSS = this.languageService.parseStylesheet(file.document)
-        return this.languageService.findReferences(file.document, position, docSCSS);
+        let docSCSS = this.languageService.parseStylesheet(file.documentUser)
+        return this.languageService.findReferences(file.documentUser, position, docSCSS);
     }
 
 
@@ -213,7 +213,7 @@ export class AventusSCSSLanguageService {
 
     public getLinkToHtml(file: AventusWebSCSSFile, position: Position): Location[] {
         let result: Location[] = [];
-        let offset = file.file.document.offsetAt(position);
+        let offset = file.file.documentUser.offsetAt(position);
         let htmlFile = file.htmlFile;
         if (htmlFile && htmlFile.fileParsed) {
             for (let points of htmlFile.fileParsed.styleLinks) {
@@ -222,8 +222,8 @@ export class AventusSCSSLanguageService {
                     result.push({
                         uri: htmlFile.file.uri,
                         range: {
-                            start: htmlFile.file.document.positionAt(points[0].start),
-                            end: htmlFile.file.document.positionAt(points[0].end)
+                            start: htmlFile.file.documentUser.positionAt(points[0].start),
+                            end: htmlFile.file.documentUser.positionAt(points[0].end)
                         }
                     });
                 }
@@ -235,8 +235,8 @@ export class AventusSCSSLanguageService {
     private getTree(file: AventusFile, position: Position): string[] {
         let result: string[] = [];
         if (this.languageService) {
-            let doc = this.languageService.parseStylesheet(file.document);
-            let offset = file.document.offsetAt(position);
+            let doc = this.languageService.parseStylesheet(file.documentUser);
+            let offset = file.documentUser.offsetAt(position);
             let path = getNodePath(doc as Node, offset);
             for (let node of path) {
                 if (node.type == NodeType.Ruleset) {
@@ -253,7 +253,7 @@ export class AventusSCSSLanguageService {
 
     public getRules(file: AventusFile) {
         let rules: SCSSParsedRule = new Map();
-        let doc = this.languageService.parseStylesheet(file.document);
+        let doc = this.languageService.parseStylesheet(file.documentUser);
 
         const _createRuleClass = (selector: Node) => {
             return (tagInfo: TagInfo) => {
@@ -302,51 +302,56 @@ export class AventusSCSSLanguageService {
         const _loadRules = (node: Node, parentCheck: ((tagInfo: TagInfo) => boolean) | null = null) => {
             if (node.type == NodeType.Ruleset) {
                 let hasContent = false;
-                for (let decl of node.getChildren()[1].getChildren()) {
-                    if (decl.type == NodeType.Declaration || decl.type == NodeType.CustomPropertyDeclaration || decl.type == NodeType.MixinDeclaration || decl.type == NodeType.FunctionDeclaration || decl.type == NodeType.VariableDeclaration) {
-                        hasContent = true;
-                        break;
+                let children = node.getChildren();
+                if (children.length > 1) {
+                    for (let decl of children[1].getChildren()) {
+                        if (decl.type == NodeType.Declaration || decl.type == NodeType.CustomPropertyDeclaration || decl.type == NodeType.MixinDeclaration || decl.type == NodeType.FunctionDeclaration || decl.type == NodeType.VariableDeclaration) {
+                            hasContent = true;
+                            break;
+                        }
                     }
                 }
-                let realNode = node.getChildren()[0]?.getChildren()[0];
-                let position: { start: number, end: number } | null = null;
-                if (realNode) {
-                    let oldParentCheck = parentCheck;
-                    for (let childNode of realNode.getChildren()) {
-                        if (childNode.type == NodeType.SimpleSelector) {
-                            if (!position) {
-                                position = {
-                                    start: childNode.offset,
-                                    end: childNode.offset + childNode.length,
-                                };
-                            }
-                            else if (position.start > childNode.offset) {
-                                position.start = childNode.offset;
-                            }
-                            else if (position.end < childNode.offset + childNode.length) {
-                                position.end = childNode.offset + childNode.length;
-                            }
-                            let checks: ((tagInfo: TagInfo) => boolean)[] = [];
-                            for (let selector of childNode.getChildren()) {
-                                if (selector.type == NodeType.ClassSelector) {
-                                    checks.push(_createRuleClass(selector));
+                if (children.length > 0) {
+                    let realNode = children[0]?.getChildren()[0];
+                    let position: { start: number, end: number } | null = null;
+                    if (realNode) {
+                        let oldParentCheck = parentCheck;
+                        for (let childNode of realNode.getChildren()) {
+                            if (childNode.type == NodeType.SimpleSelector) {
+                                if (!position) {
+                                    position = {
+                                        start: childNode.offset,
+                                        end: childNode.offset + childNode.length,
+                                    };
                                 }
-                                else if (selector.type == NodeType.ElementNameSelector) {
-                                    checks.push(_createRuleElementName(selector))
+                                else if (position.start > childNode.offset) {
+                                    position.start = childNode.offset;
                                 }
-                            }
-                            if (checks.length > 0) {
-                                parentCheck = _createCheck(parentCheck, checks);
+                                else if (position.end < childNode.offset + childNode.length) {
+                                    position.end = childNode.offset + childNode.length;
+                                }
+                                let checks: ((tagInfo: TagInfo) => boolean)[] = [];
+                                for (let selector of childNode.getChildren()) {
+                                    if (selector.type == NodeType.ClassSelector) {
+                                        checks.push(_createRuleClass(selector));
+                                    }
+                                    else if (selector.type == NodeType.ElementNameSelector) {
+                                        checks.push(_createRuleElementName(selector))
+                                    }
+                                }
+                                if (checks.length > 0) {
+                                    parentCheck = _createCheck(parentCheck, checks);
 
+                                }
+                            }
+                            else {
+                                let txt = childNode.getText();
+                                console.log("to implement");
                             }
                         }
-                        else {
-                            let txt = childNode.getText();
-                            console.log("to debug");
+                        if (parentCheck && position) {
+                            rules.set(parentCheck, position)
                         }
-                    }
-                    if (parentCheck && position) {
-                        rules.set(parentCheck, position)
                     }
                 }
             }
@@ -369,8 +374,8 @@ export class AventusSCSSLanguageService {
 
     private getElementAtPosition(file: AventusFile, position: Position): Node | null {
         if (this.languageService) {
-            let doc = this.languageService.parseStylesheet(file.document) as Node;
-            let offsetSearch = file.document.offsetAt(position);
+            let doc = this.languageService.parseStylesheet(file.documentUser) as Node;
+            let offsetSearch = file.documentUser.offsetAt(position);
             let loopCheck = (node: Node) => {
                 let children = node.getChildren();
                 for (let child of children) {

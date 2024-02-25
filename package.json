@@ -2,7 +2,7 @@
 	"name": "aventus",
 	"displayName": "Aventus",
 	"description": "This extension allows compilation of Aventus Framework",
-	"version": "1.1.1",
+	"version": "1.2.0",
 	"license": "MIT",
 	"icon": "icons/logo.png",
 	"author": {
@@ -45,7 +45,6 @@
 				"id": "Aventus SCSS",
 				"extensions": [
 					".wcs.avt",
-					".gwcs.avt",
 					".gs.avt"
 				],
 				"configuration": "./syntaxes/scss-language-configuration.json",
@@ -329,6 +328,10 @@
 				"title": "Aventus : Add Config Section"
 			},
 			{
+				"command": "aventus.wc.create.cssvar",
+				"title": "Aventus : Create style variable"
+			},
+			{
 				"command": "aventus.wc.create.attribute",
 				"title": "Aventus : Create attribute"
 			},
@@ -383,6 +386,10 @@
 			{
 				"command": "aventus.openfile.debug",
 				"title": "Aventus : Open debug file"
+			},
+			{
+				"command": "aventus.reloadSettings",
+				"title": "Aventus : Reload settings"
 			}
 		],
 		"menus": {
@@ -416,9 +423,18 @@
 					"when": "resourceFilename == aventus.sharp.avt",
 					"command": "aventus.sharp.export",
 					"group": "navigation@-50"
+				},
+				{
+					"when": "resourceFilename =~ /^.*\\.cs/",
+					"command": "aventus.sharp.export",
+					"group": "navigation@-50"
 				}
 			],
 			"editor/context": [
+				{
+					"when": "resourceFilename =~ /^.*\\.(wcs|wc).avt/",
+					"command": "aventus.wc.create.cssvar"
+				},
 				{
 					"when": "resourceFilename =~ /^.*\\.(wcl|wc).avt/",
 					"command": "aventus.wc.create.attribute"
@@ -446,6 +462,11 @@
 				},
 				{
 					"when": "resourceFilename == aventus.sharp.avt",
+					"command": "aventus.sharp.export",
+					"group": "navigation@-50"
+				},
+				{
+					"when": "resourceFilename =~ /^.*\\.cs/",
 					"command": "aventus.sharp.export",
 					"group": "navigation@-50"
 				}
@@ -492,6 +513,10 @@
 					"when": "editorTextFocus && resourceFilename == aventus.conf.avt"
 				},
 				{
+					"command": "aventus.wc.create.cssvar",
+					"when": "false"
+				},
+				{
 					"command": "aventus.wc.create.attribute",
 					"when": "editorTextFocus && resourceFilename =~ /^.*\\.(wcl|wc).avt/"
 				},
@@ -530,6 +555,10 @@
 				{
 					"command": "aventus.dependances.show",
 					"when": "false"
+				},
+				{
+					"command": "aventus.reloadSettings",
+					"when": "false"
 				}
 			]
 		},
@@ -539,6 +568,12 @@
 				"key": "f5",
 				"mac": "f5",
 				"when": "editorTextFocus && resourceFilename =~ /^.*\\.avt/"
+			},
+			{
+				"command": "aventus.wc.create.cssvar",
+				"key": "ctrl+k ctrl+numpad1",
+				"mac": "cmd+f1",
+				"when": "editorTextFocus && resourceFilename =~ /^.*\\.(wcs).avt/"
 			},
 			{
 				"command": "aventus.wc.create.attribute",

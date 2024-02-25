@@ -74,6 +74,9 @@ export class GenericServer {
 	public static get localTemplateManager() {
 		return this.instance._localTemplate;
 	}
+	public static refreshSettings() {
+		return this.instance.loadSettings();
+	}
 
 
 	protected connection: IConnection;
@@ -266,7 +269,7 @@ export class GenericServer {
 		if (document.uri.endsWith(AventusExtension.ComponentStyle)) {
 			return true;
 		}
-		if (document.uri.endsWith(AventusExtension.ComponentGlobalStyle)) {
+		if (document.uri.endsWith(AventusExtension.Component)) {
 			return true;
 		}
 		if (document.uri.endsWith(AventusExtension.GlobalStyle)) {

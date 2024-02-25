@@ -31,12 +31,10 @@ export class CreateAttribute {
 
 		let name = await GenericServer.Input({
 			title: "Provide a name for your Attribute",
-			async validateInput(value) {
-				if (!value.match(/^[_a-z0-9]+$/g)) {
-					return 'A property must be with lowercase, number or _';
-				}
-				return null;
-			}
+			validations: [{
+				message:'A property must be with lowercase, number or _',
+				regex:'^[_a-z0-9]+$'
+			}]
 		})
 		if (!name) { return; }
 
@@ -53,12 +51,12 @@ export class CreateAttribute {
 			if (type == "boolean" || type == "number") {
 				nullable = "!"
 			}
-			let oldEnd = file.document.positionAt(file.content.length);
+			let oldEnd = file.documentUser.positionAt(file.contentUser.length);
 			let newTxt = '@Attribute()' + EOL + 'public ' + name + nullable + ':' + type + ';' + EOL;
-			let begin = file.content.slice(0, position);
-			let end = file.content.slice(position + 1, file.content.length);
+			let begin = file.contentUser.slice(0, position);
+			let end = file.contentUser.slice(position + 1, file.contentUser.length);
 			let txt = begin + newTxt + end;
-			let newDocument = TextDocument.create(file.uri, AventusLanguageId.TypeScript, file.version + 1, txt);
+			let newDocument = TextDocument.create(file.uri, AventusLanguageId.TypeScript, file.versionUser + 1, txt);
 			await (file as InternalAventusFile).triggerContentChange(newDocument);
 			let textEdits = await (file as InternalAventusFile).getFormatting({
 				insertSpaces: true,
@@ -67,9 +65,9 @@ export class CreateAttribute {
 			await (file as InternalAventusFile).applyTextEdits(textEdits);
 
 			let result: TextEdit[] = [{
-				newText: file.content,
+				newText: file.contentUser,
 				range: {
-					start: file.document.positionAt(0),
+					start: { character: 0, line: 0 },
 					end: oldEnd
 				}
 			}];

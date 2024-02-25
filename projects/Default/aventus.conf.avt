@@ -4,21 +4,23 @@
 	"build": [
 		{
 			"name": "Main",
-			"inputPath": [
+			"src": [
 				"./src/components/*",
 				"./src/data/*",
 				"./src/lib/*",
 				"./src/ram/*",
-				"./src/socket/*"
+				"./src/states/*"
 			],
-			"outputFile": "./dist/${{name}}.js"
+			"compile": [{
+				"output": "./dist/${{name}}.js"
+			}]
 		}
 	],
 	"static": [
 		{
 			"name": "Main",
-			"inputPath": "./src/static/*",
-			"outputPath": "./dist/"
+			"input": "./src/static/*",
+			"output": "./dist/"
 		}
 	]
 }

@@ -4,6 +4,7 @@ import { MethodInfo } from "./MethodInfo";
 import { ParserTs } from "./ParserTs";
 import { PropertyInfo } from "./PropertyInfo";
 import { ConvertibleDecorator } from './decorators/ConvertibleDecorator';
+import { AventusTsLanguageService } from '../LanguageService';
 
 
 export class ClassInfo extends BaseInfo {
@@ -26,7 +27,17 @@ export class ClassInfo extends BaseInfo {
 			return "";
 		}
 		let txt = this.constructorBody.getText();
-		return BaseInfo.getContent(txt, this.constructorBody.getStart(), this.constructorBody.getEnd(), this.dependancesLocations, this.compileTransformations);
+		txt = BaseInfo.getContent(txt, this.constructorBody.getStart(), this.constructorBody.getEnd(), this.dependancesLocations, this.compileTransformations);
+		return txt;
+	}
+
+	public get constructorContentHotReload(): string {
+		if (!this.constructorBody) {
+			return "";
+		}
+		let txt = this.constructorBody.getText();
+		txt = BaseInfo.getContentHotReload(txt, this.constructorBody.getStart(), this.constructorBody.getEnd(), this.dependancesLocations, this.compileTransformations);
+		return txt;
 	}
 
 	constructor(node: ClassDeclaration | InterfaceDeclaration, namespaces: string[], parserInfo: ParserTs) {
@@ -52,7 +63,7 @@ export class ClassInfo extends BaseInfo {
 				this.getClassInheritance(heritage);
 			}
 		}
-		
+
 		forEachChild(node, x => {
 			let isStrong = false;
 			let result: PropertyInfo | MethodInfo | null = null;
@@ -95,10 +106,10 @@ export class ClassInfo extends BaseInfo {
 				let prop = x as SetAccessorDeclaration;
 				let propInfo = new PropertyInfo(prop, this.isInterface, this);
 				if (propInfo.isStatic) {
-					this.propertiesStatic[propInfo.name] = propInfo;
+					this.propertiesStatic["°set°" + propInfo.name] = propInfo;
 				}
 				else {
-					this.properties[propInfo.name] = propInfo;
+					this.properties["°set°" + propInfo.name] = propInfo;
 				}
 				result = propInfo;
 			}
@@ -114,10 +125,8 @@ export class ClassInfo extends BaseInfo {
 				this.methodParameters = [];
 				result = methodInfo;
 			}
-			else if (this.debug) {
-				console.log(SyntaxKind[x.kind]);
-				console.log(x.getText());
-			}
+			
+
 
 			if (result) {
 				if (result.accessibilityModifierTransformation) {
@@ -136,17 +145,19 @@ export class ClassInfo extends BaseInfo {
 		if (node.token == SyntaxKind.ExtendsKeyword) {
 			forEachChild(node, x => {
 				if (x.kind == SyntaxKind.ExpressionWithTypeArguments) {
-					let fullName = this.addDependance(x as ExpressionWithTypeArguments, true);
-					if (fullName.length > 0) {
-						this.extends.push(fullName[0]);
-						if (this.extends.length == 1) {
-							// search parent inside local import
-							let parent = BaseInfo.getInfoByFullName(fullName[0], this);
-							if (parent && parent instanceof ClassInfo) {
-								this.parentClass = parent;
+					this.addDependanceWaitName(x as ExpressionWithTypeArguments, true, (names) => {
+						if (names.length > 0) {
+							this.extends.push(names[0]);
+							if (this.extends.length == 1) {
+								// search parent inside local import
+								let parent = BaseInfo.getInfoByFullName(names[0], this);
+								if (parent && parent instanceof ClassInfo) {
+									this.parentClass = parent;
+								}
 							}
 						}
-					}
+					});
+
 					forEachChild(x, y => {
 						this.loadOnlyDependancesRecu(y, 0, true);
 					})
@@ -156,10 +167,12 @@ export class ClassInfo extends BaseInfo {
 		else if (node.token == SyntaxKind.ImplementsKeyword) {
 			forEachChild(node, x => {
 				if (x.kind == SyntaxKind.ExpressionWithTypeArguments) {
-					let fullName = this.addDependance(x as ExpressionWithTypeArguments, true);
-					if (fullName.length > 0) {
-						this.implements.push(fullName[0]);
-					}
+					this.addDependanceWaitName(x as ExpressionWithTypeArguments, true, (names) => {
+						if (names.length > 0) {
+							this.implements.push(names[0]);
+						}
+					});
+
 				}
 			})
 		}
@@ -195,5 +208,18 @@ export class ClassInfo extends BaseInfo {
 			classToSearch = classToSearch.parentClass;
 		}
 		return false;
+	}
+	public hasField(name: string): boolean {
+		return this.getField(name) != null
+	}
+	public getField(name: string): PropertyInfo | null {
+		let classToSearch: ClassInfo | null = this;
+		while (classToSearch != null) {
+			if (classToSearch.properties[name] != undefined) {
+				return classToSearch.properties[name];
+			}
+			classToSearch = classToSearch.parentClass;
+		}
+		return null;
 	}
 }

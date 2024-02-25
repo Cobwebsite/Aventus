@@ -13,13 +13,13 @@ export class DecoratorInfo {
     public contentStart: number = 0;
     public contentEnd: number = 0;
     public arguments: { value: string, type: ArgType }[] = [];
-    public baseInfo: BaseInfo;
+    public baseInfo?: BaseInfo;
 
-    private constructor(baseInfo: BaseInfo) {
+    private constructor(baseInfo?: BaseInfo) {
         this.baseInfo = baseInfo;
     }
 
-    public static buildDecorator(node: Node, baseInfo: BaseInfo): DecoratorInfo[] {
+    public static buildDecorator(node: Node, baseInfo?: BaseInfo): DecoratorInfo[] {
         let result: DecoratorInfo[] = [];
 
         // canHaveDecorators(node)
@@ -36,10 +36,12 @@ export class DecoratorInfo {
                     info.end = decorator.getEnd();
                     info.contentStart = e.getStart();
                     info.contentEnd = e.getEnd();
-                    baseInfo.compileTransformations[info.start + "_" + info.end] = {
-                        newText: "",
-                        start: info.start,
-                        end: info.end
+                    if (baseInfo) {
+                        baseInfo.compileTransformations[info.start + "_" + info.end] = {
+                            newText: "",
+                            start: info.start,
+                            end: info.end
+                        }
                     }
                     for (let argument of call.arguments) {
                         let arg = getArg(argument);

@@ -1,8 +1,20 @@
+/**
+ * Represents a mutual exclusion (mutex) mechanism for synchronizing access to a shared resource.
+ */
 export class Mutex {
-    private waitingList: ((run: boolean) => void)[] = [];
-    private isLocked: boolean = false;
     /**
-     * Wait the mutex to be free then get it
+     * Array to store functions waiting for the mutex to become available.
+     * @type {((run: boolean) => void)[]}
+     */
+    private waitingList: ((run: boolean) => void)[] = [];
+     /**
+     * Indicates whether the mutex is currently locked or not.
+     * @type {boolean}
+     */
+    private isLocked: boolean = false;
+     /**
+     * Waits for the mutex to become available and then acquires it.
+     * @returns {Promise<boolean>} A Promise that resolves to true if the mutex was acquired successfully.
      */
     public waitOne() {
         return new Promise<boolean>((resolve) => {
@@ -31,7 +43,7 @@ export class Mutex {
     }
 
     /**
-     * Release the mutex
+     * Releases the mutex, allowing only the last function in the waiting list to acquire it.
      */
     public releaseOnlyLast() {
         if(this.waitingList.length > 0) {
@@ -50,13 +62,19 @@ export class Mutex {
     }
 
     /**
-     * Clear mutex
+     * Clears the mutex, removing all waiting functions and releasing the lock.
      */
     public dispose() {
         this.waitingList = [];
         this.isLocked = false;
     }
 
+    /**
+     * Executes a callback function safely within the mutex lock and releases the lock afterward.
+     * @template T - The type of the return value of the callback function.
+     * @param {() => T} cb - The callback function to execute.
+     * @returns {Promise<T | null>} A Promise that resolves to the result of the callback function or null if an error occurs.
+     */
     public async safeRun<T = void>(cb: () => T): Promise<T | null> {
         let result: T | null = null;
         await this.waitOne();
@@ -70,6 +88,12 @@ export class Mutex {
         return result;
     }
 
+    /**
+     * Executes an asynchronous callback function safely within the mutex lock and releases the lock afterward.
+     * @template T - The type of the return value of the asynchronous callback function.
+     * @param {() => Promise<T>} cb - The asynchronous callback function to execute.
+     * @returns {Promise<T | null>} A Promise that resolves to the result of the asynchronous callback function or null if an error occurs.
+     */
     public async safeRunAsync<T = void>(cb: () => Promise<T>): Promise<T | null> {
         let result: T | null = null;
         await this.waitOne();
@@ -83,6 +107,12 @@ export class Mutex {
         return result;
     }
 
+    /**
+     * Executes a callback function safely within the mutex lock, allowing only the last function in the waiting list to acquire the lock, and releases the lock afterward.
+     * @template T - The type of the return value of the callback function.
+     * @param {() => T} cb - The callback function to execute.
+     * @returns {Promise<T | null>} A Promise that resolves to the result of the callback function or null if an error occurs.
+     */
     public async safeRunLast<T = void>(cb: () => T): Promise<T | null> {
         let result: T | null = null;
         if(await this.waitOne()) {
@@ -96,6 +126,13 @@ export class Mutex {
         }
         return result;
     }
+    
+    /**
+     * Executes an asynchronous callback function safely within the mutex lock, allowing only the last function in the waiting list to acquire the lock, and releases the lock afterward.
+     * @template T - The type of the return value of the asynchronous callback function.
+     * @param {() => Promise<T>} cb - The asynchronous callback function to execute.
+     * @returns {Promise<T | undefined>} A Promise that resolves to the result of the asynchronous callback function or undefined if an error occurs.
+     */
     public async safeRunLastAsync<T = void>(cb: () => Promise<T>): Promise<T | undefined> {
         let result: T | undefined;
         if(await this.waitOne()) {
@@ -108,5 +145,74 @@ export class Mutex {
             await this.releaseOnlyLast();
         }
         return result;
+    }
+}
+
+
+/**
+ * Class that manages unique execution of asynchronous actions based on specified keys.
+ */
+export class ActionGuard {
+    /**
+     * Map to store actions that are currently running.
+     * @type {Map<any[], ((res: any) => void)[]>}
+     * @private
+     */
+    private runningAction: Map<any[], ((res: any) => void)[]> = new Map();
+
+    /**
+     * Executes an action uniquely based on the specified keys.
+     * @template T
+     * @param {any[]} keys - The keys associated with the action.
+     * @param {() => Promise<T>} action - The action to execute.
+     * @returns {Promise<T>} A promise that resolves with the result of the action.
+     * @example
+     * // Example usage:
+     * // Create an instance of ActionGuard
+     * const actionGuard = new Aventus.ActionGuard();
+     * 
+     * // Define keys for the action
+     * const keys = ["key1", "key2"];
+     * 
+     * // Define the action to execute
+     * const action = async () => {
+     *     // Simulate an asynchronous operation
+     *     await new Promise(resolve => setTimeout(resolve, 1000));
+     *     return "Action executed";
+     * };
+     * 
+     * // Execute the action using ActionGuard
+     * await actionGuard.run(keys, action)
+     *
+     */
+    public run<T>(keys: any[], action: () => Promise<T>): Promise<T> {
+        return new Promise<T>(async (resolve) => {
+            // Retrieve actions associated with the keys
+            let actions = this.runningAction.get(keys);
+            if(actions) {
+                // If actions already exist, add the promise resolution to the actions list
+                actions.push((res: T) => {
+                    resolve(res);
+                });
+            }
+            else {
+                // If no action exists for the specified keys, initialize a new actions list
+                this.runningAction.set(keys, []);
+                // Execute the specified action
+                let res = await action();
+                // Retrieve actions associated with the keys again
+                let actions = this.runningAction.get(keys);
+                if(actions) {
+                    // Execute all registered actions with the result of the action
+                    for(let action of actions) {
+                        action(res);
+                    }
+                }
+                // Delete actions once they've all been executed
+                this.runningAction.delete(keys);
+                // Resolve the promise with the final result of the action
+                resolve(res);
+            }
+        });
     }
 }

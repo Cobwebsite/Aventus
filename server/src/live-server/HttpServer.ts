@@ -23,6 +23,12 @@ export class HttpServer {
 		}
 		return this.instance;
 	}
+	public static get isRunning(): boolean {
+		if (this.instance?.server && this.instance.server.listening) {
+			return true
+		}
+		return false;
+	}
 
 
 	private config: LiveServerSettings;
@@ -252,7 +258,7 @@ export class HttpServer {
 					let tagToUse = injectTag;
 					let addedCode = INJECTED_CODE;
 					if (this.config.auto_close) {
-						addedCode = addedCode.replace("//onclose", "socket.onclose = function () { window.close(); }")
+						addedCode = addedCode.replace("//onclose", "socket.onclose = function () { setTimeout(() => window.close(), 100); }")
 					}
 					// We need to modify the length given to browser
 					var len = addedCode.length + Number(res.getHeader('Content-Length'));

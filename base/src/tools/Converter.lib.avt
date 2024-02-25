@@ -64,7 +64,7 @@ export class ConverterTransform implements IConverterTransform {
                     obj.fromJSON(data);
                 }
                 else {
-                    obj = Json.classfromJson(obj, data, {
+                    obj = Json.classFromJson(obj, data, {
                         transformValue: (key, value) => {
                             if(obj[key] instanceof Date) {
                                 return value ? new Date(value) : null;
@@ -130,23 +130,43 @@ export class ConverterTransform implements IConverterTransform {
     }
 }
 
+/**
+ * Utility class for data conversion and manipulation.
+ */
 export class Converter {
+    /**
+    * Map storing information about registered types.
+    */
     public static readonly info: Map<string, new () => any> = new Map();
+    /**
+    * Map storing schemas for registered types.
+    */
     private static schema: Map<string, Schema> = new Map();
-
+    /**
+     * Internal converter instance.
+     */
     private static __converter: IConverterTransform = new ConverterTransform();
-
+    /**
+     * Getter for the internal converter instance.
+     */
     private static get converterTransform(): IConverterTransform {
         return this.__converter;
     }
 
+    /**
+    * Sets the converter instance.
+    * @param converter The converter instance to set.
+    */
     public static setConverter(converter: IConverterTransform) {
         this.__converter = converter;
     }
 
     /**
-     * Register a unique string type for any class
-     */
+    * Registers a unique string type for any class.
+    * @param $type The unique string type identifier.
+    * @param cst The constructor function for the class.
+    * @param schema Optional schema for the registered type.
+    */
     public static register($type: string, cst: new () => any, schema?: Schema) {
         this.info.set($type, cst);
         if(schema) {
@@ -154,6 +174,13 @@ export class Converter {
         }
     }
 
+    /**
+     * Transforms the provided data using the current converter instance.
+     * @template T
+     * @param {*} data The data to transform.
+     * @param {IConverterTransform} [converter] Optional converter instance to use for transformation.
+     * @returns {T} Returns the transformed data.
+     */
     public static transform<T = any>(data: any, converter?: IConverterTransform): T {
         if(!converter) {
             converter = this.converterTransform;
@@ -162,13 +189,21 @@ export class Converter {
     }
 
 
+    /**
+     * Copies values from one class instance to another using the current converter instance.
+     * @template T
+     * @param {T} to The destination class instance to copy values into.
+     * @param {T} from The source class instance to copy values from.
+     * @param {ClassCopyOptions} [options] Optional options for the copy operation.
+     * @param {IConverterTransform} [converter] Optional converter instance to use for the copy operation.
+     * @returns {T} Returns the destination class instance with copied values.
+     */
     public static copyValuesClass<T extends Object>(to: T, from: T, options?: ClassCopyOptions, converter?: IConverterTransform) {
         if(!converter) {
             converter = this.converterTransform;
         }
         return converter.copyValuesClass(to, from, options);
     }
-
 }
 
 

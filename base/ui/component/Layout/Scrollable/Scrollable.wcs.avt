@@ -10,12 +10,16 @@
 	--internal-scroller-right: var(--scroller-right, 3px);
 	--internal-scroller-left: var(--scroller-left, 3px);
 
+	--_scrollbar-content-padding: var(--scrollbar-content-padding, 0);
+	--_scrollbar-container-display: var(--scrollbar-container-display, inline-block);
 
 }
 
 :host {
 	display: block;
 	height: 100%;
+	min-height: inherit;
+	min-width: inherit;
 	overflow: hidden;
 	position: relative;
 	-webkit-user-drag: none;
@@ -28,6 +32,8 @@
 	.scroll-main-container {
 		display: block;
 		height: 100%;
+		min-height: inherit;
+		min-width: inherit;
 		position: relative;
 		width: 100%;
 
@@ -35,6 +41,8 @@
 		.content-zoom {
 			display: block;
 			height: 100%;
+			min-height: inherit;
+			min-width: inherit;
 			position: relative;
 			transform-origin: 0 0;
 			width: 100%;
@@ -43,15 +51,18 @@
 			.content-hidder {
 				display: block;
 				height: 100%;
+				min-height: inherit;
+				min-width: inherit;
 				overflow: hidden;
 				position: relative;
 				width: 100%;
 
 				.content-wrapper {
-					display: inline-block;
+					display: var(--_scrollbar-container-display);
 					height: 100%;
-					min-height: 100%;
-					min-width: 100%;
+					min-height: inherit;
+					min-width: inherit;
+					padding: var(--_scrollbar-content-padding);
 					position: relative;
 					width: 100%;
 				}
@@ -65,8 +76,8 @@
 				display: none;
 				overflow: hidden;
 				position: absolute;
-				z-index: 5;
 				transition: transform 0.2s linear;
+				z-index: 5;
 
 				.shadow-scroller {
 					background-color: var(--internal-scrollbar-container-color);
@@ -146,6 +157,7 @@
 		}
 	}
 }
+
 :host([x_scroll]) {
 	.scroll-main-container {
 		.content-zoom {

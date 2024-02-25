@@ -24,7 +24,6 @@ export const AventusExtension = {
     ComponentView: ".wcv.avt",
     ComponentStyle: ".wcs.avt",
     Component: ".wc.avt",
-    ComponentGlobalStyle: ".gwcs.avt",
     GlobalStyle: ".gs.avt",
     Data: ".data.avt",
     Lib: ".lib.avt",

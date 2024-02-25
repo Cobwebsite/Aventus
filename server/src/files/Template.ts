@@ -101,41 +101,11 @@ export class Template {
 			let currentVar = this.currentConfig.variables[variableName];
 			if (currentVar.type == "input") {
 				let defaultValue = currentVar.defaultValue ?? '';
-				let isValid: (value: string) => Promise<null | string> = async () => {
-					return null;
-				}
-				if (currentVar.validation) {
-					let validations: ((value: string) => string | null)[] = [];
-
-					for (let validation of currentVar.validation) {
-						if (!validation.errorMsg) {
-							validation.errorMsg = "The value must match " + validation.pattern;
-						}
-						let pattern = validation.pattern;
-						let error = validation.errorMsg;
-
-						validations.push((value: string) => {
-							if (!value.match(new RegExp(pattern))) {
-								return error;
-							}
-							return null;
-						})
-					}
-
-					isValid = async (value: string) => {
-						for (let validation of validations) {
-							let tempResult = validation(value);
-							if (tempResult !== null) {
-								return tempResult;
-							}
-						}
-						return null;
-					}
-				}
+				
 				const resultInput = await GenericServer.Input({
 					title: currentVar.question,
 					value: defaultValue,
-					validateInput: isValid,
+					validations: currentVar.validation?.map(p => { return { regex: p.pattern, message: p.errorMsg ?? 'Error' } })
 				})
 
 				if (!resultInput) {
@@ -178,7 +148,7 @@ export class Template {
 					exportPath = exportPath.replace(regex, this.currentVars[varName]);
 				}
 				exportPath = normalize(exportPath);
-				if (statSync(templatePath).isDirectory()) {
+				if (statSync(templatePath).isDirectory() && file != '.git') {
 					mkdirSync(exportPath);
 					_internalLoop(templatePath);
 				}

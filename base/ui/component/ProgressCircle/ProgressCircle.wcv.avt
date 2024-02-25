@@ -1,0 +1,4 @@
+<div @element="containerEl" class="container"></div>
+<div class="content">
+	<slot></slot>
+</div>

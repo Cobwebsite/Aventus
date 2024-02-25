@@ -30,11 +30,12 @@ export function AventusWebcomponentTemplate() {
     }
 
     $defaultValue$
+    $defaultValueWatch$
     $upgradeAttributes$
     $listBool$
 
     $methods$
-}
+}//todelete for hmr °
 $namespace$
 $tag$
 $exported$

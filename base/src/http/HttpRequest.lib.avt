@@ -30,6 +30,34 @@ export class HttpRequest {
         this.request.method = method;
     }
 
+    private objectToFormData(obj: { [key: string | number]: any; }, formData?: FormData, parentKey?: string): FormData {
+        formData = formData || new FormData();
+        for(const key in obj) {
+            if(obj.hasOwnProperty(key)) {
+                const value = obj[key];
+
+                const newKey = parentKey ? `${parentKey}[${key}]` : key;
+
+                if(typeof value === 'object' && value !== null && !(value instanceof File)) {
+                    if(Array.isArray(value)) {
+                        // Handle array
+                        value.forEach((arrayItem, index) => {
+                            const arrayKey = `${newKey}[${index}]`;
+                            this.objectToFormData({ [arrayKey]: arrayItem }, formData);
+                        });
+                    } else {
+                        // Recursively handle nested object
+                        this.objectToFormData(value, formData, newKey);
+                    }
+                } else {
+                    // Add simple key-value pair to FormData
+                    formData.append(newKey, value);
+                }
+            }
+        }
+
+        return formData;
+    }
     private prepareBody(data?: { [key: string | number]: any; } | FormData) {
         if(!data) {
             return;
@@ -38,8 +66,25 @@ export class HttpRequest {
             this.request.body = data;
         }
         else {
-            this.request.body = JSON.stringify(data);
-            this.setHeader("Content-Type", "Application/json");
+            let useFormData = false;
+            for(let key in data) {
+                if(data[key] instanceof File) {
+                    useFormData = true;
+                    break;
+                }
+                else if(Array.isArray(data[key]) && data[key].length > 0 && data[key][0] instanceof File) {
+                    useFormData = true;
+                    break;
+                }
+            }
+
+            if(useFormData) {
+                this.request.body = this.objectToFormData(data);
+            }
+            else {
+                this.request.body = JSON.stringify(data);
+                this.setHeader("Content-Type", "Application/json");
+            }
         }
     }
 
@@ -51,17 +96,18 @@ export class HttpRequest {
     }
 
 
-    public async query(router: HttpRouter): Promise<ResultWithError<Response>> {
+    public async query(router?: HttpRouter): Promise<ResultWithError<Response>> {
         let result = new ResultWithError<Response>();
         try {
-            result.result = await fetch(router.options.url + this.url, this.request);
+            const fullUrl = router ? router.options.url + this.url : this.url;
+            result.result = await fetch(fullUrl, this.request);
         } catch(e) {
             result.errors.push(new HttpError(HttpErrorCode.unknow, e));
         }
         return result;
     }
 
-    public async queryVoid<T>(router: HttpRouter): Promise<VoidWithError> {
+    public async queryVoid<T>(router?: HttpRouter): Promise<VoidWithError> {
         let resultTemp = await this.query(router);
         let result = new VoidWithError();
         if(!resultTemp.success) {
@@ -87,7 +133,7 @@ export class HttpRequest {
         return result;
     }
 
-    public async queryJSON<T>(router: HttpRouter): Promise<ResultWithError<T>> {
+    public async queryJSON<T>(router?: HttpRouter): Promise<ResultWithError<T>> {
         let resultTemp = await this.query(router);
         let result = new ResultWithError<T>();
         if(!resultTemp.success) {
@@ -116,7 +162,7 @@ export class HttpRequest {
         return result;
     }
 
-    public async queryTxt(router: HttpRouter): Promise<ResultWithError<string>> {
+    public async queryTxt(router?: HttpRouter): Promise<ResultWithError<string>> {
         let resultTemp = await this.query(router);
         let result = new ResultWithError<string>();
         if(!resultTemp.success) {

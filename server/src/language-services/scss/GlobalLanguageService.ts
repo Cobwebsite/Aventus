@@ -26,18 +26,18 @@ export class AventusGlobalSCSSLanguageService {
     }
 
     public async doValidation(file: AventusFile): Promise<Diagnostic[]> {
-        return this.languageService.doValidation(file.document, this.languageService.parseStylesheet(file.document));
+        return this.languageService.doValidation(file.documentUser, this.languageService.parseStylesheet(file.documentUser));
     }
     public async doComplete(file: AventusFile, position: Position): Promise<CompletionList> {
-        return this.languageService.doComplete(file.document, position, this.languageService.parseStylesheet(file.document));
+        return this.languageService.doComplete(file.documentUser, position, this.languageService.parseStylesheet(file.documentUser));
     }
 
     public async doHover(file: AventusFile, position: Position): Promise<Hover | null> {
-        return this.languageService.doHover(file.document, position, this.languageService.parseStylesheet(file.document));
+        return this.languageService.doHover(file.documentUser, position, this.languageService.parseStylesheet(file.documentUser));
     }
 
     public async findDefinition(file: AventusFile, position: Position): Promise<Definition | null> {
-        return this.languageService.findDefinition(file.document, position, this.languageService.parseStylesheet(file.document))
+        return this.languageService.findDefinition(file.documentUser, position, this.languageService.parseStylesheet(file.documentUser))
     }
     public async format(file: AventusFile, range: Range, formatParams: FormattingOptions): Promise<TextEdit[]> {
         let formatConfig: CSSFormatConfiguration = {
@@ -48,7 +48,7 @@ export class AventusGlobalSCSSLanguageService {
             insertSpaces: false,
             tabSize: 4,
         }
-        let document = file.document;
+        let document = file.documentUser;
         let result = await this.languageService.format(document, range, formatConfig);
         if (result.length == 1) {
             let start = document.offsetAt(result[0].range.start)
@@ -76,18 +76,18 @@ export class AventusGlobalSCSSLanguageService {
 
     }
     public async doCodeAction(file: AventusFile, range: Range): Promise<CodeAction[]> {
-        let docSCSS = this.languageService.parseStylesheet(file.document)
-        let codeActionContext = CodeActionContext.create(this.languageService.doValidation(file.document, docSCSS))
-        return this.languageService.doCodeActions2(file.document, range, codeActionContext, docSCSS);
+        let docSCSS = this.languageService.parseStylesheet(file.documentUser)
+        let codeActionContext = CodeActionContext.create(this.languageService.doValidation(file.documentUser, docSCSS))
+        return this.languageService.doCodeActions2(file.documentUser, range, codeActionContext, docSCSS);
     }
     public async onReferences(file: AventusFile, position: Position): Promise<Location[]> {
-        let docSCSS = this.languageService.parseStylesheet(file.document)
-        return this.languageService.findReferences(file.document, position, docSCSS);
+        let docSCSS = this.languageService.parseStylesheet(file.documentUser)
+        return this.languageService.findReferences(file.documentUser, position, docSCSS);
     }
 
 
     public loadVariables(file: AventusGlobalSCSSFile, uri: string): void {
-        let document = file.file.document;
+        let document = file.file.documentUser;
         let result: { [name: string]: GlobalCSSVariable } = {};
         const _loadCustomProperty = (node: Node) => {
             if (node.type == NodeType.CustomPropertyDeclaration) {

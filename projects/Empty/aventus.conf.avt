@@ -4,10 +4,12 @@
 	"build": [
 		{
 			"name": "Main",
-			"inputPath": [
+			"src": [
 				"./src/*"
 			],
-			"outputFile": "./dist/${{name}}.js"
+			"compile": [{
+				"output": "./dist/${{name}}.js"
+			}]
 		}
 	]
 }

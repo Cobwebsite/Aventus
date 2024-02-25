@@ -9,6 +9,7 @@ import { AventusExtension, AventusLanguageId } from '../definition';
 import { AventusPackageFile } from '../language-services/ts/package/File';
 import { Build } from './Build';
 import { get } from 'http';
+import { get as gets  } from 'https';
 import { GenericServer } from '../GenericServer';
 
 type DependanceLoopPart = {
@@ -127,7 +128,7 @@ export class DependanceManager {
 		orderedName.splice(insertIndex, 0, name);
 		return orderedName.length;
 	}
-
+	// TODO manage error during process
 	private async loadDependance(dep: AventusConfigBuildDependance, config: AventusConfigBuild, build: Build, result: DependanceLoop) {
 		let packageFile: AventusPackageFile | undefined;
 		let finalUri: string | undefined;
@@ -357,7 +358,8 @@ export class DependanceManager {
 		return new Promise<boolean>((resolve) => {
 			const file = createWriteStream(fileUri);
 			try {
-				get(httpUri, function (response) {
+				let fct = httpUri.startsWith("https") ? gets : get
+				fct(httpUri, function (response) {
 					response.pipe(file);
 
 					// after download completed close filestream

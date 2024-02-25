@@ -16,7 +16,7 @@ export class AventusStateFile extends AventusTsFile {
         this.refreshFileParsed();
     }
     protected async onValidate(): Promise<Diagnostic[]> {
-        let document = this.file.document;
+        let document = this.file.documentUser;
         this.diagnostics = this.tsLanguageService.doValidation(this.file);
         if (this.fileParsed) {
             this.diagnostics = this.diagnostics.concat(this.fileParsed.errors)

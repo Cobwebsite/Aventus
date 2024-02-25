@@ -1,4 +1,4 @@
-import { Node, CallExpression, ClassDeclaration, EnumDeclaration, FunctionDeclaration, InterfaceDeclaration, SyntaxKind, TypeAliasDeclaration, TypeNode, TypeReferenceNode, forEachChild, ExpressionWithTypeArguments, NewExpression, PropertyAccessExpression, VariableStatement, VariableDeclaration, MethodDeclaration } from "typescript";
+import { Node, CallExpression, ClassDeclaration, EnumDeclaration, FunctionDeclaration, InterfaceDeclaration, SyntaxKind, TypeAliasDeclaration, TypeNode, TypeReferenceNode, forEachChild, ExpressionWithTypeArguments, NewExpression, PropertyAccessExpression, VariableStatement, VariableDeclaration, MethodDeclaration, getTokenAtPosition, isTypeReferenceNode } from "typescript";
 import { ParserTs } from './ParserTs';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { BaseLibInfo } from './BaseLibInfo';
@@ -8,6 +8,8 @@ import { DependancesDecorator } from './decorators/DependancesDecorator';
 import * as md5 from 'md5';
 import { GenericServer } from '../../../GenericServer';
 import { InternalDecorator } from './decorators/InternalDecorator';
+import { Build } from '../../../project/Build';
+import { AventusTsLanguageService } from '../LanguageService';
 
 
 export enum InfoType {
@@ -23,10 +25,17 @@ export enum InfoType {
 type DependanceType = {
     fullName: string,
     uri: string, // @local (same file), @external (lib), @npm (npm), file uri (same build) 
-    isStrong: boolean,
+    isStrong: boolean
 }
 
 export type SupportedRootNodes = ClassDeclaration | EnumDeclaration | InterfaceDeclaration | TypeAliasDeclaration | FunctionDeclaration | VariableDeclaration | MethodDeclaration
+
+export type DependanceInfo = {
+    replacement: string | null,
+    hotReloadReplacement: string | null,
+    typeRemplacement: string | null,
+    locations: { [key: string]: { start: number, end: number, isType: boolean } }
+}
 
 export abstract class BaseInfo {
     private static infoByShortName: { [shortName: string]: BaseInfo } = {};
@@ -73,6 +82,9 @@ export abstract class BaseInfo {
     public get compiledContent(): string {
         return BaseInfo.getContent(this.content, this.start, this.end, this.dependancesLocations, this.compileTransformations);
     }
+    public get compiledContentHotReload(): string {
+        return BaseInfo.getContentHotReload(this.content, this.start, this.end, this.dependancesLocations, this.compileTransformations);
+    }
     public get fileUri() {
         return this.document.uri;
     }
@@ -81,12 +93,10 @@ export abstract class BaseInfo {
     private dependanceNameLoaded: string[] = [];
     private dependancePrevented: string[] = [];
     public dependancesLocations: {
-        [name: string]: {
-            replacement: string | null,
-            locations: { [key: string]: { start: number, end: number } }
-        }
+        [name: string]: DependanceInfo
     } = {};
     public infoType: InfoType = InfoType.none;
+    public build: Build;
 
     public get parserInfo() {
         return this._parserInfo;
@@ -97,6 +107,7 @@ export abstract class BaseInfo {
         this.document = parserInfo.document;
         this.decorators = DecoratorInfo.buildDecorator(node, this);
         this.dependancesLocations = {};
+        this.build = parserInfo.build;
         if (node.name) {
             this.start = node.getStart();
             this.end = node.getEnd();
@@ -168,11 +179,9 @@ export abstract class BaseInfo {
             let exp = (x as PropertyAccessExpression);
             let txt = exp.name.getText();
             let baseInfo = ParserTs.getBaseInfo(txt);
-            if (baseInfo) {
+            if (baseInfo && exp.expression.getText() + "." + txt == baseInfo.fullName) {
                 // when static call on external class
-                if (exp.expression.getText() + "." + txt == baseInfo.fullName) {
-                    this.addDependanceName(baseInfo.fullName, isStrongDependance, exp.expression.getStart(), exp.expression.getEnd());
-                }
+                this.addDependanceName(baseInfo.fullName, isStrongDependance, exp.expression.getStart(), exp.expression.getEnd());
             }
             else {
                 // when static call on local class
@@ -192,9 +201,18 @@ export abstract class BaseInfo {
             if (x.parent.kind == SyntaxKind.PropertyAccessExpression) {
                 return;
             }
-            else if (x.parent.kind >= SyntaxKind.VariableDeclaration && x.parent.kind <= SyntaxKind.JsxExpression) {
+            if (x.parent.kind >= SyntaxKind.VariableDeclaration && x.parent.kind <= SyntaxKind.JsxExpression) {
                 return;
             }
+            if ([
+                // SyntaxKind.PropertyDeclaration,
+                SyntaxKind.MethodDeclaration,
+                SyntaxKind.ClassStaticBlockDeclaration,
+
+            ].includes(x.parent.kind)) {
+                return;
+            }
+            
             let localClassName = x.getText();
             if (localClassName != 'this' && !localClassName.includes('.')) {
                 let baseInfo = ParserTs.getBaseInfo(localClassName);
@@ -238,15 +256,14 @@ export abstract class BaseInfo {
      * @param name 
      * @param isStrongDependance 
      */
-    protected addDependance(type: TypeNode, isStrongDependance: boolean): string[] {
+    protected addDependance(type: TypeNode, isStrongDependance: boolean): void {
+        if (this.parserInfo.isLib) {
+            return
+        }
         // TODO : add scope declaration variable
-        let result: string[] = [];
         const loop = (info: TypeInfo) => {
             if (info.kind == "type") {
-                let fullName = this.addDependanceName(info.value, isStrongDependance, info.start, info.endNonGeneric);
-                if (fullName !== null) {
-                    result.push(fullName);
-                }
+                this.addDependanceName(info.value, isStrongDependance, info.start, info.endNonGeneric);
                 for (let nested of info.nested) {
                     loop(nested);
                 }
@@ -267,13 +284,72 @@ export abstract class BaseInfo {
             }
         }
         loop(new TypeInfo(type));
-
-
-        return result;
     }
-    protected addDependanceName(name: string, isStrongDependance: boolean, start: number, end: number): string | null {
+    /**
+     * return the fullName
+     * @param name 
+     * @param isStrongDependance 
+     */
+    protected addDependanceWaitName(type: TypeNode, isStrongDependance: boolean, cb: (names: string[]) => void): void {
+        if (this.parserInfo.isLib) {
+            cb([type.getText()])
+            return
+        }
+        // TODO : add scope declaration variable
+        let result: string[] = [];
+        let nb = 0;
+        let validated = false;
+        const validate = () => {
+            if (!validated && nb == 0) {
+                validated = true;
+                cb(result);
+            }
+        }
+        const loop = (info: TypeInfo) => {
+            if (info.kind == "type") {
+                nb++;
+                this.addDependanceName(info.value, isStrongDependance, info.start, info.endNonGeneric, (fullName) => {
+                    if (fullName) result.push(fullName);
+                    nb--;
+                    validate();
+                });
+                for (let nested of info.nested) {
+                    loop(nested);
+                }
+                for (let generic of info.genericValue) {
+                    loop(generic);
+                }
+            }
+            else if (info.kind == "typeLiteral" || info.kind == "function") {
+                for (let nested of info.nested) {
+                    loop(nested);
+                }
+            }
+
+            else if (info.kind == "union") {
+                for (let nested of info.nested) {
+                    loop(nested);
+                }
+            }
+        }
+        loop(new TypeInfo(type));
+        validate();
+    }
+
+    protected addDependanceName(name: string, isStrongDependance: boolean, start: number, end: number, onNameTemp?: ((name?: string) => void)): void {
+        if (this.parserInfo.isLib) {
+            return
+        }
+        let onName: (name?: string) => void
+        if (!onNameTemp) {
+            onName = () => { }
+        }
+        else {
+            onName = onNameTemp;
+        }
         if (!name || name == "constructor" || name == "toString") {
-            return null
+            onName();
+            return
         }
         if (this.debug) {
             console.log("try add dependance " + name);
@@ -285,7 +361,8 @@ export abstract class BaseInfo {
         }
         // if same class
         if (name == this.fullName) {
-            return null;
+            onName();
+            return
         }
         // if its come from js native
         if (BaseLibInfo.exists(name)) {
@@ -294,7 +371,8 @@ export abstract class BaseInfo {
                 !this.parserInfo.waitingImports[name] &&
                 !this.parserInfo.npmImports[name]
             ) {
-                return null;
+                onName();
+                return
             }
         }
 
@@ -302,31 +380,40 @@ export abstract class BaseInfo {
             if (!this.dependancesLocations[name]) {
                 this.dependancesLocations[name] = {
                     locations: {},
-                    replacement: null
+                    typeRemplacement: null,
+                    replacement: null,
+                    hotReloadReplacement: null
                 }
             }
             let key = start + "_" + end;
             if (!this.dependancesLocations[name].locations) {
                 GenericServer.showErrorMessage("For the admin : you can add " + name + " as dependance to avoid");
-                return null;
+                onName();
+                return
             }
             if (!this.dependancesLocations[name].locations[key]) {
+                let token = getTokenAtPosition(this.parserInfo.srcFile, (start + end) / 2);
+                let isType = isTypeReferenceNode(token) || isTypeReferenceNode(token.parent);
                 this.dependancesLocations[name].locations[key] = {
                     start: start,
-                    end: end
+                    end: end,
+                    isType
                 };
             }
         }
 
 
         if (!this.addDependanceNameCustomCheck(name)) {
-            return null;
+            onName();
+            return
         }
         if (this.dependancePrevented.includes(name)) {
-            return null;
+            onName();
+            return
         }
         if (this.dependanceNameLoaded.includes(name)) {
-            return null;
+            onName();
+            return
         }
         this.dependanceNameLoaded.push(name);
 
@@ -335,60 +422,112 @@ export abstract class BaseInfo {
             this.dependances.push({
                 fullName: name,
                 uri: "@external",
-                isStrong: isStrongDependance
+                isStrong: isStrongDependance,
             });
-            return name;
+            onName(name);
+            return;
         }
         if (this.parserInfo.internalObjects[name]) {
             let fullName = this.parserInfo.internalObjects[name].fullname
+            let hotReloadName = [this.build.module, ...this.build.namespaces, fullName].join(".");
             if (fullName == this.fullName) {
                 isStrongDependance = false;
             }
             this.dependances.push({
                 fullName: "$namespace$" + fullName,
                 uri: '@local',
-                isStrong: isStrongDependance
+                isStrong: isStrongDependance,
             });
             if (this.debug) {
                 console.log("add dependance " + name + " : same file");
             }
-            if (this.dependancesLocations[name])
+            if (this.dependancesLocations[name]) {
+                let replacement = fullName;
+                if (this.isExported != this.parserInfo.internalObjects[name].isExported) {
+                    if (!this.isExported) {
+                        replacement = ['globalThis', this.build.module, fullName].join(".");
+                    }
+                    else {
+                        replacement = ['___' + this.build.module, fullName].join(".");
+                    }
+                }
+
+                this.dependancesLocations[name].typeRemplacement = replacement;
                 this.dependancesLocations[name].replacement = fullName;
-            return fullName;
+                this.dependancesLocations[name].hotReloadReplacement = hotReloadName;
+            }
+            onName(fullName);
+            return;
         }
 
-        if (this.parserInfo.imports[name]) {
+        let importInfo = this.parserInfo.imports[name]?.info;
+        if (importInfo) {
             // it's an imported class
-            let fullName = this.parserInfo.imports[name].fullName
+            let fullName = importInfo.fullName
+            let hotReloadName = [this.build.module, ...this.build.namespaces, fullName].join(".");
             this.dependances.push({
                 fullName: "$namespace$" + fullName,
-                uri: this.parserInfo.imports[name].fileUri,
-                isStrong: isStrongDependance
+                uri: importInfo.fileUri,
+                isStrong: isStrongDependance,
             });
             if (this.debug) {
                 console.log("add dependance " + name + " : imported file");
             }
-            if (this.dependancesLocations[name])
+            if (this.dependancesLocations[name]) {
+                let replacement = fullName;
+                if (this.isExported != importInfo.isExported) {
+                    if (!this.isExported) {
+                        replacement = ['globalThis', this.build.module, fullName].join(".");
+                    }
+                    else {
+                        replacement = ['___' + this.build.module, fullName].join(".");
+                    }
+                }
+
+                this.dependancesLocations[name].typeRemplacement = replacement;
                 this.dependancesLocations[name].replacement = fullName;
-            return fullName;
+                this.dependancesLocations[name].hotReloadReplacement = hotReloadName;
+            }
+            onName(fullName);
+            return
         }
         else if (this.parserInfo.waitingImports[name]) {
-            // TODO maybe return a specific value to parsed after file is ready
             if (this.debug) {
                 console.log("add dependance " + name + " : but waiting import file");
             }
             this.parserInfo.waitingImports[name].push((info) => {
-                let fullName = this.parserInfo.imports[name].fullName
-                if (this.dependancesLocations[name])
+                let fullName = info.fullName;
+                let hotReloadName = [this.build.module, ...this.build.namespaces, fullName].join(".");
+
+                if (this.dependancesLocations[name]) {
+                    let replacement = fullName;
+                    if (this.isExported != info.isExported) {
+                        if (!this.isExported) {
+                            replacement = ['globalThis', this.build.module, fullName].join(".");
+                        }
+                        else {
+                            replacement = ['___' + this.build.module, fullName].join(".");
+                        }
+                    }
+                    this.dependancesLocations[name].typeRemplacement = replacement;
                     this.dependancesLocations[name].replacement = fullName;
+                    this.dependancesLocations[name].hotReloadReplacement = hotReloadName;
+                }
+                this.dependances.push({
+                    fullName: "$namespace$" + fullName,
+                    uri: info.fileUri,
+                    isStrong: isStrongDependance
+                });
+                onName(fullName);
             })
+            return;
         }
 
         if (this.parserInfo.npmImports[name]) {
             this.dependances.push({
                 fullName: name,
                 uri: "@npm",
-                isStrong: isStrongDependance
+                isStrong: isStrongDependance,
             });
             if (this.debug) {
                 console.log("add dependance " + name + " : npm");
@@ -397,18 +536,20 @@ export abstract class BaseInfo {
                 let md5uri = md5(this.parserInfo.npmImports[name].uri);
                 this.dependancesLocations[name].replacement = "npmCompilation['" + md5uri + "']." + name;
             }
-            return name;
+            onName(name);
+            return;
         }
         // should be a lib dependances outside the module
         this.dependances.push({
             fullName: name,
             uri: "@external",
-            isStrong: isStrongDependance
+            isStrong: isStrongDependance,
         });
         if (this.debug) {
             console.log("add dependance " + name + " : external");
         }
-        return name;
+        onName(name);
+        return;
     }
 
     protected addDependanceNameCustomCheck(name: string): boolean {
@@ -416,26 +557,50 @@ export abstract class BaseInfo {
     }
 
 
-
-    public static getContent(
+    public static getContent(txt: string,
+        start: number,
+        end: number,
+        dependancesLocations: { [name: string]: DependanceInfo },
+        compileTransformations: { [key: string]: { newText: string, start: number, end: number } }) {
+        return this._getContent(txt, start, end, dependancesLocations, compileTransformations, false);
+    }
+    public static getContentHotReload(txt: string,
+        start: number,
+        end: number,
+        dependancesLocations: { [name: string]: DependanceInfo },
+        compileTransformations: { [key: string]: { newText: string, start: number, end: number } }) {
+        return this._getContent(txt, start, end, dependancesLocations, compileTransformations, true);
+    }
+    private static _getContent(
         txt: string,
         start: number,
         end: number,
-        dependancesLocations: { [name: string]: { replacement: string | null, locations: { [key: string]: { start: number, end: number } } } },
-        compileTransformations: { [key: string]: { newText: string, start: number, end: number } }
+        dependancesLocations: { [name: string]: DependanceInfo },
+        compileTransformations: { [key: string]: { newText: string, start: number, end: number } },
+        isHotReload: boolean
     ) {
         let transformations: { newText: string, start: number, end: number }[] = [];
         for (let depName in dependancesLocations) {
-            let replacement = dependancesLocations[depName].replacement;
+            let replacement = isHotReload ? dependancesLocations[depName].hotReloadReplacement : dependancesLocations[depName].replacement;
+            let typeRemplacement =  dependancesLocations[depName].typeRemplacement;
             if (replacement) {
                 for (let locationKey in dependancesLocations[depName].locations) {
                     let location = dependancesLocations[depName].locations[locationKey];
                     if (location.start >= start && location.end <= end) {
-                        transformations.push({
-                            newText: replacement,
-                            start: location.start - start,
-                            end: location.end - start,
-                        })
+                        if (location.isType && typeRemplacement) {
+                            transformations.push({
+                                newText: typeRemplacement,
+                                start: location.start - start,
+                                end: location.end - start,
+                            })
+                        }
+                        else {
+                            transformations.push({
+                                newText: replacement,
+                                start: location.start - start,
+                                end: location.end - start,
+                            })
+                        }
                     }
                 }
             }

@@ -18,7 +18,8 @@ import {
     NamespaceImport,
     Identifier,
     VariableStatement,
-    VariableDeclaration
+    VariableDeclaration,
+    SourceFile
 } from "typescript";
 import { Diagnostic, DiagnosticSeverity, Range } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -35,14 +36,15 @@ import { FunctionInfo } from './FunctionInfo';
 import { VariableInfo } from './VariableInfo';
 import { Build } from '../../../project/Build';
 import { AventusFile, InternalAventusFile } from '../../../files/AventusFile';
+import { ImportInfo } from './ImportInfo';
 
 
 export class ParserTs {
     private static waitingUri: { [uri: string]: (() => void)[] } = {};
-    private static parsedDoc: { [uri: string]: { version: number, result: ParserTs } } = {};
+    public static parsedDoc: { [uri: string]: { version: number, result: ParserTs } } = {};
     public static parse(document: AventusFile, isLib: boolean, build: Build): ParserTs {
         if (ParserTs.parsedDoc[document.uri]) {
-            if (this.parsedDoc[document.uri].version == document.version) {
+            if (this.parsedDoc[document.uri].version == document.versionInternal) {
                 return this.parsedDoc[document.uri].result;
             }
         }
@@ -106,7 +108,7 @@ export class ParserTs {
         if (!ParserTs.currentParsingDoc) {
             return false;
         }
-        if(ParserTs.currentParsingDoc.internalObjects[name]) {
+        if (ParserTs.currentParsingDoc.internalObjects[name]) {
             return true;
         }
         // if (ParserTs.currentParsingDoc.enums[name]) {
@@ -138,36 +140,38 @@ export class ParserTs {
     public classes: { [shortName: string]: ClassInfo } = {};
     public functions: { [shortName: string]: FunctionInfo } = {};
     public enums: { [shortName: string]: EnumInfo } = {};
-    public imports: { [importClassName: string]: BaseInfo } = {};
+    public imports: { [importClassName: string]: ImportInfo } = {};
     public npmImports: {
         [importClassName: string]: {
             nameInsideLib: string,
             uri: string,
         }
     } = {};
-    public internalObjects: { [name: string]: { fullname: string } } = {}
+    public internalObjects: { [name: string]: { fullname: string, isExported: boolean } } = {}
     public waitingImports: { [localName: string]: ((info: BaseInfo) => void)[] } = {};
     public aliases: { [shortName: string]: AliasInfo } = {};
     public variables: { [shortName: string]: VariableInfo } = {};
     public isLib: boolean = false;
     public isReady: boolean = false;
-    private build: Build;
+    public build: Build;
     private file: AventusFile;
+    public srcFile: SourceFile;
 
     private constructor(file: AventusFile, isLib: boolean, build: Build) {
         this.build = build;
-        this.build.npmBuilder.unregister(file.document.uri);
+        this.build.npmBuilder.unregister(file.documentUser.uri);
         this.file = file;
         ParserTs.parsedDoc[file.uri] = {
-            version: file.version,
+            version: file.versionInternal,
             result: this,
         }
 
         ParserTs.parsingDocs.push(this);
-        this.content = file.document.getText();
-        this._document = file.document;
+        this.content = file.documentInternal.getText();
+        this._document = file.documentInternal;
         this.isLib = isLib;
         let srcFile = createSourceFile("sample.ts", this.content, ScriptTarget.ESNext, true);
+        this.srcFile = srcFile;
         this.quickLoadRoot(srcFile);
         this.loadRoot(srcFile);
         ParserTs.parsingDocs.pop();
@@ -210,7 +214,8 @@ export class ParserTs {
                 if (_class.name) {
                     let name = _class.name.getText();
                     this.internalObjects[name] = {
-                        fullname: [...this.currentNamespace, name].join(".")
+                        fullname: [...this.currentNamespace, name].join("."),
+                        isExported: BaseInfo.isExported(_class)
                     }
                 }
             }
@@ -218,14 +223,16 @@ export class ParserTs {
                 let _enum = x as EnumDeclaration;
                 let name = _enum.name.getText();
                 this.internalObjects[name] = {
-                    fullname: [...this.currentNamespace, name].join(".")
+                    fullname: [...this.currentNamespace, name].join("."),
+                    isExported: BaseInfo.isExported(_enum)
                 }
             }
             else if (x.kind == SyntaxKind.TypeAliasDeclaration) {
                 let _alias = x as TypeAliasDeclaration;
                 let name = _alias.name.getText();
                 this.internalObjects[name] = {
-                    fullname: [...this.currentNamespace, name].join(".")
+                    fullname: [...this.currentNamespace, name].join("."),
+                    isExported: BaseInfo.isExported(_alias)
                 }
             }
             else if (x.kind == SyntaxKind.FunctionDeclaration) {
@@ -233,7 +240,8 @@ export class ParserTs {
                 if (_function.name) {
                     let name = _function.name.getText();
                     this.internalObjects[name] = {
-                        fullname: [...this.currentNamespace, name].join(".")
+                        fullname: [...this.currentNamespace, name].join("."),
+                        isExported: BaseInfo.isExported(_function)
                     }
                 }
             }
@@ -245,11 +253,12 @@ export class ParserTs {
                         let _var = declaration as VariableDeclaration;
                         let name = _var.name.getText();
                         this.internalObjects[name] = {
-                            fullname: [...this.currentNamespace, name].join(".")
+                            fullname: [...this.currentNamespace, name].join("."),
+                            isExported: BaseInfo.isExported(_varStatement)
                         }
                     }
                 }
-                
+
             }
             else if (x.kind == SyntaxKind.ModuleBlock) {
                 this.quickLoadRoot(x);
@@ -296,178 +305,9 @@ export class ParserTs {
     }
 
 
-    private asyncImportLocal(moduleUri: string, localName: string, identifier: Identifier) {
-        let baseInfoLinked = ParserTs.parsedDoc[moduleUri].result.getBaseInfo(localName);
-        if (baseInfoLinked) {
-            this.imports[localName] = baseInfoLinked;
-            let types = [this.classes, this.enums, this.aliases, this.functions, this.variables];
-            for (let type of types) {
-                for (let name in type) {
-                    let _class = type[name]
-                    for (let dependance of _class.dependances) {
-                        if (dependance.uri == "@external" && dependance.fullName == localName) {
-                            dependance.uri = "@local";
-                            dependance.fullName = "$namespace$" + baseInfoLinked.fullName;
-                            //dependance.isStrong = false;
-                        }
-                    }
-                }
-            }
-            for (let cb of this.waitingImports[localName]) {
-                cb(baseInfoLinked);
-            }
-            delete this.waitingImports[localName]
-        }
-        else {
-            ParserTs.addError(identifier.getStart(), identifier.getEnd(), "Can't load " + moduleUri + " " + localName + " from " + this.document.uri)
-        }
-    }
-    private importLocal(moduleName: string, identifier: Identifier) {
-        let localName = identifier.getText();
-        let moduleUri = pathToUri(normalize(getFolder(uriToPath(this.document.uri)) + '/' + moduleName));
-
-        if (moduleUri.endsWith(AventusExtension.Component)) {
-            if (this.waitingImports[localName]) {
-                return;
-            }
-            this.waitingImports[localName] = [];
-            if (!ParserTs.waitingUri[moduleUri]) {
-                ParserTs.waitingUri[moduleUri] = [];
-            }
-            ParserTs.waitingUri[moduleUri].push(() => {
-                this.asyncImportLocal(moduleUri, localName, identifier);
-            })
-            return;
-        }
-
-        if (!ParserTs.parsedDoc[moduleUri]) {
-            let file = FilesManager.getInstance().getByUri(moduleUri);
-            if (file) {
-                ParserTs.parse(file, false, this.build);
-            }
-            else {
-                let modulePath = uriToPath(moduleUri);
-                let content = existsSync(modulePath) ? readFileSync(modulePath, 'utf8') : '';
-                let avFile = new InternalAventusFile(TextDocument.create(moduleUri, AventusLanguageId.TypeScript, 1, content));
-                ParserTs.parse(avFile, false, this.build);
-            }
-        }
-
-        if (ParserTs.parsedDoc[moduleUri]?.result.isReady) {
-            let baseInfoLinked = ParserTs.parsedDoc[moduleUri].result.getBaseInfo(localName);
-            if (baseInfoLinked) {
-                this.imports[localName] = baseInfoLinked
-            }
-            else {
-                ParserTs.addError(identifier.getStart(), identifier.getEnd(), "Can't load " + moduleUri + " " + localName + " from " + this.document.uri)
-            }
-        }
-        else {
-            if (this.waitingImports[localName]) {
-                return;
-            }
-            this.waitingImports[localName] = [];
-            ParserTs.parsedDoc[moduleUri].result.onReady(() => {
-                this.asyncImportLocal(moduleUri, localName, identifier);
-            })
-        }
-    }
-
     private loadImport(node: ImportDeclaration) {
-        if (node.importClause) {
-            if (node.importClause.namedBindings) {
-                if (node.importClause.namedBindings.kind == SyntaxKind.NamespaceImport) {
-                    let moduleName = node.moduleSpecifier.getText().replace(/"/g, "").replace(/'/g, "");
-                    moduleName = this.build.project.resolveAlias(moduleName, this.file);
-                    if (moduleName.startsWith(".")) {
-                        this.errors.push({
-                            range: Range.create(this.document.positionAt(node.getStart()), this.document.positionAt(node.getEnd())),
-                            severity: DiagnosticSeverity.Error,
-                            source: AventusLanguageId.TypeScript,
-                            message: flattenDiagnosticMessageText("error can't use namespace import", '\n')
-                        })
-                    }
-                    else {
-                        let name = node.importClause.namedBindings.name.getText();
-                        if (!node.importClause.isTypeOnly) {
-                            this.build.npmBuilder.register(this.document.uri, {
-                                libName: "*",
-                                uri: moduleName,
-                                alias: name
-                            })
-                            this.npmImports[name] = {
-                                uri: moduleName,
-                                nameInsideLib: "*"
-                            };
-                        }
-                    }
-                }
-                else if (node.importClause.namedBindings.kind == SyntaxKind.NamedImports) {
-                    let moduleName = node.moduleSpecifier.getText().replace(/"/g, "").replace(/'/g, "");
-                    moduleName = this.build.project.resolveAlias(moduleName, this.file);
-                    // it's a local import
-                    if (moduleName.startsWith(".")) {
-                        for (let element of node.importClause.namedBindings.elements) {
-                            if (element.propertyName) {
-                                // it's a rename
-                                this.errors.push({
-                                    range: Range.create(this.document.positionAt(node.getStart()), this.document.positionAt(node.getEnd())),
-                                    severity: DiagnosticSeverity.Error,
-                                    source: AventusLanguageId.TypeScript,
-                                    message: flattenDiagnosticMessageText("error can't use renamed import", '\n')
-                                })
-                            }
-                            else {
-                                this.importLocal(moduleName, element.name);
-                            }
-                        }
-                    }
-                    else {
-                        for (let element of node.importClause.namedBindings.elements) {
-                            let name = element.name.getText();
-                            let nameInsideLib = name;
-                            if (element.propertyName) {
-                                nameInsideLib = element.propertyName.getText();
-                            }
-                            if (!node.importClause.isTypeOnly && !element.isTypeOnly) {
-                                this.build.npmBuilder.register(this.document.uri, {
-                                    libName: nameInsideLib,
-                                    uri: moduleName,
-                                    alias: name
-                                })
-                                this.npmImports[name] = {
-                                    uri: moduleName,
-                                    nameInsideLib: nameInsideLib
-                                };
-                            }
-
-                        }
-                    }
-                }
-            }
-            else if (node.importClause.name) {
-                let moduleName = node.moduleSpecifier.getText().replace(/"/g, "").replace(/'/g, "");
-                moduleName = this.build.project.resolveAlias(moduleName, this.file);
-                let name = node.importClause.name.getText();
-                if (moduleName.startsWith(".")) {
-                    this.importLocal(moduleName, node.importClause.name);
-                }
-                else {
-                    if (!node.importClause.isTypeOnly) {
-                        // TODO check if only here but it should be a default import
-                        this.build.npmBuilder.register(this.document.uri, {
-                            libName: 'default',
-                            uri: moduleName,
-                            alias: name
-                        })
-                        this.npmImports[name] = {
-                            uri: moduleName,
-                            nameInsideLib: 'default'
-                        };
-                    }
-                }
-            }
-        }
+        // this will auto register on the right place
+        ImportInfo.Parse(node, this.file, this);
     }
 
     private loadNamespace(node: ModuleDeclaration) {

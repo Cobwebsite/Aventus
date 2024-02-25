@@ -131,14 +131,14 @@ export function convertRange(document: TextDocument, span: { start: number | und
 }
 
 export function checkTxtBefore(file: AventusFile, position: Position, textToSearch: string) {
-    let offset = file.document.offsetAt(position) - 1;
+    let offset = file.documentUser.offsetAt(position) - 1;
     let currentLetterPosition = textToSearch.length - 1;
     let currentLetter = textToSearch[currentLetterPosition];
     while (offset > 0) {
-        if (file.content[offset] == " ") {
+        if (file.contentUser[offset] == " ") {
             continue;
         }
-        if (file.content[offset] == currentLetter) {
+        if (file.contentUser[offset] == currentLetter) {
             currentLetterPosition--;
             if (currentLetterPosition == -1) {
                 return true;
@@ -154,15 +154,15 @@ export function checkTxtBefore(file: AventusFile, position: Position, textToSear
     return false;
 }
 export function checkTxtAfter(file: AventusFile, position: Position, textToSearch: string) {
-    let offset = file.document.offsetAt(position);
-    let maxOffset = file.document.getText().length;
+    let offset = file.documentUser.offsetAt(position);
+    let maxOffset = file.documentUser.getText().length;
     let currentLetterPosition = 0;
     let currentLetter = textToSearch[currentLetterPosition];
     while (offset <= maxOffset) {
-        if (file.content[offset] == " ") {
+        if (file.contentUser[offset] == " ") {
             continue;
         }
-        if (file.content[offset] == currentLetter) {
+        if (file.contentUser[offset] == currentLetter) {
             currentLetterPosition++;
             if (currentLetterPosition == textToSearch.length) {
                 return true;
@@ -187,7 +187,7 @@ export function replaceNotImportAliases(content: string, config: AventusConfig |
     for (let alias in aliases) {
         if (!alias.startsWith("@")) {
             // we replace all alias not preceded by \
-            let aliasEscaped = alias.replace(/[\\^$*+?.()|[\]{}]/g, '\\$&')
+            let aliasEscaped = escapeRegex(alias);
             let reg = new RegExp("(?<!\\\\)" + aliasEscaped, "g");
             content = content.replace(reg, aliases[alias]);
         }
@@ -195,24 +195,85 @@ export function replaceNotImportAliases(content: string, config: AventusConfig |
     return content;
 }
 
+export function escapeRegex(txt: string, avoidStar: boolean = false) {
+    if (avoidStar)
+        return txt.replace(/[\\^$+?.()|[\]{}]/g, '\\$&');
+    return txt.replace(/[\\^$*+?.()|[\]{}]/g, '\\$&');
+}
+
+function isNewlineCharacter(charCode: number) {
+    return charCode === '\r'.charCodeAt(0) || charCode === '\n'.charCodeAt(0);
+}
+export const JS_WORD_REGEX = /(-?\d*\.\d\w*)|([^\`\~\!\@\#\%\^\&\*\(\)\-\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\?\s]+)/g;
+export function getWordAtText(text: string, offset: number): { start: number; length: number } {
+    let wordDefinition: RegExp = JS_WORD_REGEX;
+    let lineStart = offset;
+    while (lineStart > 0 && !isNewlineCharacter(text.charCodeAt(lineStart - 1))) {
+        lineStart--;
+    }
+    const offsetInLine = offset - lineStart;
+    const lineText = text.substr(lineStart);
+
+    // make a copy of the regex as to not keep the state
+    const flags = wordDefinition.ignoreCase ? 'gi' : 'g';
+    wordDefinition = new RegExp(wordDefinition.source, flags);
+
+    let match = wordDefinition.exec(lineText);
+    while (match && match.index + match[0].length < offsetInLine) {
+        match = wordDefinition.exec(lineText);
+    }
+    if (match && match.index <= offsetInLine) {
+        return { start: match.index + lineStart, length: match[0].length };
+    }
+
+    return { start: offset, length: 0 };
+}
+
+
 
 export class Debug {
     private static timers: { [name: string]: number } = {}
+    private static timersCumulative: { [name: string]: number } = {}
 
     public static startTimer(name: string) {
-        this.timers[name] = new Date().getMilliseconds();
+        this.timers[name] = new Date().getTime();
+    }
+    public static startTimerCumluative(name: string) {
+        this.timers[name] = new Date().getTime();
+        if (!this.timersCumulative[name])
+            this.timersCumulative[name] = 0;
+    }
+    public static stopTimerCumluative(name: string) {
+        if (this.timers[name]) {
+            let diff = new Date().getTime() - this.timers[name];
+            this.timersCumulative[name] += diff;
+            delete this.timers[name]
+        }
+    }
+    public static printTimerCumluative(name: string, lvl: number, msg?: string) {
+        if (this.timersCumulative[name]) {
+            msg = msg ?? name + " : ";
+            for (let i = 0; i < lvl; i++) {
+                msg = "\t" + msg;
+            }
+            console.log(msg + "" + this.timersCumulative[name] + "ms");
+        }
     }
 
-    public static printTimer(name: string, msg?: string) {
+    public static printTimer(name: string, lvl: number, msg?: string) {
         if (this.timers[name]) {
-            let diff = new Date().getMilliseconds() - this.timers[name];
+            let diff = new Date().getTime() - this.timers[name];
             msg = msg ?? "";
+            for (let i = 0; i < lvl; i++) {
+                msg = "\t" + msg;
+            }
             console.log(msg + "" + diff + "ms");
         }
     }
-    public static stopTimer(name: string, print?: boolean, msg?: string) {
+    public static stopTimer(name: string, lvl: number = 0, print: boolean = true, msg?: string) {
         if (print) {
-            this.printTimer(name, msg);
+            if (!msg) msg = name + " : ";
+            this.printTimer(name, lvl, msg);
         }
         delete this.timers[name];
     }

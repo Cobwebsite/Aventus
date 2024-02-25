@@ -1,7 +1,7 @@
 import { ColorInfo } from './ColorInfo';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Color, ColorInformation, ColorPresentation, Position, Range } from 'vscode-languageserver';
-import parseColor from 'parse-color'
+import * as parseColor from 'parse-color';
 
 interface Match {
 	color: Color;
@@ -17,9 +17,7 @@ export class ColorPicker {
 
 	private static colorTxtList: string[] = [];
 	private static parseColorString(color: string) {
-
 		try {
-
 			const p = parseColor(color);
 			if (!p) { throw new Error('invalid color string'); }
 			const r = p.rgba[0];
@@ -101,7 +99,7 @@ export class ColorPicker {
 			}
 			this.colorTxtList = colors;
 		}
-		let regex = new RegExp("(?<![\\w\\d.\"'&$-])("+ this.colorTxtList.join("|") +")(?![\\w\\d])", "gi");
+		let regex = new RegExp("(?<![\\w\\d.\"'&$-])("+ this.colorTxtList.join("|") +")(?![-\\w\\d])", "gi");
 		const matchesNamed = text.matchAll(regex);
 		if (matchesNamed) {
 			for (let match of matchesNamed) {

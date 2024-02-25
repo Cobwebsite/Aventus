@@ -4,6 +4,10 @@ declare global {
     interface DebuggerConfig {
         /** Write the compiled file inside ./compiled.js */
         writeCompiled?: boolean,
+        /** Write the view parsed */
+        writeHTML?: boolean;
+        /** Write the ts file for the component with template methods */
+        writeComponentTs?: boolean;
         /** Enable history for watch property and add a function getWatchHistory on this component*/
         enableWatchHistory?: boolean,
     }
@@ -46,6 +50,10 @@ declare global {
      */
     function Watch<T>(onChange: (component: T, action: Aventus.WatchAction, path: string, value: any) => void);
     /**
+     * Add a function inside a watcher to be notify of changing
+     */
+    function Effect(options?: { autoInit?: boolean; });
+    /**
      * Signal that this variable is a link to your shadowroot
      */
     function ViewElement(config?: ViewElementConfig);
@@ -54,11 +62,11 @@ declare global {
      */
     function ForeignKey(ref: ConstructorConstraint<Aventus.IData>);
     /**
-     * Define a public property that will be trasnformed to private once compiled
+     * Define a public property that will be transformed to private once compiled
      */
     function Internal();
     /**
-     * Define a public property that will be trasnformed to protected once compiled
+     * Define a public property that will be transformed to protected once compiled
      */
     function InternalProtected();
 
@@ -95,4 +103,6 @@ declare global {
     function Convertible(name: string = "Fullname"): (ConstructorConstraint: Function) => void;
 
     function BindThis(): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void;
+
+    function NoCompile(): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void;
 }

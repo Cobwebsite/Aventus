@@ -122,6 +122,7 @@ export class DefinitionCorrector {
 	}
 
 	private static correctType(t: TypeNode): void {
+		if (!t) return;
 		if (t.kind === SyntaxKind.TypeReference) {
 			var tr: TypeReferenceNode = <TypeReferenceNode>t;
 			let parsedName = this.parseQualified(tr.typeName);

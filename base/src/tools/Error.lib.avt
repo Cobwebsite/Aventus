@@ -1,6 +1,10 @@
 import type { Enum, EnumValue } from "./Enum.lib.avt";
 
-export class GenericError<T extends (number | Enum) = number> {
+/**
+ * Represents a generic error with a code, message, and optional details.
+ * @template T - The type of the error code, which extends either number or Enum.
+ */
+export class GenericError<T extends (number | Enum) = any> {
     /**
      * Code for the error
      */
@@ -10,14 +14,27 @@ export class GenericError<T extends (number | Enum) = number> {
      */
     public message: string;
 
+    /**
+     * Additional details related to the error.
+     * @type {any[]}
+     */
     public details: any[] = [];
 
+    /**
+     * Creates a new instance of GenericError.
+     * @param {EnumValue<T>} code - The error code.
+     * @param {string} message - The error message.
+     */
     public constructor(code: EnumValue<T>, message: string) {
         this.code = code;
         this.message = message;
     }
 }
 
+/**
+ * Represents a result of an action that may contain errors.
+ * @template T - The type of error, extending GenericError.
+ */
 export class VoidWithError<T extends GenericError = GenericError> {
 
     /**
@@ -30,11 +47,67 @@ export class VoidWithError<T extends GenericError = GenericError> {
      * List of errors
      */
     public errors: T[] = [];
-}
-export class ResultWithError<U, T extends GenericError = GenericError> extends VoidWithError<T> {
 
     /**
-     * Result
+     * Converts the current instance to a VoidWithError object.
+     * @returns {VoidWithError} A new instance of VoidWithError with the same error list.
+     */
+    public toGeneric(): VoidWithError {
+        const result = new VoidWithError();
+        result.errors = this.errors;
+        return result;
+    }
+
+     /**
+     * Checks if the error list contains a specific error code.
+     * @template U - The type of error, extending GenericError.
+     * @template T - The type of the error code, which extends either number or Enum.
+     * @param {EnumValue<T>} code - The error code to check for.
+     * @param {new (...args: any[]) => U} [type] - Optional constructor function of the error type.
+     * @returns {boolean} True if the error list contains the specified error code, otherwise false.
+     */
+    public containsCode<U extends GenericError<any>, T extends (number | Enum)>(code: EnumValue<T>, type?: new (...args) => U): boolean {
+        if(type) {
+            for(let error of this.errors) {
+                if(error instanceof type) {
+                    if(error.code == code) {
+                        return true;
+                    }
+                }
+            }
+        }
+        else {
+            for(let error of this.errors) {
+                if(error.code == code) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+}
+
+/**
+ * Represents a result of an action that may contain errors and includes a result value.
+ * @template U - The type of the result value.
+ * @template T - The type of error, extending GenericError.
+ */
+export class ResultWithError<U, T extends GenericError = GenericError> extends VoidWithError<T> {
+
+   /**
+     * The result value of the action.
+     * @type {U | undefined}
      */
     public result: U | undefined;
+
+    /**
+     * Converts the current instance to a ResultWithError object.
+     * @returns {ResultWithError<U>} A new instance of ResultWithError with the same error list and result value.
+     */
+    public override toGeneric(): ResultWithError<U> {
+        const result: ResultWithError<U> = new ResultWithError();
+        result.errors = this.errors;
+        result.result = this.result;
+        return result;
+    }
 }

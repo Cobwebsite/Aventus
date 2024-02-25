@@ -11,9 +11,6 @@ export const defaultAttrs: IAttributeData[] = [{
 	name: "@bind",
 	description: "Bind a watcher to a variable"
 }, {
-	name: "@for",
-	description: "Create a for loop"
-}, {
 	name: "@press",
 	description: "Add an event for when the element is clicked"
 }, {
@@ -245,4 +242,14 @@ export const allGenericTags: { [tagName: string]: string } = {
 	"tspan": "SVGTSpanElement",
 	"use": "SVGUseElement",
 	"view": "SVGViewElement",
+}
+
+export const defaultSnippet = {
+	'for': 'for(let ${1:i} = 0; ${1:i} < ${2:this.elements}; ${1:i}++) {\n\t${3}\n}',
+	'forIn': 'for(let ${1:index} in ${2:this.elements}) {\n\t${3}\n}',
+	'forOf': 'for(let ${1:element} of ${2:this.elements}) {\n\t${3}\n}',
+	'if': 'if(${1:true}) {\n\t${2}\n}',
+	'else if': 'else if(${1:true}) {\n\t${2}\n}',
+	'else': 'else {\n\t${1}\n}',
+	'@Context' : '@Context(\'${1:element}\', ${2:this.elements[i]})'
 }
