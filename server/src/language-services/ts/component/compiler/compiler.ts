@@ -357,6 +357,9 @@ export class AventusWebcomponentCompiler {
         let result: { [key: string]: CustomFieldModel } = {};
         for (let propName in classInfo.properties) {
             let property = classInfo.properties[propName];
+            if(this.allFields[property.name]) {
+                continue;
+            }
             let found = false;
             let cloneProp = new CustomFieldModel(property.prop, property.isInsideInterface, classInfo);
             for (let decorator of property.decorators) {
@@ -582,6 +585,9 @@ export class AventusWebcomponentCompiler {
             let field = this.allFields[fieldName];
             // if (field.inParent && this.overrideViewDecorator === null) {
             if (field.inParent) {
+                if(field.propType == "Attribute" || field.propType == "Property") {
+                    this.createHtmlDoc(field, field.type);
+                }
                 continue;
             }
             if (field.propType == "Attribute") {

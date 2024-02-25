@@ -1,5 +1,16 @@
 # Change Log
 
+## 1.2.1 ()
+
+### Bug Fixes
+ - Correct property and attribute inheritance
+ - Correct property and attribute loading for html autocompletion
+
+### Features
+ - Add $ to use as @bind
+
+
+
 ## 1.2.0 (2024-02-24)
 
 ### Bug Fixes
