@@ -5,9 +5,16 @@
 ### Bug Fixes
  - Correct property and attribute inheritance
  - Correct property and attribute loading for html autocompletion
+ - Init state only when the component is renderered
+ - Disable loop check on htmlElement inside fct compareObject
 
 ### Features
  - Add $ to use as @bind
+ - Add clone method to IData
+ - Automatic detection of file inside http request to send multipart content
+ - Add global config into PressManager
+ - Add function to extract and trigger Watcher
+ - Add RamItme function with errors as return
 
 
 

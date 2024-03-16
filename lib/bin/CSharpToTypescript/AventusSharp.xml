@@ -35,6 +35,26 @@
             Attribute used to allow a null value for the Property
             </summary>
         </member>
+        <member name="T:AventusSharp.Data.IAventusFile">
+            <summary>
+            Generic interface for File that you can upload and save into the database
+            </summary>
+        </member>
+        <member name="T:AventusSharp.Data.AventusFile">
+            <summary>
+            Class to handle file during process
+            </summary>
+        </member>
+        <member name="P:AventusSharp.Data.AventusFile.Uri">
+            <summary>
+            The current file Uri
+            </summary>
+        </member>
+        <member name="P:AventusSharp.Data.AventusFile.Upload">
+            <summary>
+            The file uploaded though a form
+            </summary>
+        </member>
         <member name="F:AventusSharp.Data.DataManagerConfigLog.printErrorInConsole">
             <summary>
             Print all errors from storable action in the console
@@ -506,11 +526,10 @@
             <summary>
             Order data but type
             </summary>
-            <param name="table"></param>
             <param name="data"></param>
             <returns></returns>
         </member>
-        <member name="M:AventusSharp.Data.Storage.Default.DefaultDBStorage`1.RunInsideTransaction``1(``0,System.Func{AventusSharp.Data.ResultWithDataError{``0}})">
+        <member name="M:AventusSharp.Data.Storage.Default.DefaultDBStorage`1.RunInsideTransaction``1(``0,System.Func{AventusSharp.Tools.ResultWithError{``0}})">
             <summary>
             Run a function inside a transaction that ll be commit if no error otherwise rollback
             </summary>
@@ -568,14 +587,14 @@
             </summary>
             <remarks></remarks>
         </member>
-        <member name="M:AventusSharp.Data.Storage.Default.TableMember.CustomTableMemberInfoSql.DefineSetValue(System.Action{System.Object,System.Object})">
+        <member name="M:AventusSharp.Data.Storage.Default.TableMember.CustomInternalTableMemberInfoSql.DefineSetValue(System.Action{System.Object,System.Object})">
             <summary>
             Param 1 => the object
             Param 2 => the value
             </summary>
             <param name="fctSetValue"></param>
         </member>
-        <member name="M:AventusSharp.Data.Storage.Default.TableMember.CustomTableMemberInfoSql.DefineSetSqlValue(System.Action{System.Object,System.Object})">
+        <member name="M:AventusSharp.Data.Storage.Default.TableMember.CustomInternalTableMemberInfoSql.DefineSetSqlValue(System.Action{System.Object,System.Object})">
             <summary>
             Param 1 => the object
             Param 2 => the value
@@ -587,6 +606,13 @@
             Return true if the loop must be break
             </summary>
             <param name="attribute"></param>
+            <returns></returns>
+        </member>
+        <member name="M:AventusSharp.Data.Storage.Default.TableMember.TableMemberInfo.GetValueToSave(System.Object)">
+            <summary>
+            Return the value for the storage
+            </summary>
+            <param name="obj"></param>
             <returns></returns>
         </member>
         <member name="P:AventusSharp.Data.Storage.Default.TableMember.TableMemberInfo.MemberType">
@@ -644,6 +670,13 @@
             <param name="obj"></param>
             <returns></returns>
         </member>
+        <member name="M:AventusSharp.Routes.Request.RouterBody.AddFileToResult(System.String,System.Object)">
+            <summary>
+            Find reference inside object to add File
+            </summary>
+            <param name="propPath"></param>
+            <param name="result"></param>
+        </member>
         <member name="M:AventusSharp.Routes.Request.RouterBody.GetData(System.Type,System.String)">
             <summary>
             Transform data into object T. Add path to tell where to find data to cast
@@ -651,6 +684,11 @@
             <typeparam name="T"></typeparam>
             <param name="propPath">Path where to find data</param>
             <returns></returns>
+        </member>
+        <member name="F:AventusSharp.Routes.Request.HttpFile.stream">
+            <summary>
+            Only use during the upload process
+            </summary>
         </member>
         <member name="T:AventusSharp.Scheduler.Event.JobEndInfo">
             <summary>

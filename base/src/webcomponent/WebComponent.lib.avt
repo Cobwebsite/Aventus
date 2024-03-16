@@ -252,8 +252,12 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
                 let defaultValue = {};
                 this.__defaultValuesWatch(defaultValue);
                 this.__watch = Watcher.get(defaultValue, (type, path, element) => {
-                    let action = this.__watchActionsCb[path.split(".")[0]] || this.__watchActionsCb[path.split("[")[0]];
-                    action(type, path, element);
+                    try {
+                        let action = this.__watchActionsCb[path.split(".")[0]] || this.__watchActionsCb[path.split("[")[0]];
+                        action(type, path, element);
+                    } catch(e) {
+                        console.error(e);
+                    }
                 });
             }
         }
@@ -345,6 +349,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
             this._first = false;
             this.__defaultValues();
             this.__upgradeAttributes();
+            this.__activateState();
             this.__templateInstance?.render();
             this.__removeNoAnimations();
         }
@@ -483,11 +488,23 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
             for(const managerClass of this.__statesList[route].keys()) {
                 let el = this.__statesList[route].get(managerClass);
                 if(el) {
-                    managerClass.subscribe(route, el);
+                    managerClass.subscribe(route, el, false);
                 }
             }
         }
     }
+
+    private __activateState() {
+        for(let route in this.__statesList) {
+            for(const managerClass of this.__statesList[route].keys()) {
+                let el = this.__statesList[route].get(managerClass);
+                if(el) {
+                    managerClass.activateAfterSubscribe(route, el);
+                }
+            }
+        }
+    }
+
     private __stateCleared: boolean = false;
     private __unsubscribeState() {
         for(let route in this.__statesList) {

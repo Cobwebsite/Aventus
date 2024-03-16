@@ -329,8 +329,8 @@ export class AventusWebcomponentCompiler {
     private loadParent(classInfo: ClassInfo, isFirst: boolean = true) {
         let fields = this.loadFields(classInfo, isFirst);
         this.allFields = {
+            ...fields,
             ...this.allFields,
-            ...fields
         }
 
         for (let methodName in classInfo.methods) {
@@ -926,13 +926,17 @@ export class AventusWebcomponentCompiler {
             let defaultStateTxt = "";
             if (this.classInfo) {
                 let fullTxt = ""
-                let fullTxtHotReload = ""
-                for (let methodName in this.classInfo.methods) {
-                    let method = this.classInfo.methods[methodName];
+                let fullTxtHotReload = "";
+                const methods = [...Object.values(this.classInfo.methods), ...Object.values(this.classInfo.methodsStatic)]
+                for (let method of methods) {
                     if (!method.mustBeCompiled) continue;
+                    let methodName = method.name;
                     fullTxt += method.compiledContent + EOL;
                     if (HttpServer.isRunning)
                         fullTxtHotReload += method.compiledContentHotReload + EOL;
+                    
+                    if(method.isStatic) continue;
+
                     for (let decorator of method.decorators) {
                         if (BindThisDecorator.is(decorator)) {
                             this.extraConstructorCode.push(`this.${methodName}=this.${methodName}.bind(this)`);

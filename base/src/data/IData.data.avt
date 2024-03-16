@@ -6,6 +6,10 @@ export interface IData {
      * Get the unique type for the data. Define it as the fullnamespace + class name
      */
     get $type(): string;
+    /**
+     * Clone the object
+     */
+    clone(): this;
 }
 
 @Dependances([{
@@ -53,5 +57,9 @@ export abstract class Data implements IData {
         return Json.classToJson(this, {
             isValidKey: (key) => !toAvoid.includes(key)
         });
+    }
+
+    public clone(): this {
+        return DataManager.clone(this);
     }
 }

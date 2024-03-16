@@ -32,27 +32,41 @@ export class HttpRequest {
 
     private objectToFormData(obj: { [key: string | number]: any; }, formData?: FormData, parentKey?: string): FormData {
         formData = formData || new FormData();
-        for(const key in obj) {
-            if(obj.hasOwnProperty(key)) {
-                const value = obj[key];
+        let byPass = obj as any;
+        if(byPass.__isProxy) {
+            obj = byPass.getTarget();
+        }
+        const keys: string[] = obj.toJSON ? Object.keys(obj.toJSON()) : Object.keys(obj);
+        for(let i = 0; i < keys.length; i++) {
+            const key = keys[i];
+            let value = obj[key];
 
-                const newKey = parentKey ? `${parentKey}[${key}]` : key;
+            const newKey = parentKey ? `${parentKey}[${key}]` : key;
 
-                if(typeof value === 'object' && value !== null && !(value instanceof File)) {
-                    if(Array.isArray(value)) {
-                        // Handle array
-                        value.forEach((arrayItem, index) => {
-                            const arrayKey = `${newKey}[${index}]`;
-                            this.objectToFormData({ [arrayKey]: arrayItem }, formData);
-                        });
-                    } else {
-                        // Recursively handle nested object
-                        this.objectToFormData(value, formData, newKey);
+            if(value instanceof Date) {
+                formData.append(newKey, value.toISOString());
+            }
+            else if(
+                typeof value === 'object' && 
+                value !== null && 
+                !(value instanceof File)
+            ) {
+                if(Array.isArray(value)) {
+                    // Handle array
+                    for(let j = 0; j < value.length; j++) {
+                        const arrayKey = `${newKey}[${j}]`;
+                        this.objectToFormData({ [arrayKey]: value[j] }, formData);
                     }
                 } else {
-                    // Add simple key-value pair to FormData
-                    formData.append(newKey, value);
+                    // Recursively handle nested object
+                    this.objectToFormData(value, formData, newKey);
                 }
+            } else {
+                // Add simple key-value pair to FormData
+                if(value === undefined || value === null) {
+                    value = "";
+                }
+                formData.append(newKey, value);
             }
         }
 
@@ -67,16 +81,25 @@ export class HttpRequest {
         }
         else {
             let useFormData = false;
-            for(let key in data) {
-                if(data[key] instanceof File) {
-                    useFormData = true;
-                    break;
+            const analyseFormData = (obj: any) => {
+                for(let key in obj) {
+                    if(obj[key] instanceof File) {
+                        useFormData = true;
+                        break;
+                    }
+                    else if(Array.isArray(obj[key]) && obj[key].length > 0 && obj[key][0] instanceof File) {
+                        useFormData = true;
+                        break;
+                    }
+                    else if(typeof obj[key] == 'object' && !Array.isArray(obj[key]) && !(obj[key] instanceof Date)) {
+                        analyseFormData(obj[key]);
+                        if(useFormData) {
+                            break;
+                        }
+                    }
                 }
-                else if(Array.isArray(data[key]) && data[key].length > 0 && data[key][0] instanceof File) {
-                    useFormData = true;
-                    break;
-                }
-            }
+            };
+            analyseFormData(data);
 
             if(useFormData) {
                 this.request.body = this.objectToFormData(data);

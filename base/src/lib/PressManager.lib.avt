@@ -34,12 +34,21 @@ export interface PressManagerOptions {
     forceDblPress?: boolean;
     stopPropagation?: boolean | (() => boolean);
     buttonAllowed?: number[];
+    onEvent?: (e: PointerEvent) => void;
 }
 export interface PressManagerState {
     oneActionTriggered: boolean,
     isMoving: boolean;
 }
 export class PressManager {
+    private static globalConfig: Partial<PressManagerOptions> = {
+        delayDblPress: 150,
+        delayLongPress: 700,
+        offsetDrag: 20
+    };
+    public static setGlobalConfig(options: Partial<PressManagerOptions>) {
+        this.globalConfig = options;
+    }
     public static create(options: PressManagerOptions & { element: Element; }): PressManager;
     public static create(options: PressManagerOptions & { element: Element[]; }): PressManager[];
     public static create(options: PressManagerOptions & { element: Element | Element[]; }) {
@@ -60,10 +69,10 @@ export class PressManager {
     protected options: PressManagerOptions;
     protected element: Element;
 
-    protected delayDblPress: number = 150;
-    protected delayLongPress: number = 700;
+    protected delayDblPress: number = PressManager.globalConfig.delayDblPress ?? 150;
+    protected delayLongPress: number = PressManager.globalConfig.delayLongPress ?? 700;
     protected nbPress: number = 0;
-    protected offsetDrag: number = 20;
+    protected offsetDrag: number = PressManager.globalConfig.offsetDrag ?? 20;
 
     protected state: PressManagerState = {
         oneActionTriggered: false,
@@ -154,20 +163,39 @@ export class PressManager {
         }
     }
     protected assignValueOption(options: PressManagerOptions) {
+        if(PressManager.globalConfig.delayDblPress !== undefined) {
+            this.delayDblPress = PressManager.globalConfig.delayDblPress;
+        }
         if(options.delayDblPress !== undefined) {
             this.delayDblPress = options.delayDblPress;
+        }
+        if(PressManager.globalConfig.delayLongPress !== undefined) {
+            this.delayLongPress = PressManager.globalConfig.delayLongPress;
         }
         if(options.delayLongPress !== undefined) {
             this.delayLongPress = options.delayLongPress;
         }
+        if(PressManager.globalConfig.offsetDrag !== undefined) {
+            this.offsetDrag = PressManager.globalConfig.offsetDrag;
+        }
         if(options.offsetDrag !== undefined) {
             this.offsetDrag = options.offsetDrag;
         }
+
         if(options.onDblPress !== undefined) {
             this.useDblPress = true;
         }
-        if(options.forceDblPress) {
-            this.useDblPress = true;
+        if(PressManager.globalConfig.forceDblPress !== undefined) {
+            this.useDblPress = PressManager.globalConfig.forceDblPress;
+        }
+        if(options.forceDblPress !== undefined) {
+            this.useDblPress = options.forceDblPress;
+        }
+        if(typeof PressManager.globalConfig.stopPropagation == 'function') {
+            this.stopPropagation = PressManager.globalConfig.stopPropagation;
+        }
+        else if(options.stopPropagation === false) {
+            this.stopPropagation = () => false;
         }
         if(typeof options.stopPropagation == 'function') {
             this.stopPropagation = options.stopPropagation;
@@ -175,7 +203,10 @@ export class PressManager {
         else if(options.stopPropagation === false) {
             this.stopPropagation = () => false;
         }
+        if(!options.buttonAllowed) options.buttonAllowed = PressManager.globalConfig.buttonAllowed;
         if(!options.buttonAllowed) options.buttonAllowed = [0];
+
+        if(!options.onEvent) options.onEvent = PressManager.globalConfig.onEvent;
     }
     protected bindAllFunction() {
         this.functionsBinded.downAction = this.downAction.bind(this);
@@ -202,6 +233,9 @@ export class PressManager {
 
     // #region current Event
     protected downAction(e: PointerEvent) {
+        if(this.options.onEvent) {
+            this.options.onEvent(e);
+        }
         // TODO edit this to implement the full logic to avoid cancelling parent
         if(!this.options.buttonAllowed?.includes(e.button)) {
             return;
@@ -241,6 +275,9 @@ export class PressManager {
         }
     }
     protected upAction(e: PointerEvent) {
+        if(this.options.onEvent) {
+            this.options.onEvent(e);
+        }
         if(this.stopPropagation()) {
             e.stopImmediatePropagation();
         }
@@ -313,6 +350,9 @@ export class PressManager {
         }
     }
     protected moveAction(e: PointerEvent) {
+        if(this.options.onEvent) {
+            this.options.onEvent(e);
+        }
         if(!this.state.isMoving && !this.state.oneActionTriggered) {
             if(this.stopPropagation()) {
                 e.stopImmediatePropagation();
@@ -455,6 +495,8 @@ export class PressManager {
             this.element.removeEventListener("trigger_pointer_dblpress", this.functionsBinded.childDblPress);
             this.element.removeEventListener("trigger_pointer_longpress", this.functionsBinded.childLongPress);
             this.element.removeEventListener("trigger_pointer_dragstart", this.functionsBinded.childDragStart);
+            document.removeEventListener("pointerup", this.functionsBinded.upAction);
+            document.removeEventListener("pointermove", this.functionsBinded.moveAction);
         }
     }
 }

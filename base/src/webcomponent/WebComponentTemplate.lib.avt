@@ -488,8 +488,7 @@ export class TemplateInstance {
                     }
                 }
                 else {
-                    console.log(e);
-                    debugger;
+                    console.error(e);
                 }
             }
             return "";
@@ -527,8 +526,7 @@ export class TemplateInstance {
                     }
                 }
                 else {
-                    console.log(e);
-                    debugger;
+                    console.error(e);
                 }
             }
         });
@@ -559,8 +557,7 @@ export class TemplateInstance {
                     }
                 }
                 else {
-                    console.log(e);
-                    debugger;
+                    console.error(e);
                 }
             }
         });
@@ -970,7 +967,6 @@ export class TemplateContext {
             let index = keys[_getIndex.value];
             let element = items[index];
             if(element === undefined && (Array.isArray(items) || !items)) {
-                debugger;
                 if(this.registry) {
                     let indexNb = Number(_getIndex.value);
                     if(!isNaN(indexNb)) {

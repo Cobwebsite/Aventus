@@ -1,4 +1,4 @@
-import { GenericError, ResultWithError } from "../tools/Error.lib.avt";
+import { GenericError, ResultWithError, VoidWithError } from "../tools/Error.lib.avt";
 
 export enum RamErrorCode {
     unknow,
@@ -6,4 +6,5 @@ export enum RamErrorCode {
     noItemInsideRam
 }
 export class RamError extends GenericError<RamErrorCode>{}
+export class VoidRamWithError extends VoidWithError<RamError>{ }
 export class ResultRamWithError<T> extends ResultWithError<T, RamError>{ }

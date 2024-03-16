@@ -44,6 +44,7 @@ export abstract class BaseInfo {
         return this.infoByShortName[shortName];
     }
     public static getInfoByFullName(fullName: string, from: BaseInfo): BaseInfo | undefined {
+        fullName = fullName.replace(/<.*>/, "");
         let result = this.infoByFullName[fullName];
         if (!result) {
             result = this.infoByFullName[from.fullName.split('.')[0] + "." + fullName];

@@ -39,6 +39,9 @@ export function compareObject(obj1, obj2) {
         if(typeof obj2 !== 'object' || obj2 === undefined || obj2 === null) {
             return false;
         }
+        if(obj1 instanceof HTMLElement || obj2 instanceof HTMLElement) {
+            return obj1 == obj2;
+        }
         // not same keys length
         if(Object.keys(obj1).length !== Object.keys(obj2).length) {
             return false;
@@ -70,7 +73,7 @@ export function getValueFromObject(path: string, obj: any) {
     // Convert bracket notation to dot notation
     path = path.replace(/\[(.*?)\]/g, '.$1');
 
-     // If path is empty, return the entire object
+    // If path is empty, return the entire object
     if(path == "") {
         return obj;
     }
@@ -101,7 +104,7 @@ export function getValueFromObject(path: string, obj: any) {
  * @param {*} value The value to set.
  */
 export function setValueToObject(path: string, obj: any, value: any) {
-     // Convert bracket notation to dot notation
+    // Convert bracket notation to dot notation
     path = path.replace(/\[(.*?)\]/g, '.$1');
 
     // Split the path into individual keys

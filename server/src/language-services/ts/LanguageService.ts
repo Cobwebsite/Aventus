@@ -273,9 +273,7 @@ export class AventusTsLanguageService {
             for (let i = 0; i < completions.entries.length; i++) {
                 let entry = completions.entries[i];
                 let remplacement = entry.insertText ? entry.insertText : entry.name
-                if (remplacement.startsWith(".?")) {
-                    remplacement = remplacement.substring(1);
-                }
+                remplacement = remplacement.replace(/\.\?\./g, "?.");
                 let customData = {
                     languageId: AventusLanguageId.TypeScript,
                     offset: offset,
@@ -942,6 +940,10 @@ export class AventusTsLanguageService {
 
                 txt = this.addBindThis(element, txt);
             }
+            else if (element instanceof VariableInfo) {
+                txt = element.type + " " + element.compiledContent;
+                txtHotReload = element.type + " " + element.compiledContentHotReload;
+            }
 
 
             txt = this.removeComments(txt);
@@ -953,9 +955,7 @@ export class AventusTsLanguageService {
                 txtHotReload = this.replaceFirstExport(txtHotReload);
                 result.hotReload = transpile(txtHotReload, compilerOptionsCompile);
             }
-            if (element instanceof VariableInfo) {
-                result.compiled = element.type + " " + result.compiled;
-            }
+            
             let doc = DefinitionCorrector.correct(this.compileDocTs(txt), element);
 
             if (doc.length > 0) {

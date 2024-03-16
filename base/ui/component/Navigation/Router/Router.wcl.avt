@@ -37,7 +37,6 @@ namespace Navigation {
             super();
             this.validError404 = this.validError404.bind(this);
             this.canChangeState = this.canChangeState.bind(this);
-
             this.stateManager.canChangeState(this.canChangeState);
         }
         //#endregion
@@ -71,7 +70,7 @@ namespace Navigation {
                     this.initRoute(key);
                 }
             } catch(e) {
-                console.log(e);
+                console.error(e);
             }
         }
         protected initRoute(path: string) {

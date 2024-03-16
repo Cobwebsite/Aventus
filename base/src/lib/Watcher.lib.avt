@@ -40,16 +40,16 @@ export class Watcher {
                 }
             }
         };
-        let setProxyPath = (newProxy, newPath) => {
+        const setProxyPath = (newProxy, newPath) => {
             if(newProxy instanceof Object && newProxy.__isProxy) {
                 newProxy.__path = newPath;
             }
         };
-        let jsonReplacer = (key, value) => {
+        const jsonReplacer = (key, value) => {
             if(reservedName[key]) return undefined;
             return value;
         };
-        let addAlias = (otherBaseData, name, cb) => {
+        const addAlias = (otherBaseData, name, cb) => {
             let cbs = aliases.get(otherBaseData);
             if(!cbs) {
                 cbs = [];
@@ -60,7 +60,7 @@ export class Watcher {
                 fct: cb
             });
         };
-        let deleteAlias = (otherBaseData, name) => {
+        const deleteAlias = (otherBaseData, name) => {
             let cbs = aliases.get(otherBaseData);
             if(!cbs) return;
             for(let i = 0; i < cbs.length; i++) {
@@ -73,7 +73,7 @@ export class Watcher {
                 }
             }
         };
-        let replaceByAlias = (target, element, prop, receiver) => {
+        const replaceByAlias = (target, element, prop, receiver) => {
             //#region determine current path internal
             let fullInternalPath = "";
             if(Array.isArray(target)) {
@@ -102,6 +102,8 @@ export class Watcher {
             if(element instanceof Object && element.__isProxy) {
                 let root = element.__root;
                 if(root != proxyData.baseData) {
+                    // reset path to "" if element is a root proxy
+                    element.__validatePath();
                     //#region get real value shared across the 2 proxy
                     let oldPath = element.__path;
                     let unbindElement = getValueFromObject(oldPath, root);
@@ -279,6 +281,13 @@ export class Watcher {
                 else if(prop == "__root") {
                     return this.baseData;
                 }
+                else if(prop == "__validatePath") {
+                    return () => {
+                        if(this.baseData == target) {
+                            target.__path = "";
+                        }
+                    };
+                }
                 else if(prop == "__callbacks") {
                     return this.callbacks;
                 }
@@ -359,6 +368,11 @@ export class Watcher {
                 }
                 else if(prop == "__trigger") {
                     return trigger;
+                }
+                else if(prop == "__static_trigger") {
+                    return (type: 'CREATED' | 'UPDATED' | 'DELETED') => {
+                        trigger(type, target, receiver, target, '');
+                    };
                 }
 
                 return undefined;
@@ -502,6 +516,7 @@ export class Watcher {
                 return Reflect.get(target, prop, receiver);
             },
             set(target, prop, value, receiver) {
+                let oldValue = Reflect.get(target, prop, receiver);
                 value = replaceByAlias(target, value, prop, receiver);
                 let triggerChange = false;
                 if(!reservedName[prop]) {
@@ -511,7 +526,6 @@ export class Watcher {
                         }
                     }
                     else {
-                        let oldValue = Reflect.get(target, prop, receiver);
                         if(!compareObject(value, oldValue)) {
                             triggerChange = true;
                         }
@@ -631,7 +645,7 @@ export class Watcher {
             }
             if(rootPath != "") {
                 if(Array.isArray(target)) {
-                    if(!prop.startsWith("[")) {
+                    if(prop && !prop.startsWith("[")) {
                         if(/^[0-9]*$/g.exec(prop)) {
                             rootPath += "[" + prop + "]";
                         }
@@ -644,7 +658,7 @@ export class Watcher {
                     }
                 }
                 else {
-                    if(!prop.startsWith("[")) {
+                    if(prop && !prop.startsWith("[")) {
                         rootPath += ".";
                     }
                     rootPath += prop;
@@ -702,7 +716,7 @@ export class Watcher {
                         cb(WatchAction[type] as any, pathToSend, value);
                     } catch(e) {
                         if(e != 'impossible')
-                            console.log(e);
+                            console.error(e);
                     }
                 }
 
@@ -712,7 +726,14 @@ export class Watcher {
                         for(let info of infos) {
                             if(info.name == name) {
                                 aliasesDone.push(key);
-                                info.fct(type, target, receiver, value, prop, dones);
+                                if(target.__path) {
+                                    let oldPath = target.__path;
+                                    info.fct(type, target, receiver, value, prop, dones);
+                                    target.__path = oldPath;
+                                }
+                                else {
+                                    info.fct(type, target, receiver, value, prop, dones);
+                                }
                             }
                         }
                     }
@@ -727,8 +748,14 @@ export class Watcher {
                         if(!regex.test(rootPath)) {
                             continue;
                         }
-                        let name = rootPath.replace(regex, "$2");
-                        info.fct(type, target, receiver, value, name, dones);
+                        if(target.__path) {
+                            let oldPath = target.__path;
+                            info.fct(type, target, receiver, value, prop, dones);
+                            target.__path = oldPath;
+                        }
+                        else {
+                            info.fct(type, target, receiver, value, prop, dones);
+                        }
                     }
                 }
             }
@@ -738,6 +765,23 @@ export class Watcher {
         proxyData.baseData = obj;
         setProxyPath(realProxy, '');
         return realProxy;
+    }
+
+    public static is(obj: any): boolean {
+        return typeof obj == 'object' && obj.__isProxy;
+    }
+
+    public static extract<T>(obj: T): T {
+        if(this.is(obj)) {
+            return (obj as any).getTarget();
+        }
+        return obj;
+    }
+
+    public static trigger<T>(type: 'CREATED' | 'UPDATED' | 'DELETED', target: T) {
+        if(this.is(target)) {
+            (target as any).__static_trigger(type);
+        }
     }
 
     /**

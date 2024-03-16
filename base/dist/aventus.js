@@ -45,6 +45,9 @@ const compareObject=function compareObject(obj1, obj2) {
         if (typeof obj2 !== 'object' || obj2 === undefined || obj2 === null) {
             return false;
         }
+        if (obj1 instanceof HTMLElement || obj2 instanceof HTMLElement) {
+            return obj1 == obj2;
+        }
         if (Object.keys(obj1).length !== Object.keys(obj2).length) {
             return false;
         }
@@ -601,6 +604,14 @@ const Mutex=class Mutex {
 Mutex.Namespace=`${moduleName}`;
 _.Mutex=Mutex;
 const PressManager=class PressManager {
+    static globalConfig = {
+        delayDblPress: 150,
+        delayLongPress: 700,
+        offsetDrag: 20
+    };
+    static setGlobalConfig(options) {
+        this.globalConfig = options;
+    }
     static create(options) {
         if (Array.isArray(options.element)) {
             let result = [];
@@ -617,10 +628,10 @@ const PressManager=class PressManager {
     }
     options;
     element;
-    delayDblPress = 150;
-    delayLongPress = 700;
+    delayDblPress = PressManager.globalConfig.delayDblPress ?? 150;
+    delayLongPress = PressManager.globalConfig.delayLongPress ?? 700;
     nbPress = 0;
-    offsetDrag = 20;
+    offsetDrag = PressManager.globalConfig.offsetDrag ?? 20;
     state = {
         oneActionTriggered: false,
         isMoving: false,
@@ -696,11 +707,20 @@ const PressManager=class PressManager {
         }
     }
     assignValueOption(options) {
+        if (PressManager.globalConfig.delayDblPress !== undefined) {
+            this.delayDblPress = PressManager.globalConfig.delayDblPress;
+        }
         if (options.delayDblPress !== undefined) {
             this.delayDblPress = options.delayDblPress;
         }
+        if (PressManager.globalConfig.delayLongPress !== undefined) {
+            this.delayLongPress = PressManager.globalConfig.delayLongPress;
+        }
         if (options.delayLongPress !== undefined) {
             this.delayLongPress = options.delayLongPress;
+        }
+        if (PressManager.globalConfig.offsetDrag !== undefined) {
+            this.offsetDrag = PressManager.globalConfig.offsetDrag;
         }
         if (options.offsetDrag !== undefined) {
             this.offsetDrag = options.offsetDrag;
@@ -708,8 +728,17 @@ const PressManager=class PressManager {
         if (options.onDblPress !== undefined) {
             this.useDblPress = true;
         }
-        if (options.forceDblPress) {
-            this.useDblPress = true;
+        if (PressManager.globalConfig.forceDblPress !== undefined) {
+            this.useDblPress = PressManager.globalConfig.forceDblPress;
+        }
+        if (options.forceDblPress !== undefined) {
+            this.useDblPress = options.forceDblPress;
+        }
+        if (typeof PressManager.globalConfig.stopPropagation == 'function') {
+            this.stopPropagation = PressManager.globalConfig.stopPropagation;
+        }
+        else if (options.stopPropagation === false) {
+            this.stopPropagation = () => false;
         }
         if (typeof options.stopPropagation == 'function') {
             this.stopPropagation = options.stopPropagation;
@@ -718,7 +747,11 @@ const PressManager=class PressManager {
             this.stopPropagation = () => false;
         }
         if (!options.buttonAllowed)
+            options.buttonAllowed = PressManager.globalConfig.buttonAllowed;
+        if (!options.buttonAllowed)
             options.buttonAllowed = [0];
+        if (!options.onEvent)
+            options.onEvent = PressManager.globalConfig.onEvent;
     }
     bindAllFunction() {
         this.functionsBinded.downAction = this.downAction.bind(this);
@@ -742,6 +775,9 @@ const PressManager=class PressManager {
         this.element.addEventListener("trigger_pointer_dragstart", this.functionsBinded.childDragStart);
     }
     downAction(e) {
+        if (this.options.onEvent) {
+            this.options.onEvent(e);
+        }
         if (!this.options.buttonAllowed?.includes(e.button)) {
             return;
         }
@@ -778,6 +814,9 @@ const PressManager=class PressManager {
         }
     }
     upAction(e) {
+        if (this.options.onEvent) {
+            this.options.onEvent(e);
+        }
         if (this.stopPropagation()) {
             e.stopImmediatePropagation();
         }
@@ -847,6 +886,9 @@ const PressManager=class PressManager {
         }
     }
     moveAction(e) {
+        if (this.options.onEvent) {
+            this.options.onEvent(e);
+        }
         if (!this.state.isMoving && !this.state.oneActionTriggered) {
             if (this.stopPropagation()) {
                 e.stopImmediatePropagation();
@@ -985,6 +1027,8 @@ const PressManager=class PressManager {
             this.element.removeEventListener("trigger_pointer_dblpress", this.functionsBinded.childDblPress);
             this.element.removeEventListener("trigger_pointer_longpress", this.functionsBinded.childLongPress);
             this.element.removeEventListener("trigger_pointer_dragstart", this.functionsBinded.childDragStart);
+            document.removeEventListener("pointerup", this.functionsBinded.upAction);
+            document.removeEventListener("pointermove", this.functionsBinded.moveAction);
         }
     }
 }
@@ -1132,17 +1176,17 @@ const Watcher=class Watcher {
                 }
             }
         };
-        let setProxyPath = (newProxy, newPath) => {
+        const setProxyPath = (newProxy, newPath) => {
             if (newProxy instanceof Object && newProxy.__isProxy) {
                 newProxy.__path = newPath;
             }
         };
-        let jsonReplacer = (key, value) => {
+        const jsonReplacer = (key, value) => {
             if (reservedName[key])
                 return undefined;
             return value;
         };
-        let addAlias = (otherBaseData, name, cb) => {
+        const addAlias = (otherBaseData, name, cb) => {
             let cbs = aliases.get(otherBaseData);
             if (!cbs) {
                 cbs = [];
@@ -1153,7 +1197,7 @@ const Watcher=class Watcher {
                 fct: cb
             });
         };
-        let deleteAlias = (otherBaseData, name) => {
+        const deleteAlias = (otherBaseData, name) => {
             let cbs = aliases.get(otherBaseData);
             if (!cbs)
                 return;
@@ -1167,7 +1211,7 @@ const Watcher=class Watcher {
                 }
             }
         };
-        let replaceByAlias = (target, element, prop, receiver) => {
+        const replaceByAlias = (target, element, prop, receiver) => {
             let fullInternalPath = "";
             if (Array.isArray(target)) {
                 if (prop != "length") {
@@ -1189,6 +1233,7 @@ const Watcher=class Watcher {
             if (element instanceof Object && element.__isProxy) {
                 let root = element.__root;
                 if (root != proxyData.baseData) {
+                    element.__validatePath();
                     let oldPath = element.__path;
                     let unbindElement = getValueFromObject(oldPath, root);
                     if (receiver == null) {
@@ -1321,6 +1366,13 @@ const Watcher=class Watcher {
                 else if (prop == "__root") {
                     return this.baseData;
                 }
+                else if (prop == "__validatePath") {
+                    return () => {
+                        if (this.baseData == target) {
+                            target.__path = "";
+                        }
+                    };
+                }
                 else if (prop == "__callbacks") {
                     return this.callbacks;
                 }
@@ -1402,6 +1454,11 @@ const Watcher=class Watcher {
                 }
                 else if (prop == "__trigger") {
                     return trigger;
+                }
+                else if (prop == "__static_trigger") {
+                    return (type) => {
+                        trigger(type, target, receiver, target, '');
+                    };
                 }
                 return undefined;
             },
@@ -1524,6 +1581,7 @@ const Watcher=class Watcher {
                 return Reflect.get(target, prop, receiver);
             },
             set(target, prop, value, receiver) {
+                let oldValue = Reflect.get(target, prop, receiver);
                 value = replaceByAlias(target, value, prop, receiver);
                 let triggerChange = false;
                 if (!reservedName[prop]) {
@@ -1533,7 +1591,6 @@ const Watcher=class Watcher {
                         }
                     }
                     else {
-                        let oldValue = Reflect.get(target, prop, receiver);
                         if (!compareObject(value, oldValue)) {
                             triggerChange = true;
                         }
@@ -1650,7 +1707,7 @@ const Watcher=class Watcher {
             }
             if (rootPath != "") {
                 if (Array.isArray(target)) {
-                    if (!prop.startsWith("[")) {
+                    if (prop && !prop.startsWith("[")) {
                         if (/^[0-9]*$/g.exec(prop)) {
                             rootPath += "[" + prop + "]";
                         }
@@ -1663,7 +1720,7 @@ const Watcher=class Watcher {
                     }
                 }
                 else {
-                    if (!prop.startsWith("[")) {
+                    if (prop && !prop.startsWith("[")) {
                         rootPath += ".";
                     }
                     rootPath += prop;
@@ -1717,7 +1774,7 @@ const Watcher=class Watcher {
                     }
                     catch (e) {
                         if (e != 'impossible')
-                            console.log(e);
+                            console.error(e);
                     }
                 }
                 for (let [key, infos] of aliases) {
@@ -1725,7 +1782,14 @@ const Watcher=class Watcher {
                         for (let info of infos) {
                             if (info.name == name) {
                                 aliasesDone.push(key);
-                                info.fct(type, target, receiver, value, prop, dones);
+                                if (target.__path) {
+                                    let oldPath = target.__path;
+                                    info.fct(type, target, receiver, value, prop, dones);
+                                    target.__path = oldPath;
+                                }
+                                else {
+                                    info.fct(type, target, receiver, value, prop, dones);
+                                }
                             }
                         }
                     }
@@ -1739,7 +1803,14 @@ const Watcher=class Watcher {
                             continue;
                         }
                         let name = rootPath.replace(regex, "$2");
-                        info.fct(type, target, receiver, value, name, dones);
+                        if (target.__path) {
+                            let oldPath = target.__path;
+                            info.fct(type, target, receiver, value, prop, dones);
+                            target.__path = oldPath;
+                        }
+                        else {
+                            info.fct(type, target, receiver, value, prop, dones);
+                        }
                     }
                 }
             }
@@ -1748,6 +1819,20 @@ const Watcher=class Watcher {
         proxyData.baseData = obj;
         setProxyPath(realProxy, '');
         return realProxy;
+    }
+    static is(obj) {
+        return typeof obj == 'object' && obj.__isProxy;
+    }
+    static extract(obj) {
+        if (this.is(obj)) {
+            return obj.getTarget();
+        }
+        return obj;
+    }
+    static trigger(type, target) {
+        if (this.is(target)) {
+            target.__static_trigger(type);
+        }
     }
     /**
      * Create a computed variable that will watch any changes
@@ -1895,7 +1980,7 @@ const StateManager=class StateManager {
     /**
      * Subscribe actions for a state or a state list
      */
-    subscribe(statePatterns, callbacks) {
+    subscribe(statePatterns, callbacks, autoActiveState = true) {
         if (!callbacks.active && !callbacks.inactive && !callbacks.askChange) {
             this._log(`Trying to subscribe to state : ${statePatterns} with no callbacks !`, "warning");
             return;
@@ -1924,7 +2009,7 @@ const StateManager=class StateManager {
                 }
                 for (let activeFct of callbacks.active) {
                     this.subscribers[statePattern].callbacks.active.push(activeFct);
-                    if (this.subscribers[statePattern].isActive && this.activeState) {
+                    if (this.subscribers[statePattern].isActive && this.activeState && autoActiveState) {
                         let slugs = Uri.getParams(this.subscribers[statePattern], this.activeState.name);
                         if (slugs) {
                             activeFct(this.activeState, slugs);
@@ -1946,6 +2031,29 @@ const StateManager=class StateManager {
                 }
                 for (let askChangeFct of callbacks.askChange) {
                     this.subscribers[statePattern].callbacks.askChange.push(askChangeFct);
+                }
+            }
+        }
+    }
+    /**
+     *
+     */
+    activateAfterSubscribe(statePatterns, callbacks) {
+        if (!Array.isArray(statePatterns)) {
+            statePatterns = [statePatterns];
+        }
+        for (let statePattern of statePatterns) {
+            if (callbacks.active) {
+                if (!Array.isArray(callbacks.active)) {
+                    callbacks.active = [callbacks.active];
+                }
+                for (let activeFct of callbacks.active) {
+                    if (this.subscribers[statePattern].isActive && this.activeState) {
+                        let slugs = Uri.getParams(this.subscribers[statePattern], this.activeState.name);
+                        if (slugs) {
+                            activeFct(this.activeState, slugs);
+                        }
+                    }
                 }
             }
         }
@@ -2307,7 +2415,6 @@ const TemplateContext=class TemplateContext {
             let index = keys[_getIndex.value];
             let element = items[index];
             if (element === undefined && (Array.isArray(items) || !items)) {
-                debugger;
                 if (this.registry) {
                     let indexNb = Number(_getIndex.value);
                     if (!isNaN(indexNb)) {
@@ -2674,8 +2781,7 @@ const TemplateInstance=class TemplateInstance {
                     }
                 }
                 else {
-                    console.log(e);
-                    debugger;
+                    console.error(e);
                 }
             }
             return "";
@@ -2710,8 +2816,7 @@ const TemplateInstance=class TemplateInstance {
                     }
                 }
                 else {
-                    console.log(e);
-                    debugger;
+                    console.error(e);
                 }
             }
         });
@@ -2741,8 +2846,7 @@ const TemplateInstance=class TemplateInstance {
                     }
                 }
                 else {
-                    console.log(e);
-                    debugger;
+                    console.error(e);
                 }
             }
         });
@@ -3305,8 +3409,13 @@ const WebComponent=class WebComponent extends HTMLElement {
                 let defaultValue = {};
                 this.__defaultValuesWatch(defaultValue);
                 this.__watch = Watcher.get(defaultValue, (type, path, element) => {
-                    let action = this.__watchActionsCb[path.split(".")[0]] || this.__watchActionsCb[path.split("[")[0]];
-                    action(type, path, element);
+                    try {
+                        let action = this.__watchActionsCb[path.split(".")[0]] || this.__watchActionsCb[path.split("[")[0]];
+                        action(type, path, element);
+                    }
+                    catch (e) {
+                        console.error(e);
+                    }
                 });
             }
         }
@@ -3386,6 +3495,7 @@ const WebComponent=class WebComponent extends HTMLElement {
             this._first = false;
             this.__defaultValues();
             this.__upgradeAttributes();
+            this.__activateState();
             this.__templateInstance?.render();
             this.__removeNoAnimations();
         }
@@ -3519,7 +3629,17 @@ const WebComponent=class WebComponent extends HTMLElement {
             for (const managerClass of this.__statesList[route].keys()) {
                 let el = this.__statesList[route].get(managerClass);
                 if (el) {
-                    managerClass.subscribe(route, el);
+                    managerClass.subscribe(route, el, false);
+                }
+            }
+        }
+    }
+    __activateState() {
+        for (let route in this.__statesList) {
+            for (const managerClass of this.__statesList[route].keys()) {
+                let el = this.__statesList[route].get(managerClass);
+                if (el) {
+                    managerClass.activateAfterSubscribe(route, el);
                 }
             }
         }
@@ -4402,6 +4522,9 @@ const compareObject=function compareObject(obj1, obj2) {
         if (typeof obj2 !== 'object' || obj2 === undefined || obj2 === null) {
             return false;
         }
+        if (obj1 instanceof HTMLElement || obj2 instanceof HTMLElement) {
+            return obj1 == obj2;
+        }
         if (Object.keys(obj1).length !== Object.keys(obj2).length) {
             return false;
         }
@@ -4962,6 +5085,9 @@ const Data=class Data {
             isValidKey: (key) => !toAvoid.includes(key)
         });
     }
+    clone() {
+        return DataManager.clone(this);
+    }
 }
 Data.Namespace=`${moduleName}`;
 _.Data=Data;
@@ -5376,24 +5502,36 @@ const HttpRequest=class HttpRequest {
     }
     objectToFormData(obj, formData, parentKey) {
         formData = formData || new FormData();
-        for (const key in obj) {
-            if (obj.hasOwnProperty(key)) {
-                const value = obj[key];
-                const newKey = parentKey ? `${parentKey}[${key}]` : key;
-                if (typeof value === 'object' && value !== null && !(value instanceof File)) {
-                    if (Array.isArray(value)) {
-                        value.forEach((arrayItem, index) => {
-                            const arrayKey = `${newKey}[${index}]`;
-                            this.objectToFormData({ [arrayKey]: arrayItem }, formData);
-                        });
-                    }
-                    else {
-                        this.objectToFormData(value, formData, newKey);
+        let byPass = obj;
+        if (byPass.__isProxy) {
+            obj = byPass.getTarget();
+        }
+        const keys = obj.toJSON ? Object.keys(obj.toJSON()) : Object.keys(obj);
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
+            let value = obj[key];
+            const newKey = parentKey ? `${parentKey}[${key}]` : key;
+            if (value instanceof Date) {
+                formData.append(newKey, value.toISOString());
+            }
+            else if (typeof value === 'object' &&
+                value !== null &&
+                !(value instanceof File)) {
+                if (Array.isArray(value)) {
+                    for (let j = 0; j < value.length; j++) {
+                        const arrayKey = `${newKey}[${j}]`;
+                        this.objectToFormData({ [arrayKey]: value[j] }, formData);
                     }
                 }
                 else {
-                    formData.append(newKey, value);
+                    this.objectToFormData(value, formData, newKey);
                 }
+            }
+            else {
+                if (value === undefined || value === null) {
+                    value = "";
+                }
+                formData.append(newKey, value);
             }
         }
         return formData;
@@ -5407,16 +5545,25 @@ const HttpRequest=class HttpRequest {
         }
         else {
             let useFormData = false;
-            for (let key in data) {
-                if (data[key] instanceof File) {
-                    useFormData = true;
-                    break;
+            const analyseFormData = (obj) => {
+                for (let key in obj) {
+                    if (obj[key] instanceof File) {
+                        useFormData = true;
+                        break;
+                    }
+                    else if (Array.isArray(obj[key]) && obj[key].length > 0 && obj[key][0] instanceof File) {
+                        useFormData = true;
+                        break;
+                    }
+                    else if (typeof obj[key] == 'object' && !Array.isArray(obj[key]) && !(obj[key] instanceof Date)) {
+                        analyseFormData(obj[key]);
+                        if (useFormData) {
+                            break;
+                        }
+                    }
                 }
-                else if (Array.isArray(data[key]) && data[key].length > 0 && data[key][0] instanceof File) {
-                    useFormData = true;
-                    break;
-                }
-            }
+            };
+            analyseFormData(data);
             if (useFormData) {
                 this.request.body = this.objectToFormData(data);
             }
@@ -5631,6 +5778,14 @@ const Animation=class Animation {
 Animation.Namespace=`${moduleName}`;
 _.Animation=Animation;
 const PressManager=class PressManager {
+    static globalConfig = {
+        delayDblPress: 150,
+        delayLongPress: 700,
+        offsetDrag: 20
+    };
+    static setGlobalConfig(options) {
+        this.globalConfig = options;
+    }
     static create(options) {
         if (Array.isArray(options.element)) {
             let result = [];
@@ -5647,10 +5802,10 @@ const PressManager=class PressManager {
     }
     options;
     element;
-    delayDblPress = 150;
-    delayLongPress = 700;
+    delayDblPress = PressManager.globalConfig.delayDblPress ?? 150;
+    delayLongPress = PressManager.globalConfig.delayLongPress ?? 700;
     nbPress = 0;
-    offsetDrag = 20;
+    offsetDrag = PressManager.globalConfig.offsetDrag ?? 20;
     state = {
         oneActionTriggered: false,
         isMoving: false,
@@ -5726,11 +5881,20 @@ const PressManager=class PressManager {
         }
     }
     assignValueOption(options) {
+        if (PressManager.globalConfig.delayDblPress !== undefined) {
+            this.delayDblPress = PressManager.globalConfig.delayDblPress;
+        }
         if (options.delayDblPress !== undefined) {
             this.delayDblPress = options.delayDblPress;
         }
+        if (PressManager.globalConfig.delayLongPress !== undefined) {
+            this.delayLongPress = PressManager.globalConfig.delayLongPress;
+        }
         if (options.delayLongPress !== undefined) {
             this.delayLongPress = options.delayLongPress;
+        }
+        if (PressManager.globalConfig.offsetDrag !== undefined) {
+            this.offsetDrag = PressManager.globalConfig.offsetDrag;
         }
         if (options.offsetDrag !== undefined) {
             this.offsetDrag = options.offsetDrag;
@@ -5738,8 +5902,17 @@ const PressManager=class PressManager {
         if (options.onDblPress !== undefined) {
             this.useDblPress = true;
         }
-        if (options.forceDblPress) {
-            this.useDblPress = true;
+        if (PressManager.globalConfig.forceDblPress !== undefined) {
+            this.useDblPress = PressManager.globalConfig.forceDblPress;
+        }
+        if (options.forceDblPress !== undefined) {
+            this.useDblPress = options.forceDblPress;
+        }
+        if (typeof PressManager.globalConfig.stopPropagation == 'function') {
+            this.stopPropagation = PressManager.globalConfig.stopPropagation;
+        }
+        else if (options.stopPropagation === false) {
+            this.stopPropagation = () => false;
         }
         if (typeof options.stopPropagation == 'function') {
             this.stopPropagation = options.stopPropagation;
@@ -5748,7 +5921,11 @@ const PressManager=class PressManager {
             this.stopPropagation = () => false;
         }
         if (!options.buttonAllowed)
+            options.buttonAllowed = PressManager.globalConfig.buttonAllowed;
+        if (!options.buttonAllowed)
             options.buttonAllowed = [0];
+        if (!options.onEvent)
+            options.onEvent = PressManager.globalConfig.onEvent;
     }
     bindAllFunction() {
         this.functionsBinded.downAction = this.downAction.bind(this);
@@ -5772,6 +5949,9 @@ const PressManager=class PressManager {
         this.element.addEventListener("trigger_pointer_dragstart", this.functionsBinded.childDragStart);
     }
     downAction(e) {
+        if (this.options.onEvent) {
+            this.options.onEvent(e);
+        }
         if (!this.options.buttonAllowed?.includes(e.button)) {
             return;
         }
@@ -5808,6 +5988,9 @@ const PressManager=class PressManager {
         }
     }
     upAction(e) {
+        if (this.options.onEvent) {
+            this.options.onEvent(e);
+        }
         if (this.stopPropagation()) {
             e.stopImmediatePropagation();
         }
@@ -5877,6 +6060,9 @@ const PressManager=class PressManager {
         }
     }
     moveAction(e) {
+        if (this.options.onEvent) {
+            this.options.onEvent(e);
+        }
         if (!this.state.isMoving && !this.state.oneActionTriggered) {
             if (this.stopPropagation()) {
                 e.stopImmediatePropagation();
@@ -6015,6 +6201,8 @@ const PressManager=class PressManager {
             this.element.removeEventListener("trigger_pointer_dblpress", this.functionsBinded.childDblPress);
             this.element.removeEventListener("trigger_pointer_longpress", this.functionsBinded.childLongPress);
             this.element.removeEventListener("trigger_pointer_dragstart", this.functionsBinded.childDragStart);
+            document.removeEventListener("pointerup", this.functionsBinded.upAction);
+            document.removeEventListener("pointermove", this.functionsBinded.moveAction);
         }
     }
 }
@@ -6676,17 +6864,17 @@ const Watcher=class Watcher {
                 }
             }
         };
-        let setProxyPath = (newProxy, newPath) => {
+        const setProxyPath = (newProxy, newPath) => {
             if (newProxy instanceof Object && newProxy.__isProxy) {
                 newProxy.__path = newPath;
             }
         };
-        let jsonReplacer = (key, value) => {
+        const jsonReplacer = (key, value) => {
             if (reservedName[key])
                 return undefined;
             return value;
         };
-        let addAlias = (otherBaseData, name, cb) => {
+        const addAlias = (otherBaseData, name, cb) => {
             let cbs = aliases.get(otherBaseData);
             if (!cbs) {
                 cbs = [];
@@ -6697,7 +6885,7 @@ const Watcher=class Watcher {
                 fct: cb
             });
         };
-        let deleteAlias = (otherBaseData, name) => {
+        const deleteAlias = (otherBaseData, name) => {
             let cbs = aliases.get(otherBaseData);
             if (!cbs)
                 return;
@@ -6711,7 +6899,7 @@ const Watcher=class Watcher {
                 }
             }
         };
-        let replaceByAlias = (target, element, prop, receiver) => {
+        const replaceByAlias = (target, element, prop, receiver) => {
             let fullInternalPath = "";
             if (Array.isArray(target)) {
                 if (prop != "length") {
@@ -6733,6 +6921,7 @@ const Watcher=class Watcher {
             if (element instanceof Object && element.__isProxy) {
                 let root = element.__root;
                 if (root != proxyData.baseData) {
+                    element.__validatePath();
                     let oldPath = element.__path;
                     let unbindElement = getValueFromObject(oldPath, root);
                     if (receiver == null) {
@@ -6865,6 +7054,13 @@ const Watcher=class Watcher {
                 else if (prop == "__root") {
                     return this.baseData;
                 }
+                else if (prop == "__validatePath") {
+                    return () => {
+                        if (this.baseData == target) {
+                            target.__path = "";
+                        }
+                    };
+                }
                 else if (prop == "__callbacks") {
                     return this.callbacks;
                 }
@@ -6946,6 +7142,11 @@ const Watcher=class Watcher {
                 }
                 else if (prop == "__trigger") {
                     return trigger;
+                }
+                else if (prop == "__static_trigger") {
+                    return (type) => {
+                        trigger(type, target, receiver, target, '');
+                    };
                 }
                 return undefined;
             },
@@ -7068,6 +7269,7 @@ const Watcher=class Watcher {
                 return Reflect.get(target, prop, receiver);
             },
             set(target, prop, value, receiver) {
+                let oldValue = Reflect.get(target, prop, receiver);
                 value = replaceByAlias(target, value, prop, receiver);
                 let triggerChange = false;
                 if (!reservedName[prop]) {
@@ -7077,7 +7279,6 @@ const Watcher=class Watcher {
                         }
                     }
                     else {
-                        let oldValue = Reflect.get(target, prop, receiver);
                         if (!compareObject(value, oldValue)) {
                             triggerChange = true;
                         }
@@ -7194,7 +7395,7 @@ const Watcher=class Watcher {
             }
             if (rootPath != "") {
                 if (Array.isArray(target)) {
-                    if (!prop.startsWith("[")) {
+                    if (prop && !prop.startsWith("[")) {
                         if (/^[0-9]*$/g.exec(prop)) {
                             rootPath += "[" + prop + "]";
                         }
@@ -7207,7 +7408,7 @@ const Watcher=class Watcher {
                     }
                 }
                 else {
-                    if (!prop.startsWith("[")) {
+                    if (prop && !prop.startsWith("[")) {
                         rootPath += ".";
                     }
                     rootPath += prop;
@@ -7261,7 +7462,7 @@ const Watcher=class Watcher {
                     }
                     catch (e) {
                         if (e != 'impossible')
-                            console.log(e);
+                            console.error(e);
                     }
                 }
                 for (let [key, infos] of aliases) {
@@ -7269,7 +7470,14 @@ const Watcher=class Watcher {
                         for (let info of infos) {
                             if (info.name == name) {
                                 aliasesDone.push(key);
-                                info.fct(type, target, receiver, value, prop, dones);
+                                if (target.__path) {
+                                    let oldPath = target.__path;
+                                    info.fct(type, target, receiver, value, prop, dones);
+                                    target.__path = oldPath;
+                                }
+                                else {
+                                    info.fct(type, target, receiver, value, prop, dones);
+                                }
                             }
                         }
                     }
@@ -7282,8 +7490,14 @@ const Watcher=class Watcher {
                         if (!regex.test(rootPath)) {
                             continue;
                         }
-                        let name = rootPath.replace(regex, "$2");
-                        info.fct(type, target, receiver, value, name, dones);
+                        if (target.__path) {
+                            let oldPath = target.__path;
+                            info.fct(type, target, receiver, value, prop, dones);
+                            target.__path = oldPath;
+                        }
+                        else {
+                            info.fct(type, target, receiver, value, prop, dones);
+                        }
                     }
                 }
             }
@@ -7292,6 +7506,20 @@ const Watcher=class Watcher {
         proxyData.baseData = obj;
         setProxyPath(realProxy, '');
         return realProxy;
+    }
+    static is(obj) {
+        return typeof obj == 'object' && obj.__isProxy;
+    }
+    static extract(obj) {
+        if (this.is(obj)) {
+            return obj.getTarget();
+        }
+        return obj;
+    }
+    static trigger(type, target) {
+        if (this.is(target)) {
+            target.__static_trigger(type);
+        }
     }
     /**
      * Create a computed variable that will watch any changes
@@ -7350,6 +7578,10 @@ const ResultRamWithError=class ResultRamWithError extends ResultWithError {
 }
 ResultRamWithError.Namespace=`${moduleName}`;
 _.ResultRamWithError=ResultRamWithError;
+const VoidRamWithError=class VoidRamWithError extends VoidWithError {
+}
+VoidRamWithError.Namespace=`${moduleName}`;
+_.VoidRamWithError=VoidRamWithError;
 const GenericRam=class GenericRam {
     /**
      * The current namespace
@@ -7431,6 +7663,22 @@ const GenericRam=class GenericRam {
                 }
                 return undefined;
             }
+            async updateWithError(newData = {}) {
+                const result = new ResultRamWithError();
+                let queryId = that.getIdWithError(this);
+                if (!queryId.success || !queryId.result) {
+                    result.errors = queryId.errors;
+                    return result;
+                }
+                let oldData = that.records.get(queryId.result);
+                if (oldData) {
+                    that.mergeObject(oldData, newData);
+                    let result = await that.updateWithError(oldData);
+                    return result;
+                }
+                result.errors.push(new RamError(RamErrorCode.noItemInsideRam, "Can't find this item inside the ram"));
+                return result;
+            }
             onUpdate(callback) {
                 let id = that.getId(this);
                 if (!that.recordsSubscribers.has(id)) {
@@ -7458,6 +7706,17 @@ const GenericRam=class GenericRam {
             async delete() {
                 let id = that.getId(this);
                 await that.deleteById(id);
+            }
+            async deleteWithError() {
+                const result = new VoidRamWithError();
+                let queryId = that.getIdWithError(this);
+                if (!queryId.success || !queryId.result) {
+                    result.errors = queryId.errors;
+                    return result;
+                }
+                const queryDelete = await that.deleteByIdWithError(queryId.result);
+                result.errors = queryDelete.errors;
+                return result;
             }
             onDelete(callback) {
                 let id = that.getId(this);
@@ -8115,7 +8374,7 @@ const StateManager=class StateManager {
     /**
      * Subscribe actions for a state or a state list
      */
-    subscribe(statePatterns, callbacks) {
+    subscribe(statePatterns, callbacks, autoActiveState = true) {
         if (!callbacks.active && !callbacks.inactive && !callbacks.askChange) {
             this._log(`Trying to subscribe to state : ${statePatterns} with no callbacks !`, "warning");
             return;
@@ -8144,7 +8403,7 @@ const StateManager=class StateManager {
                 }
                 for (let activeFct of callbacks.active) {
                     this.subscribers[statePattern].callbacks.active.push(activeFct);
-                    if (this.subscribers[statePattern].isActive && this.activeState) {
+                    if (this.subscribers[statePattern].isActive && this.activeState && autoActiveState) {
                         let slugs = Uri.getParams(this.subscribers[statePattern], this.activeState.name);
                         if (slugs) {
                             activeFct(this.activeState, slugs);
@@ -8166,6 +8425,29 @@ const StateManager=class StateManager {
                 }
                 for (let askChangeFct of callbacks.askChange) {
                     this.subscribers[statePattern].callbacks.askChange.push(askChangeFct);
+                }
+            }
+        }
+    }
+    /**
+     *
+     */
+    activateAfterSubscribe(statePatterns, callbacks) {
+        if (!Array.isArray(statePatterns)) {
+            statePatterns = [statePatterns];
+        }
+        for (let statePattern of statePatterns) {
+            if (callbacks.active) {
+                if (!Array.isArray(callbacks.active)) {
+                    callbacks.active = [callbacks.active];
+                }
+                for (let activeFct of callbacks.active) {
+                    if (this.subscribers[statePattern].isActive && this.activeState) {
+                        let slugs = Uri.getParams(this.subscribers[statePattern], this.activeState.name);
+                        if (slugs) {
+                            activeFct(this.activeState, slugs);
+                        }
+                    }
                 }
             }
         }
@@ -8674,8 +8956,7 @@ const TemplateInstance=class TemplateInstance {
                     }
                 }
                 else {
-                    console.log(e);
-                    debugger;
+                    console.error(e);
                 }
             }
             return "";
@@ -8710,8 +8991,7 @@ const TemplateInstance=class TemplateInstance {
                     }
                 }
                 else {
-                    console.log(e);
-                    debugger;
+                    console.error(e);
                 }
             }
         });
@@ -8741,8 +9021,7 @@ const TemplateInstance=class TemplateInstance {
                     }
                 }
                 else {
-                    console.log(e);
-                    debugger;
+                    console.error(e);
                 }
             }
         });
@@ -9122,7 +9401,6 @@ const TemplateContext=class TemplateContext {
             let index = keys[_getIndex.value];
             let element = items[index];
             if (element === undefined && (Array.isArray(items) || !items)) {
-                debugger;
                 if (this.registry) {
                     let indexNb = Number(_getIndex.value);
                     if (!isNaN(indexNb)) {
@@ -9508,8 +9786,13 @@ const WebComponent=class WebComponent extends HTMLElement {
                 let defaultValue = {};
                 this.__defaultValuesWatch(defaultValue);
                 this.__watch = Watcher.get(defaultValue, (type, path, element) => {
-                    let action = this.__watchActionsCb[path.split(".")[0]] || this.__watchActionsCb[path.split("[")[0]];
-                    action(type, path, element);
+                    try {
+                        let action = this.__watchActionsCb[path.split(".")[0]] || this.__watchActionsCb[path.split("[")[0]];
+                        action(type, path, element);
+                    }
+                    catch (e) {
+                        console.error(e);
+                    }
                 });
             }
         }
@@ -9589,6 +9872,7 @@ const WebComponent=class WebComponent extends HTMLElement {
             this._first = false;
             this.__defaultValues();
             this.__upgradeAttributes();
+            this.__activateState();
             this.__templateInstance?.render();
             this.__removeNoAnimations();
         }
@@ -9722,7 +10006,17 @@ const WebComponent=class WebComponent extends HTMLElement {
             for (const managerClass of this.__statesList[route].keys()) {
                 let el = this.__statesList[route].get(managerClass);
                 if (el) {
-                    managerClass.subscribe(route, el);
+                    managerClass.subscribe(route, el, false);
+                }
+            }
+        }
+    }
+    __activateState() {
+        for (let route in this.__statesList) {
+            for (const managerClass of this.__statesList[route].keys()) {
+                let el = this.__statesList[route].get(managerClass);
+                if (el) {
+                    managerClass.activateAfterSubscribe(route, el);
                 }
             }
         }
