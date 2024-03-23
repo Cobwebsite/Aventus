@@ -1,6 +1,6 @@
 import { EOL } from 'os';
 import { normalize, sep } from 'path';
-import { CodeFixAction, CompilerOptions, CompletionInfo, createLanguageService, Diagnostic as DiagnosticTs, displayPartsToString, Extension, flattenDiagnosticMessageText, FormatCodeSettings, GetCompletionsAtPositionOptions, IndentStyle, JsxEmit, LanguageService, LanguageServiceHost, ModuleDetectionKind, ModuleResolutionKind, RenameInfo, ResolvedModule, ResolvedModuleFull, resolveModuleName, ScriptKind, ScriptTarget, SemicolonPreference, transpile, WithMetadata, UserPreferences, getTokenAtPosition, createSourceFile, isTypeReferenceNode, SourceFile } from 'typescript';
+import { CodeFixAction, CompilerOptions, CompletionInfo, createLanguageService, Diagnostic as DiagnosticTs, displayPartsToString, Extension, flattenDiagnosticMessageText, FormatCodeSettings, GetCompletionsAtPositionOptions, IndentStyle, JsxEmit, LanguageService, LanguageServiceHost, ModuleDetectionKind, ModuleResolutionKind, RenameInfo, ResolvedModule, ResolvedModuleFull, resolveModuleName, ScriptKind, ScriptTarget, SemicolonPreference, transpile, WithMetadata, UserPreferences, getTokenAtPosition, createSourceFile, isTypeReferenceNode, SourceFile, TypeFormatFlags } from 'typescript';
 import { CodeAction, CodeLens, CompletionItem, CompletionItemKind, CompletionList, Definition, Diagnostic, DiagnosticSeverity, DiagnosticTag, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver';
 import { AventusExtension, AventusLanguageId } from '../../definition';
 import { AventusFile } from '../../files/AventusFile';
@@ -410,7 +410,7 @@ export class AventusTsLanguageService {
 
             let node = getTokenAtPosition(srcFile, offset);
             let type = typeChecker.getTypeAtLocation(node);
-            let typeName = typeChecker.typeToString(type);
+            let typeName = typeChecker.typeToString(type, node, TypeFormatFlags.UseFullyQualifiedType);
             if (typeName.includes(".")) {
                 //its an external type => we can return
                 return typeName;
