@@ -7,6 +7,11 @@
  - Correct property and attribute loading for html autocompletion
  - Init state only when the component is renderered
  - Disable loop check on htmlElement inside fct compareObject
+ - Correct the getType inside the TsLanguageService to get fullname
+ - Correct the CompareObject to avoid error when comparing null Date
+ - Add a function to avoid bypassing getter and setter when a component a loaded after some props were already assigned
+ - Correct the date and datetime property or attribute on the webcomponent
+ - Keep the comment format to // inside style file. Before it was transformed to /* */
 
 ### Features
  - Add $ to use as @bind
@@ -14,8 +19,13 @@
  - Automatic detection of file inside http request to send multipart content
  - Add global config into PressManager
  - Add function to extract and trigger Watcher
- - Add RamItme function with errors as return
-
+ - Add RamItem function with errors as return
+ - Add Asyncable and Async to easly manage result that can be a promise or not
+ - Add function getAsString and sheetToString to get the CSSStyleSheet as a string
+ - Reformat webcomponent life cycle with postCreation/postConnect/postDisonnect/postDestruction
+ - Automatically call the destructor when `remove` is called on a webcomponent
+ - Destroy children recursively when destroy is called on a webcomponent
+ - Show only the live server button when Aventus is ready and have a project
 
 
 ## 1.2.0 (2024-02-24)

@@ -221,18 +221,15 @@ export const AventusConfigSchema: JSONSchema = {
                         default: "need"
                     },
                     subDependancesInclude: {
-                        type: "array",
+                        type: "object",
                         description: "Inclusion pattern for each lib. You can use a star to select everythink. If nothink find for a lib, the need value ll be used",
-                        items: {
-                            type: "object",
-                            patternProperties: {
-                                "^\\S+$": {
-                                    type: "string",
-                                    enum: ['none', 'need', 'full'],
-                                    default: "need"
-                                }
-                            },
-                        }
+                        patternProperties: {
+                            "^\\S+$": {
+                                type: "string",
+                                enum: ['none', 'need', 'full'],
+                                default: "need"
+                            }
+                        },
                     }
                 },
                 required: ["uri"]

@@ -31,9 +31,6 @@ export function compareObject(obj1, obj2) {
         }
         // all entries founded
         return true;
-    } else if(obj1 instanceof Date) {
-        // date
-        return obj1.toString() === obj2.toString();
     } else if(typeof obj1 === 'object' && obj1 !== undefined && obj1 !== null) {
         // object
         if(typeof obj2 !== 'object' || obj2 === undefined || obj2 === null) {
@@ -41,6 +38,9 @@ export function compareObject(obj1, obj2) {
         }
         if(obj1 instanceof HTMLElement || obj2 instanceof HTMLElement) {
             return obj1 == obj2;
+        }
+        if(obj1 instanceof Date || obj2 instanceof Date) {
+            return obj1.toString() === obj2.toString();
         }
         // not same keys length
         if(Object.keys(obj1).length !== Object.keys(obj2).length) {

@@ -282,10 +282,11 @@ export class AventusPackageFileTs extends AventusTsFile {
 					}
 				}
 			}
-		} catch {
+		} catch(e) {
 			let splitted = this.file.uri.split("/");
 			let fileName = splitted[splitted.length - 1];
 			GenericServer.showErrorMessage("There is an error inside file :" + fileName);
+			console.log(e);
 		}
 	}
 	protected async onContentChange(): Promise<void> {

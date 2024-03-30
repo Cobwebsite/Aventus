@@ -1246,9 +1246,9 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                 result += "@ViewElement()" + EOL + "protected " + name + "!: " + this.compilationResult.missingViewElements.elements[name] + ";" + EOL
             }
         }
-        if (result != "") {
-            result = EOL + result;
-        }
+        // if (result != "") {
+        //     result = EOL + result;
+        // }
         return {
             start: position,
             text: result
@@ -1263,9 +1263,9 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                 result += `/**${EOL} * ${EOL} */${EOL}protected ${name}(){${EOL}throw new Error("Method not implemented.");${EOL}}${EOL}`;
             }
         }
-        if (result != "") {
-            result = EOL + result;
-        }
+        // if (result != "") {
+        //     result = EOL + result;
+        // }
         return {
             start: position,
             text: result

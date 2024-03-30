@@ -382,4 +382,9 @@ export class ParserTs {
         }
         return null;
     }
+
+    public getBaseInfoFullName(fullName: string): BaseInfo | null {
+        const name: string = fullName.split(".").pop() ?? fullName;
+        return this.getBaseInfo(name);
+    }
 }

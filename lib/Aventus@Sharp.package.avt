@@ -153,24 +153,24 @@ abstract class Event<T extends any = any> {
 
 namespace Routes {
 abstract class StorableRoute<T extends Aventus.IData> extends Aventus.HttpRoute {
-    GetAll(): Promise<Aventus.ResultWithError<[], Aventus.GenericError<number>>>;
+    GetAll(): Promise<Aventus.ResultWithError<T[], Aventus.GenericError<number>>>;
     Create(body: {
         item: T;
     } | FormData): Promise<Aventus.ResultWithError<T, Aventus.GenericError<number>>>;
     CreateMany(body: {
-        list: [];
-    } | FormData): Promise<Aventus.ResultWithError<[], Aventus.GenericError<number>>>;
+        list: T[];
+    } | FormData): Promise<Aventus.ResultWithError<T[], Aventus.GenericError<number>>>;
     GetById(id: number): Promise<Aventus.ResultWithError<T, Aventus.GenericError<number>>>;
     Update(id: number, body: {
         item: T;
     } | FormData): Promise<Aventus.ResultWithError<T, Aventus.GenericError<number>>>;
     UpdateMany(body: {
-        list: [];
-    } | FormData): Promise<Aventus.ResultWithError<[], Aventus.GenericError<number>>>;
+        list: T[];
+    } | FormData): Promise<Aventus.ResultWithError<T[], Aventus.GenericError<number>>>;
     Delete(id: number): Promise<Aventus.ResultWithError<T, Aventus.GenericError<number>>>;
     DeleteMany(body: {
-        ids: [];
-    } | FormData): Promise<Aventus.ResultWithError<[], Aventus.GenericError<number>>>;
+        ids: number[];
+    } | FormData): Promise<Aventus.ResultWithError<T[], Aventus.GenericError<number>>>;
     abstract StorableName(): string;
 }
 }
@@ -494,7 +494,7 @@ type WsEndPointType = (abstract new (...args: any[]) => WebSocket.EndPoint);
 }
 
 namespace WebSocket {
-class StorableWsRoute_DeleteMany<T> extends WebSocket.Event<[]> {
+class StorableWsRoute_DeleteMany<T> extends WebSocket.Event<T[]> {
     StorableName: () => string;
     constructor(endpoint: WebSocket.EndPoint, StorableName: () => string);
     /**
@@ -516,7 +516,7 @@ class StorableWsRoute_Delete<T> extends WebSocket.Event<T> {
 }
 
 namespace WebSocket {
-class StorableWsRoute_UpdateMany<T> extends WebSocket.Event<[]> {
+class StorableWsRoute_UpdateMany<T> extends WebSocket.Event<T[]> {
     StorableName: () => string;
     constructor(endpoint: WebSocket.EndPoint, StorableName: () => string);
     /**
@@ -549,7 +549,7 @@ class StorableWsRoute_GetById<T> extends WebSocket.Event<T> {
 }
 
 namespace WebSocket {
-class StorableWsRoute_CreateMany<T> extends WebSocket.Event<[]> {
+class StorableWsRoute_CreateMany<T> extends WebSocket.Event<T[]> {
     StorableName: () => string;
     constructor(endpoint: WebSocket.EndPoint, StorableName: () => string);
     /**
@@ -571,7 +571,7 @@ class StorableWsRoute_Create<T> extends WebSocket.Event<T> {
 }
 
 namespace WebSocket {
-class StorableWsRoute_GetAll<T> extends WebSocket.Event<[]> {
+class StorableWsRoute_GetAll<T> extends WebSocket.Event<T[]> {
     StorableName: () => string;
     constructor(endpoint: WebSocket.EndPoint, StorableName: () => string);
     /**
@@ -601,24 +601,24 @@ abstract class StorableWsRoute<T extends Aventus.IData> extends WebSocket.Route 
         DeleteMany: WebSocket.StorableWsRoute_DeleteMany<T>;
     };
     constructor(endpoint: WebSocket.EndPoint);
-    GetAll(options?: WebSocket.WsRouteSendOptions): Promise<Aventus.ResultWithError<[], Aventus.GenericError<number>>>;
+    GetAll(options?: WebSocket.WsRouteSendOptions): Promise<Aventus.ResultWithError<T[], Aventus.GenericError<number>>>;
     Create(body: {
         item: T;
     } | FormData, options?: WebSocket.WsRouteSendOptions): Promise<Aventus.ResultWithError<T, Aventus.GenericError<number>>>;
     CreateMany(body: {
-        list: [];
-    } | FormData, options?: WebSocket.WsRouteSendOptions): Promise<Aventus.ResultWithError<[], Aventus.GenericError<number>>>;
+        list: T[];
+    } | FormData, options?: WebSocket.WsRouteSendOptions): Promise<Aventus.ResultWithError<T[], Aventus.GenericError<number>>>;
     GetById(id: number, options?: WebSocket.WsRouteSendOptions): Promise<Aventus.ResultWithError<T, Aventus.GenericError<number>>>;
     Update(id: number, body: {
         item: T;
     } | FormData, options?: WebSocket.WsRouteSendOptions): Promise<Aventus.ResultWithError<T, Aventus.GenericError<number>>>;
     UpdateMany(body: {
-        list: [];
-    } | FormData, options?: WebSocket.WsRouteSendOptions): Promise<Aventus.ResultWithError<[], Aventus.GenericError<number>>>;
+        list: T[];
+    } | FormData, options?: WebSocket.WsRouteSendOptions): Promise<Aventus.ResultWithError<T[], Aventus.GenericError<number>>>;
     Delete(id: number, options?: WebSocket.WsRouteSendOptions): Promise<Aventus.ResultWithError<T, Aventus.GenericError<number>>>;
     DeleteMany(body: {
-        ids: [];
-    } | FormData, options?: WebSocket.WsRouteSendOptions): Promise<Aventus.ResultWithError<[], Aventus.GenericError<number>>>;
+        ids: number[];
+    } | FormData, options?: WebSocket.WsRouteSendOptions): Promise<Aventus.ResultWithError<T[], Aventus.GenericError<number>>>;
     abstract StorableName(): string;
 }
 }

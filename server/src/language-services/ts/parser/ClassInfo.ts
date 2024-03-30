@@ -159,6 +159,10 @@ export class ClassInfo extends BaseInfo {
 								let parent = BaseInfo.getInfoByFullName(names[0], this);
 								if (parent && parent instanceof ClassInfo) {
 									this.parentClass = parent;
+									if(this.parentClass == this) {
+										this.parentClass = null;
+										throw 'The parent is the child => impossible. Please send it to an admin'
+									}
 								}
 							}
 						}

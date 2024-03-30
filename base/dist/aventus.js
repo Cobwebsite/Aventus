@@ -38,15 +38,15 @@ const compareObject=function compareObject(obj1, obj2) {
         }
         return true;
     }
-    else if (obj1 instanceof Date) {
-        return obj1.toString() === obj2.toString();
-    }
     else if (typeof obj1 === 'object' && obj1 !== undefined && obj1 !== null) {
         if (typeof obj2 !== 'object' || obj2 === undefined || obj2 === null) {
             return false;
         }
         if (obj1 instanceof HTMLElement || obj2 instanceof HTMLElement) {
             return obj1 == obj2;
+        }
+        if (obj1 instanceof Date || obj2 instanceof Date) {
+            return obj1.toString() === obj2.toString();
         }
         if (Object.keys(obj1).length !== Object.keys(obj2).length) {
             return false;
@@ -377,6 +377,12 @@ const Style=class Style {
     static get(name) {
         return this.getInstance().get(name);
     }
+    static getAsString(name) {
+        return this.getInstance().getAsString(name);
+    }
+    static sheetToString(stylesheet) {
+        return this.getInstance().sheetToString(stylesheet);
+    }
     static load(name, url) {
         return this.getInstance().load(name, url);
     }
@@ -424,6 +430,16 @@ const Style=class Style {
             style = this.store(name, "");
         }
         return style;
+    }
+    getAsString(name) {
+        return this.sheetToString(this.get(name));
+    }
+    sheetToString(stylesheet) {
+        return stylesheet.cssRules
+            ? Array.from(stylesheet.cssRules)
+                .map(rule => rule.cssText || '')
+                .join('\n')
+            : '';
     }
 }
 Style.Namespace=`${moduleName}`;
@@ -1802,7 +1818,6 @@ const Watcher=class Watcher {
                         if (!regex.test(rootPath)) {
                             continue;
                         }
-                        let name = rootPath.replace(regex, "$2");
                         if (target.__path) {
                             let oldPath = target.__path;
                             info.fct(type, target, receiver, value, prop, dones);
@@ -3367,6 +3382,31 @@ const WebComponent=class WebComponent extends HTMLElement {
             this.__watchFunctionsComputed[name].destroy();
         }
         // TODO add missing info for destructor();
+        this.postDestruction();
+        this.destructChildren();
+    }
+    destructChildren() {
+        const recu = (el) => {
+            for (let child of Array.from(el.children)) {
+                if (child instanceof WebComponent) {
+                    child.destructor();
+                }
+                else if (child instanceof HTMLElement) {
+                    recu(child);
+                }
+            }
+            if (el.shadowRoot) {
+                for (let child of Array.from(el.shadowRoot.children)) {
+                    if (child instanceof WebComponent) {
+                        child.destructor();
+                    }
+                    else if (child instanceof HTMLElement) {
+                        recu(child);
+                    }
+                }
+            }
+        };
+        recu(this);
     }
     __addWatchesActions(name, fct) {
         if (!this.__watchActions[name]) {
@@ -3499,16 +3539,26 @@ const WebComponent=class WebComponent extends HTMLElement {
             this.__templateInstance?.render();
             this.__removeNoAnimations();
         }
+        else {
+            setTimeout(() => {
+                this.postConnect();
+            });
+        }
+    }
+    disconnectedCallback() {
+        setTimeout(() => {
+            this.postDisonnect();
+        });
     }
     __removeNoAnimations() {
         if (document.readyState !== "loading") {
-            this.offsetWidth;
             setTimeout(() => {
                 this.postCreation();
                 this._isReady = true;
                 this.dispatchEvent(new CustomEvent('postCreationDone'));
                 this.shadowRoot.adoptedStyleSheets = Object.values(this.__getStatic().__styleSheets);
                 document.removeEventListener("DOMContentLoaded", this.__removeNoAnimations);
+                this.postConnect();
             }, 50);
         }
     }
@@ -3519,6 +3569,7 @@ const WebComponent=class WebComponent extends HTMLElement {
         return [];
     }
     __upgradeProperty(prop) {
+        this.__correctGetter(prop);
         let boolProps = this.__listBoolProps();
         if (boolProps.indexOf(prop) != -1) {
             if (this.hasAttribute(prop) && (this.getAttribute(prop) === "true" || this.getAttribute(prop) === "")) {
@@ -3537,6 +3588,13 @@ const WebComponent=class WebComponent extends HTMLElement {
                 delete this[prop];
                 this[prop] = value;
             }
+        }
+    }
+    __correctGetter(prop) {
+        if (Object.hasOwn(this, prop)) {
+            const value = this[prop];
+            delete this[prop];
+            this[prop] = value;
         }
     }
     __getStateManager(managerClass) {
@@ -3657,12 +3715,18 @@ const WebComponent=class WebComponent extends HTMLElement {
         this.__stateCleared = true;
     }
     dateToString(d) {
+        if (typeof d == 'string') {
+            d = this.stringToDate(d);
+        }
         if (d instanceof Date) {
             return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split("T")[0];
         }
         return null;
     }
     dateTimeToString(dt) {
+        if (typeof dt == 'string') {
+            dt = this.stringToDate(dt);
+        }
         if (dt instanceof Date) {
             return new Date(dt.getTime() - (dt.getTimezoneOffset() * 60000)).toISOString().slice(0, -1);
         }
@@ -3823,18 +3887,32 @@ const WebComponent=class WebComponent extends HTMLElement {
             }
         }
     }
-    remove() {
+    /**
+     * Remove a component from the dom
+     * If desctruct is set to true, the component will be fully destroyed
+     */
+    remove(destruct = true) {
         super.remove();
-        this.postDestruction();
+        if (destruct) {
+            this.destructor();
+        }
     }
     /**
-     * Function triggered when the component is removed from the DOM
+     * Function triggered when the component is destroyed
      */
     postDestruction() { }
     /**
      * Function triggered the first time the component is rendering inside DOM
      */
     postCreation() { }
+    /**
+    * Function triggered each time the component is rendering inside DOM
+    */
+    postConnect() { }
+    /**
+    * Function triggered each time the component is removed from the DOM
+    */
+    postDisonnect() { }
     /**
      * Find a parent by tagname if exist
      */
@@ -3950,10 +4028,6 @@ _.WebComponentInstance=WebComponentInstance;
 for(let key in _) { Aventus[key] = _[key] }
 })(Aventus);
 
-Object.defineProperty(window, "AvInstance", {
-	get() {return Aventus.Instance;}
-})
- 
 var Aventus;
 (Aventus||(Aventus = {}));
 (function (Aventus) {
@@ -3962,6 +4036,18 @@ const _ = {};
 
 
 let _n;
+const Async=function Async(el) {
+    return new Promise((resolve) => {
+        if (el instanceof Promise) {
+            el.then(resolve);
+        }
+        else {
+            resolve(el);
+        }
+    });
+}
+
+_.Async=Async;
 const Style=class Style {
     static instance;
     static noAnimation;
@@ -3973,6 +4059,12 @@ const Style=class Style {
     }
     static get(name) {
         return this.getInstance().get(name);
+    }
+    static getAsString(name) {
+        return this.getInstance().getAsString(name);
+    }
+    static sheetToString(stylesheet) {
+        return this.getInstance().sheetToString(stylesheet);
     }
     static load(name, url) {
         return this.getInstance().load(name, url);
@@ -4021,6 +4113,16 @@ const Style=class Style {
             style = this.store(name, "");
         }
         return style;
+    }
+    getAsString(name) {
+        return this.sheetToString(this.get(name));
+    }
+    sheetToString(stylesheet) {
+        return stylesheet.cssRules
+            ? Array.from(stylesheet.cssRules)
+                .map(rule => rule.cssText || '')
+                .join('\n')
+            : '';
     }
 }
 Style.Namespace=`${moduleName}`;
@@ -4515,15 +4617,15 @@ const compareObject=function compareObject(obj1, obj2) {
         }
         return true;
     }
-    else if (obj1 instanceof Date) {
-        return obj1.toString() === obj2.toString();
-    }
     else if (typeof obj1 === 'object' && obj1 !== undefined && obj1 !== null) {
         if (typeof obj2 !== 'object' || obj2 === undefined || obj2 === null) {
             return false;
         }
         if (obj1 instanceof HTMLElement || obj2 instanceof HTMLElement) {
             return obj1 == obj2;
+        }
+        if (obj1 instanceof Date || obj2 instanceof Date) {
+            return obj1.toString() === obj2.toString();
         }
         if (Object.keys(obj1).length !== Object.keys(obj2).length) {
             return false;
@@ -9744,6 +9846,31 @@ const WebComponent=class WebComponent extends HTMLElement {
             this.__watchFunctionsComputed[name].destroy();
         }
         // TODO add missing info for destructor();
+        this.postDestruction();
+        this.destructChildren();
+    }
+    destructChildren() {
+        const recu = (el) => {
+            for (let child of Array.from(el.children)) {
+                if (child instanceof WebComponent) {
+                    child.destructor();
+                }
+                else if (child instanceof HTMLElement) {
+                    recu(child);
+                }
+            }
+            if (el.shadowRoot) {
+                for (let child of Array.from(el.shadowRoot.children)) {
+                    if (child instanceof WebComponent) {
+                        child.destructor();
+                    }
+                    else if (child instanceof HTMLElement) {
+                        recu(child);
+                    }
+                }
+            }
+        };
+        recu(this);
     }
     __addWatchesActions(name, fct) {
         if (!this.__watchActions[name]) {
@@ -9876,16 +10003,26 @@ const WebComponent=class WebComponent extends HTMLElement {
             this.__templateInstance?.render();
             this.__removeNoAnimations();
         }
+        else {
+            setTimeout(() => {
+                this.postConnect();
+            });
+        }
+    }
+    disconnectedCallback() {
+        setTimeout(() => {
+            this.postDisonnect();
+        });
     }
     __removeNoAnimations() {
         if (document.readyState !== "loading") {
-            this.offsetWidth;
             setTimeout(() => {
                 this.postCreation();
                 this._isReady = true;
                 this.dispatchEvent(new CustomEvent('postCreationDone'));
                 this.shadowRoot.adoptedStyleSheets = Object.values(this.__getStatic().__styleSheets);
                 document.removeEventListener("DOMContentLoaded", this.__removeNoAnimations);
+                this.postConnect();
             }, 50);
         }
     }
@@ -9896,6 +10033,7 @@ const WebComponent=class WebComponent extends HTMLElement {
         return [];
     }
     __upgradeProperty(prop) {
+        this.__correctGetter(prop);
         let boolProps = this.__listBoolProps();
         if (boolProps.indexOf(prop) != -1) {
             if (this.hasAttribute(prop) && (this.getAttribute(prop) === "true" || this.getAttribute(prop) === "")) {
@@ -9914,6 +10052,13 @@ const WebComponent=class WebComponent extends HTMLElement {
                 delete this[prop];
                 this[prop] = value;
             }
+        }
+    }
+    __correctGetter(prop) {
+        if (Object.hasOwn(this, prop)) {
+            const value = this[prop];
+            delete this[prop];
+            this[prop] = value;
         }
     }
     __getStateManager(managerClass) {
@@ -10034,12 +10179,18 @@ const WebComponent=class WebComponent extends HTMLElement {
         this.__stateCleared = true;
     }
     dateToString(d) {
+        if (typeof d == 'string') {
+            d = this.stringToDate(d);
+        }
         if (d instanceof Date) {
             return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split("T")[0];
         }
         return null;
     }
     dateTimeToString(dt) {
+        if (typeof dt == 'string') {
+            dt = this.stringToDate(dt);
+        }
         if (dt instanceof Date) {
             return new Date(dt.getTime() - (dt.getTimezoneOffset() * 60000)).toISOString().slice(0, -1);
         }
@@ -10200,18 +10351,32 @@ const WebComponent=class WebComponent extends HTMLElement {
             }
         }
     }
-    remove() {
+    /**
+     * Remove a component from the dom
+     * If desctruct is set to true, the component will be fully destroyed
+     */
+    remove(destruct = true) {
         super.remove();
-        this.postDestruction();
+        if (destruct) {
+            this.destructor();
+        }
     }
     /**
-     * Function triggered when the component is removed from the DOM
+     * Function triggered when the component is destroyed
      */
     postDestruction() { }
     /**
      * Function triggered the first time the component is rendering inside DOM
      */
     postCreation() { }
+    /**
+    * Function triggered each time the component is rendering inside DOM
+    */
+    postConnect() { }
+    /**
+    * Function triggered each time the component is removed from the DOM
+    */
+    postDisonnect() { }
     /**
      * Find a parent by tagname if exist
      */
@@ -10326,3 +10491,6 @@ _.WebComponentInstance=WebComponentInstance;
 
 for(let key in _) { Aventus[key] = _[key] }
 })(Aventus);
+Object.defineProperty(window, "AvInstance", {
+	get() {return Aventus.Instance;}
+})

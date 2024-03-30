@@ -357,7 +357,7 @@ export class AventusWebcomponentCompiler {
         let result: { [key: string]: CustomFieldModel } = {};
         for (let propName in classInfo.properties) {
             let property = classInfo.properties[propName];
-            if(this.allFields[property.name]) {
+            if (this.allFields[property.name]) {
                 continue;
             }
             let found = false;
@@ -585,7 +585,7 @@ export class AventusWebcomponentCompiler {
             let field = this.allFields[fieldName];
             // if (field.inParent && this.overrideViewDecorator === null) {
             if (field.inParent) {
-                if(field.propType == "Attribute" || field.propType == "Property") {
+                if (field.propType == "Attribute" || field.propType == "Property") {
                     this.createHtmlDoc(field, field.type);
                 }
                 continue;
@@ -655,6 +655,7 @@ export class AventusWebcomponentCompiler {
         let variablesSimpleTxt = "";
         let variablesSimpleHotReloadTxt = "";
 
+        let simpleCorrect: string[] = [];
         let fullTxt = "";
         let fullTxtHotReload = "";
         if (this.classInfo) {
@@ -667,6 +668,13 @@ export class AventusWebcomponentCompiler {
         for (let field of fields) {
             fullTxt += field.compiledContent + EOL;
             fullTxtHotReload += field.compiledContentHotReload + EOL;
+
+            if (field.isGet || field.isSet) {
+                if (!simpleCorrect.includes(field.name)) {
+                    simpleCorrect.push(field.name);
+                    this.upgradeAttributes += 'this.__correctGetter(\'' + field.name + '\');' + EOL;
+                }
+            }
         }
         let fullClassFields = `class MyCompilationClassAventus {${fullTxt}}`;
         let fieldsCompiled = "";
@@ -863,6 +871,8 @@ export class AventusWebcomponentCompiler {
 
             defaultValueWatch += `w["${field.name}"] = ${field.defaultValue?.replace(/\\"/g, '')};` + EOL;
             this.foundedWatch.push(field.name);
+            this.upgradeAttributes += 'this.__correctGetter(\'' + field.name + '\');' + EOL;
+
 
             if (HttpServer.isRunning) {
                 defaultValueWatchHotReload += `w["${field.name}"] = ${field.defaultValueHotReload?.replace(/\\"/g, '')};` + EOL;
@@ -934,8 +944,8 @@ export class AventusWebcomponentCompiler {
                     fullTxt += method.compiledContent + EOL;
                     if (HttpServer.isRunning)
                         fullTxtHotReload += method.compiledContentHotReload + EOL;
-                    
-                    if(method.isStatic) continue;
+
+                    if (method.isStatic) continue;
 
                     for (let decorator of method.decorators) {
                         if (BindThisDecorator.is(decorator)) {

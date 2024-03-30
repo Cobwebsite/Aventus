@@ -1,4 +1,5 @@
 import { Singleton } from "../Singleton";
+import { AvenutsVsComponent } from '../component';
 import { DebugFile } from '../file-system/DebugFile';
 import { InitStep } from './InitStep';
 import { ThemeColor, Uri, window } from 'vscode'
@@ -62,6 +63,7 @@ export class Compiled {
         }
         if (Singleton.client.components) {
             if (Object.values(Compiled.timeByBuild).length > 0) {
+                Singleton.client.components.runningServer.show();
                 let hasError = false;
                 let tooltips: string[] = []
                 for (let buildName in Compiled.timeByBuild) {
@@ -87,6 +89,7 @@ export class Compiled {
             else {
                 Singleton.client.components.lastCompiledInfo.text = "";
                 Singleton.client.components.lastCompiledInfo.tooltip = "";
+                Singleton.client.components.runningServer.hide();
             }
         }
     }
