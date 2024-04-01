@@ -808,7 +808,7 @@ export class AventusTsLanguageService {
     private static replaceFirstExport(txt: string): string {
         return txt.replace(/^\s*export\s+(class|interface|enum|type|abstract|function)/m, "$1");
     }
-    private static prepareDataSchema(classInfo: ClassInfo) {
+    private static prepareDataSchema(classInfo: ClassInfo): string {
         let template: { [prop: string]: string } = {};
         const _loadType = (type: TypeInfo) => {
             if (type.kind == "boolean") {
@@ -866,9 +866,13 @@ export class AventusTsLanguageService {
                 }
             }
         }
-        return JSON.stringify(template).replace(/\\"/g, '"');
+        let result = JSON.stringify(template).replace(/\\"/g, '"');
+        if (classInfo.parentClass) {
+            result = `{...(${classInfo.parentClass.fullName}?.$schema ?? {}), ${result.slice(1)}`;
+        }
+        return result;
     }
-    
+
     private static addBindThis(element: ClassInfo, txt: string) {
         let extraConstructorCode: string[] = [];
         for (let methodName in element.methods) {
@@ -922,19 +926,22 @@ export class AventusTsLanguageService {
             let txt = element.compiledContent;
             let txtHotReload = element.compiledContentHotReload;
             if (element instanceof ClassInfo && !element.isInterface) {
-                
+
                 let currentNamespaceWithDot = "";
                 if (element.namespace) {
                     currentNamespaceWithDot = "." + element.namespace
                 }
-                additionContent += element.fullName + ".Namespace=`${moduleName}" + currentNamespaceWithDot + "`;";
+                additionContent += element.fullName + ".Namespace=`${moduleName}" + currentNamespaceWithDot + "`;" + EOL;
                 if (element.implements.includes('Aventus.IData')) {
-                    additionContent += element.fullName + ".$schema=" + this.prepareDataSchema(element) + ";";
-                    additionContent += "Aventus.DataManager.register(" + element.fullName + ".Fullname, " + element.fullName + ");";
                     result.type = InfoType.classData;
                 }
                 if (element.convertibleName) {
-                    additionContent += "Aventus.Converter.register(" + element.fullName + "." + element.convertibleName + ", " + element.fullName + ");"
+                    additionContent += element.fullName + ".$schema=" + this.prepareDataSchema(element) + ";" + EOL;
+                    additionContent += "Aventus.Converter.register(" + element.fullName + "." + element.convertibleName + ", " + element.fullName + ");" + EOL
+                }
+                else if (element.implements.includes('Aventus.IData')) {
+                    additionContent += element.fullName + ".$schema=" + this.prepareDataSchema(element) + ";" + EOL;
+                    additionContent += "Aventus.Converter.register(" + element.fullName + ".Fullname, " + element.fullName + ");" + EOL;
                 }
                 result.convertibleName = element.convertibleName;
 
@@ -955,7 +962,7 @@ export class AventusTsLanguageService {
                 txtHotReload = this.replaceFirstExport(txtHotReload);
                 result.hotReload = transpile(txtHotReload, compilerOptionsCompile);
             }
-            
+
             let doc = DefinitionCorrector.correct(this.compileDocTs(txt), element);
 
             if (doc.length > 0) {

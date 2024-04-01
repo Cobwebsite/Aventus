@@ -4811,6 +4811,7 @@ const RouterStateManager=class RouterStateManager extends Aventus.StateManager {
     }
 }
 RouterStateManager.Namespace=`${moduleName}`;
+
 _.RouterStateManager=RouterStateManager;
 Navigation.RouterLink = class RouterLink extends Aventus.WebComponent {
     get 'state'() { return this.getStringAttr('state') }
@@ -4921,6 +4922,7 @@ const Tracker=class Tracker {
     }
 }
 Tracker.Namespace=`${moduleName}`;
+
 _.Tracker=Tracker;
 Layout.GridCol = class GridCol extends Aventus.WebComponent {
     get 'column'() { return this.getStringAttr('column') }
@@ -5684,6 +5686,7 @@ const TouchRecord=class TouchRecord {
     }
 }
 TouchRecord.Namespace=`${moduleName}`;
+
 _.TouchRecord=TouchRecord;
 Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
     static get observedAttributes() {return ["zoom"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}

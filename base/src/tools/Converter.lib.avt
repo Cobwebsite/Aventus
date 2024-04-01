@@ -1,3 +1,4 @@
+import { Data } from "../data/IData.data.avt";
 import { Json } from "./Json.lib.avt";
 
 type SchemaType = 'string' | 'number' | 'boolean' | 'date' | string;
@@ -75,6 +76,22 @@ export class ConverterTransform implements IConverterTransform {
                                     map.set(this.transformLoop(keyValue[0]), this.transformLoop(keyValue[1]));
                                 }
                                 return map;
+                            }
+                            else if(obj instanceof Data) {
+                                let cst = obj.constructor as typeof Data;
+                                
+                                if(cst.$schema[key] == 'boolean') {
+                                    return value ? true : false;
+                                }
+                                else if(cst.$schema[key] == 'number') {
+                                    return isNaN(Number(value)) ? 0 : Number(value);
+                                }
+                                else if(cst.$schema[key] == 'number') {
+                                    return isNaN(Number(value)) ? 0 : Number(value);
+                                }
+                                else if(cst.$schema[key] == 'Date') {
+                                    return value ? new Date(value) : null;
+                                }
                             }
                             return this.transformLoop(value);
                         }

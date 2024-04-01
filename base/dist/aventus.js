@@ -4028,6 +4028,10 @@ _.WebComponentInstance=WebComponentInstance;
 for(let key in _) { Aventus[key] = _[key] }
 })(Aventus);
 
+Object.defineProperty(window, "AvInstance", {
+	get() {return Aventus.Instance;}
+})
+ 
 var Aventus;
 (Aventus||(Aventus = {}));
 (function (Aventus) {
@@ -4036,18 +4040,6 @@ const _ = {};
 
 
 let _n;
-const Async=function Async(el) {
-    return new Promise((resolve) => {
-        if (el instanceof Promise) {
-            el.then(resolve);
-        }
-        else {
-            resolve(el);
-        }
-    });
-}
-
-_.Async=Async;
 const Style=class Style {
     static instance;
     static noAnimation;
@@ -4126,6 +4118,7 @@ const Style=class Style {
     }
 }
 Style.Namespace=`${moduleName}`;
+
 _.Style=Style;
 const ElementExtension=class ElementExtension {
     /**
@@ -4364,6 +4357,7 @@ const ElementExtension=class ElementExtension {
     }
 }
 ElementExtension.Namespace=`${moduleName}`;
+
 _.ElementExtension=ElementExtension;
 const uuidv4=function uuidv4() {
     let uid = '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c => (Number(c) ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> Number(c) / 4).toString(16));
@@ -4527,6 +4521,7 @@ const Mutex=class Mutex {
     }
 }
 Mutex.Namespace=`${moduleName}`;
+
 _.Mutex=Mutex;
 const ActionGuard=class ActionGuard {
     /**
@@ -4584,6 +4579,7 @@ const ActionGuard=class ActionGuard {
     }
 }
 ActionGuard.Namespace=`${moduleName}`;
+
 _.ActionGuard=ActionGuard;
 var RamErrorCode;
 (function (RamErrorCode) {
@@ -4842,7 +4838,20 @@ const ResourceLoader=class ResourceLoader {
     }
 }
 ResourceLoader.Namespace=`${moduleName}`;
+
 _.ResourceLoader=ResourceLoader;
+const Async=function Async(el) {
+    return new Promise((resolve) => {
+        if (el instanceof Promise) {
+            el.then(resolve);
+        }
+        else {
+            resolve(el);
+        }
+    });
+}
+
+_.Async=Async;
 const Instance=class Instance {
     static elements = new Map();
     static get(type) {
@@ -4868,6 +4877,7 @@ const Instance=class Instance {
     }
 }
 Instance.Namespace=`${moduleName}`;
+
 _.Instance=Instance;
 const Callback=class Callback {
     callbacks = [];
@@ -4905,6 +4915,7 @@ const Callback=class Callback {
     }
 }
 Callback.Namespace=`${moduleName}`;
+
 _.Callback=Callback;
 const CallbackGroup=class CallbackGroup {
     callbacks = {};
@@ -4953,6 +4964,7 @@ const CallbackGroup=class CallbackGroup {
     }
 }
 CallbackGroup.Namespace=`${moduleName}`;
+
 _.CallbackGroup=CallbackGroup;
 const createCommProxy=function createCommProxy(that) {
     let proxyData = {
@@ -5146,53 +5158,8 @@ const Json=class Json {
     }
 }
 Json.Namespace=`${moduleName}`;
+
 _.Json=Json;
-const Data=class Data {
-    /**
-     * The schema for the class
-     */
-    static get $schema() { return {}; }
-    /**
-     * The current namespace
-     */
-    static Namespace = "";
-    /**
-     * Get the unique type for the data. Define it as the namespace + class name
-     */
-    static get Fullname() { return this.Namespace + "." + this.name; }
-    /**
-     * The current namespace
-     */
-    get namespace() {
-        return this.constructor['Namespace'];
-    }
-    /**
-     * Get the unique type for the data. Define it as the namespace + class name
-     */
-    get $type() {
-        return this.constructor['Fullname'];
-    }
-    /**
-     * Get the name of the class
-     */
-    get className() {
-        return this.constructor.name;
-    }
-    /**
-     * Get a JSON for the current object
-     */
-    toJSON() {
-        let toAvoid = ['className', 'namespace'];
-        return Json.classToJson(this, {
-            isValidKey: (key) => !toAvoid.includes(key)
-        });
-    }
-    clone() {
-        return DataManager.clone(this);
-    }
-}
-Data.Namespace=`${moduleName}`;
-_.Data=Data;
 const ConverterTransform=class ConverterTransform {
     transform(data) {
         return this.transformLoop(data);
@@ -5245,6 +5212,21 @@ const ConverterTransform=class ConverterTransform {
                                 }
                                 return map;
                             }
+                            else if (obj instanceof Data) {
+                                let cst = obj.constructor;
+                                if (cst.$schema[key] == 'boolean') {
+                                    return value ? true : false;
+                                }
+                                else if (cst.$schema[key] == 'number') {
+                                    return isNaN(Number(value)) ? 0 : Number(value);
+                                }
+                                else if (cst.$schema[key] == 'number') {
+                                    return isNaN(Number(value)) ? 0 : Number(value);
+                                }
+                                else if (cst.$schema[key] == 'Date') {
+                                    return value ? new Date(value) : null;
+                                }
+                            }
                             return this.transformLoop(value);
                         }
                     });
@@ -5292,6 +5274,7 @@ const ConverterTransform=class ConverterTransform {
     }
 }
 ConverterTransform.Namespace=`${moduleName}`;
+
 _.ConverterTransform=ConverterTransform;
 const Converter=class Converter {
     /**
@@ -5361,33 +5344,55 @@ const Converter=class Converter {
     }
 }
 Converter.Namespace=`${moduleName}`;
+
 _.Converter=Converter;
-const DataManager=class DataManager {
+const Data=class Data {
     /**
-     * Register a unique string type for a data
+     * The schema for the class
      */
-    static register($type, cst) {
-        Converter.register($type, cst);
+    static $schema;
+    /**
+     * The current namespace
+     */
+    static Namespace = "";
+    /**
+     * Get the unique type for the data. Define it as the namespace + class name
+     */
+    static get Fullname() { return this.Namespace + "." + this.name; }
+    /**
+     * The current namespace
+     */
+    get namespace() {
+        return this.constructor['Namespace'];
     }
     /**
-     * Get the contructor for the unique string type
+     * Get the unique type for the data. Define it as the namespace + class name
      */
-    static getConstructor($type) {
-        let result = Converter.info.get($type);
-        if (result) {
-            return result;
-        }
-        return null;
+    get $type() {
+        return this.constructor['Fullname'];
     }
     /**
-     * Clone the object to keep real type
+     * Get the name of the class
      */
-    static clone(data) {
-        return Converter.transform(JSON.parse(JSON.stringify(data)));
+    get className() {
+        return this.constructor.name;
+    }
+    /**
+     * Get a JSON for the current object
+     */
+    toJSON() {
+        let toAvoid = ['className', 'namespace'];
+        return Json.classToJson(this, {
+            isValidKey: (key) => !toAvoid.includes(key)
+        });
+    }
+    clone() {
+        return Converter.transform(JSON.parse(JSON.stringify(this)));
     }
 }
-DataManager.Namespace=`${moduleName}`;
-_.DataManager=DataManager;
+Data.Namespace=`${moduleName}`;
+
+_.Data=Data;
 const GenericError=class GenericError {
     /**
      * Code for the error
@@ -5413,6 +5418,7 @@ const GenericError=class GenericError {
     }
 }
 GenericError.Namespace=`${moduleName}`;
+
 _.GenericError=GenericError;
 const VoidWithError=class VoidWithError {
     /**
@@ -5463,10 +5469,12 @@ const VoidWithError=class VoidWithError {
     }
 }
 VoidWithError.Namespace=`${moduleName}`;
+
 _.VoidWithError=VoidWithError;
 const HttpError=class HttpError extends GenericError {
 }
 HttpError.Namespace=`${moduleName}`;
+
 _.HttpError=HttpError;
 const HttpRoute=class HttpRoute {
     static JoinPath(s1, s2) {
@@ -5504,6 +5512,7 @@ const HttpRoute=class HttpRoute {
     }
 }
 HttpRoute.Namespace=`${moduleName}`;
+
 _.HttpRoute=HttpRoute;
 const HttpRouter=class HttpRouter {
     _routes;
@@ -5561,6 +5570,7 @@ const HttpRouter=class HttpRouter {
     }
 }
 HttpRouter.Namespace=`${moduleName}`;
+
 _.HttpRouter=HttpRouter;
 const ResultWithError=class ResultWithError extends VoidWithError {
     /**
@@ -5580,6 +5590,7 @@ const ResultWithError=class ResultWithError extends VoidWithError {
     }
 }
 ResultWithError.Namespace=`${moduleName}`;
+
 _.ResultWithError=ResultWithError;
 const HttpRequest=class HttpRequest {
     request;
@@ -5765,6 +5776,7 @@ const HttpRequest=class HttpRequest {
     }
 }
 HttpRequest.Namespace=`${moduleName}`;
+
 _.HttpRequest=HttpRequest;
 const StorableRoute=class StorableRoute extends HttpRoute {
     async GetAll() {
@@ -5791,6 +5803,7 @@ const StorableRoute=class StorableRoute extends HttpRoute {
     }
 }
 StorableRoute.Namespace=`${moduleName}`;
+
 _.StorableRoute=StorableRoute;
 const Animation=class Animation {
     /**
@@ -5878,6 +5891,7 @@ const Animation=class Animation {
     }
 }
 Animation.Namespace=`${moduleName}`;
+
 _.Animation=Animation;
 const PressManager=class PressManager {
     static globalConfig = {
@@ -6309,6 +6323,7 @@ const PressManager=class PressManager {
     }
 }
 PressManager.Namespace=`${moduleName}`;
+
 _.PressManager=PressManager;
 const DragAndDrop=class DragAndDrop {
     /**
@@ -6580,6 +6595,7 @@ const DragAndDrop=class DragAndDrop {
     }
 }
 DragAndDrop.Namespace=`${moduleName}`;
+
 _.DragAndDrop=DragAndDrop;
 const ResizeObserver=class ResizeObserver {
     callback;
@@ -6707,6 +6723,7 @@ const ResizeObserver=class ResizeObserver {
     }
 }
 ResizeObserver.Namespace=`${moduleName}`;
+
 _.ResizeObserver=ResizeObserver;
 const Uri=class Uri {
     static prepare(uri) {
@@ -6784,6 +6801,7 @@ const Uri=class Uri {
     }
 }
 Uri.Namespace=`${moduleName}`;
+
 _.Uri=Uri;
 const Effect=class Effect {
     callbacks = [];
@@ -6898,6 +6916,7 @@ const Effect=class Effect {
     }
 }
 Effect.Namespace=`${moduleName}`;
+
 _.Effect=Effect;
 const Computed=class Computed extends Effect {
     _value;
@@ -6937,6 +6956,7 @@ const Computed=class Computed extends Effect {
     }
 }
 Computed.Namespace=`${moduleName}`;
+
 _.Computed=Computed;
 const Watcher=class Watcher {
     static _registering = [];
@@ -7639,6 +7659,7 @@ const Watcher=class Watcher {
     }
 }
 Watcher.Namespace=`${moduleName}`;
+
 _.Watcher=Watcher;
 const ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
     init() {
@@ -7656,6 +7677,7 @@ const ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
     run() { }
 }
 ComputedNoRecomputed.Namespace=`${moduleName}`;
+
 _.ComputedNoRecomputed=ComputedNoRecomputed;
 const EffectNoRecomputed=class EffectNoRecomputed extends Effect {
     init() {
@@ -7671,18 +7693,22 @@ const EffectNoRecomputed=class EffectNoRecomputed extends Effect {
     }
 }
 EffectNoRecomputed.Namespace=`${moduleName}`;
+
 _.EffectNoRecomputed=EffectNoRecomputed;
 const RamError=class RamError extends GenericError {
 }
 RamError.Namespace=`${moduleName}`;
+
 _.RamError=RamError;
 const ResultRamWithError=class ResultRamWithError extends ResultWithError {
 }
 ResultRamWithError.Namespace=`${moduleName}`;
+
 _.ResultRamWithError=ResultRamWithError;
 const VoidRamWithError=class VoidRamWithError extends VoidWithError {
 }
 VoidRamWithError.Namespace=`${moduleName}`;
+
 _.VoidRamWithError=VoidRamWithError;
 const GenericRam=class GenericRam {
     /**
@@ -8458,10 +8484,12 @@ const GenericRam=class GenericRam {
     async afterDeleteList(result) { }
 }
 GenericRam.Namespace=`${moduleName}`;
+
 _.GenericRam=GenericRam;
 const Ram=class Ram extends GenericRam {
 }
 Ram.Namespace=`${moduleName}`;
+
 _.Ram=Ram;
 const StateManager=class StateManager {
     subscribers = {};
@@ -8767,6 +8795,7 @@ const StateManager=class StateManager {
     }
 }
 StateManager.Namespace=`${moduleName}`;
+
 _.StateManager=StateManager;
 const State=class State {
     /**
@@ -8791,6 +8820,7 @@ const State=class State {
     }
 }
 State.Namespace=`${moduleName}`;
+
 _.State=State;
 const EmptyState=class EmptyState extends State {
     localName;
@@ -8806,6 +8836,7 @@ const EmptyState=class EmptyState extends State {
     }
 }
 EmptyState.Namespace=`${moduleName}`;
+
 _.EmptyState=EmptyState;
 const TemplateInstance=class TemplateInstance {
     context;
@@ -9415,6 +9446,7 @@ const TemplateInstance=class TemplateInstance {
     }
 }
 TemplateInstance.Namespace=`${moduleName}`;
+
 _.TemplateInstance=TemplateInstance;
 const TemplateContext=class TemplateContext {
     data = {};
@@ -9617,6 +9649,7 @@ const TemplateContext=class TemplateContext {
     }
 }
 TemplateContext.Namespace=`${moduleName}`;
+
 _.TemplateContext=TemplateContext;
 const Template=class Template {
     static validatePath(path, pathToCheck) {
@@ -9752,6 +9785,7 @@ const Template=class Template {
     }
 }
 Template.Namespace=`${moduleName}`;
+
 _.Template=Template;
 const WebComponent=class WebComponent extends HTMLElement {
     /**
@@ -10415,6 +10449,7 @@ const WebComponent=class WebComponent extends HTMLElement {
     }
 }
 WebComponent.Namespace=`${moduleName}`;
+
 _.WebComponent=WebComponent;
 const WebComponentInstance=class WebComponentInstance {
     static __allDefinitions = [];
@@ -10487,10 +10522,8 @@ const WebComponentInstance=class WebComponentInstance {
     }
 }
 WebComponentInstance.Namespace=`${moduleName}`;
+
 _.WebComponentInstance=WebComponentInstance;
 
 for(let key in _) { Aventus[key] = _[key] }
 })(Aventus);
-Object.defineProperty(window, "AvInstance", {
-	get() {return Aventus.Instance;}
-})
