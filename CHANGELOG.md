@@ -12,6 +12,8 @@
  - Add a function to avoid bypassing getter and setter when a component a loaded after some props were already assigned
  - Correct the date and datetime property or attribute on the webcomponent
  - Keep the comment format to // inside style file. Before it was transformed to /* */
+ - Correct the ActionGuard that wasn't working because of array reference instead of compare
+ - Upgrade CustomElement inside template instead of Element to avoid error during loop and conditional
 
 ### Features
  - Add $ to use as @bind
@@ -26,6 +28,10 @@
  - Automatically call the destructor when `remove` is called on a webcomponent
  - Destroy children recursively when destroy is called on a webcomponent
  - Show only the live server button when Aventus is ready and have a project
+ - C# error can now be readed inside a file if compilation failed
+ - Add import from *.package.avt
+ - Add hover and definition inside *.package.avt
+ - Support import any style file inside aventus style file
 
 
 ## 1.2.0 (2024-02-24)

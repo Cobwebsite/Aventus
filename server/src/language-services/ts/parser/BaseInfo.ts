@@ -523,6 +523,21 @@ export abstract class BaseInfo {
             })
             return;
         }
+        else if(this.parserInfo.packages[name]) {
+            let fullName = this.parserInfo.packages[name].fullname;
+            this.dependances.push({
+                fullName: fullName,
+                uri: "@external",
+                isStrong: isStrongDependance,
+            });
+            if (this.dependancesLocations[name]) {
+                this.dependancesLocations[name].typeRemplacement = fullName;
+                this.dependancesLocations[name].replacement = fullName;
+                this.dependancesLocations[name].hotReloadReplacement = fullName;
+            }
+
+            return
+        }
 
         if (this.parserInfo.npmImports[name]) {
             this.dependances.push({

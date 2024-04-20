@@ -17,6 +17,7 @@ import { Popup } from './Popup';
 import { RegisterBuild } from "./RegisterBuild";
 import { RegisterData } from "./RegisterData";
 import { RegisterStatic } from "./RegisterStatic";
+import { Compiling } from './sharp/Compiling';
 import { UnregisterBuild } from "./UnregisterBuild";
 import { UnregisterData } from "./UnregisterData";
 import { UnregisterStatic } from "./UnregisterStatic";
@@ -27,6 +28,7 @@ export const Notifications = {
         [CloseFile.cmd]: CloseFile,
         [Compiled.cmd]: Compiled,
         [CompiledPart.cmd]: CompiledPart,
+        [Compiling.cmd]: Compiling,
         [ServerStart.cmd]: ServerStart,
         [ServerStop.cmd]: ServerStop,
         [OpenFile.cmd]: OpenFile,

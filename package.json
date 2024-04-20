@@ -73,7 +73,8 @@
 					".ram.avt",
 					".state.avt",
 					".static.avt",
-					".def.avt"
+					".def.avt",
+					".package.avt"
 				],
 				"configuration": "./syntaxes/ts-language-configuration.json",
 				"filenames": [
@@ -81,17 +82,6 @@
 					"aventus.sharp.avt",
 					"template.avt"
 				],
-				"icon": {
-					"light": "./icons/icon.png",
-					"dark": "./icons/icon.png"
-				}
-			},
-			{
-				"id": "Aventus Package",
-				"extensions": [
-					".package.avt"
-				],
-				"configuration": "./syntaxes/ts-language-configuration.json",
 				"icon": {
 					"light": "./icons/icon.png",
 					"dark": "./icons/icon.png"
@@ -123,11 +113,6 @@
 					"source.js": "Aventus Ts",
 					"text.html1.basic": "Aventus HTML"
 				}
-			},
-			{
-				"language": "Aventus Package",
-				"scopeName": "source.js",
-				"path": "./syntaxes/javascript.tmLanguage.json"
 			}
 		],
 		"configuration": {
@@ -388,6 +373,10 @@
 				"title": "Aventus : Open debug file"
 			},
 			{
+				"command": "aventus.openfile.debugsharp",
+				"title": "Aventus : Open debug file"
+			},
+			{
 				"command": "aventus.reloadSettings",
 				"title": "Aventus : Reload settings"
 			}
@@ -558,6 +547,10 @@
 				},
 				{
 					"command": "aventus.reloadSettings",
+					"when": "false"
+				},
+				{
+					"command": "aventus.openfile.debugsharp",
 					"when": "false"
 				}
 			]

@@ -12,9 +12,5 @@ export class UnregisterBuild {
                 Singleton.allBuilds[pathConfig].splice(index, 1);
             }
         }
-
-        if (Object.keys(Singleton.allBuilds).length == 0) {
-            Singleton.client.components?.runningServer.hide();
-        }
     }
 }

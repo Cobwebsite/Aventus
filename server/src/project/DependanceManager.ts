@@ -3,7 +3,6 @@ import { AventusConfigBuild, AventusConfigBuildDependance, IncludeType } from '.
 import * as md5 from 'md5';
 import { join, normalize } from 'path';
 import { AVENTUS_DEF_BASE_PATH, AVENTUS_DEF_SHARP_PATH, AVENTUS_DEF_UI_PATH } from '../language-services/ts/libLoader';
-import { FilesWatcher } from '../files/FilesWatcher';
 import { pathToUri } from '../tools';
 import { AventusExtension, AventusLanguageId } from '../definition';
 import { AventusPackageFile } from '../language-services/ts/package/File';
@@ -11,6 +10,7 @@ import { Build } from './Build';
 import { get } from 'http';
 import { get as gets  } from 'https';
 import { GenericServer } from '../GenericServer';
+import { FilesManager } from '../files/FilesManager';
 
 type DependanceLoopPart = {
 	file: AventusPackageFile,
@@ -72,7 +72,7 @@ export class DependanceManager {
 
 		if (!this.aventusLoaded) {
 			let uri = pathToUri(AVENTUS_DEF_BASE_PATH());
-			let avFile = this.loadByUri(build, uri)
+			let avFile = await this.loadByUri(build, uri)
 			loopResult["Aventus"] = {
 				dependances: [],
 				file: avFile,
@@ -136,7 +136,7 @@ export class DependanceManager {
 			let regexTemp: RegExpExecArray | null;
 			if (this.predefinedPaths[dep.uri]) {
 				let uri = pathToUri(this.predefinedPaths[dep.uri]);
-				packageFile = this.loadByUri(build, uri);
+				packageFile = await this.loadByUri(build, uri);
 				finalUri = uri;
 				if (dep.uri == "@Aventus") {
 					this.aventusLoaded = true;
@@ -144,13 +144,13 @@ export class DependanceManager {
 			}
 
 			else if ((regexTemp = /@local:(\S+)/g.exec(dep.uri))) {
-				let local = this.loadLocal(regexTemp[1], build);
+				let local = await this.loadLocal(regexTemp[1], build);
 				packageFile = local.file;
 				finalUri = local.uri;
 			}
 			else if ((regexTemp = /&:(\S+)/g.exec(dep.uri))) {
 				let localName = config.module + "@" + regexTemp[1] + AventusExtension.Package;
-				let local = this.loadLocal(localName, build);
+				let local = await this.loadLocal(localName, build);
 				packageFile = local.file;
 				finalUri = local.uri;
 			}
@@ -174,7 +174,7 @@ export class DependanceManager {
 				}
 				pathToImport = normalize(pathToImport);
 				let uri = pathToUri(pathToImport);
-				packageFile = this.loadByUri(build, uri);
+				packageFile = await this.loadByUri(build, uri);
 				finalUri = uri;
 			}
 		}
@@ -222,18 +222,18 @@ export class DependanceManager {
 	}
 
 
-	private loadByUri(build: Build, uri: string): AventusPackageFile {
-		let file = FilesWatcher.getInstance().registerFile(uri, AventusLanguageId.Package);
+	private async loadByUri(build: Build, uri: string): Promise<AventusPackageFile> {
+		let file = await FilesManager.getInstance().registerFilePackage(uri)
 		return new AventusPackageFile(file, build);
 	}
 
 
-	private loadLocal(localName: string, build: Build) {
+	private async loadLocal(localName: string, build: Build) {
 		let uri = pathToUri(join(this.path, "@locals", localName))
 		if(!uri.endsWith(AventusExtension.Package)){
 			uri += AventusExtension.Package;
 		}
-		let file = FilesWatcher.getInstance().registerFile(uri, AventusLanguageId.Package);
+		let file = await FilesManager.getInstance().registerFilePackage(uri)
 		return {
 			uri,
 			file: new AventusPackageFile(file, build)
@@ -326,7 +326,7 @@ export class DependanceManager {
 			if (versionToUse) {
 				if (versionToUse.info.localUri && existsSync(join(uriMd5, versionToUse.info.localUri))) {
 					let packageUri = pathToUri(join(uriMd5, versionToUse.info.localUri));
-					let file = FilesWatcher.getInstance().registerFile(packageUri, AventusLanguageId.Package);
+					let file = await FilesManager.getInstance().registerFilePackage(packageUri)
 					return {
 						uri: packageUri,
 						file: new AventusPackageFile(file, build)
@@ -339,7 +339,7 @@ export class DependanceManager {
 						return null;
 					}
 					versionToUse.info.localUri = localUri;
-					let file = FilesWatcher.getInstance().registerFile(packageUri, AventusLanguageId.Package);
+					let file = await FilesManager.getInstance().registerFilePackage(packageUri)
 					writeFileSync(infoFile, JSON.stringify(info, null, 4));
 					return {
 						uri: packageUri,

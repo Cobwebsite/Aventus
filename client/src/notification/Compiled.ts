@@ -1,5 +1,4 @@
 import { Singleton } from "../Singleton";
-import { AvenutsVsComponent } from '../component';
 import { DebugFile } from '../file-system/DebugFile';
 import { InitStep } from './InitStep';
 import { ThemeColor, Uri, window } from 'vscode'
@@ -16,6 +15,7 @@ export class Compiled {
             }[]
         }
     } = {};
+
     private static lastTime: string = "";
 
     public static removeBuild(buildName: string) {

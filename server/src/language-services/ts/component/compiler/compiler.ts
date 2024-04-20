@@ -1165,7 +1165,7 @@ export class AventusWebcomponentCompiler {
                     let cbName = this.isCallback(definition.class, binding.eventNames[0]);
                     if (cbName != null) {
                         temp.isCallback = true;
-                        binding.eventNames[0] = cbName;
+                        temp.eventNames[0] = cbName;
                     }
                 }
             }
@@ -1186,12 +1186,15 @@ export class AventusWebcomponentCompiler {
                     fct: `@_@(e, c) => c.comp.${event.fct}(e)@_@`,
                 }
                 if (event.tagName) {
+                    if(this.className == "ContainerTable") {
+                        debugger;
+                    }
                     let definition = this.build.getWebComponentDefinition(event.tagName);
                     if (definition) {
                         let cbName = this.isCallback(definition.class, event.eventName);
                         if (cbName != null) {
                             temp.isCallback = true;
-                            event.eventName = cbName;
+                            temp.eventName = cbName;
                             temp.fct = `@_@(c, ...args) => c.comp.${event.fct}.apply(c.comp, ...args)@_@`;
                         }
                     }

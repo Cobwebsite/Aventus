@@ -1,6 +1,6 @@
 import { EOL } from 'os';
 import { normalize, sep } from 'path';
-import { CodeFixAction, CompilerOptions, CompletionInfo, createLanguageService, Diagnostic as DiagnosticTs, displayPartsToString, Extension, flattenDiagnosticMessageText, FormatCodeSettings, GetCompletionsAtPositionOptions, IndentStyle, JsxEmit, LanguageService, LanguageServiceHost, ModuleDetectionKind, ModuleResolutionKind, RenameInfo, ResolvedModule, ResolvedModuleFull, resolveModuleName, ScriptKind, ScriptTarget, SemicolonPreference, transpile, WithMetadata, UserPreferences, getTokenAtPosition, createSourceFile, isTypeReferenceNode, SourceFile, TypeFormatFlags } from 'typescript';
+import { CodeFixAction, CompilerOptions, CompletionInfo, createLanguageService, Diagnostic as DiagnosticTs, displayPartsToString, Extension, flattenDiagnosticMessageText, FormatCodeSettings, GetCompletionsAtPositionOptions, IndentStyle, JsxEmit, LanguageService, LanguageServiceHost, ModuleDetectionKind, ModuleResolutionKind, RenameInfo, ResolvedModule, ResolvedModuleFull, resolveModuleName, ScriptKind, ScriptTarget, SemicolonPreference, transpile, WithMetadata, UserPreferences, getTokenAtPosition, createSourceFile, isTypeReferenceNode, SourceFile, TypeFormatFlags, ResolvedProjectReference } from 'typescript';
 import { CodeAction, CodeLens, CompletionItem, CompletionItemKind, CompletionList, Definition, Diagnostic, DiagnosticSeverity, DiagnosticTag, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver';
 import { AventusExtension, AventusLanguageId } from '../../definition';
 import { AventusFile } from '../../files/AventusFile';
@@ -22,6 +22,7 @@ import { VariableInfo } from './parser/VariableInfo';
 import { BindThisDecorator } from './parser/decorators/BindThisDecorator';
 import { EnumInfo } from './parser/EnumInfo';
 import { HttpServer } from '../../live-server/HttpServer';
+import { AventusPackageNamespaceFileTs } from './package/File';
 
 
 
@@ -94,28 +95,7 @@ export class AventusTsLanguageService {
                 return existsSync(uriToPath(uri));
             },
             resolveModuleNames(moduleNames, containingFile, reusedNames, redirectedReference, options, containingSourceFile?) {
-                const resolvedModules: ResolvedModule[] = [];
-                for (let moduleName of moduleNames) {
-                    let file = FilesManager.getInstance().getByUri(containingFile);
-                    if (file) {
-                        moduleName = that.build.project.resolveAlias(moduleName, file);
-                    }
-                    let result = resolveModuleName(moduleName, containingFile, compilerOptionsRead, this)
-                    if (result.resolvedModule) {
-                        if (result.resolvedModule.resolvedFileName.endsWith(".avt.ts")) {
-                            result.resolvedModule.resolvedFileName = result.resolvedModule.resolvedFileName.replace(".avt.ts", ".avt");
-                        }
-                        resolvedModules.push(result.resolvedModule);
-                    }
-                    else {
-                        let temp: ResolvedModuleFull = {
-                            extension: Extension.Ts,
-                            resolvedFileName: moduleName,
-                        }
-                        resolvedModules.push(temp);
-                    }
-                }
-                return resolvedModules;
+                return that.resolveModuleNames(this, moduleNames, containingFile, reusedNames, redirectedReference, options, containingSourceFile);
             },
         };
         return host;
@@ -175,33 +155,38 @@ export class AventusTsLanguageService {
                 return existsSync(uriToPath(uri));
             },
             resolveModuleNames(moduleNames, containingFile, reusedNames, redirectedReference, options, containingSourceFile?) {
-                const resolvedModules: ResolvedModule[] = [];
-                for (let moduleName of moduleNames) {
-                    let file = FilesManager.getInstance().getByUri(containingFile);
-                    if (file) {
-                        moduleName = that.build.project.resolveAlias(moduleName, file);
-                    }
-                    let result = resolveModuleName(moduleName, containingFile, compilerOptionsRead, this)
-                    if (result.resolvedModule) {
-                        if (result.resolvedModule.resolvedFileName.endsWith(".avt.ts")) {
-                            result.resolvedModule.resolvedFileName = result.resolvedModule.resolvedFileName.replace(".avt.ts", ".avt");
-                        }
-                        resolvedModules.push(result.resolvedModule);
-                    }
-                    else {
-                        let temp: ResolvedModuleFull = {
-                            extension: Extension.Ts,
-                            resolvedFileName: moduleName,
-                        }
-                        resolvedModules.push(temp);
-                    }
-                }
-                return resolvedModules;
+                return that.resolveModuleNames(this, moduleNames, containingFile, reusedNames, redirectedReference, options, containingSourceFile);
             },
         };
         return host;
     }
-
+    private resolveModuleNames(host: LanguageServiceHost, moduleNames: string[], containingFile: string, reusedNames: string[] | undefined, redirectedReference: ResolvedProjectReference | undefined, options: CompilerOptions, containingSourceFile?: SourceFile): (ResolvedModule | undefined)[] {
+        const resolvedModules: ResolvedModule[] = [];
+        for (let moduleName of moduleNames) {
+            if (moduleName.startsWith("@")) {
+                moduleName = "/" + moduleName.slice(1);
+            }
+            let file = FilesManager.getInstance().getByUri(containingFile);
+            if (file) {
+                moduleName = this.build.project.resolveAlias(moduleName, file);
+            }
+            let result = resolveModuleName(moduleName, containingFile, compilerOptionsRead, host)
+            if (result.resolvedModule) {
+                if (result.resolvedModule.resolvedFileName.endsWith(".avt.ts")) {
+                    result.resolvedModule.resolvedFileName = result.resolvedModule.resolvedFileName.replace(".avt.ts", ".avt");
+                }
+                resolvedModules.push(result.resolvedModule);
+            }
+            else {
+                let temp: ResolvedModuleFull = {
+                    extension: Extension.Ts,
+                    resolvedFileName: moduleName,
+                }
+                resolvedModules.push(temp);
+            }
+        }
+        return resolvedModules;
+    }
 
     public addFile(tsFile: AventusTsFile) {
         if (this.filesNeeded.indexOf(tsFile.file.uri) == -1) {
@@ -336,9 +321,17 @@ export class AventusTsLanguageService {
                                         txtChange.newText = txtChange.newText.replace(/'/g, '"');
                                         let newImport = /"(.*)"/g.exec(txtChange.newText);
                                         if (newImport && newImport.length > 1) {
-                                            let finalPath = simplifyPath(newImport[1], tsFile.file.uri);
-                                            item.detail += "\r\nimport from " + finalPath;
-                                            txtChange.newText = txtChange.newText.replace(newImport[1], finalPath);
+                                            if (!newImport[0].includes(AventusExtension.Package)) {
+                                                let finalPath = simplifyPath(newImport[1], tsFile.file.uri);
+                                                item.detail += "\r\nimport from " + finalPath;
+                                                txtChange.newText = txtChange.newText.replace(newImport[1], finalPath);
+                                            }
+                                            else {
+                                                let finalPath = newImport[1];
+                                                finalPath = this.filesNeeded.find(p => p.toLowerCase() == finalPath) ?? finalPath;
+                                                finalPath = "@" + finalPath.slice(1);
+                                                txtChange.newText = txtChange.newText.replace(newImport[1], finalPath);
+                                            }
                                         }
 
                                         item.additionalTextEdits.push({
@@ -377,6 +370,16 @@ export class AventusTsLanguageService {
 
                 let value: string = "";
                 if (info.displayParts) {
+                    for (let part of info.displayParts) {
+                        if (part.text.includes(AventusExtension.Package)) {
+                            if (part.text[0] == "/") {
+                                part.text = "@" + part.text.slice(1);
+                            }
+                            else if (part.text[1] == "/") {
+                                part.text = part.text.slice(0, 1) + "@" + part.text.slice(2);
+                            }
+                        }
+                    }
                     value += '\n```';
                     value += "typescript";
                     value += '\n';
@@ -448,6 +451,9 @@ export class AventusTsLanguageService {
                     d.fileName = d.fileName.replace(".avt.ts", ".avt");
                 }
                 let realDoc = this.filesLoaded[d.fileName];
+                if (realDoc instanceof AventusPackageNamespaceFileTs) {
+                    return realDoc.goToDefinition(convertRange(realDoc.file.documentInternal, d.textSpan));
+                }
                 if (realDoc) {
                     return {
                         uri: realDoc.file.uri,

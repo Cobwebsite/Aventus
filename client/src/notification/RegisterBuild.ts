@@ -12,9 +12,5 @@ export class RegisterBuild {
         if (Singleton.allBuilds[pathConfig].indexOf(buildName) == -1) {
             Singleton.allBuilds[pathConfig].push(buildName);
         }
-
-        if (Object.keys(Singleton.allBuilds).length > 0) {
-            Singleton.client.components?.runningServer.show();
-        }
     }
 }

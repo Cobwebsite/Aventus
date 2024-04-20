@@ -5,7 +5,6 @@ import { Diagnostic, DiagnosticSeverity, TextEdit } from 'vscode-languageserver'
 import { AventusErrorCode, AventusExtension, AventusLanguageId } from "../definition";
 import { AventusFile } from '../files/AventusFile';
 import { FilesManager } from '../files/FilesManager';
-import { FilesWatcher } from '../files/FilesWatcher';
 import { AventusHTMLFile } from "../language-services/html/File";
 import { HTMLDoc } from '../language-services/html/helper/definition';
 import { AventusHTMLLanguageService } from "../language-services/html/LanguageService";

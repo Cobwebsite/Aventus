@@ -1,4 +1,3 @@
-import { ExecuteCommandParams } from 'vscode-languageserver';
 import { sync as exist } from 'command-exists';
 import { GenericServer } from '../../GenericServer';
 import { join } from 'path';
@@ -8,6 +7,10 @@ import { Loading } from '../../notification/Loading';
 import { FilesManager } from '../../files/FilesManager';
 import { SelectItem } from '../../IConnection';
 import { AventusExtension } from '../../definition';
+import { readFileSync } from 'fs';
+import { AventusSharp } from '../../language-services/json/definition';
+import { Compiling } from '../../notification/sharp/Compiling';
+import { DebugFileAdd } from '../../notification/DebugFileAdd';
 
 export class SharpExport {
 	static cmd: string = "aventus.sharp.export";
@@ -48,23 +51,37 @@ export class SharpExport {
 			GenericServer.showErrorMessage("Dotnet isn't installed on your system");
 			return;
 		}
+		let csProjName = ''
+		try {
+			let ctx = readFileSync(uriToPath(uri), 'utf-8');
+			let aventusSharp = JSON.parse(ctx) as AventusSharp;
+			csProjName = aventusSharp.csProj;
+		}
+		catch (e) {
+			console.log(e);
+		}
 		this.isCompiling = true;
-		let endFct = Loading.send("Compiling c#");
+		Compiling.send(csProjName, 'compiling');
 		try {
 			let execPath = join(GenericServer.extensionPath, "lib", "bin", "CSharpToTypescript", "CSharpToTypescript.dll")
 			let csProj = uriToPath(uri);
 			let result = execSync("dotnet " + execPath + " " + csProj).toString();
 			if (result.indexOf("Error : ") == -1) {
-				endFct("Compilation success", 5000);
+				Compiling.send(csProjName, 'success');
 			}
 			else {
 				console.clear();
 				console.log(result);
-				endFct("Compilation error", 5000);
+				let uri = "csharp_errors";
+				DebugFileAdd.send(uri, result);
+
+				Compiling.send(csProjName, 'error', [{
+					title: "C# error",
+					file: uri
+				}]);
 			}
 		} catch (e) {
-			GenericServer.showErrorMessage(e+"");
-			endFct("", 0);
+			GenericServer.showErrorMessage(e + "");
 		}
 		this.isCompiling = false;
 	}

@@ -11,6 +11,9 @@ export enum WatchAction {
 }
 
 export class Watcher {
+    private static __reservedName: { [key: string]: string; } = {
+        __path: '__path',
+    };
     @Internal()
     public static _registering: Effect[] = [];
     @Internal()
@@ -30,9 +33,7 @@ export class Watcher {
                 (obj as any).subscribe(onDataChanged);
             return obj;
         }
-        const reservedName = {
-            __path: '__path',
-        };
+        const reservedName = this.__reservedName;
         const clearReservedNames = (data) => {
             if(data instanceof Object && !data.__isProxy) {
                 for(let key in reservedName) {
@@ -620,9 +621,12 @@ export class Watcher {
             ownKeys(target) {
                 let result = Reflect.ownKeys(target);
                 for(let i = 0; i < result.length; i++) {
-                    if(reservedName[result[i]]) {
-                        result.splice(i, 1);
-                        i--;
+                    let key = result[i];
+                    if(typeof key == 'string') {
+                        if(reservedName[key]) {
+                            result.splice(i, 1);
+                            i--;
+                        }
                     }
                 }
                 return result;
@@ -774,6 +778,13 @@ export class Watcher {
     public static extract<T>(obj: T): T {
         if(this.is(obj)) {
             return (obj as any).getTarget();
+        }
+        else {
+            if(obj instanceof Object) {
+                for(let key in this.__reservedName) {
+                    delete obj[key];
+                }
+            }
         }
         return obj;
     }

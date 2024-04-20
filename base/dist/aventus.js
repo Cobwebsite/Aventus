@@ -48,6 +48,8 @@ const compareObject=function compareObject(obj1, obj2) {
         if (obj1 instanceof Date || obj2 instanceof Date) {
             return obj1.toString() === obj2.toString();
         }
+        obj1 = Watcher.extract(obj1);
+        obj2 = Watcher.extract(obj2);
         if (Object.keys(obj1).length !== Object.keys(obj2).length) {
             return false;
         }
@@ -338,6 +340,7 @@ const ElementExtension=class ElementExtension {
     }
 }
 ElementExtension.Namespace=`${moduleName}`;
+
 _.ElementExtension=ElementExtension;
 const Instance=class Instance {
     static elements = new Map();
@@ -364,6 +367,7 @@ const Instance=class Instance {
     }
 }
 Instance.Namespace=`${moduleName}`;
+
 _.Instance=Instance;
 const Style=class Style {
     static instance;
@@ -443,6 +447,7 @@ const Style=class Style {
     }
 }
 Style.Namespace=`${moduleName}`;
+
 _.Style=Style;
 const Callback=class Callback {
     callbacks = [];
@@ -480,6 +485,7 @@ const Callback=class Callback {
     }
 }
 Callback.Namespace=`${moduleName}`;
+
 _.Callback=Callback;
 const Mutex=class Mutex {
     /**
@@ -618,6 +624,7 @@ const Mutex=class Mutex {
     }
 }
 Mutex.Namespace=`${moduleName}`;
+
 _.Mutex=Mutex;
 const PressManager=class PressManager {
     static globalConfig = {
@@ -1049,6 +1056,7 @@ const PressManager=class PressManager {
     }
 }
 PressManager.Namespace=`${moduleName}`;
+
 _.PressManager=PressManager;
 const Effect=class Effect {
     callbacks = [];
@@ -1163,8 +1171,12 @@ const Effect=class Effect {
     }
 }
 Effect.Namespace=`${moduleName}`;
+
 _.Effect=Effect;
 const Watcher=class Watcher {
+    static __reservedName = {
+        __path: '__path',
+    };
     static _registering = [];
     static get _register() {
         return this._registering[this._registering.length - 1];
@@ -1182,9 +1194,7 @@ const Watcher=class Watcher {
                 obj.subscribe(onDataChanged);
             return obj;
         }
-        const reservedName = {
-            __path: '__path',
-        };
+        const reservedName = this.__reservedName;
         const clearReservedNames = (data) => {
             if (data instanceof Object && !data.__isProxy) {
                 for (let key in reservedName) {
@@ -1699,9 +1709,12 @@ const Watcher=class Watcher {
             ownKeys(target) {
                 let result = Reflect.ownKeys(target);
                 for (let i = 0; i < result.length; i++) {
-                    if (reservedName[result[i]]) {
-                        result.splice(i, 1);
-                        i--;
+                    let key = result[i];
+                    if (typeof key == 'string') {
+                        if (reservedName[key]) {
+                            result.splice(i, 1);
+                            i--;
+                        }
                     }
                 }
                 return result;
@@ -1842,6 +1855,13 @@ const Watcher=class Watcher {
         if (this.is(obj)) {
             return obj.getTarget();
         }
+        else {
+            if (obj instanceof Object) {
+                for (let key in this.__reservedName) {
+                    delete obj[key];
+                }
+            }
+        }
         return obj;
     }
     static trigger(type, target) {
@@ -1865,6 +1885,7 @@ const Watcher=class Watcher {
     }
 }
 Watcher.Namespace=`${moduleName}`;
+
 _.Watcher=Watcher;
 const Uri=class Uri {
     static prepare(uri) {
@@ -1942,6 +1963,7 @@ const Uri=class Uri {
     }
 }
 Uri.Namespace=`${moduleName}`;
+
 _.Uri=Uri;
 const State=class State {
     /**
@@ -1966,6 +1988,7 @@ const State=class State {
     }
 }
 State.Namespace=`${moduleName}`;
+
 _.State=State;
 const EmptyState=class EmptyState extends State {
     localName;
@@ -1981,6 +2004,7 @@ const EmptyState=class EmptyState extends State {
     }
 }
 EmptyState.Namespace=`${moduleName}`;
+
 _.EmptyState=EmptyState;
 const StateManager=class StateManager {
     subscribers = {};
@@ -2286,6 +2310,7 @@ const StateManager=class StateManager {
     }
 }
 StateManager.Namespace=`${moduleName}`;
+
 _.StateManager=StateManager;
 const Computed=class Computed extends Effect {
     _value;
@@ -2325,6 +2350,7 @@ const Computed=class Computed extends Effect {
     }
 }
 Computed.Namespace=`${moduleName}`;
+
 _.Computed=Computed;
 const ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
     init() {
@@ -2342,6 +2368,7 @@ const ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
     run() { }
 }
 ComputedNoRecomputed.Namespace=`${moduleName}`;
+
 _.ComputedNoRecomputed=ComputedNoRecomputed;
 const TemplateContext=class TemplateContext {
     data = {};
@@ -2544,6 +2571,7 @@ const TemplateContext=class TemplateContext {
     }
 }
 TemplateContext.Namespace=`${moduleName}`;
+
 _.TemplateContext=TemplateContext;
 const TemplateInstance=class TemplateInstance {
     context;
@@ -2976,6 +3004,8 @@ const TemplateInstance=class TemplateInstance {
         for (let i = 0; i < result.length; i++) {
             let context = new TemplateContext(this.component, result[i], this.context, this.loopRegisteries[loop.anchorId]);
             let content = loop.template.template?.content.cloneNode(true);
+            document.adoptNode(content);
+            customElements.upgrade(content);
             let actions = loop.template.actions;
             let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
             instance.render();
@@ -3060,6 +3090,8 @@ const TemplateInstance=class TemplateInstance {
                         let context = new TemplateContext(this.component, {}, this.context, registry);
                         context.registerLoop(basePath, index, indexName, simple.index, simple.item, onThis);
                         let content = loop.template.template?.content.cloneNode(true);
+                        document.adoptNode(content);
+                        customElements.upgrade(content);
                         let actions = loop.template.actions;
                         let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
                         instance.render();
@@ -3093,6 +3125,8 @@ const TemplateInstance=class TemplateInstance {
             let context = new TemplateContext(this.component, {}, this.context, this.loopRegisteries[loop.anchorId]);
             context.registerLoop(basePath, i, indexName, simple.index, simple.item, onThis);
             let content = loop.template.template?.content.cloneNode(true);
+            document.adoptNode(content);
+            customElements.upgrade(content);
             let actions = loop.template.actions;
             let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
             instance.render();
@@ -3103,6 +3137,8 @@ const TemplateInstance=class TemplateInstance {
     renderIf(_if) {
         let computeds = [];
         let instances = [];
+        if (!this._components[_if.anchorId] || this._components[_if.anchorId].length == 0)
+            return;
         let anchor = this._components[_if.anchorId][0];
         let currentActive = -1;
         const calculateActive = () => {
@@ -3144,6 +3180,8 @@ const TemplateInstance=class TemplateInstance {
             this.computeds.push(computed);
             let context = new TemplateContext(this.component, {}, this.context);
             let content = part.template.template?.content.cloneNode(true);
+            document.adoptNode(content);
+            customElements.upgrade(content);
             let actions = part.template.actions;
             let instance = new TemplateInstance(this.component, content, actions, part.template.loops, part.template.ifs, context);
             instances.push(instance);
@@ -3153,6 +3191,7 @@ const TemplateInstance=class TemplateInstance {
     }
 }
 TemplateInstance.Namespace=`${moduleName}`;
+
 _.TemplateInstance=TemplateInstance;
 const Template=class Template {
     static validatePath(path, pathToCheck) {
@@ -3284,10 +3323,13 @@ const Template=class Template {
     }
     createInstance(component) {
         let content = this.template.content.cloneNode(true);
+        document.adoptNode(content);
+        customElements.upgrade(content);
         return new TemplateInstance(component, content, this.actions, this.loops, this.ifs);
     }
 }
 Template.Namespace=`${moduleName}`;
+
 _.Template=Template;
 const WebComponent=class WebComponent extends HTMLElement {
     /**
@@ -3524,7 +3566,7 @@ const WebComponent=class WebComponent extends HTMLElement {
         let shadowRoot = this.attachShadow({ mode: 'open' });
         shadowRoot.adoptedStyleSheets = [...Object.values(staticInstance.__styleSheets), Style.noAnimation];
         shadowRoot.appendChild(this.__templateInstance.content);
-        customElements.upgrade(shadowRoot);
+        // customElements.upgrade(shadowRoot);
         return shadowRoot;
     }
     __registerTemplateAction() {
@@ -3569,7 +3611,6 @@ const WebComponent=class WebComponent extends HTMLElement {
         return [];
     }
     __upgradeProperty(prop) {
-        this.__correctGetter(prop);
         let boolProps = this.__listBoolProps();
         if (boolProps.indexOf(prop) != -1) {
             if (this.hasAttribute(prop) && (this.getAttribute(prop) === "true" || this.getAttribute(prop) === "")) {
@@ -3579,12 +3620,18 @@ const WebComponent=class WebComponent extends HTMLElement {
             }
             else {
                 this.removeAttribute(prop);
+                delete this[prop];
                 this[prop] = false;
             }
         }
         else {
             if (this.hasAttribute(prop)) {
                 let value = this.getAttribute(prop);
+                delete this[prop];
+                this[prop] = value;
+            }
+            else if (Object.hasOwn(this, prop)) {
+                const value = this[prop];
                 delete this[prop];
                 this[prop] = value;
             }
@@ -3951,6 +3998,7 @@ const WebComponent=class WebComponent extends HTMLElement {
     }
 }
 WebComponent.Namespace=`${moduleName}`;
+
 _.WebComponent=WebComponent;
 const WebComponentInstance=class WebComponentInstance {
     static __allDefinitions = [];
@@ -4023,6 +4071,7 @@ const WebComponentInstance=class WebComponentInstance {
     }
 }
 WebComponentInstance.Namespace=`${moduleName}`;
+
 _.WebComponentInstance=WebComponentInstance;
 
 for(let key in _) { Aventus[key] = _[key] }
@@ -4557,7 +4606,23 @@ const ActionGuard=class ActionGuard {
      */
     run(keys, action) {
         return new Promise(async (resolve) => {
-            let actions = this.runningAction.get(keys);
+            let actions = undefined;
+            let runningKeys = Array.from(this.runningAction.keys());
+            for (let runningKey of runningKeys) {
+                if (runningKey.length == keys.length) {
+                    let found = true;
+                    for (let i = 0; i < keys.length; i++) {
+                        if (runningKey[i] != keys[i]) {
+                            found = false;
+                            break;
+                        }
+                    }
+                    if (found) {
+                        actions = this.runningAction.get(runningKey);
+                        break;
+                    }
+                }
+            }
             if (actions) {
                 actions.push((res) => {
                     resolve(res);
@@ -4623,6 +4688,8 @@ const compareObject=function compareObject(obj1, obj2) {
         if (obj1 instanceof Date || obj2 instanceof Date) {
             return obj1.toString() === obj2.toString();
         }
+        obj1 = Watcher.extract(obj1);
+        obj2 = Watcher.extract(obj2);
         if (Object.keys(obj1).length !== Object.keys(obj2).length) {
             return false;
         }
@@ -6959,6 +7026,9 @@ Computed.Namespace=`${moduleName}`;
 
 _.Computed=Computed;
 const Watcher=class Watcher {
+    static __reservedName = {
+        __path: '__path',
+    };
     static _registering = [];
     static get _register() {
         return this._registering[this._registering.length - 1];
@@ -6976,9 +7046,7 @@ const Watcher=class Watcher {
                 obj.subscribe(onDataChanged);
             return obj;
         }
-        const reservedName = {
-            __path: '__path',
-        };
+        const reservedName = this.__reservedName;
         const clearReservedNames = (data) => {
             if (data instanceof Object && !data.__isProxy) {
                 for (let key in reservedName) {
@@ -7493,9 +7561,12 @@ const Watcher=class Watcher {
             ownKeys(target) {
                 let result = Reflect.ownKeys(target);
                 for (let i = 0; i < result.length; i++) {
-                    if (reservedName[result[i]]) {
-                        result.splice(i, 1);
-                        i--;
+                    let key = result[i];
+                    if (typeof key == 'string') {
+                        if (reservedName[key]) {
+                            result.splice(i, 1);
+                            i--;
+                        }
                     }
                 }
                 return result;
@@ -7635,6 +7706,13 @@ const Watcher=class Watcher {
     static extract(obj) {
         if (this.is(obj)) {
             return obj.getTarget();
+        }
+        else {
+            if (obj instanceof Object) {
+                for (let key in this.__reservedName) {
+                    delete obj[key];
+                }
+            }
         }
         return obj;
     }
@@ -9269,6 +9347,8 @@ const TemplateInstance=class TemplateInstance {
         for (let i = 0; i < result.length; i++) {
             let context = new TemplateContext(this.component, result[i], this.context, this.loopRegisteries[loop.anchorId]);
             let content = loop.template.template?.content.cloneNode(true);
+            document.adoptNode(content);
+            customElements.upgrade(content);
             let actions = loop.template.actions;
             let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
             instance.render();
@@ -9353,6 +9433,8 @@ const TemplateInstance=class TemplateInstance {
                         let context = new TemplateContext(this.component, {}, this.context, registry);
                         context.registerLoop(basePath, index, indexName, simple.index, simple.item, onThis);
                         let content = loop.template.template?.content.cloneNode(true);
+                        document.adoptNode(content);
+                        customElements.upgrade(content);
                         let actions = loop.template.actions;
                         let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
                         instance.render();
@@ -9386,6 +9468,8 @@ const TemplateInstance=class TemplateInstance {
             let context = new TemplateContext(this.component, {}, this.context, this.loopRegisteries[loop.anchorId]);
             context.registerLoop(basePath, i, indexName, simple.index, simple.item, onThis);
             let content = loop.template.template?.content.cloneNode(true);
+            document.adoptNode(content);
+            customElements.upgrade(content);
             let actions = loop.template.actions;
             let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
             instance.render();
@@ -9396,6 +9480,8 @@ const TemplateInstance=class TemplateInstance {
     renderIf(_if) {
         let computeds = [];
         let instances = [];
+        if (!this._components[_if.anchorId] || this._components[_if.anchorId].length == 0)
+            return;
         let anchor = this._components[_if.anchorId][0];
         let currentActive = -1;
         const calculateActive = () => {
@@ -9437,6 +9523,8 @@ const TemplateInstance=class TemplateInstance {
             this.computeds.push(computed);
             let context = new TemplateContext(this.component, {}, this.context);
             let content = part.template.template?.content.cloneNode(true);
+            document.adoptNode(content);
+            customElements.upgrade(content);
             let actions = part.template.actions;
             let instance = new TemplateInstance(this.component, content, actions, part.template.loops, part.template.ifs, context);
             instances.push(instance);
@@ -9781,6 +9869,8 @@ const Template=class Template {
     }
     createInstance(component) {
         let content = this.template.content.cloneNode(true);
+        document.adoptNode(content);
+        customElements.upgrade(content);
         return new TemplateInstance(component, content, this.actions, this.loops, this.ifs);
     }
 }
@@ -10022,7 +10112,7 @@ const WebComponent=class WebComponent extends HTMLElement {
         let shadowRoot = this.attachShadow({ mode: 'open' });
         shadowRoot.adoptedStyleSheets = [...Object.values(staticInstance.__styleSheets), Style.noAnimation];
         shadowRoot.appendChild(this.__templateInstance.content);
-        customElements.upgrade(shadowRoot);
+        // customElements.upgrade(shadowRoot);
         return shadowRoot;
     }
     __registerTemplateAction() {
@@ -10067,7 +10157,6 @@ const WebComponent=class WebComponent extends HTMLElement {
         return [];
     }
     __upgradeProperty(prop) {
-        this.__correctGetter(prop);
         let boolProps = this.__listBoolProps();
         if (boolProps.indexOf(prop) != -1) {
             if (this.hasAttribute(prop) && (this.getAttribute(prop) === "true" || this.getAttribute(prop) === "")) {
@@ -10077,12 +10166,18 @@ const WebComponent=class WebComponent extends HTMLElement {
             }
             else {
                 this.removeAttribute(prop);
+                delete this[prop];
                 this[prop] = false;
             }
         }
         else {
             if (this.hasAttribute(prop)) {
                 let value = this.getAttribute(prop);
+                delete this[prop];
+                this[prop] = value;
+            }
+            else if (Object.hasOwn(this, prop)) {
+                const value = this[prop];
                 delete this[prop];
                 this[prop] = value;
             }

@@ -361,7 +361,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
         let shadowRoot = this.attachShadow({ mode: 'open' });
         shadowRoot.adoptedStyleSheets = [...Object.values(staticInstance.__styleSheets), Style.noAnimation];
         shadowRoot.appendChild(this.__templateInstance.content);
-        customElements.upgrade(shadowRoot);
+        // customElements.upgrade(shadowRoot);
         return shadowRoot;
     }
 
@@ -412,7 +412,6 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
         return [];
     }
     private __upgradeProperty(prop: string) {
-        this.__correctGetter(prop);
         let boolProps = this.__listBoolProps();
         if(boolProps.indexOf(prop) != -1) {
             if(this.hasAttribute(prop) && (this.getAttribute(prop) === "true" || this.getAttribute(prop) === "")) {
@@ -422,12 +421,18 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
             }
             else {
                 this.removeAttribute(prop);
+                delete this[prop];
                 this[prop] = false;
             }
         }
         else {
             if(this.hasAttribute(prop)) {
                 let value = this.getAttribute(prop);
+                delete this[prop];
+                this[prop] = value;
+            }
+            else if(Object.hasOwn(this, prop)) {
+                const value = this[prop];
                 delete this[prop];
                 this[prop] = value;
             }

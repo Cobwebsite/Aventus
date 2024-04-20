@@ -9,6 +9,7 @@ import { v4 as randomUUID } from 'uuid';
 import { Build } from '../project/Build';
 import { InitStep } from '../notification/InitStep';
 import { GenericServer } from '../GenericServer';
+import { FilesWatcher } from './FilesWatcher';
 
 export class FilesManager {
     private static instance: FilesManager;
@@ -68,7 +69,7 @@ export class FilesManager {
         else {
             let newVersion = this.files[uri].versionUser + 1;
             let textDoc = TextDocument.create(uri, extension, newVersion, content);
-            this.onContentChange(textDoc);
+            await this.onContentChange(textDoc);
             this.onSave(textDoc);
         }
     }
@@ -78,6 +79,7 @@ export class FilesManager {
             GenericServer.sendDiagnostics({ uri: uri, diagnostics: [] })
             await this.files[uri].triggerDelete();
             delete this.files[uri];
+            FilesWatcher.getInstance().unwatch(uri);
         }
     }
 
@@ -106,7 +108,7 @@ export class FilesManager {
                         if (folderContent[i] == AventusExtension.Config) {
                             configFiles.push(TextDocument.create(uri, extension, 0, readFileSync(currentPath, 'utf8')));
                         }
-                        else if(folderContent[i] == AventusExtension.CsharpConfig) {
+                        else if (folderContent[i] == AventusExtension.CsharpConfig) {
                             this.csharpFilesUri.push(uri);
                         }
                         else if (folderContent[i].endsWith(AventusExtension.Base)) {
@@ -129,10 +131,26 @@ export class FilesManager {
         for (let fileUri in this.files) {
             await this.files[fileUri].triggerDelete();
             delete this.files[fileUri];
+            FilesWatcher.getInstance().unwatch(fileUri);
         }
     }
 
-    public async registerFile(document: TextDocument): Promise<void> {
+    /**
+     * Register a file from outside of the project - used only for package
+     * @param uri 
+     * @returns 
+     */
+    public async registerFilePackage(uri: string): Promise<AventusFile> {
+        let pathToImport = uriToPath(uri);
+        let txtToImport = "";
+        if (existsSync(pathToImport)) {
+            txtToImport = readFileSync(pathToImport, 'utf8')
+        }
+        let document = TextDocument.create(uri, AventusLanguageId.Package, 0, txtToImport);
+        FilesWatcher.getInstance().watch(uri);
+        return await this.registerFile(document);
+    }
+    public async registerFile(document: TextDocument): Promise<AventusFile> {
         if (GenericServer.isDebug()) {
             console.log("registering " + document.uri);
         }
@@ -142,6 +160,7 @@ export class FilesManager {
         else {
             await this.files[document.uri].triggerContentChange(document);
         }
+        return this.files[document.uri];
     }
     public async onContentChange(document: TextDocument) {
         if (!this.files[document.uri]) {
@@ -165,6 +184,7 @@ export class FilesManager {
                 GenericServer.sendDiagnostics({ uri: document.uri, diagnostics: [] })
                 await this.files[document.uri].triggerDelete();
                 delete this.files[document.uri];
+                FilesWatcher.getInstance().unwatch(document.uri);
             }
         }
     }
@@ -261,6 +281,29 @@ export class FilesManager {
     }
     public removeOnNewFile(uuid: string) {
         delete this.onNewFileCb[uuid];
+    }
+
+    private onFileRemoveCb: { [uuid: string]: (uri: string) => Promise<void> } = {};
+    public async triggerOnFileRemove(uri: string): Promise<void> {
+        if (GenericServer.isDebug()) {
+            console.log("triggerOnFileRemove " + uri);
+        }
+        let proms: Promise<void>[] = [];
+        for (let uuid in this.onFileRemoveCb) {
+            proms.push(this.onFileRemoveCb[uuid](uri));
+        }
+        await Promise.all(proms);
+    }
+    public onFileRemove(cb: (uri: string) => Promise<void>): string {
+        let uuid = randomUUID();
+        while (this.onNewFileCb[uuid] != undefined) {
+            uuid = randomUUID();
+        }
+        this.onFileRemoveCb[uuid] = cb;
+        return uuid;
+    }
+    public removeOnFileRemove(uuid: string) {
+        delete this.onFileRemoveCb[uuid];
     }
     //#endregion
 

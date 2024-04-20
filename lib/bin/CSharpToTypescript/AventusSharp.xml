@@ -359,7 +359,7 @@
             <inheritdoc />
             </summary>
         </member>
-        <member name="M:AventusSharp.Data.StorableNoTimestamp`1.Create(System.Collections.Generic.List{`0})">
+        <member name="M:AventusSharp.Data.Storable`1.Create(System.Collections.Generic.List{`0})">
             <summary>
             Create inside the DM a bunch of elements and return them
             If something went wrong an empty list will be returned
@@ -367,14 +367,14 @@
             <param name="values"></param>
             <returns></returns>
         </member>
-        <member name="M:AventusSharp.Data.StorableNoTimestamp`1.CreateWithError(System.Collections.Generic.List{`0})">
+        <member name="M:AventusSharp.Data.Storable`1.CreateWithError(System.Collections.Generic.List{`0})">
             <summary>
             Create inside the DM a bunch of elements and return them
             </summary>
             <param name="values"></param>
             <returns></returns>
         </member>
-        <member name="M:AventusSharp.Data.StorableNoTimestamp`1.Create(`0)">
+        <member name="M:AventusSharp.Data.Storable`1.Create(`0)">
             <summary>
             Create the value inside the DM and return it
             If something went wrong a null is returned
@@ -382,27 +382,27 @@
             <param name="value"></param>
             <returns></returns>
         </member>
-        <member name="M:AventusSharp.Data.StorableNoTimestamp`1.CreateWithError(`0)">
+        <member name="M:AventusSharp.Data.Storable`1.CreateWithError(`0)">
             <summary>
             Create the value inside the DM and return it
             </summary>
             <param name="value"></param>
             <returns></returns>
         </member>
-        <member name="M:AventusSharp.Data.StorableNoTimestamp`1.Create">
+        <member name="M:AventusSharp.Data.Storable`1.Create">
             <summary>
             Create the current element inside the DM
             </summary>
             <returns></returns>
         </member>
-        <member name="M:AventusSharp.Data.StorableNoTimestamp`1.CreateWithError">
+        <member name="M:AventusSharp.Data.Storable`1.CreateWithError">
             <summary>
             Create the current element inside the DM
             If return Count == 0 it means no error and your item is stored
             </summary>
             <returns></returns>
         </member>
-        <member name="M:AventusSharp.Data.StorableNoTimestamp`1.Update(System.Collections.Generic.List{`0})">
+        <member name="M:AventusSharp.Data.Storable`1.Update(System.Collections.Generic.List{`0})">
             <summary>
             Update inside the DM a bunch of elements and return them
             If something went wrong an empty list will be returned
@@ -410,14 +410,14 @@
             <param name="values"></param>
             <returns></returns>
         </member>
-        <member name="M:AventusSharp.Data.StorableNoTimestamp`1.UpdateWithError(System.Collections.Generic.List{`0})">
+        <member name="M:AventusSharp.Data.Storable`1.UpdateWithError(System.Collections.Generic.List{`0})">
             <summary>
             Update inside the DM a bunch of elements and return them
             </summary>
             <param name="values"></param>
             <returns></returns>
         </member>
-        <member name="M:AventusSharp.Data.StorableNoTimestamp`1.Update(`0)">
+        <member name="M:AventusSharp.Data.Storable`1.Update(`0)">
             <summary>
             Update the value inside the DM and return it
             If something went wrong a null is returned
@@ -425,27 +425,27 @@
             <param name="value"></param>
             <returns></returns>
         </member>
-        <member name="M:AventusSharp.Data.StorableNoTimestamp`1.UpdateWithError(`0)">
+        <member name="M:AventusSharp.Data.Storable`1.UpdateWithError(`0)">
             <summary>
             Update the value inside the DM and return it
             </summary>
             <param name="value"></param>
             <returns></returns>
         </member>
-        <member name="M:AventusSharp.Data.StorableNoTimestamp`1.Update">
+        <member name="M:AventusSharp.Data.Storable`1.Update">
             <summary>
             Update the current element inside the DM
             </summary>
             <returns></returns>
         </member>
-        <member name="M:AventusSharp.Data.StorableNoTimestamp`1.UpdateWithError">
+        <member name="M:AventusSharp.Data.Storable`1.UpdateWithError">
             <summary>
             Update the current element inside the DM
             If return Count == 0 it means no error and your item is stored
             </summary>
             <returns></returns>
         </member>
-        <member name="M:AventusSharp.Data.StorableNoTimestamp`1.Delete(System.Collections.Generic.List{`0})">
+        <member name="M:AventusSharp.Data.Storable`1.Delete(System.Collections.Generic.List{`0})">
             <summary>
             Delete inside the DM a bunch of elements and return them
             If something went wrong an empty list will be returned
@@ -453,7 +453,7 @@
             <param name="values"></param>
             <returns></returns>
         </member>
-        <member name="M:AventusSharp.Data.StorableNoTimestamp`1.Delete(System.Collections.Generic.List{System.Int32})">
+        <member name="M:AventusSharp.Data.Storable`1.Delete(System.Collections.Generic.List{System.Int32})">
             <summary>
             Delete inside the DM a bunch of elements and return them
             If something went wrong an empty list will be returned
@@ -461,21 +461,21 @@
             <param name="ids"></param>
             <returns></returns>
         </member>
-        <member name="M:AventusSharp.Data.StorableNoTimestamp`1.DeleteWithError(System.Collections.Generic.List{`0})">
+        <member name="M:AventusSharp.Data.Storable`1.DeleteWithError(System.Collections.Generic.List{`0})">
             <summary>
             Delete inside the DM a bunch of elements and return them
             </summary>
             <param name="values"></param>
             <returns></returns>
         </member>
-        <member name="M:AventusSharp.Data.StorableNoTimestamp`1.DeleteWithError(System.Collections.Generic.List{System.Int32})">
+        <member name="M:AventusSharp.Data.Storable`1.DeleteWithError(System.Collections.Generic.List{System.Int32})">
             <summary>
             Delete inside the DM a bunch of elements and return them
             </summary>
             <param name="ids"></param>
             <returns></returns>
         </member>
-        <member name="M:AventusSharp.Data.StorableNoTimestamp`1.Delete(`0)">
+        <member name="M:AventusSharp.Data.Storable`1.Delete(`0)">
             <summary>
             Delete the value inside the DM and return it
             If something went wrong a null is returned
@@ -483,20 +483,20 @@
             <param name="value"></param>
             <returns></returns>
         </member>
-        <member name="M:AventusSharp.Data.StorableNoTimestamp`1.DeleteWithError(`0)">
+        <member name="M:AventusSharp.Data.Storable`1.DeleteWithError(`0)">
             <summary>
             Delete the value inside the DM and return it
             </summary>
             <param name="value"></param>
             <returns></returns>
         </member>
-        <member name="M:AventusSharp.Data.StorableNoTimestamp`1.Delete">
+        <member name="M:AventusSharp.Data.Storable`1.Delete">
             <summary>
             Delete the current element inside the DM
             </summary>
             <returns></returns>
         </member>
-        <member name="M:AventusSharp.Data.StorableNoTimestamp`1.DeleteWithError">
+        <member name="M:AventusSharp.Data.Storable`1.DeleteWithError">
             <summary>
             Delete the current element inside the DM
             If return Count == 0 it means no error and your item is stored

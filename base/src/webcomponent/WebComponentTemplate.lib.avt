@@ -214,6 +214,8 @@ export class Template {
 
     public createInstance(component: WebComponent) {
         let content = this.template.content.cloneNode(true) as DocumentFragment;
+        document.adoptNode(content);
+        customElements.upgrade(content);
         return new TemplateInstance(component, content, this.actions, this.loops, this.ifs);
     }
 }
@@ -676,6 +678,8 @@ export class TemplateInstance {
         for(let i = 0; i < result.length; i++) {
             let context = new TemplateContext(this.component, result[i], this.context, this.loopRegisteries[loop.anchorId]);
             let content = loop.template.template?.content.cloneNode(true) as DocumentFragment;
+            document.adoptNode(content);
+            customElements.upgrade(content);
             let actions = loop.template.actions;
             let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
             instance.render();
@@ -768,6 +772,8 @@ export class TemplateInstance {
                         let context = new TemplateContext(this.component, {}, this.context, registry);
                         context.registerLoop(basePath, index, indexName, simple.index, simple.item, onThis);
                         let content = loop.template.template?.content.cloneNode(true) as DocumentFragment;
+                        document.adoptNode(content);
+                        customElements.upgrade(content);
                         let actions = loop.template.actions;
                         let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
                         instance.render();
@@ -805,6 +811,8 @@ export class TemplateInstance {
             let context = new TemplateContext(this.component, {}, this.context, this.loopRegisteries[loop.anchorId]);
             context.registerLoop(basePath, i, indexName, simple.index, simple.item, onThis);
             let content = loop.template.template?.content.cloneNode(true) as DocumentFragment;
+            document.adoptNode(content);
+            customElements.upgrade(content);
             let actions = loop.template.actions;
             let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
             instance.render();
@@ -817,6 +825,7 @@ export class TemplateInstance {
     private renderIf(_if: If) {
         let computeds: Computed<boolean>[] = [];
         let instances: TemplateInstance[] = [];
+        if(!this._components[_if.anchorId] || this._components[_if.anchorId].length == 0) return;
         let anchor = this._components[_if.anchorId][0];
         let currentActive: number = -1;
         const calculateActive = () => {
@@ -865,6 +874,8 @@ export class TemplateInstance {
 
             let context = new TemplateContext(this.component, {}, this.context);
             let content = part.template.template?.content.cloneNode(true) as DocumentFragment;
+            document.adoptNode(content);
+            customElements.upgrade(content);
             let actions = part.template.actions;
             let instance = new TemplateInstance(this.component, content, actions, part.template.loops, part.template.ifs, context);
             instances.push(instance);
