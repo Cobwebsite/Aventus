@@ -1186,9 +1186,6 @@ export class AventusWebcomponentCompiler {
                     fct: `@_@(e, c) => c.comp.${event.fct}(e)@_@`,
                 }
                 if (event.tagName) {
-                    if(this.className == "ContainerTable") {
-                        debugger;
-                    }
                     let definition = this.build.getWebComponentDefinition(event.tagName);
                     if (definition) {
                         let cbName = this.isCallback(definition.class, event.eventName);

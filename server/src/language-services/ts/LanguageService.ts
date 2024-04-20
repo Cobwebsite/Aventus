@@ -259,6 +259,20 @@ export class AventusTsLanguageService {
                 let entry = completions.entries[i];
                 let remplacement = entry.insertText ? entry.insertText : entry.name
                 remplacement = remplacement.replace(/\.\?\./g, "?.");
+                let additionalTextEdits: TextEdit[] | undefined = undefined;
+                if (remplacement.startsWith("?")) {
+                    let offsetMinusOne = document.offsetAt(replaceRange.start) - 1;
+                    if (document.getText()[offsetMinusOne] == ".") {
+                        additionalTextEdits = [{
+                            newText: "",
+                            range: {
+                                start: { line: replaceRange.start.line, character: replaceRange.start.character - 1 },
+                                end: { line: replaceRange.start.line, character: replaceRange.start.character },
+                            }
+                        }]
+                    }
+                }
+
                 let customData = {
                     languageId: AventusLanguageId.TypeScript,
                     offset: offset,
@@ -270,6 +284,7 @@ export class AventusTsLanguageService {
                     sortText: entry.sortText,
                     kind: convertKind(entry.kind),
                     textEdit: TextEdit.replace(replaceRange, remplacement),
+                    additionalTextEdits: additionalTextEdits,
                     data: { // data used for resolving item details (see 'doResolve')
                         ...entry.data,
                         ...customData
@@ -311,6 +326,18 @@ export class AventusTsLanguageService {
                         item.data);
 
                     if (details) {
+                        // let additionalTextEdits: TextEdit[] | undefined = undefined;
+                        // if (remplacement.startsWith("?")) {
+                        //     let offsetMinusOne = document.offsetAt(replaceRange.start) - 1;
+                        //     if (document.getText()[offsetMinusOne] == ".") {
+                        //         additionalTextEdits = [];
+                        //         let removeRange = {
+                        //             start: document.positionAt(offsetMinusOne),
+                        //             end: replaceRange.start
+                        //         }
+                        //         additionalTextEdits.push(TextEdit.replace(removeRange, ""));
+                        //     }
+                        // }
                         item.detail = displayPartsToString(details.displayParts);
                         item.documentation = displayPartsToString(details.documentation);
                         item.additionalTextEdits = [];
