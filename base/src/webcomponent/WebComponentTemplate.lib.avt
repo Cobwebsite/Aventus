@@ -393,7 +393,7 @@ export class TemplateInstance {
                 cb?.add((...args) => {
                     // TODO check if it's working
                     try {
-                        event.fct(this.context, args);
+                        return event.fct(this.context, args);
                     } catch(e) {
                         console.error(e);
                     }
@@ -823,6 +823,11 @@ export class TemplateInstance {
     }
 
     private renderIf(_if: If) {
+        // TODO check which version is better
+        // this.renderIfMemory(_if);
+        this.renderIfRecreate(_if);
+    }
+    private renderIfMemory(_if: If) {
         let computeds: Computed<boolean>[] = [];
         let instances: TemplateInstance[] = [];
         if(!this._components[_if.anchorId] || this._components[_if.anchorId].length == 0) return;
@@ -885,6 +890,68 @@ export class TemplateInstance {
         calculateActive();
     }
 
+    private renderIfRecreate(_if: If) {
+        let computeds: Computed<boolean>[] = [];
+        if(!this._components[_if.anchorId] || this._components[_if.anchorId].length == 0) return;
+        let anchor = this._components[_if.anchorId][0];
+        let currentActive: TemplateInstance | undefined = undefined;
+        let currentActiveNb: number = -1;
+        const createContext = () => {
+            if(currentActiveNb < 0 || currentActiveNb > _if.parts.length - 1) {
+                currentActive = undefined;
+                return;
+            }
+
+            const part = _if.parts[currentActiveNb];
+            let context = new TemplateContext(this.component, {}, this.context);
+            let content = part.template.template?.content.cloneNode(true) as DocumentFragment;
+            document.adoptNode(content);
+            customElements.upgrade(content);
+            let actions = part.template.actions;
+            let instance = new TemplateInstance(this.component, content, actions, part.template.loops, part.template.ifs, context);
+            currentActive = instance;
+            instance.render();
+            anchor.parentNode?.insertBefore(currentActive.content, anchor);
+        };
+
+
+        for(let i = 0; i < _if.parts.length; i++) {
+            const part = _if.parts[i];
+            let _class = part.once ? ComputedNoRecomputed : Computed;
+            let computed = new _class(() => {
+                return part.condition(this.context);
+            });
+            computeds.push(computed);
+            computed.subscribe(() => {
+                calculateActive();
+            });
+            this.computeds.push(computed);
+        }
+
+
+        const calculateActive = () => {
+            let newActive = -1;
+            for(let i = 0; i < _if.parts.length; i++) {
+                if(computeds[i].value) {
+                    newActive = i;
+                    break;
+                }
+            }
+
+            if(newActive == currentActiveNb) {
+                return;
+            }
+
+            if(currentActive) {
+                currentActive.destructor();
+            }
+
+            currentActiveNb = newActive;
+            createContext();
+        };
+
+        calculateActive();
+    }
 }
 
 export class TemplateContext {

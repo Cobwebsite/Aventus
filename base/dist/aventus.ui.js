@@ -450,27 +450,26 @@ Style.Namespace=`${moduleName}`;
 
 _.Style=Style;
 const Callback=class Callback {
-    callbacks = [];
+    callbacks = new Map();
     /**
      * Clear all callbacks
      */
     clear() {
-        this.callbacks = [];
+        this.callbacks.clear();
     }
     /**
      * Add a callback
      */
-    add(cb) {
-        this.callbacks.push(cb);
+    add(cb, scope = null) {
+        if (!this.callbacks.has(cb)) {
+            this.callbacks.set(cb, scope);
+        }
     }
     /**
      * Remove a callback
      */
     remove(cb) {
-        let index = this.callbacks.indexOf(cb);
-        if (index != -1) {
-            this.callbacks.splice(index, 1);
-        }
+        this.callbacks.delete(cb);
     }
     /**
      * Trigger all callbacks
@@ -478,8 +477,8 @@ const Callback=class Callback {
     trigger(args) {
         let result = [];
         let cbs = [...this.callbacks];
-        for (let cb of cbs) {
-            result.push(cb.apply(null, args));
+        for (let [cb, scope] of cbs) {
+            result.push(cb.apply(scope, args));
         }
         return result;
     }
@@ -1922,7 +1921,7 @@ const Uri=class Uri {
         if (typeof from == "string") {
             from = this.prepare(from);
         }
-        let matches = from.regex.exec(current);
+        let matches = from.regex.exec(current.toLowerCase());
         if (matches) {
             let slugs = {};
             for (let param of from.params) {
@@ -2729,7 +2728,7 @@ const TemplateInstance=class TemplateInstance {
                 let cb = getValueFromObject(event.eventName, el);
                 cb?.add((...args) => {
                     try {
-                        event.fct(this.context, args);
+                        return event.fct(this.context, args);
                     }
                     catch (e) {
                         console.error(e);
@@ -3135,6 +3134,10 @@ const TemplateInstance=class TemplateInstance {
         }
     }
     renderIf(_if) {
+        // this.renderIfMemory(_if);
+        this.renderIfRecreate(_if);
+    }
+    renderIfMemory(_if) {
         let computeds = [];
         let instances = [];
         if (!this._components[_if.anchorId] || this._components[_if.anchorId].length == 0)
@@ -3187,6 +3190,60 @@ const TemplateInstance=class TemplateInstance {
             instances.push(instance);
             instance.render();
         }
+        calculateActive();
+    }
+    renderIfRecreate(_if) {
+        let computeds = [];
+        if (!this._components[_if.anchorId] || this._components[_if.anchorId].length == 0)
+            return;
+        let anchor = this._components[_if.anchorId][0];
+        let currentActive = undefined;
+        let currentActiveNb = -1;
+        const createContext = () => {
+            if (currentActiveNb < 0 || currentActiveNb > _if.parts.length - 1) {
+                currentActive = undefined;
+                return;
+            }
+            const part = _if.parts[currentActiveNb];
+            let context = new TemplateContext(this.component, {}, this.context);
+            let content = part.template.template?.content.cloneNode(true);
+            document.adoptNode(content);
+            customElements.upgrade(content);
+            let actions = part.template.actions;
+            let instance = new TemplateInstance(this.component, content, actions, part.template.loops, part.template.ifs, context);
+            currentActive = instance;
+            instance.render();
+            anchor.parentNode?.insertBefore(currentActive.content, anchor);
+        };
+        for (let i = 0; i < _if.parts.length; i++) {
+            const part = _if.parts[i];
+            let _class = part.once ? ComputedNoRecomputed : Computed;
+            let computed = new _class(() => {
+                return part.condition(this.context);
+            });
+            computeds.push(computed);
+            computed.subscribe(() => {
+                calculateActive();
+            });
+            this.computeds.push(computed);
+        }
+        const calculateActive = () => {
+            let newActive = -1;
+            for (let i = 0; i < _if.parts.length; i++) {
+                if (computeds[i].value) {
+                    newActive = i;
+                    break;
+                }
+            }
+            if (newActive == currentActiveNb) {
+                return;
+            }
+            if (currentActive) {
+                currentActive.destructor();
+            }
+            currentActiveNb = newActive;
+            createContext();
+        };
         calculateActive();
     }
 }

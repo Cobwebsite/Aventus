@@ -450,27 +450,26 @@ Style.Namespace=`${moduleName}`;
 
 _.Style=Style;
 const Callback=class Callback {
-    callbacks = [];
+    callbacks = new Map();
     /**
      * Clear all callbacks
      */
     clear() {
-        this.callbacks = [];
+        this.callbacks.clear();
     }
     /**
      * Add a callback
      */
-    add(cb) {
-        this.callbacks.push(cb);
+    add(cb, scope = null) {
+        if (!this.callbacks.has(cb)) {
+            this.callbacks.set(cb, scope);
+        }
     }
     /**
      * Remove a callback
      */
     remove(cb) {
-        let index = this.callbacks.indexOf(cb);
-        if (index != -1) {
-            this.callbacks.splice(index, 1);
-        }
+        this.callbacks.delete(cb);
     }
     /**
      * Trigger all callbacks
@@ -478,8 +477,8 @@ const Callback=class Callback {
     trigger(args) {
         let result = [];
         let cbs = [...this.callbacks];
-        for (let cb of cbs) {
-            result.push(cb.apply(null, args));
+        for (let [cb, scope] of cbs) {
+            result.push(cb.apply(scope, args));
         }
         return result;
     }
@@ -626,6 +625,104 @@ const Mutex=class Mutex {
 Mutex.Namespace=`${moduleName}`;
 
 _.Mutex=Mutex;
+const GenericError=class GenericError {
+    /**
+     * Code for the error
+     */
+    code;
+    /**
+     * Description of the error
+     */
+    message;
+    /**
+     * Additional details related to the error.
+     * @type {any[]}
+     */
+    details = [];
+    /**
+     * Creates a new instance of GenericError.
+     * @param {EnumValue<T>} code - The error code.
+     * @param {string} message - The error message.
+     */
+    constructor(code, message) {
+        this.code = code;
+        this.message = message;
+    }
+}
+GenericError.Namespace=`${moduleName}`;
+
+_.GenericError=GenericError;
+const VoidWithError=class VoidWithError {
+    /**
+     * Determine if the action is a success
+     */
+    get success() {
+        return this.errors.length == 0;
+    }
+    /**
+     * List of errors
+     */
+    errors = [];
+    /**
+     * Converts the current instance to a VoidWithError object.
+     * @returns {VoidWithError} A new instance of VoidWithError with the same error list.
+     */
+    toGeneric() {
+        const result = new VoidWithError();
+        result.errors = this.errors;
+        return result;
+    }
+    /**
+    * Checks if the error list contains a specific error code.
+    * @template U - The type of error, extending GenericError.
+    * @template T - The type of the error code, which extends either number or Enum.
+    * @param {EnumValue<T>} code - The error code to check for.
+    * @param {new (...args: any[]) => U} [type] - Optional constructor function of the error type.
+    * @returns {boolean} True if the error list contains the specified error code, otherwise false.
+    */
+    containsCode(code, type) {
+        if (type) {
+            for (let error of this.errors) {
+                if (error instanceof type) {
+                    if (error.code == code) {
+                        return true;
+                    }
+                }
+            }
+        }
+        else {
+            for (let error of this.errors) {
+                if (error.code == code) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+}
+VoidWithError.Namespace=`${moduleName}`;
+
+_.VoidWithError=VoidWithError;
+const ResultWithError=class ResultWithError extends VoidWithError {
+    /**
+      * The result value of the action.
+      * @type {U | undefined}
+      */
+    result;
+    /**
+     * Converts the current instance to a ResultWithError object.
+     * @returns {ResultWithError<U>} A new instance of ResultWithError with the same error list and result value.
+     */
+    toGeneric() {
+        const result = new ResultWithError();
+        result.errors = this.errors;
+        result.result = this.result;
+        return result;
+    }
+}
+ResultWithError.Namespace=`${moduleName}`;
+
+_.ResultWithError=ResultWithError;
 const PressManager=class PressManager {
     static globalConfig = {
         delayDblPress: 150,
@@ -1922,7 +2019,7 @@ const Uri=class Uri {
         if (typeof from == "string") {
             from = this.prepare(from);
         }
-        let matches = from.regex.exec(current);
+        let matches = from.regex.exec(current.toLowerCase());
         if (matches) {
             let slugs = {};
             for (let param of from.params) {
@@ -2729,7 +2826,7 @@ const TemplateInstance=class TemplateInstance {
                 let cb = getValueFromObject(event.eventName, el);
                 cb?.add((...args) => {
                     try {
-                        event.fct(this.context, args);
+                        return event.fct(this.context, args);
                     }
                     catch (e) {
                         console.error(e);
@@ -3135,6 +3232,10 @@ const TemplateInstance=class TemplateInstance {
         }
     }
     renderIf(_if) {
+        // this.renderIfMemory(_if);
+        this.renderIfRecreate(_if);
+    }
+    renderIfMemory(_if) {
         let computeds = [];
         let instances = [];
         if (!this._components[_if.anchorId] || this._components[_if.anchorId].length == 0)
@@ -3187,6 +3288,60 @@ const TemplateInstance=class TemplateInstance {
             instances.push(instance);
             instance.render();
         }
+        calculateActive();
+    }
+    renderIfRecreate(_if) {
+        let computeds = [];
+        if (!this._components[_if.anchorId] || this._components[_if.anchorId].length == 0)
+            return;
+        let anchor = this._components[_if.anchorId][0];
+        let currentActive = undefined;
+        let currentActiveNb = -1;
+        const createContext = () => {
+            if (currentActiveNb < 0 || currentActiveNb > _if.parts.length - 1) {
+                currentActive = undefined;
+                return;
+            }
+            const part = _if.parts[currentActiveNb];
+            let context = new TemplateContext(this.component, {}, this.context);
+            let content = part.template.template?.content.cloneNode(true);
+            document.adoptNode(content);
+            customElements.upgrade(content);
+            let actions = part.template.actions;
+            let instance = new TemplateInstance(this.component, content, actions, part.template.loops, part.template.ifs, context);
+            currentActive = instance;
+            instance.render();
+            anchor.parentNode?.insertBefore(currentActive.content, anchor);
+        };
+        for (let i = 0; i < _if.parts.length; i++) {
+            const part = _if.parts[i];
+            let _class = part.once ? ComputedNoRecomputed : Computed;
+            let computed = new _class(() => {
+                return part.condition(this.context);
+            });
+            computeds.push(computed);
+            computed.subscribe(() => {
+                calculateActive();
+            });
+            this.computeds.push(computed);
+        }
+        const calculateActive = () => {
+            let newActive = -1;
+            for (let i = 0; i < _if.parts.length; i++) {
+                if (computeds[i].value) {
+                    newActive = i;
+                    break;
+                }
+            }
+            if (newActive == currentActiveNb) {
+                return;
+            }
+            if (currentActive) {
+                currentActive.destructor();
+            }
+            currentActiveNb = newActive;
+            createContext();
+        };
         calculateActive();
     }
 }
@@ -4419,6 +4574,11 @@ const sleep=function sleep(ms) {
 }
 
 _.sleep=sleep;
+const isClass=function isClass(v) {
+    return typeof v === 'function' && /^\s*class\s+/.test(v.toString());
+}
+
+_.isClass=isClass;
 const setValueToObject=function setValueToObject(path, obj, value) {
     path = path.replace(/\[(.*?)\]/g, '.$1');
     let splitted = path.split(".");
@@ -4947,27 +5107,26 @@ Instance.Namespace=`${moduleName}`;
 
 _.Instance=Instance;
 const Callback=class Callback {
-    callbacks = [];
+    callbacks = new Map();
     /**
      * Clear all callbacks
      */
     clear() {
-        this.callbacks = [];
+        this.callbacks.clear();
     }
     /**
      * Add a callback
      */
-    add(cb) {
-        this.callbacks.push(cb);
+    add(cb, scope = null) {
+        if (!this.callbacks.has(cb)) {
+            this.callbacks.set(cb, scope);
+        }
     }
     /**
      * Remove a callback
      */
     remove(cb) {
-        let index = this.callbacks.indexOf(cb);
-        if (index != -1) {
-            this.callbacks.splice(index, 1);
-        }
+        this.callbacks.delete(cb);
     }
     /**
      * Trigger all callbacks
@@ -4975,8 +5134,8 @@ const Callback=class Callback {
     trigger(args) {
         let result = [];
         let cbs = [...this.callbacks];
-        for (let cb of cbs) {
-            result.push(cb.apply(null, args));
+        for (let [cb, scope] of cbs) {
+            result.push(cb.apply(scope, args));
         }
         return result;
     }
@@ -5001,21 +5160,20 @@ const CallbackGroup=class CallbackGroup {
     /**
      * Add a callback for a group
      */
-    add(group, cb) {
+    add(group, cb, scope = null) {
         if (!this.callbacks[group]) {
-            this.callbacks[group] = [];
+            this.callbacks[group] = new Map();
         }
-        this.callbacks[group].push(cb);
+        if (!this.callbacks[group].has(cb)) {
+            this.callbacks[group].set(cb, scope);
+        }
     }
     /**
      * Remove a callback for a group
      */
     remove(group, cb) {
         if (this.callbacks[group]) {
-            let index = this.callbacks[group].indexOf(cb);
-            if (index != -1) {
-                this.callbacks[group].splice(index, 1);
-            }
+            this.callbacks[group].delete(cb);
         }
     }
     /**
@@ -5024,8 +5182,8 @@ const CallbackGroup=class CallbackGroup {
     trigger(group, args) {
         if (this.callbacks[group]) {
             let cbs = [...this.callbacks[group]];
-            for (let cb of cbs) {
-                cb.apply(null, args);
+            for (let [cb, scope] of cbs) {
+                cb.apply(scope, args);
             }
         }
     }
@@ -6827,7 +6985,7 @@ const Uri=class Uri {
         if (typeof from == "string") {
             from = this.prepare(from);
         }
-        let matches = from.regex.exec(current);
+        let matches = from.regex.exec(current.toLowerCase());
         if (matches) {
             let slugs = {};
             for (let param of from.params) {
@@ -8230,6 +8388,7 @@ const GenericRam=class GenericRam {
         if (action.success) {
             if (action.result.length > 0) {
                 list = action.result;
+                action.result = [];
             }
             for (let item of list) {
                 let resultItem = await this._create(item, true);
@@ -8335,6 +8494,7 @@ const GenericRam=class GenericRam {
         if (action.success) {
             if (action.result.length > 0) {
                 list = action.result;
+                action.result = [];
             }
             for (let item of list) {
                 let resultItem = await this._update(item, true);
@@ -9072,7 +9232,7 @@ const TemplateInstance=class TemplateInstance {
                 let cb = getValueFromObject(event.eventName, el);
                 cb?.add((...args) => {
                     try {
-                        event.fct(this.context, args);
+                        return event.fct(this.context, args);
                     }
                     catch (e) {
                         console.error(e);
@@ -9478,6 +9638,10 @@ const TemplateInstance=class TemplateInstance {
         }
     }
     renderIf(_if) {
+        // this.renderIfMemory(_if);
+        this.renderIfRecreate(_if);
+    }
+    renderIfMemory(_if) {
         let computeds = [];
         let instances = [];
         if (!this._components[_if.anchorId] || this._components[_if.anchorId].length == 0)
@@ -9530,6 +9694,60 @@ const TemplateInstance=class TemplateInstance {
             instances.push(instance);
             instance.render();
         }
+        calculateActive();
+    }
+    renderIfRecreate(_if) {
+        let computeds = [];
+        if (!this._components[_if.anchorId] || this._components[_if.anchorId].length == 0)
+            return;
+        let anchor = this._components[_if.anchorId][0];
+        let currentActive = undefined;
+        let currentActiveNb = -1;
+        const createContext = () => {
+            if (currentActiveNb < 0 || currentActiveNb > _if.parts.length - 1) {
+                currentActive = undefined;
+                return;
+            }
+            const part = _if.parts[currentActiveNb];
+            let context = new TemplateContext(this.component, {}, this.context);
+            let content = part.template.template?.content.cloneNode(true);
+            document.adoptNode(content);
+            customElements.upgrade(content);
+            let actions = part.template.actions;
+            let instance = new TemplateInstance(this.component, content, actions, part.template.loops, part.template.ifs, context);
+            currentActive = instance;
+            instance.render();
+            anchor.parentNode?.insertBefore(currentActive.content, anchor);
+        };
+        for (let i = 0; i < _if.parts.length; i++) {
+            const part = _if.parts[i];
+            let _class = part.once ? ComputedNoRecomputed : Computed;
+            let computed = new _class(() => {
+                return part.condition(this.context);
+            });
+            computeds.push(computed);
+            computed.subscribe(() => {
+                calculateActive();
+            });
+            this.computeds.push(computed);
+        }
+        const calculateActive = () => {
+            let newActive = -1;
+            for (let i = 0; i < _if.parts.length; i++) {
+                if (computeds[i].value) {
+                    newActive = i;
+                    break;
+                }
+            }
+            if (newActive == currentActiveNb) {
+                return;
+            }
+            if (currentActive) {
+                currentActive.destructor();
+            }
+            currentActiveNb = newActive;
+            createContext();
+        };
         calculateActive();
     }
 }

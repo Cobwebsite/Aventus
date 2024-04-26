@@ -125,3 +125,9 @@ export function setValueToObject(path: string, obj: any, value: any) {
     // Set the value at the last segment of the path
     obj[splitted[splitted.length - 1]] = value;
 }
+
+
+
+export function isClass(v: any): boolean {
+    return typeof v === 'function' && /^\s*class\s+/.test(v.toString());
+}

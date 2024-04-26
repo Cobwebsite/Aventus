@@ -1,5 +1,5 @@
 export class CallbackGroup<U extends (...args: any) => void> {
-    private callbacks: { [group: string]: U[]; } = {};
+    private callbacks: { [group: string]: Map<U, any>; } = {};
     /**
      * Clear all callbacks
      */
@@ -15,21 +15,20 @@ export class CallbackGroup<U extends (...args: any) => void> {
     /**
      * Add a callback for a group
      */
-    public add(group: string | number, cb: U): void {
+    public add(group: string | number, cb: U, scope: any = null): void {
         if(!this.callbacks[group]) {
-            this.callbacks[group] = [];
+            this.callbacks[group] = new Map();
         }
-        this.callbacks[group].push(cb);
+        if(!this.callbacks[group].has(cb)) {
+            this.callbacks[group].set(cb, scope);
+        }
     }
     /**
      * Remove a callback for a group
      */
     public remove(group: string | number, cb: U): void {
         if(this.callbacks[group]) {
-            let index = this.callbacks[group].indexOf(cb);
-            if(index != -1) {
-                this.callbacks[group].splice(index, 1);
-            }
+            this.callbacks[group].delete(cb);
         }
     }
     /**
@@ -38,35 +37,34 @@ export class CallbackGroup<U extends (...args: any) => void> {
     public trigger(group: string | number, args: Parameters<U>): void {
         if(this.callbacks[group]) {
             let cbs = [...this.callbacks[group]];
-            for(let cb of cbs) {
-                cb.apply(null, args);
+            for(let [cb, scope] of cbs) {
+                cb.apply(scope, args);
             }
         }
     }
 }
 
 export class Callback<U extends (...args: any) => T, T = void> {
-    private callbacks: U[] = [];
+    private callbacks: Map<U, any> = new Map();
     /**
      * Clear all callbacks
      */
     public clear() {
-        this.callbacks = [];
+        this.callbacks.clear();
     }
     /**
      * Add a callback
      */
-    public add(cb: U): void {
-        this.callbacks.push(cb);
+    public add(cb: U, scope: any = null): void {
+        if(!this.callbacks.has(cb)) {
+            this.callbacks.set(cb, scope);
+        }
     }
     /**
      * Remove a callback
      */
     public remove(cb: U): void {
-        let index = this.callbacks.indexOf(cb);
-        if(index != -1) {
-            this.callbacks.splice(index, 1);
-        }
+        this.callbacks.delete(cb);
     }
     /**
      * Trigger all callbacks
@@ -74,8 +72,8 @@ export class Callback<U extends (...args: any) => T, T = void> {
     public trigger(args: Parameters<U>): T[] {
         let result: T[] = [];
         let cbs = [...this.callbacks];
-        for(let cb of cbs) {
-            result.push(cb.apply(null, args));
+        for(let [cb, scope] of cbs) {
+            result.push(cb.apply(scope, args));
         }
         return result;
     }

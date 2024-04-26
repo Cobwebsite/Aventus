@@ -205,7 +205,7 @@ export class ${className} extends Aventus.Ram<${objectName}> implements Aventus.
 	/**
 	 * Create a singleton to store data
 	 */
-	public static getInstance() {
+	public static getInstance(): ${className} {
 		return Aventus.Instance.get(${className});
 	}
 

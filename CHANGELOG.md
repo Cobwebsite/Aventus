@@ -14,6 +14,9 @@
  - Keep the comment format to // inside style file. Before it was transformed to /* */
  - Correct the ActionGuard that wasn't working because of array reference instead of compare
  - Upgrade CustomElement inside template instead of Element to avoid error during loop and conditional
+ - Force uri compare to be lowercase
+ - Correct infinite loop on RAM for updateList and createList
+ - Correct the callback return when binding event though the view
 
 ### Features
  - Add $ to use as @bind
@@ -32,6 +35,8 @@
  - Add import from *.package.avt
  - Add hover and definition inside *.package.avt
  - Support import any style file inside aventus style file
+ - Allow to provide the scope for the Callback
+ - Add a isClass helper method
 
 
 ## 1.2.0 (2024-02-24)

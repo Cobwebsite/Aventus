@@ -490,6 +490,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
         if(action.success) {
             if(action.result.length > 0) {
                 list = action.result;
+                action.result = [];
             }
             for(let item of list) {
                 let resultItem = await this._create(item, true);
@@ -593,6 +594,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
         if(action.success) {
             if(action.result.length > 0) {
                 list = action.result;
+                action.result = [];
             }
             for(let item of list) {
                 let resultItem = await this._update(item, true);

@@ -58,14 +58,14 @@ export class VoidWithError<T extends GenericError = GenericError> {
         return result;
     }
 
-     /**
-     * Checks if the error list contains a specific error code.
-     * @template U - The type of error, extending GenericError.
-     * @template T - The type of the error code, which extends either number or Enum.
-     * @param {EnumValue<T>} code - The error code to check for.
-     * @param {new (...args: any[]) => U} [type] - Optional constructor function of the error type.
-     * @returns {boolean} True if the error list contains the specified error code, otherwise false.
-     */
+    /**
+    * Checks if the error list contains a specific error code.
+    * @template U - The type of error, extending GenericError.
+    * @template T - The type of the error code, which extends either number or Enum.
+    * @param {EnumValue<T>} code - The error code to check for.
+    * @param {new (...args: any[]) => U} [type] - Optional constructor function of the error type.
+    * @returns {boolean} True if the error list contains the specified error code, otherwise false.
+    */
     public containsCode<U extends GenericError<any>, T extends (number | Enum)>(code: EnumValue<T>, type?: new (...args) => U): boolean {
         if(type) {
             for(let error of this.errors) {
@@ -94,10 +94,10 @@ export class VoidWithError<T extends GenericError = GenericError> {
  */
 export class ResultWithError<U, T extends GenericError = GenericError> extends VoidWithError<T> {
 
-   /**
-     * The result value of the action.
-     * @type {U | undefined}
-     */
+    /**
+      * The result value of the action.
+      * @type {U | undefined}
+      */
     public result: U | undefined;
 
     /**
@@ -111,3 +111,13 @@ export class ResultWithError<U, T extends GenericError = GenericError> extends V
         return result;
     }
 }
+
+/**
+ * Extracts the error or void type from a given result type.
+ * If the provided type `T` is `ResultWithError`, it extracts the error type.
+ * If `T` is `VoidWithError`, it returns `void`.
+ * Otherwise, it returns `T`.
+ * @template T - The input type to extract the error or void from.
+ * @template U - The default type if `T` is not a `ResultWithError`.
+ */
+export type ExtractFromError<T, U = any> = T extends Aventus.ResultWithError<infer U, any> ? U : T extends Aventus.VoidWithError ? void : T;
