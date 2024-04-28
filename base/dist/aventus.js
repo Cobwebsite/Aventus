@@ -2712,11 +2712,15 @@ const TemplateInstance=class TemplateInstance {
     destructor() {
         this.isDestroyed = true;
         for (let name in this.loopRegisteries) {
-            for (let item of this.loopRegisteries[name].templates) {
+            let register = this.loopRegisteries[name];
+            for (let item of register.templates) {
                 item.destructor();
             }
-            for (let item of this.loopRegisteries[name].computeds) {
+            for (let item of register.computeds) {
                 item.destroy();
+            }
+            if (register.unsub) {
+                register.unsub();
             }
         }
         this.loopRegisteries = {};
@@ -3111,9 +3115,9 @@ const TemplateInstance=class TemplateInstance {
         }
     }
     resetLoopSimple(anchorId, basePath) {
-        let elements = this.context.getValueFromItem(basePath);
-        if (elements && this.loopRegisteries[anchorId]) {
-            elements.unsubscribe(this.loopRegisteries[anchorId].sub);
+        let register = this.loopRegisteries[anchorId];
+        if (register?.unsub) {
+            register.unsub();
         }
         this.resetLoopComplex(anchorId);
     }
@@ -3214,7 +3218,9 @@ const TemplateInstance=class TemplateInstance {
                     }
                 }
             };
-            this.loopRegisteries[loop.anchorId].sub = sub;
+            this.loopRegisteries[loop.anchorId].unsub = () => {
+                elements.unsubscribe(sub);
+            };
             elements.subscribe(sub);
         }
         let anchor = this._components[loop.anchorId][0];

@@ -1516,6 +1516,11 @@
             Determine if the typescript must start listening this event when the connection open
             </summary>
         </member>
+        <member name="T:AventusSharp.WebSocket.Attributes.NotRoute">
+            <summary>
+            Determine if that the Method isn't a route
+            </summary>
+        </member>
         <member name="M:AventusSharp.WebSocket.Request.WebSocketRouterBody.GetData(System.Type,System.String)">
             <summary>
             Transform data into object T. Add path to tell where to find data to cast

@@ -84,6 +84,8 @@ export interface AventusSharp {
 		wsEvent?: AventusSharpReplacerPart
 		wsRouter?: AventusSharpReplacerPart
 	},
+	httpRouter?: AventusSharpHttpRouter,
+	wsEndpoint?: AventusSharpWsEndPoint
 }
 
 interface AventusSharpReplacerPart {
@@ -101,4 +103,26 @@ interface AventusSharpReplacerPart {
 			useTypeImport?: boolean,
 		}
 	}
+}
+
+
+interface AventusSharpHttpRouter {
+	createRouter?: boolean,
+	autobindRoute?: AventusSharpHttpRouterAutoBind,
+	routerName?: string,
+	variableRoutesName?: string,
+	uri?: string,
+	host?: string,
+	parent?: string,
+	namespace?: string
+}
+
+enum AventusSharpHttpRouterAutoBind {
+	none,
+	auto,
+	full,
+}
+
+interface AventusSharpWsEndPoint {
+	prefix?: string,
 }

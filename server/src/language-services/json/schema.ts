@@ -367,6 +367,13 @@ export const AventusSharpSchema: JSONSchema = {
                 parent: { type: "string", default: "Aventus.HttpRouter" },
                 namespace: { type: "string", default: "Routes" }
             }
+        },
+        "wsEndpoint": {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+                prefix: { type: "string", default: "" }
+            }
         }
     },
     "required": ["csProj", "outputPath"],
