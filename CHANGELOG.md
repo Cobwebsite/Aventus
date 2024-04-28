@@ -1,6 +1,6 @@
 # Change Log
 
-## 1.2.1 ()
+## 1.2.1 (2024-04-28)
 
 ### Bug Fixes
  - Correct property and attribute inheritance
