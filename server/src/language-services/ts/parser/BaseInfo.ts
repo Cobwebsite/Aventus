@@ -44,6 +44,7 @@ export abstract class BaseInfo {
         return this.infoByShortName[shortName];
     }
     public static getInfoByFullName(fullName: string, from: BaseInfo): BaseInfo | undefined {
+        fullName = fullName.replace(/<.*>/, "");
         let result = this.infoByFullName[fullName];
         if (!result) {
             result = this.infoByFullName[from.fullName.split('.')[0] + "." + fullName];
@@ -521,6 +522,21 @@ export abstract class BaseInfo {
                 onName(fullName);
             })
             return;
+        }
+        else if(this.parserInfo.packages[name]) {
+            let fullName = this.parserInfo.packages[name].fullname;
+            this.dependances.push({
+                fullName: fullName,
+                uri: "@external",
+                isStrong: isStrongDependance,
+            });
+            if (this.dependancesLocations[name]) {
+                this.dependancesLocations[name].typeRemplacement = fullName;
+                this.dependancesLocations[name].replacement = fullName;
+                this.dependancesLocations[name].hotReloadReplacement = fullName;
+            }
+
+            return
         }
 
         if (this.parserInfo.npmImports[name]) {

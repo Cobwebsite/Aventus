@@ -2,7 +2,7 @@ import { FunctionDeclaration, Identifier, ImportDeclaration, SyntaxKind, flatten
 import { BaseInfo, InfoType } from './BaseInfo';
 import { ParserTs } from './ParserTs';
 import { DiagnosticSeverity, Range } from 'vscode-languageserver';
-import { AventusLanguageId } from '../../../definition';
+import { AventusExtension, AventusLanguageId } from '../../../definition';
 import { getFolder, pathToUri, uriToPath } from '../../../tools';
 import { normalize } from 'path';
 import { FilesManager } from '../../../files/FilesManager';
@@ -60,6 +60,26 @@ export class ImportInfo {
 							else {
 								let info = new ImportInfo(parserInfo, moduleName, element.name);
 								parserInfo.imports[info.name] = info;
+							}
+						}
+					}
+					else if (moduleName.startsWith("@") && moduleName.includes(AventusExtension.Package)) {
+						for (let element of node.importClause.namedBindings.elements) {
+							if (element.propertyName) {
+								// it's a rename
+								parserInfo.errors.push({
+									range: Range.create(parserInfo.document.positionAt(node.getStart()), parserInfo.document.positionAt(node.getEnd())),
+									severity: DiagnosticSeverity.Error,
+									source: AventusLanguageId.TypeScript,
+									message: flattenDiagnosticMessageText("error can't use renamed import", '\n')
+								})
+							}
+							else {
+								let name = element.name.getText();
+								let fullname = moduleName.slice(1).replace(AventusExtension.Package, "") + "." + name
+								parserInfo.packages[name] = {
+									fullname
+								};
 							}
 						}
 					}

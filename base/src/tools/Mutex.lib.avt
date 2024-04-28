@@ -1,3 +1,5 @@
+import { compareObject } from "./CompareObject.lib.avt";
+
 /**
  * Represents a mutual exclusion (mutex) mechanism for synchronizing access to a shared resource.
  */
@@ -7,15 +9,15 @@ export class Mutex {
      * @type {((run: boolean) => void)[]}
      */
     private waitingList: ((run: boolean) => void)[] = [];
-     /**
-     * Indicates whether the mutex is currently locked or not.
-     * @type {boolean}
-     */
+    /**
+    * Indicates whether the mutex is currently locked or not.
+    * @type {boolean}
+    */
     private isLocked: boolean = false;
-     /**
-     * Waits for the mutex to become available and then acquires it.
-     * @returns {Promise<boolean>} A Promise that resolves to true if the mutex was acquired successfully.
-     */
+    /**
+    * Waits for the mutex to become available and then acquires it.
+    * @returns {Promise<boolean>} A Promise that resolves to true if the mutex was acquired successfully.
+    */
     public waitOne() {
         return new Promise<boolean>((resolve) => {
             if(this.isLocked) {
@@ -126,7 +128,7 @@ export class Mutex {
         }
         return result;
     }
-    
+
     /**
      * Executes an asynchronous callback function safely within the mutex lock, allowing only the last function in the waiting list to acquire the lock, and releases the lock afterward.
      * @template T - The type of the return value of the asynchronous callback function.
@@ -188,7 +190,24 @@ export class ActionGuard {
     public run<T>(keys: any[], action: () => Promise<T>): Promise<T> {
         return new Promise<T>(async (resolve) => {
             // Retrieve actions associated with the keys
-            let actions = this.runningAction.get(keys);
+            let actions: ((res: any) => void)[] | undefined = undefined;
+            let runningKeys = Array.from(this.runningAction.keys());
+            for(let runningKey of runningKeys) {
+                if(runningKey.length == keys.length) {
+                    let found = true;
+                    for(let i = 0; i < keys.length; i++) {
+                        if(runningKey[i] != keys[i]) {
+                            found = false;
+                            break;
+                        }
+                    }
+                    if(found) {
+                        actions = this.runningAction.get(runningKey);
+                        break;
+                    }
+                }
+            }
+
             if(actions) {
                 // If actions already exist, add the promise resolution to the actions list
                 actions.push((res: T) => {

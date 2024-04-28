@@ -1,0 +1,14 @@
+
+export type Asyncable<T> = T | Promise<T>;
+
+export function Async<T>(el: Asyncable<T>): Promise<T> {
+	return new Promise((resolve) => {
+		if(el instanceof Promise) {
+			el.then(resolve)
+		}
+		else {
+			resolve(el);
+		}
+	})
+    
+}

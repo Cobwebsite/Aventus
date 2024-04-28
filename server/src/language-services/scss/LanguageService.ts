@@ -152,8 +152,9 @@ export class AventusSCSSLanguageService {
                     'properties-order': 'alphabetical'
                 })]).process(result[0].newText, {
                     parser: postcssScss,
+                    syntax: postcssScss,
                     from: './temp.scss',
-                    to: './temp.scss'
+                    to: './temp.scss',
                 })
                 result[0].newText = orderResult.css;
             }

@@ -38,13 +38,18 @@ const compareObject=function compareObject(obj1, obj2) {
         }
         return true;
     }
-    else if (obj1 instanceof Date) {
-        return obj1.toString() === obj2.toString();
-    }
     else if (typeof obj1 === 'object' && obj1 !== undefined && obj1 !== null) {
         if (typeof obj2 !== 'object' || obj2 === undefined || obj2 === null) {
             return false;
         }
+        if (obj1 instanceof HTMLElement || obj2 instanceof HTMLElement) {
+            return obj1 == obj2;
+        }
+        if (obj1 instanceof Date || obj2 instanceof Date) {
+            return obj1.toString() === obj2.toString();
+        }
+        obj1 = Watcher.extract(obj1);
+        obj2 = Watcher.extract(obj2);
         if (Object.keys(obj1).length !== Object.keys(obj2).length) {
             return false;
         }
@@ -335,6 +340,7 @@ const ElementExtension=class ElementExtension {
     }
 }
 ElementExtension.Namespace=`${moduleName}`;
+
 _.ElementExtension=ElementExtension;
 const Instance=class Instance {
     static elements = new Map();
@@ -361,6 +367,7 @@ const Instance=class Instance {
     }
 }
 Instance.Namespace=`${moduleName}`;
+
 _.Instance=Instance;
 const Style=class Style {
     static instance;
@@ -373,6 +380,12 @@ const Style=class Style {
     }
     static get(name) {
         return this.getInstance().get(name);
+    }
+    static getAsString(name) {
+        return this.getInstance().getAsString(name);
+    }
+    static sheetToString(stylesheet) {
+        return this.getInstance().sheetToString(stylesheet);
     }
     static load(name, url) {
         return this.getInstance().load(name, url);
@@ -422,31 +435,41 @@ const Style=class Style {
         }
         return style;
     }
+    getAsString(name) {
+        return this.sheetToString(this.get(name));
+    }
+    sheetToString(stylesheet) {
+        return stylesheet.cssRules
+            ? Array.from(stylesheet.cssRules)
+                .map(rule => rule.cssText || '')
+                .join('\n')
+            : '';
+    }
 }
 Style.Namespace=`${moduleName}`;
+
 _.Style=Style;
 const Callback=class Callback {
-    callbacks = [];
+    callbacks = new Map();
     /**
      * Clear all callbacks
      */
     clear() {
-        this.callbacks = [];
+        this.callbacks.clear();
     }
     /**
      * Add a callback
      */
-    add(cb) {
-        this.callbacks.push(cb);
+    add(cb, scope = null) {
+        if (!this.callbacks.has(cb)) {
+            this.callbacks.set(cb, scope);
+        }
     }
     /**
      * Remove a callback
      */
     remove(cb) {
-        let index = this.callbacks.indexOf(cb);
-        if (index != -1) {
-            this.callbacks.splice(index, 1);
-        }
+        this.callbacks.delete(cb);
     }
     /**
      * Trigger all callbacks
@@ -454,13 +477,14 @@ const Callback=class Callback {
     trigger(args) {
         let result = [];
         let cbs = [...this.callbacks];
-        for (let cb of cbs) {
-            result.push(cb.apply(null, args));
+        for (let [cb, scope] of cbs) {
+            result.push(cb.apply(scope, args));
         }
         return result;
     }
 }
 Callback.Namespace=`${moduleName}`;
+
 _.Callback=Callback;
 const Mutex=class Mutex {
     /**
@@ -599,8 +623,115 @@ const Mutex=class Mutex {
     }
 }
 Mutex.Namespace=`${moduleName}`;
+
 _.Mutex=Mutex;
+const GenericError=class GenericError {
+    /**
+     * Code for the error
+     */
+    code;
+    /**
+     * Description of the error
+     */
+    message;
+    /**
+     * Additional details related to the error.
+     * @type {any[]}
+     */
+    details = [];
+    /**
+     * Creates a new instance of GenericError.
+     * @param {EnumValue<T>} code - The error code.
+     * @param {string} message - The error message.
+     */
+    constructor(code, message) {
+        this.code = code;
+        this.message = message;
+    }
+}
+GenericError.Namespace=`${moduleName}`;
+
+_.GenericError=GenericError;
+const VoidWithError=class VoidWithError {
+    /**
+     * Determine if the action is a success
+     */
+    get success() {
+        return this.errors.length == 0;
+    }
+    /**
+     * List of errors
+     */
+    errors = [];
+    /**
+     * Converts the current instance to a VoidWithError object.
+     * @returns {VoidWithError} A new instance of VoidWithError with the same error list.
+     */
+    toGeneric() {
+        const result = new VoidWithError();
+        result.errors = this.errors;
+        return result;
+    }
+    /**
+    * Checks if the error list contains a specific error code.
+    * @template U - The type of error, extending GenericError.
+    * @template T - The type of the error code, which extends either number or Enum.
+    * @param {EnumValue<T>} code - The error code to check for.
+    * @param {new (...args: any[]) => U} [type] - Optional constructor function of the error type.
+    * @returns {boolean} True if the error list contains the specified error code, otherwise false.
+    */
+    containsCode(code, type) {
+        if (type) {
+            for (let error of this.errors) {
+                if (error instanceof type) {
+                    if (error.code == code) {
+                        return true;
+                    }
+                }
+            }
+        }
+        else {
+            for (let error of this.errors) {
+                if (error.code == code) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+}
+VoidWithError.Namespace=`${moduleName}`;
+
+_.VoidWithError=VoidWithError;
+const ResultWithError=class ResultWithError extends VoidWithError {
+    /**
+      * The result value of the action.
+      * @type {U | undefined}
+      */
+    result;
+    /**
+     * Converts the current instance to a ResultWithError object.
+     * @returns {ResultWithError<U>} A new instance of ResultWithError with the same error list and result value.
+     */
+    toGeneric() {
+        const result = new ResultWithError();
+        result.errors = this.errors;
+        result.result = this.result;
+        return result;
+    }
+}
+ResultWithError.Namespace=`${moduleName}`;
+
+_.ResultWithError=ResultWithError;
 const PressManager=class PressManager {
+    static globalConfig = {
+        delayDblPress: 150,
+        delayLongPress: 700,
+        offsetDrag: 20
+    };
+    static setGlobalConfig(options) {
+        this.globalConfig = options;
+    }
     static create(options) {
         if (Array.isArray(options.element)) {
             let result = [];
@@ -617,10 +748,10 @@ const PressManager=class PressManager {
     }
     options;
     element;
-    delayDblPress = 150;
-    delayLongPress = 700;
+    delayDblPress = PressManager.globalConfig.delayDblPress ?? 150;
+    delayLongPress = PressManager.globalConfig.delayLongPress ?? 700;
     nbPress = 0;
-    offsetDrag = 20;
+    offsetDrag = PressManager.globalConfig.offsetDrag ?? 20;
     state = {
         oneActionTriggered: false,
         isMoving: false,
@@ -696,11 +827,20 @@ const PressManager=class PressManager {
         }
     }
     assignValueOption(options) {
+        if (PressManager.globalConfig.delayDblPress !== undefined) {
+            this.delayDblPress = PressManager.globalConfig.delayDblPress;
+        }
         if (options.delayDblPress !== undefined) {
             this.delayDblPress = options.delayDblPress;
         }
+        if (PressManager.globalConfig.delayLongPress !== undefined) {
+            this.delayLongPress = PressManager.globalConfig.delayLongPress;
+        }
         if (options.delayLongPress !== undefined) {
             this.delayLongPress = options.delayLongPress;
+        }
+        if (PressManager.globalConfig.offsetDrag !== undefined) {
+            this.offsetDrag = PressManager.globalConfig.offsetDrag;
         }
         if (options.offsetDrag !== undefined) {
             this.offsetDrag = options.offsetDrag;
@@ -708,8 +848,17 @@ const PressManager=class PressManager {
         if (options.onDblPress !== undefined) {
             this.useDblPress = true;
         }
-        if (options.forceDblPress) {
-            this.useDblPress = true;
+        if (PressManager.globalConfig.forceDblPress !== undefined) {
+            this.useDblPress = PressManager.globalConfig.forceDblPress;
+        }
+        if (options.forceDblPress !== undefined) {
+            this.useDblPress = options.forceDblPress;
+        }
+        if (typeof PressManager.globalConfig.stopPropagation == 'function') {
+            this.stopPropagation = PressManager.globalConfig.stopPropagation;
+        }
+        else if (options.stopPropagation === false) {
+            this.stopPropagation = () => false;
         }
         if (typeof options.stopPropagation == 'function') {
             this.stopPropagation = options.stopPropagation;
@@ -718,7 +867,11 @@ const PressManager=class PressManager {
             this.stopPropagation = () => false;
         }
         if (!options.buttonAllowed)
+            options.buttonAllowed = PressManager.globalConfig.buttonAllowed;
+        if (!options.buttonAllowed)
             options.buttonAllowed = [0];
+        if (!options.onEvent)
+            options.onEvent = PressManager.globalConfig.onEvent;
     }
     bindAllFunction() {
         this.functionsBinded.downAction = this.downAction.bind(this);
@@ -742,6 +895,9 @@ const PressManager=class PressManager {
         this.element.addEventListener("trigger_pointer_dragstart", this.functionsBinded.childDragStart);
     }
     downAction(e) {
+        if (this.options.onEvent) {
+            this.options.onEvent(e);
+        }
         if (!this.options.buttonAllowed?.includes(e.button)) {
             return;
         }
@@ -778,6 +934,9 @@ const PressManager=class PressManager {
         }
     }
     upAction(e) {
+        if (this.options.onEvent) {
+            this.options.onEvent(e);
+        }
         if (this.stopPropagation()) {
             e.stopImmediatePropagation();
         }
@@ -847,6 +1006,9 @@ const PressManager=class PressManager {
         }
     }
     moveAction(e) {
+        if (this.options.onEvent) {
+            this.options.onEvent(e);
+        }
         if (!this.state.isMoving && !this.state.oneActionTriggered) {
             if (this.stopPropagation()) {
                 e.stopImmediatePropagation();
@@ -985,10 +1147,13 @@ const PressManager=class PressManager {
             this.element.removeEventListener("trigger_pointer_dblpress", this.functionsBinded.childDblPress);
             this.element.removeEventListener("trigger_pointer_longpress", this.functionsBinded.childLongPress);
             this.element.removeEventListener("trigger_pointer_dragstart", this.functionsBinded.childDragStart);
+            document.removeEventListener("pointerup", this.functionsBinded.upAction);
+            document.removeEventListener("pointermove", this.functionsBinded.moveAction);
         }
     }
 }
 PressManager.Namespace=`${moduleName}`;
+
 _.PressManager=PressManager;
 const Effect=class Effect {
     callbacks = [];
@@ -1103,8 +1268,12 @@ const Effect=class Effect {
     }
 }
 Effect.Namespace=`${moduleName}`;
+
 _.Effect=Effect;
 const Watcher=class Watcher {
+    static __reservedName = {
+        __path: '__path',
+    };
     static _registering = [];
     static get _register() {
         return this._registering[this._registering.length - 1];
@@ -1122,9 +1291,7 @@ const Watcher=class Watcher {
                 obj.subscribe(onDataChanged);
             return obj;
         }
-        const reservedName = {
-            __path: '__path',
-        };
+        const reservedName = this.__reservedName;
         const clearReservedNames = (data) => {
             if (data instanceof Object && !data.__isProxy) {
                 for (let key in reservedName) {
@@ -1132,17 +1299,17 @@ const Watcher=class Watcher {
                 }
             }
         };
-        let setProxyPath = (newProxy, newPath) => {
+        const setProxyPath = (newProxy, newPath) => {
             if (newProxy instanceof Object && newProxy.__isProxy) {
                 newProxy.__path = newPath;
             }
         };
-        let jsonReplacer = (key, value) => {
+        const jsonReplacer = (key, value) => {
             if (reservedName[key])
                 return undefined;
             return value;
         };
-        let addAlias = (otherBaseData, name, cb) => {
+        const addAlias = (otherBaseData, name, cb) => {
             let cbs = aliases.get(otherBaseData);
             if (!cbs) {
                 cbs = [];
@@ -1153,7 +1320,7 @@ const Watcher=class Watcher {
                 fct: cb
             });
         };
-        let deleteAlias = (otherBaseData, name) => {
+        const deleteAlias = (otherBaseData, name) => {
             let cbs = aliases.get(otherBaseData);
             if (!cbs)
                 return;
@@ -1167,7 +1334,7 @@ const Watcher=class Watcher {
                 }
             }
         };
-        let replaceByAlias = (target, element, prop, receiver) => {
+        const replaceByAlias = (target, element, prop, receiver) => {
             let fullInternalPath = "";
             if (Array.isArray(target)) {
                 if (prop != "length") {
@@ -1189,6 +1356,7 @@ const Watcher=class Watcher {
             if (element instanceof Object && element.__isProxy) {
                 let root = element.__root;
                 if (root != proxyData.baseData) {
+                    element.__validatePath();
                     let oldPath = element.__path;
                     let unbindElement = getValueFromObject(oldPath, root);
                     if (receiver == null) {
@@ -1321,6 +1489,13 @@ const Watcher=class Watcher {
                 else if (prop == "__root") {
                     return this.baseData;
                 }
+                else if (prop == "__validatePath") {
+                    return () => {
+                        if (this.baseData == target) {
+                            target.__path = "";
+                        }
+                    };
+                }
                 else if (prop == "__callbacks") {
                     return this.callbacks;
                 }
@@ -1402,6 +1577,11 @@ const Watcher=class Watcher {
                 }
                 else if (prop == "__trigger") {
                     return trigger;
+                }
+                else if (prop == "__static_trigger") {
+                    return (type) => {
+                        trigger(type, target, receiver, target, '');
+                    };
                 }
                 return undefined;
             },
@@ -1524,6 +1704,7 @@ const Watcher=class Watcher {
                 return Reflect.get(target, prop, receiver);
             },
             set(target, prop, value, receiver) {
+                let oldValue = Reflect.get(target, prop, receiver);
                 value = replaceByAlias(target, value, prop, receiver);
                 let triggerChange = false;
                 if (!reservedName[prop]) {
@@ -1533,7 +1714,6 @@ const Watcher=class Watcher {
                         }
                     }
                     else {
-                        let oldValue = Reflect.get(target, prop, receiver);
                         if (!compareObject(value, oldValue)) {
                             triggerChange = true;
                         }
@@ -1626,9 +1806,12 @@ const Watcher=class Watcher {
             ownKeys(target) {
                 let result = Reflect.ownKeys(target);
                 for (let i = 0; i < result.length; i++) {
-                    if (reservedName[result[i]]) {
-                        result.splice(i, 1);
-                        i--;
+                    let key = result[i];
+                    if (typeof key == 'string') {
+                        if (reservedName[key]) {
+                            result.splice(i, 1);
+                            i--;
+                        }
                     }
                 }
                 return result;
@@ -1650,7 +1833,7 @@ const Watcher=class Watcher {
             }
             if (rootPath != "") {
                 if (Array.isArray(target)) {
-                    if (!prop.startsWith("[")) {
+                    if (prop && !prop.startsWith("[")) {
                         if (/^[0-9]*$/g.exec(prop)) {
                             rootPath += "[" + prop + "]";
                         }
@@ -1663,7 +1846,7 @@ const Watcher=class Watcher {
                     }
                 }
                 else {
-                    if (!prop.startsWith("[")) {
+                    if (prop && !prop.startsWith("[")) {
                         rootPath += ".";
                     }
                     rootPath += prop;
@@ -1717,7 +1900,7 @@ const Watcher=class Watcher {
                     }
                     catch (e) {
                         if (e != 'impossible')
-                            console.log(e);
+                            console.error(e);
                     }
                 }
                 for (let [key, infos] of aliases) {
@@ -1725,7 +1908,14 @@ const Watcher=class Watcher {
                         for (let info of infos) {
                             if (info.name == name) {
                                 aliasesDone.push(key);
-                                info.fct(type, target, receiver, value, prop, dones);
+                                if (target.__path) {
+                                    let oldPath = target.__path;
+                                    info.fct(type, target, receiver, value, prop, dones);
+                                    target.__path = oldPath;
+                                }
+                                else {
+                                    info.fct(type, target, receiver, value, prop, dones);
+                                }
                             }
                         }
                     }
@@ -1738,8 +1928,14 @@ const Watcher=class Watcher {
                         if (!regex.test(rootPath)) {
                             continue;
                         }
-                        let name = rootPath.replace(regex, "$2");
-                        info.fct(type, target, receiver, value, name, dones);
+                        if (target.__path) {
+                            let oldPath = target.__path;
+                            info.fct(type, target, receiver, value, prop, dones);
+                            target.__path = oldPath;
+                        }
+                        else {
+                            info.fct(type, target, receiver, value, prop, dones);
+                        }
                     }
                 }
             }
@@ -1748,6 +1944,27 @@ const Watcher=class Watcher {
         proxyData.baseData = obj;
         setProxyPath(realProxy, '');
         return realProxy;
+    }
+    static is(obj) {
+        return typeof obj == 'object' && obj.__isProxy;
+    }
+    static extract(obj) {
+        if (this.is(obj)) {
+            return obj.getTarget();
+        }
+        else {
+            if (obj instanceof Object) {
+                for (let key in this.__reservedName) {
+                    delete obj[key];
+                }
+            }
+        }
+        return obj;
+    }
+    static trigger(type, target) {
+        if (this.is(target)) {
+            target.__static_trigger(type);
+        }
     }
     /**
      * Create a computed variable that will watch any changes
@@ -1765,6 +1982,7 @@ const Watcher=class Watcher {
     }
 }
 Watcher.Namespace=`${moduleName}`;
+
 _.Watcher=Watcher;
 const Uri=class Uri {
     static prepare(uri) {
@@ -1801,7 +2019,7 @@ const Uri=class Uri {
         if (typeof from == "string") {
             from = this.prepare(from);
         }
-        let matches = from.regex.exec(current);
+        let matches = from.regex.exec(current.toLowerCase());
         if (matches) {
             let slugs = {};
             for (let param of from.params) {
@@ -1842,6 +2060,7 @@ const Uri=class Uri {
     }
 }
 Uri.Namespace=`${moduleName}`;
+
 _.Uri=Uri;
 const State=class State {
     /**
@@ -1866,6 +2085,7 @@ const State=class State {
     }
 }
 State.Namespace=`${moduleName}`;
+
 _.State=State;
 const EmptyState=class EmptyState extends State {
     localName;
@@ -1881,6 +2101,7 @@ const EmptyState=class EmptyState extends State {
     }
 }
 EmptyState.Namespace=`${moduleName}`;
+
 _.EmptyState=EmptyState;
 const StateManager=class StateManager {
     subscribers = {};
@@ -1895,7 +2116,7 @@ const StateManager=class StateManager {
     /**
      * Subscribe actions for a state or a state list
      */
-    subscribe(statePatterns, callbacks) {
+    subscribe(statePatterns, callbacks, autoActiveState = true) {
         if (!callbacks.active && !callbacks.inactive && !callbacks.askChange) {
             this._log(`Trying to subscribe to state : ${statePatterns} with no callbacks !`, "warning");
             return;
@@ -1924,7 +2145,7 @@ const StateManager=class StateManager {
                 }
                 for (let activeFct of callbacks.active) {
                     this.subscribers[statePattern].callbacks.active.push(activeFct);
-                    if (this.subscribers[statePattern].isActive && this.activeState) {
+                    if (this.subscribers[statePattern].isActive && this.activeState && autoActiveState) {
                         let slugs = Uri.getParams(this.subscribers[statePattern], this.activeState.name);
                         if (slugs) {
                             activeFct(this.activeState, slugs);
@@ -1946,6 +2167,29 @@ const StateManager=class StateManager {
                 }
                 for (let askChangeFct of callbacks.askChange) {
                     this.subscribers[statePattern].callbacks.askChange.push(askChangeFct);
+                }
+            }
+        }
+    }
+    /**
+     *
+     */
+    activateAfterSubscribe(statePatterns, callbacks) {
+        if (!Array.isArray(statePatterns)) {
+            statePatterns = [statePatterns];
+        }
+        for (let statePattern of statePatterns) {
+            if (callbacks.active) {
+                if (!Array.isArray(callbacks.active)) {
+                    callbacks.active = [callbacks.active];
+                }
+                for (let activeFct of callbacks.active) {
+                    if (this.subscribers[statePattern].isActive && this.activeState) {
+                        let slugs = Uri.getParams(this.subscribers[statePattern], this.activeState.name);
+                        if (slugs) {
+                            activeFct(this.activeState, slugs);
+                        }
+                    }
                 }
             }
         }
@@ -2163,6 +2407,7 @@ const StateManager=class StateManager {
     }
 }
 StateManager.Namespace=`${moduleName}`;
+
 _.StateManager=StateManager;
 const Computed=class Computed extends Effect {
     _value;
@@ -2202,6 +2447,7 @@ const Computed=class Computed extends Effect {
     }
 }
 Computed.Namespace=`${moduleName}`;
+
 _.Computed=Computed;
 const ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
     init() {
@@ -2219,6 +2465,7 @@ const ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
     run() { }
 }
 ComputedNoRecomputed.Namespace=`${moduleName}`;
+
 _.ComputedNoRecomputed=ComputedNoRecomputed;
 const TemplateContext=class TemplateContext {
     data = {};
@@ -2307,7 +2554,6 @@ const TemplateContext=class TemplateContext {
             let index = keys[_getIndex.value];
             let element = items[index];
             if (element === undefined && (Array.isArray(items) || !items)) {
-                debugger;
                 if (this.registry) {
                     let indexNb = Number(_getIndex.value);
                     if (!isNaN(indexNb)) {
@@ -2422,6 +2668,7 @@ const TemplateContext=class TemplateContext {
     }
 }
 TemplateContext.Namespace=`${moduleName}`;
+
 _.TemplateContext=TemplateContext;
 const TemplateInstance=class TemplateInstance {
     context;
@@ -2465,11 +2712,15 @@ const TemplateInstance=class TemplateInstance {
     destructor() {
         this.isDestroyed = true;
         for (let name in this.loopRegisteries) {
-            for (let item of this.loopRegisteries[name].templates) {
+            let register = this.loopRegisteries[name];
+            for (let item of register.templates) {
                 item.destructor();
             }
-            for (let item of this.loopRegisteries[name].computeds) {
+            for (let item of register.computeds) {
                 item.destroy();
+            }
+            if (register.unsub) {
+                register.unsub();
             }
         }
         this.loopRegisteries = {};
@@ -2579,7 +2830,7 @@ const TemplateInstance=class TemplateInstance {
                 let cb = getValueFromObject(event.eventName, el);
                 cb?.add((...args) => {
                     try {
-                        event.fct(this.context, args);
+                        return event.fct(this.context, args);
                     }
                     catch (e) {
                         console.error(e);
@@ -2674,8 +2925,7 @@ const TemplateInstance=class TemplateInstance {
                     }
                 }
                 else {
-                    console.log(e);
-                    debugger;
+                    console.error(e);
                 }
             }
             return "";
@@ -2710,8 +2960,7 @@ const TemplateInstance=class TemplateInstance {
                     }
                 }
                 else {
-                    console.log(e);
-                    debugger;
+                    console.error(e);
                 }
             }
         });
@@ -2741,8 +2990,7 @@ const TemplateInstance=class TemplateInstance {
                     }
                 }
                 else {
-                    console.log(e);
-                    debugger;
+                    console.error(e);
                 }
             }
         });
@@ -2857,6 +3105,8 @@ const TemplateInstance=class TemplateInstance {
         for (let i = 0; i < result.length; i++) {
             let context = new TemplateContext(this.component, result[i], this.context, this.loopRegisteries[loop.anchorId]);
             let content = loop.template.template?.content.cloneNode(true);
+            document.adoptNode(content);
+            customElements.upgrade(content);
             let actions = loop.template.actions;
             let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
             instance.render();
@@ -2865,9 +3115,9 @@ const TemplateInstance=class TemplateInstance {
         }
     }
     resetLoopSimple(anchorId, basePath) {
-        let elements = this.context.getValueFromItem(basePath);
-        if (elements && this.loopRegisteries[anchorId]) {
-            elements.unsubscribe(this.loopRegisteries[anchorId].sub);
+        let register = this.loopRegisteries[anchorId];
+        if (register?.unsub) {
+            register.unsub();
         }
         this.resetLoopComplex(anchorId);
     }
@@ -2941,6 +3191,8 @@ const TemplateInstance=class TemplateInstance {
                         let context = new TemplateContext(this.component, {}, this.context, registry);
                         context.registerLoop(basePath, index, indexName, simple.index, simple.item, onThis);
                         let content = loop.template.template?.content.cloneNode(true);
+                        document.adoptNode(content);
+                        customElements.upgrade(content);
                         let actions = loop.template.actions;
                         let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
                         instance.render();
@@ -2966,7 +3218,9 @@ const TemplateInstance=class TemplateInstance {
                     }
                 }
             };
-            this.loopRegisteries[loop.anchorId].sub = sub;
+            this.loopRegisteries[loop.anchorId].unsub = () => {
+                elements.unsubscribe(sub);
+            };
             elements.subscribe(sub);
         }
         let anchor = this._components[loop.anchorId][0];
@@ -2974,6 +3228,8 @@ const TemplateInstance=class TemplateInstance {
             let context = new TemplateContext(this.component, {}, this.context, this.loopRegisteries[loop.anchorId]);
             context.registerLoop(basePath, i, indexName, simple.index, simple.item, onThis);
             let content = loop.template.template?.content.cloneNode(true);
+            document.adoptNode(content);
+            customElements.upgrade(content);
             let actions = loop.template.actions;
             let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
             instance.render();
@@ -2982,8 +3238,14 @@ const TemplateInstance=class TemplateInstance {
         }
     }
     renderIf(_if) {
+        // this.renderIfMemory(_if);
+        this.renderIfRecreate(_if);
+    }
+    renderIfMemory(_if) {
         let computeds = [];
         let instances = [];
+        if (!this._components[_if.anchorId] || this._components[_if.anchorId].length == 0)
+            return;
         let anchor = this._components[_if.anchorId][0];
         let currentActive = -1;
         const calculateActive = () => {
@@ -3025,6 +3287,8 @@ const TemplateInstance=class TemplateInstance {
             this.computeds.push(computed);
             let context = new TemplateContext(this.component, {}, this.context);
             let content = part.template.template?.content.cloneNode(true);
+            document.adoptNode(content);
+            customElements.upgrade(content);
             let actions = part.template.actions;
             let instance = new TemplateInstance(this.component, content, actions, part.template.loops, part.template.ifs, context);
             instances.push(instance);
@@ -3032,8 +3296,63 @@ const TemplateInstance=class TemplateInstance {
         }
         calculateActive();
     }
+    renderIfRecreate(_if) {
+        let computeds = [];
+        if (!this._components[_if.anchorId] || this._components[_if.anchorId].length == 0)
+            return;
+        let anchor = this._components[_if.anchorId][0];
+        let currentActive = undefined;
+        let currentActiveNb = -1;
+        const createContext = () => {
+            if (currentActiveNb < 0 || currentActiveNb > _if.parts.length - 1) {
+                currentActive = undefined;
+                return;
+            }
+            const part = _if.parts[currentActiveNb];
+            let context = new TemplateContext(this.component, {}, this.context);
+            let content = part.template.template?.content.cloneNode(true);
+            document.adoptNode(content);
+            customElements.upgrade(content);
+            let actions = part.template.actions;
+            let instance = new TemplateInstance(this.component, content, actions, part.template.loops, part.template.ifs, context);
+            currentActive = instance;
+            instance.render();
+            anchor.parentNode?.insertBefore(currentActive.content, anchor);
+        };
+        for (let i = 0; i < _if.parts.length; i++) {
+            const part = _if.parts[i];
+            let _class = part.once ? ComputedNoRecomputed : Computed;
+            let computed = new _class(() => {
+                return part.condition(this.context);
+            });
+            computeds.push(computed);
+            computed.subscribe(() => {
+                calculateActive();
+            });
+            this.computeds.push(computed);
+        }
+        const calculateActive = () => {
+            let newActive = -1;
+            for (let i = 0; i < _if.parts.length; i++) {
+                if (computeds[i].value) {
+                    newActive = i;
+                    break;
+                }
+            }
+            if (newActive == currentActiveNb) {
+                return;
+            }
+            if (currentActive) {
+                currentActive.destructor();
+            }
+            currentActiveNb = newActive;
+            createContext();
+        };
+        calculateActive();
+    }
 }
 TemplateInstance.Namespace=`${moduleName}`;
+
 _.TemplateInstance=TemplateInstance;
 const Template=class Template {
     static validatePath(path, pathToCheck) {
@@ -3165,10 +3484,13 @@ const Template=class Template {
     }
     createInstance(component) {
         let content = this.template.content.cloneNode(true);
+        document.adoptNode(content);
+        customElements.upgrade(content);
         return new TemplateInstance(component, content, this.actions, this.loops, this.ifs);
     }
 }
 Template.Namespace=`${moduleName}`;
+
 _.Template=Template;
 const WebComponent=class WebComponent extends HTMLElement {
     /**
@@ -3263,6 +3585,31 @@ const WebComponent=class WebComponent extends HTMLElement {
             this.__watchFunctionsComputed[name].destroy();
         }
         // TODO add missing info for destructor();
+        this.postDestruction();
+        this.destructChildren();
+    }
+    destructChildren() {
+        const recu = (el) => {
+            for (let child of Array.from(el.children)) {
+                if (child instanceof WebComponent) {
+                    child.destructor();
+                }
+                else if (child instanceof HTMLElement) {
+                    recu(child);
+                }
+            }
+            if (el.shadowRoot) {
+                for (let child of Array.from(el.shadowRoot.children)) {
+                    if (child instanceof WebComponent) {
+                        child.destructor();
+                    }
+                    else if (child instanceof HTMLElement) {
+                        recu(child);
+                    }
+                }
+            }
+        };
+        recu(this);
     }
     __addWatchesActions(name, fct) {
         if (!this.__watchActions[name]) {
@@ -3305,8 +3652,13 @@ const WebComponent=class WebComponent extends HTMLElement {
                 let defaultValue = {};
                 this.__defaultValuesWatch(defaultValue);
                 this.__watch = Watcher.get(defaultValue, (type, path, element) => {
-                    let action = this.__watchActionsCb[path.split(".")[0]] || this.__watchActionsCb[path.split("[")[0]];
-                    action(type, path, element);
+                    try {
+                        let action = this.__watchActionsCb[path.split(".")[0]] || this.__watchActionsCb[path.split("[")[0]];
+                        action(type, path, element);
+                    }
+                    catch (e) {
+                        console.error(e);
+                    }
                 });
             }
         }
@@ -3375,7 +3727,7 @@ const WebComponent=class WebComponent extends HTMLElement {
         let shadowRoot = this.attachShadow({ mode: 'open' });
         shadowRoot.adoptedStyleSheets = [...Object.values(staticInstance.__styleSheets), Style.noAnimation];
         shadowRoot.appendChild(this.__templateInstance.content);
-        customElements.upgrade(shadowRoot);
+        // customElements.upgrade(shadowRoot);
         return shadowRoot;
     }
     __registerTemplateAction() {
@@ -3386,19 +3738,30 @@ const WebComponent=class WebComponent extends HTMLElement {
             this._first = false;
             this.__defaultValues();
             this.__upgradeAttributes();
+            this.__activateState();
             this.__templateInstance?.render();
             this.__removeNoAnimations();
         }
+        else {
+            setTimeout(() => {
+                this.postConnect();
+            });
+        }
+    }
+    disconnectedCallback() {
+        setTimeout(() => {
+            this.postDisonnect();
+        });
     }
     __removeNoAnimations() {
         if (document.readyState !== "loading") {
-            this.offsetWidth;
             setTimeout(() => {
                 this.postCreation();
                 this._isReady = true;
                 this.dispatchEvent(new CustomEvent('postCreationDone'));
                 this.shadowRoot.adoptedStyleSheets = Object.values(this.__getStatic().__styleSheets);
                 document.removeEventListener("DOMContentLoaded", this.__removeNoAnimations);
+                this.postConnect();
             }, 50);
         }
     }
@@ -3418,6 +3781,7 @@ const WebComponent=class WebComponent extends HTMLElement {
             }
             else {
                 this.removeAttribute(prop);
+                delete this[prop];
                 this[prop] = false;
             }
         }
@@ -3427,6 +3791,18 @@ const WebComponent=class WebComponent extends HTMLElement {
                 delete this[prop];
                 this[prop] = value;
             }
+            else if (Object.hasOwn(this, prop)) {
+                const value = this[prop];
+                delete this[prop];
+                this[prop] = value;
+            }
+        }
+    }
+    __correctGetter(prop) {
+        if (Object.hasOwn(this, prop)) {
+            const value = this[prop];
+            delete this[prop];
+            this[prop] = value;
         }
     }
     __getStateManager(managerClass) {
@@ -3519,7 +3895,17 @@ const WebComponent=class WebComponent extends HTMLElement {
             for (const managerClass of this.__statesList[route].keys()) {
                 let el = this.__statesList[route].get(managerClass);
                 if (el) {
-                    managerClass.subscribe(route, el);
+                    managerClass.subscribe(route, el, false);
+                }
+            }
+        }
+    }
+    __activateState() {
+        for (let route in this.__statesList) {
+            for (const managerClass of this.__statesList[route].keys()) {
+                let el = this.__statesList[route].get(managerClass);
+                if (el) {
+                    managerClass.activateAfterSubscribe(route, el);
                 }
             }
         }
@@ -3537,12 +3923,18 @@ const WebComponent=class WebComponent extends HTMLElement {
         this.__stateCleared = true;
     }
     dateToString(d) {
+        if (typeof d == 'string') {
+            d = this.stringToDate(d);
+        }
         if (d instanceof Date) {
             return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split("T")[0];
         }
         return null;
     }
     dateTimeToString(dt) {
+        if (typeof dt == 'string') {
+            dt = this.stringToDate(dt);
+        }
         if (dt instanceof Date) {
             return new Date(dt.getTime() - (dt.getTimezoneOffset() * 60000)).toISOString().slice(0, -1);
         }
@@ -3703,18 +4095,32 @@ const WebComponent=class WebComponent extends HTMLElement {
             }
         }
     }
-    remove() {
+    /**
+     * Remove a component from the dom
+     * If desctruct is set to true, the component will be fully destroyed
+     */
+    remove(destruct = true) {
         super.remove();
-        this.postDestruction();
+        if (destruct) {
+            this.destructor();
+        }
     }
     /**
-     * Function triggered when the component is removed from the DOM
+     * Function triggered when the component is destroyed
      */
     postDestruction() { }
     /**
      * Function triggered the first time the component is rendering inside DOM
      */
     postCreation() { }
+    /**
+    * Function triggered each time the component is rendering inside DOM
+    */
+    postConnect() { }
+    /**
+    * Function triggered each time the component is removed from the DOM
+    */
+    postDisonnect() { }
     /**
      * Find a parent by tagname if exist
      */
@@ -3753,6 +4159,7 @@ const WebComponent=class WebComponent extends HTMLElement {
     }
 }
 WebComponent.Namespace=`${moduleName}`;
+
 _.WebComponent=WebComponent;
 const WebComponentInstance=class WebComponentInstance {
     static __allDefinitions = [];
@@ -3825,6 +4232,7 @@ const WebComponentInstance=class WebComponentInstance {
     }
 }
 WebComponentInstance.Namespace=`${moduleName}`;
+
 _.WebComponentInstance=WebComponentInstance;
 
 for(let key in _) { Aventus[key] = _[key] }
@@ -3853,6 +4261,12 @@ const Style=class Style {
     }
     static get(name) {
         return this.getInstance().get(name);
+    }
+    static getAsString(name) {
+        return this.getInstance().getAsString(name);
+    }
+    static sheetToString(stylesheet) {
+        return this.getInstance().sheetToString(stylesheet);
     }
     static load(name, url) {
         return this.getInstance().load(name, url);
@@ -3902,8 +4316,19 @@ const Style=class Style {
         }
         return style;
     }
+    getAsString(name) {
+        return this.sheetToString(this.get(name));
+    }
+    sheetToString(stylesheet) {
+        return stylesheet.cssRules
+            ? Array.from(stylesheet.cssRules)
+                .map(rule => rule.cssText || '')
+                .join('\n')
+            : '';
+    }
 }
 Style.Namespace=`${moduleName}`;
+
 _.Style=Style;
 const ElementExtension=class ElementExtension {
     /**
@@ -4142,6 +4567,7 @@ const ElementExtension=class ElementExtension {
     }
 }
 ElementExtension.Namespace=`${moduleName}`;
+
 _.ElementExtension=ElementExtension;
 const uuidv4=function uuidv4() {
     let uid = '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c => (Number(c) ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> Number(c) / 4).toString(16));
@@ -4154,6 +4580,11 @@ const sleep=function sleep(ms) {
 }
 
 _.sleep=sleep;
+const isClass=function isClass(v) {
+    return typeof v === 'function' && /^\s*class\s+/.test(v.toString());
+}
+
+_.isClass=isClass;
 const setValueToObject=function setValueToObject(path, obj, value) {
     path = path.replace(/\[(.*?)\]/g, '.$1');
     let splitted = path.split(".");
@@ -4305,6 +4736,7 @@ const Mutex=class Mutex {
     }
 }
 Mutex.Namespace=`${moduleName}`;
+
 _.Mutex=Mutex;
 const ActionGuard=class ActionGuard {
     /**
@@ -4340,7 +4772,23 @@ const ActionGuard=class ActionGuard {
      */
     run(keys, action) {
         return new Promise(async (resolve) => {
-            let actions = this.runningAction.get(keys);
+            let actions = undefined;
+            let runningKeys = Array.from(this.runningAction.keys());
+            for (let runningKey of runningKeys) {
+                if (runningKey.length == keys.length) {
+                    let found = true;
+                    for (let i = 0; i < keys.length; i++) {
+                        if (runningKey[i] != keys[i]) {
+                            found = false;
+                            break;
+                        }
+                    }
+                    if (found) {
+                        actions = this.runningAction.get(runningKey);
+                        break;
+                    }
+                }
+            }
             if (actions) {
                 actions.push((res) => {
                     resolve(res);
@@ -4362,6 +4810,7 @@ const ActionGuard=class ActionGuard {
     }
 }
 ActionGuard.Namespace=`${moduleName}`;
+
 _.ActionGuard=ActionGuard;
 var RamErrorCode;
 (function (RamErrorCode) {
@@ -4395,13 +4844,18 @@ const compareObject=function compareObject(obj1, obj2) {
         }
         return true;
     }
-    else if (obj1 instanceof Date) {
-        return obj1.toString() === obj2.toString();
-    }
     else if (typeof obj1 === 'object' && obj1 !== undefined && obj1 !== null) {
         if (typeof obj2 !== 'object' || obj2 === undefined || obj2 === null) {
             return false;
         }
+        if (obj1 instanceof HTMLElement || obj2 instanceof HTMLElement) {
+            return obj1 == obj2;
+        }
+        if (obj1 instanceof Date || obj2 instanceof Date) {
+            return obj1.toString() === obj2.toString();
+        }
+        obj1 = Watcher.extract(obj1);
+        obj2 = Watcher.extract(obj2);
         if (Object.keys(obj1).length !== Object.keys(obj2).length) {
             return false;
         }
@@ -4617,7 +5071,20 @@ const ResourceLoader=class ResourceLoader {
     }
 }
 ResourceLoader.Namespace=`${moduleName}`;
+
 _.ResourceLoader=ResourceLoader;
+const Async=function Async(el) {
+    return new Promise((resolve) => {
+        if (el instanceof Promise) {
+            el.then(resolve);
+        }
+        else {
+            resolve(el);
+        }
+    });
+}
+
+_.Async=Async;
 const Instance=class Instance {
     static elements = new Map();
     static get(type) {
@@ -4643,29 +5110,29 @@ const Instance=class Instance {
     }
 }
 Instance.Namespace=`${moduleName}`;
+
 _.Instance=Instance;
 const Callback=class Callback {
-    callbacks = [];
+    callbacks = new Map();
     /**
      * Clear all callbacks
      */
     clear() {
-        this.callbacks = [];
+        this.callbacks.clear();
     }
     /**
      * Add a callback
      */
-    add(cb) {
-        this.callbacks.push(cb);
+    add(cb, scope = null) {
+        if (!this.callbacks.has(cb)) {
+            this.callbacks.set(cb, scope);
+        }
     }
     /**
      * Remove a callback
      */
     remove(cb) {
-        let index = this.callbacks.indexOf(cb);
-        if (index != -1) {
-            this.callbacks.splice(index, 1);
-        }
+        this.callbacks.delete(cb);
     }
     /**
      * Trigger all callbacks
@@ -4673,13 +5140,14 @@ const Callback=class Callback {
     trigger(args) {
         let result = [];
         let cbs = [...this.callbacks];
-        for (let cb of cbs) {
-            result.push(cb.apply(null, args));
+        for (let [cb, scope] of cbs) {
+            result.push(cb.apply(scope, args));
         }
         return result;
     }
 }
 Callback.Namespace=`${moduleName}`;
+
 _.Callback=Callback;
 const CallbackGroup=class CallbackGroup {
     callbacks = {};
@@ -4698,21 +5166,20 @@ const CallbackGroup=class CallbackGroup {
     /**
      * Add a callback for a group
      */
-    add(group, cb) {
+    add(group, cb, scope = null) {
         if (!this.callbacks[group]) {
-            this.callbacks[group] = [];
+            this.callbacks[group] = new Map();
         }
-        this.callbacks[group].push(cb);
+        if (!this.callbacks[group].has(cb)) {
+            this.callbacks[group].set(cb, scope);
+        }
     }
     /**
      * Remove a callback for a group
      */
     remove(group, cb) {
         if (this.callbacks[group]) {
-            let index = this.callbacks[group].indexOf(cb);
-            if (index != -1) {
-                this.callbacks[group].splice(index, 1);
-            }
+            this.callbacks[group].delete(cb);
         }
     }
     /**
@@ -4721,13 +5188,14 @@ const CallbackGroup=class CallbackGroup {
     trigger(group, args) {
         if (this.callbacks[group]) {
             let cbs = [...this.callbacks[group]];
-            for (let cb of cbs) {
-                cb.apply(null, args);
+            for (let [cb, scope] of cbs) {
+                cb.apply(scope, args);
             }
         }
     }
 }
 CallbackGroup.Namespace=`${moduleName}`;
+
 _.CallbackGroup=CallbackGroup;
 const createCommProxy=function createCommProxy(that) {
     let proxyData = {
@@ -4921,50 +5389,8 @@ const Json=class Json {
     }
 }
 Json.Namespace=`${moduleName}`;
+
 _.Json=Json;
-const Data=class Data {
-    /**
-     * The schema for the class
-     */
-    static get $schema() { return {}; }
-    /**
-     * The current namespace
-     */
-    static Namespace = "";
-    /**
-     * Get the unique type for the data. Define it as the namespace + class name
-     */
-    static get Fullname() { return this.Namespace + "." + this.name; }
-    /**
-     * The current namespace
-     */
-    get namespace() {
-        return this.constructor['Namespace'];
-    }
-    /**
-     * Get the unique type for the data. Define it as the namespace + class name
-     */
-    get $type() {
-        return this.constructor['Fullname'];
-    }
-    /**
-     * Get the name of the class
-     */
-    get className() {
-        return this.constructor.name;
-    }
-    /**
-     * Get a JSON for the current object
-     */
-    toJSON() {
-        let toAvoid = ['className', 'namespace'];
-        return Json.classToJson(this, {
-            isValidKey: (key) => !toAvoid.includes(key)
-        });
-    }
-}
-Data.Namespace=`${moduleName}`;
-_.Data=Data;
 const ConverterTransform=class ConverterTransform {
     transform(data) {
         return this.transformLoop(data);
@@ -5017,6 +5443,21 @@ const ConverterTransform=class ConverterTransform {
                                 }
                                 return map;
                             }
+                            else if (obj instanceof Data) {
+                                let cst = obj.constructor;
+                                if (cst.$schema[key] == 'boolean') {
+                                    return value ? true : false;
+                                }
+                                else if (cst.$schema[key] == 'number') {
+                                    return isNaN(Number(value)) ? 0 : Number(value);
+                                }
+                                else if (cst.$schema[key] == 'number') {
+                                    return isNaN(Number(value)) ? 0 : Number(value);
+                                }
+                                else if (cst.$schema[key] == 'Date') {
+                                    return value ? new Date(value) : null;
+                                }
+                            }
                             return this.transformLoop(value);
                         }
                     });
@@ -5064,6 +5505,7 @@ const ConverterTransform=class ConverterTransform {
     }
 }
 ConverterTransform.Namespace=`${moduleName}`;
+
 _.ConverterTransform=ConverterTransform;
 const Converter=class Converter {
     /**
@@ -5133,33 +5575,55 @@ const Converter=class Converter {
     }
 }
 Converter.Namespace=`${moduleName}`;
+
 _.Converter=Converter;
-const DataManager=class DataManager {
+const Data=class Data {
     /**
-     * Register a unique string type for a data
+     * The schema for the class
      */
-    static register($type, cst) {
-        Converter.register($type, cst);
+    static $schema;
+    /**
+     * The current namespace
+     */
+    static Namespace = "";
+    /**
+     * Get the unique type for the data. Define it as the namespace + class name
+     */
+    static get Fullname() { return this.Namespace + "." + this.name; }
+    /**
+     * The current namespace
+     */
+    get namespace() {
+        return this.constructor['Namespace'];
     }
     /**
-     * Get the contructor for the unique string type
+     * Get the unique type for the data. Define it as the namespace + class name
      */
-    static getConstructor($type) {
-        let result = Converter.info.get($type);
-        if (result) {
-            return result;
-        }
-        return null;
+    get $type() {
+        return this.constructor['Fullname'];
     }
     /**
-     * Clone the object to keep real type
+     * Get the name of the class
      */
-    static clone(data) {
-        return Converter.transform(JSON.parse(JSON.stringify(data)));
+    get className() {
+        return this.constructor.name;
+    }
+    /**
+     * Get a JSON for the current object
+     */
+    toJSON() {
+        let toAvoid = ['className', 'namespace'];
+        return Json.classToJson(this, {
+            isValidKey: (key) => !toAvoid.includes(key)
+        });
+    }
+    clone() {
+        return Converter.transform(JSON.parse(JSON.stringify(this)));
     }
 }
-DataManager.Namespace=`${moduleName}`;
-_.DataManager=DataManager;
+Data.Namespace=`${moduleName}`;
+
+_.Data=Data;
 const GenericError=class GenericError {
     /**
      * Code for the error
@@ -5185,6 +5649,7 @@ const GenericError=class GenericError {
     }
 }
 GenericError.Namespace=`${moduleName}`;
+
 _.GenericError=GenericError;
 const VoidWithError=class VoidWithError {
     /**
@@ -5235,10 +5700,12 @@ const VoidWithError=class VoidWithError {
     }
 }
 VoidWithError.Namespace=`${moduleName}`;
+
 _.VoidWithError=VoidWithError;
 const HttpError=class HttpError extends GenericError {
 }
 HttpError.Namespace=`${moduleName}`;
+
 _.HttpError=HttpError;
 const HttpRoute=class HttpRoute {
     static JoinPath(s1, s2) {
@@ -5276,6 +5743,7 @@ const HttpRoute=class HttpRoute {
     }
 }
 HttpRoute.Namespace=`${moduleName}`;
+
 _.HttpRoute=HttpRoute;
 const HttpRouter=class HttpRouter {
     _routes;
@@ -5333,6 +5801,7 @@ const HttpRouter=class HttpRouter {
     }
 }
 HttpRouter.Namespace=`${moduleName}`;
+
 _.HttpRouter=HttpRouter;
 const ResultWithError=class ResultWithError extends VoidWithError {
     /**
@@ -5352,6 +5821,7 @@ const ResultWithError=class ResultWithError extends VoidWithError {
     }
 }
 ResultWithError.Namespace=`${moduleName}`;
+
 _.ResultWithError=ResultWithError;
 const HttpRequest=class HttpRequest {
     request;
@@ -5376,24 +5846,36 @@ const HttpRequest=class HttpRequest {
     }
     objectToFormData(obj, formData, parentKey) {
         formData = formData || new FormData();
-        for (const key in obj) {
-            if (obj.hasOwnProperty(key)) {
-                const value = obj[key];
-                const newKey = parentKey ? `${parentKey}[${key}]` : key;
-                if (typeof value === 'object' && value !== null && !(value instanceof File)) {
-                    if (Array.isArray(value)) {
-                        value.forEach((arrayItem, index) => {
-                            const arrayKey = `${newKey}[${index}]`;
-                            this.objectToFormData({ [arrayKey]: arrayItem }, formData);
-                        });
-                    }
-                    else {
-                        this.objectToFormData(value, formData, newKey);
+        let byPass = obj;
+        if (byPass.__isProxy) {
+            obj = byPass.getTarget();
+        }
+        const keys = obj.toJSON ? Object.keys(obj.toJSON()) : Object.keys(obj);
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
+            let value = obj[key];
+            const newKey = parentKey ? `${parentKey}[${key}]` : key;
+            if (value instanceof Date) {
+                formData.append(newKey, value.toISOString());
+            }
+            else if (typeof value === 'object' &&
+                value !== null &&
+                !(value instanceof File)) {
+                if (Array.isArray(value)) {
+                    for (let j = 0; j < value.length; j++) {
+                        const arrayKey = `${newKey}[${j}]`;
+                        this.objectToFormData({ [arrayKey]: value[j] }, formData);
                     }
                 }
                 else {
-                    formData.append(newKey, value);
+                    this.objectToFormData(value, formData, newKey);
                 }
+            }
+            else {
+                if (value === undefined || value === null) {
+                    value = "";
+                }
+                formData.append(newKey, value);
             }
         }
         return formData;
@@ -5407,16 +5889,25 @@ const HttpRequest=class HttpRequest {
         }
         else {
             let useFormData = false;
-            for (let key in data) {
-                if (data[key] instanceof File) {
-                    useFormData = true;
-                    break;
+            const analyseFormData = (obj) => {
+                for (let key in obj) {
+                    if (obj[key] instanceof File) {
+                        useFormData = true;
+                        break;
+                    }
+                    else if (Array.isArray(obj[key]) && obj[key].length > 0 && obj[key][0] instanceof File) {
+                        useFormData = true;
+                        break;
+                    }
+                    else if (typeof obj[key] == 'object' && !Array.isArray(obj[key]) && !(obj[key] instanceof Date)) {
+                        analyseFormData(obj[key]);
+                        if (useFormData) {
+                            break;
+                        }
+                    }
                 }
-                else if (Array.isArray(data[key]) && data[key].length > 0 && data[key][0] instanceof File) {
-                    useFormData = true;
-                    break;
-                }
-            }
+            };
+            analyseFormData(data);
             if (useFormData) {
                 this.request.body = this.objectToFormData(data);
             }
@@ -5516,6 +6007,7 @@ const HttpRequest=class HttpRequest {
     }
 }
 HttpRequest.Namespace=`${moduleName}`;
+
 _.HttpRequest=HttpRequest;
 const StorableRoute=class StorableRoute extends HttpRoute {
     async GetAll() {
@@ -5542,6 +6034,7 @@ const StorableRoute=class StorableRoute extends HttpRoute {
     }
 }
 StorableRoute.Namespace=`${moduleName}`;
+
 _.StorableRoute=StorableRoute;
 const Animation=class Animation {
     /**
@@ -5629,8 +6122,17 @@ const Animation=class Animation {
     }
 }
 Animation.Namespace=`${moduleName}`;
+
 _.Animation=Animation;
 const PressManager=class PressManager {
+    static globalConfig = {
+        delayDblPress: 150,
+        delayLongPress: 700,
+        offsetDrag: 20
+    };
+    static setGlobalConfig(options) {
+        this.globalConfig = options;
+    }
     static create(options) {
         if (Array.isArray(options.element)) {
             let result = [];
@@ -5647,10 +6149,10 @@ const PressManager=class PressManager {
     }
     options;
     element;
-    delayDblPress = 150;
-    delayLongPress = 700;
+    delayDblPress = PressManager.globalConfig.delayDblPress ?? 150;
+    delayLongPress = PressManager.globalConfig.delayLongPress ?? 700;
     nbPress = 0;
-    offsetDrag = 20;
+    offsetDrag = PressManager.globalConfig.offsetDrag ?? 20;
     state = {
         oneActionTriggered: false,
         isMoving: false,
@@ -5726,11 +6228,20 @@ const PressManager=class PressManager {
         }
     }
     assignValueOption(options) {
+        if (PressManager.globalConfig.delayDblPress !== undefined) {
+            this.delayDblPress = PressManager.globalConfig.delayDblPress;
+        }
         if (options.delayDblPress !== undefined) {
             this.delayDblPress = options.delayDblPress;
         }
+        if (PressManager.globalConfig.delayLongPress !== undefined) {
+            this.delayLongPress = PressManager.globalConfig.delayLongPress;
+        }
         if (options.delayLongPress !== undefined) {
             this.delayLongPress = options.delayLongPress;
+        }
+        if (PressManager.globalConfig.offsetDrag !== undefined) {
+            this.offsetDrag = PressManager.globalConfig.offsetDrag;
         }
         if (options.offsetDrag !== undefined) {
             this.offsetDrag = options.offsetDrag;
@@ -5738,8 +6249,17 @@ const PressManager=class PressManager {
         if (options.onDblPress !== undefined) {
             this.useDblPress = true;
         }
-        if (options.forceDblPress) {
-            this.useDblPress = true;
+        if (PressManager.globalConfig.forceDblPress !== undefined) {
+            this.useDblPress = PressManager.globalConfig.forceDblPress;
+        }
+        if (options.forceDblPress !== undefined) {
+            this.useDblPress = options.forceDblPress;
+        }
+        if (typeof PressManager.globalConfig.stopPropagation == 'function') {
+            this.stopPropagation = PressManager.globalConfig.stopPropagation;
+        }
+        else if (options.stopPropagation === false) {
+            this.stopPropagation = () => false;
         }
         if (typeof options.stopPropagation == 'function') {
             this.stopPropagation = options.stopPropagation;
@@ -5748,7 +6268,11 @@ const PressManager=class PressManager {
             this.stopPropagation = () => false;
         }
         if (!options.buttonAllowed)
+            options.buttonAllowed = PressManager.globalConfig.buttonAllowed;
+        if (!options.buttonAllowed)
             options.buttonAllowed = [0];
+        if (!options.onEvent)
+            options.onEvent = PressManager.globalConfig.onEvent;
     }
     bindAllFunction() {
         this.functionsBinded.downAction = this.downAction.bind(this);
@@ -5772,6 +6296,9 @@ const PressManager=class PressManager {
         this.element.addEventListener("trigger_pointer_dragstart", this.functionsBinded.childDragStart);
     }
     downAction(e) {
+        if (this.options.onEvent) {
+            this.options.onEvent(e);
+        }
         if (!this.options.buttonAllowed?.includes(e.button)) {
             return;
         }
@@ -5808,6 +6335,9 @@ const PressManager=class PressManager {
         }
     }
     upAction(e) {
+        if (this.options.onEvent) {
+            this.options.onEvent(e);
+        }
         if (this.stopPropagation()) {
             e.stopImmediatePropagation();
         }
@@ -5877,6 +6407,9 @@ const PressManager=class PressManager {
         }
     }
     moveAction(e) {
+        if (this.options.onEvent) {
+            this.options.onEvent(e);
+        }
         if (!this.state.isMoving && !this.state.oneActionTriggered) {
             if (this.stopPropagation()) {
                 e.stopImmediatePropagation();
@@ -6015,10 +6548,13 @@ const PressManager=class PressManager {
             this.element.removeEventListener("trigger_pointer_dblpress", this.functionsBinded.childDblPress);
             this.element.removeEventListener("trigger_pointer_longpress", this.functionsBinded.childLongPress);
             this.element.removeEventListener("trigger_pointer_dragstart", this.functionsBinded.childDragStart);
+            document.removeEventListener("pointerup", this.functionsBinded.upAction);
+            document.removeEventListener("pointermove", this.functionsBinded.moveAction);
         }
     }
 }
 PressManager.Namespace=`${moduleName}`;
+
 _.PressManager=PressManager;
 const DragAndDrop=class DragAndDrop {
     /**
@@ -6290,6 +6826,7 @@ const DragAndDrop=class DragAndDrop {
     }
 }
 DragAndDrop.Namespace=`${moduleName}`;
+
 _.DragAndDrop=DragAndDrop;
 const ResizeObserver=class ResizeObserver {
     callback;
@@ -6417,6 +6954,7 @@ const ResizeObserver=class ResizeObserver {
     }
 }
 ResizeObserver.Namespace=`${moduleName}`;
+
 _.ResizeObserver=ResizeObserver;
 const Uri=class Uri {
     static prepare(uri) {
@@ -6453,7 +6991,7 @@ const Uri=class Uri {
         if (typeof from == "string") {
             from = this.prepare(from);
         }
-        let matches = from.regex.exec(current);
+        let matches = from.regex.exec(current.toLowerCase());
         if (matches) {
             let slugs = {};
             for (let param of from.params) {
@@ -6494,6 +7032,7 @@ const Uri=class Uri {
     }
 }
 Uri.Namespace=`${moduleName}`;
+
 _.Uri=Uri;
 const Effect=class Effect {
     callbacks = [];
@@ -6608,6 +7147,7 @@ const Effect=class Effect {
     }
 }
 Effect.Namespace=`${moduleName}`;
+
 _.Effect=Effect;
 const Computed=class Computed extends Effect {
     _value;
@@ -6647,8 +7187,12 @@ const Computed=class Computed extends Effect {
     }
 }
 Computed.Namespace=`${moduleName}`;
+
 _.Computed=Computed;
 const Watcher=class Watcher {
+    static __reservedName = {
+        __path: '__path',
+    };
     static _registering = [];
     static get _register() {
         return this._registering[this._registering.length - 1];
@@ -6666,9 +7210,7 @@ const Watcher=class Watcher {
                 obj.subscribe(onDataChanged);
             return obj;
         }
-        const reservedName = {
-            __path: '__path',
-        };
+        const reservedName = this.__reservedName;
         const clearReservedNames = (data) => {
             if (data instanceof Object && !data.__isProxy) {
                 for (let key in reservedName) {
@@ -6676,17 +7218,17 @@ const Watcher=class Watcher {
                 }
             }
         };
-        let setProxyPath = (newProxy, newPath) => {
+        const setProxyPath = (newProxy, newPath) => {
             if (newProxy instanceof Object && newProxy.__isProxy) {
                 newProxy.__path = newPath;
             }
         };
-        let jsonReplacer = (key, value) => {
+        const jsonReplacer = (key, value) => {
             if (reservedName[key])
                 return undefined;
             return value;
         };
-        let addAlias = (otherBaseData, name, cb) => {
+        const addAlias = (otherBaseData, name, cb) => {
             let cbs = aliases.get(otherBaseData);
             if (!cbs) {
                 cbs = [];
@@ -6697,7 +7239,7 @@ const Watcher=class Watcher {
                 fct: cb
             });
         };
-        let deleteAlias = (otherBaseData, name) => {
+        const deleteAlias = (otherBaseData, name) => {
             let cbs = aliases.get(otherBaseData);
             if (!cbs)
                 return;
@@ -6711,7 +7253,7 @@ const Watcher=class Watcher {
                 }
             }
         };
-        let replaceByAlias = (target, element, prop, receiver) => {
+        const replaceByAlias = (target, element, prop, receiver) => {
             let fullInternalPath = "";
             if (Array.isArray(target)) {
                 if (prop != "length") {
@@ -6733,6 +7275,7 @@ const Watcher=class Watcher {
             if (element instanceof Object && element.__isProxy) {
                 let root = element.__root;
                 if (root != proxyData.baseData) {
+                    element.__validatePath();
                     let oldPath = element.__path;
                     let unbindElement = getValueFromObject(oldPath, root);
                     if (receiver == null) {
@@ -6865,6 +7408,13 @@ const Watcher=class Watcher {
                 else if (prop == "__root") {
                     return this.baseData;
                 }
+                else if (prop == "__validatePath") {
+                    return () => {
+                        if (this.baseData == target) {
+                            target.__path = "";
+                        }
+                    };
+                }
                 else if (prop == "__callbacks") {
                     return this.callbacks;
                 }
@@ -6946,6 +7496,11 @@ const Watcher=class Watcher {
                 }
                 else if (prop == "__trigger") {
                     return trigger;
+                }
+                else if (prop == "__static_trigger") {
+                    return (type) => {
+                        trigger(type, target, receiver, target, '');
+                    };
                 }
                 return undefined;
             },
@@ -7068,6 +7623,7 @@ const Watcher=class Watcher {
                 return Reflect.get(target, prop, receiver);
             },
             set(target, prop, value, receiver) {
+                let oldValue = Reflect.get(target, prop, receiver);
                 value = replaceByAlias(target, value, prop, receiver);
                 let triggerChange = false;
                 if (!reservedName[prop]) {
@@ -7077,7 +7633,6 @@ const Watcher=class Watcher {
                         }
                     }
                     else {
-                        let oldValue = Reflect.get(target, prop, receiver);
                         if (!compareObject(value, oldValue)) {
                             triggerChange = true;
                         }
@@ -7170,9 +7725,12 @@ const Watcher=class Watcher {
             ownKeys(target) {
                 let result = Reflect.ownKeys(target);
                 for (let i = 0; i < result.length; i++) {
-                    if (reservedName[result[i]]) {
-                        result.splice(i, 1);
-                        i--;
+                    let key = result[i];
+                    if (typeof key == 'string') {
+                        if (reservedName[key]) {
+                            result.splice(i, 1);
+                            i--;
+                        }
                     }
                 }
                 return result;
@@ -7194,7 +7752,7 @@ const Watcher=class Watcher {
             }
             if (rootPath != "") {
                 if (Array.isArray(target)) {
-                    if (!prop.startsWith("[")) {
+                    if (prop && !prop.startsWith("[")) {
                         if (/^[0-9]*$/g.exec(prop)) {
                             rootPath += "[" + prop + "]";
                         }
@@ -7207,7 +7765,7 @@ const Watcher=class Watcher {
                     }
                 }
                 else {
-                    if (!prop.startsWith("[")) {
+                    if (prop && !prop.startsWith("[")) {
                         rootPath += ".";
                     }
                     rootPath += prop;
@@ -7261,7 +7819,7 @@ const Watcher=class Watcher {
                     }
                     catch (e) {
                         if (e != 'impossible')
-                            console.log(e);
+                            console.error(e);
                     }
                 }
                 for (let [key, infos] of aliases) {
@@ -7269,7 +7827,14 @@ const Watcher=class Watcher {
                         for (let info of infos) {
                             if (info.name == name) {
                                 aliasesDone.push(key);
-                                info.fct(type, target, receiver, value, prop, dones);
+                                if (target.__path) {
+                                    let oldPath = target.__path;
+                                    info.fct(type, target, receiver, value, prop, dones);
+                                    target.__path = oldPath;
+                                }
+                                else {
+                                    info.fct(type, target, receiver, value, prop, dones);
+                                }
                             }
                         }
                     }
@@ -7282,8 +7847,14 @@ const Watcher=class Watcher {
                         if (!regex.test(rootPath)) {
                             continue;
                         }
-                        let name = rootPath.replace(regex, "$2");
-                        info.fct(type, target, receiver, value, name, dones);
+                        if (target.__path) {
+                            let oldPath = target.__path;
+                            info.fct(type, target, receiver, value, prop, dones);
+                            target.__path = oldPath;
+                        }
+                        else {
+                            info.fct(type, target, receiver, value, prop, dones);
+                        }
                     }
                 }
             }
@@ -7292,6 +7863,27 @@ const Watcher=class Watcher {
         proxyData.baseData = obj;
         setProxyPath(realProxy, '');
         return realProxy;
+    }
+    static is(obj) {
+        return typeof obj == 'object' && obj.__isProxy;
+    }
+    static extract(obj) {
+        if (this.is(obj)) {
+            return obj.getTarget();
+        }
+        else {
+            if (obj instanceof Object) {
+                for (let key in this.__reservedName) {
+                    delete obj[key];
+                }
+            }
+        }
+        return obj;
+    }
+    static trigger(type, target) {
+        if (this.is(target)) {
+            target.__static_trigger(type);
+        }
     }
     /**
      * Create a computed variable that will watch any changes
@@ -7309,6 +7901,7 @@ const Watcher=class Watcher {
     }
 }
 Watcher.Namespace=`${moduleName}`;
+
 _.Watcher=Watcher;
 const ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
     init() {
@@ -7326,6 +7919,7 @@ const ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
     run() { }
 }
 ComputedNoRecomputed.Namespace=`${moduleName}`;
+
 _.ComputedNoRecomputed=ComputedNoRecomputed;
 const EffectNoRecomputed=class EffectNoRecomputed extends Effect {
     init() {
@@ -7341,15 +7935,23 @@ const EffectNoRecomputed=class EffectNoRecomputed extends Effect {
     }
 }
 EffectNoRecomputed.Namespace=`${moduleName}`;
+
 _.EffectNoRecomputed=EffectNoRecomputed;
 const RamError=class RamError extends GenericError {
 }
 RamError.Namespace=`${moduleName}`;
+
 _.RamError=RamError;
 const ResultRamWithError=class ResultRamWithError extends ResultWithError {
 }
 ResultRamWithError.Namespace=`${moduleName}`;
+
 _.ResultRamWithError=ResultRamWithError;
+const VoidRamWithError=class VoidRamWithError extends VoidWithError {
+}
+VoidRamWithError.Namespace=`${moduleName}`;
+
+_.VoidRamWithError=VoidRamWithError;
 const GenericRam=class GenericRam {
     /**
      * The current namespace
@@ -7431,6 +8033,22 @@ const GenericRam=class GenericRam {
                 }
                 return undefined;
             }
+            async updateWithError(newData = {}) {
+                const result = new ResultRamWithError();
+                let queryId = that.getIdWithError(this);
+                if (!queryId.success || !queryId.result) {
+                    result.errors = queryId.errors;
+                    return result;
+                }
+                let oldData = that.records.get(queryId.result);
+                if (oldData) {
+                    that.mergeObject(oldData, newData);
+                    let result = await that.updateWithError(oldData);
+                    return result;
+                }
+                result.errors.push(new RamError(RamErrorCode.noItemInsideRam, "Can't find this item inside the ram"));
+                return result;
+            }
             onUpdate(callback) {
                 let id = that.getId(this);
                 if (!that.recordsSubscribers.has(id)) {
@@ -7458,6 +8076,17 @@ const GenericRam=class GenericRam {
             async delete() {
                 let id = that.getId(this);
                 await that.deleteById(id);
+            }
+            async deleteWithError() {
+                const result = new VoidRamWithError();
+                let queryId = that.getIdWithError(this);
+                if (!queryId.success || !queryId.result) {
+                    result.errors = queryId.errors;
+                    return result;
+                }
+                const queryDelete = await that.deleteByIdWithError(queryId.result);
+                result.errors = queryDelete.errors;
+                return result;
             }
             onDelete(callback) {
                 let id = that.getId(this);
@@ -7765,6 +8394,7 @@ const GenericRam=class GenericRam {
         if (action.success) {
             if (action.result.length > 0) {
                 list = action.result;
+                action.result = [];
             }
             for (let item of list) {
                 let resultItem = await this._create(item, true);
@@ -7870,6 +8500,7 @@ const GenericRam=class GenericRam {
         if (action.success) {
             if (action.result.length > 0) {
                 list = action.result;
+                action.result = [];
             }
             for (let item of list) {
                 let resultItem = await this._update(item, true);
@@ -8097,10 +8728,12 @@ const GenericRam=class GenericRam {
     async afterDeleteList(result) { }
 }
 GenericRam.Namespace=`${moduleName}`;
+
 _.GenericRam=GenericRam;
 const Ram=class Ram extends GenericRam {
 }
 Ram.Namespace=`${moduleName}`;
+
 _.Ram=Ram;
 const StateManager=class StateManager {
     subscribers = {};
@@ -8115,7 +8748,7 @@ const StateManager=class StateManager {
     /**
      * Subscribe actions for a state or a state list
      */
-    subscribe(statePatterns, callbacks) {
+    subscribe(statePatterns, callbacks, autoActiveState = true) {
         if (!callbacks.active && !callbacks.inactive && !callbacks.askChange) {
             this._log(`Trying to subscribe to state : ${statePatterns} with no callbacks !`, "warning");
             return;
@@ -8144,7 +8777,7 @@ const StateManager=class StateManager {
                 }
                 for (let activeFct of callbacks.active) {
                     this.subscribers[statePattern].callbacks.active.push(activeFct);
-                    if (this.subscribers[statePattern].isActive && this.activeState) {
+                    if (this.subscribers[statePattern].isActive && this.activeState && autoActiveState) {
                         let slugs = Uri.getParams(this.subscribers[statePattern], this.activeState.name);
                         if (slugs) {
                             activeFct(this.activeState, slugs);
@@ -8166,6 +8799,29 @@ const StateManager=class StateManager {
                 }
                 for (let askChangeFct of callbacks.askChange) {
                     this.subscribers[statePattern].callbacks.askChange.push(askChangeFct);
+                }
+            }
+        }
+    }
+    /**
+     *
+     */
+    activateAfterSubscribe(statePatterns, callbacks) {
+        if (!Array.isArray(statePatterns)) {
+            statePatterns = [statePatterns];
+        }
+        for (let statePattern of statePatterns) {
+            if (callbacks.active) {
+                if (!Array.isArray(callbacks.active)) {
+                    callbacks.active = [callbacks.active];
+                }
+                for (let activeFct of callbacks.active) {
+                    if (this.subscribers[statePattern].isActive && this.activeState) {
+                        let slugs = Uri.getParams(this.subscribers[statePattern], this.activeState.name);
+                        if (slugs) {
+                            activeFct(this.activeState, slugs);
+                        }
+                    }
                 }
             }
         }
@@ -8383,6 +9039,7 @@ const StateManager=class StateManager {
     }
 }
 StateManager.Namespace=`${moduleName}`;
+
 _.StateManager=StateManager;
 const State=class State {
     /**
@@ -8407,6 +9064,7 @@ const State=class State {
     }
 }
 State.Namespace=`${moduleName}`;
+
 _.State=State;
 const EmptyState=class EmptyState extends State {
     localName;
@@ -8422,6 +9080,7 @@ const EmptyState=class EmptyState extends State {
     }
 }
 EmptyState.Namespace=`${moduleName}`;
+
 _.EmptyState=EmptyState;
 const TemplateInstance=class TemplateInstance {
     context;
@@ -8465,11 +9124,15 @@ const TemplateInstance=class TemplateInstance {
     destructor() {
         this.isDestroyed = true;
         for (let name in this.loopRegisteries) {
-            for (let item of this.loopRegisteries[name].templates) {
+            let register = this.loopRegisteries[name];
+            for (let item of register.templates) {
                 item.destructor();
             }
-            for (let item of this.loopRegisteries[name].computeds) {
+            for (let item of register.computeds) {
                 item.destroy();
+            }
+            if (register.unsub) {
+                register.unsub();
             }
         }
         this.loopRegisteries = {};
@@ -8579,7 +9242,7 @@ const TemplateInstance=class TemplateInstance {
                 let cb = getValueFromObject(event.eventName, el);
                 cb?.add((...args) => {
                     try {
-                        event.fct(this.context, args);
+                        return event.fct(this.context, args);
                     }
                     catch (e) {
                         console.error(e);
@@ -8674,8 +9337,7 @@ const TemplateInstance=class TemplateInstance {
                     }
                 }
                 else {
-                    console.log(e);
-                    debugger;
+                    console.error(e);
                 }
             }
             return "";
@@ -8710,8 +9372,7 @@ const TemplateInstance=class TemplateInstance {
                     }
                 }
                 else {
-                    console.log(e);
-                    debugger;
+                    console.error(e);
                 }
             }
         });
@@ -8741,8 +9402,7 @@ const TemplateInstance=class TemplateInstance {
                     }
                 }
                 else {
-                    console.log(e);
-                    debugger;
+                    console.error(e);
                 }
             }
         });
@@ -8857,6 +9517,8 @@ const TemplateInstance=class TemplateInstance {
         for (let i = 0; i < result.length; i++) {
             let context = new TemplateContext(this.component, result[i], this.context, this.loopRegisteries[loop.anchorId]);
             let content = loop.template.template?.content.cloneNode(true);
+            document.adoptNode(content);
+            customElements.upgrade(content);
             let actions = loop.template.actions;
             let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
             instance.render();
@@ -8865,9 +9527,9 @@ const TemplateInstance=class TemplateInstance {
         }
     }
     resetLoopSimple(anchorId, basePath) {
-        let elements = this.context.getValueFromItem(basePath);
-        if (elements && this.loopRegisteries[anchorId]) {
-            elements.unsubscribe(this.loopRegisteries[anchorId].sub);
+        let register = this.loopRegisteries[anchorId];
+        if (register?.unsub) {
+            register.unsub();
         }
         this.resetLoopComplex(anchorId);
     }
@@ -8941,6 +9603,8 @@ const TemplateInstance=class TemplateInstance {
                         let context = new TemplateContext(this.component, {}, this.context, registry);
                         context.registerLoop(basePath, index, indexName, simple.index, simple.item, onThis);
                         let content = loop.template.template?.content.cloneNode(true);
+                        document.adoptNode(content);
+                        customElements.upgrade(content);
                         let actions = loop.template.actions;
                         let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
                         instance.render();
@@ -8966,7 +9630,9 @@ const TemplateInstance=class TemplateInstance {
                     }
                 }
             };
-            this.loopRegisteries[loop.anchorId].sub = sub;
+            this.loopRegisteries[loop.anchorId].unsub = () => {
+                elements.unsubscribe(sub);
+            };
             elements.subscribe(sub);
         }
         let anchor = this._components[loop.anchorId][0];
@@ -8974,6 +9640,8 @@ const TemplateInstance=class TemplateInstance {
             let context = new TemplateContext(this.component, {}, this.context, this.loopRegisteries[loop.anchorId]);
             context.registerLoop(basePath, i, indexName, simple.index, simple.item, onThis);
             let content = loop.template.template?.content.cloneNode(true);
+            document.adoptNode(content);
+            customElements.upgrade(content);
             let actions = loop.template.actions;
             let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
             instance.render();
@@ -8982,8 +9650,14 @@ const TemplateInstance=class TemplateInstance {
         }
     }
     renderIf(_if) {
+        // this.renderIfMemory(_if);
+        this.renderIfRecreate(_if);
+    }
+    renderIfMemory(_if) {
         let computeds = [];
         let instances = [];
+        if (!this._components[_if.anchorId] || this._components[_if.anchorId].length == 0)
+            return;
         let anchor = this._components[_if.anchorId][0];
         let currentActive = -1;
         const calculateActive = () => {
@@ -9025,6 +9699,8 @@ const TemplateInstance=class TemplateInstance {
             this.computeds.push(computed);
             let context = new TemplateContext(this.component, {}, this.context);
             let content = part.template.template?.content.cloneNode(true);
+            document.adoptNode(content);
+            customElements.upgrade(content);
             let actions = part.template.actions;
             let instance = new TemplateInstance(this.component, content, actions, part.template.loops, part.template.ifs, context);
             instances.push(instance);
@@ -9032,8 +9708,63 @@ const TemplateInstance=class TemplateInstance {
         }
         calculateActive();
     }
+    renderIfRecreate(_if) {
+        let computeds = [];
+        if (!this._components[_if.anchorId] || this._components[_if.anchorId].length == 0)
+            return;
+        let anchor = this._components[_if.anchorId][0];
+        let currentActive = undefined;
+        let currentActiveNb = -1;
+        const createContext = () => {
+            if (currentActiveNb < 0 || currentActiveNb > _if.parts.length - 1) {
+                currentActive = undefined;
+                return;
+            }
+            const part = _if.parts[currentActiveNb];
+            let context = new TemplateContext(this.component, {}, this.context);
+            let content = part.template.template?.content.cloneNode(true);
+            document.adoptNode(content);
+            customElements.upgrade(content);
+            let actions = part.template.actions;
+            let instance = new TemplateInstance(this.component, content, actions, part.template.loops, part.template.ifs, context);
+            currentActive = instance;
+            instance.render();
+            anchor.parentNode?.insertBefore(currentActive.content, anchor);
+        };
+        for (let i = 0; i < _if.parts.length; i++) {
+            const part = _if.parts[i];
+            let _class = part.once ? ComputedNoRecomputed : Computed;
+            let computed = new _class(() => {
+                return part.condition(this.context);
+            });
+            computeds.push(computed);
+            computed.subscribe(() => {
+                calculateActive();
+            });
+            this.computeds.push(computed);
+        }
+        const calculateActive = () => {
+            let newActive = -1;
+            for (let i = 0; i < _if.parts.length; i++) {
+                if (computeds[i].value) {
+                    newActive = i;
+                    break;
+                }
+            }
+            if (newActive == currentActiveNb) {
+                return;
+            }
+            if (currentActive) {
+                currentActive.destructor();
+            }
+            currentActiveNb = newActive;
+            createContext();
+        };
+        calculateActive();
+    }
 }
 TemplateInstance.Namespace=`${moduleName}`;
+
 _.TemplateInstance=TemplateInstance;
 const TemplateContext=class TemplateContext {
     data = {};
@@ -9122,7 +9853,6 @@ const TemplateContext=class TemplateContext {
             let index = keys[_getIndex.value];
             let element = items[index];
             if (element === undefined && (Array.isArray(items) || !items)) {
-                debugger;
                 if (this.registry) {
                     let indexNb = Number(_getIndex.value);
                     if (!isNaN(indexNb)) {
@@ -9237,6 +9967,7 @@ const TemplateContext=class TemplateContext {
     }
 }
 TemplateContext.Namespace=`${moduleName}`;
+
 _.TemplateContext=TemplateContext;
 const Template=class Template {
     static validatePath(path, pathToCheck) {
@@ -9368,10 +10099,13 @@ const Template=class Template {
     }
     createInstance(component) {
         let content = this.template.content.cloneNode(true);
+        document.adoptNode(content);
+        customElements.upgrade(content);
         return new TemplateInstance(component, content, this.actions, this.loops, this.ifs);
     }
 }
 Template.Namespace=`${moduleName}`;
+
 _.Template=Template;
 const WebComponent=class WebComponent extends HTMLElement {
     /**
@@ -9466,6 +10200,31 @@ const WebComponent=class WebComponent extends HTMLElement {
             this.__watchFunctionsComputed[name].destroy();
         }
         // TODO add missing info for destructor();
+        this.postDestruction();
+        this.destructChildren();
+    }
+    destructChildren() {
+        const recu = (el) => {
+            for (let child of Array.from(el.children)) {
+                if (child instanceof WebComponent) {
+                    child.destructor();
+                }
+                else if (child instanceof HTMLElement) {
+                    recu(child);
+                }
+            }
+            if (el.shadowRoot) {
+                for (let child of Array.from(el.shadowRoot.children)) {
+                    if (child instanceof WebComponent) {
+                        child.destructor();
+                    }
+                    else if (child instanceof HTMLElement) {
+                        recu(child);
+                    }
+                }
+            }
+        };
+        recu(this);
     }
     __addWatchesActions(name, fct) {
         if (!this.__watchActions[name]) {
@@ -9508,8 +10267,13 @@ const WebComponent=class WebComponent extends HTMLElement {
                 let defaultValue = {};
                 this.__defaultValuesWatch(defaultValue);
                 this.__watch = Watcher.get(defaultValue, (type, path, element) => {
-                    let action = this.__watchActionsCb[path.split(".")[0]] || this.__watchActionsCb[path.split("[")[0]];
-                    action(type, path, element);
+                    try {
+                        let action = this.__watchActionsCb[path.split(".")[0]] || this.__watchActionsCb[path.split("[")[0]];
+                        action(type, path, element);
+                    }
+                    catch (e) {
+                        console.error(e);
+                    }
                 });
             }
         }
@@ -9578,7 +10342,7 @@ const WebComponent=class WebComponent extends HTMLElement {
         let shadowRoot = this.attachShadow({ mode: 'open' });
         shadowRoot.adoptedStyleSheets = [...Object.values(staticInstance.__styleSheets), Style.noAnimation];
         shadowRoot.appendChild(this.__templateInstance.content);
-        customElements.upgrade(shadowRoot);
+        // customElements.upgrade(shadowRoot);
         return shadowRoot;
     }
     __registerTemplateAction() {
@@ -9589,19 +10353,30 @@ const WebComponent=class WebComponent extends HTMLElement {
             this._first = false;
             this.__defaultValues();
             this.__upgradeAttributes();
+            this.__activateState();
             this.__templateInstance?.render();
             this.__removeNoAnimations();
         }
+        else {
+            setTimeout(() => {
+                this.postConnect();
+            });
+        }
+    }
+    disconnectedCallback() {
+        setTimeout(() => {
+            this.postDisonnect();
+        });
     }
     __removeNoAnimations() {
         if (document.readyState !== "loading") {
-            this.offsetWidth;
             setTimeout(() => {
                 this.postCreation();
                 this._isReady = true;
                 this.dispatchEvent(new CustomEvent('postCreationDone'));
                 this.shadowRoot.adoptedStyleSheets = Object.values(this.__getStatic().__styleSheets);
                 document.removeEventListener("DOMContentLoaded", this.__removeNoAnimations);
+                this.postConnect();
             }, 50);
         }
     }
@@ -9621,6 +10396,7 @@ const WebComponent=class WebComponent extends HTMLElement {
             }
             else {
                 this.removeAttribute(prop);
+                delete this[prop];
                 this[prop] = false;
             }
         }
@@ -9630,6 +10406,18 @@ const WebComponent=class WebComponent extends HTMLElement {
                 delete this[prop];
                 this[prop] = value;
             }
+            else if (Object.hasOwn(this, prop)) {
+                const value = this[prop];
+                delete this[prop];
+                this[prop] = value;
+            }
+        }
+    }
+    __correctGetter(prop) {
+        if (Object.hasOwn(this, prop)) {
+            const value = this[prop];
+            delete this[prop];
+            this[prop] = value;
         }
     }
     __getStateManager(managerClass) {
@@ -9722,7 +10510,17 @@ const WebComponent=class WebComponent extends HTMLElement {
             for (const managerClass of this.__statesList[route].keys()) {
                 let el = this.__statesList[route].get(managerClass);
                 if (el) {
-                    managerClass.subscribe(route, el);
+                    managerClass.subscribe(route, el, false);
+                }
+            }
+        }
+    }
+    __activateState() {
+        for (let route in this.__statesList) {
+            for (const managerClass of this.__statesList[route].keys()) {
+                let el = this.__statesList[route].get(managerClass);
+                if (el) {
+                    managerClass.activateAfterSubscribe(route, el);
                 }
             }
         }
@@ -9740,12 +10538,18 @@ const WebComponent=class WebComponent extends HTMLElement {
         this.__stateCleared = true;
     }
     dateToString(d) {
+        if (typeof d == 'string') {
+            d = this.stringToDate(d);
+        }
         if (d instanceof Date) {
             return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split("T")[0];
         }
         return null;
     }
     dateTimeToString(dt) {
+        if (typeof dt == 'string') {
+            dt = this.stringToDate(dt);
+        }
         if (dt instanceof Date) {
             return new Date(dt.getTime() - (dt.getTimezoneOffset() * 60000)).toISOString().slice(0, -1);
         }
@@ -9906,18 +10710,32 @@ const WebComponent=class WebComponent extends HTMLElement {
             }
         }
     }
-    remove() {
+    /**
+     * Remove a component from the dom
+     * If desctruct is set to true, the component will be fully destroyed
+     */
+    remove(destruct = true) {
         super.remove();
-        this.postDestruction();
+        if (destruct) {
+            this.destructor();
+        }
     }
     /**
-     * Function triggered when the component is removed from the DOM
+     * Function triggered when the component is destroyed
      */
     postDestruction() { }
     /**
      * Function triggered the first time the component is rendering inside DOM
      */
     postCreation() { }
+    /**
+    * Function triggered each time the component is rendering inside DOM
+    */
+    postConnect() { }
+    /**
+    * Function triggered each time the component is removed from the DOM
+    */
+    postDisonnect() { }
     /**
      * Find a parent by tagname if exist
      */
@@ -9956,6 +10774,7 @@ const WebComponent=class WebComponent extends HTMLElement {
     }
 }
 WebComponent.Namespace=`${moduleName}`;
+
 _.WebComponent=WebComponent;
 const WebComponentInstance=class WebComponentInstance {
     static __allDefinitions = [];
@@ -10028,6 +10847,7 @@ const WebComponentInstance=class WebComponentInstance {
     }
 }
 WebComponentInstance.Namespace=`${moduleName}`;
+
 _.WebComponentInstance=WebComponentInstance;
 
 for(let key in _) { Aventus[key] = _[key] }

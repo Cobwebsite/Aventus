@@ -483,7 +483,7 @@ export class ParserHtml {
 		//#endregion
 
 
-		//#region transfrom file to replace js by tags <i> and <l> + create difference
+		//#region transfrom file to replace js by tags <c> and <l> + create difference
 		transformations.sort((a, b) => b.end - a.end); // order from end file to start file
 		let lastPos = txt.length;
 		this.diffRawToCompiled = {}

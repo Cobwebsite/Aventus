@@ -800,6 +800,26 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                                 }
                             }
                         }
+                        if (item.additionalTextEdits) {
+                            for (let textEdit of item.additionalTextEdits) {
+                                if (textEdit.range) {
+                                    if (convertedRanges.indexOf(textEdit.range) == -1) {
+                                        convertedRanges.push(textEdit.range);
+                                        let methodView = viewMethodInfo.fct;
+                                        let textEditStart = this.file.documentInternal.offsetAt(textEdit.range.start);
+                                        let textEditEnd = this.file.documentInternal.offsetAt(textEdit.range.end);
+
+                                        let offsetReturn = viewMethodInfo.transform(textEditStart, 0);
+                                        let offsetStart = textEditStart - viewMethodInfo.start - offsetReturn;
+                                        let offsetEnd = textEditEnd - viewMethodInfo.start - offsetReturn;
+
+                                        textEdit.range.start = html.file.documentInternal.positionAt(position.start + viewMethodInfo.offsetBefore + offsetStart);
+                                        textEdit.range.end = html.file.documentInternal.positionAt(position.start + viewMethodInfo.offsetBefore + offsetEnd);
+
+                                    }
+                                }
+                            }
+                        }
                         result.push(item);
                     }
                     resultTemp.items = result;
@@ -1246,9 +1266,9 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                 result += "@ViewElement()" + EOL + "protected " + name + "!: " + this.compilationResult.missingViewElements.elements[name] + ";" + EOL
             }
         }
-        if (result != "") {
-            result = EOL + result;
-        }
+        // if (result != "") {
+        //     result = EOL + result;
+        // }
         return {
             start: position,
             text: result
@@ -1263,9 +1283,9 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                 result += `/**${EOL} * ${EOL} */${EOL}protected ${name}(){${EOL}throw new Error("Method not implemented.");${EOL}}${EOL}`;
             }
         }
-        if (result != "") {
-            result = EOL + result;
-        }
+        // if (result != "") {
+        //     result = EOL + result;
+        // }
         return {
             start: position,
             text: result

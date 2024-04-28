@@ -11,6 +11,7 @@ export class AvenutsVsComponent {
         this.lastCompiledInfo.show();
 
         this.runningServer  = window.createStatusBarItem("running-server", StatusBarAlignment.Right, 999);
+        this.runningServer.hide();
         ServerStop.setInfo(this.runningServer);
     }
 

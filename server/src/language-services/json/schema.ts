@@ -221,18 +221,15 @@ export const AventusConfigSchema: JSONSchema = {
                         default: "need"
                     },
                     subDependancesInclude: {
-                        type: "array",
+                        type: "object",
                         description: "Inclusion pattern for each lib. You can use a star to select everythink. If nothink find for a lib, the need value ll be used",
-                        items: {
-                            type: "object",
-                            patternProperties: {
-                                "^\\S+$": {
-                                    type: "string",
-                                    enum: ['none', 'need', 'full'],
-                                    default: "need"
-                                }
-                            },
-                        }
+                        patternProperties: {
+                            "^\\S+$": {
+                                type: "string",
+                                enum: ['none', 'need', 'full'],
+                                default: "need"
+                            }
+                        },
                     }
                 },
                 required: ["uri"]
@@ -369,6 +366,13 @@ export const AventusSharpSchema: JSONSchema = {
                 host: { type: "string", default: "https://localhost:5000", pattern: "^http(s)?:\\/\\/[a-zA-Z0-9_-]*?(:[0-9]{3,4})?$" },
                 parent: { type: "string", default: "Aventus.HttpRouter" },
                 namespace: { type: "string", default: "Routes" }
+            }
+        },
+        "wsEndpoint": {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+                prefix: { type: "string", default: "" }
             }
         }
     },

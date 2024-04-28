@@ -14,6 +14,7 @@ export class ClassInfo extends BaseInfo {
 	public implements: string[] = [];
 	public parentClass: ClassInfo | null = null;
 	public methods: { [methodName: string]: MethodInfo } = {};
+	public methodsStatic: { [methodName: string]: MethodInfo } = {};
 	public properties: { [propName: string]: PropertyInfo } = {};
 	public propertiesStatic: { [propName: string]: PropertyInfo } = {};
 	public isInterface: boolean = false;
@@ -121,11 +122,16 @@ export class ClassInfo extends BaseInfo {
 					}
 				}
 				let methodInfo = new MethodInfo(x as MethodDeclaration, this);
-				this.methods[methodInfo.name] = methodInfo;
+				if (methodInfo.isStatic) {
+					this.methodsStatic[methodInfo.name] = methodInfo;
+				}
+				else {
+					this.methods[methodInfo.name] = methodInfo;
+				}
 				this.methodParameters = [];
 				result = methodInfo;
 			}
-			
+
 
 
 			if (result) {
@@ -153,6 +159,10 @@ export class ClassInfo extends BaseInfo {
 								let parent = BaseInfo.getInfoByFullName(names[0], this);
 								if (parent && parent instanceof ClassInfo) {
 									this.parentClass = parent;
+									if(this.parentClass == this) {
+										this.parentClass = null;
+										throw 'The parent is the child => impossible. Please send it to an admin'
+									}
 								}
 							}
 						}

@@ -15,6 +15,7 @@ export class Compiled {
             }[]
         }
     } = {};
+
     private static lastTime: string = "";
 
     public static removeBuild(buildName: string) {
@@ -62,6 +63,7 @@ export class Compiled {
         }
         if (Singleton.client.components) {
             if (Object.values(Compiled.timeByBuild).length > 0) {
+                Singleton.client.components.runningServer.show();
                 let hasError = false;
                 let tooltips: string[] = []
                 for (let buildName in Compiled.timeByBuild) {
@@ -87,6 +89,7 @@ export class Compiled {
             else {
                 Singleton.client.components.lastCompiledInfo.text = "";
                 Singleton.client.components.lastCompiledInfo.tooltip = "";
+                Singleton.client.components.runningServer.hide();
             }
         }
     }

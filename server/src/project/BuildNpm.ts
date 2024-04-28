@@ -217,6 +217,7 @@ export class NpmBuilder {
 				output: {
 					format: "iife",
 					name: "_",
+					inlineDynamicImports: true
 				},
 				plugins: [
 					commonjs({
@@ -241,12 +242,18 @@ export class NpmBuilder {
 			})
 			let result = await res.generate({
 				format: 'iife',
-				name: '_'
+				name: '_',
+				inlineDynamicImports: true
 			});
 			resultTxt = "";
 			for (let chunk of result.output) {
 				resultTxt += chunk['code'];
 			}
+
+			// resultTxt = resultTxt.replace(/export \{.*;/g, '');
+			resultTxt = resultTxt.replace(/process\.env\.NODE_ENV/g, '"production"');
+			// resultTxt = resultTxt.replace(/var _virtual_index/g, 'var _');
+			// resultTxt += EOL+'var _ = _virtual_index';
 		} catch (e) {
 			let uri = this.build.fullname + "_npmErrors";
 			DebugFileAdd.send(uri, (e + "").replace(/\0/g, ""));

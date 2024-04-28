@@ -14,7 +14,7 @@ export const AventusLanguageId = {
     HTML: "Aventus HTML",
     SCSS: "Aventus SCSS",
     WebComponent: "Aventus WebComponent",
-    Package: "Aventus Package"
+    Package: "Aventus Ts"
 }
 export const AventusExtension = {
     Base: ".avt",

@@ -1,17 +1,19 @@
 import { normalize, sep } from "path";
 import { CodeAction, CompletionItem, CompletionList, Definition, Diagnostic, FormattingOptions, Hover, Location, Position, Range, TextEdit, CodeLens, WorkspaceEdit } from "vscode-languageserver";
-import { AventusExtension } from "../../definition";
+import { AventusExtension, AventusLanguageId } from "../../definition";
 import { AventusFile } from '../../files/AventusFile';
 import { FilesManager } from '../../files/FilesManager';
 import { HttpServer } from '../../live-server/HttpServer';
 import { Build } from "../../project/Build";
-import { createErrorScssPos } from "../../tools";
+import { createErrorScssPos, pathToUri } from "../../tools";
 import { AventusBaseFile } from "../BaseFile";
 import { AventusWebComponentLogicalFile } from '../ts/component/File';
 import { SCSSParsedRule } from './LanguageService';
 import { AventusHTMLFile } from '../html/File';
 import { ParserHtml } from '../html/parser/ParserHtml';
 import { compileString } from 'sass';
+import { existsSync, readFileSync } from 'fs';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 
 export class AventusWebSCSSFile extends AventusBaseFile {
     public compiledVersion = -1;
@@ -58,7 +60,7 @@ export class AventusWebSCSSFile extends AventusBaseFile {
 
     protected async onValidate(): Promise<Diagnostic[]> {
         this.diagnostics = await this.build.scssLanguageService.doValidation(this.file);
-        this.loadDependances();
+        await this.loadDependances();
         return this.diagnostics;
     }
     protected async onContentChange(): Promise<void> {
@@ -84,7 +86,7 @@ export class AventusWebSCSSFile extends AventusBaseFile {
             let newCompiledTxt = this.compiledTxt;
 
             let errorMsgTxt = "|error|";
-            const _loadContent = (file: AventusFile): string => {
+            const _loadContent = async (file: AventusFile): Promise<string> => {
                 let textToSearch = file.contentUser;
                 //remove comment 
                 textToSearch = textToSearch.replace(/\/\*[\s\S]*?\*\/|([^:]|^)\/\/.*$/gm, '$1');
@@ -93,9 +95,9 @@ export class AventusWebSCSSFile extends AventusBaseFile {
                 let arrMatch: RegExpExecArray | null = null;
                 while (arrMatch = regex.exec(textToSearch)) {
                     let importName = arrMatch[2];
-                    let fileDependance = this.resolvePath(importName, file.folderPath);
+                    let fileDependance = await this.resolvePath(importName, file.folderPath);
                     if (fileDependance) {
-                        let nesteadContent = _loadContent(fileDependance);
+                        let nesteadContent = await _loadContent(fileDependance);
                         if (nesteadContent == errorMsgTxt) {
                             return nesteadContent;
                         }
@@ -107,7 +109,7 @@ export class AventusWebSCSSFile extends AventusBaseFile {
                 }
                 return textToSearch;
             }
-            let oneFileContent = _loadContent(this.file);
+            let oneFileContent = await _loadContent(this.file);
             if (oneFileContent != "|error|") {
                 let compiled = compileString(oneFileContent, {
                     style: 'compressed'
@@ -211,7 +213,7 @@ export class AventusWebSCSSFile extends AventusBaseFile {
         }
         while (arrMatch = regex.exec(textToSearch)) {
             let importName = arrMatch[2];
-            let fileDependance = this.resolvePath(importName, this.file.folderPath);
+            let fileDependance = await this.resolvePath(importName, this.file.folderPath);
             if (!fileDependance) {
                 let start = text.indexOf(arrMatch[0]);
                 let end = start + arrMatch[0].length;
@@ -242,27 +244,39 @@ export class AventusWebSCSSFile extends AventusBaseFile {
         }
     }
 
-    private resolvePath(loadingPath: string, currentFolder: string): AventusFile | undefined {
+    private async getByPath(loadingPath: string): Promise<AventusFile | undefined> {
+        let result: AventusFile | undefined = FilesManager.getInstance().getByPath(loadingPath);
+        if (result) return result;
+
+        if (existsSync(loadingPath)) {
+            let document = TextDocument.create(pathToUri(loadingPath), AventusLanguageId.SCSS, 1, readFileSync(loadingPath, 'utf-8'));
+            await FilesManager.getInstance().registerFile(document);
+            return FilesManager.getInstance().getByPath(loadingPath);
+        }
+        return undefined;
+    }
+
+    private async resolvePath(loadingPath: string, currentFolder: string): Promise<AventusFile | undefined> {
         loadingPath = this.build.project.resolveAlias(loadingPath, this.file);
         loadingPath = normalize(currentFolder + "/" + loadingPath);
-        let result: AventusFile | undefined = FilesManager.getInstance().getByPath(loadingPath);
+        let result: AventusFile | undefined = await this.getByPath(loadingPath);
         if (result) {
             return result;
         }
         let pathWithExtension = loadingPath + AventusExtension.ComponentStyle;
-        result = FilesManager.getInstance().getByPath(pathWithExtension)
+        result = await this.getByPath(pathWithExtension)
         if (result) {
             return result;
         }
         let splitted = loadingPath.split(sep);
         splitted[splitted.length - 1] = "_" + splitted[splitted.length - 1];
         let pathWithUnderscore = splitted.join(sep);
-        result = FilesManager.getInstance().getByPath(pathWithUnderscore)
+        result = await this.getByPath(pathWithUnderscore)
         if (result) {
             return result;
         }
         let pathWithUnderscoreExtension = pathWithUnderscore + AventusExtension.ComponentStyle;
-        result = FilesManager.getInstance().getByPath(pathWithUnderscoreExtension);
+        result = await this.getByPath(pathWithUnderscoreExtension);
         if (result) {
             return result;
         }

@@ -20,6 +20,7 @@ export class MethodInfo {
     public _class: ClassInfo;
     public accessibilityModifierTransformation?: { newText: string, start: number, end: number };
     public mustBeCompiled: boolean = true;
+    public isStatic: boolean = false;
     public get compiledContent(): string {
         let txt = BaseInfo.getContent(this.content, this.start, this.end, this._class.dependancesLocations, this._class.compileTransformations);
 		return txt;
@@ -99,6 +100,9 @@ export class MethodInfo {
                 }
                 else if (modifier.kind == SyntaxKind.OverrideKeyword) {
                     isOverride = true;
+                }
+                else if (modifier.kind == SyntaxKind.StaticKeyword) {
+                    this.isStatic = true;
                 }
             }
         }

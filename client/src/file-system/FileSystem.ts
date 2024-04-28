@@ -22,7 +22,7 @@ export class FileSystem {
 
 	private async onCreate(uri: Uri) {
 		await this.mutex.waitOne();
-		let uriTxt = uri.toString();
+		let uriTxt = this.uriToString(uri);
 		if (!this.stack.created.includes(uriTxt)) {
 			this.stack.created.push(uriTxt);
 		}
@@ -42,7 +42,7 @@ export class FileSystem {
 	}
 	private async onChange(uri: Uri) {
 		await this.mutex.waitOne()
-		let uriTxt = uri.toString();
+		let uriTxt = this.uriToString(uri);
 		// not in created
 		if (!this.stack.created.includes(uriTxt) && !this.stack.updated.includes(uriTxt)) {
 			this.stack.updated.push(uriTxt)
@@ -57,7 +57,7 @@ export class FileSystem {
 	}
 	private async onDelete(uri: Uri) {
 		await this.mutex.waitOne();
-		let uriTxt = uri.toString();
+		let uriTxt = this.uriToString(uri);
 		if (!this.stack.deleted.includes(uriTxt)) {
 			this.stack.deleted.push(uriTxt);
 		}
@@ -73,6 +73,12 @@ export class FileSystem {
 		}
 		this.mutex.release();
 		this.triggerTimer();
+	}
+
+	public uriToString(uri: Uri) {
+		let uriTxt = uri.toString();
+		uriTxt = uriTxt.replace("file:///", "").replace(/\/\//g, "/");
+		return "file:///"+uriTxt;
 	}
 	private triggerTimer() {
 		clearTimeout(this.timeout);

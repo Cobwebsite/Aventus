@@ -5,7 +5,6 @@ import { Diagnostic, DiagnosticSeverity, TextEdit } from 'vscode-languageserver'
 import { AventusErrorCode, AventusExtension, AventusLanguageId } from "../definition";
 import { AventusFile } from '../files/AventusFile';
 import { FilesManager } from '../files/FilesManager';
-import { FilesWatcher } from '../files/FilesWatcher';
 import { AventusHTMLFile } from "../language-services/html/File";
 import { HTMLDoc } from '../language-services/html/helper/definition';
 import { AventusHTMLLanguageService } from "../language-services/html/LanguageService";
@@ -707,22 +706,23 @@ export class Build {
             for (let compileInfo of currentFile.compileResult) {
                 if (compileInfo.classScript !== "") {
                     if (localClass[compileInfo.classScript]) {
+                        let atLeastOne = false;
                         let txt = "The name " + compileInfo.classScript + " is registered more than once.";
-                        let info = currentFile.fileParsed?.getBaseInfo(compileInfo.classScript);
+                        let info = currentFile.fileParsed?.getBaseInfoFullName(compileInfo.classScript);
                         if (info) {
                             this.addDiagnostic(currentFile, createErrorTsPos(currentFile.file.documentUser, txt, info.nameStart, info.nameEnd, AventusErrorCode.SameNameFound));
-                        }
-                        else {
-                            throw 'Please contact the support its an unknow case'
+                            atLeastOne = true;
                         }
 
                         let oldFile = this.tsFiles[localClass[compileInfo.classScript].uri]
-                        info = oldFile.fileParsed?.getBaseInfo(compileInfo.classScript);
+                        info = oldFile.fileParsed?.getBaseInfoFullName(compileInfo.classScript);
                         if (info) {
                             this.addDiagnostic(oldFile, createErrorTsPos(oldFile.file.documentUser, txt, info.nameStart, info.nameEnd, AventusErrorCode.SameNameFound));
+                            atLeastOne = true;
                         }
-                        else {
-                            throw 'Please contact the support its an unknow case'
+
+                        if(!atLeastOne) {
+                            GenericServer.showErrorMessage(txt)
                         }
                     }
                     else {

@@ -53,7 +53,7 @@ export abstract class StateManager implements IStateManager {
     /**
      * Subscribe actions for a state or a state list
      */
-    public subscribe(statePatterns: string | string[], callbacks: StateAction) {
+    public subscribe(statePatterns: string | string[], callbacks: StateAction, autoActiveState: boolean = true) {
         if(!callbacks.active && !callbacks.inactive && !callbacks.askChange) {
             this._log(`Trying to subscribe to state : ${statePatterns} with no callbacks !`, "warning");
             return;
@@ -87,7 +87,7 @@ export abstract class StateManager implements IStateManager {
                 }
                 for(let activeFct of callbacks.active) {
                     this.subscribers[statePattern].callbacks.active.push(activeFct);
-                    if(this.subscribers[statePattern].isActive && this.activeState) {
+                    if(this.subscribers[statePattern].isActive && this.activeState && autoActiveState) {
                         let slugs = Uri.getParams(this.subscribers[statePattern], this.activeState.name);
                         if(slugs) {
                             activeFct(this.activeState, slugs);
@@ -112,6 +112,30 @@ export abstract class StateManager implements IStateManager {
                 }
             }
 
+        }
+    }
+
+    /**
+     * 
+     */
+    public activateAfterSubscribe(statePatterns: string | string[], callbacks: StateAction) {
+        if(!Array.isArray(statePatterns)) {
+            statePatterns = [statePatterns];
+        }
+        for(let statePattern of statePatterns) {
+            if(callbacks.active) {
+                if(!Array.isArray(callbacks.active)) {
+                    callbacks.active = [callbacks.active];
+                }
+                for(let activeFct of callbacks.active) {
+                    if(this.subscribers[statePattern].isActive && this.activeState) {
+                        let slugs = Uri.getParams(this.subscribers[statePattern], this.activeState.name);
+                        if(slugs) {
+                            activeFct(this.activeState, slugs);
+                        }
+                    }
+                }
+            }
         }
     }
     /**
@@ -204,8 +228,8 @@ export abstract class StateManager implements IStateManager {
                 this.changeStateMutex.release();
                 return false;
             }
-            for(let cb of this.canChangeStateCbs) { 
-                if(! (await cb(stateToUse))) {
+            for(let cb of this.canChangeStateCbs) {
+                if(!(await cb(stateToUse))) {
                     return false;
                 }
             }

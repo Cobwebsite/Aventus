@@ -53,7 +53,7 @@ export class Uri {
             from = this.prepare(from);
         }
 
-        let matches = from.regex.exec(current);
+        let matches = from.regex.exec(current.toLowerCase());
         if(matches) {
             let slugs: UriParamsValue = {};
             for(let param of from.params) {

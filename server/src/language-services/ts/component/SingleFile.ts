@@ -116,10 +116,10 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
     }
     protected async onSave() {
         this.build.disableBuild();
-        (this.style.file as InternalAventusFile).triggerSave();
-        (this.view.file as InternalAventusFile).triggerSave();
+        await (this.style.file as InternalAventusFile).triggerSave();
+        await (this.view.file as InternalAventusFile).triggerSave();
         this.build.enableBuild();
-        (this.logic.file as InternalAventusFile).triggerSave();
+        await (this.logic.file as InternalAventusFile).triggerSave();
     }
     protected async onCompletion(document: AventusFile, position: Position): Promise<CompletionList> {
         let currentOffset = document.documentUser.offsetAt(position);

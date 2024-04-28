@@ -465,6 +465,56 @@
 					]
 				},
 				{
+					"begin": "\\$(_(\\S*?))?(:(\\S*?))?(?![\\w:-])",
+					"beginCaptures": {
+						"0": {
+							"name": "aventus.wcv.attribute"
+						},
+						"2": {
+							"name": "aventus.wcv.fctvalue"
+						}
+					},
+					"comment": "Aventus element attribute",
+					"end": "(?=\\s*+[^=\\s])",
+					"patterns": [
+						{
+							"begin": "=",
+							"beginCaptures": {
+								"0": {
+									"name": "punctuation.separator.key-value.html"
+								}
+							},
+							"end": "(?<=[^\\s=])(?!\\s*=)|(?=/?>)",
+							"patterns": [
+								{
+									"match": "([^\\s\"'=<>`/]|/(?!>))+",
+									"name": "string.unquoted.html"
+								},
+								{
+									"begin": "\"",
+									"beginCaptures": {
+										"0": {
+											"name": "punctuation.definition.string.begin.html"
+										}
+									},
+									"end": "\"",
+									"endCaptures": {
+										"0": {
+											"name": "punctuation.definition.string.end.html"
+										}
+									},
+									"name": "string.quoted.double.html",
+									"patterns": [
+										{
+											"include": "source.js"
+										}
+									]
+								}
+							]
+						}
+					]
+				},
+				{
 					"begin": "@([a-zA-Z_\\-])*?(?![\\w:-])",
 					"beginCaptures": {
 						"0": {

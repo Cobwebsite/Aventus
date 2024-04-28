@@ -11,6 +11,12 @@ export class Style {
     public static get(name: string): CSSStyleSheet {
         return this.getInstance().get(name);
     }
+    public static getAsString(name: string): string {
+        return this.getInstance().getAsString(name);
+    }
+    public static sheetToString(stylesheet: CSSStyleSheet): string {
+        return this.getInstance().sheetToString(stylesheet);
+    }
     public static load(name: string, url: string): Promise<void> {
         return this.getInstance().load(name, url);
     }
@@ -64,5 +70,17 @@ export class Style {
             style = this.store(name, "");
         }
         return style;
+    }
+
+    public getAsString(name: string): string {
+        return this.sheetToString(this.get(name));
+    }
+
+    public sheetToString(stylesheet: CSSStyleSheet): string {
+        return stylesheet.cssRules
+            ? Array.from(stylesheet.cssRules)
+                .map(rule => rule.cssText || '')
+                .join('\n')
+            : '';
     }
 }

@@ -1,6 +1,6 @@
 import { EOL } from 'os';
 import { normalize, sep } from 'path';
-import { CodeFixAction, CompilerOptions, CompletionInfo, createLanguageService, Diagnostic as DiagnosticTs, displayPartsToString, Extension, flattenDiagnosticMessageText, FormatCodeSettings, GetCompletionsAtPositionOptions, IndentStyle, JsxEmit, LanguageService, LanguageServiceHost, ModuleDetectionKind, ModuleResolutionKind, RenameInfo, ResolvedModule, ResolvedModuleFull, resolveModuleName, ScriptKind, ScriptTarget, SemicolonPreference, transpile, WithMetadata, UserPreferences, getTokenAtPosition, createSourceFile, isTypeReferenceNode, SourceFile } from 'typescript';
+import { CodeFixAction, CompilerOptions, CompletionInfo, createLanguageService, Diagnostic as DiagnosticTs, displayPartsToString, Extension, flattenDiagnosticMessageText, FormatCodeSettings, GetCompletionsAtPositionOptions, IndentStyle, JsxEmit, LanguageService, LanguageServiceHost, ModuleDetectionKind, ModuleResolutionKind, RenameInfo, ResolvedModule, ResolvedModuleFull, resolveModuleName, ScriptKind, ScriptTarget, SemicolonPreference, transpile, WithMetadata, UserPreferences, getTokenAtPosition, createSourceFile, isTypeReferenceNode, SourceFile, TypeFormatFlags, ResolvedProjectReference } from 'typescript';
 import { CodeAction, CodeLens, CompletionItem, CompletionItemKind, CompletionList, Definition, Diagnostic, DiagnosticSeverity, DiagnosticTag, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver';
 import { AventusExtension, AventusLanguageId } from '../../definition';
 import { AventusFile } from '../../files/AventusFile';
@@ -22,6 +22,7 @@ import { VariableInfo } from './parser/VariableInfo';
 import { BindThisDecorator } from './parser/decorators/BindThisDecorator';
 import { EnumInfo } from './parser/EnumInfo';
 import { HttpServer } from '../../live-server/HttpServer';
+import { AventusPackageNamespaceFileTs } from './package/File';
 
 
 
@@ -94,28 +95,7 @@ export class AventusTsLanguageService {
                 return existsSync(uriToPath(uri));
             },
             resolveModuleNames(moduleNames, containingFile, reusedNames, redirectedReference, options, containingSourceFile?) {
-                const resolvedModules: ResolvedModule[] = [];
-                for (let moduleName of moduleNames) {
-                    let file = FilesManager.getInstance().getByUri(containingFile);
-                    if (file) {
-                        moduleName = that.build.project.resolveAlias(moduleName, file);
-                    }
-                    let result = resolveModuleName(moduleName, containingFile, compilerOptionsRead, this)
-                    if (result.resolvedModule) {
-                        if (result.resolvedModule.resolvedFileName.endsWith(".avt.ts")) {
-                            result.resolvedModule.resolvedFileName = result.resolvedModule.resolvedFileName.replace(".avt.ts", ".avt");
-                        }
-                        resolvedModules.push(result.resolvedModule);
-                    }
-                    else {
-                        let temp: ResolvedModuleFull = {
-                            extension: Extension.Ts,
-                            resolvedFileName: moduleName,
-                        }
-                        resolvedModules.push(temp);
-                    }
-                }
-                return resolvedModules;
+                return that.resolveModuleNames(this, moduleNames, containingFile, reusedNames, redirectedReference, options, containingSourceFile);
             },
         };
         return host;
@@ -175,33 +155,38 @@ export class AventusTsLanguageService {
                 return existsSync(uriToPath(uri));
             },
             resolveModuleNames(moduleNames, containingFile, reusedNames, redirectedReference, options, containingSourceFile?) {
-                const resolvedModules: ResolvedModule[] = [];
-                for (let moduleName of moduleNames) {
-                    let file = FilesManager.getInstance().getByUri(containingFile);
-                    if (file) {
-                        moduleName = that.build.project.resolveAlias(moduleName, file);
-                    }
-                    let result = resolveModuleName(moduleName, containingFile, compilerOptionsRead, this)
-                    if (result.resolvedModule) {
-                        if (result.resolvedModule.resolvedFileName.endsWith(".avt.ts")) {
-                            result.resolvedModule.resolvedFileName = result.resolvedModule.resolvedFileName.replace(".avt.ts", ".avt");
-                        }
-                        resolvedModules.push(result.resolvedModule);
-                    }
-                    else {
-                        let temp: ResolvedModuleFull = {
-                            extension: Extension.Ts,
-                            resolvedFileName: moduleName,
-                        }
-                        resolvedModules.push(temp);
-                    }
-                }
-                return resolvedModules;
+                return that.resolveModuleNames(this, moduleNames, containingFile, reusedNames, redirectedReference, options, containingSourceFile);
             },
         };
         return host;
     }
-
+    private resolveModuleNames(host: LanguageServiceHost, moduleNames: string[], containingFile: string, reusedNames: string[] | undefined, redirectedReference: ResolvedProjectReference | undefined, options: CompilerOptions, containingSourceFile?: SourceFile): (ResolvedModule | undefined)[] {
+        const resolvedModules: ResolvedModule[] = [];
+        for (let moduleName of moduleNames) {
+            if (moduleName.startsWith("@")) {
+                moduleName = "/" + moduleName.slice(1);
+            }
+            let file = FilesManager.getInstance().getByUri(containingFile);
+            if (file) {
+                moduleName = this.build.project.resolveAlias(moduleName, file);
+            }
+            let result = resolveModuleName(moduleName, containingFile, compilerOptionsRead, host)
+            if (result.resolvedModule) {
+                if (result.resolvedModule.resolvedFileName.endsWith(".avt.ts")) {
+                    result.resolvedModule.resolvedFileName = result.resolvedModule.resolvedFileName.replace(".avt.ts", ".avt");
+                }
+                resolvedModules.push(result.resolvedModule);
+            }
+            else {
+                let temp: ResolvedModuleFull = {
+                    extension: Extension.Ts,
+                    resolvedFileName: moduleName,
+                }
+                resolvedModules.push(temp);
+            }
+        }
+        return resolvedModules;
+    }
 
     public addFile(tsFile: AventusTsFile) {
         if (this.filesNeeded.indexOf(tsFile.file.uri) == -1) {
@@ -273,9 +258,21 @@ export class AventusTsLanguageService {
             for (let i = 0; i < completions.entries.length; i++) {
                 let entry = completions.entries[i];
                 let remplacement = entry.insertText ? entry.insertText : entry.name
-                if (remplacement.startsWith(".?")) {
-                    remplacement = remplacement.substring(1);
+                remplacement = remplacement.replace(/\.\?\./g, "?.");
+                let additionalTextEdits: TextEdit[] | undefined = undefined;
+                if (remplacement.startsWith("?")) {
+                    let offsetMinusOne = document.offsetAt(replaceRange.start) - 1;
+                    if (document.getText()[offsetMinusOne] == ".") {
+                        additionalTextEdits = [{
+                            newText: "",
+                            range: {
+                                start: { line: replaceRange.start.line, character: replaceRange.start.character - 1 },
+                                end: { line: replaceRange.start.line, character: replaceRange.start.character },
+                            }
+                        }]
+                    }
                 }
+
                 let customData = {
                     languageId: AventusLanguageId.TypeScript,
                     offset: offset,
@@ -287,6 +284,7 @@ export class AventusTsLanguageService {
                     sortText: entry.sortText,
                     kind: convertKind(entry.kind),
                     textEdit: TextEdit.replace(replaceRange, remplacement),
+                    additionalTextEdits: additionalTextEdits,
                     data: { // data used for resolving item details (see 'doResolve')
                         ...entry.data,
                         ...customData
@@ -328,6 +326,18 @@ export class AventusTsLanguageService {
                         item.data);
 
                     if (details) {
+                        // let additionalTextEdits: TextEdit[] | undefined = undefined;
+                        // if (remplacement.startsWith("?")) {
+                        //     let offsetMinusOne = document.offsetAt(replaceRange.start) - 1;
+                        //     if (document.getText()[offsetMinusOne] == ".") {
+                        //         additionalTextEdits = [];
+                        //         let removeRange = {
+                        //             start: document.positionAt(offsetMinusOne),
+                        //             end: replaceRange.start
+                        //         }
+                        //         additionalTextEdits.push(TextEdit.replace(removeRange, ""));
+                        //     }
+                        // }
                         item.detail = displayPartsToString(details.displayParts);
                         item.documentation = displayPartsToString(details.documentation);
                         item.additionalTextEdits = [];
@@ -338,9 +348,17 @@ export class AventusTsLanguageService {
                                         txtChange.newText = txtChange.newText.replace(/'/g, '"');
                                         let newImport = /"(.*)"/g.exec(txtChange.newText);
                                         if (newImport && newImport.length > 1) {
-                                            let finalPath = simplifyPath(newImport[1], tsFile.file.uri);
-                                            item.detail += "\r\nimport from " + finalPath;
-                                            txtChange.newText = txtChange.newText.replace(newImport[1], finalPath);
+                                            if (!newImport[0].includes(AventusExtension.Package)) {
+                                                let finalPath = simplifyPath(newImport[1], tsFile.file.uri);
+                                                item.detail += "\r\nimport from " + finalPath;
+                                                txtChange.newText = txtChange.newText.replace(newImport[1], finalPath);
+                                            }
+                                            else {
+                                                let finalPath = newImport[1];
+                                                finalPath = this.filesNeeded.find(p => p.toLowerCase() == finalPath) ?? finalPath;
+                                                finalPath = "@" + finalPath.slice(1);
+                                                txtChange.newText = txtChange.newText.replace(newImport[1], finalPath);
+                                            }
                                         }
 
                                         item.additionalTextEdits.push({
@@ -379,6 +397,16 @@ export class AventusTsLanguageService {
 
                 let value: string = "";
                 if (info.displayParts) {
+                    for (let part of info.displayParts) {
+                        if (part.text.includes(AventusExtension.Package)) {
+                            if (part.text[0] == "/") {
+                                part.text = "@" + part.text.slice(1);
+                            }
+                            else if (part.text[1] == "/") {
+                                part.text = part.text.slice(0, 1) + "@" + part.text.slice(2);
+                            }
+                        }
+                    }
                     value += '\n```';
                     value += "typescript";
                     value += '\n';
@@ -412,7 +440,7 @@ export class AventusTsLanguageService {
 
             let node = getTokenAtPosition(srcFile, offset);
             let type = typeChecker.getTypeAtLocation(node);
-            let typeName = typeChecker.typeToString(type);
+            let typeName = typeChecker.typeToString(type, node, TypeFormatFlags.UseFullyQualifiedType);
             if (typeName.includes(".")) {
                 //its an external type => we can return
                 return typeName;
@@ -450,6 +478,9 @@ export class AventusTsLanguageService {
                     d.fileName = d.fileName.replace(".avt.ts", ".avt");
                 }
                 let realDoc = this.filesLoaded[d.fileName];
+                if (realDoc instanceof AventusPackageNamespaceFileTs) {
+                    return realDoc.goToDefinition(convertRange(realDoc.file.documentInternal, d.textSpan));
+                }
                 if (realDoc) {
                     return {
                         uri: realDoc.file.uri,
@@ -810,7 +841,7 @@ export class AventusTsLanguageService {
     private static replaceFirstExport(txt: string): string {
         return txt.replace(/^\s*export\s+(class|interface|enum|type|abstract|function)/m, "$1");
     }
-    private static prepareDataSchema(classInfo: ClassInfo) {
+    private static prepareDataSchema(classInfo: ClassInfo): string {
         let template: { [prop: string]: string } = {};
         const _loadType = (type: TypeInfo) => {
             if (type.kind == "boolean") {
@@ -868,9 +899,13 @@ export class AventusTsLanguageService {
                 }
             }
         }
-        return JSON.stringify(template).replace(/\\"/g, '"');
+        let result = JSON.stringify(template).replace(/\\"/g, '"');
+        if (classInfo.parentClass) {
+            result = `{...(${classInfo.parentClass.fullName}?.$schema ?? {}), ${result.slice(1)}`;
+        }
+        return result;
     }
-    
+
     private static addBindThis(element: ClassInfo, txt: string) {
         let extraConstructorCode: string[] = [];
         for (let methodName in element.methods) {
@@ -924,23 +959,30 @@ export class AventusTsLanguageService {
             let txt = element.compiledContent;
             let txtHotReload = element.compiledContentHotReload;
             if (element instanceof ClassInfo && !element.isInterface) {
-                
+
                 let currentNamespaceWithDot = "";
                 if (element.namespace) {
                     currentNamespaceWithDot = "." + element.namespace
                 }
-                additionContent += element.fullName + ".Namespace=`${moduleName}" + currentNamespaceWithDot + "`;";
+                additionContent += element.fullName + ".Namespace=`${moduleName}" + currentNamespaceWithDot + "`;" + EOL;
                 if (element.implements.includes('Aventus.IData')) {
-                    additionContent += element.fullName + ".$schema=" + this.prepareDataSchema(element) + ";";
-                    additionContent += "Aventus.DataManager.register(" + element.fullName + ".Fullname, " + element.fullName + ");";
                     result.type = InfoType.classData;
                 }
                 if (element.convertibleName) {
-                    additionContent += "Aventus.Converter.register(" + element.fullName + "." + element.convertibleName + ", " + element.fullName + ");"
+                    additionContent += element.fullName + ".$schema=" + this.prepareDataSchema(element) + ";" + EOL;
+                    additionContent += "Aventus.Converter.register(" + element.fullName + "." + element.convertibleName + ", " + element.fullName + ");" + EOL
+                }
+                else if (element.implements.includes('Aventus.IData')) {
+                    additionContent += element.fullName + ".$schema=" + this.prepareDataSchema(element) + ";" + EOL;
+                    additionContent += "Aventus.Converter.register(" + element.fullName + ".Fullname, " + element.fullName + ");" + EOL;
                 }
                 result.convertibleName = element.convertibleName;
 
                 txt = this.addBindThis(element, txt);
+            }
+            else if (element instanceof VariableInfo) {
+                txt = element.type + " " + element.compiledContent;
+                txtHotReload = element.type + " " + element.compiledContentHotReload;
             }
 
 
@@ -953,9 +995,7 @@ export class AventusTsLanguageService {
                 txtHotReload = this.replaceFirstExport(txtHotReload);
                 result.hotReload = transpile(txtHotReload, compilerOptionsCompile);
             }
-            if (element instanceof VariableInfo) {
-                result.compiled = element.type + " " + result.compiled;
-            }
+
             let doc = DefinitionCorrector.correct(this.compileDocTs(txt), element);
 
             if (doc.length > 0) {

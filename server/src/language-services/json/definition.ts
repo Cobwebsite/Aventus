@@ -62,3 +62,67 @@ export interface AventusConfig {
 		[alias: string]: string
 	}
 }
+
+export interface AventusSharp {
+	csProj: string,
+	outputPath: string,
+	exportEnumByDefault?: boolean,
+	exportStorableByDefault?: boolean,
+	exportHttpRouteByDefault?: boolean,
+	exportErrorsByDefault?: boolean,
+	exportWsEndPointByDefault?: boolean,
+	exportWsEventByDefault?: boolean,
+	exportWsRouteByDefault?: boolean,
+	replacer?: {
+		all?: AventusSharpReplacerPart
+		genericError?: AventusSharpReplacerPart
+		httpRouter?: AventusSharpReplacerPart
+		normalClass?: AventusSharpReplacerPart
+		storable?: AventusSharpReplacerPart
+		withError?: AventusSharpReplacerPart
+		wsEndPoint?: AventusSharpReplacerPart
+		wsEvent?: AventusSharpReplacerPart
+		wsRouter?: AventusSharpReplacerPart
+	},
+	httpRouter?: AventusSharpHttpRouter,
+	wsEndpoint?: AventusSharpWsEndPoint
+}
+
+interface AventusSharpReplacerPart {
+	type: {
+		[key: string]: {
+			result: string,
+			file?: string,
+			useTypeImport?: boolean,
+		}
+	}
+	result: {
+		[key: string]: {
+			result: string,
+			file?: string,
+			useTypeImport?: boolean,
+		}
+	}
+}
+
+
+interface AventusSharpHttpRouter {
+	createRouter?: boolean,
+	autobindRoute?: AventusSharpHttpRouterAutoBind,
+	routerName?: string,
+	variableRoutesName?: string,
+	uri?: string,
+	host?: string,
+	parent?: string,
+	namespace?: string
+}
+
+enum AventusSharpHttpRouterAutoBind {
+	none,
+	auto,
+	full,
+}
+
+interface AventusSharpWsEndPoint {
+	prefix?: string,
+}

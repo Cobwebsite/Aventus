@@ -12,9 +12,15 @@ export function pathToUri(path: string): string {
         return path;
     }
     if (sep === "/") {
-        return "file://" + encodeURI(path.replace(/\\/g, '/')).replace(":", "%3A");
+        return "file://" + normalizePath(encodeURI(path.replace(/\\/g, '/')));
     }
-    return "file:///" + encodeURI(path.replace(/\\/g, '/')).replace(":", "%3A");
+    return "file:///" + normalizePath(encodeURI(path.replace(/\\/g, '/')));
+}
+
+function normalizePath(path:string) {
+    return path
+    .replace(/:/g, "%3A")
+    .replace(/@/g, "%40")
 }
 export function uriToPath(uri: string): string {
     if (sep === "/") {

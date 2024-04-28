@@ -141,6 +141,7 @@ export class ParserTs {
     public functions: { [shortName: string]: FunctionInfo } = {};
     public enums: { [shortName: string]: EnumInfo } = {};
     public imports: { [importClassName: string]: ImportInfo } = {};
+    public packages: { [importClassName: string]: { fullname: string } } = {};
     public npmImports: {
         [importClassName: string]: {
             nameInsideLib: string,
@@ -381,5 +382,10 @@ export class ParserTs {
             return this.variables[name];
         }
         return null;
+    }
+
+    public getBaseInfoFullName(fullName: string): BaseInfo | null {
+        const name: string = fullName.split(".").pop() ?? fullName;
+        return this.getBaseInfo(name);
     }
 }

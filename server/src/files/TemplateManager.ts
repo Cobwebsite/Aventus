@@ -191,6 +191,9 @@ export class TemplateManager {
 		checkOrCreate([projectsFolder, "Default", "src", "ram"]);
 		checkOrCreate([projectsFolder, "Default", "src", "states"]);
 		checkOrCreate([projectsFolder, "Default", "src", "static"]);
+
+		checkOrCreate([projectsFolder, "Empty"]);
+		checkOrCreate([projectsFolder, "Empty", "src"]);
 	}
 
 

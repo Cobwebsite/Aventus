@@ -161,7 +161,7 @@ export class ${className} extends Aventus.Ram<${objectName}, ${objectName}Extend
 	/**
 	 * Create a singleton to store data
 	 */
-	public static getInstance() {
+	public static getInstance(): ${className} {
 		return Aventus.Instance.get(${className});
 	}
 
@@ -205,7 +205,7 @@ export class ${className} extends Aventus.Ram<${objectName}> implements Aventus.
 	/**
 	 * Create a singleton to store data
 	 */
-	public static getInstance() {
+	public static getInstance(): ${className} {
 		return Aventus.Instance.get(${className});
 	}
 
@@ -358,7 +358,7 @@ export class ${className} extends Aventus.Ram<${objectName}> implements Aventus.
 	/**
 	 * Get the instance of the StateManager
 	 */
-	public static getInstance() {
+	public static getInstance(): ${name}StateManager {
 		return Aventus.Instance.get(${name}StateManager);
 	}
 

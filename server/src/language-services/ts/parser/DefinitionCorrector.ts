@@ -162,9 +162,18 @@ export class DefinitionCorrector {
 
 	private static parseQualified2(n: any): string | undefined {
 		let preset = "";
-		if (n.expression && n.expression.kind === SyntaxKind.Identifier) {
-			preset = n.expression.text + "."
+		if (n.expression) {
+			if (n.expression.kind === SyntaxKind.PropertyAccessExpression) {
+				let presetTemp = this.parseQualified2(n.expression);
+				if (presetTemp) {
+					preset = presetTemp + "."
+				}
+			}
+			else if (n.expression.kind === SyntaxKind.Identifier) {
+				preset = n.expression.text + "."
+			}
 		}
+
 		if (!n.name) {
 			return preset + n.text;
 		}

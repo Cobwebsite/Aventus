@@ -1,22 +1,22 @@
+import { Converter } from "../tools/Converter.lib.avt";
 import { Json } from "../tools/Json.lib.avt";
-import { DataManager } from "./DataManager.lib.avt";
 
 export interface IData {
     /**
      * Get the unique type for the data. Define it as the fullnamespace + class name
      */
     get $type(): string;
+    /**
+     * Clone the object
+     */
+    clone(): this;
 }
 
-@Dependances([{
-    type: DataManager,
-    strong: true
-}])
 export abstract class Data implements IData {
     /**
      * The schema for the class
      */
-    public static get $schema(): { [prop: string]: string; } { return {}; }
+    public static readonly $schema: { [prop: string]: string; }
     /**
      * The current namespace
      */
@@ -53,5 +53,9 @@ export abstract class Data implements IData {
         return Json.classToJson(this, {
             isValidKey: (key) => !toAvoid.includes(key)
         });
+    }
+
+    public clone(): this {
+        return Converter.transform<this>(JSON.parse(JSON.stringify(this)));
     }
 }

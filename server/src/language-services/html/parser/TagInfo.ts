@@ -489,7 +489,7 @@ export class AttributeInfo {
 				type: 'property'
 			})
 		}
-		else if (this.name.startsWith("@bind")) {
+		else if (this.name.startsWith("@bind") || this.name.startsWith("$")) {
 			let binding = new Binding(this.name, value, valueStart, valueEnd)
 			this.tag.bindings.push(binding);
 			ParserHtml.addBinding(binding);
@@ -1099,6 +1099,9 @@ export class Binding implements InjectionRender {
 		let fct = splitted[0];
 		if (fct.startsWith("@bind_")) {
 			this.event = fct.replace("@bind_", "");
+		}
+		else if(fct.startsWith("$") && fct.length > 0) {
+			this.event = fct.replace("$", "");
 		}
 		if (splitted.length > 1) {
 			this.valueName = splitted[1];

@@ -209,6 +209,33 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
             this.__watchFunctionsComputed[name].destroy();
         }
         // TODO add missing info for destructor();
+
+        this.postDestruction();
+
+        this.destructChildren();
+    }
+    protected destructChildren() {
+        const recu = (el: HTMLElement) => {
+            for(let child of Array.from(el.children)) {
+                if(child instanceof WebComponent) {
+                    child.destructor();
+                }
+                else if(child instanceof HTMLElement) {
+                    recu(child);
+                }
+            }
+            if(el.shadowRoot) {
+                for(let child of Array.from(el.shadowRoot.children)) {
+                    if(child instanceof WebComponent) {
+                        child.destructor();
+                    }
+                    else if(child instanceof HTMLElement) {
+                        recu(child);
+                    }
+                }
+            }
+        };
+        recu(this);
     }
     private __addWatchesActions(name: string, fct?: () => void) {
         if(!this.__watchActions[name]) {
@@ -252,8 +279,12 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
                 let defaultValue = {};
                 this.__defaultValuesWatch(defaultValue);
                 this.__watch = Watcher.get(defaultValue, (type, path, element) => {
-                    let action = this.__watchActionsCb[path.split(".")[0]] || this.__watchActionsCb[path.split("[")[0]];
-                    action(type, path, element);
+                    try {
+                        let action = this.__watchActionsCb[path.split(".")[0]] || this.__watchActionsCb[path.split("[")[0]];
+                        action(type, path, element);
+                    } catch(e) {
+                        console.error(e);
+                    }
                 });
             }
         }
@@ -330,7 +361,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
         let shadowRoot = this.attachShadow({ mode: 'open' });
         shadowRoot.adoptedStyleSheets = [...Object.values(staticInstance.__styleSheets), Style.noAnimation];
         shadowRoot.appendChild(this.__templateInstance.content);
-        customElements.upgrade(shadowRoot);
+        // customElements.upgrade(shadowRoot);
         return shadowRoot;
     }
 
@@ -345,19 +376,32 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
             this._first = false;
             this.__defaultValues();
             this.__upgradeAttributes();
+            this.__activateState();
             this.__templateInstance?.render();
             this.__removeNoAnimations();
         }
+        else {
+            setTimeout(() => {
+                this.postConnect();
+            });
+        }
     }
+
+    private disconnectedCallback() {
+        setTimeout(() => {
+            this.postDisonnect();
+        });
+    }
+
     private __removeNoAnimations() {
         if(document.readyState !== "loading") {
-            this.offsetWidth;
             setTimeout(() => {
                 this.postCreation();
                 this._isReady = true;
                 this.dispatchEvent(new CustomEvent('postCreationDone'));
                 this.shadowRoot!.adoptedStyleSheets = Object.values(this.__getStatic().__styleSheets);
                 document.removeEventListener("DOMContentLoaded", this.__removeNoAnimations);
+                this.postConnect();
             }, 50);
         }
     }
@@ -377,6 +421,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
             }
             else {
                 this.removeAttribute(prop);
+                delete this[prop];
                 this[prop] = false;
             }
         }
@@ -386,6 +431,19 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
                 delete this[prop];
                 this[prop] = value;
             }
+            else if(Object.hasOwn(this, prop)) {
+                const value = this[prop];
+                delete this[prop];
+                this[prop] = value;
+            }
+        }
+    }
+
+    private __correctGetter(prop: string) {
+        if(Object.hasOwn(this, prop)) {
+            const value = this[prop];
+            delete this[prop];
+            this[prop] = value;
         }
     }
 
@@ -483,11 +541,23 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
             for(const managerClass of this.__statesList[route].keys()) {
                 let el = this.__statesList[route].get(managerClass);
                 if(el) {
-                    managerClass.subscribe(route, el);
+                    managerClass.subscribe(route, el, false);
                 }
             }
         }
     }
+
+    private __activateState() {
+        for(let route in this.__statesList) {
+            for(const managerClass of this.__statesList[route].keys()) {
+                let el = this.__statesList[route].get(managerClass);
+                if(el) {
+                    managerClass.activateAfterSubscribe(route, el);
+                }
+            }
+        }
+    }
+
     private __stateCleared: boolean = false;
     private __unsubscribeState() {
         for(let route in this.__statesList) {
@@ -503,13 +573,19 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
     //#endregion
 
     //#region date
-    protected dateToString(d: Date): string | null {
+    protected dateToString(d: Date | string | null | undefined): string | null {
+        if(typeof d == 'string') {
+            d = this.stringToDate(d);
+        }
         if(d instanceof Date) {
             return new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split("T")[0];
         }
         return null;
     }
-    protected dateTimeToString(dt: Date): string | null {
+    protected dateTimeToString(dt: Date | string | null | undefined): string | null {
+        if(typeof dt == 'string') {
+            dt = this.stringToDate(dt);
+        }
         if(dt instanceof Date) {
             return new Date(dt.getTime() - (dt.getTimezoneOffset() * 60000)).toISOString().slice(0, -1);
         }
@@ -677,14 +753,19 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
         }
     }
 
-    /** @inheritdoc */
-    public override remove(): void {
+    /**
+     * Remove a component from the dom
+     * If desctruct is set to true, the component will be fully destroyed
+     */
+    public override remove(destruct: boolean = true): void {
         super.remove();
-        this.postDestruction();
+        if(destruct) {
+            this.destructor();
+        }
     }
 
     /**
-     * Function triggered when the component is removed from the DOM
+     * Function triggered when the component is destroyed
      */
     protected postDestruction(): void { }
 
@@ -692,6 +773,16 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
      * Function triggered the first time the component is rendering inside DOM
      */
     protected postCreation(): void { }
+
+    /**
+    * Function triggered each time the component is rendering inside DOM
+    */
+    protected postConnect(): void { }
+
+    /**
+    * Function triggered each time the component is removed from the DOM
+    */
+    protected postDisonnect(): void { }
 
     //#region tools
 

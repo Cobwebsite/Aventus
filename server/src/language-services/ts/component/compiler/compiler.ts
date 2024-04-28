@@ -329,8 +329,8 @@ export class AventusWebcomponentCompiler {
     private loadParent(classInfo: ClassInfo, isFirst: boolean = true) {
         let fields = this.loadFields(classInfo, isFirst);
         this.allFields = {
+            ...fields,
             ...this.allFields,
-            ...fields
         }
 
         for (let methodName in classInfo.methods) {
@@ -357,6 +357,9 @@ export class AventusWebcomponentCompiler {
         let result: { [key: string]: CustomFieldModel } = {};
         for (let propName in classInfo.properties) {
             let property = classInfo.properties[propName];
+            if (this.allFields[property.name]) {
+                continue;
+            }
             let found = false;
             let cloneProp = new CustomFieldModel(property.prop, property.isInsideInterface, classInfo);
             for (let decorator of property.decorators) {
@@ -582,6 +585,9 @@ export class AventusWebcomponentCompiler {
             let field = this.allFields[fieldName];
             // if (field.inParent && this.overrideViewDecorator === null) {
             if (field.inParent) {
+                if (field.propType == "Attribute" || field.propType == "Property") {
+                    this.createHtmlDoc(field, field.type);
+                }
                 continue;
             }
             if (field.propType == "Attribute") {
@@ -649,6 +655,7 @@ export class AventusWebcomponentCompiler {
         let variablesSimpleTxt = "";
         let variablesSimpleHotReloadTxt = "";
 
+        let simpleCorrect: string[] = [];
         let fullTxt = "";
         let fullTxtHotReload = "";
         if (this.classInfo) {
@@ -661,6 +668,13 @@ export class AventusWebcomponentCompiler {
         for (let field of fields) {
             fullTxt += field.compiledContent + EOL;
             fullTxtHotReload += field.compiledContentHotReload + EOL;
+
+            if (field.isGet || field.isSet) {
+                if (!simpleCorrect.includes(field.name)) {
+                    simpleCorrect.push(field.name);
+                    this.upgradeAttributes += 'this.__correctGetter(\'' + field.name + '\');' + EOL;
+                }
+            }
         }
         let fullClassFields = `class MyCompilationClassAventus {${fullTxt}}`;
         let fieldsCompiled = "";
@@ -857,6 +871,8 @@ export class AventusWebcomponentCompiler {
 
             defaultValueWatch += `w["${field.name}"] = ${field.defaultValue?.replace(/\\"/g, '')};` + EOL;
             this.foundedWatch.push(field.name);
+            this.upgradeAttributes += 'this.__correctGetter(\'' + field.name + '\');' + EOL;
+
 
             if (HttpServer.isRunning) {
                 defaultValueWatchHotReload += `w["${field.name}"] = ${field.defaultValueHotReload?.replace(/\\"/g, '')};` + EOL;
@@ -920,13 +936,17 @@ export class AventusWebcomponentCompiler {
             let defaultStateTxt = "";
             if (this.classInfo) {
                 let fullTxt = ""
-                let fullTxtHotReload = ""
-                for (let methodName in this.classInfo.methods) {
-                    let method = this.classInfo.methods[methodName];
+                let fullTxtHotReload = "";
+                const methods = [...Object.values(this.classInfo.methods), ...Object.values(this.classInfo.methodsStatic)]
+                for (let method of methods) {
                     if (!method.mustBeCompiled) continue;
+                    let methodName = method.name;
                     fullTxt += method.compiledContent + EOL;
                     if (HttpServer.isRunning)
                         fullTxtHotReload += method.compiledContentHotReload + EOL;
+
+                    if (method.isStatic) continue;
+
                     for (let decorator of method.decorators) {
                         if (BindThisDecorator.is(decorator)) {
                             this.extraConstructorCode.push(`this.${methodName}=this.${methodName}.bind(this)`);
@@ -1145,7 +1165,7 @@ export class AventusWebcomponentCompiler {
                     let cbName = this.isCallback(definition.class, binding.eventNames[0]);
                     if (cbName != null) {
                         temp.isCallback = true;
-                        binding.eventNames[0] = cbName;
+                        temp.eventNames[0] = cbName;
                     }
                 }
             }
@@ -1171,7 +1191,7 @@ export class AventusWebcomponentCompiler {
                         let cbName = this.isCallback(definition.class, event.eventName);
                         if (cbName != null) {
                             temp.isCallback = true;
-                            event.eventName = cbName;
+                            temp.eventName = cbName;
                             temp.fct = `@_@(c, ...args) => c.comp.${event.fct}.apply(c.comp, ...args)@_@`;
                         }
                     }

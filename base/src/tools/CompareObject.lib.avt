@@ -1,3 +1,4 @@
+import { Watcher } from "../lib/Watcher.lib.avt";
 
 /**
  * Compare two objects for equality, recursively checking nested arrays, objects, and dates.
@@ -31,14 +32,19 @@ export function compareObject(obj1, obj2) {
         }
         // all entries founded
         return true;
-    } else if(obj1 instanceof Date) {
-        // date
-        return obj1.toString() === obj2.toString();
     } else if(typeof obj1 === 'object' && obj1 !== undefined && obj1 !== null) {
         // object
         if(typeof obj2 !== 'object' || obj2 === undefined || obj2 === null) {
             return false;
         }
+        if(obj1 instanceof HTMLElement || obj2 instanceof HTMLElement) {
+            return obj1 == obj2;
+        }
+        if(obj1 instanceof Date || obj2 instanceof Date) {
+            return obj1.toString() === obj2.toString();
+        }
+        obj1 = Watcher.extract(obj1);
+        obj2 = Watcher.extract(obj2);
         // not same keys length
         if(Object.keys(obj1).length !== Object.keys(obj2).length) {
             return false;
@@ -70,7 +76,7 @@ export function getValueFromObject(path: string, obj: any) {
     // Convert bracket notation to dot notation
     path = path.replace(/\[(.*?)\]/g, '.$1');
 
-     // If path is empty, return the entire object
+    // If path is empty, return the entire object
     if(path == "") {
         return obj;
     }
@@ -101,7 +107,7 @@ export function getValueFromObject(path: string, obj: any) {
  * @param {*} value The value to set.
  */
 export function setValueToObject(path: string, obj: any, value: any) {
-     // Convert bracket notation to dot notation
+    // Convert bracket notation to dot notation
     path = path.replace(/\[(.*?)\]/g, '.$1');
 
     // Split the path into individual keys
@@ -118,4 +124,10 @@ export function setValueToObject(path: string, obj: any, value: any) {
 
     // Set the value at the last segment of the path
     obj[splitted[splitted.length - 1]] = value;
+}
+
+
+
+export function isClass(v: any): boolean {
+    return typeof v === 'function' && /^\s*class\s+/.test(v.toString());
 }

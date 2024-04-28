@@ -2,7 +2,7 @@
 	"name": "aventus",
 	"displayName": "Aventus",
 	"description": "This extension allows compilation of Aventus Framework",
-	"version": "1.2.0",
+	"version": "1.2.1",
 	"license": "MIT",
 	"icon": "icons/logo.png",
 	"author": {
@@ -73,7 +73,8 @@
 					".ram.avt",
 					".state.avt",
 					".static.avt",
-					".def.avt"
+					".def.avt",
+					".package.avt"
 				],
 				"configuration": "./syntaxes/ts-language-configuration.json",
 				"filenames": [
@@ -81,17 +82,6 @@
 					"aventus.sharp.avt",
 					"template.avt"
 				],
-				"icon": {
-					"light": "./icons/icon.png",
-					"dark": "./icons/icon.png"
-				}
-			},
-			{
-				"id": "Aventus Package",
-				"extensions": [
-					".package.avt"
-				],
-				"configuration": "./syntaxes/ts-language-configuration.json",
 				"icon": {
 					"light": "./icons/icon.png",
 					"dark": "./icons/icon.png"
@@ -123,11 +113,6 @@
 					"source.js": "Aventus Ts",
 					"text.html1.basic": "Aventus HTML"
 				}
-			},
-			{
-				"language": "Aventus Package",
-				"scopeName": "source.js",
-				"path": "./syntaxes/javascript.tmLanguage.json"
 			}
 		],
 		"configuration": {
@@ -388,6 +373,10 @@
 				"title": "Aventus : Open debug file"
 			},
 			{
+				"command": "aventus.openfile.debugsharp",
+				"title": "Aventus : Open debug file"
+			},
+			{
 				"command": "aventus.reloadSettings",
 				"title": "Aventus : Reload settings"
 			}
@@ -559,6 +548,10 @@
 				{
 					"command": "aventus.reloadSettings",
 					"when": "false"
+				},
+				{
+					"command": "aventus.openfile.debugsharp",
+					"when": "false"
 				}
 			]
 		},
@@ -636,7 +629,7 @@
 		"@types/send": "^0.17.1",
 		"@types/vscode": "^1.68.0",
 		"@types/ws": "^8.5.3",
-		"@vscode/vsce": "^2.22.0",
+		"@vscode/vsce": "^2.26.0",
 		"babel-jest": "^29.0.2",
 		"concurrently": "^7.6.0",
 		"jest": "^29.0.2",
@@ -680,7 +673,7 @@
 		"uglify-js": "^3.17.1",
 		"url": "^0.11.0",
 		"uuid": "^9.0.0",
-		"vscode-css-languageservice": "^6.2.11",
+		"vscode-css-languageservice": "^6.2.14",
 		"vscode-html-languageservice": "^5.0.0",
 		"vscode-json-languageservice": "^5.0.0",
 		"vscode-languageclient": "^6.1.3",

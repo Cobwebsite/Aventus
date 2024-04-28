@@ -61,7 +61,7 @@ type Loop = {
 type LoopRegistery = {
     templates: TemplateInstance[],
     computeds: Computed[],
-    sub?: WatcherFunction;
+    unsub?: () => void;
 };
 type If = {
     anchorId: string;
@@ -214,6 +214,8 @@ export class Template {
 
     public createInstance(component: WebComponent) {
         let content = this.template.content.cloneNode(true) as DocumentFragment;
+        document.adoptNode(content);
+        customElements.upgrade(content);
         return new TemplateInstance(component, content, this.actions, this.loops, this.ifs);
     }
 }
@@ -272,11 +274,15 @@ export class TemplateInstance {
     public destructor() {
         this.isDestroyed = true;
         for(let name in this.loopRegisteries) {
-            for(let item of this.loopRegisteries[name].templates) {
+            let register = this.loopRegisteries[name];
+            for(let item of register.templates) {
                 item.destructor();
             }
-            for(let item of this.loopRegisteries[name].computeds) {
+            for(let item of register.computeds) {
                 item.destroy();
+            }
+            if(register.unsub) {
+                register.unsub();
             }
         }
         this.loopRegisteries = {};
@@ -391,7 +397,7 @@ export class TemplateInstance {
                 cb?.add((...args) => {
                     // TODO check if it's working
                     try {
-                        event.fct(this.context, args);
+                        return event.fct(this.context, args);
                     } catch(e) {
                         console.error(e);
                     }
@@ -488,8 +494,7 @@ export class TemplateInstance {
                     }
                 }
                 else {
-                    console.log(e);
-                    debugger;
+                    console.error(e);
                 }
             }
             return "";
@@ -527,8 +532,7 @@ export class TemplateInstance {
                     }
                 }
                 else {
-                    console.log(e);
-                    debugger;
+                    console.error(e);
                 }
             }
         });
@@ -559,8 +563,7 @@ export class TemplateInstance {
                     }
                 }
                 else {
-                    console.log(e);
-                    debugger;
+                    console.error(e);
                 }
             }
         });
@@ -679,6 +682,8 @@ export class TemplateInstance {
         for(let i = 0; i < result.length; i++) {
             let context = new TemplateContext(this.component, result[i], this.context, this.loopRegisteries[loop.anchorId]);
             let content = loop.template.template?.content.cloneNode(true) as DocumentFragment;
+            document.adoptNode(content);
+            customElements.upgrade(content);
             let actions = loop.template.actions;
             let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
             instance.render();
@@ -688,9 +693,9 @@ export class TemplateInstance {
     }
 
     private resetLoopSimple(anchorId: string, basePath: string) {
-        let elements = this.context.getValueFromItem(basePath);
-        if(elements && this.loopRegisteries[anchorId]) {
-            elements.unsubscribe(this.loopRegisteries[anchorId].sub);
+        let register = this.loopRegisteries[anchorId];
+        if(register?.unsub) {
+            register.unsub();
         }
         this.resetLoopComplex(anchorId);
     }
@@ -771,6 +776,8 @@ export class TemplateInstance {
                         let context = new TemplateContext(this.component, {}, this.context, registry);
                         context.registerLoop(basePath, index, indexName, simple.index, simple.item, onThis);
                         let content = loop.template.template?.content.cloneNode(true) as DocumentFragment;
+                        document.adoptNode(content);
+                        customElements.upgrade(content);
                         let actions = loop.template.actions;
                         let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
                         instance.render();
@@ -799,7 +806,9 @@ export class TemplateInstance {
                     }
                 }
             };
-            this.loopRegisteries[loop.anchorId].sub = sub;
+            this.loopRegisteries[loop.anchorId].unsub = () => {
+                elements.unsubscribe(sub);
+            };
             elements.subscribe(sub);
         }
 
@@ -808,6 +817,8 @@ export class TemplateInstance {
             let context = new TemplateContext(this.component, {}, this.context, this.loopRegisteries[loop.anchorId]);
             context.registerLoop(basePath, i, indexName, simple.index, simple.item, onThis);
             let content = loop.template.template?.content.cloneNode(true) as DocumentFragment;
+            document.adoptNode(content);
+            customElements.upgrade(content);
             let actions = loop.template.actions;
             let instance = new TemplateInstance(this.component, content, actions, loop.template.loops, loop.template.ifs, context);
             instance.render();
@@ -818,8 +829,14 @@ export class TemplateInstance {
     }
 
     private renderIf(_if: If) {
+        // TODO check which version is better
+        // this.renderIfMemory(_if);
+        this.renderIfRecreate(_if);
+    }
+    private renderIfMemory(_if: If) {
         let computeds: Computed<boolean>[] = [];
         let instances: TemplateInstance[] = [];
+        if(!this._components[_if.anchorId] || this._components[_if.anchorId].length == 0) return;
         let anchor = this._components[_if.anchorId][0];
         let currentActive: number = -1;
         const calculateActive = () => {
@@ -868,6 +885,8 @@ export class TemplateInstance {
 
             let context = new TemplateContext(this.component, {}, this.context);
             let content = part.template.template?.content.cloneNode(true) as DocumentFragment;
+            document.adoptNode(content);
+            customElements.upgrade(content);
             let actions = part.template.actions;
             let instance = new TemplateInstance(this.component, content, actions, part.template.loops, part.template.ifs, context);
             instances.push(instance);
@@ -877,6 +896,68 @@ export class TemplateInstance {
         calculateActive();
     }
 
+    private renderIfRecreate(_if: If) {
+        let computeds: Computed<boolean>[] = [];
+        if(!this._components[_if.anchorId] || this._components[_if.anchorId].length == 0) return;
+        let anchor = this._components[_if.anchorId][0];
+        let currentActive: TemplateInstance | undefined = undefined;
+        let currentActiveNb: number = -1;
+        const createContext = () => {
+            if(currentActiveNb < 0 || currentActiveNb > _if.parts.length - 1) {
+                currentActive = undefined;
+                return;
+            }
+
+            const part = _if.parts[currentActiveNb];
+            let context = new TemplateContext(this.component, {}, this.context);
+            let content = part.template.template?.content.cloneNode(true) as DocumentFragment;
+            document.adoptNode(content);
+            customElements.upgrade(content);
+            let actions = part.template.actions;
+            let instance = new TemplateInstance(this.component, content, actions, part.template.loops, part.template.ifs, context);
+            currentActive = instance;
+            instance.render();
+            anchor.parentNode?.insertBefore(currentActive.content, anchor);
+        };
+
+
+        for(let i = 0; i < _if.parts.length; i++) {
+            const part = _if.parts[i];
+            let _class = part.once ? ComputedNoRecomputed : Computed;
+            let computed = new _class(() => {
+                return part.condition(this.context);
+            });
+            computeds.push(computed);
+            computed.subscribe(() => {
+                calculateActive();
+            });
+            this.computeds.push(computed);
+        }
+
+
+        const calculateActive = () => {
+            let newActive = -1;
+            for(let i = 0; i < _if.parts.length; i++) {
+                if(computeds[i].value) {
+                    newActive = i;
+                    break;
+                }
+            }
+
+            if(newActive == currentActiveNb) {
+                return;
+            }
+
+            if(currentActive) {
+                currentActive.destructor();
+            }
+
+            currentActiveNb = newActive;
+            createContext();
+        };
+
+        calculateActive();
+    }
 }
 
 export class TemplateContext {
@@ -970,7 +1051,6 @@ export class TemplateContext {
             let index = keys[_getIndex.value];
             let element = items[index];
             if(element === undefined && (Array.isArray(items) || !items)) {
-                debugger;
                 if(this.registry) {
                     let indexNb = Number(_getIndex.value);
                     if(!isNaN(indexNb)) {
