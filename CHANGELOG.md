@@ -1,5 +1,14 @@
 # Change Log
 
+## 1.2.2 ()
+
+### Bug Fixes
+ - Prevent namespace updating when name of getter/setter is a type name
+ - Correct dependance fullname for generic class inheritance
+
+### Features
+
+
 ## 1.2.1 (2024-04-28)
 
 ### Bug Fixes

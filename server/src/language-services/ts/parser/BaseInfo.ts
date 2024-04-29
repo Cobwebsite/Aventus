@@ -202,6 +202,9 @@ export abstract class BaseInfo {
             if (x.parent.kind == SyntaxKind.PropertyAccessExpression) {
                 return;
             }
+            if (x.parent.kind == SyntaxKind.GetAccessor || x.parent.kind == SyntaxKind.SetAccessor) {
+                return;
+            }
             if (x.parent.kind >= SyntaxKind.VariableDeclaration && x.parent.kind <= SyntaxKind.JsxExpression) {
                 return;
             }
@@ -213,7 +216,7 @@ export abstract class BaseInfo {
             ].includes(x.parent.kind)) {
                 return;
             }
-            
+
             let localClassName = x.getText();
             if (localClassName != 'this' && !localClassName.includes('.')) {
                 let baseInfo = ParserTs.getBaseInfo(localClassName);
@@ -306,34 +309,34 @@ export abstract class BaseInfo {
                 cb(result);
             }
         }
-        const loop = (info: TypeInfo) => {
+        const loop = (info: TypeInfo, lvl: number) => {
             if (info.kind == "type") {
                 nb++;
                 this.addDependanceName(info.value, isStrongDependance, info.start, info.endNonGeneric, (fullName) => {
-                    if (fullName) result.push(fullName);
+                    if (fullName && lvl == 0) result.push(fullName);
                     nb--;
                     validate();
                 });
                 for (let nested of info.nested) {
-                    loop(nested);
+                    loop(nested, lvl + 1);
                 }
                 for (let generic of info.genericValue) {
-                    loop(generic);
+                    loop(generic, lvl + 1);
                 }
             }
             else if (info.kind == "typeLiteral" || info.kind == "function") {
                 for (let nested of info.nested) {
-                    loop(nested);
+                    loop(nested, lvl + 1);
                 }
             }
 
             else if (info.kind == "union") {
                 for (let nested of info.nested) {
-                    loop(nested);
+                    loop(nested, lvl + 1);
                 }
             }
         }
-        loop(new TypeInfo(type));
+        loop(new TypeInfo(type), 0);
         validate();
     }
 
@@ -523,7 +526,7 @@ export abstract class BaseInfo {
             })
             return;
         }
-        else if(this.parserInfo.packages[name]) {
+        else if (this.parserInfo.packages[name]) {
             let fullName = this.parserInfo.packages[name].fullname;
             this.dependances.push({
                 fullName: fullName,
@@ -598,7 +601,7 @@ export abstract class BaseInfo {
         let transformations: { newText: string, start: number, end: number }[] = [];
         for (let depName in dependancesLocations) {
             let replacement = isHotReload ? dependancesLocations[depName].hotReloadReplacement : dependancesLocations[depName].replacement;
-            let typeRemplacement =  dependancesLocations[depName].typeRemplacement;
+            let typeRemplacement = dependancesLocations[depName].typeRemplacement;
             if (replacement) {
                 for (let locationKey in dependancesLocations[depName].locations) {
                     let location = dependancesLocations[depName].locations[locationKey];

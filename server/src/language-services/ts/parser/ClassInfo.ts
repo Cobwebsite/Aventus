@@ -159,7 +159,7 @@ export class ClassInfo extends BaseInfo {
 								let parent = BaseInfo.getInfoByFullName(names[0], this);
 								if (parent && parent instanceof ClassInfo) {
 									this.parentClass = parent;
-									if(this.parentClass == this) {
+									if (this.parentClass == this) {
 										this.parentClass = null;
 										throw 'The parent is the child => impossible. Please send it to an admin'
 									}
@@ -179,7 +179,9 @@ export class ClassInfo extends BaseInfo {
 				if (x.kind == SyntaxKind.ExpressionWithTypeArguments) {
 					this.addDependanceWaitName(x as ExpressionWithTypeArguments, true, (names) => {
 						if (names.length > 0) {
-							this.implements.push(names[0]);
+							for (let name of names) {
+								this.implements.push(name);
+							}
 						}
 					});
 
