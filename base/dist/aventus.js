@@ -5112,91 +5112,6 @@ const Instance=class Instance {
 Instance.Namespace=`${moduleName}`;
 
 _.Instance=Instance;
-const Callback=class Callback {
-    callbacks = new Map();
-    /**
-     * Clear all callbacks
-     */
-    clear() {
-        this.callbacks.clear();
-    }
-    /**
-     * Add a callback
-     */
-    add(cb, scope = null) {
-        if (!this.callbacks.has(cb)) {
-            this.callbacks.set(cb, scope);
-        }
-    }
-    /**
-     * Remove a callback
-     */
-    remove(cb) {
-        this.callbacks.delete(cb);
-    }
-    /**
-     * Trigger all callbacks
-     */
-    trigger(args) {
-        let result = [];
-        let cbs = [...this.callbacks];
-        for (let [cb, scope] of cbs) {
-            result.push(cb.apply(scope, args));
-        }
-        return result;
-    }
-}
-Callback.Namespace=`${moduleName}`;
-
-_.Callback=Callback;
-const CallbackGroup=class CallbackGroup {
-    callbacks = {};
-    /**
-     * Clear all callbacks
-     */
-    clearAll() {
-        this.callbacks = {};
-    }
-    /**
-     * Clear all callbacks for a specific group
-     */
-    clear(group) {
-        delete this.callbacks[group];
-    }
-    /**
-     * Add a callback for a group
-     */
-    add(group, cb, scope = null) {
-        if (!this.callbacks[group]) {
-            this.callbacks[group] = new Map();
-        }
-        if (!this.callbacks[group].has(cb)) {
-            this.callbacks[group].set(cb, scope);
-        }
-    }
-    /**
-     * Remove a callback for a group
-     */
-    remove(group, cb) {
-        if (this.callbacks[group]) {
-            this.callbacks[group].delete(cb);
-        }
-    }
-    /**
-     * Trigger all callbacks inside a group
-     */
-    trigger(group, args) {
-        if (this.callbacks[group]) {
-            let cbs = [...this.callbacks[group]];
-            for (let [cb, scope] of cbs) {
-                cb.apply(scope, args);
-            }
-        }
-    }
-}
-CallbackGroup.Namespace=`${moduleName}`;
-
-_.CallbackGroup=CallbackGroup;
 const createCommProxy=function createCommProxy(that) {
     let proxyData = {
         routePath: {},
@@ -5288,6 +5203,91 @@ const createCommProxy=function createCommProxy(that) {
 }
 
 _.createCommProxy=createCommProxy;
+const Callback=class Callback {
+    callbacks = new Map();
+    /**
+     * Clear all callbacks
+     */
+    clear() {
+        this.callbacks.clear();
+    }
+    /**
+     * Add a callback
+     */
+    add(cb, scope = null) {
+        if (!this.callbacks.has(cb)) {
+            this.callbacks.set(cb, scope);
+        }
+    }
+    /**
+     * Remove a callback
+     */
+    remove(cb) {
+        this.callbacks.delete(cb);
+    }
+    /**
+     * Trigger all callbacks
+     */
+    trigger(args) {
+        let result = [];
+        let cbs = [...this.callbacks];
+        for (let [cb, scope] of cbs) {
+            result.push(cb.apply(scope, args));
+        }
+        return result;
+    }
+}
+Callback.Namespace=`${moduleName}`;
+
+_.Callback=Callback;
+const CallbackGroup=class CallbackGroup {
+    callbacks = {};
+    /**
+     * Clear all callbacks
+     */
+    clearAll() {
+        this.callbacks = {};
+    }
+    /**
+     * Clear all callbacks for a specific group
+     */
+    clear(group) {
+        delete this.callbacks[group];
+    }
+    /**
+     * Add a callback for a group
+     */
+    add(group, cb, scope = null) {
+        if (!this.callbacks[group]) {
+            this.callbacks[group] = new Map();
+        }
+        if (!this.callbacks[group].has(cb)) {
+            this.callbacks[group].set(cb, scope);
+        }
+    }
+    /**
+     * Remove a callback for a group
+     */
+    remove(group, cb) {
+        if (this.callbacks[group]) {
+            this.callbacks[group].delete(cb);
+        }
+    }
+    /**
+     * Trigger all callbacks inside a group
+     */
+    trigger(group, args) {
+        if (this.callbacks[group]) {
+            let cbs = [...this.callbacks[group]];
+            for (let [cb, scope] of cbs) {
+                cb.apply(scope, args);
+            }
+        }
+    }
+}
+CallbackGroup.Namespace=`${moduleName}`;
+
+_.CallbackGroup=CallbackGroup;
 var HttpMethod;
 (function (HttpMethod) {
     HttpMethod["GET"] = "GET";
@@ -5707,75 +5707,26 @@ const HttpError=class HttpError extends GenericError {
 HttpError.Namespace=`${moduleName}`;
 
 _.HttpError=HttpError;
-const HttpRoute=class HttpRoute {
-    static JoinPath(s1, s2) {
-        return s1 + "." + s2;
-    }
-    static ExtendRoutes(options, path) {
-        let result = [];
-        if (!path) {
-            result = options;
-        }
-        else {
-            for (let option of options) {
-                if (typeof option == "function") {
-                    result.push({
-                        type: option,
-                        path: path
-                    });
-                }
-                else {
-                    result.push({
-                        type: option.type,
-                        path: this.JoinPath(path, option.path)
-                    });
-                }
-            }
-        }
-        return result;
-    }
-    router;
-    constructor(router) {
-        this.router = router;
-    }
-    getPrefix() {
-        return "";
-    }
-}
-HttpRoute.Namespace=`${moduleName}`;
-
-_.HttpRoute=HttpRoute;
 const HttpRouter=class HttpRouter {
     _routes;
     options;
-    static WithRoute(options) {
-        class Router extends HttpRouter {
-            constructor() {
-                super();
-                for (let route of options) {
-                    if (typeof route == "function") {
-                        this._routes.add(route);
-                    }
-                    else {
-                        this._routes.add(route.type, route.path);
-                    }
-                }
-            }
-        }
-        return Router;
-    }
+    // public static WithRoute<const T extends readonly ({ type: RouteType, path: string; } | RouteType)[]>(options: T): HttpRouterType<T> {
+    //         constructor() {
+    //             super();
+    //             for(let route of options) {
+    //                 if(typeof route == "function") {
+    //                     this._routes.add(route);
+    //                     this._routes.add(route.type, route.path);
     constructor() {
-        Object.defineProperty(this, "routes", {
-            get: () => { return this._routes; }
-        });
-        this.createRoutesProxy();
+        // Object.defineProperty(this, "routes", {
+        //     get: () => { return this._routes; }
+        // });
+        // this.createRoutesProxy();
         this.options = this.defineOptions(this.defaultOptionsValue());
     }
-    createRoutesProxy() {
-        if (!this._routes) {
-            this._routes = new Proxy({}, createCommProxy(this));
-        }
-    }
+    // private createRoutesProxy() {
+    //     if(!this._routes) {
+    //         this._routes = new Proxy({}, createCommProxy<HttpRoute>(this));
     defaultOptionsValue() {
         return {
             url: location.protocol + "//" + location.host
@@ -5803,6 +5754,28 @@ const HttpRouter=class HttpRouter {
 HttpRouter.Namespace=`${moduleName}`;
 
 _.HttpRouter=HttpRouter;
+const HttpRoute=class HttpRoute {
+    // private static JoinPath<T extends string, U extends string>(s1: T, s2: U): Join<[T, U], "."> {
+    // public static ExtendRoutes<const T extends readonly ({ type: RouteType, path: string; } | RouteType)[], U extends string>(options: T, path: StringLiteral<U>) {
+    //     if(!path) {
+    //         for(let option of options) {
+    //             if(typeof option == "function") {
+    //                 result.push({
+    //                 });
+    //                 result.push({
+    //                     path: this.JoinPath(path, option.path)
+    //                 });
+    router;
+    constructor(router) {
+        this.router = router ?? new HttpRouter();
+    }
+    getPrefix() {
+        return "";
+    }
+}
+HttpRoute.Namespace=`${moduleName}`;
+
+_.HttpRoute=HttpRoute;
 const ResultWithError=class ResultWithError extends VoidWithError {
     /**
       * The result value of the action.
@@ -5880,6 +5853,13 @@ const HttpRequest=class HttpRequest {
         }
         return formData;
     }
+    jsonReplacer(key, value) {
+        if (this[key] instanceof Date) {
+            const offset = this[key].getTimezoneOffset() * 60000;
+            return new Date(this[key].getTime() - offset).toISOString();
+        }
+        return value;
+    }
     prepareBody(data) {
         if (!data) {
             return;
@@ -5912,7 +5892,7 @@ const HttpRequest=class HttpRequest {
                 this.request.body = this.objectToFormData(data);
             }
             else {
-                this.request.body = JSON.stringify(data);
+                this.request.body = JSON.stringify(data, this.jsonReplacer);
                 this.setHeader("Content-Type", "Application/json");
             }
         }

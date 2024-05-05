@@ -72,6 +72,13 @@ export class HttpRequest {
 
         return formData;
     }
+    public jsonReplacer(key: string, value: any) {
+        if(this[key] instanceof Date) {
+            const offset = this[key].getTimezoneOffset() * 60000
+            return new Date(this[key].getTime() - offset).toISOString();
+        }
+        return value;
+    }
     private prepareBody(data?: { [key: string | number]: any; } | FormData) {
         if(!data) {
             return;
@@ -105,7 +112,7 @@ export class HttpRequest {
                 this.request.body = this.objectToFormData(data);
             }
             else {
-                this.request.body = JSON.stringify(data);
+                this.request.body = JSON.stringify(data, this.jsonReplacer);
                 this.setHeader("Content-Type", "Application/json");
             }
         }

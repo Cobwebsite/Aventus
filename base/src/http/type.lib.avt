@@ -1,6 +1,5 @@
 import { HttpRouter } from "./HttpRouter.lib.avt";
 import { HttpRoute } from "./HttpRoute.lib.avt";
-import type { MixProto } from "../tools/MergePrototype.lib.avt";
 
 export interface RouterOptions {
     url: string;
@@ -11,18 +10,18 @@ export type RouteType = abstract new (...args: any[]) => HttpRoute;
 export type RouterType = (abstract new (...args: any[]) => HttpRouter);
 
 
-export type MergeRoutesType<T> = T extends readonly ({ type: RouteType, path?: string; } | RouteType)[] ?
-    T extends readonly [infer T extends ({ type: RouteType, path?: string; } | RouteType), ...infer R extends readonly ({ type: RouteType, path?: string; } | RouteType)[]] ?
-    T extends RouteType ? MixProto<MergeRoutesType<R>, T, ''> : T extends { type: RouteType, path?: string; } ? T['path'] extends string ? MixProto<MergeRoutesType<R>, T['type'], T['path']> : MixProto<MergeRoutesType<R>, T['type'], ''> : never : {}
-    : never;
+// export type MergeRoutesType<T> = T extends readonly ({ type: RouteType, path?: string; } | RouteType)[] ?
+//     T extends readonly [infer T extends ({ type: RouteType, path?: string; } | RouteType), ...infer R extends readonly ({ type: RouteType, path?: string; } | RouteType)[]] ?
+//     T extends RouteType ? MixProto<MergeRoutesType<R>, T, ''> : T extends { type: RouteType, path?: string; } ? T['path'] extends string ? MixProto<MergeRoutesType<R>, T['type'], T['path']> : MixProto<MergeRoutesType<R>, T['type'], ''> : never : {}
+//     : never;
 
-type ExtendRouteType<T, U extends string, V extends string | undefined> =
-    T extends Aventus.RouteType ?
-    U extends "" ? { type: T, path: V; } : V | undefined extends "" ? { type: T, path: ""; } : { type: T, path: Aventus.Join<[U, V], ".">; } :
-    never;
+// type ExtendRouteType<T, U extends string, V extends string | undefined> =
+//     T extends Aventus.RouteType ?
+//     U extends "" ? { type: T, path: V; } : V | undefined extends "" ? { type: T, path: ""; } : { type: T, path: Aventus.Join<[U, V], ".">; } :
+//     never;
 
-export type ExtendRoutesType<T, U extends string> = T extends readonly ({ type: Aventus.RouteType, path?: string; } | Aventus.RouteType)[] ?
-    T extends readonly [infer T extends ({ type: Aventus.RouteType, path?: string; } | Aventus.RouteType), ...infer R extends readonly ({ type: Aventus.RouteType, path?: string; } | Aventus.RouteType)[]] ?
-    T extends Aventus.RouteType ? [ExtendRouteType<T, U, ''>, ...ExtendRoutesType<R, U>] : T extends { type: Aventus.RouteType, path?: string; } ? [ExtendRouteType<T['type'], U, T['path']>, ...ExtendRoutesType<R, U>] : never
-    : []
-    : never;
+// export type ExtendRoutesType<T, U extends string> = T extends readonly ({ type: Aventus.RouteType, path?: string; } | Aventus.RouteType)[] ?
+//     T extends readonly [infer T extends ({ type: Aventus.RouteType, path?: string; } | Aventus.RouteType), ...infer R extends readonly ({ type: Aventus.RouteType, path?: string; } | Aventus.RouteType)[]] ?
+//     T extends Aventus.RouteType ? [ExtendRouteType<T, U, ''>, ...ExtendRoutesType<R, U>] : T extends { type: Aventus.RouteType, path?: string; } ? [ExtendRouteType<T['type'], U, T['path']>, ...ExtendRoutesType<R, U>] : never
+//     : []
+//     : never;
