@@ -5,15 +5,20 @@ import { SelectItem } from '../IConnection';
 import { Template } from './Template';
 import { SettingsManager } from '../settings/Settings';
 
+type TemplateGroups = {
+	projects: Template[],
+	others: Template[]
+}
 export class TemplateManager {
 	private templatePath: string[] = [];
-	private projectPath: string[] = [];
 
-	private loadedTemplates: Template[] = [];
-	private loadedProjects: Template[] = [];
+	private templates: TemplateGroups = {
+		projects: [],
+		others: []
+	};
 
-	public getGeneralTemplates() {
-		return this.loadedTemplates;
+	public getOthersTemplates() {
+		return this.templates.others;
 	}
 
 	public constructor() {
@@ -31,18 +36,14 @@ export class TemplateManager {
 		}
 		this.templatePath = SettingsManager.getInstance().settings.templatePath;
 		let basicTemplate = normalize(storagePath + sep + "templates");
+		let needAsk = !existsSync(basicTemplate);
 		this.prepareFolders(this.templatePath, basicTemplate);
 
-		this.projectPath = SettingsManager.getInstance().settings.projectPath;
-		let basicProject = normalize(storagePath + sep + "projects");
-		let needAsk = !existsSync(basicProject);
-		this.prepareFolders(this.projectPath, basicProject);
 		if (needAsk) {
 			this.askTemplate();
 		}
 
-		this.loadedTemplates = this.readTemplates(this.templatePath);
-		this.loadedProjects = this.readTemplates(this.projectPath);
+		this.templates = this.readTemplates(this.templatePath);
 	}
 	private prepareFolders(variable: string[], _default: string) {
 		if (!variable.includes(_default)) {
@@ -58,34 +59,95 @@ export class TemplateManager {
 
 	public async createProject(path: string) {
 		let quickPicksTemplate: Map<SelectItem, Template> = new Map();
-		if (this.loadedProjects.length == 0) {
+		if (this.templates.projects.length == 0) {
 			let result = await GenericServer.Popup("You have no template!! Do you want to load some?", 'Yes', 'No');
 			if (result == 'Yes') {
 				this.selectTemplateToImport();
 			}
 			return;
 		}
-		for (let template of this.loadedProjects) {
-			let quickPick: SelectItem = {
-				label: template.config.name,
-				detail: template.config.description ?? "",
-			}
-			quickPicksTemplate.set(quickPick, template);
-		}
-		const resultFormat = await GenericServer.Select(Array.from(quickPicksTemplate.keys()), {
-			placeHolder: 'Choose a template',
-		});
 
-		if (resultFormat) {
-			let resultPick = this.getSelectItem(quickPicksTemplate, resultFormat);
-			if (resultPick) {
-				await resultPick.init(path);
+		let root: any = {};
+
+		for (let template of this.templates.projects) {
+			let splitted = template.config.name.split(".");
+			let current = root;
+			for (let i = 0; i < splitted.length - 1; i++) {
+				if (!current[splitted[i]]) {
+					current[splitted[i]] = {};
+				}
+				current = current[splitted[i]]
+			}
+			if (!current['@children']) {
+				current['@children'] = [];
+			}
+			current['@children'].push(template);
+		}
+
+		let result = await this.choosePath(root, root);
+		if (result && result != 'back') {
+			await result.init(path);
+		}
+	}
+
+	private async choosePath(current: any, root: any): Promise<Template | null | 'back'> {
+		if (!current) return null;
+		let quickPicksTemplate: Map<SelectItem, Template> = new Map();
+		let quickPicks: SelectItem[] = [];
+		let backOption: SelectItem = {
+			label: "Back",
+		}
+		if (current != root) {
+			quickPicks.push(backOption);
+		}
+		for (let key in current) {
+			if (key != "@children") {
+				quickPicks.push({
+					label: key,
+				});
+			}
+		}
+		if (current["@children"]) {
+			for (let child of current["@children"]) {
+				let template = child as Template;
+				let quickPick: SelectItem = {
+					label: template.config.name,
+					detail: template.config.description ?? "",
+				}
+				quickPicksTemplate.set(quickPick, template);
+			}
+		}
+
+		while (true) {
+			const resultFormat = await GenericServer.Select(quickPicks, {
+				placeHolder: 'Choose a template',
+			});
+			if (resultFormat) {
+				let resultPick = quickPicksTemplate.get(resultFormat);
+				if (resultPick) {
+					return resultPick
+				}
+				else if (resultFormat == backOption) {
+					return 'back';
+				}
+				else {
+					const resultTemp = await this.choosePath(current[resultFormat.label], root);
+					if (resultTemp != 'back') {
+						return resultTemp;
+					}
+				}
+			}
+			else {
+				return null;
 			}
 		}
 	}
 
-	public readTemplates(pathToRead: string[]) {
-		let templates: Template[] = [];
+	public readTemplates(pathToRead: string[]): TemplateGroups {
+		const templates: TemplateGroups = {
+			projects: [],
+			others: []
+		};
 
 		const readRecu = (currentFolder: string) => {
 			let configPath = join(currentFolder, "template.avt");
@@ -94,7 +156,12 @@ export class TemplateManager {
 					let config = JSON.parse(readFileSync(configPath, 'utf-8'));
 
 					let template = new Template(config, currentFolder);
-					templates.push(template);
+					if (template.config.isProject) {
+						templates.projects.push(template);
+					}
+					else {
+						templates.others.push(template);
+					}
 				} catch {
 					GenericServer.showErrorMessage("Error when parsing file " + configPath);
 				}
@@ -128,26 +195,32 @@ export class TemplateManager {
 		// }
 	}
 	public async selectTemplateToImport() {
-		let projectsFolder = GenericServer.extensionPath + sep + "projects";
+		let projectsFolder = GenericServer.extensionPath + sep + "templates";
 		let folders = readdirSync(projectsFolder);
 		let quickPicks: Map<SelectItem, string> = new Map<SelectItem, string>();
-		for (let folder of folders) {
-			let folderPath = projectsFolder + sep + folder;
-			if (statSync(folderPath).isDirectory()) {
-				let confPath = folderPath + sep + 'template.avt';
-				if (existsSync(confPath)) {
-					try {
-						let config = JSON.parse(readFileSync(confPath, 'utf-8'));
-						let quickPick: SelectItem = {
-							label: config.name,
-							detail: config.description ?? "",
-							picked: true,
-						}
-						quickPicks.set(quickPick, folderPath);
-					} catch { }
+		const loadRecu = (folders, currentPath) => {
+			for (let folder of folders) {
+				let folderPath = currentPath + sep + folder;
+				if (statSync(folderPath).isDirectory()) {
+					let confPath = folderPath + sep + 'template.avt';
+					if (existsSync(confPath)) {
+						try {
+							let config = JSON.parse(readFileSync(confPath, 'utf-8'));
+							let quickPick: SelectItem = {
+								label: config.name,
+								detail: config.description ?? "",
+								picked: true,
+							}
+							quickPicks.set(quickPick, folderPath);
+						} catch { }
+					}
+					else {
+						loadRecu(readdirSync(folderPath), folderPath);
+					}
 				}
 			}
 		}
+		loadRecu(folders, projectsFolder);
 
 		let result = await GenericServer.SelectMultiple(Array.from(quickPicks.keys()), {
 			title: "Select templates to import",
@@ -156,21 +229,20 @@ export class TemplateManager {
 			for (let item of result) {
 				let path = this.getSelectItem(quickPicks, item);
 
-				if (path && this.projectPath.length > 0) {
-					let folderName = path.split(sep).pop();
-					let destPath = this.projectPath[0] + sep + folderName;
+				if (path && this.templatePath.length > 0) {
+					let destPath = path.replace(projectsFolder,  this.templatePath[0])
 					if (existsSync(destPath)) {
 						rmSync(destPath, { recursive: true, force: true })
 					}
 					cpSync(path, destPath, { force: true, recursive: true })
 				}
 			}
-			this.loadedProjects = this.readTemplates(this.projectPath);
+			this.templates = this.readTemplates(this.templatePath);
 		}
 	}
 
 	public validateEmptyFolder() {
-		let projectsFolder = GenericServer.extensionPath + sep + "projects";
+		let templatesFolder = GenericServer.extensionPath + sep + "templates";
 
 		const checkOrCreate = (path: string | string[]) => {
 			try {
@@ -183,17 +255,17 @@ export class TemplateManager {
 			} catch (e) { }
 		}
 
-		checkOrCreate([projectsFolder, "Default"]);
-		checkOrCreate([projectsFolder, "Default", "src"]);
-		checkOrCreate([projectsFolder, "Default", "src", "components"]);
-		checkOrCreate([projectsFolder, "Default", "src", "data"]);
-		checkOrCreate([projectsFolder, "Default", "src", "lib"]);
-		checkOrCreate([projectsFolder, "Default", "src", "ram"]);
-		checkOrCreate([projectsFolder, "Default", "src", "states"]);
-		checkOrCreate([projectsFolder, "Default", "src", "static"]);
+		checkOrCreate([templatesFolder, "projects", "Default"]);
+		checkOrCreate([templatesFolder, "projects", "Default", "src"]);
+		checkOrCreate([templatesFolder, "projects", "Default", "src", "components"]);
+		checkOrCreate([templatesFolder, "projects", "Default", "src", "data"]);
+		checkOrCreate([templatesFolder, "projects", "Default", "src", "lib"]);
+		checkOrCreate([templatesFolder, "projects", "Default", "src", "ram"]);
+		checkOrCreate([templatesFolder, "projects", "Default", "src", "states"]);
+		checkOrCreate([templatesFolder, "projects", "Default", "src", "static"]);
 
-		checkOrCreate([projectsFolder, "Empty"]);
-		checkOrCreate([projectsFolder, "Empty", "src"]);
+		checkOrCreate([templatesFolder, "projects", "Empty"]);
+		checkOrCreate([templatesFolder, "projects", "Empty", "src"]);
 	}
 
 

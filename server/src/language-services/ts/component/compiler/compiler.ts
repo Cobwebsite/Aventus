@@ -619,9 +619,9 @@ export class AventusWebcomponentCompiler {
             }
             else if (field.propType == "ViewElement") {
                 viewsElements[field.name] = field;
-                if (!field.overrideNullable) {
-                    this.result.diagnostics.push(createErrorTsPos(this.document, "You must add ! after the name to avoid undefined value", field.nameStart, field.nameEnd, AventusErrorCode.ExclamationMarkMissing));
-                }
+                // if (!field.overrideNullable) {
+                //     this.result.diagnostics.push(createErrorTsPos(this.document, "You must add ! after the name to avoid undefined value", field.nameStart, field.nameEnd, AventusErrorCode.ExclamationMarkMissing));
+                // }
             }
             else if (field.propType == "Simple") {
                 simpleVariables.push(field);
@@ -1675,7 +1675,7 @@ this.clearWatchHistory = () => {
         let type = this._validateTypeForProp(currentDoc, field, field.type);
         if (type) {
             if (type.kind == "boolean" || type.kind == "number") {
-                if (!field.overrideNullable && field.defaultValue === null) {
+                if (!field.overrideNullable && field.defaultValue === null && !field.isNullable) {
                     this.result.diagnostics.push(createErrorTsPos(this.document, "You must add ! after the name to avoid undefined value", field.nameStart, field.nameEnd, AventusErrorCode.ExclamationMarkMissing));
                 }
             }

@@ -246,6 +246,7 @@ export const AventusTemplateSchema: JSONSchema = {
     "additionalProperties": false,
     "properties": {
         "name": { type: "string" },
+        "isProject": { type: "boolean", default: true },
         "description": { type: "string" },
         "version": {
             type: "string",

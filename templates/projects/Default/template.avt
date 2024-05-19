@@ -1,6 +1,7 @@
 {
-	"name": "Empty",
-	"description": "Empty Aventus Project",
+	"name": "Default",
+	"description": "A basic template",
+	"isProject": true,
 	"version": "1.0.0",
 	"variables": {
 		"name": {

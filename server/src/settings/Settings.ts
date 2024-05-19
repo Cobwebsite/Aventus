@@ -14,7 +14,6 @@ export type LiveServerSettings = {
 export interface Settings {
 	liveserver: LiveServerSettings,
 	updateImportOnRename: boolean,
-	projectPath: string[],
 	templatePath: string[],
 }
 
@@ -32,7 +31,6 @@ const defaultSettings: Settings = {
 	},
 	updateImportOnRename: true,
 	templatePath: [],
-	projectPath: []
 }
 function getDefaultSettings() {
 	return JSON.parse(JSON.stringify(defaultSettings));

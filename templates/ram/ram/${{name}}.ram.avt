@@ -1,0 +1,23 @@
+
+export class ${{name}}RAM extends Aventus.Ram<${{name}}> implements Aventus.IRam {
+
+	/**
+	 * Create a singleton to store data
+	 */
+	public static getInstance(): ${{name}}RAM {
+		return Aventus.Instance.get(${{name}}RAM);
+	}
+
+	/**
+	 * @inheritdoc
+	 */
+	public override defineIndexKey(): keyof ${{name}} {
+		return 'id';
+	}
+	/**
+	 * @inheritdoc
+	 */
+	protected override getTypeForData(objJson: Aventus.KeysObject<${{name}}> | ${{name}}): new () => ${{name}} {
+		return ${{name}};
+	}
+}

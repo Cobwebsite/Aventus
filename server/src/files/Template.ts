@@ -7,7 +7,6 @@ import { pathToUri, uriToPath } from '../tools';
 import { ProjectManager } from '../project/ProjectManager';
 import { FilesManager } from './FilesManager';
 import { GenericServer } from '../GenericServer';
-import { SelectItem } from '../IConnection';
 
 
 export interface TemplateConfigVariable {
@@ -23,6 +22,7 @@ export interface TemplateConfigVariable {
 
 export interface TemplateConfig {
 	"name": string,
+	"isProject"?: boolean,
 	"description": string,
 	"version": string,
 	"variables": { [name: string]: TemplateConfigVariable },
@@ -101,7 +101,7 @@ export class Template {
 			let currentVar = this.currentConfig.variables[variableName];
 			if (currentVar.type == "input") {
 				let defaultValue = currentVar.defaultValue ?? '';
-				
+
 				const resultInput = await GenericServer.Input({
 					title: currentVar.question,
 					value: defaultValue,
@@ -149,7 +149,7 @@ export class Template {
 				}
 				exportPath = normalize(exportPath);
 				if (statSync(templatePath).isDirectory()) {
-					if(file == '.git') continue;
+					if (file == '.git') continue;
 					mkdirSync(exportPath);
 					_internalLoop(templatePath);
 				}

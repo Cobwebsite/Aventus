@@ -1,0 +1,11 @@
+{
+    "name": "RAM.Simple Ram",
+    "description": "Create a splitted files component",
+    "version": "1.0.0",
+    "variables": {
+        "name": {
+            "question": "Provide the name for your component",
+            "type": "input"
+        }
+    }
+}

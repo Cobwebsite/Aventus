@@ -178,14 +178,6 @@
 					"title": "Update import path on rename",
 					"default": true
 				},
-				"aventus.projectPath": {
-					"type": "array",
-					"title": "Define path containing project templates",
-					"default": [],
-					"items": {
-						"type": "string"
-					}
-				},
 				"aventus.templatePath": {
 					"type": "array",
 					"title": "Define path containing element templates",

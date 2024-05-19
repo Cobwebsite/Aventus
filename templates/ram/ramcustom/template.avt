@@ -1,0 +1,11 @@
+{
+    "name": "RAM.Simple Ram",
+    "description": "Create a simple ram",
+    "version": "1.0.0",
+    "variables": {
+        "name": {
+            "question": "Provide the name for the data of you ram",
+            "type": "input"
+        }
+    }
+}

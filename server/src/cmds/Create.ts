@@ -54,8 +54,8 @@ export class Create {
 			if (result) {
 				const type = result.label;
 				reorderList(Create.createOptions, result);
+				GenericServer.localTemplateManager?.createTemplate(path);
 				if (type == "Custom") {
-					GenericServer.localTemplateManager?.createTemplate(path);
 				}
 				else if (type == "RAM") {
 					const name = await GenericServer.Input({

@@ -1,6 +1,7 @@
 {
-	"name": "Tailwind",
-	"description": "Aventus Project with Tailwind support",
+	"name": "Empty",
+	"description": "Empty Aventus Project",
+	"isProject": true,
 	"version": "1.0.0",
 	"variables": {
 		"name": {
@@ -25,9 +26,6 @@
 		}
 	},
 	"filesToOpen": [
-		"/aventus\\.conf\\.avt$/"
-	],
-	"cmdsAfter": [
-		"npm i"
-	]
+        "/aventus\\.conf\\.avt$/"
+    ]
 }
