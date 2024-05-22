@@ -3,6 +3,7 @@ import { compareObject, getValueFromObject } from "../tools/CompareObject.lib.av
 
 type NotVoid<T> = T extends void ? never : T;
 export type WatcherFunction = (action: WatchAction, path: string, value: any) => void;
+type WatcherFunctionInternal = (action: WatchAction, path: string, value: any, dones: any) => void;
 
 export enum WatchAction {
     CREATED,
@@ -194,11 +195,12 @@ export class Watcher {
 
         type ProxyData = {
             baseData: any,
-            callbacks: { [key: string]: WatcherFunction[]; },
-            callbacksReverse: Map<WatcherFunction, string>,
+            callbacks: { [key: string]: WatcherFunctionInternal[]; },
+            callbacksReverse: Map<WatcherFunctionInternal, string>,
             avoidUpdate: string[],
             pathToRemove: string[],
             history: any[],
+            injectedDones: any[] | null;
             useHistory: boolean,
             getProxyObject: (target: any, element: any, prop: string) => any,
             tryCustomFunction: (target: any, prop: string, receiver: any) => any,
@@ -211,9 +213,10 @@ export class Watcher {
         let proxyData: ProxyData = {
             baseData: {},
             callbacks: {},
-            callbacksReverse: new Map<WatcherFunction, string>(),
+            callbacksReverse: new Map<WatcherFunctionInternal, string>(),
             avoidUpdate: [],
             pathToRemove: [],
+            injectedDones: null,
             history: [{
                 object: JSON.parse(JSON.stringify(obj, jsonReplacer)),
                 trace: currentTrace,
@@ -366,6 +369,11 @@ export class Watcher {
                 }
                 else if(prop == "__deleteAlias") {
                     return deleteAlias;
+                }
+                else if(prop == "__injectedDones") {
+                    return (dones) => {
+                        this.injectedDones = dones;
+                    }
                 }
                 else if(prop == "__trigger") {
                     return trigger;
@@ -537,7 +545,9 @@ export class Watcher {
                     let index = this.avoidUpdate.indexOf(prop);
 
                     if(index == -1) {
-                        trigger('UPDATED', target, receiver, value, prop);
+                        let dones = this.injectedDones ?? [];
+                        this.injectedDones = null;
+                        trigger('UPDATED', target, receiver, value, prop, dones);
                     }
                     else {
                         this.avoidUpdate.splice(index, 1);
@@ -637,6 +647,9 @@ export class Watcher {
             proxyData.callbacks[''] = [onDataChanged];
         }
         const trigger = (type: 'CREATED' | 'UPDATED' | 'DELETED', target, receiver, value, prop, dones: any[] = []) => {
+            if(dones.includes(proxyData.baseData)) {
+                return;
+            }
             if(target.__isProxy) {
                 return;
             }
@@ -717,7 +730,7 @@ export class Watcher {
                 let cbs = [...proxyData.callbacks[name]];
                 for(let cb of cbs) {
                     try {
-                        cb(WatchAction[type] as any, pathToSend, value);
+                        cb(WatchAction[type] as any, pathToSend, value, dones);
                     } catch(e) {
                         if(e != 'impossible')
                             console.error(e);
@@ -811,13 +824,13 @@ export class Watcher {
     }
 }
 
-export type WatcherChange = (action: WatchAction, changePath: string, value: any) => void;
+export type WatcherChange = (action: WatchAction, changePath: string, value: any, dones: any[]) => void;
 export type EffectReceiver = {
     subscribe: (fct: WatcherChange) => void;
     unsubscribe: (fct: WatcherChange) => void;
     __path: string;
 };
-type WatcherAllowed = (action: WatchAction, path: string, value: any) => boolean;
+type WatcherAllowed = (action: WatchAction, path: string, value: any, dones: any[]) => boolean;
 
 /**
  * Effect will recomputed each time a watchable variable or effect or computed are changed
@@ -888,13 +901,13 @@ export class Effect {
 
         let cb: WatcherChange;
         if(path == "*") {
-            cb = (action, changePath, value) => { this.onChange(action, changePath, value); };
+            cb = (action, changePath, value, dones) => { this.onChange(action, changePath, value, dones); };
         }
         else {
-            cb = (action, changePath, value) => {
+            cb = (action, changePath, value, dones) => {
                 let full = fullPath;
                 if(changePath == path) {
-                    this.onChange(action, changePath, value);
+                    this.onChange(action, changePath, value, dones);
                 }
             };
         }
@@ -915,25 +928,25 @@ export class Effect {
         this.__allowChanged.push(fct);
     }
 
-    protected checkCanChange(action: WatchAction, changePath: string, value: any): boolean {
+    protected checkCanChange(action: WatchAction, changePath: string, value: any, dones: any[]): boolean {
         if(this.isDestroy) {
             return false;
         }
         for(let fct of this.__allowChanged) {
-            if(!fct(action, changePath, value)) {
+            if(!fct(action, changePath, value, dones)) {
                 return false;
             }
         }
         return true;
     }
 
-    protected onChange(action: WatchAction, changePath: string, value: any) {
-        if(!this.checkCanChange(action, changePath, value)) {
+    protected onChange(action: WatchAction, changePath: string, value: any, dones: any[]) {
+        if(!this.checkCanChange(action, changePath, value, dones)) {
             return;
         }
         this.run();
         for(let fct of this.__subscribes) {
-            fct(action, changePath, value);
+            fct(action, changePath, value, dones);
         }
     }
 
@@ -1020,8 +1033,8 @@ export class Computed<T = any> extends Effect {
         this._value = this.run() as T;
     }
 
-    protected override onChange(action: WatchAction, changePath: string, value: any): void {
-        if(!this.checkCanChange(action, changePath, value)) {
+    protected override onChange(action: WatchAction, changePath: string, value: any, dones: any[]): void {
+        if(!this.checkCanChange(action, changePath, value, dones)) {
             return;
         }
         let oldValue = this._value;
@@ -1030,7 +1043,7 @@ export class Computed<T = any> extends Effect {
             return;
         }
         for(let fct of this.__subscribes) {
-            fct(action, changePath, value);
+            fct(action, changePath, value, dones);
         }
     }
 }

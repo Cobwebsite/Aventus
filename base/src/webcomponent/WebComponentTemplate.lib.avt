@@ -363,10 +363,10 @@ export class TemplateInstance {
             }
             return {};
         });
-        computed.subscribe((action, path, value) => {
+        computed.subscribe((action, path, value, dones) => {
             for(let key in computed.value) {
                 let newValue = computed.value[key];
-                this.context.updateWatch(key, newValue);
+                this.context.updateWatch(key, newValue, dones);
             }
         });
         this.computeds.push(computed);
@@ -501,7 +501,7 @@ export class TemplateInstance {
         });
 
         let timeout: number;
-        computed.subscribe((action, path, value) => {
+        computed.subscribe((action, path, value, dones) => {
             clearTimeout(timeout);
             // add timeout to group change that append on the same frame (for example index update)
             timeout = setTimeout(() => {
@@ -537,8 +537,11 @@ export class TemplateInstance {
             }
         });
         this.computeds.push(computed);
-        computed.subscribe(() => {
+        computed.subscribe((action, path, value, dones) => {
             for(const el of this._components[injection.id]) {
+                if(el instanceof WebComponent && Object.hasOwn(el.__watch, injection.injectionName)) {
+                    el.__watch.__injectedDones(dones);
+                }
                 el[injection.injectionName] = computed.value;
             }
         });
@@ -568,9 +571,12 @@ export class TemplateInstance {
             }
         });
         this.computeds.push(computed);
-        computed.subscribe(() => {
+        computed.subscribe((action, path, value, dones) => {
             if(isLocalChange) return;
             for(const el of this._components[binding.id]) {
+                if(el instanceof WebComponent && Object.hasOwn(el.__watch, binding.injectionName)) {
+                    el.__watch.__injectedDones(dones);
+                }
                 el[binding.injectionName] = computed.value;
             }
         });
@@ -1150,7 +1156,10 @@ export class TemplateContext {
             }
         });
     }
-    public updateWatch(name: string, value: any) {
+    public updateWatch(name: string, value: any, dones:any[]) {
+        if(Watcher.is(this.watch[name] )) {
+            this.watch[name].__injectedDones(dones);
+        }
         this.watch[name] = value;
     }
 
