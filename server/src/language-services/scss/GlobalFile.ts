@@ -5,10 +5,11 @@ import { AventusGlobalBaseFile } from '../GlobalBaseFile';
 import { normalize, sep } from 'path';
 import { FilesManager } from '../../files/FilesManager';
 import { AventusExtension } from '../../definition';
-import { createErrorScssPos } from '../../tools';
+import { createErrorScss, createErrorScssPos } from '../../tools';
 import { Project } from '../../project/Project';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
-import { compileString } from 'sass';
+import { Exception, compileString } from 'sass';
+import { GenericServer } from '../../GenericServer';
 
 
 export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
@@ -17,6 +18,7 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 	private dependances: { [uri: string]: AventusGlobalSCSSFile } = {};
 
 	private diagnostics: Diagnostic[] = [];
+	private diagnosticCompile: Diagnostic | undefined;
 	private compiledTxt: string = "";
 	private savedOnce: boolean = false;
 
@@ -38,6 +40,9 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 	protected async onValidate(): Promise<Diagnostic[]> {
 		this.diagnostics = await this.project.globalSCSSLanguageService.doValidation(this.file);
 		this.loadDependances();
+		if(this.diagnosticCompile) {
+            return [...this.diagnostics, this.diagnosticCompile];
+        }
 		return this.diagnostics;
 	}
 	protected async onSave(): Promise<void> {
@@ -87,10 +92,22 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 			}
 			let oneFileContent = _loadContent(this.file);
 			if (oneFileContent != "|error|") {
-				let compiled = compileString(oneFileContent, {
-					style: 'compressed'
-				}).css.toString().trim();
-				newCompiledTxt = compiled;
+				try {
+                    let compiled = compileString(oneFileContent, {
+                        style: 'compressed'
+                    }).css.toString().trim();
+                    newCompiledTxt = compiled;
+					if(this.diagnosticCompile) {
+						this.diagnosticCompile = undefined;
+						GenericServer.sendDiagnostics({ uri: this.file.uri, diagnostics: this.diagnostics })
+					}
+                } catch (e: any) {
+                    if (e instanceof Exception) {
+						this.diagnosticCompile = createErrorScss(this.file.documentUser, e.message);
+                        const diagnostics = [...this.diagnostics, this.diagnosticCompile];
+                        GenericServer.sendDiagnostics({ uri: this.file.uri, diagnostics: diagnostics })
+                    }
+                }
 			}
 
 
@@ -217,7 +234,7 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 	}
 
 	private resolvePath(loadingPath: string, currentFolder: string): AventusFile | undefined {
-		loadingPath = this.project.resolveAlias(loadingPath, this.file);
+		loadingPath = this.project.resolveAlias(loadingPath, currentFolder);
 		loadingPath = normalize(currentFolder + "/" + loadingPath);
 		let result: AventusFile | undefined = FilesManager.getInstance().getByPath(loadingPath);
 		if (result) {

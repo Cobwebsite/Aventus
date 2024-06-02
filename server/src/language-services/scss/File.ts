@@ -5,15 +5,16 @@ import { AventusFile } from '../../files/AventusFile';
 import { FilesManager } from '../../files/FilesManager';
 import { HttpServer } from '../../live-server/HttpServer';
 import { Build } from "../../project/Build";
-import { createErrorScssPos, pathToUri } from "../../tools";
+import { createErrorScss, createErrorScssPos, pathToUri } from "../../tools";
 import { AventusBaseFile } from "../BaseFile";
 import { AventusWebComponentLogicalFile } from '../ts/component/File';
 import { SCSSParsedRule } from './LanguageService';
 import { AventusHTMLFile } from '../html/File';
 import { ParserHtml } from '../html/parser/ParserHtml';
-import { compileString } from 'sass';
-import { existsSync, readFileSync } from 'fs';
+import { Exception, compileString } from 'sass';
+import { existsSync, lstatSync, readFileSync } from 'fs';
 import { TextDocument } from 'vscode-languageserver-textdocument';
+import { GenericServer } from '../../GenericServer';
 
 export class AventusWebSCSSFile extends AventusBaseFile {
     public compiledVersion = -1;
@@ -21,6 +22,7 @@ export class AventusWebSCSSFile extends AventusBaseFile {
     private dependances: { [uri: string]: AventusWebSCSSFile } = {};
 
     private diagnostics: Diagnostic[] = [];
+	private diagnosticCompile: Diagnostic | undefined;
     private compiledTxt: string = "";
     private namespace: string = "";
     private _rules: SCSSParsedRule = new Map();
@@ -61,6 +63,9 @@ export class AventusWebSCSSFile extends AventusBaseFile {
     protected async onValidate(): Promise<Diagnostic[]> {
         this.diagnostics = await this.build.scssLanguageService.doValidation(this.file);
         await this.loadDependances();
+        if(this.diagnosticCompile) {
+            return [...this.diagnostics, this.diagnosticCompile];
+        }
         return this.diagnostics;
     }
     protected async onContentChange(): Promise<void> {
@@ -111,10 +116,22 @@ export class AventusWebSCSSFile extends AventusBaseFile {
             }
             let oneFileContent = await _loadContent(this.file);
             if (oneFileContent != "|error|") {
-                let compiled = compileString(oneFileContent, {
-                    style: 'compressed'
-                }).css.toString().trim();
-                newCompiledTxt = compiled;
+                try {
+                    let compiled = compileString(oneFileContent, {
+                        style: 'compressed'
+                    }).css.toString().trim();
+                    newCompiledTxt = compiled;
+                    if(this.diagnosticCompile) {
+						this.diagnosticCompile = undefined;
+						GenericServer.sendDiagnostics({ uri: this.file.uri, diagnostics: this.diagnostics })
+					}
+                } catch (e: any) {
+                    if (e instanceof Exception) {
+                        this.diagnosticCompile = createErrorScss(this.file.documentUser, e.message);
+                        const diagnostics = [...this.diagnostics, this.diagnosticCompile];
+                        GenericServer.sendDiagnostics({ uri: this.file.uri, diagnostics: diagnostics })
+                    }
+                }
             }
 
 
@@ -248,7 +265,7 @@ export class AventusWebSCSSFile extends AventusBaseFile {
         let result: AventusFile | undefined = FilesManager.getInstance().getByPath(loadingPath);
         if (result) return result;
 
-        if (existsSync(loadingPath)) {
+        if (existsSync(loadingPath) && lstatSync(loadingPath).isFile()) {
             let document = TextDocument.create(pathToUri(loadingPath), AventusLanguageId.SCSS, 1, readFileSync(loadingPath, 'utf-8'));
             await FilesManager.getInstance().registerFile(document);
             return FilesManager.getInstance().getByPath(loadingPath);
@@ -257,7 +274,7 @@ export class AventusWebSCSSFile extends AventusBaseFile {
     }
 
     private async resolvePath(loadingPath: string, currentFolder: string): Promise<AventusFile | undefined> {
-        loadingPath = this.build.project.resolveAlias(loadingPath, this.file);
+        loadingPath = this.build.project.resolveAlias(loadingPath, currentFolder);
         loadingPath = normalize(currentFolder + "/" + loadingPath);
         let result: AventusFile | undefined = await this.getByPath(loadingPath);
         if (result) {
