@@ -1,6 +1,6 @@
 import { join } from "path";
-import { ExtensionContext, Location, MarkdownString, Position, Range, Uri, commands, languages, workspace } from "vscode";
-import { ExecuteCommandSignature, LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from "vscode-languageclient";
+import { ExtensionContext, Location, Position, Range, Uri, commands, workspace } from "vscode";
+import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from "vscode-languageclient/node";
 import { Commands } from "./cmds";
 import { AvenutsVsComponent } from "./component";
 import { FileSystem } from './file-system/FileSystem';
@@ -21,26 +21,22 @@ export class Client {
     }
 
 
-    public init(context: ExtensionContext) {
+    public async init(context: ExtensionContext) {
         this.debugFile = new DebugFile();
         context.subscriptions.push(workspace.registerTextDocumentContentProvider(DebugFile.schema, this.debugFile));
-        
+
         this.components = new AvenutsVsComponent();
         this._context = context;
         let serverOptions = this.createServerOption(context.asAbsolutePath(
             join('server', 'out', 'server.js')
         ));
         this.client = new LanguageClient('Aventus', 'Aventus', serverOptions, this.createClientOption(context));
-        this.client.onReady().then(() => {
-            this.addNotification();
-            workspace.onDidChangeConfiguration(() => {
-                ReloadSettings.execute();
-            })
-        })
-        // Start the client. This will also launch the server
-        context.subscriptions.push(this.client.start());
+        await this.client.start();
 
-       
+        this.addNotification();
+        workspace.onDidChangeConfiguration(() => {
+            ReloadSettings.execute();
+        })
     }
     public stop(): Thenable<void> | undefined {
         if (this.fileSystem) {
@@ -132,7 +128,7 @@ export class Client {
                 });
             }
 
-            for(let command in CommandsInternal.allCommandes) {
+            for (let command in CommandsInternal.allCommandes) {
                 commands.registerCommand(command, CommandsInternal.allCommandes[command].middleware)
             }
         }

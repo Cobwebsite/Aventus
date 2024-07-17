@@ -239,6 +239,36 @@
             <inheritdoc />
             </summary>
         </member>
+        <member name="M:AventusSharp.Data.Manager.GenericDM`2.SingleWithError(System.Linq.Expressions.Expression{System.Func{`1,System.Boolean}})">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.GenericDM`2.SingleWithError``1(System.Linq.Expressions.Expression{System.Func{``0,System.Boolean}})">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.GenericDM`2.AventusSharp#Data#Manager#IGenericDM#SingleWithError``1(System.Linq.Expressions.Expression{System.Func{``0,System.Boolean}})">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.GenericDM`2.Single(System.Linq.Expressions.Expression{System.Func{`1,System.Boolean}})">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.GenericDM`2.Single``1(System.Linq.Expressions.Expression{System.Func{``0,System.Boolean}})">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.GenericDM`2.AventusSharp#Data#Manager#IGenericDM#Single``1(System.Linq.Expressions.Expression{System.Func{``0,System.Boolean}})">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
         <member name="M:AventusSharp.Data.Manager.GenericDM`2.CreateWithError``1(System.Collections.Generic.List{``0})">
             <summary>
             <inheritdoc />
@@ -535,6 +565,21 @@
             </summary>
             <typeparam name="Y"></typeparam>
             <param name="defaultValue"></param>
+            <param name="action"></param>
+            <returns></returns>
+        </member>
+        <member name="M:AventusSharp.Data.Storage.Default.DefaultDBStorage`1.RunInsideTransaction``1(System.Func{AventusSharp.Tools.ResultWithError{``0}})">
+            <summary>
+            Run a function inside a transaction that ll be commit if no error otherwise rollback
+            </summary>
+            <typeparam name="Y"></typeparam>
+            <param name="action"></param>
+            <returns></returns>
+        </member>
+        <member name="M:AventusSharp.Data.Storage.Default.DefaultDBStorage`1.RunInsideTransaction(System.Func{AventusSharp.Tools.VoidWithError})">
+            <summary>
+            Run a function inside a transaction that ll be commit if no error otherwise rollback
+            </summary>
             <param name="action"></param>
             <returns></returns>
         </member>

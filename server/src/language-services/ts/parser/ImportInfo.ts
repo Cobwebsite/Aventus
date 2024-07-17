@@ -58,12 +58,13 @@ export class ImportInfo {
 								})
 							}
 							else {
-								let info = new ImportInfo(parserInfo, moduleName, element.name);
+								let isTypeOnly = element.isTypeOnly || node.importClause.isTypeOnly;
+								let info = new ImportInfo(parserInfo, moduleName, element.name, isTypeOnly);
 								parserInfo.imports[info.name] = info;
 							}
 						}
 					}
-					else if (moduleName.startsWith("@") && moduleName.includes(AventusExtension.Package)) {
+					else if (!moduleName.startsWith(".") && moduleName.includes(AventusExtension.Package)) {
 						for (let element of node.importClause.namedBindings.elements) {
 							if (element.propertyName) {
 								// it's a rename
@@ -76,10 +77,21 @@ export class ImportInfo {
 							}
 							else {
 								let name = element.name.getText();
-								let fullname = moduleName.slice(1).replace(AventusExtension.Package, "") + "." + name
-								parserInfo.packages[name] = {
-									fullname
-								};
+								let splitted = moduleName.split(":");
+								if (splitted.length > 1) {
+									let fullname = splitted[1].replace(AventusExtension.Package, "") + "." + name
+									parserInfo.packages[name] = {
+										fullname
+									};
+								}
+								else {
+									parserInfo.errors.push({
+										range: Range.create(parserInfo.document.positionAt(node.getStart()), parserInfo.document.positionAt(node.getEnd())),
+										severity: DiagnosticSeverity.Error,
+										source: AventusLanguageId.TypeScript,
+										message: flattenDiagnosticMessageText("The package import is malformated", '\n')
+									})
+								}
 							}
 						}
 					}
@@ -111,7 +123,7 @@ export class ImportInfo {
 				moduleName = parserInfo.build.project.resolveAlias(moduleName, file);
 
 				if (moduleName.startsWith(".")) {
-					let info = new ImportInfo(parserInfo, moduleName, node.importClause.name);
+					let info = new ImportInfo(parserInfo, moduleName, node.importClause.name, node.importClause.isTypeOnly);
 					parserInfo.imports[info.name] = info;
 				}
 				else {
@@ -140,6 +152,7 @@ export class ImportInfo {
 	public info?: BaseInfo;
 	/** real name not compiled by typescript */
 	public realName?: string;
+	public isTypeImport: boolean;
 
 	private _parserInfo: ParserTs;
 	public get parserInfo() {
@@ -147,11 +160,12 @@ export class ImportInfo {
 	}
 
 
-	constructor(parserInfo: ParserTs, moduleName: string, identifier: Identifier) {
+	constructor(parserInfo: ParserTs, moduleName: string, identifier: Identifier, isTypeImport: boolean) {
 		this._parserInfo = parserInfo;
 		this.name = identifier.getText();
 		this.nameStart = identifier.getStart();
 		this.nameEnd = identifier.getEnd();
+		this.isTypeImport = isTypeImport;
 		let moduleUri = pathToUri(normalize(getFolder(uriToPath(this.parserInfo.document.uri)) + '/' + moduleName));
 
 		if (!ParserTs.parsedDoc[moduleUri]) {

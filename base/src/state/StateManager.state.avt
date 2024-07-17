@@ -1,18 +1,35 @@
 import { Mutex } from "../tools/Mutex.lib.avt";
 import { Callback } from "../lib/Callback.lib.avt";
-import { EmptyState, State } from "./State.state.avt";
+import { EmptyState, type State } from "./State.state.avt";
 import { Uri, type UriParamsValue } from "../lib/Uri.lib.avt";
 
+@Storybook({
+    prefix: "State"
+})
 export type StateSlug = UriParamsValue;
+@Storybook({
+    prefix: "State"
+})
 type StateActivationFct = (state: State, slugs: StateSlug) => void;
+@Storybook({
+    prefix: "State"
+})
 type StateInactivationFct = (state: State, nextState: State, slugs: StateSlug) => void;
+@Storybook({
+    prefix: "State"
+})
 type StateAskChangeFct = (state: State, nextState: State, slugs: StateSlug) => Promise<boolean>;
+@Storybook({
+    prefix: "State"
+})
 export interface StateAction {
     active?: StateActivationFct | StateActivationFct[];
     inactive?: StateInactivationFct | StateInactivationFct[];
     askChange?: StateAskChangeFct | StateAskChangeFct[];
 }
-
+@Storybook({
+    prefix: "State"
+})
 type Subscriber = {
     regex: RegExp,
     params: { name: string, type: "number" | "string", position: number; }[],
@@ -24,7 +41,9 @@ type Subscriber = {
     };
 };
 
-
+@Storybook({
+    prefix: "State"
+})
 export interface IStateManager {
     subscribe(statePatterns: string | string[], callbacks: StateAction);
     unsubscribe(statePatterns: string | string[], callbacks: StateAction);
@@ -35,7 +54,9 @@ export interface IStateManager {
     isStateActive(statePattern: string): boolean;
     getStateSlugs(statePattern: string);
 }
-
+@Storybook({
+    prefix: "State"
+})
 export abstract class StateManager implements IStateManager {
     protected subscribers: { [statePattern: string]: Subscriber; } = {};
 

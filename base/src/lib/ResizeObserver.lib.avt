@@ -1,8 +1,17 @@
+@Storybook({
+    prefix: "Lib/ResizeObserver"
+})
 export interface ResizeObserverOptions {
     callback: CallableFunction;
     fps?: number;
 }
+@Storybook({
+    prefix: "Lib/ResizeObserver"
+})
 type WindowResizeObserver = globalThis.ResizeObserver;
+@Storybook({
+    prefix: "Lib/ResizeObserver"
+})
 export class ResizeObserver {
     private callback: CallableFunction;
     private targets: Element[];

@@ -17,6 +17,7 @@ import * as md5 from 'md5';
 import { HTMLFormat } from '../../html/parser/definition';
 import { join } from 'path';
 import { InjectionRender } from '../../html/parser/TagInfo';
+import { InputType } from '@storybook/csf';
 
 type ViewMethodInfo = {
     name: string
@@ -41,12 +42,20 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
     public canUpdateComponent: boolean = true;
     private viewMethodsInfo: ViewMethodInfo[] = [];
 
+    public storyBookInfo: {
+        argsTypes: { [name: string]: InputType },
+        args: { [name: string]: any }
+    } = {
+        argsTypes: {},
+        args: {}
+    }
+
     // private originalDocument!: TextDocument;
     // private originalDocumentVersion: number = 0;
     public get compilationResult() {
         return this._compilationResult;
     }
-    protected get extension(): string {
+    public get extension(): string {
         return AventusExtension.ComponentLogic;
     }
     public get version(): number {
@@ -110,6 +119,8 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                     this.build.htmlLanguageService.addInternalDefinition(this.file.uri, this._compilationResult.htmlDoc, this);
                     this.isCompiling = false;
                     this.mergedVersion = mergedVersion;
+                    this.storyBookInfo.argsTypes = compiler.storyArgTypes;
+                    this.storyBookInfo.args = compiler.storyArgs;
                     if (this.waitingFct[mergedVersion]) {
                         for (let fct of this.waitingFct[mergedVersion]) {
                             fct();
@@ -1283,9 +1294,9 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                 result += `/**${EOL} * ${EOL} */${EOL}protected ${name}(){${EOL}throw new Error("Method not implemented.");${EOL}}${EOL}`;
             }
         }
-        // if (result != "") {
-        //     result = EOL + result;
-        // }
+        if (result != "") {
+            result = EOL + result;
+        }
         return {
             start: position,
             text: result

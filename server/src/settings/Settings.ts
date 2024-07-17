@@ -16,6 +16,7 @@ export interface Settings {
 	updateImportOnRename: boolean,
 	projectPath: string[],
 	templatePath: string[],
+	readNodeModules: boolean,
 }
 
 const defaultSettings: Settings = {
@@ -31,6 +32,7 @@ const defaultSettings: Settings = {
 		auto_close: true,
 	},
 	updateImportOnRename: true,
+	readNodeModules: false,
 	templatePath: [],
 	projectPath: []
 }

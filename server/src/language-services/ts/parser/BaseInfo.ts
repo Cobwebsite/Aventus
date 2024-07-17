@@ -1,15 +1,17 @@
-import { Node, CallExpression, ClassDeclaration, EnumDeclaration, FunctionDeclaration, InterfaceDeclaration, SyntaxKind, TypeAliasDeclaration, TypeNode, TypeReferenceNode, forEachChild, ExpressionWithTypeArguments, NewExpression, PropertyAccessExpression, VariableStatement, VariableDeclaration, MethodDeclaration, getTokenAtPosition, isTypeReferenceNode } from "typescript";
+import { Node, CallExpression, ClassDeclaration, EnumDeclaration, FunctionDeclaration, InterfaceDeclaration, SyntaxKind, TypeAliasDeclaration, TypeNode, TypeReferenceNode, forEachChild, ExpressionWithTypeArguments, NewExpression, PropertyAccessExpression, VariableStatement, VariableDeclaration, MethodDeclaration, getTokenAtPosition, isTypeReferenceNode, LiteralTypeNode, PropertySignature, TupleTypeNode, FunctionTypeNode, TypeParameterDeclaration, ParameterDeclaration, IndexSignatureDeclaration, TypeLiteralNode, getDecorators, HasDecorators } from "typescript";
 import { ParserTs } from './ParserTs';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { BaseLibInfo } from './BaseLibInfo';
-import { TypeInfo } from './TypeInfo';
+import { TypeInfo, TypeInfoKind } from './TypeInfo';
 import { DecoratorInfo } from './DecoratorInfo';
 import { DependancesDecorator } from './decorators/DependancesDecorator';
 import * as md5 from 'md5';
 import { GenericServer } from '../../../GenericServer';
 import { InternalDecorator } from './decorators/InternalDecorator';
 import { Build } from '../../../project/Build';
-import { AventusTsLanguageService } from '../LanguageService';
+import { IStoryContentGeneric, IStoryContentParameter, IStoryContentTypeResult, IStoryContentTypeResultFunction, IStoryContentTypeResultFunctionParameter, IStoryContentTypeResultIntersection, IStoryContentTypeResultObject, IStoryContentTypeResultSimple, IStoryContentTypeResultTupple, IStoryContentTypeResultUnion, IStoryExport, IStoryGeneric, IStoryContentTypeResultIndexAccess, IStoryContentTypeResultMappedType, IStoryContentTypeResultInfer, IStoryContentTypeResultTypeOperator, IStoryContentTypeResultConditional } from '@aventusjs/storybook';
+import { StorybookDecorator } from './decorators/StorybookDecorator';
+import { DocumentationInfo } from './DocumentationInfo';
 
 
 export enum InfoType {
@@ -33,6 +35,7 @@ export type SupportedRootNodes = ClassDeclaration | EnumDeclaration | InterfaceD
 export type DependanceInfo = {
     replacement: string | null,
     hotReloadReplacement: string | null,
+    npmReplacement: string | null,
     typeRemplacement: string | null,
     locations: { [key: string]: { start: number, end: number, isType: boolean } }
 }
@@ -62,6 +65,17 @@ export abstract class BaseInfo {
         }
         return false;
     }
+    public static isStoryExported(node: ClassDeclaration | EnumDeclaration | InterfaceDeclaration | TypeAliasDeclaration | FunctionDeclaration | VariableStatement | MethodDeclaration) {
+        const decorators = DecoratorInfo.buildDecorator(node);
+        let decorator = decorators.find(p => p.name == "Storybook");
+        if (decorator) {
+            const deco = StorybookDecorator.is(decorator);
+            if (deco && !deco.cancelExport) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     public name: string = "";
     public nameStart: number = 0;
@@ -72,10 +86,13 @@ export abstract class BaseInfo {
     public namespace: string = "";
     public decorators: DecoratorInfo[] = [];
 
+    public storieContent?: IStoryExport
+    public storieDecorator?: StorybookDecorator;
+
     // public dependancesFullName: string[] = [];
     public dependances: DependanceType[] = []
     public compiled: string = "";
-    public documentation: string[] = [];
+    public documentation?: DocumentationInfo;
     public isExported: boolean = false;
     private _parserInfo: ParserTs;
     public content: string = "";
@@ -85,6 +102,9 @@ export abstract class BaseInfo {
     }
     public get compiledContentHotReload(): string {
         return BaseInfo.getContentHotReload(this.content, this.start, this.end, this.dependancesLocations, this.compileTransformations);
+    }
+    public get compiledContentNpm(): string {
+        return BaseInfo.getContentNpm(this.content, this.start, this.end, this.dependancesLocations, this.compileTransformations);
     }
     public get fileUri() {
         return this.document.uri;
@@ -96,6 +116,7 @@ export abstract class BaseInfo {
     public dependancesLocations: {
         [name: string]: DependanceInfo
     } = {};
+
     public infoType: InfoType = InfoType.none;
     public build: Build;
 
@@ -122,11 +143,12 @@ export abstract class BaseInfo {
             if (!parserInfo.isLib) {
                 BaseInfo.infoByShortName[this.name] = this;
             }
-            if (node['jsDoc']) {
-                for (let jsDoc of node['jsDoc']) {
-                    this.documentation.push(jsDoc.comment);
-                }
+
+            let docTemp = new DocumentationInfo(node);
+            if (docTemp.hasDoc) {
+                this.documentation = docTemp;
             }
+
             if (autoLoadDepDecorator) {
                 this.loadDependancesDecorator();
             }
@@ -182,7 +204,7 @@ export abstract class BaseInfo {
             let baseInfo = ParserTs.getBaseInfo(txt);
             if (baseInfo && exp.expression.getText() + "." + txt == baseInfo.fullName) {
                 // when static call on external class
-                this.addDependanceName(baseInfo.fullName, isStrongDependance, exp.expression.getStart(), exp.expression.getEnd());
+                this.addDependanceName(baseInfo.fullName, isStrongDependance, exp.getStart(), exp.getEnd());
             }
             else {
                 // when static call on local class
@@ -386,7 +408,8 @@ export abstract class BaseInfo {
                     locations: {},
                     typeRemplacement: null,
                     replacement: null,
-                    hotReloadReplacement: null
+                    hotReloadReplacement: null,
+                    npmReplacement: null
                 }
             }
             let key = start + "_" + end;
@@ -428,6 +451,12 @@ export abstract class BaseInfo {
                 uri: "@external",
                 isStrong: isStrongDependance,
             });
+
+            let classExternal = this.build.externalPackageInformation.getNpmUri(name);
+            if (classExternal) {
+                this.dependancesLocations[name].npmReplacement = classExternal.name;
+                this._parserInfo.registerGeneratedImport(classExternal.uri, classExternal.name, classExternal.compiled)
+            }
             onName(name);
             return;
         }
@@ -458,6 +487,7 @@ export abstract class BaseInfo {
 
                 this.dependancesLocations[name].typeRemplacement = replacement;
                 this.dependancesLocations[name].replacement = fullName;
+                this.dependancesLocations[name].npmReplacement = fullName;
                 this.dependancesLocations[name].hotReloadReplacement = hotReloadName;
             }
             onName(fullName);
@@ -490,6 +520,7 @@ export abstract class BaseInfo {
 
                 this.dependancesLocations[name].typeRemplacement = replacement;
                 this.dependancesLocations[name].replacement = fullName;
+                this.dependancesLocations[name].npmReplacement = fullName;
                 this.dependancesLocations[name].hotReloadReplacement = hotReloadName;
             }
             onName(fullName);
@@ -515,6 +546,7 @@ export abstract class BaseInfo {
                     }
                     this.dependancesLocations[name].typeRemplacement = replacement;
                     this.dependancesLocations[name].replacement = fullName;
+                    this.dependancesLocations[name].npmReplacement = fullName;
                     this.dependancesLocations[name].hotReloadReplacement = hotReloadName;
                 }
                 this.dependances.push({
@@ -536,6 +568,8 @@ export abstract class BaseInfo {
             if (this.dependancesLocations[name]) {
                 this.dependancesLocations[name].typeRemplacement = fullName;
                 this.dependancesLocations[name].replacement = fullName;
+                const splitted = fullName.split(".");
+                this.dependancesLocations[name].npmReplacement = splitted[splitted.length - 1];
                 this.dependancesLocations[name].hotReloadReplacement = fullName;
             }
 
@@ -581,14 +615,21 @@ export abstract class BaseInfo {
         end: number,
         dependancesLocations: { [name: string]: DependanceInfo },
         compileTransformations: { [key: string]: { newText: string, start: number, end: number } }) {
-        return this._getContent(txt, start, end, dependancesLocations, compileTransformations, false);
+        return this._getContent(txt, start, end, dependancesLocations, compileTransformations, 1);
     }
     public static getContentHotReload(txt: string,
         start: number,
         end: number,
         dependancesLocations: { [name: string]: DependanceInfo },
         compileTransformations: { [key: string]: { newText: string, start: number, end: number } }) {
-        return this._getContent(txt, start, end, dependancesLocations, compileTransformations, true);
+        return this._getContent(txt, start, end, dependancesLocations, compileTransformations, 2);
+    }
+    public static getContentNpm(txt: string,
+        start: number,
+        end: number,
+        dependancesLocations: { [name: string]: DependanceInfo },
+        compileTransformations: { [key: string]: { newText: string, start: number, end: number } }) {
+        return this. _getContent(txt, start, end, dependancesLocations, compileTransformations, 3);
     }
     private static _getContent(
         txt: string,
@@ -596,11 +637,20 @@ export abstract class BaseInfo {
         end: number,
         dependancesLocations: { [name: string]: DependanceInfo },
         compileTransformations: { [key: string]: { newText: string, start: number, end: number } },
-        isHotReload: boolean
+        typeContent: number
     ) {
         let transformations: { newText: string, start: number, end: number }[] = [];
         for (let depName in dependancesLocations) {
-            let replacement = isHotReload ? dependancesLocations[depName].hotReloadReplacement : dependancesLocations[depName].replacement;
+            let replacement: string | null = null;
+            if (typeContent == 1) {
+                replacement = dependancesLocations[depName].replacement;
+            }
+            else if (typeContent == 2) {
+                replacement = dependancesLocations[depName].hotReloadReplacement;
+            }
+            else if (typeContent == 3) {
+                replacement = dependancesLocations[depName].npmReplacement;
+            }
             let typeRemplacement = dependancesLocations[depName].typeRemplacement;
             if (replacement) {
                 for (let locationKey in dependancesLocations[depName].locations) {
@@ -642,5 +692,454 @@ export abstract class BaseInfo {
             lastPos = transformation.start;
         }
         return txt;
+    }
+
+    public loadStorieContent() {
+        if (this.build.buildConfig.stories && !this._parserInfo.isLib) {
+            for (let decorator of this.decorators) {
+                const decoratorTemp = StorybookDecorator.is(decorator);
+                if (decoratorTemp) {
+                    this.storieDecorator = decoratorTemp;
+                    break;
+                }
+            }
+            if (this.storieDecorator) {
+                if (this.storieDecorator.cancelExport) return;
+                this.storieContent = this.defineStoryContent(this.storieDecorator);
+            }
+            else if (this.build.buildConfig.stories.format == 'all') {
+                this.storieContent = this.defineStoryContent();
+            }
+            else if (this.build.buildConfig.stories.format == 'public' && this.isExported) {
+                this.storieContent = this.defineStoryContent();
+            }
+        }
+    }
+    protected abstract defineStoryContent(decorator?: StorybookDecorator): IStoryExport | undefined;
+
+
+    protected transformTypeForStory(typeInfo: TypeInfo | undefined, from: BaseInfo): IStoryContentTypeResult | undefined {
+        if (!typeInfo) {
+            return undefined;
+        }
+
+        // simple
+        if (typeInfo.kind == "type") {
+            const result: IStoryContentTypeResultSimple = {
+                kind: 'simple',
+                name: typeInfo.value,
+            }
+            if (typeInfo.isArray) {
+                result.isArray = true;
+            }
+
+            // generics
+            if (typeInfo.genericValue.length > 0) {
+                const generics: IStoryContentTypeResult[] = [];
+                for (let gv of typeInfo.genericValue) {
+                    const resultType = this.transformTypeForStory(gv, from);
+                    if (resultType) {
+                        generics.push(resultType);
+                    }
+                }
+                if (generics.length > 0) {
+                    result.generics = generics;
+                }
+            }
+
+            // ref
+            let info = from.parserInfo.imports[typeInfo.value]?.info;
+            if (info) {
+                if (this.build.buildConfig.stories!.format == 'all') {
+                    result.ref = info.fullName;
+                }
+                else if (this.build.buildConfig.stories!.format == 'public') {
+                    if (info.isExported || info.decorators.find(p => p.name == "Storybook")) {
+                        result.ref = info.fullName;
+                    }
+                    else {
+                        let decorator = info.decorators.find(p => p.name == "Storybook");
+                        if (decorator) {
+                            const deco = StorybookDecorator.is(decorator);
+                            if (deco && !deco.cancelExport) {
+                                result.ref = info.fullName;
+                            }
+                        }
+                    }
+                }
+                else if (this.build.buildConfig.stories!.format == 'tag') {
+                    let decorator = info.decorators.find(p => p.name == "Storybook");
+                    if (decorator) {
+                        const deco = StorybookDecorator.is(decorator);
+                        if (deco && !deco.cancelExport) {
+                            result.ref = info.fullName;
+                        }
+                    }
+                }
+            }
+            else {
+                let baseInfo = from.parserInfo.internalObjects[typeInfo.value];
+                if (baseInfo) {
+                    if (this.build.buildConfig.stories!.format == 'all') {
+                        result.ref = baseInfo.fullname;
+                    }
+                    else if (this.build.buildConfig.stories!.format == 'public') {
+                        if (baseInfo.isExported || baseInfo.isStoryExported) {
+                            result.ref = baseInfo.fullname;
+                        }
+                    }
+                    else if (this.build.buildConfig.stories!.format == 'tag') {
+                        if (baseInfo.isStoryExported) {
+                            result.ref = baseInfo.fullname;
+                        }
+                    }
+                }
+            }
+            return result
+        }
+        if (
+            typeInfo.kind == "any" ||
+            typeInfo.kind == "never" ||
+            typeInfo.kind == "unknown" ||
+            typeInfo.kind == "boolean" ||
+            typeInfo.kind == "null" ||
+            typeInfo.kind == "number" ||
+            typeInfo.kind == "string" ||
+            typeInfo.kind == "undefined" ||
+            typeInfo.kind == "void" ||
+            typeInfo.kind == "object" ||
+            typeInfo.kind == "symbol" ||
+            typeInfo.kind == "this"
+        ) {
+            const result: IStoryContentTypeResultSimple = {
+                kind: 'simple',
+                name: typeInfo.kind,
+            }
+            return result;
+        }
+        if (typeInfo.kind == "literal") {
+            const result: IStoryContentTypeResultSimple = {
+                kind: 'simple',
+                name: typeInfo.value,
+            }
+            return result;
+        }
+        // function
+        if (typeInfo.kind == "function" || typeInfo.kind == "constructor") {
+            if (!typeInfo.fctType) return undefined;
+            const result: IStoryContentTypeResultFunction = {
+                kind: 'function',
+            }
+
+            // parameters
+            if (Object.keys(typeInfo.fctType.parameters).length > 0) {
+                result.parameters = []
+                for (let paramName in typeInfo.fctType.parameters) {
+                    const parameterTemp: IStoryContentTypeResultFunctionParameter = {
+                        name: paramName,
+                    }
+                    const paramTypeResult = this.transformTypeForStory(typeInfo.fctType.parameters[paramName], this);
+                    if (paramTypeResult) {
+                        parameterTemp.type = paramTypeResult;
+                    }
+                    result.parameters.push(parameterTemp);
+                }
+            }
+
+            // return
+            const resultType = this.transformTypeForStory(typeInfo.fctType.return, this);
+            if (resultType) {
+                result.return = resultType;
+            }
+
+            // constructor
+            if (typeInfo.kind == "constructor") {
+                result.isConstructor = true;
+            }
+
+            // generics
+            let fctType = typeInfo.node as FunctionTypeNode;
+            if (fctType.typeParameters) {
+                result.generics = [];
+                for (let param of fctType.typeParameters) {
+                    const genericTemp: IStoryGeneric = {
+                        name: param.name.getText(),
+                    }
+                    const typeResultDefault = this.transformTypeForStory(new TypeInfo(param.default), this);
+                    if (typeResultDefault) {
+                        genericTemp.default = typeResultDefault;
+                    }
+
+                    const typeResultConstraint = this.transformTypeForStory(new TypeInfo(param.constraint), this);
+                    if (typeResultConstraint) {
+                        genericTemp.constraint = typeResultConstraint;
+                    }
+
+                    result.generics.push(genericTemp);
+                }
+            }
+
+            return result;
+        }
+        // tupple
+        if (typeInfo.kind == "tuple") {
+            // it's an object like [string, number]
+            const result: IStoryContentTypeResultTupple = {
+                kind: 'tupple',
+                tupples: [],
+            }
+            for (let value of typeInfo.nested) {
+                const resultTemp = this.transformTypeForStory(value, from);
+                if (resultTemp)
+                    result.tupples.push(resultTemp)
+            }
+            return result;
+        }
+        // object
+        if (typeInfo.kind == "typeLiteral") {
+            // it's an object like {for:bar}
+            const result: IStoryContentTypeResultObject = {
+                kind: 'object',
+            }
+            let node = typeInfo.node as LiteralTypeNode;
+            forEachChild(node, (n) => {
+                if (n.kind == SyntaxKind.PropertySignature) {
+                    let prop = n as PropertySignature;
+                    if (prop.type) {
+                        let name = prop.name.getText();
+                        let typeNode = new TypeInfo(prop.type);
+                        const typeTemp = this.transformTypeForStory(typeNode, from);
+                        if (typeTemp) {
+                            if (!result.keys) {
+                                result.keys = {}
+                            }
+                            result.keys[name] = typeTemp
+                        }
+                    }
+                    else {
+                        console.log("need implements property signature no type " + SyntaxKind[n.kind] + " " + from.fileUri);
+                    }
+                }
+                else if (n.kind == SyntaxKind.IndexSignature) {
+                    let prop = n as IndexSignatureDeclaration;
+                    if (prop.parameters.length > 0 && prop.parameters[0].type) {
+                        if (!result.indexSignatures) {
+                            result.indexSignatures = [];
+                        }
+                        const typeTemp = this.transformTypeForStory(new TypeInfo(prop.type), from);
+                        const keyTypeTemp = this.transformTypeForStory(new TypeInfo(prop.parameters[0].type), from);
+                        if (typeTemp && keyTypeTemp) {
+                            result.indexSignatures.push({
+                                keyName: prop.parameters[0].name.getText(),
+                                keyType: keyTypeTemp,
+                                type: typeTemp
+                            })
+                        }
+                    }
+                }
+                else if (n.kind == SyntaxKind.TypeLiteral) {
+                    const typeLiteral = n as TypeLiteralNode;
+                    let _array = this.transformTypeForStory(new TypeInfo(typeLiteral), from)
+                    if (_array) {
+                        result.array = _array;
+                    }
+                }
+                else {
+                    console.log("need implements for " + SyntaxKind[n.kind] + " " + from.fileUri);
+                }
+            })
+
+            return result;
+        }
+
+        // union
+        if (typeInfo.kind == "union") {
+            const result: IStoryContentTypeResultUnion = {
+                kind: 'union',
+                types: []
+            }
+            for (let nested of typeInfo.nested) {
+                const resultTemp = this.transformTypeForStory(nested, from);
+                if (resultTemp) {
+                    result.types.push(resultTemp)
+                }
+            }
+            return result;
+
+        }
+        // intersection
+        if (typeInfo.kind == "intersection") {
+            const result: IStoryContentTypeResultIntersection = {
+                kind: 'intersection',
+                types: []
+            }
+            for (let nested of typeInfo.nested) {
+                const resultTemp = this.transformTypeForStory(nested, from);
+                if (resultTemp) {
+                    result.types.push(resultTemp)
+                }
+            }
+            return result;
+        }
+
+        // typeOperator
+        if (typeInfo.kind == "typeOperator") {
+
+            if (typeInfo.nested.length > 0) {
+                const typeResult = this.transformTypeForStory(typeInfo.nested[0], from)
+                if (typeResult) {
+                    const result: IStoryContentTypeResultTypeOperator = {
+                        kind: 'typeOperator',
+                        value: typeInfo.value as 'typeof' | 'keyof' | 'unique' | 'readonly',
+                        type: typeResult
+                    }
+                    return result;
+                }
+            }
+            return undefined;
+        }
+
+        if (typeInfo.kind == "indexedAccess") {
+            if (typeInfo.nested.length == 2) {
+                const obj = this.transformTypeForStory(typeInfo.nested[0], from);
+                const key = this.transformTypeForStory(typeInfo.nested[1], from);
+                if (key && obj) {
+                    const result: IStoryContentTypeResultIndexAccess = {
+                        kind: 'indexAccess',
+                        obj,
+                        key
+                    }
+                    return result;
+                }
+            }
+
+            return undefined;
+        }
+
+        if (typeInfo.kind == "mappedType") {
+            if (typeInfo.mappedType) {
+                const parameterType = this.transformTypeForStory(typeInfo.mappedType.parameterType, from);
+                const type = this.transformTypeForStory(typeInfo.mappedType.type, from);
+                if (parameterType && type) {
+                    const result: IStoryContentTypeResultMappedType = {
+                        kind: 'mappedType',
+                        parameterName: typeInfo.mappedType.parameterName,
+                        parameterType,
+                        type,
+                    }
+                    if (typeInfo.mappedType.modifier) {
+                        result.modifier = typeInfo.mappedType.modifier
+                    }
+                    return result;
+                }
+            }
+            return undefined;
+        }
+
+        if (typeInfo.kind == "infer") {
+            const result: IStoryContentTypeResultInfer = {
+                kind: 'infer',
+                name: typeInfo.value
+            }
+            return result;
+        }
+
+        if (typeInfo.kind == "conditional") {
+            if (typeInfo.conditionalType) {
+                const _check = this.transformTypeForStory(typeInfo.conditionalType.check, from)
+                const _extends = this.transformTypeForStory(typeInfo.conditionalType.extends, from)
+                const _true = this.transformTypeForStory(typeInfo.conditionalType.true, from)
+                const _false = this.transformTypeForStory(typeInfo.conditionalType.false, from)
+                if (_extends && _true && _false && _check) {
+                    const result: IStoryContentTypeResultConditional = {
+                        kind: 'conditional',
+                        check: _check,
+                        extends: _extends,
+                        true: _true,
+                        false: _false,
+                    }
+                    return result;
+                }
+            }
+            return undefined;
+        }
+
+        if (typeInfo.kind == "mock") {
+            console.log("mock type");
+        }
+
+        return undefined;
+    }
+
+    protected loadGenericForStory(declaration: TypeParameterDeclaration, documentation?: DocumentationInfo): IStoryContentGeneric {
+        const name = declaration.name.getText();
+        const result: IStoryContentGeneric = {
+            name,
+        }
+        if (!documentation) {
+            documentation = this.documentation;
+        }
+        if (documentation?.documentationTemplates[name]) {
+            result.documentation = documentation.documentationTemplates[name]
+        }
+
+        if (declaration.constraint) {
+            const typeResult = this.transformTypeForStory(new TypeInfo(declaration.constraint), this);
+            if (typeResult)
+                result.constraint = typeResult
+        }
+        if (declaration.default) {
+            const typeResult = this.transformTypeForStory(new TypeInfo(declaration.default), this);
+            if (typeResult)
+                result.default = typeResult;
+        }
+
+        return result;
+    }
+
+    protected loadParameterForStory(declaration: ParameterDeclaration, documentation?: DocumentationInfo): IStoryContentParameter {
+        const name = declaration.name.getText();
+        const result: IStoryContentParameter = {
+            name,
+        }
+        //type
+        const type = this.transformTypeForStory(new TypeInfo(declaration.type), this);
+        if (type) {
+            result.type = type;
+        }
+        // doc
+        if (!documentation) {
+            documentation = this.documentation;
+        }
+        if (documentation?.documentationParameters[name]) {
+            result.documentation = documentation.documentationParameters[name]
+        }
+        return result;
+    }
+
+    protected setAccessibilityForStroy(result: IStoryExport) {
+        if (!this.isExported) {
+            result.accessibility = 'internal'
+        }
+    }
+
+    protected setNamespaceForStroy(result: IStoryExport) {
+        // namespace
+        if (this.build.noNamespaceUri[this.fileUri]) {
+            if (this.namespace.length > 0) {
+                result.namespace = this.namespace;
+            }
+        }
+        else {
+            result.namespace = this.build.module;
+            if (this.namespace.length > 0) {
+                result.namespace += this.namespace;
+            }
+        }
+    }
+    protected setDocumentationForStroy(result: IStoryExport) {
+        if (this.documentation) {
+            result.documentation = this.documentation.definitions.join("\n")
+        }
     }
 }

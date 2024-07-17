@@ -1,5 +1,8 @@
 import type { StateManager } from "./StateManager.state.avt";
 
+@Storybook({
+    prefix: "State"
+})
 export interface IState {
     readonly name: string;
     activate(manager: StateManager): Promise<boolean>;
@@ -7,7 +10,9 @@ export interface IState {
     onInactivate(nextState: State);
     askChange(state: State, nextState: State): Promise<boolean>;
 }
-
+@Storybook({
+    prefix: "State"
+})
 export abstract class State implements IState {
     /**
      * Activate a custom state inside a specific manager
@@ -36,7 +41,9 @@ export abstract class State implements IState {
         return true;
     }
 }
-
+@Storybook({
+    prefix: "State"
+})
 export class EmptyState extends State implements IState {
 
     private localName: string;

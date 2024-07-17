@@ -8,13 +8,14 @@ import { Build } from "../../project/Build";
 import { createErrorScss, createErrorScssPos, pathToUri } from "../../tools";
 import { AventusBaseFile } from "../BaseFile";
 import { AventusWebComponentLogicalFile } from '../ts/component/File';
-import { SCSSParsedRule } from './LanguageService';
+import { AventusSCSSLanguageService, SCSSParsedRule } from './LanguageService';
 import { AventusHTMLFile } from '../html/File';
 import { ParserHtml } from '../html/parser/ParserHtml';
 import { Exception, compileString } from 'sass';
 import { existsSync, lstatSync, readFileSync } from 'fs';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { GenericServer } from '../../GenericServer';
+import { CustomCssProperty } from './helper/CSSNode';
 
 export class AventusWebSCSSFile extends AventusBaseFile {
     public compiledVersion = -1;
@@ -22,10 +23,12 @@ export class AventusWebSCSSFile extends AventusBaseFile {
     private dependances: { [uri: string]: AventusWebSCSSFile } = {};
 
     private diagnostics: Diagnostic[] = [];
-	private diagnosticCompile: Diagnostic | undefined;
+    private diagnosticCompile: Diagnostic | undefined;
     private compiledTxt: string = "";
     private namespace: string = "";
     private _rules: SCSSParsedRule = new Map();
+
+    public customProperties: CustomCssProperty[] = [];
 
     public get compileResult() {
         return this.compiledTxt;
@@ -63,7 +66,7 @@ export class AventusWebSCSSFile extends AventusBaseFile {
     protected async onValidate(): Promise<Diagnostic[]> {
         this.diagnostics = await this.build.scssLanguageService.doValidation(this.file);
         await this.loadDependances();
-        if(this.diagnosticCompile) {
+        if (this.diagnosticCompile) {
             return [...this.diagnostics, this.diagnosticCompile];
         }
         return this.diagnostics;
@@ -93,8 +96,6 @@ export class AventusWebSCSSFile extends AventusBaseFile {
             let errorMsgTxt = "|error|";
             const _loadContent = async (file: AventusFile): Promise<string> => {
                 let textToSearch = file.contentUser;
-                //remove comment 
-                textToSearch = textToSearch.replace(/\/\*[\s\S]*?\*\/|([^:]|^)\/\/.*$/gm, '$1');
 
                 let regex = /@import *?('|")(\S*?)('|");?/g;
                 let arrMatch: RegExpExecArray | null = null;
@@ -117,14 +118,17 @@ export class AventusWebSCSSFile extends AventusBaseFile {
             let oneFileContent = await _loadContent(this.file);
             if (oneFileContent != "|error|") {
                 try {
+                    this.customProperties = AventusSCSSLanguageService.getCustomProperty(oneFileContent);
+                    //remove comment 
+                    oneFileContent = oneFileContent.replace(/\/\*[\s\S]*?\*\/|([^:]|^)\/\/.*$/gm, '$1');
                     let compiled = compileString(oneFileContent, {
                         style: 'compressed'
                     }).css.toString().trim();
                     newCompiledTxt = compiled;
-                    if(this.diagnosticCompile) {
-						this.diagnosticCompile = undefined;
-						GenericServer.sendDiagnostics({ uri: this.file.uri, diagnostics: this.diagnostics })
-					}
+                    if (this.diagnosticCompile) {
+                        this.diagnosticCompile = undefined;
+                        GenericServer.sendDiagnostics({ uri: this.file.uri, diagnostics: this.diagnostics })
+                    }
                 } catch (e: any) {
                     if (e instanceof Exception) {
                         this.diagnosticCompile = createErrorScss(this.file.documentUser, e.message);

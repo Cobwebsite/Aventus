@@ -1,5 +1,12 @@
 
+
+@Storybook({
+    prefix: "Tools/Type"
+})
 type OnlyConstructor = (abstract new (...args: any[]) => any);
+@Storybook({
+    prefix: "Tools/Type"
+})
 export type AnyConstructor = OnlyConstructor | {};
 
 
@@ -24,6 +31,9 @@ export type AnyConstructor = OnlyConstructor | {};
 //#region tools
 
 /** Force the type to be a literal string */
+@Storybook({
+    prefix: "Tools/Type"
+})
 export type StringLiteral<T> = T extends string ? string extends T ? never : T : never;
 
 // /** Split a string on string array */

@@ -1,5 +1,7 @@
 
-
+@Storybook({
+    prefix: "Lib/Instance"
+})
 export class Instance {
     private static elements: Map<{ prototype: any; }, any> = new Map();
     public static get<X>(type: Function & { prototype: X; }): X {

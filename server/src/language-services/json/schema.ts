@@ -76,6 +76,34 @@ export const AventusConfigSchema: JSONSchema = {
                         items: { type: "string" },
                         description: "List of all pathes to listen watch"
                     },
+                    "stories": {
+                        type: "object",
+                        additionalProperties: false,
+                        properties: {
+                            "output": {
+                                type: "string",
+                                description: "Define where to export your stories"
+                            },
+                            "workspace": {
+                                type: "string",
+                                description: "Define where to add the .storybook"
+                            },
+                            "live": {
+                                type: "boolean",
+                                description: "Define if the story content must be recompiled on change",
+                            },
+                            "format": {
+                                type: "string",
+                                enum: ["all", "public", "manual"],
+                                default: "all",
+                                description: "All will export all elements, public only public elements, manual only elements with tag Storybook",
+                            },
+                            "prefix": {
+                                type: "string",
+                                description: "Define a prefix for all your stories name. Allow to group stories",
+                            }
+                        }
+                    },
                     "outsideModule": {
                         type: "array",
                         items: { type: "string" },
@@ -100,6 +128,23 @@ export const AventusConfigSchema: JSONSchema = {
                                     },
                                     pattern: "^\\S+\\.js",
                                     description: "The script file generated path"
+                                },
+                                "outputNpm": {
+                                    type: ["string", "array", "object"],
+                                    additionalProperties: false,
+                                    properties: {
+                                        "path": {
+                                            type: ["string", "array"],
+                                        },
+                                        "packageJson": {
+                                            type: "boolean",
+                                            description: "Define if you need to generate a package.json",
+                                        }
+                                    },
+                                    items: {
+                                        type: "string",
+                                    },
+                                    description: "Define where to export as npm files",
                                 },
                                 "compressed": {
                                     type: "boolean"
@@ -207,6 +252,10 @@ export const AventusConfigSchema: JSONSchema = {
                     uri: {
                         type: "string",
                         description: "Where to find the package or the json file"
+                    },
+                    npm: {
+                        type: "string",
+                        description: "The npm package name"
                     },
                     version: {
                         type: "string",

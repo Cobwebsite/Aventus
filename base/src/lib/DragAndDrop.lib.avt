@@ -1,5 +1,8 @@
 import { PressManager } from "./PressManager.lib.avt";
 
+@Storybook({
+    prefix: "Lib/DragAndDrop"
+})
 export interface DragAndDropOptionsShadow {
     /** If set to true, the drag and drop will create a shadow element while dragging and removing it on drop. It will not move the original element anymore */
     enable: boolean,
@@ -10,6 +13,9 @@ export interface DragAndDropOptionsShadow {
     /** Add custom transformation for the shadow element */
     transform?: (el: HTMLElement) => void;
 }
+@Storybook({
+    prefix: "Lib/DragAndDrop"
+})
 export interface DragAndDropOptions {
     /** If set to false, the element won't move */
     applyDrag?: boolean;
@@ -53,14 +59,22 @@ export interface DragAndDropOptions {
     /** correct the position if you need */
     correctPosition?: (position: Coordinate) => Coordinate;
 }
-
+@Storybook({
+    prefix: "Lib/DragAndDrop"
+})
 type DragAndDropOptionsInternal = Required<DragAndDropOptions> & { shadow: Required<DragAndDropOptionsShadow>; };
 
+@Storybook({
+    prefix: "Lib/DragAndDrop"
+})
 interface Coordinate {
     x: number;
     y: number;
 }
 
+@Storybook({
+    prefix: "Lib/DragAndDrop"
+})
 export class DragAndDrop {
     /**
      * Default offset before drag element

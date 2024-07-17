@@ -1,3 +1,6 @@
+@Storybook({
+    prefix: "Http"
+})
 export interface HttpRouterOptions {
     url: string;
 }

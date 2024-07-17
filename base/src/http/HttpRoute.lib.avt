@@ -1,35 +1,9 @@
 import { HttpRouter } from "./HttpRouter.lib.avt";
 
-
+@Storybook({
+    prefix: "Http"
+})
 export class HttpRoute {
-
-    // private static JoinPath<T extends string, U extends string>(s1: T, s2: U): Join<[T, U], "."> {
-    //     return s1 + "." + s2 as Join<[T, U], ".">;
-    // }
-
-    // public static ExtendRoutes<const T extends readonly ({ type: RouteType, path: string; } | RouteType)[], U extends string>(options: T, path: StringLiteral<U>) {
-    //     let result = [] as any;
-    //     if(!path) {
-    //         result = options;
-    //     }
-    //     else {
-    //         for(let option of options) {
-    //             if(typeof option == "function") {
-    //                 result.push({
-    //                     type: option,
-    //                     path: path
-    //                 });
-    //             }
-    //             else {
-    //                 result.push({
-    //                     type: option.type,
-    //                     path: this.JoinPath(path, option.path)
-    //                 });
-    //             }
-    //         }
-    //     }
-    //     return result as ExtendRoutesType<T, U>;
-    // }
 
     protected router: HttpRouter;
     public constructor(router?: HttpRouter) {

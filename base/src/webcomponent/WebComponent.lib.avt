@@ -1,21 +1,27 @@
-import { Template, TemplateInstance } from "./WebComponentTemplate.lib.avt";
+import { Template, type TemplateInstance } from "./WebComponentTemplate.lib.avt";
 import { Style } from "./Style.lib.avt";
-import { PressManager } from "../lib/PressManager.lib.avt";
-import { State } from "../state/State.state.avt";
+import { type PressManager } from "../lib/PressManager.lib.avt";
+import { type State } from "../state/State.state.avt";
 import { StateManager, type StateSlug } from "../state/StateManager.state.avt";
 import { ElementExtension } from "./ElementExtension.lib.avt";
 import { Instance } from "../lib/Instance.lib.avt";
 import { type Computed, WatchAction, Watcher, type EffectReceiver, type WatcherChange } from "../lib/Watcher.lib.avt";
 
-
+@Storybook({
+    prefix: "Webcomponent"
+})
 export interface DebuggerConfig {
     writeCompiled?: boolean;
 }
-
+@Storybook({
+    prefix: "Webcomponent"
+})
 export interface DefaultComponent {
     [key: string]: any; // index signature to remove error
 }
-
+@Storybook({
+    prefix: "Webcomponent"
+})
 export class WebComponentInstance {
     private static __allDefinitions: (new () => WebComponent)[] = [];
     private static __allInstances: WebComponent[] = [];
@@ -85,13 +91,16 @@ export class WebComponentInstance {
         for(let part of splitted) {
             current = current[part];
         }
-        if(current && current.prototype instanceof Aventus.WebComponent) {
+        if(current && current.prototype instanceof WebComponent) {
             return new current();
         }
         return null;
     }
 }
 
+@Storybook({
+    prefix: "Webcomponent"
+})
 @Dependances([{
     type: WebComponentInstance,
     strong: true

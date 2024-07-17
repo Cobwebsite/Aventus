@@ -1,8 +1,9 @@
-import { compareObject } from "./CompareObject.lib.avt";
-
 /**
  * Represents a mutual exclusion (mutex) mechanism for synchronizing access to a shared resource.
  */
+@Storybook({
+    prefix: "Tools/Mutex"
+})
 export class Mutex {
     /**
      * Array to store functions waiting for the mutex to become available.
@@ -154,6 +155,9 @@ export class Mutex {
 /**
  * Class that manages unique execution of asynchronous actions based on specified keys.
  */
+@Storybook({
+    prefix: "Tools/Mutex"
+})
 export class ActionGuard {
     /**
      * Map to store actions that are currently running.
@@ -165,8 +169,8 @@ export class ActionGuard {
     /**
      * Executes an action uniquely based on the specified keys.
      * @template T
-     * @param {any[]} keys - The keys associated with the action.
-     * @param {() => Promise<T>} action - The action to execute.
+     * @param {any[]} keys The keys associated with the action.
+     * @param {() => Promise<T>} action The action to execute.
      * @returns {Promise<T>} A promise that resolves with the result of the action.
      * @example
      * // Example usage:
@@ -187,7 +191,7 @@ export class ActionGuard {
      * await actionGuard.run(keys, action)
      *
      */
-    public run<T>(keys: any[], action: () => Promise<T>): Promise<T> {
+    public run<T extends any>(keys: any[], action: () => Promise<T>): Promise<T> {
         return new Promise<T>(async (resolve) => {
             // Retrieve actions associated with the keys
             let actions: ((res: any) => void)[] | undefined = undefined;
