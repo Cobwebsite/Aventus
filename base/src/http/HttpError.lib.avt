@@ -1,6 +1,13 @@
 import { GenericError } from "../tools/Error.lib.avt";
 
+@Storybook({
+    prefix: "Http"
+})
 export enum HttpErrorCode {
     unknow
 }
+
+@Storybook({
+    prefix: "Http"
+})
 export class HttpError extends GenericError<HttpErrorCode>{}

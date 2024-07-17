@@ -7,8 +7,8 @@ import { ExtensionContext } from "vscode";
 import { Singleton } from "./Singleton";
 
 
-export function activate(context: ExtensionContext) {
-	Singleton.client.init(context);
+export async function activate(context: ExtensionContext) {
+	await Singleton.client.init(context);
 }
 
 export function deactivate(): Thenable<void> | undefined {

@@ -1,11 +1,20 @@
+@Storybook({
+    prefix: "Lib/Animation"
+})
 export type AnimationOptions = Partial<AnimationOptionsInternal>;
 
+@Storybook({
+    prefix: "Lib/Animation"
+})
 interface AnimationOptionsInternal {
     animate: Function,
     stopped: Function,
     fps: number;
 }
 
+@Storybook({
+    prefix: "Lib/Animation"
+})
 export class Animation {
     /**
      * Default FPS for all Animation if not set inside options

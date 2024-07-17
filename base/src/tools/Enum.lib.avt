@@ -1,2 +1,8 @@
+@Storybook({
+    prefix: "Tools/Enum"
+})
 export type Enum = { [key: string]: number | string; };
+@Storybook({
+    prefix: "Tools/Enum"
+})
 export type EnumValue<T extends (number | Enum)> = T extends Enum ? T[keyof T] : number;

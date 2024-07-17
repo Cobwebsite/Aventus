@@ -1,3 +1,6 @@
+@Storybook({
+    prefix: "Webcomponent"
+})
 export class ElementExtension {
     /**
      * Find a parent by tagname if exist Static.findParentByTag(this, "av-img")

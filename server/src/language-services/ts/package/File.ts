@@ -16,6 +16,7 @@ import { AliasInfo } from '../parser/AliasInfo';
 import { EnumInfo } from '../parser/EnumInfo';
 import { FunctionInfo } from '../parser/FunctionInfo';
 import { VariableInfo } from '../parser/VariableInfo';
+import { ParserTs } from '../parser/ParserTs';
 
 
 export interface AventusPackageTsFileExport {
@@ -45,6 +46,7 @@ export class AventusPackageFile extends AventusBaseFile {
 	public externalCSS: { [name: string]: string } = {};
 
 	public name: string = "";
+	public npmUri: string = "";
 	public version = {
 		major: 1,
 		minor: 0,
@@ -56,6 +58,10 @@ export class AventusPackageFile extends AventusBaseFile {
 
 	public get classInfoByName(): { [name: string]: ClassInfo } {
 		return this.tsDef?.classInfoByName || {};
+	}
+
+	public get fileParsed(): ParserTs | null {
+		return this.tsDef?.fileParsed || null;
 	}
 
 
@@ -251,7 +257,7 @@ export class AventusPackageFile extends AventusBaseFile {
 export class AventusPackageFileTs extends AventusTsFile {
 	private _classInfoByName: { [name: string]: ClassInfo } = {};
 	private packagesFiles: AventusPackageNamespaceFileTs[] = [];
-	protected get extension(): string {
+	public get extension(): string {
 		return AventusExtension.Package;
 	}
 	public get classInfoByName() {
@@ -340,7 +346,8 @@ export class AventusPackageFileTs extends AventusTsFile {
 
 				for (let _namespace in content) {
 					if (_namespace) {
-						this.packagesFiles.push(new AventusPackageNamespaceFileTs(content[_namespace], _namespace + ".package.avt", this.build, this))
+						const name = this.file.name.replace(AventusExtension.Package, "") + ":" + _namespace + AventusExtension.Package;
+						this.packagesFiles.push(new AventusPackageNamespaceFileTs(content[_namespace], name, this.build, this))
 					}
 				}
 			}
@@ -409,7 +416,7 @@ type FileNamespaceInfo = {
 }
 
 export class AventusPackageNamespaceFileTs extends AventusTsFile {
-	protected get extension(): string {
+	public get extension(): string {
 		return AventusExtension.Package;
 	}
 
@@ -418,7 +425,7 @@ export class AventusPackageNamespaceFileTs extends AventusTsFile {
 	private packageFile: AventusPackageFileTs;
 
 	public constructor(info: FileNamespaceInfo, uri: string, build: Build, packageFile: AventusPackageFileTs) {
-		const doc = TextDocument.create("/" + uri, AventusLanguageId.TypeScript, 1, info.text)
+		const doc = TextDocument.create("file:///" + uri, AventusLanguageId.TypeScript, 1, info.text)
 		const file = new InternalAventusFile(doc)
 		file.triggerDelete();
 		super(file, build);

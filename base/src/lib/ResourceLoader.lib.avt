@@ -1,12 +1,20 @@
-
+@Storybook({
+    prefix: "Lib/ResourceLoader"
+})
 export interface ResourceLoaderOptions {
     url: string;
     type: 'js' | 'css' | 'img' | 'svg';
 }
+@Storybook({
+    prefix: "Lib/ResourceLoader"
+})
 export interface ResourceLoaderHeadOptions {
     url: string;
     type: 'js' | 'css';
 }
+@Storybook({
+    prefix: "Lib/ResourceLoader"
+})
 export class ResourceLoader {
 
     //#region head loading

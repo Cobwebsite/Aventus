@@ -105,4 +105,17 @@ declare global {
     function BindThis(): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void;
 
     function NoCompile(): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void;
+
+    interface StorybookConfig {
+        /** Define if the element must be exported to storybook */
+        export?: boolean,
+        /** Define a prefix to group your stories */
+        prefix?: string,
+        /** If set to true, only meta will be generated. Usefull to create custom pages */
+        onlyMeta?: boolean;
+    }
+    /**
+     * Export a story for this component
+     */
+    function Storybook(info?: StorybookConfig);
 }

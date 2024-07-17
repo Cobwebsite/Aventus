@@ -1,16 +1,30 @@
-import { Template } from "../webcomponent/WebComponentTemplate.lib.avt";
 import { compareObject, getValueFromObject } from "../tools/CompareObject.lib.avt";
 
-type NotVoid<T> = T extends void ? never : T;
+@Storybook({
+    prefix: "Lib/Watcher"
+})
+type IsNotVoid<T> = T extends void ? never : T;
+@Storybook({
+    prefix: "Lib/Watcher"
+})
 export type WatcherFunction = (action: WatchAction, path: string, value: any) => void;
+@Storybook({
+    prefix: "Lib/Watcher"
+})
 type WatcherFunctionInternal = (action: WatchAction, path: string, value: any, dones: any) => void;
 
+@Storybook({
+    prefix: "Lib/Watcher"
+})
 export enum WatchAction {
     CREATED,
     UPDATED,
     DELETED
 }
 
+@Storybook({
+    prefix: "Lib/Watcher"
+})
 export class Watcher {
     private static __reservedName: { [key: string]: string; } = {
         __path: '__path',
@@ -157,6 +171,7 @@ export class Watcher {
 
                     //#region set internal alias to notify parent from changes
                     addAlias(root, prop, (type, target, receiver2, value, prop2: string, dones: any[]) => {
+                        const pathSave = element.__path;
                         let proxy = element.__getProxy;
                         let triggerPath: string;
                         if(prop2.startsWith("[") || oldPath == "" || prop2 == "") {
@@ -170,6 +185,7 @@ export class Watcher {
                         let newProp = splitted.pop();
                         let newReceiver = getValueFromObject(splitted.join("."), proxy);
                         element.__trigger(type, target, newReceiver, value, newProp, dones);
+                        element.__path = pathSave;
                     });
 
                     //#endregion
@@ -496,6 +512,62 @@ export class Watcher {
                         }
                         return result;
                     }
+                    else if(target instanceof Map) {
+                        let result;
+                        if(prop == "set") {
+                            if((target as any).__isProxy) {
+                                result = (key, value) => {
+                                    return target.set(key, value);
+                                };
+                            }
+                            else {
+                                result = (key, value) => {
+                                    let result = target.set(key, value);
+                                    trigger('CREATED', target, receiver, receiver.get(key), key);
+                                    trigger('UPDATED', target, receiver, target.size, "size");
+                                    return result;
+                                };
+                            }
+                        }
+                        else if(prop == "clear") {
+                            if((target as any).__isProxy) {
+                                result = () => {
+                                    return target.clear();
+                                };
+                            }
+                            else {
+                                result = () => {
+                                    let keys = target.keys();
+                                    for(let key of keys) {
+                                        let oldValue = receiver.get(key);
+                                        target.delete(key);
+                                        trigger('DELETED', target, receiver, oldValue, key);
+                                        trigger('UPDATED', target, receiver, target.size, "size");
+                                    }
+                                };
+                            }
+                        }
+                        else if(prop == "delete") {
+                            if((target as any).__isProxy) {
+                                result = (key) => {
+                                    return target.delete(key);
+                                };
+                            }
+                            else {
+                                result = (key) => {
+                                    let oldValue = receiver.get(key);
+                                    let res = target.delete(key);
+                                    trigger('DELETED', target, receiver, oldValue, key);
+                                    trigger('UPDATED', target, receiver, target.size, "size");
+                                    return res;
+                                };
+                            }
+                        }
+                        else {
+                            result = element.bind(target);
+                        }
+                        return result;
+                    }
                     return element.bind(target);
                 }
 
@@ -811,7 +883,7 @@ export class Watcher {
     /**
      * Create a computed variable that will watch any changes
      */
-    public static computed<T>(fct: () => NotVoid<T>): Computed<T> {
+    public static computed<T>(fct: () => IsNotVoid<T>): Computed<T> {
         const comp = new Computed<T>(fct);
         return comp;
     }
@@ -824,18 +896,30 @@ export class Watcher {
     }
 }
 
+@Storybook({
+    prefix: "Lib/Watcher"
+})
 export type WatcherChange = (action: WatchAction, changePath: string, value: any, dones: any[]) => void;
+@Storybook({
+    prefix: "Lib/Watcher"
+})
 export type EffectReceiver = {
     subscribe: (fct: WatcherChange) => void;
     unsubscribe: (fct: WatcherChange) => void;
     __path: string;
 };
+@Storybook({
+    prefix: "Lib/Watcher"
+})
 type WatcherAllowed = (action: WatchAction, path: string, value: any, dones: any[]) => boolean;
 
 /**
  * Effect will recomputed each time a watchable variable or effect or computed are changed
  * Each time the function is called, dependances tree is updated. It's usefull when you have array or conditional inside
  */
+@Storybook({
+    prefix: "Lib/Watcher"
+})
 export class Effect {
     @InternalProtected()
     public callbacks: {
@@ -983,6 +1067,9 @@ export class Effect {
  * Effect will recomputed each time a watchable variable or effect or computed are changed
  * The dependances tree is created only during the first execution
  */
+@Storybook({
+    prefix: "Lib/Watcher"
+})
 export class EffectNoRecomputed extends Effect {
     protected override init() {
         this.isInit = true;
@@ -1003,6 +1090,9 @@ export class EffectNoRecomputed extends Effect {
  * When no change occured you can get the value by calling the value property
  * Each time the function is called, dependances tree is updated. It's usefull when you have array or conditional inside
  */
+@Storybook({
+    prefix: "Lib/Watcher"
+})
 export class Computed<T = any> extends Effect {
     protected _value?: T;
     @Internal()
@@ -1020,7 +1110,7 @@ export class Computed<T = any> extends Effect {
         return false;
     }
 
-    public constructor(fct: () => NotVoid<T>) {
+    public constructor(fct: () => IsNotVoid<T>) {
         super(fct);
     }
 
@@ -1053,6 +1143,9 @@ export class Computed<T = any> extends Effect {
  * When no change occured you can get the value by calling the value property
  * The dependances tree is created only during the first execution
  */
+@Storybook({
+    prefix: "Lib/Watcher"
+})
 export class ComputedNoRecomputed<T = any> extends Computed<T> {
     protected override init() {
         this.isInit = true;

@@ -1,7 +1,11 @@
 /**
  * It ll wait the number provided in ms
  * Async setTimeout
+ * @param {number} ms Define the time to wait in milliseconds
  */
+@Storybook({
+    prefix: "Tools"
+})
 export function sleep(ms: number) : Promise<void> {
 	return new Promise(resolve => setTimeout(resolve, ms));
 }

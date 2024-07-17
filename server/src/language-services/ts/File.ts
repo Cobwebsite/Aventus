@@ -2,7 +2,7 @@ import { Diagnostic } from "vscode-languageserver";
 import { AventusErrorCode, AventusExtension } from "../../definition";
 import { AventusFile } from '../../files/AventusFile';
 import { Build } from "../../project/Build";
-import { createErrorTsPos } from '../../tools';
+import { Debug, createErrorTsPos } from '../../tools';
 import { AventusBaseFile } from "../BaseFile";
 import { CompileTsResult } from './LanguageService';
 import { ParserTs } from './parser/ParserTs';
@@ -28,7 +28,7 @@ export abstract class AventusTsFile extends AventusBaseFile {
         return this.file.versionUser;
     }
 
-    protected abstract get extension(): string;
+    public abstract get extension(): string;
     public fileParsed: ParserTs | null = null;
 
     public get contentForLanguageService() { return this._contentForLanguageService }

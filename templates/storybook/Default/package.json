@@ -1,0 +1,32 @@
+{
+	"name": "${{name}}",
+	"displayName": "${{displayName}}",
+	"description": "${{description}}",
+	"version": "${{version}}",
+	"author": {
+		"name": "Cobwebsite",
+		"email": "info@cobwebsite.ch",
+		"url": "https://cobwesbite.ch"
+	},
+	"scripts": {
+        "storybook": "storybook dev -p 6006",
+        "build-storybook": "storybook build"
+    },
+	"devDependencies": {
+        "@aventusjs/main": "^0.0.1",
+        "@aventusjs/storybook": "^0.0.6",
+        "@storybook/addon-docs": "^8.1.11",
+        "@storybook/addon-essentials": "^8.1.11",
+        "@storybook/addon-links": "^8.1.11",
+        "@storybook/addon-styling-webpack": "^1.0.0",
+        "@storybook/blocks": "^8.1.11",
+        "@storybook/test": "^8.1.11",
+        "@storybook/web-components": "^8.1.11",
+        "@storybook/web-components-vite": "^8.1.11",
+        "remark-gfm": "^4.0.0",
+        "sass": "^1.77.6",
+        "storybook": "^8.1.11",
+        "typescript": "^5.2.2",
+        "vite": "^5.2.0"
+    }
+}

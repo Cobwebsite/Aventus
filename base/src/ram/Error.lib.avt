@@ -1,10 +1,44 @@
 import { GenericError, ResultWithError, VoidWithError } from "../tools/Error.lib.avt";
 
+/**
+ * Enumeration of error codes for RAM-related errors.
+ */
+@Storybook({
+    prefix: "Ram"
+})
 export enum RamErrorCode {
+    /** Error code for an unknown error */
     unknow,
+    /** Error code for a missing identifier */
     noId,
+    /** Error code for no item inside RAM */
     noItemInsideRam
 }
+
+/**
+ * Class representing a specific RAM error.
+ * Inherits from GenericError with the error code type RamErrorCode.
+ */
+@Storybook({
+    prefix: "Ram"
+})
 export class RamError extends GenericError<RamErrorCode>{}
+
+/**
+ * Class representing the result of an action that may contain RAM-specific errors without a result.
+ * Inherits from VoidWithError with the error type RamError.
+ */
+@Storybook({
+    prefix: "Ram"
+})
 export class VoidRamWithError extends VoidWithError<RamError>{ }
+
+/**
+ * Class representing the result of an action that may contain RAM-specific errors with a result of a generic type.
+ * @template T - The type of the action result.
+ * Inherits from ResultWithError with the error type RamError.
+ */
+@Storybook({
+    prefix: "Ram"
+})
 export class ResultRamWithError<T> extends ResultWithError<T, RamError>{ }

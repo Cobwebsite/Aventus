@@ -4,7 +4,7 @@ import { CompletionItem, CompletionList, DiagnosticSeverity, FormattingOptions, 
 import { AventusErrorCode, AventusExtension } from "../../definition";
 import { AventusFile } from '../../files/AventusFile';
 import { createErrorTs, escapeRegex, getFolder, uriToPath } from "../../tools";
-import { AventusConfig, AventusConfigBuild, AventusConfigBuildCompile, AventusConfigBuildDependance, AventusConfigStatic } from "./definition";
+import { AventusConfig, AventusConfigBuild, AventusConfigBuildCompile, AventusConfigBuildDependance, AventusConfigBuildStories, AventusConfigStatic } from "./definition";
 import { AventusConfigSchema, AventusSharpSchema, AventusTemplateSchema } from "./schema";
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { env } from 'process';
@@ -218,6 +218,66 @@ export class AventusJSONLanguageService {
                 }
             }
 
+            // output npm
+            if (!compile.outputNpm) {
+                compile.outputNpm = {
+                    path: [],
+                    packageJson: false
+                };
+            }
+            else {
+                if (typeof compile.outputNpm == "string") {
+                    compile.outputNpm = {
+                        path: [compile.outputNpm],
+                        packageJson: true
+                    };
+                }
+                else if (Array.isArray(compile.outputNpm)) {
+                    compile.outputNpm = {
+                        path: compile.outputNpm,
+                        packageJson: true
+                    };
+                }
+
+                if (!Array.isArray(compile.outputNpm.path)) {
+                    compile.outputNpm.path = [compile.outputNpm.path];
+                }
+
+                if (compile.outputNpm.packageJson === undefined) {
+                    compile.outputNpm.packageJson = true;
+                }
+
+
+                for (let i = 0; i < compile.outputNpm.path.length; i++) {
+                    let outputPath = compile.outputNpm.path[i];
+                    let regexEnvVar = /%(.*?)%/gm;
+                    let result: RegExpExecArray | null;
+                    while (result = regexEnvVar.exec(outputPath)) {
+                        let varName = result[1];
+                        let varValue = env[varName] ?? 'undefined';
+                        outputPath = outputPath.replace(result[0], varValue);
+                    }
+
+                    if (outputPath.endsWith("*")) {
+                        outputPath = outputPath.slice(0, -1);
+                    }
+                    if (outputPath.endsWith("/")) {
+                        outputPath = outputPath.slice(0, -1);
+                    }
+                    let windowDisk = /^[a-zA-Z]:/gm
+                    if (!outputPath.startsWith("/") && !windowDisk.test(outputPath)) {
+                        outputPath = "/" + outputPath;
+                        outputPath = normalize(uriToPath(baseDir) + outputPath);
+                    }
+                    else {
+                        outputPath = normalize(outputPath);
+                    }
+                    outputPath = outputPath.replace(/\\/g, '/');
+                    compile.outputNpm.path[i] = outputPath;
+                }
+            }
+
+            // package
             if (!compile.package) {
                 compile.package = [];
             }
@@ -268,6 +328,39 @@ export class AventusJSONLanguageService {
             regTemp = escapeRegex(regTemp, true).replace("*", ".*");
             regexsSrc.push("(^" + regTemp + "$)");
         }
+        // stories
+        if (build.stories) {
+            build.stories = {
+                ...this.defaultConfigBuildStories(baseDir, config),
+                ...build.stories
+            }
+            let outputPath = build.stories.output;
+            let regexEnvVar = /%(.*?)%/gm;
+            let result: RegExpExecArray | null;
+            while (result = regexEnvVar.exec(outputPath)) {
+                let varName = result[1];
+                let varValue = env[varName] ?? 'undefined';
+                outputPath = outputPath.replace(result[0], varValue);
+            }
+
+            if (outputPath.endsWith("*")) {
+                outputPath = outputPath.slice(0, -1);
+            }
+            if (outputPath.endsWith("/")) {
+                outputPath = outputPath.slice(0, -1);
+            }
+            let windowDisk = /^[a-zA-Z]:/gm
+            if (!outputPath.startsWith("/") && !windowDisk.test(outputPath)) {
+                outputPath = "/" + outputPath;
+                outputPath = normalize(uriToPath(baseDir) + outputPath);
+            }
+            else {
+                outputPath = normalize(outputPath);
+            }
+            outputPath = outputPath.replace(/\\/g, '/');
+            build.stories.output = outputPath;
+        }
+
         let regexSrcJoin = regexsSrc.join("|");
         if (regexSrcJoin == "") {
             regexSrcJoin = "(?!)";
@@ -460,6 +553,7 @@ export class AventusJSONLanguageService {
             disabled: false,
             hideWarnings: config.hideWarnings,
             src: [],
+            stories: undefined,
             compile: [],
             srcPathRegex: new RegExp('(?!)'),
             outsideModule: [],
@@ -476,12 +570,21 @@ export class AventusJSONLanguageService {
         }
     }
 
+    private defaultConfigBuildStories(baseDir: string, config: AventusConfig): AventusConfigBuildStories {
+
+        return {
+            output: baseDir + "/stories",
+            format: 'all',
+        }
+    }
+
     private defaultConfigBuildDependanceValue(dependance: AventusConfigBuildDependance): AventusConfigBuildDependance {
         return {
             include: 'need',
             subDependancesInclude: {},
             version: 'x.x.x',
-            uri: ''
+            uri: '',
+            npm: ''
         }
     }
     //#endregion
@@ -492,7 +595,7 @@ export class AventusJSONLanguageService {
         txt = txt.replace(regex, (match, grp1, grp2) => {
             if (grp2) {
                 let result = "";
-                for(let i = 0;i<grp2.length;i++) {
+                for (let i = 0; i < grp2.length; i++) {
                     result += " "
                 }
                 return result;

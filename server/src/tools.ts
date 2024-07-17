@@ -12,15 +12,20 @@ export function pathToUri(path: string): string {
         return path;
     }
     if (sep === "/") {
-        return "file://" + normalizePath(encodeURI(path.replace(/\\/g, '/')));
+        return "file://" + normalizeUri(encodeURI(path.replace(/\\/g, '/')));
     }
-    return "file:///" + normalizePath(encodeURI(path.replace(/\\/g, '/')));
+    return "file:///" + normalizeUri(encodeURI(path.replace(/\\/g, '/')));
 }
 
-function normalizePath(path:string) {
+export function normalizeUri(path: string) {
     return path
-    .replace(/:/g, "%3A")
-    .replace(/@/g, "%40")
+        .replace(/:/g, "%3A")
+        .replace(/@/g, "%40")
+}
+export function normalizePath(path: string) {
+    return path
+        .replace(/%3A/g, ":")
+        .replace(/%40/g, "@")
 }
 export function uriToPath(uri: string): string {
     if (sep === "/") {
@@ -235,6 +240,34 @@ export function getWordAtText(text: string, offset: number): { start: number; le
     return { start: offset, length: 0 };
 }
 
+export function simplifyUri(importUri: string, currentUri: string): string {
+    importUri = decodeURIComponent(importUri);
+    currentUri = decodeURIComponent(currentUri);
+    let currentDirPath = currentUri.split('/');
+    currentDirPath.pop();
+    let importPath = importUri.split('/');
+    for (let i = 0; i < currentDirPath.length; i++) {
+        if (importPath.length > i) {
+            if (currentDirPath[i] == importPath[i]) {
+                currentDirPath.splice(i, 1);
+                importPath.splice(i, 1);
+                i--;
+            }
+            else {
+                break;
+            }
+        }
+    }
+    let finalPathToImport = "";
+    for (let i = 0; i < currentDirPath.length; i++) {
+        finalPathToImport += '../';
+    }
+    if (finalPathToImport == "") {
+        finalPathToImport += "./";
+    }
+    finalPathToImport += importPath.join("/");
+    return finalPathToImport;
+}
 
 
 export class Debug {
@@ -256,7 +289,10 @@ export class Debug {
             delete this.timers[name]
         }
     }
-    public static printTimerCumluative(name: string, lvl: number, msg?: string) {
+    public static clearTimerCumluative(name: string) {
+        delete this.timersCumulative[name]
+    }
+    public static printTimerCumluative(name: string, lvl: number = 0, msg?: string) {
         if (this.timersCumulative[name]) {
             msg = msg ?? name + " : ";
             for (let i = 0; i < lvl; i++) {
@@ -266,20 +302,22 @@ export class Debug {
         }
     }
 
-    public static printTimer(name: string, lvl: number, msg?: string) {
+    public static printTimer(name: string, lvl: number, msg?: string, min?: number) {
         if (this.timers[name]) {
             let diff = new Date().getTime() - this.timers[name];
             msg = msg ?? "";
             for (let i = 0; i < lvl; i++) {
                 msg = "\t" + msg;
             }
-            console.log(msg + "" + diff + "ms");
+            if (min === undefined || diff >= min) {
+                console.log(msg + "" + diff + "ms");
+            }
         }
     }
-    public static stopTimer(name: string, lvl: number = 0, print: boolean = true, msg?: string) {
+    public static stopTimer(name: string, lvl: number = 0, print: boolean = true, msg?: string, min?: number) {
         if (print) {
             if (!msg) msg = name + " : ";
-            this.printTimer(name, lvl, msg);
+            this.printTimer(name, lvl, msg, min);
         }
         delete this.timers[name];
     }

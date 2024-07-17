@@ -8,7 +8,7 @@ import { createHash } from 'crypto';
 
 export class AventusStaticFile extends AventusTsFile {
 
-    protected get extension(): string {
+    public get extension(): string {
         return AventusExtension.Static;
     }
     protected override mustBeAddedToLanguageService(): boolean {
@@ -25,16 +25,34 @@ export class AventusStaticFile extends AventusTsFile {
         let currentPath = this.file.path;
         let definitionPath = currentPath.replace(this.extension, AventusExtension.Definition);
         let docVisible = "";
+        let docNpm = "";
         if (definitionPath.endsWith(AventusExtension.Definition) && existsSync(definitionPath)) {
             docVisible = readFileSync(definitionPath, 'utf8').replace(/declare global \{((\s|\S)*)\}/gm, '$1');
         }
-        let hash = createHash('md5').update(this.file.contentUser).digest('hex');
+        let definitionNpmPath = currentPath.replace(this.extension, AventusExtension.DefinitionNpm);
+        if (definitionNpmPath.endsWith(AventusExtension.DefinitionNpm) && existsSync(definitionNpmPath)) {
+            docNpm = readFileSync(definitionNpmPath, 'utf8')
+        }
+        else {
+            docNpm = docVisible;
+        }
+        let hash = createHash('md5').update(currentPath + this.file.contentUser).digest('hex');
+        let pathFileTemp = this.file.path.replace(this.build.project.getConfigFile().path.replace(AventusExtension.Config, ""), "")
+        pathFileTemp = pathFileTemp.replace(this.extension, ".js");
+
         this.setCompileResult([{
             classDoc: '',
             classScript: '!staticClass_' + hash,
             compiled: this.file.contentUser,
             hotReload: '',
             docVisible: docVisible,
+            npm: {
+                namespace: "",
+                defTs: docNpm,
+                src: this.file.contentUser,
+                exportPath: pathFileTemp,
+                uri: this.file.uri
+            },
             docInvisible: '',
             debugTxt: '',
             dependances: [],
@@ -42,7 +60,8 @@ export class AventusStaticFile extends AventusTsFile {
             required: true,
             type: InfoType.none,
             isExported: false, // actually its exported if written correctly
-            convertibleName: ''
+            convertibleName: '',
+            story: {}
         }]);
     }
     protected async onCompletion(document: AventusFile, position: Position): Promise<CompletionList> {

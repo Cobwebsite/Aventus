@@ -1,4 +1,7 @@
 
+@Storybook({
+    prefix: "Tools/Json"
+})
 export type JsonToOptions = {
     isValidKey?: (key: string) => boolean;
     replaceKey?: (key: string) => string;
@@ -6,13 +9,20 @@ export type JsonToOptions = {
     beforeEnd?: (result: { [key: string | number]: any; }) => { [key: string | number]: any; };
 };
 
+@Storybook({
+    prefix: "Tools/Json"
+})
 export type JsonFromOptions = {
     transformValue?: (key: string, value: any) => any;
+    replaceUndefined?: boolean;
 };
 
 /**
  * Utility class for JSON serialization and deserialization of objects.
  */
+@Storybook({
+    prefix: "Tools/Json"
+})
 export class Json {
     /**
      * Converts a JavaScript class instance to a JSON object.
@@ -58,17 +68,18 @@ export class Json {
         return result;
     }
 
-     /**
-     * Converts a JSON object to a JavaScript class instance.
-     * @template T - The type of the object to convert.
-     * @param {T} obj - The object to populate with JSON data.
-     * @param {*} data - The JSON data to populate the object with.
-     * @param {JsonFromOptions} [options] - Options for JSON deserialization.
-     * @returns {T} Returns the populated object.
-     */
+    /**
+    * Converts a JSON object to a JavaScript class instance.
+    * @template T - The type of the object to convert.
+    * @param {T} obj - The object to populate with JSON data.
+    * @param {*} data - The JSON data to populate the object with.
+    * @param {JsonFromOptions} [options] - Options for JSON deserialization.
+    * @returns {T} Returns the populated object.
+    */
     public static classFromJson<T extends Object>(obj: T, data: any, options?: JsonFromOptions): T {
         let realOptions: Required<JsonFromOptions> = {
             transformValue: options?.transformValue ?? ((key, value) => value),
+            replaceUndefined: options?.replaceUndefined ?? false,
         };
         return this.__classFromJson(obj, data, realOptions);
     }
@@ -78,7 +89,7 @@ export class Json {
         for(let prop of props) {
             let propUpperFirst = prop[0].toUpperCase() + prop.slice(1);
             let value = data[prop] === undefined ? data[propUpperFirst] : data[prop];
-            if(value !== undefined) {
+            if(value !== undefined || options.replaceUndefined) {
                 let propInfo = Object.getOwnPropertyDescriptor(obj, prop);
                 if(propInfo?.writable) {
                     obj[prop] = options.transformValue(prop, value);
@@ -92,7 +103,7 @@ export class Json {
             for(let prop of props) {
                 let propUpperFirst = prop[0].toUpperCase() + prop.slice(1);
                 let value = data[prop] === undefined ? data[propUpperFirst] : data[prop];
-                if(value !== undefined) {
+                if(value !== undefined || options.replaceUndefined) {
                     let propInfo = Object.getOwnPropertyDescriptor(cstTemp.prototype, prop);
                     if(propInfo?.set) {
                         obj[prop] = options.transformValue(prop, value);

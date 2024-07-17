@@ -6,7 +6,10 @@ import { Watcher } from "../lib/Watcher.lib.avt";
  * @param {*} obj2 The second object to compare.
  * @returns {boolean} Returns true if the objects are considered equal, otherwise returns false.
  */
-export function compareObject(obj1, obj2) {
+@Storybook({
+    prefix: "Tools"
+})
+export function compareObject(obj1, obj2): boolean {
     if(Array.isArray(obj1)) {
         // array
         if(!Array.isArray(obj2)) {
@@ -45,21 +48,41 @@ export function compareObject(obj1, obj2) {
         }
         obj1 = Watcher.extract(obj1);
         obj2 = Watcher.extract(obj2);
-        // not same keys length
-        if(Object.keys(obj1).length !== Object.keys(obj2).length) {
-            return false;
-        }
-        for(let key in obj1) {
-            // obj2 has key ?
-            if(!(key in obj2)) {
+
+        if(obj1 instanceof Map && obj2 instanceof Map) {
+            if(obj1.size != obj2.size) {
                 return false;
             }
-            // object values are equals
-            if(!compareObject(obj1[key], obj2[key])) {
+            const keys = obj1.keys();
+            for(let key in keys) {
+                // obj2 has key ?
+                if(!obj2.has(key)) {
+                    return false;
+                }
+                // object values are equals
+                if(!compareObject(obj1.get(key), obj2.get(key))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        else {
+            // not same keys length
+            if(Object.keys(obj1).length !== Object.keys(obj2).length) {
                 return false;
             }
+            for(let key in obj1) {
+                // obj2 has key ?
+                if(!(key in obj2)) {
+                    return false;
+                }
+                // object values are equals
+                if(!compareObject(obj1[key], obj2[key])) {
+                    return false;
+                }
+            }
+            return true;
         }
-        return true;
     } else {
         // string
         return obj1 === obj2;
@@ -72,6 +95,9 @@ export function compareObject(obj1, obj2) {
  * @param {*} obj The object from which to retrieve the value.
  * @returns {*} Returns the value at the specified path in the object. If the path is invalid or the value does not exist, returns undefined.
  */
+@Storybook({
+    prefix: "Tools"
+})
 export function getValueFromObject(path: string, obj: any) {
     // Convert bracket notation to dot notation
     path = path.replace(/\[(.*?)\]/g, '.$1');
@@ -81,23 +107,31 @@ export function getValueFromObject(path: string, obj: any) {
         return obj;
     }
 
+    const val = (key) => {
+        if(obj instanceof Map) {
+            return obj.get(key);
+        }
+        return obj[key];
+    };
+
     // Split the path into individual keys
     let splitted = path.split(".");
 
     // Traverse the object along the path
     for(let i = 0; i < splitted.length - 1; i++) {
         let split = splitted[i];
+        let value = val(split);
         // If the current segment of the path does not exist in the object or is not an object, return undefined
-        if(!obj[split] || typeof obj[split] !== 'object') {
+        if(!value || typeof value !== 'object') {
             return undefined;
         }
-        obj = obj[split];
+        obj = value;
     }
     if(!obj || typeof obj !== 'object') {
         return undefined;
     }
     // Return the value at the last segment of the path
-    return obj[splitted[splitted.length - 1]];
+    return val(splitted[splitted.length - 1]);
 }
 
 /**
@@ -106,9 +140,20 @@ export function getValueFromObject(path: string, obj: any) {
  * @param {*} obj The object in which to set the value.
  * @param {*} value The value to set.
  */
+@Storybook({
+    prefix: "Tools"
+})
 export function setValueToObject(path: string, obj: any, value: any) {
     // Convert bracket notation to dot notation
     path = path.replace(/\[(.*?)\]/g, '.$1');
+
+    const val = (key) => {
+        if(obj instanceof Map) {
+            return obj.get(key);
+        }
+        return obj[key];
+    };
+
 
     // Split the path into individual keys
     let splitted = path.split(".");
@@ -116,18 +161,28 @@ export function setValueToObject(path: string, obj: any, value: any) {
     // Traverse the object along the path, creating nested objects if necessary
     for(let i = 0; i < splitted.length - 1; i++) {
         let split = splitted[i];
-        if(!obj[split]) {
+        let value = val(split);
+        if(!value) {
             obj[split] = {};
+            value = obj[split];
         }
-        obj = obj[split];
+        obj = value;
     }
 
     // Set the value at the last segment of the path
-    obj[splitted[splitted.length - 1]] = value;
+    if(obj instanceof Map) {
+        obj.set(splitted[splitted.length - 1], value);
+    }
+    else {
+        obj[splitted[splitted.length - 1]] = value;
+    }
+
 }
 
 
-
+@Storybook({
+    prefix: "Tools"
+})
 export function isClass(v: any): boolean {
     return typeof v === 'function' && /^\s*class\s+/.test(v.toString());
 }

@@ -1,6 +1,9 @@
 /**
  * List of HTTP Method allowed
  */
+@Storybook({
+    prefix: "Http"
+})
 export enum HttpMethod {
     GET = "GET",
     POST = "POST",

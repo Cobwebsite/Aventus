@@ -199,7 +199,7 @@ export class AventusHTMLLanguageService {
             return {
                 contents: {
                     kind: 'markdown',
-                    value: info.documentation.join("\n")
+                    value: info.documentation?.fullDefinitions.join("\n") ?? '',
                 }
             };
 

@@ -27,6 +27,7 @@ import { ImportTemplate } from "./file-system/ImportTemplate";
 import { SharpExport } from './sharp/Export';
 import { ReloadSettings } from './ReloadSettings';
 import { CreateCSSVariable } from './webcomponent/CreateCSSVariable';
+import { StorybookBuild } from './storybook/Build';
 
 export const Commands = {
     allCommandes: {
@@ -58,6 +59,7 @@ export const Commands = {
         [ImportTemplate.cmd]: ImportTemplate,
         [SharpExport.cmd]: SharpExport,
         [ReloadSettings.cmd]: ReloadSettings,
+        [StorybookBuild.cmd]: StorybookBuild
     },
     execute: function (params: ExecuteCommandParams) {
         let cmd = this.allCommandes[params.command];

@@ -8,7 +8,7 @@ import { AventusTsFile } from "../File";
 import { ClassInfo } from '../parser/ClassInfo';
 
 export class AventusStateFile extends AventusTsFile {
-    protected get extension(): string {
+    public get extension(): string {
         return AventusExtension.State;
     }
     constructor(file: AventusFile, build: Build) {

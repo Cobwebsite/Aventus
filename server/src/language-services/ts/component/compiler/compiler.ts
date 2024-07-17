@@ -8,10 +8,10 @@ import { AventusWebComponentLogicalFile } from "../File";
 import { CompileComponentResult, CustomFieldModel, CustomTypeAttribute, ListCallbacks } from "./def";
 import { AventusWebcomponentTemplate } from "./Template";
 import { transpile } from "typescript";
-import { AventusTsLanguageService, CompileDependance, CompileTsResult, getSectionStart } from "../../LanguageService";
+import { AventusTsLanguageService, CompileTsResult, getSectionStart } from "../../LanguageService";
 import { EOL } from "os";
 import { HTMLDoc } from "../../../html/helper/definition";
-import { SCSSDoc } from "../../../scss/helper/CSSNode";
+import { CustomCssProperty, SCSSDoc } from "../../../scss/helper/CSSNode";
 import { AventusSCSSLanguageService } from "../../../scss/LanguageService";
 import { AventusFile } from '../../../../files/AventusFile';
 import { ParserTs } from '../../parser/ParserTs';
@@ -21,7 +21,7 @@ import { DebuggerDecorator } from '../../parser/decorators/DebuggerDecorator';
 import { TagNameDecorator } from '../../parser/decorators/TagNameDecorator';
 import { BaseInfo, InfoType } from '../../parser/BaseInfo';
 import { PropertyInfo } from '../../parser/PropertyInfo';
-import { TypeInfo, TypeInfoKind } from '../../parser/TypeInfo';
+import { TypeInfo } from '../../parser/TypeInfo';
 import { PropertyDecorator } from '../../parser/decorators/PropertyDecorator';
 import { ViewElementDecorator } from '../../parser/decorators/ViewElementDecorator';
 import { StateChangeDecorator } from '../../parser/decorators/StateChangeDecorator';
@@ -37,6 +37,8 @@ import { DefaultStateInactiveDecorator } from '../../parser/decorators/DefaultSt
 import { BindThisDecorator } from '../../parser/decorators/BindThisDecorator';
 import { EffectDecorator, EffectDecoratorOption } from '../../parser/decorators/EffectDecorator';
 import { HttpServer } from '../../../../live-server/HttpServer';
+import { InputType } from '@storybook/csf';
+import { IStoryContentWebComponent, IStoryContentWebComponentSlot, IStoryContentWebComponentStyle } from '@aventusjs/storybook';
 
 
 export class AventusWebcomponentCompiler {
@@ -67,6 +69,7 @@ export class AventusWebcomponentCompiler {
     private scssTxt: string = "";
     private template: string;
     private templateHotReload: string;
+    private templateNpm?: string;
     private document: TextDocument;
     private build: Build;
     private fileParsed: ParserTs | null;
@@ -78,6 +81,7 @@ export class AventusWebcomponentCompiler {
     private htmlParsedResult: HtmlTemplateResult | undefined;
     private htmlDoc: HTMLDoc | undefined;
     private htmlFile: AventusHTMLFile | undefined;
+    private scssFile: AventusWebSCSSFile | undefined;
 
     //#region variable to use for preparation
     private allFields: { [fieldName: string]: CustomFieldModel } = {};
@@ -86,6 +90,7 @@ export class AventusWebcomponentCompiler {
     private listBoolProperties: string[] = [];
     private defaultValueTxt: string = "";
     private defaultValueHotReloadTxt: string = "";
+    private defaultValueNpmTxt: string = "";
     private foundedWatch: string[] = [];
     private result: CompileComponentResult = {
         diagnostics: [],
@@ -102,6 +107,13 @@ export class AventusWebcomponentCompiler {
         hotReload: "",
         compiled: "",
         docVisible: "",
+        npm: {
+            defTs: "",
+            namespace: "",
+            exportPath: "",
+            uri: "",
+            src: ""
+        },
         docInvisible: "",
         dependances: [],
         classScript: "",
@@ -113,8 +125,10 @@ export class AventusWebcomponentCompiler {
         isExported: true,
         convertibleName: '',
         tagName: '',
+        story: {}
     }
     private parentClassName: string = "";
+    private parentClassNameNpm: string = "";
     private overrideViewDecorator: OverrideViewDecorator | null = null;
     private debuggerDecorator: DebuggerDecorator | null = null;
     private extraConstructorCode: string[] = [];
@@ -122,10 +136,12 @@ export class AventusWebcomponentCompiler {
     private AventusWebComponent: string = "Aventus.WebComponent";
     private AventusDefaultComponent: string = "Aventus.DefaultComponent";
 
+    private hasStory: boolean;
     //#endregion
 
     public constructor(logicalFile: AventusWebComponentLogicalFile, build: Build) {
         this.logicalFile = logicalFile;
+        this.hasStory = build.hasStories;
         if (build.isCoreBuild) {
             this.AventusDefaultComponent = "DefaultComponent";
             this.AventusWebComponent = "WebComponent";
@@ -142,6 +158,7 @@ export class AventusWebcomponentCompiler {
             scssFile = build.scssFiles[logicalFile.file.uri.replace(AventusExtension.ComponentLogic, AventusExtension.ComponentStyle)];
             htmlFile = build.htmlFiles[logicalFile.file.uri.replace(AventusExtension.ComponentLogic, AventusExtension.ComponentView)];
         }
+        this.scssFile = scssFile;
         this.scssTxt = scssFile ? scssFile.compileResult : '';
         this.htmlFile = htmlFile;
         if (this.htmlFile) {
@@ -159,6 +176,9 @@ export class AventusWebcomponentCompiler {
         this.result.diagnostics = nativeDiags;
         this.template = AventusWebcomponentTemplate();
         this.templateHotReload = AventusWebcomponentTemplate();
+        if (build.hasNpmOutput) {
+            this.templateNpm = AventusWebcomponentTemplate();
+        }
         this.document = logicalFile.file.documentInternal;
         this.build = build;
         this.fileParsed = logicalFile.fileParsed;
@@ -203,7 +223,25 @@ export class AventusWebcomponentCompiler {
                     this.result.debug += infoTemp.debugTxt + EOL;
                 }
             }
+            if (this.htmlParsed && this.hasStory && this.classInfo.storieContent) {
+                let wcStory = this.classInfo.storieContent as IStoryContentWebComponent;
+                delete wcStory.slots;
 
+                const slots: IStoryContentWebComponentSlot[] = []
+                for (let slotName in this.htmlParsed.slotsInfo) {
+                    const slot: IStoryContentWebComponentSlot = {
+                        name: slotName,
+                    }
+                    if(this.classInfo.documentation?.documentationSlots[slotName]) {
+                        slot.documentation = this.classInfo.documentation.documentationSlots[slotName]
+                    }
+                    slots.push(slot);
+                }
+
+                if (slots.length > 0) {
+                    wcStory.slots = slots;
+                }
+            }
         }
         else {
             this.result.diagnostics.push(createErrorTs(this.document, "Can't found a web component class to compile inside", AventusErrorCode.NoWebComponent))
@@ -228,6 +266,7 @@ export class AventusWebcomponentCompiler {
             this.componentResult.dependances = normalCompile.dependances;
             this.componentResult.docInvisible = normalCompile.docInvisible;
             this.componentResult.docVisible = normalCompile.docVisible;
+            this.componentResult.npm = normalCompile.npm;
             this.componentResult.type = normalCompile.type;
             this.componentResult.isExported = normalCompile.isExported;
             this.componentResult.uri = normalCompile.uri;
@@ -241,6 +280,7 @@ export class AventusWebcomponentCompiler {
                 this.componentResult.tagName = this.tagName;
             }
             this.componentResult.compiled = this.template.replace("//todelete for hmr °", "");
+            this.componentResult.npm.src = this.templateNpm?.replace("//todelete for hmr °", "") ?? '';
             if (HttpServer.isRunning) {
                 this.componentResult.hotReload = this.templateHotReload.split("//todelete for hmr °")[0];
                 this.componentResult.hotReload = this.componentResult.hotReload.slice(this.componentResult.hotReload.indexOf("=") + 1);
@@ -248,7 +288,6 @@ export class AventusWebcomponentCompiler {
             if (this.debuggerDecorator && this.debuggerDecorator.writeCompiled) {
                 this.componentResult.debugTxt = this.componentResult.compiled;
             }
-
             this.result.result.push(this.componentResult);
         }
     }
@@ -296,7 +335,7 @@ export class AventusWebcomponentCompiler {
                 [this.tagName]: {
                     class: this.classInfo.fullName,
                     name: this.tagName,
-                    description: this.classInfo.documentation.join(EOL),
+                    description: this.classInfo.documentation?.fullDefinitions.join(EOL) ?? '',
                     attributes: {}
                 }
             };
@@ -320,8 +359,11 @@ export class AventusWebcomponentCompiler {
             this.className = classInfo.name;
             this.fullName = classInfo.fullName;
             this.parentClassName = 'Aventus.WebComponent';
+            this.parentClassNameNpm = "WebComponent";
             if (classInfo.extends.length > 0 && classInfo.extends[0]) {
                 this.parentClassName = classInfo.extends[0];
+                const splitted = classInfo.extends[0].split(".");
+                this.parentClassNameNpm = splitted[splitted.length - 1];
             }
         }
     }
@@ -450,6 +492,8 @@ export class AventusWebcomponentCompiler {
         this.writeFileName();
         this.writeFileTemplateHtml();
         this.writeFileReplaceVar("style", this.scssTxt);
+        this.writeFileHotReloadReplaceVar("style", this.scssTxt);
+        this.writeFileNpmReplaceVar("style", this.scssTxt);
         this.writeFileFields();
         this.writeFileMethods();
         this.writeWatchableElements();
@@ -459,47 +503,101 @@ export class AventusWebcomponentCompiler {
 
         this.templateHotReload = this.templateHotReload.replace(/\|\!\*(.*?)\*\!\|/g, "{{$1}}");
         this.templateHotReload = this.removeWhiteSpaceLines(this.templateHotReload);
+
+        if (this.templateNpm) {
+            this.templateNpm = this.templateNpm.replace(/\|\!\*(.*?)\*\!\|/g, "{{$1}}");
+            this.templateNpm = this.removeWhiteSpaceLines(this.templateNpm);
+        }
     }
 
     private writeFileName() {
         this.writeFileReplaceVar("classname", this.className)
+        this.writeFileHotReloadReplaceVar("classname", this.className)
+        this.writeFileNpmReplaceVar("classname", this.className)
+
         this.writeFileReplaceVar("parentClass", this.parentClassName);
+        this.writeFileHotReloadReplaceVar("parentClass", this.parentClassName);
+        this.writeFileNpmReplaceVar("parentClass", this.parentClassNameNpm);
+        let moduleName = this.build.module;
+
         if (this.fullName.includes(".")) {
             this.writeFileReplaceVar("fullname", this.fullName);
+            this.writeFileHotReloadReplaceVar("fullname", this.fullName);
+            this.writeFileNpmReplaceVar("fullname", "const " + this.className);
+
             let currentNamespaceWithDot = "." + this.classInfo?.namespace;
-            this.writeFileReplaceVar("namespace", this.fullName + ".Namespace=`${moduleName}" + currentNamespaceWithDot + "`;");
+            this.writeFileReplaceVar("namespace", this.fullName + ".Namespace=`" + moduleName + currentNamespaceWithDot + "`;");
+            this.writeFileHotReloadReplaceVar("namespace", this.fullName + ".Namespace=`" + moduleName + currentNamespaceWithDot + "`;");
+            this.writeFileNpmReplaceVar("namespace", this.className + ".Namespace=`" + moduleName + currentNamespaceWithDot + "`;");
         }
         else {
             this.writeFileReplaceVar("fullname", "const " + this.fullName);
-            this.writeFileReplaceVar("namespace", this.fullName + ".Namespace=`${moduleName}`;");
+            this.writeFileHotReloadReplaceVar("fullname", "const " + this.fullName);
+            this.writeFileNpmReplaceVar("fullname", "const " + this.fullName);
+
+            this.writeFileReplaceVar("namespace", this.fullName + ".Namespace=`" + moduleName + "`;");
+            this.writeFileHotReloadReplaceVar("namespace", this.fullName + ".Namespace=`" + moduleName + "`;");
+            this.writeFileNpmReplaceVar("namespace", this.className + ".Namespace=`" + moduleName + "`;");
         }
         if (this.classInfo?.isAbstract) {
             this.writeFileReplaceVar("tag", "");
+            this.writeFileHotReloadReplaceVar("tag", "");
+            this.writeFileNpmReplaceVar("tag", "");
         }
         else {
             this.writeFileReplaceVar("tag", this.fullName + ".Tag=`" + this.tagName + "`;");
+            this.writeFileHotReloadReplaceVar("tag", this.fullName + ".Tag=`" + this.tagName + "`;");
+            this.writeFileNpmReplaceVar("tag", this.className + ".Tag=`" + this.tagName + "`;");
         }
         if (this.build.namespaces.includes(this.fullName)) {
             this.writeFileReplaceVar("namespaceStart", '_n = ' + this.fullName + ';' + EOL);
+            this.writeFileHotReloadReplaceVar("namespaceStart", '_n = ' + this.fullName + ';' + EOL);
+            this.writeFileNpmReplaceVar("namespaceStart", '_n = ' + this.fullName + ';' + EOL);
+
             this.writeFileReplaceVar("namespaceEnd", EOL + 'Object.assign(' + this.fullName + ', _n);' + EOL);
+            this.writeFileHotReloadReplaceVar("namespaceEnd", EOL + 'Object.assign(' + this.fullName + ', _n);' + EOL);
+            this.writeFileNpmReplaceVar("namespaceEnd", EOL + 'Object.assign(' + this.fullName + ', _n);' + EOL);
         }
         else {
             this.writeFileReplaceVar("namespaceStart", '');
+            this.writeFileHotReloadReplaceVar("namespaceStart", '');
+            this.writeFileNpmReplaceVar("namespaceStart", '');
+
             this.writeFileReplaceVar("namespaceEnd", '');
+            this.writeFileHotReloadReplaceVar("namespaceEnd", '');
+            this.writeFileNpmReplaceVar("namespaceEnd", '');
         }
         if (this.classInfo?.isExported) {
             this.writeFileReplaceVar("exported", "_." + this.fullName + "=" + this.fullName + ";");
+            this.writeFileHotReloadReplaceVar("exported", "_." + this.fullName + "=" + this.fullName + ";");
         }
         else {
             this.writeFileReplaceVar("exported", "");
+            this.writeFileHotReloadReplaceVar("exported", "");
         }
+        this.writeFileNpmReplaceVar("exported", "");
+
         if (this.classInfo?.isAbstract) {
             this.writeFileReplaceVar("definition", "")
+            this.writeFileHotReloadReplaceVar("definition", "")
+            this.writeFileNpmReplaceVar("definition", "")
+
+            this.writeFileReplaceVar("customImport", "")
+            this.writeFileHotReloadReplaceVar("customImport", "")
+            this.writeFileNpmReplaceVar("customImport", "")
         }
         else {
             let aventusName = this.build.isCoreBuild ? "" : "Aventus.";
             this.writeFileReplaceVar("definition", "if(!window.customElements.get('" + this.tagName + "')){window.customElements.define('" + this.tagName + "', " + this.fullName + ");" + aventusName + "WebComponentInstance.registerDefinition(" + this.fullName + ");}")
+            this.writeFileHotReloadReplaceVar("definition", "if(!window.customElements.get('" + this.tagName + "')){window.customElements.define('" + this.tagName + "', " + this.fullName + ");" + aventusName + "WebComponentInstance.registerDefinition(" + this.fullName + ");}")
+            this.writeFileNpmReplaceVar("definition", "if(!window.customElements.get('" + this.tagName + "')){window.customElements.define('" + this.tagName + "', " + this.className + ");WebComponentInstance.registerDefinition(" + this.className + ");}");
+
+            if (this.templateNpm && this.fileParsed) {
+                this.fileParsed.registerGeneratedImport('@aventusjs/main/Aventus', "WebComponentInstance", true);
+            }
         }
+
+
     }
     private writeFileTemplateHtml() {
         let htmlTxt = "";
@@ -530,6 +628,8 @@ export class AventusWebcomponentCompiler {
             }
         }
         this.writeFileReplaceVar("slotBlock", htmlTxt);
+        this.writeFileHotReloadReplaceVar("slotBlock", htmlTxt);
+        this.writeFileNpmReplaceVar("slotBlock", htmlTxt);
     }
     private writeFileConstructor() {
         if (this.classInfo) {
@@ -564,9 +664,9 @@ export class AventusWebcomponentCompiler {
                 return constructorBodyTxt;
             }
 
-            this.writeFileReplaceVar("constructor", generateTxt(this.classInfo.constructorContent), false);
-            if (HttpServer.isRunning)
-                this.writeFileHotReloadReplaceVar("constructor", generateTxt(this.classInfo.constructorContentHotReload));
+            this.writeFileReplaceVar("constructor", generateTxt(this.classInfo.constructorContent));
+            this.writeFileHotReloadReplaceVar("constructor", generateTxt(this.classInfo.constructorContentHotReload));
+            this.writeFileNpmReplaceVar("constructor", generateTxt(this.classInfo.constructorContentNpm));
 
         }
     }
@@ -574,6 +674,78 @@ export class AventusWebcomponentCompiler {
     //#region field
     private viewsElements: { [name: string]: CustomFieldModel } = {};
     private upgradeAttributes = "";
+    public storyArgTypes: { [name: string]: InputType } = {};
+    public storyArgs: { [name: string]: any } = {};
+    private addStoryField(field: CustomFieldModel) {
+        if (!this.hasStory) return;
+
+        let category: string = "";
+
+        if (field.propType == "Attribute") category = "Attributes";
+        else if (field.propType == "Property") category = "Properties";
+        else if (field.propType == "Watch") category = "Watches";
+
+        let type = this.validateTypeForProp(this.document, field);
+        if (!type) {
+            return;
+        }
+        let control: "text" | "select" | "boolean" | 'number' | 'date' | 'object' = "text";
+        let values: string[] = [];
+        if (type.kind == "string") {
+            control = "text";
+        }
+        else if (type.kind == "literal") {
+            control = "select";
+            let value = type.value;
+            if (value.startsWith("'") || value.startsWith('"')) {
+                value = value.substring(1);
+            }
+            if (value.endsWith("'") || value.endsWith('"')) {
+                value = value.substring(0, value.length - 1);
+            }
+            values.push(value);
+        }
+        else if (type.kind == "union") {
+            control = "select";
+            for (let nested of type.nested) {
+                let value = nested.value;
+                if (value.startsWith("'") || value.startsWith('"')) {
+                    value = value.substring(1);
+                }
+                if (value.endsWith("'") || value.endsWith('"')) {
+                    value = value.substring(0, value.length - 1);
+                }
+                values.push(value);
+            }
+        }
+        else if (type.kind == "number") {
+            control = "number";
+        }
+        else if (type.kind == "boolean") {
+            control = "boolean";
+        }
+        else if (type.kind === "type" && type.value == "Date") {
+            control = "date";
+        }
+        else if (type.kind === "type" && type.value == "DateTime") {
+            control = "date";
+        }
+        else {
+            control = "object"
+        }
+
+        this.storyArgTypes[field.name] = {
+            control: control,
+            table: {
+                category: category
+            }
+        }
+        if (values.length > 0) {
+            this.storyArgTypes[field.name].options = values;
+        }
+
+        this.storyArgs[field.name] = field.defaultValue
+    }
     private writeFileFields() {
         let simpleVariables: CustomFieldModel[] = [];
         let attributes: CustomFieldModel[] = [];
@@ -583,7 +755,6 @@ export class AventusWebcomponentCompiler {
 
         for (let fieldName in this.allFields) {
             let field = this.allFields[fieldName];
-            // if (field.inParent && this.overrideViewDecorator === null) {
             if (field.inParent) {
                 if (field.propType == "Attribute" || field.propType == "Property") {
                     this.createHtmlDoc(field, field.type);
@@ -592,9 +763,11 @@ export class AventusWebcomponentCompiler {
             }
             if (field.propType == "Attribute") {
                 attributes.push(field);
+                this.addStoryField(field);
                 continue;
             }
             else if (field.propType == "Property") {
+                this.addStoryField(field);
                 for (let decorator of field.decorators) {
                     let tempProp = PropertyDecorator.is(decorator);
                     if (tempProp) {
@@ -607,6 +780,7 @@ export class AventusWebcomponentCompiler {
                 continue;
             }
             else if (field.propType == "Watch") {
+                this.addStoryField(field);
                 for (let decorator of field.decorators) {
                     let tempProp = WatchDecorator.is(decorator);
                     if (tempProp) {
@@ -637,6 +811,8 @@ export class AventusWebcomponentCompiler {
             this.upgradeAttributes = `__upgradeAttributes() { super.__upgradeAttributes(); ${this.upgradeAttributes} }`
         }
         this.writeFileReplaceVar("upgradeAttributes", this.upgradeAttributes);
+        this.writeFileHotReloadReplaceVar("upgradeAttributes", this.upgradeAttributes);
+        this.writeFileNpmReplaceVar("upgradeAttributes", this.upgradeAttributes);
 
 
         if (this.htmlParsedResult) {
@@ -654,20 +830,28 @@ export class AventusWebcomponentCompiler {
         }
         let variablesSimpleTxt = "";
         let variablesSimpleHotReloadTxt = "";
+        let variablesSimpleNpmTxt = "";
 
         let simpleCorrect: string[] = [];
         let fullTxt = "";
         let fullTxtHotReload = "";
+        let fullTxtNpm = "";
         if (this.classInfo) {
             for (let fieldName in this.classInfo.propertiesStatic) {
                 let field = this.classInfo.propertiesStatic[fieldName];
                 fullTxt += field.compiledContent + EOL;
                 fullTxtHotReload += field.compiledContentHotReload + EOL;
+                if (this.templateNpm) {
+                    fullTxtNpm += field.compiledContentNpm + EOL;
+                }
             }
         }
         for (let field of fields) {
             fullTxt += field.compiledContent + EOL;
             fullTxtHotReload += field.compiledContentHotReload + EOL;
+            if (this.templateNpm) {
+                fullTxtNpm += field.compiledContentNpm + EOL;
+            }
 
             if (field.isGet || field.isSet) {
                 if (!simpleCorrect.includes(field.name)) {
@@ -687,7 +871,7 @@ export class AventusWebcomponentCompiler {
         if (matchContent) {
             variablesSimpleTxt = matchContent[1].trim();
         }
-        this.writeFileReplaceVar('variables', variablesSimpleTxt, false);
+        this.writeFileReplaceVar('variables', variablesSimpleTxt);
 
         if (HttpServer.isRunning) {
             let fullClassFieldsHotReload = `class MyCompilationClassAventus {${fullTxtHotReload}}`;
@@ -702,6 +886,21 @@ export class AventusWebcomponentCompiler {
                 variablesSimpleHotReloadTxt = matchContentHotReload[1].trim();
             }
             this.writeFileHotReloadReplaceVar('variables', variablesSimpleHotReloadTxt);
+        }
+
+        if (this.templateNpm) {
+            let fullClassFieldsNpm = `class MyCompilationClassAventus {${fullTxtNpm}}`;
+            let fieldsCompiledNpm = "";
+            try {
+                fieldsCompiledNpm = transpile(fullClassFieldsNpm, AventusTsLanguageService.getCompilerOptionsCompile());
+            } catch (e) {
+
+            }
+            let matchContentNpm = /\{((\s|\S)*)\}/gm.exec(fieldsCompiledNpm);
+            if (matchContentNpm) {
+                variablesSimpleNpmTxt = matchContentNpm[1].trim();
+            }
+            this.writeFileNpmReplaceVar('variables', variablesSimpleNpmTxt);
         }
     }
 
@@ -732,10 +931,20 @@ export class AventusWebcomponentCompiler {
         }
         return result;
     }
-    private getDefaultValueAttr(field: CustomFieldModel, type: TypeInfo, isHotReload: boolean): string {
+    private getDefaultValueAttr(field: CustomFieldModel, type: TypeInfo, contentType: number): string {
         let result = "";
         let key = field.name;
-        let defaultValue = isHotReload ? field.defaultValueHotReload : field.defaultValue;
+        let defaultValue: string | null = null;
+        if (contentType == 1) {
+            defaultValue = field.defaultValue;
+        }
+        else if (contentType == 2) {
+            defaultValue = field.defaultValueHotReload;
+        }
+        else if (contentType == 3) {
+            defaultValue = field.defaultValueNpm;
+        }
+
         if (type.kind == "boolean") {
             if (defaultValue !== null && defaultValue !== "false") {
                 result += "if(!this.hasAttribute('" + key + "')) {this.setAttribute('" + key + "' ,'true'); }" + EOL;
@@ -768,19 +977,24 @@ export class AventusWebcomponentCompiler {
         let defaultValue = "";
         let getterSetter = "";
         let defaultValueHotReload = "";
+        let defaultValueNpm = "";
 
         for (let field of fields) {
             let type = this.validateTypeForProp(this.document, field);
             if (!type) {
                 continue;
             }
-            defaultValue += this.getDefaultValueAttr(field, type, false);
+            defaultValue += this.getDefaultValueAttr(field, type, 1);
             getterSetter += this.getGetterAndSetter(field, type, false);
             this.createHtmlDoc(field, type);
             this.upgradeAttributes += 'this.__upgradeProperty(\'' + field.name.toLowerCase() + '\');' + EOL;
 
             if (HttpServer.isRunning) {
-                defaultValueHotReload += this.getDefaultValueAttr(field, type, true)
+                defaultValueHotReload += this.getDefaultValueAttr(field, type, 2)
+            }
+
+            if (this.templateNpm) {
+                defaultValueNpm += this.getDefaultValueAttr(field, type, 3)
             }
         }
 
@@ -790,7 +1004,12 @@ export class AventusWebcomponentCompiler {
         if (defaultValueHotReload.length > 0) {
             this.defaultValueHotReloadTxt += defaultValueHotReload
         }
+        if (defaultValueHotReload.length > 0) {
+            this.defaultValueNpmTxt += defaultValueNpm
+        }
         this.writeFileReplaceVar("getterSetterAttr", getterSetter);
+        this.writeFileHotReloadReplaceVar("getterSetterAttr", getterSetter);
+        this.writeFileNpmReplaceVar("getterSetterAttr", getterSetter);
     }
 
     private writeFileFieldsProperty(properties: { field: CustomFieldModel, fctTxt: string | null }[]) {
@@ -799,6 +1018,7 @@ export class AventusWebcomponentCompiler {
         let onChange = "";
         let variablesWatched: string[] = [];
         let defaultValueHotReload = "";
+        let defaultValueNpm = "";
 
         for (let property of properties) {
             let field = property.field;
@@ -807,7 +1027,7 @@ export class AventusWebcomponentCompiler {
                 continue;
             }
 
-            defaultValue += this.getDefaultValueAttr(field, type, false);
+            defaultValue += this.getDefaultValueAttr(field, type, 1);
             getterSetter += this.getGetterAndSetter(field, type, true);
             this.createHtmlDoc(field, type);
 
@@ -821,7 +1041,11 @@ export class AventusWebcomponentCompiler {
             }
 
             if (HttpServer.isRunning) {
-                defaultValueHotReload += this.getDefaultValueAttr(field, type, true)
+                defaultValueHotReload += this.getDefaultValueAttr(field, type, 2)
+            }
+
+            if (this.templateNpm) {
+                defaultValueNpm += this.getDefaultValueAttr(field, type, 3)
             }
         }
 
@@ -831,15 +1055,21 @@ export class AventusWebcomponentCompiler {
         if (defaultValueHotReload.length > 0) {
             this.defaultValueHotReloadTxt += defaultValueHotReload
         }
+        if (defaultValueNpm.length > 0) {
+            this.defaultValueNpmTxt += defaultValueNpm
+        }
         this.writeFileReplaceVar("getterSetterProp", getterSetter);
-
+        this.writeFileHotReloadReplaceVar("getterSetterProp", getterSetter);
+        this.writeFileNpmReplaceVar("getterSetterProp", getterSetter);
 
 
         if (onChange.length > 0) {
             onChange = `__registerPropertiesActions() { super.__registerPropertiesActions(); ${onChange} }`
         }
-        // TODO replace inside hotreload
+        // TODO replace inside hotreload bc fctTxt isn't right
         this.writeFileReplaceVar("propertiesChangeCb", onChange);
+        this.writeFileHotReloadReplaceVar("propertiesChangeCb", onChange);
+        this.writeFileNpmReplaceVar("propertiesChangeCb", onChange);
 
         let variablesWatchedTxt = '';
         if (variablesWatched.length > 0) {
@@ -847,11 +1077,14 @@ export class AventusWebcomponentCompiler {
             variablesWatchedTxt = `static get observedAttributes() {return [${variablesWatchedTxt}].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}`
         }
         this.writeFileReplaceVar("watchingAttributes", variablesWatchedTxt);
+        this.writeFileHotReloadReplaceVar("watchingAttributes", variablesWatchedTxt);
+        this.writeFileNpmReplaceVar("watchingAttributes", variablesWatchedTxt);
     }
     private writeFileFieldsWatch(watches: { field: CustomFieldModel, fctTxt: string | null }[]) {
         let getterSetter = "";
         let defaultValueWatch = "";
         let defaultValueWatchHotReload = "";
+        let defaultValueWatchNpm = "";
         for (let watch of watches) {
             let field = watch.field;
 
@@ -877,18 +1110,28 @@ export class AventusWebcomponentCompiler {
             if (HttpServer.isRunning) {
                 defaultValueWatchHotReload += `w["${field.name}"] = ${field.defaultValueHotReload?.replace(/\\"/g, '')};` + EOL;
             }
+
+            if (this.templateNpm) {
+                defaultValueWatchNpm += `w["${field.name}"] = ${field.defaultValueNpm?.replace(/\\"/g, '')};` + EOL;
+            }
         }
 
         if (defaultValueWatch.length > 0) {
             defaultValueWatch = `__defaultValuesWatch(w) { super.__defaultValuesWatch(w); ${defaultValueWatch} }`;
         }
-        this.writeFileReplaceVar("defaultValueWatch", defaultValueWatch, false);
+        this.writeFileReplaceVar("defaultValueWatch", defaultValueWatch);
         if (defaultValueWatchHotReload.length > 0) {
             defaultValueWatchHotReload = `__defaultValuesWatch(w) { super.__defaultValuesWatch(w); ${defaultValueWatchHotReload} }`;
         }
         this.writeFileHotReloadReplaceVar("defaultValueWatch", defaultValueWatchHotReload);
+        if (defaultValueWatchNpm.length > 0) {
+            defaultValueWatchNpm = `__defaultValuesWatch(w) { super.__defaultValuesWatch(w); ${defaultValueWatchNpm} }`;
+        }
+        this.writeFileNpmReplaceVar("defaultValueWatch", defaultValueWatchNpm);
 
         this.writeFileReplaceVar("getterSetterWatch", getterSetter);
+        this.writeFileHotReloadReplaceVar("getterSetterWatch", getterSetter);
+        this.writeFileNpmReplaceVar("getterSetterWatch", getterSetter);
     }
 
     //#endregion
@@ -900,7 +1143,7 @@ export class AventusWebcomponentCompiler {
         if (this.defaultValueTxt.length > 0) {
             txt = `__defaultValues() { super.__defaultValues(); ${this.defaultValueTxt} }`;
         }
-        this.writeFileReplaceVar("defaultValue", txt, false);
+        this.writeFileReplaceVar("defaultValue", txt);
 
         if (HttpServer.isRunning) {
             // default value
@@ -911,12 +1154,23 @@ export class AventusWebcomponentCompiler {
             this.writeFileHotReloadReplaceVar("defaultValue", txt);
         }
 
+        if (this.templateNpm) {
+            // default value
+            let txt = "";
+            if (this.defaultValueNpmTxt.length > 0) {
+                txt = `__defaultValues() { super.__defaultValues(); ${this.defaultValueNpmTxt} }`;
+            }
+            this.writeFileNpmReplaceVar("defaultValue", txt);
+        }
+
         // write boolean list 
         let listBoolTxt = "";
         if (this.listBoolProperties.length > 0) {
             listBoolTxt = `__listBoolProps() { return [${this.listBoolProperties.join(",")}].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }`;
         }
         this.writeFileReplaceVar("listBool", listBoolTxt);
+        this.writeFileHotReloadReplaceVar("listBool", listBoolTxt);
+        this.writeFileNpmReplaceVar("listBool", listBoolTxt);
     }
 
     private writeFileMethods() {
@@ -933,10 +1187,12 @@ export class AventusWebcomponentCompiler {
 
             let methodsTxt = "";
             let methodsTxtHotReload = "";
+            let methodsTxtNpm = "";
             let defaultStateTxt = "";
             if (this.classInfo) {
                 let fullTxt = ""
                 let fullTxtHotReload = "";
+                let fullTxtNpm = "";
                 const methods = [...Object.values(this.classInfo.methods), ...Object.values(this.classInfo.methodsStatic)]
                 for (let method of methods) {
                     if (!method.mustBeCompiled) continue;
@@ -944,6 +1200,10 @@ export class AventusWebcomponentCompiler {
                     fullTxt += method.compiledContent + EOL;
                     if (HttpServer.isRunning)
                         fullTxtHotReload += method.compiledContentHotReload + EOL;
+
+                    if (this.templateNpm) {
+                        fullTxtNpm += method.compiledContentNpm + EOL;
+                    }
 
                     if (method.isStatic) continue;
 
@@ -1018,9 +1278,19 @@ export class AventusWebcomponentCompiler {
                         methodsTxtHotReload = matchContentHotReload[1].trim();
                     }
                 }
+
+                if (this.templateNpm) {
+                    let fullClassFctNpm = `class MyCompilationClassAventus {${fullTxtNpm}}`;
+                    let fctCompiledNpm = transpile(fullClassFctNpm, AventusTsLanguageService.getCompilerOptionsCompile());
+                    let matchContentNpm = /\{((\s|\S)*)\}/gm.exec(fctCompiledNpm);
+                    if (matchContentNpm) {
+                        methodsTxtHotReload = matchContentNpm[1].trim();
+                    }
+                }
             }
-            this.writeFileReplaceVar("methods", methodsTxt, false);
+            this.writeFileReplaceVar("methods", methodsTxt);
             this.writeFileHotReloadReplaceVar("methods", methodsTxtHotReload);
+            this.writeFileNpmReplaceVar("methods", methodsTxtNpm);
 
 
             let statesTxt = "";
@@ -1055,6 +1325,8 @@ export class AventusWebcomponentCompiler {
                 statesTxt = `__createStates() { super.__createStates(); let that = this; ${defaultStateTxt} ${statesTxt} }`
             }
             this.writeFileReplaceVar("states", statesTxt)
+            this.writeFileHotReloadReplaceVar("states", statesTxt)
+            this.writeFileNpmReplaceVar("states", statesTxt)
         } catch (e) {
 
         }
@@ -1274,12 +1546,12 @@ export class AventusWebcomponentCompiler {
                     template: templ${loopInfo.templateId},
                 `;
                 if (loopInfo.simple) {
-                    finalTxt += `simple:{data: "${loopInfo.simple.data}"`;
+                    finalTxt += `simple:{data: "${loopInfo.simple.data.replace(/[\!|\?]/g, "")}"`;
                     if (loopInfo.simple.index) {
-                        finalTxt += `,index:"${loopInfo.simple.index}"`;
+                        finalTxt += `,index:"${loopInfo.simple.index.replace(/[\!|\?]/g, "")}"`;
                     }
                     if (loopInfo.simple.item) {
-                        finalTxt += `,item:"${loopInfo.simple.item}"`;
+                        finalTxt += `,item:"${loopInfo.simple.item.replace(/[\!|\?]/g, "")}"`;
                     }
                     finalTxt += `}` + EOL;
                 }
@@ -1325,7 +1597,12 @@ export class AventusWebcomponentCompiler {
                 finalTxt = `__registerTemplateAction() { super.__registerTemplateAction();${EOL}${finalTxt} }`;
             }
             this.writeFileReplaceVar("templateAction", finalTxt);
+            this.writeFileHotReloadReplaceVar("templateAction", finalTxt);
+            this.writeFileNpmReplaceVar("templateAction", finalTxt);
+
             this.writeFileReplaceVar("variablesInViewDynamic", this.variablesInViewDynamic);
+            this.writeFileHotReloadReplaceVar("variablesInViewDynamic", this.variablesInViewDynamic);
+            this.writeFileNpmReplaceVar("variablesInViewDynamic", this.variablesInViewDynamic);
         }
         else if (finalTxt.length > 0) {
             finalTxt += EOL;
@@ -1390,6 +1667,8 @@ this.clearWatchHistory = () => {
         }
 
         this.writeFileReplaceVar("watchesChangeCb", variableProxyTxt);
+        this.writeFileHotReloadReplaceVar("watchesChangeCb", variableProxyTxt);
+        this.writeFileNpmReplaceVar("watchesChangeCb", variableProxyTxt);
     }
 
     //#region utils
@@ -1400,7 +1679,7 @@ this.clearWatchHistory = () => {
                 description: string;
             }[] = [];
 
-            if (!field.isPublic) return;
+            if (field.isProtected || field.isPrivate) return;
 
             let realType: CustomTypeAttribute = "string";
             if (type.kind == "literal") {
@@ -1415,7 +1694,6 @@ this.clearWatchHistory = () => {
                     name: value,
                     description: ""
                 });
-
             }
             else if (type.kind == "union") {
                 for (let nested of type.nested) {
@@ -1446,22 +1724,27 @@ this.clearWatchHistory = () => {
             }
             this.htmlDoc[this.tagName].attributes[field.name] = {
                 name: field.name,
-                description: field.documentation.join(EOL),
+                description: field.documentation?.fullDefinitions.join(EOL) ?? '',
                 type: realType,
                 values: definedValues
             }
         }
     }
-    private writeFileReplaceVar(variable: string, value: string | number, writeToHotReload: boolean = true) {
+    private writeFileReplaceVar(variable: string, value: string | number) {
         let regex = new RegExp("\\$" + variable + "\\$", "g");
         this.template = this.template.replace(regex, value + "");
-        if (writeToHotReload) {
+    }
+    private writeFileHotReloadReplaceVar(variable: string, value: string | number) {
+        if (HttpServer.isRunning) {
+            let regex = new RegExp("\\$" + variable + "\\$", "g");
             this.templateHotReload = this.templateHotReload.replace(regex, value + "");
         }
     }
-    private writeFileHotReloadReplaceVar(variable: string, value: string | number) {
-        let regex = new RegExp("\\$" + variable + "\\$", "g");
-        this.templateHotReload = this.templateHotReload.replace(regex, value + "");
+    private writeFileNpmReplaceVar(variable: string, value: string | number) {
+        if (this.templateNpm) {
+            let regex = new RegExp("\\$" + variable + "\\$", "g");
+            this.templateNpm = this.templateNpm.replace(regex, value + "");
+        }
     }
     private createMissingMethod(methodName: string, start: number, end: number) {
         if (!this.htmlParsed) {
@@ -1582,10 +1865,59 @@ this.clearWatchHistory = () => {
     //#endregion
 
     //#region prepare doc
-    private prepareDocSCSS() {
+    private prepareDocSCSS(): SCSSDoc {
+        const properties = this.scssFile?.customProperties ?? []
         let customCssProperties: SCSSDoc = {
-            [this.tagName]: AventusSCSSLanguageService.getCustomProperty(this.scssTxt)
+            [this.tagName]: properties
         }
+
+        if (this.hasStory && this.classInfo) {
+            let wcStory = this.classInfo.storieContent as IStoryContentWebComponent;
+            delete wcStory.style;
+            let style: IStoryContentWebComponentStyle[] = [];
+            for (let property of properties) {
+                this.storyArgTypes[property.name] = {
+                    table: {
+                        category: "Style"
+                    }
+                }
+
+                const styleTemp: IStoryContentWebComponentStyle = {
+                    name: property.name,
+                }
+
+                //documentation
+                if (property.documentation) {
+                    this.storyArgTypes[property.name].description = property.documentation
+                    styleTemp.documentation = property.documentation;
+                }
+
+                // type
+                if (property.type) {
+                    styleTemp.type = property.type
+                }
+                if (property.type == "color") {
+                    this.storyArgTypes[property.name].control = 'color';
+
+                }
+                else {
+                    this.storyArgTypes[property.name].control = 'text';
+                }
+
+                // default
+                if (property.defaultValue) {
+                    this.storyArgs[property.name] = property.defaultValue
+                    styleTemp.value = property.defaultValue
+                }
+
+                style.push(styleTemp);
+            }
+
+            if (style.length > 0) {
+                wcStory.style = style;
+            }
+        }
+
         return customCssProperties;
     }
     //#endregion
