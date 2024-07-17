@@ -40,15 +40,19 @@ export class Project {
     public getConfig() {
         return this.config;
     }
-
-    public resolveAlias(path: string, file: AventusFile) {
+    public resolveAlias(path: string, file: AventusFile);
+    public resolveAlias(path: string, currentPath: string);
+    public resolveAlias(path: string, currentPath: AventusFile | string) {
         if (path.startsWith("@")) {
             let pathSplitted = path.split("/");
             let alias = pathSplitted[0];
             let value = this.config?.aliases[alias]
             if (value) {
                 let basePath = normalize(this.configFile.folderPath + "/" + value);
-                let filePath = normalize(file.folderPath);
+                if (typeof currentPath !== 'string') {
+                    currentPath = currentPath.folderPath;
+                }
+                let filePath = normalize(currentPath);
                 if (basePath.endsWith(sep)) {
                     basePath = basePath.substring(0, basePath.length - 1);
                 }
@@ -183,6 +187,15 @@ export class Project {
         let result: string[] = [];
         for (let build of this.builds) {
             result.push(build.fullname);
+        }
+        return result;
+    }
+    public getBuildsNameWithStory(): string[] {
+        let result: string[] = [];
+        for (let build of this.builds) {
+            if (build.hasStories) {
+                result.push(build.fullname);
+            }
         }
         return result;
     }

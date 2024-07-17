@@ -5,7 +5,7 @@ import { AventusTsFile } from "../File";
 import { Build } from '../../../project/Build';
 
 export class AventusDefinitionFile extends AventusTsFile {
-    protected get extension(): string {
+    public get extension(): string {
         return AventusExtension.Definition;
     }
     public constructor(file: AventusFile, build: Build) {

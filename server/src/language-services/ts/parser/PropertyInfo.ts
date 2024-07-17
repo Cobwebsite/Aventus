@@ -1,18 +1,18 @@
-import { ExpressionWithTypeArguments, GetAccessorDeclaration, PropertyDeclaration, SetAccessorDeclaration, SyntaxKind } from "typescript";
+import { ExpressionWithTypeArguments, GetAccessorDeclaration, PropertyDeclaration, PropertySignature, SetAccessorDeclaration, SyntaxKind } from "typescript";
 import { DecoratorInfo } from "./DecoratorInfo";
 import { ParserTs } from './ParserTs';
 import { TypeInfo } from './TypeInfo';
 import { ClassInfo } from './ClassInfo';
 import { InternalDecorator, InternalProtectedDecorator } from './decorators/InternalDecorator';
 import { BaseInfo } from './BaseInfo';
-import { AventusTsLanguageService } from '../LanguageService';
+import { DocumentationInfo } from './DocumentationInfo';
 
-type PropType = PropertyDeclaration | GetAccessorDeclaration | SetAccessorDeclaration;
+type PropType = PropertyDeclaration | GetAccessorDeclaration | SetAccessorDeclaration | (PropertySignature & { exclamationToken?: boolean });
 export class PropertyInfo {
     public name: string = "";
     public nameStart: number = 0;
     public nameEnd: number = 0;
-    public documentation: string[] = [];
+    public documentation?: DocumentationInfo;
     public decorators: DecoratorInfo[] = [];
     public defaultValueTxt: string | null = null;
     public defaultValueStart: number = 0;
@@ -26,7 +26,9 @@ export class PropertyInfo {
     public isGetSet: boolean = false;
     public isInsideInterface: boolean = false;
     public isStatic: boolean = false;
-    public isPublic: boolean = true;
+    public isProtected: boolean = false;
+    public isPrivate: boolean = false;
+    public isOverride: boolean = false;
     public start: number = 0;
     public end: number = 0;
     public isNullable: boolean = false;
@@ -41,6 +43,10 @@ export class PropertyInfo {
         let txt = BaseInfo.getContentHotReload(this.content, this.start, this.end, this._class.dependancesLocations, this._class.compileTransformations);
         return txt;
     }
+    public get compiledContentNpm(): string {
+        let txt = BaseInfo.getContentNpm(this.content, this.start, this.end, this._class.dependancesLocations, this._class.compileTransformations);
+        return txt;
+    }
 
     public get defaultValue(): string | null {
         if (this.defaultValueTxt === null) return null;
@@ -49,6 +55,10 @@ export class PropertyInfo {
     public get defaultValueHotReload(): string | null {
         if (this.defaultValueTxt === null) return null;
         return BaseInfo.getContentHotReload(this.defaultValueTxt, this.defaultValueStart, this.defaultValueEnd, this._class.dependancesLocations, this._class.compileTransformations);
+    }
+    public get defaultValueNpm(): string | null {
+        if (this.defaultValueTxt === null) return null;
+        return BaseInfo.getContentNpm(this.defaultValueTxt, this.defaultValueStart, this.defaultValueEnd, this._class.dependancesLocations, this._class.compileTransformations);
     }
 
     constructor(prop: PropType, isInsideInterface: boolean, _class: ClassInfo) {
@@ -71,10 +81,10 @@ export class PropertyInfo {
         else {
             this.isGetSet = true;
         }
-        if (prop['jsDoc']) {
-            for (let jsDoc of prop['jsDoc']) {
-                this.documentation.push(jsDoc.comment);
-            }
+
+        let docTemp = new DocumentationInfo(prop);
+        if (docTemp.hasDoc) {
+            this.documentation = docTemp
         }
         if (prop.questionToken) {
             this.isNullable = true;
@@ -93,8 +103,6 @@ export class PropertyInfo {
             return
         }
         let accessModDefine = false;
-        let isOverride = false;
-        let isPrivate = false;
         let isInternal: InternalDecorator | InternalProtectedDecorator | null = null;
         for (let decorator of this.decorators) {
             let deco = InternalDecorator.is(decorator);
@@ -118,7 +126,12 @@ export class PropertyInfo {
                             end: modifier.getEnd(),
                             newText: txt
                         }
-                        this.isPublic = false;
+                        if (txt == "private") {
+                            this.isPrivate = true;
+                        }
+                        else if (txt == "protected") {
+                            this.isProtected = true;
+                        }
                     }
                     accessModDefine = true;
                 }
@@ -129,20 +142,22 @@ export class PropertyInfo {
                             end: modifier.getEnd(),
                             newText: "private"
                         }
+                        this.isPrivate = true;
+                    }
+                    else {
+                        this.isProtected = true;
                     }
                     accessModDefine = true;
-                    this.isPublic = false;
                 }
                 else if (modifier.kind == SyntaxKind.PrivateKeyword) {
                     accessModDefine = true;
-                    isPrivate = true;
-                    this.isPublic = false;
+                    this.isPrivate = true;
                 }
                 else if (modifier.kind == SyntaxKind.AbstractKeyword) {
                     this.isAbstract = true;
                 }
                 else if (modifier.kind == SyntaxKind.OverrideKeyword) {
-                    isOverride = true;
+                    this.isOverride = true;
                 }
                 else if (modifier.kind == SyntaxKind.StaticKeyword) {
                     this.isStatic = true;
@@ -151,7 +166,7 @@ export class PropertyInfo {
             }
 
         }
-        if (this.documentation.length == 0 && !isOverride && !isPrivate) {
+        if (!this.documentation && !this.isOverride && !this.isPrivate) {
             ParserTs.addWarning(this.nameStart, this.nameEnd, "You should add documentation for " + this.name);
         }
         if (accessModDefine === false) {

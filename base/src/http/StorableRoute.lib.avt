@@ -3,6 +3,9 @@ import type { IData } from "../data/IData.data.avt";
 import { HttpMethod } from "./HttpMethod.lib.avt";
 import { HttpRequest } from "./HttpRequest.lib.avt";
 
+@Storybook({
+    prefix: "Http"
+})
 export abstract class StorableRoute<T extends IData> extends HttpRoute {
 	public async GetAll() {
 		const request = new HttpRequest(`/${this.StorableName()}`, HttpMethod.GET);

@@ -1,10 +1,12 @@
-import { ClassDeclaration, forEachChild, SyntaxKind, MethodDeclaration, PropertyDeclaration, HeritageClause, InterfaceDeclaration, ConstructorDeclaration, ExpressionWithTypeArguments, TypeNode, TypeReferenceNode, CallExpression, GetAccessorDeclaration, SetAccessorDeclaration, FunctionBody } from "typescript";
+import { ClassDeclaration, forEachChild, SyntaxKind, MethodDeclaration, PropertyDeclaration, HeritageClause, InterfaceDeclaration, ConstructorDeclaration, ExpressionWithTypeArguments, TypeNode, TypeReferenceNode, CallExpression, GetAccessorDeclaration, SetAccessorDeclaration, FunctionBody, PropertySignature, MethodSignature } from "typescript";
 import { BaseInfo, InfoType } from "./BaseInfo";
 import { MethodInfo } from "./MethodInfo";
 import { ParserTs } from "./ParserTs";
 import { PropertyInfo } from "./PropertyInfo";
 import { ConvertibleDecorator } from './decorators/ConvertibleDecorator';
-import { AventusTsLanguageService } from '../LanguageService';
+import { IStoryContentInterface, IStoryContentClass, IStoryContentGeneric, IStoryContentObject, IStoryContentObjectMethod, IStoryContentReturn, IStoryContentObjectProperty } from '@aventusjs/storybook';
+import { TypeInfo } from './TypeInfo';
+import { StorybookDecorator } from './decorators/StorybookDecorator';
 
 
 export class ClassInfo extends BaseInfo {
@@ -23,6 +25,9 @@ export class ClassInfo extends BaseInfo {
 	public parameters: string[] = [];
 	private methodParameters: string[] = [];
 	public convertibleName: string = '';
+	public extendsType?: TypeInfo;
+	public implementsType: TypeInfo[] = [];
+
 	public get constructorContent(): string {
 		if (!this.constructorBody) {
 			return "";
@@ -41,9 +46,20 @@ export class ClassInfo extends BaseInfo {
 		return txt;
 	}
 
+	public get constructorContentNpm(): string {
+		if (!this.constructorBody) {
+			return "";
+		}
+		let txt = this.constructorBody.getText();
+		txt = BaseInfo.getContentNpm(txt, this.constructorBody.getStart(), this.constructorBody.getEnd(), this.dependancesLocations, this.compileTransformations);
+		return txt;
+	}
+
+	private node: ClassDeclaration | InterfaceDeclaration;
+
 	constructor(node: ClassDeclaration | InterfaceDeclaration, namespaces: string[], parserInfo: ParserTs) {
 		super(node, namespaces, parserInfo, false);
-
+		this.node = node;
 		this.isInterface = node.kind == SyntaxKind.InterfaceDeclaration;
 		this.infoType = this.isInterface ? InfoType.interface : InfoType.class;
 		if (node.typeParameters) {
@@ -131,6 +147,38 @@ export class ClassInfo extends BaseInfo {
 				this.methodParameters = [];
 				result = methodInfo;
 			}
+			else if (x.kind == SyntaxKind.MethodSignature) {
+				let method = x as MethodSignature;
+				if (method.typeParameters) {
+					for (let param of method.typeParameters) {
+						this.methodParameters.push(param.name.getText());
+					}
+				}
+				let methodInfo = new MethodInfo(x as MethodDeclaration, this);
+				if (methodInfo.isStatic) {
+					this.methodsStatic[methodInfo.name] = methodInfo;
+				}
+				else {
+					this.methods[methodInfo.name] = methodInfo;
+				}
+				this.methodParameters = [];
+				result = methodInfo;
+			}
+			else if (x.kind == SyntaxKind.PropertySignature) {
+				let propInfo = new PropertyInfo(x as PropertySignature, this.isInterface, this);
+				if (propInfo.isStatic) {
+					this.propertiesStatic[propInfo.name] = propInfo;
+					isStrong = true;
+				}
+				else {
+					this.properties[propInfo.name] = propInfo;
+				}
+				let prop = x as PropertyDeclaration;
+				if (!prop.type) {
+					ParserTs.addError(prop.getStart(), prop.getEnd(), "You must define a type for the prop " + propInfo.name);
+				}
+				result = propInfo;
+			}
 
 
 
@@ -151,6 +199,9 @@ export class ClassInfo extends BaseInfo {
 		if (node.token == SyntaxKind.ExtendsKeyword) {
 			forEachChild(node, x => {
 				if (x.kind == SyntaxKind.ExpressionWithTypeArguments) {
+					if (this.build.hasStories) {
+						this.extendsType = new TypeInfo(x as ExpressionWithTypeArguments);
+					}
 					this.addDependanceWaitName(x as ExpressionWithTypeArguments, true, (names) => {
 						if (names.length > 0) {
 							this.extends.push(names[0]);
@@ -159,7 +210,8 @@ export class ClassInfo extends BaseInfo {
 								let parent = BaseInfo.getInfoByFullName(names[0], this);
 								if (parent && parent instanceof ClassInfo) {
 									this.parentClass = parent;
-									if(this.parentClass == this) {
+
+									if (this.parentClass == this) {
 										this.parentClass = null;
 										throw 'The parent is the child => impossible. Please send it to an admin'
 									}
@@ -177,9 +229,14 @@ export class ClassInfo extends BaseInfo {
 		else if (node.token == SyntaxKind.ImplementsKeyword) {
 			forEachChild(node, x => {
 				if (x.kind == SyntaxKind.ExpressionWithTypeArguments) {
+					if (this.build.hasStories) {
+						this.implementsType.push(new TypeInfo(x as ExpressionWithTypeArguments));
+					}
 					this.addDependanceWaitName(x as ExpressionWithTypeArguments, true, (names) => {
 						if (names.length > 0) {
-							this.implements.push(names[0]);
+							for (let name of names) {
+								this.implements.push(name);
+							}
 						}
 					});
 
@@ -231,5 +288,215 @@ export class ClassInfo extends BaseInfo {
 			classToSearch = classToSearch.parentClass;
 		}
 		return null;
+	}
+
+	protected defineStoryContent(decorator?: StorybookDecorator): IStoryContentClass | IStoryContentInterface {
+		let result: IStoryContentInterface | IStoryContentClass = {
+			kind: this.isInterface ? "interface" : "class",
+			name: this.name,
+		};
+
+		this.setNamespaceForStroy(result);
+		this.setDocumentationForStroy(result);
+		this.setAccessibilityForStroy(result);
+
+		if (this.isAbstract && result.kind == 'class') {
+			result.modifier = "abstract";
+		}
+
+		if (this.extendsType) {
+			const typeResult = this.transformTypeForStory(this.extendsType, this);
+			if (typeResult)
+				result.extends = typeResult
+		}
+
+		if (this.implementsType.length > 0 && result.kind == 'class') {
+			result.implements = [];
+			for (let type of this.implementsType) {
+				const typeResult = this.transformTypeForStory(type, this);
+				if (typeResult)
+					result.implements.push(typeResult);
+			}
+		}
+
+		// generic
+		if (this.node.typeParameters) {
+			result.generics = [];
+			for (let param of this.node.typeParameters) {
+				result.generics.push(this.loadGenericForStory(param));
+			}
+		}
+
+		for (let methodName in this.methods) {
+			this.addMethodStoryContent(result, this.methods[methodName]);
+		}
+		for (let methodName in this.methodsStatic) {
+			this.addMethodStoryContent(result, this.methodsStatic[methodName]);
+		}
+
+		for (let propName in this.properties) {
+			this.addPropertyStoryContent(result, this.properties[propName]);
+		}
+		for (let propName in this.propertiesStatic) {
+			this.addPropertyStoryContent(result, this.propertiesStatic[propName]);
+		}
+
+
+		return result
+	}
+
+	protected addMethodStoryContent(result: IStoryContentObject, methodInfo: MethodInfo): void {
+		if (!this.canAddToStory(methodInfo)) return;
+
+		if (!result.methods) {
+			result.methods = [];
+		}
+
+		const methodInfoResult: IStoryContentObjectMethod = {
+			name: methodInfo.name,
+			accessibility: methodInfo.isPrivate ? 'private' : methodInfo.isProtected ? 'protected' : 'public',
+		}
+		result.methods.push(methodInfoResult);
+
+		const addModifier = (mod: 'override' | 'abstract' | 'static') => {
+			if (!methodInfoResult.modifiers) {
+				methodInfoResult.modifiers = []
+			}
+			methodInfoResult.modifiers.push(mod);
+		}
+
+		if (methodInfo.documentation) {
+			methodInfoResult.documentation = methodInfo.documentation.definitions.join("\n");
+		}
+
+		if (methodInfo.isAbstract) {
+			addModifier('abstract');
+		}
+		if (methodInfo.isOverride) {
+			addModifier('override');
+		}
+		if (methodInfo.isStatic) {
+			addModifier('static')
+		}
+
+		// generic
+		if (methodInfo.node.typeParameters) {
+			methodInfoResult.generics = [];
+			for (let param of methodInfo.node.typeParameters) {
+				methodInfoResult.generics.push(this.loadGenericForStory(param, methodInfo.documentation));
+			}
+		}
+
+		// parameters
+		if (methodInfo.node.parameters.length > 0) {
+			methodInfoResult.parameters = [];
+			for (let p of methodInfo.node.parameters) {
+				methodInfoResult.parameters.push(this.loadParameterForStory(p, methodInfo.documentation));
+			}
+		}
+
+		// return type
+		if (methodInfo.node.type) {
+			const type = new TypeInfo(methodInfo.node.type);
+			const typeResult = this.transformTypeForStory(type, this);
+			if (typeResult) {
+				const returnInfo: IStoryContentReturn = {
+					type: typeResult
+				}
+				if (methodInfo.documentationReturn) {
+					returnInfo.documentation = methodInfo.documentationReturn;
+				}
+				methodInfoResult.return = returnInfo;
+			}
+		}
+
+	}
+
+	protected addPropertyStoryContent(result: IStoryContentObject, propInfo: PropertyInfo): void {
+		if (!this.canAddToStory(propInfo)) return;
+
+		if (!result.properties) {
+			result.properties = [];
+		}
+
+
+		const propertyInfo: IStoryContentObjectProperty = {
+			name: propInfo.name,
+			accessibility: propInfo.isPrivate ? 'private' : propInfo.isProtected ? 'protected' : 'public',
+		}
+		result.properties.push(propertyInfo);
+
+		if (propInfo.documentation) {
+			propertyInfo.documentation = propInfo.documentation.definitions.join("\n");
+		}
+
+
+		const addModifier = (mod: 'override' | 'abstract' | 'readonly' | 'writeonly' | 'static') => {
+			if (!propertyInfo.modifiers) {
+				propertyInfo.modifiers = []
+			}
+			propertyInfo.modifiers.push(mod);
+		}
+		if (propInfo.isOverride) { addModifier('override') }
+		if (propInfo.isAbstract) { addModifier('abstract') }
+		if (propInfo.isGet) { addModifier('readonly') }
+		if (propInfo.isSet) { addModifier('writeonly') }
+		if (propInfo.isStatic) { addModifier('static') }
+
+		const typeResult = this.transformTypeForStory(propInfo.type, this);
+		if (typeResult) {
+			propertyInfo.type = typeResult;
+		}
+	}
+
+	protected canAddToStory(info: PropertyInfo | MethodInfo): boolean {
+		if (this.build.buildConfig.stories?.format == 'public') {
+			if (info.isPrivate || info.isProtected) {
+				let decorator = info.decorators.find(p => p.name == "Storybook");
+				if (decorator) {
+					const deco = StorybookDecorator.is(decorator);
+					if (!deco || deco.cancelExport) {
+						return false;
+					}
+				}
+				else {
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	public mergeClassInfo(classInfo: ClassInfo) {
+
+		for (let _extend of classInfo.extends) {
+			if (!this.extends.includes(_extend)) {
+				this.extends.push(_extend);
+			}
+		}
+
+		for (let _implement of classInfo.implements) {
+			if (!this.implements.includes(_implement)) {
+				this.implements.push(_implement);
+			}
+		}
+
+
+		this.methods = {
+			...classInfo.methods,
+			...this.methods
+		};
+		this.methodsStatic = {
+			...classInfo.methodsStatic,
+			...this.methodsStatic
+		};
+		this.properties = {
+			...classInfo.properties,
+			...this.properties
+		};
+		this.propertiesStatic = {
+			...classInfo.propertiesStatic,
+			...this.propertiesStatic
+		};
 	}
 }

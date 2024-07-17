@@ -1,0 +1,90 @@
+import { Meta, Description } from "@storybook/blocks";
+
+import Custom from "./assets/custom.jpeg";
+import Generated from "./assets/generated.jpeg";
+import Chart from "./assets/chart.jpeg";
+
+import Github from "./assets/github.svg";
+import Discord from "./assets/discord.svg";
+import Youtube from "./assets/youtube.svg";
+import Tutorials from "./assets/tutorials.svg";
+
+import './Home.scss';
+
+<Meta title="Home" />
+
+<div className="sb-container">
+  <div className="sb-section-title">
+    # Storybook Main
+
+    Welcome to the **Storybook Main** documentation. This project will be awesome because it's written with AventusJs.
+  </div>
+  <div className="sb-section">
+    <div className="sb-section-item">
+      <img
+        src={Generated}
+      />
+      <h4 className="sb-section-item-heading">Generate any code from your aventus code</h4>
+      <p>You can generate storie from you aventus code by settings the configuration **build[].stories.all** to true or by using the decorator **@Storybook**</p>
+    </div>
+    <div className="sb-section-item">
+      <img
+        src={Custom}
+      />
+      <h4 className="sb-section-item-heading">Write custom stories</h4>
+      <p>You can also write your own stories as **.mdx** or **.stories.ts** files to enhance your documentation</p>
+    </div>
+    <div className="sb-section-item">
+      <img
+        src={Chart}
+      />
+      <h4 className="sb-section-item-heading">Add graph</h4>
+      <p>To complete your doc and data-flow, you can add graph though mermaid js (use tag &lt;av-diagram&gt;) or by creating image with the vscode extension <a href="https://marketplace.visualstudio.com/items?itemName=hediet.vscode-drawio" target="_blank">draw.io</a></p>
+    </div>
+  </div>
+</div>
+
+<div className="sb-container">
+  <div className="sb-section sb-socials">
+      <div className="sb-section-item">
+        <img src={Github} alt="Github logo" className="sb-explore-image"/>
+        Join our contributors building the future of UI development.
+
+        <a
+          href="https://github.com/Cobwebsite/Aventus"
+          target="_blank"
+        >Star on GitHub</a>
+      </div>
+      <div className="sb-section-item">
+        <img src={Discord} alt="Discord logo" className="sb-explore-image"/>
+        <div>
+          Get support and chat with frontend developers.
+
+          <a
+            href="https://discord.gg/rzgtDNkZhd"
+            target="_blank"
+          >Join Discord server</a>
+        </div>
+      </div>
+      {/* <div className="sb-section-item">
+        <img src={Youtube} alt="Youtube logo" className="sb-explore-image"/>
+        <div>
+          Watch tutorials, feature previews and interviews.
+
+          <a
+            href="https://www.youtube.com/@chromaticui"
+            target="_blank"
+          >Watch on YouTube</a>
+        </div>
+      </div> */}
+      <div className="sb-section-item">
+        <img src={Tutorials} alt="A book" className="sb-explore-image"/>
+        <p>Follow guided walkthroughs on for key workflows.</p>
+
+        <a
+            href="https://aventusjs.com/docs/introduction"
+            target="_blank"
+          >Discover tutorials</a>
+      </div>
+  </div>
+</div>

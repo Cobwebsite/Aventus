@@ -1,3 +1,6 @@
+@Storybook({
+    prefix: "Lib/Callback"
+})
 export class CallbackGroup<U extends (...args: any) => void> {
     private callbacks: { [group: string]: Map<U, any>; } = {};
     /**
@@ -44,6 +47,9 @@ export class CallbackGroup<U extends (...args: any) => void> {
     }
 }
 
+@Storybook({
+    prefix: "Lib/Callback"
+})
 export class Callback<U extends (...args: any) => T, T = void> {
     private callbacks: Map<U, any> = new Map();
     /**

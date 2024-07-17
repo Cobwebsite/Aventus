@@ -1,17 +1,28 @@
+@Storybook({
+    prefix: "Lib/Uri"
+})
 export type UriParams = {
     name: string,
     type: "number" | "string",
     position: number;
 };
-
+@Storybook({
+    prefix: "Lib/Uri"
+})
 export type UriParamsValue = {
     [paramName: string]: string | number;
 };
-
+@Storybook({
+    prefix: "Lib/Uri"
+})
 export type PreparedUri = {
     regex: RegExp;
     params: UriParams[];
 };
+
+@Storybook({
+    prefix: "Lib/Uri"
+})
 export class Uri {
 
     public static prepare(uri: string): PreparedUri {

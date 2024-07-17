@@ -1,3 +1,6 @@
+@Storybook({
+    prefix: "Webcomponent"
+})
 export class Style {
     private static instance: Style;
     public static noAnimation: CSSStyleSheet;

@@ -1,50 +1,17 @@
-import { HttpRoute } from "./HttpRoute.lib.avt";
-import type { MixProto } from "../tools/MergePrototype.lib.avt";
-import type { RouteType, MergeRoutesType } from "./type.lib.avt";
 import type { HttpRouterOptions } from "./HttpRouterOptions.lib.avt";
 import { HttpMethod } from "./HttpMethod.lib.avt";
 import { HttpRequest } from "./HttpRequest.lib.avt";
-import { createCommProxy } from "../lib/Communication.lib.avt";
 
-export type HttpRouterType<T extends readonly ({ type: RouteType, path: string; } | RouteType)[]> = MixProto<typeof HttpRouter, MergeRoutesType<T>, "routes">;
 
-export type HttpRouteType<T extends RouteType, U extends string> = { type: T, path: U; };
-
-export abstract class HttpRouter {
-    private _routes: any;
+@Storybook({
+    prefix: "Http"
+})
+export class HttpRouter {
     @InternalProtected()
     public options: HttpRouterOptions;
 
-    public static WithRoute<const T extends readonly ({ type: RouteType, path: string; } | RouteType)[]>(options: T): HttpRouterType<T> {
-        abstract class Router extends HttpRouter {
-            constructor() {
-                super();
-                for(let route of options) {
-                    if(typeof route == "function") {
-                        this._routes.add(route);
-                    }
-                    else {
-                        this._routes.add(route.type, route.path);
-                    }
-                }
-            }
-
-        }
-        return Router as MixProto<typeof HttpRouter, MergeRoutesType<T>, "routes">;
-    }
-
     public constructor() {
-        Object.defineProperty(this, "routes", {
-            get: () => { return this._routes; }
-        });
-        this.createRoutesProxy();
-
         this.options = this.defineOptions(this.defaultOptionsValue());
-    }
-    private createRoutesProxy() {
-        if(!this._routes) {
-            this._routes = new Proxy({}, createCommProxy<HttpRoute>(this));
-        }
     }
 
     private defaultOptionsValue(): HttpRouterOptions {

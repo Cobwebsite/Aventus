@@ -1,29 +1,42 @@
 import { Data } from "../data/IData.data.avt";
 import { Json } from "./Json.lib.avt";
 
+@Storybook({
+    prefix: "Tools/Conveter"
+})
 type SchemaType = 'string' | 'number' | 'boolean' | 'date' | string;
 
-
+@Storybook({
+    prefix: "Tools/Conveter"
+})
 export type ClassCopyOptions = {
     isValidKey?: (key: string) => boolean;
     replaceKey?: (key: string) => string;
     transformValue?: (key: string, value: any) => any;
 };
+@Storybook({
+    prefix: "Tools/Conveter"
+})
 export interface Schema {
     [key: string]: SchemaType;
 }
-
+@Storybook({
+    prefix: "Tools/Conveter"
+})
 export interface IConverterTransform {
     transform<T = any>(data: any): T;
     copyValuesClass<T extends Object>(target: T, src: T, options?: ClassCopyOptions): void;
 }
+@Storybook({
+    prefix: "Tools/Conveter"
+})
 export class ConverterTransform implements IConverterTransform {
 
     public transform<T = any>(data: any): T {
         return this.transformLoop(data);
     }
 
-    protected createInstance(data): (Object & { fromJSON?: (data: any) => void; }) | undefined {
+    protected createInstance(data): (Object & { fromJSON?: (data: any) => any; }) | undefined {
         if(data.$type) {
             let cst = Converter.info.get(data.$type);
             if(cst) {
@@ -62,12 +75,15 @@ export class ConverterTransform implements IConverterTransform {
                 let obj = objTemp;
                 this.beforeTransformObject(obj);
                 if(obj.fromJSON) {
-                    obj.fromJSON(data);
+                    obj = obj.fromJSON(data);
                 }
                 else {
                     obj = Json.classFromJson(obj, data, {
                         transformValue: (key, value) => {
                             if(obj[key] instanceof Date) {
+                                return value ? new Date(value) : null;
+                            }
+                            else if(typeof obj[key] == 'string' && /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3})Z$/.exec(obj[key])) {
                                 return value ? new Date(value) : null;
                             }
                             else if(obj[key] instanceof Map) {
@@ -107,7 +123,10 @@ export class ConverterTransform implements IConverterTransform {
             }
             return result;
         }
-
+        
+        if(typeof data == 'string' && /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3})Z$/.exec(data)) {
+            return new Date(data);
+        }
         return data;
     }
 
@@ -150,6 +169,9 @@ export class ConverterTransform implements IConverterTransform {
 /**
  * Utility class for data conversion and manipulation.
  */
+@Storybook({
+    prefix: "Tools/Conveter"
+})
 export class Converter {
     /**
     * Map storing information about registered types.

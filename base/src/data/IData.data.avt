@@ -1,6 +1,12 @@
 import { Converter } from "../tools/Converter.lib.avt";
 import { Json } from "../tools/Json.lib.avt";
 
+/**
+ * Interface representing data with methods to get its unique type and to clone itself.
+ */
+@Storybook({
+    prefix: "Data"
+})
 export interface IData {
     /**
      * Get the unique type for the data. Define it as the fullnamespace + class name
@@ -12,11 +18,17 @@ export interface IData {
     clone(): this;
 }
 
+/**
+ * Abstract class implementing IData with additional properties and methods for namespace and JSON handling.
+ */
+@Storybook({
+    prefix: "Data"
+})
 export abstract class Data implements IData {
     /**
      * The schema for the class
      */
-    public static readonly $schema: { [prop: string]: string; }
+    public static readonly $schema: { [prop: string]: string; };
     /**
      * The current namespace
      */
@@ -48,13 +60,16 @@ export abstract class Data implements IData {
     /**
      * Get a JSON for the current object
      */
-    public toJSON() {
+    public toJSON(): { [key: string | number]: any; } {
         let toAvoid: string[] = ['className', 'namespace'];
         return Json.classToJson(this, {
             isValidKey: (key) => !toAvoid.includes(key)
         });
     }
 
+    /**
+     * Clone the object by transforming a parsed JSON string back into the original type
+     */
     public clone(): this {
         return Converter.transform<this>(JSON.parse(JSON.stringify(this)));
     }

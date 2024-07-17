@@ -5,6 +5,7 @@
         {
             "name": "Main",
             "hideWarnings": true,
+            "version": "1.0.0",
             "src": [
                 "./data/",
                 "./lib/",
@@ -17,13 +18,21 @@
             ],
             "compile": [{
 				"package": "../../lib/Aventus@Main.package.avt",
-                "output": "../dist/aventus.js"
+                "output": "../dist/aventus.js",
+                "outputNpm": {
+                    "path": "../../../npmPackage/AventusMain_npm",
+                    "packageJson": false
+                }
 			}],
             "outsideModule": [
                 "./attributes/",
                 "./extension/"
-            ]
-            
+            ],
+            "stories": {
+                "output": "../../../Storybook/AventusMain_storybook",
+                "workspace": "../../../Storybook/AventusMain_storybook",
+                "format": "manual"
+            }
         }
     ]
 }

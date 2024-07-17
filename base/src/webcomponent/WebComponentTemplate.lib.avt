@@ -1,20 +1,32 @@
-import { Computed, ComputedNoRecomputed, Effect, WatchAction, Watcher, type WatcherFunction } from "../lib/Watcher.lib.avt";
+import { Computed, ComputedNoRecomputed, type Effect, WatchAction, Watcher, type WatcherFunction } from "../lib/Watcher.lib.avt";
 import { PressManager, type PressManagerOptions } from "../lib/PressManager.lib.avt";
 import { WebComponent } from "./WebComponent.lib.avt";
 import { getValueFromObject, setValueToObject } from "../tools/CompareObject.lib.avt";
 
+@Storybook({
+    prefix: "Webcomponent"
+})
 type TemplateHTML = { slots: { [name: string]: string; }, blocks: { [name: string]: string; }; };
 
+@Storybook({
+    prefix: "Webcomponent"
+})
 type ActionChange = {
     fct: (c: TemplateContext) => string;
     once?: boolean;
 };
+@Storybook({
+    prefix: "Webcomponent"
+})
 type ActionInjection = {
     id: string,
     injectionName: string;
     inject: (c: TemplateContext) => any;
     once?: boolean;
 };
+@Storybook({
+    prefix: "Webcomponent"
+})
 type ActionBindings = {
     id: string,
     injectionName: string,
@@ -24,15 +36,26 @@ type ActionBindings = {
     isCallback?: boolean,
     once?: boolean;
 };
+@Storybook({
+    prefix: "Webcomponent"
+})
 type ActionEventListener = (e: Event, c: TemplateContext) => void;
+@Storybook({
+    prefix: "Webcomponent"
+})
 type ActionEventCallback = (c: TemplateContext, ...args: any) => void;
+@Storybook({
+    prefix: "Webcomponent"
+})
 type ActionEvent = {
     id: string,
     eventName: string,
     isCallback?: boolean,
     fct: ActionEventListener & ActionEventCallback,
 };
-
+@Storybook({
+    prefix: "Webcomponent"
+})
 type Actions = {
     elements?: { name: string, ids: string[], isArray?: boolean; }[],
     content?: { [id_attr: string]: ActionChange; },
@@ -42,27 +65,42 @@ type Actions = {
     pressEvents?: PressManagerOptions[];
     contextEdits?: ContextEdit[];
 };
+@Storybook({
+    prefix: "Webcomponent"
+})
 type LoopFct = {
     transform?: () => void;
     condition: () => boolean,
     apply: () => { [key: string]: any; };
 };
+@Storybook({
+    prefix: "Webcomponent"
+})
 type LoopSimple = {
     data: string,
     item?: string,
     index?: string,
 };
+@Storybook({
+    prefix: "Webcomponent"
+})
 type Loop = {
     anchorId: string,
     template: Template;
     func?: (c: TemplateContext) => LoopFct,
     simple?: LoopSimple,
 };
+@Storybook({
+    prefix: "Webcomponent"
+})
 type LoopRegistery = {
     templates: TemplateInstance[],
     computeds: Computed[],
     unsub?: () => void;
 };
+@Storybook({
+    prefix: "Webcomponent"
+})
 type If = {
     anchorId: string;
     parts: {
@@ -71,12 +109,16 @@ type If = {
         once?: boolean;
     }[];
 };
-
+@Storybook({
+    prefix: "Webcomponent"
+})
 type ContextEdit = {
     fct: (c: TemplateContext) => { [key: string]: any; };
     once?: boolean;
 };
-
+@Storybook({
+    prefix: "Webcomponent"
+})
 export class Template {
     public static validatePath(path: string, pathToCheck: string) {
         if(pathToCheck.startsWith(path)) {
@@ -221,7 +263,9 @@ export class Template {
 }
 
 
-
+@Storybook({
+    prefix: "Webcomponent"
+})
 export class TemplateInstance {
     @Internal()
     public context: TemplateContext;
@@ -363,10 +407,10 @@ export class TemplateInstance {
             }
             return {};
         });
-        computed.subscribe((action, path, value) => {
+        computed.subscribe((action, path, value, dones) => {
             for(let key in computed.value) {
                 let newValue = computed.value[key];
-                this.context.updateWatch(key, newValue);
+                this.context.updateWatch(key, newValue, dones);
             }
         });
         this.computeds.push(computed);
@@ -501,7 +545,7 @@ export class TemplateInstance {
         });
 
         let timeout: number;
-        computed.subscribe((action, path, value) => {
+        computed.subscribe((action, path, value, dones) => {
             clearTimeout(timeout);
             // add timeout to group change that append on the same frame (for example index update)
             timeout = setTimeout(() => {
@@ -537,8 +581,11 @@ export class TemplateInstance {
             }
         });
         this.computeds.push(computed);
-        computed.subscribe(() => {
+        computed.subscribe((action, path, value, dones) => {
             for(const el of this._components[injection.id]) {
+                if(el instanceof WebComponent && el.__watch && Object.hasOwn(el.__watch, injection.injectionName)) {
+                    el.__watch.__injectedDones(dones);
+                }
                 el[injection.injectionName] = computed.value;
             }
         });
@@ -568,9 +615,12 @@ export class TemplateInstance {
             }
         });
         this.computeds.push(computed);
-        computed.subscribe(() => {
+        computed.subscribe((action, path, value, dones) => {
             if(isLocalChange) return;
             for(const el of this._components[binding.id]) {
+                if(el instanceof WebComponent && el.__watch && Object.hasOwn(el.__watch, binding.injectionName)) {
+                    el.__watch.__injectedDones(dones);
+                }
                 el[binding.injectionName] = computed.value;
             }
         });
@@ -959,7 +1009,9 @@ export class TemplateInstance {
         calculateActive();
     }
 }
-
+@Storybook({
+    prefix: "Webcomponent"
+})
 export class TemplateContext {
     public data: { [name: string]: any; } = {};
     public comp: WebComponent;
@@ -1150,7 +1202,10 @@ export class TemplateContext {
             }
         });
     }
-    public updateWatch(name: string, value: any) {
+    public updateWatch(name: string, value: any, dones: any[]) {
+        if(Watcher.is(this.watch[name])) {
+            this.watch[name].__injectedDones(dones);
+        }
         this.watch[name] = value;
     }
 

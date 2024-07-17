@@ -4,7 +4,7 @@ import * as postcssScss from 'postcss-scss';
 import { CompletionItem, CSSFormatConfiguration, getSCSSLanguageService, LanguageService } from "vscode-css-languageservice";
 import { CodeAction, CodeActionContext, CompletionList, Definition, Diagnostic, FormattingOptions, Hover, Location, Position, Range, TextEdit } from "vscode-languageserver";
 import { Build } from '../../project/Build';
-import { getNodePath, SCSSDoc, Node, NodeType, CustomCssProperty } from './helper/CSSNode';
+import { getNodePath, SCSSDoc, Node, NodeType, CustomCssProperty, CustomCssPropertyType } from './helper/CSSNode';
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { AventusFile } from '../../files/AventusFile';
 import { TagInfo } from '../html/parser/TagInfo';
@@ -347,7 +347,7 @@ export class AventusSCSSLanguageService {
                             }
                             else {
                                 let txt = childNode.getText();
-                                console.log("to implement");
+                                console.log("css node to implement");
                             }
                         }
                         if (parentCheck && position) {
@@ -395,7 +395,41 @@ export class AventusSCSSLanguageService {
     }
     public static getCustomProperty(srcCode: string): CustomCssProperty[] {
         let document = TextDocument.create("temp.scss", "scss", 1, srcCode);
-        let result: CustomCssProperty[] = [];
+        let result: { [name: string]: CustomCssProperty } = {};
+        const extractComment = (node: Node, variableName: string): { documentation: string[], type: CustomCssPropertyType, default?: string } | null => {
+            let txt = node.parent?.getText() ?? '';
+            const variableRegex = new RegExp(`\/\\*([\\s\\S]*?)\\*\/\\s*${variableName}\\s*:\\s*[^;]+;`, 'g');
+            const match = variableRegex.exec(txt);
+            if (match && match[1]) {
+                const result: { documentation: string[], type: CustomCssPropertyType, default?: string } = {
+                    documentation: [],
+                    type: "*"
+                }
+                const commentTxt = match[1].trim();
+                const array = commentTxt.split("\n");
+                let foundTag = false;
+                for (let item of array) {
+                    item = item.replace("*", "").trim();
+                    if (item.startsWith("@")) {
+                        foundTag = true;
+
+                        if (item.startsWith("@type")) {
+                            // TODO complete type checking
+                            result.type = item.replace("@type", "").trim() as CustomCssPropertyType;
+                        }
+
+                        if (item.startsWith("@default")) {
+                            result.default = item.replace("@default", "").trim();
+                        }
+                    }
+                    else if (!foundTag) {
+                        result.documentation.push(item)
+                    }
+                }
+                return result
+            }
+            return null
+        };
         const _loadCustomProperty = (node: Node) => {
             if (node.type == NodeType.CustomPropertyDeclaration) {
                 let nodeParent: Node | null = node;
@@ -415,11 +449,35 @@ export class AventusSCSSLanguageService {
                             else if (propertyNode.getText().startsWith("--_")) {
                                 externalName = propertyNode.getText().replace("--_", "--");
                             }
+                            const comment = extractComment(node, propertyNode.getText());
 
                             if (externalName && expressionNode.getText().indexOf(externalName) != -1) {
-                                result.push({
+                                const cssProperty: CustomCssProperty = {
                                     name: externalName
-                                })
+                                }
+                                if (comment?.documentation) {
+                                    cssProperty.documentation = comment.documentation.join("\n");
+                                }
+                                if (comment?.type) {
+                                    cssProperty.type = comment.type
+                                }
+
+                                if (comment?.default) {
+                                    cssProperty.defaultValue = comment.default;
+                                }
+                                else {
+                                    let finalNode: Node | null = expressionNode;
+                                    while (finalNode && finalNode.getChildren().length > 0) {
+                                        let children = finalNode.getChildren();
+                                        finalNode = children[children.length - 1];
+                                    }
+                                    let finalValue: string = finalNode.getText() ?? '';
+                                    if (finalValue && !finalValue.startsWith("--")) {
+                                        cssProperty.defaultValue = finalValue;
+                                    }
+                                }
+
+                                result[cssProperty.name] = cssProperty;
                             }
                         }
                     }
@@ -437,7 +495,7 @@ export class AventusSCSSLanguageService {
         for (let pathTemp of path) {
             _loadCustomProperty(pathTemp);
         }
-        return result;
+        return Object.values(result);
     }
 
 

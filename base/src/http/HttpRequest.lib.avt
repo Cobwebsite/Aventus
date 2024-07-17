@@ -1,9 +1,12 @@
-import { HttpRouter } from "./HttpRouter.lib.avt";
+import { type HttpRouter } from "./HttpRouter.lib.avt";
 import { ResultWithError, VoidWithError } from "../tools/Error.lib.avt";
 import { HttpMethod } from "./HttpMethod.lib.avt";
 import { HttpError, HttpErrorCode } from "./HttpError.lib.avt";
 import { Converter } from "../tools/Converter.lib.avt";
 
+@Storybook({
+    prefix: "Http"
+})
 export class HttpRequest {
     private request: RequestInit;
     private url: string;
@@ -44,7 +47,8 @@ export class HttpRequest {
             const newKey = parentKey ? `${parentKey}[${key}]` : key;
 
             if(value instanceof Date) {
-                formData.append(newKey, value.toISOString());
+                const offset = this[key].getTimezoneOffset() * 60000
+                formData.append(newKey, new Date(this[key].getTime() - offset).toISOString());
             }
             else if(
                 typeof value === 'object' && 
@@ -71,6 +75,13 @@ export class HttpRequest {
         }
 
         return formData;
+    }
+    public jsonReplacer(key: string, value: any) {
+        if(this[key] instanceof Date) {
+            const offset = this[key].getTimezoneOffset() * 60000
+            return new Date(this[key].getTime() - offset).toISOString();
+        }
+        return value;
     }
     private prepareBody(data?: { [key: string | number]: any; } | FormData) {
         if(!data) {
@@ -105,7 +116,7 @@ export class HttpRequest {
                 this.request.body = this.objectToFormData(data);
             }
             else {
-                this.request.body = JSON.stringify(data);
+                this.request.body = JSON.stringify(data, this.jsonReplacer);
                 this.setHeader("Content-Type", "Application/json");
             }
         }
@@ -203,4 +214,21 @@ export class HttpRequest {
         return result;
     }
 
+    public async queryBlob(router?: HttpRouter): Promise<ResultWithError<Blob>> {
+        let resultTemp = await this.query(router);
+        let result = new ResultWithError<Blob>();
+        if(!resultTemp.success) {
+            result.errors = resultTemp.errors;
+            return result;
+        }
+        try {
+            if(!resultTemp.result) {
+                return result;
+            }
+            result.result = await resultTemp.result.blob();
+        } catch(e) {
+            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
+        }
+        return result;
+    }
 }

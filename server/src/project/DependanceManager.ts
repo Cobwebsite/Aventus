@@ -8,7 +8,7 @@ import { AventusExtension, AventusLanguageId } from '../definition';
 import { AventusPackageFile } from '../language-services/ts/package/File';
 import { Build } from './Build';
 import { get } from 'http';
-import { get as gets  } from 'https';
+import { get as gets } from 'https';
 import { GenericServer } from '../GenericServer';
 import { FilesManager } from '../files/FilesManager';
 
@@ -51,6 +51,11 @@ export class DependanceManager {
 		"@AventusSharp": AVENTUS_DEF_SHARP_PATH(),
 		"Aventus@Sharp": AVENTUS_DEF_SHARP_PATH(),
 	}
+	private predefinedNpm = {
+		[AVENTUS_DEF_BASE_PATH()]: "@aventusjs/main",
+		[AVENTUS_DEF_UI_PATH()]: "@aventusjs/ui",
+		[AVENTUS_DEF_SHARP_PATH()]: "@aventussharp/main",
+	}
 	private aventusLoaded: boolean = false;
 	public async loadDependancesFromBuild(config: AventusConfigBuild, build: Build): Promise<{ files: AventusPackageFile[], dependanceNeedUris: string[], dependanceFullUris: string[], dependanceUris: string[] }> {
 		this.aventusLoaded = false;
@@ -73,6 +78,7 @@ export class DependanceManager {
 		if (!this.aventusLoaded) {
 			let uri = pathToUri(AVENTUS_DEF_BASE_PATH());
 			let avFile = await this.loadByUri(build, uri)
+			avFile.npmUri = this.predefinedNpm[AVENTUS_DEF_BASE_PATH()];
 			loopResult["Aventus"] = {
 				dependances: [],
 				file: avFile,
@@ -183,6 +189,13 @@ export class DependanceManager {
 		if (finalUri && packageFile) {
 			const version = this.parseVersion(dep.version);
 
+			if (dep.npm) {
+				packageFile.npmUri = dep.npm;
+			}
+			else if (this.predefinedNpm[dep.uri]) {
+				packageFile.npmUri = this.predefinedNpm[dep.uri];
+			}
+
 			const setDependance = async (file: AventusPackageFile, uri: string) => {
 				result[file.name] = {
 					file,
@@ -230,7 +243,7 @@ export class DependanceManager {
 
 	private async loadLocal(localName: string, build: Build) {
 		let uri = pathToUri(join(this.path, "@locals", localName))
-		if(!uri.endsWith(AventusExtension.Package)){
+		if (!uri.endsWith(AventusExtension.Package)) {
 			uri += AventusExtension.Package;
 		}
 		let file = await FilesManager.getInstance().registerFilePackage(uri)

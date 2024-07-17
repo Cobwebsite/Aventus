@@ -1,11 +1,20 @@
 import { RamError, RamErrorCode, ResultRamWithError, VoidRamWithError } from "./Error.lib.avt";
 import type { IData } from "../data/IData.data.avt";
-import { ResultWithError, VoidWithError } from "../tools/Error.lib.avt";
+import { type ResultWithError, VoidWithError } from "../tools/Error.lib.avt";
 import { Json } from "../tools/Json.lib.avt";
-import { ActionGuard, Mutex } from "../tools/Mutex.lib.avt";
+import { ActionGuard } from "../tools/Mutex.lib.avt";
 
+@Storybook({
+    prefix: "Ram"
+})
 export interface IRam { }
+@Storybook({
+    prefix: "Ram"
+})
 export type KeysObject<T> = { [Key in keyof T]?: any; };
+@Storybook({
+    prefix: "Ram"
+})
 export interface IRamAction<T> {
     update(newData: KeysObject<T>): Promise<this | undefined>;
     updateWithError(newData: KeysObject<T>): Promise<ResultRamWithError<this>>;
@@ -16,19 +25,27 @@ export interface IRamAction<T> {
     onDelete(callback: (item: this) => void): void;
     offDelete(callback: (item: this) => void): void;
 }
-
+@Storybook({
+    prefix: "Ram"
+})
 export type RamItem<T extends IData> = T & IRamAction<T>;
+@Storybook({
+    prefix: "Ram"
+})
 interface RamSubscribers<T> {
     created: ((item: T) => void)[];
     updated: ((item: T) => void)[];
     deleted: ((item: T) => void)[];
 }
-
+@Storybook({
+    prefix: "Ram"
+})
 export abstract class GenericRam<Index, T extends IData, U extends T = T> implements IRam {
     /**
      * The current namespace
      */
-    public static get Namespace(): string { return ""; }
+    public static Namespace: string = "";
+    // public static get Namespace(): string { return ""; }
     /**
      * Get the unique type for the data. Define it as the namespace + class name
      */
@@ -249,7 +266,9 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
         if(!item) {
             return;
         }
-        Json.classFromJson(item, objJson);
+        Json.classFromJson(item, objJson, {
+            replaceUndefined: true
+        });
     }
     //#endregion
 
@@ -817,6 +836,12 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
 
 }
 
+/**
+ * Default Ram with number as Index
+ */
+@Storybook({
+    prefix: "Ram"
+})
 export abstract class Ram<T extends IData, U extends T = T> extends GenericRam<number, T, U> {
 
 }

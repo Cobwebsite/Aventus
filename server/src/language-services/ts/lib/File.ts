@@ -8,7 +8,7 @@ import { createErrorTsPos } from '../../../tools';
 
 export class AventusLibFile extends AventusTsFile {
 
-    protected get extension(): string {
+    public get extension(): string {
         return AventusExtension.Lib;
     }
     constructor(file: AventusFile, build: Build) {
@@ -42,10 +42,12 @@ export class AventusLibFile extends AventusTsFile {
         this.setCompileResult(genericTsCompile(this));
     }
     protected onCompletion(document: AventusFile, position: Position): Promise<CompletionList> {
-        return this.tsLanguageService.doComplete(document, position);
+        const result = this.tsLanguageService.doComplete(document, position);
+        return result;
     }
     protected onCompletionResolve(document: AventusFile, item: CompletionItem): Promise<CompletionItem> {
-        return this.tsLanguageService.doResolve(item);
+        const result = this.tsLanguageService.doResolve(item);
+        return result;
     }
     protected onHover(document: AventusFile, position: Position): Promise<Hover | null> {
         return this.tsLanguageService.doHover(document, position);

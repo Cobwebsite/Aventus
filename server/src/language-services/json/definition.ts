@@ -5,6 +5,7 @@ export interface AventusConfigBuild {
 	disabled: boolean,
 	hideWarnings: boolean,
 	src: string[],
+	stories: AventusConfigBuildStories | undefined,
 	srcPathRegex: RegExp,
 	compile: AventusConfigBuildCompile[],
 	outsideModule: string[],
@@ -27,11 +28,18 @@ export interface AventusConfigBuildCompile {
 	inputPathRegex: RegExp,
 	output: string[],
 	package: string[],
+	outputNpm: AventusConfigBuildCompileOutputNpm,
 	compressed?: boolean,
+}
+
+export interface AventusConfigBuildCompileOutputNpm {
+	path: string[],
+	packageJson: boolean
 }
 
 export interface AventusConfigBuildDependance {
 	uri: string,
+	npm: string,
 	version: string,
 	include: IncludeType,
 	subDependancesInclude: { // define how to include children, you can specify each dependance here or add a star as name to define globaly
@@ -44,6 +52,13 @@ export interface AventusConfigStatic {
 	inputPathFolder: string,
 	output: string[]
 	outputPathFolder: string[],
+}
+export interface AventusConfigBuildStories {
+	output: string,
+	workspace?: string,
+	format?: "all" | "public" | "tag",
+	live?: boolean,
+	prefix?: string
 }
 export interface AventusConfig {
 	version: string,

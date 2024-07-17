@@ -1,6 +1,12 @@
 
+@Storybook({
+    prefix: "Lib/Promise"
+})
 export type Asyncable<T> = T | Promise<T>;
 
+@Storybook({
+    prefix: "Lib/Promise"
+})
 export function Async<T>(el: Asyncable<T>): Promise<T> {
 	return new Promise((resolve) => {
 		if(el instanceof Promise) {

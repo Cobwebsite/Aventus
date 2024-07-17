@@ -4,6 +4,9 @@ import type { Enum, EnumValue } from "./Enum.lib.avt";
  * Represents a generic error with a code, message, and optional details.
  * @template T - The type of the error code, which extends either number or Enum.
  */
+@Storybook({
+    prefix: "Error"
+})
 export class GenericError<T extends (number | Enum) = any> {
     /**
      * Code for the error
@@ -35,6 +38,9 @@ export class GenericError<T extends (number | Enum) = any> {
  * Represents a result of an action that may contain errors.
  * @template T - The type of error, extending GenericError.
  */
+@Storybook({
+    prefix: "Error"
+})
 export class VoidWithError<T extends GenericError = GenericError> {
 
     /**
@@ -66,7 +72,7 @@ export class VoidWithError<T extends GenericError = GenericError> {
     * @param {new (...args: any[]) => U} [type] - Optional constructor function of the error type.
     * @returns {boolean} True if the error list contains the specified error code, otherwise false.
     */
-    public containsCode<U extends GenericError<any>, T extends (number | Enum)>(code: EnumValue<T>, type?: new (...args) => U): boolean {
+    public containsCode<U extends GenericError<any>, T extends (number | Enum)>(code: EnumValue<T>, type?: new (...args: any[]) => U): boolean {
         if(type) {
             for(let error of this.errors) {
                 if(error instanceof type) {
@@ -89,9 +95,12 @@ export class VoidWithError<T extends GenericError = GenericError> {
 
 /**
  * Represents a result of an action that may contain errors and includes a result value.
- * @template U - The type of the result value.
- * @template T - The type of error, extending GenericError.
+ * @template U The type of the result value.
+ * @template T The type of error, extending GenericError.
  */
+@Storybook({
+    prefix: "Error"
+})
 export class ResultWithError<U, T extends GenericError = GenericError> extends VoidWithError<T> {
 
     /**
@@ -117,7 +126,10 @@ export class ResultWithError<U, T extends GenericError = GenericError> extends V
  * If the provided type `T` is `ResultWithError`, it extracts the error type.
  * If `T` is `VoidWithError`, it returns `void`.
  * Otherwise, it returns `T`.
- * @template T - The input type to extract the error or void from.
- * @template U - The default type if `T` is not a `ResultWithError`.
+ * @template T The input type to extract the error or void from.
+ * @template U The default type if `T` is not a `ResultWithError`.
  */
-export type ExtractFromError<T, U = any> = T extends Aventus.ResultWithError<infer U, any> ? U : T extends Aventus.VoidWithError ? void : T;
+@Storybook({
+    prefix: "Error"
+})
+export type ExtractFromError<T, U = any> = T extends ResultWithError<infer U, any> ? U : T extends VoidWithError ? void : T;

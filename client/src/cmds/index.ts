@@ -24,6 +24,7 @@ import { SplitComponent } from './SplitComponent';
 import { SharpExport } from './sharp/Export';
 import { ReloadSettings } from './ReloadSettings';
 import { CreateCSSVariable } from './webcomponent/CreateCSSVariable';
+import { StorybookBuild } from './storybook/StorybookBuild';
 
 
 export const Commands = {
@@ -54,5 +55,6 @@ export const Commands = {
         [SplitComponent.cmd]: SplitComponent,
         [SharpExport.cmd]: SharpExport,
         [ReloadSettings.cmd]: ReloadSettings,
+        [StorybookBuild.cmd]: StorybookBuild
     },
 }

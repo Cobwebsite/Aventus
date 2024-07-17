@@ -99,6 +99,20 @@ export class ProjectManager {
         }
         return result;
     }
+    public getAllBuildsWithStory(): { name: string, uri: string }[] {
+        let result: { name: string, uri: string }[] = [];
+        for (let uri in this.projects) {
+            let project = this.projects[uri];
+            let builds = project.getBuildsNameWithStory();
+            for (let build of builds) {
+                result.push({
+                    name: build,
+                    uri: project.getConfigFile().uri
+                })
+            }
+        }
+        return result;
+    }
     public getAllStatics(): { name: string, uri: string }[] {
         let result: { name: string, uri: string }[] = [];
         for (let uri in this.projects) {

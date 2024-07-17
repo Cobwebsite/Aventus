@@ -7,7 +7,7 @@ import { AventusTsFile } from "../File";
 
 export class AventusRamFile extends AventusTsFile {
 
-    protected get extension(): string {
+    public get extension(): string {
         return AventusExtension.RAM;
     }
     constructor(file: AventusFile, build: Build) {

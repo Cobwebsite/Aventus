@@ -148,7 +148,14 @@ export class ParserTs {
             uri: string,
         }
     } = {};
-    public internalObjects: { [name: string]: { fullname: string, isExported: boolean } } = {}
+    public npmGeneratedImport: {
+        [_package: string]: {
+            name: string,
+            // define if the element will be compiled from ts to js
+            compiled: boolean
+        }[]
+    } = {};
+    public internalObjects: { [name: string]: { fullname: string, isExported: boolean, isStoryExported: boolean } } = {}
     public waitingImports: { [localName: string]: ((info: BaseInfo) => void)[] } = {};
     public aliases: { [shortName: string]: AliasInfo } = {};
     public variables: { [shortName: string]: VariableInfo } = {};
@@ -216,7 +223,8 @@ export class ParserTs {
                     let name = _class.name.getText();
                     this.internalObjects[name] = {
                         fullname: [...this.currentNamespace, name].join("."),
-                        isExported: BaseInfo.isExported(_class)
+                        isExported: BaseInfo.isExported(_class),
+                        isStoryExported: this.build.buildConfig.stories ? BaseInfo.isStoryExported(_class) : false,
                     }
                 }
             }
@@ -225,7 +233,8 @@ export class ParserTs {
                 let name = _enum.name.getText();
                 this.internalObjects[name] = {
                     fullname: [...this.currentNamespace, name].join("."),
-                    isExported: BaseInfo.isExported(_enum)
+                    isExported: BaseInfo.isExported(_enum),
+                    isStoryExported: this.build.buildConfig.stories ? BaseInfo.isStoryExported(_enum) : false,
                 }
             }
             else if (x.kind == SyntaxKind.TypeAliasDeclaration) {
@@ -233,7 +242,8 @@ export class ParserTs {
                 let name = _alias.name.getText();
                 this.internalObjects[name] = {
                     fullname: [...this.currentNamespace, name].join("."),
-                    isExported: BaseInfo.isExported(_alias)
+                    isExported: BaseInfo.isExported(_alias),
+                    isStoryExported: this.build.buildConfig.stories ? BaseInfo.isStoryExported(_alias) : false,
                 }
             }
             else if (x.kind == SyntaxKind.FunctionDeclaration) {
@@ -242,7 +252,8 @@ export class ParserTs {
                     let name = _function.name.getText();
                     this.internalObjects[name] = {
                         fullname: [...this.currentNamespace, name].join("."),
-                        isExported: BaseInfo.isExported(_function)
+                        isExported: BaseInfo.isExported(_function),
+                        isStoryExported: this.build.buildConfig.stories ? BaseInfo.isStoryExported(_function) : false,
                     }
                 }
             }
@@ -255,7 +266,8 @@ export class ParserTs {
                         let name = _var.name.getText();
                         this.internalObjects[name] = {
                             fullname: [...this.currentNamespace, name].join("."),
-                            isExported: BaseInfo.isExported(_varStatement)
+                            isExported: BaseInfo.isExported(_varStatement),
+                            isStoryExported: this.build.buildConfig.stories ? BaseInfo.isStoryExported(_varStatement) : false,
                         }
                     }
                 }
@@ -334,21 +346,36 @@ export class ParserTs {
     private loadClass(node: ClassDeclaration | InterfaceDeclaration) {
         if (node.name) {
             let classInfo = new ClassInfo(node, this.currentNamespace, this);
-            this.classes[classInfo.name] = classInfo;
+            if (this.classes[classInfo.name]) {
+                if (classInfo.isInterface) {
+                    this.classes[classInfo.name].mergeClassInfo(classInfo)
+                }
+                else {
+                    classInfo.mergeClassInfo(this.classes[classInfo.name]);
+                    this.classes[classInfo.name] = classInfo;
+                }
+            }
+            else {
+                this.classes[classInfo.name] = classInfo;
+            }
+            this.defineStorie(this.classes[classInfo.name]);
         }
     }
     private loadFunction(node: FunctionDeclaration) {
         if (node.name) {
             let functionInfo = new FunctionInfo(node, this.currentNamespace, this);
+            this.defineStorie(functionInfo);
             this.functions[functionInfo.name] = functionInfo;
         }
     }
     private loadEnum(node: EnumDeclaration) {
         let enumInfo = new EnumInfo(node, this.currentNamespace, this);
+        this.defineStorie(enumInfo);
         this.enums[enumInfo.name] = enumInfo;
     }
     private loadAlias(node: TypeAliasDeclaration) {
         let aliasInfo = new AliasInfo(node, this.currentNamespace, this);
+        this.defineStorie(aliasInfo);
         this.aliases[aliasInfo.name] = aliasInfo;
     }
 
@@ -356,13 +383,19 @@ export class ParserTs {
         let isExported = BaseInfo.isExported(node);
         for (let declaration of node.declarationList.declarations) {
             if (declaration.kind == SyntaxKind.VariableDeclaration) {
+                declaration['jsDoc'] = node['jsDoc'];
                 this.loadVariable(declaration as VariableDeclaration, isExported);
             }
         }
     }
     private loadVariable(node: VariableDeclaration, isExported: boolean) {
         let variableInfo = new VariableInfo(node, this.currentNamespace, this, isExported);
+        this.defineStorie(variableInfo);
         this.variables[variableInfo.name] = variableInfo;
+    }
+
+    private defineStorie(info: BaseInfo) {
+        info.loadStorieContent();
     }
 
     public getBaseInfo(name: string): BaseInfo | null {
@@ -387,5 +420,23 @@ export class ParserTs {
     public getBaseInfoFullName(fullName: string): BaseInfo | null {
         const name: string = fullName.split(".").pop() ?? fullName;
         return this.getBaseInfo(name);
+    }
+
+    public registerGeneratedImport(uri: string, name: string, compiled: boolean) {
+        if (!this.npmGeneratedImport[uri]) {
+            this.npmGeneratedImport[uri] = [{
+                name: name,
+                compiled: compiled
+            }];
+        }
+        else {
+            let index = this.npmGeneratedImport[uri].findIndex(p => p.name == name);
+            if (index == -1) {
+                this.npmGeneratedImport[uri].push({
+                    name: name,
+                    compiled: compiled
+                });
+            }
+        }
     }
 }

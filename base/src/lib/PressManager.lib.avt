@@ -1,15 +1,25 @@
 
+@Storybook({
+    prefix: "Lib/PressManager"
+})
 export interface Pointer {
     id: number;
     constructor(nativePointer: Touch | PointerEvent);
 }
 
+@Storybook({
+    prefix: "Lib/PressManager"
+})
 export interface InternalCustomFunction {
     src?: PressManager,
     onDrag?: (e: PointerEvent, self: PressManager) => void,
     onDragEnd?: (e: PointerEvent, self: PressManager) => void,
     offsetDrag?: number;
 }
+
+@Storybook({
+    prefix: "Lib/PressManager"
+})
 export interface InternalPointerEvent extends Event {
     detail: {
         state: PressManagerState,
@@ -17,29 +27,105 @@ export interface InternalPointerEvent extends Event {
         realEvent: PointerEvent;
     };
 }
+/**
+ * Options for configuring the PressManager.
+ */
+@Storybook({
+    prefix: "Lib/PressManager"
+})
 export interface PressManagerOptions {
+    /**
+     * The element to be managed by PressManager.
+     */
     element: Element,
+    /**
+     * Callback function triggered on a press event.
+     * @param e - The PointerEvent associated with the press.
+     * @param self - The instance of PressManager.
+     */
     onPress?: (e: PointerEvent, self: PressManager) => void,
+    /**
+     * Callback function triggered when a press starts.
+     * @param e - The PointerEvent associated with the press start.
+     * @param self - The instance of PressManager.
+     */
     onPressStart?: (e: PointerEvent, self: PressManager) => void,
+    /**
+     * Callback function triggered when a press ends.
+     * @param e - The PointerEvent associated with the press end.
+     * @param self - The instance of PressManager.
+     */
     onPressEnd?: (e: PointerEvent, self: PressManager) => void,
+    /**
+     * Callback function triggered on a long press.
+     * @param e - The PointerEvent associated with the long press.
+     * @param self - The instance of PressManager.
+     */
     onLongPress?: (e: PointerEvent, self: PressManager) => void,
+    /**
+     * Callback function triggered on a double press.
+     * @param e - The PointerEvent associated with the double press.
+     * @param self - The instance of PressManager.
+     */
     onDblPress?: (e: PointerEvent, self: PressManager) => void,
+     /**
+     * Callback function triggered on a drag event.
+     * @param e - The PointerEvent associated with the drag.
+     * @param self - The instance of PressManager.
+     */
     onDrag?: (e: PointerEvent, self: PressManager) => void,
+     /**
+     * Callback function triggered when a drag starts.
+     * @param e - The PointerEvent associated with the drag start.
+     * @param self - The instance of PressManager.
+     */
     onDragStart?: (e: PointerEvent, self: PressManager) => void,
+    /**
+     * Callback function triggered when a drag ends.
+     * @param e - The PointerEvent associated with the drag end.
+     * @param self - The instance of PressManager.
+     */
     onDragEnd?: (e: PointerEvent, self: PressManager) => void,
+    /**
+     * The minimum distance in pixels required to trigger a drag event.
+     */
     offsetDrag?: number,
+    /**
+     * The delay in milliseconds to detect a double press.
+     */
     delayDblPress?: number;
+    /**
+     * The delay in milliseconds to detect a long press.
+     */
     delayLongPress?: number;
     /** Force double press to be triggered (callback or dispatch to parent) */
     forceDblPress?: boolean;
+    /**
+     * Determines whether to stop the propagation of the event.
+     * It can be a boolean or a function that returns a boolean.
+     */
     stopPropagation?: boolean | (() => boolean);
+    /**
+     * Specifies which mouse buttons are allowed to trigger the events.
+     * An array of button numbers.
+     */
     buttonAllowed?: number[];
+    /**
+     * Callback function triggered on any event.
+     * @param e - The PointerEvent associated with the event.
+     */
     onEvent?: (e: PointerEvent) => void;
 }
+@Storybook({
+    prefix: "Lib/PressManager"
+})
 export interface PressManagerState {
     oneActionTriggered: boolean,
     isMoving: boolean;
 }
+@Storybook({
+    prefix: "Lib/PressManager"
+})
 export class PressManager {
     private static globalConfig: Partial<PressManagerOptions> = {
         delayDblPress: 150,
@@ -251,6 +337,7 @@ export class PressManager {
         }
         this.startPosition = { x: e.pageX, y: e.pageY };
         document.addEventListener("pointerup", this.functionsBinded.upAction);
+        document.addEventListener("pointercancel", this.functionsBinded.upAction);
         document.addEventListener("pointermove", this.functionsBinded.moveAction);
 
         this.timeoutLongPress = setTimeout(() => {
@@ -282,6 +369,7 @@ export class PressManager {
             e.stopImmediatePropagation();
         }
         document.removeEventListener("pointerup", this.functionsBinded.upAction);
+        document.removeEventListener("pointercancel", this.functionsBinded.upAction);
         document.removeEventListener("pointermove", this.functionsBinded.moveAction);
 
         clearTimeout(this.timeoutLongPress);
@@ -496,6 +584,7 @@ export class PressManager {
             this.element.removeEventListener("trigger_pointer_longpress", this.functionsBinded.childLongPress);
             this.element.removeEventListener("trigger_pointer_dragstart", this.functionsBinded.childDragStart);
             document.removeEventListener("pointerup", this.functionsBinded.upAction);
+            document.removeEventListener("pointercancel", this.functionsBinded.upAction);
             document.removeEventListener("pointermove", this.functionsBinded.moveAction);
         }
     }

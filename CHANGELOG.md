@@ -1,5 +1,17 @@
 # Change Log
 
+## 1.3.0 (2024-07-17)
+
+### Bug Fixes
+ - Prevent namespace updating when name of getter/setter is a type name
+ - Correct dependance fullname for generic class inheritance
+
+### Features
+ - Export AventusJs to npm package
+ - Export AventusJs to storybook
+ - Improve documentation inside typescript code
+
+
 ## 1.2.1 (2024-04-28)
 
 ### Bug Fixes

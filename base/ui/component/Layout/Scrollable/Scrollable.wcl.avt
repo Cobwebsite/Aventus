@@ -93,10 +93,16 @@ namespace Layout {
         private observer?: Aventus.ResizeObserver;
 
         private display: { x: number, y: number; } = { x: 0, y: 0 };
-        private max: { x: number, y: number; } = {
+        private _max: { x: number, y: number; } = {
             x: 0,
             y: 0
         };
+        public get max(): { x: number, y: number; } {
+            return {
+                x: this._max.x,
+                y: this._max.y,
+            };
+        }
         private margin: { x: number, y: number; } = {
             x: 0,
             y: 0
@@ -357,14 +363,14 @@ namespace Layout {
             let newValue = {
                 x: 0,
                 y: e.deltaY * mode,
-            }
+            };
             if(!this.y_scroll && this.x_scroll) {
                 newValue = {
                     x: e.deltaY * mode,
                     y: 0,
-                }
+                };
                 if(
-                    (newValue.x > 0 && this.x != this.max.x) || 
+                    (newValue.x > 0 && this.x != this.max.x) ||
                     (newValue.x <= 0 && this.x != 0)
                 ) {
                     e.stopPropagation();
@@ -372,7 +378,7 @@ namespace Layout {
             }
             else {
                 if(
-                    (newValue.y > 0 && this.y != this.max.y) || 
+                    (newValue.y > 0 && this.y != this.max.y) ||
                     (newValue.y <= 0 && this.y != 0)
                 ) {
                     e.stopPropagation();
@@ -489,7 +495,7 @@ namespace Layout {
             if(maxScrollContent < 0) {
                 maxScrollContent = 0;
             }
-            this.max[direction] = maxScrollContent + this.margin[direction];
+            this._max[direction] = maxScrollContent + this.margin[direction];
         }
 
         //#endregion
