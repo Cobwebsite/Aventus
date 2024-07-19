@@ -20,7 +20,7 @@ import { HttpServer } from '../live-server/HttpServer';
 import { Compiled } from '../notification/Compiled';
 import { RegisterBuild } from '../notification/RegisterBuild';
 import { UnregisterBuild } from '../notification/UnregisterBuild';
-import { createErrorTsPos, getFolder, pathToUri, replaceNotImportAliases, simplifyUri, uriToPath } from "../tools";
+import { createErrorTsPos, getFolder, isBaseInfoCompiled, pathToUri, replaceNotImportAliases, simplifyUri, uriToPath } from "../tools";
 import { Project } from "./Project";
 import { AventusGlobalSCSSLanguageService } from '../language-services/scss/GlobalLanguageService';
 import { DependanceManager } from './DependanceManager';
@@ -1845,13 +1845,7 @@ class ExternalPackageInformation {
             let name = splitted.pop() as string;
             splitted.splice(0, 0, file.npmUri)
             const baseInfo = file.fileParsed?.getBaseInfo(name);
-            let compiled = true;
-            if (baseInfo instanceof ClassInfo && baseInfo.isInterface) {
-                compiled = false;
-            }
-            else if (baseInfo instanceof AliasInfo) {
-                compiled = false;
-            }
+            let compiled = isBaseInfoCompiled(baseInfo);
             return {
                 name,
                 uri: splitted.join("/"),

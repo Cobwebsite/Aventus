@@ -12,6 +12,7 @@ import { Build } from '../../../project/Build';
 import { IStoryContentGeneric, IStoryContentParameter, IStoryContentTypeResult, IStoryContentTypeResultFunction, IStoryContentTypeResultFunctionParameter, IStoryContentTypeResultIntersection, IStoryContentTypeResultObject, IStoryContentTypeResultSimple, IStoryContentTypeResultTupple, IStoryContentTypeResultUnion, IStoryExport, IStoryGeneric, IStoryContentTypeResultIndexAccess, IStoryContentTypeResultMappedType, IStoryContentTypeResultInfer, IStoryContentTypeResultTypeOperator, IStoryContentTypeResultConditional } from '@aventusjs/storybook';
 import { StorybookDecorator } from './decorators/StorybookDecorator';
 import { DocumentationInfo } from './DocumentationInfo';
+import { isBaseInfoCompiled } from '../../../tools';
 
 
 export enum InfoType {
@@ -460,6 +461,41 @@ export abstract class BaseInfo {
             onName(name);
             return;
         }
+
+        const registerLocal = (fullNameOther: string, compiled: boolean) => {
+            let namespace1: string[] = this.fullName.split(".");
+            namespace1.pop();
+
+            let namespace2: string[] = fullNameOther.split(".");
+            const nameToImport = namespace2.pop() ?? '';
+
+            for (let i = 0; i < namespace1.length; i++) {
+                if (namespace2.length > i) {
+                    if (namespace2[i] == namespace1[i]) {
+                        namespace2.splice(i, 1);
+                        namespace1.splice(i, 1);
+                        i--;
+                    }
+                    else {
+                        break;
+                    }
+                }
+            }
+
+            if (namespace1.length == 0 && namespace2.length == 0) return;
+
+            let finalPathToImport = "";
+            for (let i = 0; i < namespace1.length; i++) {
+                finalPathToImport += '../';
+            }
+            if (finalPathToImport == "") {
+                finalPathToImport += "./";
+            }
+            finalPathToImport += namespace2.join("/");
+
+            this._parserInfo.registerGeneratedImport(finalPathToImport, nameToImport, compiled)
+
+        }
         if (this.parserInfo.internalObjects[name]) {
             let fullName = this.parserInfo.internalObjects[name].fullname
             let hotReloadName = [this.build.module, ...this.build.namespaces, fullName].join(".");
@@ -489,6 +525,8 @@ export abstract class BaseInfo {
                 this.dependancesLocations[name].replacement = fullName;
                 this.dependancesLocations[name].npmReplacement = fullName;
                 this.dependancesLocations[name].hotReloadReplacement = hotReloadName;
+
+                registerLocal(fullName, this.parserInfo.internalObjects[name].isCompiled)
             }
             onName(fullName);
             return;
@@ -522,6 +560,8 @@ export abstract class BaseInfo {
                 this.dependancesLocations[name].replacement = fullName;
                 this.dependancesLocations[name].npmReplacement = fullName;
                 this.dependancesLocations[name].hotReloadReplacement = hotReloadName;
+
+                registerLocal(fullName, isBaseInfoCompiled(importInfo));
             }
             onName(fullName);
             return
@@ -548,6 +588,8 @@ export abstract class BaseInfo {
                     this.dependancesLocations[name].replacement = fullName;
                     this.dependancesLocations[name].npmReplacement = fullName;
                     this.dependancesLocations[name].hotReloadReplacement = hotReloadName;
+
+                    registerLocal(fullName, isBaseInfoCompiled(info))
                 }
                 this.dependances.push({
                     fullName: "$namespace$" + fullName,
@@ -571,6 +613,9 @@ export abstract class BaseInfo {
                 const splitted = fullName.split(".");
                 this.dependancesLocations[name].npmReplacement = splitted[splitted.length - 1];
                 this.dependancesLocations[name].hotReloadReplacement = fullName;
+
+                // TODO find a way to correct import from aventuss
+                // this._parserInfo.registerGeneratedImport(classExternal.uri, classExternal.name, classExternal.compiled)
             }
 
             return
@@ -588,6 +633,8 @@ export abstract class BaseInfo {
             if (this.dependancesLocations[name]) {
                 let md5uri = md5(this.parserInfo.npmImports[name].uri);
                 this.dependancesLocations[name].replacement = "npmCompilation['" + md5uri + "']." + name;
+                // TODO : check how to replace the true by something compiled
+                this._parserInfo.registerGeneratedImport(this.parserInfo.npmImports[name].uri, name, true);
             }
             onName(name);
             return;
@@ -629,7 +676,7 @@ export abstract class BaseInfo {
         end: number,
         dependancesLocations: { [name: string]: DependanceInfo },
         compileTransformations: { [key: string]: { newText: string, start: number, end: number } }) {
-        return this. _getContent(txt, start, end, dependancesLocations, compileTransformations, 3);
+        return this._getContent(txt, start, end, dependancesLocations, compileTransformations, 3);
     }
     private static _getContent(
         txt: string,
@@ -1133,7 +1180,7 @@ export abstract class BaseInfo {
         else {
             result.namespace = this.build.module;
             if (this.namespace.length > 0) {
-                result.namespace += this.namespace;
+                result.namespace += "." + this.namespace;
             }
         }
     }

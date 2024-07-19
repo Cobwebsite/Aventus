@@ -127,7 +127,6 @@ export class Storie {
 			if (file instanceof AventusWebComponentLogicalFile) {
 				template = this.replaceVariable(template, "argTypes", "argTypes: " + JSON.stringify(file.storyBookInfo.argsTypes, null, 2) + ",");
 				template = this.replaceVariable(template, "args", "args: " + JSON.stringify(file.storyBookInfo.args, null, 2) + ",");
-
 				let fileNpm = join(outputNpm, ...storieContent.namespace!.split("."));
 				let importPath = simplifyUri(pathToUri(fileNpm), pathToUri(outputPath));
 				template = this.replaceVariable(template, "importPath", importPath);

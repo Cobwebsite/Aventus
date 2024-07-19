@@ -155,7 +155,7 @@ export class ParserTs {
             compiled: boolean
         }[]
     } = {};
-    public internalObjects: { [name: string]: { fullname: string, isExported: boolean, isStoryExported: boolean } } = {}
+    public internalObjects: { [name: string]: { fullname: string, isExported: boolean, isStoryExported: boolean, isCompiled: boolean } } = {}
     public waitingImports: { [localName: string]: ((info: BaseInfo) => void)[] } = {};
     public aliases: { [shortName: string]: AliasInfo } = {};
     public variables: { [shortName: string]: VariableInfo } = {};
@@ -225,6 +225,7 @@ export class ParserTs {
                         fullname: [...this.currentNamespace, name].join("."),
                         isExported: BaseInfo.isExported(_class),
                         isStoryExported: this.build.buildConfig.stories ? BaseInfo.isStoryExported(_class) : false,
+                        isCompiled: x.kind == SyntaxKind.ClassDeclaration,
                     }
                 }
             }
@@ -235,6 +236,7 @@ export class ParserTs {
                     fullname: [...this.currentNamespace, name].join("."),
                     isExported: BaseInfo.isExported(_enum),
                     isStoryExported: this.build.buildConfig.stories ? BaseInfo.isStoryExported(_enum) : false,
+                    isCompiled: true,
                 }
             }
             else if (x.kind == SyntaxKind.TypeAliasDeclaration) {
@@ -244,6 +246,7 @@ export class ParserTs {
                     fullname: [...this.currentNamespace, name].join("."),
                     isExported: BaseInfo.isExported(_alias),
                     isStoryExported: this.build.buildConfig.stories ? BaseInfo.isStoryExported(_alias) : false,
+                    isCompiled: false,
                 }
             }
             else if (x.kind == SyntaxKind.FunctionDeclaration) {
@@ -254,6 +257,7 @@ export class ParserTs {
                         fullname: [...this.currentNamespace, name].join("."),
                         isExported: BaseInfo.isExported(_function),
                         isStoryExported: this.build.buildConfig.stories ? BaseInfo.isStoryExported(_function) : false,
+                        isCompiled: true,
                     }
                 }
             }
@@ -268,6 +272,7 @@ export class ParserTs {
                             fullname: [...this.currentNamespace, name].join("."),
                             isExported: BaseInfo.isExported(_varStatement),
                             isStoryExported: this.build.buildConfig.stories ? BaseInfo.isStoryExported(_varStatement) : false,
+                            isCompiled: true
                         }
                     }
                 }
