@@ -6,9 +6,6 @@ import { AventusErrorCode, AventusExtension, AventusLanguageId } from "./definit
 import { SectionType } from './language-services/ts/LanguageService';
 import { AventusFile } from './files/AventusFile';
 import { AventusConfig } from './language-services/json/definition';
-import { BaseInfo } from './language-services/ts/parser/BaseInfo';
-import { ClassInfo } from './language-services/ts/parser/ClassInfo';
-import { AliasInfo } from './language-services/ts/parser/AliasInfo';
 
 export function pathToUri(path: string): string {
     if (path.startsWith("file://")) {
@@ -270,17 +267,6 @@ export function simplifyUri(importUri: string, currentUri: string): string {
     }
     finalPathToImport += importPath.join("/");
     return finalPathToImport;
-}
-
-export function isBaseInfoCompiled(baseInfo: BaseInfo | undefined | null) {
-    let compiled = true;
-    if (baseInfo instanceof ClassInfo && baseInfo.isInterface) {
-        compiled = false;
-    }
-    else if (baseInfo instanceof AliasInfo) {
-        compiled = false;
-    }
-    return compiled
 }
 
 export class Debug {

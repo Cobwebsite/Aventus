@@ -12,7 +12,6 @@ import { Build } from '../../../project/Build';
 import { IStoryContentGeneric, IStoryContentParameter, IStoryContentTypeResult, IStoryContentTypeResultFunction, IStoryContentTypeResultFunctionParameter, IStoryContentTypeResultIntersection, IStoryContentTypeResultObject, IStoryContentTypeResultSimple, IStoryContentTypeResultTupple, IStoryContentTypeResultUnion, IStoryExport, IStoryGeneric, IStoryContentTypeResultIndexAccess, IStoryContentTypeResultMappedType, IStoryContentTypeResultInfer, IStoryContentTypeResultTypeOperator, IStoryContentTypeResultConditional } from '@aventusjs/storybook';
 import { StorybookDecorator } from './decorators/StorybookDecorator';
 import { DocumentationInfo } from './DocumentationInfo';
-import { isBaseInfoCompiled } from '../../../tools';
 
 
 export enum InfoType {
@@ -120,6 +119,7 @@ export abstract class BaseInfo {
 
     public infoType: InfoType = InfoType.none;
     public build: Build;
+    public willBeCompiled:boolean;
 
     public get parserInfo() {
         return this._parserInfo;
@@ -131,6 +131,7 @@ export abstract class BaseInfo {
         this.decorators = DecoratorInfo.buildDecorator(node, this);
         this.dependancesLocations = {};
         this.build = parserInfo.build;
+        this.willBeCompiled = node.kind != SyntaxKind.InterfaceDeclaration && node.kind != SyntaxKind.TypeAliasDeclaration
         if (node.name) {
             this.start = node.getStart();
             this.end = node.getEnd();
@@ -561,7 +562,7 @@ export abstract class BaseInfo {
                 this.dependancesLocations[name].npmReplacement = fullName;
                 this.dependancesLocations[name].hotReloadReplacement = hotReloadName;
 
-                registerLocal(fullName, isBaseInfoCompiled(importInfo));
+                registerLocal(fullName, importInfo.willBeCompiled);
             }
             onName(fullName);
             return
@@ -589,7 +590,7 @@ export abstract class BaseInfo {
                     this.dependancesLocations[name].npmReplacement = fullName;
                     this.dependancesLocations[name].hotReloadReplacement = hotReloadName;
 
-                    registerLocal(fullName, isBaseInfoCompiled(info))
+                    registerLocal(fullName, info.willBeCompiled)
                 }
                 this.dependances.push({
                     fullName: "$namespace$" + fullName,
