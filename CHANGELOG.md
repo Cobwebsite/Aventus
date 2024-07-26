@@ -4,8 +4,10 @@
 
 ### Bug Fixes
  - Correct namespace export inside npm
+ - Hot fix client error on import codeAction
 
 ### Features
+ - Add slot support for storybook
 
 
 ## 1.3.0 (2024-07-17)

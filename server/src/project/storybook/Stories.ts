@@ -127,9 +127,25 @@ export class Storie {
 			if (file instanceof AventusWebComponentLogicalFile) {
 				template = this.replaceVariable(template, "argTypes", "argTypes: " + JSON.stringify(file.storyBookInfo.argsTypes, null, 2) + ",");
 				template = this.replaceVariable(template, "args", "args: " + JSON.stringify(file.storyBookInfo.args, null, 2) + ",");
+
+				let importPathes: { [uri: string]: string[] } = file.fileParsed?.classes[file.componentClassName].storieInject ?? {};
+
 				let fileNpm = join(outputNpm, ...storieContent.namespace!.split("."));
 				let importPath = simplifyUri(pathToUri(fileNpm), pathToUri(outputPath));
-				template = this.replaceVariable(template, "importPath", importPath);
+				if (!importPathes[importPath]) {
+					importPathes[importPath] = [name];
+				}
+				else {
+					if (!importPathes[importPath].includes(name)) {
+						importPathes[importPath].push(name);
+					}
+				}
+
+				const importTxt: string[] = [];
+				for (let _path in importPathes) {
+					importTxt.push(`import { ${importPathes[_path].join(", ")} } from '${_path}';`)
+				}
+				template = this.replaceVariable(template, "importPathes", importTxt.join("\n"));
 			}
 
 			writeFileSync(outputPath + ".stories.ts", template);

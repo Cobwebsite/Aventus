@@ -633,6 +633,7 @@ export class Build {
             let txt = "";
             let txtEnd = "";
             let namespaceNbDots = _namespace == "" ? 0 : _namespace.split(".").length;
+            let imported:string[] = [];
             for (let key of keys) {
                 if (key.startsWith(_namespace) && key != _namespace) {
                     let splittedKeys = key.split(".");
@@ -641,10 +642,12 @@ export class Build {
                         const name = splittedKeys[splittedKeys.length - 1];
                         txt += `import * as ${name} from "./${name}";` + EOL;
                         txtEnd += `export { ${name} };` + EOL
+                        imported.push(`./${name}`)
                     }
                 }
             }
             for (let uri in content.imports) {
+                if(imported.includes(uri)) continue;
                 const names = content.imports[uri];
                 txt += `import { ${names.join(", ")} } from "${uri}";` + EOL
             }
@@ -1004,6 +1007,8 @@ export class Build {
                         let importsNpm = this.tsFiles[info.npm.uri].fileParsed?.npmGeneratedImport;
                         if (importsNpm) {
                             for (let _packageUri in importsNpm) {
+                                // dont use local package here bc it's loaded by the import section
+                                if(_packageUri.startsWith(".")) continue;
                                 if (!result.npmsrc[info.npm.exportPath].imports[_packageUri + "/index.js"]) {
                                     result.npmsrc[info.npm.exportPath].imports[_packageUri + "/index.js"] = []
                                 }

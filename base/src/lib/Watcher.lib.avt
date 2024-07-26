@@ -121,7 +121,7 @@ export class Watcher {
                     // reset path to "" if element is a root proxy
                     element.__validatePath();
                     //#region get real value shared across the 2 proxy
-                    let oldPath = element.__path;
+                    let oldPath = element.__path ?? '';
                     let unbindElement = getValueFromObject(oldPath, root);
                     //#endregion
                     if(receiver == null) {
@@ -360,6 +360,9 @@ export class Watcher {
                     };
                 }
                 else if(prop == "toJSON") {
+                    if(target.toJSON) {
+                        return target.toJSON;
+                    }
                     if(Array.isArray(target)) {
                         return () => {
                             let result: any[] = [];

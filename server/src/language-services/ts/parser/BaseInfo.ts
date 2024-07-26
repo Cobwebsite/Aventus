@@ -12,6 +12,8 @@ import { Build } from '../../../project/Build';
 import { IStoryContentGeneric, IStoryContentParameter, IStoryContentTypeResult, IStoryContentTypeResultFunction, IStoryContentTypeResultFunctionParameter, IStoryContentTypeResultIntersection, IStoryContentTypeResultObject, IStoryContentTypeResultSimple, IStoryContentTypeResultTupple, IStoryContentTypeResultUnion, IStoryExport, IStoryGeneric, IStoryContentTypeResultIndexAccess, IStoryContentTypeResultMappedType, IStoryContentTypeResultInfer, IStoryContentTypeResultTypeOperator, IStoryContentTypeResultConditional } from '@aventusjs/storybook';
 import { StorybookDecorator } from './decorators/StorybookDecorator';
 import { DocumentationInfo } from './DocumentationInfo';
+import { join, normalize } from 'path';
+import { pathToUri, simplifyUri } from '../../../tools';
 
 
 export enum InfoType {
@@ -86,7 +88,10 @@ export abstract class BaseInfo {
     public namespace: string = "";
     public decorators: DecoratorInfo[] = [];
 
-    public storieContent?: IStoryExport
+    public storieContent?: IStoryExport;
+    public storieInject: {
+        [_package: string]: string[]
+    } = {}
     public storieDecorator?: StorybookDecorator;
 
     // public dependancesFullName: string[] = [];
@@ -119,7 +124,7 @@ export abstract class BaseInfo {
 
     public infoType: InfoType = InfoType.none;
     public build: Build;
-    public willBeCompiled:boolean;
+    public willBeCompiled: boolean;
 
     public get parserInfo() {
         return this._parserInfo;
@@ -262,9 +267,14 @@ export abstract class BaseInfo {
             this.loadExpression(exp.expression, depth2 + 1, isStrongDependance);
         }
     }
+    private loadDependanceContext: undefined | 'Decorator' = undefined;
+    private maybeDependances: { [name: string]: { uri: string, name: string, compiled: boolean } } = {}
     protected loadOnlyDependancesRecu(node: Node, depth: number = 0, isStrongDependance: boolean = false) {
         if (this.parserInfo.isLib) {
             return
+        }
+        if (node.kind == SyntaxKind.Decorator) {
+            this.loadDependanceContext = "Decorator";
         }
         forEachChild(node, x => {
             if (x.kind == SyntaxKind.TypeReference) {
@@ -274,10 +284,11 @@ export abstract class BaseInfo {
             else {
                 this.loadExpression(x, depth, isStrongDependance);
             }
-
-
             this.loadOnlyDependancesRecu(x, depth + 1, isStrongDependance);
         })
+        if (node.kind == SyntaxKind.Decorator) {
+            this.loadDependanceContext = undefined;
+        }
     }
     /**
      * return the fullName
@@ -364,6 +375,86 @@ export abstract class BaseInfo {
         validate();
     }
 
+    public loadStoryBookInject(): void {
+        const stories = this.build.buildConfig.stories;
+        if (!stories) return;
+        const storieContent = this.storieContent;
+        if (!storieContent) return;
+
+
+        const insertResult = (uri: string, name: string) => {
+            if (!this.storieInject[uri]) {
+                this.storieInject[uri] = [name];
+            }
+            else {
+                if (!this.storieInject[uri].includes(name)) {
+                    this.storieInject[uri].push(name);
+                }
+            }
+        }
+        const registerLocal = (fullNameOther: string) => {
+            let outputNpm = join(stories.output, "generated");
+            let outputPath = join(stories.output, "auto", ...this.fullName.split("."));
+            let fileNpm = join(outputNpm, ...storieContent.namespace!.split("."));
+            let importPath = simplifyUri(pathToUri(fileNpm), pathToUri(outputPath));
+
+
+            let namespace1: string[] = this.fullName.split(".");
+            namespace1.pop();
+
+            let namespace2: string[] = fullNameOther.split(".");
+            const nameToImport = namespace2.pop() ?? '';
+
+            for (let i = 0; i < namespace1.length; i++) {
+                if (namespace2.length > i) {
+                    if (namespace2[i] == namespace1[i]) {
+                        namespace2.splice(i, 1);
+                        namespace1.splice(i, 1);
+                        i--;
+                    }
+                    else {
+                        break;
+                    }
+                }
+            }
+
+            let finalPathToImport = "";
+            for (let i = 0; i < namespace1.length; i++) {
+                finalPathToImport += '../';
+            }
+            if (finalPathToImport == "") {
+                finalPathToImport += "./";
+            }
+            finalPathToImport += namespace2.join("/");
+
+            finalPathToImport = normalize(join(importPath, finalPathToImport)).replace(/\\/g, "/");
+
+            insertResult(finalPathToImport, nameToImport);
+        }
+
+        if (this.storieDecorator?.slots?.inject) {
+            for (let name of this.storieDecorator.slots.inject) {
+                if (name.includes(".")) {
+                    let classExternal = this.build.externalPackageInformation.getNpmUri(name);
+                    if (classExternal) {
+                        insertResult(classExternal.uri, classExternal.name);
+                    }
+                }
+                else if (this.parserInfo.internalObjects[name]) {
+                    registerLocal(this.parserInfo.internalObjects[name].fullname);
+                }
+                else if (this.parserInfo.imports[name]?.info) {
+                    registerLocal(this.parserInfo.imports[name]!.info!.fullName);
+                }
+                else if (this.parserInfo.packages[name]) {
+                    // TODO find a way to correct import from aventus
+                }
+                else if (this.parserInfo.npmImports[name]) {
+                    insertResult(this.parserInfo.npmImports[name].uri, name);
+                }
+            }
+        }
+    }
     protected addDependanceName(name: string, isStrongDependance: boolean, start: number, end: number, onNameTemp?: ((name?: string) => void)): void {
         if (this.parserInfo.isLib) {
             return
@@ -382,6 +473,7 @@ export abstract class BaseInfo {
         if (this.debug) {
             console.log("try add dependance " + name);
         }
+
         let match = /<.*>/g.exec(name);
         if (match) {
             end -= match[0].length;
@@ -442,6 +534,9 @@ export abstract class BaseInfo {
         }
         if (this.dependanceNameLoaded.includes(name)) {
             onName();
+            // there is a dep but not loaded bc of context => check if can be loaded
+            if (this.loadDependanceContext === undefined && this.maybeDependances[name])
+                this._parserInfo.registerGeneratedImport(this.maybeDependances[name].uri, this.maybeDependances[name].name, this.maybeDependances[name].compiled);
             return
         }
         this.dependanceNameLoaded.push(name);
@@ -457,7 +552,10 @@ export abstract class BaseInfo {
             let classExternal = this.build.externalPackageInformation.getNpmUri(name);
             if (classExternal) {
                 this.dependancesLocations[name].npmReplacement = classExternal.name;
-                this._parserInfo.registerGeneratedImport(classExternal.uri, classExternal.name, classExternal.compiled)
+                if (this.loadDependanceContext === undefined)
+                    this._parserInfo.registerGeneratedImport(classExternal.uri, classExternal.name, classExternal.compiled)
+                else
+                    this.maybeDependances[name] = classExternal;
             }
             onName(name);
             return;
@@ -494,7 +592,15 @@ export abstract class BaseInfo {
             }
             finalPathToImport += namespace2.join("/");
 
-            this._parserInfo.registerGeneratedImport(finalPathToImport, nameToImport, compiled)
+            if (this.loadDependanceContext === undefined)
+                this._parserInfo.registerGeneratedImport(finalPathToImport, nameToImport, compiled)
+            else {
+                this.maybeDependances[name] = {
+                    uri: finalPathToImport,
+                    name: nameToImport,
+                    compiled: compiled
+                };
+            }
 
         }
         if (this.parserInfo.internalObjects[name]) {
@@ -615,7 +721,7 @@ export abstract class BaseInfo {
                 this.dependancesLocations[name].npmReplacement = splitted[splitted.length - 1];
                 this.dependancesLocations[name].hotReloadReplacement = fullName;
 
-                // TODO find a way to correct import from aventuss
+                // TODO find a way to correct import from aventus
                 // this._parserInfo.registerGeneratedImport(classExternal.uri, classExternal.name, classExternal.compiled)
             }
 
@@ -634,8 +740,17 @@ export abstract class BaseInfo {
             if (this.dependancesLocations[name]) {
                 let md5uri = md5(this.parserInfo.npmImports[name].uri);
                 this.dependancesLocations[name].replacement = "npmCompilation['" + md5uri + "']." + name;
+
                 // TODO : check how to replace the true by something compiled
-                this._parserInfo.registerGeneratedImport(this.parserInfo.npmImports[name].uri, name, true);
+                if (this.loadDependanceContext === undefined)
+                    this._parserInfo.registerGeneratedImport(this.parserInfo.npmImports[name].uri, name, true);
+                else {
+                    this.maybeDependances[name] = {
+                        uri: this.parserInfo.npmImports[name].uri,
+                        name: name,
+                        compiled: true
+                    };
+                }
             }
             onName(name);
             return;
@@ -815,7 +930,7 @@ export abstract class BaseInfo {
                         }
                     }
                 }
-                else if (this.build.buildConfig.stories!.format == 'tag') {
+                else if (this.build.buildConfig.stories!.format == 'manual') {
                     let decorator = info.decorators.find(p => p.name == "Storybook");
                     if (decorator) {
                         const deco = StorybookDecorator.is(decorator);
@@ -836,7 +951,7 @@ export abstract class BaseInfo {
                             result.ref = baseInfo.fullname;
                         }
                     }
-                    else if (this.build.buildConfig.stories!.format == 'tag') {
+                    else if (this.build.buildConfig.stories!.format == 'manual') {
                         if (baseInfo.isStoryExported) {
                             result.ref = baseInfo.fullname;
                         }
@@ -868,7 +983,7 @@ export abstract class BaseInfo {
         if (typeInfo.kind == "literal") {
             const result: IStoryContentTypeResultSimple = {
                 kind: 'simple',
-                name: typeInfo.value,
+                name: typeInfo.value.slice(1, -1),
             }
             return result;
         }

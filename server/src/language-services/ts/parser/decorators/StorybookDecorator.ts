@@ -4,11 +4,23 @@ type StorybookConfig = {
 	export?: boolean,
 	prefix?: string,
 	onlyMeta?: boolean;
+	slots?: {
+		values?: {
+			[name: string]: string;
+		};
+		inject?: string[];
+	};
 }
 export class StorybookDecorator {
 	public prefix?: string;
 	public cancelExport?: boolean;
 	public onlyMeta?: boolean;
+	public slots?: {
+		values?: {
+			[name: string]: string;
+		};
+		inject?: string[];
+	};
 	public static is(decorator: DecoratorInfo): StorybookDecorator | null {
 		if (decorator.name == "Storybook") {
 			let result = new StorybookDecorator();
@@ -23,6 +35,16 @@ export class StorybookDecorator {
 					}
 					if (params.onlyMeta === true) {
 						result.onlyMeta = true;
+					}
+					if (params.slots) {
+						result.slots = {}
+
+						if (params.slots.values) {
+							result.slots.values = params.slots.values
+						}
+						if (params.slots.inject) {
+							result.slots.inject = params.slots.inject
+						}
 					}
 				} catch (e) {
 

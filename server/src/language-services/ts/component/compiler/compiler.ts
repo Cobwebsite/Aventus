@@ -228,15 +228,34 @@ export class AventusWebcomponentCompiler {
                 delete wcStory.slots;
 
                 const slots: IStoryContentWebComponentSlot[] = []
+                if (this.classInfo.storieDecorator?.slots?.inject) {
+                    this.classInfo.storieDecorator.slots.inject;
+
+                }
                 for (let slotName in this.htmlParsed.slotsInfo) {
                     const slot: IStoryContentWebComponentSlot = {
                         name: slotName,
                     }
-                    if(this.classInfo.documentation?.documentationSlots[slotName]) {
+                    this.storyArgTypes["@" + slotName] = {
+                        control: "text",
+                        table: {
+                            category: "Slot"
+                        }
+                    }
+                    if (this.classInfo.documentation?.documentationSlots[slotName]) {
                         slot.documentation = this.classInfo.documentation.documentationSlots[slotName]
+                        this.storyArgTypes["@" + slotName].description = slot.documentation
+                    }
+                    if (this.classInfo.storieDecorator?.slots?.values && this.classInfo.storieDecorator.slots.values[slotName]) {
+                        this.storyArgs["@" + slotName] = this.classInfo.storieDecorator.slots.values[slotName].slice(1, -1);
+                    }
+                    else {
+                        this.storyArgs["@" + slotName] = '';
                     }
                     slots.push(slot);
                 }
+
+                this.classInfo.loadStoryBookInject();
 
                 if (slots.length > 0) {
                     wcStory.slots = slots;
@@ -691,6 +710,7 @@ export class AventusWebcomponentCompiler {
         }
         let control: "text" | "select" | "boolean" | 'number' | 'date' | 'object' = "text";
         let values: string[] = [];
+        let storyValue: string | null = field.defaultValue;
         if (type.kind == "string") {
             control = "text";
         }
@@ -703,6 +723,7 @@ export class AventusWebcomponentCompiler {
             if (value.endsWith("'") || value.endsWith('"')) {
                 value = value.substring(0, value.length - 1);
             }
+            storyValue = field.defaultValue?.slice(1, -1) ?? null;
             values.push(value);
         }
         else if (type.kind == "union") {
@@ -717,6 +738,7 @@ export class AventusWebcomponentCompiler {
                 }
                 values.push(value);
             }
+            storyValue = field.defaultValue?.slice(1, -1) ?? null;
         }
         else if (type.kind == "number") {
             control = "number";
@@ -744,7 +766,7 @@ export class AventusWebcomponentCompiler {
             this.storyArgTypes[field.name].options = values;
         }
 
-        this.storyArgs[field.name] = field.defaultValue
+        this.storyArgs[field.name] = storyValue
     }
     private writeFileFields() {
         let simpleVariables: CustomFieldModel[] = [];
@@ -1004,7 +1026,7 @@ export class AventusWebcomponentCompiler {
         if (defaultValueHotReload.length > 0) {
             this.defaultValueHotReloadTxt += defaultValueHotReload
         }
-        if (defaultValueHotReload.length > 0) {
+        if (defaultValueNpm.length > 0) {
             this.defaultValueNpmTxt += defaultValueNpm
         }
         this.writeFileReplaceVar("getterSetterAttr", getterSetter);
@@ -1284,7 +1306,7 @@ export class AventusWebcomponentCompiler {
                     let fctCompiledNpm = transpile(fullClassFctNpm, AventusTsLanguageService.getCompilerOptionsCompile());
                     let matchContentNpm = /\{((\s|\S)*)\}/gm.exec(fctCompiledNpm);
                     if (matchContentNpm) {
-                        methodsTxtHotReload = matchContentNpm[1].trim();
+                        methodsTxtNpm = matchContentNpm[1].trim();
                     }
                 }
             }
@@ -1871,7 +1893,7 @@ this.clearWatchHistory = () => {
             [this.tagName]: properties
         }
 
-        if (this.hasStory && this.classInfo) {
+        if (this.hasStory && this.classInfo?.storieContent) {
             let wcStory = this.classInfo.storieContent as IStoryContentWebComponent;
             delete wcStory.style;
             let style: IStoryContentWebComponentStyle[] = [];
@@ -1898,7 +1920,6 @@ this.clearWatchHistory = () => {
                 }
                 if (property.type == "color") {
                     this.storyArgTypes[property.name].control = 'color';
-
                 }
                 else {
                     this.storyArgTypes[property.name].control = 'text';

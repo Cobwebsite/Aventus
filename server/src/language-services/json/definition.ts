@@ -56,7 +56,7 @@ export interface AventusConfigStatic {
 export interface AventusConfigBuildStories {
 	output: string,
 	workspace?: string,
-	format?: "all" | "public" | "tag",
+	format?: "all" | "public" | "manual",
 	live?: boolean,
 	prefix?: string
 }

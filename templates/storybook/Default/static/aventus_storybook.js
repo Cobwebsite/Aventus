@@ -628,6 +628,9 @@ const compareObject=function compareObject(obj1, obj2) {
 
 _.compareObject=compareObject;
 const getValueFromObject=function getValueFromObject(path, obj) {
+    if (path === undefined) {
+        path = '';
+    }
     path = path.replace(/\[(.*?)\]/g, '.$1');
     if (path == "") {
         return obj;
@@ -809,6 +812,7 @@ const Watcher=class Watcher {
         const setProxyPath = (newProxy, newPath) => {
             if (newProxy instanceof Object && newProxy.__isProxy) {
                 newProxy.__path = newPath;
+                newProxy.__path = newPath;
             }
         };
         const jsonReplacer = (key, value) => {
@@ -864,7 +868,7 @@ const Watcher=class Watcher {
                 let root = element.__root;
                 if (root != proxyData.baseData) {
                     element.__validatePath();
-                    let oldPath = element.__path;
+                    let oldPath = element.__path ?? '';
                     let unbindElement = getValueFromObject(oldPath, root);
                     if (receiver == null) {
                         receiver = getValueFromObject(target.__path, realProxy);
@@ -1059,6 +1063,9 @@ const Watcher=class Watcher {
                     };
                 }
                 else if (prop == "toJSON") {
+                    if (target.toJSON) {
+                        return target.toJSON;
+                    }
                     if (Array.isArray(target)) {
                         return () => {
                             let result = [];
@@ -3773,12 +3780,29 @@ const WebComponent=class WebComponent extends HTMLElement {
             this.postDisonnect();
         });
     }
+    __onReadyCb = [];
+    onReady(cb) {
+        if (this._isReady) {
+            cb();
+        }
+        else {
+            this.__onReadyCb.push(cb);
+        }
+    }
+    __setReady() {
+        this._isReady = true;
+        this.dispatchEvent(new CustomEvent('postCreationDone'));
+        let cbs = [...this.__onReadyCb];
+        for (let cb of cbs) {
+            cb();
+        }
+        this.__onReadyCb = [];
+    }
     __removeNoAnimations() {
         if (document.readyState !== "loading") {
             setTimeout(() => {
                 this.postCreation();
-                this._isReady = true;
-                this.dispatchEvent(new CustomEvent('postCreationDone'));
+                this.__setReady();
                 this.shadowRoot.adoptedStyleSheets = Object.values(this.__getStatic().__styleSheets);
                 document.removeEventListener("DOMContentLoaded", this.__removeNoAnimations);
                 this.postConnect();
@@ -4436,55 +4460,6 @@ const _ = {};
 
 
 let _n;
-const Diagram = class Diagram extends Aventus.WebComponent {
-    static __style = `:host .hidden{display:none}`;
-    __getStatic() {
-        return Diagram;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(Diagram.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<div class="element" _id="diagram_0"></div><div class="hidden">    <slot></slot></div>` }
-    });
-}
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
-  "elements": [
-    {
-      "name": "renderEl",
-      "ids": [
-        "diagram_0"
-      ]
-    }
-  ]
-}); }
-    getClassName() {
-        return "Diagram";
-    }
-    async render() {
-        await Aventus.ResourceLoader.loadInHead("https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js");
-        let w = window;
-        w.mermaid.initialize({ startOnLoad: false });
-        let content = this.innerHTML.replace(/<[^>]*>/g, '').trim();
-        var e = document.createElement('div');
-        e.innerHTML = content;
-        content = e.childNodes[0].nodeValue;
-        const { svg } = await w.mermaid.render('graphDiv', content);
-        this.renderEl.innerHTML = svg;
-    }
-    postCreation() {
-        this.render();
-    }
-}
-Diagram.Namespace=`AventusStorybook`;
-Diagram.Tag=`av-diagram`;
-_.Diagram=Diagram;
-if(!window.customElements.get('av-diagram')){window.customElements.define('av-diagram', Diagram);Aventus.WebComponentInstance.registerDefinition(Diagram);}
-
 const TypeRender = class TypeRender extends Aventus.WebComponent {
     get 'no_border'() { return this.getBoolAttr('no_border') }
     set 'no_border'(val) { this.setBoolAttr('no_border', val) }get 'margin_left'() { return this.getNumberAttr('margin_left') }
@@ -5208,6 +5183,55 @@ const BaseRender = class BaseRender extends Aventus.WebComponent {
 BaseRender.Namespace=`AventusStorybook`;
 _.BaseRender=BaseRender;
 
+const Diagram = class Diagram extends Aventus.WebComponent {
+    static __style = `:host .hidden{display:none}`;
+    __getStatic() {
+        return Diagram;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Diagram.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<div class="element" _id="diagram_0"></div><div class="hidden">    <slot></slot></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "elements": [
+    {
+      "name": "renderEl",
+      "ids": [
+        "diagram_0"
+      ]
+    }
+  ]
+}); }
+    getClassName() {
+        return "Diagram";
+    }
+    async render() {
+        await Aventus.ResourceLoader.loadInHead("https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js");
+        let w = window;
+        w.mermaid.initialize({ startOnLoad: false });
+        let content = this.innerHTML.replace(/<[^>]*>/g, '').trim();
+        var e = document.createElement('div');
+        e.innerHTML = content;
+        content = e.childNodes[0].nodeValue;
+        const { svg } = await w.mermaid.render('graphDiv', content);
+        this.renderEl.innerHTML = svg;
+    }
+    postCreation() {
+        this.render();
+    }
+}
+Diagram.Namespace=`AventusStorybook`;
+Diagram.Tag=`av-diagram`;
+_.Diagram=Diagram;
+if(!window.customElements.get('av-diagram')){window.customElements.define('av-diagram', Diagram);Aventus.WebComponentInstance.registerDefinition(Diagram);}
+
 const Collapse = class Collapse extends Aventus.WebComponent {
     static get observedAttributes() {return ["name"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'open'() { return this.getBoolAttr('open') }
@@ -5273,62 +5297,6 @@ Collapse.Namespace=`AventusStorybook`;
 Collapse.Tag=`av-collapse`;
 _.Collapse=Collapse;
 if(!window.customElements.get('av-collapse')){window.customElements.define('av-collapse', Collapse);Aventus.WebComponentInstance.registerDefinition(Collapse);}
-
-const SlotsRender = class SlotsRender extends BaseRender {
-    get 'slots'() {
-						return this.__watch["slots"];
-					}
-					set 'slots'(val) {
-						this.__watch["slots"] = val;
-					}    __registerWatchesActions() {
-    this.__addWatchesActions("slots", ((target) => {
-}));    super.__registerWatchesActions();
-}
-    static __style = `:host .name{width:40%}:host .description{width:60%}`;
-    __getStatic() {
-        return SlotsRender;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(SlotsRender.__style);
-        return arrStyle;
-    }
-    __getHtml() {super.__getHtml();
-    this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="title">Slots</div><div class="header">    <div class="name">Name</div>    <div class="description">Description</div></div><div class="body">    <av-collapse name="Slot" open>        <template _id="slotsrender_0"></template>    </av-collapse></div>` }
-    });
-}
-    __registerTemplateAction() { super.__registerTemplateAction();const templ0 = new Aventus.Template(this);templ0.setTemplate(`             <div class="line">                <div class="name" _id="slotsrender_1"></div>                <div class="description" _id="slotsrender_2"></div>            </div>        `);templ0.setActions({
-  "content": {
-    "slotsrender_1°@HTML": {
-      "fct": (c) => `\r\n                    ${c.print(c.comp.__855691f31bd45ac4fe848252eee4bef5method1(c.data.slotInfo))}\r\n                `,
-      "once": true
-    },
-    "slotsrender_2°@HTML": {
-      "fct": (c) => `\r\n                    ${c.print(c.comp.__855691f31bd45ac4fe848252eee4bef5method2(c.data.slotInfo))}\r\n                `,
-      "once": true
-    }
-  }
-});this.__getStatic().__template.addLoop({
-                    anchorId: 'slotsrender_0',
-                    template: templ0,
-                simple:{data: "this.slots",item:"slotInfo"}}); }
-    getClassName() {
-        return "SlotsRender";
-    }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["slots"] = []; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('slots'); }
-    __855691f31bd45ac4fe848252eee4bef5method1(slotInfo) {
-        return slotInfo.name;
-    }
-    __855691f31bd45ac4fe848252eee4bef5method2(slotInfo) {
-        return slotInfo.documentation;
-    }
-}
-SlotsRender.Namespace=`AventusStorybook`;
-SlotsRender.Tag=`av-slots-render`;
-_.SlotsRender=SlotsRender;
-if(!window.customElements.get('av-slots-render')){window.customElements.define('av-slots-render', SlotsRender);Aventus.WebComponentInstance.registerDefinition(SlotsRender);}
 
 const StylesRender = class StylesRender extends BaseRender {
     get 'styles'() {
@@ -5399,6 +5367,62 @@ StylesRender.Namespace=`AventusStorybook`;
 StylesRender.Tag=`av-styles-render`;
 _.StylesRender=StylesRender;
 if(!window.customElements.get('av-styles-render')){window.customElements.define('av-styles-render', StylesRender);Aventus.WebComponentInstance.registerDefinition(StylesRender);}
+
+const SlotsRender = class SlotsRender extends BaseRender {
+    get 'slots'() {
+						return this.__watch["slots"];
+					}
+					set 'slots'(val) {
+						this.__watch["slots"] = val;
+					}    __registerWatchesActions() {
+    this.__addWatchesActions("slots", ((target) => {
+}));    super.__registerWatchesActions();
+}
+    static __style = `:host .name{width:40%}:host .description{width:60%}`;
+    __getStatic() {
+        return SlotsRender;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(SlotsRender.__style);
+        return arrStyle;
+    }
+    __getHtml() {super.__getHtml();
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<div class="title">Slots</div><div class="header">    <div class="name">Name</div>    <div class="description">Description</div></div><div class="body">    <av-collapse name="Slot" open>        <template _id="slotsrender_0"></template>    </av-collapse></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();const templ0 = new Aventus.Template(this);templ0.setTemplate(`             <div class="line">                <div class="name" _id="slotsrender_1"></div>                <div class="description" _id="slotsrender_2"></div>            </div>        `);templ0.setActions({
+  "content": {
+    "slotsrender_1°@HTML": {
+      "fct": (c) => `\r\n                    ${c.print(c.comp.__855691f31bd45ac4fe848252eee4bef5method1(c.data.slotInfo))}\r\n                `,
+      "once": true
+    },
+    "slotsrender_2°@HTML": {
+      "fct": (c) => `\r\n                    ${c.print(c.comp.__855691f31bd45ac4fe848252eee4bef5method2(c.data.slotInfo))}\r\n                `,
+      "once": true
+    }
+  }
+});this.__getStatic().__template.addLoop({
+                    anchorId: 'slotsrender_0',
+                    template: templ0,
+                simple:{data: "this.slots",item:"slotInfo"}}); }
+    getClassName() {
+        return "SlotsRender";
+    }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["slots"] = []; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('slots'); }
+    __855691f31bd45ac4fe848252eee4bef5method1(slotInfo) {
+        return slotInfo.name;
+    }
+    __855691f31bd45ac4fe848252eee4bef5method2(slotInfo) {
+        return slotInfo.documentation;
+    }
+}
+SlotsRender.Namespace=`AventusStorybook`;
+SlotsRender.Tag=`av-slots-render`;
+_.SlotsRender=SlotsRender;
+if(!window.customElements.get('av-slots-render')){window.customElements.define('av-slots-render', SlotsRender);Aventus.WebComponentInstance.registerDefinition(SlotsRender);}
 
 const PropertiesRender = class PropertiesRender extends BaseRender {
     get 'properties'() {

@@ -1,6 +1,6 @@
 import { join } from "path";
 import { ExtensionContext, Location, Position, Range, Uri, commands, workspace } from "vscode";
-import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from "vscode-languageclient/node";
+import { CancellationToken, LanguageClient, LanguageClientOptions, MessageSignature, ServerOptions, TransportKind } from "vscode-languageclient/node";
 import { Commands } from "./cmds";
 import { AvenutsVsComponent } from "./component";
 import { FileSystem } from './file-system/FileSystem';
@@ -31,9 +31,17 @@ export class Client {
             join('server', 'out', 'server.js')
         ));
         this.client = new LanguageClient('Aventus', 'Aventus', serverOptions, this.createClientOption(context));
+        let oldHandle = this.client.handleFailedRequest;
+        this.client.handleFailedRequest = <T>(type: MessageSignature, token: CancellationToken | undefined, error: any, defaultValue: T, showNotification: boolean = true, throwOnCancel: boolean = false) => {
+            if(type.method == "codeAction/resolve") {
+                // TODO search where the crash come from
+                return defaultValue;
+            }
+            return oldHandle(type, token, error, defaultValue, showNotification)
+        }
+        this.addNotification();
         await this.client.start();
 
-        this.addNotification();
         workspace.onDidChangeConfiguration(() => {
             ReloadSettings.execute();
         })
@@ -86,18 +94,25 @@ export class Client {
                 provideCodeActions(this, document, range, context, token, next) {
                     return next(document, range, context, token);
                 },
+                resolveCodeAction(item, token, next) {
+                    return next(item, token);
+                },
                 async provideCodeLenses(document, token, next) {
                     let codeLenses = await next(document, token);
                     if (codeLenses) {
                         for (let codeLens of codeLenses) {
                             if (codeLens.command && codeLens.command.command == "editor.action.showReferences" && codeLens.command.arguments) {
                                 codeLens.command.arguments[0] = Uri.parse(codeLens.command.arguments[0]);
-                                codeLens.command.arguments[1] = new Position(codeLens.command.arguments[1].line, codeLens.command.arguments[1].character);
-                                let locations: Location[] = []
-                                for (let location of codeLens.command.arguments[2]) {
-                                    locations.push(new Location(Uri.parse(location.uri), new Range(location.range.start, location.range.end)));
+                                if (codeLens.command.arguments.length > 1) {
+                                    codeLens.command.arguments[1] = new Position(codeLens.command.arguments[1].line, codeLens.command.arguments[1].character);
                                 }
-                                codeLens.command.arguments[2] = locations;
+                                if (codeLens.command.arguments.length > 2) {
+                                    let locations: Location[] = []
+                                    for (let location of codeLens.command.arguments[2]) {
+                                        locations.push(new Location(Uri.parse(location.uri), new Range(location.range.start, location.range.end)));
+                                    }
+                                    codeLens.command.arguments[2] = locations;
+                                }
                             }
                         }
                     }

@@ -113,6 +113,15 @@ declare global {
         prefix?: string,
         /** If set to true, only meta will be generated. Usefull to create custom pages */
         onlyMeta?: boolean;
+        /** Define the configruation for your slots */
+        slots?: {
+            /** Define the slot content base on the name */
+            values?: {
+                [name: string]: string;
+            };
+            /** Inject type */
+            inject?: (new (...args: any[]) => Aventus.WebComponent)[];
+        };
     }
     /**
      * Export a story for this component

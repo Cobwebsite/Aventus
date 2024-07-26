@@ -403,8 +403,8 @@ export class ClassInfo extends BaseInfo {
 				const returnInfo: IStoryContentReturn = {
 					type: typeResult
 				}
-				if (methodInfo.documentationReturn) {
-					returnInfo.documentation = methodInfo.documentationReturn;
+				if (methodInfo.documentation?.documentationReturn) {
+					returnInfo.documentation = methodInfo.documentation?.documentationReturn;
 				}
 				methodInfoResult.return = returnInfo;
 			}

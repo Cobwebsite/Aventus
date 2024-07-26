@@ -1,7 +1,7 @@
 import { RamError, RamErrorCode, ResultRamWithError, VoidRamWithError } from "./Error.lib.avt";
 import type { IData } from "../data/IData.data.avt";
 import { type ResultWithError, VoidWithError } from "../tools/Error.lib.avt";
-import { Json } from "../tools/Json.lib.avt";
+import { Json, type JsonFromOptions } from "../tools/Json.lib.avt";
 import { ActionGuard } from "../tools/Mutex.lib.avt";
 
 @Storybook({
@@ -132,7 +132,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
                 let id = that.getId(this);
                 let oldData = that.records.get(id);
                 if(oldData) {
-                    that.mergeObject(oldData, newData);
+                    that.mergeObject(oldData, newData, { replaceUndefinedWithKey: true });
                     let result = await that.update(oldData);
                     return result as any as this;
                 }
@@ -147,11 +147,11 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
                 }
                 let oldData = that.records.get(queryId.result);
                 if(oldData) {
-                    that.mergeObject(oldData, newData);
+                    that.mergeObject(oldData, newData, { replaceUndefinedWithKey: true });
                     let result = await that.updateWithError(oldData);
                     return result as any as ResultRamWithError<RamItem<this>>;
                 }
-                
+
                 result.errors.push(new RamError(RamErrorCode.noItemInsideRam, "Can't find this item inside the ram"));
                 return result;
             }
@@ -262,13 +262,16 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Merge object and create real instance of class
      */
-    protected mergeObject(item: T | undefined, objJson: KeysObject<T> | T) {
+    protected mergeObject(item: T | undefined, objJson: KeysObject<T> | T, options?: JsonFromOptions) {
         if(!item) {
             return;
         }
-        Json.classFromJson(item, objJson, {
-            replaceUndefined: true
-        });
+        if(!options) {
+            options = {
+                replaceUndefined: true
+            };
+        }
+        Json.classFromJson(item, objJson, options);
     }
     //#endregion
 

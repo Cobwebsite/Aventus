@@ -99,6 +99,9 @@ export function compareObject(obj1, obj2): boolean {
     prefix: "Tools"
 })
 export function getValueFromObject(path: string, obj: any) {
+    if(path === undefined) {
+        path = '';
+    }
     // Convert bracket notation to dot notation
     path = path.replace(/\[(.*?)\]/g, '.$1');
 
