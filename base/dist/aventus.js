@@ -2317,7 +2317,10 @@ const DragAndDrop=class DragAndDrop {
                 enable: false,
                 container: document.body,
                 removeOnStop: true,
-                transform: () => { }
+                transform: () => { },
+                delete: (el) => {
+                    el.remove();
+                }
             },
             strict: false,
             targets: [],
@@ -2366,6 +2369,9 @@ const DragAndDrop=class DragAndDrop {
             }
             if (options.shadow.transform !== void 0) {
                 this.options.shadow.transform = options.shadow.transform;
+            }
+            if (options.shadow.delete !== void 0) {
+                this.options.shadow.delete = options.shadow.delete;
             }
         }
     }
@@ -2458,7 +2464,7 @@ const DragAndDrop=class DragAndDrop {
         let targets = this.getMatchingTargets();
         let draggableElement = this.draggableElement;
         if (this.options.shadow.enable && this.options.shadow.removeOnStop) {
-            draggableElement.parentNode?.removeChild(draggableElement);
+            this.options.shadow.delete(draggableElement);
         }
         if (targets.length > 0) {
             this.options.onDrop(this.options.element, targets);
@@ -2495,7 +2501,14 @@ const DragAndDrop=class DragAndDrop {
     getMatchingTargets() {
         let draggableElement = this.draggableElement;
         let matchingTargets = [];
-        for (let target of this.options.targets) {
+        let srcTargets;
+        if (typeof this.options.targets == "function") {
+            srcTargets = this.options.targets();
+        }
+        else {
+            srcTargets = this.options.targets;
+        }
+        for (let target of srcTargets) {
             const elementCoordinates = draggableElement.getBoundingClientRect();
             const targetCoordinates = target.getBoundingClientRect();
             let offsetX = this.options.getOffsetX();
@@ -2540,6 +2553,12 @@ const DragAndDrop=class DragAndDrop {
      * Set targets where to drop
      */
     setTargets(targets) {
+        this.options.targets = targets;
+    }
+    /**
+     * Set targets where to drop
+     */
+    setTargetsFct(targets) {
         this.options.targets = targets;
     }
     /**
@@ -2758,6 +2777,49 @@ const Uri=class Uri {
 Uri.Namespace=`Aventus`;
 
 _.Uri=Uri;
+const Signal=class Signal {
+    __subscribes = [];
+    _value;
+    _onChange;
+    get value() {
+        Watcher._register?.register(this, "*", Watcher._register.version, "*");
+        return this._value;
+    }
+    set value(item) {
+        const oldValue = this._value;
+        this._value = item;
+        if (oldValue != item) {
+            if (this._onChange) {
+                this._onChange();
+            }
+            for (let fct of this.__subscribes) {
+                fct(WatchAction.UPDATED, "*", item, []);
+            }
+        }
+    }
+    constructor(item, onChange) {
+        this._value = item;
+        this._onChange = onChange;
+    }
+    subscribe(fct) {
+        let index = this.__subscribes.indexOf(fct);
+        if (index == -1) {
+            this.__subscribes.push(fct);
+        }
+    }
+    unsubscribe(fct) {
+        let index = this.__subscribes.indexOf(fct);
+        if (index > -1) {
+            this.__subscribes.splice(index, 1);
+        }
+    }
+    destroy() {
+        this.__subscribes = [];
+    }
+}
+Signal.Namespace=`Aventus`;
+
+_.Signal=Signal;
 const Effect=class Effect {
     callbacks = [];
     isInit = false;
@@ -2914,6 +2976,8 @@ Computed.Namespace=`Aventus`;
 
 _.Computed=Computed;
 const Watcher=class Watcher {
+    constructor() { }
+    ;
     static __reservedName = {
         __path: '__path',
     };
@@ -3416,6 +3480,9 @@ const Watcher=class Watcher {
             set(target, prop, value, receiver) {
                 let oldValue = Reflect.get(target, prop, receiver);
                 value = replaceByAlias(target, value, prop, receiver);
+                if (value instanceof Signal) {
+                    value = value.value;
+                }
                 let triggerChange = false;
                 if (!reservedName[prop]) {
                     if (Array.isArray(target)) {
@@ -3469,7 +3536,7 @@ const Watcher=class Watcher {
                 }
                 if (target.hasOwnProperty(prop)) {
                     let oldValue = target[prop];
-                    if (oldValue instanceof Effect) {
+                    if (oldValue instanceof Effect || oldValue instanceof Signal) {
                         oldValue.destroy();
                     }
                     delete target[prop];
@@ -3694,6 +3761,12 @@ const Watcher=class Watcher {
     static effect(fct) {
         const comp = new Effect(fct);
         return comp;
+    }
+    /**
+     * Create a signal variable
+     */
+    static signal(item, onChange) {
+        return new Signal(item, onChange);
     }
 }
 Watcher.Namespace=`Aventus`;
@@ -5976,6 +6049,8 @@ const WebComponent=class WebComponent extends HTMLElement {
     __watchFunctions = {};
     __watchFunctionsComputed = {};
     __pressManagers = [];
+    __signalActions = {};
+    __signals = {};
     __isDefaultState = true;
     __defaultActiveState = new Map();
     __defaultInactiveState = new Map();
@@ -5994,6 +6069,7 @@ const WebComponent=class WebComponent extends HTMLElement {
         this.__renderTemplate();
         this.__registerWatchesActions();
         this.__registerPropertiesActions();
+        this.__registerSignalsActions();
         this.__createStates();
         this.__subscribeState();
     }
@@ -6009,6 +6085,9 @@ const WebComponent=class WebComponent extends HTMLElement {
         }
         for (let name in this.__watchFunctionsComputed) {
             this.__watchFunctionsComputed[name].destroy();
+        }
+        for (let name in this.__signals) {
+            this.__signals[name].destroy();
         }
         // TODO add missing info for destructor();
         this.postDestruction();
@@ -6095,6 +6174,31 @@ const WebComponent=class WebComponent extends HTMLElement {
             }
         }
     }
+    __addSignalActions(name, fct) {
+        this.__signalActions[name] = () => {
+            fct(this);
+        };
+    }
+    __registerSignalsActions() {
+        if (Object.keys(this.__signals).length > 0) {
+            const defaultValues = {};
+            for (let name in this.__signals) {
+                this.__registerSignalsAction(name);
+                this.__defaultValuesSignal(defaultValues);
+            }
+            for (let name in defaultValues) {
+                this.__signals[name].value = defaultValues[name];
+            }
+        }
+    }
+    __registerSignalsAction(name) {
+        this.__signals[name] = new Signal(undefined, () => {
+            if (this.__signalActions[name]) {
+                this.__signalActions[name]();
+            }
+        });
+    }
+    __defaultValuesSignal(s) { }
     __addPropertyActions(name, fct) {
         if (!this.__onChangeFct[name]) {
             this.__onChangeFct[name] = [];

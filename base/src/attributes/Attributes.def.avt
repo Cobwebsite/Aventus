@@ -42,6 +42,14 @@ declare global {
      */
     function Property<T>(onChange: (component: T) => void);
     /**
+     * Add an attribute inside on your component with changes analyze
+     */
+    function Signal();
+    /**
+     * Add an attribute inside on your component with changes analyze
+     */
+    function Signal<T>(onChange: (component: T) => void);
+    /**
      * Add a property inside a watcher to be notify of changing
      */
     function Watch();

@@ -5,7 +5,7 @@ import { createErrorHTMLPos, createErrorTs, createErrorTsPos, createErrorTsSecti
 import { AventusHTMLFile } from "../../../html/File";
 import { AventusWebSCSSFile } from "../../../scss/File";
 import { AventusWebComponentLogicalFile } from "../File";
-import { CompileComponentResult, CustomFieldModel, CustomTypeAttribute, ListCallbacks } from "./def";
+import { CompileComponentResult, CustomFieldModel, CustomTypeAttribute, FieldType, ListCallbacks } from "./def";
 import { AventusWebcomponentTemplate } from "./Template";
 import { transpile } from "typescript";
 import { AventusTsLanguageService, CompileTsResult, getSectionStart } from "../../LanguageService";
@@ -39,6 +39,7 @@ import { EffectDecorator, EffectDecoratorOption } from '../../parser/decorators/
 import { HttpServer } from '../../../../live-server/HttpServer';
 import { InputType } from '@storybook/csf';
 import { IStoryContentWebComponent, IStoryContentWebComponentSlot, IStoryContentWebComponentStyle } from '@aventusjs/storybook';
+import { SignalDecorator } from '../../parser/decorators/SignalDecorator';
 
 
 export class AventusWebcomponentCompiler {
@@ -91,7 +92,6 @@ export class AventusWebcomponentCompiler {
     private defaultValueTxt: string = "";
     private defaultValueHotReloadTxt: string = "";
     private defaultValueNpmTxt: string = "";
-    private foundedWatch: string[] = [];
     private result: CompileComponentResult = {
         diagnostics: [],
         writeCompiled: false,
@@ -424,32 +424,14 @@ export class AventusWebcomponentCompiler {
             let found = false;
             let cloneProp = new CustomFieldModel(property.prop, property.isInsideInterface, classInfo);
             for (let decorator of property.decorators) {
-                if (decorator.name == "Attribute") {
-                    cloneProp.propType = 'Attribute';
-                    cloneProp.inParent = !isBase;
-                    result[property.name] = cloneProp;
+                const attrs = ["Attribute", "Property", "Watch", "Signal", "ViewElement"];
+                if (attrs.includes(decorator.name)) {
+                    cloneProp.propType = decorator.name as FieldType;
                     found = true;
-                    break;
                 }
-                else if (decorator.name == "Property") {
-                    cloneProp.propType = 'Property';
-                    cloneProp.inParent = !isBase;
+                if (found) {
                     result[property.name] = cloneProp;
-                    found = true;
-                    break;
-                }
-                else if (decorator.name == "Watch") {
-                    cloneProp.propType = 'Watch';
                     cloneProp.inParent = !isBase;
-                    result[property.name] = cloneProp;
-                    found = true;
-                    break;
-                }
-                else if (decorator.name == "ViewElement") {
-                    cloneProp.propType = 'ViewElement';
-                    cloneProp.inParent = !isBase;
-                    result[property.name] = cloneProp;
-                    found = true;
                     break;
                 }
             }
@@ -772,6 +754,7 @@ export class AventusWebcomponentCompiler {
         let simpleVariables: CustomFieldModel[] = [];
         let attributes: CustomFieldModel[] = [];
         let properties: { field: CustomFieldModel, fctTxt: string | null }[] = [];
+        let signals: { field: CustomFieldModel, fctTxt: string | null }[] = [];
         let watches: { field: CustomFieldModel, fctTxt: string | null }[] = [];
         let viewsElements: { [name: string]: CustomFieldModel } = {};
 
@@ -794,6 +777,19 @@ export class AventusWebcomponentCompiler {
                     let tempProp = PropertyDecorator.is(decorator);
                     if (tempProp) {
                         properties.push({
+                            field: field,
+                            fctTxt: tempProp.fctTxt
+                        })
+                    }
+                }
+                continue;
+            }
+            else if (field.propType == "Signal") {
+                this.addStoryField(field);
+                for (let decorator of field.decorators) {
+                    let tempProp = SignalDecorator.is(decorator);
+                    if (tempProp) {
+                        signals.push({
                             field: field,
                             fctTxt: tempProp.fctTxt
                         })
@@ -827,6 +823,7 @@ export class AventusWebcomponentCompiler {
         this.writeFileFieldsSimpleVariable(simpleVariables);
         this.writeFileFieldsAttribute(attributes);
         this.writeFileFieldsProperty(properties);
+        this.writeFileFieldsSignal(signals);
         this.writeFileFieldsWatch(watches);
 
         if (this.upgradeAttributes.length > 0) {
@@ -1102,6 +1099,70 @@ export class AventusWebcomponentCompiler {
         this.writeFileHotReloadReplaceVar("watchingAttributes", variablesWatchedTxt);
         this.writeFileNpmReplaceVar("watchingAttributes", variablesWatchedTxt);
     }
+    private writeFileFieldsSignal(signals: { field: CustomFieldModel, fctTxt: string | null }[]) {
+        let getterSetter = "";
+        let onChange = "";
+        let register = "";
+        let defaultValueSignal = "";
+        let defaultValueSignalHotReload = "";
+        let defaultValueSignalNpm = "";
+        for (let signal of signals) {
+            let field = signal.field;
+
+            if (signal.fctTxt) {
+                let fctTxt = this.transpileMethodNoRun(signal.fctTxt);
+                onChange += `this.__addSignalActions("${field.name}", ${fctTxt});` + EOL;
+            }
+
+            register += `this.__signals["${field.name}"] = null;` + EOL
+
+            getterSetter += `get '${field.name}'() {
+						return this.__signals["${field.name}"].value;
+					}
+					set '${field.name}'(val) {
+						this.__signals["${field.name}"].value = val;
+					}`+ EOL;
+
+            defaultValueSignal += `s["${field.name}"] = ${field.defaultValue?.replace(/\\"/g, '')};` + EOL;
+            this.upgradeAttributes += 'this.__correctGetter(\'' + field.name + '\');' + EOL;
+
+
+            if (HttpServer.isRunning) {
+                defaultValueSignalHotReload += `s["${field.name}"] = ${field.defaultValueHotReload?.replace(/\\"/g, '')};` + EOL;
+            }
+
+            if (this.templateNpm) {
+                defaultValueSignalNpm += `s["${field.name}"] = ${field.defaultValueNpm?.replace(/\\"/g, '')};` + EOL;
+            }
+        }
+
+        if (defaultValueSignal.length > 0) {
+            defaultValueSignal = `__defaultValuesSignal(s) { super.__defaultValuesSignal(s); ${defaultValueSignal} }`;
+        }
+        this.writeFileReplaceVar("defaultValueSignal", defaultValueSignal);
+
+        if (defaultValueSignalHotReload.length > 0) {
+            defaultValueSignalHotReload = `__defaultValuesSignal(s) { super.__defaultValuesSignal(s); ${defaultValueSignalHotReload} }`;
+        }
+        this.writeFileHotReloadReplaceVar("defaultValueSignal", defaultValueSignalHotReload);
+
+        if (defaultValueSignalNpm.length > 0) {
+            defaultValueSignalNpm = `__defaultValuesSignal(s) { super.__defaultValuesSignal(s); ${defaultValueSignalNpm} }`;
+        }
+        this.writeFileNpmReplaceVar("defaultValueSignal", defaultValueSignalNpm);
+
+        if (register.length > 0) {
+            register = `__registerSignalsActions() { ${register} super.__registerSignalsActions(); ${onChange} }`
+        }
+        // TODO replace inside hotreload bc fctTxt isn't right
+        this.writeFileReplaceVar("registerSignal", register);
+        this.writeFileHotReloadReplaceVar("registerSignal", register);
+        this.writeFileNpmReplaceVar("registerSignal", register);
+
+        this.writeFileReplaceVar("getterSetterSignal", getterSetter);
+        this.writeFileHotReloadReplaceVar("getterSetterSignal", getterSetter);
+        this.writeFileNpmReplaceVar("getterSetterSignal", getterSetter);
+    }
     private writeFileFieldsWatch(watches: { field: CustomFieldModel, fctTxt: string | null }[]) {
         let getterSetter = "";
         let defaultValueWatch = "";
@@ -1125,7 +1186,6 @@ export class AventusWebcomponentCompiler {
 					}`+ EOL;
 
             defaultValueWatch += `w["${field.name}"] = ${field.defaultValue?.replace(/\\"/g, '')};` + EOL;
-            this.foundedWatch.push(field.name);
             this.upgradeAttributes += 'this.__correctGetter(\'' + field.name + '\');' + EOL;
 
 

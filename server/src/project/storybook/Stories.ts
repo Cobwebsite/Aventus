@@ -1,6 +1,6 @@
 import { join, normalize, resolve, sep } from 'path';
 import { Build, LocalCodeResult } from '../Build';
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'fs';
+import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'fs';
 import { GenericServer } from '../../GenericServer';
 import { EOL } from 'os';
 import { getFolder, pathToUri, simplifyUri, uriToPath } from '../../tools';
@@ -189,14 +189,18 @@ export class Storie {
 						_internalLoop(templatePath);
 					}
 					else {
-						let ctx = readFileSync(templatePath, 'utf-8');
-						if (!templatePath.endsWith(".jpeg") && !templatePath.endsWith(".png")) {
+						if ((/\.(gif|jpe?g|tiff?|png|webp|bmp)$/i).test(templatePath.toLowerCase())) {
+							copyFileSync(templatePath, exportPath);
+						}
+						else {
+							let ctx = readFileSync(templatePath, 'utf-8');
 							for (let varName in currentVars) {
 								const regex = new RegExp('\\$\\{\\{' + varName + '\\}\\}', 'gm');
 								ctx = ctx.replace(regex, currentVars[varName]);
 							}
+							writeFileSync(exportPath, ctx);
 						}
-						writeFileSync(exportPath, ctx);
+
 
 					}
 				}

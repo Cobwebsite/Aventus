@@ -812,7 +812,6 @@ const Watcher=class Watcher {
         const setProxyPath = (newProxy, newPath) => {
             if (newProxy instanceof Object && newProxy.__isProxy) {
                 newProxy.__path = newPath;
-                newProxy.__path = newPath;
             }
         };
         const jsonReplacer = (key, value) => {

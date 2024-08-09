@@ -18,7 +18,7 @@ export interface CompileComponentResult {
 	debug: string,
 }
 
-declare type FieldType = 'Attribute' | 'Property' | 'Watch' | 'ViewElement' | 'Simple';
+export type FieldType = 'Attribute' | 'Property' | 'Signal' | 'Watch' | 'ViewElement' | 'Simple';
 
 
 export const ListCallbacks: string[] = ["Callback", "Aventus.Callback", "CallbackGroup", "Aventus.CallbackGroup"];

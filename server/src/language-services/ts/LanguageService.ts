@@ -437,6 +437,9 @@ export class AventusTsLanguageService {
                 if (info.tags) {
                     simpleDoc.push("&nbsp;");
                     for (let tag of info.tags) {
+                        if (tag.name === "inheritdoc") {
+                            continue;
+                        }
                         let goOn = true;
                         const texts: string[] = [];
                         if (tag.text) {

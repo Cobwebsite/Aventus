@@ -5,7 +5,7 @@ import { type State } from "../state/State.state.avt";
 import { StateManager, type StateSlug } from "../state/StateManager.state.avt";
 import { ElementExtension } from "./ElementExtension.lib.avt";
 import { Instance } from "../lib/Instance.lib.avt";
-import { type Computed, WatchAction, Watcher, type EffectReceiver, type WatcherChange } from "../lib/Watcher.lib.avt";
+import { type Computed, WatchAction, Watcher, type EffectReceiver, type WatcherChange, Signal } from "../lib/Watcher.lib.avt";
 
 @Storybook({
     prefix: "Webcomponent"
@@ -173,6 +173,9 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
     private __watchFunctions: { [key: string]: { autoInit: boolean; }; } = {};
     private __watchFunctionsComputed: { [name: string]: Computed<any>; } = {};
     private __pressManagers: PressManager[] = [];
+    @Internal()
+    public __signalActions: { [key: string]: () => void; } = {};
+    private __signals: { [key: string]: Signal<unknown>; } = {};
 
     private __isDefaultState: boolean = true;
     private __defaultActiveState: Map<StateManager, (() => void)[]> = new Map();
@@ -201,6 +204,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
         this.__renderTemplate();
         this.__registerWatchesActions();
         this.__registerPropertiesActions();
+        this.__registerSignalsActions();
         this.__createStates();
         this.__subscribeState();
     }
@@ -216,6 +220,9 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
         }
         for(let name in this.__watchFunctionsComputed) {
             this.__watchFunctionsComputed[name].destroy();
+        }
+        for(let name in this.__signals) {
+            this.__signals[name].destroy();
         }
         // TODO add missing info for destructor();
 
@@ -304,6 +311,32 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
             }
         }
     }
+
+    private __addSignalActions(name: string, fct: (target: HTMLElement) => void) {
+        this.__signalActions[name] = () => {
+            fct(this);
+        };
+    }
+    private __registerSignalsActions() {
+        if(Object.keys(this.__signals).length > 0) {
+            const defaultValues: { [key: string]: unknown; } = {};
+            for(let name in this.__signals) {
+                this.__registerSignalsAction(name);
+                this.__defaultValuesSignal(defaultValues);
+            }
+            for(let name in defaultValues) {
+                this.__signals[name]!.value = defaultValues[name];
+            }
+        }
+    }
+    private __registerSignalsAction(name: string) {
+        this.__signals[name] = new Signal(undefined, () => {
+            if(this.__signalActions[name]) {
+                this.__signalActions[name]();
+            }
+        });
+    }
+    private __defaultValuesSignal(s) { }
 
     private __addPropertyActions(name: string, fct?: (target: HTMLElement) => void) {
         if(!this.__onChangeFct[name]) {

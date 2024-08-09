@@ -9,7 +9,7 @@
             When the field below will be deleting the current item will be deleted too
             </summary>
         </member>
-        <member name="T:AventusSharp.Data.Attributes.UpdateOnCascade">
+        <member name="T:AventusSharp.Data.Attributes.DeleteSetNull">
             <summary>
             When the field below will be deleting the current field will be set to null
             </summary>
@@ -268,6 +268,13 @@
             <summary>
             <inheritdoc />
             </summary>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.GenericDM`2.OnItemLoaded``1(``0)">
+            <summary>
+            Trigger when a item is converter into real object
+            </summary>
+            <typeparam name="X"></typeparam>
+            <param name="item"></param>
         </member>
         <member name="M:AventusSharp.Data.Manager.GenericDM`2.CreateWithError``1(System.Collections.Generic.List{``0})">
             <summary>

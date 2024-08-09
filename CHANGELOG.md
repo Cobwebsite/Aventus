@@ -5,6 +5,7 @@
 ### Bug Fixes
  - Correct namespace export inside npm
  - Hot fix client error on import codeAction
+ - Remove @inheritdoc from documentation display
 
 ### Features
  - Add slot support for storybook
