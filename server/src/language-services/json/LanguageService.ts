@@ -401,7 +401,7 @@ export class AventusJSONLanguageService {
                 ...dependance
             })
             if (!mergeDependances[mergeDependances.length - 1].subDependancesInclude["*"]) {
-                mergeDependances[mergeDependances.length - 1].subDependancesInclude["*"] = "need";
+                mergeDependances[mergeDependances.length - 1].subDependancesInclude["*"] = dependance.include;
             }
         }
         build.dependances = mergeDependances;
