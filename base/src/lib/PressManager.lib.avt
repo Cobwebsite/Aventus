@@ -121,7 +121,7 @@ export interface PressManagerOptions {
 })
 export interface PressManagerState {
     oneActionTriggered: boolean,
-    isMoving: boolean;
+    moving?: PressManager;
 }
 @Storybook({
     prefix: "Lib/PressManager"
@@ -162,7 +162,7 @@ export class PressManager {
 
     protected state: PressManagerState = {
         oneActionTriggered: false,
-        isMoving: false,
+        moving: undefined,
     };
     protected startPosition: { x: number, y: number; } = { x: 0, y: 0 };
     protected customFcts: InternalCustomFunction = {};
@@ -349,8 +349,8 @@ export class PressManager {
     protected genericUpAction(state: PressManagerState, e: PointerEvent) {
         clearTimeout(this.timeoutLongPress);
 
-        if(state.isMoving) {
-            state.isMoving = false;
+        if(state.moving == this) {
+            state.moving = undefined;
             if(this.options.onDragEnd) {
                 this.options.onDragEnd(e, this);
             }
@@ -414,7 +414,7 @@ export class PressManager {
         }
     }
     protected genericMoveAction(state: PressManagerState, e: PointerEvent) {
-        if(!state.isMoving && !state.oneActionTriggered) {
+        if(!state.moving && !state.oneActionTriggered) {
             if(this.stopPropagation()) {
                 e.stopImmediatePropagation();
             }
@@ -424,12 +424,12 @@ export class PressManager {
             if(distance > this.offsetDrag && this.downEventSaved) {
                 state.oneActionTriggered = true;
                 if(this.options.onDragStart) {
-                    state.isMoving = true;
+                    state.moving = this;
                     this.options.onDragStart(this.downEventSaved, this);
                 }
             }
         }
-        else if(state.isMoving) {
+        else if(state.moving == this) {
             if(this.options.onDrag) {
                 this.options.onDrag(e, this);
             }

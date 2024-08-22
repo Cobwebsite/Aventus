@@ -243,8 +243,8 @@ const ElementExtension=class ElementExtension {
     }
 }
 ElementExtension.Namespace=`Aventus`;
-
 _.ElementExtension=ElementExtension;
+
 const Instance=class Instance {
     static elements = new Map();
     static get(type) {
@@ -270,8 +270,8 @@ const Instance=class Instance {
     }
 }
 Instance.Namespace=`Aventus`;
-
 _.Instance=Instance;
+
 const Style=class Style {
     static instance;
     static noAnimation;
@@ -350,8 +350,8 @@ const Style=class Style {
     }
 }
 Style.Namespace=`Aventus`;
-
 _.Style=Style;
+
 const setValueToObject=function setValueToObject(path, obj, value) {
     path = path.replace(/\[(.*?)\]/g, '.$1');
     const val = (key) => {
@@ -377,8 +377,8 @@ const setValueToObject=function setValueToObject(path, obj, value) {
         obj[splitted[splitted.length - 1]] = value;
     }
 }
-
 _.setValueToObject=setValueToObject;
+
 const Callback=class Callback {
     callbacks = new Map();
     /**
@@ -414,8 +414,8 @@ const Callback=class Callback {
     }
 }
 Callback.Namespace=`Aventus`;
-
 _.Callback=Callback;
+
 const Mutex=class Mutex {
     /**
      * Array to store functions waiting for the mutex to become available.
@@ -553,8 +553,8 @@ const Mutex=class Mutex {
     }
 }
 Mutex.Namespace=`Aventus`;
-
 _.Mutex=Mutex;
+
 const compareObject=function compareObject(obj1, obj2) {
     if (Array.isArray(obj1)) {
         if (!Array.isArray(obj2)) {
@@ -625,8 +625,8 @@ const compareObject=function compareObject(obj1, obj2) {
         return obj1 === obj2;
     }
 }
-
 _.compareObject=compareObject;
+
 const getValueFromObject=function getValueFromObject(path, obj) {
     if (path === undefined) {
         path = '';
@@ -655,16 +655,16 @@ const getValueFromObject=function getValueFromObject(path, obj) {
     }
     return val(splitted[splitted.length - 1]);
 }
-
 _.getValueFromObject=getValueFromObject;
+
 var WatchAction;
 (function (WatchAction) {
     WatchAction[WatchAction["CREATED"] = 0] = "CREATED";
     WatchAction[WatchAction["UPDATED"] = 1] = "UPDATED";
     WatchAction[WatchAction["DELETED"] = 2] = "DELETED";
 })(WatchAction || (WatchAction = {}));
-
 _.WatchAction=WatchAction;
+
 const Effect=class Effect {
     callbacks = [];
     isInit = false;
@@ -778,8 +778,8 @@ const Effect=class Effect {
     }
 }
 Effect.Namespace=`Aventus`;
-
 _.Effect=Effect;
+
 const Watcher=class Watcher {
     constructor() { }
     ;
@@ -1575,8 +1575,8 @@ const Watcher=class Watcher {
     }
 }
 Watcher.Namespace=`Aventus`;
-
 _.Watcher=Watcher;
+
 const Signal=class Signal {
     __subscribes = [];
     _value;
@@ -1618,8 +1618,8 @@ const Signal=class Signal {
     }
 }
 Signal.Namespace=`Aventus`;
-
 _.Signal=Signal;
+
 const Computed=class Computed extends Effect {
     _value;
     __path = "*";
@@ -1658,8 +1658,8 @@ const Computed=class Computed extends Effect {
     }
 }
 Computed.Namespace=`Aventus`;
-
 _.Computed=Computed;
+
 const ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
     init() {
         this.isInit = true;
@@ -1676,8 +1676,8 @@ const ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
     run() { }
 }
 ComputedNoRecomputed.Namespace=`Aventus`;
-
 _.ComputedNoRecomputed=ComputedNoRecomputed;
+
 const PressManager=class PressManager {
     static globalConfig = {
         delayDblPress: 150,
@@ -1709,19 +1709,13 @@ const PressManager=class PressManager {
     offsetDrag = PressManager.globalConfig.offsetDrag ?? 20;
     state = {
         oneActionTriggered: false,
-        isMoving: false,
+        moving: undefined,
     };
     startPosition = { x: 0, y: 0 };
     customFcts = {};
     timeoutDblPress = 0;
     timeoutLongPress = 0;
     downEventSaved;
-    actionsName = {
-        press: "press",
-        longPress: "longPress",
-        dblPress: "dblPress",
-        drag: "drag"
-    };
     useDblPress = false;
     stopPropagation = () => true;
     functionsBinded = {
@@ -1730,10 +1724,7 @@ const PressManager=class PressManager {
         moveAction: (e) => { },
         childPressStart: (e) => { },
         childPressEnd: (e) => { },
-        childPress: (e) => { },
-        childDblPress: (e) => { },
-        childLongPress: (e) => { },
-        childDragStart: (e) => { },
+        childPressMove: (e) => { }
     };
     /**
      * @param {*} options - The options
@@ -1832,22 +1823,28 @@ const PressManager=class PressManager {
         this.functionsBinded.downAction = this.downAction.bind(this);
         this.functionsBinded.moveAction = this.moveAction.bind(this);
         this.functionsBinded.upAction = this.upAction.bind(this);
-        this.functionsBinded.childDblPress = this.childDblPress.bind(this);
-        this.functionsBinded.childDragStart = this.childDragStart.bind(this);
-        this.functionsBinded.childLongPress = this.childLongPress.bind(this);
-        this.functionsBinded.childPress = this.childPress.bind(this);
         this.functionsBinded.childPressStart = this.childPressStart.bind(this);
         this.functionsBinded.childPressEnd = this.childPressEnd.bind(this);
+        this.functionsBinded.childPressMove = this.childPressMove.bind(this);
     }
     init() {
         this.bindAllFunction();
         this.element.addEventListener("pointerdown", this.functionsBinded.downAction);
-        this.element.addEventListener("trigger_pointer_press", this.functionsBinded.childPress);
         this.element.addEventListener("trigger_pointer_pressstart", this.functionsBinded.childPressStart);
         this.element.addEventListener("trigger_pointer_pressend", this.functionsBinded.childPressEnd);
-        this.element.addEventListener("trigger_pointer_dblpress", this.functionsBinded.childDblPress);
-        this.element.addEventListener("trigger_pointer_longpress", this.functionsBinded.childLongPress);
-        this.element.addEventListener("trigger_pointer_dragstart", this.functionsBinded.childDragStart);
+        this.element.addEventListener("trigger_pointer_pressmove", this.functionsBinded.childPressMove);
+    }
+    genericDownAction(state, e) {
+        if (this.options.onLongPress) {
+            this.timeoutLongPress = setTimeout(() => {
+                if (!state.oneActionTriggered) {
+                    if (this.options.onLongPress) {
+                        state.oneActionTriggered = true;
+                        this.options.onLongPress(e, this);
+                    }
+                }
+            }, this.delayLongPress);
+        }
     }
     downAction(e) {
         if (this.options.onEvent) {
@@ -1869,24 +1866,58 @@ const PressManager=class PressManager {
         document.addEventListener("pointerup", this.functionsBinded.upAction);
         document.addEventListener("pointercancel", this.functionsBinded.upAction);
         document.addEventListener("pointermove", this.functionsBinded.moveAction);
-        this.timeoutLongPress = setTimeout(() => {
-            if (!this.state.oneActionTriggered) {
-                if (this.options.onLongPress) {
-                    this.state.oneActionTriggered = true;
-                    this.options.onLongPress(e, this);
-                    this.triggerEventToParent(this.actionsName.longPress, e);
-                }
-                else {
-                    this.emitTriggerFunction(this.actionsName.longPress, e);
-                }
-            }
-        }, this.delayLongPress);
+        this.genericDownAction(this.state, e);
         if (this.options.onPressStart) {
             this.options.onPressStart(e, this);
             this.emitTriggerFunctionParent("pressstart", e);
         }
         else {
             this.emitTriggerFunction("pressstart", e);
+        }
+    }
+    genericUpAction(state, e) {
+        clearTimeout(this.timeoutLongPress);
+        if (state.moving == this) {
+            state.moving = undefined;
+            if (this.options.onDragEnd) {
+                this.options.onDragEnd(e, this);
+            }
+            else if (this.customFcts.src && this.customFcts.onDragEnd) {
+                this.customFcts.onDragEnd(e, this.customFcts.src);
+            }
+        }
+        else {
+            if (this.useDblPress) {
+                this.nbPress++;
+                if (this.nbPress == 2) {
+                    if (!state.oneActionTriggered) {
+                        state.oneActionTriggered = true;
+                        this.nbPress = 0;
+                        if (this.options.onDblPress) {
+                            this.options.onDblPress(e, this);
+                        }
+                    }
+                }
+                else if (this.nbPress == 1) {
+                    this.timeoutDblPress = setTimeout(() => {
+                        this.nbPress = 0;
+                        if (!state.oneActionTriggered) {
+                            if (this.options.onPress) {
+                                state.oneActionTriggered = true;
+                                this.options.onPress(e, this);
+                            }
+                        }
+                    }, this.delayDblPress);
+                }
+            }
+            else {
+                if (!state.oneActionTriggered) {
+                    if (this.options.onPress) {
+                        state.oneActionTriggered = true;
+                        this.options.onPress(e, this);
+                    }
+                }
+            }
         }
     }
     upAction(e) {
@@ -1899,61 +1930,7 @@ const PressManager=class PressManager {
         document.removeEventListener("pointerup", this.functionsBinded.upAction);
         document.removeEventListener("pointercancel", this.functionsBinded.upAction);
         document.removeEventListener("pointermove", this.functionsBinded.moveAction);
-        clearTimeout(this.timeoutLongPress);
-        if (this.state.isMoving) {
-            this.state.isMoving = false;
-            if (this.options.onDragEnd) {
-                this.options.onDragEnd(e, this);
-            }
-            else if (this.customFcts.src && this.customFcts.onDragEnd) {
-                this.customFcts.onDragEnd(e, this.customFcts.src);
-            }
-        }
-        else {
-            if (this.useDblPress) {
-                this.nbPress++;
-                if (this.nbPress == 2) {
-                    if (!this.state.oneActionTriggered) {
-                        this.state.oneActionTriggered = true;
-                        this.nbPress = 0;
-                        if (this.options.onDblPress) {
-                            this.options.onDblPress(e, this);
-                            this.triggerEventToParent(this.actionsName.dblPress, e);
-                        }
-                        else {
-                            this.emitTriggerFunction(this.actionsName.dblPress, e);
-                        }
-                    }
-                }
-                else if (this.nbPress == 1) {
-                    this.timeoutDblPress = setTimeout(() => {
-                        this.nbPress = 0;
-                        if (!this.state.oneActionTriggered) {
-                            if (this.options.onPress) {
-                                this.state.oneActionTriggered = true;
-                                this.options.onPress(e, this);
-                                this.triggerEventToParent(this.actionsName.press, e);
-                            }
-                            else {
-                                this.emitTriggerFunction(this.actionsName.press, e);
-                            }
-                        }
-                    }, this.delayDblPress);
-                }
-            }
-            else {
-                if (!this.state.oneActionTriggered) {
-                    if (this.options.onPress) {
-                        this.state.oneActionTriggered = true;
-                        this.options.onPress(e, this);
-                        this.triggerEventToParent(this.actionsName.press, e);
-                    }
-                    else {
-                        this.emitTriggerFunction("press", e);
-                    }
-                }
-            }
-        }
+        this.genericUpAction(this.state, e);
         if (this.options.onPressEnd) {
             this.options.onPressEnd(e, this);
             this.emitTriggerFunctionParent("pressend", e);
@@ -1962,11 +1939,8 @@ const PressManager=class PressManager {
             this.emitTriggerFunction("pressend", e);
         }
     }
-    moveAction(e) {
-        if (this.options.onEvent) {
-            this.options.onEvent(e);
-        }
-        if (!this.state.isMoving && !this.state.oneActionTriggered) {
+    genericMoveAction(state, e) {
+        if (!state.moving && !state.oneActionTriggered) {
             if (this.stopPropagation()) {
                 e.stopImmediatePropagation();
             }
@@ -1974,18 +1948,14 @@ const PressManager=class PressManager {
             let yDist = e.pageY - this.startPosition.y;
             let distance = Math.sqrt(xDist * xDist + yDist * yDist);
             if (distance > this.offsetDrag && this.downEventSaved) {
-                this.state.oneActionTriggered = true;
+                state.oneActionTriggered = true;
                 if (this.options.onDragStart) {
-                    this.state.isMoving = true;
+                    state.moving = this;
                     this.options.onDragStart(this.downEventSaved, this);
-                    this.triggerEventToParent(this.actionsName.drag, e);
-                }
-                else {
-                    this.emitTriggerFunction("dragstart", this.downEventSaved);
                 }
             }
         }
-        else if (this.state.isMoving) {
+        else if (state.moving == this) {
             if (this.options.onDrag) {
                 this.options.onDrag(e, this);
             }
@@ -1994,75 +1964,32 @@ const PressManager=class PressManager {
             }
         }
     }
-    triggerEventToParent(eventName, pointerEvent) {
-        if (this.element.parentNode) {
-            this.element.parentNode.dispatchEvent(new CustomEvent("pressaction_trigger", {
-                bubbles: true,
-                cancelable: false,
-                composed: true,
-                detail: {
-                    target: this.element,
-                    eventName: eventName,
-                    realEvent: pointerEvent
-                }
-            }));
+    moveAction(e) {
+        if (this.options.onEvent) {
+            this.options.onEvent(e);
+        }
+        this.genericMoveAction(this.state, e);
+        if (this.options.onDrag) {
+            this.emitTriggerFunctionParent("pressmove", e);
+        }
+        else {
+            this.emitTriggerFunction("pressmove", e);
         }
     }
     childPressStart(e) {
+        this.genericDownAction(e.detail.state, e.detail.realEvent);
         if (this.options.onPressStart) {
             this.options.onPressStart(e.detail.realEvent, this);
         }
     }
     childPressEnd(e) {
+        this.genericUpAction(e.detail.state, e.detail.realEvent);
         if (this.options.onPressEnd) {
             this.options.onPressEnd(e.detail.realEvent, this);
         }
     }
-    childPress(e) {
-        if (this.options.onPress) {
-            if (this.stopPropagation()) {
-                e.stopImmediatePropagation();
-            }
-            e.detail.state.oneActionTriggered = true;
-            this.options.onPress(e.detail.realEvent, this);
-            this.triggerEventToParent(this.actionsName.press, e.detail.realEvent);
-        }
-    }
-    childDblPress(e) {
-        if (this.options.onDblPress) {
-            if (this.stopPropagation()) {
-                e.stopImmediatePropagation();
-            }
-            if (e.detail.state) {
-                e.detail.state.oneActionTriggered = true;
-            }
-            this.options.onDblPress(e.detail.realEvent, this);
-            this.triggerEventToParent(this.actionsName.dblPress, e.detail.realEvent);
-        }
-    }
-    childLongPress(e) {
-        if (this.options.onLongPress) {
-            if (this.stopPropagation()) {
-                e.stopImmediatePropagation();
-            }
-            e.detail.state.oneActionTriggered = true;
-            this.options.onLongPress(e.detail.realEvent, this);
-            this.triggerEventToParent(this.actionsName.longPress, e.detail.realEvent);
-        }
-    }
-    childDragStart(e) {
-        if (this.options.onDragStart) {
-            if (this.stopPropagation()) {
-                e.stopImmediatePropagation();
-            }
-            e.detail.state.isMoving = true;
-            e.detail.customFcts.src = this;
-            e.detail.customFcts.onDrag = this.options.onDrag;
-            e.detail.customFcts.onDragEnd = this.options.onDragEnd;
-            e.detail.customFcts.offsetDrag = this.options.offsetDrag;
-            this.options.onDragStart(e.detail.realEvent, this);
-            this.triggerEventToParent(this.actionsName.drag, e.detail.realEvent);
-        }
+    childPressMove(e) {
+        this.genericMoveAction(e.detail.state, e.detail.realEvent);
     }
     emitTriggerFunctionParent(action, e) {
         let el = this.element.parentElement;
@@ -2098,12 +2025,9 @@ const PressManager=class PressManager {
     destroy() {
         if (this.element) {
             this.element.removeEventListener("pointerdown", this.functionsBinded.downAction);
-            this.element.removeEventListener("trigger_pointer_press", this.functionsBinded.childPress);
             this.element.removeEventListener("trigger_pointer_pressstart", this.functionsBinded.childPressStart);
             this.element.removeEventListener("trigger_pointer_pressend", this.functionsBinded.childPressEnd);
-            this.element.removeEventListener("trigger_pointer_dblpress", this.functionsBinded.childDblPress);
-            this.element.removeEventListener("trigger_pointer_longpress", this.functionsBinded.childLongPress);
-            this.element.removeEventListener("trigger_pointer_dragstart", this.functionsBinded.childDragStart);
+            this.element.removeEventListener("trigger_pointer_pressmove", this.functionsBinded.childPressMove);
             document.removeEventListener("pointerup", this.functionsBinded.upAction);
             document.removeEventListener("pointercancel", this.functionsBinded.upAction);
             document.removeEventListener("pointermove", this.functionsBinded.moveAction);
@@ -2111,8 +2035,8 @@ const PressManager=class PressManager {
     }
 }
 PressManager.Namespace=`Aventus`;
-
 _.PressManager=PressManager;
+
 const Uri=class Uri {
     static prepare(uri) {
         let params = [];
@@ -2189,8 +2113,8 @@ const Uri=class Uri {
     }
 }
 Uri.Namespace=`Aventus`;
-
 _.Uri=Uri;
+
 const State=class State {
     /**
      * Activate a custom state inside a specific manager
@@ -2214,8 +2138,8 @@ const State=class State {
     }
 }
 State.Namespace=`Aventus`;
-
 _.State=State;
+
 const EmptyState=class EmptyState extends State {
     localName;
     constructor(stateName) {
@@ -2230,8 +2154,8 @@ const EmptyState=class EmptyState extends State {
     }
 }
 EmptyState.Namespace=`Aventus`;
-
 _.EmptyState=EmptyState;
+
 const StateManager=class StateManager {
     subscribers = {};
     static canBeActivate(statePattern, stateName) {
@@ -2536,8 +2460,8 @@ const StateManager=class StateManager {
     }
 }
 StateManager.Namespace=`Aventus`;
-
 _.StateManager=StateManager;
+
 const TemplateContext=class TemplateContext {
     data = {};
     comp;
@@ -2742,8 +2666,8 @@ const TemplateContext=class TemplateContext {
     }
 }
 TemplateContext.Namespace=`Aventus`;
-
 _.TemplateContext=TemplateContext;
+
 const TemplateInstance=class TemplateInstance {
     context;
     content;
@@ -3432,8 +3356,8 @@ const TemplateInstance=class TemplateInstance {
     }
 }
 TemplateInstance.Namespace=`Aventus`;
-
 _.TemplateInstance=TemplateInstance;
+
 const Template=class Template {
     static validatePath(path, pathToCheck) {
         if (pathToCheck.startsWith(path)) {
@@ -3570,8 +3494,8 @@ const Template=class Template {
     }
 }
 Template.Namespace=`Aventus`;
-
 _.Template=Template;
+
 const WebComponent=class WebComponent extends HTMLElement {
     /**
      * Add attributes informations
@@ -4287,8 +4211,8 @@ const WebComponent=class WebComponent extends HTMLElement {
     }
 }
 WebComponent.Namespace=`Aventus`;
-
 _.WebComponent=WebComponent;
+
 const WebComponentInstance=class WebComponentInstance {
     static __allDefinitions = [];
     static __allInstances = [];
@@ -4360,8 +4284,8 @@ const WebComponentInstance=class WebComponentInstance {
     }
 }
 WebComponentInstance.Namespace=`Aventus`;
-
 _.WebComponentInstance=WebComponentInstance;
+
 const ResizeObserver=class ResizeObserver {
     callback;
     targets;
@@ -4488,8 +4412,8 @@ const ResizeObserver=class ResizeObserver {
     }
 }
 ResizeObserver.Namespace=`Aventus`;
-
 _.ResizeObserver=ResizeObserver;
+
 const ResourceLoader=class ResourceLoader {
     static headerLoaded = {};
     static headerWaiting = {};
@@ -4658,8 +4582,8 @@ const ResourceLoader=class ResourceLoader {
     }
 }
 ResourceLoader.Namespace=`Aventus`;
-
 _.ResourceLoader=ResourceLoader;
+
 const Animation=class Animation {
     /**
      * Default FPS for all Animation if not set inside options
@@ -4746,8 +4670,8 @@ const Animation=class Animation {
     }
 }
 Animation.Namespace=`Aventus`;
-
 _.Animation=Animation;
+
 const DragAndDrop=class DragAndDrop {
     /**
      * Default offset before drag element
@@ -5037,8 +4961,9 @@ const DragAndDrop=class DragAndDrop {
     }
 }
 DragAndDrop.Namespace=`Aventus`;
-
 _.DragAndDrop=DragAndDrop;
+
+
 
 for(let key in _) { Aventus[key] = _[key] }
 })(Aventus);
@@ -5172,8 +5097,8 @@ const RouterStateManager=class RouterStateManager extends Aventus.StateManager {
     }
 }
 RouterStateManager.Namespace=`Aventus`;
-
 _.RouterStateManager=RouterStateManager;
+
 Navigation.RouterLink = class RouterLink extends Aventus.WebComponent {
     get 'state'() { return this.getStringAttr('state') }
     set 'state'(val) { this.setStringAttr('state', val) }get 'active_state'() { return this.getStringAttr('active_state') }
@@ -5283,8 +5208,8 @@ const Tracker=class Tracker {
     }
 }
 Tracker.Namespace=`Aventus`;
-
 _.Tracker=Tracker;
+
 Layout.GridCol = class GridCol extends Aventus.WebComponent {
     get 'column'() { return this.getStringAttr('column') }
     set 'column'(val) { this.setStringAttr('column', val) }get 'row'() { return this.getStringAttr('row') }
@@ -5985,35 +5910,39 @@ const TouchRecord=class TouchRecord {
             y: 0,
         };
         const vel = this.getVelocity();
-        Object.keys(vel).forEach(dir => {
+        const dirs = Object.keys(vel);
+        for (let dir of dirs) {
             let v = Math.abs(vel[dir]) <= 10 ? 0 : vel[dir];
             while (v !== 0) {
                 distance[dir] += v;
                 v = (v * deAcceleration) | 0;
             }
-        });
+        }
         return distance;
     }
     track(evt) {
         const { targetTouches, } = evt;
-        Array.from(targetTouches).forEach(touch => {
+        const touches = Array.from(targetTouches);
+        for (let touch of touches) {
             this._add(touch);
-        });
+        }
         return this._touchList;
     }
     update(evt) {
         const { touches, changedTouches, } = evt;
-        Array.from(touches).forEach(touch => {
+        const touchesArray = Array.from(touches);
+        for (let touch of touchesArray) {
             this._renew(touch);
-        });
+        }
         this._setActiveID(changedTouches);
         return this._touchList;
     }
     release(evt) {
         delete this._activeTouchID;
-        Array.from(evt.changedTouches).forEach(touch => {
+        const touchesArray = Array.from(evt.changedTouches);
+        for (let touch of touchesArray) {
             this._delete(touch);
-        });
+        }
     }
     _add(touch) {
         if (this._has(touch)) {
@@ -6047,8 +5976,8 @@ const TouchRecord=class TouchRecord {
     }
 }
 TouchRecord.Namespace=`Aventus`;
-
 _.TouchRecord=TouchRecord;
+
 Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
     static get observedAttributes() {return ["zoom"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'y_scroll_visible'() { return this.getBoolAttr('y_scroll_visible') }
@@ -6767,6 +6696,7 @@ Navigation.Page = class Page extends Aventus.WebComponent {
 }
 Navigation.Page.Namespace=`Aventus.Navigation`;
 _.Navigation.Page=Navigation.Page;
+
 
 
 for(let key in _) { Aventus[key] = _[key] }

@@ -381,7 +381,6 @@ export class Build {
             }
 
             let namespaces: string[] = [];
-            let namespacesNested: string[] = [];
             let afterCode: string[] = [];
             let subNamespace: string[] = [];
             for (let className in classesName) {
@@ -398,18 +397,14 @@ export class Build {
                         // if already loaded or if nested class => class Test and class Test.Test1
                         if (subNamespace.indexOf(currentNamespace) == -1) {
                             subNamespace.push(currentNamespace);
-                            if (classesName[currentNamespace]) {
-                                namespacesNested.push(`_.${currentNamespace} = ${currentNamespace};`)
+
+                            if (currentNamespace.includes(".")) {
+                                namespaces.push(`${currentNamespace} = {};`)
                             }
                             else {
-                                if (currentNamespace.includes(".")) {
-                                    namespaces.push(`${currentNamespace} = {};`)
-                                }
-                                else {
-                                    namespaces.push(`const ${currentNamespace} = {};`)
-                                }
-                                namespaces.push(`_.${currentNamespace} = {};`)
+                                namespaces.push(`let ${currentNamespace} = {};`)
                             }
+                            namespaces.push(`_.${currentNamespace} = {};`)
                         }
                     }
                 }
@@ -423,7 +418,6 @@ export class Build {
             finalTxt += 'let _n;' + EOL;
             finalTxt += code.join(EOL) + EOL;
             finalTxt += afterCode.join(EOL) + EOL;
-            finalTxt += namespacesNested.join(EOL) + EOL;
             finalTxt += `for(let key in _) { ${namespace}[key] = _[key] }`
             finalTxt = finalTxt.trim() + EOL;
             finalTxt += "})(" + splittedNames[0] + ");" + EOL;

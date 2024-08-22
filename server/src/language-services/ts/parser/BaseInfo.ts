@@ -356,6 +356,8 @@ export abstract class BaseInfo {
                     loop(nested, lvl + 1);
                 }
                 for (let generic of info.genericValue) {
+                    // generic isn't strong bc will disapear in js
+                    isStrongDependance = false;
                     loop(generic, lvl + 1);
                 }
             }

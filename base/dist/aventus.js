@@ -1,4 +1,5 @@
 
+
 Object.defineProperty(window, "AvInstance", {
 	get() {return Aventus.Instance;}
 });
@@ -115,8 +116,8 @@ const Style=class Style {
     }
 }
 Style.Namespace=`Aventus`;
-
 _.Style=Style;
+
 const ElementExtension=class ElementExtension {
     /**
      * Find a parent by tagname if exist Static.findParentByTag(this, "av-img")
@@ -354,24 +355,24 @@ const ElementExtension=class ElementExtension {
     }
 }
 ElementExtension.Namespace=`Aventus`;
-
 _.ElementExtension=ElementExtension;
+
 const uuidv4=function uuidv4() {
     let uid = '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c => (Number(c) ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> Number(c) / 4).toString(16));
     return uid;
 }
-
 _.uuidv4=uuidv4;
+
 const sleep=function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
-
 _.sleep=sleep;
+
 const isClass=function isClass(v) {
     return typeof v === 'function' && /^\s*class\s+/.test(v.toString());
 }
-
 _.isClass=isClass;
+
 const setValueToObject=function setValueToObject(path, obj, value) {
     path = path.replace(/\[(.*?)\]/g, '.$1');
     const val = (key) => {
@@ -397,8 +398,8 @@ const setValueToObject=function setValueToObject(path, obj, value) {
         obj[splitted[splitted.length - 1]] = value;
     }
 }
-
 _.setValueToObject=setValueToObject;
+
 const Mutex=class Mutex {
     /**
      * Array to store functions waiting for the mutex to become available.
@@ -536,8 +537,8 @@ const Mutex=class Mutex {
     }
 }
 Mutex.Namespace=`Aventus`;
-
 _.Mutex=Mutex;
+
 const ActionGuard=class ActionGuard {
     /**
      * Map to store actions that are currently running.
@@ -610,16 +611,16 @@ const ActionGuard=class ActionGuard {
     }
 }
 ActionGuard.Namespace=`Aventus`;
-
 _.ActionGuard=ActionGuard;
+
 var RamErrorCode;
 (function (RamErrorCode) {
     RamErrorCode[RamErrorCode["unknow"] = 0] = "unknow";
     RamErrorCode[RamErrorCode["noId"] = 1] = "noId";
     RamErrorCode[RamErrorCode["noItemInsideRam"] = 2] = "noItemInsideRam";
 })(RamErrorCode || (RamErrorCode = {}));
-
 _.RamErrorCode=RamErrorCode;
+
 const compareObject=function compareObject(obj1, obj2) {
     if (Array.isArray(obj1)) {
         if (!Array.isArray(obj2)) {
@@ -690,8 +691,8 @@ const compareObject=function compareObject(obj1, obj2) {
         return obj1 === obj2;
     }
 }
-
 _.compareObject=compareObject;
+
 const getValueFromObject=function getValueFromObject(path, obj) {
     if (path === undefined) {
         path = '';
@@ -720,16 +721,16 @@ const getValueFromObject=function getValueFromObject(path, obj) {
     }
     return val(splitted[splitted.length - 1]);
 }
-
 _.getValueFromObject=getValueFromObject;
+
 var WatchAction;
 (function (WatchAction) {
     WatchAction[WatchAction["CREATED"] = 0] = "CREATED";
     WatchAction[WatchAction["UPDATED"] = 1] = "UPDATED";
     WatchAction[WatchAction["DELETED"] = 2] = "DELETED";
 })(WatchAction || (WatchAction = {}));
-
 _.WatchAction=WatchAction;
+
 const ResourceLoader=class ResourceLoader {
     static headerLoaded = {};
     static headerWaiting = {};
@@ -898,8 +899,8 @@ const ResourceLoader=class ResourceLoader {
     }
 }
 ResourceLoader.Namespace=`Aventus`;
-
 _.ResourceLoader=ResourceLoader;
+
 const Async=function Async(el) {
     return new Promise((resolve) => {
         if (el instanceof Promise) {
@@ -910,8 +911,8 @@ const Async=function Async(el) {
         }
     });
 }
-
 _.Async=Async;
+
 const Instance=class Instance {
     static elements = new Map();
     static get(type) {
@@ -937,8 +938,8 @@ const Instance=class Instance {
     }
 }
 Instance.Namespace=`Aventus`;
-
 _.Instance=Instance;
+
 const Callback=class Callback {
     callbacks = new Map();
     /**
@@ -974,8 +975,8 @@ const Callback=class Callback {
     }
 }
 Callback.Namespace=`Aventus`;
-
 _.Callback=Callback;
+
 const CallbackGroup=class CallbackGroup {
     callbacks = {};
     /**
@@ -1022,8 +1023,8 @@ const CallbackGroup=class CallbackGroup {
     }
 }
 CallbackGroup.Namespace=`Aventus`;
-
 _.CallbackGroup=CallbackGroup;
+
 var HttpMethod;
 (function (HttpMethod) {
     HttpMethod["GET"] = "GET";
@@ -1032,14 +1033,14 @@ var HttpMethod;
     HttpMethod["PUT"] = "PUT";
     HttpMethod["OPTION"] = "OPTION";
 })(HttpMethod || (HttpMethod = {}));
-
 _.HttpMethod=HttpMethod;
+
 var HttpErrorCode;
 (function (HttpErrorCode) {
     HttpErrorCode[HttpErrorCode["unknow"] = 0] = "unknow";
 })(HttpErrorCode || (HttpErrorCode = {}));
-
 _.HttpErrorCode=HttpErrorCode;
+
 const Json=class Json {
     /**
      * Converts a JavaScript class instance to a JSON object.
@@ -1127,8 +1128,8 @@ const Json=class Json {
     }
 }
 Json.Namespace=`Aventus`;
-
 _.Json=Json;
+
 const ConverterTransform=class ConverterTransform {
     transform(data) {
         return this.transformLoop(data);
@@ -1249,8 +1250,8 @@ const ConverterTransform=class ConverterTransform {
     }
 }
 ConverterTransform.Namespace=`Aventus`;
-
 _.ConverterTransform=ConverterTransform;
+
 const Converter=class Converter {
     /**
     * Map storing information about registered types.
@@ -1319,8 +1320,8 @@ const Converter=class Converter {
     }
 }
 Converter.Namespace=`Aventus`;
-
 _.Converter=Converter;
+
 const Data=class Data {
     /**
      * The schema for the class
@@ -1369,8 +1370,8 @@ const Data=class Data {
     }
 }
 Data.Namespace=`Aventus`;
-
 _.Data=Data;
+
 const GenericError=class GenericError {
     /**
      * Code for the error
@@ -1396,8 +1397,8 @@ const GenericError=class GenericError {
     }
 }
 GenericError.Namespace=`Aventus`;
-
 _.GenericError=GenericError;
+
 const VoidWithError=class VoidWithError {
     /**
      * Determine if the action is a success
@@ -1447,13 +1448,13 @@ const VoidWithError=class VoidWithError {
     }
 }
 VoidWithError.Namespace=`Aventus`;
-
 _.VoidWithError=VoidWithError;
+
 const HttpError=class HttpError extends GenericError {
 }
 HttpError.Namespace=`Aventus`;
-
 _.HttpError=HttpError;
+
 const HttpRouter=class HttpRouter {
     options;
     constructor() {
@@ -1484,8 +1485,8 @@ const HttpRouter=class HttpRouter {
     }
 }
 HttpRouter.Namespace=`Aventus`;
-
 _.HttpRouter=HttpRouter;
+
 const HttpRoute=class HttpRoute {
     router;
     constructor(router) {
@@ -1496,8 +1497,8 @@ const HttpRoute=class HttpRoute {
     }
 }
 HttpRoute.Namespace=`Aventus`;
-
 _.HttpRoute=HttpRoute;
+
 const ResultWithError=class ResultWithError extends VoidWithError {
     /**
       * The result value of the action.
@@ -1516,8 +1517,8 @@ const ResultWithError=class ResultWithError extends VoidWithError {
     }
 }
 ResultWithError.Namespace=`Aventus`;
-
 _.ResultWithError=ResultWithError;
+
 const HttpRequest=class HttpRequest {
     request;
     url;
@@ -1728,8 +1729,8 @@ const HttpRequest=class HttpRequest {
     }
 }
 HttpRequest.Namespace=`Aventus`;
-
 _.HttpRequest=HttpRequest;
+
 const StorableRoute=class StorableRoute extends HttpRoute {
     async GetAll() {
         const request = new HttpRequest(`/${this.StorableName()}`, HttpMethod.GET);
@@ -1755,8 +1756,8 @@ const StorableRoute=class StorableRoute extends HttpRoute {
     }
 }
 StorableRoute.Namespace=`Aventus`;
-
 _.StorableRoute=StorableRoute;
+
 const Animation=class Animation {
     /**
      * Default FPS for all Animation if not set inside options
@@ -1843,8 +1844,8 @@ const Animation=class Animation {
     }
 }
 Animation.Namespace=`Aventus`;
-
 _.Animation=Animation;
+
 const PressManager=class PressManager {
     static globalConfig = {
         delayDblPress: 150,
@@ -1876,7 +1877,7 @@ const PressManager=class PressManager {
     offsetDrag = PressManager.globalConfig.offsetDrag ?? 20;
     state = {
         oneActionTriggered: false,
-        isMoving: false,
+        moving: undefined,
     };
     startPosition = { x: 0, y: 0 };
     customFcts = {};
@@ -2044,8 +2045,8 @@ const PressManager=class PressManager {
     }
     genericUpAction(state, e) {
         clearTimeout(this.timeoutLongPress);
-        if (state.isMoving) {
-            state.isMoving = false;
+        if (state.moving == this) {
+            state.moving = undefined;
             if (this.options.onDragEnd) {
                 this.options.onDragEnd(e, this);
             }
@@ -2107,7 +2108,7 @@ const PressManager=class PressManager {
         }
     }
     genericMoveAction(state, e) {
-        if (!state.isMoving && !state.oneActionTriggered) {
+        if (!state.moving && !state.oneActionTriggered) {
             if (this.stopPropagation()) {
                 e.stopImmediatePropagation();
             }
@@ -2117,12 +2118,12 @@ const PressManager=class PressManager {
             if (distance > this.offsetDrag && this.downEventSaved) {
                 state.oneActionTriggered = true;
                 if (this.options.onDragStart) {
-                    state.isMoving = true;
+                    state.moving = this;
                     this.options.onDragStart(this.downEventSaved, this);
                 }
             }
         }
-        else if (state.isMoving) {
+        else if (state.moving == this) {
             if (this.options.onDrag) {
                 this.options.onDrag(e, this);
             }
@@ -2202,8 +2203,8 @@ const PressManager=class PressManager {
     }
 }
 PressManager.Namespace=`Aventus`;
-
 _.PressManager=PressManager;
+
 const DragAndDrop=class DragAndDrop {
     /**
      * Default offset before drag element
@@ -2493,8 +2494,8 @@ const DragAndDrop=class DragAndDrop {
     }
 }
 DragAndDrop.Namespace=`Aventus`;
-
 _.DragAndDrop=DragAndDrop;
+
 const ResizeObserver=class ResizeObserver {
     callback;
     targets;
@@ -2621,8 +2622,8 @@ const ResizeObserver=class ResizeObserver {
     }
 }
 ResizeObserver.Namespace=`Aventus`;
-
 _.ResizeObserver=ResizeObserver;
+
 const Uri=class Uri {
     static prepare(uri) {
         let params = [];
@@ -2699,8 +2700,8 @@ const Uri=class Uri {
     }
 }
 Uri.Namespace=`Aventus`;
-
 _.Uri=Uri;
+
 const Signal=class Signal {
     __subscribes = [];
     _value;
@@ -2742,8 +2743,8 @@ const Signal=class Signal {
     }
 }
 Signal.Namespace=`Aventus`;
-
 _.Signal=Signal;
+
 const Effect=class Effect {
     callbacks = [];
     isInit = false;
@@ -2857,8 +2858,8 @@ const Effect=class Effect {
     }
 }
 Effect.Namespace=`Aventus`;
-
 _.Effect=Effect;
+
 const Computed=class Computed extends Effect {
     _value;
     __path = "*";
@@ -2897,8 +2898,8 @@ const Computed=class Computed extends Effect {
     }
 }
 Computed.Namespace=`Aventus`;
-
 _.Computed=Computed;
+
 const Watcher=class Watcher {
     constructor() { }
     ;
@@ -3694,8 +3695,8 @@ const Watcher=class Watcher {
     }
 }
 Watcher.Namespace=`Aventus`;
-
 _.Watcher=Watcher;
+
 const ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
     init() {
         this.isInit = true;
@@ -3712,8 +3713,8 @@ const ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
     run() { }
 }
 ComputedNoRecomputed.Namespace=`Aventus`;
-
 _.ComputedNoRecomputed=ComputedNoRecomputed;
+
 const EffectNoRecomputed=class EffectNoRecomputed extends Effect {
     init() {
         this.isInit = true;
@@ -3728,23 +3729,23 @@ const EffectNoRecomputed=class EffectNoRecomputed extends Effect {
     }
 }
 EffectNoRecomputed.Namespace=`Aventus`;
-
 _.EffectNoRecomputed=EffectNoRecomputed;
+
 const RamError=class RamError extends GenericError {
 }
 RamError.Namespace=`Aventus`;
-
 _.RamError=RamError;
+
 const ResultRamWithError=class ResultRamWithError extends ResultWithError {
 }
 ResultRamWithError.Namespace=`Aventus`;
-
 _.ResultRamWithError=ResultRamWithError;
+
 const VoidRamWithError=class VoidRamWithError extends VoidWithError {
 }
 VoidRamWithError.Namespace=`Aventus`;
-
 _.VoidRamWithError=VoidRamWithError;
+
 const GenericRam=class GenericRam {
     /**
      * The current namespace
@@ -3920,17 +3921,22 @@ const GenericRam=class GenericRam {
     /**
      * Add element inside Ram or update it. The instance inside the ram is unique and ll never be replaced
      */
-    addOrUpdateData(item, result) {
+    async addOrUpdateData(item, result) {
         try {
             let idWithError = this.getIdWithError(item);
             if (idWithError.success && idWithError.result !== undefined) {
                 let id = idWithError.result;
                 if (this.records.has(id)) {
-                    this.mergeObject(this.records.get(id), item);
+                    let uniqueRecord = this.records.get(id);
+                    await this.beforeRecordSet(uniqueRecord);
+                    this.mergeObject(uniqueRecord, item);
+                    await this.afterRecordSet(uniqueRecord);
                 }
                 else {
                     let realObject = this.getObjectForRam(item);
+                    await this.beforeRecordSet(realObject);
                     this.records.set(id, realObject);
+                    await this.afterRecordSet(realObject);
                 }
                 result.result = this.records.get(id);
             }
@@ -3956,11 +3962,21 @@ const GenericRam=class GenericRam {
         }
         Json.classFromJson(item, objJson, options);
     }
+    async beforeRecordSet(item) { }
+    async afterRecordSet(item) { }
+    async beforeRecordDelete(item) { }
+    async afterRecordDelete(item) { }
     publish(type, data) {
-        [...this.subscribers[type]].forEach(callback => callback(data));
+        let callbacks = [...this.subscribers[type]];
+        for (let callback of callbacks) {
+            callback(data);
+        }
         let sub = this.recordsSubscribers.get(this.getId(data));
         if (sub) {
-            [...sub[type]].forEach(callback => callback(data));
+            let localCallbacks = [...sub[type]];
+            for (let localCallback of localCallbacks) {
+                localCallback(data);
+            }
         }
     }
     subscribe(type, cb) {
@@ -4237,7 +4253,7 @@ const GenericRam=class GenericRam {
                 }
                 let resultTemp = this.getIdWithError(item);
                 if (resultTemp.success) {
-                    this.addOrUpdateData(item, action);
+                    await this.addOrUpdateData(item, action);
                     if (!action.success) {
                         return action;
                     }
@@ -4341,6 +4357,9 @@ const GenericRam=class GenericRam {
             if (resultTemp.success && resultTemp.result !== undefined) {
                 let key = resultTemp.result;
                 if (this.records.has(key)) {
+                    if (this.records.get(key) == item) {
+                        console.warn("You are updateing the same item. You should clone the object first to avoid weird effect");
+                    }
                     await this.beforeUpdateItem(item, fromList, action);
                     if (!action.success) {
                         return action;
@@ -4348,7 +4367,7 @@ const GenericRam=class GenericRam {
                     if (action.result) {
                         item = action.result;
                     }
-                    this.addOrUpdateData(item, action);
+                    await this.addOrUpdateData(item, action);
                     if (!action.success) {
                         return action;
                     }
@@ -4485,7 +4504,9 @@ const GenericRam=class GenericRam {
                         action.errors = deleteResult.errors;
                         return action;
                     }
+                    this.beforeRecordDelete(oldItem);
                     this.records.delete(key);
+                    this.afterRecordDelete(oldItem);
                     action.result = oldItem;
                     await this.afterDeleteItem(action, fromList);
                     if (!action.success) {
@@ -4527,13 +4548,13 @@ const GenericRam=class GenericRam {
     async afterDeleteList(result) { }
 }
 GenericRam.Namespace=`Aventus`;
-
 _.GenericRam=GenericRam;
+
 const Ram=class Ram extends GenericRam {
 }
 Ram.Namespace=`Aventus`;
-
 _.Ram=Ram;
+
 const StateManager=class StateManager {
     subscribers = {};
     static canBeActivate(statePattern, stateName) {
@@ -4768,21 +4789,24 @@ const StateManager=class StateManager {
                         let oldSlug = Uri.getParams(subscriber, oldState.name);
                         if (oldSlug) {
                             let oldSlugNotNull = oldSlug;
-                            [...subscriber.callbacks.inactive].forEach(callback => {
+                            let callbacks = [...subscriber.callbacks.inactive];
+                            for (let callback of callbacks) {
                                 callback(oldState, stateToUse, oldSlugNotNull);
-                            });
+                            }
                         }
                     }
                     for (let trigger of triggerActive) {
-                        [...trigger.subscriber.callbacks.active].forEach(callback => {
+                        let callbacks = [...trigger.subscriber.callbacks.active];
+                        for (let callback of callbacks) {
                             callback(stateToUse, trigger.params);
-                        });
+                        }
                     }
                     for (let trigger of inactiveToActive) {
                         trigger.subscriber.isActive = true;
-                        [...trigger.subscriber.callbacks.active].forEach(callback => {
+                        let callbacks = [...trigger.subscriber.callbacks.active];
+                        for (let callback of callbacks) {
                             callback(stateToUse, trigger.params);
-                        });
+                        }
                     }
                     stateToUse.onActivate();
                 }
@@ -4794,9 +4818,10 @@ const StateManager=class StateManager {
                     if (slugs) {
                         let slugsNotNull = slugs;
                         this.subscribers[key].isActive = true;
-                        [...this.subscribers[key].callbacks.active].forEach(callback => {
+                        let callbacks = [...this.subscribers[key].callbacks.active];
+                        for (let callback of callbacks) {
                             callback(stateToUse, slugsNotNull);
-                        });
+                        }
                     }
                 }
                 stateToUse.onActivate();
@@ -4838,8 +4863,8 @@ const StateManager=class StateManager {
     }
 }
 StateManager.Namespace=`Aventus`;
-
 _.StateManager=StateManager;
+
 const State=class State {
     /**
      * Activate a custom state inside a specific manager
@@ -4863,8 +4888,8 @@ const State=class State {
     }
 }
 State.Namespace=`Aventus`;
-
 _.State=State;
+
 const EmptyState=class EmptyState extends State {
     localName;
     constructor(stateName) {
@@ -4879,8 +4904,8 @@ const EmptyState=class EmptyState extends State {
     }
 }
 EmptyState.Namespace=`Aventus`;
-
 _.EmptyState=EmptyState;
+
 const TemplateInstance=class TemplateInstance {
     context;
     content;
@@ -5569,8 +5594,8 @@ const TemplateInstance=class TemplateInstance {
     }
 }
 TemplateInstance.Namespace=`Aventus`;
-
 _.TemplateInstance=TemplateInstance;
+
 const TemplateContext=class TemplateContext {
     data = {};
     comp;
@@ -5775,8 +5800,8 @@ const TemplateContext=class TemplateContext {
     }
 }
 TemplateContext.Namespace=`Aventus`;
-
 _.TemplateContext=TemplateContext;
+
 const Template=class Template {
     static validatePath(path, pathToCheck) {
         if (pathToCheck.startsWith(path)) {
@@ -5913,8 +5938,8 @@ const Template=class Template {
     }
 }
 Template.Namespace=`Aventus`;
-
 _.Template=Template;
+
 const WebComponent=class WebComponent extends HTMLElement {
     /**
      * Add attributes informations
@@ -6630,8 +6655,8 @@ const WebComponent=class WebComponent extends HTMLElement {
     }
 }
 WebComponent.Namespace=`Aventus`;
-
 _.WebComponent=WebComponent;
+
 const WebComponentInstance=class WebComponentInstance {
     static __allDefinitions = [];
     static __allInstances = [];
@@ -6703,8 +6728,9 @@ const WebComponentInstance=class WebComponentInstance {
     }
 }
 WebComponentInstance.Namespace=`Aventus`;
-
 _.WebComponentInstance=WebComponentInstance;
+
+
 
 for(let key in _) { Aventus[key] = _[key] }
 })(Aventus);

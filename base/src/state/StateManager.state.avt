@@ -322,18 +322,20 @@ export abstract class StateManager implements IStateManager {
                         let oldSlug = Uri.getParams(subscriber, oldState.name);
                         if(oldSlug) {
                             let oldSlugNotNull = oldSlug;
-                            [...subscriber.callbacks.inactive].forEach(callback => {
+                            let callbacks = [...subscriber.callbacks.inactive];
+                            for(let callback of callbacks) {
                                 callback(oldState, stateToUse, oldSlugNotNull);
-                            });
+                            }
                         }
                     }
 
                     // Now we trigger all the subscriber that were already active -> so no need to modify active property
                     for(let trigger of triggerActive) {
                         // We clone the callbacks in order to avoid the callback to modify the array
-                        [...trigger.subscriber.callbacks.active].forEach(callback => {
+                        let callbacks = [...trigger.subscriber.callbacks.active];
+                        for(let callback of callbacks) {
                             callback(stateToUse, trigger.params);
-                        });
+                        }
                     }
 
                     // We trigger all the inactive to active callbacks
@@ -341,9 +343,10 @@ export abstract class StateManager implements IStateManager {
                         // we set the subscriber to active
                         trigger.subscriber.isActive = true;
                         // We clone the callbacks in order to avoid the callback to modify the array
-                        [...trigger.subscriber.callbacks.active].forEach(callback => {
+                        let callbacks = [...trigger.subscriber.callbacks.active];
+                        for(let callback of callbacks) {
                             callback(stateToUse, trigger.params);
-                        });
+                        }
                     }
                     stateToUse.onActivate();
                 }
@@ -356,9 +359,10 @@ export abstract class StateManager implements IStateManager {
                     if(slugs) {
                         let slugsNotNull = slugs;
                         this.subscribers[key].isActive = true;
-                        [...this.subscribers[key].callbacks.active].forEach(callback => {
+                        let callbacks = [...this.subscribers[key].callbacks.active];
+                        for(let callback of callbacks) {
                             callback(stateToUse, slugsNotNull);
-                        });
+                        }
                     }
                 }
                 stateToUse.onActivate();

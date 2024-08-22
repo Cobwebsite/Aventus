@@ -1716,12 +1716,6 @@ const PressManager=class PressManager {
     timeoutDblPress = 0;
     timeoutLongPress = 0;
     downEventSaved;
-    actionsName = {
-        press: "press",
-        longPress: "longPress",
-        dblPress: "dblPress",
-        drag: "drag"
-    };
     useDblPress = false;
     stopPropagation = () => true;
     functionsBinded = {
@@ -1730,10 +1724,7 @@ const PressManager=class PressManager {
         moveAction: (e) => { },
         childPressStart: (e) => { },
         childPressEnd: (e) => { },
-        childPress: (e) => { },
-        childDblPress: (e) => { },
-        childLongPress: (e) => { },
-        childDragStart: (e) => { },
+        childPressMove: (e) => { }
     };
     /**
      * @param {*} options - The options
@@ -1832,22 +1823,28 @@ const PressManager=class PressManager {
         this.functionsBinded.downAction = this.downAction.bind(this);
         this.functionsBinded.moveAction = this.moveAction.bind(this);
         this.functionsBinded.upAction = this.upAction.bind(this);
-        this.functionsBinded.childDblPress = this.childDblPress.bind(this);
-        this.functionsBinded.childDragStart = this.childDragStart.bind(this);
-        this.functionsBinded.childLongPress = this.childLongPress.bind(this);
-        this.functionsBinded.childPress = this.childPress.bind(this);
         this.functionsBinded.childPressStart = this.childPressStart.bind(this);
         this.functionsBinded.childPressEnd = this.childPressEnd.bind(this);
+        this.functionsBinded.childPressMove = this.childPressMove.bind(this);
     }
     init() {
         this.bindAllFunction();
         this.element.addEventListener("pointerdown", this.functionsBinded.downAction);
-        this.element.addEventListener("trigger_pointer_press", this.functionsBinded.childPress);
         this.element.addEventListener("trigger_pointer_pressstart", this.functionsBinded.childPressStart);
         this.element.addEventListener("trigger_pointer_pressend", this.functionsBinded.childPressEnd);
-        this.element.addEventListener("trigger_pointer_dblpress", this.functionsBinded.childDblPress);
-        this.element.addEventListener("trigger_pointer_longpress", this.functionsBinded.childLongPress);
-        this.element.addEventListener("trigger_pointer_dragstart", this.functionsBinded.childDragStart);
+        this.element.addEventListener("trigger_pointer_pressmove", this.functionsBinded.childPressMove);
+    }
+    genericDownAction(state, e) {
+        if (this.options.onLongPress) {
+            this.timeoutLongPress = setTimeout(() => {
+                if (!state.oneActionTriggered) {
+                    if (this.options.onLongPress) {
+                        state.oneActionTriggered = true;
+                        this.options.onLongPress(e, this);
+                    }
+                }
+            }, this.delayLongPress);
+        }
     }
     downAction(e) {
         if (this.options.onEvent) {
@@ -1869,24 +1866,58 @@ const PressManager=class PressManager {
         document.addEventListener("pointerup", this.functionsBinded.upAction);
         document.addEventListener("pointercancel", this.functionsBinded.upAction);
         document.addEventListener("pointermove", this.functionsBinded.moveAction);
-        this.timeoutLongPress = setTimeout(() => {
-            if (!this.state.oneActionTriggered) {
-                if (this.options.onLongPress) {
-                    this.state.oneActionTriggered = true;
-                    this.options.onLongPress(e, this);
-                    this.triggerEventToParent(this.actionsName.longPress, e);
-                }
-                else {
-                    this.emitTriggerFunction(this.actionsName.longPress, e);
-                }
-            }
-        }, this.delayLongPress);
+        this.genericDownAction(this.state, e);
         if (this.options.onPressStart) {
             this.options.onPressStart(e, this);
             this.emitTriggerFunctionParent("pressstart", e);
         }
         else {
             this.emitTriggerFunction("pressstart", e);
+        }
+    }
+    genericUpAction(state, e) {
+        clearTimeout(this.timeoutLongPress);
+        if (state.isMoving) {
+            state.isMoving = false;
+            if (this.options.onDragEnd) {
+                this.options.onDragEnd(e, this);
+            }
+            else if (this.customFcts.src && this.customFcts.onDragEnd) {
+                this.customFcts.onDragEnd(e, this.customFcts.src);
+            }
+        }
+        else {
+            if (this.useDblPress) {
+                this.nbPress++;
+                if (this.nbPress == 2) {
+                    if (!state.oneActionTriggered) {
+                        state.oneActionTriggered = true;
+                        this.nbPress = 0;
+                        if (this.options.onDblPress) {
+                            this.options.onDblPress(e, this);
+                        }
+                    }
+                }
+                else if (this.nbPress == 1) {
+                    this.timeoutDblPress = setTimeout(() => {
+                        this.nbPress = 0;
+                        if (!state.oneActionTriggered) {
+                            if (this.options.onPress) {
+                                state.oneActionTriggered = true;
+                                this.options.onPress(e, this);
+                            }
+                        }
+                    }, this.delayDblPress);
+                }
+            }
+            else {
+                if (!state.oneActionTriggered) {
+                    if (this.options.onPress) {
+                        state.oneActionTriggered = true;
+                        this.options.onPress(e, this);
+                    }
+                }
+            }
         }
     }
     upAction(e) {
@@ -1899,61 +1930,7 @@ const PressManager=class PressManager {
         document.removeEventListener("pointerup", this.functionsBinded.upAction);
         document.removeEventListener("pointercancel", this.functionsBinded.upAction);
         document.removeEventListener("pointermove", this.functionsBinded.moveAction);
-        clearTimeout(this.timeoutLongPress);
-        if (this.state.isMoving) {
-            this.state.isMoving = false;
-            if (this.options.onDragEnd) {
-                this.options.onDragEnd(e, this);
-            }
-            else if (this.customFcts.src && this.customFcts.onDragEnd) {
-                this.customFcts.onDragEnd(e, this.customFcts.src);
-            }
-        }
-        else {
-            if (this.useDblPress) {
-                this.nbPress++;
-                if (this.nbPress == 2) {
-                    if (!this.state.oneActionTriggered) {
-                        this.state.oneActionTriggered = true;
-                        this.nbPress = 0;
-                        if (this.options.onDblPress) {
-                            this.options.onDblPress(e, this);
-                            this.triggerEventToParent(this.actionsName.dblPress, e);
-                        }
-                        else {
-                            this.emitTriggerFunction(this.actionsName.dblPress, e);
-                        }
-                    }
-                }
-                else if (this.nbPress == 1) {
-                    this.timeoutDblPress = setTimeout(() => {
-                        this.nbPress = 0;
-                        if (!this.state.oneActionTriggered) {
-                            if (this.options.onPress) {
-                                this.state.oneActionTriggered = true;
-                                this.options.onPress(e, this);
-                                this.triggerEventToParent(this.actionsName.press, e);
-                            }
-                            else {
-                                this.emitTriggerFunction(this.actionsName.press, e);
-                            }
-                        }
-                    }, this.delayDblPress);
-                }
-            }
-            else {
-                if (!this.state.oneActionTriggered) {
-                    if (this.options.onPress) {
-                        this.state.oneActionTriggered = true;
-                        this.options.onPress(e, this);
-                        this.triggerEventToParent(this.actionsName.press, e);
-                    }
-                    else {
-                        this.emitTriggerFunction("press", e);
-                    }
-                }
-            }
-        }
+        this.genericUpAction(this.state, e);
         if (this.options.onPressEnd) {
             this.options.onPressEnd(e, this);
             this.emitTriggerFunctionParent("pressend", e);
@@ -1962,11 +1939,8 @@ const PressManager=class PressManager {
             this.emitTriggerFunction("pressend", e);
         }
     }
-    moveAction(e) {
-        if (this.options.onEvent) {
-            this.options.onEvent(e);
-        }
-        if (!this.state.isMoving && !this.state.oneActionTriggered) {
+    genericMoveAction(state, e) {
+        if (!state.isMoving && !state.oneActionTriggered) {
             if (this.stopPropagation()) {
                 e.stopImmediatePropagation();
             }
@@ -1974,18 +1948,14 @@ const PressManager=class PressManager {
             let yDist = e.pageY - this.startPosition.y;
             let distance = Math.sqrt(xDist * xDist + yDist * yDist);
             if (distance > this.offsetDrag && this.downEventSaved) {
-                this.state.oneActionTriggered = true;
+                state.oneActionTriggered = true;
                 if (this.options.onDragStart) {
-                    this.state.isMoving = true;
+                    state.isMoving = true;
                     this.options.onDragStart(this.downEventSaved, this);
-                    this.triggerEventToParent(this.actionsName.drag, e);
-                }
-                else {
-                    this.emitTriggerFunction("dragstart", this.downEventSaved);
                 }
             }
         }
-        else if (this.state.isMoving) {
+        else if (state.isMoving) {
             if (this.options.onDrag) {
                 this.options.onDrag(e, this);
             }
@@ -1994,75 +1964,32 @@ const PressManager=class PressManager {
             }
         }
     }
-    triggerEventToParent(eventName, pointerEvent) {
-        if (this.element.parentNode) {
-            this.element.parentNode.dispatchEvent(new CustomEvent("pressaction_trigger", {
-                bubbles: true,
-                cancelable: false,
-                composed: true,
-                detail: {
-                    target: this.element,
-                    eventName: eventName,
-                    realEvent: pointerEvent
-                }
-            }));
+    moveAction(e) {
+        if (this.options.onEvent) {
+            this.options.onEvent(e);
+        }
+        this.genericMoveAction(this.state, e);
+        if (this.options.onDrag) {
+            this.emitTriggerFunctionParent("pressmove", e);
+        }
+        else {
+            this.emitTriggerFunction("pressmove", e);
         }
     }
     childPressStart(e) {
+        this.genericDownAction(e.detail.state, e.detail.realEvent);
         if (this.options.onPressStart) {
             this.options.onPressStart(e.detail.realEvent, this);
         }
     }
     childPressEnd(e) {
+        this.genericUpAction(e.detail.state, e.detail.realEvent);
         if (this.options.onPressEnd) {
             this.options.onPressEnd(e.detail.realEvent, this);
         }
     }
-    childPress(e) {
-        if (this.options.onPress) {
-            if (this.stopPropagation()) {
-                e.stopImmediatePropagation();
-            }
-            e.detail.state.oneActionTriggered = true;
-            this.options.onPress(e.detail.realEvent, this);
-            this.triggerEventToParent(this.actionsName.press, e.detail.realEvent);
-        }
-    }
-    childDblPress(e) {
-        if (this.options.onDblPress) {
-            if (this.stopPropagation()) {
-                e.stopImmediatePropagation();
-            }
-            if (e.detail.state) {
-                e.detail.state.oneActionTriggered = true;
-            }
-            this.options.onDblPress(e.detail.realEvent, this);
-            this.triggerEventToParent(this.actionsName.dblPress, e.detail.realEvent);
-        }
-    }
-    childLongPress(e) {
-        if (this.options.onLongPress) {
-            if (this.stopPropagation()) {
-                e.stopImmediatePropagation();
-            }
-            e.detail.state.oneActionTriggered = true;
-            this.options.onLongPress(e.detail.realEvent, this);
-            this.triggerEventToParent(this.actionsName.longPress, e.detail.realEvent);
-        }
-    }
-    childDragStart(e) {
-        if (this.options.onDragStart) {
-            if (this.stopPropagation()) {
-                e.stopImmediatePropagation();
-            }
-            e.detail.state.isMoving = true;
-            e.detail.customFcts.src = this;
-            e.detail.customFcts.onDrag = this.options.onDrag;
-            e.detail.customFcts.onDragEnd = this.options.onDragEnd;
-            e.detail.customFcts.offsetDrag = this.options.offsetDrag;
-            this.options.onDragStart(e.detail.realEvent, this);
-            this.triggerEventToParent(this.actionsName.drag, e.detail.realEvent);
-        }
+    childPressMove(e) {
+        this.genericMoveAction(e.detail.state, e.detail.realEvent);
     }
     emitTriggerFunctionParent(action, e) {
         let el = this.element.parentElement;
@@ -2098,12 +2025,9 @@ const PressManager=class PressManager {
     destroy() {
         if (this.element) {
             this.element.removeEventListener("pointerdown", this.functionsBinded.downAction);
-            this.element.removeEventListener("trigger_pointer_press", this.functionsBinded.childPress);
             this.element.removeEventListener("trigger_pointer_pressstart", this.functionsBinded.childPressStart);
             this.element.removeEventListener("trigger_pointer_pressend", this.functionsBinded.childPressEnd);
-            this.element.removeEventListener("trigger_pointer_dblpress", this.functionsBinded.childDblPress);
-            this.element.removeEventListener("trigger_pointer_longpress", this.functionsBinded.childLongPress);
-            this.element.removeEventListener("trigger_pointer_dragstart", this.functionsBinded.childDragStart);
+            this.element.removeEventListener("trigger_pointer_pressmove", this.functionsBinded.childPressMove);
             document.removeEventListener("pointerup", this.functionsBinded.upAction);
             document.removeEventListener("pointercancel", this.functionsBinded.upAction);
             document.removeEventListener("pointermove", this.functionsBinded.moveAction);
@@ -4363,6 +4287,7 @@ WebComponentInstance.Namespace=`Aventus`;
 
 _.WebComponentInstance=WebComponentInstance;
 
+
 for(let key in _) { Aventus[key] = _[key] }
 })(Aventus);
 
@@ -4388,8 +4313,8 @@ const Message=class Message {
     }
 }
 Message.Namespace=`dependances`;
-
 _.Message=Message;
+
 const Icon = class Icon extends Aventus.WebComponent {
     static __style = `:host{display:inline-block;font:normal normal normal 16px/1 codicon;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-align:center;text-decoration:none;text-rendering:auto;-webkit-user-select:none;-ms-user-select:none;user-select:none}:host(.add) span::before{content:""}:host(.plus) span::before{content:""}:host(.gist-new) span::before{content:""}:host(.repo-create) span::before{content:""}:host(.lightbulb) span::before{content:""}:host(.light-bulb) span::before{content:""}:host(.repo) span::before{content:""}:host(.repo-delete) span::before{content:""}:host(.gist-fork) span::before{content:""}:host(.repo-forked) span::before{content:""}:host(.git-pull-request) span::before{content:""}:host(.git-pull-request-abandoned) span::before{content:""}:host(.record-keys) span::before{content:""}:host(.keyboard) span::before{content:""}:host(.tag) span::before{content:""}:host(.tag-add) span::before{content:""}:host(.tag-remove) span::before{content:""}:host(.person) span::before{content:""}:host(.person-follow) span::before{content:""}:host(.person-outline) span::before{content:""}:host(.person-filled) span::before{content:""}:host(.git-branch) span::before{content:""}:host(.git-branch-create) span::before{content:""}:host(.git-branch-delete) span::before{content:""}:host(.source-control) span::before{content:""}:host(.mirror) span::before{content:""}:host(.mirror-public) span::before{content:""}:host(.star) span::before{content:""}:host(.star-add) span::before{content:""}:host(.star-delete) span::before{content:""}:host(.star-empty) span::before{content:""}:host(.comment) span::before{content:""}:host(.comment-add) span::before{content:""}:host(.alert) span::before{content:""}:host(.warning) span::before{content:""}:host(.search) span::before{content:""}:host(.search-save) span::before{content:""}:host(.log-out) span::before{content:""}:host(.sign-out) span::before{content:""}:host(.log-in) span::before{content:""}:host(.sign-in) span::before{content:""}:host(.eye) span::before{content:""}:host(.eye-unwatch) span::before{content:""}:host(.eye-watch) span::before{content:""}:host(.circle-filled) span::before{content:""}:host(.primitive-dot) span::before{content:""}:host(.close-dirty) span::before{content:""}:host(.debug-breakpoint) span::before{content:""}:host(.debug-breakpoint-disabled) span::before{content:""}:host(.debug-hint) span::before{content:""}:host(.terminal-decoration-success) span::before{content:""}:host(.primitive-square) span::before{content:""}:host(.edit) span::before{content:""}:host(.pencil) span::before{content:""}:host(.info) span::before{content:""}:host(.issue-opened) span::before{content:""}:host(.gist-private) span::before{content:""}:host(.git-fork-private) span::before{content:""}:host(.lock) span::before{content:""}:host(.mirror-private) span::before{content:""}:host(.close) span::before{content:""}:host(.remove-close) span::before{content:""}:host(.x) span::before{content:""}:host(.repo-sync) span::before{content:""}:host(.sync) span::before{content:""}:host(.clone) span::before{content:""}:host(.desktop-download) span::before{content:""}:host(.beaker) span::before{content:""}:host(.microscope) span::before{content:""}:host(.vm) span::before{content:""}:host(.device-desktop) span::before{content:""}:host(.file) span::before{content:""}:host(.file-text) span::before{content:""}:host(.more) span::before{content:""}:host(.ellipsis) span::before{content:""}:host(.kebab-horizontal) span::before{content:""}:host(.mail-reply) span::before{content:""}:host(.reply) span::before{content:""}:host(.organization) span::before{content:""}:host(.organization-filled) span::before{content:""}:host(.organization-outline) span::before{content:""}:host(.new-file) span::before{content:""}:host(.file-add) span::before{content:""}:host(.new-folder) span::before{content:""}:host(.file-directory-create) span::before{content:""}:host(.trash) span::before{content:""}:host(.trashcan) span::before{content:""}:host(.history) span::before{content:""}:host(.clock) span::before{content:""}:host(.folder) span::before{content:""}:host(.file-directory) span::before{content:""}:host(.symbol-folder) span::before{content:""}:host(.logo-github) span::before{content:""}:host(.mark-github) span::before{content:""}:host(.github) span::before{content:""}:host(.terminal) span::before{content:""}:host(.console) span::before{content:""}:host(.repl) span::before{content:""}:host(.zap) span::before{content:""}:host(.symbol-event) span::before{content:""}:host(.error) span::before{content:""}:host(.stop) span::before{content:""}:host(.variable) span::before{content:""}:host(.symbol-variable) span::before{content:""}:host(.array) span::before{content:""}:host(.symbol-array) span::before{content:""}:host(.symbol-module) span::before{content:""}:host(.symbol-package) span::before{content:""}:host(.symbol-namespace) span::before{content:""}:host(.symbol-object) span::before{content:""}:host(.symbol-method) span::before{content:""}:host(.symbol-function) span::before{content:""}:host(.symbol-constructor) span::before{content:""}:host(.symbol-boolean) span::before{content:""}:host(.symbol-null) span::before{content:""}:host(.symbol-numeric) span::before{content:""}:host(.symbol-number) span::before{content:""}:host(.symbol-structure) span::before{content:""}:host(.symbol-struct) span::before{content:""}:host(.symbol-parameter) span::before{content:""}:host(.symbol-type-parameter) span::before{content:""}:host(.symbol-key) span::before{content:""}:host(.symbol-text) span::before{content:""}:host(.symbol-reference) span::before{content:""}:host(.go-to-file) span::before{content:""}:host(.symbol-enum) span::before{content:""}:host(.symbol-value) span::before{content:""}:host(.symbol-ruler) span::before{content:""}:host(.symbol-unit) span::before{content:""}:host(.activate-breakpoints) span::before{content:""}:host(.archive) span::before{content:""}:host(.arrow-both) span::before{content:""}:host(.arrow-down) span::before{content:""}:host(.arrow-left) span::before{content:""}:host(.arrow-right) span::before{content:""}:host(.arrow-small-down) span::before{content:""}:host(.arrow-small-left) span::before{content:""}:host(.arrow-small-right) span::before{content:""}:host(.arrow-small-up) span::before{content:""}:host(.arrow-up) span::before{content:""}:host(.bell) span::before{content:""}:host(.bold) span::before{content:""}:host(.book) span::before{content:""}:host(.bookmark) span::before{content:""}:host(.debug-breakpoint-conditional-unverified) span::before{content:""}:host(.debug-breakpoint-conditional) span::before{content:""}:host(.debug-breakpoint-conditional-disabled) span::before{content:""}:host(.debug-breakpoint-data-unverified) span::before{content:""}:host(.debug-breakpoint-data) span::before{content:""}:host(.debug-breakpoint-data-disabled) span::before{content:""}:host(.debug-breakpoint-log-unverified) span::before{content:""}:host(.debug-breakpoint-log) span::before{content:""}:host(.debug-breakpoint-log-disabled) span::before{content:""}:host(.briefcase) span::before{content:""}:host(.broadcast) span::before{content:""}:host(.browser) span::before{content:""}:host(.bug) span::before{content:""}:host(.calendar) span::before{content:""}:host(.case-sensitive) span::before{content:""}:host(.check) span::before{content:""}:host(.checklist) span::before{content:""}:host(.chevron-down) span::before{content:""}:host(.chevron-left) span::before{content:""}:host(.chevron-right) span::before{content:""}:host(.chevron-up) span::before{content:""}:host(.chrome-close) span::before{content:""}:host(.chrome-maximize) span::before{content:""}:host(.chrome-minimize) span::before{content:""}:host(.chrome-restore) span::before{content:""}:host(.circle-outline) span::before{content:""}:host(.circle) span::before{content:""}:host(.debug-breakpoint-unverified) span::before{content:""}:host(.terminal-decoration-incomplete) span::before{content:""}:host(.circle-slash) span::before{content:""}:host(.circuit-board) span::before{content:""}:host(.clear-all) span::before{content:""}:host(.clippy) span::before{content:""}:host(.close-all) span::before{content:""}:host(.cloud-download) span::before{content:""}:host(.cloud-upload) span::before{content:""}:host(.code) span::before{content:""}:host(.collapse-all) span::before{content:""}:host(.color-mode) span::before{content:""}:host(.comment-discussion) span::before{content:""}:host(.credit-card) span::before{content:""}:host(.dash) span::before{content:""}:host(.dashboard) span::before{content:""}:host(.database) span::before{content:""}:host(.debug-continue) span::before{content:""}:host(.debug-disconnect) span::before{content:""}:host(.debug-pause) span::before{content:""}:host(.debug-restart) span::before{content:""}:host(.debug-start) span::before{content:""}:host(.debug-step-into) span::before{content:""}:host(.debug-step-out) span::before{content:""}:host(.debug-step-over) span::before{content:""}:host(.debug-stop) span::before{content:""}:host(.debug) span::before{content:""}:host(.device-camera-video) span::before{content:""}:host(.device-camera) span::before{content:""}:host(.device-mobile) span::before{content:""}:host(.diff-added) span::before{content:""}:host(.diff-ignored) span::before{content:""}:host(.diff-modified) span::before{content:""}:host(.diff-removed) span::before{content:""}:host(.diff-renamed) span::before{content:""}:host(.diff) span::before{content:""}:host(.discard) span::before{content:""}:host(.editor-layout) span::before{content:""}:host(.empty-window) span::before{content:""}:host(.exclude) span::before{content:""}:host(.extensions) span::before{content:""}:host(.eye-closed) span::before{content:""}:host(.file-binary) span::before{content:""}:host(.file-code) span::before{content:""}:host(.file-media) span::before{content:""}:host(.file-pdf) span::before{content:""}:host(.file-submodule) span::before{content:""}:host(.file-symlink-directory) span::before{content:""}:host(.file-symlink-file) span::before{content:""}:host(.file-zip) span::before{content:""}:host(.files) span::before{content:""}:host(.filter) span::before{content:""}:host(.flame) span::before{content:""}:host(.fold-down) span::before{content:""}:host(.fold-up) span::before{content:""}:host(.fold) span::before{content:""}:host(.folder-active) span::before{content:""}:host(.folder-opened) span::before{content:""}:host(.gear) span::before{content:""}:host(.gift) span::before{content:""}:host(.gist-secret) span::before{content:""}:host(.gist) span::before{content:""}:host(.git-commit) span::before{content:""}:host(.git-compare) span::before{content:""}:host(.compare-changes) span::before{content:""}:host(.git-merge) span::before{content:""}:host(.github-action) span::before{content:""}:host(.github-alt) span::before{content:""}:host(.globe) span::before{content:""}:host(.grabber) span::before{content:""}:host(.graph) span::before{content:""}:host(.gripper) span::before{content:""}:host(.heart) span::before{content:""}:host(.home) span::before{content:""}:host(.horizontal-rule) span::before{content:""}:host(.hubot) span::before{content:""}:host(.inbox) span::before{content:""}:host(.issue-reopened) span::before{content:""}:host(.issues) span::before{content:""}:host(.italic) span::before{content:""}:host(.jersey) span::before{content:""}:host(.json) span::before{content:""}:host(.kebab-vertical) span::before{content:""}:host(.key) span::before{content:""}:host(.law) span::before{content:""}:host(.lightbulb-autofix) span::before{content:""}:host(.link-external) span::before{content:""}:host(.link) span::before{content:""}:host(.list-ordered) span::before{content:""}:host(.list-unordered) span::before{content:""}:host(.live-share) span::before{content:""}:host(.loading) span::before{content:""}:host(.location) span::before{content:""}:host(.mail-read) span::before{content:""}:host(.mail) span::before{content:""}:host(.markdown) span::before{content:""}:host(.megaphone) span::before{content:""}:host(.mention) span::before{content:""}:host(.milestone) span::before{content:""}:host(.mortar-board) span::before{content:""}:host(.move) span::before{content:""}:host(.multiple-windows) span::before{content:""}:host(.mute) span::before{content:""}:host(.no-newline) span::before{content:""}:host(.note) span::before{content:""}:host(.octoface) span::before{content:""}:host(.open-preview) span::before{content:""}:host(.package) span::before{content:""}:host(.paintcan) span::before{content:""}:host(.pin) span::before{content:""}:host(.play) span::before{content:""}:host(.run) span::before{content:""}:host(.plug) span::before{content:""}:host(.preserve-case) span::before{content:""}:host(.preview) span::before{content:""}:host(.project) span::before{content:""}:host(.pulse) span::before{content:""}:host(.question) span::before{content:""}:host(.quote) span::before{content:""}:host(.radio-tower) span::before{content:""}:host(.reactions) span::before{content:""}:host(.references) span::before{content:""}:host(.refresh) span::before{content:""}:host(.regex) span::before{content:""}:host(.remote-explorer) span::before{content:""}:host(.remote) span::before{content:""}:host(.remove) span::before{content:""}:host(.replace-all) span::before{content:""}:host(.replace) span::before{content:""}:host(.repo-clone) span::before{content:""}:host(.repo-force-push) span::before{content:""}:host(.repo-pull) span::before{content:""}:host(.repo-push) span::before{content:""}:host(.report) span::before{content:""}:host(.request-changes) span::before{content:""}:host(.rocket) span::before{content:""}:host(.root-folder-opened) span::before{content:""}:host(.root-folder) span::before{content:""}:host(.rss) span::before{content:""}:host(.ruby) span::before{content:""}:host(.save-all) span::before{content:""}:host(.save-as) span::before{content:""}:host(.save) span::before{content:""}:host(.screen-full) span::before{content:""}:host(.screen-normal) span::before{content:""}:host(.search-stop) span::before{content:""}:host(.server) span::before{content:""}:host(.settings-gear) span::before{content:""}:host(.settings) span::before{content:""}:host(.shield) span::before{content:""}:host(.smiley) span::before{content:""}:host(.sort-precedence) span::before{content:""}:host(.split-horizontal) span::before{content:""}:host(.split-vertical) span::before{content:""}:host(.squirrel) span::before{content:""}:host(.star-full) span::before{content:""}:host(.star-half) span::before{content:""}:host(.symbol-class) span::before{content:""}:host(.symbol-color) span::before{content:""}:host(.symbol-constant) span::before{content:""}:host(.symbol-enum-member) span::before{content:""}:host(.symbol-field) span::before{content:""}:host(.symbol-file) span::before{content:""}:host(.symbol-interface) span::before{content:""}:host(.symbol-keyword) span::before{content:""}:host(.symbol-misc) span::before{content:""}:host(.symbol-operator) span::before{content:""}:host(.symbol-property) span::before{content:""}:host(.wrench) span::before{content:""}:host(.wrench-subaction) span::before{content:""}:host(.symbol-snippet) span::before{content:""}:host(.tasklist) span::before{content:""}:host(.telescope) span::before{content:""}:host(.text-size) span::before{content:""}:host(.three-bars) span::before{content:""}:host(.thumbsdown) span::before{content:""}:host(.thumbsup) span::before{content:""}:host(.tools) span::before{content:""}:host(.triangle-down) span::before{content:""}:host(.triangle-left) span::before{content:""}:host(.triangle-right) span::before{content:""}:host(.triangle-up) span::before{content:""}:host(.twitter) span::before{content:""}:host(.unfold) span::before{content:""}:host(.unlock) span::before{content:""}:host(.unmute) span::before{content:""}:host(.unverified) span::before{content:""}:host(.verified) span::before{content:""}:host(.versions) span::before{content:""}:host(.vm-active) span::before{content:""}:host(.vm-outline) span::before{content:""}:host(.vm-running) span::before{content:""}:host(.watch) span::before{content:""}:host(.whitespace) span::before{content:""}:host(.whole-word) span::before{content:""}:host(.window) span::before{content:""}:host(.word-wrap) span::before{content:""}:host(.zoom-in) span::before{content:""}:host(.zoom-out) span::before{content:""}:host(.list-filter) span::before{content:""}:host(.list-flat) span::before{content:""}:host(.list-selection) span::before{content:""}:host(.selection) span::before{content:""}:host(.list-tree) span::before{content:""}:host(.debug-breakpoint-function-unverified) span::before{content:""}:host(.debug-breakpoint-function) span::before{content:""}:host(.debug-breakpoint-function-disabled) span::before{content:""}:host(.debug-stackframe-active) span::before{content:""}:host(.circle-small-filled) span::before{content:""}:host(.debug-stackframe-dot) span::before{content:""}:host(.terminal-decoration-mark) span::before{content:""}:host(.debug-stackframe) span::before{content:""}:host(.debug-stackframe-focused) span::before{content:""}:host(.debug-breakpoint-unsupported) span::before{content:""}:host(.symbol-string) span::before{content:""}:host(.debug-reverse-continue) span::before{content:""}:host(.debug-step-back) span::before{content:""}:host(.debug-restart-frame) span::before{content:""}:host(.debug-alt) span::before{content:""}:host(.call-incoming) span::before{content:""}:host(.call-outgoing) span::before{content:""}:host(.menu) span::before{content:""}:host(.expand-all) span::before{content:""}:host(.feedback) span::before{content:""}:host(.group-by-ref-type) span::before{content:""}:host(.ungroup-by-ref-type) span::before{content:""}:host(.account) span::before{content:""}:host(.bell-dot) span::before{content:""}:host(.debug-console) span::before{content:""}:host(.library) span::before{content:""}:host(.output) span::before{content:""}:host(.run-all) span::before{content:""}:host(.sync-ignored) span::before{content:""}:host(.pinned) span::before{content:""}:host(.github-inverted) span::before{content:""}:host(.server-process) span::before{content:""}:host(.server-environment) span::before{content:""}:host(.pass) span::before{content:""}:host(.issue-closed) span::before{content:""}:host(.stop-circle) span::before{content:""}:host(.play-circle) span::before{content:""}:host(.record) span::before{content:""}:host(.debug-alt-small) span::before{content:""}:host(.vm-connect) span::before{content:""}:host(.cloud) span::before{content:""}:host(.merge) span::before{content:""}:host(.export) span::before{content:""}:host(.graph-left) span::before{content:""}:host(.magnet) span::before{content:""}:host(.notebook) span::before{content:""}:host(.redo) span::before{content:""}:host(.check-all) span::before{content:""}:host(.pinned-dirty) span::before{content:""}:host(.pass-filled) span::before{content:""}:host(.circle-large-filled) span::before{content:""}:host(.circle-large) span::before{content:""}:host(.circle-large-outline) span::before{content:""}:host(.combine) span::before{content:""}:host(.gather) span::before{content:""}:host(.table) span::before{content:""}:host(.variable-group) span::before{content:""}:host(.type-hierarchy) span::before{content:""}:host(.type-hierarchy-sub) span::before{content:""}:host(.type-hierarchy-super) span::before{content:""}:host(.git-pull-request-create) span::before{content:""}:host(.run-above) span::before{content:""}:host(.run-below) span::before{content:""}:host(.notebook-template) span::before{content:""}:host(.debug-rerun) span::before{content:""}:host(.workspace-trusted) span::before{content:""}:host(.workspace-untrusted) span::before{content:""}:host(.workspace-unknown) span::before{content:""}:host(.terminal-cmd) span::before{content:""}:host(.terminal-debian) span::before{content:""}:host(.terminal-linux) span::before{content:""}:host(.terminal-powershell) span::before{content:""}:host(.terminal-tmux) span::before{content:""}:host(.terminal-ubuntu) span::before{content:""}:host(.terminal-bash) span::before{content:""}:host(.arrow-swap) span::before{content:""}:host(.copy) span::before{content:""}:host(.person-add) span::before{content:""}:host(.filter-filled) span::before{content:""}:host(.wand) span::before{content:""}:host(.debug-line-by-line) span::before{content:""}:host(.inspect) span::before{content:""}:host(.layers) span::before{content:""}:host(.layers-dot) span::before{content:""}:host(.layers-active) span::before{content:""}:host(.compass) span::before{content:""}:host(.compass-dot) span::before{content:""}:host(.compass-active) span::before{content:""}:host(.azure) span::before{content:""}:host(.issue-draft) span::before{content:""}:host(.git-pull-request-closed) span::before{content:""}:host(.git-pull-request-draft) span::before{content:""}:host(.debug-all) span::before{content:""}:host(.debug-coverage) span::before{content:""}:host(.run-errors) span::before{content:""}:host(.folder-library) span::before{content:""}:host(.debug-continue-small) span::before{content:""}:host(.beaker-stop) span::before{content:""}:host(.graph-line) span::before{content:""}:host(.graph-scatter) span::before{content:""}:host(.pie-chart) span::before{content:""}:host(.bracket) span::before{content:""}:host(.bracket-dot) span::before{content:""}:host(.bracket-error) span::before{content:""}:host(.lock-small) span::before{content:""}:host(.azure-devops) span::before{content:""}:host(.verified-filled) span::before{content:""}:host(.newline) span::before{content:""}:host(.layout) span::before{content:""}:host(.layout-activitybar-left) span::before{content:""}:host(.layout-activitybar-right) span::before{content:""}:host(.layout-panel-left) span::before{content:""}:host(.layout-panel-center) span::before{content:""}:host(.layout-panel-justify) span::before{content:""}:host(.layout-panel-right) span::before{content:""}:host(.layout-panel) span::before{content:""}:host(.layout-sidebar-left) span::before{content:""}:host(.layout-sidebar-right) span::before{content:""}:host(.layout-statusbar) span::before{content:""}:host(.layout-menubar) span::before{content:""}:host(.layout-centered) span::before{content:""}:host(.target) span::before{content:""}:host(.indent) span::before{content:""}:host(.record-small) span::before{content:""}:host(.error-small) span::before{content:""}:host(.terminal-decoration-error) span::before{content:""}:host(.arrow-circle-down) span::before{content:""}:host(.arrow-circle-left) span::before{content:""}:host(.arrow-circle-right) span::before{content:""}:host(.arrow-circle-up) span::before{content:""}:host(.layout-sidebar-right-off) span::before{content:""}:host(.layout-panel-off) span::before{content:""}:host(.layout-sidebar-left-off) span::before{content:""}:host(.blank) span::before{content:""}:host(.heart-filled) span::before{content:""}:host(.map) span::before{content:""}:host(.map-filled) span::before{content:""}:host(.circle-small) span::before{content:""}:host(.bell-slash) span::before{content:""}:host(.bell-slash-dot) span::before{content:""}:host(.comment-unresolved) span::before{content:""}:host(.git-pull-request-go-to-changes) span::before{content:""}:host(.git-pull-request-new-changes) span::before{content:""}:host(.search-fuzzy) span::before{content:""}:host(.comment-draft) span::before{content:""}:host(.send) span::before{content:""}:host(.sparkle) span::before{content:""}:host(.insert) span::before{content:""}`;
     __getStatic() {
@@ -4532,6 +4457,7 @@ ConfigurationEditor.Namespace=`dependances`;
 ConfigurationEditor.Tag=`av-configuration-editor`;
 _.ConfigurationEditor=ConfigurationEditor;
 if(!window.customElements.get('av-configuration-editor')){window.customElements.define('av-configuration-editor', ConfigurationEditor);Aventus.WebComponentInstance.registerDefinition(ConfigurationEditor);}
+
 
 
 for(let key in _) { dependances[key] = _[key] }

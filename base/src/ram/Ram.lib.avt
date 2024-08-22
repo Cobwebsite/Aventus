@@ -236,17 +236,22 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Add element inside Ram or update it. The instance inside the ram is unique and ll never be replaced
      */
-    protected addOrUpdateData(item: KeysObject<T>, result: ResultWithError<RamItem<T>>): void {
+    protected async addOrUpdateData(item: KeysObject<T>, result: ResultWithError<RamItem<T>>): Promise<void> {
         try {
             let idWithError = this.getIdWithError(item);
             if(idWithError.success && idWithError.result !== undefined) {
                 let id = idWithError.result;
                 if(this.records.has(id)) {
-                    this.mergeObject(this.records.get(id), item);
+                    let uniqueRecord = this.records.get(id)!;
+                    await this.beforeRecordSet(uniqueRecord);
+                    this.mergeObject(uniqueRecord, item);
+                    await this.afterRecordSet(uniqueRecord);
                 }
                 else {
                     let realObject = this.getObjectForRam(item);
+                    await this.beforeRecordSet(realObject);
                     this.records.set(id, realObject);
+                    await this.afterRecordSet(realObject);
                 }
                 result.result = this.records.get(id);
             }
@@ -275,12 +280,25 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     }
     //#endregion
 
+    //#region records operation
+    protected async beforeRecordSet(item: Aventus.RamItem<T>): Promise<void> { }
+    protected async afterRecordSet(item: Aventus.RamItem<T>): Promise<void> { }
+    protected async beforeRecordDelete(item: Aventus.RamItem<T>): Promise<void> { }
+    protected async afterRecordDelete(item: Aventus.RamItem<T>): Promise<void> { }
+    //#endregion
+
     //#region listener
     protected publish(type: 'created' | 'updated' | 'deleted', data: RamItem<U>) {
-        [...this.subscribers[type]].forEach(callback => callback(data));
+        let callbacks = [...this.subscribers[type]];
+        for(let callback of callbacks) {
+            callback(data);
+        }
         let sub = this.recordsSubscribers.get(this.getId(data));
         if(sub) {
-            [...sub[type]].forEach(callback => callback(data));
+            let localCallbacks = [...sub[type]];
+            for(let localCallback of localCallbacks) {
+                localCallback(data);
+            }
         }
     }
     private subscribe(type: 'created' | 'updated' | 'deleted', cb: (item: RamItem<U>) => void) {
@@ -555,7 +573,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
                 if(action.result) { item = action.result; }
                 let resultTemp = this.getIdWithError(item);
                 if(resultTemp.success) {
-                    this.addOrUpdateData(item, action);
+                    await this.addOrUpdateData(item, action);
                     if(!action.success) {
                         return action;
                     }
@@ -657,6 +675,9 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
             if(resultTemp.success && resultTemp.result !== undefined) {
                 let key = resultTemp.result;
                 if(this.records.has(key)) {
+                    if(this.records.get(key) == item) {
+                        console.warn("You are updateing the same item. You should clone the object first to avoid weird effect")
+                    }
                     await this.beforeUpdateItem(item, fromList, action);
                     if(!action.success) {
                         return action;
@@ -664,7 +685,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
                     if(action.result) {
                         item = action.result;
                     }
-                    this.addOrUpdateData(item, action);
+                    await this.addOrUpdateData(item, action);
                     if(!action.success) {
                         return action;
                     }
@@ -798,7 +819,9 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
                         action.errors = deleteResult.errors;
                         return action;
                     }
+                    this.beforeRecordDelete(oldItem);
                     this.records.delete(key);
+                    this.afterRecordDelete(oldItem);
                     action.result = oldItem;
                     await this.afterDeleteItem(action, fromList);
                     if(!action.success) {

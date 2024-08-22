@@ -1126,7 +1126,7 @@ export class AventusTsLanguageService {
                         finalCompiled = element.fullName + "=" + finalCompiled;
                     }
                     else {
-                        finalCompiled = "const " + element.fullName + "=" + finalCompiled;
+                        finalCompiled = "let " + element.fullName + "=" + finalCompiled;
                     }
                 }
                 else if (element instanceof EnumInfo) {
@@ -1142,7 +1142,7 @@ export class AventusTsLanguageService {
                 else {
                     finalCompiled = element.fullName + "=" + result.compiled;
                     if (!element.fullName.includes(".")) {
-                        finalCompiled = `const ${finalCompiled}`;
+                        finalCompiled = `let ${finalCompiled}`;
                     }
 
                 }

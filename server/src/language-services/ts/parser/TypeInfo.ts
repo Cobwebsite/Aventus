@@ -290,7 +290,7 @@ export class TypeInfo {
 		else {
 			let kind = node.kind;
 			let txt = node.getText();
-			debugger;
+			// debugger;
 		}
 	}
 }
