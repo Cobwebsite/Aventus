@@ -1147,8 +1147,8 @@ export class AventusTsLanguageService {
 
                 }
                 if (element.isExported) {
-                    finalCompiled += EOL;
                     finalCompiled += "_." + element.fullName + "=" + element.fullName + ";";
+                    finalCompiled += EOL;
                 }
 
                 resultWithNamespace += finalCompiled;

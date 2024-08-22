@@ -381,6 +381,7 @@ export class Build {
             }
 
             let namespaces: string[] = [];
+            let namespacesNested: string[] = [];
             let afterCode: string[] = [];
             let subNamespace: string[] = [];
             for (let className in classesName) {
@@ -394,15 +395,21 @@ export class Build {
                         else {
                             currentNamespace += "." + classNameSplitted[i];
                         }
+                        // if already loaded or if nested class => class Test and class Test.Test1
                         if (subNamespace.indexOf(currentNamespace) == -1) {
                             subNamespace.push(currentNamespace);
-                            if (currentNamespace.includes(".")) {
-                                namespaces.push(`${currentNamespace} = {};`)
+                            if (classesName[currentNamespace]) {
+                                namespacesNested.push(`_.${currentNamespace} = ${currentNamespace};`)
                             }
                             else {
-                                namespaces.push(`const ${currentNamespace} = {};`)
+                                if (currentNamespace.includes(".")) {
+                                    namespaces.push(`${currentNamespace} = {};`)
+                                }
+                                else {
+                                    namespaces.push(`const ${currentNamespace} = {};`)
+                                }
+                                namespaces.push(`_.${currentNamespace} = {};`)
                             }
-                            namespaces.push(`_.${currentNamespace} = {};`)
                         }
                     }
                 }
@@ -416,6 +423,7 @@ export class Build {
             finalTxt += 'let _n;' + EOL;
             finalTxt += code.join(EOL) + EOL;
             finalTxt += afterCode.join(EOL) + EOL;
+            finalTxt += namespacesNested.join(EOL) + EOL;
             finalTxt += `for(let key in _) { ${namespace}[key] = _[key] }`
             finalTxt = finalTxt.trim() + EOL;
             finalTxt += "})(" + splittedNames[0] + ");" + EOL;
@@ -633,7 +641,7 @@ export class Build {
             let txt = "";
             let txtEnd = "";
             let namespaceNbDots = _namespace == "" ? 0 : _namespace.split(".").length;
-            let imported:string[] = [];
+            let imported: string[] = [];
             for (let key of keys) {
                 if (key.startsWith(_namespace) && key != _namespace) {
                     let splittedKeys = key.split(".");
@@ -647,7 +655,7 @@ export class Build {
                 }
             }
             for (let uri in content.imports) {
-                if(imported.includes(uri)) continue;
+                if (imported.includes(uri)) continue;
                 const names = content.imports[uri];
                 txt += `import { ${names.join(", ")} } from "${uri}";` + EOL
             }
@@ -1008,7 +1016,7 @@ export class Build {
                         if (importsNpm) {
                             for (let _packageUri in importsNpm) {
                                 // dont use local package here bc it's loaded by the import section
-                                if(_packageUri.startsWith(".")) continue;
+                                if (_packageUri.startsWith(".")) continue;
                                 if (!result.npmsrc[info.npm.exportPath].imports[_packageUri + "/index.js"]) {
                                     result.npmsrc[info.npm.exportPath].imports[_packageUri + "/index.js"] = []
                                 }
@@ -1158,7 +1166,21 @@ export class Build {
 
                     let infoInternal = localClassByFullName[fullName];
                     let insertIndex = 0;
-                    for (let dependance of infoInternal.dependances) {
+                    let dependances = [...infoInternal.dependances];
+                    if (fullName.includes(".")) {
+                        const namespaceArr = fullName.split(".")
+                        namespaceArr.pop();
+                        const namespace = namespaceArr.join(".");
+                        const containerClass = localClassByFullName[namespace];
+                        if (containerClass && containerClass != infoInternal) {
+                            dependances.push({
+                                fullName: containerClass.classScript,
+                                isStrong: true,
+                                uri: containerClass.uri
+                            })
+                        }
+                    }
+                    for (let dependance of dependances) {
                         if (dependance.uri == "@npm") {
                             continue;
                         }
