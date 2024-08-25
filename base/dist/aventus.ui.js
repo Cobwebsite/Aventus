@@ -6,7 +6,7 @@ const _ = {};
 
 
 let _n;
-const ElementExtension=class ElementExtension {
+let ElementExtension=class ElementExtension {
     /**
      * Find a parent by tagname if exist Static.findParentByTag(this, "av-img")
      */
@@ -245,7 +245,7 @@ const ElementExtension=class ElementExtension {
 ElementExtension.Namespace=`Aventus`;
 _.ElementExtension=ElementExtension;
 
-const Instance=class Instance {
+let Instance=class Instance {
     static elements = new Map();
     static get(type) {
         let result = this.elements.get(type);
@@ -272,7 +272,7 @@ const Instance=class Instance {
 Instance.Namespace=`Aventus`;
 _.Instance=Instance;
 
-const Style=class Style {
+let Style=class Style {
     static instance;
     static noAnimation;
     static defaultStyleSheets = {
@@ -352,7 +352,7 @@ const Style=class Style {
 Style.Namespace=`Aventus`;
 _.Style=Style;
 
-const setValueToObject=function setValueToObject(path, obj, value) {
+let setValueToObject=function setValueToObject(path, obj, value) {
     path = path.replace(/\[(.*?)\]/g, '.$1');
     const val = (key) => {
         if (obj instanceof Map) {
@@ -379,7 +379,7 @@ const setValueToObject=function setValueToObject(path, obj, value) {
 }
 _.setValueToObject=setValueToObject;
 
-const Callback=class Callback {
+let Callback=class Callback {
     callbacks = new Map();
     /**
      * Clear all callbacks
@@ -416,7 +416,7 @@ const Callback=class Callback {
 Callback.Namespace=`Aventus`;
 _.Callback=Callback;
 
-const Mutex=class Mutex {
+let Mutex=class Mutex {
     /**
      * Array to store functions waiting for the mutex to become available.
      * @type {((run: boolean) => void)[]}
@@ -555,7 +555,7 @@ const Mutex=class Mutex {
 Mutex.Namespace=`Aventus`;
 _.Mutex=Mutex;
 
-const compareObject=function compareObject(obj1, obj2) {
+let compareObject=function compareObject(obj1, obj2) {
     if (Array.isArray(obj1)) {
         if (!Array.isArray(obj2)) {
             return false;
@@ -627,7 +627,7 @@ const compareObject=function compareObject(obj1, obj2) {
 }
 _.compareObject=compareObject;
 
-const getValueFromObject=function getValueFromObject(path, obj) {
+let getValueFromObject=function getValueFromObject(path, obj) {
     if (path === undefined) {
         path = '';
     }
@@ -665,7 +665,7 @@ var WatchAction;
 })(WatchAction || (WatchAction = {}));
 _.WatchAction=WatchAction;
 
-const Effect=class Effect {
+let Effect=class Effect {
     callbacks = [];
     isInit = false;
     isDestroy = false;
@@ -780,7 +780,7 @@ const Effect=class Effect {
 Effect.Namespace=`Aventus`;
 _.Effect=Effect;
 
-const Watcher=class Watcher {
+let Watcher=class Watcher {
     constructor() { }
     ;
     static __reservedName = {
@@ -1577,7 +1577,7 @@ const Watcher=class Watcher {
 Watcher.Namespace=`Aventus`;
 _.Watcher=Watcher;
 
-const Signal=class Signal {
+let Signal=class Signal {
     __subscribes = [];
     _value;
     _onChange;
@@ -1620,7 +1620,7 @@ const Signal=class Signal {
 Signal.Namespace=`Aventus`;
 _.Signal=Signal;
 
-const Computed=class Computed extends Effect {
+let Computed=class Computed extends Effect {
     _value;
     __path = "*";
     get value() {
@@ -1660,7 +1660,7 @@ const Computed=class Computed extends Effect {
 Computed.Namespace=`Aventus`;
 _.Computed=Computed;
 
-const ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
+let ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
     init() {
         this.isInit = true;
         Watcher._registering.push(this);
@@ -1678,7 +1678,7 @@ const ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
 ComputedNoRecomputed.Namespace=`Aventus`;
 _.ComputedNoRecomputed=ComputedNoRecomputed;
 
-const PressManager=class PressManager {
+let PressManager=class PressManager {
     static globalConfig = {
         delayDblPress: 150,
         delayLongPress: 700,
@@ -2037,7 +2037,7 @@ const PressManager=class PressManager {
 PressManager.Namespace=`Aventus`;
 _.PressManager=PressManager;
 
-const Uri=class Uri {
+let Uri=class Uri {
     static prepare(uri) {
         let params = [];
         let i = 0;
@@ -2115,7 +2115,7 @@ const Uri=class Uri {
 Uri.Namespace=`Aventus`;
 _.Uri=Uri;
 
-const State=class State {
+let State=class State {
     /**
      * Activate a custom state inside a specific manager
      * It ll be a generic state with no information inside exept name
@@ -2140,7 +2140,7 @@ const State=class State {
 State.Namespace=`Aventus`;
 _.State=State;
 
-const EmptyState=class EmptyState extends State {
+let EmptyState=class EmptyState extends State {
     localName;
     constructor(stateName) {
         super();
@@ -2156,7 +2156,7 @@ const EmptyState=class EmptyState extends State {
 EmptyState.Namespace=`Aventus`;
 _.EmptyState=EmptyState;
 
-const StateManager=class StateManager {
+let StateManager=class StateManager {
     subscribers = {};
     static canBeActivate(statePattern, stateName) {
         let stateInfo = Uri.prepare(statePattern);
@@ -2390,21 +2390,24 @@ const StateManager=class StateManager {
                         let oldSlug = Uri.getParams(subscriber, oldState.name);
                         if (oldSlug) {
                             let oldSlugNotNull = oldSlug;
-                            [...subscriber.callbacks.inactive].forEach(callback => {
+                            let callbacks = [...subscriber.callbacks.inactive];
+                            for (let callback of callbacks) {
                                 callback(oldState, stateToUse, oldSlugNotNull);
-                            });
+                            }
                         }
                     }
                     for (let trigger of triggerActive) {
-                        [...trigger.subscriber.callbacks.active].forEach(callback => {
+                        let callbacks = [...trigger.subscriber.callbacks.active];
+                        for (let callback of callbacks) {
                             callback(stateToUse, trigger.params);
-                        });
+                        }
                     }
                     for (let trigger of inactiveToActive) {
                         trigger.subscriber.isActive = true;
-                        [...trigger.subscriber.callbacks.active].forEach(callback => {
+                        let callbacks = [...trigger.subscriber.callbacks.active];
+                        for (let callback of callbacks) {
                             callback(stateToUse, trigger.params);
-                        });
+                        }
                     }
                     stateToUse.onActivate();
                 }
@@ -2416,9 +2419,10 @@ const StateManager=class StateManager {
                     if (slugs) {
                         let slugsNotNull = slugs;
                         this.subscribers[key].isActive = true;
-                        [...this.subscribers[key].callbacks.active].forEach(callback => {
+                        let callbacks = [...this.subscribers[key].callbacks.active];
+                        for (let callback of callbacks) {
                             callback(stateToUse, slugsNotNull);
-                        });
+                        }
                     }
                 }
                 stateToUse.onActivate();
@@ -2462,7 +2466,7 @@ const StateManager=class StateManager {
 StateManager.Namespace=`Aventus`;
 _.StateManager=StateManager;
 
-const TemplateContext=class TemplateContext {
+let TemplateContext=class TemplateContext {
     data = {};
     comp;
     computeds = [];
@@ -2668,7 +2672,7 @@ const TemplateContext=class TemplateContext {
 TemplateContext.Namespace=`Aventus`;
 _.TemplateContext=TemplateContext;
 
-const TemplateInstance=class TemplateInstance {
+let TemplateInstance=class TemplateInstance {
     context;
     content;
     actions;
@@ -3358,7 +3362,7 @@ const TemplateInstance=class TemplateInstance {
 TemplateInstance.Namespace=`Aventus`;
 _.TemplateInstance=TemplateInstance;
 
-const Template=class Template {
+let Template=class Template {
     static validatePath(path, pathToCheck) {
         if (pathToCheck.startsWith(path)) {
             return true;
@@ -3496,7 +3500,7 @@ const Template=class Template {
 Template.Namespace=`Aventus`;
 _.Template=Template;
 
-const WebComponent=class WebComponent extends HTMLElement {
+let WebComponent=class WebComponent extends HTMLElement {
     /**
      * Add attributes informations
      */
@@ -4213,7 +4217,7 @@ const WebComponent=class WebComponent extends HTMLElement {
 WebComponent.Namespace=`Aventus`;
 _.WebComponent=WebComponent;
 
-const WebComponentInstance=class WebComponentInstance {
+let WebComponentInstance=class WebComponentInstance {
     static __allDefinitions = [];
     static __allInstances = [];
     /**
@@ -4286,7 +4290,7 @@ const WebComponentInstance=class WebComponentInstance {
 WebComponentInstance.Namespace=`Aventus`;
 _.WebComponentInstance=WebComponentInstance;
 
-const ResizeObserver=class ResizeObserver {
+let ResizeObserver=class ResizeObserver {
     callback;
     targets;
     fpsInterval = -1;
@@ -4414,7 +4418,7 @@ const ResizeObserver=class ResizeObserver {
 ResizeObserver.Namespace=`Aventus`;
 _.ResizeObserver=ResizeObserver;
 
-const ResourceLoader=class ResourceLoader {
+let ResourceLoader=class ResourceLoader {
     static headerLoaded = {};
     static headerWaiting = {};
     /**
@@ -4584,7 +4588,7 @@ const ResourceLoader=class ResourceLoader {
 ResourceLoader.Namespace=`Aventus`;
 _.ResourceLoader=ResourceLoader;
 
-const Animation=class Animation {
+let Animation=class Animation {
     /**
      * Default FPS for all Animation if not set inside options
      */
@@ -4672,7 +4676,7 @@ const Animation=class Animation {
 Animation.Namespace=`Aventus`;
 _.Animation=Animation;
 
-const DragAndDrop=class DragAndDrop {
+let DragAndDrop=class DragAndDrop {
     /**
      * Default offset before drag element
      */
@@ -4964,7 +4968,6 @@ DragAndDrop.Namespace=`Aventus`;
 _.DragAndDrop=DragAndDrop;
 
 
-
 for(let key in _) { Aventus[key] = _[key] }
 })(Aventus);
 
@@ -4974,11 +4977,11 @@ var Aventus;
 const moduleName = `Aventus`;
 const _ = {};
 
-const Navigation = {};
+let Navigation = {};
 _.Navigation = {};
-const Layout = {};
+let Layout = {};
 _.Layout = {};
-const Form = {};
+let Form = {};
 _.Form = {};
 let _n;
 const ProgressCircle = class ProgressCircle extends Aventus.WebComponent {
@@ -5091,7 +5094,7 @@ ProgressCircle.Tag=`av-progress-circle`;
 _.ProgressCircle=ProgressCircle;
 if(!window.customElements.get('av-progress-circle')){window.customElements.define('av-progress-circle', ProgressCircle);Aventus.WebComponentInstance.registerDefinition(ProgressCircle);}
 
-const RouterStateManager=class RouterStateManager extends Aventus.StateManager {
+let RouterStateManager=class RouterStateManager extends Aventus.StateManager {
     static getInstance() {
         return Aventus.Instance.get(RouterStateManager);
     }
@@ -5170,7 +5173,7 @@ Navigation.RouterLink.Tag=`av-router-link`;
 _.Navigation.RouterLink=Navigation.RouterLink;
 if(!window.customElements.get('av-router-link')){window.customElements.define('av-router-link', Navigation.RouterLink);Aventus.WebComponentInstance.registerDefinition(Navigation.RouterLink);}
 
-const Tracker=class Tracker {
+let Tracker=class Tracker {
     velocityMultiplier = window.devicePixelRatio;
     updateTime = Date.now();
     delta = { x: 0, y: 0 };
@@ -5880,7 +5883,7 @@ Form.Checkbox.Tag=`av-checkbox`;
 _.Form.Checkbox=Form.Checkbox;
 if(!window.customElements.get('av-checkbox')){window.customElements.define('av-checkbox', Form.Checkbox);Aventus.WebComponentInstance.registerDefinition(Form.Checkbox);}
 
-const TouchRecord=class TouchRecord {
+let TouchRecord=class TouchRecord {
     _activeTouchID;
     _touchList = {};
     get _primitiveValue() {
@@ -6696,7 +6699,6 @@ Navigation.Page = class Page extends Aventus.WebComponent {
 }
 Navigation.Page.Namespace=`Aventus.Navigation`;
 _.Navigation.Page=Navigation.Page;
-
 
 
 for(let key in _) { Aventus[key] = _[key] }

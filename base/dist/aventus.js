@@ -38,7 +38,7 @@ const _ = {};
 
 
 let _n;
-const Style=class Style {
+let Style=class Style {
     static instance;
     static noAnimation;
     static defaultStyleSheets = {
@@ -118,7 +118,7 @@ const Style=class Style {
 Style.Namespace=`Aventus`;
 _.Style=Style;
 
-const ElementExtension=class ElementExtension {
+let ElementExtension=class ElementExtension {
     /**
      * Find a parent by tagname if exist Static.findParentByTag(this, "av-img")
      */
@@ -357,23 +357,23 @@ const ElementExtension=class ElementExtension {
 ElementExtension.Namespace=`Aventus`;
 _.ElementExtension=ElementExtension;
 
-const uuidv4=function uuidv4() {
+let uuidv4=function uuidv4() {
     let uid = '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c => (Number(c) ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> Number(c) / 4).toString(16));
     return uid;
 }
 _.uuidv4=uuidv4;
 
-const sleep=function sleep(ms) {
+let sleep=function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 _.sleep=sleep;
 
-const isClass=function isClass(v) {
+let isClass=function isClass(v) {
     return typeof v === 'function' && /^\s*class\s+/.test(v.toString());
 }
 _.isClass=isClass;
 
-const setValueToObject=function setValueToObject(path, obj, value) {
+let setValueToObject=function setValueToObject(path, obj, value) {
     path = path.replace(/\[(.*?)\]/g, '.$1');
     const val = (key) => {
         if (obj instanceof Map) {
@@ -400,7 +400,7 @@ const setValueToObject=function setValueToObject(path, obj, value) {
 }
 _.setValueToObject=setValueToObject;
 
-const Mutex=class Mutex {
+let Mutex=class Mutex {
     /**
      * Array to store functions waiting for the mutex to become available.
      * @type {((run: boolean) => void)[]}
@@ -539,7 +539,7 @@ const Mutex=class Mutex {
 Mutex.Namespace=`Aventus`;
 _.Mutex=Mutex;
 
-const ActionGuard=class ActionGuard {
+let ActionGuard=class ActionGuard {
     /**
      * Map to store actions that are currently running.
      * @type {Map<any[], ((res: any) => void)[]>}
@@ -621,7 +621,7 @@ var RamErrorCode;
 })(RamErrorCode || (RamErrorCode = {}));
 _.RamErrorCode=RamErrorCode;
 
-const compareObject=function compareObject(obj1, obj2) {
+let compareObject=function compareObject(obj1, obj2) {
     if (Array.isArray(obj1)) {
         if (!Array.isArray(obj2)) {
             return false;
@@ -693,7 +693,7 @@ const compareObject=function compareObject(obj1, obj2) {
 }
 _.compareObject=compareObject;
 
-const getValueFromObject=function getValueFromObject(path, obj) {
+let getValueFromObject=function getValueFromObject(path, obj) {
     if (path === undefined) {
         path = '';
     }
@@ -731,7 +731,7 @@ var WatchAction;
 })(WatchAction || (WatchAction = {}));
 _.WatchAction=WatchAction;
 
-const ResourceLoader=class ResourceLoader {
+let ResourceLoader=class ResourceLoader {
     static headerLoaded = {};
     static headerWaiting = {};
     /**
@@ -901,7 +901,7 @@ const ResourceLoader=class ResourceLoader {
 ResourceLoader.Namespace=`Aventus`;
 _.ResourceLoader=ResourceLoader;
 
-const Async=function Async(el) {
+let Async=function Async(el) {
     return new Promise((resolve) => {
         if (el instanceof Promise) {
             el.then(resolve);
@@ -913,7 +913,7 @@ const Async=function Async(el) {
 }
 _.Async=Async;
 
-const Instance=class Instance {
+let Instance=class Instance {
     static elements = new Map();
     static get(type) {
         let result = this.elements.get(type);
@@ -940,7 +940,7 @@ const Instance=class Instance {
 Instance.Namespace=`Aventus`;
 _.Instance=Instance;
 
-const Callback=class Callback {
+let Callback=class Callback {
     callbacks = new Map();
     /**
      * Clear all callbacks
@@ -977,7 +977,7 @@ const Callback=class Callback {
 Callback.Namespace=`Aventus`;
 _.Callback=Callback;
 
-const CallbackGroup=class CallbackGroup {
+let CallbackGroup=class CallbackGroup {
     callbacks = {};
     /**
      * Clear all callbacks
@@ -1041,7 +1041,7 @@ var HttpErrorCode;
 })(HttpErrorCode || (HttpErrorCode = {}));
 _.HttpErrorCode=HttpErrorCode;
 
-const Json=class Json {
+let Json=class Json {
     /**
      * Converts a JavaScript class instance to a JSON object.
      * @template T - The type of the object to convert.
@@ -1130,7 +1130,7 @@ const Json=class Json {
 Json.Namespace=`Aventus`;
 _.Json=Json;
 
-const ConverterTransform=class ConverterTransform {
+let ConverterTransform=class ConverterTransform {
     transform(data) {
         return this.transformLoop(data);
     }
@@ -1252,7 +1252,7 @@ const ConverterTransform=class ConverterTransform {
 ConverterTransform.Namespace=`Aventus`;
 _.ConverterTransform=ConverterTransform;
 
-const Converter=class Converter {
+let Converter=class Converter {
     /**
     * Map storing information about registered types.
     */
@@ -1322,7 +1322,7 @@ const Converter=class Converter {
 Converter.Namespace=`Aventus`;
 _.Converter=Converter;
 
-const Data=class Data {
+let Data=class Data {
     /**
      * The schema for the class
      */
@@ -1372,7 +1372,7 @@ const Data=class Data {
 Data.Namespace=`Aventus`;
 _.Data=Data;
 
-const GenericError=class GenericError {
+let GenericError=class GenericError {
     /**
      * Code for the error
      */
@@ -1399,7 +1399,7 @@ const GenericError=class GenericError {
 GenericError.Namespace=`Aventus`;
 _.GenericError=GenericError;
 
-const VoidWithError=class VoidWithError {
+let VoidWithError=class VoidWithError {
     /**
      * Determine if the action is a success
      */
@@ -1450,12 +1450,12 @@ const VoidWithError=class VoidWithError {
 VoidWithError.Namespace=`Aventus`;
 _.VoidWithError=VoidWithError;
 
-const HttpError=class HttpError extends GenericError {
+let HttpError=class HttpError extends GenericError {
 }
 HttpError.Namespace=`Aventus`;
 _.HttpError=HttpError;
 
-const HttpRouter=class HttpRouter {
+let HttpRouter=class HttpRouter {
     options;
     constructor() {
         this.options = this.defineOptions(this.defaultOptionsValue());
@@ -1487,7 +1487,7 @@ const HttpRouter=class HttpRouter {
 HttpRouter.Namespace=`Aventus`;
 _.HttpRouter=HttpRouter;
 
-const HttpRoute=class HttpRoute {
+let HttpRoute=class HttpRoute {
     router;
     constructor(router) {
         this.router = router ?? new HttpRouter();
@@ -1499,7 +1499,7 @@ const HttpRoute=class HttpRoute {
 HttpRoute.Namespace=`Aventus`;
 _.HttpRoute=HttpRoute;
 
-const ResultWithError=class ResultWithError extends VoidWithError {
+let ResultWithError=class ResultWithError extends VoidWithError {
     /**
       * The result value of the action.
       * @type {U | undefined}
@@ -1519,7 +1519,7 @@ const ResultWithError=class ResultWithError extends VoidWithError {
 ResultWithError.Namespace=`Aventus`;
 _.ResultWithError=ResultWithError;
 
-const HttpRequest=class HttpRequest {
+let HttpRequest=class HttpRequest {
     request;
     url;
     constructor(url, method = HttpMethod.GET, body) {
@@ -1731,7 +1731,7 @@ const HttpRequest=class HttpRequest {
 HttpRequest.Namespace=`Aventus`;
 _.HttpRequest=HttpRequest;
 
-const StorableRoute=class StorableRoute extends HttpRoute {
+let StorableRoute=class StorableRoute extends HttpRoute {
     async GetAll() {
         const request = new HttpRequest(`/${this.StorableName()}`, HttpMethod.GET);
         return await request.queryJSON(this.router);
@@ -1758,7 +1758,7 @@ const StorableRoute=class StorableRoute extends HttpRoute {
 StorableRoute.Namespace=`Aventus`;
 _.StorableRoute=StorableRoute;
 
-const Animation=class Animation {
+let Animation=class Animation {
     /**
      * Default FPS for all Animation if not set inside options
      */
@@ -1846,7 +1846,7 @@ const Animation=class Animation {
 Animation.Namespace=`Aventus`;
 _.Animation=Animation;
 
-const PressManager=class PressManager {
+let PressManager=class PressManager {
     static globalConfig = {
         delayDblPress: 150,
         delayLongPress: 700,
@@ -2205,7 +2205,7 @@ const PressManager=class PressManager {
 PressManager.Namespace=`Aventus`;
 _.PressManager=PressManager;
 
-const DragAndDrop=class DragAndDrop {
+let DragAndDrop=class DragAndDrop {
     /**
      * Default offset before drag element
      */
@@ -2496,7 +2496,7 @@ const DragAndDrop=class DragAndDrop {
 DragAndDrop.Namespace=`Aventus`;
 _.DragAndDrop=DragAndDrop;
 
-const ResizeObserver=class ResizeObserver {
+let ResizeObserver=class ResizeObserver {
     callback;
     targets;
     fpsInterval = -1;
@@ -2624,7 +2624,7 @@ const ResizeObserver=class ResizeObserver {
 ResizeObserver.Namespace=`Aventus`;
 _.ResizeObserver=ResizeObserver;
 
-const Uri=class Uri {
+let Uri=class Uri {
     static prepare(uri) {
         let params = [];
         let i = 0;
@@ -2702,7 +2702,7 @@ const Uri=class Uri {
 Uri.Namespace=`Aventus`;
 _.Uri=Uri;
 
-const Signal=class Signal {
+let Signal=class Signal {
     __subscribes = [];
     _value;
     _onChange;
@@ -2745,7 +2745,7 @@ const Signal=class Signal {
 Signal.Namespace=`Aventus`;
 _.Signal=Signal;
 
-const Effect=class Effect {
+let Effect=class Effect {
     callbacks = [];
     isInit = false;
     isDestroy = false;
@@ -2860,7 +2860,7 @@ const Effect=class Effect {
 Effect.Namespace=`Aventus`;
 _.Effect=Effect;
 
-const Computed=class Computed extends Effect {
+let Computed=class Computed extends Effect {
     _value;
     __path = "*";
     get value() {
@@ -2900,7 +2900,7 @@ const Computed=class Computed extends Effect {
 Computed.Namespace=`Aventus`;
 _.Computed=Computed;
 
-const Watcher=class Watcher {
+let Watcher=class Watcher {
     constructor() { }
     ;
     static __reservedName = {
@@ -3697,7 +3697,7 @@ const Watcher=class Watcher {
 Watcher.Namespace=`Aventus`;
 _.Watcher=Watcher;
 
-const ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
+let ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
     init() {
         this.isInit = true;
         Watcher._registering.push(this);
@@ -3715,7 +3715,7 @@ const ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
 ComputedNoRecomputed.Namespace=`Aventus`;
 _.ComputedNoRecomputed=ComputedNoRecomputed;
 
-const EffectNoRecomputed=class EffectNoRecomputed extends Effect {
+let EffectNoRecomputed=class EffectNoRecomputed extends Effect {
     init() {
         this.isInit = true;
         Watcher._registering.push(this);
@@ -3731,22 +3731,22 @@ const EffectNoRecomputed=class EffectNoRecomputed extends Effect {
 EffectNoRecomputed.Namespace=`Aventus`;
 _.EffectNoRecomputed=EffectNoRecomputed;
 
-const RamError=class RamError extends GenericError {
+let RamError=class RamError extends GenericError {
 }
 RamError.Namespace=`Aventus`;
 _.RamError=RamError;
 
-const ResultRamWithError=class ResultRamWithError extends ResultWithError {
+let ResultRamWithError=class ResultRamWithError extends ResultWithError {
 }
 ResultRamWithError.Namespace=`Aventus`;
 _.ResultRamWithError=ResultRamWithError;
 
-const VoidRamWithError=class VoidRamWithError extends VoidWithError {
+let VoidRamWithError=class VoidRamWithError extends VoidWithError {
 }
 VoidRamWithError.Namespace=`Aventus`;
 _.VoidRamWithError=VoidRamWithError;
 
-const GenericRam=class GenericRam {
+let GenericRam=class GenericRam {
     /**
      * The current namespace
      */
@@ -4550,12 +4550,12 @@ const GenericRam=class GenericRam {
 GenericRam.Namespace=`Aventus`;
 _.GenericRam=GenericRam;
 
-const Ram=class Ram extends GenericRam {
+let Ram=class Ram extends GenericRam {
 }
 Ram.Namespace=`Aventus`;
 _.Ram=Ram;
 
-const StateManager=class StateManager {
+let StateManager=class StateManager {
     subscribers = {};
     static canBeActivate(statePattern, stateName) {
         let stateInfo = Uri.prepare(statePattern);
@@ -4865,7 +4865,7 @@ const StateManager=class StateManager {
 StateManager.Namespace=`Aventus`;
 _.StateManager=StateManager;
 
-const State=class State {
+let State=class State {
     /**
      * Activate a custom state inside a specific manager
      * It ll be a generic state with no information inside exept name
@@ -4890,7 +4890,7 @@ const State=class State {
 State.Namespace=`Aventus`;
 _.State=State;
 
-const EmptyState=class EmptyState extends State {
+let EmptyState=class EmptyState extends State {
     localName;
     constructor(stateName) {
         super();
@@ -4906,7 +4906,7 @@ const EmptyState=class EmptyState extends State {
 EmptyState.Namespace=`Aventus`;
 _.EmptyState=EmptyState;
 
-const TemplateInstance=class TemplateInstance {
+let TemplateInstance=class TemplateInstance {
     context;
     content;
     actions;
@@ -5596,7 +5596,7 @@ const TemplateInstance=class TemplateInstance {
 TemplateInstance.Namespace=`Aventus`;
 _.TemplateInstance=TemplateInstance;
 
-const TemplateContext=class TemplateContext {
+let TemplateContext=class TemplateContext {
     data = {};
     comp;
     computeds = [];
@@ -5802,7 +5802,7 @@ const TemplateContext=class TemplateContext {
 TemplateContext.Namespace=`Aventus`;
 _.TemplateContext=TemplateContext;
 
-const Template=class Template {
+let Template=class Template {
     static validatePath(path, pathToCheck) {
         if (pathToCheck.startsWith(path)) {
             return true;
@@ -5940,7 +5940,7 @@ const Template=class Template {
 Template.Namespace=`Aventus`;
 _.Template=Template;
 
-const WebComponent=class WebComponent extends HTMLElement {
+let WebComponent=class WebComponent extends HTMLElement {
     /**
      * Add attributes informations
      */
@@ -6657,7 +6657,7 @@ const WebComponent=class WebComponent extends HTMLElement {
 WebComponent.Namespace=`Aventus`;
 _.WebComponent=WebComponent;
 
-const WebComponentInstance=class WebComponentInstance {
+let WebComponentInstance=class WebComponentInstance {
     static __allDefinitions = [];
     static __allInstances = [];
     /**
@@ -6729,7 +6729,6 @@ const WebComponentInstance=class WebComponentInstance {
 }
 WebComponentInstance.Namespace=`Aventus`;
 _.WebComponentInstance=WebComponentInstance;
-
 
 
 for(let key in _) { Aventus[key] = _[key] }

@@ -1,8 +1,8 @@
-import { Node, CallExpression, ClassDeclaration, EnumDeclaration, FunctionDeclaration, InterfaceDeclaration, SyntaxKind, TypeAliasDeclaration, TypeNode, TypeReferenceNode, forEachChild, ExpressionWithTypeArguments, NewExpression, PropertyAccessExpression, VariableStatement, VariableDeclaration, MethodDeclaration, getTokenAtPosition, isTypeReferenceNode, LiteralTypeNode, PropertySignature, TupleTypeNode, FunctionTypeNode, TypeParameterDeclaration, ParameterDeclaration, IndexSignatureDeclaration, TypeLiteralNode, getDecorators, HasDecorators } from "typescript";
+import { Node, CallExpression, ClassDeclaration, EnumDeclaration, FunctionDeclaration, InterfaceDeclaration, SyntaxKind, TypeAliasDeclaration, TypeNode, TypeReferenceNode, forEachChild, ExpressionWithTypeArguments, NewExpression, PropertyAccessExpression, VariableStatement, VariableDeclaration, MethodDeclaration, getTokenAtPosition, isTypeReferenceNode, LiteralTypeNode, PropertySignature, FunctionTypeNode, TypeParameterDeclaration, ParameterDeclaration, IndexSignatureDeclaration, TypeLiteralNode, Identifier } from "typescript";
 import { ParserTs } from './ParserTs';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { BaseLibInfo } from './BaseLibInfo';
-import { TypeInfo, TypeInfoKind } from './TypeInfo';
+import { TypeInfo } from './TypeInfo';
 import { DecoratorInfo } from './DecoratorInfo';
 import { DependancesDecorator } from './decorators/DependancesDecorator';
 import * as md5 from 'md5';
@@ -234,15 +234,7 @@ export abstract class BaseInfo {
             if (x.parent.kind == SyntaxKind.GetAccessor || x.parent.kind == SyntaxKind.SetAccessor) {
                 return;
             }
-            if (x.parent.kind >= SyntaxKind.VariableDeclaration && x.parent.kind <= SyntaxKind.JsxExpression) {
-                return;
-            }
-            if ([
-                // SyntaxKind.PropertyDeclaration,
-                SyntaxKind.MethodDeclaration,
-                SyntaxKind.ClassStaticBlockDeclaration,
-
-            ].includes(x.parent.kind)) {
+            if (!this.checkParentIdentifier(x as Identifier)) {
                 return;
             }
 
@@ -267,6 +259,48 @@ export abstract class BaseInfo {
             this.loadExpression(exp.expression, depth2 + 1, isStrongDependance);
         }
     }
+
+    protected checkParentIdentifier(x: Identifier): boolean {
+        const nameCheckers: SyntaxKind[] = [
+            SyntaxKind.VariableDeclaration,
+            SyntaxKind.FunctionDeclaration,
+            SyntaxKind.ClassDeclaration,
+            SyntaxKind.InterfaceDeclaration,
+            SyntaxKind.TypeAliasDeclaration,
+            SyntaxKind.EnumDeclaration,
+            SyntaxKind.ModuleDeclaration,
+            SyntaxKind.NamespaceExportDeclaration,
+            SyntaxKind.ImportEqualsDeclaration,
+            SyntaxKind.ExportAssignment,
+            SyntaxKind.ExportDeclaration,
+            SyntaxKind.NamespaceExport,
+            SyntaxKind.ExportSpecifier,
+            SyntaxKind.MissingDeclaration,
+            SyntaxKind.MethodDeclaration,
+            SyntaxKind.ClassStaticBlockDeclaration,
+        ];
+        const notAllowed: SyntaxKind[] = [
+            SyntaxKind.ImportDeclaration,
+            SyntaxKind.ImportClause,
+            SyntaxKind.NamespaceImport,
+            SyntaxKind.NamedImports,
+            SyntaxKind.ImportSpecifier,
+        ];
+
+        if (nameCheckers.includes(x.parent.kind)) {
+            const parent = x.parent as { name?: Identifier };
+            if (parent.name != x) return true;
+            return false;
+        }
+        else if (notAllowed.includes(x.parent.kind)) {
+            return false;
+        }
+        else if (x.parent.kind >= SyntaxKind.JsxElement && x.parent.kind <= SyntaxKind.JsxExpression) {
+            return false;
+        }
+        return true;
+    }
+
     private loadDependanceContext: undefined | 'Decorator' = undefined;
     private maybeDependances: { [name: string]: { uri: string, name: string, compiled: boolean } } = {}
     protected loadOnlyDependancesRecu(node: Node, depth: number = 0, isStrongDependance: boolean = false) {

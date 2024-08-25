@@ -688,6 +688,7 @@
 		"sass": "^1.53.0",
 		"send": "^0.18.0",
 		"serve-index": "^1.9.1",
+		"sudo-prompt": "^9.2.1",
 		"terser": "^5.19.0",
 		"ts-patch": "^3.0.2",
 		"typescript": "^5.5.3",

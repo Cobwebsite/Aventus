@@ -102,6 +102,9 @@ export class ParserTs {
         if (ParserTs.currentParsingDoc.npmImports[name]) {
             return true;
         }
+        if (ParserTs.currentParsingDoc.packages[name]) {
+            return true;
+        }
         return false;
     }
     public static hasLocal(name: string): boolean {
