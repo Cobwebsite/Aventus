@@ -96,7 +96,10 @@ export class AventusWebSCSSFile extends AventusBaseFile {
             let errorMsgTxt = "|error|";
             const _loadContent = async (file: AventusFile): Promise<string> => {
                 let textToSearch = file.contentUser;
+                //remove comment @import
+                textToSearch = textToSearch.replace(/\/\*[\s\S]*?@import[\s\S]*?\*\/|\/\/.*@import.*/g, '');
 
+                
                 let regex = /@import *?('|")(\S*?)('|");?/g;
                 let arrMatch: RegExpExecArray | null = null;
                 while (arrMatch = regex.exec(textToSearch)) {
@@ -134,6 +137,9 @@ export class AventusWebSCSSFile extends AventusBaseFile {
                         this.diagnosticCompile = createErrorScss(this.file.documentUser, e.message);
                         const diagnostics = [...this.diagnostics, this.diagnosticCompile];
                         GenericServer.sendDiagnostics({ uri: this.file.uri, diagnostics: diagnostics })
+                    }
+                    else {
+                        console.log(e);
                     }
                 }
             }
