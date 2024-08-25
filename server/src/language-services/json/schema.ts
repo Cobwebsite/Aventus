@@ -340,6 +340,10 @@ export const AventusTemplateSchema: JSONSchema = {
         "cmdsAfter": {
             type: "array",
             items: { type: "string" }
+        },
+        "cmdsAfterAdmin": {
+            type: "array",
+            items: { type: "string" }
         }
     },
     "required": ["name", "description", "version", "variables"]

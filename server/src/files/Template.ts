@@ -8,6 +8,7 @@ import { ProjectManager } from '../project/ProjectManager';
 import { FilesManager } from './FilesManager';
 import { GenericServer } from '../GenericServer';
 import { SelectItem } from '../IConnection';
+import { exec as execAdmin } from 'sudo-prompt'
 
 
 export interface TemplateConfigVariable {
@@ -28,6 +29,7 @@ export interface TemplateConfig {
 	"variables": { [name: string]: TemplateConfigVariable },
 	"filesToOpen"?: string[],
 	"cmdsAfter"?: string[],
+	"cmdsAfterAdmin"?: string[],
 }
 
 export class Template {
@@ -101,7 +103,7 @@ export class Template {
 			let currentVar = this.currentConfig.variables[variableName];
 			if (currentVar.type == "input") {
 				let defaultValue = currentVar.defaultValue ?? '';
-				
+
 				const resultInput = await GenericServer.Input({
 					title: currentVar.question,
 					value: defaultValue,
@@ -149,7 +151,7 @@ export class Template {
 				}
 				exportPath = normalize(exportPath);
 				if (statSync(templatePath).isDirectory()) {
-					if(file == '.git') continue;
+					if (file == '.git') continue;
 					mkdirSync(exportPath);
 					_internalLoop(templatePath);
 				}
@@ -161,6 +163,9 @@ export class Template {
 					for (let varName in this.currentVars) {
 						const regex = new RegExp('\\$\\{\\{' + varName + '\\}\\}', 'gm');
 						ctx = ctx.replace(regex, this.currentVars[varName]);
+
+						const regexLower = new RegExp('\\$\\{\\{' + varName + '\\|lower\\}\\}', 'gm');
+						ctx = ctx.replace(regexLower, this.currentVars[varName].toLowerCase());
 					}
 
 					if (this.currentConfig.filesToOpen) {
@@ -244,11 +249,32 @@ export class Template {
 		return new Promise<void>((resolve) => {
 			setTimeout(() => {
 				let params: ExecSyncOptionsWithBufferEncoding = {};
-				params.cwd = uriToPath(GenericServer.getWorkspaceUri());
+				let cwd = uriToPath(GenericServer.getWorkspaceUri());
+				params.cwd = cwd;
 				if (this.currentConfig.cmdsAfter) {
 					for (let cmd of this.currentConfig.cmdsAfter) {
 						try {
 							execSync(cmd, params)
+						} catch (e) {
+							console.log(e);
+							GenericServer.showErrorMessage("The command " + cmd + " failed");
+						}
+					}
+				}
+				if (this.currentConfig.cmdsAfterAdmin) {
+					for (let cmd of this.currentConfig.cmdsAfterAdmin) {
+						try {
+							let moveToCwd = `cd /d "${cwd}"`;
+							if (process.platform == 'darwin') {
+								moveToCwd = `cd "${cwd}"`;
+							}
+							execAdmin("cd " + cwd + " && " + cmd, (error, stdout, stderr) => {
+								if (error) {
+									console.log('error: ' + error);
+									console.log('stdout: ' + stdout);
+									console.log('stderr: ' + stderr);
+								}
+							})
 						} catch (e) {
 							console.log(e);
 							GenericServer.showErrorMessage("The command " + cmd + " failed");
