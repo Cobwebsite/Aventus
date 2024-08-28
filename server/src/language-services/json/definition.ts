@@ -34,7 +34,8 @@ export interface AventusConfigBuildCompile {
 
 export interface AventusConfigBuildCompileOutputNpm {
 	path: string[],
-	packageJson: boolean
+	packageJson: boolean,
+	npmName: string
 }
 
 export interface AventusConfigBuildDependance {

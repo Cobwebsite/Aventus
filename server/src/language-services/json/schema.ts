@@ -139,6 +139,10 @@ export const AventusConfigSchema: JSONSchema = {
                                         "packageJson": {
                                             type: "boolean",
                                             description: "Define if you need to generate a package.json",
+                                        },
+                                        "npmName": {
+                                            type: "string",
+                                            description: "Define the name set inside your package.json",
                                         }
                                     },
                                     items: {

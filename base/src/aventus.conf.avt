@@ -21,7 +21,7 @@
                 "output": "../dist/aventus.js",
                 "outputNpm": {
                     "path": "../../../npmPackage/AventusMain_npm",
-                    "packageJson": false
+                    "npmName": "@aventusjs/main"
                 }
 			}],
             "outsideModule": [

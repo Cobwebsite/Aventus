@@ -79,7 +79,7 @@ export class DependanceManager {
 			let uri = pathToUri(AVENTUS_DEF_BASE_PATH());
 			let avFile = await this.loadByUri(build, uri)
 			avFile.npmUri = this.predefinedNpm[AVENTUS_DEF_BASE_PATH()];
-			loopResult["Aventus"] = {
+			loopResult["Aventus@Main"] = {
 				dependances: [],
 				file: avFile,
 				uri: uri,
@@ -194,6 +194,12 @@ export class DependanceManager {
 			}
 			else if (this.predefinedNpm[dep.uri]) {
 				packageFile.npmUri = this.predefinedNpm[dep.uri];
+			}
+			else {
+				let npmInfo = /\/\/ npm:(.*)$/m.exec(packageFile.file.contentUser);
+				if(npmInfo) {
+					packageFile.npmUri = npmInfo[1];
+				}
 			}
 
 			const setDependance = async (file: AventusPackageFile, uri: string) => {

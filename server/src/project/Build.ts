@@ -84,7 +84,7 @@ export class Build {
 
     public namespaces: string[] = [];
 
-    public externalPackageInformation: ExternalPackageInformation = new ExternalPackageInformation();
+    public externalPackageInformation: ExternalPackageInformation = new ExternalPackageInformation(this);
 
     private dependanceNeedUris: string[] = [];
     private dependanceFullUris: string[] = [];
@@ -100,7 +100,7 @@ export class Build {
     public scssLanguageService: AventusSCSSLanguageService;
     public htmlLanguageService: AventusHTMLLanguageService;
     private allowBuild: boolean = true;
-    private initDone: boolean = false;
+    public initDone: boolean = false;
     private _filesLoaded: boolean = false;
 
     public reloadPage: boolean = false;
@@ -345,13 +345,14 @@ export class Build {
                 available: result.codeRenderInJs,
                 existing: result.codeNotRenderInJs
             }
-            this.writeBuildDocumentation(compile.package, result, srcInfo)
+            this.writeBuildDocumentation(compile.package, result, srcInfo, compile.outputNpm)
             this.writeBuildNpm(compile.outputNpm, result);
             if (this.buildConfig.stories && this.buildConfig.stories.live) {
                 await this.stories.check();
                 this.writeBuildNpm({
                     path: [join(this.buildConfig.stories.output, "generated")],
                     packageJson: false,
+                    npmName: ''
                 }, result);
                 this.stories.write(this.tsFiles);
             }
@@ -437,7 +438,8 @@ export class Build {
             let result = await this.buildLocalCode(compilationInfo.toCompile, this.buildConfig.module);
             this.writeBuildNpm({
                 path: [join(this.buildConfig.stories.output, "generated")],
-                packageJson: false
+                packageJson: false,
+                npmName: ''
             }, result);
         }
         this.stories.write(this.tsFiles, true);
@@ -503,8 +505,7 @@ export class Build {
         namespace: string,
         available: AventusPackageTsFileExport[],
         existing: AventusPackageTsFileExportNoCode[]
-    }
-    ) {
+    }, outputNpm: AventusConfigBuildCompileOutputNpm) {
 
 
         let finaltxtJs = "";
@@ -523,6 +524,10 @@ export class Build {
         // result.docInvisible.length > 0 ? (finaltxtJs += EOL + result.docInvisible.join(EOL) + EOL) : (finaltxtJs += EOL)
 
         let finaltxt = "// " + this.buildConfig.fullname + ":" + this.buildConfig.version + EOL;
+        if (outputNpm.path.length > 0) {
+            let npmName = outputNpm.npmName == '' ? ("@" + this.buildConfig.module + "/" + this.buildConfig.name).toLowerCase() : outputNpm.npmName;
+            finaltxt += '// npm:' + npmName + EOL;
+        }
         finaltxt += "//#region js def //" + EOL + finaltxtJs;
         finaltxt += "//#endregion js def //" + EOL;
         finaltxt += "//#region js src //" + EOL + JSON.stringify(srcInfo) + EOL;
@@ -717,14 +722,23 @@ export class Build {
                 realPackageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
             }
             const dependencies: any = {};
-            for (let dep of this.buildConfig.dependances) {
-                if (realPackageJson.dependencies && realPackageJson.dependencies[dep.npm]) {
-                    dependencies[dep.npm] = realPackageJson.dependencies[dep.npm]
+            for (let uri of this.dependanceUris) {
+                let file = this.externalPackageInformation.getByUri(uri);
+                if (!file) continue;
+                // avoid add self dependance
+                if(file.name == this.buildConfig.fullname) continue
+
+                if (realPackageJson.dependencies && realPackageJson.dependencies[file.npmUri]) {
+                    dependencies[file.npmUri] = realPackageJson.dependencies[file.npmUri]
+                }
+                else {
+                    dependencies[file.npmUri] = '^' + file.versionTxt;
                 }
             }
+            
 
             let packageJson = {
-                name: ("@" + this.buildConfig.module + "/" + this.buildConfig.name).toLowerCase(),
+                name: outputNpm.npmName == '' ? ("@" + this.buildConfig.module + "/" + this.buildConfig.name).toLowerCase() : outputNpm.npmName,
                 displayName: this.buildConfig.module + " " + this.buildConfig.name,
                 description: "Aventus build for " + "@" + this.buildConfig.module + "/" + this.buildConfig.name,
                 version: this.buildConfig.version,
@@ -1844,6 +1858,11 @@ class ExternalPackageInformation {
     private informations: { [fullname: string]: { content: AventusPackageTsFileExport | 'noCode', uri: string } } = {};
     private informationsRequired: { [uri: string]: AventusPackageTsFileExport[] } = {};
     private webComponentByName: { [name: string]: ClassInfo } = {}
+    private build: Build;
+
+    public constructor(build: Build) {
+        this.build = build;
+    }
 
     public get filesUri(): string[] {
         return Object.keys(this.files);
@@ -1859,9 +1878,15 @@ class ExternalPackageInformation {
     public getByFullName(fullName: string) {
         return this.informations[fullName];
     }
+    public getByUri(uri: string): AventusPackageFile | undefined {
+        return this.files[uri];
+    }
     public getNpmUri(fullName: string): { name: string, uri: string, compiled: boolean } | null {
         if (this.informations[fullName]) {
             let file = this.files[this.informations[fullName].uri];
+            if (!file.npmUri && this.build.initDone) {
+                GenericServer.showErrorMessage("Can't find a npm package for " + file.name);
+            }
             const splitted = fullName.split(".");
             let name = splitted.pop() as string;
             splitted.splice(0, 0, file.npmUri)

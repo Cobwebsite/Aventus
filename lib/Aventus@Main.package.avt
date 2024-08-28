@@ -1,4 +1,5 @@
 // Aventus@Main:1.0.0
+// npm:@aventusjs/main
 //#region js def //
 declare global {
 
