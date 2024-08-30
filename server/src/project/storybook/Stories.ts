@@ -104,20 +104,32 @@ export class Storie {
 			let name = info.name;
 			let fullname = info.fullName.replace(/\./g, '/');
 			let hasDefaultStory = true;
-
+			let prefixFound = false;
+			const setPrefix = (prefix: string) => {
+				if (prefix === "") {
+				}
+				else if (prefix.endsWith("/")) {
+					fullname = prefix + fullname;
+				}
+				else {
+					fullname = prefix + "/" + fullname;
+				}
+			}
 			if (info.storieDecorator) {
-				if (info.storieDecorator.prefix) {
-					if (info.storieDecorator.prefix.endsWith("/")) {
-						fullname = info.storieDecorator.prefix + name;
-					}
-					else {
-						fullname = info.storieDecorator.prefix + "/" + name;
-					}
+				if (info.storieDecorator.fullName) {
+					fullname = info.storieDecorator.fullName;
+				}
+				if (info.storieDecorator.prefix !== undefined) {
+					prefixFound = true;
+					setPrefix(info.storieDecorator.prefix);
 				}
 
 				if (info.storieDecorator.onlyMeta) {
 					hasDefaultStory = false;
 				}
+			}
+			if (!prefixFound && this.buildConfig.stories?.prefix !== undefined) {
+				setPrefix(this.buildConfig.stories.prefix);
 			}
 			template = this.replaceVariable(template, "name", name);
 			template = this.replaceVariable(template, "fullname", fullname);
@@ -197,6 +209,30 @@ export class Storie {
 							for (let varName in currentVars) {
 								const regex = new RegExp('\\$\\{\\{' + varName + '\\}\\}', 'gm');
 								ctx = ctx.replace(regex, currentVars[varName]);
+							}
+							if (file == "package.json") {
+								let packageJson = JSON.parse(ctx);
+								if (!packageJson.devDependencies) {
+									packageJson.devDependencies = {};
+								}
+								for (let uri of this.build.externalPackageInformation.filesUri) {
+									let file = this.build.externalPackageInformation.getByUri(uri);
+									if (!file) continue;
+									if (!file.npmUri) continue;
+									// avoid add self dependance
+									if (file.name == this.buildConfig.fullname) continue
+									packageJson.devDependencies[file.npmUri] = '^' + file.versionTxt;
+								}
+
+								const devDependencies = Object.keys(packageJson.devDependencies).sort().reduce(
+									(obj, key) => {
+										obj[key] = packageJson.devDependencies[key];
+										return obj;
+									},
+									{}
+								);
+								packageJson.devDependencies = devDependencies;
+								ctx = JSON.stringify(packageJson, null, 4);
 							}
 							writeFileSync(exportPath, ctx);
 						}

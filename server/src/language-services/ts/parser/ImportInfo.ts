@@ -60,7 +60,7 @@ export class ImportInfo {
 							else {
 								let isTypeOnly = element.isTypeOnly || node.importClause.isTypeOnly;
 								let info = new ImportInfo(parserInfo, moduleName, element.name, isTypeOnly);
-								parserInfo.imports[info.name] = info;
+								parserInfo.importsLocal[info.name] = info;
 							}
 						}
 					}
@@ -124,7 +124,7 @@ export class ImportInfo {
 
 				if (moduleName.startsWith(".")) {
 					let info = new ImportInfo(parserInfo, moduleName, node.importClause.name, node.importClause.isTypeOnly);
-					parserInfo.imports[info.name] = info;
+					parserInfo.importsLocal[info.name] = info;
 				}
 				else {
 					if (!node.importClause.isTypeOnly) {

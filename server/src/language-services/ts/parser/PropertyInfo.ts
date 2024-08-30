@@ -6,6 +6,7 @@ import { ClassInfo } from './ClassInfo';
 import { InternalDecorator, InternalProtectedDecorator } from './decorators/InternalDecorator';
 import { BaseInfo } from './BaseInfo';
 import { DocumentationInfo } from './DocumentationInfo';
+import { StoryValue } from './decorators/StoryValue';
 
 type PropType = PropertyDeclaration | GetAccessorDeclaration | SetAccessorDeclaration | (PropertySignature & { exclamationToken?: boolean });
 export class PropertyInfo {
@@ -61,6 +62,8 @@ export class PropertyInfo {
         return BaseInfo.getContentNpm(this.defaultValueTxt, this.defaultValueStart, this.defaultValueEnd, this._class.dependancesLocations, this._class.compileTransformations);
     }
 
+    public defaultValueStory: string | null = null;
+
     constructor(prop: PropType, isInsideInterface: boolean, _class: ClassInfo) {
         this.isInsideInterface = isInsideInterface;
         this._class = _class;
@@ -95,6 +98,13 @@ export class PropertyInfo {
         this.loadAccessibilityModifier(prop);
         this.type = this.loadType(prop);
         this.loadInitializer(prop);
+
+        for(let decorator of this.decorators) {
+            let storyValue = StoryValue.is(decorator);
+            if(storyValue) {
+                this.defaultValueStory = storyValue.value;
+            }
+        }
     }
 
     private loadAccessibilityModifier(prop: PropType) {

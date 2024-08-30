@@ -2071,8 +2071,8 @@ class WebComponentInstance {
     function NoCompile(): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void;
 
     interface StorybookConfig {
-        /** Define if the element must be exported to storybook */
-        export?: boolean,
+        /** Define what must be exported to storybook */
+        export?: 'all' | 'none' | 'public',
         /** Define a prefix to group your stories */
         prefix?: string,
         /** If set to true, only meta will be generated. Usefull to create custom pages */
@@ -2091,6 +2091,10 @@ class WebComponentInstance {
      * Export a story for this component
      */
     function Storybook(info?: StorybookConfig);
+
+    function NoStory();
+    function AddToStory();
+    function StoryValue(value: any);
 
 }
 declare module ___Aventus {

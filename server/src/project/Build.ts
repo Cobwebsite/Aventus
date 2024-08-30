@@ -89,7 +89,7 @@ export class Build {
     private dependanceNeedUris: string[] = [];
     private dependanceFullUris: string[] = [];
     // order uri file to parse inside build
-    private dependanceUris: string[] = [];
+    public dependanceUris: string[] = [];
     public diagnostics: Map<AventusBaseFile, Diagnostic[]> = new Map();
 
 
@@ -594,12 +594,15 @@ export class Build {
             let txt = "";
             for (let uri in result.npmsrc[path].imports) {
                 const names = result.npmsrc[path].imports[uri];
-                txt += `import { ${names.join(", ")} } from "${uri}";` + EOL
+                if (names.length > 0) {
+                    txt += `import { ${names.join(", ")} } from "${uri}";` + EOL
+                }
             }
             if (txt != "") {
                 txt += EOL;
             }
             txt += result.npmsrc[path].content.join(EOL);
+            txt = AventusTsLanguageService.removeUnusedImport(txt);
             for (let outputPackage of outputNpm.path) {
                 const folder = getFolder(path);
                 const outputDir = join(outputPackage, "__src", ...folder.split(sep))
@@ -654,16 +657,18 @@ export class Build {
                 }
             }
             for (let uri in content.imports) {
-                if (imported.includes(uri)) continue;
+                //if (imported.includes(uri)) continue;
                 const names = content.imports[uri];
-                txt += `import { ${names.join(", ")} } from "${uri}";` + EOL
+                if (names.length > 0) {
+                    txt += `import { ${names.join(", ")} } from "${uri}";` + EOL
+                }
             }
             txt += EOL + content.content.join(EOL) + EOL;
             txt += txtEnd;
 
             txt = txt.replaceAll("globalThis.Aventus.", "");
             txt = txt.replaceAll("___Aventus.", "");
-
+            txt = AventusTsLanguageService.removeUnusedImport(txt);
             for (let outputPackage of outputNpm.path) {
                 const outputDir = join(outputPackage, ..._namespace.split("."))
                 if (!existsSync(outputDir)) {
@@ -698,7 +703,7 @@ export class Build {
                 }
             }
             txt += txtEnd;
-
+            txt = AventusTsLanguageService.removeUnusedImport(txt);
             for (let outputPackage of outputNpm.path) {
                 const outputDir = join(outputPackage, ..._namespace.split("."))
                 if (!existsSync(outputDir)) {
@@ -722,11 +727,12 @@ export class Build {
                 realPackageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
             }
             const dependencies: any = {};
-            for (let uri of this.dependanceUris) {
+            for (let uri of this.externalPackageInformation.filesUri) {
                 let file = this.externalPackageInformation.getByUri(uri);
                 if (!file) continue;
+                if (!file.npmUri) continue;
                 // avoid add self dependance
-                if(file.name == this.buildConfig.fullname) continue
+                if (file.name == this.buildConfig.fullname) continue
 
                 if (realPackageJson.dependencies && realPackageJson.dependencies[file.npmUri]) {
                     dependencies[file.npmUri] = realPackageJson.dependencies[file.npmUri]
@@ -735,7 +741,7 @@ export class Build {
                     dependencies[file.npmUri] = '^' + file.versionTxt;
                 }
             }
-            
+
 
             let packageJson = {
                 name: outputNpm.npmName == '' ? ("@" + this.buildConfig.module + "/" + this.buildConfig.name).toLowerCase() : outputNpm.npmName,
@@ -859,7 +865,7 @@ export class Build {
                                 required: info.required,
                                 noNamespace: "after",
                                 type: info.type,
-                                isExported: info.isExported,
+                                isExported: info.isExported.external,
                                 convertibleName: info.convertibleName,
                                 tagName: info.tagName
                             };
@@ -875,7 +881,7 @@ export class Build {
                                 required: info.required,
                                 noNamespace: "before",
                                 type: info.type,
-                                isExported: info.isExported,
+                                isExported: info.isExported.external,
                                 convertibleName: info.convertibleName,
                                 tagName: info.tagName
                             }
@@ -920,7 +926,7 @@ export class Build {
                             names: [],
                         }
                     }
-                    const txt = info.isExported ? "export " + info.npm.src : info.npm.src;
+                    const txt = info.isExported.internal ? "export " + info.npm.src : info.npm.src;
                     result.npmsrc[info.npm.exportPath].content.push(txt);
                 }
                 addHTMLDoc(info, false);
@@ -930,7 +936,7 @@ export class Build {
                 if (info.classScript != "" && !info.classScript.startsWith("!staticClass_")) {
                     result.classesName[info.classScript] = {
                         type: info.type,
-                        isExported: info.isExported,
+                        isExported: info.isExported.external,
                         convertibleName: info.convertibleName
                     }
                 }
@@ -945,7 +951,7 @@ export class Build {
                             fullName: exportName,
                             required: info.required,
                             type: info.type,
-                            isExported: info.isExported,
+                            isExported: info.isExported.external,
                             convertibleName: info.convertibleName,
                             tagName: info.tagName
                         }
@@ -980,7 +986,7 @@ export class Build {
                             imports: {}
                         };
                     }
-                    const txt = info.isExported ? "export " + info.npm.defTs : info.npm.defTs;
+                    const txt = info.isExported.external ? "export " + info.npm.defTs : info.npm.defTs;
                     result.npm[info.npm.namespace].content.push(txt);
                     let importsNpm = this.tsFiles[info.npm.uri].fileParsed?.npmGeneratedImport;
                     if (importsNpm) {
@@ -990,8 +996,10 @@ export class Build {
                                 imports[_packageUri] = []
                             }
                             for (let infoImport of importsNpm[_packageUri]) {
-                                if (!imports[_packageUri].includes(infoImport.name)) {
-                                    imports[_packageUri].push(infoImport.name);
+                                if (infoImport.onlySrc) continue;
+                                const nameWithAlias = infoImport.alias ? infoImport.name + ' as ' + infoImport.alias : infoImport.name;
+                                if (!imports[_packageUri].includes(nameWithAlias)) {
+                                    imports[_packageUri].push(nameWithAlias);
                                 }
                             }
                         }
@@ -1004,42 +1012,47 @@ export class Build {
                             imports: {},
                             names: []
                         }
-                        let imports = this.tsFiles[info.npm.uri].fileParsed?.imports;
-                        if (imports) {
-                            for (let name in imports) {
-                                let importInfo = imports[name];
-                                // prevent importing type
-                                if (importInfo.isTypeImport) continue;
-                                let fileToImportUri = importInfo.info?.fileUri ?? '';
-                                let currentUri = info.npm.uri;
-                                let finalPath = simplifyUri(fileToImportUri, currentUri);
-                                finalPath = finalPath.replace(AventusExtension.Base, ".js");
-                                if (!result.npmsrc[info.npm.exportPath].imports[finalPath]) {
-                                    result.npmsrc[info.npm.exportPath].imports[finalPath] = []
-                                }
-                                result.npmsrc[info.npm.exportPath].imports[finalPath].push(name);
-                            }
-                        }
-                        let importsNpm = this.tsFiles[info.npm.uri].fileParsed?.npmGeneratedImport;
+                        let fileParsed = this.tsFiles[info.npm.uri].fileParsed;
+                        let importsNpm = fileParsed?.npmGeneratedImport;
                         if (importsNpm) {
                             for (let _packageUri in importsNpm) {
-                                // dont use local package here bc it's loaded by the import section
-                                if (_packageUri.startsWith(".")) continue;
-                                if (!result.npmsrc[info.npm.exportPath].imports[_packageUri + "/index.js"]) {
-                                    result.npmsrc[info.npm.exportPath].imports[_packageUri + "/index.js"] = []
+                                if (_packageUri.startsWith(".")) {
+                                    let imports = fileParsed?.importsLocal;
+                                    if (imports) {
+                                        for (let infoImport of importsNpm[_packageUri]) {
+                                            let importInfo = imports[infoImport.name];
+                                            if (!importInfo) continue; // it means its a local dependance (same file)
+                                            if (importInfo.isTypeImport) continue;
+                                            let fileToImportUri = importInfo.info?.fileUri ?? '';
+                                            let currentUri = info.npm.uri;
+                                            let finalPath = simplifyUri(fileToImportUri, currentUri);
+                                            finalPath = finalPath.replace(AventusExtension.Base, ".js");
+                                            if (!result.npmsrc[info.npm.exportPath].imports[finalPath]) {
+                                                result.npmsrc[info.npm.exportPath].imports[finalPath] = []
+                                            }
+                                            const nameWithAlias = infoImport.alias ? infoImport.name + ' as ' + infoImport.alias : infoImport.name;
+                                            result.npmsrc[info.npm.exportPath].imports[finalPath].push(nameWithAlias);
+                                        }
+                                    }
                                 }
-                                for (let infoImport of importsNpm[_packageUri]) {
-                                    if (infoImport.compiled) {
-                                        result.npmsrc[info.npm.exportPath].imports[_packageUri + "/index.js"].push(infoImport.name);
+                                else {
+                                    if (!result.npmsrc[info.npm.exportPath].imports[_packageUri + "/index.js"]) {
+                                        result.npmsrc[info.npm.exportPath].imports[_packageUri + "/index.js"] = []
+                                    }
+                                    for (let infoImport of importsNpm[_packageUri]) {
+                                        if (infoImport.compiled) {
+                                            const nameWithAlias = infoImport.alias ? infoImport.name + ' as ' + infoImport.alias : infoImport.name;
+                                            result.npmsrc[info.npm.exportPath].imports[_packageUri + "/index.js"].push(nameWithAlias);
+                                        }
                                     }
                                 }
                             }
                         }
                     }
-                    const txt = info.isExported ? "export " + info.npm.src : info.npm.src;
+                    const txt = info.isExported.internal ? "export " + info.npm.src : info.npm.src;
                     result.npmsrc[info.npm.exportPath].content.push(txt);
 
-                    if (info.isExported && info.classScript) {
+                    if (info.isExported.internal && info.classScript) {
                         result.npmsrc[info.npm.exportPath].names.push(this.module + "." + info.classScript);
                     }
                 }
@@ -1832,6 +1845,33 @@ export class Build {
             }
         }
         return {};
+    }
+
+    public npmAliases: { [fullname: string]: string } = {};
+    public npmNameCount: { [name: string]: number } = {};
+    public getNpmReplacementName(fromName: string, fullName: string): string {
+        if(!this.hasNpmOutput) return '';
+        
+        const splitted = fullName.split(".");
+        let last = splitted.pop()!;
+
+        const splitted2 = fromName.split(".");
+        splitted2.pop();
+        if(splitted.join(".") == splitted2.join(".")) {
+            return last;
+        }
+
+        if (this.npmAliases[fullName]) {
+            return this.npmAliases[fullName];
+        }
+
+        
+        if (!this.npmNameCount[last]) {
+            this.npmNameCount[last] = 0;
+        }
+        this.npmNameCount[last]++;
+        this.npmAliases[fullName] = last + this.npmNameCount[last]
+        return this.npmAliases[fullName];
     }
 
     public destroy() {

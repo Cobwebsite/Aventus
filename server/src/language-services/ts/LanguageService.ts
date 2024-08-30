@@ -506,11 +506,11 @@ export class AventusTsLanguageService {
             }
             if (tsFile.fileParsed) {
                 // we must check type alias inside imports
-                for (let importName in tsFile.fileParsed.imports) {
+                for (let importName in tsFile.fileParsed.importsLocal) {
                     if (importName == typeName) {
                         return typeName;
                     }
-                    let importInfo = tsFile.fileParsed.imports[importName];
+                    let importInfo = tsFile.fileParsed.importsLocal[importName];
                     if (importInfo.realName === undefined) {
                         let nodeImported = getTokenAtPosition(srcFile, (importInfo.nameEnd + importInfo.nameStart) / 2);
                         let typeImported = typeChecker.getTypeAtLocation(nodeImported);
@@ -934,7 +934,7 @@ export class AventusTsLanguageService {
                     return type.value;
                 }
                 else {
-                    let importInfo = classInfo.parserInfo.imports[type.value]?.info
+                    let importInfo = classInfo.parserInfo.importsLocal[type.value]?.info
                     if (importInfo) {
                         let name = npm ? importInfo.name : moduleName + '.' + importInfo.fullName
                         return name;
@@ -957,7 +957,7 @@ export class AventusTsLanguageService {
                 let foreignKey = ForeignKeyDecorator.is(decorator);
                 if (foreignKey) {
                     found = true;
-                    let importInfo = classInfo.parserInfo.imports[foreignKey.refType]?.info;
+                    let importInfo = classInfo.parserInfo.importsLocal[foreignKey.refType]?.info;
                     if (foreignKey.refType.includes(".")) {
                         template[propName] = 'ref:' + foreignKey.refType;
                     }
@@ -979,7 +979,7 @@ export class AventusTsLanguageService {
         }
         let result = JSON.stringify(template).replace(/\\"/g, '"');
         if (classInfo.parentClass) {
-            let name = npm ? classInfo.parentClass.name : classInfo.parentClass.fullName;
+            let name = npm ? classInfo.extendsNpm[0] : classInfo.parentClass.fullName;
             result = `{...(${name}?.$schema ?? {}), ${result.slice(1)}`;
         }
         return result;
@@ -1029,7 +1029,10 @@ export class AventusTsLanguageService {
             uri: file.file.uri,
             required: false,
             type: element.infoType,
-            isExported: element.isExported,
+            isExported: {
+                external: element.isExported,
+                internal: element.isInternalExported
+            },
             convertibleName: '',
             npm: {
                 defTs: "",
@@ -1206,16 +1209,28 @@ export class AventusTsLanguageService {
                 additionContentNpm += element.name + ".Namespace=`" + moduleName + currentNamespaceWithDot + "`;" + EOL;
                 if (element.convertibleName) {
                     additionContentNpm += element.name + ".$schema=" + this.prepareDataSchema(element, moduleName, true) + ";" + EOL;
-                    additionContentNpm += "Converter.register(" + element.fullName + "." + element.convertibleName + ", " + element.fullName + ");" + EOL
+                    const converterName = file.build.getNpmReplacementName("", "Aventus.Converter")
+                    additionContentNpm += converterName + ".register(" + element.name + "." + element.convertibleName + ", " + element.name + ");" + EOL
                     if (file.fileParsed) {
-                        file.fileParsed.registerGeneratedImport('@aventusjs/main/Aventus', "Converter", true);
+                        file.fileParsed.registerGeneratedImport({
+                            uri: '@aventusjs/main/Aventus',
+                            name: "Converter",
+                            compiled: true,
+                            alias: converterName
+                        });
                     }
                 }
                 else if (element.implements.includes('Aventus.IData')) {
                     additionContentNpm += element.name + ".$schema=" + this.prepareDataSchema(element, moduleName, true) + ";" + EOL;
-                    additionContentNpm += "Converter.register(" + element.fullName + ".Fullname, " + element.fullName + ");" + EOL;
+                    const converterName = file.build.getNpmReplacementName("", "Aventus.Converter")
+                    additionContentNpm += converterName + ".register(" + element.name + ".Fullname, " + element.name + ");" + EOL;
                     if (file.fileParsed) {
-                        file.fileParsed.registerGeneratedImport('@aventusjs/main/Aventus', "Converter", true);
+                        file.fileParsed.registerGeneratedImport({
+                            uri: '@aventusjs/main/Aventus',
+                            name: "Converter",
+                            compiled: true,
+                            alias: converterName
+                        });
                     }
                 }
                 txt = this.addBindThis(element, txt);
@@ -1227,6 +1242,7 @@ export class AventusTsLanguageService {
             txt = this.removeComments(txt);
             txt = this.replaceFirstExport(txt);
             const transpiled = transpile(txt, compilerOptionsCompile);
+
             const rawDoc = this.compileDocTs(txt);
 
             result.namespace = file.build.module;
@@ -1298,6 +1314,94 @@ export class AventusTsLanguageService {
         }
         return "";
     }
+    public static removeUnusedImport(txt: string): string {
+        try {
+            let document = TextDocument.create("temp.js", "js", 1, txt);
+            const host: LanguageServiceHost = {
+                getCompilationSettings: () => {
+                    return {
+                        noUnusedLocals: true,
+                        allowNonTsExtensions: true,
+                        allowJs: true
+                    }
+                },
+                getScriptFileNames: () => ["temp.js"],
+                getScriptKind: (fileName) => {
+                    return ScriptKind.TS;
+                },
+                getScriptVersion: (fileName: string) => {
+                    return '1';
+                },
+                getScriptSnapshot: (fileName: string) => {
+                    let text = txt;
+                    return {
+                        getText: (start, end) => text?.substring(start, end) || '',
+                        getLength: () => text?.length || 0,
+                        getChangeRange: () => undefined
+                    };
+                },
+                getCurrentDirectory: () => '',
+                getDefaultLibFileName: (_options: CompilerOptions) => '',
+                readFile: (path: string, _encoding?: string | undefined): string | undefined => {
+                    if (path == "temp.js")
+                        return txt;
+                    return ""
+                },
+                fileExists: (path: string): boolean => {
+                    return false;
+                },
+                directoryExists: (path: string): boolean => {
+                    return false;
+                },
+
+            };
+            let ls: LanguageService = createLanguageService(host);
+            const semanticDiagnostics: DiagnosticTs[] = ls.getSemanticDiagnostics("temp.js");
+            const unusedRanges: { start: number, length: number }[] = [];
+            for (let diag of semanticDiagnostics) {
+                if (diag.reportsUnnecessary && diag.start != undefined) {
+                    const position = document.positionAt(diag.start);
+                    const start: Position = { line: position.line, character: 0 }
+                    const end: Position = { line: position.line, character: 6 }
+                    const isImport = txt.slice(document.offsetAt(start), document.offsetAt(end)) == "import";
+                    if (isImport) {
+                        unusedRanges.push({
+                            start: diag.start!,
+                            length: diag.length!
+                        });
+                    }
+                }
+            }
+            unusedRanges.sort((a, b) => b.start - a.start);
+
+            for (let range of unusedRanges) {
+                txt = txt.slice(0, range.start) + txt.slice(range.start + range.length);
+            }
+
+            // Nettoyage des importations
+            txt = txt.replace(/import\s*\{[^}]*\}\s*from\s*['"][^'"]*['"];\s*/g, (importStatement) => {
+                // Supprimer les virgules résiduelles
+                // Nettoyage des alias vides
+                let cleanedImport = importStatement.replace(/(,|{)(?:\s*(\S+)\s+as\s+)(?=,|})/g, '$1');
+                cleanedImport = cleanedImport
+                    .replace(/(,\s*)+/g, ', ') // Remplace les doubles virgules par une seule
+                    .replace(/,\s*}/g, ' }') // Supprime la virgule avant la fermeture d'accolade
+                    .replace(/{\s*,/g, '{ '); // Supprime la premiere virgule
+
+
+                // Si l'import est vide, supprimer l'importation entière
+                if (cleanedImport.match(/\{\s*\}/)) {
+                    return '';
+                }
+
+                return cleanedImport;
+            });
+            return txt
+        } catch (e) {
+            this.printCatchError(e);
+        }
+        return "";
+    }
     public static getCompilerOptionsCompile(): CompilerOptions {
         return compilerOptionsCompile;
     }
@@ -1339,7 +1443,10 @@ export type CompileTsResult = {
     uri: string,
     required: boolean,
     type: InfoType,
-    isExported: boolean,
+    isExported: {
+        internal: boolean,
+        external: boolean
+    },
     convertibleName: string,
     tagName?: string,
     npm: CompileTsResultNpm;

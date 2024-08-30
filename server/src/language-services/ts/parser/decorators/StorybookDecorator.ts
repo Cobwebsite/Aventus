@@ -1,8 +1,9 @@
 import { DecoratorInfo } from '../DecoratorInfo';
 
 type StorybookConfig = {
-	export?: boolean,
+	export?: StoryExport,
 	prefix?: string,
+	fullName?: string,
 	onlyMeta?: boolean;
 	slots?: {
 		values?: {
@@ -11,10 +12,12 @@ type StorybookConfig = {
 		inject?: string[];
 	};
 }
+type StoryExport = 'all' | 'none' | 'public';
 export class StorybookDecorator {
 	public prefix?: string;
-	public cancelExport?: boolean;
+	public exportType?: StoryExport;
 	public onlyMeta?: boolean;
+	public fullName?: string
 	public slots?: {
 		values?: {
 			[name: string]: string;
@@ -30,8 +33,11 @@ export class StorybookDecorator {
 					if (params.prefix) {
 						result.prefix = JSON.parse(params.prefix);
 					}
-					if (params.export === false) {
-						result.cancelExport = true;
+					if (params.export) {
+						result.exportType = params.export.replace(/(^('|"))|(('|")$)/g, '') as StoryExport;
+					}
+					if (params.fullName) {
+						result.fullName = params.fullName.replace(/(^('|"))|(('|")$)/g, '');
 					}
 					if (params.onlyMeta === true) {
 						result.onlyMeta = true;
@@ -40,7 +46,10 @@ export class StorybookDecorator {
 						result.slots = {}
 
 						if (params.slots.values) {
-							result.slots.values = params.slots.values
+							result.slots.values = {};
+							for (let key in params.slots.values) {
+								result.slots.values[key.replace(/(^('|"))|(('|")$)/g, '')] = params.slots.values[key];
+							}
 						}
 						if (params.slots.inject) {
 							result.slots.inject = params.slots.inject

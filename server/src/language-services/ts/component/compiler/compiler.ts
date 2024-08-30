@@ -37,8 +37,7 @@ import { DefaultStateInactiveDecorator } from '../../parser/decorators/DefaultSt
 import { BindThisDecorator } from '../../parser/decorators/BindThisDecorator';
 import { EffectDecorator, EffectDecoratorOption } from '../../parser/decorators/EffectDecorator';
 import { HttpServer } from '../../../../live-server/HttpServer';
-import { InputType } from '@storybook/csf';
-import { IStoryContentWebComponent, IStoryContentWebComponentSlot, IStoryContentWebComponentStyle } from '@aventusjs/storybook';
+import { IStoryContentClass, IStoryContentWebComponent, IStoryContentWebComponentSlot, IStoryContentWebComponentStyle, InputType } from '@aventusjs/storybook';
 import { SignalDecorator } from '../../parser/decorators/SignalDecorator';
 
 
@@ -122,7 +121,10 @@ export class AventusWebcomponentCompiler {
         uri: "",
         required: false,
         type: InfoType.class,
-        isExported: true,
+        isExported: {
+            internal: true,
+            external: true
+        },
         convertibleName: '',
         tagName: '',
         story: {}
@@ -378,11 +380,10 @@ export class AventusWebcomponentCompiler {
             this.className = classInfo.name;
             this.fullName = classInfo.fullName;
             this.parentClassName = 'Aventus.WebComponent';
-            this.parentClassNameNpm = "WebComponent";
+            this.parentClassNameNpm = this.build.getNpmReplacementName([this.build.module, this.fullName].join("."), "Aventus.WebComponent");
             if (classInfo.extends.length > 0 && classInfo.extends[0]) {
                 this.parentClassName = classInfo.extends[0];
-                const splitted = classInfo.extends[0].split(".");
-                this.parentClassNameNpm = splitted[splitted.length - 1];
+                this.parentClassNameNpm = classInfo.extendsNpm[0];
             }
         }
     }
@@ -591,10 +592,16 @@ export class AventusWebcomponentCompiler {
             let aventusName = this.build.isCoreBuild ? "" : "Aventus.";
             this.writeFileReplaceVar("definition", "if(!window.customElements.get('" + this.tagName + "')){window.customElements.define('" + this.tagName + "', " + this.fullName + ");" + aventusName + "WebComponentInstance.registerDefinition(" + this.fullName + ");}")
             this.writeFileHotReloadReplaceVar("definition", "if(!window.customElements.get('" + this.tagName + "')){window.customElements.define('" + this.tagName + "', " + this.fullName + ");" + aventusName + "WebComponentInstance.registerDefinition(" + this.fullName + ");}")
-            this.writeFileNpmReplaceVar("definition", "if(!window.customElements.get('" + this.tagName + "')){window.customElements.define('" + this.tagName + "', " + this.className + ");WebComponentInstance.registerDefinition(" + this.className + ");}");
 
             if (this.templateNpm && this.fileParsed) {
-                this.fileParsed.registerGeneratedImport('@aventusjs/main/Aventus', "WebComponentInstance", true);
+                const aliasName = this.build.getNpmReplacementName("", "Aventus.WebComponentInstance");
+                this.writeFileNpmReplaceVar("definition", "if(!window.customElements.get('" + this.tagName + "')){window.customElements.define('" + this.tagName + "', " + this.className + ");" + aliasName + ".registerDefinition(" + this.className + ");}");
+                this.fileParsed.registerGeneratedImport({
+                    uri: '@aventusjs/main/Aventus',
+                    name: "WebComponentInstance",
+                    compiled: true,
+                    alias: aliasName
+                });
             }
         }
 
@@ -678,23 +685,43 @@ export class AventusWebcomponentCompiler {
     public storyArgTypes: { [name: string]: InputType } = {};
     public storyArgs: { [name: string]: any } = {};
     private addStoryField(field: CustomFieldModel) {
-        if (!this.hasStory) return;
+        if (field.propType == "Simple") return;
+        if (!this.hasStory || !this.classInfo?.storieContent) return;
 
         let category: string = "";
 
         if (field.propType == "Attribute") category = "Attributes";
         else if (field.propType == "Property") category = "Properties";
         else if (field.propType == "Watch") category = "Watches";
+        else if (field.propType == "Signal") category = "Signals";
 
-        let type = this.validateTypeForProp(this.document, field);
+        if (this.classInfo.storieContent.kind == 'class') {
+            const storyContent = this.classInfo.storieContent;
+            const storyField = storyContent.properties?.find(p => p.name == field.name);
+            if (storyField) {
+                if (!storyField.modifiers) {
+                    storyField.modifiers = [field.propType]
+                }
+                else if (!storyField.modifiers.includes(field.propType)) {
+                    storyField.modifiers.push(field.propType);
+                }
+            }
+        }
+
+        if (field.propType == 'ViewElement') return;
+
+        //#region add controler to edit value
+        let type = field.type;
         if (!type) {
             return;
         }
         let control: "text" | "select" | "boolean" | 'number' | 'date' | 'object' = "text";
         let values: string[] = [];
-        let storyValue: string | null = field.defaultValue;
+        let storyValue: string | undefined = field.defaultValue ?? undefined;
+        let attType: 'string' | 'number' | "boolean" | undefined = undefined;
         if (type.kind == "string") {
             control = "text";
+            attType = 'string';
         }
         else if (type.kind == "literal") {
             control = "select";
@@ -705,8 +732,9 @@ export class AventusWebcomponentCompiler {
             if (value.endsWith("'") || value.endsWith('"')) {
                 value = value.substring(0, value.length - 1);
             }
-            storyValue = field.defaultValue?.slice(1, -1) ?? null;
+            storyValue = field.defaultValue?.slice(1, -1) ?? undefined;
             values.push(value);
+            attType = 'string';
         }
         else if (type.kind == "union") {
             control = "select";
@@ -720,13 +748,16 @@ export class AventusWebcomponentCompiler {
                 }
                 values.push(value);
             }
-            storyValue = field.defaultValue?.slice(1, -1) ?? null;
+            storyValue = field.defaultValue?.slice(1, -1) ?? undefined;
+            attType = 'string';
         }
         else if (type.kind == "number") {
             control = "number";
+            attType = 'number';
         }
         else if (type.kind == "boolean") {
             control = "boolean";
+            attType = 'boolean';
         }
         else if (type.kind === "type" && type.value == "Date") {
             control = "date";
@@ -744,11 +775,19 @@ export class AventusWebcomponentCompiler {
                 category: category
             }
         }
+        if (attType) {
+            this.storyArgTypes[field.name].type = attType;
+        }
         if (values.length > 0) {
             this.storyArgTypes[field.name].options = values;
         }
 
+        if (field.defaultValueStory !== null) {
+            storyValue = field.defaultValueStory;
+        }
+
         this.storyArgs[field.name] = storyValue
+        //#endregion
     }
     private writeFileFields() {
         let simpleVariables: CustomFieldModel[] = [];
@@ -766,13 +805,12 @@ export class AventusWebcomponentCompiler {
                 }
                 continue;
             }
+            this.addStoryField(field);
             if (field.propType == "Attribute") {
                 attributes.push(field);
-                this.addStoryField(field);
                 continue;
             }
             else if (field.propType == "Property") {
-                this.addStoryField(field);
                 for (let decorator of field.decorators) {
                     let tempProp = PropertyDecorator.is(decorator);
                     if (tempProp) {
@@ -785,7 +823,6 @@ export class AventusWebcomponentCompiler {
                 continue;
             }
             else if (field.propType == "Signal") {
-                this.addStoryField(field);
                 for (let decorator of field.decorators) {
                     let tempProp = SignalDecorator.is(decorator);
                     if (tempProp) {
@@ -798,7 +835,6 @@ export class AventusWebcomponentCompiler {
                 continue;
             }
             else if (field.propType == "Watch") {
-                this.addStoryField(field);
                 for (let decorator of field.decorators) {
                     let tempProp = WatchDecorator.is(decorator);
                     if (tempProp) {
@@ -1980,15 +2016,19 @@ this.clearWatchHistory = () => {
                 }
                 if (property.type == "color") {
                     this.storyArgTypes[property.name].control = 'color';
+                    this.storyArgTypes[property.name].type = 'color';
                 }
                 else {
+                    this.storyArgTypes[property.name].type = 'string';
                     this.storyArgTypes[property.name].control = 'text';
                 }
 
                 // default
                 if (property.defaultValue) {
                     this.storyArgs[property.name] = property.defaultValue
-                    styleTemp.value = property.defaultValue
+                }
+                if (property.chainValues) {
+                    styleTemp.value = property.chainValues.join(" | ");
                 }
 
                 style.push(styleTemp);

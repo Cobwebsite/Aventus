@@ -14,6 +14,7 @@ export interface CustomCssProperty {
 	/** values if type is literal */
 	typeValues?: string[],
 	defaultValue?: string,
+	chainValues?: string[],
 }
 
 /// <summary>

@@ -17,7 +17,7 @@ import * as md5 from 'md5';
 import { HTMLFormat } from '../../html/parser/definition';
 import { join } from 'path';
 import { InjectionRender } from '../../html/parser/TagInfo';
-import { InputType } from '@storybook/csf';
+import { InputType } from '@aventusjs/storybook';
 
 type ViewMethodInfo = {
     name: string
