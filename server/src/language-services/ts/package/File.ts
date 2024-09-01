@@ -329,7 +329,7 @@ export class AventusPackageFileTs extends AventusTsFile {
 							}
 						}
 						let startVirtual = content[_namespace].text.length;
-						content[_namespace].text += "export " + info.content + EOL;
+						content[_namespace].text += `export import ${name} = ${info.fullName};` + EOL;
 						content[_namespace].parts.push({
 							startDef: info.start,
 							endDef: info.end,
