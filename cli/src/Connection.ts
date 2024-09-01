@@ -150,14 +150,29 @@ export class CliConnection implements IConnection {
 
 
 	async Input(options: InputOptions): Promise<string | null> {
-		if (options.validateInput) {
-			let check = options.validateInput;
-			let fct = async (value: string) => {
-				let err = await check(value);
-				if (!err) {
-					return true;
+		if (options.validations) {
+			let validations: ((value: string) => string | null)[] = [];
+			if (options.validations) {
+				const addValidation = (val: { regex: string, message: string }) => {
+					validations.push((value: string) => {
+						if (!value.match(new RegExp(val.regex))) {
+							return val.message;
+						}
+						return null;
+					})
 				}
-				return err;
+				for (let validation of options.validations) {
+					addValidation(validation);
+				}
+			}
+			let fct = async (value: string) => {
+				for (let validation of validations) {
+					let tempResult = validation(value);
+					if (tempResult !== null) {
+						return tempResult;
+					}
+				}
+				return true;
 			}
 			return await Interaction.input(options.title, options.value, fct);
 		}

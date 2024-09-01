@@ -8,7 +8,6 @@ import { AskInput } from '../notification/AskInput';
 import { AskSelect } from '../notification/AskSelect';
 import { AskSelectMultiple } from '../notification/AskSelectMultiple';
 import { Popup } from '../notification/Popup';
-import { dirname } from 'path';
 import { FilesManager } from '../files/FilesManager';
 import { AventusLanguageId } from '../definition';
 
