@@ -1850,14 +1850,14 @@ export class Build {
     public npmAliases: { [fullname: string]: string } = {};
     public npmNameCount: { [name: string]: number } = {};
     public getNpmReplacementName(fromName: string, fullName: string): string {
-        if(!this.hasNpmOutput) return '';
-        
+        if (!this.hasNpmOutput) return '';
+
         const splitted = fullName.split(".");
         let last = splitted.pop()!;
 
         const splitted2 = fromName.split(".");
         splitted2.pop();
-        if(splitted.join(".") == splitted2.join(".")) {
+        if (splitted.join(".") == splitted2.join(".")) {
             return last;
         }
 
@@ -1865,7 +1865,7 @@ export class Build {
             return this.npmAliases[fullName];
         }
 
-        
+
         if (!this.npmNameCount[last]) {
             this.npmNameCount[last] = 0;
         }
@@ -1922,6 +1922,8 @@ class ExternalPackageInformation {
         return this.files[uri];
     }
     public getNpmUri(fullName: string): { name: string, uri: string, compiled: boolean } | null {
+        if (!this.build.hasNpmOutput) return null;
+        
         if (this.informations[fullName]) {
             let file = this.files[this.informations[fullName].uri];
             if (!file.npmUri && this.build.initDone) {

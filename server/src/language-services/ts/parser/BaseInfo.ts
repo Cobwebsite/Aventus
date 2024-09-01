@@ -68,8 +68,8 @@ export abstract class BaseInfo {
         return false;
     }
     public static isStoryExported(node: ClassDeclaration | EnumDeclaration | InterfaceDeclaration | TypeAliasDeclaration | FunctionDeclaration | VariableStatement | MethodDeclaration, build: Build) {
-        if(!build.buildConfig.stories) return false;
-        
+        if (!build.buildConfig.stories) return false;
+
 
         const decorators = DecoratorInfo.buildDecorator(node);
         let decorator = decorators.find(p => p.name == "Storybook");
@@ -789,14 +789,14 @@ export abstract class BaseInfo {
                 uri: "@external",
                 isStrong: isStrongDependance,
             });
-            if (this.dependancesLocations[name] && classExternal) {
-                const npmReplacement = this.getNpmReplacementName(fullName);
+            const npmReplacement = this.getNpmReplacementName(fullName);
+            if (this.dependancesLocations[name]) {
                 this.dependancesLocations[name].typeRemplacement = fullName;
                 this.dependancesLocations[name].replacement = fullName;
                 this.dependancesLocations[name].npmReplacement = npmReplacement;
                 this.dependancesLocations[name].hotReloadReplacement = fullName;
-
-                // TODO find a way to correct import from aventus
+            }
+            if (classExternal) {
                 this._parserInfo.registerGeneratedImport({
                     uri: classExternal.uri,
                     name: classExternal.name,
