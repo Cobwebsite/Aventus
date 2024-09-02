@@ -804,7 +804,7 @@ export abstract class BaseInfo {
                     alias: npmReplacement,
                 })
             }
-
+            onName(fullName, npmReplacement);
             return
         }
 
