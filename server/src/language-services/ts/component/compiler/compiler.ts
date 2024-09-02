@@ -876,11 +876,23 @@ export class AventusWebcomponentCompiler {
                 this.createUnusedViewElement(viewsElements[name]);
             }
         }
+        else {
+            this.writeFileReplaceVar("templateAction", '');
+            this.writeFileHotReloadReplaceVar("templateAction", '');
+            this.writeFileNpmReplaceVar("templateAction", '');
+
+            this.writeFileReplaceVar("variablesInViewDynamic", '');
+            this.writeFileHotReloadReplaceVar("variablesInViewDynamic", '');
+            this.writeFileNpmReplaceVar("variablesInViewDynamic", '');
+        }
         this.writeViewGlobalVariables();
     }
 
     private writeFileFieldsSimpleVariable(fields: CustomFieldModel[]) {
         if (!this.htmlParsedResult) {
+            this.writeFileReplaceVar('variables', '');
+            this.writeFileHotReloadReplaceVar('variables', '');
+            this.writeFileNpmReplaceVar('variables', '');
             return;
         }
         let variablesSimpleTxt = "";

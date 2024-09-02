@@ -14,6 +14,11 @@ interface AventusWebComponentSingleFileRegion<T extends AventusBaseFile> {
     end: number,
     file?: T,
 }
+type SplittedTxt = {
+    cssText: string | null,
+    htmlText: string | null,
+    scriptText: string | null
+}
 export class AventusWebComponentSingleFile extends AventusBaseFile {
     private regionLogic: AventusWebComponentSingleFileRegion<AventusWebComponentLogicalFile> = {
         start: 0,
@@ -33,27 +38,12 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
             return this.regionLogic.file
         }
         throw 'should not append'
-        // let fileTemp = this.getDocuments().ts;
-        // this.regionLogic.file = fileTemp;
-        // return fileTemp;
     }
-    public get style(): AventusWebSCSSFile {
-        if (this.regionStyle.file) {
-            return this.regionStyle.file
-        }
-        throw 'should not append'
-        // let fileTemp = this.getDocuments().scss;
-        // this.regionStyle.file = fileTemp;
-        // return fileTemp;
+    public get style(): AventusWebSCSSFile | undefined {
+        return this.regionStyle.file
     }
-    public get view(): AventusHTMLFile {
-        if (this.regionView.file) {
-            return this.regionView.file
-        }
-        throw 'should not append'
-        // let fileTemp = this.getDocuments().html;
-        // this.regionView.file = fileTemp;
-        // return fileTemp;
+    public get view(): AventusHTMLFile | undefined {
+        return this.regionView.file
     }
 
     protected get extension(): string {
@@ -74,8 +64,12 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
     public async init() {
         await this.regionView.file?.init();
         await this.regionStyle.file?.init();
+        if (!this.regionView.file || !this.regionStyle.file) {
+            await this.file.validate();
+        }
     }
     protected async onValidate(): Promise<Diagnostic[]> {
+        await this.transformDocument();
         let diagnostics: Diagnostic[] = [];
         let convertedRanges: Range[] = [];
 
@@ -122,10 +116,42 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
                         if (region.file) {
                             await region.file.triggerContentChange(newDocument);
                         }
+                        else {
+                            if (languageId == AventusLanguageId.HTML) {
+                                let htmlFileTemp = new InternalAventusFile(TextDocument.create(this.file.uri, AventusLanguageId.HTML, this.file.versionUser, newText));
+                                let htmlFile = new AventusHTMLFile(htmlFileTemp, this.build)
+                                region.file = htmlFile;
+                                await htmlFile.init();
+                            }
+                            else if (languageId == AventusLanguageId.SCSS) {
+                                let scssFileTemp = new InternalAventusFile(TextDocument.create(this.file.uri, AventusLanguageId.SCSS, this.file.versionUser, newText));
+                                let scssFile = new AventusWebSCSSFile(scssFileTemp, this.build);
+                                region.file = scssFile;
+                                await scssFile.init();
+                            }
+                        }
                     }
-                    await _convertSection(this.regionStyle, AventusLanguageId.SCSS, result.cssText);
-                    await _convertSection(this.regionView, AventusLanguageId.HTML, result.htmlText);
-                    await _convertSection(this.regionLogic, AventusLanguageId.TypeScript, result.scriptText);
+                    if (result.cssText !== null) {
+                        await _convertSection(this.regionStyle, AventusLanguageId.SCSS, result.cssText);
+                    }
+                    else if (this.regionStyle.file) {
+                        // delete file
+                        this.regionStyle.file.triggerDelete();
+                        this.regionStyle.file = undefined;
+                    }
+
+                    if (result.htmlText !== null) {
+                        await _convertSection(this.regionView, AventusLanguageId.HTML, result.htmlText);
+                    }
+                    else if (this.regionView.file) {
+                        // delete file
+                        this.regionView.file.triggerDelete();
+                        this.regionView.file = undefined;
+                    }
+
+                    if (result.scriptText !== null)
+                        await _convertSection(this.regionLogic, AventusLanguageId.TypeScript, result.scriptText);
+
                     this.isCompiling = false;
                     this.currentVersion = version;
                     if (this.waitingFct[version]) {
@@ -152,8 +178,10 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
     }
     protected async onSave() {
         this.build.disableBuild();
-        await (this.style.file as InternalAventusFile).triggerSave();
-        await (this.view.file as InternalAventusFile).triggerSave();
+        if (this.style)
+            await (this.style.file as InternalAventusFile).triggerSave();
+        if (this.view)
+            await (this.view.file as InternalAventusFile).triggerSave();
         this.build.enableBuild();
         await (this.logic.file as InternalAventusFile).triggerSave();
     }
@@ -271,10 +299,10 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
     protected async onDefinition(document: AventusFile, position: Position): Promise<Definition | null> {
         let currentOffset = document.documentInternal.offsetAt(position);
         let result: Definition | null = null;
-        if (currentOffset >= this.regionStyle.start && currentOffset <= this.regionStyle.end) {
+        if (this.style && currentOffset >= this.regionStyle.start && currentOffset <= this.regionStyle.end) {
             result = await (this.style.file as InternalAventusFile).getDefinition(this.style.file.documentInternal.positionAt(currentOffset - this.regionStyle.start));
         }
-        else if (currentOffset >= this.regionView.start && currentOffset <= this.regionView.end) {
+        else if (this.view && currentOffset >= this.regionView.start && currentOffset <= this.regionView.end) {
             result = await (this.view.file as InternalAventusFile).getDefinition(this.view.file.documentInternal.positionAt(currentOffset - this.regionView.start));
         }
         else if (currentOffset >= this.regionLogic.start && currentOffset <= this.regionLogic.end) {
@@ -298,7 +326,7 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
                 let resultsTemp = await (region.file.file as InternalAventusFile).getFormatting(options)
                 for (let temp of resultsTemp) {
                     if (correct.tab) {
-                        temp.newText = temp.newText.split('\n').join("\n"+space(1));
+                        temp.newText = temp.newText.split('\n').join("\n" + space(1));
                     }
                     if (correct.firstLast) {
                         temp.newText = temp.newText.trim();
@@ -398,14 +426,26 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
     private getDocuments() {
         let resultTxt = this.splitDocument();
 
-        let htmlFileTemp = new InternalAventusFile(TextDocument.create(this.file.uri, AventusLanguageId.HTML, this.file.versionUser, resultTxt.htmlText));
-        let scssFileTemp = new InternalAventusFile(TextDocument.create(this.file.uri, AventusLanguageId.SCSS, this.file.versionUser, resultTxt.cssText));
-        let tsFileTemp = new InternalAventusFile(TextDocument.create(this.file.uri, AventusLanguageId.TypeScript, this.file.versionUser, resultTxt.scriptText));
+        let html: AventusHTMLFile | undefined = undefined;
+        if (resultTxt.htmlText !== null) {
+            let htmlFileTemp = new InternalAventusFile(TextDocument.create(this.file.uri, AventusLanguageId.HTML, this.file.versionUser, resultTxt.htmlText));
+            let html = new AventusHTMLFile(htmlFileTemp, this.build);
+        }
+
+        let scss: AventusWebSCSSFile | undefined = undefined;
+        if (resultTxt.cssText !== null) {
+            let scssFileTemp = new InternalAventusFile(TextDocument.create(this.file.uri, AventusLanguageId.SCSS, this.file.versionUser, resultTxt.cssText));
+            scss = new AventusWebSCSSFile(scssFileTemp, this.build);
+        }
+
+
+        let tsFileTemp = new InternalAventusFile(TextDocument.create(this.file.uri, AventusLanguageId.TypeScript, this.file.versionUser, resultTxt.scriptText ?? ''));
+        let ts = new AventusWebComponentLogicalFile(tsFileTemp, this.build);
 
         const result = {
-            html: new AventusHTMLFile(htmlFileTemp, this.build),
-            scss: new AventusWebSCSSFile(scssFileTemp, this.build),
-            ts: new AventusWebComponentLogicalFile(tsFileTemp, this.build)
+            html,
+            scss,
+            ts
         };
 
         this.build.tsFiles[result.ts.file.uri] = result.ts;
@@ -414,15 +454,15 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
         return result;
     }
 
-    private splitDocument() {
+    private splitDocument(): SplittedTxt {
         let regexScript = /<script>((\s|\S)*)<\/script>/g;
         let regexTemplate = /<template>((\s|\S)*)<\/template>/g;
         let regexStyle = /<style>((\s|\S)*)<\/style>/g;
 
-        let resultTxt = {
-            cssText: '',
-            htmlText: '',
-            scriptText: ''
+        let resultTxt: SplittedTxt = {
+            cssText: null,
+            htmlText: null,
+            scriptText: null
         }
 
         let scriptMatch = regexScript.exec(this.file.contentInternal);
@@ -466,15 +506,15 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
 
 
 
-    public static getRegion(file: AventusFile) {
+    public static getRegion(file: AventusFile): SplittedTxt {
         let regexScript = /<script>((\s|\S)*)<\/script>/g;
         let regexTemplate = /<template>((\s|\S)*)<\/template>/g;
         let regexStyle = /<style>((\s|\S)*)<\/style>/g;
 
-        let resultTxt = {
-            cssText: '',
-            htmlText: '',
-            scriptText: ''
+        let resultTxt: SplittedTxt = {
+            cssText: null,
+            htmlText: null,
+            scriptText: null
         }
 
         let scriptMatch = regexScript.exec(file.contentInternal);

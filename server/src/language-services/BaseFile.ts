@@ -87,6 +87,11 @@ export abstract class AventusBaseFile {
             await this.file.triggerSave();
         }
     }
+    public async triggerDelete(): Promise<void> {
+        if (this.file instanceof InternalAventusFile) {
+            await this.file.triggerDelete();
+        }
+    }
     public async triggerContentChange(document: TextDocument): Promise<void> {
         if (this.file instanceof InternalAventusFile) {
             await this.file.triggerContentChange(document);
