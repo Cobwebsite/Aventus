@@ -10,7 +10,7 @@ import { OpenFile } from '../../notification/OpenFile';
 
 export class LibraryTemplate extends BaseTemplate {
 	public name(): string {
-		return "Data.Library"
+		return "Library.Default Class Library"
 	}
 	public definition(): string {
 		return "Create a basic library class";
