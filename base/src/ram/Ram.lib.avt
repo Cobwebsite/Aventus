@@ -278,6 +278,36 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
         }
         Json.classFromJson(item, objJson, options);
     }
+
+    /**
+     * Create or update the item
+     */
+    public async save(item:T, ...args:any[]) :Promise<RamItem<U> | undefined> {
+        let action = await this.saveWithError(item, ...args);
+        if(action.success) {
+            return action.result;
+        }
+        return undefined;
+    }
+    /**
+     * Create or update the item
+     */
+    public async saveWithError(item: T, ...args: any[]): Promise<ResultRamWithError<RamItem<U>>> {
+        let action: ResultRamWithError<RamItem<U>> = new ResultRamWithError();
+        let resultTemp = await this.getIdWithError(item);
+        if(resultTemp.success && resultTemp.result !== undefined) {
+            if(resultTemp.result) {
+                return this.updateWithError(item, ...args);
+            }
+            else {
+                return this.createWithError(item, ...args);
+            }
+        }
+        else {
+            action.errors = resultTemp.errors;
+        }
+        return action;
+    }
     //#endregion
 
     //#region records operation
@@ -676,7 +706,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
                 let key = resultTemp.result;
                 if(this.records.has(key)) {
                     if(this.records.get(key) == item) {
-                        console.warn("You are updateing the same item. You should clone the object first to avoid weird effect")
+                        console.warn("You are updateing the same item. You should clone the object first to avoid weird effect");
                     }
                     await this.beforeUpdateItem(item, fromList, action);
                     if(!action.success) {
