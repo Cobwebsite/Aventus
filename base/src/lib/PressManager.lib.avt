@@ -301,6 +301,7 @@ export class PressManager {
 
     // #region current Event
     protected genericDownAction(state: PressManagerState, e: PointerEvent) {
+        this.downEventSaved = e;
         if(this.options.onLongPress) {
             this.timeoutLongPress = setTimeout(() => {
                 if(!state.oneActionTriggered) {
@@ -321,7 +322,7 @@ export class PressManager {
         if(!this.options.buttonAllowed?.includes(e.button)) {
             return;
         }
-        this.downEventSaved = e;
+        
         if(this.stopPropagation()) {
             e.stopImmediatePropagation();
         }
@@ -339,11 +340,11 @@ export class PressManager {
 
         if(this.options.onPressStart) {
             this.options.onPressStart(e, this);
-            this.emitTriggerFunctionParent("pressstart", e);
+            // this.emitTriggerFunctionParent("pressstart", e);
         }
-        else {
-            this.emitTriggerFunction("pressstart", e);
-        }
+        // else {
+        this.emitTriggerFunction("pressstart", e);
+        // }
     }
 
     protected genericUpAction(state: PressManagerState, e: PointerEvent) {
@@ -407,17 +408,14 @@ export class PressManager {
 
         if(this.options.onPressEnd) {
             this.options.onPressEnd(e, this);
-            this.emitTriggerFunctionParent("pressend", e);
+            // this.emitTriggerFunctionParent("pressend", e);
         }
-        else {
-            this.emitTriggerFunction("pressend", e);
-        }
+        // else {
+        this.emitTriggerFunction("pressend", e);
+        // }
     }
     protected genericMoveAction(state: PressManagerState, e: PointerEvent) {
         if(!state.moving && !state.oneActionTriggered) {
-            if(this.stopPropagation()) {
-                e.stopImmediatePropagation();
-            }
             let xDist = e.pageX - this.startPosition.x;
             let yDist = e.pageY - this.startPosition.y;
             let distance = Math.sqrt(xDist * xDist + yDist * yDist);
@@ -442,20 +440,25 @@ export class PressManager {
         if(this.options.onEvent) {
             this.options.onEvent(e);
         }
+        if(this.stopPropagation()) {
+            e.stopImmediatePropagation();
+        }
         this.genericMoveAction(this.state, e);
 
-        if(this.options.onDrag) {
-            this.emitTriggerFunctionParent("pressmove", e);
-        }
-        else {
-            this.emitTriggerFunction("pressmove", e);
-        }
+        // if(this.options.onDrag) {
+        //     this.emitTriggerFunctionParent("pressmove", e);
+        // }
+        // else {
+        this.emitTriggerFunction("pressmove", e);
+        // }
     }
 
     // #endregion
 
     // #region custom Event
     protected childPressStart(e: InternalPointerEvent) {
+        if(this.lastEmitEvent == e) return;
+
         this.genericDownAction(e.detail.state, e.detail.realEvent);
         if(this.options.onPressStart) {
             this.options.onPressStart(e.detail.realEvent, this);
@@ -463,28 +466,33 @@ export class PressManager {
 
     }
     protected childPressEnd(e: InternalPointerEvent) {
+        if(this.lastEmitEvent == e) return;
+
         this.genericUpAction(e.detail.state, e.detail.realEvent);
         if(this.options.onPressEnd) {
             this.options.onPressEnd(e.detail.realEvent, this);
         }
     }
     protected childPressMove(e: InternalPointerEvent) {
+        if(this.lastEmitEvent == e) return;
+
         this.genericMoveAction(e.detail.state, e.detail.realEvent);
     }
 
     // #endregion
-    protected emitTriggerFunctionParent(action: string, e: PointerEvent) {
-        let el = this.element.parentElement;
-        if(el == null) {
-            let parentNode = this.element.parentNode;
-            if(parentNode instanceof ShadowRoot) {
-                this.emitTriggerFunction(action, e, parentNode.host);
-            }
-        }
-        else {
-            this.emitTriggerFunction(action, e, el);
-        }
-    }
+    // protected emitTriggerFunctionParent(action: string, e: PointerEvent) {
+    //     let el = this.element.parentElement;
+    //     if(el == null) {
+    //         let parentNode = this.element.parentNode;
+    //         if(parentNode instanceof ShadowRoot) {
+    //             this.emitTriggerFunction(action, e, parentNode.host);
+    //         }
+    //     }
+    //     else {
+    //         this.emitTriggerFunction(action, e, el);
+    //     }
+    // }
+    protected lastEmitEvent?: InternalPointerEvent;
     protected emitTriggerFunction(action: string, e: PointerEvent, el?: Element | null) {
         let ev = new CustomEvent("trigger_pointer_" + action, {
             bubbles: true,
@@ -495,7 +503,8 @@ export class PressManager {
                 customFcts: this.customFcts,
                 realEvent: e
             }
-        });
+        }) as InternalPointerEvent;
+        this.lastEmitEvent = ev;
         if(!el) {
             el = this.element;
         }
