@@ -40,14 +40,26 @@ export function compareObject(obj1, obj2): boolean {
         if(typeof obj2 !== 'object' || obj2 === undefined || obj2 === null) {
             return false;
         }
+        if(obj1 == obj2) {
+            // if same ref object => it obviously true
+            return true;
+        }
         if(obj1 instanceof HTMLElement || obj2 instanceof HTMLElement) {
-            return obj1 == obj2;
+            return false;
         }
         if(obj1 instanceof Date || obj2 instanceof Date) {
             return obj1.toString() === obj2.toString();
         }
-        obj1 = Watcher.extract(obj1);
-        obj2 = Watcher.extract(obj2);
+
+        let oneProxy = false;
+        if(Watcher.is(obj1)) {
+            oneProxy = true;
+            obj1 = Watcher.extract(obj1, false);
+        }
+        if(Watcher.is(obj2)) {
+            oneProxy = true;
+            obj2 = Watcher.extract(obj2, false);
+        }
 
         if(obj1 instanceof Map && obj2 instanceof Map) {
             if(obj1.size != obj2.size) {
@@ -72,6 +84,10 @@ export function compareObject(obj1, obj2): boolean {
                 return false;
             }
             for(let key in obj1) {
+                // avoid checking reserved name inside proxy
+                if(oneProxy && Watcher['__reservedName'][key]) {
+                    continue;
+                } 
                 // obj2 has key ?
                 if(!(key in obj2)) {
                     return false;
