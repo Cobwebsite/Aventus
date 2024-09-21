@@ -239,7 +239,7 @@ export class AventusTsLanguageService {
 
     public doValidation(file: AventusFile): Diagnostic[] {
         try {
-            const avoidCodes = [1206, 2612];
+            const avoidCodes = [1206, 1249, 2612];
             let result: Diagnostic[] = [];
             const syntaxDiagnostics: DiagnosticTs[] = this.languageService.getSyntacticDiagnostics(file.uri);
             const semanticDiagnostics: DiagnosticTs[] = this.languageService.getSemanticDiagnostics(file.uri);
