@@ -405,7 +405,8 @@ export class Build {
                             else {
                                 namespaces.push(`let ${currentNamespace} = {};`)
                             }
-                            namespaces.push(`_.${currentNamespace} = {};`)
+                            const currentNamespaceMaybe = currentNamespace.replace(/\./g, "?.")
+                            namespaces.push(`_.${currentNamespace} = ${baseName}.${currentNamespaceMaybe} ?? {};`)
                         }
                     }
                 }
@@ -1804,7 +1805,8 @@ export class Build {
                 return "";
             }
             if (this.buildConfig.namespaceStrategy == "followFoldersCamelCase") {
-                return namespaceTxt.toLowerCase().replace(/(([-_\.]|^)[a-z])/g, (group) =>
+                namespaceTxt = namespaceTxt.slice(0, 1).toUpperCase() + namespaceTxt.slice(1);
+                return namespaceTxt.replace(/(([-_\.]|^)[a-z])/g, (group) =>
                     group
                         .toUpperCase()
                         .replace('-', '')
@@ -1923,7 +1925,7 @@ class ExternalPackageInformation {
     }
     public getNpmUri(fullName: string): { name: string, uri: string, compiled: boolean } | null {
         if (!this.build.hasNpmOutput) return null;
-        
+
         if (this.informations[fullName]) {
             let file = this.files[this.informations[fullName].uri];
             if (!file.npmUri && this.build.initDone) {
