@@ -12,8 +12,8 @@ export interface Pointer {
 })
 export interface InternalCustomFunction {
     src?: PressManager,
-    onDrag?: (e: PointerEvent, self: PressManager) => void,
-    onDragEnd?: (e: PointerEvent, self: PressManager) => void,
+    onDrag?: (e: NormalizedEvent, self: PressManager) => void,
+    onDragEnd?: (e: NormalizedEvent, self: PressManager) => void,
     offsetDrag?: number;
 }
 
@@ -24,7 +24,7 @@ export interface InternalPointerEvent extends Event {
     detail: {
         state: PressManagerState,
         customFcts: InternalCustomFunction,
-        realEvent: PointerEvent;
+        realEvent: NormalizedEvent;
     };
 }
 /**
@@ -40,52 +40,52 @@ export interface PressManagerOptions {
     element: Element,
     /**
      * Callback function triggered on a press event.
-     * @param e - The PointerEvent associated with the press.
+     * @param e - The NormalizedEvent associated with the press.
      * @param self - The instance of PressManager.
      */
-    onPress?: (e: PointerEvent, self: PressManager) => void,
+    onPress?: (e: NormalizedEvent, self: PressManager) => void,
     /**
      * Callback function triggered when a press starts.
-     * @param e - The PointerEvent associated with the press start.
+     * @param e - The NormalizedEvent associated with the press start.
      * @param self - The instance of PressManager.
      */
-    onPressStart?: (e: PointerEvent, self: PressManager) => void,
+    onPressStart?: (e: NormalizedEvent, self: PressManager) => void,
     /**
      * Callback function triggered when a press ends.
-     * @param e - The PointerEvent associated with the press end.
+     * @param e - The NormalizedEvent associated with the press end.
      * @param self - The instance of PressManager.
      */
-    onPressEnd?: (e: PointerEvent, self: PressManager) => void,
+    onPressEnd?: (e: NormalizedEvent, self: PressManager) => void,
     /**
      * Callback function triggered on a long press.
-     * @param e - The PointerEvent associated with the long press.
+     * @param e - The NormalizedEvent associated with the long press.
      * @param self - The instance of PressManager.
      */
-    onLongPress?: (e: PointerEvent, self: PressManager) => void,
+    onLongPress?: (e: NormalizedEvent, self: PressManager) => void,
     /**
      * Callback function triggered on a double press.
-     * @param e - The PointerEvent associated with the double press.
+     * @param e - The NormalizedEvent associated with the double press.
      * @param self - The instance of PressManager.
      */
-    onDblPress?: (e: PointerEvent, self: PressManager) => void,
+    onDblPress?: (e: NormalizedEvent, self: PressManager) => void,
     /**
     * Callback function triggered on a drag event.
-    * @param e - The PointerEvent associated with the drag.
+    * @param e - The NormalizedEvent associated with the drag.
     * @param self - The instance of PressManager.
     */
-    onDrag?: (e: PointerEvent, self: PressManager) => void,
+    onDrag?: (e: NormalizedEvent, self: PressManager) => void,
     /**
     * Callback function triggered when a drag starts.
-    * @param e - The PointerEvent associated with the drag start.
+    * @param e - The NormalizedEvent associated with the drag start.
     * @param self - The instance of PressManager.
     */
-    onDragStart?: (e: PointerEvent, self: PressManager) => void,
+    onDragStart?: (e: NormalizedEvent, self: PressManager) => void,
     /**
      * Callback function triggered when a drag ends.
-     * @param e - The PointerEvent associated with the drag end.
+     * @param e - The NormalizedEvent associated with the drag end.
      * @param self - The instance of PressManager.
      */
-    onDragEnd?: (e: PointerEvent, self: PressManager) => void,
+    onDragEnd?: (e: NormalizedEvent, self: PressManager) => void,
     /**
      * The minimum distance in pixels required to trigger a drag event.
      */
@@ -112,9 +112,9 @@ export interface PressManagerOptions {
     buttonAllowed?: number[];
     /**
      * Callback function triggered on any event.
-     * @param e - The PointerEvent associated with the event.
+     * @param e - The NormalizedEvent associated with the event.
      */
-    onEvent?: (e: PointerEvent) => void;
+    onEvent?: (e: NormalizedEvent) => void;
 }
 @Storybook({
     prefix: "Lib/PressManager"
@@ -128,7 +128,7 @@ export interface PressManagerState {
 })
 export class PressManager {
     private static globalConfig: Partial<PressManagerOptions> = {
-        delayDblPress: 150,
+        delayDblPress: 250,
         delayLongPress: 700,
         offsetDrag: 20
     };
@@ -169,9 +169,11 @@ export class PressManager {
 
     protected timeoutDblPress: number = 0;
     protected timeoutLongPress: number = 0;
-    protected downEventSaved?: PointerEvent;
+    protected downEventSaved?: NormalizedEvent;
     protected useDblPress: boolean = false;
     protected stopPropagation: () => boolean = () => true;
+    protected isEventDownProcessed: boolean = false;
+    protected isEventUpProcessed: boolean = false;
 
     protected functionsBinded: {
         downAction: (e: PointerEvent) => void,
@@ -290,17 +292,25 @@ export class PressManager {
         this.functionsBinded.childPressEnd = this.childPressEnd.bind(this);
         this.functionsBinded.childPressMove = this.childPressMove.bind(this);
     }
+    protected preventTouch() {
+        const onTouch = (ev: TouchEvent) => {
+            ev.preventDefault();
+        };
+        this.element.addEventListener('touchstart', onTouch, { passive: false });
+        this.element.addEventListener('touchmove', onTouch, { passive: false });
+        this.element.addEventListener('touchend', onTouch, { passive: false });
+    }
     protected init() {
         this.bindAllFunction();
         this.element.addEventListener("pointerdown", this.functionsBinded.downAction);
+        this.element.addEventListener("touchstart", this.functionsBinded.downAction);
         this.element.addEventListener("trigger_pointer_pressstart", this.functionsBinded.childPressStart);
         this.element.addEventListener("trigger_pointer_pressend", this.functionsBinded.childPressEnd);
         this.element.addEventListener("trigger_pointer_pressmove", this.functionsBinded.childPressMove);
     }
 
-
     // #region current Event
-    protected genericDownAction(state: PressManagerState, e: PointerEvent) {
+    protected genericDownAction(state: PressManagerState, e: NormalizedEvent) {
         this.downEventSaved = e;
         if(this.options.onLongPress) {
             this.timeoutLongPress = setTimeout(() => {
@@ -314,15 +324,24 @@ export class PressManager {
             }, this.delayLongPress);
         }
     }
-    protected downAction(e: PointerEvent) {
+    protected downAction(ev: PointerEvent | TouchEvent) {
+        if(this.isEventDownProcessed) {
+            if(this.stopPropagation()) {
+                ev.stopImmediatePropagation();
+            }
+            return;
+        }
+        this.isEventDownProcessed = true;
+        this.isEventUpProcessed = false;
+        const e = new NormalizedEvent(ev);
         if(this.options.onEvent) {
             this.options.onEvent(e);
         }
         // TODO edit this to implement the full logic to avoid cancelling parent
-        if(!this.options.buttonAllowed?.includes(e.button)) {
+        if(e.button != undefined && !this.options.buttonAllowed?.includes(e.button)) {
             return;
         }
-        
+
         if(this.stopPropagation()) {
             e.stopImmediatePropagation();
         }
@@ -332,8 +351,11 @@ export class PressManager {
             clearTimeout(this.timeoutDblPress);
         }
         this.startPosition = { x: e.pageX, y: e.pageY };
+
         document.addEventListener("pointerup", this.functionsBinded.upAction);
         document.addEventListener("pointercancel", this.functionsBinded.upAction);
+        document.addEventListener("touchend", this.functionsBinded.upAction);
+        document.addEventListener("touchcancel", this.functionsBinded.upAction);
         document.addEventListener("pointermove", this.functionsBinded.moveAction);
 
         this.genericDownAction(this.state, e);
@@ -347,7 +369,7 @@ export class PressManager {
         // }
     }
 
-    protected genericUpAction(state: PressManagerState, e: PointerEvent) {
+    protected genericUpAction(state: PressManagerState, e: NormalizedEvent) {
         clearTimeout(this.timeoutLongPress);
 
         if(state.moving == this) {
@@ -393,7 +415,16 @@ export class PressManager {
             }
         }
     }
-    protected upAction(e: PointerEvent) {
+    protected upAction(ev: PointerEvent | TouchEvent) {
+        if(this.isEventUpProcessed) {
+            if(this.stopPropagation()) {
+                ev.stopImmediatePropagation();
+            }
+            return;
+        }
+        const e = new NormalizedEvent(ev);
+        this.isEventUpProcessed = true;
+        this.isEventDownProcessed = false;
         if(this.options.onEvent) {
             this.options.onEvent(e);
         }
@@ -402,6 +433,8 @@ export class PressManager {
         }
         document.removeEventListener("pointerup", this.functionsBinded.upAction);
         document.removeEventListener("pointercancel", this.functionsBinded.upAction);
+        document.removeEventListener("touchend", this.functionsBinded.upAction);
+        document.removeEventListener("touchcancel", this.functionsBinded.upAction);
         document.removeEventListener("pointermove", this.functionsBinded.moveAction);
 
         this.genericUpAction(this.state, e);
@@ -414,7 +447,7 @@ export class PressManager {
         this.emitTriggerFunction("pressend", e);
         // }
     }
-    protected genericMoveAction(state: PressManagerState, e: PointerEvent) {
+    protected genericMoveAction(state: PressManagerState, e: NormalizedEvent) {
         if(!state.moving && !state.oneActionTriggered) {
             let xDist = e.pageX - this.startPosition.x;
             let yDist = e.pageY - this.startPosition.y;
@@ -436,7 +469,8 @@ export class PressManager {
             }
         }
     }
-    protected moveAction(e: PointerEvent) {
+    protected moveAction(ev: PointerEvent) {
+        const e = new NormalizedEvent(ev);
         if(this.options.onEvent) {
             this.options.onEvent(e);
         }
@@ -480,20 +514,9 @@ export class PressManager {
     }
 
     // #endregion
-    // protected emitTriggerFunctionParent(action: string, e: PointerEvent) {
-    //     let el = this.element.parentElement;
-    //     if(el == null) {
-    //         let parentNode = this.element.parentNode;
-    //         if(parentNode instanceof ShadowRoot) {
-    //             this.emitTriggerFunction(action, e, parentNode.host);
-    //         }
-    //     }
-    //     else {
-    //         this.emitTriggerFunction(action, e, el);
-    //     }
-    // }
+
     protected lastEmitEvent?: InternalPointerEvent;
-    protected emitTriggerFunction(action: string, e: PointerEvent, el?: Element | null) {
+    protected emitTriggerFunction(action: string, e: NormalizedEvent, el?: Element | null) {
         let ev = new CustomEvent("trigger_pointer_" + action, {
             bubbles: true,
             cancelable: true,
@@ -523,5 +546,86 @@ export class PressManager {
             document.removeEventListener("pointercancel", this.functionsBinded.upAction);
             document.removeEventListener("pointermove", this.functionsBinded.moveAction);
         }
+    }
+}
+
+export class NormalizedEvent {
+    private _event: PointerEvent | TouchEvent;
+
+    public get event(): PointerEvent | TouchEvent {
+        return this._event;
+    }
+
+    constructor(event: PointerEvent | TouchEvent) {
+        this._event = event;
+    }
+
+    // Méthode pour récupérer une propriété de l'événement
+    public getProp<T>(prop: keyof PointerEvent | keyof TouchEvent): T | undefined {
+        if(prop in this.event) {
+            return (this.event as any)[prop];
+        }
+        return undefined;
+    }
+
+    public stopImmediatePropagation() {
+        this.event.stopImmediatePropagation();
+    }
+
+    // Accéder aux propriétés partagées entre PointerEvent et TouchEvent
+    public get clientX(): number {
+        if('clientX' in this.event) {
+            return (this.event as PointerEvent).clientX;
+        } else if('touches' in this.event && (this.event as TouchEvent).touches.length > 0) {
+            return (this.event as TouchEvent).touches[0].clientX;
+        }
+        return 0;
+    }
+
+    public get clientY(): number {
+        if('clientY' in this.event) {
+            return (this.event as PointerEvent).clientY;
+        } else if('touches' in this.event && (this.event as TouchEvent).touches.length > 0) {
+            return (this.event as TouchEvent).touches[0].clientY;
+        }
+        return 0;
+    }
+
+    public get pageX(): number {
+        if('pageX' in this.event) {
+            return (this.event as PointerEvent).pageX;
+        } else if('touches' in this.event && (this.event as TouchEvent).touches.length > 0) {
+            return (this.event as TouchEvent).touches[0].pageX;
+        }
+        return 0;
+    }
+
+    public get pageY(): number {
+        if('pageY' in this.event) {
+            return (this.event as PointerEvent).pageY;
+        } else if('touches' in this.event && (this.event as TouchEvent).touches.length > 0) {
+            return (this.event as TouchEvent).touches[0].pageY;
+        }
+        return 0;
+    }
+
+    public get type(): string {
+        return this.event.type;
+    }
+
+    public get target(): EventTarget | null {
+        return this.event.target;
+    }
+
+    public get timeStamp(): number {
+        return this.event.timeStamp;
+    }
+
+    public get pointerType(): string | undefined {
+        return this.getProp("pointerType");
+    }
+
+    public get button(): number | undefined {
+        return this.getProp("button");
     }
 }

@@ -1,4 +1,4 @@
-import { PressManager } from "./PressManager.lib.avt";
+import { NormalizedEvent, PressManager } from "./PressManager.lib.avt";
 
 @Storybook({
     prefix: "Lib/DragAndDrop"
@@ -47,15 +47,15 @@ export interface DragAndDropOptions {
     /** Get offset Y in px related to element.offsetTarget */
     getOffsetY?: () => number;
     /** Trigger on pointer down*/
-    onPointerDown?: (e: PointerEvent) => void;
+    onPointerDown?: (e: NormalizedEvent) => void;
     /** Trigger on pointer up*/
-    onPointerUp?: (e: PointerEvent) => void;
+    onPointerUp?: (e: NormalizedEvent) => void;
     /** Trigger on drag start*/
-    onStart?: (e: PointerEvent) => void;
+    onStart?: (e: NormalizedEvent) => void;
     /** Trigger on moving  */
-    onMove?: (e: PointerEvent, position: Coordinate) => void;
+    onMove?: (e: NormalizedEvent, position: Coordinate) => void;
     /** Trigger after stop moving */
-    onStop?: (e: PointerEvent) => void;
+    onStop?: (e: NormalizedEvent) => void;
     /** Trigger after drop if at least one target found; Element is the shadow or the target*/
     onDrop?: (element: HTMLElement, targets: HTMLElement[]) => void;
     /** correct the position if you need */
@@ -129,11 +129,11 @@ export class DragAndDrop {
             getZoom: () => 1,
             getOffsetX: () => 0,
             getOffsetY: () => 0,
-            onPointerDown: (e: PointerEvent) => { },
-            onPointerUp: (e: PointerEvent) => { },
-            onStart: (e: PointerEvent) => { },
-            onMove: (e: PointerEvent) => { },
-            onStop: (e: PointerEvent) => { },
+            onPointerDown: (e: NormalizedEvent) => { },
+            onPointerUp: (e: NormalizedEvent) => { },
+            onStart: (e: NormalizedEvent) => { },
+            onMove: (e: NormalizedEvent) => { },
+            onStop: (e: NormalizedEvent) => { },
             onDrop: (element: HTMLElement, targets: HTMLElement[]) => { },
             correctPosition: (position: Coordinate) => position
         };
@@ -195,13 +195,13 @@ export class DragAndDrop {
     // #endregion
 
     private positionShadowRelativeToElement: Coordinate = { x: 0, y: 0 };
-    private onPressStart(e: PointerEvent) {
+    private onPressStart(e: NormalizedEvent) {
         this.options.onPointerDown(e);
     }
-    private onPressEnd(e: PointerEvent) {
+    private onPressEnd(e: NormalizedEvent) {
         this.options.onPointerUp(e);
     }
-    private onDragStart(e: PointerEvent) {
+    private onDragStart(e: NormalizedEvent) {
         this.isEnable = this.options.isDragEnable();
         if(!this.isEnable) {
             return;
@@ -234,7 +234,7 @@ export class DragAndDrop {
         this.draggableElement = draggableElement;
         this.options.onStart(e);
     }
-    private onDrag(e: PointerEvent) {
+    private onDrag(e: NormalizedEvent) {
         if(!this.isEnable) {
             return;
         }
@@ -258,14 +258,14 @@ export class DragAndDrop {
         let newPos = this.setPosition(diff);
         this.options.onMove(e, newPos);
     }
-    private onDragEnd(e: PointerEvent) {
+    private onDragEnd(e: NormalizedEvent) {
         if(!this.isEnable) {
             return;
         }
         let targets = this.getMatchingTargets();
         let draggableElement = this.draggableElement;
         if(this.options.shadow.enable && this.options.shadow.removeOnStop) {
-            this.options.shadow.delete(draggableElement)
+            this.options.shadow.delete(draggableElement);
         }
         if(targets.length > 0) {
             this.options.onDrop(this.options.element, targets);
