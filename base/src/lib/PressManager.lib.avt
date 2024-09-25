@@ -339,6 +339,8 @@ export class PressManager {
         }
         // TODO edit this to implement the full logic to avoid cancelling parent
         if(e.button != undefined && !this.options.buttonAllowed?.includes(e.button)) {
+            this.isEventUpProcessed = true;
+            this.isEventDownProcessed = false;
             return;
         }
 
