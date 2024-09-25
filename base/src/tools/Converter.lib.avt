@@ -4,7 +4,7 @@ import { Json } from "./Json.lib.avt";
 @Storybook({
     prefix: "Tools/Conveter"
 })
-type SchemaType = 'string' | 'number' | 'boolean' | 'date' | string;
+    type SchemaType = 'string' | 'number' | 'boolean' | 'date' | string;
 
 @Storybook({
     prefix: "Tools/Conveter"
@@ -83,8 +83,8 @@ export class ConverterTransform implements IConverterTransform {
                             if(obj[key] instanceof Date) {
                                 return value ? new Date(value) : null;
                             }
-                            else if(typeof value == 'string' && /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(\.(\d{3})Z)?$/.exec(value)) {
-                                return value ? new Date(value) : null;
+                            else if(typeof value == 'string' && DateConverter.converter.isStringDate(value)) {
+                                return value ? DateConverter.converter.fromString(value) : null;
                             }
                             else if(obj[key] instanceof Map) {
                                 let map = new Map();
@@ -95,7 +95,7 @@ export class ConverterTransform implements IConverterTransform {
                             }
                             else if(obj instanceof Data) {
                                 let cst = obj.constructor as typeof Data;
-                                
+
                                 if(cst.$schema[key] == 'boolean') {
                                     return value ? true : false;
                                 }
@@ -123,7 +123,7 @@ export class ConverterTransform implements IConverterTransform {
             }
             return result;
         }
-        
+
         if(typeof data == 'string' && /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3})Z$/.exec(data)) {
             return new Date(data);
         }
@@ -246,3 +246,25 @@ export class Converter {
 }
 
 
+export class DateConverter {
+    private static __converter: DateConverter = new DateConverter();
+    public static get converter(): DateConverter {
+        return this.__converter;
+    }
+    public static set converter(value: DateConverter) {
+        this.__converter = value;
+    }
+
+    public isStringDate(txt: string): boolean {
+        return /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3})Z$/.exec(txt) !== null;
+    }
+    public fromString(txt: string): Date | null {
+        return new Date(txt);
+    }
+    public toString(date: Date): string {
+        if(date.getFullYear() < 100) {
+            return "0001-01-01T00:00:00.000Z";
+        }
+        return date.toISOString();
+    }
+}

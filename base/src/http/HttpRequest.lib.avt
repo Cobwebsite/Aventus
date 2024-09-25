@@ -2,7 +2,7 @@ import { type HttpRouter } from "./HttpRouter.lib.avt";
 import { ResultWithError, VoidWithError } from "../tools/Error.lib.avt";
 import { HttpMethod } from "./HttpMethod.lib.avt";
 import { HttpError, HttpErrorCode } from "./HttpError.lib.avt";
-import { Converter } from "../tools/Converter.lib.avt";
+import { Converter, DateConverter } from "../tools/Converter.lib.avt";
 
 @Storybook({
     prefix: "Http"
@@ -47,8 +47,7 @@ export class HttpRequest {
             const newKey = parentKey ? `${parentKey}[${key}]` : key;
 
             if(value instanceof Date) {
-                const offset = this[key].getTimezoneOffset() * 60000
-                formData.append(newKey, new Date(this[key].getTime() - offset).toISOString());
+                formData.append(newKey, DateConverter.converter.toString(value));
             }
             else if(
                 typeof value === 'object' && 
@@ -78,8 +77,7 @@ export class HttpRequest {
     }
     public jsonReplacer(key: string, value: any) {
         if(this[key] instanceof Date) {
-            const offset = this[key].getTimezoneOffset() * 60000
-            return new Date(this[key].getTime() - offset).toISOString();
+            return DateConverter.converter.toString(this[key]);
         }
         return value;
     }
