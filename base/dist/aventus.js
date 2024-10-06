@@ -342,7 +342,7 @@ let ElementExtension=class ElementExtension {
             }
             if (el.shadowRoot && x !== undefined && y !== undefined) {
                 var newEl = el.shadowRoot.elementFromPoint(x, y);
-                if (newEl && newEl != el && el.shadowRoot.contains(newEl)) {
+                if (newEl && newEl != el && (el.shadowRoot.contains(newEl) || el.contains(newEl))) {
                     return _realTarget(newEl, i + 1);
                 }
             }
@@ -649,14 +649,24 @@ let compareObject=function compareObject(obj1, obj2) {
         if (typeof obj2 !== 'object' || obj2 === undefined || obj2 === null) {
             return false;
         }
+        if (obj1 == obj2) {
+            return true;
+        }
         if (obj1 instanceof HTMLElement || obj2 instanceof HTMLElement) {
-            return obj1 == obj2;
+            return false;
         }
         if (obj1 instanceof Date || obj2 instanceof Date) {
             return obj1.toString() === obj2.toString();
         }
-        obj1 = Watcher.extract(obj1);
-        obj2 = Watcher.extract(obj2);
+        let oneProxy = false;
+        if (Watcher.is(obj1)) {
+            oneProxy = true;
+            obj1 = Watcher.extract(obj1, false);
+        }
+        if (Watcher.is(obj2)) {
+            oneProxy = true;
+            obj2 = Watcher.extract(obj2, false);
+        }
         if (obj1 instanceof Map && obj2 instanceof Map) {
             if (obj1.size != obj2.size) {
                 return false;
@@ -677,6 +687,9 @@ let compareObject=function compareObject(obj1, obj2) {
                 return false;
             }
             for (let key in obj1) {
+                if (oneProxy && Watcher['__reservedName'][key]) {
+                    continue;
+                }
                 if (!(key in obj2)) {
                     return false;
                 }
@@ -940,6 +953,78 @@ let Instance=class Instance {
 Instance.Namespace=`Aventus`;
 _.Instance=Instance;
 
+let NormalizedEvent=class NormalizedEvent {
+    _event;
+    get event() {
+        return this._event;
+    }
+    constructor(event) {
+        this._event = event;
+    }
+    getProp(prop) {
+        if (prop in this.event) {
+            return this.event[prop];
+        }
+        return undefined;
+    }
+    stopImmediatePropagation() {
+        this.event.stopImmediatePropagation();
+    }
+    get clientX() {
+        if ('clientX' in this.event) {
+            return this.event.clientX;
+        }
+        else if ('touches' in this.event && this.event.touches.length > 0) {
+            return this.event.touches[0].clientX;
+        }
+        return 0;
+    }
+    get clientY() {
+        if ('clientY' in this.event) {
+            return this.event.clientY;
+        }
+        else if ('touches' in this.event && this.event.touches.length > 0) {
+            return this.event.touches[0].clientY;
+        }
+        return 0;
+    }
+    get pageX() {
+        if ('pageX' in this.event) {
+            return this.event.pageX;
+        }
+        else if ('touches' in this.event && this.event.touches.length > 0) {
+            return this.event.touches[0].pageX;
+        }
+        return 0;
+    }
+    get pageY() {
+        if ('pageY' in this.event) {
+            return this.event.pageY;
+        }
+        else if ('touches' in this.event && this.event.touches.length > 0) {
+            return this.event.touches[0].pageY;
+        }
+        return 0;
+    }
+    get type() {
+        return this.event.type;
+    }
+    get target() {
+        return this.event.target;
+    }
+    get timeStamp() {
+        return this.event.timeStamp;
+    }
+    get pointerType() {
+        return this.getProp("pointerType");
+    }
+    get button() {
+        return this.getProp("button");
+    }
+}
+NormalizedEvent.Namespace=`Aventus`;
+_.NormalizedEvent=NormalizedEvent;
+
 let Callback=class Callback {
     callbacks = new Map();
     /**
@@ -1040,6 +1125,30 @@ var HttpErrorCode;
     HttpErrorCode[HttpErrorCode["unknow"] = 0] = "unknow";
 })(HttpErrorCode || (HttpErrorCode = {}));
 _.HttpErrorCode=HttpErrorCode;
+
+let DateConverter=class DateConverter {
+    static __converter = new DateConverter();
+    static get converter() {
+        return this.__converter;
+    }
+    static set converter(value) {
+        this.__converter = value;
+    }
+    isStringDate(txt) {
+        return /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3})Z$/.exec(txt) !== null;
+    }
+    fromString(txt) {
+        return new Date(txt);
+    }
+    toString(date) {
+        if (date.getFullYear() < 100) {
+            return "0001-01-01T00:00:00.000Z";
+        }
+        return date.toISOString();
+    }
+}
+DateConverter.Namespace=`Aventus`;
+_.DateConverter=DateConverter;
 
 let Json=class Json {
     /**
@@ -1164,6 +1273,14 @@ let ConverterTransform=class ConverterTransform {
         if (typeof data === 'object' && !/^\s*class\s+/.test(data.toString())) {
             let objTemp = this.createInstance(data);
             if (objTemp) {
+                if (objTemp instanceof Map) {
+                    if (data.values) {
+                        for (const keyValue of data.values) {
+                            objTemp.set(this.transformLoop(keyValue[0]), this.transformLoop(keyValue[1]));
+                        }
+                    }
+                    return objTemp;
+                }
                 let obj = objTemp;
                 this.beforeTransformObject(obj);
                 if (obj.fromJSON) {
@@ -1175,8 +1292,8 @@ let ConverterTransform=class ConverterTransform {
                             if (obj[key] instanceof Date) {
                                 return value ? new Date(value) : null;
                             }
-                            else if (typeof obj[key] == 'string' && /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3})Z$/.exec(obj[key])) {
-                                return value ? new Date(value) : null;
+                            else if (typeof value == 'string' && DateConverter.converter.isStringDate(value)) {
+                                return value ? DateConverter.converter.fromString(value) : null;
                             }
                             else if (obj[key] instanceof Map) {
                                 let map = new Map();
@@ -1256,7 +1373,7 @@ let Converter=class Converter {
     /**
     * Map storing information about registered types.
     */
-    static info = new Map();
+    static info = new Map([["Aventus.Map", Map]]);
     /**
     * Map storing schemas for registered types.
     */
@@ -1552,8 +1669,7 @@ let HttpRequest=class HttpRequest {
             let value = obj[key];
             const newKey = parentKey ? `${parentKey}[${key}]` : key;
             if (value instanceof Date) {
-                const offset = this[key].getTimezoneOffset() * 60000;
-                formData.append(newKey, new Date(this[key].getTime() - offset).toISOString());
+                formData.append(newKey, DateConverter.converter.toString(value));
             }
             else if (typeof value === 'object' &&
                 value !== null &&
@@ -1579,8 +1695,7 @@ let HttpRequest=class HttpRequest {
     }
     jsonReplacer(key, value) {
         if (this[key] instanceof Date) {
-            const offset = this[key].getTimezoneOffset() * 60000;
-            return new Date(this[key].getTime() - offset).toISOString();
+            return DateConverter.converter.toString(this[key]);
         }
         return value;
     }
@@ -1848,7 +1963,7 @@ _.Animation=Animation;
 
 let PressManager=class PressManager {
     static globalConfig = {
-        delayDblPress: 150,
+        delayDblPress: 250,
         delayLongPress: 700,
         offsetDrag: 20
     };
@@ -1886,6 +2001,8 @@ let PressManager=class PressManager {
     downEventSaved;
     useDblPress = false;
     stopPropagation = () => true;
+    isEventDownProcessed = false;
+    isEventUpProcessed = false;
     functionsBinded = {
         downAction: (e) => { },
         upAction: (e) => { },
@@ -1995,14 +2112,24 @@ let PressManager=class PressManager {
         this.functionsBinded.childPressEnd = this.childPressEnd.bind(this);
         this.functionsBinded.childPressMove = this.childPressMove.bind(this);
     }
+    preventTouch() {
+        const onTouch = (ev) => {
+            ev.preventDefault();
+        };
+        this.element.addEventListener('touchstart', onTouch, { passive: false });
+        this.element.addEventListener('touchmove', onTouch, { passive: false });
+        this.element.addEventListener('touchend', onTouch, { passive: false });
+    }
     init() {
         this.bindAllFunction();
         this.element.addEventListener("pointerdown", this.functionsBinded.downAction);
+        this.element.addEventListener("touchstart", this.functionsBinded.downAction);
         this.element.addEventListener("trigger_pointer_pressstart", this.functionsBinded.childPressStart);
         this.element.addEventListener("trigger_pointer_pressend", this.functionsBinded.childPressEnd);
         this.element.addEventListener("trigger_pointer_pressmove", this.functionsBinded.childPressMove);
     }
     genericDownAction(state, e) {
+        this.downEventSaved = e;
         if (this.options.onLongPress) {
             this.timeoutLongPress = setTimeout(() => {
                 if (!state.oneActionTriggered) {
@@ -2014,14 +2141,24 @@ let PressManager=class PressManager {
             }, this.delayLongPress);
         }
     }
-    downAction(e) {
+    downAction(ev) {
+        if (this.isEventDownProcessed) {
+            if (this.stopPropagation()) {
+                ev.stopImmediatePropagation();
+            }
+            return;
+        }
+        this.isEventDownProcessed = true;
+        this.isEventUpProcessed = false;
+        const e = new NormalizedEvent(ev);
         if (this.options.onEvent) {
             this.options.onEvent(e);
         }
-        if (!this.options.buttonAllowed?.includes(e.button)) {
+        if (e.button != undefined && !this.options.buttonAllowed?.includes(e.button)) {
+            this.isEventUpProcessed = true;
+            this.isEventDownProcessed = false;
             return;
         }
-        this.downEventSaved = e;
         if (this.stopPropagation()) {
             e.stopImmediatePropagation();
         }
@@ -2033,15 +2170,15 @@ let PressManager=class PressManager {
         this.startPosition = { x: e.pageX, y: e.pageY };
         document.addEventListener("pointerup", this.functionsBinded.upAction);
         document.addEventListener("pointercancel", this.functionsBinded.upAction);
+        document.addEventListener("touchend", this.functionsBinded.upAction);
+        document.addEventListener("touchcancel", this.functionsBinded.upAction);
         document.addEventListener("pointermove", this.functionsBinded.moveAction);
         this.genericDownAction(this.state, e);
         if (this.options.onPressStart) {
             this.options.onPressStart(e, this);
-            this.emitTriggerFunctionParent("pressstart", e);
+            // this.emitTriggerFunctionParent("pressstart", e);
         }
-        else {
-            this.emitTriggerFunction("pressstart", e);
-        }
+        this.emitTriggerFunction("pressstart", e);
     }
     genericUpAction(state, e) {
         clearTimeout(this.timeoutLongPress);
@@ -2088,7 +2225,16 @@ let PressManager=class PressManager {
             }
         }
     }
-    upAction(e) {
+    upAction(ev) {
+        if (this.isEventUpProcessed) {
+            if (this.stopPropagation()) {
+                ev.stopImmediatePropagation();
+            }
+            return;
+        }
+        const e = new NormalizedEvent(ev);
+        this.isEventUpProcessed = true;
+        this.isEventDownProcessed = false;
         if (this.options.onEvent) {
             this.options.onEvent(e);
         }
@@ -2097,21 +2243,18 @@ let PressManager=class PressManager {
         }
         document.removeEventListener("pointerup", this.functionsBinded.upAction);
         document.removeEventListener("pointercancel", this.functionsBinded.upAction);
+        document.removeEventListener("touchend", this.functionsBinded.upAction);
+        document.removeEventListener("touchcancel", this.functionsBinded.upAction);
         document.removeEventListener("pointermove", this.functionsBinded.moveAction);
         this.genericUpAction(this.state, e);
         if (this.options.onPressEnd) {
             this.options.onPressEnd(e, this);
-            this.emitTriggerFunctionParent("pressend", e);
+            // this.emitTriggerFunctionParent("pressend", e);
         }
-        else {
-            this.emitTriggerFunction("pressend", e);
-        }
+        this.emitTriggerFunction("pressend", e);
     }
     genericMoveAction(state, e) {
         if (!state.moving && !state.oneActionTriggered) {
-            if (this.stopPropagation()) {
-                e.stopImmediatePropagation();
-            }
             let xDist = e.pageX - this.startPosition.x;
             let yDist = e.pageY - this.startPosition.y;
             let distance = Math.sqrt(xDist * xDist + yDist * yDist);
@@ -2132,45 +2275,41 @@ let PressManager=class PressManager {
             }
         }
     }
-    moveAction(e) {
+    moveAction(ev) {
+        const e = new NormalizedEvent(ev);
         if (this.options.onEvent) {
             this.options.onEvent(e);
         }
+        if (this.stopPropagation()) {
+            e.stopImmediatePropagation();
+        }
         this.genericMoveAction(this.state, e);
-        if (this.options.onDrag) {
-            this.emitTriggerFunctionParent("pressmove", e);
-        }
-        else {
-            this.emitTriggerFunction("pressmove", e);
-        }
+        // if(this.options.onDrag) {
+        //     this.emitTriggerFunctionParent("pressmove", e);
+        this.emitTriggerFunction("pressmove", e);
     }
     childPressStart(e) {
+        if (this.lastEmitEvent == e)
+            return;
         this.genericDownAction(e.detail.state, e.detail.realEvent);
         if (this.options.onPressStart) {
             this.options.onPressStart(e.detail.realEvent, this);
         }
     }
     childPressEnd(e) {
+        if (this.lastEmitEvent == e)
+            return;
         this.genericUpAction(e.detail.state, e.detail.realEvent);
         if (this.options.onPressEnd) {
             this.options.onPressEnd(e.detail.realEvent, this);
         }
     }
     childPressMove(e) {
+        if (this.lastEmitEvent == e)
+            return;
         this.genericMoveAction(e.detail.state, e.detail.realEvent);
     }
-    emitTriggerFunctionParent(action, e) {
-        let el = this.element.parentElement;
-        if (el == null) {
-            let parentNode = this.element.parentNode;
-            if (parentNode instanceof ShadowRoot) {
-                this.emitTriggerFunction(action, e, parentNode.host);
-            }
-        }
-        else {
-            this.emitTriggerFunction(action, e, el);
-        }
-    }
+    lastEmitEvent;
     emitTriggerFunction(action, e, el) {
         let ev = new CustomEvent("trigger_pointer_" + action, {
             bubbles: true,
@@ -2182,6 +2321,7 @@ let PressManager=class PressManager {
                 realEvent: e
             }
         });
+        this.lastEmitEvent = ev;
         if (!el) {
             el = this.element;
         }
@@ -2991,6 +3131,9 @@ let Watcher=class Watcher {
                     element.__validatePath();
                     let oldPath = element.__path ?? '';
                     let unbindElement = getValueFromObject(oldPath, root);
+                    if (unbindElement === undefined) {
+                        return element;
+                    }
                     if (receiver == null) {
                         receiver = getValueFromObject(target.__path, realProxy);
                         if (internalAliases[fullInternalPath]) {
@@ -3178,8 +3321,9 @@ let Watcher=class Watcher {
                     };
                 }
                 else if (prop == "getTarget") {
-                    return () => {
-                        clearReservedNames(target);
+                    return (clear = true) => {
+                        if (clear)
+                            clearReservedNames(target);
                         return target;
                     };
                 }
@@ -3229,6 +3373,9 @@ let Watcher=class Watcher {
                 return undefined;
             },
             get(target, prop, receiver) {
+                if (typeof prop == 'symbol') {
+                    return Reflect.get(target, prop, receiver);
+                }
                 if (reservedName[prop]) {
                     return target[prop];
                 }
@@ -3403,6 +3550,9 @@ let Watcher=class Watcher {
                 return Reflect.get(target, prop, receiver);
             },
             set(target, prop, value, receiver) {
+                if (typeof prop == 'symbol') {
+                    return Reflect.set(target, prop, value, receiver);
+                }
                 let oldValue = Reflect.get(target, prop, receiver);
                 value = replaceByAlias(target, value, prop, receiver);
                 if (value instanceof Signal) {
@@ -3436,6 +3586,9 @@ let Watcher=class Watcher {
                 return result;
             },
             deleteProperty(target, prop) {
+                if (typeof prop == 'symbol') {
+                    return Reflect.deleteProperty(target, prop);
+                }
                 let triggerChange = false;
                 let pathToDelete = '';
                 if (!reservedName[prop]) {
@@ -3474,6 +3627,9 @@ let Watcher=class Watcher {
                 return false;
             },
             defineProperty(target, prop, descriptor) {
+                if (typeof prop == 'symbol') {
+                    return Reflect.defineProperty(target, prop, descriptor);
+                }
                 let triggerChange = false;
                 let newPath = '';
                 if (!reservedName[prop]) {
@@ -3655,9 +3811,9 @@ let Watcher=class Watcher {
     static is(obj) {
         return typeof obj == 'object' && obj.__isProxy;
     }
-    static extract(obj) {
+    static extract(obj, clearPath = false) {
         if (this.is(obj)) {
-            return obj.getTarget();
+            return obj.getTarget(clearPath);
         }
         else {
             if (obj instanceof Object) {
@@ -3961,6 +4117,35 @@ let GenericRam=class GenericRam {
             };
         }
         Json.classFromJson(item, objJson, options);
+    }
+    /**
+     * Create or update the item
+     */
+    async save(item, ...args) {
+        let action = await this.saveWithError(item, ...args);
+        if (action.success) {
+            return action.result;
+        }
+        return undefined;
+    }
+    /**
+     * Create or update the item
+     */
+    async saveWithError(item, ...args) {
+        let action = new ResultRamWithError();
+        let resultTemp = await this.getIdWithError(item);
+        if (resultTemp.success && resultTemp.result !== undefined) {
+            if (resultTemp.result) {
+                return this.updateWithError(item, ...args);
+            }
+            else {
+                return this.createWithError(item, ...args);
+            }
+        }
+        else {
+            action.errors = resultTemp.errors;
+        }
+        return action;
     }
     async beforeRecordSet(item) { }
     async afterRecordSet(item) { }
@@ -5155,7 +5340,7 @@ let TemplateInstance=class TemplateInstance {
                 return change.fct(this.context);
             }
             catch (e) {
-                if (e instanceof TypeError && e.message.startsWith("Cannot read properties of undefined")) {
+                if (e instanceof TypeError && e.message.includes("undefined")) {
                     if (computed instanceof ComputedNoRecomputed) {
                         computed.isInit = false;
                     }
@@ -5190,7 +5375,7 @@ let TemplateInstance=class TemplateInstance {
                 return injection.inject(this.context);
             }
             catch (e) {
-                if (e instanceof TypeError && e.message.startsWith("Cannot read properties of undefined")) {
+                if (e instanceof TypeError && e.message.includes("undefined")) {
                     if (computed instanceof ComputedNoRecomputed) {
                         computed.isInit = false;
                     }
@@ -5223,7 +5408,7 @@ let TemplateInstance=class TemplateInstance {
                 return binding.inject(this.context);
             }
             catch (e) {
-                if (e instanceof TypeError && e.message.startsWith("Cannot read properties of undefined")) {
+                if (e instanceof TypeError && e.message.includes("undefined")) {
                     if (computed instanceof ComputedNoRecomputed) {
                         computed.isInit = false;
                     }

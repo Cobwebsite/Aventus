@@ -9,3 +9,4 @@ server/out
 *package-lock.json
 *.vsix
 lib/*.avt
+open_folder.ps1
