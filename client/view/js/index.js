@@ -618,10 +618,17 @@ let NormalizedEvent=class NormalizedEvent {
         return this.event.timeStamp;
     }
     get pointerType() {
+        if (this._event instanceof TouchEvent)
+            return "touch";
         return this.getProp("pointerType");
     }
     get button() {
         return this.getProp("button");
+    }
+    get isTouch() {
+        if (this._event instanceof TouchEvent)
+            return true;
+        return this._event.pointerType == "touch";
     }
 }
 NormalizedEvent.Namespace=`Aventus`;
@@ -1804,13 +1811,12 @@ let PressManager=class PressManager {
     }
     options;
     element;
-    delayDblPress = PressManager.globalConfig.delayDblPress ?? 150;
-    delayLongPress = PressManager.globalConfig.delayLongPress ?? 700;
+    delayDblPress;
+    delayLongPress;
     nbPress = 0;
-    offsetDrag = PressManager.globalConfig.offsetDrag ?? 20;
+    offsetDrag;
     state = {
-        oneActionTriggered: false,
-        moving: undefined,
+        oneActionTriggered: null,
     };
     startPosition = { x: 0, y: 0 };
     customFcts = {};
@@ -1837,6 +1843,9 @@ let PressManager=class PressManager {
         if (options.element === void 0) {
             throw 'You must provide an element';
         }
+        this.offsetDrag = PressManager.globalConfig.offsetDrag !== undefined ? PressManager.globalConfig.offsetDrag : 20;
+        this.delayLongPress = PressManager.globalConfig.delayLongPress ?? 700;
+        this.delayDblPress = PressManager.globalConfig.delayDblPress ?? 150;
         this.element = options.element;
         this.checkDragConstraint(options);
         this.assignValueOption(options);
@@ -1952,8 +1961,9 @@ let PressManager=class PressManager {
             this.timeoutLongPress = setTimeout(() => {
                 if (!state.oneActionTriggered) {
                     if (this.options.onLongPress) {
-                        state.oneActionTriggered = true;
-                        this.options.onLongPress(e, this);
+                        if (this.options.onLongPress(e, this) !== false) {
+                            state.oneActionTriggered = this;
+                        }
                     }
                 }
             }, this.delayLongPress);
@@ -1982,7 +1992,7 @@ let PressManager=class PressManager {
         }
         this.customFcts = {};
         if (this.nbPress == 0) {
-            this.state.oneActionTriggered = false;
+            this.state.oneActionTriggered = null;
             clearTimeout(this.timeoutDblPress);
         }
         this.startPosition = { x: e.pageX, y: e.pageY };
@@ -2000,8 +2010,7 @@ let PressManager=class PressManager {
     }
     genericUpAction(state, e) {
         clearTimeout(this.timeoutLongPress);
-        if (state.moving == this) {
-            state.moving = undefined;
+        if (state.oneActionTriggered == this) {
             if (this.options.onDragEnd) {
                 this.options.onDragEnd(e, this);
             }
@@ -2014,10 +2023,12 @@ let PressManager=class PressManager {
                 this.nbPress++;
                 if (this.nbPress == 2) {
                     if (!state.oneActionTriggered) {
-                        state.oneActionTriggered = true;
                         this.nbPress = 0;
                         if (this.options.onDblPress) {
                             this.options.onDblPress(e, this);
+                            if (this.options.onDblPress(e, this) !== false) {
+                                state.oneActionTriggered = this;
+                            }
                         }
                     }
                 }
@@ -2026,8 +2037,9 @@ let PressManager=class PressManager {
                         this.nbPress = 0;
                         if (!state.oneActionTriggered) {
                             if (this.options.onPress) {
-                                state.oneActionTriggered = true;
-                                this.options.onPress(e, this);
+                                if (this.options.onPress(e, this) !== false) {
+                                    state.oneActionTriggered = this;
+                                }
                             }
                         }
                     }, this.delayDblPress);
@@ -2036,8 +2048,9 @@ let PressManager=class PressManager {
             else {
                 if (!state.oneActionTriggered) {
                     if (this.options.onPress) {
-                        state.oneActionTriggered = true;
-                        this.options.onPress(e, this);
+                        if (this.options.onPress(e, this) !== false) {
+                            state.oneActionTriggered = this;
+                        }
                     }
                 }
             }
@@ -2072,19 +2085,19 @@ let PressManager=class PressManager {
         this.emitTriggerFunction("pressend", e);
     }
     genericMoveAction(state, e) {
-        if (!state.moving && !state.oneActionTriggered) {
+        if (!state.oneActionTriggered) {
             let xDist = e.pageX - this.startPosition.x;
             let yDist = e.pageY - this.startPosition.y;
             let distance = Math.sqrt(xDist * xDist + yDist * yDist);
             if (distance > this.offsetDrag && this.downEventSaved) {
-                state.oneActionTriggered = true;
                 if (this.options.onDragStart) {
-                    state.moving = this;
-                    this.options.onDragStart(this.downEventSaved, this);
+                    if (this.options.onDragStart(this.downEventSaved, this) !== false) {
+                        state.oneActionTriggered = this;
+                    }
                 }
             }
         }
-        else if (state.moving == this) {
+        else if (state.oneActionTriggered == this) {
             if (this.options.onDrag) {
                 this.options.onDrag(e, this);
             }

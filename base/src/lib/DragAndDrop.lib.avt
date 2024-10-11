@@ -51,7 +51,7 @@ export interface DragAndDropOptions {
     /** Trigger on pointer up*/
     onPointerUp?: (e: NormalizedEvent) => void;
     /** Trigger on drag start*/
-    onStart?: (e: NormalizedEvent) => void;
+    onStart?: (e: NormalizedEvent) => void | boolean;
     /** Trigger on moving  */
     onMove?: (e: NormalizedEvent, position: Coordinate) => void;
     /** Trigger after stop moving */
@@ -201,10 +201,10 @@ export class DragAndDrop {
     private onPressEnd(e: NormalizedEvent) {
         this.options.onPointerUp(e);
     }
-    private onDragStart(e: NormalizedEvent) {
+    private onDragStart(e: NormalizedEvent): void | boolean {
         this.isEnable = this.options.isDragEnable();
         if(!this.isEnable) {
-            return;
+            return false;
         }
         let draggableElement = this.options.element;
         this.startCursorPosition = {
@@ -232,7 +232,7 @@ export class DragAndDrop {
             this.options.shadow.container.appendChild(draggableElement);
         }
         this.draggableElement = draggableElement;
-        this.options.onStart(e);
+        return this.options.onStart(e);
     }
     private onDrag(e: NormalizedEvent) {
         if(!this.isEnable) {
