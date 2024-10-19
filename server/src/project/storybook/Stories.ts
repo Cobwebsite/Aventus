@@ -1,6 +1,6 @@
 import { join, normalize, resolve, sep } from 'path';
 import { Build, LocalCodeResult } from '../Build';
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'fs';
+import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'fs';
 import { GenericServer } from '../../GenericServer';
 import { EOL } from 'os';
 import { getFolder, pathToUri, simplifyUri, uriToPath } from '../../tools';
@@ -104,20 +104,32 @@ export class Storie {
 			let name = info.name;
 			let fullname = info.fullName.replace(/\./g, '/');
 			let hasDefaultStory = true;
-
+			let prefixFound = false;
+			const setPrefix = (prefix: string) => {
+				if (prefix === "") {
+				}
+				else if (prefix.endsWith("/")) {
+					fullname = prefix + fullname;
+				}
+				else {
+					fullname = prefix + "/" + fullname;
+				}
+			}
 			if (info.storieDecorator) {
-				if (info.storieDecorator.prefix) {
-					if (info.storieDecorator.prefix.endsWith("/")) {
-						fullname = info.storieDecorator.prefix + name;
-					}
-					else {
-						fullname = info.storieDecorator.prefix + "/" + name;
-					}
+				if (info.storieDecorator.fullName) {
+					fullname = info.storieDecorator.fullName;
+				}
+				if (info.storieDecorator.prefix !== undefined) {
+					prefixFound = true;
+					setPrefix(info.storieDecorator.prefix);
 				}
 
 				if (info.storieDecorator.onlyMeta) {
 					hasDefaultStory = false;
 				}
+			}
+			if (!prefixFound && this.buildConfig.stories?.prefix !== undefined) {
+				setPrefix(this.buildConfig.stories.prefix);
 			}
 			template = this.replaceVariable(template, "name", name);
 			template = this.replaceVariable(template, "fullname", fullname);
@@ -128,9 +140,24 @@ export class Storie {
 				template = this.replaceVariable(template, "argTypes", "argTypes: " + JSON.stringify(file.storyBookInfo.argsTypes, null, 2) + ",");
 				template = this.replaceVariable(template, "args", "args: " + JSON.stringify(file.storyBookInfo.args, null, 2) + ",");
 
+				let importPathes: { [uri: string]: string[] } = file.fileParsed?.classes[file.componentClassName].storieInject ?? {};
+
 				let fileNpm = join(outputNpm, ...storieContent.namespace!.split("."));
 				let importPath = simplifyUri(pathToUri(fileNpm), pathToUri(outputPath));
-				template = this.replaceVariable(template, "importPath", importPath);
+				if (!importPathes[importPath]) {
+					importPathes[importPath] = [name];
+				}
+				else {
+					if (!importPathes[importPath].includes(name)) {
+						importPathes[importPath].push(name);
+					}
+				}
+
+				const importTxt: string[] = [];
+				for (let _path in importPathes) {
+					importTxt.push(`import { ${importPathes[_path].join(", ")} } from '${_path}';`)
+				}
+				template = this.replaceVariable(template, "importPathes", importTxt.join("\n"));
 			}
 
 			writeFileSync(outputPath + ".stories.ts", template);
@@ -174,14 +201,42 @@ export class Storie {
 						_internalLoop(templatePath);
 					}
 					else {
-						let ctx = readFileSync(templatePath, 'utf-8');
-						if (!templatePath.endsWith(".jpeg") && !templatePath.endsWith(".png")) {
+						if ((/\.(gif|jpe?g|tiff?|png|webp|bmp)$/i).test(templatePath.toLowerCase())) {
+							copyFileSync(templatePath, exportPath);
+						}
+						else {
+							let ctx = readFileSync(templatePath, 'utf-8');
 							for (let varName in currentVars) {
 								const regex = new RegExp('\\$\\{\\{' + varName + '\\}\\}', 'gm');
 								ctx = ctx.replace(regex, currentVars[varName]);
 							}
+							if (file == "package.json") {
+								let packageJson = JSON.parse(ctx);
+								if (!packageJson.devDependencies) {
+									packageJson.devDependencies = {};
+								}
+								for (let uri of this.build.externalPackageInformation.filesUri) {
+									let file = this.build.externalPackageInformation.getByUri(uri);
+									if (!file) continue;
+									if (!file.npmUri) continue;
+									// avoid add self dependance
+									if (file.name == this.buildConfig.fullname) continue
+									packageJson.devDependencies[file.npmUri] = '^' + file.versionTxt;
+								}
+
+								const devDependencies = Object.keys(packageJson.devDependencies).sort().reduce(
+									(obj, key) => {
+										obj[key] = packageJson.devDependencies[key];
+										return obj;
+									},
+									{}
+								);
+								packageJson.devDependencies = devDependencies;
+								ctx = JSON.stringify(packageJson, null, 4);
+							}
+							writeFileSync(exportPath, ctx);
 						}
-						writeFileSync(exportPath, ctx);
+
 
 					}
 				}

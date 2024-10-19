@@ -101,9 +101,29 @@ namespace Navigation {
                         this.activePath = path;
                         this.activeState = currentState;
                         await element.show(currentState);
+
                         let title = element.pageTitle();
                         if(title !== undefined)
                             document.title = title;
+
+                        let keywords = element.pageKeywords();
+                        if(keywords !== undefined) {
+                            let meta = document.querySelector('meta[name="keywords"]');
+                            if(!meta) {
+                                meta = document.createElement('meta');
+                            }
+                            meta.setAttribute("content", keywords.join(", "))
+                        }
+
+                        let description = element.pageDescription();
+                        if(description !== undefined) {
+                            let meta = document.querySelector('meta[name="description"]');
+                            if(!meta) {
+                                meta = document.createElement('meta');
+                            }
+                            meta.setAttribute("content", description)
+                        }
+                        
                         if(this.bindToUrl() && window.location.pathname != currentState.name) {
                             let newUrl = window.location.origin + currentState.name;
                             window.history.pushState({}, title ?? "", newUrl);

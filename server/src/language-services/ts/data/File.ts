@@ -50,16 +50,16 @@ export class AventusDataFile extends AventusTsFile {
 
             for (let className in struct.classes) {
                 let classTemp = struct.classes[className];
-                for (let propName in classTemp.properties) {
-                    let field = classTemp.properties[propName];
-                    // if field is get or set => typescript ll trigger an error
-                    if (!field.isAbstract && field.isGetSet && !field.overrideNullable && field.defaultValue === null) {
-                        this.diagnostics.push(createErrorTsPos(document, `Property '${field.name}' has no initializer and is not definitely assigned.`, field.nameStart, field.nameEnd, AventusErrorCode.MissingInit));
-                    }
-                }
-
-
+                
                 if (!classTemp.isInterface) {
+                    for (let propName in classTemp.properties) {
+                        let field = classTemp.properties[propName];
+                        // if field is get or set => typescript ll trigger an error
+                        if (!field.isAbstract && field.isGetSet && !field.overrideNullable && field.defaultValue === null) {
+                            this.diagnostics.push(createErrorTsPos(document, `Property '${field.name}' has no initializer and is not definitely assigned.`, field.nameStart, field.nameEnd, AventusErrorCode.MissingInit));
+                        }
+                    }
+
                     let classToSearch: ClassInfo | null = classTemp;
                     let foundFullname = false;
                     while (classToSearch != null) {

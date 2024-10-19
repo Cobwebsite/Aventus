@@ -16,6 +16,9 @@ export function buildJSON(e: ObjectLiteralExpression | ArrayLiteralExpression, o
                 if (prop.initializer.kind == SyntaxKind.StringLiteral) {
                     obj[prop.name.getText()] = prop.initializer.getText()
                 }
+                else if (prop.initializer.kind == SyntaxKind.NoSubstitutionTemplateLiteral) {
+                    obj[prop.name.getText()] = prop.initializer.getText()
+                }
                 else if (prop.initializer.kind == SyntaxKind.NumericLiteral) {
                     obj[prop.name.getText()] = Number(prop.initializer.getText());
                 }
@@ -49,6 +52,9 @@ export function buildJSON(e: ObjectLiteralExpression | ArrayLiteralExpression, o
             if (element.kind == SyntaxKind.StringLiteral) {
                 obj.push(element.getText());
             }
+            else if (element.kind == SyntaxKind.NoSubstitutionTemplateLiteral) {
+                obj.push(element.getText());
+            }
             else if (element.kind == SyntaxKind.NumericLiteral) {
                 obj.push(Number(element.getText()));
             }
@@ -68,6 +74,9 @@ export function buildJSON(e: ObjectLiteralExpression | ArrayLiteralExpression, o
                 buildJSON(element as ArrayLiteralExpression, objTemp);
                 obj.push(objTemp);
             }
+            else if (element.kind == SyntaxKind.Identifier) {
+                obj.push(element.getText());
+            }
         }
     }
 
@@ -77,6 +86,12 @@ export function buildJSON(e: ObjectLiteralExpression | ArrayLiteralExpression, o
 export type ArgType = "string" | 'number' | 'boolean' | 'object' | 'array' | 'identifier' | 'call';
 export function getArg(node: Expression): { type: ArgType, value: string } | null {
     if (node.kind == SyntaxKind.StringLiteral) {
+        return {
+            type: "string",
+            value: node.getText()
+        }
+    }
+    else if (node.kind == SyntaxKind.NoSubstitutionTemplateLiteral) {
         return {
             type: "string",
             value: node.getText()

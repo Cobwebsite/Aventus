@@ -92,8 +92,8 @@ export class TouchRecord {
         };
 
         const vel = this.getVelocity();
-
-        Object.keys(vel).forEach(dir => {
+        const dirs = Object.keys(vel);
+        for(let dir of dirs) {
             // ignore small velocity
             let v = Math.abs(vel[dir]) <= 10 ? 0 : vel[dir];
 
@@ -101,7 +101,7 @@ export class TouchRecord {
                 distance[dir] += v;
                 v = (v * deAcceleration) | 0;
             }
-        });
+        }
 
         return distance;
     }
@@ -111,10 +111,10 @@ export class TouchRecord {
             targetTouches,
         } = evt;
 
-        Array.from(targetTouches).forEach(touch => {
+        const touches = Array.from(targetTouches);
+        for(let touch of touches) {
             this._add(touch);
-        });
-
+        }
         return this._touchList;
     }
 
@@ -123,10 +123,10 @@ export class TouchRecord {
             touches,
             changedTouches,
         } = evt;
-
-        Array.from(touches).forEach(touch => {
+        const touchesArray = Array.from(touches);
+        for(let touch of touchesArray) {
             this._renew(touch);
-        });
+        }
 
         this._setActiveID(changedTouches);
 
@@ -136,9 +136,10 @@ export class TouchRecord {
     public release(evt: TouchEvent) {
         delete this._activeTouchID;
 
-        Array.from(evt.changedTouches).forEach(touch => {
+        const touchesArray = Array.from(evt.changedTouches);
+        for(let touch of touchesArray) {
             this._delete(touch);
-        });
+        }
     }
 
     private _add(touch: Touch) {

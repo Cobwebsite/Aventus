@@ -6,7 +6,7 @@ const _ = {};
 
 
 let _n;
-const ElementExtension=class ElementExtension {
+let ElementExtension=class ElementExtension {
     /**
      * Find a parent by tagname if exist Static.findParentByTag(this, "av-img")
      */
@@ -243,9 +243,9 @@ const ElementExtension=class ElementExtension {
     }
 }
 ElementExtension.Namespace=`Aventus`;
-
 _.ElementExtension=ElementExtension;
-const Instance=class Instance {
+
+let Instance=class Instance {
     static elements = new Map();
     static get(type) {
         let result = this.elements.get(type);
@@ -270,9 +270,9 @@ const Instance=class Instance {
     }
 }
 Instance.Namespace=`Aventus`;
-
 _.Instance=Instance;
-const Style=class Style {
+
+let Style=class Style {
     static instance;
     static noAnimation;
     static defaultStyleSheets = {
@@ -350,9 +350,9 @@ const Style=class Style {
     }
 }
 Style.Namespace=`Aventus`;
-
 _.Style=Style;
-const setValueToObject=function setValueToObject(path, obj, value) {
+
+let setValueToObject=function setValueToObject(path, obj, value) {
     path = path.replace(/\[(.*?)\]/g, '.$1');
     const val = (key) => {
         if (obj instanceof Map) {
@@ -377,9 +377,9 @@ const setValueToObject=function setValueToObject(path, obj, value) {
         obj[splitted[splitted.length - 1]] = value;
     }
 }
-
 _.setValueToObject=setValueToObject;
-const Callback=class Callback {
+
+let Callback=class Callback {
     callbacks = new Map();
     /**
      * Clear all callbacks
@@ -414,9 +414,9 @@ const Callback=class Callback {
     }
 }
 Callback.Namespace=`Aventus`;
-
 _.Callback=Callback;
-const Mutex=class Mutex {
+
+let Mutex=class Mutex {
     /**
      * Array to store functions waiting for the mutex to become available.
      * @type {((run: boolean) => void)[]}
@@ -553,9 +553,9 @@ const Mutex=class Mutex {
     }
 }
 Mutex.Namespace=`Aventus`;
-
 _.Mutex=Mutex;
-const compareObject=function compareObject(obj1, obj2) {
+
+let compareObject=function compareObject(obj1, obj2) {
     if (Array.isArray(obj1)) {
         if (!Array.isArray(obj2)) {
             return false;
@@ -625,9 +625,12 @@ const compareObject=function compareObject(obj1, obj2) {
         return obj1 === obj2;
     }
 }
-
 _.compareObject=compareObject;
-const getValueFromObject=function getValueFromObject(path, obj) {
+
+let getValueFromObject=function getValueFromObject(path, obj) {
+    if (path === undefined) {
+        path = '';
+    }
     path = path.replace(/\[(.*?)\]/g, '.$1');
     if (path == "") {
         return obj;
@@ -652,17 +655,17 @@ const getValueFromObject=function getValueFromObject(path, obj) {
     }
     return val(splitted[splitted.length - 1]);
 }
-
 _.getValueFromObject=getValueFromObject;
+
 var WatchAction;
 (function (WatchAction) {
     WatchAction[WatchAction["CREATED"] = 0] = "CREATED";
     WatchAction[WatchAction["UPDATED"] = 1] = "UPDATED";
     WatchAction[WatchAction["DELETED"] = 2] = "DELETED";
 })(WatchAction || (WatchAction = {}));
-
 _.WatchAction=WatchAction;
-const Effect=class Effect {
+
+let Effect=class Effect {
     callbacks = [];
     isInit = false;
     isDestroy = false;
@@ -775,9 +778,11 @@ const Effect=class Effect {
     }
 }
 Effect.Namespace=`Aventus`;
-
 _.Effect=Effect;
-const Watcher=class Watcher {
+
+let Watcher=class Watcher {
+    constructor() { }
+    ;
     static __reservedName = {
         __path: '__path',
     };
@@ -864,7 +869,7 @@ const Watcher=class Watcher {
                 let root = element.__root;
                 if (root != proxyData.baseData) {
                     element.__validatePath();
-                    let oldPath = element.__path;
+                    let oldPath = element.__path ?? '';
                     let unbindElement = getValueFromObject(oldPath, root);
                     if (receiver == null) {
                         receiver = getValueFromObject(target.__path, realProxy);
@@ -1059,6 +1064,9 @@ const Watcher=class Watcher {
                     };
                 }
                 else if (prop == "toJSON") {
+                    if (target.toJSON) {
+                        return target.toJSON;
+                    }
                     if (Array.isArray(target)) {
                         return () => {
                             let result = [];
@@ -1277,6 +1285,9 @@ const Watcher=class Watcher {
             set(target, prop, value, receiver) {
                 let oldValue = Reflect.get(target, prop, receiver);
                 value = replaceByAlias(target, value, prop, receiver);
+                if (value instanceof Signal) {
+                    value = value.value;
+                }
                 let triggerChange = false;
                 if (!reservedName[prop]) {
                     if (Array.isArray(target)) {
@@ -1330,7 +1341,7 @@ const Watcher=class Watcher {
                 }
                 if (target.hasOwnProperty(prop)) {
                     let oldValue = target[prop];
-                    if (oldValue instanceof Effect) {
+                    if (oldValue instanceof Effect || oldValue instanceof Signal) {
                         oldValue.destroy();
                     }
                     delete target[prop];
@@ -1556,11 +1567,60 @@ const Watcher=class Watcher {
         const comp = new Effect(fct);
         return comp;
     }
+    /**
+     * Create a signal variable
+     */
+    static signal(item, onChange) {
+        return new Signal(item, onChange);
+    }
 }
 Watcher.Namespace=`Aventus`;
-
 _.Watcher=Watcher;
-const Computed=class Computed extends Effect {
+
+let Signal=class Signal {
+    __subscribes = [];
+    _value;
+    _onChange;
+    get value() {
+        Watcher._register?.register(this, "*", Watcher._register.version, "*");
+        return this._value;
+    }
+    set value(item) {
+        const oldValue = this._value;
+        this._value = item;
+        if (oldValue != item) {
+            if (this._onChange) {
+                this._onChange();
+            }
+            for (let fct of this.__subscribes) {
+                fct(WatchAction.UPDATED, "*", item, []);
+            }
+        }
+    }
+    constructor(item, onChange) {
+        this._value = item;
+        this._onChange = onChange;
+    }
+    subscribe(fct) {
+        let index = this.__subscribes.indexOf(fct);
+        if (index == -1) {
+            this.__subscribes.push(fct);
+        }
+    }
+    unsubscribe(fct) {
+        let index = this.__subscribes.indexOf(fct);
+        if (index > -1) {
+            this.__subscribes.splice(index, 1);
+        }
+    }
+    destroy() {
+        this.__subscribes = [];
+    }
+}
+Signal.Namespace=`Aventus`;
+_.Signal=Signal;
+
+let Computed=class Computed extends Effect {
     _value;
     __path = "*";
     get value() {
@@ -1598,9 +1658,9 @@ const Computed=class Computed extends Effect {
     }
 }
 Computed.Namespace=`Aventus`;
-
 _.Computed=Computed;
-const ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
+
+let ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
     init() {
         this.isInit = true;
         Watcher._registering.push(this);
@@ -1616,9 +1676,9 @@ const ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
     run() { }
 }
 ComputedNoRecomputed.Namespace=`Aventus`;
-
 _.ComputedNoRecomputed=ComputedNoRecomputed;
-const PressManager=class PressManager {
+
+let PressManager=class PressManager {
     static globalConfig = {
         delayDblPress: 150,
         delayLongPress: 700,
@@ -1649,19 +1709,13 @@ const PressManager=class PressManager {
     offsetDrag = PressManager.globalConfig.offsetDrag ?? 20;
     state = {
         oneActionTriggered: false,
-        isMoving: false,
+        moving: undefined,
     };
     startPosition = { x: 0, y: 0 };
     customFcts = {};
     timeoutDblPress = 0;
     timeoutLongPress = 0;
     downEventSaved;
-    actionsName = {
-        press: "press",
-        longPress: "longPress",
-        dblPress: "dblPress",
-        drag: "drag"
-    };
     useDblPress = false;
     stopPropagation = () => true;
     functionsBinded = {
@@ -1670,10 +1724,7 @@ const PressManager=class PressManager {
         moveAction: (e) => { },
         childPressStart: (e) => { },
         childPressEnd: (e) => { },
-        childPress: (e) => { },
-        childDblPress: (e) => { },
-        childLongPress: (e) => { },
-        childDragStart: (e) => { },
+        childPressMove: (e) => { }
     };
     /**
      * @param {*} options - The options
@@ -1772,22 +1823,28 @@ const PressManager=class PressManager {
         this.functionsBinded.downAction = this.downAction.bind(this);
         this.functionsBinded.moveAction = this.moveAction.bind(this);
         this.functionsBinded.upAction = this.upAction.bind(this);
-        this.functionsBinded.childDblPress = this.childDblPress.bind(this);
-        this.functionsBinded.childDragStart = this.childDragStart.bind(this);
-        this.functionsBinded.childLongPress = this.childLongPress.bind(this);
-        this.functionsBinded.childPress = this.childPress.bind(this);
         this.functionsBinded.childPressStart = this.childPressStart.bind(this);
         this.functionsBinded.childPressEnd = this.childPressEnd.bind(this);
+        this.functionsBinded.childPressMove = this.childPressMove.bind(this);
     }
     init() {
         this.bindAllFunction();
         this.element.addEventListener("pointerdown", this.functionsBinded.downAction);
-        this.element.addEventListener("trigger_pointer_press", this.functionsBinded.childPress);
         this.element.addEventListener("trigger_pointer_pressstart", this.functionsBinded.childPressStart);
         this.element.addEventListener("trigger_pointer_pressend", this.functionsBinded.childPressEnd);
-        this.element.addEventListener("trigger_pointer_dblpress", this.functionsBinded.childDblPress);
-        this.element.addEventListener("trigger_pointer_longpress", this.functionsBinded.childLongPress);
-        this.element.addEventListener("trigger_pointer_dragstart", this.functionsBinded.childDragStart);
+        this.element.addEventListener("trigger_pointer_pressmove", this.functionsBinded.childPressMove);
+    }
+    genericDownAction(state, e) {
+        if (this.options.onLongPress) {
+            this.timeoutLongPress = setTimeout(() => {
+                if (!state.oneActionTriggered) {
+                    if (this.options.onLongPress) {
+                        state.oneActionTriggered = true;
+                        this.options.onLongPress(e, this);
+                    }
+                }
+            }, this.delayLongPress);
+        }
     }
     downAction(e) {
         if (this.options.onEvent) {
@@ -1809,24 +1866,58 @@ const PressManager=class PressManager {
         document.addEventListener("pointerup", this.functionsBinded.upAction);
         document.addEventListener("pointercancel", this.functionsBinded.upAction);
         document.addEventListener("pointermove", this.functionsBinded.moveAction);
-        this.timeoutLongPress = setTimeout(() => {
-            if (!this.state.oneActionTriggered) {
-                if (this.options.onLongPress) {
-                    this.state.oneActionTriggered = true;
-                    this.options.onLongPress(e, this);
-                    this.triggerEventToParent(this.actionsName.longPress, e);
-                }
-                else {
-                    this.emitTriggerFunction(this.actionsName.longPress, e);
-                }
-            }
-        }, this.delayLongPress);
+        this.genericDownAction(this.state, e);
         if (this.options.onPressStart) {
             this.options.onPressStart(e, this);
             this.emitTriggerFunctionParent("pressstart", e);
         }
         else {
             this.emitTriggerFunction("pressstart", e);
+        }
+    }
+    genericUpAction(state, e) {
+        clearTimeout(this.timeoutLongPress);
+        if (state.moving == this) {
+            state.moving = undefined;
+            if (this.options.onDragEnd) {
+                this.options.onDragEnd(e, this);
+            }
+            else if (this.customFcts.src && this.customFcts.onDragEnd) {
+                this.customFcts.onDragEnd(e, this.customFcts.src);
+            }
+        }
+        else {
+            if (this.useDblPress) {
+                this.nbPress++;
+                if (this.nbPress == 2) {
+                    if (!state.oneActionTriggered) {
+                        state.oneActionTriggered = true;
+                        this.nbPress = 0;
+                        if (this.options.onDblPress) {
+                            this.options.onDblPress(e, this);
+                        }
+                    }
+                }
+                else if (this.nbPress == 1) {
+                    this.timeoutDblPress = setTimeout(() => {
+                        this.nbPress = 0;
+                        if (!state.oneActionTriggered) {
+                            if (this.options.onPress) {
+                                state.oneActionTriggered = true;
+                                this.options.onPress(e, this);
+                            }
+                        }
+                    }, this.delayDblPress);
+                }
+            }
+            else {
+                if (!state.oneActionTriggered) {
+                    if (this.options.onPress) {
+                        state.oneActionTriggered = true;
+                        this.options.onPress(e, this);
+                    }
+                }
+            }
         }
     }
     upAction(e) {
@@ -1839,61 +1930,7 @@ const PressManager=class PressManager {
         document.removeEventListener("pointerup", this.functionsBinded.upAction);
         document.removeEventListener("pointercancel", this.functionsBinded.upAction);
         document.removeEventListener("pointermove", this.functionsBinded.moveAction);
-        clearTimeout(this.timeoutLongPress);
-        if (this.state.isMoving) {
-            this.state.isMoving = false;
-            if (this.options.onDragEnd) {
-                this.options.onDragEnd(e, this);
-            }
-            else if (this.customFcts.src && this.customFcts.onDragEnd) {
-                this.customFcts.onDragEnd(e, this.customFcts.src);
-            }
-        }
-        else {
-            if (this.useDblPress) {
-                this.nbPress++;
-                if (this.nbPress == 2) {
-                    if (!this.state.oneActionTriggered) {
-                        this.state.oneActionTriggered = true;
-                        this.nbPress = 0;
-                        if (this.options.onDblPress) {
-                            this.options.onDblPress(e, this);
-                            this.triggerEventToParent(this.actionsName.dblPress, e);
-                        }
-                        else {
-                            this.emitTriggerFunction(this.actionsName.dblPress, e);
-                        }
-                    }
-                }
-                else if (this.nbPress == 1) {
-                    this.timeoutDblPress = setTimeout(() => {
-                        this.nbPress = 0;
-                        if (!this.state.oneActionTriggered) {
-                            if (this.options.onPress) {
-                                this.state.oneActionTriggered = true;
-                                this.options.onPress(e, this);
-                                this.triggerEventToParent(this.actionsName.press, e);
-                            }
-                            else {
-                                this.emitTriggerFunction(this.actionsName.press, e);
-                            }
-                        }
-                    }, this.delayDblPress);
-                }
-            }
-            else {
-                if (!this.state.oneActionTriggered) {
-                    if (this.options.onPress) {
-                        this.state.oneActionTriggered = true;
-                        this.options.onPress(e, this);
-                        this.triggerEventToParent(this.actionsName.press, e);
-                    }
-                    else {
-                        this.emitTriggerFunction("press", e);
-                    }
-                }
-            }
-        }
+        this.genericUpAction(this.state, e);
         if (this.options.onPressEnd) {
             this.options.onPressEnd(e, this);
             this.emitTriggerFunctionParent("pressend", e);
@@ -1902,11 +1939,8 @@ const PressManager=class PressManager {
             this.emitTriggerFunction("pressend", e);
         }
     }
-    moveAction(e) {
-        if (this.options.onEvent) {
-            this.options.onEvent(e);
-        }
-        if (!this.state.isMoving && !this.state.oneActionTriggered) {
+    genericMoveAction(state, e) {
+        if (!state.moving && !state.oneActionTriggered) {
             if (this.stopPropagation()) {
                 e.stopImmediatePropagation();
             }
@@ -1914,18 +1948,14 @@ const PressManager=class PressManager {
             let yDist = e.pageY - this.startPosition.y;
             let distance = Math.sqrt(xDist * xDist + yDist * yDist);
             if (distance > this.offsetDrag && this.downEventSaved) {
-                this.state.oneActionTriggered = true;
+                state.oneActionTriggered = true;
                 if (this.options.onDragStart) {
-                    this.state.isMoving = true;
+                    state.moving = this;
                     this.options.onDragStart(this.downEventSaved, this);
-                    this.triggerEventToParent(this.actionsName.drag, e);
-                }
-                else {
-                    this.emitTriggerFunction("dragstart", this.downEventSaved);
                 }
             }
         }
-        else if (this.state.isMoving) {
+        else if (state.moving == this) {
             if (this.options.onDrag) {
                 this.options.onDrag(e, this);
             }
@@ -1934,75 +1964,32 @@ const PressManager=class PressManager {
             }
         }
     }
-    triggerEventToParent(eventName, pointerEvent) {
-        if (this.element.parentNode) {
-            this.element.parentNode.dispatchEvent(new CustomEvent("pressaction_trigger", {
-                bubbles: true,
-                cancelable: false,
-                composed: true,
-                detail: {
-                    target: this.element,
-                    eventName: eventName,
-                    realEvent: pointerEvent
-                }
-            }));
+    moveAction(e) {
+        if (this.options.onEvent) {
+            this.options.onEvent(e);
+        }
+        this.genericMoveAction(this.state, e);
+        if (this.options.onDrag) {
+            this.emitTriggerFunctionParent("pressmove", e);
+        }
+        else {
+            this.emitTriggerFunction("pressmove", e);
         }
     }
     childPressStart(e) {
+        this.genericDownAction(e.detail.state, e.detail.realEvent);
         if (this.options.onPressStart) {
             this.options.onPressStart(e.detail.realEvent, this);
         }
     }
     childPressEnd(e) {
+        this.genericUpAction(e.detail.state, e.detail.realEvent);
         if (this.options.onPressEnd) {
             this.options.onPressEnd(e.detail.realEvent, this);
         }
     }
-    childPress(e) {
-        if (this.options.onPress) {
-            if (this.stopPropagation()) {
-                e.stopImmediatePropagation();
-            }
-            e.detail.state.oneActionTriggered = true;
-            this.options.onPress(e.detail.realEvent, this);
-            this.triggerEventToParent(this.actionsName.press, e.detail.realEvent);
-        }
-    }
-    childDblPress(e) {
-        if (this.options.onDblPress) {
-            if (this.stopPropagation()) {
-                e.stopImmediatePropagation();
-            }
-            if (e.detail.state) {
-                e.detail.state.oneActionTriggered = true;
-            }
-            this.options.onDblPress(e.detail.realEvent, this);
-            this.triggerEventToParent(this.actionsName.dblPress, e.detail.realEvent);
-        }
-    }
-    childLongPress(e) {
-        if (this.options.onLongPress) {
-            if (this.stopPropagation()) {
-                e.stopImmediatePropagation();
-            }
-            e.detail.state.oneActionTriggered = true;
-            this.options.onLongPress(e.detail.realEvent, this);
-            this.triggerEventToParent(this.actionsName.longPress, e.detail.realEvent);
-        }
-    }
-    childDragStart(e) {
-        if (this.options.onDragStart) {
-            if (this.stopPropagation()) {
-                e.stopImmediatePropagation();
-            }
-            e.detail.state.isMoving = true;
-            e.detail.customFcts.src = this;
-            e.detail.customFcts.onDrag = this.options.onDrag;
-            e.detail.customFcts.onDragEnd = this.options.onDragEnd;
-            e.detail.customFcts.offsetDrag = this.options.offsetDrag;
-            this.options.onDragStart(e.detail.realEvent, this);
-            this.triggerEventToParent(this.actionsName.drag, e.detail.realEvent);
-        }
+    childPressMove(e) {
+        this.genericMoveAction(e.detail.state, e.detail.realEvent);
     }
     emitTriggerFunctionParent(action, e) {
         let el = this.element.parentElement;
@@ -2038,12 +2025,9 @@ const PressManager=class PressManager {
     destroy() {
         if (this.element) {
             this.element.removeEventListener("pointerdown", this.functionsBinded.downAction);
-            this.element.removeEventListener("trigger_pointer_press", this.functionsBinded.childPress);
             this.element.removeEventListener("trigger_pointer_pressstart", this.functionsBinded.childPressStart);
             this.element.removeEventListener("trigger_pointer_pressend", this.functionsBinded.childPressEnd);
-            this.element.removeEventListener("trigger_pointer_dblpress", this.functionsBinded.childDblPress);
-            this.element.removeEventListener("trigger_pointer_longpress", this.functionsBinded.childLongPress);
-            this.element.removeEventListener("trigger_pointer_dragstart", this.functionsBinded.childDragStart);
+            this.element.removeEventListener("trigger_pointer_pressmove", this.functionsBinded.childPressMove);
             document.removeEventListener("pointerup", this.functionsBinded.upAction);
             document.removeEventListener("pointercancel", this.functionsBinded.upAction);
             document.removeEventListener("pointermove", this.functionsBinded.moveAction);
@@ -2051,9 +2035,9 @@ const PressManager=class PressManager {
     }
 }
 PressManager.Namespace=`Aventus`;
-
 _.PressManager=PressManager;
-const Uri=class Uri {
+
+let Uri=class Uri {
     static prepare(uri) {
         let params = [];
         let i = 0;
@@ -2129,9 +2113,9 @@ const Uri=class Uri {
     }
 }
 Uri.Namespace=`Aventus`;
-
 _.Uri=Uri;
-const State=class State {
+
+let State=class State {
     /**
      * Activate a custom state inside a specific manager
      * It ll be a generic state with no information inside exept name
@@ -2154,9 +2138,9 @@ const State=class State {
     }
 }
 State.Namespace=`Aventus`;
-
 _.State=State;
-const EmptyState=class EmptyState extends State {
+
+let EmptyState=class EmptyState extends State {
     localName;
     constructor(stateName) {
         super();
@@ -2170,9 +2154,9 @@ const EmptyState=class EmptyState extends State {
     }
 }
 EmptyState.Namespace=`Aventus`;
-
 _.EmptyState=EmptyState;
-const StateManager=class StateManager {
+
+let StateManager=class StateManager {
     subscribers = {};
     static canBeActivate(statePattern, stateName) {
         let stateInfo = Uri.prepare(statePattern);
@@ -2406,21 +2390,24 @@ const StateManager=class StateManager {
                         let oldSlug = Uri.getParams(subscriber, oldState.name);
                         if (oldSlug) {
                             let oldSlugNotNull = oldSlug;
-                            [...subscriber.callbacks.inactive].forEach(callback => {
+                            let callbacks = [...subscriber.callbacks.inactive];
+                            for (let callback of callbacks) {
                                 callback(oldState, stateToUse, oldSlugNotNull);
-                            });
+                            }
                         }
                     }
                     for (let trigger of triggerActive) {
-                        [...trigger.subscriber.callbacks.active].forEach(callback => {
+                        let callbacks = [...trigger.subscriber.callbacks.active];
+                        for (let callback of callbacks) {
                             callback(stateToUse, trigger.params);
-                        });
+                        }
                     }
                     for (let trigger of inactiveToActive) {
                         trigger.subscriber.isActive = true;
-                        [...trigger.subscriber.callbacks.active].forEach(callback => {
+                        let callbacks = [...trigger.subscriber.callbacks.active];
+                        for (let callback of callbacks) {
                             callback(stateToUse, trigger.params);
-                        });
+                        }
                     }
                     stateToUse.onActivate();
                 }
@@ -2432,9 +2419,10 @@ const StateManager=class StateManager {
                     if (slugs) {
                         let slugsNotNull = slugs;
                         this.subscribers[key].isActive = true;
-                        [...this.subscribers[key].callbacks.active].forEach(callback => {
+                        let callbacks = [...this.subscribers[key].callbacks.active];
+                        for (let callback of callbacks) {
                             callback(stateToUse, slugsNotNull);
-                        });
+                        }
                     }
                 }
                 stateToUse.onActivate();
@@ -2476,9 +2464,9 @@ const StateManager=class StateManager {
     }
 }
 StateManager.Namespace=`Aventus`;
-
 _.StateManager=StateManager;
-const TemplateContext=class TemplateContext {
+
+let TemplateContext=class TemplateContext {
     data = {};
     comp;
     computeds = [];
@@ -2682,9 +2670,9 @@ const TemplateContext=class TemplateContext {
     }
 }
 TemplateContext.Namespace=`Aventus`;
-
 _.TemplateContext=TemplateContext;
-const TemplateInstance=class TemplateInstance {
+
+let TemplateInstance=class TemplateInstance {
     context;
     content;
     actions;
@@ -3372,9 +3360,9 @@ const TemplateInstance=class TemplateInstance {
     }
 }
 TemplateInstance.Namespace=`Aventus`;
-
 _.TemplateInstance=TemplateInstance;
-const Template=class Template {
+
+let Template=class Template {
     static validatePath(path, pathToCheck) {
         if (pathToCheck.startsWith(path)) {
             return true;
@@ -3510,9 +3498,9 @@ const Template=class Template {
     }
 }
 Template.Namespace=`Aventus`;
-
 _.Template=Template;
-const WebComponent=class WebComponent extends HTMLElement {
+
+let WebComponent=class WebComponent extends HTMLElement {
     /**
      * Add attributes informations
      */
@@ -3570,6 +3558,8 @@ const WebComponent=class WebComponent extends HTMLElement {
     __watchFunctions = {};
     __watchFunctionsComputed = {};
     __pressManagers = [];
+    __signalActions = {};
+    __signals = {};
     __isDefaultState = true;
     __defaultActiveState = new Map();
     __defaultInactiveState = new Map();
@@ -3588,6 +3578,7 @@ const WebComponent=class WebComponent extends HTMLElement {
         this.__renderTemplate();
         this.__registerWatchesActions();
         this.__registerPropertiesActions();
+        this.__registerSignalsActions();
         this.__createStates();
         this.__subscribeState();
     }
@@ -3603,6 +3594,9 @@ const WebComponent=class WebComponent extends HTMLElement {
         }
         for (let name in this.__watchFunctionsComputed) {
             this.__watchFunctionsComputed[name].destroy();
+        }
+        for (let name in this.__signals) {
+            this.__signals[name].destroy();
         }
         // TODO add missing info for destructor();
         this.postDestruction();
@@ -3689,6 +3683,31 @@ const WebComponent=class WebComponent extends HTMLElement {
             }
         }
     }
+    __addSignalActions(name, fct) {
+        this.__signalActions[name] = () => {
+            fct(this);
+        };
+    }
+    __registerSignalsActions() {
+        if (Object.keys(this.__signals).length > 0) {
+            const defaultValues = {};
+            for (let name in this.__signals) {
+                this.__registerSignalsAction(name);
+                this.__defaultValuesSignal(defaultValues);
+            }
+            for (let name in defaultValues) {
+                this.__signals[name].value = defaultValues[name];
+            }
+        }
+    }
+    __registerSignalsAction(name) {
+        this.__signals[name] = new Signal(undefined, () => {
+            if (this.__signalActions[name]) {
+                this.__signalActions[name]();
+            }
+        });
+    }
+    __defaultValuesSignal(s) { }
     __addPropertyActions(name, fct) {
         if (!this.__onChangeFct[name]) {
             this.__onChangeFct[name] = [];
@@ -3773,12 +3792,29 @@ const WebComponent=class WebComponent extends HTMLElement {
             this.postDisonnect();
         });
     }
+    __onReadyCb = [];
+    onReady(cb) {
+        if (this._isReady) {
+            cb();
+        }
+        else {
+            this.__onReadyCb.push(cb);
+        }
+    }
+    __setReady() {
+        this._isReady = true;
+        this.dispatchEvent(new CustomEvent('postCreationDone'));
+        let cbs = [...this.__onReadyCb];
+        for (let cb of cbs) {
+            cb();
+        }
+        this.__onReadyCb = [];
+    }
     __removeNoAnimations() {
         if (document.readyState !== "loading") {
             setTimeout(() => {
                 this.postCreation();
-                this._isReady = true;
-                this.dispatchEvent(new CustomEvent('postCreationDone'));
+                this.__setReady();
                 this.shadowRoot.adoptedStyleSheets = Object.values(this.__getStatic().__styleSheets);
                 document.removeEventListener("DOMContentLoaded", this.__removeNoAnimations);
                 this.postConnect();
@@ -4179,9 +4215,9 @@ const WebComponent=class WebComponent extends HTMLElement {
     }
 }
 WebComponent.Namespace=`Aventus`;
-
 _.WebComponent=WebComponent;
-const WebComponentInstance=class WebComponentInstance {
+
+let WebComponentInstance=class WebComponentInstance {
     static __allDefinitions = [];
     static __allInstances = [];
     /**
@@ -4252,9 +4288,9 @@ const WebComponentInstance=class WebComponentInstance {
     }
 }
 WebComponentInstance.Namespace=`Aventus`;
-
 _.WebComponentInstance=WebComponentInstance;
-const ResourceLoader=class ResourceLoader {
+
+let ResourceLoader=class ResourceLoader {
     static headerLoaded = {};
     static headerWaiting = {};
     /**
@@ -4422,8 +4458,8 @@ const ResourceLoader=class ResourceLoader {
     }
 }
 ResourceLoader.Namespace=`Aventus`;
-
 _.ResourceLoader=ResourceLoader;
+
 
 for(let key in _) { Aventus[key] = _[key] }
 })(Aventus);
@@ -4436,55 +4472,6 @@ const _ = {};
 
 
 let _n;
-const Diagram = class Diagram extends Aventus.WebComponent {
-    static __style = `:host .hidden{display:none}`;
-    __getStatic() {
-        return Diagram;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(Diagram.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<div class="element" _id="diagram_0"></div><div class="hidden">    <slot></slot></div>` }
-    });
-}
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
-  "elements": [
-    {
-      "name": "renderEl",
-      "ids": [
-        "diagram_0"
-      ]
-    }
-  ]
-}); }
-    getClassName() {
-        return "Diagram";
-    }
-    async render() {
-        await Aventus.ResourceLoader.loadInHead("https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js");
-        let w = window;
-        w.mermaid.initialize({ startOnLoad: false });
-        let content = this.innerHTML.replace(/<[^>]*>/g, '').trim();
-        var e = document.createElement('div');
-        e.innerHTML = content;
-        content = e.childNodes[0].nodeValue;
-        const { svg } = await w.mermaid.render('graphDiv', content);
-        this.renderEl.innerHTML = svg;
-    }
-    postCreation() {
-        this.render();
-    }
-}
-Diagram.Namespace=`AventusStorybook`;
-Diagram.Tag=`av-diagram`;
-_.Diagram=Diagram;
-if(!window.customElements.get('av-diagram')){window.customElements.define('av-diagram', Diagram);Aventus.WebComponentInstance.registerDefinition(Diagram);}
-
 const TypeRender = class TypeRender extends Aventus.WebComponent {
     get 'no_border'() { return this.getBoolAttr('no_border') }
     set 'no_border'(val) { this.setBoolAttr('no_border', val) }get 'margin_left'() { return this.getNumberAttr('margin_left') }
@@ -4842,7 +4829,7 @@ if(!window.customElements.get('av-type-render')){window.customElements.define('a
 
 const Tag = class Tag extends Aventus.WebComponent {
     get 'type'() { return this.getStringAttr('type') }
-    set 'type'(val) { this.setStringAttr('type', val) }    static __style = `:host{align-items:center;border:1px solid var(--_local-color);border-radius:50px;color:var(--_local-color);display:flex;flex-grow:0;font-size:12px;font-weight:normal;height:24px;justify-content:center;padding:3px 9px}:host([type=public]){--_local-color: #61AFEF}:host([type=private]){--_local-color: #E06C75}:host([type=protected]){--_local-color: #E5C07B}:host([type=abstract]){--_local-color: #C678DD}:host([type=internal]){--_local-color: #5d5c5d}:host([type=override]){--_local-color: #ea3939}:host([type=class]){--_local-color: #D19A66}:host([type=interface]){--_local-color: #61AFEF}:host([type=type]){--_local-color: #C678DD}:host([type=function]){--_local-color: #98C379}:host([type=var]),:host([type=let]),:host([type=const]){--_local-color: #E5C07B}:host([type=enum]){--_local-color: #E06C75}:host([type=readonly]){--_local-color: #ea3939}:host([type=writeonly]){--_local-color: #ea3939}:host([type=static]){--_local-color: #efd761}`;
+    set 'type'(val) { this.setStringAttr('type', val) }    static __style = `:host{align-items:center;border:1px solid var(--_local-color);border-radius:50px;color:var(--_local-color);display:flex;flex-grow:0;font-size:12px;font-weight:normal;height:24px;justify-content:center;padding:3px 9px}:host([type=public]){--_local-color: #61AFEF}:host([type=private]){--_local-color: #E06C75}:host([type=protected]){--_local-color: #E5C07B}:host([type=abstract]){--_local-color: #C678DD}:host([type=internal]){--_local-color: #5d5c5d}:host([type=override]){--_local-color: #ea3939}:host([type=class]){--_local-color: #D19A66}:host([type=interface]){--_local-color: #61AFEF}:host([type=type]){--_local-color: #C678DD}:host([type=function]){--_local-color: #98C379}:host([type=var]),:host([type=let]),:host([type=const]){--_local-color: #E5C07B}:host([type=enum]){--_local-color: #E06C75}:host([type=readonly]){--_local-color: #ea3939}:host([type=writeonly]){--_local-color: #ea3939}:host([type=static]){--_local-color: #efd761}:host([type=Attribute]){--_local-color: #56B6C2}:host([type=Property]){--_local-color: #F28B4B}:host([type=Signal]){--_local-color: #D080D0}:host([type=Watch]){--_local-color: #B5CEA8}:host([type=ViewElement]){--_local-color: #ABB2BF}`;
     __getStatic() {
         return Tag;
     }
@@ -5208,6 +5195,55 @@ const BaseRender = class BaseRender extends Aventus.WebComponent {
 BaseRender.Namespace=`AventusStorybook`;
 _.BaseRender=BaseRender;
 
+const Diagram = class Diagram extends Aventus.WebComponent {
+    static __style = `:host .hidden{display:none}`;
+    __getStatic() {
+        return Diagram;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Diagram.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<div class="element" _id="diagram_0"></div><div class="hidden">    <slot></slot></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "elements": [
+    {
+      "name": "renderEl",
+      "ids": [
+        "diagram_0"
+      ]
+    }
+  ]
+}); }
+    getClassName() {
+        return "Diagram";
+    }
+    async render() {
+        await Aventus.ResourceLoader.loadInHead("https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js");
+        let w = window;
+        w.mermaid.initialize({ startOnLoad: false });
+        let content = this.innerHTML.replace(/<[^>]*>/g, '').trim();
+        var e = document.createElement('div');
+        e.innerHTML = content;
+        content = e.childNodes[0].nodeValue;
+        const { svg } = await w.mermaid.render('graphDiv', content);
+        this.renderEl.innerHTML = svg;
+    }
+    postCreation() {
+        this.render();
+    }
+}
+Diagram.Namespace=`AventusStorybook`;
+Diagram.Tag=`av-diagram`;
+_.Diagram=Diagram;
+if(!window.customElements.get('av-diagram')){window.customElements.define('av-diagram', Diagram);Aventus.WebComponentInstance.registerDefinition(Diagram);}
+
 const Collapse = class Collapse extends Aventus.WebComponent {
     static get observedAttributes() {return ["name"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'open'() { return this.getBoolAttr('open') }
@@ -5273,62 +5309,6 @@ Collapse.Namespace=`AventusStorybook`;
 Collapse.Tag=`av-collapse`;
 _.Collapse=Collapse;
 if(!window.customElements.get('av-collapse')){window.customElements.define('av-collapse', Collapse);Aventus.WebComponentInstance.registerDefinition(Collapse);}
-
-const SlotsRender = class SlotsRender extends BaseRender {
-    get 'slots'() {
-						return this.__watch["slots"];
-					}
-					set 'slots'(val) {
-						this.__watch["slots"] = val;
-					}    __registerWatchesActions() {
-    this.__addWatchesActions("slots", ((target) => {
-}));    super.__registerWatchesActions();
-}
-    static __style = `:host .name{width:40%}:host .description{width:60%}`;
-    __getStatic() {
-        return SlotsRender;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(SlotsRender.__style);
-        return arrStyle;
-    }
-    __getHtml() {super.__getHtml();
-    this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="title">Slots</div><div class="header">    <div class="name">Name</div>    <div class="description">Description</div></div><div class="body">    <av-collapse name="Slot" open>        <template _id="slotsrender_0"></template>    </av-collapse></div>` }
-    });
-}
-    __registerTemplateAction() { super.__registerTemplateAction();const templ0 = new Aventus.Template(this);templ0.setTemplate(`             <div class="line">                <div class="name" _id="slotsrender_1"></div>                <div class="description" _id="slotsrender_2"></div>            </div>        `);templ0.setActions({
-  "content": {
-    "slotsrender_1°@HTML": {
-      "fct": (c) => `\r\n                    ${c.print(c.comp.__855691f31bd45ac4fe848252eee4bef5method1(c.data.slotInfo))}\r\n                `,
-      "once": true
-    },
-    "slotsrender_2°@HTML": {
-      "fct": (c) => `\r\n                    ${c.print(c.comp.__855691f31bd45ac4fe848252eee4bef5method2(c.data.slotInfo))}\r\n                `,
-      "once": true
-    }
-  }
-});this.__getStatic().__template.addLoop({
-                    anchorId: 'slotsrender_0',
-                    template: templ0,
-                simple:{data: "this.slots",item:"slotInfo"}}); }
-    getClassName() {
-        return "SlotsRender";
-    }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["slots"] = []; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('slots'); }
-    __855691f31bd45ac4fe848252eee4bef5method1(slotInfo) {
-        return slotInfo.name;
-    }
-    __855691f31bd45ac4fe848252eee4bef5method2(slotInfo) {
-        return slotInfo.documentation;
-    }
-}
-SlotsRender.Namespace=`AventusStorybook`;
-SlotsRender.Tag=`av-slots-render`;
-_.SlotsRender=SlotsRender;
-if(!window.customElements.get('av-slots-render')){window.customElements.define('av-slots-render', SlotsRender);Aventus.WebComponentInstance.registerDefinition(SlotsRender);}
 
 const StylesRender = class StylesRender extends BaseRender {
     get 'styles'() {
@@ -5399,6 +5379,62 @@ StylesRender.Namespace=`AventusStorybook`;
 StylesRender.Tag=`av-styles-render`;
 _.StylesRender=StylesRender;
 if(!window.customElements.get('av-styles-render')){window.customElements.define('av-styles-render', StylesRender);Aventus.WebComponentInstance.registerDefinition(StylesRender);}
+
+const SlotsRender = class SlotsRender extends BaseRender {
+    get 'slots'() {
+						return this.__watch["slots"];
+					}
+					set 'slots'(val) {
+						this.__watch["slots"] = val;
+					}    __registerWatchesActions() {
+    this.__addWatchesActions("slots", ((target) => {
+}));    super.__registerWatchesActions();
+}
+    static __style = `:host .name{width:40%}:host .description{width:60%}`;
+    __getStatic() {
+        return SlotsRender;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(SlotsRender.__style);
+        return arrStyle;
+    }
+    __getHtml() {super.__getHtml();
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<div class="title">Slots</div><div class="header">    <div class="name">Name</div>    <div class="description">Description</div></div><div class="body">    <av-collapse name="Slot" open>        <template _id="slotsrender_0"></template>    </av-collapse></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();const templ0 = new Aventus.Template(this);templ0.setTemplate(`             <div class="line">                <div class="name" _id="slotsrender_1"></div>                <div class="description" _id="slotsrender_2"></div>            </div>        `);templ0.setActions({
+  "content": {
+    "slotsrender_1°@HTML": {
+      "fct": (c) => `\r\n                    ${c.print(c.comp.__855691f31bd45ac4fe848252eee4bef5method1(c.data.slotInfo))}\r\n                `,
+      "once": true
+    },
+    "slotsrender_2°@HTML": {
+      "fct": (c) => `\r\n                    ${c.print(c.comp.__855691f31bd45ac4fe848252eee4bef5method2(c.data.slotInfo))}\r\n                `,
+      "once": true
+    }
+  }
+});this.__getStatic().__template.addLoop({
+                    anchorId: 'slotsrender_0',
+                    template: templ0,
+                simple:{data: "this.slots",item:"slotInfo"}}); }
+    getClassName() {
+        return "SlotsRender";
+    }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["slots"] = []; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('slots'); }
+    __855691f31bd45ac4fe848252eee4bef5method1(slotInfo) {
+        return slotInfo.name;
+    }
+    __855691f31bd45ac4fe848252eee4bef5method2(slotInfo) {
+        return slotInfo.documentation;
+    }
+}
+SlotsRender.Namespace=`AventusStorybook`;
+SlotsRender.Tag=`av-slots-render`;
+_.SlotsRender=SlotsRender;
+if(!window.customElements.get('av-slots-render')){window.customElements.define('av-slots-render', SlotsRender);Aventus.WebComponentInstance.registerDefinition(SlotsRender);}
 
 const PropertiesRender = class PropertiesRender extends BaseRender {
     get 'properties'() {

@@ -11,40 +11,24 @@ export class LocalTemplateManager {
 		this.templateManager = templateManager;
 	}
 	public async createTemplate(path: string) {
-		let quickPicksTemplate: Map<SelectItem, Template> = new Map();
-		let loadedTemplates = this.readTemplates().concat(this.templateManager.getGeneralTemplates());
-		if (loadedTemplates.length == 0) {
-			GenericServer.showErrorMessage("You have no custom template!!");
-			let result = await GenericServer.Popup("You have no custom template!!", 'Open documentation');
-			if (result == "Open documentation") {
-				open("https://aventusjs.com/docs/advanced/template");
-			}
-			return;
-		}
-		for (let template of loadedTemplates) {
-			let quickPick: SelectItem = {
-				label: template.config.name,
-				detail: template.config.description ?? "",
-			}
-			quickPicksTemplate.set(quickPick, template);
-		}
-		const resultFormat = await GenericServer.Select(Array.from(quickPicksTemplate.keys()), {
-			placeHolder: 'Choose a template',
-		});
-		if (resultFormat) {
-			let resultPick = quickPicksTemplate.get(resultFormat);
-			if (resultPick) {
-				await resultPick.init(path);
-			}
+		let loadedTemplates = this.readTemplates()
+		const templateResult = await this.templateManager.query(loadedTemplates.templates);
+		if (templateResult) {
+			await templateResult.init(path);
 		}
 	}
 
 	private readTemplates() {
+		let globalTemplate = this.templateManager.getGeneralTemplates();
+		let globalTemplateLength = this.templateManager.getGeneralTemplatesLength();
 		let uri = GenericServer.getWorkspaceUri()
 		if (uri) {
 			let aventusFolder = uriToPath(uri) + '/.aventus/templates';
-			return this.templateManager.readTemplates([aventusFolder]);
+			return this.templateManager.readTemplates([aventusFolder], globalTemplate, globalTemplateLength);
 		}
-		return [];
+		return {
+			templates: globalTemplate,
+			nb: globalTemplateLength
+		};
 	}
 }

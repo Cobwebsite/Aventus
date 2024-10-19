@@ -17,7 +17,7 @@ import * as md5 from 'md5';
 import { HTMLFormat } from '../../html/parser/definition';
 import { join } from 'path';
 import { InjectionRender } from '../../html/parser/TagInfo';
-import { InputType } from '@storybook/csf';
+import { InputType } from '@aventusjs/storybook';
 
 type ViewMethodInfo = {
     name: string
@@ -46,9 +46,9 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         argsTypes: { [name: string]: InputType },
         args: { [name: string]: any }
     } = {
-        argsTypes: {},
-        args: {}
-    }
+            argsTypes: {},
+            args: {}
+        }
 
     // private originalDocument!: TextDocument;
     // private originalDocumentVersion: number = 0;
@@ -148,8 +148,9 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
     private typeInfered: { [name: string]: string } = {};
     public recreateFileContent() {
         let htmlFile = this.HTMLFile;
+        let htmlVersion = htmlFile?.file.versionUser ?? 0;
+        let v = this.file.documentUser.version + htmlVersion + 1 // use +1 to allow version to be bigger than 0 at start
         if (htmlFile) {
-            let htmlVersion = htmlFile.file.versionUser ?? -1;
             let mustWrite = false;
             let tsIsDiff = false;
             if (this.lastFileVersionCreated.js != this.file.documentUser.version) {
@@ -167,7 +168,6 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                 let newContent = "";
                 // write html fct inside js
                 if (this.componentEnd >= 0) {
-                    let v = this.file.documentUser.version + htmlVersion + 1 // use +1 to allow version to be bigger than 0 at start
                     let oldContent = this.file.documentUser.getText();
                     let startLine = 1;
                     while (["}", " ", "\t"].includes(oldContent[this.componentEnd - startLine])) {
@@ -589,6 +589,12 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                     unlinkSync(tsPath);
                 }
             }
+        }
+        else {
+            if (this.file instanceof InternalAventusFile) {
+                this.file.setDocumentInternal(TextDocument.create(this.file.documentUser.uri, this.file.documentUser.languageId, v, this.file.contentUser));
+            }
+            this.refreshFileParsed();
         }
     }
 

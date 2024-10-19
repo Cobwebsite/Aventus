@@ -465,16 +465,30 @@ export class AventusSCSSLanguageService {
                                 if (comment?.default) {
                                     cssProperty.defaultValue = comment.default;
                                 }
-                                else {
-                                    let finalNode: Node | null = expressionNode;
-                                    while (finalNode && finalNode.getChildren().length > 0) {
-                                        let children = finalNode.getChildren();
-                                        finalNode = children[children.length - 1];
+                                
+                                let finalNode: Node | null = expressionNode;
+                                let chainValues: string[] = [];
+                                let lastChain: string = '';
+                                while (finalNode && finalNode.getChildren().length > 0) {
+                                    let children = finalNode.getChildren();
+                                    let txtTemp = finalNode.getText();
+                                    if (txtTemp && txtTemp.startsWith("--")) {
+                                        txtTemp = txtTemp.split(",")[0];
+                                        if (lastChain != txtTemp && txtTemp != externalName) {
+                                            lastChain = txtTemp;
+                                            chainValues.push(txtTemp);
+                                        }
                                     }
-                                    let finalValue: string = finalNode.getText() ?? '';
-                                    if (finalValue && !finalValue.startsWith("--")) {
-                                        cssProperty.defaultValue = finalValue;
+                                    finalNode = children[children.length - 1];
+                                }
+                                let finalValue: string = finalNode.getText() ?? '';
+                                if (finalValue) {
+                                    if (!finalValue.startsWith("--")) {
+                                        chainValues.push(finalValue);
                                     }
+                                }
+                                if (chainValues.length > 0) {
+                                    cssProperty.chainValues = chainValues;
                                 }
 
                                 result[cssProperty.name] = cssProperty;

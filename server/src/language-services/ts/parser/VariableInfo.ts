@@ -1,8 +1,10 @@
-import { NodeFlags, VariableDeclaration } from 'typescript';
+import { NodeFlags, VariableDeclaration, VariableStatement } from 'typescript';
 import { BaseInfo, InfoType } from "./BaseInfo";
 import { ParserTs } from './ParserTs';
 import { IStoryContentVariable } from '@aventusjs/storybook';
 import { TypeInfo } from './TypeInfo';
+import { InternalDecorator } from './decorators/InternalDecorator';
+import { DecoratorInfo } from './DecoratorInfo';
 
 export enum VariableInfoType {
 	var = "var",
@@ -14,8 +16,9 @@ export class VariableInfo extends BaseInfo {
 
 	public type: VariableInfoType = VariableInfoType.var;
 	private node: VariableDeclaration;
-	constructor(node: VariableDeclaration, namespaces: string[], parserInfo: ParserTs, isExported: boolean) {
+	constructor(node: VariableDeclaration, namespaces: string[], parserInfo: ParserTs, statement: VariableStatement) {
 		super(node, namespaces, parserInfo);
+		this.decorators = DecoratorInfo.buildDecorator(statement, this);
 		this.node = node;
 		this.infoType = InfoType.variable;
 		if (node.parent.flags == NodeFlags.Let) {
@@ -24,7 +27,15 @@ export class VariableInfo extends BaseInfo {
 		else if (node.parent.flags == NodeFlags.Const) {
 			this.type = VariableInfoType.const;
 		}
-		this.isExported = isExported;
+		this.isExported = BaseInfo.isExported(statement);
+		this.isInternalExported = this.isExported;
+		for (let decorator of this.decorators) {
+			let deco = InternalDecorator.is(decorator);
+			if (deco) {
+				this.isExported = false;
+				break;
+			}
+		}
 		this.loadOnlyDependancesRecu(node, 0, true);
 	}
 

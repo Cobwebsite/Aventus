@@ -3,7 +3,7 @@ import { compareObject, getValueFromObject } from "../tools/CompareObject.lib.av
 @Storybook({
     prefix: "Lib/Watcher"
 })
-type IsNotVoid<T> = T extends void ? never : T;
+    type IsNotVoid<T> = T extends void ? never : T;
 @Storybook({
     prefix: "Lib/Watcher"
 })
@@ -11,7 +11,7 @@ export type WatcherFunction = (action: WatchAction, path: string, value: any) =>
 @Storybook({
     prefix: "Lib/Watcher"
 })
-type WatcherFunctionInternal = (action: WatchAction, path: string, value: any, dones: any) => void;
+    type WatcherFunctionInternal = (action: WatchAction, path: string, value: any, dones: any) => void;
 
 @Storybook({
     prefix: "Lib/Watcher"
@@ -26,6 +26,8 @@ export enum WatchAction {
     prefix: "Lib/Watcher"
 })
 export class Watcher {
+    // prevent construct
+    private constructor() { };
     private static __reservedName: { [key: string]: string; } = {
         __path: '__path',
     };
@@ -121,8 +123,12 @@ export class Watcher {
                     // reset path to "" if element is a root proxy
                     element.__validatePath();
                     //#region get real value shared across the 2 proxy
-                    let oldPath = element.__path;
+                    let oldPath = element.__path ?? '';
                     let unbindElement = getValueFromObject(oldPath, root);
+                    if(unbindElement === undefined) {
+                        // TODO this is an error correct it. unbindElement shouldnt be undefined 
+                        return element;
+                    }
                     //#endregion
                     if(receiver == null) {
                         // get the proxy value to replace it
@@ -354,12 +360,15 @@ export class Watcher {
                     };
                 }
                 else if(prop == "getTarget") {
-                    return () => {
-                        clearReservedNames(target);
+                    return (clear = true) => {
+                        if(clear) clearReservedNames(target);
                         return target;
                     };
                 }
                 else if(prop == "toJSON") {
+                    if(target.toJSON) {
+                        return target.toJSON;
+                    }
                     if(Array.isArray(target)) {
                         return () => {
                             let result: any[] = [];
@@ -389,7 +398,7 @@ export class Watcher {
                 else if(prop == "__injectedDones") {
                     return (dones) => {
                         this.injectedDones = dones;
-                    }
+                    };
                 }
                 else if(prop == "__trigger") {
                     return trigger;
@@ -403,6 +412,9 @@ export class Watcher {
                 return undefined;
             },
             get(target, prop, receiver) {
+                if(typeof prop == 'symbol') {
+                    return Reflect.get(target, prop, receiver); 
+                }
                 if(reservedName[prop]) {
                     return target[prop];
                 }
@@ -597,8 +609,17 @@ export class Watcher {
                 return Reflect.get(target, prop, receiver);
             },
             set(target, prop, value, receiver) {
+                if(typeof prop == 'symbol') {
+                    return Reflect.set(target, prop, value, receiver); 
+                }
                 let oldValue = Reflect.get(target, prop, receiver);
                 value = replaceByAlias(target, value, prop, receiver);
+                if(value instanceof Signal) {
+                    // TODO deal when a signal is set inside a watcher
+                    // maybe replace full signal to a watcher
+                    value = value.value;
+
+                }
                 let triggerChange = false;
                 if(!reservedName[prop]) {
                     if(Array.isArray(target)) {
@@ -628,6 +649,9 @@ export class Watcher {
                 return result;
             },
             deleteProperty(target, prop) {
+                if(typeof prop == 'symbol') {
+                    return Reflect.deleteProperty(target, prop); 
+                }
                 let triggerChange = false;
                 let pathToDelete = '';
                 if(!reservedName[prop]) {
@@ -653,7 +677,7 @@ export class Watcher {
                 }
                 if(target.hasOwnProperty(prop)) {
                     let oldValue = target[prop];
-                    if(oldValue instanceof Effect) {
+                    if(oldValue instanceof Effect || oldValue instanceof Signal) {
                         oldValue.destroy();
                     }
                     delete target[prop];
@@ -667,6 +691,9 @@ export class Watcher {
                 return false;
             },
             defineProperty(target, prop, descriptor) {
+                if(typeof prop == 'symbol') {
+                    return Reflect.defineProperty(target, prop, descriptor); 
+                }
                 let triggerChange = false;
                 let newPath = '';
                 if(!reservedName[prop]) {
@@ -860,9 +887,9 @@ export class Watcher {
         return typeof obj == 'object' && obj.__isProxy;
     }
 
-    public static extract<T>(obj: T): T {
+    public static extract<T>(obj: T, clearPath: boolean = false): T {
         if(this.is(obj)) {
-            return (obj as any).getTarget();
+            return (obj as any).getTarget(clearPath);
         }
         else {
             if(obj instanceof Object) {
@@ -894,6 +921,12 @@ export class Watcher {
         const comp = new Effect(fct);
         return comp;
     }
+    /**
+     * Create a signal variable
+     */
+    public static signal<T>(item: T, onChange?: () => void): Signal<T> {
+        return new Signal<T>(item, onChange);
+    }
 }
 
 @Storybook({
@@ -906,12 +939,12 @@ export type WatcherChange = (action: WatchAction, changePath: string, value: any
 export type EffectReceiver = {
     subscribe: (fct: WatcherChange) => void;
     unsubscribe: (fct: WatcherChange) => void;
-    __path: string;
+    __path?: string;
 };
 @Storybook({
     prefix: "Lib/Watcher"
 })
-type WatcherAllowed = (action: WatchAction, path: string, value: any, dones: any[]) => boolean;
+    type WatcherAllowed = (action: WatchAction, path: string, value: any, dones: any[]) => boolean;
 
 /**
  * Effect will recomputed each time a watchable variable or effect or computed are changed
@@ -925,7 +958,7 @@ export class Effect {
     public callbacks: {
         receiver: EffectReceiver,
         path: string,
-        registerPath: string;
+        registerPath?: string;
         fullPath: string,
         cb: WatcherChange;
         version: number;
@@ -1093,7 +1126,7 @@ export class EffectNoRecomputed extends Effect {
 @Storybook({
     prefix: "Lib/Watcher"
 })
-export class Computed<T = any> extends Effect {
+export class Computed<T = any> extends Effect implements EffectReceiver {
     protected _value?: T;
     @Internal()
     public __path: string = "*";
@@ -1162,4 +1195,53 @@ export class ComputedNoRecomputed<T = any> extends Computed<T> {
     }
 
     protected override run() { }
+}
+
+
+export class Signal<T> implements EffectReceiver {
+
+    protected __subscribes: WatcherChange[] = [];
+    private _value: T;
+    @Internal()
+    public _onChange?: () => void;
+    public get value(): T {
+        Watcher._register?.register(this, "*", Watcher._register.version, "*");
+        return this._value;
+    }
+    public set value(item: T) {
+        // quand on set la value on doit trigger
+        const oldValue = this._value;
+        this._value = item;
+        if(oldValue != item) {
+            if(this._onChange) {
+                this._onChange();
+            }
+            for(let fct of this.__subscribes) {
+                fct(WatchAction.UPDATED, "*", item, []);
+            }
+        }
+    }
+
+    public constructor(item: T, onChange?: () => void) {
+        this._value = item;
+        this._onChange = onChange;
+    }
+    public subscribe(fct: WatcherChange): void {
+        let index = this.__subscribes.indexOf(fct);
+        if(index == -1) {
+            this.__subscribes.push(fct);
+        }
+    }
+
+    public unsubscribe(fct: WatcherChange): void {
+        let index = this.__subscribes.indexOf(fct);
+        if(index > -1) {
+            this.__subscribes.splice(index, 1);
+        }
+    }
+
+    public destroy() {
+        this.__subscribes = [];
+    }
+
 }

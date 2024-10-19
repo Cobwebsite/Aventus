@@ -42,6 +42,14 @@ declare global {
      */
     function Property<T>(onChange: (component: T) => void);
     /**
+     * Add an attribute inside on your component with changes analyze
+     */
+    function Signal();
+    /**
+     * Add an attribute inside on your component with changes analyze
+     */
+    function Signal<T>(onChange: (component: T) => void);
+    /**
      * Add a property inside a watcher to be notify of changing
      */
     function Watch();
@@ -107,15 +115,28 @@ declare global {
     function NoCompile(): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void;
 
     interface StorybookConfig {
-        /** Define if the element must be exported to storybook */
-        export?: boolean,
+        /** Define what must be exported to storybook */
+        export?: 'all' | 'none' | 'public',
         /** Define a prefix to group your stories */
         prefix?: string,
         /** If set to true, only meta will be generated. Usefull to create custom pages */
         onlyMeta?: boolean;
+        /** Define the configruation for your slots */
+        slots?: {
+            /** Define the slot content base on the name */
+            values?: {
+                [name: string]: string;
+            };
+            /** Inject type */
+            inject?: (new (...args: any[]) => Aventus.WebComponent)[];
+        };
     }
     /**
      * Export a story for this component
      */
     function Storybook(info?: StorybookConfig);
+
+    function NoStory();
+    function AddToStory();
+    function StoryValue(value: any);
 }

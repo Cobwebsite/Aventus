@@ -93,13 +93,16 @@ export class ParserTs {
         if (!ParserTs.currentParsingDoc) {
             return false;
         }
-        if (ParserTs.currentParsingDoc.imports[name]) {
+        if (ParserTs.currentParsingDoc.importsLocal[name]) {
             return true;
         }
         if (ParserTs.currentParsingDoc.waitingImports[name]) {
             return true;
         }
         if (ParserTs.currentParsingDoc.npmImports[name]) {
+            return true;
+        }
+        if (ParserTs.currentParsingDoc.packages[name]) {
             return true;
         }
         return false;
@@ -140,7 +143,7 @@ export class ParserTs {
     public classes: { [shortName: string]: ClassInfo } = {};
     public functions: { [shortName: string]: FunctionInfo } = {};
     public enums: { [shortName: string]: EnumInfo } = {};
-    public imports: { [importClassName: string]: ImportInfo } = {};
+    public importsLocal: { [importClassName: string]: ImportInfo } = {};
     public packages: { [importClassName: string]: { fullname: string } } = {};
     public npmImports: {
         [importClassName: string]: {
@@ -151,11 +154,13 @@ export class ParserTs {
     public npmGeneratedImport: {
         [_package: string]: {
             name: string,
+            alias?: string,
             // define if the element will be compiled from ts to js
-            compiled: boolean
+            compiled: boolean,
+            onlySrc?: boolean
         }[]
     } = {};
-    public internalObjects: { [name: string]: { fullname: string, isExported: boolean, isStoryExported: boolean } } = {}
+    public internalObjects: { [name: string]: { fullname: string, isExported: boolean, isStoryExported: boolean, isCompiled: boolean } } = {}
     public waitingImports: { [localName: string]: ((info: BaseInfo) => void)[] } = {};
     public aliases: { [shortName: string]: AliasInfo } = {};
     public variables: { [shortName: string]: VariableInfo } = {};
@@ -164,6 +169,8 @@ export class ParserTs {
     public build: Build;
     private file: AventusFile;
     public srcFile: SourceFile;
+
+    public npmAliases: { [fullname: string]: string } = {}
 
     private constructor(file: AventusFile, isLib: boolean, build: Build) {
         this.build = build;
@@ -224,7 +231,8 @@ export class ParserTs {
                     this.internalObjects[name] = {
                         fullname: [...this.currentNamespace, name].join("."),
                         isExported: BaseInfo.isExported(_class),
-                        isStoryExported: this.build.buildConfig.stories ? BaseInfo.isStoryExported(_class) : false,
+                        isStoryExported: this.build.buildConfig.stories ? BaseInfo.isStoryExported(_class, this.build) : false,
+                        isCompiled: x.kind == SyntaxKind.ClassDeclaration,
                     }
                 }
             }
@@ -234,7 +242,8 @@ export class ParserTs {
                 this.internalObjects[name] = {
                     fullname: [...this.currentNamespace, name].join("."),
                     isExported: BaseInfo.isExported(_enum),
-                    isStoryExported: this.build.buildConfig.stories ? BaseInfo.isStoryExported(_enum) : false,
+                    isStoryExported: this.build.buildConfig.stories ? BaseInfo.isStoryExported(_enum, this.build) : false,
+                    isCompiled: true,
                 }
             }
             else if (x.kind == SyntaxKind.TypeAliasDeclaration) {
@@ -243,7 +252,8 @@ export class ParserTs {
                 this.internalObjects[name] = {
                     fullname: [...this.currentNamespace, name].join("."),
                     isExported: BaseInfo.isExported(_alias),
-                    isStoryExported: this.build.buildConfig.stories ? BaseInfo.isStoryExported(_alias) : false,
+                    isStoryExported: this.build.buildConfig.stories ? BaseInfo.isStoryExported(_alias, this.build) : false,
+                    isCompiled: false,
                 }
             }
             else if (x.kind == SyntaxKind.FunctionDeclaration) {
@@ -253,7 +263,8 @@ export class ParserTs {
                     this.internalObjects[name] = {
                         fullname: [...this.currentNamespace, name].join("."),
                         isExported: BaseInfo.isExported(_function),
-                        isStoryExported: this.build.buildConfig.stories ? BaseInfo.isStoryExported(_function) : false,
+                        isStoryExported: this.build.buildConfig.stories ? BaseInfo.isStoryExported(_function, this.build) : false,
+                        isCompiled: true,
                     }
                 }
             }
@@ -267,7 +278,8 @@ export class ParserTs {
                         this.internalObjects[name] = {
                             fullname: [...this.currentNamespace, name].join("."),
                             isExported: BaseInfo.isExported(_varStatement),
-                            isStoryExported: this.build.buildConfig.stories ? BaseInfo.isStoryExported(_varStatement) : false,
+                            isStoryExported: this.build.buildConfig.stories ? BaseInfo.isStoryExported(_varStatement, this.build) : false,
+                            isCompiled: true
                         }
                     }
                 }
@@ -384,12 +396,12 @@ export class ParserTs {
         for (let declaration of node.declarationList.declarations) {
             if (declaration.kind == SyntaxKind.VariableDeclaration) {
                 declaration['jsDoc'] = node['jsDoc'];
-                this.loadVariable(declaration as VariableDeclaration, isExported);
+                this.loadVariable(declaration as VariableDeclaration, node);
             }
         }
     }
-    private loadVariable(node: VariableDeclaration, isExported: boolean) {
-        let variableInfo = new VariableInfo(node, this.currentNamespace, this, isExported);
+    private loadVariable(node: VariableDeclaration, statement: VariableStatement) {
+        let variableInfo = new VariableInfo(node, this.currentNamespace, this, statement);
         this.defineStorie(variableInfo);
         this.variables[variableInfo.name] = variableInfo;
     }
@@ -422,11 +434,17 @@ export class ParserTs {
         return this.getBaseInfo(name);
     }
 
-    public registerGeneratedImport(uri: string, name: string, compiled: boolean) {
+    public registerGeneratedImport(options: { uri: string, name: string, compiled: boolean, alias: string, onlySrc?: boolean }) {
+        if(!this.build.hasNpmOutput) return;
+        
+        const { uri, name, compiled, alias, onlySrc } = options;
+        const realAlias = name == alias ? undefined : alias;
         if (!this.npmGeneratedImport[uri]) {
             this.npmGeneratedImport[uri] = [{
                 name: name,
-                compiled: compiled
+                compiled: compiled,
+                alias: realAlias,
+                onlySrc
             }];
         }
         else {
@@ -434,9 +452,47 @@ export class ParserTs {
             if (index == -1) {
                 this.npmGeneratedImport[uri].push({
                     name: name,
-                    compiled: compiled
+                    compiled: compiled,
+                    alias: realAlias,
+                    onlySrc
                 });
             }
         }
+    }
+
+    public getNpmReplacementName(fromName:string, fullName: string): string {
+        return this.build.getNpmReplacementName(fromName, fullName);
+        // if (this.npmAliases[fullName]) {
+        //     return this.npmAliases[fullName];
+        // }
+
+        // const splitted = fullName.split(".");
+        // let last = splitted[splitted.length - 1];
+        // let done = false;
+        // let i = 0;
+        // while (!done) {
+
+        //     if (this.internalObjects[last]) {
+        //         i++;
+        //         last = splitted[splitted.length - 1] + i;
+        //     }
+        //     else {
+        //         let noSame = true;
+        //         for (let key in this.npmAliases) {
+        //             if (key.endsWith(last)) {
+        //                 noSame = false;
+        //                 i++;
+        //                 last = splitted[splitted.length - 1] + i;
+        //                 break;
+        //             }
+        //         }
+        //         if (noSame) {
+        //             this.npmAliases[fullName] = last;
+        //             done = true;
+        //         }
+        //     }
+
+        // }
+        // return this.npmAliases[fullName];
     }
 }

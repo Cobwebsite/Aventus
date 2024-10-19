@@ -1,4 +1,4 @@
-import { PressManager } from "./PressManager.lib.avt";
+import { NormalizedEvent, PressManager } from "./PressManager.lib.avt";
 
 @Storybook({
     prefix: "Lib/DragAndDrop"
@@ -12,6 +12,8 @@ export interface DragAndDropOptionsShadow {
     removeOnStop?: boolean,
     /** Add custom transformation for the shadow element */
     transform?: (el: HTMLElement) => void;
+    /** Trigger to destroy the clone element, If you set the paramater you must remove the element from DOM yourself */
+    delete?: (el: HTMLElement) => void;
 }
 @Storybook({
     prefix: "Lib/DragAndDrop"
@@ -30,7 +32,7 @@ export interface DragAndDropOptions {
     /** If set to false, the element will be considered as in the target if it touches it */
     strict?: boolean;
     /** The targets for the drop action */
-    targets?: HTMLElement[];
+    targets?: HTMLElement[] | (() => HTMLElement[]);
     /** Use percent instead of pixel */
     usePercent?: boolean;
     /** Stop Propagation */
@@ -45,15 +47,15 @@ export interface DragAndDropOptions {
     /** Get offset Y in px related to element.offsetTarget */
     getOffsetY?: () => number;
     /** Trigger on pointer down*/
-    onPointerDown?: (e: PointerEvent) => void;
+    onPointerDown?: (e: NormalizedEvent) => void;
     /** Trigger on pointer up*/
-    onPointerUp?: (e: PointerEvent) => void;
+    onPointerUp?: (e: NormalizedEvent) => void;
     /** Trigger on drag start*/
-    onStart?: (e: PointerEvent) => void;
+    onStart?: (e: NormalizedEvent) => void | boolean;
     /** Trigger on moving  */
-    onMove?: (e: PointerEvent, position: Coordinate) => void;
+    onMove?: (e: NormalizedEvent, position: Coordinate) => void;
     /** Trigger after stop moving */
-    onStop?: (e: PointerEvent) => void;
+    onStop?: (e: NormalizedEvent) => void;
     /** Trigger after drop if at least one target found; Element is the shadow or the target*/
     onDrop?: (element: HTMLElement, targets: HTMLElement[]) => void;
     /** correct the position if you need */
@@ -62,7 +64,7 @@ export interface DragAndDropOptions {
 @Storybook({
     prefix: "Lib/DragAndDrop"
 })
-type DragAndDropOptionsInternal = Required<DragAndDropOptions> & { shadow: Required<DragAndDropOptionsShadow>; };
+    type DragAndDropOptionsInternal = Required<DragAndDropOptions> & { shadow: Required<DragAndDropOptionsShadow>; };
 
 @Storybook({
     prefix: "Lib/DragAndDrop"
@@ -113,7 +115,10 @@ export class DragAndDrop {
                 enable: false,
                 container: document.body,
                 removeOnStop: true,
-                transform: () => { }
+                transform: () => { },
+                delete: (el) => {
+                    el.remove();
+                }
             },
             strict: false,
             targets: [],
@@ -124,11 +129,11 @@ export class DragAndDrop {
             getZoom: () => 1,
             getOffsetX: () => 0,
             getOffsetY: () => 0,
-            onPointerDown: (e: PointerEvent) => { },
-            onPointerUp: (e: PointerEvent) => { },
-            onStart: (e: PointerEvent) => { },
-            onMove: (e: PointerEvent) => { },
-            onStop: (e: PointerEvent) => { },
+            onPointerDown: (e: NormalizedEvent) => { },
+            onPointerUp: (e: NormalizedEvent) => { },
+            onStart: (e: NormalizedEvent) => { },
+            onMove: (e: NormalizedEvent) => { },
+            onStop: (e: NormalizedEvent) => { },
             onDrop: (element: HTMLElement, targets: HTMLElement[]) => { },
             correctPosition: (position: Coordinate) => position
         };
@@ -164,7 +169,9 @@ export class DragAndDrop {
             if(options.shadow.transform !== void 0) {
                 this.options.shadow.transform = options.shadow.transform;
             }
-
+            if(options.shadow.delete !== void 0) {
+                this.options.shadow.delete = options.shadow.delete;
+            }
         }
     }
     private mergeFunctions(options: DragAndDropOptions) {
@@ -188,16 +195,16 @@ export class DragAndDrop {
     // #endregion
 
     private positionShadowRelativeToElement: Coordinate = { x: 0, y: 0 };
-    private onPressStart(e: PointerEvent) {
+    private onPressStart(e: NormalizedEvent) {
         this.options.onPointerDown(e);
     }
-    private onPressEnd(e: PointerEvent) {
+    private onPressEnd(e: NormalizedEvent) {
         this.options.onPointerUp(e);
     }
-    private onDragStart(e: PointerEvent) {
+    private onDragStart(e: NormalizedEvent): void | boolean {
         this.isEnable = this.options.isDragEnable();
         if(!this.isEnable) {
-            return;
+            return false;
         }
         let draggableElement = this.options.element;
         this.startCursorPosition = {
@@ -225,9 +232,9 @@ export class DragAndDrop {
             this.options.shadow.container.appendChild(draggableElement);
         }
         this.draggableElement = draggableElement;
-        this.options.onStart(e);
+        return this.options.onStart(e);
     }
-    private onDrag(e: PointerEvent) {
+    private onDrag(e: NormalizedEvent) {
         if(!this.isEnable) {
             return;
         }
@@ -251,14 +258,14 @@ export class DragAndDrop {
         let newPos = this.setPosition(diff);
         this.options.onMove(e, newPos);
     }
-    private onDragEnd(e: PointerEvent) {
+    private onDragEnd(e: NormalizedEvent) {
         if(!this.isEnable) {
             return;
         }
         let targets = this.getMatchingTargets();
         let draggableElement = this.draggableElement;
         if(this.options.shadow.enable && this.options.shadow.removeOnStop) {
-            draggableElement.parentNode?.removeChild(draggableElement);
+            this.options.shadow.delete(draggableElement);
         }
         if(targets.length > 0) {
             this.options.onDrop(this.options.element, targets);
@@ -296,7 +303,14 @@ export class DragAndDrop {
     public getMatchingTargets(): HTMLElement[] {
         let draggableElement = this.draggableElement;
         let matchingTargets: HTMLElement[] = [];
-        for(let target of this.options.targets) {
+        let srcTargets: HTMLElement[];
+        if(typeof this.options.targets == "function") {
+            srcTargets = this.options.targets();
+        }
+        else {
+            srcTargets = this.options.targets;
+        }
+        for(let target of srcTargets) {
             const elementCoordinates = draggableElement.getBoundingClientRect();
             const targetCoordinates = target.getBoundingClientRect();
             let offsetX = this.options.getOffsetX();
@@ -345,6 +359,12 @@ export class DragAndDrop {
      * Set targets where to drop
      */
     public setTargets(targets: HTMLElement[]) {
+        this.options.targets = targets;
+    }
+    /**
+     * Set targets where to drop
+     */
+    public setTargetsFct(targets: () => HTMLElement[]) {
         this.options.targets = targets;
     }
     /**

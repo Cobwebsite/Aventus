@@ -1,5 +1,16 @@
 # Change Log
 
+## 1.3.1 (2024-10-19)
+
+### Bug Fixes
+ - Correct namespace export inside npm
+ - Hot fix client error on import codeAction
+ - Remove @inheritdoc from documentation display
+
+### Features
+ - Add slot support for storybook
+
+
 ## 1.3.0 (2024-07-17)
 
 ### Bug Fixes

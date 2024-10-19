@@ -4,16 +4,29 @@ import { join, normalize, sep } from 'path';
 import { SelectItem } from '../IConnection';
 import { Template } from './Template';
 import { SettingsManager } from '../settings/Settings';
+import { setValueToObject } from '../tools';
+import { BaseTemplate } from './Templates/BaseTemplate';
+import { BaseTemplateList } from './Templates';
+import { execSync } from 'child_process';
+
+
+export type TemplatesByName = { [name: string]: Template | BaseTemplate | TemplatesByName }
 
 export class TemplateManager {
 	private templatePath: string[] = [];
 	private projectPath: string[] = [];
 
-	private loadedTemplates: Template[] = [];
-	private loadedProjects: Template[] = [];
+	private loadedTemplates: TemplatesByName = {};
+	private loadedProjects: TemplatesByName = {};
+	private loadedProjectsLength: number = 0;
+	private loadedTemplatesLength: number = 0;
+	// private templatesByName: {[]}
 
 	public getGeneralTemplates() {
 		return this.loadedTemplates;
+	}
+	public getGeneralTemplatesLength() {
+		return this.loadedTemplatesLength;
 	}
 
 	public constructor() {
@@ -41,8 +54,20 @@ export class TemplateManager {
 			this.askTemplate();
 		}
 
-		this.loadedTemplates = this.readTemplates(this.templatePath);
-		this.loadedProjects = this.readTemplates(this.projectPath);
+		this.reloadTemplates();
+		this.reloadProjects();
+	}
+
+	private reloadTemplates() {
+		const baseTemplateTemp = this.readBaseTemplates();
+		const templateTemp = this.readTemplates(this.templatePath, baseTemplateTemp.templates, baseTemplateTemp.nb);
+		this.loadedTemplates = templateTemp.templates;
+		this.loadedTemplatesLength = templateTemp.nb;
+	}
+	private reloadProjects() {
+		const projectsTemp = this.readTemplates(this.projectPath);
+		this.loadedProjects = projectsTemp.templates;
+		this.loadedProjectsLength = projectsTemp.nb;
 	}
 	private prepareFolders(variable: string[], _default: string) {
 		if (!variable.includes(_default)) {
@@ -57,35 +82,31 @@ export class TemplateManager {
 	}
 
 	public async createProject(path: string) {
-		let quickPicksTemplate: Map<SelectItem, Template> = new Map();
-		if (this.loadedProjects.length == 0) {
-			let result = await GenericServer.Popup("You have no template!! Do you want to load some?", 'Yes', 'No');
+		if (this.loadedProjectsLength == 0) {
+			let result = await GenericServer.Popup("You have no template for project!! Do you want to load some?", 'Yes', 'No');
 			if (result == 'Yes') {
 				this.selectTemplateToImport();
 			}
 			return;
 		}
-		for (let template of this.loadedProjects) {
-			let quickPick: SelectItem = {
-				label: template.config.name,
-				detail: template.config.description ?? "",
-			}
-			quickPicksTemplate.set(quickPick, template);
-		}
-		const resultFormat = await GenericServer.Select(Array.from(quickPicksTemplate.keys()), {
-			placeHolder: 'Choose a template',
-		});
-
-		if (resultFormat) {
-			let resultPick = this.getSelectItem(quickPicksTemplate, resultFormat);
-			if (resultPick) {
-				await resultPick.init(path);
-			}
+		const templateResult = await this.query(this.loadedProjects);
+		if (templateResult) {
+			await templateResult.init(path)
 		}
 	}
 
-	public readTemplates(pathToRead: string[]) {
-		let templates: Template[] = [];
+	public readBaseTemplates() {
+		const templates: TemplatesByName = {};
+		for (let key in BaseTemplateList) {
+			let template = new BaseTemplateList[key]();
+			setValueToObject(template.name(), templates, template);
+		}
+		return {
+			templates,
+			nb: Object.keys(BaseTemplateList).length
+		};
+	}
+	public readTemplates(pathToRead: string[], templates: TemplatesByName = {}, nb: number = 0) {
 
 		const readRecu = (currentFolder: string) => {
 			let configPath = join(currentFolder, "template.avt");
@@ -94,7 +115,8 @@ export class TemplateManager {
 					let config = JSON.parse(readFileSync(configPath, 'utf-8'));
 
 					let template = new Template(config, currentFolder);
-					templates.push(template);
+					setValueToObject(template.config.name, templates, template);
+					nb++;
 				} catch {
 					GenericServer.showErrorMessage("Error when parsing file " + configPath);
 				}
@@ -118,16 +140,31 @@ export class TemplateManager {
 			}
 		}
 
-		return templates;
+		return {
+			templates,
+			nb
+		};
 	}
-
+	private async getGitURL() {
+		return await GenericServer.Input({
+			title: "Git url",
+			validations: [{
+				message: "Provide an http(s):// url ending with .git",
+				regex: "^https?:\\\/\/\\S*\\.git$"
+			}]
+		})
+	}
 	private async askTemplate() {
 		// let result = await window.showInformationMessage('Do you want to install project templates (recommended)', 'Yes', 'No');
 		// if (result == 'Yes') {
-		this.selectTemplateToImport();
+		this.selectProjectToImport();
 		// }
 	}
-	public async selectTemplateToImport() {
+	public async selectProjectToImport() {
+		if (this.projectPath.length == 0) {
+			GenericServer.showErrorMessage("No project path registered");
+			return;
+		}
 		let projectsFolder = GenericServer.extensionPath + sep + "projects";
 		let folders = readdirSync(projectsFolder);
 		let quickPicks: Map<SelectItem, string> = new Map<SelectItem, string>();
@@ -148,15 +185,27 @@ export class TemplateManager {
 				}
 			}
 		}
+		quickPicks.set({
+			label: "Git",
+			detail: "Provide an http(s) url ending with .git",
+		}, "@Git")
 
 		let result = await GenericServer.SelectMultiple(Array.from(quickPicks.keys()), {
-			title: "Select templates to import",
+			title: "Select projects to import",
 		});
 		if (result) {
 			for (let item of result) {
 				let path = this.getSelectItem(quickPicks, item);
 
-				if (path && this.projectPath.length > 0) {
+				if (path == "@Git") {
+					const uri = await this.getGitURL();
+					if (uri) {
+						execSync("git clone " + uri, {
+							cwd: this.projectPath[0]
+						})
+					}
+				}
+				else if (path) {
 					let folderName = path.split(sep).pop();
 					let destPath = this.projectPath[0] + sep + folderName;
 					if (existsSync(destPath)) {
@@ -165,7 +214,35 @@ export class TemplateManager {
 					cpSync(path, destPath, { force: true, recursive: true })
 				}
 			}
-			this.loadedProjects = this.readTemplates(this.projectPath);
+
+			this.reloadProjects();
+		}
+	}
+
+	public async selectTemplateToImport() {
+		if (this.templatePath.length == 0) {
+			GenericServer.showErrorMessage("No template path registered");
+			return;
+		}
+
+		let quickPicks: SelectItem[] = [];
+		quickPicks.push({
+			label: "Git",
+			detail: "Provide an http url ending with .git",
+		});
+		let result = await GenericServer.Select(quickPicks, {
+			title: "Select templates to import",
+		});
+		if (result) {
+			if (result.label == "Git") {
+				const uri = await this.getGitURL();
+				if (uri) {
+					execSync("git clone " + uri, {
+						cwd: this.templatePath[0]
+					})
+					this.reloadTemplates();
+				}
+			}
 		}
 	}
 
@@ -201,6 +278,59 @@ export class TemplateManager {
 		for (let key of map.keys()) {
 			if (key.label == item.label) {
 				return map.get(key) as T;
+			}
+		}
+		return null;
+	}
+
+	public async query(templates: TemplatesByName): Promise<Template | BaseTemplate | null> {
+		let quickPicksTemplateByName: Map<SelectItem, TemplatesByName> = new Map();
+		let quickPicksTemplate: Map<SelectItem, Template> = new Map();
+		let quickPicksBaseTemplate: Map<SelectItem, BaseTemplate> = new Map();
+		const quickPicks: SelectItem[] = [];
+		for (let name in templates) {
+			const current = templates[name];
+			let quickPick: SelectItem;
+			if (current instanceof Template) {
+				quickPick = {
+					label: name,
+					detail: current.config.description ?? "",
+				}
+				quickPicksTemplate.set(quickPick, current);
+			}
+			else if (current instanceof BaseTemplate) {
+				quickPick = {
+					label: name,
+					detail: current.definition(),
+				}
+				quickPicksBaseTemplate.set(quickPick, current);
+			}
+			else {
+				quickPick = {
+					label: name,
+				}
+				quickPicksTemplateByName.set(quickPick, current);
+			}
+			quickPicks.push(quickPick);
+		}
+		const resultFormat = await GenericServer.Select(quickPicks, {
+			placeHolder: 'Choose a template',
+		});
+
+		if (resultFormat) {
+			let resultPick = this.getSelectItem(quickPicksTemplate, resultFormat);
+			if (resultPick) {
+				return resultPick
+			}
+
+			let resultPick2 = this.getSelectItem(quickPicksBaseTemplate, resultFormat);
+			if (resultPick2) {
+				return resultPick2;
+			}
+
+			let resultPick3 = this.getSelectItem(quickPicksTemplateByName, resultFormat);
+			if (resultPick3) {
+				return this.query(resultPick3);
 			}
 		}
 		return null;

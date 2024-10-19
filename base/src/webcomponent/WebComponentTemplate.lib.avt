@@ -532,7 +532,7 @@ export class TemplateInstance {
                 return change.fct(this.context);
             } catch(e) {
                 // if failed, it can mean that the user is using a ! => we must recompute full chain 
-                if(e instanceof TypeError && e.message.startsWith("Cannot read properties of undefined")) {
+                if(e instanceof TypeError && e.message.includes("undefined")) {
                     if(computed instanceof ComputedNoRecomputed) {
                         computed.isInit = false;
                     }
@@ -570,7 +570,7 @@ export class TemplateInstance {
                 return injection.inject(this.context);
             } catch(e) {
                 // if failed, it can mean that the user is using a ! => we must recompute full chain 
-                if(e instanceof TypeError && e.message.startsWith("Cannot read properties of undefined")) {
+                if(e instanceof TypeError && e.message.includes("undefined")) {
                     if(computed instanceof ComputedNoRecomputed) {
                         computed.isInit = false;
                     }
@@ -604,7 +604,7 @@ export class TemplateInstance {
                 return binding.inject(this.context);
             } catch(e) {
                 // if failed, it can mean that the user is using a ! => we must recompute full chain 
-                if(e instanceof TypeError && e.message.startsWith("Cannot read properties of undefined")) {
+                if(e instanceof TypeError && e.message.includes("undefined")) {
                     if(computed instanceof ComputedNoRecomputed) {
                         computed.isInit = false;
                     }

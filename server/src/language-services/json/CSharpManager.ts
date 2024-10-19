@@ -13,20 +13,29 @@ export class CSharpManager {
 		return this.instance;
 	}
 
+	public files: { [uri: string]: CSharpFile } = {};
 	private onNewFileUUID: string;
+	private onFileRemoveUUID: string;
 	private constructor() {
 		this.onNewFile = this.onNewFile.bind(this);
+		this.onFileRemove = this.onFileRemove.bind(this);
 		this.onNewFileUUID = FilesManager.getInstance().onNewFile(this.onNewFile);
+		this.onFileRemoveUUID = FilesManager.getInstance().onFileRemove(this.onFileRemove);
 	}
 
 	private async onNewFile(document: AventusFile) {
 		if (document.uri.endsWith(AventusExtension.CsharpConfig)) {
-			new CSharpFile(document);
+			this.files[document.uri] = new CSharpFile(document);
 		}
+	}
+
+	private async onFileRemove(uri: string) {
+		delete this.files[uri];
 	}
 
 	public destroy() {
 		FilesManager.getInstance().removeOnNewFile(this.onNewFileUUID);
+		FilesManager.getInstance().removeOnFileRemove(this.onFileRemoveUUID);
 	}
 }
 

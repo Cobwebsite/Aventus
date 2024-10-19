@@ -38,6 +38,12 @@ namespace Navigation {
         public pageTitle(): string | undefined {
             return undefined;
         }
+        public pageDescription(): string | undefined {
+            return undefined;
+        }
+        public pageKeywords(): string[] | undefined {
+            return undefined;
+        }
 
         public async show(state?: Aventus.State) {
             this.currentState = state;

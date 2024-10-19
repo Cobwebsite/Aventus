@@ -6,7 +6,7 @@ const _ = {};
 
 
 let _n;
-const ElementExtension=class ElementExtension {
+let ElementExtension=class ElementExtension {
     /**
      * Find a parent by tagname if exist Static.findParentByTag(this, "av-img")
      */
@@ -230,7 +230,7 @@ const ElementExtension=class ElementExtension {
             }
             if (el.shadowRoot && x !== undefined && y !== undefined) {
                 var newEl = el.shadowRoot.elementFromPoint(x, y);
-                if (newEl && newEl != el && el.shadowRoot.contains(newEl)) {
+                if (newEl && newEl != el && (el.shadowRoot.contains(newEl) || el.contains(newEl))) {
                     return _realTarget(newEl, i + 1);
                 }
             }
@@ -243,9 +243,9 @@ const ElementExtension=class ElementExtension {
     }
 }
 ElementExtension.Namespace=`Aventus`;
-
 _.ElementExtension=ElementExtension;
-const Instance=class Instance {
+
+let Instance=class Instance {
     static elements = new Map();
     static get(type) {
         let result = this.elements.get(type);
@@ -270,9 +270,9 @@ const Instance=class Instance {
     }
 }
 Instance.Namespace=`Aventus`;
-
 _.Instance=Instance;
-const Style=class Style {
+
+let Style=class Style {
     static instance;
     static noAnimation;
     static defaultStyleSheets = {
@@ -350,9 +350,9 @@ const Style=class Style {
     }
 }
 Style.Namespace=`Aventus`;
-
 _.Style=Style;
-const setValueToObject=function setValueToObject(path, obj, value) {
+
+let setValueToObject=function setValueToObject(path, obj, value) {
     path = path.replace(/\[(.*?)\]/g, '.$1');
     const val = (key) => {
         if (obj instanceof Map) {
@@ -377,9 +377,9 @@ const setValueToObject=function setValueToObject(path, obj, value) {
         obj[splitted[splitted.length - 1]] = value;
     }
 }
-
 _.setValueToObject=setValueToObject;
-const Callback=class Callback {
+
+let Callback=class Callback {
     callbacks = new Map();
     /**
      * Clear all callbacks
@@ -414,9 +414,9 @@ const Callback=class Callback {
     }
 }
 Callback.Namespace=`Aventus`;
-
 _.Callback=Callback;
-const Mutex=class Mutex {
+
+let Mutex=class Mutex {
     /**
      * Array to store functions waiting for the mutex to become available.
      * @type {((run: boolean) => void)[]}
@@ -553,9 +553,88 @@ const Mutex=class Mutex {
     }
 }
 Mutex.Namespace=`Aventus`;
-
 _.Mutex=Mutex;
-const compareObject=function compareObject(obj1, obj2) {
+
+let NormalizedEvent=class NormalizedEvent {
+    _event;
+    get event() {
+        return this._event;
+    }
+    constructor(event) {
+        this._event = event;
+    }
+    getProp(prop) {
+        if (prop in this.event) {
+            return this.event[prop];
+        }
+        return undefined;
+    }
+    stopImmediatePropagation() {
+        this.event.stopImmediatePropagation();
+    }
+    get clientX() {
+        if ('clientX' in this.event) {
+            return this.event.clientX;
+        }
+        else if ('touches' in this.event && this.event.touches.length > 0) {
+            return this.event.touches[0].clientX;
+        }
+        return 0;
+    }
+    get clientY() {
+        if ('clientY' in this.event) {
+            return this.event.clientY;
+        }
+        else if ('touches' in this.event && this.event.touches.length > 0) {
+            return this.event.touches[0].clientY;
+        }
+        return 0;
+    }
+    get pageX() {
+        if ('pageX' in this.event) {
+            return this.event.pageX;
+        }
+        else if ('touches' in this.event && this.event.touches.length > 0) {
+            return this.event.touches[0].pageX;
+        }
+        return 0;
+    }
+    get pageY() {
+        if ('pageY' in this.event) {
+            return this.event.pageY;
+        }
+        else if ('touches' in this.event && this.event.touches.length > 0) {
+            return this.event.touches[0].pageY;
+        }
+        return 0;
+    }
+    get type() {
+        return this.event.type;
+    }
+    get target() {
+        return this.event.target;
+    }
+    get timeStamp() {
+        return this.event.timeStamp;
+    }
+    get pointerType() {
+        if (this._event instanceof TouchEvent)
+            return "touch";
+        return this.getProp("pointerType");
+    }
+    get button() {
+        return this.getProp("button");
+    }
+    get isTouch() {
+        if (this._event instanceof TouchEvent)
+            return true;
+        return this._event.pointerType == "touch";
+    }
+}
+NormalizedEvent.Namespace=`Aventus`;
+_.NormalizedEvent=NormalizedEvent;
+
+let compareObject=function compareObject(obj1, obj2) {
     if (Array.isArray(obj1)) {
         if (!Array.isArray(obj2)) {
             return false;
@@ -583,14 +662,24 @@ const compareObject=function compareObject(obj1, obj2) {
         if (typeof obj2 !== 'object' || obj2 === undefined || obj2 === null) {
             return false;
         }
+        if (obj1 == obj2) {
+            return true;
+        }
         if (obj1 instanceof HTMLElement || obj2 instanceof HTMLElement) {
-            return obj1 == obj2;
+            return false;
         }
         if (obj1 instanceof Date || obj2 instanceof Date) {
             return obj1.toString() === obj2.toString();
         }
-        obj1 = Watcher.extract(obj1);
-        obj2 = Watcher.extract(obj2);
+        let oneProxy = false;
+        if (Watcher.is(obj1)) {
+            oneProxy = true;
+            obj1 = Watcher.extract(obj1, false);
+        }
+        if (Watcher.is(obj2)) {
+            oneProxy = true;
+            obj2 = Watcher.extract(obj2, false);
+        }
         if (obj1 instanceof Map && obj2 instanceof Map) {
             if (obj1.size != obj2.size) {
                 return false;
@@ -611,6 +700,9 @@ const compareObject=function compareObject(obj1, obj2) {
                 return false;
             }
             for (let key in obj1) {
+                if (oneProxy && Watcher['__reservedName'][key]) {
+                    continue;
+                }
                 if (!(key in obj2)) {
                     return false;
                 }
@@ -625,9 +717,12 @@ const compareObject=function compareObject(obj1, obj2) {
         return obj1 === obj2;
     }
 }
-
 _.compareObject=compareObject;
-const getValueFromObject=function getValueFromObject(path, obj) {
+
+let getValueFromObject=function getValueFromObject(path, obj) {
+    if (path === undefined) {
+        path = '';
+    }
     path = path.replace(/\[(.*?)\]/g, '.$1');
     if (path == "") {
         return obj;
@@ -652,17 +747,17 @@ const getValueFromObject=function getValueFromObject(path, obj) {
     }
     return val(splitted[splitted.length - 1]);
 }
-
 _.getValueFromObject=getValueFromObject;
+
 var WatchAction;
 (function (WatchAction) {
     WatchAction[WatchAction["CREATED"] = 0] = "CREATED";
     WatchAction[WatchAction["UPDATED"] = 1] = "UPDATED";
     WatchAction[WatchAction["DELETED"] = 2] = "DELETED";
 })(WatchAction || (WatchAction = {}));
-
 _.WatchAction=WatchAction;
-const Effect=class Effect {
+
+let Effect=class Effect {
     callbacks = [];
     isInit = false;
     isDestroy = false;
@@ -775,9 +870,11 @@ const Effect=class Effect {
     }
 }
 Effect.Namespace=`Aventus`;
-
 _.Effect=Effect;
-const Watcher=class Watcher {
+
+let Watcher=class Watcher {
+    constructor() { }
+    ;
     static __reservedName = {
         __path: '__path',
     };
@@ -864,8 +961,11 @@ const Watcher=class Watcher {
                 let root = element.__root;
                 if (root != proxyData.baseData) {
                     element.__validatePath();
-                    let oldPath = element.__path;
+                    let oldPath = element.__path ?? '';
                     let unbindElement = getValueFromObject(oldPath, root);
+                    if (unbindElement === undefined) {
+                        return element;
+                    }
                     if (receiver == null) {
                         receiver = getValueFromObject(target.__path, realProxy);
                         if (internalAliases[fullInternalPath]) {
@@ -1053,12 +1153,16 @@ const Watcher=class Watcher {
                     };
                 }
                 else if (prop == "getTarget") {
-                    return () => {
-                        clearReservedNames(target);
+                    return (clear = true) => {
+                        if (clear)
+                            clearReservedNames(target);
                         return target;
                     };
                 }
                 else if (prop == "toJSON") {
+                    if (target.toJSON) {
+                        return target.toJSON;
+                    }
                     if (Array.isArray(target)) {
                         return () => {
                             let result = [];
@@ -1101,6 +1205,9 @@ const Watcher=class Watcher {
                 return undefined;
             },
             get(target, prop, receiver) {
+                if (typeof prop == 'symbol') {
+                    return Reflect.get(target, prop, receiver);
+                }
                 if (reservedName[prop]) {
                     return target[prop];
                 }
@@ -1275,8 +1382,14 @@ const Watcher=class Watcher {
                 return Reflect.get(target, prop, receiver);
             },
             set(target, prop, value, receiver) {
+                if (typeof prop == 'symbol') {
+                    return Reflect.set(target, prop, value, receiver);
+                }
                 let oldValue = Reflect.get(target, prop, receiver);
                 value = replaceByAlias(target, value, prop, receiver);
+                if (value instanceof Signal) {
+                    value = value.value;
+                }
                 let triggerChange = false;
                 if (!reservedName[prop]) {
                     if (Array.isArray(target)) {
@@ -1305,6 +1418,9 @@ const Watcher=class Watcher {
                 return result;
             },
             deleteProperty(target, prop) {
+                if (typeof prop == 'symbol') {
+                    return Reflect.deleteProperty(target, prop);
+                }
                 let triggerChange = false;
                 let pathToDelete = '';
                 if (!reservedName[prop]) {
@@ -1330,7 +1446,7 @@ const Watcher=class Watcher {
                 }
                 if (target.hasOwnProperty(prop)) {
                     let oldValue = target[prop];
-                    if (oldValue instanceof Effect) {
+                    if (oldValue instanceof Effect || oldValue instanceof Signal) {
                         oldValue.destroy();
                     }
                     delete target[prop];
@@ -1343,6 +1459,9 @@ const Watcher=class Watcher {
                 return false;
             },
             defineProperty(target, prop, descriptor) {
+                if (typeof prop == 'symbol') {
+                    return Reflect.defineProperty(target, prop, descriptor);
+                }
                 let triggerChange = false;
                 let newPath = '';
                 if (!reservedName[prop]) {
@@ -1524,9 +1643,9 @@ const Watcher=class Watcher {
     static is(obj) {
         return typeof obj == 'object' && obj.__isProxy;
     }
-    static extract(obj) {
+    static extract(obj, clearPath = false) {
         if (this.is(obj)) {
-            return obj.getTarget();
+            return obj.getTarget(clearPath);
         }
         else {
             if (obj instanceof Object) {
@@ -1556,11 +1675,60 @@ const Watcher=class Watcher {
         const comp = new Effect(fct);
         return comp;
     }
+    /**
+     * Create a signal variable
+     */
+    static signal(item, onChange) {
+        return new Signal(item, onChange);
+    }
 }
 Watcher.Namespace=`Aventus`;
-
 _.Watcher=Watcher;
-const Computed=class Computed extends Effect {
+
+let Signal=class Signal {
+    __subscribes = [];
+    _value;
+    _onChange;
+    get value() {
+        Watcher._register?.register(this, "*", Watcher._register.version, "*");
+        return this._value;
+    }
+    set value(item) {
+        const oldValue = this._value;
+        this._value = item;
+        if (oldValue != item) {
+            if (this._onChange) {
+                this._onChange();
+            }
+            for (let fct of this.__subscribes) {
+                fct(WatchAction.UPDATED, "*", item, []);
+            }
+        }
+    }
+    constructor(item, onChange) {
+        this._value = item;
+        this._onChange = onChange;
+    }
+    subscribe(fct) {
+        let index = this.__subscribes.indexOf(fct);
+        if (index == -1) {
+            this.__subscribes.push(fct);
+        }
+    }
+    unsubscribe(fct) {
+        let index = this.__subscribes.indexOf(fct);
+        if (index > -1) {
+            this.__subscribes.splice(index, 1);
+        }
+    }
+    destroy() {
+        this.__subscribes = [];
+    }
+}
+Signal.Namespace=`Aventus`;
+_.Signal=Signal;
+
+let Computed=class Computed extends Effect {
     _value;
     __path = "*";
     get value() {
@@ -1598,9 +1766,9 @@ const Computed=class Computed extends Effect {
     }
 }
 Computed.Namespace=`Aventus`;
-
 _.Computed=Computed;
-const ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
+
+let ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
     init() {
         this.isInit = true;
         Watcher._registering.push(this);
@@ -1616,11 +1784,11 @@ const ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
     run() { }
 }
 ComputedNoRecomputed.Namespace=`Aventus`;
-
 _.ComputedNoRecomputed=ComputedNoRecomputed;
-const PressManager=class PressManager {
+
+let PressManager=class PressManager {
     static globalConfig = {
-        delayDblPress: 150,
+        delayDblPress: 250,
         delayLongPress: 700,
         offsetDrag: 20
     };
@@ -1643,37 +1811,28 @@ const PressManager=class PressManager {
     }
     options;
     element;
-    delayDblPress = PressManager.globalConfig.delayDblPress ?? 150;
-    delayLongPress = PressManager.globalConfig.delayLongPress ?? 700;
+    delayDblPress;
+    delayLongPress;
     nbPress = 0;
-    offsetDrag = PressManager.globalConfig.offsetDrag ?? 20;
+    offsetDrag;
     state = {
-        oneActionTriggered: false,
-        isMoving: false,
+        oneActionTriggered: null,
     };
     startPosition = { x: 0, y: 0 };
     customFcts = {};
     timeoutDblPress = 0;
     timeoutLongPress = 0;
     downEventSaved;
-    actionsName = {
-        press: "press",
-        longPress: "longPress",
-        dblPress: "dblPress",
-        drag: "drag"
-    };
     useDblPress = false;
     stopPropagation = () => true;
+    pointersRecord = {};
     functionsBinded = {
         downAction: (e) => { },
         upAction: (e) => { },
         moveAction: (e) => { },
         childPressStart: (e) => { },
         childPressEnd: (e) => { },
-        childPress: (e) => { },
-        childDblPress: (e) => { },
-        childLongPress: (e) => { },
-        childDragStart: (e) => { },
+        childPressMove: (e) => { }
     };
     /**
      * @param {*} options - The options
@@ -1683,6 +1842,9 @@ const PressManager=class PressManager {
         if (options.element === void 0) {
             throw 'You must provide an element';
         }
+        this.offsetDrag = PressManager.globalConfig.offsetDrag !== undefined ? PressManager.globalConfig.offsetDrag : 20;
+        this.delayLongPress = PressManager.globalConfig.delayLongPress ?? 700;
+        this.delayDblPress = PressManager.globalConfig.delayDblPress ?? 150;
         this.element = options.element;
         this.checkDragConstraint(options);
         this.assignValueOption(options);
@@ -1772,76 +1934,124 @@ const PressManager=class PressManager {
         this.functionsBinded.downAction = this.downAction.bind(this);
         this.functionsBinded.moveAction = this.moveAction.bind(this);
         this.functionsBinded.upAction = this.upAction.bind(this);
-        this.functionsBinded.childDblPress = this.childDblPress.bind(this);
-        this.functionsBinded.childDragStart = this.childDragStart.bind(this);
-        this.functionsBinded.childLongPress = this.childLongPress.bind(this);
-        this.functionsBinded.childPress = this.childPress.bind(this);
         this.functionsBinded.childPressStart = this.childPressStart.bind(this);
         this.functionsBinded.childPressEnd = this.childPressEnd.bind(this);
+        this.functionsBinded.childPressMove = this.childPressMove.bind(this);
     }
     init() {
         this.bindAllFunction();
         this.element.addEventListener("pointerdown", this.functionsBinded.downAction);
-        this.element.addEventListener("trigger_pointer_press", this.functionsBinded.childPress);
+        this.element.addEventListener("touchstart", this.functionsBinded.downAction);
         this.element.addEventListener("trigger_pointer_pressstart", this.functionsBinded.childPressStart);
         this.element.addEventListener("trigger_pointer_pressend", this.functionsBinded.childPressEnd);
-        this.element.addEventListener("trigger_pointer_dblpress", this.functionsBinded.childDblPress);
-        this.element.addEventListener("trigger_pointer_longpress", this.functionsBinded.childLongPress);
-        this.element.addEventListener("trigger_pointer_dragstart", this.functionsBinded.childDragStart);
+        this.element.addEventListener("trigger_pointer_pressmove", this.functionsBinded.childPressMove);
     }
-    downAction(e) {
+    identifyEvent(touch) {
+        if (touch instanceof Touch)
+            return touch.identifier;
+        return touch.pointerId;
+    }
+    registerEvent(ev) {
+        if (ev instanceof TouchEvent) {
+            for (let touch of ev.targetTouches) {
+                const id = this.identifyEvent(touch);
+                if (this.pointersRecord[id]) {
+                    return false;
+                }
+                this.pointersRecord[id] = ev;
+            }
+            return true;
+        }
+        else {
+            const id = this.identifyEvent(ev);
+            if (this.pointersRecord[id]) {
+                return false;
+            }
+            this.pointersRecord[id] = ev;
+            return true;
+        }
+    }
+    unregisterEvent(ev) {
+        let result = true;
+        if (ev instanceof TouchEvent) {
+            for (let touch of ev.changedTouches) {
+                const id = this.identifyEvent(touch);
+                if (!this.pointersRecord[id]) {
+                    result = false;
+                }
+                else {
+                    delete this.pointersRecord[id];
+                }
+            }
+        }
+        else {
+            const id = this.identifyEvent(ev);
+            if (!this.pointersRecord[id]) {
+                result = false;
+            }
+            else {
+                delete this.pointersRecord[id];
+            }
+        }
+        return result;
+    }
+    genericDownAction(state, e) {
+        this.downEventSaved = e;
+        if (this.options.onLongPress) {
+            this.timeoutLongPress = setTimeout(() => {
+                if (!state.oneActionTriggered) {
+                    if (this.options.onLongPress) {
+                        if (this.options.onLongPress(e, this) !== false) {
+                            state.oneActionTriggered = this;
+                        }
+                    }
+                }
+            }, this.delayLongPress);
+        }
+    }
+    downAction(ev) {
+        const isFirst = Object.values(this.pointersRecord).length == 0;
+        if (!this.registerEvent(ev)) {
+            if (this.stopPropagation()) {
+                ev.stopImmediatePropagation();
+            }
+            return;
+        }
+        const e = new NormalizedEvent(ev);
         if (this.options.onEvent) {
             this.options.onEvent(e);
         }
-        if (!this.options.buttonAllowed?.includes(e.button)) {
+        if (e.button != undefined && !this.options.buttonAllowed?.includes(e.button)) {
+            this.unregisterEvent(ev);
             return;
         }
-        this.downEventSaved = e;
         if (this.stopPropagation()) {
             e.stopImmediatePropagation();
         }
         this.customFcts = {};
-        if (this.nbPress == 0) {
-            this.state.oneActionTriggered = false;
+        if (this.nbPress == 0 && isFirst) {
+            this.state.oneActionTriggered = null;
             clearTimeout(this.timeoutDblPress);
         }
         this.startPosition = { x: e.pageX, y: e.pageY };
-        document.addEventListener("pointerup", this.functionsBinded.upAction);
-        document.addEventListener("pointercancel", this.functionsBinded.upAction);
-        document.addEventListener("pointermove", this.functionsBinded.moveAction);
-        this.timeoutLongPress = setTimeout(() => {
-            if (!this.state.oneActionTriggered) {
-                if (this.options.onLongPress) {
-                    this.state.oneActionTriggered = true;
-                    this.options.onLongPress(e, this);
-                    this.triggerEventToParent(this.actionsName.longPress, e);
-                }
-                else {
-                    this.emitTriggerFunction(this.actionsName.longPress, e);
-                }
-            }
-        }, this.delayLongPress);
+        if (isFirst) {
+            document.addEventListener("pointerup", this.functionsBinded.upAction);
+            document.addEventListener("pointercancel", this.functionsBinded.upAction);
+            document.addEventListener("touchend", this.functionsBinded.upAction);
+            document.addEventListener("touchcancel", this.functionsBinded.upAction);
+            document.addEventListener("pointermove", this.functionsBinded.moveAction);
+        }
+        this.genericDownAction(this.state, e);
         if (this.options.onPressStart) {
             this.options.onPressStart(e, this);
-            this.emitTriggerFunctionParent("pressstart", e);
+            this.lastEmitEvent = e;
+            // this.emitTriggerFunctionParent("pressstart", e);
         }
-        else {
-            this.emitTriggerFunction("pressstart", e);
-        }
+        this.emitTriggerFunction("pressstart", e);
     }
-    upAction(e) {
-        if (this.options.onEvent) {
-            this.options.onEvent(e);
-        }
-        if (this.stopPropagation()) {
-            e.stopImmediatePropagation();
-        }
-        document.removeEventListener("pointerup", this.functionsBinded.upAction);
-        document.removeEventListener("pointercancel", this.functionsBinded.upAction);
-        document.removeEventListener("pointermove", this.functionsBinded.moveAction);
+    genericUpAction(state, e) {
         clearTimeout(this.timeoutLongPress);
-        if (this.state.isMoving) {
-            this.state.isMoving = false;
+        if (state.oneActionTriggered == this) {
             if (this.options.onDragEnd) {
                 this.options.onDragEnd(e, this);
             }
@@ -1853,79 +2063,82 @@ const PressManager=class PressManager {
             if (this.useDblPress) {
                 this.nbPress++;
                 if (this.nbPress == 2) {
-                    if (!this.state.oneActionTriggered) {
-                        this.state.oneActionTriggered = true;
+                    if (!state.oneActionTriggered) {
                         this.nbPress = 0;
                         if (this.options.onDblPress) {
-                            this.options.onDblPress(e, this);
-                            this.triggerEventToParent(this.actionsName.dblPress, e);
-                        }
-                        else {
-                            this.emitTriggerFunction(this.actionsName.dblPress, e);
+                            if (this.options.onDblPress(e, this) !== false) {
+                                state.oneActionTriggered = this;
+                            }
                         }
                     }
                 }
                 else if (this.nbPress == 1) {
                     this.timeoutDblPress = setTimeout(() => {
                         this.nbPress = 0;
-                        if (!this.state.oneActionTriggered) {
+                        if (!state.oneActionTriggered) {
                             if (this.options.onPress) {
-                                this.state.oneActionTriggered = true;
-                                this.options.onPress(e, this);
-                                this.triggerEventToParent(this.actionsName.press, e);
-                            }
-                            else {
-                                this.emitTriggerFunction(this.actionsName.press, e);
+                                if (this.options.onPress(e, this) !== false) {
+                                    state.oneActionTriggered = this;
+                                }
                             }
                         }
                     }, this.delayDblPress);
                 }
             }
             else {
-                if (!this.state.oneActionTriggered) {
+                if (!state.oneActionTriggered) {
                     if (this.options.onPress) {
-                        this.state.oneActionTriggered = true;
-                        this.options.onPress(e, this);
-                        this.triggerEventToParent(this.actionsName.press, e);
-                    }
-                    else {
-                        this.emitTriggerFunction("press", e);
+                        if (this.options.onPress(e, this) !== false) {
+                            state.oneActionTriggered = this;
+                        }
                     }
                 }
             }
         }
-        if (this.options.onPressEnd) {
-            this.options.onPressEnd(e, this);
-            this.emitTriggerFunctionParent("pressend", e);
-        }
-        else {
-            this.emitTriggerFunction("pressend", e);
-        }
     }
-    moveAction(e) {
+    upAction(ev) {
+        if (!this.unregisterEvent(ev)) {
+            if (this.stopPropagation()) {
+                ev.stopImmediatePropagation();
+            }
+            return;
+        }
+        const e = new NormalizedEvent(ev);
         if (this.options.onEvent) {
             this.options.onEvent(e);
         }
-        if (!this.state.isMoving && !this.state.oneActionTriggered) {
-            if (this.stopPropagation()) {
-                e.stopImmediatePropagation();
-            }
+        if (this.stopPropagation()) {
+            e.stopImmediatePropagation();
+        }
+        if (Object.values(this.pointersRecord).length == 0) {
+            document.removeEventListener("pointerup", this.functionsBinded.upAction);
+            document.removeEventListener("pointercancel", this.functionsBinded.upAction);
+            document.removeEventListener("touchend", this.functionsBinded.upAction);
+            document.removeEventListener("touchcancel", this.functionsBinded.upAction);
+            document.removeEventListener("pointermove", this.functionsBinded.moveAction);
+        }
+        this.genericUpAction(this.state, e);
+        if (this.options.onPressEnd) {
+            this.options.onPressEnd(e, this);
+            this.lastEmitEvent = e;
+            // this.emitTriggerFunctionParent("pressend", e);
+        }
+        this.emitTriggerFunction("pressend", e);
+    }
+    genericMoveAction(state, e) {
+        if (!state.oneActionTriggered) {
             let xDist = e.pageX - this.startPosition.x;
             let yDist = e.pageY - this.startPosition.y;
             let distance = Math.sqrt(xDist * xDist + yDist * yDist);
             if (distance > this.offsetDrag && this.downEventSaved) {
-                this.state.oneActionTriggered = true;
                 if (this.options.onDragStart) {
-                    this.state.isMoving = true;
-                    this.options.onDragStart(this.downEventSaved, this);
-                    this.triggerEventToParent(this.actionsName.drag, e);
-                }
-                else {
-                    this.emitTriggerFunction("dragstart", this.downEventSaved);
+                    if (this.options.onDragStart(this.downEventSaved, this) !== false) {
+                        state.oneActionTriggered = this;
+                    }
                 }
             }
         }
-        else if (this.state.isMoving) {
+        else if (state.oneActionTriggered == this) {
             if (this.options.onDrag) {
                 this.options.onDrag(e, this);
             }
@@ -1934,88 +2147,42 @@ const PressManager=class PressManager {
             }
         }
     }
-    triggerEventToParent(eventName, pointerEvent) {
-        if (this.element.parentNode) {
-            this.element.parentNode.dispatchEvent(new CustomEvent("pressaction_trigger", {
-                bubbles: true,
-                cancelable: false,
-                composed: true,
-                detail: {
-                    target: this.element,
-                    eventName: eventName,
-                    realEvent: pointerEvent
-                }
-            }));
+    moveAction(ev) {
+        const e = new NormalizedEvent(ev);
+        if (this.options.onEvent) {
+            this.options.onEvent(e);
         }
+        if (this.stopPropagation()) {
+            e.stopImmediatePropagation();
+        }
+        this.genericMoveAction(this.state, e);
+        this.lastEmitEvent = e;
+        // if(this.options.onDrag) {
+        //     this.emitTriggerFunctionParent("pressmove", e);
+        this.emitTriggerFunction("pressmove", e);
     }
     childPressStart(e) {
+        if (this.lastEmitEvent == e.detail.realEvent)
+            return;
+        this.genericDownAction(e.detail.state, e.detail.realEvent);
         if (this.options.onPressStart) {
             this.options.onPressStart(e.detail.realEvent, this);
         }
     }
     childPressEnd(e) {
+        if (this.lastEmitEvent == e.detail.realEvent)
+            return;
+        this.genericUpAction(e.detail.state, e.detail.realEvent);
         if (this.options.onPressEnd) {
             this.options.onPressEnd(e.detail.realEvent, this);
         }
     }
-    childPress(e) {
-        if (this.options.onPress) {
-            if (this.stopPropagation()) {
-                e.stopImmediatePropagation();
-            }
-            e.detail.state.oneActionTriggered = true;
-            this.options.onPress(e.detail.realEvent, this);
-            this.triggerEventToParent(this.actionsName.press, e.detail.realEvent);
-        }
+    childPressMove(e) {
+        if (this.lastEmitEvent == e.detail.realEvent)
+            return;
+        this.genericMoveAction(e.detail.state, e.detail.realEvent);
     }
-    childDblPress(e) {
-        if (this.options.onDblPress) {
-            if (this.stopPropagation()) {
-                e.stopImmediatePropagation();
-            }
-            if (e.detail.state) {
-                e.detail.state.oneActionTriggered = true;
-            }
-            this.options.onDblPress(e.detail.realEvent, this);
-            this.triggerEventToParent(this.actionsName.dblPress, e.detail.realEvent);
-        }
-    }
-    childLongPress(e) {
-        if (this.options.onLongPress) {
-            if (this.stopPropagation()) {
-                e.stopImmediatePropagation();
-            }
-            e.detail.state.oneActionTriggered = true;
-            this.options.onLongPress(e.detail.realEvent, this);
-            this.triggerEventToParent(this.actionsName.longPress, e.detail.realEvent);
-        }
-    }
-    childDragStart(e) {
-        if (this.options.onDragStart) {
-            if (this.stopPropagation()) {
-                e.stopImmediatePropagation();
-            }
-            e.detail.state.isMoving = true;
-            e.detail.customFcts.src = this;
-            e.detail.customFcts.onDrag = this.options.onDrag;
-            e.detail.customFcts.onDragEnd = this.options.onDragEnd;
-            e.detail.customFcts.offsetDrag = this.options.offsetDrag;
-            this.options.onDragStart(e.detail.realEvent, this);
-            this.triggerEventToParent(this.actionsName.drag, e.detail.realEvent);
-        }
-    }
-    emitTriggerFunctionParent(action, e) {
-        let el = this.element.parentElement;
-        if (el == null) {
-            let parentNode = this.element.parentNode;
-            if (parentNode instanceof ShadowRoot) {
-                this.emitTriggerFunction(action, e, parentNode.host);
-            }
-        }
-        else {
-            this.emitTriggerFunction(action, e, el);
-        }
-    }
+    lastEmitEvent;
     emitTriggerFunction(action, e, el) {
         let ev = new CustomEvent("trigger_pointer_" + action, {
             bubbles: true,
@@ -2027,6 +2194,7 @@ const PressManager=class PressManager {
                 realEvent: e
             }
         });
+        this.lastEmitEvent = e;
         if (!el) {
             el = this.element;
         }
@@ -2038,12 +2206,9 @@ const PressManager=class PressManager {
     destroy() {
         if (this.element) {
             this.element.removeEventListener("pointerdown", this.functionsBinded.downAction);
-            this.element.removeEventListener("trigger_pointer_press", this.functionsBinded.childPress);
             this.element.removeEventListener("trigger_pointer_pressstart", this.functionsBinded.childPressStart);
             this.element.removeEventListener("trigger_pointer_pressend", this.functionsBinded.childPressEnd);
-            this.element.removeEventListener("trigger_pointer_dblpress", this.functionsBinded.childDblPress);
-            this.element.removeEventListener("trigger_pointer_longpress", this.functionsBinded.childLongPress);
-            this.element.removeEventListener("trigger_pointer_dragstart", this.functionsBinded.childDragStart);
+            this.element.removeEventListener("trigger_pointer_pressmove", this.functionsBinded.childPressMove);
             document.removeEventListener("pointerup", this.functionsBinded.upAction);
             document.removeEventListener("pointercancel", this.functionsBinded.upAction);
             document.removeEventListener("pointermove", this.functionsBinded.moveAction);
@@ -2051,9 +2216,9 @@ const PressManager=class PressManager {
     }
 }
 PressManager.Namespace=`Aventus`;
-
 _.PressManager=PressManager;
-const Uri=class Uri {
+
+let Uri=class Uri {
     static prepare(uri) {
         let params = [];
         let i = 0;
@@ -2129,9 +2294,9 @@ const Uri=class Uri {
     }
 }
 Uri.Namespace=`Aventus`;
-
 _.Uri=Uri;
-const State=class State {
+
+let State=class State {
     /**
      * Activate a custom state inside a specific manager
      * It ll be a generic state with no information inside exept name
@@ -2154,9 +2319,9 @@ const State=class State {
     }
 }
 State.Namespace=`Aventus`;
-
 _.State=State;
-const EmptyState=class EmptyState extends State {
+
+let EmptyState=class EmptyState extends State {
     localName;
     constructor(stateName) {
         super();
@@ -2170,9 +2335,9 @@ const EmptyState=class EmptyState extends State {
     }
 }
 EmptyState.Namespace=`Aventus`;
-
 _.EmptyState=EmptyState;
-const StateManager=class StateManager {
+
+let StateManager=class StateManager {
     subscribers = {};
     static canBeActivate(statePattern, stateName) {
         let stateInfo = Uri.prepare(statePattern);
@@ -2406,21 +2571,24 @@ const StateManager=class StateManager {
                         let oldSlug = Uri.getParams(subscriber, oldState.name);
                         if (oldSlug) {
                             let oldSlugNotNull = oldSlug;
-                            [...subscriber.callbacks.inactive].forEach(callback => {
+                            let callbacks = [...subscriber.callbacks.inactive];
+                            for (let callback of callbacks) {
                                 callback(oldState, stateToUse, oldSlugNotNull);
-                            });
+                            }
                         }
                     }
                     for (let trigger of triggerActive) {
-                        [...trigger.subscriber.callbacks.active].forEach(callback => {
+                        let callbacks = [...trigger.subscriber.callbacks.active];
+                        for (let callback of callbacks) {
                             callback(stateToUse, trigger.params);
-                        });
+                        }
                     }
                     for (let trigger of inactiveToActive) {
                         trigger.subscriber.isActive = true;
-                        [...trigger.subscriber.callbacks.active].forEach(callback => {
+                        let callbacks = [...trigger.subscriber.callbacks.active];
+                        for (let callback of callbacks) {
                             callback(stateToUse, trigger.params);
-                        });
+                        }
                     }
                     stateToUse.onActivate();
                 }
@@ -2432,9 +2600,10 @@ const StateManager=class StateManager {
                     if (slugs) {
                         let slugsNotNull = slugs;
                         this.subscribers[key].isActive = true;
-                        [...this.subscribers[key].callbacks.active].forEach(callback => {
+                        let callbacks = [...this.subscribers[key].callbacks.active];
+                        for (let callback of callbacks) {
                             callback(stateToUse, slugsNotNull);
-                        });
+                        }
                     }
                 }
                 stateToUse.onActivate();
@@ -2476,9 +2645,9 @@ const StateManager=class StateManager {
     }
 }
 StateManager.Namespace=`Aventus`;
-
 _.StateManager=StateManager;
-const TemplateContext=class TemplateContext {
+
+let TemplateContext=class TemplateContext {
     data = {};
     comp;
     computeds = [];
@@ -2682,9 +2851,9 @@ const TemplateContext=class TemplateContext {
     }
 }
 TemplateContext.Namespace=`Aventus`;
-
 _.TemplateContext=TemplateContext;
-const TemplateInstance=class TemplateInstance {
+
+let TemplateInstance=class TemplateInstance {
     context;
     content;
     actions;
@@ -2933,7 +3102,7 @@ const TemplateInstance=class TemplateInstance {
                 return change.fct(this.context);
             }
             catch (e) {
-                if (e instanceof TypeError && e.message.startsWith("Cannot read properties of undefined")) {
+                if (e instanceof TypeError && e.message.includes("undefined")) {
                     if (computed instanceof ComputedNoRecomputed) {
                         computed.isInit = false;
                     }
@@ -2968,7 +3137,7 @@ const TemplateInstance=class TemplateInstance {
                 return injection.inject(this.context);
             }
             catch (e) {
-                if (e instanceof TypeError && e.message.startsWith("Cannot read properties of undefined")) {
+                if (e instanceof TypeError && e.message.includes("undefined")) {
                     if (computed instanceof ComputedNoRecomputed) {
                         computed.isInit = false;
                     }
@@ -3001,7 +3170,7 @@ const TemplateInstance=class TemplateInstance {
                 return binding.inject(this.context);
             }
             catch (e) {
-                if (e instanceof TypeError && e.message.startsWith("Cannot read properties of undefined")) {
+                if (e instanceof TypeError && e.message.includes("undefined")) {
                     if (computed instanceof ComputedNoRecomputed) {
                         computed.isInit = false;
                     }
@@ -3372,9 +3541,9 @@ const TemplateInstance=class TemplateInstance {
     }
 }
 TemplateInstance.Namespace=`Aventus`;
-
 _.TemplateInstance=TemplateInstance;
-const Template=class Template {
+
+let Template=class Template {
     static validatePath(path, pathToCheck) {
         if (pathToCheck.startsWith(path)) {
             return true;
@@ -3510,9 +3679,9 @@ const Template=class Template {
     }
 }
 Template.Namespace=`Aventus`;
-
 _.Template=Template;
-const WebComponent=class WebComponent extends HTMLElement {
+
+let WebComponent=class WebComponent extends HTMLElement {
     /**
      * Add attributes informations
      */
@@ -3570,6 +3739,8 @@ const WebComponent=class WebComponent extends HTMLElement {
     __watchFunctions = {};
     __watchFunctionsComputed = {};
     __pressManagers = [];
+    __signalActions = {};
+    __signals = {};
     __isDefaultState = true;
     __defaultActiveState = new Map();
     __defaultInactiveState = new Map();
@@ -3588,6 +3759,7 @@ const WebComponent=class WebComponent extends HTMLElement {
         this.__renderTemplate();
         this.__registerWatchesActions();
         this.__registerPropertiesActions();
+        this.__registerSignalsActions();
         this.__createStates();
         this.__subscribeState();
     }
@@ -3603,6 +3775,9 @@ const WebComponent=class WebComponent extends HTMLElement {
         }
         for (let name in this.__watchFunctionsComputed) {
             this.__watchFunctionsComputed[name].destroy();
+        }
+        for (let name in this.__signals) {
+            this.__signals[name].destroy();
         }
         // TODO add missing info for destructor();
         this.postDestruction();
@@ -3689,6 +3864,31 @@ const WebComponent=class WebComponent extends HTMLElement {
             }
         }
     }
+    __addSignalActions(name, fct) {
+        this.__signalActions[name] = () => {
+            fct(this);
+        };
+    }
+    __registerSignalsActions() {
+        if (Object.keys(this.__signals).length > 0) {
+            const defaultValues = {};
+            for (let name in this.__signals) {
+                this.__registerSignalsAction(name);
+                this.__defaultValuesSignal(defaultValues);
+            }
+            for (let name in defaultValues) {
+                this.__signals[name].value = defaultValues[name];
+            }
+        }
+    }
+    __registerSignalsAction(name) {
+        this.__signals[name] = new Signal(undefined, () => {
+            if (this.__signalActions[name]) {
+                this.__signalActions[name]();
+            }
+        });
+    }
+    __defaultValuesSignal(s) { }
     __addPropertyActions(name, fct) {
         if (!this.__onChangeFct[name]) {
             this.__onChangeFct[name] = [];
@@ -3773,12 +3973,29 @@ const WebComponent=class WebComponent extends HTMLElement {
             this.postDisonnect();
         });
     }
+    __onReadyCb = [];
+    onReady(cb) {
+        if (this._isReady) {
+            cb();
+        }
+        else {
+            this.__onReadyCb.push(cb);
+        }
+    }
+    __setReady() {
+        this._isReady = true;
+        this.dispatchEvent(new CustomEvent('postCreationDone'));
+        let cbs = [...this.__onReadyCb];
+        for (let cb of cbs) {
+            cb();
+        }
+        this.__onReadyCb = [];
+    }
     __removeNoAnimations() {
         if (document.readyState !== "loading") {
             setTimeout(() => {
                 this.postCreation();
-                this._isReady = true;
-                this.dispatchEvent(new CustomEvent('postCreationDone'));
+                this.__setReady();
                 this.shadowRoot.adoptedStyleSheets = Object.values(this.__getStatic().__styleSheets);
                 document.removeEventListener("DOMContentLoaded", this.__removeNoAnimations);
                 this.postConnect();
@@ -4179,9 +4396,9 @@ const WebComponent=class WebComponent extends HTMLElement {
     }
 }
 WebComponent.Namespace=`Aventus`;
-
 _.WebComponent=WebComponent;
-const WebComponentInstance=class WebComponentInstance {
+
+let WebComponentInstance=class WebComponentInstance {
     static __allDefinitions = [];
     static __allInstances = [];
     /**
@@ -4252,8 +4469,8 @@ const WebComponentInstance=class WebComponentInstance {
     }
 }
 WebComponentInstance.Namespace=`Aventus`;
-
 _.WebComponentInstance=WebComponentInstance;
+
 
 for(let key in _) { Aventus[key] = _[key] }
 })(Aventus);
@@ -4266,7 +4483,7 @@ const _ = {};
 
 
 let _n;
-const Message=class Message {
+let Message=class Message {
     static init() {
         window.addEventListener('message', event => {
             const message = event.data;
@@ -4280,8 +4497,8 @@ const Message=class Message {
     }
 }
 Message.Namespace=`dependances`;
-
 _.Message=Message;
+
 const Icon = class Icon extends Aventus.WebComponent {
     static __style = `:host{display:inline-block;font:normal normal normal 16px/1 codicon;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-align:center;text-decoration:none;text-rendering:auto;-webkit-user-select:none;-ms-user-select:none;user-select:none}:host(.add) span::before{content:""}:host(.plus) span::before{content:""}:host(.gist-new) span::before{content:""}:host(.repo-create) span::before{content:""}:host(.lightbulb) span::before{content:""}:host(.light-bulb) span::before{content:""}:host(.repo) span::before{content:""}:host(.repo-delete) span::before{content:""}:host(.gist-fork) span::before{content:""}:host(.repo-forked) span::before{content:""}:host(.git-pull-request) span::before{content:""}:host(.git-pull-request-abandoned) span::before{content:""}:host(.record-keys) span::before{content:""}:host(.keyboard) span::before{content:""}:host(.tag) span::before{content:""}:host(.tag-add) span::before{content:""}:host(.tag-remove) span::before{content:""}:host(.person) span::before{content:""}:host(.person-follow) span::before{content:""}:host(.person-outline) span::before{content:""}:host(.person-filled) span::before{content:""}:host(.git-branch) span::before{content:""}:host(.git-branch-create) span::before{content:""}:host(.git-branch-delete) span::before{content:""}:host(.source-control) span::before{content:""}:host(.mirror) span::before{content:""}:host(.mirror-public) span::before{content:""}:host(.star) span::before{content:""}:host(.star-add) span::before{content:""}:host(.star-delete) span::before{content:""}:host(.star-empty) span::before{content:""}:host(.comment) span::before{content:""}:host(.comment-add) span::before{content:""}:host(.alert) span::before{content:""}:host(.warning) span::before{content:""}:host(.search) span::before{content:""}:host(.search-save) span::before{content:""}:host(.log-out) span::before{content:""}:host(.sign-out) span::before{content:""}:host(.log-in) span::before{content:""}:host(.sign-in) span::before{content:""}:host(.eye) span::before{content:""}:host(.eye-unwatch) span::before{content:""}:host(.eye-watch) span::before{content:""}:host(.circle-filled) span::before{content:""}:host(.primitive-dot) span::before{content:""}:host(.close-dirty) span::before{content:""}:host(.debug-breakpoint) span::before{content:""}:host(.debug-breakpoint-disabled) span::before{content:""}:host(.debug-hint) span::before{content:""}:host(.terminal-decoration-success) span::before{content:""}:host(.primitive-square) span::before{content:""}:host(.edit) span::before{content:""}:host(.pencil) span::before{content:""}:host(.info) span::before{content:""}:host(.issue-opened) span::before{content:""}:host(.gist-private) span::before{content:""}:host(.git-fork-private) span::before{content:""}:host(.lock) span::before{content:""}:host(.mirror-private) span::before{content:""}:host(.close) span::before{content:""}:host(.remove-close) span::before{content:""}:host(.x) span::before{content:""}:host(.repo-sync) span::before{content:""}:host(.sync) span::before{content:""}:host(.clone) span::before{content:""}:host(.desktop-download) span::before{content:""}:host(.beaker) span::before{content:""}:host(.microscope) span::before{content:""}:host(.vm) span::before{content:""}:host(.device-desktop) span::before{content:""}:host(.file) span::before{content:""}:host(.file-text) span::before{content:""}:host(.more) span::before{content:""}:host(.ellipsis) span::before{content:""}:host(.kebab-horizontal) span::before{content:""}:host(.mail-reply) span::before{content:""}:host(.reply) span::before{content:""}:host(.organization) span::before{content:""}:host(.organization-filled) span::before{content:""}:host(.organization-outline) span::before{content:""}:host(.new-file) span::before{content:""}:host(.file-add) span::before{content:""}:host(.new-folder) span::before{content:""}:host(.file-directory-create) span::before{content:""}:host(.trash) span::before{content:""}:host(.trashcan) span::before{content:""}:host(.history) span::before{content:""}:host(.clock) span::before{content:""}:host(.folder) span::before{content:""}:host(.file-directory) span::before{content:""}:host(.symbol-folder) span::before{content:""}:host(.logo-github) span::before{content:""}:host(.mark-github) span::before{content:""}:host(.github) span::before{content:""}:host(.terminal) span::before{content:""}:host(.console) span::before{content:""}:host(.repl) span::before{content:""}:host(.zap) span::before{content:""}:host(.symbol-event) span::before{content:""}:host(.error) span::before{content:""}:host(.stop) span::before{content:""}:host(.variable) span::before{content:""}:host(.symbol-variable) span::before{content:""}:host(.array) span::before{content:""}:host(.symbol-array) span::before{content:""}:host(.symbol-module) span::before{content:""}:host(.symbol-package) span::before{content:""}:host(.symbol-namespace) span::before{content:""}:host(.symbol-object) span::before{content:""}:host(.symbol-method) span::before{content:""}:host(.symbol-function) span::before{content:""}:host(.symbol-constructor) span::before{content:""}:host(.symbol-boolean) span::before{content:""}:host(.symbol-null) span::before{content:""}:host(.symbol-numeric) span::before{content:""}:host(.symbol-number) span::before{content:""}:host(.symbol-structure) span::before{content:""}:host(.symbol-struct) span::before{content:""}:host(.symbol-parameter) span::before{content:""}:host(.symbol-type-parameter) span::before{content:""}:host(.symbol-key) span::before{content:""}:host(.symbol-text) span::before{content:""}:host(.symbol-reference) span::before{content:""}:host(.go-to-file) span::before{content:""}:host(.symbol-enum) span::before{content:""}:host(.symbol-value) span::before{content:""}:host(.symbol-ruler) span::before{content:""}:host(.symbol-unit) span::before{content:""}:host(.activate-breakpoints) span::before{content:""}:host(.archive) span::before{content:""}:host(.arrow-both) span::before{content:""}:host(.arrow-down) span::before{content:""}:host(.arrow-left) span::before{content:""}:host(.arrow-right) span::before{content:""}:host(.arrow-small-down) span::before{content:""}:host(.arrow-small-left) span::before{content:""}:host(.arrow-small-right) span::before{content:""}:host(.arrow-small-up) span::before{content:""}:host(.arrow-up) span::before{content:""}:host(.bell) span::before{content:""}:host(.bold) span::before{content:""}:host(.book) span::before{content:""}:host(.bookmark) span::before{content:""}:host(.debug-breakpoint-conditional-unverified) span::before{content:""}:host(.debug-breakpoint-conditional) span::before{content:""}:host(.debug-breakpoint-conditional-disabled) span::before{content:""}:host(.debug-breakpoint-data-unverified) span::before{content:""}:host(.debug-breakpoint-data) span::before{content:""}:host(.debug-breakpoint-data-disabled) span::before{content:""}:host(.debug-breakpoint-log-unverified) span::before{content:""}:host(.debug-breakpoint-log) span::before{content:""}:host(.debug-breakpoint-log-disabled) span::before{content:""}:host(.briefcase) span::before{content:""}:host(.broadcast) span::before{content:""}:host(.browser) span::before{content:""}:host(.bug) span::before{content:""}:host(.calendar) span::before{content:""}:host(.case-sensitive) span::before{content:""}:host(.check) span::before{content:""}:host(.checklist) span::before{content:""}:host(.chevron-down) span::before{content:""}:host(.chevron-left) span::before{content:""}:host(.chevron-right) span::before{content:""}:host(.chevron-up) span::before{content:""}:host(.chrome-close) span::before{content:""}:host(.chrome-maximize) span::before{content:""}:host(.chrome-minimize) span::before{content:""}:host(.chrome-restore) span::before{content:""}:host(.circle-outline) span::before{content:""}:host(.circle) span::before{content:""}:host(.debug-breakpoint-unverified) span::before{content:""}:host(.terminal-decoration-incomplete) span::before{content:""}:host(.circle-slash) span::before{content:""}:host(.circuit-board) span::before{content:""}:host(.clear-all) span::before{content:""}:host(.clippy) span::before{content:""}:host(.close-all) span::before{content:""}:host(.cloud-download) span::before{content:""}:host(.cloud-upload) span::before{content:""}:host(.code) span::before{content:""}:host(.collapse-all) span::before{content:""}:host(.color-mode) span::before{content:""}:host(.comment-discussion) span::before{content:""}:host(.credit-card) span::before{content:""}:host(.dash) span::before{content:""}:host(.dashboard) span::before{content:""}:host(.database) span::before{content:""}:host(.debug-continue) span::before{content:""}:host(.debug-disconnect) span::before{content:""}:host(.debug-pause) span::before{content:""}:host(.debug-restart) span::before{content:""}:host(.debug-start) span::before{content:""}:host(.debug-step-into) span::before{content:""}:host(.debug-step-out) span::before{content:""}:host(.debug-step-over) span::before{content:""}:host(.debug-stop) span::before{content:""}:host(.debug) span::before{content:""}:host(.device-camera-video) span::before{content:""}:host(.device-camera) span::before{content:""}:host(.device-mobile) span::before{content:""}:host(.diff-added) span::before{content:""}:host(.diff-ignored) span::before{content:""}:host(.diff-modified) span::before{content:""}:host(.diff-removed) span::before{content:""}:host(.diff-renamed) span::before{content:""}:host(.diff) span::before{content:""}:host(.discard) span::before{content:""}:host(.editor-layout) span::before{content:""}:host(.empty-window) span::before{content:""}:host(.exclude) span::before{content:""}:host(.extensions) span::before{content:""}:host(.eye-closed) span::before{content:""}:host(.file-binary) span::before{content:""}:host(.file-code) span::before{content:""}:host(.file-media) span::before{content:""}:host(.file-pdf) span::before{content:""}:host(.file-submodule) span::before{content:""}:host(.file-symlink-directory) span::before{content:""}:host(.file-symlink-file) span::before{content:""}:host(.file-zip) span::before{content:""}:host(.files) span::before{content:""}:host(.filter) span::before{content:""}:host(.flame) span::before{content:""}:host(.fold-down) span::before{content:""}:host(.fold-up) span::before{content:""}:host(.fold) span::before{content:""}:host(.folder-active) span::before{content:""}:host(.folder-opened) span::before{content:""}:host(.gear) span::before{content:""}:host(.gift) span::before{content:""}:host(.gist-secret) span::before{content:""}:host(.gist) span::before{content:""}:host(.git-commit) span::before{content:""}:host(.git-compare) span::before{content:""}:host(.compare-changes) span::before{content:""}:host(.git-merge) span::before{content:""}:host(.github-action) span::before{content:""}:host(.github-alt) span::before{content:""}:host(.globe) span::before{content:""}:host(.grabber) span::before{content:""}:host(.graph) span::before{content:""}:host(.gripper) span::before{content:""}:host(.heart) span::before{content:""}:host(.home) span::before{content:""}:host(.horizontal-rule) span::before{content:""}:host(.hubot) span::before{content:""}:host(.inbox) span::before{content:""}:host(.issue-reopened) span::before{content:""}:host(.issues) span::before{content:""}:host(.italic) span::before{content:""}:host(.jersey) span::before{content:""}:host(.json) span::before{content:""}:host(.kebab-vertical) span::before{content:""}:host(.key) span::before{content:""}:host(.law) span::before{content:""}:host(.lightbulb-autofix) span::before{content:""}:host(.link-external) span::before{content:""}:host(.link) span::before{content:""}:host(.list-ordered) span::before{content:""}:host(.list-unordered) span::before{content:""}:host(.live-share) span::before{content:""}:host(.loading) span::before{content:""}:host(.location) span::before{content:""}:host(.mail-read) span::before{content:""}:host(.mail) span::before{content:""}:host(.markdown) span::before{content:""}:host(.megaphone) span::before{content:""}:host(.mention) span::before{content:""}:host(.milestone) span::before{content:""}:host(.mortar-board) span::before{content:""}:host(.move) span::before{content:""}:host(.multiple-windows) span::before{content:""}:host(.mute) span::before{content:""}:host(.no-newline) span::before{content:""}:host(.note) span::before{content:""}:host(.octoface) span::before{content:""}:host(.open-preview) span::before{content:""}:host(.package) span::before{content:""}:host(.paintcan) span::before{content:""}:host(.pin) span::before{content:""}:host(.play) span::before{content:""}:host(.run) span::before{content:""}:host(.plug) span::before{content:""}:host(.preserve-case) span::before{content:""}:host(.preview) span::before{content:""}:host(.project) span::before{content:""}:host(.pulse) span::before{content:""}:host(.question) span::before{content:""}:host(.quote) span::before{content:""}:host(.radio-tower) span::before{content:""}:host(.reactions) span::before{content:""}:host(.references) span::before{content:""}:host(.refresh) span::before{content:""}:host(.regex) span::before{content:""}:host(.remote-explorer) span::before{content:""}:host(.remote) span::before{content:""}:host(.remove) span::before{content:""}:host(.replace-all) span::before{content:""}:host(.replace) span::before{content:""}:host(.repo-clone) span::before{content:""}:host(.repo-force-push) span::before{content:""}:host(.repo-pull) span::before{content:""}:host(.repo-push) span::before{content:""}:host(.report) span::before{content:""}:host(.request-changes) span::before{content:""}:host(.rocket) span::before{content:""}:host(.root-folder-opened) span::before{content:""}:host(.root-folder) span::before{content:""}:host(.rss) span::before{content:""}:host(.ruby) span::before{content:""}:host(.save-all) span::before{content:""}:host(.save-as) span::before{content:""}:host(.save) span::before{content:""}:host(.screen-full) span::before{content:""}:host(.screen-normal) span::before{content:""}:host(.search-stop) span::before{content:""}:host(.server) span::before{content:""}:host(.settings-gear) span::before{content:""}:host(.settings) span::before{content:""}:host(.shield) span::before{content:""}:host(.smiley) span::before{content:""}:host(.sort-precedence) span::before{content:""}:host(.split-horizontal) span::before{content:""}:host(.split-vertical) span::before{content:""}:host(.squirrel) span::before{content:""}:host(.star-full) span::before{content:""}:host(.star-half) span::before{content:""}:host(.symbol-class) span::before{content:""}:host(.symbol-color) span::before{content:""}:host(.symbol-constant) span::before{content:""}:host(.symbol-enum-member) span::before{content:""}:host(.symbol-field) span::before{content:""}:host(.symbol-file) span::before{content:""}:host(.symbol-interface) span::before{content:""}:host(.symbol-keyword) span::before{content:""}:host(.symbol-misc) span::before{content:""}:host(.symbol-operator) span::before{content:""}:host(.symbol-property) span::before{content:""}:host(.wrench) span::before{content:""}:host(.wrench-subaction) span::before{content:""}:host(.symbol-snippet) span::before{content:""}:host(.tasklist) span::before{content:""}:host(.telescope) span::before{content:""}:host(.text-size) span::before{content:""}:host(.three-bars) span::before{content:""}:host(.thumbsdown) span::before{content:""}:host(.thumbsup) span::before{content:""}:host(.tools) span::before{content:""}:host(.triangle-down) span::before{content:""}:host(.triangle-left) span::before{content:""}:host(.triangle-right) span::before{content:""}:host(.triangle-up) span::before{content:""}:host(.twitter) span::before{content:""}:host(.unfold) span::before{content:""}:host(.unlock) span::before{content:""}:host(.unmute) span::before{content:""}:host(.unverified) span::before{content:""}:host(.verified) span::before{content:""}:host(.versions) span::before{content:""}:host(.vm-active) span::before{content:""}:host(.vm-outline) span::before{content:""}:host(.vm-running) span::before{content:""}:host(.watch) span::before{content:""}:host(.whitespace) span::before{content:""}:host(.whole-word) span::before{content:""}:host(.window) span::before{content:""}:host(.word-wrap) span::before{content:""}:host(.zoom-in) span::before{content:""}:host(.zoom-out) span::before{content:""}:host(.list-filter) span::before{content:""}:host(.list-flat) span::before{content:""}:host(.list-selection) span::before{content:""}:host(.selection) span::before{content:""}:host(.list-tree) span::before{content:""}:host(.debug-breakpoint-function-unverified) span::before{content:""}:host(.debug-breakpoint-function) span::before{content:""}:host(.debug-breakpoint-function-disabled) span::before{content:""}:host(.debug-stackframe-active) span::before{content:""}:host(.circle-small-filled) span::before{content:""}:host(.debug-stackframe-dot) span::before{content:""}:host(.terminal-decoration-mark) span::before{content:""}:host(.debug-stackframe) span::before{content:""}:host(.debug-stackframe-focused) span::before{content:""}:host(.debug-breakpoint-unsupported) span::before{content:""}:host(.symbol-string) span::before{content:""}:host(.debug-reverse-continue) span::before{content:""}:host(.debug-step-back) span::before{content:""}:host(.debug-restart-frame) span::before{content:""}:host(.debug-alt) span::before{content:""}:host(.call-incoming) span::before{content:""}:host(.call-outgoing) span::before{content:""}:host(.menu) span::before{content:""}:host(.expand-all) span::before{content:""}:host(.feedback) span::before{content:""}:host(.group-by-ref-type) span::before{content:""}:host(.ungroup-by-ref-type) span::before{content:""}:host(.account) span::before{content:""}:host(.bell-dot) span::before{content:""}:host(.debug-console) span::before{content:""}:host(.library) span::before{content:""}:host(.output) span::before{content:""}:host(.run-all) span::before{content:""}:host(.sync-ignored) span::before{content:""}:host(.pinned) span::before{content:""}:host(.github-inverted) span::before{content:""}:host(.server-process) span::before{content:""}:host(.server-environment) span::before{content:""}:host(.pass) span::before{content:""}:host(.issue-closed) span::before{content:""}:host(.stop-circle) span::before{content:""}:host(.play-circle) span::before{content:""}:host(.record) span::before{content:""}:host(.debug-alt-small) span::before{content:""}:host(.vm-connect) span::before{content:""}:host(.cloud) span::before{content:""}:host(.merge) span::before{content:""}:host(.export) span::before{content:""}:host(.graph-left) span::before{content:""}:host(.magnet) span::before{content:""}:host(.notebook) span::before{content:""}:host(.redo) span::before{content:""}:host(.check-all) span::before{content:""}:host(.pinned-dirty) span::before{content:""}:host(.pass-filled) span::before{content:""}:host(.circle-large-filled) span::before{content:""}:host(.circle-large) span::before{content:""}:host(.circle-large-outline) span::before{content:""}:host(.combine) span::before{content:""}:host(.gather) span::before{content:""}:host(.table) span::before{content:""}:host(.variable-group) span::before{content:""}:host(.type-hierarchy) span::before{content:""}:host(.type-hierarchy-sub) span::before{content:""}:host(.type-hierarchy-super) span::before{content:""}:host(.git-pull-request-create) span::before{content:""}:host(.run-above) span::before{content:""}:host(.run-below) span::before{content:""}:host(.notebook-template) span::before{content:""}:host(.debug-rerun) span::before{content:""}:host(.workspace-trusted) span::before{content:""}:host(.workspace-untrusted) span::before{content:""}:host(.workspace-unknown) span::before{content:""}:host(.terminal-cmd) span::before{content:""}:host(.terminal-debian) span::before{content:""}:host(.terminal-linux) span::before{content:""}:host(.terminal-powershell) span::before{content:""}:host(.terminal-tmux) span::before{content:""}:host(.terminal-ubuntu) span::before{content:""}:host(.terminal-bash) span::before{content:""}:host(.arrow-swap) span::before{content:""}:host(.copy) span::before{content:""}:host(.person-add) span::before{content:""}:host(.filter-filled) span::before{content:""}:host(.wand) span::before{content:""}:host(.debug-line-by-line) span::before{content:""}:host(.inspect) span::before{content:""}:host(.layers) span::before{content:""}:host(.layers-dot) span::before{content:""}:host(.layers-active) span::before{content:""}:host(.compass) span::before{content:""}:host(.compass-dot) span::before{content:""}:host(.compass-active) span::before{content:""}:host(.azure) span::before{content:""}:host(.issue-draft) span::before{content:""}:host(.git-pull-request-closed) span::before{content:""}:host(.git-pull-request-draft) span::before{content:""}:host(.debug-all) span::before{content:""}:host(.debug-coverage) span::before{content:""}:host(.run-errors) span::before{content:""}:host(.folder-library) span::before{content:""}:host(.debug-continue-small) span::before{content:""}:host(.beaker-stop) span::before{content:""}:host(.graph-line) span::before{content:""}:host(.graph-scatter) span::before{content:""}:host(.pie-chart) span::before{content:""}:host(.bracket) span::before{content:""}:host(.bracket-dot) span::before{content:""}:host(.bracket-error) span::before{content:""}:host(.lock-small) span::before{content:""}:host(.azure-devops) span::before{content:""}:host(.verified-filled) span::before{content:""}:host(.newline) span::before{content:""}:host(.layout) span::before{content:""}:host(.layout-activitybar-left) span::before{content:""}:host(.layout-activitybar-right) span::before{content:""}:host(.layout-panel-left) span::before{content:""}:host(.layout-panel-center) span::before{content:""}:host(.layout-panel-justify) span::before{content:""}:host(.layout-panel-right) span::before{content:""}:host(.layout-panel) span::before{content:""}:host(.layout-sidebar-left) span::before{content:""}:host(.layout-sidebar-right) span::before{content:""}:host(.layout-statusbar) span::before{content:""}:host(.layout-menubar) span::before{content:""}:host(.layout-centered) span::before{content:""}:host(.target) span::before{content:""}:host(.indent) span::before{content:""}:host(.record-small) span::before{content:""}:host(.error-small) span::before{content:""}:host(.terminal-decoration-error) span::before{content:""}:host(.arrow-circle-down) span::before{content:""}:host(.arrow-circle-left) span::before{content:""}:host(.arrow-circle-right) span::before{content:""}:host(.arrow-circle-up) span::before{content:""}:host(.layout-sidebar-right-off) span::before{content:""}:host(.layout-panel-off) span::before{content:""}:host(.layout-sidebar-left-off) span::before{content:""}:host(.blank) span::before{content:""}:host(.heart-filled) span::before{content:""}:host(.map) span::before{content:""}:host(.map-filled) span::before{content:""}:host(.circle-small) span::before{content:""}:host(.bell-slash) span::before{content:""}:host(.bell-slash-dot) span::before{content:""}:host(.comment-unresolved) span::before{content:""}:host(.git-pull-request-go-to-changes) span::before{content:""}:host(.git-pull-request-new-changes) span::before{content:""}:host(.search-fuzzy) span::before{content:""}:host(.comment-draft) span::before{content:""}:host(.send) span::before{content:""}:host(.sparkle) span::before{content:""}:host(.insert) span::before{content:""}`;
     __getStatic() {

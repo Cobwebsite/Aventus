@@ -26,8 +26,6 @@ export class MethodInfo {
     public isPrivate: boolean = false;
     public isProtected: boolean = false;
     public readonly node: MethodDeclaration;
-    public documentationParameters: { [key: string]: string } = {}
-    public documentationReturn?: string;
     public get compiledContent(): string {
         let txt = BaseInfo.getContent(this.content, this.start, this.end, this._class.dependancesLocations, this._class.compileTransformations);
         return txt;

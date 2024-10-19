@@ -1,5 +1,5 @@
 export function defaultStoryTempate() {
-	return `import type { Meta, Story } from '@aventusjs/storybook';
+	return `import type { Meta, Story } from '@aventusjs/storybook'
 import Template from './$name$_.mdx'
 
 const meta: Meta = {
@@ -22,9 +22,9 @@ $defaultStory$
 }
 
 export function defaultStoryTempateComponent() {
-	return `import { type Meta, type Story, render } from '@aventusjs/storybook';
+	return `import { type Meta, type Story, render } from '@aventusjs/storybook'
 import Template from './$name$_.mdx'
-import { $name$ } from '$importPath$'
+$importPathes$
 
 const meta: Meta = {
 	title: '$fullname$',

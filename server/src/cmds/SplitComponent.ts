@@ -26,16 +26,16 @@ export class SplitComponent {
 
 			let resultTemp = AventusWebComponentSingleFile.getRegion(wcDoc);
 			let scssUri = newUri + AventusExtension.ComponentStyle;
-			let scssDoc: TextDocument = TextDocument.create(scssUri, AventusLanguageId.SCSS, wcDoc.versionUser + 1, resultTemp.cssText);
+			let scssDoc: TextDocument = TextDocument.create(scssUri, AventusLanguageId.SCSS, wcDoc.versionUser + 1, resultTemp.cssText ?? '');
 			writeFileSync(uriToPath(scssUri), scssDoc.getText());
 
 
 			let htmlUri = newUri + AventusExtension.ComponentView;
-			let htmlDoc: TextDocument = TextDocument.create(htmlUri, AventusLanguageId.HTML, wcDoc.versionUser + 1, resultTemp.htmlText);
+			let htmlDoc: TextDocument = TextDocument.create(htmlUri, AventusLanguageId.HTML, wcDoc.versionUser + 1, resultTemp.htmlText ?? '');
 			writeFileSync(uriToPath(htmlUri), htmlDoc.getText());
 
 			let tsUri = newUri + AventusExtension.ComponentLogic;
-			let tsDoc: TextDocument = TextDocument.create(tsUri, AventusLanguageId.TypeScript, wcDoc.versionUser + 1, resultTemp.scriptText);
+			let tsDoc: TextDocument = TextDocument.create(tsUri, AventusLanguageId.TypeScript, wcDoc.versionUser + 1, resultTemp.scriptText ?? '');
 			writeFileSync(uriToPath(tsUri), tsDoc.getText());
 
 			unlinkSync(wcDoc.path);

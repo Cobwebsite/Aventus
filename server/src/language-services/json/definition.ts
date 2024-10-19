@@ -34,7 +34,8 @@ export interface AventusConfigBuildCompile {
 
 export interface AventusConfigBuildCompileOutputNpm {
 	path: string[],
-	packageJson: boolean
+	packageJson: boolean,
+	npmName: string
 }
 
 export interface AventusConfigBuildDependance {
@@ -56,7 +57,7 @@ export interface AventusConfigStatic {
 export interface AventusConfigBuildStories {
 	output: string,
 	workspace?: string,
-	format?: "all" | "public" | "tag",
+	format?: "all" | "public" | "manual",
 	live?: boolean,
 	prefix?: string
 }

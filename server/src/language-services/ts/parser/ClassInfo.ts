@@ -12,6 +12,7 @@ import { StorybookDecorator } from './decorators/StorybookDecorator';
 export class ClassInfo extends BaseInfo {
 	/** always fullname */
 	public extends: string[] = [];
+	public extendsNpm: string[] = [];
 	/** always fullname */
 	public implements: string[] = [];
 	public parentClass: ClassInfo | null = null;
@@ -202,7 +203,7 @@ export class ClassInfo extends BaseInfo {
 					if (this.build.hasStories) {
 						this.extendsType = new TypeInfo(x as ExpressionWithTypeArguments);
 					}
-					this.addDependanceWaitName(x as ExpressionWithTypeArguments, true, (names) => {
+					this.addDependanceWaitName(x as ExpressionWithTypeArguments, true, (names, namesNpm) => {
 						if (names.length > 0) {
 							this.extends.push(names[0]);
 							if (this.extends.length == 1) {
@@ -217,6 +218,9 @@ export class ClassInfo extends BaseInfo {
 									}
 								}
 							}
+						}
+						if (namesNpm.length > 0) {
+							this.extendsNpm.push(namesNpm[0]);
 						}
 					});
 
@@ -403,8 +407,8 @@ export class ClassInfo extends BaseInfo {
 				const returnInfo: IStoryContentReturn = {
 					type: typeResult
 				}
-				if (methodInfo.documentationReturn) {
-					returnInfo.documentation = methodInfo.documentationReturn;
+				if (methodInfo.documentation?.documentationReturn) {
+					returnInfo.documentation = methodInfo.documentation?.documentationReturn;
 				}
 				methodInfoResult.return = returnInfo;
 			}
@@ -450,21 +454,23 @@ export class ClassInfo extends BaseInfo {
 	}
 
 	protected canAddToStory(info: PropertyInfo | MethodInfo): boolean {
-		if (this.build.buildConfig.stories?.format == 'public') {
+		if (!this.build.buildConfig.stories) return false;
+		const format = this.storyType;
+		if (format == 'public') {
 			if (info.isPrivate || info.isProtected) {
-				let decorator = info.decorators.find(p => p.name == "Storybook");
-				if (decorator) {
-					const deco = StorybookDecorator.is(decorator);
-					if (!deco || deco.cancelExport) {
-						return false;
-					}
-				}
-				else {
-					return false;
-				}
+				let decorator = info.decorators.find(p => p.name == "AddToStory");
+				return decorator !== undefined;
+			}
+			else {
+				let decorator = info.decorators.find(p => p.name == "NoStory");
+				return decorator === undefined;
 			}
 		}
-		return true;
+		else if (format == 'all') {
+			let decorator = info.decorators.find(p => p.name == "NoStory");
+			return decorator === undefined;
+		}
+		return false;
 	}
 
 	public mergeClassInfo(classInfo: ClassInfo) {

@@ -269,6 +269,41 @@ export function simplifyUri(importUri: string, currentUri: string): string {
     return finalPathToImport;
 }
 
+export function setValueToObject(path: string, obj: any, value: any) {
+    // Convert bracket notation to dot notation
+    path = path.replace(/\[(.*?)\]/g, '.$1');
+
+    const val = (key) => {
+        if (obj instanceof Map) {
+            return obj.get(key);
+        }
+        return obj[key];
+    };
+
+
+    // Split the path into individual keys
+    let splitted = path.split(".");
+
+    // Traverse the object along the path, creating nested objects if necessary
+    for (let i = 0; i < splitted.length - 1; i++) {
+        let split = splitted[i];
+        let value = val(split);
+        if (!value) {
+            obj[split] = {};
+            value = obj[split];
+        }
+        obj = value;
+    }
+
+    // Set the value at the last segment of the path
+    if (obj instanceof Map) {
+        obj.set(splitted[splitted.length - 1], value);
+    }
+    else {
+        obj[splitted[splitted.length - 1]] = value;
+    }
+
+}
 
 export class Debug {
     private static timers: { [name: string]: number } = {}
