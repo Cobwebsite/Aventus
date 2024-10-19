@@ -9,7 +9,7 @@
 
 ### Features
  - Add slot support for storybook
-
+ - Change template support (maybe you must reimport templates from Aventus)
 
 ## 1.3.0 (2024-07-17)
 
