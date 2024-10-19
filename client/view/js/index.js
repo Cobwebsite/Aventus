@@ -1825,8 +1825,7 @@ let PressManager=class PressManager {
     downEventSaved;
     useDblPress = false;
     stopPropagation = () => true;
-    isEventDownProcessed = false;
-    isEventUpProcessed = false;
+    pointersRecord = {};
     functionsBinded = {
         downAction: (e) => { },
         upAction: (e) => { },
@@ -1939,14 +1938,6 @@ let PressManager=class PressManager {
         this.functionsBinded.childPressEnd = this.childPressEnd.bind(this);
         this.functionsBinded.childPressMove = this.childPressMove.bind(this);
     }
-    preventTouch() {
-        const onTouch = (ev) => {
-            ev.preventDefault();
-        };
-        this.element.addEventListener('touchstart', onTouch, { passive: false });
-        this.element.addEventListener('touchmove', onTouch, { passive: false });
-        this.element.addEventListener('touchend', onTouch, { passive: false });
-    }
     init() {
         this.bindAllFunction();
         this.element.addEventListener("pointerdown", this.functionsBinded.downAction);
@@ -1954,6 +1945,55 @@ let PressManager=class PressManager {
         this.element.addEventListener("trigger_pointer_pressstart", this.functionsBinded.childPressStart);
         this.element.addEventListener("trigger_pointer_pressend", this.functionsBinded.childPressEnd);
         this.element.addEventListener("trigger_pointer_pressmove", this.functionsBinded.childPressMove);
+    }
+    identifyEvent(touch) {
+        if (touch instanceof Touch)
+            return touch.identifier;
+        return touch.pointerId;
+    }
+    registerEvent(ev) {
+        if (ev instanceof TouchEvent) {
+            for (let touch of ev.targetTouches) {
+                const id = this.identifyEvent(touch);
+                if (this.pointersRecord[id]) {
+                    return false;
+                }
+                this.pointersRecord[id] = ev;
+            }
+            return true;
+        }
+        else {
+            const id = this.identifyEvent(ev);
+            if (this.pointersRecord[id]) {
+                return false;
+            }
+            this.pointersRecord[id] = ev;
+            return true;
+        }
+    }
+    unregisterEvent(ev) {
+        let result = true;
+        if (ev instanceof TouchEvent) {
+            for (let touch of ev.changedTouches) {
+                const id = this.identifyEvent(touch);
+                if (!this.pointersRecord[id]) {
+                    result = false;
+                }
+                else {
+                    delete this.pointersRecord[id];
+                }
+            }
+        }
+        else {
+            const id = this.identifyEvent(ev);
+            if (!this.pointersRecord[id]) {
+                result = false;
+            }
+            else {
+                delete this.pointersRecord[id];
+            }
+        }
+        return result;
     }
     genericDownAction(state, e) {
         this.downEventSaved = e;
@@ -1970,40 +2010,41 @@ let PressManager=class PressManager {
         }
     }
     downAction(ev) {
-        if (this.isEventDownProcessed) {
+        const isFirst = Object.values(this.pointersRecord).length == 0;
+        if (!this.registerEvent(ev)) {
             if (this.stopPropagation()) {
                 ev.stopImmediatePropagation();
             }
             return;
         }
-        this.isEventDownProcessed = true;
-        this.isEventUpProcessed = false;
         const e = new NormalizedEvent(ev);
         if (this.options.onEvent) {
             this.options.onEvent(e);
         }
         if (e.button != undefined && !this.options.buttonAllowed?.includes(e.button)) {
-            this.isEventUpProcessed = true;
-            this.isEventDownProcessed = false;
+            this.unregisterEvent(ev);
             return;
         }
         if (this.stopPropagation()) {
             e.stopImmediatePropagation();
         }
         this.customFcts = {};
-        if (this.nbPress == 0) {
+        if (this.nbPress == 0 && isFirst) {
             this.state.oneActionTriggered = null;
             clearTimeout(this.timeoutDblPress);
         }
         this.startPosition = { x: e.pageX, y: e.pageY };
-        document.addEventListener("pointerup", this.functionsBinded.upAction);
-        document.addEventListener("pointercancel", this.functionsBinded.upAction);
-        document.addEventListener("touchend", this.functionsBinded.upAction);
-        document.addEventListener("touchcancel", this.functionsBinded.upAction);
-        document.addEventListener("pointermove", this.functionsBinded.moveAction);
+        if (isFirst) {
+            document.addEventListener("pointerup", this.functionsBinded.upAction);
+            document.addEventListener("pointercancel", this.functionsBinded.upAction);
+            document.addEventListener("touchend", this.functionsBinded.upAction);
+            document.addEventListener("touchcancel", this.functionsBinded.upAction);
+            document.addEventListener("pointermove", this.functionsBinded.moveAction);
+        }
         this.genericDownAction(this.state, e);
         if (this.options.onPressStart) {
             this.options.onPressStart(e, this);
+            this.lastEmitEvent = e;
             // this.emitTriggerFunctionParent("pressstart", e);
         }
         this.emitTriggerFunction("pressstart", e);
@@ -2025,7 +2066,6 @@ let PressManager=class PressManager {
                     if (!state.oneActionTriggered) {
                         this.nbPress = 0;
                         if (this.options.onDblPress) {
-                            this.options.onDblPress(e, this);
                             if (this.options.onDblPress(e, this) !== false) {
                                 state.oneActionTriggered = this;
                             }
@@ -2057,29 +2097,30 @@ let PressManager=class PressManager {
         }
     }
     upAction(ev) {
-        if (this.isEventUpProcessed) {
+        if (!this.unregisterEvent(ev)) {
             if (this.stopPropagation()) {
                 ev.stopImmediatePropagation();
             }
             return;
         }
         const e = new NormalizedEvent(ev);
-        this.isEventUpProcessed = true;
-        this.isEventDownProcessed = false;
         if (this.options.onEvent) {
             this.options.onEvent(e);
         }
         if (this.stopPropagation()) {
             e.stopImmediatePropagation();
         }
-        document.removeEventListener("pointerup", this.functionsBinded.upAction);
-        document.removeEventListener("pointercancel", this.functionsBinded.upAction);
-        document.removeEventListener("touchend", this.functionsBinded.upAction);
-        document.removeEventListener("touchcancel", this.functionsBinded.upAction);
-        document.removeEventListener("pointermove", this.functionsBinded.moveAction);
+        if (Object.values(this.pointersRecord).length == 0) {
+            document.removeEventListener("pointerup", this.functionsBinded.upAction);
+            document.removeEventListener("pointercancel", this.functionsBinded.upAction);
+            document.removeEventListener("touchend", this.functionsBinded.upAction);
+            document.removeEventListener("touchcancel", this.functionsBinded.upAction);
+            document.removeEventListener("pointermove", this.functionsBinded.moveAction);
+        }
         this.genericUpAction(this.state, e);
         if (this.options.onPressEnd) {
             this.options.onPressEnd(e, this);
+            this.lastEmitEvent = e;
             // this.emitTriggerFunctionParent("pressend", e);
         }
         this.emitTriggerFunction("pressend", e);
@@ -2115,12 +2156,13 @@ let PressManager=class PressManager {
             e.stopImmediatePropagation();
         }
         this.genericMoveAction(this.state, e);
+        this.lastEmitEvent = e;
         // if(this.options.onDrag) {
         //     this.emitTriggerFunctionParent("pressmove", e);
         this.emitTriggerFunction("pressmove", e);
     }
     childPressStart(e) {
-        if (this.lastEmitEvent == e)
+        if (this.lastEmitEvent == e.detail.realEvent)
             return;
         this.genericDownAction(e.detail.state, e.detail.realEvent);
         if (this.options.onPressStart) {
@@ -2128,7 +2170,7 @@ let PressManager=class PressManager {
         }
     }
     childPressEnd(e) {
-        if (this.lastEmitEvent == e)
+        if (this.lastEmitEvent == e.detail.realEvent)
             return;
         this.genericUpAction(e.detail.state, e.detail.realEvent);
         if (this.options.onPressEnd) {
@@ -2136,7 +2178,7 @@ let PressManager=class PressManager {
         }
     }
     childPressMove(e) {
-        if (this.lastEmitEvent == e)
+        if (this.lastEmitEvent == e.detail.realEvent)
             return;
         this.genericMoveAction(e.detail.state, e.detail.realEvent);
     }
@@ -2152,7 +2194,7 @@ let PressManager=class PressManager {
                 realEvent: e
             }
         });
-        this.lastEmitEvent = ev;
+        this.lastEmitEvent = e;
         if (!el) {
             el = this.element;
         }

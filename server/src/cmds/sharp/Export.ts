@@ -11,6 +11,7 @@ import { readFileSync } from 'fs';
 import { AventusSharp } from '../../language-services/json/definition';
 import { Compiling } from '../../notification/sharp/Compiling';
 import { DebugFileAdd } from '../../notification/DebugFileAdd';
+import { CSharpManager } from '../../language-services/json/CSharpManager';
 
 export class SharpExport {
 	static cmd: string = "aventus.sharp.export";
@@ -22,7 +23,7 @@ export class SharpExport {
 		}
 
 		if (!uri || !uri.endsWith(AventusExtension.CsharpConfig)) {
-			let filesUri = FilesManager.getInstance().csharpFilesUri;
+			let filesUri = Object.keys(CSharpManager.getInstance().files);
 			if (filesUri.length == 1) {
 				uri = filesUri[0];
 			}
@@ -44,6 +45,7 @@ export class SharpExport {
 				}
 			}
 			else {
+				GenericServer.showErrorMessage("No aventus.sharp.avt found");
 				return;
 			}
 		}

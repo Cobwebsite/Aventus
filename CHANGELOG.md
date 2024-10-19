@@ -1,6 +1,6 @@
 # Change Log
 
-## 1.3.1 ()
+## 1.3.1 (2024-10-19)
 
 ### Bug Fixes
  - Correct namespace export inside npm

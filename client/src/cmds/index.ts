@@ -25,6 +25,7 @@ import { SharpExport } from './sharp/Export';
 import { ReloadSettings } from './ReloadSettings';
 import { CreateCSSVariable } from './webcomponent/CreateCSSVariable';
 import { StorybookBuild } from './storybook/StorybookBuild';
+import { ProjectImport } from './file-system/ImportProject';
 
 
 export const Commands = {
@@ -45,6 +46,7 @@ export const Commands = {
         [FileUpdated.cmd]: FileUpdated,
         [FileDeleted.cmd]: FileDeleted,
         [TemplateImport.cmd]: TemplateImport,
+        [ProjectImport.cmd]: ProjectImport,
         [ShowDependances.cmd]: ShowDependances,
         [OpenAventusFolder.cmd]: OpenAventusFolder,
         [ReceiveInput.cmd]: ReceiveInput,

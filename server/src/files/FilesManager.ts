@@ -22,7 +22,6 @@ export class FilesManager {
     private constructor() { }
 
     private files: { [uri: string]: InternalAventusFile } = {};
-    public csharpFilesUri: string[] = [];
 
     private lockedUpdatedUri: { [uri: string]: NodeJS.Timeout } = {};
     private loadingInProgress: boolean = true;
@@ -107,9 +106,6 @@ export class FilesManager {
                         let extension = getLanguageIdByUri(uri);
                         if (folderContent[i] == AventusExtension.Config) {
                             configFiles.push(TextDocument.create(uri, extension, 0, readFileSync(currentPath, 'utf8')));
-                        }
-                        else if (folderContent[i] == AventusExtension.CsharpConfig) {
-                            this.csharpFilesUri.push(uri);
                         }
                         else if (folderContent[i].endsWith(AventusExtension.Base)) {
                             let textDoc = TextDocument.create(uri, extension, 0, readFileSync(currentPath, 'utf8'));

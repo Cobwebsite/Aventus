@@ -141,6 +141,26 @@ export class AventusJSONLanguageService {
         }
         return config;
     }
+    private replaceEnvVar(txt: string, baseDir: string): string {
+        if (txt.startsWith("@")) return txt;
+
+        let regexEnvVar = /%(.*?)%/gm;
+        let result: RegExpExecArray | null;
+        while (result = regexEnvVar.exec(txt)) {
+            let varName = result[1];
+            let varValue = env[varName] ?? 'undefined';
+            txt = txt.replace(result[0], varValue);
+        }
+        let windowDisk = /^[a-zA-Z]:/gm
+        if (!txt.startsWith("/") && !windowDisk.test(txt)) {
+            txt = "/" + txt;
+            txt = normalize(uriToPath(baseDir) + txt);
+        }
+        else {
+            txt = normalize(txt);
+        }
+        return txt;
+    }
     private prepareBuild(configUri: string, build: AventusConfigBuild, config: AventusConfig): AventusConfigBuild {
         let baseDir = getFolder(configUri);
         build = {
@@ -148,6 +168,10 @@ export class AventusJSONLanguageService {
             ...build
         }
         build.fullname = build.module + "@" + build.name;
+
+        const replaceEnvVar = (txt: string): string => {
+            return this.replaceEnvVar(txt, baseDir);
+        }
 
         let compiles = build.compile as Partial<AventusConfigBuildCompile>[];
         // compile
@@ -199,21 +223,7 @@ export class AventusJSONLanguageService {
                 for (let i = 0; i < compile.output.length; i++) {
                     compile.output[i] = compile.output[i].trim();
                     if (compile.output[i].length > 0) {
-                        let regexEnvVar = /%(.*?)%/gm;
-                        let result: RegExpExecArray | null;
-                        while (result = regexEnvVar.exec(compile.output[i])) {
-                            let varName = result[1];
-                            let varValue = env[varName] ?? 'undefined';
-                            compile.output[i] = compile.output[i].replace(result[0], varValue);
-                        }
-                        let windowDisk = /^[a-zA-Z]:/gm
-                        if (!compile.output[i].startsWith("/") && !windowDisk.test(compile.output[i])) {
-                            compile.output[i] = "/" + compile.output[i];
-                            compile.output[i] = normalize(uriToPath(baseDir) + compile.output[i]);
-                        }
-                        else {
-                            compile.output[i] = normalize(compile.output[i]);
-                        }
+                        compile.output[i] = replaceEnvVar(compile.output[i]);
                     }
                 }
             }
@@ -255,14 +265,7 @@ export class AventusJSONLanguageService {
 
 
                 for (let i = 0; i < compile.outputNpm.path.length; i++) {
-                    let outputPath = compile.outputNpm.path[i];
-                    let regexEnvVar = /%(.*?)%/gm;
-                    let result: RegExpExecArray | null;
-                    while (result = regexEnvVar.exec(outputPath)) {
-                        let varName = result[1];
-                        let varValue = env[varName] ?? 'undefined';
-                        outputPath = outputPath.replace(result[0], varValue);
-                    }
+                    let outputPath = replaceEnvVar(compile.outputNpm.path[i]);
 
                     if (outputPath.endsWith("*")) {
                         outputPath = outputPath.slice(0, -1);
@@ -270,14 +273,7 @@ export class AventusJSONLanguageService {
                     if (outputPath.endsWith("/")) {
                         outputPath = outputPath.slice(0, -1);
                     }
-                    let windowDisk = /^[a-zA-Z]:/gm
-                    if (!outputPath.startsWith("/") && !windowDisk.test(outputPath)) {
-                        outputPath = "/" + outputPath;
-                        outputPath = normalize(uriToPath(baseDir) + outputPath);
-                    }
-                    else {
-                        outputPath = normalize(outputPath);
-                    }
+
                     outputPath = outputPath.replace(/\\/g, '/');
                     compile.outputNpm.path[i] = outputPath;
                 }
@@ -294,21 +290,7 @@ export class AventusJSONLanguageService {
                 for (let i = 0; i < compile.package.length; i++) {
                     compile.package[i] = compile.package[i].trim();
                     if (compile.package[i].length > 0) {
-                        let regexEnvVar = /%(.*?)%/gm;
-                        let result: RegExpExecArray | null;
-                        while (result = regexEnvVar.exec(compile.package[i])) {
-                            let varName = result[1];
-                            let varValue = env[varName] ?? 'undefined';
-                            compile.package[i] = compile.package[i].replace(result[0], varValue);
-                        }
-                        let windowDisk = /^[a-zA-Z]:/gm
-                        if (!compile.package[i].startsWith("/") && !windowDisk.test(compile.package[i])) {
-                            compile.package[i] = "/" + compile.package[i];
-                            compile.package[i] = normalize(uriToPath(baseDir) + compile.package[i]);
-                        }
-                        else {
-                            compile.package[i] = normalize(compile.package[i]);
-                        }
+                        compile.package[i] = replaceEnvVar(compile.package[i]);
                     }
                 }
             }
@@ -340,14 +322,7 @@ export class AventusJSONLanguageService {
                 ...this.defaultConfigBuildStories(baseDir, config),
                 ...build.stories
             }
-            let outputPath = build.stories.output;
-            let regexEnvVar = /%(.*?)%/gm;
-            let result: RegExpExecArray | null;
-            while (result = regexEnvVar.exec(outputPath)) {
-                let varName = result[1];
-                let varValue = env[varName] ?? 'undefined';
-                outputPath = outputPath.replace(result[0], varValue);
-            }
+            let outputPath = replaceEnvVar(build.stories.output);
 
             if (outputPath.endsWith("*")) {
                 outputPath = outputPath.slice(0, -1);
@@ -355,14 +330,7 @@ export class AventusJSONLanguageService {
             if (outputPath.endsWith("/")) {
                 outputPath = outputPath.slice(0, -1);
             }
-            let windowDisk = /^[a-zA-Z]:/gm
-            if (!outputPath.startsWith("/") && !windowDisk.test(outputPath)) {
-                outputPath = "/" + outputPath;
-                outputPath = normalize(uriToPath(baseDir) + outputPath);
-            }
-            else {
-                outputPath = normalize(outputPath);
-            }
+
             outputPath = outputPath.replace(/\\/g, '/');
             build.stories.output = outputPath;
         }
@@ -382,21 +350,7 @@ export class AventusJSONLanguageService {
             build.nodeModulesDir = normalize(uriToPath(baseDir) + "/node_modules");
         }
         else {
-            let regexEnvVar = /%(.*?)%/gm;
-            let result: RegExpExecArray | null;
-            while (result = regexEnvVar.exec(build.nodeModulesDir)) {
-                let varName = result[1];
-                let varValue = env[varName] ?? 'undefined';
-                build.nodeModulesDir = build.nodeModulesDir.replace(result[0], varValue);
-            }
-            let windowDisk = /^[a-zA-Z]:/gm
-            if (!build.nodeModulesDir.startsWith("/") && !windowDisk.test(build.nodeModulesDir)) {
-                build.nodeModulesDir = "/" + build.nodeModulesDir;
-                build.nodeModulesDir = normalize(uriToPath(baseDir) + build.nodeModulesDir);
-            }
-            else {
-                build.nodeModulesDir = normalize(build.nodeModulesDir);
-            }
+            build.nodeModulesDir = replaceEnvVar(build.nodeModulesDir);
         }
 
         // dependances
@@ -406,9 +360,12 @@ export class AventusJSONLanguageService {
                 ...this.defaultConfigBuildDependanceValue(dependance),
                 ...dependance
             })
-            if (!mergeDependances[mergeDependances.length - 1].subDependancesInclude["*"]) {
-                mergeDependances[mergeDependances.length - 1].subDependancesInclude["*"] = dependance.include;
+            const lastDep = mergeDependances[mergeDependances.length - 1];
+            if (!lastDep.subDependancesInclude["*"]) {
+                lastDep.subDependancesInclude["*"] = dependance.include;
             }
+
+            lastDep.uri = replaceEnvVar(lastDep.uri);
         }
         build.dependances = mergeDependances;
 
@@ -505,28 +462,14 @@ export class AventusJSONLanguageService {
         _static.outputPathFolder = [];
 
         for (let outputPath of _static.output) {
-            let regexEnvVar = /%(.*?)%/gm;
-            let result: RegExpExecArray | null;
-            while (result = regexEnvVar.exec(outputPath)) {
-                let varName = result[1];
-                let varValue = env[varName] ?? 'undefined';
-                outputPath = outputPath.replace(result[0], varValue);
-            }
-
+            outputPath = this.replaceEnvVar(outputPath, baseDir);
             if (outputPath.endsWith("*")) {
                 outputPath = outputPath.slice(0, -1);
             }
             if (outputPath.endsWith("/")) {
                 outputPath = outputPath.slice(0, -1);
             }
-            let windowDisk = /^[a-zA-Z]:/gm
-            if (!outputPath.startsWith("/") && !windowDisk.test(outputPath)) {
-                outputPath = "/" + outputPath;
-                outputPath = normalize(uriToPath(baseDir) + outputPath);
-            }
-            else {
-                outputPath = normalize(outputPath);
-            }
+
             outputPath = outputPath.replace(/\\/g, '/');
             _static.outputPathFolder.push(outputPath);
         }

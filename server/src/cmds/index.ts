@@ -28,6 +28,7 @@ import { SharpExport } from './sharp/Export';
 import { ReloadSettings } from './ReloadSettings';
 import { CreateCSSVariable } from './webcomponent/CreateCSSVariable';
 import { StorybookBuild } from './storybook/Build';
+import { ImportProject } from './file-system/ImportProject';
 
 export const Commands = {
     allCommandes: {
@@ -57,6 +58,7 @@ export const Commands = {
         [ReceiveSelect.cmd]: ReceiveSelect,
         [ReceiveSelectMultiple.cmd]: ReceiveSelectMultiple,
         [ImportTemplate.cmd]: ImportTemplate,
+        [ImportProject.cmd]: ImportProject,
         [SharpExport.cmd]: SharpExport,
         [ReloadSettings.cmd]: ReloadSettings,
         [StorybookBuild.cmd]: StorybookBuild

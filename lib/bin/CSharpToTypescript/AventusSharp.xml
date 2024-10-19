@@ -70,6 +70,16 @@
         <member name="M:AventusSharp.Data.DataMainManager.ManagerInformation.CanBeInit(System.Boolean)">
             Can be init only if there is at least one class not in force inherit
         </member>
+        <member name="T:AventusSharp.Data.Date">
+            <summary>
+            Class to handle date during process
+            </summary>
+        </member>
+        <member name="T:AventusSharp.Data.Datetime">
+            <summary>
+            Class to handle date during process
+            </summary>
+        </member>
         <member name="P:AventusSharp.Data.Manager.DataMemberInfo.Type">
             <summary>
             Interface for Type
@@ -1506,15 +1516,7 @@
             <param name="objectType"></param>
             <returns></returns>
         </member>
-        <member name="P:AventusSharp.Tools.AventusJsonConverter.CanRead">
-            <summary>
-            always false because its a writer not a reader
-            </summary>
-        </member>
         <member name="M:AventusSharp.Tools.AventusJsonConverter.ReadJson(Newtonsoft.Json.JsonReader,System.Type,System.Object,Newtonsoft.Json.JsonSerializer)">
-            <summary>
-            Throw an error because this class is a writer not a reader
-            </summary>
             <param name="reader"></param>
             <param name="objectType"></param>
             <param name="existingValue"></param>

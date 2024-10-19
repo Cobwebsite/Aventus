@@ -2248,7 +2248,6 @@ let PressManager=class PressManager {
                     if (!state.oneActionTriggered) {
                         this.nbPress = 0;
                         if (this.options.onDblPress) {
-                            this.options.onDblPress(e, this);
                             if (this.options.onDblPress(e, this) !== false) {
                                 state.oneActionTriggered = this;
                             }
