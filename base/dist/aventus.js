@@ -4351,8 +4351,8 @@ let GenericRam=class GenericRam {
             action.result = [];
             await this.beforeGetByIds(ids, action);
             if (action.success) {
+                action.result = [];
                 for (let id of ids) {
-                    action.result = [];
                     let rec = this.records.get(id);
                     if (rec) {
                         action.result.push(rec);
