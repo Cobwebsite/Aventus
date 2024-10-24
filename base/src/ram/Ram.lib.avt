@@ -282,7 +282,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Create or update the item
      */
-    public async save(item:T, ...args:any[]) :Promise<RamItem<U> | undefined> {
+    public async save(item: T, ...args: any[]): Promise<RamItem<U> | undefined> {
         let action = await this.saveWithError(item, ...args);
         if(action.success) {
             return action.result;
@@ -453,6 +453,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
             await this.beforeGetByIds(ids, action);
             if(action.success) {
                 for(let id of ids) {
+                    action.result = [];
                     let rec = this.records.get(id);
                     if(rec) {
                         action.result.push(rec);

@@ -1,5 +1,11 @@
 # Change Log
 
+## 1.3.2 ()
+
+### Bug Fixes
+
+### Features
+
 ## 1.3.1 (2024-10-19)
 
 ### Bug Fixes

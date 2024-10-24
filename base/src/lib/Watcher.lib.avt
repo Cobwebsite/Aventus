@@ -91,10 +91,10 @@ export class Watcher {
                 }
             }
         };
-        const replaceByAlias = (target, element, prop, receiver) => {
+        const replaceByAlias = (target, element, prop: string, receiver, apply: boolean, out: { otherRoot?: any; } = {}) => {
             //#region determine current path internal
             let fullInternalPath = "";
-            if(Array.isArray(target)) {
+            if(Array.isArray(receiver)) {
                 if(prop != "length") {
                     if((target as any).__path) {
                         fullInternalPath = (target as any).__path;
@@ -124,7 +124,7 @@ export class Watcher {
                     element.__validatePath();
                     //#region get real value shared across the 2 proxy
                     let oldPath = element.__path ?? '';
-                    let unbindElement = getValueFromObject(oldPath, root);
+                    let unbindElement = Watcher.extract(getValueFromObject(oldPath, root));
                     if(unbindElement === undefined) {
                         // TODO this is an error correct it. unbindElement shouldnt be undefined 
                         return element;
@@ -139,7 +139,9 @@ export class Watcher {
                         }
                     }
                     //#region assign raw element into the new proxy
-                    let result = Reflect.set(target, prop, unbindElement, receiver);
+                    if(apply) {
+                        let result = Reflect.set(target, prop, unbindElement, receiver);
+                    }
                     //#endregion
 
                     //#region add alias into the parent to notify trigger
@@ -152,14 +154,16 @@ export class Watcher {
                         else {
                             triggerPath = fullInternalPath + "." + prop2;
                         }
-                        triggerPath = triggerPath.replace(/\[(.*?)\]/g, '.$1');
                         if(type == 'DELETED' && internalAliases[triggerPath]) {
+                            // TODO correct deleted change
                             internalAliases[triggerPath].unbind();
                         }
+                        triggerPath = triggerPath.replace(/\[(.*?)\]/g, '.$1');
                         let splitted = triggerPath.split(".");
                         let newProp = splitted.pop();
                         let newReceiver = getValueFromObject(splitted.join("."), realProxy);
-                        trigger(type, target, newReceiver, value, newProp, dones);
+                        if(newReceiver.getTarget(false) == target)
+                            trigger(type, target, newReceiver, value, newProp, dones);
                     });
                     //#enregion
 
@@ -169,14 +173,14 @@ export class Watcher {
                         unbind: () => {
                             delete internalAliases[fullInternalPath];
                             element.__deleteAlias(proxyData.baseData, oldPath);
-                            deleteAlias(root, prop);
+                            deleteAlias(root, fullInternalPath);
                         }
                     };
                     //#enregion
 
 
                     //#region set internal alias to notify parent from changes
-                    addAlias(root, prop, (type, target, receiver2, value, prop2: string, dones: any[]) => {
+                    addAlias(root, fullInternalPath, (type, target, receiver2, value, prop2: string, dones: any[]) => {
                         const pathSave = element.__path;
                         let proxy = element.__getProxy;
                         let triggerPath: string;
@@ -190,12 +194,13 @@ export class Watcher {
                         let splitted = triggerPath.split(".");
                         let newProp = splitted.pop();
                         let newReceiver = getValueFromObject(splitted.join("."), proxy);
-                        element.__trigger(type, target, newReceiver, value, newProp, dones);
+                        if(newReceiver.getTarget(false) == target)
+                            element.__trigger(type, target, newReceiver, value, newProp, dones);
                         element.__path = pathSave;
                     });
 
                     //#endregion
-
+                    out.otherRoot = root;
                     return unbindElement;
 
 
@@ -248,7 +253,7 @@ export class Watcher {
             useHistory: false,
             getProxyObject(target, element, prop) {
                 let newProxy;
-                element = replaceByAlias(target, element, prop, null);
+                element = replaceByAlias(target, element, prop, null, true);
                 if(element instanceof Object && element.__isProxy) {
                     newProxy = element;
                 }
@@ -369,7 +374,7 @@ export class Watcher {
                     if(target.toJSON) {
                         return target.toJSON;
                     }
-                    if(Array.isArray(target)) {
+                    if(Array.isArray(receiver)) {
                         return () => {
                             let result: any[] = [];
                             for(let element of target) {
@@ -413,7 +418,7 @@ export class Watcher {
             },
             get(target, prop, receiver) {
                 if(typeof prop == 'symbol') {
-                    return Reflect.get(target, prop, receiver); 
+                    return Reflect.get(target, prop, receiver);
                 }
                 if(reservedName[prop]) {
                     return target[prop];
@@ -426,7 +431,7 @@ export class Watcher {
 
                 let element = target[prop];
                 if(typeof (element) == 'function') {
-                    if(Array.isArray(target)) {
+                    if(Array.isArray(receiver)) {
                         let result;
                         if(prop == 'push') {
                             if((target as any).__isProxy) {
@@ -437,11 +442,16 @@ export class Watcher {
                             }
                             else {
                                 result = (el) => {
-                                    let index = target.push(el);
-                                    // get real objetct with proxy to have the correct subscription
-                                    target.splice(target.length - 1, 1, el);
-                                    trigger('CREATED', target, receiver, receiver[index - 1], "[" + (index - 1) + "]");
-                                    trigger('UPDATED', target, receiver, target.length, "length");
+                                    let index = target.length;
+                                    let out: { otherRoot?: any; } = {};
+                                    el = replaceByAlias(target, el, target.length + '', receiver, false, out);
+                                    target.push(el);
+                                    const dones: any[] = [];
+                                    if(out.otherRoot) {
+                                        dones.push(out.otherRoot);
+                                    }
+                                    trigger('CREATED', target, receiver, receiver[index], "[" + (index) + "]", dones);
+                                    trigger('UPDATED', target, receiver, target.length, "length", dones);
                                     return index;
                                 };
                             }
@@ -455,48 +465,28 @@ export class Watcher {
                             }
                             else {
                                 result = (index, nbRemove, ...insert) => {
+
                                     let oldValues: any[] = [];
+                                    const extReceiver = Watcher.extract(receiver)
                                     for(let i = index; i < index + nbRemove; i++) {
-                                        oldValues.push(receiver[i]);
+                                        oldValues.push(extReceiver[i]);
                                     }
                                     let updateLength = nbRemove != insert.length;
-                                    let res = target.splice(index, nbRemove, ...insert);
                                     for(let i = 0; i < oldValues.length; i++) {
+                                        target.splice((index + i), 1);
                                         trigger('DELETED', target, receiver, oldValues[i], "[" + index + "]");
                                     }
                                     for(let i = 0; i < insert.length; i++) {
-                                        // get real objetct with proxy to have the correct subscription
-                                        target.splice((index + i), 1, insert[i]);
-                                        trigger('CREATED', target, receiver, receiver[(index + i)], "[" + (index + i) + "]");
+                                        const out: { otherRoot?: any; } = {};
+                                        let value = replaceByAlias(target, insert[i], (index + i)+'', receiver, false, out);
+                                        const dones: any[] = out.otherRoot ? [out.otherRoot] : [];
+                                        // get real object with proxy to have the correct subscription
+                                        target.splice((index + i), 0, value);
+                                        trigger('CREATED', target, receiver, receiver[(index + i)], "[" + (index + i) + "]", dones);
                                     }
-                                    // let fromIndex = index + insert.length;
-                                    // update path and subscription
-                                    // for(let i = fromIndex, j = 0; i < target.length; i++, j++) {
-                                    //     let proxyEl = this.getProxyObject(target, target[i], i);
-
-                                    //     let recuUpdate = (childEl) => {
-                                    //         if(Array.isArray(childEl)) {
-                                    //             for(let i = 0; i < childEl.length; i++) {
-                                    //                 if(childEl[i] instanceof Object && childEl[i].__path) {
-                                    //                     let newProxyEl = this.getProxyObject(childEl, childEl[i], i);
-                                    //                     recuUpdate(newProxyEl);
-                                    //                 }
-                                    //             }
-                                    //         }
-                                    //         else if(childEl instanceof Object && !(childEl instanceof Date)) {
-                                    //             for(let key in childEl) {
-                                    //                 if(childEl[key] instanceof Object && childEl[key].__path) {
-                                    //                     let newProxyEl = this.getProxyObject(childEl, childEl[key], key);
-                                    //                     recuUpdate(newProxyEl);
-                                    //                 }
-                                    //             }
-                                    //         }
-                                    //     };
-                                    //     recuUpdate(proxyEl);
-                                    // }
                                     if(updateLength)
                                         trigger('UPDATED', target, receiver, target.length, "length");
-                                    return res;
+                                    return target;
                                 };
                             }
 
@@ -534,9 +524,14 @@ export class Watcher {
                             }
                             else {
                                 result = (key, value) => {
+                                    const out: { otherRoot?: any; } = {};
+                                    let dones: any[] = [];
+                                    key = Watcher.extract(key);
+                                    value = replaceByAlias(target, value, key+'', receiver, false, out);
+                                    if(out.otherRoot) dones.push(out.otherRoot);
                                     let result = target.set(key, value);
-                                    trigger('CREATED', target, receiver, receiver.get(key), key);
-                                    trigger('UPDATED', target, receiver, target.size, "size");
+                                    trigger('CREATED', target, receiver, receiver.get(key), key+'', dones);
+                                    trigger('UPDATED', target, receiver, target.size, "size", dones);
                                     return result;
                                 };
                             }
@@ -567,9 +562,10 @@ export class Watcher {
                             }
                             else {
                                 result = (key) => {
+                                    key = Watcher.extract(key);
                                     let oldValue = receiver.get(key);
                                     let res = target.delete(key);
-                                    trigger('DELETED', target, receiver, oldValue, key);
+                                    trigger('DELETED', target, receiver, oldValue, key+'');
                                     trigger('UPDATED', target, receiver, target.size, "size");
                                     return res;
                                 };
@@ -610,10 +606,10 @@ export class Watcher {
             },
             set(target, prop, value, receiver) {
                 if(typeof prop == 'symbol') {
-                    return Reflect.set(target, prop, value, receiver); 
+                    return Reflect.set(target, prop, value, receiver);
                 }
                 let oldValue = Reflect.get(target, prop, receiver);
-                value = replaceByAlias(target, value, prop, receiver);
+                value = replaceByAlias(target, value, prop, receiver, true);
                 if(value instanceof Signal) {
                     // TODO deal when a signal is set inside a watcher
                     // maybe replace full signal to a watcher
@@ -622,7 +618,7 @@ export class Watcher {
                 }
                 let triggerChange = false;
                 if(!reservedName[prop]) {
-                    if(Array.isArray(target)) {
+                    if(Array.isArray(receiver)) {
                         if(prop != "length") {
                             triggerChange = true;
                         }
@@ -650,7 +646,7 @@ export class Watcher {
             },
             deleteProperty(target, prop) {
                 if(typeof prop == 'symbol') {
-                    return Reflect.deleteProperty(target, prop); 
+                    return Reflect.deleteProperty(target, prop);
                 }
                 let triggerChange = false;
                 let pathToDelete = '';
@@ -692,7 +688,7 @@ export class Watcher {
             },
             defineProperty(target, prop, descriptor) {
                 if(typeof prop == 'symbol') {
-                    return Reflect.defineProperty(target, prop, descriptor); 
+                    return Reflect.defineProperty(target, prop, descriptor);
                 }
                 let triggerChange = false;
                 let newPath = '';
@@ -760,7 +756,7 @@ export class Watcher {
                 rootPath = receiver.__path;
             }
             if(rootPath != "") {
-                if(Array.isArray(target)) {
+                if(Array.isArray(receiver)) {
                     if(prop && !prop.startsWith("[")) {
                         if(/^[0-9]*$/g.exec(prop)) {
                             rootPath += "[" + prop + "]";
@@ -864,13 +860,17 @@ export class Watcher {
                         if(!regex.test(rootPath)) {
                             continue;
                         }
+                        let newProp = rootPath.replace(info.name, "");
+                        if(newProp.startsWith(".")) {
+                            newProp = newProp.slice(1);
+                        }
                         if(target.__path) {
                             let oldPath = target.__path;
-                            info.fct(type, target, receiver, value, prop, dones);
+                            info.fct(type, target, receiver, value, newProp, dones);
                             target.__path = oldPath;
                         }
                         else {
-                            info.fct(type, target, receiver, value, prop, dones);
+                            info.fct(type, target, receiver, value, newProp, dones);
                         }
                     }
                 }
