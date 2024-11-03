@@ -856,36 +856,34 @@ export class Build {
         for (let info of toCompile) {
             if (this.noNamespaceUri[info.uri]) {
                 if (info.compiled != "") {
-                    if (moduleCodeStarted) {
+                    let noNamespace: "after" | "before";
+                    if (info.compiled.startsWith("@After()")) {
+                        result.codeNoNamespaceAfter.push(info.compiled.slice("@After()".length))
+                        noNamespace = "after";
+                    }
+                    else if (info.compiled.startsWith("@Before()")) {
+                        result.codeNoNamespaceBefore.push(info.compiled.slice("@Before()".length));
+                        noNamespace = "before";
+                    }
+                    else if (moduleCodeStarted) {
                         result.codeNoNamespaceAfter.push(info.compiled)
-                        if (!renderInJsByFullname[info.classScript]) {
-                            renderInJsByFullname[info.classScript] = {
-                                code: replaceNotImportAliases(info.compiled, this.project.getConfig()),
-                                dependances: prepareDependances(info.dependances, info.uri),
-                                fullName: info.classScript,
-                                required: info.required,
-                                noNamespace: "after",
-                                type: info.type,
-                                isExported: info.isExported.external,
-                                convertibleName: info.convertibleName,
-                                tagName: info.tagName
-                            };
-                        }
+                        noNamespace = "after";
                     }
                     else {
                         result.codeNoNamespaceBefore.push(info.compiled);
-                        if (!renderInJsByFullname[info.classScript]) {
-                            renderInJsByFullname[info.classScript] = {
-                                code: replaceNotImportAliases(info.compiled, this.project.getConfig()),
-                                dependances: prepareDependances(info.dependances, info.uri),
-                                fullName: info.classScript,
-                                required: info.required,
-                                noNamespace: "before",
-                                type: info.type,
-                                isExported: info.isExported.external,
-                                convertibleName: info.convertibleName,
-                                tagName: info.tagName
-                            }
+                        noNamespace = "before";
+                    }
+                    if (!renderInJsByFullname[info.classScript]) {
+                        renderInJsByFullname[info.classScript] = {
+                            code: replaceNotImportAliases(info.compiled, this.project.getConfig()),
+                            dependances: prepareDependances(info.dependances, info.uri),
+                            fullName: info.classScript,
+                            required: info.required,
+                            noNamespace: noNamespace,
+                            type: info.type,
+                            isExported: info.isExported.external,
+                            convertibleName: info.convertibleName,
+                            tagName: info.tagName
                         }
                     }
                 }

@@ -13,8 +13,8 @@
         "build-storybook": "storybook build"
     },
 	"devDependencies": {
-        "@aventusjs/main": "^1.0.0",
-        "@aventusjs/storybook": "^0.0.14",
+        "@aventusjs/main": "^1.0.1",
+        "@aventusjs/storybook": "^0.0.16",
         "@storybook/addon-docs": "^8.1.11",
         "@storybook/addon-essentials": "^8.1.11",
         "@storybook/addon-links": "^8.1.11",

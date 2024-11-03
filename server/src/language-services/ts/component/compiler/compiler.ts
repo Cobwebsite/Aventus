@@ -719,55 +719,65 @@ export class AventusWebcomponentCompiler {
         let values: string[] = [];
         let storyValue: string | undefined = field.defaultValue ?? undefined;
         let attType: 'string' | 'number' | "boolean" | undefined = undefined;
-        if (type.kind == "string") {
-            control = "text";
-            attType = 'string';
-        }
-        else if (type.kind == "literal") {
-            control = "select";
-            let value = type.value;
-            if (value.startsWith("'") || value.startsWith('"')) {
-                value = value.substring(1);
+
+        const findType = (type: TypeInfo) => {
+            if (type.kind == "string") {
+                control = "text";
+                attType = 'string';
             }
-            if (value.endsWith("'") || value.endsWith('"')) {
-                value = value.substring(0, value.length - 1);
-            }
-            storyValue = field.defaultValue?.slice(1, -1) ?? undefined;
-            values.push(value);
-            attType = 'string';
-        }
-        else if (type.kind == "union") {
-            control = "select";
-            for (let nested of type.nested) {
-                let value = nested.value;
+            else if (type.kind == "literal") {
+                control = "select";
+                let value = type.value;
                 if (value.startsWith("'") || value.startsWith('"')) {
                     value = value.substring(1);
                 }
                 if (value.endsWith("'") || value.endsWith('"')) {
                     value = value.substring(0, value.length - 1);
                 }
+                storyValue = field.defaultValue?.slice(1, -1) ?? undefined;
                 values.push(value);
+                attType = 'string';
             }
-            storyValue = field.defaultValue?.slice(1, -1) ?? undefined;
-            attType = 'string';
+            else if (type.kind == "union") {
+                control = "select";
+                for (let nested of type.nested) {
+                    let value = nested.value;
+                    if (value.startsWith("'") || value.startsWith('"')) {
+                        value = value.substring(1);
+                    }
+                    if (value.endsWith("'") || value.endsWith('"')) {
+                        value = value.substring(0, value.length - 1);
+                    }
+                    values.push(value);
+                }
+                storyValue = field.defaultValue?.slice(1, -1) ?? undefined;
+                attType = 'string';
+            }
+            else if (type.kind == "number") {
+                control = "number";
+                attType = 'number';
+            }
+            else if (type.kind == "boolean") {
+                control = "boolean";
+                attType = 'boolean';
+            }
+            else if (type.kind == "type") {
+                if (type.value == "Date" || type.value == "DateTime") {
+                    control = "date";
+                }
+                let info = ParserTs.getBaseInfo(type.value);
+                if (info && info instanceof AliasInfo) {
+                    findType(info.type);
+                }
+                else {
+                    control = "object"
+                }
+            }
+            else {
+                control = "object"
+            }
         }
-        else if (type.kind == "number") {
-            control = "number";
-            attType = 'number';
-        }
-        else if (type.kind == "boolean") {
-            control = "boolean";
-            attType = 'boolean';
-        }
-        else if (type.kind === "type" && type.value == "Date") {
-            control = "date";
-        }
-        else if (type.kind === "type" && type.value == "DateTime") {
-            control = "date";
-        }
-        else {
-            control = "object"
-        }
+        findType(type);
 
         this.storyArgTypes[field.name] = {
             control: control,

@@ -230,7 +230,7 @@ let ElementExtension=class ElementExtension {
             }
             if (el.shadowRoot && x !== undefined && y !== undefined) {
                 var newEl = el.shadowRoot.elementFromPoint(x, y);
-                if (newEl && newEl != el && el.shadowRoot.contains(newEl)) {
+                if (newEl && newEl != el && (el.shadowRoot.contains(newEl) || el.contains(newEl))) {
                     return _realTarget(newEl, i + 1);
                 }
             }
@@ -555,6 +555,85 @@ let Mutex=class Mutex {
 Mutex.Namespace=`Aventus`;
 _.Mutex=Mutex;
 
+let NormalizedEvent=class NormalizedEvent {
+    _event;
+    get event() {
+        return this._event;
+    }
+    constructor(event) {
+        this._event = event;
+    }
+    getProp(prop) {
+        if (prop in this.event) {
+            return this.event[prop];
+        }
+        return undefined;
+    }
+    stopImmediatePropagation() {
+        this.event.stopImmediatePropagation();
+    }
+    get clientX() {
+        if ('clientX' in this.event) {
+            return this.event.clientX;
+        }
+        else if ('touches' in this.event && this.event.touches.length > 0) {
+            return this.event.touches[0].clientX;
+        }
+        return 0;
+    }
+    get clientY() {
+        if ('clientY' in this.event) {
+            return this.event.clientY;
+        }
+        else if ('touches' in this.event && this.event.touches.length > 0) {
+            return this.event.touches[0].clientY;
+        }
+        return 0;
+    }
+    get pageX() {
+        if ('pageX' in this.event) {
+            return this.event.pageX;
+        }
+        else if ('touches' in this.event && this.event.touches.length > 0) {
+            return this.event.touches[0].pageX;
+        }
+        return 0;
+    }
+    get pageY() {
+        if ('pageY' in this.event) {
+            return this.event.pageY;
+        }
+        else if ('touches' in this.event && this.event.touches.length > 0) {
+            return this.event.touches[0].pageY;
+        }
+        return 0;
+    }
+    get type() {
+        return this.event.type;
+    }
+    get target() {
+        return this.event.target;
+    }
+    get timeStamp() {
+        return this.event.timeStamp;
+    }
+    get pointerType() {
+        if (this._event instanceof TouchEvent)
+            return "touch";
+        return this.getProp("pointerType");
+    }
+    get button() {
+        return this.getProp("button");
+    }
+    get isTouch() {
+        if (this._event instanceof TouchEvent)
+            return true;
+        return this._event.pointerType == "touch";
+    }
+}
+NormalizedEvent.Namespace=`Aventus`;
+_.NormalizedEvent=NormalizedEvent;
+
 let compareObject=function compareObject(obj1, obj2) {
     if (Array.isArray(obj1)) {
         if (!Array.isArray(obj2)) {
@@ -583,14 +662,24 @@ let compareObject=function compareObject(obj1, obj2) {
         if (typeof obj2 !== 'object' || obj2 === undefined || obj2 === null) {
             return false;
         }
+        if (obj1 == obj2) {
+            return true;
+        }
         if (obj1 instanceof HTMLElement || obj2 instanceof HTMLElement) {
-            return obj1 == obj2;
+            return false;
         }
         if (obj1 instanceof Date || obj2 instanceof Date) {
             return obj1.toString() === obj2.toString();
         }
-        obj1 = Watcher.extract(obj1);
-        obj2 = Watcher.extract(obj2);
+        let oneProxy = false;
+        if (Watcher.is(obj1)) {
+            oneProxy = true;
+            obj1 = Watcher.extract(obj1, false);
+        }
+        if (Watcher.is(obj2)) {
+            oneProxy = true;
+            obj2 = Watcher.extract(obj2, false);
+        }
         if (obj1 instanceof Map && obj2 instanceof Map) {
             if (obj1.size != obj2.size) {
                 return false;
@@ -611,6 +700,9 @@ let compareObject=function compareObject(obj1, obj2) {
                 return false;
             }
             for (let key in obj1) {
+                if (oneProxy && Watcher['__reservedName'][key]) {
+                    continue;
+                }
                 if (!(key in obj2)) {
                     return false;
                 }
@@ -786,6 +878,7 @@ let Watcher=class Watcher {
     static __reservedName = {
         __path: '__path',
     };
+    static __triggerForced = false;
     static _registering = [];
     static get _register() {
         return this._registering[this._registering.length - 1];
@@ -846,9 +939,9 @@ let Watcher=class Watcher {
                 }
             }
         };
-        const replaceByAlias = (target, element, prop, receiver) => {
+        const replaceByAlias = (target, element, prop, receiver, apply, out = {}) => {
             let fullInternalPath = "";
-            if (Array.isArray(target)) {
+            if (Array.isArray(receiver)) {
                 if (prop != "length") {
                     if (target.__path) {
                         fullInternalPath = target.__path;
@@ -870,14 +963,19 @@ let Watcher=class Watcher {
                 if (root != proxyData.baseData) {
                     element.__validatePath();
                     let oldPath = element.__path ?? '';
-                    let unbindElement = getValueFromObject(oldPath, root);
+                    let unbindElement = Watcher.extract(getValueFromObject(oldPath, root));
+                    if (unbindElement === undefined) {
+                        return element;
+                    }
                     if (receiver == null) {
                         receiver = getValueFromObject(target.__path, realProxy);
                         if (internalAliases[fullInternalPath]) {
                             internalAliases[fullInternalPath].unbind();
                         }
                     }
-                    let result = Reflect.set(target, prop, unbindElement, receiver);
+                    if (apply) {
+                        let result = Reflect.set(target, prop, unbindElement, receiver);
+                    }
                     element.__addAlias(proxyData.baseData, oldPath, (type, target, receiver2, value, prop2, dones) => {
                         let triggerPath;
                         if (prop2.startsWith("[") || fullInternalPath == "" || prop2 == "") {
@@ -886,23 +984,24 @@ let Watcher=class Watcher {
                         else {
                             triggerPath = fullInternalPath + "." + prop2;
                         }
-                        triggerPath = triggerPath.replace(/\[(.*?)\]/g, '.$1');
                         if (type == 'DELETED' && internalAliases[triggerPath]) {
                             internalAliases[triggerPath].unbind();
                         }
+                        triggerPath = triggerPath.replace(/\[(.*?)\]/g, '.$1');
                         let splitted = triggerPath.split(".");
                         let newProp = splitted.pop();
                         let newReceiver = getValueFromObject(splitted.join("."), realProxy);
-                        trigger(type, target, newReceiver, value, newProp, dones);
+                        if (newReceiver.getTarget(false) == target)
+                            trigger(type, target, newReceiver, value, newProp, dones);
                     });
                     internalAliases[fullInternalPath] = {
                         unbind: () => {
                             delete internalAliases[fullInternalPath];
                             element.__deleteAlias(proxyData.baseData, oldPath);
-                            deleteAlias(root, prop);
+                            deleteAlias(root, fullInternalPath);
                         }
                     };
-                    addAlias(root, prop, (type, target, receiver2, value, prop2, dones) => {
+                    addAlias(root, fullInternalPath, (type, target, receiver2, value, prop2, dones) => {
                         const pathSave = element.__path;
                         let proxy = element.__getProxy;
                         let triggerPath;
@@ -916,9 +1015,11 @@ let Watcher=class Watcher {
                         let splitted = triggerPath.split(".");
                         let newProp = splitted.pop();
                         let newReceiver = getValueFromObject(splitted.join("."), proxy);
-                        element.__trigger(type, target, newReceiver, value, newProp, dones);
+                        if (newReceiver.getTarget(false) == target)
+                            element.__trigger(type, target, newReceiver, value, newProp, dones);
                         element.__path = pathSave;
                     });
+                    out.otherRoot = root;
                     return unbindElement;
                 }
             }
@@ -945,7 +1046,7 @@ let Watcher=class Watcher {
             useHistory: false,
             getProxyObject(target, element, prop) {
                 let newProxy;
-                element = replaceByAlias(target, element, prop, null);
+                element = replaceByAlias(target, element, prop, null, true);
                 if (element instanceof Object && element.__isProxy) {
                     newProxy = element;
                 }
@@ -1058,8 +1159,9 @@ let Watcher=class Watcher {
                     };
                 }
                 else if (prop == "getTarget") {
-                    return () => {
-                        clearReservedNames(target);
+                    return (clear = true) => {
+                        if (clear)
+                            clearReservedNames(target);
                         return target;
                     };
                 }
@@ -1067,7 +1169,7 @@ let Watcher=class Watcher {
                     if (target.toJSON) {
                         return target.toJSON;
                     }
-                    if (Array.isArray(target)) {
+                    if (Array.isArray(receiver)) {
                         return () => {
                             let result = [];
                             for (let element of target) {
@@ -1103,12 +1205,17 @@ let Watcher=class Watcher {
                 }
                 else if (prop == "__static_trigger") {
                     return (type) => {
+                        Watcher.__triggerForced = true;
                         trigger(type, target, receiver, target, '');
+                        Watcher.__triggerForced = false;
                     };
                 }
                 return undefined;
             },
             get(target, prop, receiver) {
+                if (typeof prop == 'symbol') {
+                    return Reflect.get(target, prop, receiver);
+                }
                 if (reservedName[prop]) {
                     return target[prop];
                 }
@@ -1118,7 +1225,7 @@ let Watcher=class Watcher {
                 }
                 let element = target[prop];
                 if (typeof (element) == 'function') {
-                    if (Array.isArray(target)) {
+                    if (Array.isArray(receiver)) {
                         let result;
                         if (prop == 'push') {
                             if (target.__isProxy) {
@@ -1129,10 +1236,16 @@ let Watcher=class Watcher {
                             }
                             else {
                                 result = (el) => {
-                                    let index = target.push(el);
-                                    target.splice(target.length - 1, 1, el);
-                                    trigger('CREATED', target, receiver, receiver[index - 1], "[" + (index - 1) + "]");
-                                    trigger('UPDATED', target, receiver, target.length, "length");
+                                    let index = target.length;
+                                    let out = {};
+                                    el = replaceByAlias(target, el, target.length + '', receiver, false, out);
+                                    target.push(el);
+                                    const dones = [];
+                                    if (out.otherRoot) {
+                                        dones.push(out.otherRoot);
+                                    }
+                                    trigger('CREATED', target, receiver, receiver[index], "[" + (index) + "]", dones);
+                                    trigger('UPDATED', target, receiver, target.length, "length", dones);
                                     return index;
                                 };
                             }
@@ -1147,35 +1260,25 @@ let Watcher=class Watcher {
                             else {
                                 result = (index, nbRemove, ...insert) => {
                                     let oldValues = [];
+                                    const extReceiver = Watcher.extract(receiver);
                                     for (let i = index; i < index + nbRemove; i++) {
-                                        oldValues.push(receiver[i]);
+                                        oldValues.push(extReceiver[i]);
                                     }
                                     let updateLength = nbRemove != insert.length;
-                                    let res = target.splice(index, nbRemove, ...insert);
                                     for (let i = 0; i < oldValues.length; i++) {
+                                        target.splice((index + i), 1);
                                         trigger('DELETED', target, receiver, oldValues[i], "[" + index + "]");
                                     }
                                     for (let i = 0; i < insert.length; i++) {
-                                        target.splice((index + i), 1, insert[i]);
-                                        trigger('CREATED', target, receiver, receiver[(index + i)], "[" + (index + i) + "]");
+                                        const out = {};
+                                        let value = replaceByAlias(target, insert[i], (index + i) + '', receiver, false, out);
+                                        const dones = out.otherRoot ? [out.otherRoot] : [];
+                                        target.splice((index + i), 0, value);
+                                        trigger('CREATED', target, receiver, receiver[(index + i)], "[" + (index + i) + "]", dones);
                                     }
-                                    // for(let i = fromIndex, j = 0; i < target.length; i++, j++) {
-                                    //     let proxyEl = this.getProxyObject(target, target[i], i);
-                                    //     let recuUpdate = (childEl) => {
-                                    //         if(Array.isArray(childEl)) {
-                                    //             for(let i = 0; i < childEl.length; i++) {
-                                    //                 if(childEl[i] instanceof Object && childEl[i].__path) {
-                                    //                     let newProxyEl = this.getProxyObject(childEl, childEl[i], i);
-                                    //                     recuUpdate(newProxyEl);
-                                    //         else if(childEl instanceof Object && !(childEl instanceof Date)) {
-                                    //             for(let key in childEl) {
-                                    //                 if(childEl[key] instanceof Object && childEl[key].__path) {
-                                    //                     let newProxyEl = this.getProxyObject(childEl, childEl[key], key);
-                                    //                     recuUpdate(newProxyEl);
-                                    //     recuUpdate(proxyEl);
                                     if (updateLength)
                                         trigger('UPDATED', target, receiver, target.length, "length");
-                                    return res;
+                                    return target;
                                 };
                             }
                         }
@@ -1212,9 +1315,15 @@ let Watcher=class Watcher {
                             }
                             else {
                                 result = (key, value) => {
+                                    const out = {};
+                                    let dones = [];
+                                    key = Watcher.extract(key);
+                                    value = replaceByAlias(target, value, key + '', receiver, false, out);
+                                    if (out.otherRoot)
+                                        dones.push(out.otherRoot);
                                     let result = target.set(key, value);
-                                    trigger('CREATED', target, receiver, receiver.get(key), key);
-                                    trigger('UPDATED', target, receiver, target.size, "size");
+                                    trigger('CREATED', target, receiver, receiver.get(key), key + '', dones);
+                                    trigger('UPDATED', target, receiver, target.size, "size", dones);
                                     return result;
                                 };
                             }
@@ -1245,9 +1354,10 @@ let Watcher=class Watcher {
                             }
                             else {
                                 result = (key) => {
+                                    key = Watcher.extract(key);
                                     let oldValue = receiver.get(key);
                                     let res = target.delete(key);
-                                    trigger('DELETED', target, receiver, oldValue, key);
+                                    trigger('DELETED', target, receiver, oldValue, key + '');
                                     trigger('UPDATED', target, receiver, target.size, "size");
                                     return res;
                                 };
@@ -1283,14 +1393,17 @@ let Watcher=class Watcher {
                 return Reflect.get(target, prop, receiver);
             },
             set(target, prop, value, receiver) {
+                if (typeof prop == 'symbol') {
+                    return Reflect.set(target, prop, value, receiver);
+                }
                 let oldValue = Reflect.get(target, prop, receiver);
-                value = replaceByAlias(target, value, prop, receiver);
+                value = replaceByAlias(target, value, prop, receiver, true);
                 if (value instanceof Signal) {
                     value = value.value;
                 }
                 let triggerChange = false;
                 if (!reservedName[prop]) {
-                    if (Array.isArray(target)) {
+                    if (Array.isArray(receiver)) {
                         if (prop != "length") {
                             triggerChange = true;
                         }
@@ -1299,6 +1412,9 @@ let Watcher=class Watcher {
                         if (!compareObject(value, oldValue)) {
                             triggerChange = true;
                         }
+                    }
+                    if (Watcher.__triggerForced) {
+                        triggerChange = true;
                     }
                 }
                 let result = Reflect.set(target, prop, value, receiver);
@@ -1316,6 +1432,9 @@ let Watcher=class Watcher {
                 return result;
             },
             deleteProperty(target, prop) {
+                if (typeof prop == 'symbol') {
+                    return Reflect.deleteProperty(target, prop);
+                }
                 let triggerChange = false;
                 let pathToDelete = '';
                 if (!reservedName[prop]) {
@@ -1354,6 +1473,9 @@ let Watcher=class Watcher {
                 return false;
             },
             defineProperty(target, prop, descriptor) {
+                if (typeof prop == 'symbol') {
+                    return Reflect.defineProperty(target, prop, descriptor);
+                }
                 let triggerChange = false;
                 let newPath = '';
                 if (!reservedName[prop]) {
@@ -1419,7 +1541,7 @@ let Watcher=class Watcher {
                 rootPath = receiver.__path;
             }
             if (rootPath != "") {
-                if (Array.isArray(target)) {
+                if (Array.isArray(receiver)) {
                     if (prop && !prop.startsWith("[")) {
                         if (/^[0-9]*$/g.exec(prop)) {
                             rootPath += "[" + prop + "]";
@@ -1515,13 +1637,17 @@ let Watcher=class Watcher {
                         if (!regex.test(rootPath)) {
                             continue;
                         }
+                        let newProp = rootPath.replace(info.name, "");
+                        if (newProp.startsWith(".")) {
+                            newProp = newProp.slice(1);
+                        }
                         if (target.__path) {
                             let oldPath = target.__path;
-                            info.fct(type, target, receiver, value, prop, dones);
+                            info.fct(type, target, receiver, value, newProp, dones);
                             target.__path = oldPath;
                         }
                         else {
-                            info.fct(type, target, receiver, value, prop, dones);
+                            info.fct(type, target, receiver, value, newProp, dones);
                         }
                     }
                 }
@@ -1535,9 +1661,9 @@ let Watcher=class Watcher {
     static is(obj) {
         return typeof obj == 'object' && obj.__isProxy;
     }
-    static extract(obj) {
+    static extract(obj, clearPath = false) {
         if (this.is(obj)) {
-            return obj.getTarget();
+            return obj.getTarget(clearPath);
         }
         else {
             if (obj instanceof Object) {
@@ -1680,7 +1806,7 @@ _.ComputedNoRecomputed=ComputedNoRecomputed;
 
 let PressManager=class PressManager {
     static globalConfig = {
-        delayDblPress: 150,
+        delayDblPress: 250,
         delayLongPress: 700,
         offsetDrag: 20
     };
@@ -1703,13 +1829,12 @@ let PressManager=class PressManager {
     }
     options;
     element;
-    delayDblPress = PressManager.globalConfig.delayDblPress ?? 150;
-    delayLongPress = PressManager.globalConfig.delayLongPress ?? 700;
+    delayDblPress;
+    delayLongPress;
     nbPress = 0;
-    offsetDrag = PressManager.globalConfig.offsetDrag ?? 20;
+    offsetDrag;
     state = {
-        oneActionTriggered: false,
-        moving: undefined,
+        oneActionTriggered: null,
     };
     startPosition = { x: 0, y: 0 };
     customFcts = {};
@@ -1718,6 +1843,7 @@ let PressManager=class PressManager {
     downEventSaved;
     useDblPress = false;
     stopPropagation = () => true;
+    pointersRecord = {};
     functionsBinded = {
         downAction: (e) => { },
         upAction: (e) => { },
@@ -1734,6 +1860,9 @@ let PressManager=class PressManager {
         if (options.element === void 0) {
             throw 'You must provide an element';
         }
+        this.offsetDrag = PressManager.globalConfig.offsetDrag !== undefined ? PressManager.globalConfig.offsetDrag : 20;
+        this.delayLongPress = PressManager.globalConfig.delayLongPress ?? 700;
+        this.delayDblPress = PressManager.globalConfig.delayDblPress ?? 150;
         this.element = options.element;
         this.checkDragConstraint(options);
         this.assignValueOption(options);
@@ -1830,55 +1959,117 @@ let PressManager=class PressManager {
     init() {
         this.bindAllFunction();
         this.element.addEventListener("pointerdown", this.functionsBinded.downAction);
+        this.element.addEventListener("touchstart", this.functionsBinded.downAction);
         this.element.addEventListener("trigger_pointer_pressstart", this.functionsBinded.childPressStart);
         this.element.addEventListener("trigger_pointer_pressend", this.functionsBinded.childPressEnd);
         this.element.addEventListener("trigger_pointer_pressmove", this.functionsBinded.childPressMove);
     }
+    identifyEvent(touch) {
+        if (touch instanceof Touch)
+            return touch.identifier;
+        return touch.pointerId;
+    }
+    registerEvent(ev) {
+        if (ev instanceof TouchEvent) {
+            for (let touch of ev.targetTouches) {
+                const id = this.identifyEvent(touch);
+                if (this.pointersRecord[id]) {
+                    return false;
+                }
+                this.pointersRecord[id] = ev;
+            }
+            return true;
+        }
+        else {
+            const id = this.identifyEvent(ev);
+            if (this.pointersRecord[id]) {
+                return false;
+            }
+            this.pointersRecord[id] = ev;
+            return true;
+        }
+    }
+    unregisterEvent(ev) {
+        let result = true;
+        if (ev instanceof TouchEvent) {
+            for (let touch of ev.changedTouches) {
+                const id = this.identifyEvent(touch);
+                if (!this.pointersRecord[id]) {
+                    result = false;
+                }
+                else {
+                    delete this.pointersRecord[id];
+                }
+            }
+        }
+        else {
+            const id = this.identifyEvent(ev);
+            if (!this.pointersRecord[id]) {
+                result = false;
+            }
+            else {
+                delete this.pointersRecord[id];
+            }
+        }
+        return result;
+    }
     genericDownAction(state, e) {
+        this.downEventSaved = e;
         if (this.options.onLongPress) {
             this.timeoutLongPress = setTimeout(() => {
                 if (!state.oneActionTriggered) {
                     if (this.options.onLongPress) {
-                        state.oneActionTriggered = true;
-                        this.options.onLongPress(e, this);
+                        if (this.options.onLongPress(e, this) !== false) {
+                            state.oneActionTriggered = this;
+                        }
                     }
                 }
             }, this.delayLongPress);
         }
     }
-    downAction(e) {
+    downAction(ev) {
+        const isFirst = Object.values(this.pointersRecord).length == 0;
+        if (!this.registerEvent(ev)) {
+            if (this.stopPropagation()) {
+                ev.stopImmediatePropagation();
+            }
+            return;
+        }
+        const e = new NormalizedEvent(ev);
         if (this.options.onEvent) {
             this.options.onEvent(e);
         }
-        if (!this.options.buttonAllowed?.includes(e.button)) {
+        if (e.button != undefined && !this.options.buttonAllowed?.includes(e.button)) {
+            this.unregisterEvent(ev);
             return;
         }
-        this.downEventSaved = e;
         if (this.stopPropagation()) {
             e.stopImmediatePropagation();
         }
         this.customFcts = {};
-        if (this.nbPress == 0) {
-            this.state.oneActionTriggered = false;
+        if (this.nbPress == 0 && isFirst) {
+            this.state.oneActionTriggered = null;
             clearTimeout(this.timeoutDblPress);
         }
         this.startPosition = { x: e.pageX, y: e.pageY };
-        document.addEventListener("pointerup", this.functionsBinded.upAction);
-        document.addEventListener("pointercancel", this.functionsBinded.upAction);
-        document.addEventListener("pointermove", this.functionsBinded.moveAction);
+        if (isFirst) {
+            document.addEventListener("pointerup", this.functionsBinded.upAction);
+            document.addEventListener("pointercancel", this.functionsBinded.upAction);
+            document.addEventListener("touchend", this.functionsBinded.upAction);
+            document.addEventListener("touchcancel", this.functionsBinded.upAction);
+            document.addEventListener("pointermove", this.functionsBinded.moveAction);
+        }
         this.genericDownAction(this.state, e);
         if (this.options.onPressStart) {
             this.options.onPressStart(e, this);
-            this.emitTriggerFunctionParent("pressstart", e);
+            this.lastEmitEvent = e;
+            // this.emitTriggerFunctionParent("pressstart", e);
         }
-        else {
-            this.emitTriggerFunction("pressstart", e);
-        }
+        this.emitTriggerFunction("pressstart", e);
     }
     genericUpAction(state, e) {
         clearTimeout(this.timeoutLongPress);
-        if (state.moving == this) {
-            state.moving = undefined;
+        if (state.oneActionTriggered == this) {
             if (this.options.onDragEnd) {
                 this.options.onDragEnd(e, this);
             }
@@ -1891,10 +2082,11 @@ let PressManager=class PressManager {
                 this.nbPress++;
                 if (this.nbPress == 2) {
                     if (!state.oneActionTriggered) {
-                        state.oneActionTriggered = true;
                         this.nbPress = 0;
                         if (this.options.onDblPress) {
-                            this.options.onDblPress(e, this);
+                            if (this.options.onDblPress(e, this) !== false) {
+                                state.oneActionTriggered = this;
+                            }
                         }
                     }
                 }
@@ -1903,8 +2095,9 @@ let PressManager=class PressManager {
                         this.nbPress = 0;
                         if (!state.oneActionTriggered) {
                             if (this.options.onPress) {
-                                state.oneActionTriggered = true;
-                                this.options.onPress(e, this);
+                                if (this.options.onPress(e, this) !== false) {
+                                    state.oneActionTriggered = this;
+                                }
                             }
                         }
                     }, this.delayDblPress);
@@ -1913,49 +2106,57 @@ let PressManager=class PressManager {
             else {
                 if (!state.oneActionTriggered) {
                     if (this.options.onPress) {
-                        state.oneActionTriggered = true;
-                        this.options.onPress(e, this);
+                        if (this.options.onPress(e, this) !== false) {
+                            state.oneActionTriggered = this;
+                        }
                     }
                 }
             }
         }
     }
-    upAction(e) {
+    upAction(ev) {
+        if (!this.unregisterEvent(ev)) {
+            if (this.stopPropagation()) {
+                ev.stopImmediatePropagation();
+            }
+            return;
+        }
+        const e = new NormalizedEvent(ev);
         if (this.options.onEvent) {
             this.options.onEvent(e);
         }
         if (this.stopPropagation()) {
             e.stopImmediatePropagation();
         }
-        document.removeEventListener("pointerup", this.functionsBinded.upAction);
-        document.removeEventListener("pointercancel", this.functionsBinded.upAction);
-        document.removeEventListener("pointermove", this.functionsBinded.moveAction);
+        if (Object.values(this.pointersRecord).length == 0) {
+            document.removeEventListener("pointerup", this.functionsBinded.upAction);
+            document.removeEventListener("pointercancel", this.functionsBinded.upAction);
+            document.removeEventListener("touchend", this.functionsBinded.upAction);
+            document.removeEventListener("touchcancel", this.functionsBinded.upAction);
+            document.removeEventListener("pointermove", this.functionsBinded.moveAction);
+        }
         this.genericUpAction(this.state, e);
         if (this.options.onPressEnd) {
             this.options.onPressEnd(e, this);
-            this.emitTriggerFunctionParent("pressend", e);
+            this.lastEmitEvent = e;
+            // this.emitTriggerFunctionParent("pressend", e);
         }
-        else {
-            this.emitTriggerFunction("pressend", e);
-        }
+        this.emitTriggerFunction("pressend", e);
     }
     genericMoveAction(state, e) {
-        if (!state.moving && !state.oneActionTriggered) {
-            if (this.stopPropagation()) {
-                e.stopImmediatePropagation();
-            }
+        if (!state.oneActionTriggered) {
             let xDist = e.pageX - this.startPosition.x;
             let yDist = e.pageY - this.startPosition.y;
             let distance = Math.sqrt(xDist * xDist + yDist * yDist);
             if (distance > this.offsetDrag && this.downEventSaved) {
-                state.oneActionTriggered = true;
                 if (this.options.onDragStart) {
-                    state.moving = this;
-                    this.options.onDragStart(this.downEventSaved, this);
+                    if (this.options.onDragStart(this.downEventSaved, this) !== false) {
+                        state.oneActionTriggered = this;
+                    }
                 }
             }
         }
-        else if (state.moving == this) {
+        else if (state.oneActionTriggered == this) {
             if (this.options.onDrag) {
                 this.options.onDrag(e, this);
             }
@@ -1964,45 +2165,42 @@ let PressManager=class PressManager {
             }
         }
     }
-    moveAction(e) {
+    moveAction(ev) {
+        const e = new NormalizedEvent(ev);
         if (this.options.onEvent) {
             this.options.onEvent(e);
         }
+        if (this.stopPropagation()) {
+            e.stopImmediatePropagation();
+        }
         this.genericMoveAction(this.state, e);
-        if (this.options.onDrag) {
-            this.emitTriggerFunctionParent("pressmove", e);
-        }
-        else {
-            this.emitTriggerFunction("pressmove", e);
-        }
+        this.lastEmitEvent = e;
+        // if(this.options.onDrag) {
+        //     this.emitTriggerFunctionParent("pressmove", e);
+        this.emitTriggerFunction("pressmove", e);
     }
     childPressStart(e) {
+        if (this.lastEmitEvent == e.detail.realEvent)
+            return;
         this.genericDownAction(e.detail.state, e.detail.realEvent);
         if (this.options.onPressStart) {
             this.options.onPressStart(e.detail.realEvent, this);
         }
     }
     childPressEnd(e) {
+        if (this.lastEmitEvent == e.detail.realEvent)
+            return;
         this.genericUpAction(e.detail.state, e.detail.realEvent);
         if (this.options.onPressEnd) {
             this.options.onPressEnd(e.detail.realEvent, this);
         }
     }
     childPressMove(e) {
+        if (this.lastEmitEvent == e.detail.realEvent)
+            return;
         this.genericMoveAction(e.detail.state, e.detail.realEvent);
     }
-    emitTriggerFunctionParent(action, e) {
-        let el = this.element.parentElement;
-        if (el == null) {
-            let parentNode = this.element.parentNode;
-            if (parentNode instanceof ShadowRoot) {
-                this.emitTriggerFunction(action, e, parentNode.host);
-            }
-        }
-        else {
-            this.emitTriggerFunction(action, e, el);
-        }
-    }
+    lastEmitEvent;
     emitTriggerFunction(action, e, el) {
         let ev = new CustomEvent("trigger_pointer_" + action, {
             bubbles: true,
@@ -2014,6 +2212,7 @@ let PressManager=class PressManager {
                 realEvent: e
             }
         });
+        this.lastEmitEvent = e;
         if (!el) {
             el = this.element;
         }
@@ -2921,7 +3120,7 @@ let TemplateInstance=class TemplateInstance {
                 return change.fct(this.context);
             }
             catch (e) {
-                if (e instanceof TypeError && e.message.startsWith("Cannot read properties of undefined")) {
+                if (e instanceof TypeError && e.message.includes("undefined")) {
                     if (computed instanceof ComputedNoRecomputed) {
                         computed.isInit = false;
                     }
@@ -2956,7 +3155,7 @@ let TemplateInstance=class TemplateInstance {
                 return injection.inject(this.context);
             }
             catch (e) {
-                if (e instanceof TypeError && e.message.startsWith("Cannot read properties of undefined")) {
+                if (e instanceof TypeError && e.message.includes("undefined")) {
                     if (computed instanceof ComputedNoRecomputed) {
                         computed.isInit = false;
                     }
@@ -2989,7 +3188,7 @@ let TemplateInstance=class TemplateInstance {
                 return binding.inject(this.context);
             }
             catch (e) {
-                if (e instanceof TypeError && e.message.startsWith("Cannot read properties of undefined")) {
+                if (e instanceof TypeError && e.message.includes("undefined")) {
                     if (computed instanceof ComputedNoRecomputed) {
                         computed.isInit = false;
                     }
@@ -4505,7 +4704,7 @@ const TypeRender = class TypeRender extends Aventus.WebComponent {
     __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('no_border');this.__upgradeProperty('margin_left');this.__correctGetter('type'); }
     __listBoolProps() { return ["no_border"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     getTypeRef(ref) {
-        return '/?path=/docs/' + ref.toLocaleLowerCase().replace(/\./g, "-") + "--docs";
+        return '/?path=/docs/' + ref.toLocaleLowerCase().replace(/\./g, "-").replace(/\//g, "-") + "--docs";
     }
     renderSimple(simple) {
         let el = document.createElement("a");
@@ -4875,7 +5074,7 @@ const StoryBaseRender = class StoryBaseRender extends Aventus.WebComponent {
     target.config = JSON.parse(target.json);
     target.onConfigSet(target.config);
 })); }
-    static __style = `:host{color:#2e3438;display:block;font-family:"Nunito Sans",-apple-system,".SFNSText-Regular","San Francisco",BlinkMacSystemFont,"Segoe UI","Helvetica Neue",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;margin:0;margin-block-end:.67em;margin-block-start:.67em;margin-inline-end:0px;margin-inline-start:0px;-webkit-overflow-scrolling:touch;-webkit-tap-highlight-color:rgba(0,0,0,0)}:host .namespace{color:rgba(46,52,56,.6);font-size:12px;margin-bottom:5px;margin-left:5px}:host .base{align-items:center;display:flex;flex-wrap:wrap;font-size:28px;font-weight:700;line-height:32px;margin-bottom:5px}:host .base .tags{display:flex;gap:5px;width:100%}:host .base .tags av-tag{margin-bottom:10px;margin-top:10px}:host .documentation{margin-top:10px}:host .parent{font-size:14px;margin-top:3px}:host .where{font-size:14px;margin-top:3px}@media(min-width: 600px){:host{margin-bottom:16px}:host .base{font-size:32px;line-height:36px}}:host([type=type]) .parent{margin-top:15px}:host([type=type]) .parent span{display:none}:host([type=type]) .parent av-type-render{--type-render-font-size: 16px}`;
+    static __style = `:host{color:#2e3438;display:block;font-family:"Nunito Sans",-apple-system,".SFNSText-Regular","San Francisco",BlinkMacSystemFont,"Segoe UI","Helvetica Neue",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;margin:0;margin-block-end:.67em;margin-block-start:.67em;margin-inline-end:0px;margin-inline-start:0px;-webkit-overflow-scrolling:touch;-webkit-tap-highlight-color:rgba(0,0,0,0)}:host .namespace{color:rgba(46,52,56,.6);font-size:12px;margin-bottom:5px;margin-left:5px}:host .base{align-items:center;display:flex;flex-wrap:wrap;font-size:28px;font-weight:700;line-height:32px;margin-bottom:5px}:host .base .tags{display:flex;gap:5px;width:100%}:host .base .tags av-tag{margin-bottom:10px;margin-top:10px}:host .documentation{margin-top:10px}:host .parent{font-size:14px;margin-top:3px}:host .src-link{font-size:14px;margin-top:3px}:host .where{font-size:14px;margin-top:3px}@media(min-width: 600px){:host{margin-bottom:16px}:host .base{font-size:32px;line-height:36px}}:host([type=type]) .parent{margin-top:15px}:host([type=type]) .parent span{display:none}:host([type=type]) .parent av-type-render{--type-render-font-size: 16px}`;
     constructor() { super(); if (this.constructor == StoryBaseRender) { throw "can't instanciate an abstract class"; } }
     __getStatic() {
         return StoryBaseRender;
@@ -4888,26 +5087,26 @@ const StoryBaseRender = class StoryBaseRender extends Aventus.WebComponent {
     __getHtml() {
     this.__getStatic().__template.setHTML({
         slots: { 'header':`<slot name="header"></slot>`,'before-documentation':`<slot name="before-documentation"></slot>`,'default':`<slot></slot>` }, 
-        blocks: { 'default':`<div class="namespace" _id="storybaserender_0"></div><div class="base">    <div class="tags">        <template _id="storybaserender_1"></template>    </div>    <div class="title" _id="storybaserender_3"></div>    <slot name="header"></slot></div><slot name="before-documentation"></slot><div class="documentation" _id="storybaserender_4"></div><slot></slot>` }
+        blocks: { 'default':`<div class="namespace" _id="storybaserender_0"></div><div class="base">    <div class="tags">        <template _id="storybaserender_1"></template>    </div>    <div class="title" _id="storybaserender_3"></div>    <slot name="header"></slot></div><slot name="before-documentation"></slot><template _id="storybaserender_4"></template><div class="documentation" _id="storybaserender_6"></div><slot></slot>` }
     });
 }
     __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
   "content": {
     "storybaserender_0°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__4efa173741a0da43dc86484322616c77method1())}`
+      "fct": (c) => `${c.print(c.comp.__4efa173741a0da43dc86484322616c77method2())}`
     },
     "storybaserender_3°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__4efa173741a0da43dc86484322616c77method4())}`,
+      "fct": (c) => `${c.print(c.comp.__4efa173741a0da43dc86484322616c77method5())}`,
       "once": true
     },
-    "storybaserender_4°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__4efa173741a0da43dc86484322616c77method5())}`
+    "storybaserender_6°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__4efa173741a0da43dc86484322616c77method7())}`
     }
   }
 });const templ0 = new Aventus.Template(this);templ0.setTemplate(`            <av-tag _id="storybaserender_2"></av-tag>        `);templ0.setActions({
   "content": {
     "storybaserender_2°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__4efa173741a0da43dc86484322616c77method3(c.data.tag))}`,
+      "fct": (c) => `${c.print(c.comp.__4efa173741a0da43dc86484322616c77method4(c.data.tag))}`,
       "once": true
     }
   },
@@ -4915,14 +5114,29 @@ const StoryBaseRender = class StoryBaseRender extends Aventus.WebComponent {
     {
       "id": "storybaserender_2",
       "injectionName": "type",
-      "inject": (c) => c.comp.__4efa173741a0da43dc86484322616c77method2(c.data.tag),
+      "inject": (c) => c.comp.__4efa173741a0da43dc86484322616c77method3(c.data.tag),
       "once": true
     }
   ]
 });this.__getStatic().__template.addLoop({
                     anchorId: 'storybaserender_1',
                     template: templ0,
-                simple:{data: "this.tags",item:"tag"}}); }
+                simple:{data: "this.tags",item:"tag"}});const templ1 = new Aventus.Template(this);templ1.setTemplate(`    <div class="src-link">        <span>Source file : </span>        <a target="_blank" _id="storybaserender_5"></a>    </div>`);templ1.setActions({
+  "content": {
+    "storybaserender_5°href": {
+      "fct": (c) => `${c.print(c.comp.__4efa173741a0da43dc86484322616c77method6())}`
+    },
+    "storybaserender_5°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__4efa173741a0da43dc86484322616c77method6())}`
+    }
+  }
+});this.__getStatic().__template.addIf({
+                    anchorId: 'storybaserender_4',
+                    parts: [{
+                    condition: (c) => c.comp.__4efa173741a0da43dc86484322616c77method1(),
+                    template: templ1
+                }]
+            }); }
     getClassName() {
         return "StoryBaseRender";
     }
@@ -4958,19 +5172,25 @@ const StoryBaseRender = class StoryBaseRender extends Aventus.WebComponent {
     render(txt) {
         return txt?.replace(/\n/g, "<br />") ?? '';
     }
-    __4efa173741a0da43dc86484322616c77method1() {
+    __4efa173741a0da43dc86484322616c77method2() {
         return this.config?.namespace;
     }
-    __4efa173741a0da43dc86484322616c77method3(tag) {
+    __4efa173741a0da43dc86484322616c77method4(tag) {
         return tag;
     }
-    __4efa173741a0da43dc86484322616c77method4() {
+    __4efa173741a0da43dc86484322616c77method5() {
         return this.renderName();
     }
-    __4efa173741a0da43dc86484322616c77method5() {
+    __4efa173741a0da43dc86484322616c77method6() {
+        return this.config?.srcUrl;
+    }
+    __4efa173741a0da43dc86484322616c77method7() {
         return this.render(this.config?.documentation);
     }
-    __4efa173741a0da43dc86484322616c77method2(tag) {
+    __4efa173741a0da43dc86484322616c77method1() {
+        return this.config?.srcUrl;
+    }
+    __4efa173741a0da43dc86484322616c77method3(tag) {
         return tag;
     }
 }

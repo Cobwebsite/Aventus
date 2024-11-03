@@ -31,7 +31,7 @@ export class StorybookDecorator {
 				try {
 					let params = JSON.parse(decorator.arguments[0].value) as StorybookConfig;
 					if (params.prefix) {
-						result.prefix = JSON.parse(params.prefix);
+						result.prefix = params.prefix.replace(/(^('|"))|(('|")$)/g, '');
 					}
 					if (params.export) {
 						result.exportType = params.export.replace(/(^('|"))|(('|")$)/g, '') as StoryExport;
@@ -56,7 +56,7 @@ export class StorybookDecorator {
 						}
 					}
 				} catch (e) {
-
+					debugger
 				}
 			}
 			return result;

@@ -13,7 +13,9 @@ import { IStoryContentGeneric, IStoryContentParameter, IStoryContentTypeResult, 
 import { StorybookDecorator } from './decorators/StorybookDecorator';
 import { DocumentationInfo } from './DocumentationInfo';
 import { join, normalize } from 'path';
-import { pathToUri, simplifyUri } from '../../../tools';
+import { pathToUri, simplifyUri, uriToPath } from '../../../tools';
+import { Storie } from '../../../project/storybook/Stories';
+import { AventusExtension } from '../../../definition';
 
 
 export enum InfoType {
@@ -75,8 +77,13 @@ export abstract class BaseInfo {
         let decorator = decorators.find(p => p.name == "Storybook");
         if (decorator) {
             const deco = StorybookDecorator.is(decorator);
-            if (deco && deco.exportType) {
-                return (deco.exportType == 'all' || deco.exportType == 'public');
+            if (deco) {
+                if (deco.exportType) {
+                    return (deco.exportType == 'all' || deco.exportType == 'public');
+                }
+                else {
+                    return true;
+                }
             }
         }
         return build.buildConfig.stories.format == 'all' || build.buildConfig.stories.format == 'public';
@@ -956,8 +963,13 @@ export abstract class BaseInfo {
             }
 
             const format = this.build.buildConfig.stories.format;
-            if (this.storieDecorator?.exportType) {
-                this.storyType = this.storieDecorator.exportType;
+            if (this.storieDecorator) {
+                if (this.storieDecorator.exportType)
+                    this.storyType = this.storieDecorator.exportType;
+                else if(format)
+                    this.storyType = format == 'manual' ? 'all' : format;
+                else 
+                    this.storyType = 'none';
             }
             else if (format) {
                 this.storyType = format == 'manual' ? 'none' : format;
@@ -972,6 +984,12 @@ export abstract class BaseInfo {
             }
             else if (this.storyType == 'all') {
                 this.storieContent = this.defineStoryContent(this.storieDecorator);
+            }
+
+            if(this.storieContent && this.build.buildConfig.stories.srcBaseUrl) {
+                let rootUri = this.build.project.getConfigFile().uri.replace(AventusExtension.Config, "");
+                let localPath = uriToPath(this.fileUri.replace(rootUri, '')).replace(/\\/g, '/'); 
+                this.storieContent.srcUrl = this.build.buildConfig.stories.srcBaseUrl+ '/' + localPath
             }
         }
     }
@@ -1011,7 +1029,7 @@ export abstract class BaseInfo {
             let info = from.parserInfo.importsLocal[typeInfo.value]?.info;
             if (info) {
                 if (info.storyType != 'none')
-                    result.ref = info.fullName;
+                    result.ref = Storie.getFullname(info);
             }
             else {
                 let baseInfo = from.parserInfo.internalObjects[typeInfo.value];

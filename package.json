@@ -631,7 +631,7 @@
 		"watch": "concurrently \"npm run dev:client\" \"npm run dev:server\" -n \"client,server\""
 	},
 	"devDependencies": {
-		"@aventusjs/storybook": "^0.0.14",
+		"@aventusjs/storybook": "^0.0.16",
 		"@babel/core": "^7.19.0",
 		"@babel/preset-env": "^7.19.0",
 		"@babel/preset-typescript": "^7.18.6",

@@ -101,6 +101,10 @@ export const AventusConfigSchema: JSONSchema = {
                             "prefix": {
                                 type: "string",
                                 description: "Define a prefix for all your stories name. Allow to group stories",
+                            },
+                            "srcBaseUrl": {
+                                type: "string",
+                                description: "Define a base url to link file to your repo",
                             }
                         }
                     },

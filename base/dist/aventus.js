@@ -3101,6 +3101,7 @@ let Watcher=class Watcher {
     static __reservedName = {
         __path: '__path',
     };
+    static __triggerForced = false;
     static _registering = [];
     static get _register() {
         return this._registering[this._registering.length - 1];
@@ -3427,7 +3428,9 @@ let Watcher=class Watcher {
                 }
                 else if (prop == "__static_trigger") {
                     return (type) => {
+                        Watcher.__triggerForced = true;
                         trigger(type, target, receiver, target, '');
+                        Watcher.__triggerForced = false;
                     };
                 }
                 return undefined;
@@ -3632,6 +3635,9 @@ let Watcher=class Watcher {
                         if (!compareObject(value, oldValue)) {
                             triggerChange = true;
                         }
+                    }
+                    if (Watcher.__triggerForced) {
+                        triggerChange = true;
                     }
                 }
                 let result = Reflect.set(target, prop, value, receiver);

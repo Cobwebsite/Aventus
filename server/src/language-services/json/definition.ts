@@ -59,7 +59,8 @@ export interface AventusConfigBuildStories {
 	workspace?: string,
 	format?: "all" | "public" | "manual",
 	live?: boolean,
-	prefix?: string
+	prefix?: string,
+	srcBaseUrl?: string
 }
 export interface AventusConfig {
 	version: string,

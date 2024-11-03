@@ -31,6 +31,7 @@ export class Watcher {
     private static __reservedName: { [key: string]: string; } = {
         __path: '__path',
     };
+    private static __triggerForced: boolean = false;
     @Internal()
     public static _registering: Effect[] = [];
     @Internal()
@@ -410,7 +411,9 @@ export class Watcher {
                 }
                 else if(prop == "__static_trigger") {
                     return (type: 'CREATED' | 'UPDATED' | 'DELETED') => {
+                        Watcher.__triggerForced = true;
                         trigger(type, target, receiver, target, '');
+                        Watcher.__triggerForced = false;
                     };
                 }
 
@@ -467,7 +470,7 @@ export class Watcher {
                                 result = (index, nbRemove, ...insert) => {
 
                                     let oldValues: any[] = [];
-                                    const extReceiver = Watcher.extract(receiver)
+                                    const extReceiver = Watcher.extract(receiver);
                                     for(let i = index; i < index + nbRemove; i++) {
                                         oldValues.push(extReceiver[i]);
                                     }
@@ -478,7 +481,7 @@ export class Watcher {
                                     }
                                     for(let i = 0; i < insert.length; i++) {
                                         const out: { otherRoot?: any; } = {};
-                                        let value = replaceByAlias(target, insert[i], (index + i)+'', receiver, false, out);
+                                        let value = replaceByAlias(target, insert[i], (index + i) + '', receiver, false, out);
                                         const dones: any[] = out.otherRoot ? [out.otherRoot] : [];
                                         // get real object with proxy to have the correct subscription
                                         target.splice((index + i), 0, value);
@@ -527,10 +530,10 @@ export class Watcher {
                                     const out: { otherRoot?: any; } = {};
                                     let dones: any[] = [];
                                     key = Watcher.extract(key);
-                                    value = replaceByAlias(target, value, key+'', receiver, false, out);
+                                    value = replaceByAlias(target, value, key + '', receiver, false, out);
                                     if(out.otherRoot) dones.push(out.otherRoot);
                                     let result = target.set(key, value);
-                                    trigger('CREATED', target, receiver, receiver.get(key), key+'', dones);
+                                    trigger('CREATED', target, receiver, receiver.get(key), key + '', dones);
                                     trigger('UPDATED', target, receiver, target.size, "size", dones);
                                     return result;
                                 };
@@ -565,7 +568,7 @@ export class Watcher {
                                     key = Watcher.extract(key);
                                     let oldValue = receiver.get(key);
                                     let res = target.delete(key);
-                                    trigger('DELETED', target, receiver, oldValue, key+'');
+                                    trigger('DELETED', target, receiver, oldValue, key + '');
                                     trigger('UPDATED', target, receiver, target.size, "size");
                                     return res;
                                 };
@@ -627,6 +630,9 @@ export class Watcher {
                         if(!compareObject(value, oldValue)) {
                             triggerChange = true;
                         }
+                    }
+                    if(Watcher.__triggerForced) {
+                        triggerChange = true;
                     }
                 }
                 let result = Reflect.set(target, prop, value, receiver);

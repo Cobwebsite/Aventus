@@ -878,6 +878,7 @@ let Watcher=class Watcher {
     static __reservedName = {
         __path: '__path',
     };
+    static __triggerForced = false;
     static _registering = [];
     static get _register() {
         return this._registering[this._registering.length - 1];
@@ -1204,7 +1205,9 @@ let Watcher=class Watcher {
                 }
                 else if (prop == "__static_trigger") {
                     return (type) => {
+                        Watcher.__triggerForced = true;
                         trigger(type, target, receiver, target, '');
+                        Watcher.__triggerForced = false;
                     };
                 }
                 return undefined;
@@ -1257,24 +1260,25 @@ let Watcher=class Watcher {
                             else {
                                 result = (index, nbRemove, ...insert) => {
                                     let oldValues = [];
+                                    const extReceiver = Watcher.extract(receiver);
                                     for (let i = index; i < index + nbRemove; i++) {
-                                        oldValues.push(receiver[i]);
+                                        oldValues.push(extReceiver[i]);
                                     }
                                     let updateLength = nbRemove != insert.length;
-                                    let res = target.splice(index, nbRemove, ...insert);
                                     for (let i = 0; i < oldValues.length; i++) {
+                                        target.splice((index + i), 1);
                                         trigger('DELETED', target, receiver, oldValues[i], "[" + index + "]");
                                     }
                                     for (let i = 0; i < insert.length; i++) {
                                         const out = {};
-                                        let value = replaceByAlias(target, insert[i], prop, receiver, false, out);
+                                        let value = replaceByAlias(target, insert[i], (index + i) + '', receiver, false, out);
                                         const dones = out.otherRoot ? [out.otherRoot] : [];
-                                        target.splice((index + i), 1, value);
+                                        target.splice((index + i), 0, value);
                                         trigger('CREATED', target, receiver, receiver[(index + i)], "[" + (index + i) + "]", dones);
                                     }
                                     if (updateLength)
                                         trigger('UPDATED', target, receiver, target.length, "length");
-                                    return res;
+                                    return target;
                                 };
                             }
                         }
@@ -1313,12 +1317,12 @@ let Watcher=class Watcher {
                                 result = (key, value) => {
                                     const out = {};
                                     let dones = [];
-                                    key = replaceByAlias(target, key, prop, receiver, false, out);
-                                    value = replaceByAlias(target, value, prop, receiver, false, out);
+                                    key = Watcher.extract(key);
+                                    value = replaceByAlias(target, value, key + '', receiver, false, out);
                                     if (out.otherRoot)
                                         dones.push(out.otherRoot);
                                     let result = target.set(key, value);
-                                    trigger('CREATED', target, receiver, receiver.get(key), key, dones);
+                                    trigger('CREATED', target, receiver, receiver.get(key), key + '', dones);
                                     trigger('UPDATED', target, receiver, target.size, "size", dones);
                                     return result;
                                 };
@@ -1350,10 +1354,10 @@ let Watcher=class Watcher {
                             }
                             else {
                                 result = (key) => {
-                                    key = replaceByAlias(target, key, prop, receiver, false);
+                                    key = Watcher.extract(key);
                                     let oldValue = receiver.get(key);
                                     let res = target.delete(key);
-                                    trigger('DELETED', target, receiver, oldValue, key);
+                                    trigger('DELETED', target, receiver, oldValue, key + '');
                                     trigger('UPDATED', target, receiver, target.size, "size");
                                     return res;
                                 };
@@ -1408,6 +1412,9 @@ let Watcher=class Watcher {
                         if (!compareObject(value, oldValue)) {
                             triggerChange = true;
                         }
+                    }
+                    if (Watcher.__triggerForced) {
+                        triggerChange = true;
                     }
                 }
                 let result = Reflect.set(target, prop, value, receiver);

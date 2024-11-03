@@ -17,6 +17,36 @@ import { AventusWebComponentLogicalFile } from '../../language-services/ts/compo
 
 
 export class Storie {
+
+	public static getFullname(info: BaseInfo): string {
+		let fullname = info.fullName.replace(/\./g, '/');
+		let prefixFound = false;
+		let config = info.build.buildConfig;
+		const setPrefix = (prefix: string) => {
+			if (prefix === "") {
+			}
+			else if (prefix.endsWith("/")) {
+				fullname = prefix + fullname;
+			}
+			else {
+				fullname = prefix + "/" + fullname;
+			}
+		}
+		if (info.storieDecorator) {
+			if (info.storieDecorator.fullName) {
+				fullname = info.storieDecorator.fullName;
+			}
+			if (info.storieDecorator.prefix !== undefined) {
+				prefixFound = true;
+				setPrefix(info.storieDecorator.prefix);
+			}
+		}
+		if (!prefixFound && config.stories?.prefix !== undefined) {
+			setPrefix(config.stories.prefix);
+		}
+		return fullname;
+	}
+
 	private build: Build;
 	private buildConfig: AventusConfigBuild;
 	public constructor(build: Build, buildConfig: AventusConfigBuild) {
@@ -83,53 +113,30 @@ export class Storie {
 			let tag = `<av-story-${storieContent.kind}-render json={JSON.stringify(Meta.aventus)}></av-story-${storieContent.kind}-render>`
 			template = this.replaceVariable(template, "tag", tag);
 
-			if (file instanceof AventusWebComponentLogicalFile) {
+			if (file instanceof AventusWebComponentLogicalFile && file.fileParsed?.classes[file.componentClassName] && !file.fileParsed.classes[file.componentClassName].isAbstract) {
 				template = this.replaceVariable(template, "live", `
 <div>
     <Title>Live</Title>
     <Canvas />
     <Controls />
 </div>`);
-				template = this.replaceVariable(template, "blocks", `import { Canvas, Controls, Title } from '@storybook/blocks'`);
 			}
 			else {
 				template = this.replaceVariable(template, "live", ``);
-				template = this.replaceVariable(template, "blocks", `import { Canvas, Controls, Title } from '@storybook/blocks'`);
 			}
+			template = this.replaceVariable(template, "blocks", `import { Canvas, Controls, Title } from '@storybook/blocks'`);
 
 			writeFileSync(outputPath + "_.mdx", template);
 		}
 		const writeStorie = () => {
 			let template = file instanceof AventusWebComponentLogicalFile ? defaultStoryTempateComponent() : defaultStoryTempate();
 			let name = info.name;
-			let fullname = info.fullName.replace(/\./g, '/');
+			let fullname = Storie.getFullname(info);
 			let hasDefaultStory = true;
-			let prefixFound = false;
-			const setPrefix = (prefix: string) => {
-				if (prefix === "") {
-				}
-				else if (prefix.endsWith("/")) {
-					fullname = prefix + fullname;
-				}
-				else {
-					fullname = prefix + "/" + fullname;
-				}
-			}
 			if (info.storieDecorator) {
-				if (info.storieDecorator.fullName) {
-					fullname = info.storieDecorator.fullName;
-				}
-				if (info.storieDecorator.prefix !== undefined) {
-					prefixFound = true;
-					setPrefix(info.storieDecorator.prefix);
-				}
-
 				if (info.storieDecorator.onlyMeta) {
 					hasDefaultStory = false;
 				}
-			}
-			if (!prefixFound && this.buildConfig.stories?.prefix !== undefined) {
-				setPrefix(this.buildConfig.stories.prefix);
 			}
 			template = this.replaceVariable(template, "name", name);
 			template = this.replaceVariable(template, "fullname", fullname);

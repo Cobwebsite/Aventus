@@ -4,9 +4,10 @@ import { MethodInfo } from "./MethodInfo";
 import { ParserTs } from "./ParserTs";
 import { PropertyInfo } from "./PropertyInfo";
 import { ConvertibleDecorator } from './decorators/ConvertibleDecorator';
-import { IStoryContentInterface, IStoryContentClass, IStoryContentGeneric, IStoryContentObject, IStoryContentObjectMethod, IStoryContentReturn, IStoryContentObjectProperty } from '@aventusjs/storybook';
+import { IStoryContentInterface, IStoryContentClass, IStoryContentObject, IStoryContentObjectMethod, IStoryContentReturn, IStoryContentObjectProperty } from '@aventusjs/storybook';
 import { TypeInfo } from './TypeInfo';
 import { StorybookDecorator } from './decorators/StorybookDecorator';
+import * as md5 from 'md5';
 
 
 export class ClassInfo extends BaseInfo {
@@ -351,7 +352,11 @@ export class ClassInfo extends BaseInfo {
 
 	protected addMethodStoryContent(result: IStoryContentObject, methodInfo: MethodInfo): void {
 		if (!this.canAddToStory(methodInfo)) return;
-
+		// prevent adding generated fct
+		let fullname = [this.build.module, this.fullName].join(".");
+		if(methodInfo.name.startsWith("__" + md5(fullname) + "method")) {
+			return;
+		}
 		if (!result.methods) {
 			result.methods = [];
 		}

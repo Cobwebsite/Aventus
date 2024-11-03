@@ -119,6 +119,8 @@ declare global {
         export?: 'all' | 'none' | 'public',
         /** Define a prefix to group your stories */
         prefix?: string,
+        /** Define the fullname for your element */
+        fullName?: string,
         /** If set to true, only meta will be generated. Usefull to create custom pages */
         onlyMeta?: boolean;
         /** Define the configruation for your slots */
