@@ -6,6 +6,8 @@ import { AventusErrorCode, AventusExtension, AventusLanguageId } from "./definit
 import { SectionType } from './language-services/ts/LanguageService';
 import { AventusFile } from './files/AventusFile';
 import { AventusConfig } from './language-services/json/definition';
+import { existsSync, writeFileSync } from 'fs';
+import * as md5 from 'md5';
 
 export function pathToUri(path: string): string {
     if (path.startsWith("file://")) {
@@ -303,6 +305,16 @@ export function setValueToObject(path: string, obj: any, value: any) {
         obj[splitted[splitted.length - 1]] = value;
     }
 
+}
+
+const md5HashFile: { [path: string]: string } = {};
+export function writeFile(outputFile: string, txt: string) {
+    let hash = md5(txt);
+    let exist = existsSync(outputFile);
+    if (!md5HashFile[outputFile] || md5HashFile[outputFile] != hash || !exist) {
+        md5HashFile[outputFile] = hash;
+        writeFileSync(outputFile, txt);
+    }
 }
 
 export class Debug {

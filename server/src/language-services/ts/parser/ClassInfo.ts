@@ -82,10 +82,7 @@ export class ClassInfo extends BaseInfo {
 				this.getClassInheritance(heritage);
 			}
 		}
-		if(this.name == "Calendar") {
-			debugger;
-			this.debug = true;
-		}
+		
 		forEachChild(node, x => {
 			let isStrong = false;
 			let result: PropertyInfo | MethodInfo | null = null;
@@ -199,10 +196,6 @@ export class ClassInfo extends BaseInfo {
 		this.loadConvertible();
 
 		this.loadDependancesDecorator();
-		if(this.name == "Calendar") {
-			debugger;
-			this.debug = false;
-		}
 	}
 	private getClassInheritance(node: HeritageClause) {
 		if (node.token == SyntaxKind.ExtendsKeyword) {

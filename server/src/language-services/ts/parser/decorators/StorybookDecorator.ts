@@ -4,20 +4,21 @@ type StorybookConfig = {
 	export?: StoryExport,
 	prefix?: string,
 	group?: string,
-	onlyMeta?: boolean;
+	noLive?: boolean;
+	noDefaultStory?: boolean;
 	slots?: {
 		values?: {
 			[name: string]: string;
 		};
 		inject?: string[];
 	};
-	noLive?: boolean;
 }
 type StoryExport = 'all' | 'none' | 'public' | 'protected';
 export class StorybookDecorator {
 	public prefix?: string;
 	public exportType?: StoryExport;
-	public onlyMeta?: boolean;
+	public noLive?: boolean;
+	public noDefaultStory?: boolean;
 	public group?: string
 	public slots?: {
 		values?: {
@@ -25,7 +26,6 @@ export class StorybookDecorator {
 		};
 		inject?: string[];
 	};
-	public noLive?: boolean;
 	public static is(decorator: DecoratorInfo): StorybookDecorator | null {
 		if (decorator.name == "Storybook") {
 			let result = new StorybookDecorator();
@@ -41,12 +41,13 @@ export class StorybookDecorator {
 					if (params.group) {
 						result.group = params.group.replace(/(^('|"))|(('|")$)/g, '');
 					}
-					if (params.onlyMeta === true) {
-						result.onlyMeta = true;
-					}
 					if (params.noLive === true) {
 						result.noLive = true;
 					}
+					if (params.noDefaultStory === true) {
+						result.noDefaultStory = true;
+					}
+
 					if (params.slots) {
 						result.slots = {}
 

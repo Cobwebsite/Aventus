@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, unlinkSync } from "fs";
 import { EOL } from "os";
 import { join, sep } from "path";
 import { Diagnostic, DiagnosticSeverity, TextEdit } from 'vscode-languageserver';
@@ -20,7 +20,7 @@ import { HttpServer } from '../live-server/HttpServer';
 import { Compiled } from '../notification/Compiled';
 import { RegisterBuild } from '../notification/RegisterBuild';
 import { UnregisterBuild } from '../notification/UnregisterBuild';
-import { createErrorTsPos, getFolder, replaceNotImportAliases, simplifyUri, uriToPath } from "../tools";
+import { createErrorTsPos, getFolder, replaceNotImportAliases, simplifyUri, uriToPath, writeFile } from "../tools";
 import { Project } from "./Project";
 import { AventusGlobalSCSSLanguageService } from '../language-services/scss/GlobalLanguageService';
 import { DependanceManager } from './DependanceManager';
@@ -448,15 +448,6 @@ export class Build {
         this.stories.write(this.tsFiles, true);
     }
 
-    protected md5HashFile: { [path: string]: string } = {};
-    protected writeFile(outputFile: string, txt: string) {
-        let hash = md5(txt);
-        if (!this.md5HashFile[outputFile] || this.md5HashFile[outputFile] != hash) {
-            this.md5HashFile[outputFile] = hash;
-            writeFileSync(outputFile, txt);
-        }
-    }
-
     /**
      * Write the code inside the exported .js
      */
@@ -504,7 +495,7 @@ export class Build {
                         console.log(e);
                     }
                 }
-                this.writeFile(outputFile, finalTxt);
+                writeFile(outputFile, finalTxt);
             }
         }
 
@@ -559,7 +550,7 @@ export class Build {
 
         for (let outputPackage of outputsPackage) {
             if (outputPackage) {
-                this.writeFile(outputPackage, finaltxt);
+                writeFile(outputPackage, finaltxt);
             }
             else if (existsSync(outputPackage)) {
                 unlinkSync(outputPackage);
@@ -571,7 +562,7 @@ export class Build {
             mkdirSync(pathPackages, { recursive: true });
         }
 
-        this.writeFile(join(pathPackages, this.buildConfig.fullname + AventusExtension.Package), finaltxt);
+        writeFile(join(pathPackages, this.buildConfig.fullname + AventusExtension.Package), finaltxt);
     }
 
     /**
@@ -622,7 +613,7 @@ export class Build {
                 if (!existsSync(outputDir)) {
                     mkdirSync(outputDir, { recursive: true });
                 }
-                this.writeFile(outputFile, txt);
+                writeFile(outputFile, txt);
             }
 
             // add into export 
@@ -687,7 +678,7 @@ export class Build {
                     mkdirSync(outputDir, { recursive: true });
                 }
                 let indexDTs = join(outputDir, "index.d.ts");
-                this.writeFile(indexDTs, txt);
+                writeFile(indexDTs, txt);
             }
         }
 
@@ -722,7 +713,7 @@ export class Build {
                     mkdirSync(outputDir, { recursive: true });
                 }
                 let indexDTs = join(outputDir, "index.js");
-                this.writeFile(indexDTs, txt);
+                writeFile(indexDTs, txt);
             }
         }
         for (let key of keys) {
@@ -776,7 +767,7 @@ export class Build {
                 if (!existsSync(outputPackage)) {
                     mkdirSync(outputPackage, { recursive: true });
                 }
-                this.writeFile(join(outputPackage, "package.json"), JSON.stringify(packageJson, null, 2));
+                writeFile(join(outputPackage, "package.json"), JSON.stringify(packageJson, null, 2));
             }
         }
     }

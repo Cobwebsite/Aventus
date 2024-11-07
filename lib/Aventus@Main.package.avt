@@ -2123,7 +2123,9 @@ class WebComponentInstance {
         /** Define the group for your element. If not set, the group will be the namespace */
         group?: string,
         /** If set to true, only meta will be generated. Usefull to create custom pages */
-        onlyMeta?: boolean;
+        noLive?: boolean;
+        /** If set to true, no default story will be created. This will also prevent the rendering of the live section */
+        noDefaultStory?:boolean;
         /** Define the configruation for your slots */
         slots?: {
             /** Define the slot content base on the name */
@@ -2133,8 +2135,6 @@ class WebComponentInstance {
             /** Inject type */
             inject?: (new (...args: any[]) => Aventus.WebComponent)[];
         };
-        /** Disable live section inside your story */
-        noLive ?:boolean
     }
     /**
      * Export a story for this component

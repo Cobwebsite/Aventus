@@ -1468,6 +1468,7 @@ export class AventusWebcomponentCompiler {
     private writeViewInfo(template: HtmlTemplateResult, isMain: boolean, loopInfo?: ActionLoop, ifInfo?: ActionIfPart) {
         const finalViewResult: any = {};
         let finalTxt = "";
+        let finalTxtNpm = "";
 
         //#region elements
         let elements = template.elements;
@@ -1728,9 +1729,20 @@ export class AventusWebcomponentCompiler {
             if (finalTxt.length > 0) {
                 finalTxt = `__registerTemplateAction() { super.__registerTemplateAction();${EOL}${finalTxt} }`;
             }
+            if(this.templateNpm) {
+                const templateName = this.build.getNpmReplacementName([this.build.module, this.fullName].join("."), "Aventus.Template");
+                finalTxtNpm = finalTxt.replace(/new Aventus.Template\(this\)/g, `new ${templateName}(this)`);
+                this.fileParsed?.registerGeneratedImport({
+                    uri: '@aventusjs/main/Aventus',
+                    name: "Template",
+                    compiled: true,
+                    alias: templateName,
+                    forced: false
+                });
+            }
             this.writeFileReplaceVar("templateAction", finalTxt);
             this.writeFileHotReloadReplaceVar("templateAction", finalTxt);
-            this.writeFileNpmReplaceVar("templateAction", finalTxt);
+            this.writeFileNpmReplaceVar("templateAction", finalTxtNpm);
 
             this.writeFileReplaceVar("variablesInViewDynamic", this.variablesInViewDynamic);
             this.writeFileHotReloadReplaceVar("variablesInViewDynamic", this.variablesInViewDynamic);

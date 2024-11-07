@@ -2,11 +2,11 @@ import { AventusConfigStatic } from "../language-services/json/definition";
 import { Project } from "./Project";
 import { FSWatcher, watch } from "chokidar";
 import { normalize, sep } from "path";
-import { copyFileSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "fs";
+import { copyFileSync, existsSync, lstatSync, mkdirSync, readdirSync } from "fs";
 import { compile } from 'sass';
 import { HttpServer } from '../live-server/HttpServer';
 import { AventusExtension } from '../definition';
-import { pathToUri, uriToPath } from '../tools';
+import { pathToUri, writeFile } from '../tools';
 
 export class Static {
     private staticConfig: AventusConfigStatic;
@@ -69,7 +69,7 @@ export class Static {
                             let style = compile(pathFile, {
                                 style: 'compressed',
                             }).css.toString().trim();
-                            writeFileSync(pathOut.replace(".scss", ".css"), style);
+                            writeFile(pathOut.replace(".scss", ".css"), style);
                         }
                     }
                     else {
