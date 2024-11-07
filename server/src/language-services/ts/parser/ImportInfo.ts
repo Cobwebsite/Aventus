@@ -10,7 +10,17 @@ import { existsSync, readFileSync } from 'fs';
 import { AventusFile, InternalAventusFile } from '../../../files/AventusFile';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
-
+type ImportInfoCst1 = {
+	parserInfo: ParserTs,
+	moduleName: string,
+	identifier: Identifier,
+	isTypeImport: boolean
+}
+type ImportInfoCst2 = {
+	parserInfo: ParserTs,
+	name: string,
+	moduleUri: string,
+}
 export class ImportInfo {
 
 	public static Parse(node: ImportDeclaration, file: AventusFile, parserInfo: ParserTs) {
@@ -59,7 +69,13 @@ export class ImportInfo {
 							}
 							else {
 								let isTypeOnly = element.isTypeOnly || node.importClause.isTypeOnly;
-								let info = new ImportInfo(parserInfo, moduleName, element.name, isTypeOnly);
+								const opts = {
+									parserInfo: parserInfo,
+									moduleName: moduleName,
+									identifier: element.name,
+									isTypeImport: isTypeOnly
+								}
+								let info = new ImportInfo(opts);
 								parserInfo.importsLocal[info.name] = info;
 							}
 						}
@@ -123,7 +139,13 @@ export class ImportInfo {
 				moduleName = parserInfo.build.project.resolveAlias(moduleName, file);
 
 				if (moduleName.startsWith(".")) {
-					let info = new ImportInfo(parserInfo, moduleName, node.importClause.name, node.importClause.isTypeOnly);
+					const opts = {
+						parserInfo: parserInfo,
+						moduleName: moduleName,
+						identifier: node.importClause.name,
+						isTypeImport: node.importClause.isTypeOnly
+					}
+					let info = new ImportInfo(opts);
 					parserInfo.importsLocal[info.name] = info;
 				}
 				else {
@@ -144,6 +166,33 @@ export class ImportInfo {
 		}
 	}
 
+	public static ManualLocalImport(from: BaseInfo, fullName: string, uri: string) {
+		const parserInfo = from.parserInfo;
+		const splitted = fullName.split(".");
+		let name = splitted.pop();
+		if (!name) return;
+
+		const opts: ImportInfoCst2 = {
+			parserInfo: from.parserInfo,
+			name: name,
+			moduleUri: uri
+		}
+		let info = new ImportInfo(opts);
+		if (parserInfo.manualImportLocal[info.name]) {
+			let i = 0;
+			let nameTemp = name + i;
+			while (parserInfo.manualImportLocal[nameTemp]) {
+				i++;
+				nameTemp = name + i;
+			}
+			name = nameTemp;
+			info.alias = name;
+		}
+		parserInfo.manualImportLocal[name] = info;
+
+		return info;
+	}
+
 
 
 	public nameStart: number = 0;
@@ -153,21 +202,35 @@ export class ImportInfo {
 	/** real name not compiled by typescript */
 	public realName?: string;
 	public isTypeImport: boolean;
+	public alias?: string;
 
 	private _parserInfo: ParserTs;
 	public get parserInfo() {
 		return this._parserInfo;
 	}
 
+	public isCst1(info: ImportInfoCst1 | ImportInfoCst2): info is ImportInfoCst1 {
+		if (info['identifier']) return true;
+		return false;
+	}
 
-	constructor(parserInfo: ParserTs, moduleName: string, identifier: Identifier, isTypeImport: boolean) {
-		this._parserInfo = parserInfo;
-		this.name = identifier.getText();
-		this.nameStart = identifier.getStart();
-		this.nameEnd = identifier.getEnd();
-		this.isTypeImport = isTypeImport;
-		let moduleUri = pathToUri(normalize(getFolder(uriToPath(this.parserInfo.document.uri)) + '/' + moduleName));
-
+	protected constructor(info: ImportInfoCst1 | ImportInfoCst2) {
+		this._parserInfo = info.parserInfo;
+		let moduleUri: string;
+		if (this.isCst1(info)) {
+			this.name = info.identifier.getText();
+			this.nameStart = info.identifier.getStart();
+			this.nameEnd = info.identifier.getEnd();
+			this.isTypeImport = info.isTypeImport;
+			moduleUri = pathToUri(normalize(getFolder(uriToPath(this.parserInfo.document.uri)) + '/' + info.moduleName));
+		}
+		else {
+			this.name = info.name;
+			this.nameStart = 0;
+			this.nameEnd = 0;
+			this.isTypeImport = false;
+			moduleUri = info.moduleUri;
+		}
 		if (!ParserTs.parsedDoc[moduleUri]) {
 			let file = FilesManager.getInstance().getByUri(moduleUri);
 			if (file) {

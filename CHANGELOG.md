@@ -3,8 +3,12 @@
 ## 1.3.2 ()
 
 ### Bug Fixes
+ - Npm export will now correctly add dependance to html tag
 
 ### Features
+ - Add aventus.readDirs settings
+ - Add protected to storybook options
+ - Add NoLive to storybook options
 
 ## 1.3.1 (2024-10-19)
 

@@ -82,7 +82,10 @@ export class ClassInfo extends BaseInfo {
 				this.getClassInheritance(heritage);
 			}
 		}
-
+		if(this.name == "Calendar") {
+			debugger;
+			this.debug = true;
+		}
 		forEachChild(node, x => {
 			let isStrong = false;
 			let result: PropertyInfo | MethodInfo | null = null;
@@ -196,6 +199,10 @@ export class ClassInfo extends BaseInfo {
 		this.loadConvertible();
 
 		this.loadDependancesDecorator();
+		if(this.name == "Calendar") {
+			debugger;
+			this.debug = false;
+		}
 	}
 	private getClassInheritance(node: HeritageClause) {
 		if (node.token == SyntaxKind.ExtendsKeyword) {
@@ -463,6 +470,16 @@ export class ClassInfo extends BaseInfo {
 		const format = this.storyType;
 		if (format == 'public') {
 			if (info.isPrivate || info.isProtected) {
+				let decorator = info.decorators.find(p => p.name == "AddToStory");
+				return decorator !== undefined;
+			}
+			else {
+				let decorator = info.decorators.find(p => p.name == "NoStory");
+				return decorator === undefined;
+			}
+		}
+		else if (format == 'protected') {
+			if (info.isPrivate) {
 				let decorator = info.decorators.find(p => p.name == "AddToStory");
 				return decorator !== undefined;
 			}

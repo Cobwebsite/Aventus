@@ -3,13 +3,15 @@ import { Hover } from 'vscode-languageclient';
 import { CodeAction, CodeLens, CompletionItem, CompletionList, Definition, FormattingOptions, Location, Position, Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AventusExtension, AventusLanguageId } from '../definition';
-import { getLanguageIdByUri, pathToUri, uriToPath } from '../tools';
+import { escapeRegex, getLanguageIdByUri, pathToUri, uriToPath } from '../tools';
 import { AventusFile, InternalAventusFile } from './AventusFile';
 import { v4 as randomUUID } from 'uuid';
 import { Build } from '../project/Build';
 import { InitStep } from '../notification/InitStep';
 import { GenericServer } from '../GenericServer';
 import { FilesWatcher } from './FilesWatcher';
+import { SettingsManager } from '../settings/Settings';
+import { normalize } from 'path';
 
 export class FilesManager {
     private static instance: FilesManager;
@@ -86,14 +88,70 @@ export class FilesManager {
     public async loadAllAventusFiles(workspaces: string[]): Promise<void> {
         this.loadingInProgress = true;
         let configFiles: TextDocument[] = [];
+        let readDirs = SettingsManager.getInstance().settings.readDirs;
         InitStep.send("$(loading~spin) Aventus : Loading files")
+
         for (let i = 0; i < workspaces.length; i++) {
             let workspacePath = uriToPath(workspaces[i])
+
+            let checkPath = (workspacePathTemp: string) => {
+                return true;
+            }
+            if (readDirs.length > 0) {
+                let regexsDir: string[] = [];
+                const allowedDirs: string[] = [];
+                for (let dir of readDirs) {
+                    let slash = "";
+                    let allowPath = dir.replace(/\\/g, '/');
+                    if (!allowPath.startsWith("/")) {
+                        slash = "/";
+                    }
+                    let splitedpath = allowPath.split("/");
+                    if (splitedpath[splitedpath.length - 1] == "" || splitedpath[splitedpath.length - 1] == "*") {
+                        splitedpath[splitedpath.length - 1] = "*"
+                    }
+                    else if (splitedpath[splitedpath.length - 1].indexOf(".") == -1) {
+                        // its a folder but without end slash
+                        splitedpath.push("*");
+                    }
+                    allowPath = splitedpath.join("/");
+                    let regTemp = normalize(uriToPath(workspaces[i]) + slash + allowPath).replace(/\\/g, '/');
+                    regTemp = escapeRegex(regTemp, true).replace("*", ".*");
+                    let splittedAllow = regTemp.split("/");
+                    let currentPath = "";
+                    for (let part of splittedAllow) {
+                        if (part == ".*") continue;
+                        if (currentPath == "") currentPath = part;
+                        else currentPath += "/" + part;
+
+                        if (!allowedDirs.includes(currentPath)) {
+                            allowedDirs.push(currentPath);
+                        }
+                    }
+                    regexsDir.push("(^" + regTemp + "$)");
+
+                }
+                let regexsDirJoin = regexsDir.join("|");
+                if (regexsDirJoin == "") {
+                    regexsDirJoin = "(?!)";
+                }
+                const regex = new RegExp(regexsDirJoin);
+                checkPath = (workspacePathTemp: string) => {
+                    // for the children
+                    const resChildren = (workspacePathTemp + "/").match(regex) != null;
+                    // for the parent
+                    const resParent = allowedDirs.includes(workspacePathTemp);
+                    return resChildren || resParent;
+                }
+            }
+
             /**
              * Loop between all workspaces to find all aventus files
              * @param workspacePath 
              */
             let readWorkspace = async (workspacePath) => {
+                if (!checkPath(workspacePath)) return;
+
                 let folderContent = readdirSync(workspacePath);
                 for (let i = 0; i < folderContent.length; i++) {
                     let currentPath = workspacePath + '/' + folderContent[i];

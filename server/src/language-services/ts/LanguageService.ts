@@ -1216,7 +1216,8 @@ export class AventusTsLanguageService {
                             uri: '@aventusjs/main/Aventus',
                             name: "Converter",
                             compiled: true,
-                            alias: converterName
+                            alias: converterName,
+                            forced: false
                         });
                     }
                 }
@@ -1229,7 +1230,8 @@ export class AventusTsLanguageService {
                             uri: '@aventusjs/main/Aventus',
                             name: "Converter",
                             compiled: true,
-                            alias: converterName
+                            alias: converterName,
+                            forced: false
                         });
                     }
                 }
@@ -1314,7 +1316,7 @@ export class AventusTsLanguageService {
         }
         return "";
     }
-    public static removeUnusedImport(txt: string): string {
+    public static removeUnusedImport(txt: string, forcedDependances: string[]): string {
         try {
             let document = TextDocument.create("temp.js", "js", 1, txt);
             const host: LanguageServiceHost = {
@@ -1365,6 +1367,11 @@ export class AventusTsLanguageService {
                     const end: Position = { line: position.line, character: 6 }
                     const isImport = txt.slice(document.offsetAt(start), document.offsetAt(end)) == "import";
                     if (isImport) {
+                        const execResult = /'(\S*)'/.exec(diag.messageText + '');
+                        if (execResult && execResult[1]) {
+                            if (forcedDependances.includes(execResult[1]))
+                                continue;
+                        }
                         unusedRanges.push({
                             start: diag.start!,
                             length: diag.length!

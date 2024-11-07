@@ -1,6 +1,6 @@
-import { existsSync, mkdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "fs";
 import { EOL } from "os";
-import { join, normalize, sep } from "path";
+import { join, sep } from "path";
 import { Diagnostic, DiagnosticSeverity, TextEdit } from 'vscode-languageserver';
 import { AventusErrorCode, AventusExtension, AventusLanguageId } from "../definition";
 import { AventusFile } from '../files/AventusFile';
@@ -34,6 +34,7 @@ import { AventusWebComponentSingleFile } from '../language-services/ts/component
 import { DebugFileAdd } from '../notification/DebugFileAdd';
 import { AliasInfo } from '../language-services/ts/parser/AliasInfo';
 import { Storie } from './storybook/Stories';
+import * as md5 from 'md5';
 
 export type BuildErrors = { file: string, title: string }[]
 
@@ -57,7 +58,8 @@ export type LocalCodeResult = {
         [file: string]: {
             names: string[],
             content: string[],
-            imports: { [uri: string]: string[] }
+            imports: { [uri: string]: string[] },
+            forcedDependances: string[]
         }
     },
 
@@ -446,6 +448,15 @@ export class Build {
         this.stories.write(this.tsFiles, true);
     }
 
+    protected md5HashFile: { [path: string]: string } = {};
+    protected writeFile(outputFile: string, txt: string) {
+        let hash = md5(txt);
+        if (!this.md5HashFile[outputFile] || this.md5HashFile[outputFile] != hash) {
+            this.md5HashFile[outputFile] = hash;
+            writeFileSync(outputFile, txt);
+        }
+    }
+
     /**
      * Write the code inside the exported .js
      */
@@ -493,7 +504,7 @@ export class Build {
                         console.log(e);
                     }
                 }
-                writeFileSync(outputFile, finalTxt);
+                this.writeFile(outputFile, finalTxt);
             }
         }
 
@@ -548,7 +559,7 @@ export class Build {
 
         for (let outputPackage of outputsPackage) {
             if (outputPackage) {
-                writeFileSync(outputPackage, finaltxt);
+                this.writeFile(outputPackage, finaltxt);
             }
             else if (existsSync(outputPackage)) {
                 unlinkSync(outputPackage);
@@ -560,7 +571,7 @@ export class Build {
             mkdirSync(pathPackages, { recursive: true });
         }
 
-        writeFileSync(join(pathPackages, this.buildConfig.fullname + AventusExtension.Package), finaltxt);
+        this.writeFile(join(pathPackages, this.buildConfig.fullname + AventusExtension.Package), finaltxt);
     }
 
     /**
@@ -603,7 +614,7 @@ export class Build {
                 txt += EOL;
             }
             txt += result.npmsrc[path].content.join(EOL);
-            txt = AventusTsLanguageService.removeUnusedImport(txt);
+            txt = AventusTsLanguageService.removeUnusedImport(txt, result.npmsrc[path].forcedDependances);
             for (let outputPackage of outputNpm.path) {
                 const folder = getFolder(path);
                 const outputDir = join(outputPackage, "__src", ...folder.split(sep))
@@ -611,7 +622,7 @@ export class Build {
                 if (!existsSync(outputDir)) {
                     mkdirSync(outputDir, { recursive: true });
                 }
-                writeFileSync(outputFile, txt);
+                this.writeFile(outputFile, txt);
             }
 
             // add into export 
@@ -669,14 +680,14 @@ export class Build {
 
             txt = txt.replaceAll("globalThis.Aventus.", "");
             txt = txt.replaceAll("___Aventus.", "");
-            txt = AventusTsLanguageService.removeUnusedImport(txt);
+            txt = AventusTsLanguageService.removeUnusedImport(txt, []);
             for (let outputPackage of outputNpm.path) {
                 const outputDir = join(outputPackage, ..._namespace.split("."))
                 if (!existsSync(outputDir)) {
                     mkdirSync(outputDir, { recursive: true });
                 }
                 let indexDTs = join(outputDir, "index.d.ts");
-                writeFileSync(indexDTs, txt);
+                this.writeFile(indexDTs, txt);
             }
         }
 
@@ -704,14 +715,14 @@ export class Build {
                 }
             }
             txt += txtEnd;
-            txt = AventusTsLanguageService.removeUnusedImport(txt);
+            txt = AventusTsLanguageService.removeUnusedImport(txt, []);
             for (let outputPackage of outputNpm.path) {
                 const outputDir = join(outputPackage, ..._namespace.split("."))
                 if (!existsSync(outputDir)) {
                     mkdirSync(outputDir, { recursive: true });
                 }
                 let indexDTs = join(outputDir, "index.js");
-                writeFileSync(indexDTs, txt);
+                this.writeFile(indexDTs, txt);
             }
         }
         for (let key of keys) {
@@ -765,7 +776,7 @@ export class Build {
                 if (!existsSync(outputPackage)) {
                     mkdirSync(outputPackage, { recursive: true });
                 }
-                writeFileSync(join(outputPackage, "package.json"), JSON.stringify(packageJson, null, 2));
+                this.writeFile(join(outputPackage, "package.json"), JSON.stringify(packageJson, null, 2));
             }
         }
     }
@@ -923,6 +934,7 @@ export class Build {
                             content: [],
                             imports: {},
                             names: [],
+                            forcedDependances: [],
                         }
                     }
                     const txt = info.isExported.internal ? "export " + info.npm.src : info.npm.src;
@@ -1009,28 +1021,31 @@ export class Build {
                         result.npmsrc[info.npm.exportPath] = {
                             content: [],
                             imports: {},
-                            names: []
+                            names: [],
+                            forcedDependances: []
                         }
                         let fileParsed = this.tsFiles[info.npm.uri].fileParsed;
                         let importsNpm = fileParsed?.npmGeneratedImport;
                         if (importsNpm) {
                             for (let _packageUri in importsNpm) {
                                 if (_packageUri.startsWith(".")) {
-                                    let imports = fileParsed?.importsLocal;
-                                    if (imports) {
-                                        for (let infoImport of importsNpm[_packageUri]) {
-                                            let importInfo = imports[infoImport.name];
-                                            if (!importInfo) continue; // it means its a local dependance (same file)
-                                            if (importInfo.isTypeImport) continue;
-                                            let fileToImportUri = importInfo.info?.fileUri ?? '';
-                                            let currentUri = info.npm.uri;
-                                            let finalPath = simplifyUri(fileToImportUri, currentUri);
-                                            finalPath = finalPath.replace(AventusExtension.Base, ".js");
-                                            if (!result.npmsrc[info.npm.exportPath].imports[finalPath]) {
-                                                result.npmsrc[info.npm.exportPath].imports[finalPath] = []
-                                            }
-                                            const nameWithAlias = infoImport.alias ? infoImport.name + ' as ' + infoImport.alias : infoImport.name;
-                                            result.npmsrc[info.npm.exportPath].imports[finalPath].push(nameWithAlias);
+                                    let imports = fileParsed?.importsLocal ?? {};
+                                    let manualImports = fileParsed?.manualImportLocal ?? {};
+                                    for (let infoImport of importsNpm[_packageUri]) {
+                                        let importInfo = imports[infoImport.name] ?? manualImports[infoImport.nameAlias ?? infoImport.name];
+                                        if (!importInfo) continue; // it means its a local dependance (same file)
+                                        if (importInfo.isTypeImport) continue;
+                                        let fileToImportUri = importInfo.info?.fileUri ?? '';
+                                        let currentUri = info.npm.uri;
+                                        let finalPath = simplifyUri(fileToImportUri, currentUri);
+                                        finalPath = finalPath.replace(AventusExtension.Base, ".js");
+                                        if (!result.npmsrc[info.npm.exportPath].imports[finalPath]) {
+                                            result.npmsrc[info.npm.exportPath].imports[finalPath] = []
+                                        }
+                                        const nameWithAlias = infoImport.alias ? infoImport.name + ' as ' + infoImport.alias : infoImport.name;
+                                        result.npmsrc[info.npm.exportPath].imports[finalPath].push(nameWithAlias);
+                                        if (infoImport.forced) {
+                                            result.npmsrc[info.npm.exportPath].forcedDependances.push(infoImport.alias ?? infoImport.name);
                                         }
                                     }
                                 }
@@ -1042,6 +1057,9 @@ export class Build {
                                         if (infoImport.compiled) {
                                             const nameWithAlias = infoImport.alias ? infoImport.name + ' as ' + infoImport.alias : infoImport.name;
                                             result.npmsrc[info.npm.exportPath].imports[_packageUri + "/index.js"].push(nameWithAlias);
+                                            if (infoImport.forced) {
+                                                result.npmsrc[info.npm.exportPath].forcedDependances.push(infoImport.alias ?? infoImport.name);
+                                            }
                                         }
                                     }
                                 }

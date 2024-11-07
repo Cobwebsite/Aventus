@@ -144,6 +144,7 @@ export class ParserTs {
     public functions: { [shortName: string]: FunctionInfo } = {};
     public enums: { [shortName: string]: EnumInfo } = {};
     public importsLocal: { [importClassName: string]: ImportInfo } = {};
+    public manualImportLocal: { [importClassName: string]: ImportInfo } = {};
     public packages: { [importClassName: string]: { fullname: string } } = {};
     public npmImports: {
         [importClassName: string]: {
@@ -154,10 +155,12 @@ export class ParserTs {
     public npmGeneratedImport: {
         [_package: string]: {
             name: string,
+            nameAlias?: string, // actually only for the manual importation from html
             alias?: string,
             // define if the element will be compiled from ts to js
             compiled: boolean,
-            onlySrc?: boolean
+            onlySrc?: boolean,
+            forced: boolean,
         }[]
     } = {};
     public internalObjects: { [name: string]: { fullname: string, isExported: boolean, isStoryExported: boolean, isCompiled: boolean } } = {}
@@ -434,17 +437,19 @@ export class ParserTs {
         return this.getBaseInfo(name);
     }
 
-    public registerGeneratedImport(options: { uri: string, name: string, compiled: boolean, alias: string, onlySrc?: boolean }) {
-        if(!this.build.hasNpmOutput) return;
-        
-        const { uri, name, compiled, alias, onlySrc } = options;
+    public registerGeneratedImport(options: { uri: string, name: string, compiled: boolean, alias: string, onlySrc?: boolean, nameAlias?: string, forced: boolean }) {
+        if (!this.build.hasNpmOutput) return;
+
+        const { uri, name, compiled, alias, onlySrc, nameAlias, forced } = options;
         const realAlias = name == alias ? undefined : alias;
         if (!this.npmGeneratedImport[uri]) {
             this.npmGeneratedImport[uri] = [{
                 name: name,
+                nameAlias,
                 compiled: compiled,
                 alias: realAlias,
-                onlySrc
+                onlySrc,
+                forced
             }];
         }
         else {
@@ -452,15 +457,17 @@ export class ParserTs {
             if (index == -1) {
                 this.npmGeneratedImport[uri].push({
                     name: name,
+                    nameAlias,
                     compiled: compiled,
                     alias: realAlias,
-                    onlySrc
+                    onlySrc,
+                    forced
                 });
             }
         }
     }
 
-    public getNpmReplacementName(fromName:string, fullName: string): string {
+    public getNpmReplacementName(fromName: string, fullName: string): string {
         return this.build.getNpmReplacementName(fromName, fullName);
         // if (this.npmAliases[fullName]) {
         //     return this.npmAliases[fullName];

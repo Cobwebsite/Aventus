@@ -17,6 +17,7 @@ export interface Settings {
 	projectPath: string[],
 	templatePath: string[],
 	readNodeModules: boolean,
+	readDirs: string[],
 }
 
 const defaultSettings: Settings = {
@@ -34,7 +35,8 @@ const defaultSettings: Settings = {
 	updateImportOnRename: true,
 	readNodeModules: false,
 	templatePath: [],
-	projectPath: []
+	projectPath: [],
+	readDirs: []
 }
 function getDefaultSettings() {
 	return JSON.parse(JSON.stringify(defaultSettings));

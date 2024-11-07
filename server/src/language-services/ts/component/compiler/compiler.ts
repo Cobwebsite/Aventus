@@ -449,7 +449,7 @@ export class AventusWebcomponentCompiler {
 
     //#region prepare view
     private addViewElementToDependance() {
-        if (this.htmlParsed && this.htmlFile) {
+        if (this.htmlParsed && this.htmlFile && this.classInfo) {
             this.logicalFile.resetViewClassInfoDep();
             let addedDep: string[] = [];
             let fileByTag: { [name: string]: AventusWebComponentLogicalFile | null } = {}
@@ -457,16 +457,7 @@ export class AventusWebcomponentCompiler {
                 if (interestPoint.type == "tag") {
                     if (!addedDep.includes(interestPoint.name)) {
                         addedDep.push(interestPoint.name);
-                        let dependance = this.build.getWebComponentTagDependance(interestPoint.name);
-                        if (dependance) {
-                            for (let dep of this.componentResult.dependances) {
-                                if (dep.fullName == dependance.fullName) {
-                                    return;
-                                }
-                            }
-
-                            this.componentResult.dependances.push(dependance)
-                        }
+                        this.classInfo.addDependanceTag(interestPoint.name, this.componentResult);
                     }
 
                     if (!fileByTag.hasOwnProperty(interestPoint.name)) {
@@ -600,7 +591,8 @@ export class AventusWebcomponentCompiler {
                     uri: '@aventusjs/main/Aventus',
                     name: "WebComponentInstance",
                     compiled: true,
-                    alias: aliasName
+                    alias: aliasName,
+                    forced: false
                 });
             }
         }
@@ -734,7 +726,6 @@ export class AventusWebcomponentCompiler {
                 if (value.endsWith("'") || value.endsWith('"')) {
                     value = value.substring(0, value.length - 1);
                 }
-                storyValue = field.defaultValue?.slice(1, -1) ?? undefined;
                 values.push(value);
                 attType = 'string';
             }
@@ -750,7 +741,6 @@ export class AventusWebcomponentCompiler {
                     }
                     values.push(value);
                 }
-                storyValue = field.defaultValue?.slice(1, -1) ?? undefined;
                 attType = 'string';
             }
             else if (type.kind == "number") {
@@ -765,12 +755,14 @@ export class AventusWebcomponentCompiler {
                 if (type.value == "Date" || type.value == "DateTime") {
                     control = "date";
                 }
-                let info = ParserTs.getBaseInfo(type.value);
-                if (info && info instanceof AliasInfo) {
-                    findType(info.type);
-                }
                 else {
-                    control = "object"
+                    let info = ParserTs.getBaseInfo(type.value);
+                    if (info && info instanceof AliasInfo) {
+                        findType(info.type);
+                    }
+                    else {
+                        control = "object"
+                    }
                 }
             }
             else {

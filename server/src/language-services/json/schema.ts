@@ -94,9 +94,9 @@ export const AventusConfigSchema: JSONSchema = {
                             },
                             "format": {
                                 type: "string",
-                                enum: ["all", "public", "manual"],
+                                enum: ["all", "public", "protected", "manual"],
                                 default: "all",
-                                description: "All will export all elements, public only public elements, manual only elements with tag Storybook",
+                                description: "All will export all elements, public only public elements, protected only public and protected elements, manual only elements with tag Storybook",
                             },
                             "prefix": {
                                 type: "string",

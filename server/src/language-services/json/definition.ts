@@ -57,7 +57,7 @@ export interface AventusConfigStatic {
 export interface AventusConfigBuildStories {
 	output: string,
 	workspace?: string,
-	format?: "all" | "public" | "manual",
+	format?: "all" | "public" | "protected" | "manual",
 	live?: boolean,
 	prefix?: string,
 	srcBaseUrl?: string

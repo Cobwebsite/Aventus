@@ -2117,9 +2117,11 @@ class WebComponentInstance {
 
     interface StorybookConfig {
         /** Define what must be exported to storybook */
-        export?: 'all' | 'none' | 'public',
-        /** Define a prefix to group your stories */
+        export?: 'all' | 'none' | 'public' | 'protected',
+        /** Define a prefix for the group of your stories */
         prefix?: string,
+        /** Define the group for your element. If not set, the group will be the namespace */
+        group?: string,
         /** If set to true, only meta will be generated. Usefull to create custom pages */
         onlyMeta?: boolean;
         /** Define the configruation for your slots */
@@ -2131,6 +2133,8 @@ class WebComponentInstance {
             /** Inject type */
             inject?: (new (...args: any[]) => Aventus.WebComponent)[];
         };
+        /** Disable live section inside your story */
+        noLive ?:boolean
     }
     /**
      * Export a story for this component
@@ -2140,6 +2144,7 @@ class WebComponentInstance {
     function NoStory();
     function AddToStory();
     function StoryValue(value: any);
+
 
 }
 declare module ___Aventus {

@@ -3,7 +3,7 @@ import { DecoratorInfo } from '../DecoratorInfo';
 type StorybookConfig = {
 	export?: StoryExport,
 	prefix?: string,
-	fullName?: string,
+	group?: string,
 	onlyMeta?: boolean;
 	slots?: {
 		values?: {
@@ -11,19 +11,21 @@ type StorybookConfig = {
 		};
 		inject?: string[];
 	};
+	noLive?: boolean;
 }
-type StoryExport = 'all' | 'none' | 'public';
+type StoryExport = 'all' | 'none' | 'public' | 'protected';
 export class StorybookDecorator {
 	public prefix?: string;
 	public exportType?: StoryExport;
 	public onlyMeta?: boolean;
-	public fullName?: string
+	public group?: string
 	public slots?: {
 		values?: {
 			[name: string]: string;
 		};
 		inject?: string[];
 	};
+	public noLive?: boolean;
 	public static is(decorator: DecoratorInfo): StorybookDecorator | null {
 		if (decorator.name == "Storybook") {
 			let result = new StorybookDecorator();
@@ -36,11 +38,14 @@ export class StorybookDecorator {
 					if (params.export) {
 						result.exportType = params.export.replace(/(^('|"))|(('|")$)/g, '') as StoryExport;
 					}
-					if (params.fullName) {
-						result.fullName = params.fullName.replace(/(^('|"))|(('|")$)/g, '');
+					if (params.group) {
+						result.group = params.group.replace(/(^('|"))|(('|")$)/g, '');
 					}
 					if (params.onlyMeta === true) {
 						result.onlyMeta = true;
+					}
+					if (params.noLive === true) {
+						result.noLive = true;
 					}
 					if (params.slots) {
 						result.slots = {}

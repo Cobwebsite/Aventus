@@ -199,6 +199,14 @@
 					"title": "Read the folder node_modules to suggest import",
 					"description": "This may slow the extension",
 					"default": false
+				},
+				"aventus.readDirs": {
+					"type": "array",
+					"title": "Define directories readable. If you use relative path, the . represents the workspace root not the .vscode folder",
+					"default": [],
+					"items": {
+						"type": "string"
+					}
 				}
 			}
 		},
@@ -628,7 +636,7 @@
 		"publish": "npx vsce publish --allow-star-activation && npx node-notifier-cli notify -t \"Publish done\" -m \"The aventus extension has been published\" -i \"./icons/icon.png\"",
 		"package:cli": "rimraf cli/out && webpack --mode production --config ./cli/webpack.config.js",
 		"test": "jest",
-		"watch": "concurrently \"npm run dev:client\" \"npm run dev:server\" -n \"client,server\""
+		"watch": "concurrently \"npm run dev:server\" \"npm run dev:client\" -n \"server,client\""
 	},
 	"devDependencies": {
 		"@aventusjs/storybook": "^0.0.16",
@@ -653,7 +661,7 @@
 		"@types/send": "^0.17.1",
 		"@types/vscode": "^1.68.0",
 		"@types/ws": "^8.5.3",
-		"@vscode/vsce": "^3.0.0",
+		"@vscode/vsce": "^3.2.1",
 		"babel-jest": "^29.0.2",
 		"concurrently": "^7.6.0",
 		"jest": "^29.0.2",

@@ -8,9 +8,6 @@ import { CompileTsResult } from './LanguageService';
 import { ParserTs } from './parser/ParserTs';
 import { ClassInfo } from './parser/ClassInfo';
 
-
-
-
 export abstract class AventusTsFile extends AventusBaseFile {
     public get tsLanguageService() {
         return this.build.tsLanguageService;

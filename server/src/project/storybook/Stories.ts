@@ -33,8 +33,13 @@ export class Storie {
 			}
 		}
 		if (info.storieDecorator) {
-			if (info.storieDecorator.fullName) {
-				fullname = info.storieDecorator.fullName;
+			if (info.storieDecorator.group !== undefined) {
+				if (info.storieDecorator.group) {
+					fullname = info.storieDecorator.group + "/" + info.name;
+				}
+				else {
+					fullname = info.name;
+				}
 			}
 			if (info.storieDecorator.prefix !== undefined) {
 				prefixFound = true;
@@ -128,8 +133,24 @@ export class Storie {
 
 			writeFileSync(outputPath + "_.mdx", template);
 		}
+		const writeObjAsJson = (args: { [name: string]: any; }) => {
+			// JSON.stringify(args, null, 2)
+			let txt = '{' + EOL;
+			for (let name in args) {
+				let value: any = args[name];
+				if (typeof value == 'string') {
+					value = value.replace(/\\"/g, '');
+				}
+				if (value == '') {
+					value = '""';
+				}
+				txt += '\t"' + name + '":' + value + "," + EOL
+			}
+			txt += '}'
+			return txt;
+		}
 		const writeStorie = () => {
-			let template = file instanceof AventusWebComponentLogicalFile ? defaultStoryTempateComponent() : defaultStoryTempate();
+			let template = file instanceof AventusWebComponentLogicalFile && !info.storieDecorator?.noLive ? defaultStoryTempateComponent() : defaultStoryTempate();
 			let name = info.name;
 			let fullname = Storie.getFullname(info);
 			let hasDefaultStory = true;
@@ -145,7 +166,7 @@ export class Storie {
 			template = this.replaceVariable(template, "defaultStory", hasDefaultStory ? "export const DefaultStory: Story = {}" : "");
 			if (file instanceof AventusWebComponentLogicalFile) {
 				template = this.replaceVariable(template, "argTypes", "argTypes: " + JSON.stringify(file.storyBookInfo.argsTypes, null, 2) + ",");
-				template = this.replaceVariable(template, "args", "args: " + JSON.stringify(file.storyBookInfo.args, null, 2) + ",");
+				template = this.replaceVariable(template, "args", "args: " + writeObjAsJson(file.storyBookInfo.args) + ",");
 
 				let importPathes: { [uri: string]: string[] } = file.fileParsed?.classes[file.componentClassName].storieInject ?? {};
 
