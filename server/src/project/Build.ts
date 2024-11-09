@@ -756,6 +756,7 @@ export class Build {
                     email: "info@cobwebsite.ch",
                     url: "https://cobwesbite.ch"
                 },
+                type: "module",
                 main: "index.js",
                 types: "index.d.ts",
                 dependencies
