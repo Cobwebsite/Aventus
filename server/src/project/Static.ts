@@ -7,6 +7,7 @@ import { compile } from 'sass';
 import { HttpServer } from '../live-server/HttpServer';
 import { AventusExtension } from '../definition';
 import { pathToUri, writeFile } from '../tools';
+import { SettingsManager } from '../settings/Settings';
 
 export class Static {
     private staticConfig: AventusConfigStatic;
@@ -99,6 +100,8 @@ export class Static {
         }
     }
     public registerWatcher() {
+        if (SettingsManager.getInstance().settings.onlyBuild) return;
+        
         this.watcher = watch(this.staticConfig.inputPathFolder, {
             ignored: /^\./,
             persistent: true,

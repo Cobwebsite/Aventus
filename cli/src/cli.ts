@@ -5,7 +5,7 @@ import { registerCommands } from "./commands/_index";
 program
     .version("1.0.0")
     .name("aventus")
-    .description("AventusJs CLI");
+    .description("Aventus CLI");
 
 registerCommands(program);
 

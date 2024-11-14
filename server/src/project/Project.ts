@@ -28,6 +28,8 @@ export class Project {
     private onHoverUUID: string;
     private onNewFileUUID: string;
     private onFileDeleteUUIDs: { [uri: string]: string } = {}
+    public buildsAllowed?: string[];
+    public staticsAllowed?: string[];
 
     public globalSCSSLanguageService: AventusGlobalSCSSLanguageService;
 
@@ -102,7 +104,7 @@ export class Project {
         return;
     }
 
-    public constructor(configFile: AventusFile) {
+    public constructor(configFile: AventusFile, autoLoad: boolean) {
         this.configFile = configFile;
         this.onValidateUUID = this.configFile.onValidate(this.onValidate.bind(this));
         this.onSaveUUID = this.configFile.onSave(this.onConfigSave.bind(this));
@@ -116,7 +118,9 @@ export class Project {
             this._isCoreBuild = true;
         }
         this.globalSCSSLanguageService = new AventusGlobalSCSSLanguageService();
-        this.loadFiles();
+        if (autoLoad) {
+            this.loadFiles();
+        }
         configFile.validate();
     }
     public async init() {
@@ -128,10 +132,7 @@ export class Project {
 
     //#region config
 
-    /**
-     * Load the new config file and create build
-     */
-    public async onConfigSave() {
+    public async loadConfig() {
         let newConfig = await AventusJSONLanguageService.getInstance().getConfig(this.configFile);
         if (this.config) {
             let oldConfigTxt = JSON.stringify(this.config);
@@ -150,10 +151,24 @@ export class Project {
         }
         this.builds = [];
         this.config = newConfig;
+    }
+    /**
+     * Load the new config file and create build
+     */
+    public async onConfigSave() {
+        await this.loadConfig();
         if (this.config) {
             for (let build of this.config.build) {
-                if (build.disabled) {
-                    continue;
+                if (this.buildsAllowed) {
+                    if (!this.buildsAllowed.includes(build.name)) {
+                        continue;
+                    }
+                }
+                else {
+                    // disable only if we don't specify build
+                    if (build.disabled) {
+                        continue;
+                    }
                 }
                 let newBuild = new Build(this, build);
                 this.builds.push(newBuild);
@@ -162,6 +177,9 @@ export class Project {
 
             if (this.config.static) {
                 for (let _static of this.config.static) {
+                    if (this.staticsAllowed && !this.staticsAllowed.includes(_static.name)) {
+                        continue;
+                    }
                     this.statics.push(new Static(this, _static));
                 }
             }
@@ -232,7 +250,7 @@ export class Project {
         return undefined;
     }
 
-    private loadFiles() {
+    public loadFiles() {
         let files = FilesManager.getInstance().getFilesWithExtension(AventusExtension.GlobalStyle);
         for (let file of files) {
             this.onNewFile(file);

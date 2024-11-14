@@ -1,9 +1,11 @@
 import { Action, ActionOption, ArgOption } from './Action';
-import { printLogo } from '../logo';
 import { Server } from '../server/Server';
 import { Interaction } from '../interaction/Interaction';
 
-export class Dev extends Action {
+type DevOptions = {
+}
+
+export class Dev extends Action<DevOptions> {
 	public get name(): string {
 		return "dev";
 	}
@@ -17,15 +19,17 @@ export class Dev extends Action {
 			typeIsRequired: false
 		})
 	}
-	protected registerOptions(addOption: (option: ActionOption) => void) {
+	protected registerOptions(addOption: (option: ActionOption<DevOptions>) => void) {
 
 	}
-	public async run(args: string[], options: { [key: string]: string; }) {
+	public async run(args: string[], options: DevOptions) {
 		await Interaction.load();
 		await Server.load();
 		console.clear();
 		await Interaction.init();
-		await Server.start();
+		await Server.start({
+			onlyBuild: false
+		});
 		let query = [{
 			value: "create",
 			name: "Create...",
@@ -42,7 +46,7 @@ export class Dev extends Action {
 			value: "quit",
 			name: "Quit",
 		}] as const;
-		
+
 		Interaction.clear();
 
 		while (true) {

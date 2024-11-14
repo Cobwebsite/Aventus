@@ -5,6 +5,7 @@ export interface AventusConfigBuild {
 	disabled: boolean,
 	hideWarnings: boolean,
 	src: string[],
+	srcPath: string[],
 	stories: AventusConfigBuildStories | undefined,
 	srcPathRegex: RegExp,
 	compile: AventusConfigBuildCompile[],

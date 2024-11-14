@@ -26,8 +26,7 @@
 		]
 	},
 	"include": [
-		"src/main.ts",
-		"src/interaction/RealInteraction.ts"
+		"src",
 	],
 	"exclude": [
 		".vscode-test"

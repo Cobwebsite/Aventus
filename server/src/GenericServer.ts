@@ -93,7 +93,6 @@ export class GenericServer {
 	public constructor(connection: IConnection) {
 		this.connection = connection;
 		this.bindEvent();
-
 	}
 
 
@@ -286,11 +285,24 @@ export class GenericServer {
 	}
 
 	protected async startServer() {
+		// define the config for startServer
+		const settings = SettingsManager.getInstance().settings;
+		if (!settings.onlyBuild) {
+			TemplateManager.getInstance();
+			CSharpManager.getInstance();
+		}
 
-		TemplateManager.getInstance();
-		CSharpManager.getInstance();
-		ProjectManager.getInstance();
-		await FilesManager.getInstance().loadAllAventusFiles(this.workspaces);
+		ProjectManager.getInstance()
+		if (settings.onlyBuild) {
+			if (settings.configPath) {
+				await FilesManager.getInstance().loadConfigFile(settings.configPath, settings.builds, settings.statics);
+			}
+			else
+				await FilesManager.getInstance().loadConfigFileNotSet(this.workspaces, settings.builds, settings.statics);
+		}
+		else {
+			await FilesManager.getInstance().loadAllAventusFiles(this.workspaces);
+		}
 		this.isLoading = false;
 		if (this.isDebug) {
 			console.log("start server done");

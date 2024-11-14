@@ -21,7 +21,7 @@ optionalPlugins.push(new BannerPlugin({ banner: "#!/usr/bin/env node", raw: true
 module.exports = withDefaults({
 	context: path.join(__dirname),
 	entry: {
-		extension: './src/main.ts',
+		extension: './src/cli.ts',
 	},
 	output: {
 		filename: 'cli.js',

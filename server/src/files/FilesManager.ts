@@ -12,6 +12,7 @@ import { GenericServer } from '../GenericServer';
 import { FilesWatcher } from './FilesWatcher';
 import { SettingsManager } from '../settings/Settings';
 import { normalize } from 'path';
+import { ProjectManager } from '../project/ProjectManager';
 
 export class FilesManager {
     private static instance: FilesManager;
@@ -84,7 +85,91 @@ export class FilesManager {
         }
     }
 
+    public async loadConfigFileNotSet(workspaces: string[], builds?: string[], statics?: string[]) {
+        for (let i = 0; i < workspaces.length; i++) {
+            let workspacePath = uriToPath(workspaces[i])
+            let readWorkspace = async (workspacePath): Promise<boolean> => {
+                let folderContent = readdirSync(workspacePath);
+                for (let i = 0; i < folderContent.length; i++) {
+                    let currentPath = workspacePath + '/' + folderContent[i];
+                    if (lstatSync(currentPath).isDirectory()) {
+                        if (folderContent[i] != "node_modules") {
+                            if (await readWorkspace(currentPath)) {
+                                return true;
+                            }
+                        }
+                    } else {
+                        let uri = pathToUri(currentPath)
+                        if (folderContent[i] == AventusExtension.Config) {
+                            await this.loadConfigFile(uri, builds, statics);
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+            if (await readWorkspace(workspacePath)) {
+                return;
+            }
+        }
 
+        // if not found
+        GenericServer.showErrorMessage("Can't find a aventus.config.avt inside the workspaces " + workspaces.join(", "));
+    }
+    public async loadConfigFile(configUri: string, builds?: string[], statics?: string[]) {
+        ProjectManager.autoLoad = false;
+        let configPath = uriToPath(configUri);
+        configUri = pathToUri(configPath);
+        const configFile = TextDocument.create(pathToUri(configPath), AventusExtension.Config, 0, readFileSync(configPath, 'utf8'))
+        this.loadingInProgress = false;
+        await this.registerFile(configFile);
+        this.loadingInProgress = true;
+
+        const project = ProjectManager.getInstance().getProjectByUri(configUri);
+        if (project) {
+            await project.loadConfig();
+            const config = project.getConfig();
+            if (config) {
+                let readDir = async (workspacePath) => {
+                    if (!existsSync(workspacePath)) return;
+                    let folderContent = readdirSync(workspacePath);
+                    for (let i = 0; i < folderContent.length; i++) {
+                        let currentPath = workspacePath + '/' + folderContent[i];
+                        if (lstatSync(currentPath).isDirectory()) {
+                            if (folderContent[i] != "node_modules") {
+                                await readDir(currentPath);
+                            }
+                        } else {
+                            let uri = pathToUri(currentPath)
+                            let extension = getLanguageIdByUri(uri);
+                            if (folderContent[i] == AventusExtension.Config) { }
+                            else if (folderContent[i].endsWith(AventusExtension.Base)) {
+                                let textDoc = TextDocument.create(uri, extension, 0, readFileSync(currentPath, 'utf8'));
+                                await this.registerFile(textDoc);
+                            }
+                        }
+                    }
+                }
+                for (let build of config.build) {
+                    if (!builds || builds.includes(build.module)) {
+                        for (let src of build.srcPath) {
+                            await readDir(src);
+                        }
+                    }
+                }
+
+                for (let _static of config.static) {
+                    if (!statics || statics.includes(_static.name)) {
+
+                    }
+                }
+                project.loadFiles();
+                this.loadingInProgress = false;
+
+                await project.init();
+            }
+        }
+    }
     public async loadAllAventusFiles(workspaces: string[]): Promise<void> {
         this.loadingInProgress = true;
         let configFiles: TextDocument[] = [];

@@ -626,7 +626,7 @@
 		"vscode:prepublish": "npm run webpack",
 		"compile": "npm run clean && npm run compile:client && npm run compile:server",
 		"compile:client": "tsc -b ./client/",
-		"compile:server": "tsc -b ./server/",
+		"compile:server": "rimraf server/out && tsc -b ./server/",
 		"dev:server": "rimraf server/out && tsc -b -w ./server/",
 		"dev:client": "rimraf client/out && tsc -b -w ./client/",
 		"dev:cli": "rimraf cli/out && tspc -b -w ./cli/",

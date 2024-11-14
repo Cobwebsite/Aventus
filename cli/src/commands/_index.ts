@@ -3,7 +3,7 @@ import { Action } from './Action';
 import { Build } from './Build'
 import { Dev } from './Dev'
 
-const actions: (new () => Action)[] = [
+const actions: (new () => Action<any>)[] = [
 	Build,
 	Dev
 ]

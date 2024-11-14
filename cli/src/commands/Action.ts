@@ -1,7 +1,7 @@
 import { Command } from "commander";
 
-export type ActionOption = {
-	name: string[] | string,
+export type ActionOption<T extends { [name: string]: any }> = {
+	name: keyof T,
 	shortName?: string[] | string,
 	type?: string,
 	required?: boolean,
@@ -19,7 +19,7 @@ export type ArgOption = {
 }
 
 
-export abstract class Action {
+export abstract class Action<T extends { [name: string]: any }> {
 
 	public abstract get name(): string;
 	public abstract get description(): string;
@@ -35,11 +35,13 @@ export abstract class Action {
 		cmd.action(async (...args: any[]) => {
 			const _arguments: string[] = [];
 			for (let i = 0; i < this.argsNb; i++) {
-				_arguments.push(this.argsNb[i]);
+				_arguments.push(args[i]);
 			}
 			const options = args[this.argsNb];
 
 			await this.run(_arguments, options);
+			console.log("done");
+			process.exit(0);
 		})
 	}
 
@@ -71,11 +73,10 @@ export abstract class Action {
 
 
 	private _registerOptions(program: Command) {
-		this.registerOptions((option: ActionOption) => {
-			if (!Array.isArray(option.name)) {
-				option.name = [option.name];
-			}
-			let names = option.name.map(p => '--' + p);
+		this.registerOptions((option: ActionOption<T>) => {
+
+			option.name = '--' + (option.name as string);
+			let names = [option.name];
 			if (option.shortName) {
 				if (!Array.isArray(option.shortName)) {
 					option.shortName = [option.shortName];
@@ -111,10 +112,10 @@ export abstract class Action {
 	 * Define options like --interactive
 	 * @param addOption 
 	 */
-	protected abstract registerOptions(addOption: (option: ActionOption) => void);
+	protected abstract registerOptions(addOption: (option: ActionOption<T>) => void);
 
 
 
-	public abstract run(args: string[], options: { [key: string]: string }): Promise<void> | void
+	public abstract run(args: string[], options: T): Promise<void> | void
 
 }

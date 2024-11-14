@@ -6,14 +6,18 @@ import { Notifications } from './notification/index';
 import { pathToUri } from '@server/tools'
 import { dirname, join } from 'path';
 import { RealServer } from './RealServer';
+import { Settings } from '@server/settings/Settings';
+import { ServerConfig } from './Server';
 
 export class CliConnection implements IConnection {
 
 	public errorsByFile: { [uri: string]: string[] } = {};
 	public cbErrors: ((errors: string[]) => void)[] = [];
 	public _connection: FakeConnection;
-	public constructor() {
+	protected config: ServerConfig;
+	public constructor(config: ServerConfig) {
 		this._connection = new FakeConnection();
+		this.config = config;
 	}
 
 
@@ -91,19 +95,22 @@ export class CliConnection implements IConnection {
 	}
 	onInitialize(cb: (params: AvInitializeParams) => void) {
 		let extensionPath = dirname(__dirname);
-		if (extensionPath.endsWith("src")) {
+		if (__filename.endsWith("Connection.js")) {
 			// dev
-			extensionPath = dirname(dirname(__dirname));
+			extensionPath = dirname(dirname(dirname(__dirname)));
 		}
+
+		const params: AvInitializeParams = {
+			extensionPath: extensionPath,
+			isIDE: false,
+			workspaceFolders: [{
+				name: "",
+				uri: pathToUri(process.cwd())
+			}]
+		}
+
 		this._connection.onInitialize(() => {
-			cb({
-				workspaceFolders: [{
-					name: "",
-					uri: pathToUri(process.cwd())
-				}],
-				extensionPath: extensionPath,
-				isIDE: false
-			})
+			cb(params)
 		})
 
 	}
@@ -117,8 +124,13 @@ export class CliConnection implements IConnection {
 			cb();
 		})
 	}
-	async getSettings(): Promise<any> {
-		return {};
+	async getSettings(): Promise<Partial<Settings>> {
+		return {
+			onlyBuild: this.config.onlyBuild,
+			builds: this.config.builds,
+			statics: this.config.statics,
+			configPath: this.config.configPath
+		};
 	}
 	async onCompletion(cb: (document: TextDocument | undefined, position: Position) => Promise<CompletionList | null>) {
 

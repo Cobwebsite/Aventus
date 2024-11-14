@@ -1,2 +1,2 @@
 @echo off
-node D:\Aventus\Aventus\cli\out\main.js %*
+node D:\Aventus\Aventus\cli\out\cli.js %*

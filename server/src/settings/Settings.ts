@@ -18,6 +18,14 @@ export interface Settings {
 	templatePath: string[],
 	readNodeModules: boolean,
 	readDirs: string[],
+	// settings
+	onlyBuild: boolean,
+	/** The path of the aventus.conf.avt */
+	configPath?: string,
+	/** The builds to watch */
+	builds?: string[],
+	/** The statics to watch */
+	statics?: string[],
 }
 
 const defaultSettings: Settings = {
@@ -36,9 +44,10 @@ const defaultSettings: Settings = {
 	readNodeModules: false,
 	templatePath: [],
 	projectPath: [],
-	readDirs: []
+	readDirs: [],
+	onlyBuild: false
 }
-function getDefaultSettings() {
+function getDefaultSettings(): Settings {
 	return JSON.parse(JSON.stringify(defaultSettings));
 }
 
@@ -60,7 +69,7 @@ export class SettingsManager {
 
 	private constructor() { }
 
-	public setSettings(newSettings: any) {
+	public setSettings(newSettings: Partial<Settings>) {
 		this._settings = this.mergeDeep(getDefaultSettings(), newSettings);
 		let cbs = [...this.cbOnSettingsChange];
 		for (let cb of cbs) {

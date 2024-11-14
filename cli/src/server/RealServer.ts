@@ -4,6 +4,7 @@ import { CliConnection, FakeConnection } from './Connection';
 import { pathToUri } from '@server/tools';
 import { FilesWatcher } from '../file-system/FileSystem'
 import type { Interaction } from '../interaction/Interaction';
+import { ServerConfig } from './Server';
 
 export class RealServer {
 	private static _interaction: typeof Interaction;
@@ -16,17 +17,22 @@ export class RealServer {
 		return this.cliConnection ? this.cliConnection._connection : null;
 	}
 	private static waitingStart: (() => void) | null = null;
-	public static start() {
+	public static start(config: ServerConfig) {
 		return new Promise<void>((resolve) => {
-			if (!this.server) {
-				this.cliConnection = new CliConnection();
-				new FilesWatcher(process.cwd())
-				this.server = new GenericServer(this.cliConnection);
-				this.server.start();
-				this.waitingStart = () => {
-					this.waitingStart = null;
-					resolve();
+			try {
+				if (!this.server) {
+					this.cliConnection = new CliConnection(config);
+					if (!config.onlyBuild)
+						new FilesWatcher(process.cwd())
+					this.server = new GenericServer(this.cliConnection);
+					this.waitingStart = () => {
+						this.waitingStart = null;
+						resolve();
+					}
+					this.server.start();
 				}
+			} catch(e) {
+				console.log(e);
 			}
 		})
 	}
