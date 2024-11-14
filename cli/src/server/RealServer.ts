@@ -2,10 +2,14 @@ import { GenericServer } from '@server/GenericServer';
 import { Create } from '@server/cmds/Create';
 import { CliConnection, FakeConnection } from './Connection';
 import { pathToUri } from '@server/tools';
-import { FilesWatcher } from './file-system/FileSystem'
-import { Interaction } from './Interaction';
+import { FilesWatcher } from '../file-system/FileSystem'
+import type { Interaction } from '../interaction/Interaction';
 
-export class Server {
+export class RealServer {
+	private static _interaction: typeof Interaction;
+	public static get interaction(): typeof Interaction {
+		return this._interaction;
+	}
 	private static server: GenericServer | null = null;
 	private static cliConnection: CliConnection | null = null;
 	private static get connection(): FakeConnection | null {
@@ -43,7 +47,7 @@ export class Server {
 	}
 
 	public static async log() {
-		await Interaction.log();
+		await this.interaction.log();
 	}
 
 	public static subscribeErrors(cb: (errors: string[]) => void) {

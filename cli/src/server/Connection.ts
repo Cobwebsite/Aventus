@@ -1,11 +1,11 @@
 import { CodeAction } from 'vscode-css-languageservice';
 import { PublishDiagnosticsParams, Position, CompletionList, CompletionItem, Hover, Definition, FormattingOptions, TextEdit, Range, CodeLens, Location, WorkspaceEdit, ColorInformation, Color, ColorPresentation, ExecuteCommandParams, DiagnosticSeverity } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { AvInitializeParams, IConnection, InputOptions, SelectItem, SelectOptions } from '../../server/src/IConnection';
+import { AvInitializeParams, IConnection, InputOptions, SelectItem, SelectOptions } from '../../../server/src/IConnection';
 import { Notifications } from './notification/index';
 import { pathToUri } from '@server/tools'
-import { Interaction } from './Interaction';
 import { dirname, join } from 'path';
+import { RealServer } from './RealServer';
 
 export class CliConnection implements IConnection {
 
@@ -174,10 +174,10 @@ export class CliConnection implements IConnection {
 				}
 				return true;
 			}
-			return await Interaction.input(options.title, options.value, fct);
+			return await RealServer.interaction.input(options.title, options.value, fct);
 		}
 		else {
-			return await Interaction.input(options.title, options.value);
+			return await RealServer.interaction.input(options.title, options.value);
 		}
 	}
 	async Select(items: SelectItem[], options: SelectOptions): Promise<SelectItem | null> {
@@ -201,7 +201,7 @@ export class CliConnection implements IConnection {
 			})
 		}
 
-		let result = await Interaction.select(title, values);
+		let result = await RealServer.interaction.select(title, values);
 
 		for (let item of items) {
 			if (item.label == result) {
@@ -231,7 +231,7 @@ export class CliConnection implements IConnection {
 			})
 		}
 
-		let results = await Interaction.selectMultiple(title, values);
+		let results = await RealServer.interaction.selectMultiple(title, values);
 		if (!results) {
 			return null;
 		}
@@ -255,7 +255,7 @@ export class CliConnection implements IConnection {
 					checked: false
 				})
 			}
-			return await Interaction.select(text, values);
+			return await RealServer.interaction.select(text, values);
 		}
 		else {
 			console.log(text);
@@ -263,7 +263,7 @@ export class CliConnection implements IConnection {
 		}
 	}
 	public async SelectFolder(text: string, path: string): Promise<string | null> {
-		return await Interaction.tree(text, path)
+		return await RealServer.interaction.tree(text, path)
 	}
 }
 

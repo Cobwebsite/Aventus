@@ -2,7 +2,7 @@
 	"compilerOptions": {
 		"target": "ESNext",
 		"lib": [
-			"es2020",
+			"ESNext",
 			"dom"
 		],
 		"module": "CommonJS",
@@ -26,7 +26,8 @@
 		]
 	},
 	"include": [
-		"src/main.ts"
+		"src/main.ts",
+		"src/interaction/RealInteraction.ts"
 	],
 	"exclude": [
 		".vscode-test"
