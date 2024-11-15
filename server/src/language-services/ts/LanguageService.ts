@@ -489,7 +489,6 @@ export class AventusTsLanguageService {
 
     public getType(tsFile: AventusTsFile, offset: number): string | undefined {
         try {
-
             let program = this.languageService.getProgram();
             if (!program) return undefined;
 

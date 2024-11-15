@@ -129,7 +129,8 @@ export class CliConnection implements IConnection {
 			onlyBuild: this.config.onlyBuild,
 			builds: this.config.builds,
 			statics: this.config.statics,
-			configPath: this.config.configPath
+			configPath: this.config.configPath,
+			debug: this.config.debug
 		};
 	}
 	async onCompletion(cb: (document: TextDocument | undefined, position: Position) => Promise<CompletionList | null>) {

@@ -313,7 +313,11 @@ export class AventusJSONLanguageService {
             }
             srcPath = splitedInput.join("/");
             let regTemp = normalize(uriToPath(baseDir) + slash + srcPath).replace(/\\/g, '/');
-            build.srcPath.push(regTemp.replace("*", ""));
+            let srcPathSaved = regTemp.replace("*", "");
+            if(srcPathSaved.endsWith("/")) {
+                srcPathSaved = srcPathSaved.slice(0, -1)
+            }
+            build.srcPath.push(srcPathSaved);
             regTemp = escapeRegex(regTemp, true).replace("*", ".*");
             regexsSrc.push("(^" + regTemp + "$)");
         }

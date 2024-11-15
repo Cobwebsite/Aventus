@@ -6,6 +6,7 @@ export type ServerConfig = {
 	configPath?: string,
 	builds?: string[],
 	statics?: string[],
+	debug?: boolean
 }
 
 export class Server {
@@ -26,7 +27,6 @@ export class Server {
 		return this.realServer?.getErrors();
 	}
 	public static start(config: ServerConfig) {
-		console.log("Initing...");
 		return this.realServer?.start(config);
 	}
 	public static create() {

@@ -4,7 +4,8 @@ import { Action, ActionOption, ArgOption } from './Action';
 
 type BuildOptions = {
 	builds?: string[],
-	statics?: string[]
+	statics?: string[],
+	verbose?: boolean,
 }
 
 export class Build extends Action<BuildOptions> {
@@ -36,6 +37,11 @@ export class Build extends Action<BuildOptions> {
 			typeIsRequired: true,
 			typeIsArray: true,
 		})
+		addOption({
+			name: "verbose",
+			shortName: "v",
+			description: "Debug your compilation",
+		})
 	}
 	public async run(args: string[], options: BuildOptions) {
 		let configPath = args[0];
@@ -43,17 +49,15 @@ export class Build extends Action<BuildOptions> {
 			configPath = resolve(configPath);
 		}
 		await Server.load();
-
 		await Server.start({
 			onlyBuild: true,
 			configPath: configPath,
 			builds: options.builds,
 			statics: options.statics,
+			debug: options.verbose
 		});
-		console.log("startted");
 
 		const errors = Server.getErrors();
-		console.log("errors" + errors.length);
 		for (let error of errors) {
 			console.log(error);
 		}

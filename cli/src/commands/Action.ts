@@ -40,7 +40,6 @@ export abstract class Action<T extends { [name: string]: any }> {
 			const options = args[this.argsNb];
 
 			await this.run(_arguments, options);
-			console.log("done");
 			process.exit(0);
 		})
 	}
@@ -75,8 +74,7 @@ export abstract class Action<T extends { [name: string]: any }> {
 	private _registerOptions(program: Command) {
 		this.registerOptions((option: ActionOption<T>) => {
 
-			option.name = '--' + (option.name as string);
-			let names = [option.name];
+			let names:string[] = [];
 			if (option.shortName) {
 				if (!Array.isArray(option.shortName)) {
 					option.shortName = [option.shortName];
@@ -85,6 +83,7 @@ export abstract class Action<T extends { [name: string]: any }> {
 					names.push('-' + shortName);
 				}
 			}
+			names.push('--' + (option.name as string));
 			let part1 = names.join(", ");
 			if (option.type) {
 				let typeStart = '<';

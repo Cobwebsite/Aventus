@@ -20,6 +20,10 @@ export default createPrompt<void, LogConfig>((config, done) => {
 
 	});
 
+	if(errors.length == 0) {
+		return "No error";
+	}
+
 	return errors.join("\r\n");
 });
 

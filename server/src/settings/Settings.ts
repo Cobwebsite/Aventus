@@ -18,7 +18,8 @@ export interface Settings {
 	templatePath: string[],
 	readNodeModules: boolean,
 	readDirs: string[],
-	// settings
+	debug: boolean,
+	// settings cli
 	onlyBuild: boolean,
 	/** The path of the aventus.conf.avt */
 	configPath?: string,
@@ -45,7 +46,8 @@ const defaultSettings: Settings = {
 	templatePath: [],
 	projectPath: [],
 	readDirs: [],
-	onlyBuild: false
+	onlyBuild: false,
+	debug: false
 }
 function getDefaultSettings(): Settings {
 	return JSON.parse(JSON.stringify(defaultSettings));

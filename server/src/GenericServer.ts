@@ -282,6 +282,7 @@ export class GenericServer {
 			result = {};
 		}
 		SettingsManager.getInstance().setSettings(result);
+		this.isDebug = SettingsManager.getInstance().settings.debug;
 	}
 
 	protected async startServer() {

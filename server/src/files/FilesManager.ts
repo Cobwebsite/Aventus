@@ -167,6 +167,7 @@ export class FilesManager {
                 this.loadingInProgress = false;
 
                 await project.init();
+                InitStep.sendDone();
             }
         }
     }

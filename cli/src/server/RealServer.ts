@@ -72,9 +72,6 @@ export class RealServer {
 					result.push(error);
 				}
 			}
-			if (result.length == 0) {
-				result.push("No error");
-			}
 		}
 		return result
 	}
