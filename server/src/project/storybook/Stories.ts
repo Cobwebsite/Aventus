@@ -147,7 +147,7 @@ export class Storie {
 			let typeUpper = storieContent.kind[0].toUpperCase() + storieContent.kind.slice(1);
 			template = this.replaceVariable(template, "render", `import { Story${typeUpper}Render } from '@aventusjs/storybook-render/AventusStorybook'`);
 
-			writeFile(outputPath + "_.mdx", template);
+			this.writeFile(outputPath + "_.mdx", template);
 		}
 		const writeObjAsJson = (args: { [name: string]: any; }) => {
 			// JSON.stringify(args, null, 2)
@@ -175,7 +175,7 @@ export class Storie {
 			let template = hasLive() ? defaultStoryTempateComponent() : defaultStoryTempate();
 			let name = info.name;
 			let fullname = Storie.getFullname(info);
-			
+
 			template = this.replaceVariable(template, "name", name);
 			template = this.replaceVariable(template, "fullname", fullname);
 			template = this.replaceVariable(template, "description", info.documentation?.definitions.join("\n").replace(/`/g, '\\`') ?? '');
@@ -209,7 +209,7 @@ export class Storie {
 				template = this.replaceVariable(template, "args", "");
 			}
 
-			writeFile(outputPath + ".stories.ts", template);
+			this.writeFile(outputPath + ".stories.ts", template);
 		}
 
 		writeMdx();
@@ -283,7 +283,7 @@ export class Storie {
 								packageJson.devDependencies = devDependencies;
 								ctx = JSON.stringify(packageJson, null, 4);
 							}
-							writeFile(exportPath, ctx);
+							this.writeFile(exportPath, ctx);
 						}
 
 
@@ -315,7 +315,7 @@ export class Storie {
 			let template = mainTemplate();
 			let uri = simplifyUri(pathToUri(this.buildConfig.stories.output), pathToUri(mainTsPath));
 			template = this.replaceVariable(template, "path", uri);
-			writeFile(mainTsPath, template);
+			this.writeFile(mainTsPath, template);
 		}
 
 
@@ -323,7 +323,7 @@ export class Storie {
 		const previewPath = join(storyPath, "preview.ts");
 		if (!existsSync(previewPath)) {
 			let template = previewTemplate();
-			writeFile(previewPath, template);
+			this.writeFile(previewPath, template);
 		}
 	}
 
@@ -332,5 +332,9 @@ export class Storie {
 		let regex = new RegExp("\\$" + variable + "\\$", "g");
 		src = src.replace(regex, replace);
 		return src;
+	}
+
+	protected writeFile(output: string, content: string) {
+		writeFile(output, content, "storybook");
 	}
 }

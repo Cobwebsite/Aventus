@@ -8,6 +8,7 @@ export class Interaction {
 
 	public static async load() {
 		this.realInteraction = (await (eval('import("./RealInteraction.js")'))).default.RealInteraction
+		this.realInteraction['_server'] = Server;
 	}
 	public static async init() {
 		this.clear();
@@ -34,10 +35,6 @@ export class Interaction {
 	}
 
 	public static async log() {
-		return this.realInteraction?.log({
-			errors: Server.getErrors(),
-			refresh: Server.subscribeErrors,
-			stopRefresh: Server.unsubscribeErrors,
-		}) || null;
+		return this.realInteraction?.log() || null;
 	}
 }

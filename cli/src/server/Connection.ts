@@ -1,5 +1,5 @@
 import { CodeAction } from 'vscode-css-languageservice';
-import { PublishDiagnosticsParams, Position, CompletionList, CompletionItem, Hover, Definition, FormattingOptions, TextEdit, Range, CodeLens, Location, WorkspaceEdit, ColorInformation, Color, ColorPresentation, ExecuteCommandParams, DiagnosticSeverity } from 'vscode-languageserver';
+import { Diagnostic, PublishDiagnosticsParams, Position, CompletionList, CompletionItem, Hover, Definition, FormattingOptions, TextEdit, Range, CodeLens, Location, WorkspaceEdit, ColorInformation, Color, ColorPresentation, ExecuteCommandParams, DiagnosticSeverity } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AvInitializeParams, IConnection, InputOptions, SelectItem, SelectOptions } from '../../../server/src/IConnection';
 import { Notifications } from './notification/index';
@@ -9,10 +9,13 @@ import { RealServer } from './RealServer';
 import { Settings } from '@server/settings/Settings';
 import { ServerConfig } from './Server';
 
+export type CliErrors = { [build: string]: CliErrorsBuild };
+export type CliErrorsBuild = { [uri: string]: Diagnostic[] };
+
 export class CliConnection implements IConnection {
 
-	public errorsByFile: { [uri: string]: string[] } = {};
-	public cbErrors: ((errors: string[]) => void)[] = [];
+	public errorsByBuildByFile: CliErrors = {};
+	public cbErrors: ((errors: CliErrorsBuild, build: string) => void)[] = [];
 	public _connection: FakeConnection;
 	protected config: ServerConfig;
 	public constructor(config: ServerConfig) {
@@ -42,54 +45,42 @@ export class CliConnection implements IConnection {
 	showInformationMessage(msg: string): void {
 		console.log("[info] : " + msg);
 	}
-	public subscribeErrors(cb: (errors: string[]) => void) {
+	public subscribeErrors(cb: (errors: CliErrorsBuild, build: string) => void) {
 		this.cbErrors.push(cb);
 	}
-	public unsubscribeErrors(cb: (errors: string[]) => void) {
+	public unsubscribeErrors(cb: (errors: CliErrorsBuild, build: string) => void) {
 		let index = this.cbErrors.indexOf(cb);
 		if (index > -1) {
 			this.cbErrors.splice(index, 1);
 		}
 	}
 	public emitErrors() {
-		let result: string[] = [];
-		for (let uri in this.errorsByFile) {
-			for (let error of this.errorsByFile[uri]) {
-				result.push(error);
+		for (let build in this.errorsByBuildByFile) {
+			for (let cb of this.cbErrors) {
+				cb(this.errorsByBuildByFile[build], build);
 			}
-		}
-		if (result.length == 0) {
-			result.push("No error");
-		}
-		for (let cb of this.cbErrors) {
-			cb(result);
 		}
 	}
-	sendDiagnostics(params: PublishDiagnosticsParams): void {
-		if (params.diagnostics && params.diagnostics.length > 0) {
-			this.errorsByFile[params.uri] = [];
-			for (let diagnostic of params.diagnostics) {
-				let sev = "";
-				if (diagnostic.severity == DiagnosticSeverity.Error) {
-					sev = "\x1b[31m[error]\x1b[0m";
-				}
-				else if (diagnostic.severity == DiagnosticSeverity.Warning) {
-					sev = "\x1b[33m[warning]\x1b[0m";
-				}
-				else if (diagnostic.severity == DiagnosticSeverity.Information) {
-					sev = "\x1b[34m[info]\x1b[0m";
-				}
-				else if (diagnostic.severity == DiagnosticSeverity.Hint) {
-					sev = "\x1b[90m[hint]\x1b[0m";
-					continue;
-				}
-				this.errorsByFile[params.uri].push(sev + " : " + diagnostic.message + " on " + params.uri + ":" + (diagnostic.range.start.line + 1));
+	sendDiagnostics(params: PublishDiagnosticsParams, build?: string): void {
+		const checkError = (errorsByFile: { [uri: string]: Diagnostic[] }) => {
+			if (params.diagnostics && params.diagnostics.length > 0) {
+				errorsByFile[params.uri] = params.diagnostics;
+			}
+			else if (errorsByFile[params.uri]) {
+				delete errorsByFile[params.uri];
 			}
 		}
-		else {
-			if (this.errorsByFile[params.uri]) {
-				delete this.errorsByFile[params.uri];
+		if (build && this.config.errorByBuild) {
+			if (!this.errorsByBuildByFile[build]) {
+				this.errorsByBuildByFile[build] = {};
 			}
+			let errorsByFile = this.errorsByBuildByFile[build];
+			checkError(errorsByFile);
+		} else {
+			if (!this.errorsByBuildByFile['']) {
+				this.errorsByBuildByFile[''] = {};
+			}
+			checkError(this.errorsByBuildByFile[''])
 		}
 		this.emitErrors();
 	}
@@ -130,7 +121,9 @@ export class CliConnection implements IConnection {
 			builds: this.config.builds,
 			statics: this.config.statics,
 			configPath: this.config.configPath,
-			debug: this.config.debug
+			debug: this.config.debug,
+			errorByBuild: this.config.errorByBuild,
+			useStats: this.config.useStats
 		};
 	}
 	async onCompletion(cb: (document: TextDocument | undefined, position: Position) => Promise<CompletionList | null>) {

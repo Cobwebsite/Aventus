@@ -2,7 +2,7 @@
   "name": "@aventusjs/cli",
   "displayName": "Aventus CLI",
   "description": "This official CLI to compile Aventus Framework",
-  "version": "1.0.5",
+  "version": "0.0.4",
   "icon": "icons/logo.png",
   "bin": {
     "aventus": "./out/cli.js"
@@ -19,5 +19,8 @@
   "license": "MIT",
   "dependencies": {
     "typescript": "^5.5.3"
+  },
+  "devDependencies": {
+    "yoctocolors-cjs": "^2.1.2"
   }
 }

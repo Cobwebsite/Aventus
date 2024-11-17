@@ -5,6 +5,7 @@ import { getFolder, uriToPath } from '../tools';
 import { Build } from '../project/Build';
 import { AventusLanguageId } from '../definition';
 import { GenericServer } from '../GenericServer';
+import { SettingsManager } from '../settings/Settings';
 
 export type onValidateType = (document: AventusFile) => Promise<Diagnostic[]>;
 export type onCanContentChangeType = (document: TextDocument) => boolean;
@@ -194,7 +195,15 @@ export class InternalAventusFile implements AventusFile {
             }
         }
         if (sendDiagnostics) {
-            GenericServer.sendDiagnostics({ uri: this.uri, diagnostics: Object.values(diagnostics) })
+            if (SettingsManager.getInstance().settings.errorByBuild) {
+                const builds = this.getBuild();
+                for (let build of builds) {
+                    GenericServer.sendDiagnostics({ uri: this.uri, diagnostics: Object.values(diagnostics) }, build);
+                }
+            }
+            else {
+                GenericServer.sendDiagnostics({ uri: this.uri, diagnostics: Object.values(diagnostics) })
+            }
         }
         return Object.values(diagnostics);
     }

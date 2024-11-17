@@ -13,6 +13,7 @@ import { join } from 'path';
 import { LocalTemplateManager } from './files/LocalTemplate';
 import { TemplateManager as TemplateFileManager } from './files/TemplateManager';
 import { CSharpManager } from './language-services/json/CSharpManager';
+import { Build } from './project/Build';
 
 
 
@@ -41,8 +42,8 @@ export class GenericServer {
 	public static showInformationMessage(msg: string) {
 		this.instance.connection.showInformationMessage(msg);
 	}
-	public static sendDiagnostics(params: PublishDiagnosticsParams) {
-		this.instance.connection.sendDiagnostics(params);
+	public static sendDiagnostics(params: PublishDiagnosticsParams, build?: Build) {
+		this.instance.connection.sendDiagnostics(params, build?.buildConfig.name);
 	}
 	public static Input(options: InputOptions) {
 		return this.instance.connection.Input(options);

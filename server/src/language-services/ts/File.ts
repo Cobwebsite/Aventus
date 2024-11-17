@@ -1,8 +1,8 @@
 import { Diagnostic } from "vscode-languageserver";
-import { AventusErrorCode, AventusExtension } from "../../definition";
+import { AventusErrorCode } from "../../definition";
 import { AventusFile } from '../../files/AventusFile';
 import { Build } from "../../project/Build";
-import { Debug, createErrorTsPos } from '../../tools';
+import { createErrorTsPos } from '../../tools';
 import { AventusBaseFile } from "../BaseFile";
 import { CompileTsResult } from './LanguageService';
 import { ParserTs } from './parser/ParserTs';

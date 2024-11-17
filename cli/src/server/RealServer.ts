@@ -1,10 +1,12 @@
 import { GenericServer } from '@server/GenericServer';
 import { Create } from '@server/cmds/Create';
-import { CliConnection, FakeConnection } from './Connection';
+import { CliConnection, CliErrors, CliErrorsBuild, FakeConnection } from './Connection';
 import { pathToUri } from '@server/tools';
 import { FilesWatcher } from '../file-system/FileSystem'
 import type { Interaction } from '../interaction/Interaction';
 import { ServerConfig } from './Server';
+import { Statistics } from './notification/Statistics';
+import { StatisticsInfo } from '@server/notification/Statistics';
 
 export class RealServer {
 	private static _interaction: typeof Interaction;
@@ -31,7 +33,7 @@ export class RealServer {
 					}
 					this.server.start();
 				}
-			} catch(e) {
+			} catch (e) {
 				console.log(e);
 			}
 		})
@@ -56,25 +58,19 @@ export class RealServer {
 		await this.interaction.log();
 	}
 
-	public static subscribeErrors(cb: (errors: string[]) => void) {
+	public static subscribeErrors(cb: (errors: CliErrorsBuild, build: string) => void) {
 		this.cliConnection?.subscribeErrors(cb);
 	}
-	public static unsubscribeErrors(cb: (errors: string[]) => void) {
+	public static unsubscribeErrors(cb: (errors: CliErrorsBuild, build: string) => void) {
 		this.cliConnection?.unsubscribeErrors(cb);
 	}
 
-	public static getErrors() {
-		let result: string[] = [];
-
-		if (this.cliConnection) {
-			for (let uri in this.cliConnection.errorsByFile) {
-				for (let error of this.cliConnection.errorsByFile[uri]) {
-					result.push(error);
-				}
-			}
-		}
-		return result
+	public static getErrors(): CliErrors {
+		return this.cliConnection?.errorsByBuildByFile ?? {};
 	}
 
+	public static getStatistics(): StatisticsInfo {
+		return Statistics.info;
+	}
 
 }

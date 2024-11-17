@@ -3,7 +3,7 @@ import { Hover } from 'vscode-languageclient';
 import { CodeAction, CodeLens, CompletionItem, CompletionList, Definition, FormattingOptions, Location, Position, Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AventusExtension, AventusLanguageId } from '../definition';
-import { escapeRegex, getLanguageIdByUri, pathToUri, uriToPath } from '../tools';
+import { escapeRegex, getLanguageIdByUri, pathToUri, Timer, uriToPath } from '../tools';
 import { AventusFile, InternalAventusFile } from './AventusFile';
 import { v4 as randomUUID } from 'uuid';
 import { Build } from '../project/Build';
@@ -13,6 +13,7 @@ import { FilesWatcher } from './FilesWatcher';
 import { SettingsManager } from '../settings/Settings';
 import { normalize } from 'path';
 import { ProjectManager } from '../project/ProjectManager';
+import { Statistics } from '../notification/Statistics';
 
 export class FilesManager {
     private static instance: FilesManager;
@@ -78,7 +79,15 @@ export class FilesManager {
 
     public async onDeletedUri(uri: string) {
         if (this.files[uri]) {
-            GenericServer.sendDiagnostics({ uri: uri, diagnostics: [] })
+            if (SettingsManager.getInstance().settings.errorByBuild) {
+                const builds = this.files[uri].getBuild();
+                for (let build of builds) {
+                    GenericServer.sendDiagnostics({ uri: uri, diagnostics: [] }, build)
+                }
+            }
+            else {
+                GenericServer.sendDiagnostics({ uri: uri, diagnostics: [] })
+            }
             await this.files[uri].triggerDelete();
             delete this.files[uri];
             FilesWatcher.getInstance().unwatch(uri);
@@ -128,6 +137,8 @@ export class FilesManager {
         const project = ProjectManager.getInstance().getProjectByUri(configUri);
         if (project) {
             await project.loadConfig();
+            project.buildsAllowed = builds;
+            project.staticsAllowed = statics;
             const config = project.getConfig();
             if (config) {
                 let readDir = async (workspacePath) => {
@@ -151,19 +162,16 @@ export class FilesManager {
                     }
                 }
                 for (let build of config.build) {
-                    if (!builds || builds.includes(build.module)) {
+                    if (!builds || builds.includes(build.name)) {
                         for (let src of build.srcPath) {
                             await readDir(src);
                         }
                     }
                 }
-
-                for (let _static of config.static) {
-                    if (!statics || statics.includes(_static.name)) {
-
-                    }
-                }
+                
+                Statistics.startSendLoadFile();
                 project.loadFiles();
+                Statistics.sendLoadFile();
                 this.loadingInProgress = false;
 
                 await project.init();
@@ -320,12 +328,7 @@ export class FilesManager {
     }
     public async onClose(document: TextDocument) {
         if (!existsSync(uriToPath(document.uri))) {
-            if (this.files[document.uri]) {
-                GenericServer.sendDiagnostics({ uri: document.uri, diagnostics: [] })
-                await this.files[document.uri].triggerDelete();
-                delete this.files[document.uri];
-                FilesWatcher.getInstance().unwatch(document.uri);
-            }
+            this.onDeletedUri(document.uri);
         }
     }
 

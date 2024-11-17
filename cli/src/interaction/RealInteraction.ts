@@ -4,9 +4,14 @@ import Input from './action/Input';
 import Log, { LogConfig } from './action/Log';
 import Select from './action/Select';
 import { printLogo } from '../logo';
+import type { Server } from '../server/Server';
+import { CliErrorsBuild } from '../server/Connection';
 
 export class RealInteraction {
-
+	private static _server: typeof Server;
+	public static get server(): typeof Server {
+		return this._server;
+	}
 	public static clear() {
 		console.clear();
 		printLogo();
@@ -60,7 +65,15 @@ export class RealInteraction {
 		return response;
 	}
 
-	public static async log(config: LogConfig) {
-		await Log(config);
+	public static async log() {
+		await Log({
+			errors: this.server.getErrors(),
+			refresh: (cb: (errors: CliErrorsBuild, build: string) => void) => {
+				this.server.subscribeErrors(cb);
+			},	
+			stopRefresh: (cb: (errors: CliErrorsBuild, build: string) => void) => {
+				this.server.unsubscribeErrors(cb);
+			}
+		});
 	}
 }

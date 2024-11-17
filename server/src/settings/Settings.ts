@@ -21,12 +21,14 @@ export interface Settings {
 	debug: boolean,
 	// settings cli
 	onlyBuild: boolean,
+	useStats: boolean,
 	/** The path of the aventus.conf.avt */
 	configPath?: string,
 	/** The builds to watch */
 	builds?: string[],
 	/** The statics to watch */
 	statics?: string[],
+	errorByBuild?: boolean
 }
 
 const defaultSettings: Settings = {
@@ -47,7 +49,8 @@ const defaultSettings: Settings = {
 	projectPath: [],
 	readDirs: [],
 	onlyBuild: false,
-	debug: false
+	debug: false,
+	useStats: false,
 }
 function getDefaultSettings(): Settings {
 	return JSON.parse(JSON.stringify(defaultSettings));

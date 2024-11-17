@@ -634,7 +634,7 @@
 		"clean": "rimraf client/out && rimraf server/out",
 		"package": "npx vsce package --allow-star-activation && npx node-notifier-cli notify -t \"Packaging done\" -m \"The aventus extension has been packaged\" -i \"./icons/icon.png\"",
 		"publish": "npx vsce publish --allow-star-activation && npx node-notifier-cli notify -t \"Publish done\" -m \"The aventus extension has been published\" -i \"./icons/icon.png\"",
-		"package:cli": "rimraf cli/out && webpack --mode production --config ./cli/webpack.config.js && webpack --mode production --config ./cli/webpack.server.config.js && webpack --mode production --config ./cli/webpack.interaction.config.js",
+		"package:cli": "rimraf cli/lib && rimraf cli/out && webpack --mode production --config ./cli/webpack.config.js && webpack --mode production --config ./cli/webpack.server.config.js && webpack --mode production --config ./cli/webpack.interaction.config.js && node ./cli/postBuild.mjs",
 		"test": "jest",
 		"watch": "concurrently \"npm run dev:server\" \"npm run dev:client\" -n \"server,client\""
 	},

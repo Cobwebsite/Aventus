@@ -20,7 +20,7 @@ import { HttpServer } from '../live-server/HttpServer';
 import { Compiled } from '../notification/Compiled';
 import { RegisterBuild } from '../notification/RegisterBuild';
 import { UnregisterBuild } from '../notification/UnregisterBuild';
-import { createErrorTsPos, getFolder, replaceNotImportAliases, simplifyUri, uriToPath, writeFile } from "../tools";
+import { createErrorTsPos, getFolder, replaceNotImportAliases, simplifyUri, Timer, uriToPath, writeFile } from "../tools";
 import { Project } from "./Project";
 import { AventusGlobalSCSSLanguageService } from '../language-services/scss/GlobalLanguageService';
 import { DependanceManager } from './DependanceManager';
@@ -35,6 +35,7 @@ import { DebugFileAdd } from '../notification/DebugFileAdd';
 import { AliasInfo } from '../language-services/ts/parser/AliasInfo';
 import { Storie } from './storybook/Stories';
 import * as md5 from 'md5';
+import { Statistics } from '../notification/Statistics';
 
 export type BuildErrors = { file: string, title: string }[]
 
@@ -305,7 +306,7 @@ export class Build {
                 GenericServer.sendDiagnostics({
                     uri: file.file.uri,
                     diagnostics: file.getDiagnostics()
-                })
+                }, this)
             }
         }
         this.diagnostics.clear();
@@ -320,7 +321,7 @@ export class Build {
                 GenericServer.sendDiagnostics({
                     uri: file.file.uri,
                     diagnostics: finalErrors
-                })
+                }, this)
             }
         }
     }
@@ -495,7 +496,7 @@ export class Build {
                         console.log(e);
                     }
                 }
-                writeFile(outputFile, finalTxt);
+                this.writeFile(outputFile, finalTxt);
             }
         }
 
@@ -550,7 +551,7 @@ export class Build {
 
         for (let outputPackage of outputsPackage) {
             if (outputPackage) {
-                writeFile(outputPackage, finaltxt);
+                this.writeFile(outputPackage, finaltxt);
             }
             else if (existsSync(outputPackage)) {
                 unlinkSync(outputPackage);
@@ -562,7 +563,7 @@ export class Build {
             mkdirSync(pathPackages, { recursive: true });
         }
 
-        writeFile(join(pathPackages, this.buildConfig.fullname + AventusExtension.Package), finaltxt);
+        this.writeFile(join(pathPackages, this.buildConfig.fullname + AventusExtension.Package), finaltxt);
     }
 
     /**
@@ -613,7 +614,7 @@ export class Build {
                 if (!existsSync(outputDir)) {
                     mkdirSync(outputDir, { recursive: true });
                 }
-                writeFile(outputFile, txt);
+                this.writeFile(outputFile, txt);
             }
 
             // add into export 
@@ -678,7 +679,7 @@ export class Build {
                     mkdirSync(outputDir, { recursive: true });
                 }
                 let indexDTs = join(outputDir, "index.d.ts");
-                writeFile(indexDTs, txt);
+                this.writeFile(indexDTs, txt);
             }
         }
 
@@ -713,7 +714,7 @@ export class Build {
                     mkdirSync(outputDir, { recursive: true });
                 }
                 let indexDTs = join(outputDir, "index.js");
-                writeFile(indexDTs, txt);
+                this.writeFile(indexDTs, txt);
             }
         }
         for (let key of keys) {
@@ -768,7 +769,7 @@ export class Build {
                 if (!existsSync(outputPackage)) {
                     mkdirSync(outputPackage, { recursive: true });
                 }
-                writeFile(join(outputPackage, "package.json"), JSON.stringify(packageJson, null, 2));
+                this.writeFile(join(outputPackage, "package.json"), JSON.stringify(packageJson, null, 2));
             }
         }
     }
@@ -1600,6 +1601,7 @@ export class Build {
      * Load all aventus file needed for this build
      */
     private async loadFiles() {
+        Statistics.startSendBuildTime(this.buildConfig.name);
         this.allowBuild = false;
         let dependancesInfo = await DependanceManager.getInstance().loadDependancesFromBuild(this.buildConfig, this);
         this.dependanceFullUris = dependancesInfo.dependanceFullUris;
@@ -1627,6 +1629,7 @@ export class Build {
         this.allowBuild = true;
         this._filesLoaded = true;
         await this.rebuildAll(true);
+        Statistics.sendBuildTime(this.buildConfig.name)
     }
     /**
      * Register one file inside this build
@@ -1901,6 +1904,9 @@ export class Build {
         UnregisterBuild.send(this.project.getConfigFile().path, this.buildConfig.fullname);
     }
 
+    public writeFile(output: string, content: string) {
+        writeFile(output, content, "build", this.buildConfig.name);
+    }
 }
 
 class ExternalPackageInformation {
@@ -2028,7 +2034,7 @@ class ExternalPackageInformation {
                 ...defFile.classInfoByName
             }
         }
-        GenericServer.sendDiagnostics({ uri: '@Import lib', diagnostics: errors })
+        GenericServer.sendDiagnostics({ uri: '@Import lib', diagnostics: errors }, this.build)
     }
 
     public getExternalWebComponentDefinition(className: string): ClassInfo | undefined {

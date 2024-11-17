@@ -8,6 +8,7 @@ import { AventusFile } from './files/AventusFile';
 import { AventusConfig } from './language-services/json/definition';
 import { existsSync, writeFileSync } from 'fs';
 import * as md5 from 'md5';
+import { Statistics } from './notification/Statistics';
 
 export function pathToUri(path: string): string {
     if (path.startsWith("file://")) {
@@ -308,64 +309,83 @@ export function setValueToObject(path: string, obj: any, value: any) {
 }
 
 const md5HashFile: { [path: string]: string } = {};
-export function writeFile(outputFile: string, txt: string) {
+export function writeFile(outputFile: string, txt: string, type: "build" | "static" | "storybook", name?: string) {
     let hash = md5(txt);
     let exist = existsSync(outputFile);
     if (!md5HashFile[outputFile] || md5HashFile[outputFile] != hash || !exist) {
         md5HashFile[outputFile] = hash;
+        Statistics.sendFileSize(outputFile, txt, type, name);
         writeFileSync(outputFile, txt);
     }
 }
 
-export class Debug {
-    private static timers: { [name: string]: number } = {}
-    private static timersCumulative: { [name: string]: number } = {}
+export class Timer {
+    private static timers: { [name: string]: [number, number] } = {}
 
-    public static startTimer(name: string) {
-        this.timers[name] = new Date().getTime();
+    public static start(name: string) {
+        this.timers[name] = process.hrtime();
     }
-    public static startTimerCumluative(name: string) {
-        this.timers[name] = new Date().getTime();
-        if (!this.timersCumulative[name])
-            this.timersCumulative[name] = 0;
-    }
-    public static stopTimerCumluative(name: string) {
-        if (this.timers[name]) {
-            let diff = new Date().getTime() - this.timers[name];
-            this.timersCumulative[name] += diff;
-            delete this.timers[name]
-        }
-    }
-    public static clearTimerCumluative(name: string) {
-        delete this.timersCumulative[name]
-    }
-    public static printTimerCumluative(name: string, lvl: number = 0, msg?: string) {
-        if (this.timersCumulative[name]) {
-            msg = msg ?? name + " : ";
-            for (let i = 0; i < lvl; i++) {
-                msg = "\t" + msg;
-            }
-            console.log(msg + "" + this.timersCumulative[name] + "ms");
-        }
-    }
-
-    public static printTimer(name: string, lvl: number, msg?: string, min?: number) {
-        if (this.timers[name]) {
-            let diff = new Date().getTime() - this.timers[name];
-            msg = msg ?? "";
-            for (let i = 0; i < lvl; i++) {
-                msg = "\t" + msg;
-            }
-            if (min === undefined || diff >= min) {
-                console.log(msg + "" + diff + "ms");
-            }
-        }
-    }
-    public static stopTimer(name: string, lvl: number = 0, print: boolean = true, msg?: string, min?: number) {
-        if (print) {
-            if (!msg) msg = name + " : ";
-            this.printTimer(name, lvl, msg, min);
-        }
+    public static stop(name: string): number {
+        const t = process.hrtime(this.timers[name])
+        const elapsed = t[1] / 1000000;
         delete this.timers[name];
+        return t[0] * 1000 + Math.round(elapsed);
     }
 }
+// export class Debug {
+//     private static timers: { [name: string]: [number, number] } = {}
+//     // private static timersCumulative: { [name: string]: number } = {}
+
+//     public static startTimer(name: string) {
+//         this.timers[name] = process.hrtime();
+//     }
+//     public static elapsedTime(name: string, stop: boolean): number {
+//         const t = process.hrtime(this.timers[name])
+//         const elapsed = t[1] / 1000000;
+//         if (stop) {
+//             delete this.timers[name];
+//         }
+//         return t[0] * 1000 + Math.round(elapsed);
+//     }
+//     // public static stopTimer(name: string) {
+//     //     delete this.timers[name];
+//     // }
+//     // public static startTimerCumluative(name: string) {
+//     //     this.timers[name] = new Date().getTime();
+//     //     if (!this.timersCumulative[name])
+//     //         this.timersCumulative[name] = 0;
+//     // }
+//     // public static stopTimerCumluative(name: string) {
+//     //     if (this.timers[name]) {
+//     //         let diff = new Date().getTime() - this.timers[name];
+//     //         this.timersCumulative[name] += diff;
+//     //         delete this.timers[name]
+//     //     }
+//     // }
+//     // public static clearTimerCumluative(name: string) {
+//     //     delete this.timersCumulative[name]
+//     // }
+//     // public static printTimerCumluative(name: string, lvl: number = 0, msg?: string) {
+//     //     if (this.timersCumulative[name]) {
+//     //         msg = msg ?? name + " : ";
+//     //         for (let i = 0; i < lvl; i++) {
+//     //             msg = "\t" + msg;
+//     //         }
+//     //         console.log(msg + "" + this.timersCumulative[name] + "ms");
+//     //     }
+//     // }
+
+//     // public static printTimer(name: string, lvl: number, msg?: string, min?: number) {
+//     //     if (this.timers[name]) {
+//     //         let diff = new Date().getTime() - this.timers[name];
+//     //         msg = msg ?? "";
+//     //         for (let i = 0; i < lvl; i++) {
+//     //             msg = "\t" + msg;
+//     //         }
+//     //         if (min === undefined || diff >= min) {
+//     //             console.log(msg + "" + diff + "ms");
+//     //         }
+//     //     }
+//     // }
+
+// }

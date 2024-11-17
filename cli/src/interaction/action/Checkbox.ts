@@ -18,7 +18,7 @@ import {
 	type Status,
 } from '@inquirer/core';
 import type { PartialDeep } from '@inquirer/type';
-import colors from 'yoctocolors-cjs';
+import * as colors from 'yoctocolors-cjs';
 import figures from '@inquirer/figures';
 import ansiEscapes from 'ansi-escapes';
 import { isExitKey } from './tools';

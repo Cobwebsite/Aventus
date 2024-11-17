@@ -2,12 +2,15 @@ import { AventusConfigStatic } from "../language-services/json/definition";
 import { Project } from "./Project";
 import { FSWatcher, watch } from "chokidar";
 import { normalize, sep } from "path";
-import { copyFileSync, existsSync, lstatSync, mkdirSync, readdirSync } from "fs";
+import { copyFileSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync } from "fs";
 import { compile } from 'sass';
 import { HttpServer } from '../live-server/HttpServer';
 import { AventusExtension } from '../definition';
 import { pathToUri, writeFile } from '../tools';
 import { SettingsManager } from '../settings/Settings';
+import { Statistics } from '../notification/Statistics';
+import { FilesManager } from '../files/FilesManager';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 
 export class Static {
     private staticConfig: AventusConfigStatic;
@@ -26,10 +29,10 @@ export class Static {
 
         this.registerWatcher();
         this.isReady = true;
-        this.export();
     }
-    public export() {
+    public async export() {
         if (this.isReady) {
+            Statistics.startSendStaticTime(this.name);
             // TODO Improve by moving only changed file
             const foundAll = (dir) => {
                 var result: string[] = [];
@@ -70,38 +73,46 @@ export class Static {
                             let style = compile(pathFile, {
                                 style: 'compressed',
                             }).css.toString().trim();
-                            writeFile(pathOut.replace(".scss", ".css"), style);
+                            writeFile(pathOut.replace(".scss", ".css"), style, "static", this.name);
                         }
                     }
                     else {
-                        copyFileSync(pathFile, pathOut)
+                        copyFileSync(pathFile, pathOut);
+                        Statistics.sendFileSize(pathOut, undefined, "static", this.name);
                     }
                 } catch (e) {
                     console.log(e);
                 }
             }
             let staticFiles = foundAll(this.staticConfig.inputPathFolder);
-            staticFiles.forEach(filePath => {
+            for (let filePath of staticFiles) {
                 filePath = filePath.replace(/\\/g, '/');
                 for (let outputPathFolder of this.staticConfig.outputPathFolder) {
                     let resultPath = filePath.replace(this.staticConfig.inputPathFolder, outputPathFolder);
                     if (filePath.endsWith(AventusExtension.Base)) {
                         if (filePath.endsWith(AventusExtension.GlobalStyle)) {
                             resultPath = resultPath.replace(AventusExtension.GlobalStyle, ".css")
-                            this.project.scssFiles[pathToUri(filePath)]?.addOutPath(resultPath);
+                            let cssFile = this.project.scssFiles[pathToUri(filePath)];
+                            if (!cssFile) {
+                                const doc = TextDocument.create(pathToUri(filePath), AventusExtension.GlobalStyle, 1, readFileSync(filePath, 'utf8'))
+                                await FilesManager.getInstance().registerFile(doc);
+                                cssFile = this.project.scssFiles[pathToUri(filePath)];
+                            }
+                            cssFile.addOutPath(resultPath, this.name);
                         }
                     }
                     else {
                         copyFile(filePath, resultPath);
                     }
                 }
-            })
+            }
             HttpServer.getInstance().reload();
+            Statistics.sendStaticTime(this.name);
         }
     }
     public registerWatcher() {
         if (SettingsManager.getInstance().settings.onlyBuild) return;
-        
+
         this.watcher = watch(this.staticConfig.inputPathFolder, {
             ignored: /^\./,
             persistent: true,

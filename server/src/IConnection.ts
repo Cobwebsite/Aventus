@@ -9,7 +9,7 @@ export interface IConnection {
 	showWarningMessage(msg: string): void;
 	showErrorMessage(msg: string): void;
 	showInformationMessage(msg: string): void;
-	sendDiagnostics(params: PublishDiagnosticsParams): void;
+	sendDiagnostics(params: PublishDiagnosticsParams, build?: string): void;
 
 	onInitialize(cb: (params: AvInitializeParams) => void);
 	onInitialized(cb: () => Promise<void>);

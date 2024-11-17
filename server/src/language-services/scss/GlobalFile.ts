@@ -5,11 +5,12 @@ import { AventusGlobalBaseFile } from '../GlobalBaseFile';
 import { normalize, sep } from 'path';
 import { FilesManager } from '../../files/FilesManager';
 import { AventusExtension } from '../../definition';
-import { createErrorScss, createErrorScssPos } from '../../tools';
+import { createErrorScss, createErrorScssPos, writeFile } from '../../tools';
 import { Project } from '../../project/Project';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { Exception, compileString } from 'sass';
 import { GenericServer } from '../../GenericServer';
+import { SettingsManager } from '../../settings/Settings';
 
 
 export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
@@ -22,7 +23,7 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 	private compiledTxt: string = "";
 	private savedOnce: boolean = false;
 
-	private outPaths: string[] = [];
+	private staticNamebyOutPath: { [path: string]: string } = {};
 
 	public get resultCompiled() {
 		return this.compiledTxt;
@@ -34,15 +35,16 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 		this.loadDependances();
 		this.project.globalSCSSLanguageService.loadVariables(this, this.file.uri);
 	}
+
 	protected async onContentChange(): Promise<void> {
 
 	}
 	protected async onValidate(): Promise<Diagnostic[]> {
 		this.diagnostics = await this.project.globalSCSSLanguageService.doValidation(this.file);
 		this.loadDependances();
-		if(this.diagnosticCompile) {
-            return [...this.diagnostics, this.diagnosticCompile];
-        }
+		if (this.diagnosticCompile) {
+			return [...this.diagnostics, this.diagnosticCompile];
+		}
 		return this.diagnostics;
 	}
 	protected async onSave(): Promise<void> {
@@ -92,22 +94,33 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 			}
 			let oneFileContent = _loadContent(this.file);
 			if (oneFileContent != "|error|") {
-				try {
-                    let compiled = compileString(oneFileContent, {
-                        style: 'compressed'
-                    }).css.toString().trim();
-                    newCompiledTxt = compiled;
-					if(this.diagnosticCompile) {
-						this.diagnosticCompile = undefined;
-						GenericServer.sendDiagnostics({ uri: this.file.uri, diagnostics: this.diagnostics })
+				const sendDiagnostics = (diagnostics: Diagnostic[]) => {
+					if (SettingsManager.getInstance().settings.errorByBuild) {
+						const builds = this.project.getBuilds();
+						for (let build of builds) {
+							GenericServer.sendDiagnostics({ uri: this.file.uri, diagnostics: diagnostics }, build)
+						}
 					}
-                } catch (e: any) {
-                    if (e instanceof Exception) {
+					else {
+						GenericServer.sendDiagnostics({ uri: this.file.uri, diagnostics: diagnostics })
+					}
+				}
+				try {
+					let compiled = compileString(oneFileContent, {
+						style: 'compressed'
+					}).css.toString().trim();
+					newCompiledTxt = compiled;
+					if (this.diagnosticCompile) {
+						this.diagnosticCompile = undefined;
+						sendDiagnostics(this.diagnostics);
+					}
+				} catch (e: any) {
+					if (e instanceof Exception) {
 						this.diagnosticCompile = createErrorScss(this.file.documentUser, e.message);
-                        const diagnostics = [...this.diagnostics, this.diagnosticCompile];
-                        GenericServer.sendDiagnostics({ uri: this.file.uri, diagnostics: diagnostics })
-                    }
-                }
+						const diagnostics = [...this.diagnostics, this.diagnosticCompile];
+						sendDiagnostics(diagnostics);
+					}
+				}
 			}
 
 
@@ -161,12 +174,12 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 		return null;
 	}
 
-	public addOutPath(path: string) {
+	public addOutPath(path: string, staticName: string) {
 		if (this.file.shortname.startsWith("_")) {
 			return;
 		}
-		if (!this.outPaths.includes(path)) {
-			this.outPaths.push(path);
+		if (!this.staticNamebyOutPath[path]) {
+			this.staticNamebyOutPath[path] = staticName;
 			if (!this.savedOnce) {
 				this.onSave();
 			}
@@ -177,7 +190,7 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 	}
 
 	private export() {
-		for (let outPath of this.outPaths) {
+		for (let outPath in this.staticNamebyOutPath) {
 			let pathOut = normalize(outPath);
 			let splitted = pathOut.split(sep);
 			splitted.pop();
@@ -186,7 +199,7 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 			if (!existsSync(folder)) {
 				mkdirSync(folder, { recursive: true });
 			}
-			writeFileSync(pathOut, this.compiledTxt);
+			writeFile(pathOut, this.compiledTxt, "static", this.staticNamebyOutPath[outPath]);
 		}
 	}
 

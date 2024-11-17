@@ -158,6 +158,7 @@ export class Project {
     public async onConfigSave() {
         await this.loadConfig();
         if (this.config) {
+            
             for (let build of this.config.build) {
                 if (this.buildsAllowed) {
                     if (!this.buildsAllowed.includes(build.name)) {
@@ -180,7 +181,9 @@ export class Project {
                     if (this.staticsAllowed && !this.staticsAllowed.includes(_static.name)) {
                         continue;
                     }
-                    this.statics.push(new Static(this, _static));
+                    let staticEl = new Static(this, _static);
+                    await staticEl.export();
+                    this.statics.push(staticEl);
                 }
             }
         }
@@ -224,6 +227,9 @@ export class Project {
             }
         }
         return undefined;
+    }
+    public getBuilds(): Build[] {
+        return this.builds;
     }
     public getMatchingBuildsByUri(uri: string): Build[] {
         let result: Build[] = [];

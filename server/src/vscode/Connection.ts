@@ -71,7 +71,7 @@ export class VsCodeConnection implements IConnection {
 		this._connection.window.showInformationMessage(msg);
 	}
 
-	public sendDiagnostics(params: PublishDiagnosticsParams): void {
+	public sendDiagnostics(params: PublishDiagnosticsParams, build?: string): void {
 		this._connection.sendDiagnostics(params)
 	}
 	public onInitialize(cb: (params: AvInitializeParams) => void) {
