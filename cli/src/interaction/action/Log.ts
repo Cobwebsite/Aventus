@@ -2,6 +2,7 @@ import { createPrompt, useEffect, useKeypress, useMemo, useState } from '@inquir
 import { isExitKey } from './tools';
 import type { CliErrors, CliErrorsBuild } from '../../server/Connection';
 import { DiagnosticSeverity } from 'vscode-languageserver';
+import { AsyncResource } from 'node:async_hooks';
 
 export type LogConfig = {
 	errors: CliErrors;
@@ -10,24 +11,25 @@ export type LogConfig = {
 };
 
 export default createPrompt<void, LogConfig>((config, done) => {
-	let baseError = config.errors[''] ?? {};
+	const baseError = config.errors[''] ?? {};
 	const [errors, setErrors] = useState<CliErrorsBuild>({ ...baseError });
 
 	useEffect(() => {
 		let delayTimeout: NodeJS.Timeout;
 
-		const refresh = (newErrors: CliErrorsBuild, newBuild: string) => {
-			clearTimeout(delayTimeout);
-			delayTimeout = setTimeout(() => {
-				setErrors({ ...newErrors });
-			}, 300);
-		};
+		const fct = AsyncResource.bind(() => {
+			const newErrors = config.errors[''] ?? {};
+			setErrors({ ...newErrors });
+		})
 
-		config.refresh(refresh);
+		clearTimeout(delayTimeout);
+		delayTimeout = setTimeout(() => {
+			config.refresh(fct);
+		}, 300);
 
 		return () => {
 			clearTimeout(delayTimeout); 
-			config.stopRefresh(refresh);
+			config.stopRefresh(fct);
 		};
 	}, [config]);
 

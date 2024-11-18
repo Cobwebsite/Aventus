@@ -165,18 +165,19 @@ export class GenericServer {
 		this.isIDE = params.isIDE;
 		this._savePath = params.savePath;
 		this._extensionPath = params.extensionPath;
-		this._template = new TemplateFileManager();
-		this._localTemplate = new LocalTemplateManager(this._template);
 	}
 	protected async onInitialized() {
 		await this.loadSettings();
 		await this.startServer();
 	}
 	protected async onShutdown() {
-		await FilesWatcher.getInstance().destroy();
+		const settings = SettingsManager.getInstance().settings;
+		if (!settings.onlyBuild) {
+			await FilesWatcher.getInstance().destroy();
+			TemplateManager.getInstance().destroy();
+			CSharpManager.getInstance().destroy();
+		}
 		ProjectManager.getInstance().destroyAll();
-		TemplateManager.getInstance().destroy();
-		CSharpManager.getInstance().destroy();
 		await FilesManager.getInstance().onShutdown();
 	}
 	protected async onCompletion(document: TextDocument | undefined, position: Position) {
@@ -290,6 +291,8 @@ export class GenericServer {
 		// define the config for startServer
 		const settings = SettingsManager.getInstance().settings;
 		if (!settings.onlyBuild) {
+			this._template = new TemplateFileManager();
+			this._localTemplate = new LocalTemplateManager(this._template);
 			TemplateManager.getInstance();
 			CSharpManager.getInstance();
 		}

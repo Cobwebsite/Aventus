@@ -109,7 +109,7 @@ export class Build extends Action<BuildOptions> {
 			const k = 1024
 			const dm = 2
 			const sizes = ['Bytes', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB']
-			const i = Math.floor(Math.log(size) / Math.log(k))
+			const i = size == 0 ? 0 : Math.floor(Math.log(size) / Math.log(k))
 
 			return `${parseFloat((size / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
 		}

@@ -15,11 +15,27 @@ const contents: { [name: string]: string } = {};
 
 
 const serverFolder = () => GenericServer.extensionPath;
-export const TYPESCRIPT_LIB_SOURCE = () => join(serverFolder(), 'node_modules/typescript/lib');
+let _node_modules_folder: string | undefined = undefined;
+const node_modules_folder = () => {
+	if(_node_modules_folder !== undefined) return _node_modules_folder;
+
+	let currentPath = serverFolder();
+	while (currentPath !== resolve(currentPath, '..')) {
+		const tsLibPath = join(currentPath, 'node_modules/typescript/lib');
+		if (existsSync(tsLibPath)) {
+			_node_modules_folder = currentPath;
+			return _node_modules_folder;
+		}
+		currentPath = resolve(currentPath, '..');
+	}
+	return serverFolder();
+
+};
+export const TYPESCRIPT_LIB_SOURCE = () => join(node_modules_folder(), 'node_modules/typescript/lib');
 export const AVENTUS_DEF_BASE_PATH = () => join(serverFolder(), 'lib/Aventus@Main.package.avt');
 export const AVENTUS_DEF_UI_PATH = () => join(serverFolder(), 'lib/Aventus@UI.package.avt');
 export const AVENTUS_DEF_SHARP_PATH = () => join(serverFolder(), 'lib/Aventus@Sharp.package.avt');
-const NODE_MODULES = () => join(serverFolder(), 'node_modules');
+const NODE_MODULES = () => join(node_modules_folder(), 'node_modules');
 
 const libsTypescript: string[] = [];
 
