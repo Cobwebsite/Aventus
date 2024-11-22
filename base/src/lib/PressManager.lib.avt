@@ -311,7 +311,7 @@ export class PressManager {
         return touch.pointerId;
     }
     protected registerEvent(ev: PointerEvent | TouchEvent): boolean {
-        if(ev instanceof TouchEvent) {
+        if('TouchEvent' in window && ev instanceof TouchEvent) {
             for(let touch of ev.targetTouches) {
                 const id = this.identifyEvent(touch);
                 if(this.pointersRecord[id]) {
@@ -322,7 +322,7 @@ export class PressManager {
             return true;
         }
         else {
-            const id = this.identifyEvent(ev);
+            const id = this.identifyEvent(ev as PointerEvent);
             if(this.pointersRecord[id]) {
                 return false;
             }
@@ -332,7 +332,7 @@ export class PressManager {
     }
     protected unregisterEvent(ev: PointerEvent | TouchEvent): boolean {
         let result = true;
-        if(ev instanceof TouchEvent) {
+        if('TouchEvent' in window && ev instanceof TouchEvent) {
             for(let touch of ev.changedTouches) {
                 const id = this.identifyEvent(touch);
                 if(!this.pointersRecord[id]) {
@@ -344,7 +344,7 @@ export class PressManager {
             }
         }
         else {
-            const id = this.identifyEvent(ev);
+            const id = this.identifyEvent(ev as PointerEvent);
             if(!this.pointersRecord[id]) {
                 result = false;
             }
@@ -673,7 +673,7 @@ export class NormalizedEvent {
     }
 
     public get pointerType(): string | undefined {
-        if(this._event instanceof TouchEvent) return "touch";
+        if('TouchEvent' in window && this._event instanceof TouchEvent) return "touch";
         return this.getProp("pointerType");
     }
 
@@ -682,8 +682,8 @@ export class NormalizedEvent {
     }
 
     public get isTouch(): boolean {
-        if(this._event instanceof TouchEvent) return true;
+        if('TouchEvent' in window && this._event instanceof TouchEvent) return true;
 
-        return this._event.pointerType == "touch";
+        return (this._event as PointerEvent).pointerType == "touch";
     }
 }
