@@ -1,5 +1,12 @@
 # Change Log
 
+## 1.3.3 (2024-11-24)
+
+### Bug Fixes
+ - Correct @BindThis for all class
+
+### Features
+
 ## 1.3.2 (2024-11-24)
 
 ### Bug Fixes
