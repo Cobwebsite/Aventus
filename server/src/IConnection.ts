@@ -1,5 +1,6 @@
 import { CodeAction, CodeLens, Color, ColorInformation, ColorPresentation, CompletionItem, CompletionList, Definition, ExecuteCommandParams, FormattingOptions, Hover, Location, Position, PublishDiagnosticsParams, Range, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
+import type { Settings } from './settings/Settings';
 
 export interface IConnection {
 	open();
@@ -8,12 +9,12 @@ export interface IConnection {
 	showWarningMessage(msg: string): void;
 	showErrorMessage(msg: string): void;
 	showInformationMessage(msg: string): void;
-	sendDiagnostics(params: PublishDiagnosticsParams): void;
+	sendDiagnostics(params: PublishDiagnosticsParams, build?: string): void;
 
 	onInitialize(cb: (params: AvInitializeParams) => void);
 	onInitialized(cb: () => Promise<void>);
 	onShutdown(cb: () => Promise<void>);
-	getSettings(): Promise<any>;
+	getSettings(): Promise<Partial<Settings>>;
 
 	onCompletion(cb: (document: TextDocument | undefined, position: Position) => Promise<CompletionList | null>);
 	onCompletionResolve(cb: (document: TextDocument | undefined, completionItem: CompletionItem) => Promise<CompletionItem>);
@@ -45,7 +46,7 @@ export interface InputOptions {
 
 
 export interface AvInitializeParams {
-	workspaceFolders: WorkspaceFolder[] | null;
+	workspaceFolders?: WorkspaceFolder[] | null;
 	savePath?: string,
 	extensionPath: string,
 	isIDE: boolean,

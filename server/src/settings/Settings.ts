@@ -17,6 +17,18 @@ export interface Settings {
 	projectPath: string[],
 	templatePath: string[],
 	readNodeModules: boolean,
+	readDirs: string[],
+	debug: boolean,
+	// settings cli
+	onlyBuild: boolean,
+	useStats: boolean,
+	/** The path of the aventus.conf.avt */
+	configPath?: string,
+	/** The builds to watch */
+	builds?: string[],
+	/** The statics to watch */
+	statics?: string[],
+	errorByBuild?: boolean
 }
 
 const defaultSettings: Settings = {
@@ -34,9 +46,13 @@ const defaultSettings: Settings = {
 	updateImportOnRename: true,
 	readNodeModules: false,
 	templatePath: [],
-	projectPath: []
+	projectPath: [],
+	readDirs: [],
+	onlyBuild: false,
+	debug: false,
+	useStats: false,
 }
-function getDefaultSettings() {
+function getDefaultSettings(): Settings {
 	return JSON.parse(JSON.stringify(defaultSettings));
 }
 
@@ -58,7 +74,7 @@ export class SettingsManager {
 
 	private constructor() { }
 
-	public setSettings(newSettings: any) {
+	public setSettings(newSettings: Partial<Settings>) {
 		this._settings = this.mergeDeep(getDefaultSettings(), newSettings);
 		let cbs = [...this.cbOnSettingsChange];
 		for (let cb of cbs) {

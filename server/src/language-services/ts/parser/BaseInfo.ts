@@ -13,7 +13,11 @@ import { IStoryContentGeneric, IStoryContentParameter, IStoryContentTypeResult, 
 import { StorybookDecorator } from './decorators/StorybookDecorator';
 import { DocumentationInfo } from './DocumentationInfo';
 import { join, normalize } from 'path';
-import { pathToUri, simplifyUri } from '../../../tools';
+import { pathToUri, simplifyUri, uriToPath } from '../../../tools';
+import { Storie } from '../../../project/storybook/Stories';
+import { AventusExtension } from '../../../definition';
+import { CompileTsResult } from '../LanguageService';
+import { ImportInfo } from './ImportInfo';
 
 
 export enum InfoType {
@@ -75,11 +79,16 @@ export abstract class BaseInfo {
         let decorator = decorators.find(p => p.name == "Storybook");
         if (decorator) {
             const deco = StorybookDecorator.is(decorator);
-            if (deco && deco.exportType) {
-                return (deco.exportType == 'all' || deco.exportType == 'public');
+            if (deco) {
+                if (deco.exportType) {
+                    return (deco.exportType == 'all' || deco.exportType == 'public' || deco.exportType == 'protected');
+                }
+                else {
+                    return true;
+                }
             }
         }
-        return build.buildConfig.stories.format == 'all' || build.buildConfig.stories.format == 'public';
+        return build.buildConfig.stories.format == 'all' || build.buildConfig.stories.format == 'public' || build.buildConfig.stories.format == 'protected';
     }
 
     public name: string = "";
@@ -96,7 +105,7 @@ export abstract class BaseInfo {
         [_package: string]: string[]
     } = {}
     public storieDecorator?: StorybookDecorator;
-    public storyType: 'all' | 'none' | 'public' = 'none';
+    public storyType: 'all' | 'none' | 'public' | 'protected' = 'none';
 
     // public dependancesFullName: string[] = [];
     public dependances: DependanceType[] = []
@@ -501,9 +510,93 @@ export abstract class BaseInfo {
             }
         }
     }
-    protected getNpmReplacementName(fullName: string) {
+    public getNpmReplacementName(fullName: string) {
         let currentFullName = [this.build.module, this.fullName].join(".")
         return this.parserInfo.getNpmReplacementName(currentFullName, fullName)
+    }
+    public addDependanceTag(tag: string, componentResult: CompileTsResult) {
+        let dependance = this.build.getWebComponentTagDependance(tag);
+        if (dependance) {
+            for (let dep of componentResult.dependances) {
+                if (dep.fullName == dependance.fullName) {
+                    return;
+                }
+            }
+
+            let depUri = dependance.uri; // @external (lib), @npm (npm), file uri (same build)
+            if (depUri == '@external') {
+                const name = dependance.fullName;
+                let classExternal = this.build.externalPackageInformation.getNpmUri(name);
+                const npmReplacement = this.getNpmReplacementName(name);
+                if (classExternal) {
+                    this._parserInfo.registerGeneratedImport({
+                        uri: classExternal.uri,
+                        name: classExternal.name,
+                        compiled: classExternal.compiled,
+                        alias: npmReplacement,
+                        forced: true
+                    })
+                }
+            }
+            else if (depUri == "@npm") {
+                const name = dependance.fullName;
+                let md5uri = md5(this.parserInfo.npmImports[name].uri);
+                const npmReplacement = this.getNpmReplacementName(md5uri + "." + name);
+                this._parserInfo.registerGeneratedImport({
+                    uri: this.parserInfo.npmImports[name].uri,
+                    name: name,
+                    compiled: true,
+                    alias: npmReplacement,
+                    forced: true,
+                });
+            }
+            else {
+                // if not imported on the top on the file we need to import it
+                const importInfo = ImportInfo.ManualLocalImport(this, dependance.fullName, dependance.uri);
+
+                const fullNameOther = dependance.fullName;
+                let namespace1: string[] = this.fullName.split(".");
+                namespace1.pop();
+
+                let namespace2: string[] = fullNameOther.split(".");
+                const nameToImport = namespace2.pop() ?? '';
+
+                for (let i = 0; i < namespace1.length; i++) {
+                    if (namespace2.length > i) {
+                        if (namespace2[i] == namespace1[i]) {
+                            namespace2.splice(i, 1);
+                            namespace1.splice(i, 1);
+                            i--;
+                        }
+                        else {
+                            break;
+                        }
+                    }
+                }
+
+                const onlySrc = namespace1.length == 0 && namespace2.length == 0;
+                let finalPathToImport = "";
+                for (let i = 0; i < namespace1.length; i++) {
+                    finalPathToImport += '../';
+                }
+                if (finalPathToImport == "") {
+                    finalPathToImport += "./";
+                }
+                finalPathToImport += namespace2.join("/");
+                const npmReplacement = this.getNpmReplacementName([this.build.module, fullNameOther].join("."))
+                this._parserInfo.registerGeneratedImport({
+                    uri: finalPathToImport,
+                    nameAlias: importInfo?.alias,
+                    name: nameToImport,
+                    compiled: true,
+                    alias: npmReplacement,
+                    onlySrc: onlySrc,
+                    forced: true
+                })
+            }
+
+            componentResult.dependances.push(dependance)
+        }
     }
     protected addDependanceName(name: string, isStrongDependance: boolean, start: number, end: number, onNameTemp?: ((name?: string, nameNpm?: string) => void)): void {
         if (this.parserInfo.isLib) {
@@ -592,7 +685,8 @@ export abstract class BaseInfo {
                     uri: this.maybeDependances[name].uri,
                     name: this.maybeDependances[name].name,
                     compiled: this.maybeDependances[name].compiled,
-                    alias: npmReplacement
+                    alias: npmReplacement,
+                    forced: false
                 });
             }
             return
@@ -617,6 +711,7 @@ export abstract class BaseInfo {
                         name: classExternal.name,
                         compiled: classExternal.compiled,
                         alias: npmReplacement,
+                        forced: false
                     })
                 else
                     this.maybeDependances[name] = classExternal;
@@ -663,7 +758,8 @@ export abstract class BaseInfo {
                     name: nameToImport,
                     compiled: compiled,
                     alias: npmReplacement,
-                    onlySrc: onlySrc
+                    onlySrc: onlySrc,
+                    forced: false
                 })
             else {
                 this.maybeDependances[name] = {
@@ -802,6 +898,7 @@ export abstract class BaseInfo {
                     name: classExternal.name,
                     compiled: classExternal.compiled,
                     alias: npmReplacement,
+                    forced: false
                 })
             }
             onName(fullName, npmReplacement);
@@ -831,6 +928,7 @@ export abstract class BaseInfo {
                         name: name,
                         compiled: true,
                         alias: npmReplacement,
+                        forced: false
                     });
                 else {
                     this.maybeDependances[name] = {
@@ -861,25 +959,30 @@ export abstract class BaseInfo {
     }
 
 
-    public static getContent(txt: string,
+    public static getContent(
+        txt: string,
         start: number,
         end: number,
         dependancesLocations: { [name: string]: DependanceInfo },
-        compileTransformations: { [key: string]: { newText: string, start: number, end: number } }) {
+        compileTransformations: { [key: string]: { newText: string, start: number, end: number } }
+    ) {
         return this._getContent(txt, start, end, dependancesLocations, compileTransformations, 1);
     }
-    public static getContentHotReload(txt: string,
+    public static getContentHotReload(
+        txt: string,
         start: number,
         end: number,
         dependancesLocations: { [name: string]: DependanceInfo },
         compileTransformations: { [key: string]: { newText: string, start: number, end: number } }) {
         return this._getContent(txt, start, end, dependancesLocations, compileTransformations, 2);
     }
-    public static getContentNpm(txt: string,
+    public static getContentNpm(
+        txt: string,
         start: number,
         end: number,
         dependancesLocations: { [name: string]: DependanceInfo },
-        compileTransformations: { [key: string]: { newText: string, start: number, end: number } }) {
+        compileTransformations: { [key: string]: { newText: string, start: number, end: number } }
+    ) {
         return this._getContent(txt, start, end, dependancesLocations, compileTransformations, 3);
     }
     private static _getContent(
@@ -935,6 +1038,7 @@ export abstract class BaseInfo {
                 })
             }
         }
+
         transformations.sort((a, b) => b.end - a.end); // order from end file to start file
         let lastPos = txt.length;
         for (let transformation of transformations) {
@@ -956,8 +1060,13 @@ export abstract class BaseInfo {
             }
 
             const format = this.build.buildConfig.stories.format;
-            if (this.storieDecorator?.exportType) {
-                this.storyType = this.storieDecorator.exportType;
+            if (this.storieDecorator) {
+                if (this.storieDecorator.exportType)
+                    this.storyType = this.storieDecorator.exportType;
+                else if (format)
+                    this.storyType = format == 'manual' ? 'all' : format;
+                else
+                    this.storyType = 'none';
             }
             else if (format) {
                 this.storyType = format == 'manual' ? 'none' : format;
@@ -966,12 +1075,18 @@ export abstract class BaseInfo {
                 this.storyType = 'none';
             }
 
-            if (this.storyType == 'public') {
+            if (this.storyType == 'public' || this.storyType == 'protected') {
                 if (this.storieDecorator || this.isExported)
                     this.storieContent = this.defineStoryContent(this.storieDecorator);
             }
             else if (this.storyType == 'all') {
                 this.storieContent = this.defineStoryContent(this.storieDecorator);
+            }
+
+            if (this.storieContent && this.build.buildConfig.stories.srcBaseUrl) {
+                let rootUri = this.build.project.getConfigFile().uri.replace(AventusExtension.Config, "");
+                let localPath = uriToPath(this.fileUri.replace(rootUri, '')).replace(/\\/g, '/');
+                this.storieContent.srcUrl = this.build.buildConfig.stories.srcBaseUrl + '/' + localPath
             }
         }
     }
@@ -1011,7 +1126,7 @@ export abstract class BaseInfo {
             let info = from.parserInfo.importsLocal[typeInfo.value]?.info;
             if (info) {
                 if (info.storyType != 'none')
-                    result.ref = info.fullName;
+                    result.ref = Storie.getFullname(info);
             }
             else {
                 let baseInfo = from.parserInfo.internalObjects[typeInfo.value];

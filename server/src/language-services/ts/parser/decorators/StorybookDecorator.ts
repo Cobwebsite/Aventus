@@ -3,8 +3,9 @@ import { DecoratorInfo } from '../DecoratorInfo';
 type StorybookConfig = {
 	export?: StoryExport,
 	prefix?: string,
-	fullName?: string,
-	onlyMeta?: boolean;
+	group?: string,
+	noLive?: boolean;
+	noDefaultStory?: boolean;
 	slots?: {
 		values?: {
 			[name: string]: string;
@@ -12,12 +13,13 @@ type StorybookConfig = {
 		inject?: string[];
 	};
 }
-type StoryExport = 'all' | 'none' | 'public';
+type StoryExport = 'all' | 'none' | 'public' | 'protected';
 export class StorybookDecorator {
 	public prefix?: string;
 	public exportType?: StoryExport;
-	public onlyMeta?: boolean;
-	public fullName?: string
+	public noLive?: boolean;
+	public noDefaultStory?: boolean;
+	public group?: string
 	public slots?: {
 		values?: {
 			[name: string]: string;
@@ -31,17 +33,21 @@ export class StorybookDecorator {
 				try {
 					let params = JSON.parse(decorator.arguments[0].value) as StorybookConfig;
 					if (params.prefix) {
-						result.prefix = JSON.parse(params.prefix);
+						result.prefix = params.prefix.replace(/(^('|"))|(('|")$)/g, '');
 					}
 					if (params.export) {
 						result.exportType = params.export.replace(/(^('|"))|(('|")$)/g, '') as StoryExport;
 					}
-					if (params.fullName) {
-						result.fullName = params.fullName.replace(/(^('|"))|(('|")$)/g, '');
+					if (params.group) {
+						result.group = params.group.replace(/(^('|"))|(('|")$)/g, '');
 					}
-					if (params.onlyMeta === true) {
-						result.onlyMeta = true;
+					if (params.noLive === true) {
+						result.noLive = true;
 					}
+					if (params.noDefaultStory === true) {
+						result.noDefaultStory = true;
+					}
+
 					if (params.slots) {
 						result.slots = {}
 
@@ -56,7 +62,7 @@ export class StorybookDecorator {
 						}
 					}
 				} catch (e) {
-
+					debugger
 				}
 			}
 			return result;

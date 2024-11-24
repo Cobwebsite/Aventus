@@ -10,6 +10,7 @@ import { AskSelectMultiple } from '../notification/AskSelectMultiple';
 import { Popup } from '../notification/Popup';
 import { FilesManager } from '../files/FilesManager';
 import { AventusLanguageId } from '../definition';
+import { Settings } from '../settings/Settings';
 
 export class VsCodeConnection implements IConnection {
 
@@ -52,7 +53,7 @@ export class VsCodeConnection implements IConnection {
 	public delayBetweenBuild() {
 		return 300
 	}
-	public async getSettings(): Promise<any> {
+	public async getSettings(): Promise<Partial<Settings>> {
 		return this._connection.workspace.getConfiguration({
 			section: "aventus",
 		})
@@ -70,7 +71,7 @@ export class VsCodeConnection implements IConnection {
 		this._connection.window.showInformationMessage(msg);
 	}
 
-	public sendDiagnostics(params: PublishDiagnosticsParams): void {
+	public sendDiagnostics(params: PublishDiagnosticsParams, build?: string): void {
 		this._connection.sendDiagnostics(params)
 	}
 	public onInitialize(cb: (params: AvInitializeParams) => void) {

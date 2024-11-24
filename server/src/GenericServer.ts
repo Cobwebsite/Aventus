@@ -13,6 +13,7 @@ import { join } from 'path';
 import { LocalTemplateManager } from './files/LocalTemplate';
 import { TemplateManager as TemplateFileManager } from './files/TemplateManager';
 import { CSharpManager } from './language-services/json/CSharpManager';
+import { Build } from './project/Build';
 
 
 
@@ -41,8 +42,8 @@ export class GenericServer {
 	public static showInformationMessage(msg: string) {
 		this.instance.connection.showInformationMessage(msg);
 	}
-	public static sendDiagnostics(params: PublishDiagnosticsParams) {
-		this.instance.connection.sendDiagnostics(params);
+	public static sendDiagnostics(params: PublishDiagnosticsParams, build?: Build) {
+		this.instance.connection.sendDiagnostics(params, build?.buildConfig.name);
 	}
 	public static Input(options: InputOptions) {
 		return this.instance.connection.Input(options);
@@ -93,7 +94,6 @@ export class GenericServer {
 	public constructor(connection: IConnection) {
 		this.connection = connection;
 		this.bindEvent();
-
 	}
 
 
@@ -165,18 +165,19 @@ export class GenericServer {
 		this.isIDE = params.isIDE;
 		this._savePath = params.savePath;
 		this._extensionPath = params.extensionPath;
-		this._template = new TemplateFileManager();
-		this._localTemplate = new LocalTemplateManager(this._template);
 	}
 	protected async onInitialized() {
 		await this.loadSettings();
 		await this.startServer();
 	}
 	protected async onShutdown() {
-		await FilesWatcher.getInstance().destroy();
+		const settings = SettingsManager.getInstance().settings;
+		if (!settings.onlyBuild) {
+			await FilesWatcher.getInstance().destroy();
+			TemplateManager.getInstance().destroy();
+			CSharpManager.getInstance().destroy();
+		}
 		ProjectManager.getInstance().destroyAll();
-		TemplateManager.getInstance().destroy();
-		CSharpManager.getInstance().destroy();
 		await FilesManager.getInstance().onShutdown();
 	}
 	protected async onCompletion(document: TextDocument | undefined, position: Position) {
@@ -283,14 +284,30 @@ export class GenericServer {
 			result = {};
 		}
 		SettingsManager.getInstance().setSettings(result);
+		this.isDebug = SettingsManager.getInstance().settings.debug;
 	}
 
 	protected async startServer() {
+		// define the config for startServer
+		const settings = SettingsManager.getInstance().settings;
+		if (!settings.onlyBuild) {
+			this._template = new TemplateFileManager();
+			this._localTemplate = new LocalTemplateManager(this._template);
+			TemplateManager.getInstance();
+			CSharpManager.getInstance();
+		}
 
-		TemplateManager.getInstance();
-		CSharpManager.getInstance();
-		ProjectManager.getInstance();
-		await FilesManager.getInstance().loadAllAventusFiles(this.workspaces);
+		ProjectManager.getInstance()
+		if (settings.onlyBuild) {
+			if (settings.configPath) {
+				await FilesManager.getInstance().loadConfigFile(settings.configPath, settings.builds, settings.statics);
+			}
+			else
+				await FilesManager.getInstance().loadConfigFileNotSet(this.workspaces, settings.builds, settings.statics);
+		}
+		else {
+			await FilesManager.getInstance().loadAllAventusFiles(this.workspaces);
+		}
 		this.isLoading = false;
 		if (this.isDebug) {
 			console.log("start server done");

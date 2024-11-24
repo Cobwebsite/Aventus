@@ -116,11 +116,15 @@ declare global {
 
     interface StorybookConfig {
         /** Define what must be exported to storybook */
-        export?: 'all' | 'none' | 'public',
-        /** Define a prefix to group your stories */
+        export?: 'all' | 'none' | 'public' | 'protected',
+        /** Define a prefix for the group of your stories */
         prefix?: string,
+        /** Define the group for your element. If not set, the group will be the namespace */
+        group?: string,
         /** If set to true, only meta will be generated. Usefull to create custom pages */
-        onlyMeta?: boolean;
+        noLive?: boolean;
+        /** If set to true, no default story will be created. This will also prevent the rendering of the live section */
+        noDefaultStory?:boolean;
         /** Define the configruation for your slots */
         slots?: {
             /** Define the slot content base on the name */
@@ -139,4 +143,5 @@ declare global {
     function NoStory();
     function AddToStory();
     function StoryValue(value: any);
+
 }

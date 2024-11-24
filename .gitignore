@@ -4,9 +4,11 @@ base/*.js
 base/*.html
 example/**/compiled.js
 cli/out
+cli/lib
 client/out
 server/out
 *package-lock.json
+*tsconfig.tsbuildinfo
 *.vsix
 lib/*.avt
 open_folder.ps1

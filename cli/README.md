@@ -11,12 +11,12 @@ Aventus is a framework for simplifying the creation and maintenance of a web app
 We recommend that you install aventus globally using the following command :
 
 ```
-npm i -g @aventus/cli
+npm i -g @aventusjs/cli
 ```
 
 ## How to use
 
-When installed, you can run the command aventus and then you can follow what the prompt ask. At any time, you can press the keys **ctrl**+**l** to get back to the main frame
+When installed, you can run the command `aventus --help` to see the list of commands available.
 
 ## More informations
 To learn Aventus go to the offical website at [aventusjs.com](https://aventusjs.com/)

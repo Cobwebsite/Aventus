@@ -151,6 +151,9 @@ export class AventusJSONLanguageService {
             let varValue = env[varName] ?? 'undefined';
             txt = txt.replace(result[0], varValue);
         }
+        if (/^https?:\/\/.*/.exec(txt)) {
+            return txt;
+        }
         let windowDisk = /^[a-zA-Z]:/gm
         if (!txt.startsWith("/") && !windowDisk.test(txt)) {
             txt = "/" + txt;
@@ -313,6 +316,11 @@ export class AventusJSONLanguageService {
             }
             srcPath = splitedInput.join("/");
             let regTemp = normalize(uriToPath(baseDir) + slash + srcPath).replace(/\\/g, '/');
+            let srcPathSaved = regTemp.replace("*", "");
+            if (srcPathSaved.endsWith("/")) {
+                srcPathSaved = srcPathSaved.slice(0, -1)
+            }
+            build.srcPath.push(srcPathSaved);
             regTemp = escapeRegex(regTemp, true).replace("*", ".*");
             regexsSrc.push("(^" + regTemp + "$)");
         }
@@ -502,6 +510,7 @@ export class AventusJSONLanguageService {
             disabled: false,
             hideWarnings: config.hideWarnings,
             src: [],
+            srcPath: [],
             stories: undefined,
             compile: [],
             srcPathRegex: new RegExp('(?!)'),

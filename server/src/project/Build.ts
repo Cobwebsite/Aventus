@@ -1,6 +1,6 @@
-import { existsSync, mkdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, unlinkSync } from "fs";
 import { EOL } from "os";
-import { join, normalize, sep } from "path";
+import { join, sep } from "path";
 import { Diagnostic, DiagnosticSeverity, TextEdit } from 'vscode-languageserver';
 import { AventusErrorCode, AventusExtension, AventusLanguageId } from "../definition";
 import { AventusFile } from '../files/AventusFile';
@@ -20,7 +20,7 @@ import { HttpServer } from '../live-server/HttpServer';
 import { Compiled } from '../notification/Compiled';
 import { RegisterBuild } from '../notification/RegisterBuild';
 import { UnregisterBuild } from '../notification/UnregisterBuild';
-import { createErrorTsPos, getFolder, replaceNotImportAliases, simplifyUri, uriToPath } from "../tools";
+import { createErrorTsPos, getFolder, replaceNotImportAliases, simplifyUri, Timer, uriToPath, writeFile } from "../tools";
 import { Project } from "./Project";
 import { AventusGlobalSCSSLanguageService } from '../language-services/scss/GlobalLanguageService';
 import { DependanceManager } from './DependanceManager';
@@ -34,6 +34,8 @@ import { AventusWebComponentSingleFile } from '../language-services/ts/component
 import { DebugFileAdd } from '../notification/DebugFileAdd';
 import { AliasInfo } from '../language-services/ts/parser/AliasInfo';
 import { Storie } from './storybook/Stories';
+import * as md5 from 'md5';
+import { Statistics } from '../notification/Statistics';
 
 export type BuildErrors = { file: string, title: string }[]
 
@@ -57,7 +59,8 @@ export type LocalCodeResult = {
         [file: string]: {
             names: string[],
             content: string[],
-            imports: { [uri: string]: string[] }
+            imports: { [uri: string]: string[] },
+            forcedDependances: string[]
         }
     },
 
@@ -303,7 +306,7 @@ export class Build {
                 GenericServer.sendDiagnostics({
                     uri: file.file.uri,
                     diagnostics: file.getDiagnostics()
-                })
+                }, this)
             }
         }
         this.diagnostics.clear();
@@ -318,7 +321,7 @@ export class Build {
                 GenericServer.sendDiagnostics({
                     uri: file.file.uri,
                     diagnostics: finalErrors
-                })
+                }, this)
             }
         }
     }
@@ -493,7 +496,7 @@ export class Build {
                         console.log(e);
                     }
                 }
-                writeFileSync(outputFile, finalTxt);
+                this.writeFile(outputFile, finalTxt);
             }
         }
 
@@ -548,7 +551,7 @@ export class Build {
 
         for (let outputPackage of outputsPackage) {
             if (outputPackage) {
-                writeFileSync(outputPackage, finaltxt);
+                this.writeFile(outputPackage, finaltxt);
             }
             else if (existsSync(outputPackage)) {
                 unlinkSync(outputPackage);
@@ -560,7 +563,7 @@ export class Build {
             mkdirSync(pathPackages, { recursive: true });
         }
 
-        writeFileSync(join(pathPackages, this.buildConfig.fullname + AventusExtension.Package), finaltxt);
+        this.writeFile(join(pathPackages, this.buildConfig.fullname + AventusExtension.Package), finaltxt);
     }
 
     /**
@@ -603,7 +606,7 @@ export class Build {
                 txt += EOL;
             }
             txt += result.npmsrc[path].content.join(EOL);
-            txt = AventusTsLanguageService.removeUnusedImport(txt);
+            txt = AventusTsLanguageService.removeUnusedImport(txt, result.npmsrc[path].forcedDependances);
             for (let outputPackage of outputNpm.path) {
                 const folder = getFolder(path);
                 const outputDir = join(outputPackage, "__src", ...folder.split(sep))
@@ -611,7 +614,7 @@ export class Build {
                 if (!existsSync(outputDir)) {
                     mkdirSync(outputDir, { recursive: true });
                 }
-                writeFileSync(outputFile, txt);
+                this.writeFile(outputFile, txt);
             }
 
             // add into export 
@@ -669,14 +672,14 @@ export class Build {
 
             txt = txt.replaceAll("globalThis.Aventus.", "");
             txt = txt.replaceAll("___Aventus.", "");
-            txt = AventusTsLanguageService.removeUnusedImport(txt);
+            txt = AventusTsLanguageService.removeUnusedImport(txt, []);
             for (let outputPackage of outputNpm.path) {
                 const outputDir = join(outputPackage, ..._namespace.split("."))
                 if (!existsSync(outputDir)) {
                     mkdirSync(outputDir, { recursive: true });
                 }
                 let indexDTs = join(outputDir, "index.d.ts");
-                writeFileSync(indexDTs, txt);
+                this.writeFile(indexDTs, txt);
             }
         }
 
@@ -704,14 +707,14 @@ export class Build {
                 }
             }
             txt += txtEnd;
-            txt = AventusTsLanguageService.removeUnusedImport(txt);
+            txt = AventusTsLanguageService.removeUnusedImport(txt, []);
             for (let outputPackage of outputNpm.path) {
                 const outputDir = join(outputPackage, ..._namespace.split("."))
                 if (!existsSync(outputDir)) {
                     mkdirSync(outputDir, { recursive: true });
                 }
                 let indexDTs = join(outputDir, "index.js");
-                writeFileSync(indexDTs, txt);
+                this.writeFile(indexDTs, txt);
             }
         }
         for (let key of keys) {
@@ -754,6 +757,7 @@ export class Build {
                     email: "info@cobwebsite.ch",
                     url: "https://cobwesbite.ch"
                 },
+                type: "module",
                 main: "index.js",
                 types: "index.d.ts",
                 dependencies
@@ -765,7 +769,7 @@ export class Build {
                 if (!existsSync(outputPackage)) {
                     mkdirSync(outputPackage, { recursive: true });
                 }
-                writeFileSync(join(outputPackage, "package.json"), JSON.stringify(packageJson, null, 2));
+                this.writeFile(join(outputPackage, "package.json"), JSON.stringify(packageJson, null, 2));
             }
         }
     }
@@ -856,36 +860,34 @@ export class Build {
         for (let info of toCompile) {
             if (this.noNamespaceUri[info.uri]) {
                 if (info.compiled != "") {
-                    if (moduleCodeStarted) {
+                    let noNamespace: "after" | "before";
+                    if (info.compiled.startsWith("@After()")) {
+                        result.codeNoNamespaceAfter.push(info.compiled.slice("@After()".length))
+                        noNamespace = "after";
+                    }
+                    else if (info.compiled.startsWith("@Before()")) {
+                        result.codeNoNamespaceBefore.push(info.compiled.slice("@Before()".length));
+                        noNamespace = "before";
+                    }
+                    else if (moduleCodeStarted) {
                         result.codeNoNamespaceAfter.push(info.compiled)
-                        if (!renderInJsByFullname[info.classScript]) {
-                            renderInJsByFullname[info.classScript] = {
-                                code: replaceNotImportAliases(info.compiled, this.project.getConfig()),
-                                dependances: prepareDependances(info.dependances, info.uri),
-                                fullName: info.classScript,
-                                required: info.required,
-                                noNamespace: "after",
-                                type: info.type,
-                                isExported: info.isExported.external,
-                                convertibleName: info.convertibleName,
-                                tagName: info.tagName
-                            };
-                        }
+                        noNamespace = "after";
                     }
                     else {
                         result.codeNoNamespaceBefore.push(info.compiled);
-                        if (!renderInJsByFullname[info.classScript]) {
-                            renderInJsByFullname[info.classScript] = {
-                                code: replaceNotImportAliases(info.compiled, this.project.getConfig()),
-                                dependances: prepareDependances(info.dependances, info.uri),
-                                fullName: info.classScript,
-                                required: info.required,
-                                noNamespace: "before",
-                                type: info.type,
-                                isExported: info.isExported.external,
-                                convertibleName: info.convertibleName,
-                                tagName: info.tagName
-                            }
+                        noNamespace = "before";
+                    }
+                    if (!renderInJsByFullname[info.classScript]) {
+                        renderInJsByFullname[info.classScript] = {
+                            code: replaceNotImportAliases(info.compiled, this.project.getConfig()),
+                            dependances: prepareDependances(info.dependances, info.uri),
+                            fullName: info.classScript,
+                            required: info.required,
+                            noNamespace: noNamespace,
+                            type: info.type,
+                            isExported: info.isExported.external,
+                            convertibleName: info.convertibleName,
+                            tagName: info.tagName
                         }
                     }
                 }
@@ -925,6 +927,7 @@ export class Build {
                             content: [],
                             imports: {},
                             names: [],
+                            forcedDependances: [],
                         }
                     }
                     const txt = info.isExported.internal ? "export " + info.npm.src : info.npm.src;
@@ -1011,28 +1014,31 @@ export class Build {
                         result.npmsrc[info.npm.exportPath] = {
                             content: [],
                             imports: {},
-                            names: []
+                            names: [],
+                            forcedDependances: []
                         }
                         let fileParsed = this.tsFiles[info.npm.uri].fileParsed;
                         let importsNpm = fileParsed?.npmGeneratedImport;
                         if (importsNpm) {
                             for (let _packageUri in importsNpm) {
                                 if (_packageUri.startsWith(".")) {
-                                    let imports = fileParsed?.importsLocal;
-                                    if (imports) {
-                                        for (let infoImport of importsNpm[_packageUri]) {
-                                            let importInfo = imports[infoImport.name];
-                                            if (!importInfo) continue; // it means its a local dependance (same file)
-                                            if (importInfo.isTypeImport) continue;
-                                            let fileToImportUri = importInfo.info?.fileUri ?? '';
-                                            let currentUri = info.npm.uri;
-                                            let finalPath = simplifyUri(fileToImportUri, currentUri);
-                                            finalPath = finalPath.replace(AventusExtension.Base, ".js");
-                                            if (!result.npmsrc[info.npm.exportPath].imports[finalPath]) {
-                                                result.npmsrc[info.npm.exportPath].imports[finalPath] = []
-                                            }
-                                            const nameWithAlias = infoImport.alias ? infoImport.name + ' as ' + infoImport.alias : infoImport.name;
-                                            result.npmsrc[info.npm.exportPath].imports[finalPath].push(nameWithAlias);
+                                    let imports = fileParsed?.importsLocal ?? {};
+                                    let manualImports = fileParsed?.manualImportLocal ?? {};
+                                    for (let infoImport of importsNpm[_packageUri]) {
+                                        let importInfo = imports[infoImport.name] ?? manualImports[infoImport.nameAlias ?? infoImport.name];
+                                        if (!importInfo) continue; // it means its a local dependance (same file)
+                                        if (importInfo.isTypeImport) continue;
+                                        let fileToImportUri = importInfo.info?.fileUri ?? '';
+                                        let currentUri = info.npm.uri;
+                                        let finalPath = simplifyUri(fileToImportUri, currentUri);
+                                        finalPath = finalPath.replace(AventusExtension.Base, ".js");
+                                        if (!result.npmsrc[info.npm.exportPath].imports[finalPath]) {
+                                            result.npmsrc[info.npm.exportPath].imports[finalPath] = []
+                                        }
+                                        const nameWithAlias = infoImport.alias ? infoImport.name + ' as ' + infoImport.alias : infoImport.name;
+                                        result.npmsrc[info.npm.exportPath].imports[finalPath].push(nameWithAlias);
+                                        if (infoImport.forced) {
+                                            result.npmsrc[info.npm.exportPath].forcedDependances.push(infoImport.alias ?? infoImport.name);
                                         }
                                     }
                                 }
@@ -1044,6 +1050,9 @@ export class Build {
                                         if (infoImport.compiled) {
                                             const nameWithAlias = infoImport.alias ? infoImport.name + ' as ' + infoImport.alias : infoImport.name;
                                             result.npmsrc[info.npm.exportPath].imports[_packageUri + "/index.js"].push(nameWithAlias);
+                                            if (infoImport.forced) {
+                                                result.npmsrc[info.npm.exportPath].forcedDependances.push(infoImport.alias ?? infoImport.name);
+                                            }
                                         }
                                     }
                                 }
@@ -1592,6 +1601,7 @@ export class Build {
      * Load all aventus file needed for this build
      */
     private async loadFiles() {
+        Statistics.startSendBuildTime(this.buildConfig.name);
         this.allowBuild = false;
         let dependancesInfo = await DependanceManager.getInstance().loadDependancesFromBuild(this.buildConfig, this);
         this.dependanceFullUris = dependancesInfo.dependanceFullUris;
@@ -1619,6 +1629,7 @@ export class Build {
         this.allowBuild = true;
         this._filesLoaded = true;
         await this.rebuildAll(true);
+        Statistics.sendBuildTime(this.buildConfig.name)
     }
     /**
      * Register one file inside this build
@@ -1893,6 +1904,9 @@ export class Build {
         UnregisterBuild.send(this.project.getConfigFile().path, this.buildConfig.fullname);
     }
 
+    public writeFile(output: string, content: string) {
+        writeFile(output, content, "build", this.buildConfig.name);
+    }
 }
 
 class ExternalPackageInformation {
@@ -2020,7 +2034,7 @@ class ExternalPackageInformation {
                 ...defFile.classInfoByName
             }
         }
-        GenericServer.sendDiagnostics({ uri: '@Import lib', diagnostics: errors })
+        GenericServer.sendDiagnostics({ uri: '@Import lib', diagnostics: errors }, this.build)
     }
 
     public getExternalWebComponentDefinition(className: string): ClassInfo | undefined {

@@ -4,6 +4,11 @@
         <name>AventusSharp</name>
     </assembly>
     <members>
+        <member name="T:AventusSharp.Data.Attributes.CreateObject">
+            <summary>
+            Set it over an Foreignkey to create the object field linked to the id during export to AventusJs
+            </summary>
+        </member>
         <member name="T:AventusSharp.Data.Attributes.DeleteOnCascade">
             <summary>
             When the field below will be deleting the current item will be deleted too
@@ -53,6 +58,81 @@
         <member name="P:AventusSharp.Data.AventusFile.Upload">
             <summary>
             The file uploaded though a form
+            </summary>
+        </member>
+        <member name="F:AventusSharp.Data.DataManagerConfig.defaultStorage">
+            <summary>
+            Define the default Storage connexion to use for your DatabaseDM
+            </summary>
+        </member>
+        <member name="F:AventusSharp.Data.DataManagerConfig.defaultDM">
+            <summary>
+            Define the default DataManager to use for you Storable
+            </summary>
+        </member>
+        <member name="F:AventusSharp.Data.DataManagerConfig.log">
+            <summary>
+            Define logs you need to see
+            </summary>
+        </member>
+        <member name="F:AventusSharp.Data.DataManagerConfig.nullByDefault">
+            <summary>
+            Define if the database fields are nullable by default
+            </summary>
+        </member>
+        <member name="F:AventusSharp.Data.DataManagerConfig.preferLocalCache">
+            <summary>
+            Define if local cache must be used. Local cache keep all objects inside the RAM
+            </summary>
+        </member>
+        <member name="F:AventusSharp.Data.DataManagerConfig.preferShortLink">
+            <summary>
+            Define if element link must only load Type and Id
+            </summary>
+        </member>
+        <member name="F:AventusSharp.Data.DataManagerConfig.allowNonAbstractExtension">
+            <summary>
+            By default only abstract inheritance is allowed. You can bypass this by setting allowNonAbstractExtension to true
+            </summary>
+        </member>
+        <member name="F:AventusSharp.Data.DataManagerConfig.GetSQLTableName">
+            <summary>
+            Define the name of sql table based on the current type
+            </summary>
+        </member>
+        <member name="F:AventusSharp.Data.DataManagerConfigLog.monitorDataDependances">
+            <summary>
+            Display dependances for all your models
+            </summary>
+        </member>
+        <member name="F:AventusSharp.Data.DataManagerConfigLog.monitorManagerAnalyze">
+            <summary>
+            Show Analyze managers step
+            </summary>
+        </member>
+        <member name="F:AventusSharp.Data.DataManagerConfigLog.monitorManagerInit">
+            <summary>
+            Display time to init each data manager
+            </summary>
+        </member>
+        <member name="F:AventusSharp.Data.DataManagerConfigLog.monitorManagerOrdering">
+            <summary>
+             Display time to order each data manager
+            </summary>
+        </member>
+        <member name="F:AventusSharp.Data.DataManagerConfigLog.monitorManagerOrdered">
+            <summary>
+             Display ordered managers
+            </summary>
+        </member>
+        <member name="F:AventusSharp.Data.DataManagerConfigLog.monitorDataOrdering">
+            <summary>
+             Display time to order each model
+            </summary>
+        </member>
+        <member name="F:AventusSharp.Data.DataManagerConfigLog.monitorDataOrdered">
+            <summary>
+            Display ordered models
             </summary>
         </member>
         <member name="F:AventusSharp.Data.DataManagerConfigLog.printErrorInConsole">
@@ -406,6 +486,276 @@
             <inheritdoc />
             </summary>
         </member>
+        <member name="T:AventusSharp.Data.Manager.IDeleteBuilder`1">
+            <summary>
+            Interface for building and executing delete queries for a specific type.
+            </summary>
+            <typeparam name="T">The type of entity the delete builder will work with.</typeparam>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IDeleteBuilder`1.Run">
+            <summary>
+            Executes the delete operation and returns a list of deleted items.
+            </summary>
+            <returns>A list of deleted <typeparamref name="T"/> objects, or null if no items were deleted.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IDeleteBuilder`1.RunWithError">
+            <summary>
+            Executes the delete operation and returns a result with error handling.
+            </summary>
+            <returns>A ResultWithError containing a list of deleted <typeparamref name="T"/> objects.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IDeleteBuilder`1.Prepare(System.Object[])">
+            <summary>
+            Prepares the delete query by adding parameters or additional objects.
+            </summary>
+            <param name="objects">Objects to be used in preparing the delete query.</param>
+            <returns>The current delete builder instance for method chaining.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IDeleteBuilder`1.SetVariable(System.String,System.Object)">
+            <summary>
+            Sets a variable for the delete query.
+            </summary>
+            <param name="name">The name of the variable.</param>
+            <param name="value">The value of the variable.</param>
+            <returns>The current delete builder instance for method chaining.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IDeleteBuilder`1.Where(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}})">
+            <summary>
+            Adds a condition to the delete query using the provided expression.
+            </summary>
+            <param name="func">The condition to apply to the delete query.</param>
+            <returns>The current delete builder instance for method chaining.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IDeleteBuilder`1.WhereWithParameters(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}})">
+            <summary>
+            Adds a condition to the delete query with parameters for the provided expression.
+            </summary>
+            <param name="func">The condition to apply to the delete query.</param>
+            <returns>The current delete builder instance for method chaining.</returns>
+        </member>
+        <member name="T:AventusSharp.Data.Manager.IExistBuilder`1">
+            <summary>
+            Interface for building and executing existence checks for a specific type.
+            </summary>
+            <typeparam name="T">The type of entity the existence builder will check.</typeparam>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IExistBuilder`1.Run">
+            <summary>
+            Executes the existence check and returns a boolean indicating if the item exists.
+            </summary>
+            <returns>True if the item exists, otherwise false.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IExistBuilder`1.RunWithError">
+            <summary>
+            Executes the existence check and returns a result with error handling.
+            </summary>
+            <returns>A ResultWithError containing a boolean indicating existence (true or false).</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IExistBuilder`1.Prepare(System.Object[])">
+            <summary>
+            Prepares the existence check by adding parameters or additional objects.
+            </summary>
+            <param name="objects">Objects to be used in preparing the existence check.</param>
+            <returns>The current existence builder instance for method chaining.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IExistBuilder`1.SetVariable(System.String,System.Object)">
+            <summary>
+            Sets a variable for the existence check.
+            </summary>
+            <param name="name">The name of the variable.</param>
+            <param name="value">The value of the variable.</param>
+            <returns>The current existence builder instance for method chaining.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IExistBuilder`1.Where(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}})">
+            <summary>
+            Adds a condition to the existence check using the provided expression.
+            </summary>
+            <param name="func">The condition to apply to the existence check.</param>
+            <returns>The current existence builder instance for method chaining.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IExistBuilder`1.WhereWithParameters(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}})">
+            <summary>
+            Adds a condition to the existence check with parameters for the provided expression.
+            </summary>
+            <param name="func">The condition to apply to the existence check.</param>
+            <returns>The current existence builder instance for method chaining.</returns>
+        </member>
+        <member name="T:AventusSharp.Data.Manager.IQueryBuilder`1">
+            <summary>
+            Interface for building and executing queries for a specific type.
+            </summary>
+            <typeparam name="T">The type of entity the query builder will work with.</typeparam>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.Run">
+            <summary>
+            Executes the query and returns a list of results.
+            </summary>
+            <returns>A list of type <typeparamref name="T"/>.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.RunWithError">
+            <summary>
+            Executes the query and returns a result with error handling.
+            </summary>
+            <returns>A ResultWithError containing a list of <typeparamref name="T"/>.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.Single">
+            <summary>
+            Executes the query and returns a single result.
+            </summary>
+            <returns>A single <typeparamref name="T"/> object, or null if no result is found.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.SingleWithError">
+            <summary>
+            Executes the query and returns a single result with error handling.
+            </summary>
+            <returns>A ResultWithError containing a single <typeparamref name="T"/> object.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.Prepare(System.Object[])">
+            <summary>
+            Prepares the query by adding parameters or additional objects.
+            </summary>
+            <param name="objects">Objects to be used in preparing the query.</param>
+            <returns>The current query builder instance for method chaining.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.SetVariable(System.String,System.Object)">
+            <summary>
+            Sets a variable for the query.
+            </summary>
+            <param name="name">The name of the variable.</param>
+            <param name="value">The value of the variable.</param>
+            <returns>The current query builder instance for method chaining.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.Where(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}})">
+            <summary>
+            Adds a condition to the query using the provided expression.
+            </summary>
+            <param name="func">The condition to apply to the query.</param>
+            <returns>The current query builder instance for method chaining.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.WhereWithParameters(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}})">
+            <summary>
+            Adds a condition to the query with parameters for the provided expression.
+            </summary>
+            <param name="func">The condition to apply to the query.</param>
+            <returns>The current query builder instance for method chaining.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.Field``1(System.Linq.Expressions.Expression{System.Func{`0,``0}})">
+            <summary>
+            Specifies a field to be included in the query results.
+            </summary>
+            <typeparam name="U">The type of the field to include.</typeparam>
+            <param name="memberExpression">The expression representing the field to include.</param>
+            <returns>The current query builder instance for method chaining.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.Sort``1(System.Linq.Expressions.Expression{System.Func{`0,``0}},System.Nullable{AventusSharp.Data.Manager.DB.Sort})">
+            <summary>
+            Specifies sorting for the query based on the provided expression and sorting order.
+            </summary>
+            <typeparam name="U">The type of the field to sort by.</typeparam>
+            <param name="expression">The field to sort by.</param>
+            <param name="sort">The sorting order (ascending or descending).</param>
+            <returns>The current query builder instance for method chaining.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.Include(System.Linq.Expressions.Expression{System.Func{`0,AventusSharp.Data.IStorable}})">
+            <summary>
+            Includes a related object in the query.
+            </summary>
+            <param name="memberExpression">The expression representing the related object to include.</param>
+            <returns>The current query builder instance for method chaining.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.Limit(System.Nullable{System.Int32})">
+            <summary>
+            Limits the number of results returned by the query.
+            </summary>
+            <param name="limit">The maximum number of results to return.</param>
+            <returns>The current query builder instance for method chaining.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.Offset(System.Nullable{System.Int32})">
+            <summary>
+            Skips a number of results and then limits the remaining results.
+            </summary>
+            <param name="offset">The number of results to skip.</param>
+            <returns>The current query builder instance for method chaining.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.Take(System.Int32)">
+            <summary>
+            Specifies the number of results to return.
+            </summary>
+            <param name="length">The number of results to return.</param>
+            <returns>The current query builder instance for method chaining.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.Take(System.Int32,System.Int32)">
+            <summary>
+            Specifies the number of results to return, starting from a given offset.
+            </summary>
+            <param name="length">The number of results to return.</param>
+            <param name="offset">The number of results to skip before returning results.</param>
+            <returns>The current query builder instance for method chaining.</returns>
+        </member>
+        <member name="T:AventusSharp.Data.Manager.IUpdateBuilder`1">
+            <summary>
+            Interface for building and executing update queries for a specific type.
+            </summary>
+            <typeparam name="T">The type of entity the update builder will work with.</typeparam>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IUpdateBuilder`1.Run(`0)">
+            <summary>
+            Executes the update operation and returns a list of updated items.
+            </summary>
+            <param name="item">The item to be updated.</param>
+            <returns>A list of updated <typeparamref name="T"/> objects, or null if no items were updated.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IUpdateBuilder`1.RunWithError(`0)">
+            <summary>
+            Executes the update operation and returns a result with error handling.
+            </summary>
+            <param name="item">The item to be updated.</param>
+            <returns>A ResultWithError containing a list of updated <typeparamref name="T"/> objects.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IUpdateBuilder`1.RunWithErrorSingle(`0)">
+            <summary>
+            Executes the update operation and returns a result with error handling for a single updated item.
+            </summary>
+            <param name="item">The item to be updated.</param>
+            <returns>A ResultWithError containing a single updated <typeparamref name="T"/> object.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IUpdateBuilder`1.Field``1(System.Linq.Expressions.Expression{System.Func{`0,``0}})">
+            <summary>
+            Specifies a field to be updated in the query.
+            </summary>
+            <typeparam name="U">The type of the field to update.</typeparam>
+            <param name="fct">The expression representing the field to update.</param>
+            <returns>The current update builder instance for method chaining.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IUpdateBuilder`1.Prepare(System.Object[])">
+            <summary>
+            Prepares the update query by adding parameters or additional objects.
+            </summary>
+            <param name="objects">Objects to be used in preparing the update query.</param>
+            <returns>The current update builder instance for method chaining.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IUpdateBuilder`1.SetVariable(System.String,System.Object)">
+            <summary>
+            Sets a variable for the update query.
+            </summary>
+            <param name="name">The name of the variable.</param>
+            <param name="value">The value of the variable.</param>
+            <returns>The current update builder instance for method chaining.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IUpdateBuilder`1.Where(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}})">
+            <summary>
+            Adds a condition to the update query using the provided expression.
+            </summary>
+            <param name="func">The condition to apply to the update query.</param>
+            <returns>The current update builder instance for method chaining.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IUpdateBuilder`1.WhereWithParameters(System.Linq.Expressions.Expression{System.Func{`0,System.Boolean}})">
+            <summary>
+            Adds a condition to the update query with parameters for the provided expression.
+            </summary>
+            <param name="func">The condition to apply to the update query.</param>
+            <returns>The current update builder instance for method chaining.</returns>
+        </member>
         <member name="M:AventusSharp.Data.Storable`1.Create(System.Collections.Generic.List{`0})">
             <summary>
             Create inside the DM a bunch of elements and return them
@@ -750,6 +1100,36 @@
         <member name="F:AventusSharp.Routes.Request.HttpFile.stream">
             <summary>
             Only use during the upload process
+            </summary>
+        </member>
+        <member name="P:AventusSharp.Routes.RouterConfig.ViewDir">
+            <summary>
+            Define where to look for the view based on the current context and the router
+            </summary>
+        </member>
+        <member name="P:AventusSharp.Routes.RouterConfig.FileUploadTempDir">
+            <summary>
+            Define where to save temp file for upload
+            </summary>
+        </member>
+        <member name="F:AventusSharp.Routes.RouterConfig.transformPattern">
+            <summary>
+            Define the regex to match the route based on various info
+            </summary>
+        </member>
+        <member name="P:AventusSharp.Routes.RouterConfig.JSONSettings">
+            <summary>
+            Define how the object must be converted from/to json
+            </summary>
+        </member>
+        <member name="P:AventusSharp.Routes.RouterConfig.PrintRoute">
+            <summary>
+            Set to true to list all route on startup
+            </summary>
+        </member>
+        <member name="P:AventusSharp.Routes.RouterConfig.PrintTrigger">
+            <summary>
+            Set to true to print route triggered
             </summary>
         </member>
         <member name="T:AventusSharp.Scheduler.Event.JobEndInfo">
@@ -1504,6 +1884,16 @@
             <param name="minutes">The minutes (0 through 59).</param>
             <param name="seconds">The seconds (0 through 59).</param>
         </member>
+        <member name="T:AventusSharp.Tools.Attributes.FctName">
+            <summary>
+            Define the name for your function inside your typescript
+            </summary>
+        </member>
+        <member name="T:AventusSharp.Tools.Attributes.NoRoute">
+            <summary>
+            Define that the function isn't a route
+            </summary>
+        </member>
         <member name="T:AventusSharp.Tools.AventusJsonConverter">
             <summary>
             Custom converter to add type when we need it (avoid dico and list bc crash in js)
@@ -1570,11 +1960,6 @@
             Determine if the typescript must start listening this event when the connection open
             </summary>
         </member>
-        <member name="T:AventusSharp.WebSocket.Attributes.NotRoute">
-            <summary>
-            Determine if that the Method isn't a route
-            </summary>
-        </member>
         <member name="M:AventusSharp.WebSocket.Request.WebSocketRouterBody.GetData(System.Type,System.String)">
             <summary>
             Transform data into object T. Add path to tell where to find data to cast
@@ -1582,6 +1967,31 @@
             <param name="type">Type needed</param>
             <param name="propPath">Path where to find data</param>
             <returns></returns>
+        </member>
+        <member name="F:AventusSharp.WebSocket.WebSocketConfig.transformPattern">
+            <summary>
+            Define the regex to match the route based on various info
+            </summary>
+        </member>
+        <member name="F:AventusSharp.WebSocket.WebSocketConfig.transformPatternIntoRegex">
+            <summary>
+            Define how to transform result from transformPattern into regex
+            </summary>
+        </member>
+        <member name="P:AventusSharp.WebSocket.WebSocketConfig.JSONSettings">
+            <summary>
+            Define how the object must be converted from/to json
+            </summary>
+        </member>
+        <member name="P:AventusSharp.WebSocket.WebSocketConfig.PrintRoute">
+            <summary>
+            Set to true to list all route on startup
+            </summary>
+        </member>
+        <member name="P:AventusSharp.WebSocket.WebSocketConfig.PrintTrigger">
+            <summary>
+            Set to true to print route triggered
+            </summary>
         </member>
         <member name="T:AventusSharp.WebSocket.WebSocketConnection">
             <summary>

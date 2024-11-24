@@ -1,22 +1,55 @@
 import { join, normalize, resolve, sep } from 'path';
-import { Build, LocalCodeResult } from '../Build';
-import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'fs';
+import { Build } from '../Build';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync } from 'fs';
 import { GenericServer } from '../../GenericServer';
 import { EOL } from 'os';
-import { getFolder, pathToUri, simplifyUri, uriToPath } from '../../tools';
+import { getFolder, pathToUri, simplifyUri, uriToPath, writeFile } from '../../tools';
 import { mainTemplate } from './MainTemplate';
 import { AventusConfigBuild } from '../../language-services/json/definition';
-import { previewHeadTemplate } from './PreviewHead';
 import { AventusTsFile } from '../../language-services/ts/File';
 import { BaseInfo } from '../../language-services/ts/parser/BaseInfo';
 import { defaultMdxTempate } from './DefaultMdxTemplate';
 import { defaultStoryTempate, defaultStoryTempateComponent } from './DefaultStoryTemplate';
 import { previewTemplate } from './PreviewTemplate';
-import { EnumInfo } from '../../language-services/ts/parser/EnumInfo';
 import { AventusWebComponentLogicalFile } from '../../language-services/ts/component/File';
 
 
 export class Storie {
+
+	public static getFullname(info: BaseInfo): string {
+		let fullname = info.fullName.replace(/\./g, '/');
+		let prefixFound = false;
+		let config = info.build.buildConfig;
+		const setPrefix = (prefix: string) => {
+			if (prefix === "") {
+			}
+			else if (prefix.endsWith("/")) {
+				fullname = prefix + fullname;
+			}
+			else {
+				fullname = prefix + "/" + fullname;
+			}
+		}
+		if (info.storieDecorator) {
+			if (info.storieDecorator.group !== undefined) {
+				if (info.storieDecorator.group) {
+					fullname = info.storieDecorator.group + "/" + info.name;
+				}
+				else {
+					fullname = info.name;
+				}
+			}
+			if (info.storieDecorator.prefix !== undefined) {
+				prefixFound = true;
+				setPrefix(info.storieDecorator.prefix);
+			}
+		}
+		if (!prefixFound && config.stories?.prefix !== undefined) {
+			setPrefix(config.stories.prefix);
+		}
+		return fullname;
+	}
+
 	private build: Build;
 	private buildConfig: AventusConfigBuild;
 	public constructor(build: Build, buildConfig: AventusConfigBuild) {
@@ -76,6 +109,21 @@ export class Storie {
 		if (!existsSync(outputPathDir)) {
 			mkdirSync(outputPathDir, { recursive: true });
 		}
+		const hasLive = () => {
+			let hasNoLive = false;
+			if (info.storieDecorator) {
+				if (info.storieDecorator.noLive) {
+					hasNoLive = true;
+				}
+				else if (info.storieDecorator.noDefaultStory) {
+					hasNoLive = true;
+				}
+			}
+			return file instanceof AventusWebComponentLogicalFile &&
+				file.fileParsed?.classes[file.componentClassName] &&
+				!file.fileParsed.classes[file.componentClassName].isAbstract &&
+				!hasNoLive
+		}
 
 		const writeMdx = () => {
 			let template = defaultMdxTempate();
@@ -83,54 +131,51 @@ export class Storie {
 			let tag = `<av-story-${storieContent.kind}-render json={JSON.stringify(Meta.aventus)}></av-story-${storieContent.kind}-render>`
 			template = this.replaceVariable(template, "tag", tag);
 
-			if (file instanceof AventusWebComponentLogicalFile) {
+
+			if (hasLive()) {
 				template = this.replaceVariable(template, "live", `
 <div>
     <Title>Live</Title>
     <Canvas />
     <Controls />
 </div>`);
-				template = this.replaceVariable(template, "blocks", `import { Canvas, Controls, Title } from '@storybook/blocks'`);
 			}
 			else {
 				template = this.replaceVariable(template, "live", ``);
-				template = this.replaceVariable(template, "blocks", `import { Canvas, Controls, Title } from '@storybook/blocks'`);
 			}
+			template = this.replaceVariable(template, "blocks", `import { Canvas, Controls, Title } from '@storybook/blocks'`);
+			let typeUpper = storieContent.kind[0].toUpperCase() + storieContent.kind.slice(1);
+			template = this.replaceVariable(template, "render", `import { Story${typeUpper}Render } from '@aventusjs/storybook-render/AventusStorybook'`);
 
-			writeFileSync(outputPath + "_.mdx", template);
+			this.writeFile(outputPath + "_.mdx", template);
+		}
+		const writeObjAsJson = (args: { [name: string]: any; }) => {
+			// JSON.stringify(args, null, 2)
+			let txt = '{' + EOL;
+			for (let name in args) {
+				let value: any = args[name];
+				if (typeof value == 'string') {
+					value = value.replace(/\\"/g, '');
+				}
+				if (value == '') {
+					value = '""';
+				}
+				txt += '\t"' + name + '":' + value + "," + EOL
+			}
+			txt += '}'
+			return txt;
 		}
 		const writeStorie = () => {
-			let template = file instanceof AventusWebComponentLogicalFile ? defaultStoryTempateComponent() : defaultStoryTempate();
-			let name = info.name;
-			let fullname = info.fullName.replace(/\./g, '/');
 			let hasDefaultStory = true;
-			let prefixFound = false;
-			const setPrefix = (prefix: string) => {
-				if (prefix === "") {
-				}
-				else if (prefix.endsWith("/")) {
-					fullname = prefix + fullname;
-				}
-				else {
-					fullname = prefix + "/" + fullname;
-				}
-			}
 			if (info.storieDecorator) {
-				if (info.storieDecorator.fullName) {
-					fullname = info.storieDecorator.fullName;
-				}
-				if (info.storieDecorator.prefix !== undefined) {
-					prefixFound = true;
-					setPrefix(info.storieDecorator.prefix);
-				}
-
-				if (info.storieDecorator.onlyMeta) {
+				if (info.storieDecorator.noDefaultStory) {
 					hasDefaultStory = false;
 				}
 			}
-			if (!prefixFound && this.buildConfig.stories?.prefix !== undefined) {
-				setPrefix(this.buildConfig.stories.prefix);
-			}
+			let template = hasLive() ? defaultStoryTempateComponent() : defaultStoryTempate();
+			let name = info.name;
+			let fullname = Storie.getFullname(info);
+
 			template = this.replaceVariable(template, "name", name);
 			template = this.replaceVariable(template, "fullname", fullname);
 			template = this.replaceVariable(template, "description", info.documentation?.definitions.join("\n").replace(/`/g, '\\`') ?? '');
@@ -138,7 +183,7 @@ export class Storie {
 			template = this.replaceVariable(template, "defaultStory", hasDefaultStory ? "export const DefaultStory: Story = {}" : "");
 			if (file instanceof AventusWebComponentLogicalFile) {
 				template = this.replaceVariable(template, "argTypes", "argTypes: " + JSON.stringify(file.storyBookInfo.argsTypes, null, 2) + ",");
-				template = this.replaceVariable(template, "args", "args: " + JSON.stringify(file.storyBookInfo.args, null, 2) + ",");
+				template = this.replaceVariable(template, "args", "args: " + writeObjAsJson(file.storyBookInfo.args) + ",");
 
 				let importPathes: { [uri: string]: string[] } = file.fileParsed?.classes[file.componentClassName].storieInject ?? {};
 
@@ -159,8 +204,12 @@ export class Storie {
 				}
 				template = this.replaceVariable(template, "importPathes", importTxt.join("\n"));
 			}
+			else {
+				template = this.replaceVariable(template, "argTypes", "");
+				template = this.replaceVariable(template, "args", "");
+			}
 
-			writeFileSync(outputPath + ".stories.ts", template);
+			this.writeFile(outputPath + ".stories.ts", template);
 		}
 
 		writeMdx();
@@ -234,7 +283,7 @@ export class Storie {
 								packageJson.devDependencies = devDependencies;
 								ctx = JSON.stringify(packageJson, null, 4);
 							}
-							writeFileSync(exportPath, ctx);
+							this.writeFile(exportPath, ctx);
 						}
 
 
@@ -266,19 +315,15 @@ export class Storie {
 			let template = mainTemplate();
 			let uri = simplifyUri(pathToUri(this.buildConfig.stories.output), pathToUri(mainTsPath));
 			template = this.replaceVariable(template, "path", uri);
-			writeFileSync(mainTsPath, template);
+			this.writeFile(mainTsPath, template);
 		}
 
-		const previewHeadPath = join(storyPath, "preview-head.html");
-		if (!existsSync(previewHeadPath)) {
-			let template = previewHeadTemplate();
-			writeFileSync(previewHeadPath, template);
-		}
+
 
 		const previewPath = join(storyPath, "preview.ts");
 		if (!existsSync(previewPath)) {
 			let template = previewTemplate();
-			writeFileSync(previewPath, template);
+			this.writeFile(previewPath, template);
 		}
 	}
 
@@ -287,5 +332,9 @@ export class Storie {
 		let regex = new RegExp("\\$" + variable + "\\$", "g");
 		src = src.replace(regex, replace);
 		return src;
+	}
+
+	protected writeFile(output: string, content: string) {
+		writeFile(output, content, "storybook");
 	}
 }

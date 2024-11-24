@@ -5,6 +5,7 @@ export interface AventusConfigBuild {
 	disabled: boolean,
 	hideWarnings: boolean,
 	src: string[],
+	srcPath: string[],
 	stories: AventusConfigBuildStories | undefined,
 	srcPathRegex: RegExp,
 	compile: AventusConfigBuildCompile[],
@@ -57,9 +58,10 @@ export interface AventusConfigStatic {
 export interface AventusConfigBuildStories {
 	output: string,
 	workspace?: string,
-	format?: "all" | "public" | "manual",
+	format?: "all" | "public" | "protected" | "manual",
 	live?: boolean,
-	prefix?: string
+	prefix?: string,
+	srcBaseUrl?: string
 }
 export interface AventusConfig {
 	version: string,

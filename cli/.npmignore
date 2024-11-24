@@ -1,4 +1,7 @@
 src/**/*
 tsconfig.json
 webpack.config.js
+webpack.interaction.config.js
+webpack.server.config.js
 av.cmd
+postBuild.mjs

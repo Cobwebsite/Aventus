@@ -11,6 +11,7 @@
 const path = require('path');
 const merge = require('merge-options');
 const { IgnorePlugin } = require('webpack');
+const TerserPlugin = require('terser-webpack-plugin');
 
 const optionalPlugins = [];
 if (process.platform !== "darwin") {
@@ -51,8 +52,8 @@ module.exports = function withDefaults(/**@type WebpackConfig*/extConfig) {
 		externals: {
 			'vscode': 'commonjs vscode', // ignored because it doesn't exist
 			'bufferutil': 'bufferutil',
-			'utf-8-validate':'utf-8-validate',
-			'emitter':'emitter'
+			'utf-8-validate': 'utf-8-validate',
+			'emitter': 'emitter'
 		},
 		output: {
 			// all output goes into `dist`.
@@ -69,8 +70,12 @@ module.exports = function withDefaults(/**@type WebpackConfig*/extConfig) {
 		plugins: [
 			...optionalPlugins,
 		],
-		// yes, really source maps
-		devtool: 'source-map'
+		optimization: {
+			minimizer: [new TerserPlugin({
+				extractComments: false,
+			})],
+		},
+		devtool: false
 	};
 
 	return merge(defaultConfig, extConfig);

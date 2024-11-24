@@ -1,4 +1,4 @@
-import { Server } from '../Server';
+import { RealServer } from '../RealServer';
 
 export class InitStep {
     public static cmd: string = "aventus/initStep";
@@ -7,7 +7,7 @@ export class InitStep {
     public static action(txt: string) {
         txt = txt.replace("$(loading~spin)", "◌");
         if (txt == this.doneTxt) {
-            Server.started();
+            RealServer.started();
         }
     }
 }

@@ -449,7 +449,7 @@ export class AventusWebcomponentCompiler {
 
     //#region prepare view
     private addViewElementToDependance() {
-        if (this.htmlParsed && this.htmlFile) {
+        if (this.htmlParsed && this.htmlFile && this.classInfo) {
             this.logicalFile.resetViewClassInfoDep();
             let addedDep: string[] = [];
             let fileByTag: { [name: string]: AventusWebComponentLogicalFile | null } = {}
@@ -457,16 +457,7 @@ export class AventusWebcomponentCompiler {
                 if (interestPoint.type == "tag") {
                     if (!addedDep.includes(interestPoint.name)) {
                         addedDep.push(interestPoint.name);
-                        let dependance = this.build.getWebComponentTagDependance(interestPoint.name);
-                        if (dependance) {
-                            for (let dep of this.componentResult.dependances) {
-                                if (dep.fullName == dependance.fullName) {
-                                    return;
-                                }
-                            }
-
-                            this.componentResult.dependances.push(dependance)
-                        }
+                        this.classInfo.addDependanceTag(interestPoint.name, this.componentResult);
                     }
 
                     if (!fileByTag.hasOwnProperty(interestPoint.name)) {
@@ -600,7 +591,8 @@ export class AventusWebcomponentCompiler {
                     uri: '@aventusjs/main/Aventus',
                     name: "WebComponentInstance",
                     compiled: true,
-                    alias: aliasName
+                    alias: aliasName,
+                    forced: false
                 });
             }
         }
@@ -719,27 +711,15 @@ export class AventusWebcomponentCompiler {
         let values: string[] = [];
         let storyValue: string | undefined = field.defaultValue ?? undefined;
         let attType: 'string' | 'number' | "boolean" | undefined = undefined;
-        if (type.kind == "string") {
-            control = "text";
-            attType = 'string';
-        }
-        else if (type.kind == "literal") {
-            control = "select";
-            let value = type.value;
-            if (value.startsWith("'") || value.startsWith('"')) {
-                value = value.substring(1);
+
+        const findType = (type: TypeInfo) => {
+            if (type.kind == "string") {
+                control = "text";
+                attType = 'string';
             }
-            if (value.endsWith("'") || value.endsWith('"')) {
-                value = value.substring(0, value.length - 1);
-            }
-            storyValue = field.defaultValue?.slice(1, -1) ?? undefined;
-            values.push(value);
-            attType = 'string';
-        }
-        else if (type.kind == "union") {
-            control = "select";
-            for (let nested of type.nested) {
-                let value = nested.value;
+            else if (type.kind == "literal") {
+                control = "select";
+                let value = type.value;
                 if (value.startsWith("'") || value.startsWith('"')) {
                     value = value.substring(1);
                 }
@@ -747,27 +727,49 @@ export class AventusWebcomponentCompiler {
                     value = value.substring(0, value.length - 1);
                 }
                 values.push(value);
+                attType = 'string';
             }
-            storyValue = field.defaultValue?.slice(1, -1) ?? undefined;
-            attType = 'string';
+            else if (type.kind == "union") {
+                control = "select";
+                for (let nested of type.nested) {
+                    let value = nested.value;
+                    if (value.startsWith("'") || value.startsWith('"')) {
+                        value = value.substring(1);
+                    }
+                    if (value.endsWith("'") || value.endsWith('"')) {
+                        value = value.substring(0, value.length - 1);
+                    }
+                    values.push(value);
+                }
+                attType = 'string';
+            }
+            else if (type.kind == "number") {
+                control = "number";
+                attType = 'number';
+            }
+            else if (type.kind == "boolean") {
+                control = "boolean";
+                attType = 'boolean';
+            }
+            else if (type.kind == "type") {
+                if (type.value == "Date" || type.value == "DateTime") {
+                    control = "date";
+                }
+                else {
+                    let info = ParserTs.getBaseInfo(type.value);
+                    if (info && info instanceof AliasInfo) {
+                        findType(info.type);
+                    }
+                    else {
+                        control = "object"
+                    }
+                }
+            }
+            else {
+                control = "object"
+            }
         }
-        else if (type.kind == "number") {
-            control = "number";
-            attType = 'number';
-        }
-        else if (type.kind == "boolean") {
-            control = "boolean";
-            attType = 'boolean';
-        }
-        else if (type.kind === "type" && type.value == "Date") {
-            control = "date";
-        }
-        else if (type.kind === "type" && type.value == "DateTime") {
-            control = "date";
-        }
-        else {
-            control = "object"
-        }
+        findType(type);
 
         this.storyArgTypes[field.name] = {
             control: control,
@@ -847,7 +849,7 @@ export class AventusWebcomponentCompiler {
             }
             else if (field.propType == "ViewElement") {
                 viewsElements[field.name] = field;
-                if (!field.overrideNullable) {
+                if (!field.overrideNullable && field.defaultValue === null && !field.isNullable) {
                     this.result.diagnostics.push(createErrorTsPos(this.document, "You must add ! after the name to avoid undefined value", field.nameStart, field.nameEnd, AventusErrorCode.ExclamationMarkMissing));
                 }
             }
@@ -1466,6 +1468,7 @@ export class AventusWebcomponentCompiler {
     private writeViewInfo(template: HtmlTemplateResult, isMain: boolean, loopInfo?: ActionLoop, ifInfo?: ActionIfPart) {
         const finalViewResult: any = {};
         let finalTxt = "";
+        let finalTxtNpm = "";
 
         //#region elements
         let elements = template.elements;
@@ -1726,9 +1729,20 @@ export class AventusWebcomponentCompiler {
             if (finalTxt.length > 0) {
                 finalTxt = `__registerTemplateAction() { super.__registerTemplateAction();${EOL}${finalTxt} }`;
             }
+            if(this.templateNpm) {
+                const templateName = this.build.getNpmReplacementName([this.build.module, this.fullName].join("."), "Aventus.Template");
+                finalTxtNpm = finalTxt.replace(/new Aventus.Template\(this\)/g, `new ${templateName}(this)`);
+                this.fileParsed?.registerGeneratedImport({
+                    uri: '@aventusjs/main/Aventus',
+                    name: "Template",
+                    compiled: true,
+                    alias: templateName,
+                    forced: false
+                });
+            }
             this.writeFileReplaceVar("templateAction", finalTxt);
             this.writeFileHotReloadReplaceVar("templateAction", finalTxt);
-            this.writeFileNpmReplaceVar("templateAction", finalTxt);
+            this.writeFileNpmReplaceVar("templateAction", finalTxtNpm);
 
             this.writeFileReplaceVar("variablesInViewDynamic", this.variablesInViewDynamic);
             this.writeFileHotReloadReplaceVar("variablesInViewDynamic", this.variablesInViewDynamic);

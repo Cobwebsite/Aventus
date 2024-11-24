@@ -8,6 +8,6 @@ export class InitStep {
 
 	public static sendDone() {
 		GenericServer.sendNotification("aventus/initStep", "Aventus : Done");
-        InitStep.isInit = true;
+		InitStep.isInit = true;
 	}
 }

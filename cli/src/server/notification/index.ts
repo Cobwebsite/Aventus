@@ -9,6 +9,7 @@ import { OpenPreview } from "./OpenPreview";
 import { RegisterBuild } from "./RegisterBuild";
 import { RegisterData } from "./RegisterData";
 import { RegisterStatic } from "./RegisterStatic";
+import { Statistics } from './Statistics';
 import { UnregisterBuild } from "./UnregisterBuild";
 import { UnregisterData } from "./UnregisterData";
 import { UnregisterStatic } from "./UnregisterStatic";
@@ -30,5 +31,9 @@ export const Notifications = {
         [UnregisterStatic.cmd]: UnregisterStatic,
         [EditFile.cmd]: EditFile,
         [InitStep.cmd]: InitStep,
+        [Statistics.loadFileTime.cmd]: Statistics.loadFileTime,
+        [Statistics.buildTime.cmd]: Statistics.buildTime,
+        [Statistics.sizeFile.cmd]: Statistics.sizeFile,
+        [Statistics.staticTime.cmd]: Statistics.staticTime,
     },
 }

@@ -6,7 +6,7 @@ import { ClassInfo } from './ClassInfo';
 import { InternalDecorator, InternalProtectedDecorator } from './decorators/InternalDecorator';
 import { BaseInfo } from './BaseInfo';
 import { DocumentationInfo } from './DocumentationInfo';
-import { StoryValue } from './decorators/StoryValue';
+import { StoryValueDecorator } from './decorators/StoryValueDecorator';
 
 type PropType = PropertyDeclaration | GetAccessorDeclaration | SetAccessorDeclaration | (PropertySignature & { exclamationToken?: boolean });
 export class PropertyInfo {
@@ -100,7 +100,7 @@ export class PropertyInfo {
         this.loadInitializer(prop);
 
         for(let decorator of this.decorators) {
-            let storyValue = StoryValue.is(decorator);
+            let storyValue = StoryValueDecorator.is(decorator);
             if(storyValue) {
                 this.defaultValueStory = storyValue.value;
             }

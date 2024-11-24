@@ -6,6 +6,7 @@ import { Build } from './Build';
 import { Project } from "./Project";
 
 export class ProjectManager {
+    public static autoLoad: boolean = true;
     private static instance: ProjectManager;
     public static getInstance(): ProjectManager {
         if (!this.instance) {
@@ -26,8 +27,10 @@ export class ProjectManager {
             }
 
             if (!this.projects[file.documentUser.uri]) {
-                this.projects[file.documentUser.uri] = new Project(file);
-                await this.projects[file.documentUser.uri].init()
+                this.projects[file.documentUser.uri] = new Project(file, ProjectManager.autoLoad);
+                if (ProjectManager.autoLoad) {
+                    await this.projects[file.documentUser.uri].init()
+                }
                 file.onDelete(this.onDeleteFile.bind(this));
             }
             else {

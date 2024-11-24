@@ -130,13 +130,13 @@ export class AventusWebSCSSFile extends AventusBaseFile {
                     newCompiledTxt = compiled;
                     if (this.diagnosticCompile) {
                         this.diagnosticCompile = undefined;
-                        GenericServer.sendDiagnostics({ uri: this.file.uri, diagnostics: this.diagnostics })
+                        GenericServer.sendDiagnostics({ uri: this.file.uri, diagnostics: this.diagnostics }, this.build)
                     }
                 } catch (e: any) {
                     if (e instanceof Exception) {
                         this.diagnosticCompile = createErrorScss(this.file.documentUser, e.message);
                         const diagnostics = [...this.diagnostics, this.diagnosticCompile];
-                        GenericServer.sendDiagnostics({ uri: this.file.uri, diagnostics: diagnostics })
+                        GenericServer.sendDiagnostics({ uri: this.file.uri, diagnostics: diagnostics }, this.build)
                     }
                     else {
                         console.log(e);

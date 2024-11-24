@@ -12,6 +12,8 @@ const meta: Meta = {
             },
         }
     },
+    $argTypes$
+    $args$
     $aventus$
 }
 
