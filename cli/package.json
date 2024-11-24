@@ -2,7 +2,7 @@
   "name": "@aventusjs/cli",
   "displayName": "Aventus CLI",
   "description": "This official CLI to compile Aventus Framework",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "icon": "icons/logo.png",
   "bin": {
     "aventus": "./out/cli.js"

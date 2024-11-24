@@ -11,8 +11,7 @@ import { transpile } from "typescript";
 import { AventusTsLanguageService, CompileTsResult, getSectionStart } from "../../LanguageService";
 import { EOL } from "os";
 import { HTMLDoc } from "../../../html/helper/definition";
-import { CustomCssProperty, SCSSDoc } from "../../../scss/helper/CSSNode";
-import { AventusSCSSLanguageService } from "../../../scss/LanguageService";
+import { SCSSDoc } from "../../../scss/helper/CSSNode";
 import { AventusFile } from '../../../../files/AventusFile';
 import { ParserTs } from '../../parser/ParserTs';
 import { ClassInfo } from '../../parser/ClassInfo';
@@ -31,13 +30,12 @@ import { RequiredDecorator } from '../../parser/decorators/RequiredDecorator';
 import { AliasInfo } from '../../parser/AliasInfo';
 import { WatchDecorator } from '../../parser/decorators/WatchDecorator';
 import { ParserHtml } from '../../../html/parser/ParserHtml';
-import { ActionBindings, ActionElement, ActionEvent, ActionIf, ActionIfPart, ActionInjection, ActionLoop, ActionPressEvent, HtmlTemplateResult, pressEventMap } from '../../../html/parser/definition';
+import { ActionBindings, ActionElement, ActionEvent, ActionIfPart, ActionLoop, ActionPressEvent, HtmlTemplateResult, pressEventMap } from '../../../html/parser/definition';
 import { DefaultStateActiveDecorator } from '../../parser/decorators/DefaultStateActiveDecorator';
 import { DefaultStateInactiveDecorator } from '../../parser/decorators/DefaultStateInactiveDecorator';
-import { BindThisDecorator } from '../../parser/decorators/BindThisDecorator';
 import { EffectDecorator, EffectDecoratorOption } from '../../parser/decorators/EffectDecorator';
 import { HttpServer } from '../../../../live-server/HttpServer';
-import { IStoryContentClass, IStoryContentWebComponent, IStoryContentWebComponentSlot, IStoryContentWebComponentStyle, InputType } from '@aventusjs/storybook';
+import { IStoryContentWebComponent, IStoryContentWebComponentSlot, IStoryContentWebComponentStyle, InputType } from '@aventusjs/storybook';
 import { SignalDecorator } from '../../parser/decorators/SignalDecorator';
 
 
@@ -133,7 +131,6 @@ export class AventusWebcomponentCompiler {
     private parentClassNameNpm: string = "";
     private overrideViewDecorator: OverrideViewDecorator | null = null;
     private debuggerDecorator: DebuggerDecorator | null = null;
-    private extraConstructorCode: string[] = [];
 
     private AventusWebComponent: string = "Aventus.WebComponent";
     private AventusDefaultComponent: string = "Aventus.DefaultComponent";
@@ -634,39 +631,10 @@ export class AventusWebcomponentCompiler {
     private writeFileConstructor() {
         if (this.classInfo) {
             const classInfo = this.classInfo;
-            const generateTxt = (constructorBody: string) => {
-                let constructorBodyTxt = "";
-                if (constructorBody.length > 0) {
-                    constructorBodyTxt = `constructor() ` + constructorBody
-                }
 
-                if (classInfo.isAbstract) {
-                    if (constructorBodyTxt.length > 0) {
-                        constructorBodyTxt = constructorBodyTxt.slice(0, constructorBodyTxt.length - 1);
-                        constructorBodyTxt += EOL + 'if (this.constructor == ' + this.className + ') { throw "can\'t instanciate an abstract class"; }';
-                        constructorBodyTxt += ' }'
-                    }
-                    else {
-                        constructorBodyTxt = 'constructor() { super(); if (this.constructor == ' + this.className + ') { throw "can\'t instanciate an abstract class"; } }';
-                    }
-                }
-
-                if (this.extraConstructorCode.length > 0) {
-                    if (constructorBodyTxt.length > 0) {
-                        constructorBodyTxt = constructorBodyTxt.slice(0, constructorBodyTxt.length - 1);
-                        constructorBodyTxt += EOL + this.extraConstructorCode.join(EOL);
-                        constructorBodyTxt += ' }'
-                    }
-                    else {
-                        constructorBodyTxt = 'constructor() { super(); ' + EOL + this.extraConstructorCode.join(EOL) + ' }';
-                    }
-                }
-                return constructorBodyTxt;
-            }
-
-            this.writeFileReplaceVar("constructor", generateTxt(this.classInfo.constructorContent));
-            this.writeFileHotReloadReplaceVar("constructor", generateTxt(this.classInfo.constructorContentHotReload));
-            this.writeFileNpmReplaceVar("constructor", generateTxt(this.classInfo.constructorContentNpm));
+            this.writeFileReplaceVar("constructor", this.classInfo.constructorContent);
+            this.writeFileHotReloadReplaceVar("constructor", this.classInfo.constructorContentHotReload);
+            this.writeFileNpmReplaceVar("constructor", this.classInfo.constructorContentNpm);
 
         }
     }
@@ -1340,11 +1308,6 @@ export class AventusWebcomponentCompiler {
                     if (method.isStatic) continue;
 
                     for (let decorator of method.decorators) {
-                        if (BindThisDecorator.is(decorator)) {
-                            this.extraConstructorCode.push(`this.${methodName}=this.${methodName}.bind(this)`);
-                            continue;
-                        }
-
                         let effectDecorator = EffectDecorator.is(decorator);
                         if (effectDecorator) {
                             this.watchFunctions[methodName] = effectDecorator.options;

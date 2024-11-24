@@ -6280,6 +6280,9 @@ let WebComponent=class WebComponent extends HTMLElement {
         this.__registerSignalsActions();
         this.__createStates();
         this.__subscribeState();
+        if (this.constructor == WebComponent) {
+            throw "can't instanciate an abstract class";
+        }
     }
     /**
      * Remove all listeners

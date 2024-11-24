@@ -25,34 +25,32 @@ export class ClassInfo extends BaseInfo {
 	public propertiesStatic: { [propName: string]: PropertyInfo } = {};
 	public isInterface: boolean = false;
 	public isAbstract: boolean = false;
-	private constructorBody: FunctionBody | undefined;
+	public constructorBody: FunctionBody | undefined;
 	public parameters: string[] = [];
 	private methodParameters: string[] = [];
 	public convertibleName: string = '';
 	public extendsType?: TypeInfo;
 	public implementsType: TypeInfo[] = [];
-	public hasOneBindThis: boolean = false;
+	public extraConstructorCode: string[] = [];
 
 	public get constructorContent(): string {
 		if (!this.constructorBody) {
-			if (this.hasOneBindThis) {
-				let extraConstructorCode: string[] = [];
-				for (let methodName in this.methods) {
-					if (this.methods[methodName].isBindThis) {
-						extraConstructorCode.push(`this.${methodName}=this.${methodName}.bind(this)`);
-					}
-				}
-				return 'constructor() { super(); ' + EOL + extraConstructorCode.join(EOL) + ' }';
+			if (this.extraConstructorCode.length > 0) {
+				return 'constructor() { super(); ' + EOL + this.extraConstructorCode.join(EOL) + ' }'
 			}
 			return "";
 		}
 		let txt = this.constructorBody.getText();
 		txt = BaseInfo.getContent(txt, this.constructorBody.getStart(), this.constructorBody.getEnd(), this.dependancesLocations, this.compileTransformations);
-		return txt;
+		const _params = (this.constructorBody.parent as ConstructorDeclaration).parameters.map(p => p.getText()).join(", ");
+		return `constructor(${_params}) ` + txt;
 	}
 
 	public get constructorContentHotReload(): string {
 		if (!this.constructorBody) {
+			if (this.extraConstructorCode.length > 0) {
+				return 'constructor() { super(); ' + EOL + this.extraConstructorCode.join(EOL) + ' }'
+			}
 			return "";
 		}
 		let txt = this.constructorBody.getText();
@@ -62,6 +60,9 @@ export class ClassInfo extends BaseInfo {
 
 	public get constructorContentNpm(): string {
 		if (!this.constructorBody) {
+			if (this.extraConstructorCode.length > 0) {
+				return 'constructor() { super(); ' + EOL + this.extraConstructorCode.join(EOL) + ' }'
+			}
 			return "";
 		}
 		let txt = this.constructorBody.getText();
@@ -194,8 +195,6 @@ export class ClassInfo extends BaseInfo {
 				result = propInfo;
 			}
 
-
-
 			if (result) {
 				if (result.accessibilityModifierTransformation) {
 					let key = result.accessibilityModifierTransformation.start + "_" + result.accessibilityModifierTransformation.end
@@ -209,7 +208,7 @@ export class ClassInfo extends BaseInfo {
 
 		this.loadDependancesDecorator();
 
-		this.addBindThis();
+		this.addConstructor();
 	}
 	private getClassInheritance(node: HeritageClause) {
 		if (node.token == SyntaxKind.ExtendsKeyword) {
@@ -264,16 +263,20 @@ export class ClassInfo extends BaseInfo {
 		}
 	}
 
-	private addBindThis() {
-		let extraConstructorCode: string[] = [];
+	private addConstructor() {
+		this.extraConstructorCode = [];
+		let defaultComp = this.build.isCoreBuild ? "DefaultComponent" : "Aventus.DefaultComponent";
+		if (this.implements.includes(defaultComp) && !this.isInterface && this.isAbstract) {
+			this.extraConstructorCode.push('if (this.constructor == ' + this.name + ') { throw "can\'t instanciate an abstract class"; }')
+		}
+
 		for (let methodName in this.methods) {
 			if (this.methods[methodName].isBindThis) {
-				extraConstructorCode.push(`this.${methodName}=this.${methodName}.bind(this)`);
+				this.extraConstructorCode.push(`this.${methodName}=this.${methodName}.bind(this)`);
 			}
 		}
 
-		if (extraConstructorCode.length > 0) {
-			this.hasOneBindThis = true;
+		if (this.extraConstructorCode.length > 0) {
 			if (this.constructorBody) {
 				// the constructor exist
 				const constructorBodyEnd = this.constructorBody.getEnd() - 1;
@@ -281,16 +284,16 @@ export class ClassInfo extends BaseInfo {
 				this.compileTransformations[key] = {
 					start: constructorBodyEnd,
 					end: constructorBodyEnd,
-					newText: EOL + extraConstructorCode.join(EOL)
+					newText: EOL + this.extraConstructorCode.join(EOL)
 				}
 			}
 			else {
-				const bodyStart = Object.values(this.methods)[0].fullStart;
+				const bodyStart = this.node.getChildren().find(p => p.kind == SyntaxKind.OpenBraceToken)?.end ?? 0;
 				const key = bodyStart + "_" + bodyStart
 				this.compileTransformations[key] = {
 					start: bodyStart,
 					end: bodyStart,
-					newText: 'constructor() { super(); ' + EOL + extraConstructorCode.join(EOL) + ' }'
+					newText: 'constructor() { super(); ' + EOL + this.extraConstructorCode.join(EOL) + ' }'
 				}
 			}
 		}

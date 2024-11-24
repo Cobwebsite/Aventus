@@ -19,7 +19,6 @@ import { ParserTs } from './parser/ParserTs';
 import { existsSync } from 'fs';
 import { FilesManager } from '../../files/FilesManager';
 import { VariableInfo } from './parser/VariableInfo';
-import { BindThisDecorator } from './parser/decorators/BindThisDecorator';
 import { EnumInfo } from './parser/EnumInfo';
 import { HttpServer } from '../../live-server/HttpServer';
 import { AventusPackageNamespaceFileTs } from './package/File';
@@ -1061,7 +1060,7 @@ export class AventusTsLanguageService {
                 result.hotReload = transpile(txtHotReload, compilerOptionsCompile);
             }
 
-            let rawDoc = this.compileDocTs(txt);
+            let rawDoc = this.compileDocTs(txt, element);
             let doc = DefinitionCorrector.correct(rawDoc, element);
 
             let buildNpm = this.compileTsToNpm(element, file);
@@ -1212,7 +1211,7 @@ export class AventusTsLanguageService {
             txt = this.replaceFirstExport(txt);
             const transpiled = transpile(txt, compilerOptionsCompile);
 
-            const rawDoc = this.compileDocTs(txt);
+            const rawDoc = this.compileDocTs(txt, element);
 
             result.namespace = file.build.module;
             if (element.namespace.length > 0) {
@@ -1233,7 +1232,7 @@ export class AventusTsLanguageService {
         return null;
     }
 
-    public static compileDocTs(txt: string): string {
+    public static compileDocTs(txt: string, element: BaseInfo): string {
         try {
             const host: LanguageServiceHost = {
                 getCompilationSettings: () => {
@@ -1277,7 +1276,11 @@ export class AventusTsLanguageService {
 
             };
             let ls: LanguageService = createLanguageService(host);
-            return ls.getEmitOutput("temp.js", true, true).outputFiles[0].text.replace(/^declare /g, '');
+            let result = ls.getEmitOutput("temp.js", true, true).outputFiles[0].text.replace(/^declare /g, '');
+            if(element instanceof ClassInfo && !element.constructorBody && element.extraConstructorCode.length > 0) {
+                result = result.replace("constructor();", "");
+            }
+            return result;
         } catch (e) {
             this.printCatchError(e);
         }

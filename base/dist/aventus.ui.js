@@ -3780,6 +3780,9 @@ let WebComponent=class WebComponent extends HTMLElement {
         this.__registerSignalsActions();
         this.__createStates();
         this.__subscribeState();
+        if (this.constructor == WebComponent) {
+            throw "can't instanciate an abstract class";
+        }
     }
     /**
      * Remove all listeners
@@ -6664,7 +6667,7 @@ Navigation.Router = class Router extends Aventus.WebComponent {
     }
     page404;
     static __style = `:host{display:block}`;
-    constructor() {            super();            this.validError404 = this.validError404.bind(this);            this.canChangeState = this.canChangeState.bind(this);            this.stateManager.canChangeState(this.canChangeState);if (this.constructor == Router) { throw "can't instanciate an abstract class"; } }
+    constructor() {            super();            this.validError404 = this.validError404.bind(this);            this.canChangeState = this.canChangeState.bind(this);            this.stateManager.canChangeState(this.canChangeState);if (this.constructor == Router) { throw "can't instanciate an abstract class"; }}
     __getStatic() {
         return Router;
     }
@@ -6853,7 +6856,7 @@ Navigation.Page = class Page extends Aventus.WebComponent {
     }
 })); }
     static __style = `:host{display:none}:host([visible]){display:block}`;
-    constructor() { super(); if (this.constructor == Page) { throw "can't instanciate an abstract class"; } }
+    constructor() { super(); if (this.constructor == Page) { throw "can't instanciate an abstract class"; } }
     __getStatic() {
         return Page;
     }
