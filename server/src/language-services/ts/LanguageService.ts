@@ -984,37 +984,7 @@ export class AventusTsLanguageService {
         return result;
     }
 
-    private static addBindThis(element: ClassInfo, txt: string) {
-        let extraConstructorCode: string[] = [];
-        for (let methodName in element.methods) {
-            for (let deco of element.methods[methodName].decorators) {
-                if (BindThisDecorator.is(deco)) {
-                    extraConstructorCode.push(`this.${methodName}=this.${methodName}.bind(this)`);
-                }
-            }
-        }
 
-        if (extraConstructorCode.length > 0) {
-            let constructorBody = element.constructorContent;
-            if (constructorBody.length > 0) {
-                let constructorBodyTxt = constructorBody;
-                constructorBodyTxt = constructorBodyTxt.slice(0, constructorBodyTxt.length - 1);
-                constructorBodyTxt += EOL + extraConstructorCode.join(EOL);
-                constructorBodyTxt += ' }'
-
-                txt = txt.replace(constructorBody, constructorBodyTxt);
-            }
-            else {
-                let start = Object.values(element.methods)[0].fullStart;
-                let part = txt.slice(0, start) + EOL;
-                part += 'constructor() { super(); ' + EOL + extraConstructorCode.join(EOL) + ' }'
-                part += txt.slice(start);
-                txt = part;
-            }
-        }
-
-        return txt;
-    }
     public static compileTs(element: BaseInfo, file: AventusTsFile): CompileTsResult {
         let result: CompileTsResult = {
             compiled: "",
@@ -1073,7 +1043,6 @@ export class AventusTsLanguageService {
                 }
                 result.convertibleName = element.convertibleName;
 
-                txt = this.addBindThis(element, txt);
             }
             else if (element instanceof VariableInfo) {
                 txt = element.type + " " + element.compiledContent;
@@ -1234,7 +1203,6 @@ export class AventusTsLanguageService {
                         });
                     }
                 }
-                txt = this.addBindThis(element, txt);
             }
             else if (element instanceof VariableInfo) {
                 txt = element.type + " " + element.compiledContentNpm;

@@ -1016,7 +1016,7 @@ let NormalizedEvent=class NormalizedEvent {
         return this.event.timeStamp;
     }
     get pointerType() {
-        if (this._event instanceof TouchEvent)
+        if ('TouchEvent' in window && this._event instanceof TouchEvent)
             return "touch";
         return this.getProp("pointerType");
     }
@@ -1024,7 +1024,7 @@ let NormalizedEvent=class NormalizedEvent {
         return this.getProp("button");
     }
     get isTouch() {
-        if (this._event instanceof TouchEvent)
+        if ('TouchEvent' in window && this._event instanceof TouchEvent)
             return true;
         return this._event.pointerType == "touch";
     }
@@ -2134,7 +2134,7 @@ let PressManager=class PressManager {
         return touch.pointerId;
     }
     registerEvent(ev) {
-        if (ev instanceof TouchEvent) {
+        if ('TouchEvent' in window && ev instanceof TouchEvent) {
             for (let touch of ev.targetTouches) {
                 const id = this.identifyEvent(touch);
                 if (this.pointersRecord[id]) {
@@ -2155,7 +2155,7 @@ let PressManager=class PressManager {
     }
     unregisterEvent(ev) {
         let result = true;
-        if (ev instanceof TouchEvent) {
+        if ('TouchEvent' in window && ev instanceof TouchEvent) {
             for (let touch of ev.changedTouches) {
                 const id = this.identifyEvent(touch);
                 if (!this.pointersRecord[id]) {

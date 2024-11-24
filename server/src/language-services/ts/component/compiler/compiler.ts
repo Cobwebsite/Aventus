@@ -849,7 +849,7 @@ export class AventusWebcomponentCompiler {
             }
             else if (field.propType == "ViewElement") {
                 viewsElements[field.name] = field;
-                if (!field.overrideNullable) {
+                if (!field.overrideNullable && field.defaultValue === null && !field.isNullable) {
                     this.result.diagnostics.push(createErrorTsPos(this.document, "You must add ! after the name to avoid undefined value", field.nameStart, field.nameEnd, AventusErrorCode.ExclamationMarkMissing));
                 }
             }

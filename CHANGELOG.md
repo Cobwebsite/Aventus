@@ -1,14 +1,21 @@
 # Change Log
 
-## 1.3.2 ()
+## 1.3.2 (2024-11-24)
 
 ### Bug Fixes
  - Npm export will now correctly add dependance to html tag
+ - Correct @BindThis when no constructor
+ - Correct remove error force ! when default value or ! exist
+ - Correct http package link
+ - Npm will now be exported as module package
+ - Fix TouchEvent inside PressManager
 
 ### Features
  - Add aventus.readDirs settings
  - Add protected to storybook options
  - Add NoLive to storybook options
+ - Change logo (YEEEAAAH !!!)
+ - Upgrade to AventusSharp 0.0.5
 
 ## 1.3.1 (2024-10-19)
 

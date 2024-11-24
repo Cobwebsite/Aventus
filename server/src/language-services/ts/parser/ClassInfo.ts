@@ -8,9 +8,11 @@ import { IStoryContentInterface, IStoryContentClass, IStoryContentObject, IStory
 import { TypeInfo } from './TypeInfo';
 import { StorybookDecorator } from './decorators/StorybookDecorator';
 import * as md5 from 'md5';
+import { EOL } from 'os';
 
 
 export class ClassInfo extends BaseInfo {
+
 	/** always fullname */
 	public extends: string[] = [];
 	public extendsNpm: string[] = [];
@@ -29,9 +31,19 @@ export class ClassInfo extends BaseInfo {
 	public convertibleName: string = '';
 	public extendsType?: TypeInfo;
 	public implementsType: TypeInfo[] = [];
+	public hasOneBindThis: boolean = false;
 
 	public get constructorContent(): string {
 		if (!this.constructorBody) {
+			if (this.hasOneBindThis) {
+				let extraConstructorCode: string[] = [];
+				for (let methodName in this.methods) {
+					if (this.methods[methodName].isBindThis) {
+						extraConstructorCode.push(`this.${methodName}=this.${methodName}.bind(this)`);
+					}
+				}
+				return 'constructor() { super(); ' + EOL + extraConstructorCode.join(EOL) + ' }';
+			}
 			return "";
 		}
 		let txt = this.constructorBody.getText();
@@ -82,7 +94,7 @@ export class ClassInfo extends BaseInfo {
 				this.getClassInheritance(heritage);
 			}
 		}
-		
+
 		forEachChild(node, x => {
 			let isStrong = false;
 			let result: PropertyInfo | MethodInfo | null = null;
@@ -196,6 +208,8 @@ export class ClassInfo extends BaseInfo {
 		this.loadConvertible();
 
 		this.loadDependancesDecorator();
+
+		this.addBindThis();
 	}
 	private getClassInheritance(node: HeritageClause) {
 		if (node.token == SyntaxKind.ExtendsKeyword) {
@@ -247,6 +261,38 @@ export class ClassInfo extends BaseInfo {
 
 				}
 			})
+		}
+	}
+
+	private addBindThis() {
+		let extraConstructorCode: string[] = [];
+		for (let methodName in this.methods) {
+			if (this.methods[methodName].isBindThis) {
+				extraConstructorCode.push(`this.${methodName}=this.${methodName}.bind(this)`);
+			}
+		}
+
+		if (extraConstructorCode.length > 0) {
+			this.hasOneBindThis = true;
+			if (this.constructorBody) {
+				// the constructor exist
+				const constructorBodyEnd = this.constructorBody.getEnd() - 1;
+				const key = constructorBodyEnd + "_" + constructorBodyEnd
+				this.compileTransformations[key] = {
+					start: constructorBodyEnd,
+					end: constructorBodyEnd,
+					newText: EOL + extraConstructorCode.join(EOL)
+				}
+			}
+			else {
+				const bodyStart = Object.values(this.methods)[0].fullStart;
+				const key = bodyStart + "_" + bodyStart
+				this.compileTransformations[key] = {
+					start: bodyStart,
+					end: bodyStart,
+					newText: 'constructor() { super(); ' + EOL + extraConstructorCode.join(EOL) + ' }'
+				}
+			}
 		}
 	}
 
@@ -354,7 +400,7 @@ export class ClassInfo extends BaseInfo {
 		if (!this.canAddToStory(methodInfo)) return;
 		// prevent adding generated fct
 		let fullname = [this.build.module, this.fullName].join(".");
-		if(methodInfo.name.startsWith("__" + md5(fullname) + "method")) {
+		if (methodInfo.name.startsWith("__" + md5(fullname) + "method")) {
 			return;
 		}
 		if (!result.methods) {

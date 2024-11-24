@@ -6,6 +6,7 @@ import { InternalDecorator, InternalProtectedDecorator } from './decorators/Inte
 import { BaseInfo } from './BaseInfo';
 import { NoCompileDecorator } from './decorators/NoCompileDecorator';
 import { DocumentationInfo } from './DocumentationInfo';
+import { BindThisDecorator } from './decorators/BindThisDecorator';
 
 export class MethodInfo {
     public fullStart: number = 0;
@@ -25,6 +26,7 @@ export class MethodInfo {
     public isAbstract: boolean = false;
     public isPrivate: boolean = false;
     public isProtected: boolean = false;
+    public isBindThis: boolean = false;
     public readonly node: MethodDeclaration;
     public get compiledContent(): string {
         let txt = BaseInfo.getContent(this.content, this.start, this.end, this._class.dependancesLocations, this._class.compileTransformations);
@@ -52,7 +54,7 @@ export class MethodInfo {
         this.decorators = DecoratorInfo.buildDecorator(method, _class);
 
         let docTemp = new DocumentationInfo(method);
-        if(docTemp.hasDoc) {
+        if (docTemp.hasDoc) {
             this.documentation = docTemp;
         }
         this.loadAccessibilityModifier(method);
@@ -71,12 +73,16 @@ export class MethodInfo {
             let deco = InternalDecorator.is(decorator);
             if (deco) {
                 isInternal = deco;
-                break;
+                continue;
             }
             let decoP = InternalProtectedDecorator.is(decorator);
             if (decoP) {
                 isInternal = decoP;
-                break;
+                continue;
+            }
+            if (BindThisDecorator.is(decorator)) {
+                this.isBindThis = true;
+                continue;
             }
         }
         if (method.modifiers) {

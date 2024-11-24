@@ -959,25 +959,30 @@ export abstract class BaseInfo {
     }
 
 
-    public static getContent(txt: string,
+    public static getContent(
+        txt: string,
         start: number,
         end: number,
         dependancesLocations: { [name: string]: DependanceInfo },
-        compileTransformations: { [key: string]: { newText: string, start: number, end: number } }) {
+        compileTransformations: { [key: string]: { newText: string, start: number, end: number } }
+    ) {
         return this._getContent(txt, start, end, dependancesLocations, compileTransformations, 1);
     }
-    public static getContentHotReload(txt: string,
+    public static getContentHotReload(
+        txt: string,
         start: number,
         end: number,
         dependancesLocations: { [name: string]: DependanceInfo },
         compileTransformations: { [key: string]: { newText: string, start: number, end: number } }) {
         return this._getContent(txt, start, end, dependancesLocations, compileTransformations, 2);
     }
-    public static getContentNpm(txt: string,
+    public static getContentNpm(
+        txt: string,
         start: number,
         end: number,
         dependancesLocations: { [name: string]: DependanceInfo },
-        compileTransformations: { [key: string]: { newText: string, start: number, end: number } }) {
+        compileTransformations: { [key: string]: { newText: string, start: number, end: number } }
+    ) {
         return this._getContent(txt, start, end, dependancesLocations, compileTransformations, 3);
     }
     private static _getContent(
@@ -1033,6 +1038,7 @@ export abstract class BaseInfo {
                 })
             }
         }
+
         transformations.sort((a, b) => b.end - a.end); // order from end file to start file
         let lastPos = txt.length;
         for (let transformation of transformations) {

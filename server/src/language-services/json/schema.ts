@@ -368,41 +368,51 @@ export const AventusSharpSchema: JSONSchema = {
         "csProj": {
             type: "string",
             pattern: "^\\S+\\.csproj",
+            description: "Path to your csproj file"
         },
         "outputPath": {
             type: "string",
+            description: "Define the folder where to export the code"
         },
         "exportEnumByDefault": {
             type: "boolean",
-            default: false
+            default: false,
+            description: "Define if enums must be exported. You can override behaviour with [Export] or [NoExport]"
         },
         "exportStorableByDefault": {
             type: "boolean",
-            default: true
+            default: true,
+            description: "Define if storable must be exported. You can override behaviour with [Export] or [NoExport]"
         },
         "exportHttpRouteByDefault": {
             type: "boolean",
-            default: true
+            default: true,
+            description: "Define if http route must be exported. You can override behaviour with [Export] or [NoExport]"
         },
         "exportErrorsByDefault": {
             type: "boolean",
-            default: true
+            default: true,
+            description: "Define if errors must be exported. You can override behaviour with [Export] or [NoExport]"
         },
         "exportWsEndPointByDefault": {
             type: "boolean",
-            default: true
+            default: true,
+            description: "Define if websocket endpoint must be exported. You can override behaviour with [Export] or [NoExport]"
         },
         "exportWsEventByDefault": {
             type: "boolean",
-            default: true
+            default: true,
+            description: "Define if websocket event must be exported. You can override behaviour with [Export] or [NoExport]"
         },
         "exportWsRouteByDefault": {
             type: "boolean",
-            default: true
+            default: true,
+            description: "Define if websocket route must be exported. You can override behaviour with [Export] or [NoExport]"
         },
         "replacer": {
             type: "object",
             additionalProperties: false,
+            description: "Create replacer to export type",
             properties: {
                 "all": { "$ref": "#/$defs/replacerPart" },
                 "genericError": { "$ref": "#/$defs/replacerPart" },
@@ -419,21 +429,23 @@ export const AventusSharpSchema: JSONSchema = {
             type: "object",
             additionalProperties: false,
             properties: {
-                createRouter: { type: "boolean", default: true },
-                autobindRoute: { type: "string", enum: ["none", "auto", "full"], default: "auto" },
-                routerName: { type: "string", default: "GeneratedRouter" },
-                variableRoutesName: { type: "string", default: "generatedHttpRoutes" },
-                uri: { type: "string", default: "", pattern: "^(?=\s*$)|^(\\/[a-zA-Z0-9_-]+?){1,}$" },
-                host: { type: "string", default: "https://localhost:5000", pattern: "^http(s)?:\\/\\/[a-zA-Z0-9_-]*?(:[0-9]{3,4})?$" },
-                parent: { type: "string", default: "Aventus.HttpRouter" },
-                namespace: { type: "string", default: "Routes" }
+                createRouter: { type: "boolean", default: true, description: "Create a router that your route will use" },
+                routerName: { type: "string", default: "GeneratedRouter", description: "The name of the router to generate" },
+                uri: { type: "string", default: "", pattern: "^(?=\s*$)|^(\\/[a-zA-Z0-9_-]+?){1,}$", description: "Define the base uri for your router (ex: /api)" },
+                host: { type: "string", default: "https://localhost:5000", pattern: "^http(s)?:\\/\\/[a-zA-Z0-9_-]*?(:[0-9]{3,4})?$", description: "Define the host that the router will use" },
+                parent: { type: "string", default: "Aventus.HttpRouter", description: "Define the parent type to use for your router" },
+                namespace: { type: "string", default: "Routes", description: "Define the namespace for your router" }
             }
         },
         "wsEndpoint": {
             type: "object",
             additionalProperties: false,
             properties: {
-                prefix: { type: "string", default: "" }
+                prefix: { type: "string", default: "Define a prefix for your websocket events" },
+                host: { type: "string", description: "The host to connect to the websocket" },
+                port: { type: "number", description: "The port to connect to the websocket" },
+                useHttps: { type: "boolean", description: "Define if you want to use http or https. Be default, Aventus will check if your connection is secure to use https or not" },
+                parent: { type: "string", default: "AventusSharp.WebSocket.EndPoint", description: "Define the parent type to use for your router" }
             }
         }
     },
@@ -445,6 +457,7 @@ export const AventusSharpSchema: JSONSchema = {
             properties: {
                 "type": {
                     type: "object",
+                    description: "Apply a replacer based on the c# type",
                     patternProperties: {
                         "^\\S+$": {
                             type: "object",
@@ -466,6 +479,7 @@ export const AventusSharpSchema: JSONSchema = {
                 },
                 "result": {
                     type: "object",
+                    description: "Apply a replacer based on the result type (ex: to replace Aventus.IData when IStorable is exported)",
                     patternProperties: {
                         "^\\S+$": {
                             type: "object",
