@@ -2129,7 +2129,7 @@ let PressManager=class PressManager {
         this.element.addEventListener("trigger_pointer_pressmove", this.functionsBinded.childPressMove);
     }
     identifyEvent(touch) {
-        if (touch instanceof Touch)
+        if ('Touch' in window && touch instanceof Touch)
             return touch.identifier;
         return touch.pointerId;
     }
