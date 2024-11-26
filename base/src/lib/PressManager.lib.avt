@@ -307,8 +307,8 @@ export class PressManager {
 
     // #region current Event
     protected identifyEvent(touch: Touch | PointerEvent): number {
-        if(touch instanceof Touch) return touch.identifier;
-        return touch.pointerId;
+        if('Touch' in window && touch instanceof Touch) return touch.identifier;
+        return (touch as PointerEvent).pointerId;
     }
     protected registerEvent(ev: PointerEvent | TouchEvent): boolean {
         if('TouchEvent' in window && ev instanceof TouchEvent) {

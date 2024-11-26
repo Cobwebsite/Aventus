@@ -1,5 +1,12 @@
 # Change Log
 
+## 1.3.4 (2024-11-26)
+
+### Bug Fixes
+ - Correct Touch in PressManager
+
+### Features
+
 ## 1.3.3 (2024-11-24)
 
 ### Bug Fixes
