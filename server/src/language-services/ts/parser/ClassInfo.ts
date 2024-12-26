@@ -1,4 +1,4 @@
-import { ClassDeclaration, forEachChild, SyntaxKind, MethodDeclaration, PropertyDeclaration, HeritageClause, InterfaceDeclaration, ConstructorDeclaration, ExpressionWithTypeArguments, TypeNode, TypeReferenceNode, CallExpression, GetAccessorDeclaration, SetAccessorDeclaration, FunctionBody, PropertySignature, MethodSignature } from "typescript";
+import { ClassDeclaration, forEachChild, SyntaxKind, MethodDeclaration, PropertyDeclaration, HeritageClause, InterfaceDeclaration, ConstructorDeclaration, ExpressionWithTypeArguments, TypeNode, TypeReferenceNode, CallExpression, GetAccessorDeclaration, SetAccessorDeclaration, FunctionBody, PropertySignature, MethodSignature, ParameterDeclaration } from "typescript";
 import { BaseInfo, InfoType } from "./BaseInfo";
 import { MethodInfo } from "./MethodInfo";
 import { ParserTs } from "./ParserTs";
@@ -26,6 +26,7 @@ export class ClassInfo extends BaseInfo {
 	public isInterface: boolean = false;
 	public isAbstract: boolean = false;
 	public constructorBody: FunctionBody | undefined;
+	public constructorParams: ParameterDeclaration[] = [];
 	public parameters: string[] = [];
 	private methodParameters: string[] = [];
 	public convertibleName: string = '';
@@ -36,7 +37,9 @@ export class ClassInfo extends BaseInfo {
 	public get constructorContent(): string {
 		if (!this.constructorBody) {
 			if (this.extraConstructorCode.length > 0) {
-				return 'constructor() { super(); ' + EOL + this.extraConstructorCode.join(EOL) + ' }'
+				let _params = this.parentClass ? this.parentClass.constructorParams.map(c => c.getText()).join() : '';
+				let _paramsSuper = this.parentClass ? this.parentClass.constructorParams.map(c => c.name.getText()).join() : '';
+				return 'constructor(' + _params + ') { super(' + _paramsSuper + '); ' + EOL + this.extraConstructorCode.join(EOL) + ' }'
 			}
 			return "";
 		}
@@ -49,7 +52,9 @@ export class ClassInfo extends BaseInfo {
 	public get constructorContentHotReload(): string {
 		if (!this.constructorBody) {
 			if (this.extraConstructorCode.length > 0) {
-				return 'constructor() { super(); ' + EOL + this.extraConstructorCode.join(EOL) + ' }'
+				let _params = this.parentClass ? this.parentClass.constructorParams.map(c => c.getText()).join() : '';
+				let _paramsSuper = this.parentClass ? this.parentClass.constructorParams.map(c => c.name.getText()).join() : '';
+				return 'constructor(' + _params + ') { super(' + _paramsSuper + '); ' + EOL + this.extraConstructorCode.join(EOL) + ' }'
 			}
 			return "";
 		}
@@ -61,7 +66,9 @@ export class ClassInfo extends BaseInfo {
 	public get constructorContentNpm(): string {
 		if (!this.constructorBody) {
 			if (this.extraConstructorCode.length > 0) {
-				return 'constructor() { super(); ' + EOL + this.extraConstructorCode.join(EOL) + ' }'
+				let _params = this.parentClass ? this.parentClass.constructorParams.map(c => c.getText()).join() : '';
+				let _paramsSuper = this.parentClass ? this.parentClass.constructorParams.map(c => c.name.getText()).join() : '';
+				return 'constructor(' + _params + ') { super(' + _paramsSuper + '); ' + EOL + this.extraConstructorCode.join(EOL) + ' }'
 			}
 			return "";
 		}
@@ -104,6 +111,7 @@ export class ClassInfo extends BaseInfo {
 				if (cst.body) {
 					this.constructorBody = cst.body
 				}
+				this.constructorParams = Array.from(cst.parameters);
 			}
 			else if (x.kind == SyntaxKind.PropertyDeclaration) {
 				let propInfo = new PropertyInfo(x as PropertyDeclaration, this.isInterface, this);
@@ -288,12 +296,19 @@ export class ClassInfo extends BaseInfo {
 				}
 			}
 			else {
+				let _params = '';
+				let _paramsSuper = '';
+				if (this.parentClass) {
+					// TODO add typing to get right type (care when came from different package)
+					_params = this.parentClass.constructorParams.map(c => c.getText()).join()
+					_paramsSuper = this.parentClass.constructorParams.map(c => c.name.getText()).join()
+				}
 				const bodyStart = this.node.getChildren().find(p => p.kind == SyntaxKind.OpenBraceToken)?.end ?? 0;
 				const key = bodyStart + "_" + bodyStart
 				this.compileTransformations[key] = {
 					start: bodyStart,
 					end: bodyStart,
-					newText: 'constructor() { super(); ' + EOL + this.extraConstructorCode.join(EOL) + ' }'
+					newText: 'constructor(' + _params + ') { super(' + _paramsSuper + '); ' + EOL + this.extraConstructorCode.join(EOL) + ' }'
 				}
 			}
 		}

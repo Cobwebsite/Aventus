@@ -1,6 +1,6 @@
 {
     "scripts": {
         "build": "dotnet build AventusSharp.csproj -c Release",
-        "publish": "dotnet-publish bin\\Release\\AventusSharp.0.0.4.nupkg"
+        "publish": "dotnet-publish bin\\Release\\AventusSharp.0.0.6.nupkg"
     }
 }

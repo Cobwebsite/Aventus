@@ -16,6 +16,7 @@ export interface Settings {
 	updateImportOnRename: boolean,
 	projectPath: string[],
 	templatePath: string[],
+	useDefaultTemplate: boolean,
 	readNodeModules: boolean,
 	readDirs: string[],
 	debug: boolean,
@@ -51,6 +52,7 @@ const defaultSettings: Settings = {
 	onlyBuild: false,
 	debug: false,
 	useStats: false,
+	useDefaultTemplate: true,
 }
 function getDefaultSettings(): Settings {
 	return JSON.parse(JSON.stringify(defaultSettings));

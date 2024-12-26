@@ -6,6 +6,6 @@ export class ImportProject {
 
 
     public static async run() {
-        await GenericServer.templateManager?.selectProjectToImport();
+        await GenericServer.templateManager?.selectProjectToImport(false);
     }
 }
