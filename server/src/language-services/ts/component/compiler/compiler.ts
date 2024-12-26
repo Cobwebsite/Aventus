@@ -37,6 +37,7 @@ import { EffectDecorator, EffectDecoratorOption } from '../../parser/decorators/
 import { HttpServer } from '../../../../live-server/HttpServer';
 import { IStoryContentWebComponent, IStoryContentWebComponentSlot, IStoryContentWebComponentStyle, InputType } from '@aventusjs/storybook';
 import { SignalDecorator } from '../../parser/decorators/SignalDecorator';
+import { InjectableDecorator } from '../../parser/decorators/InjectableDecorator';
 
 
 export class AventusWebcomponentCompiler {
@@ -765,10 +766,22 @@ export class AventusWebcomponentCompiler {
         let properties: { field: CustomFieldModel, fctTxt: string | null }[] = [];
         let signals: { field: CustomFieldModel, fctTxt: string | null }[] = [];
         let watches: { field: CustomFieldModel, fctTxt: string | null }[] = [];
+        let injectables: CustomFieldModel[] = [];
+        let events: CustomFieldModel[] = [];
         let viewsElements: { [name: string]: CustomFieldModel } = {};
 
         for (let fieldName in this.allFields) {
             let field = this.allFields[fieldName];
+
+            for (let decorator of field.decorators) {
+                if (InjectableDecorator.is(decorator)) {
+                    injectables.push(field);
+                }
+            }
+            if(ListCallbacks.includes(field.type.value)) {
+                events.push(field);
+            }
+
             if (field.inParent) {
                 if (field.propType == "Attribute" || field.propType == "Property") {
                     this.createHtmlDoc(field, field.type);
@@ -831,6 +844,8 @@ export class AventusWebcomponentCompiler {
         this.writeFileFieldsProperty(properties);
         this.writeFileFieldsSignal(signals);
         this.writeFileFieldsWatch(watches);
+        this.createInjectableHtmlDoc(injectables);
+        this.createEventsHtmlDoc(events);
 
         if (this.upgradeAttributes.length > 0) {
             this.upgradeAttributes = `__upgradeAttributes() { super.__upgradeAttributes(); ${this.upgradeAttributes} }`
@@ -1692,7 +1707,7 @@ export class AventusWebcomponentCompiler {
             if (finalTxt.length > 0) {
                 finalTxt = `__registerTemplateAction() { super.__registerTemplateAction();${EOL}${finalTxt} }`;
             }
-            if(this.templateNpm) {
+            if (this.templateNpm) {
                 const templateName = this.build.getNpmReplacementName([this.build.module, this.fullName].join("."), "Aventus.Template");
                 finalTxtNpm = finalTxt.replace(/new Aventus.Template\(this\)/g, `new ${templateName}(this)`);
                 this.fileParsed?.registerGeneratedImport({
@@ -1834,6 +1849,33 @@ this.clearWatchHistory = () => {
                 description: field.documentation?.fullDefinitions.join(EOL) ?? '',
                 type: realType,
                 values: definedValues
+            }
+        }
+    }
+    private createInjectableHtmlDoc(fields: CustomFieldModel[]) {
+        if (this.htmlDoc) {
+            for (let field of fields) {
+                this.htmlDoc[this.tagName].attributes[field.name] = {
+                    name: ":" + field.name,
+                    description: field.documentation?.fullDefinitions.join(EOL) ?? '',
+                    values: []
+                }
+            }
+        }
+    }
+    private createEventsHtmlDoc(fields: CustomFieldModel[]) {
+        if (this.htmlDoc) {
+            for (let field of fields) {
+                let evName = field.name;
+                if(evName.startsWith("on")) {
+                    evName = evName.slice(2);
+                    evName = evName.charAt(0).toLowerCase() + evName.slice(1)
+                }
+                this.htmlDoc[this.tagName].attributes[field.name] = {
+                    name: "@" + evName,
+                    description: field.documentation?.fullDefinitions.join(EOL) ?? '',
+                    values: []
+                }
             }
         }
     }

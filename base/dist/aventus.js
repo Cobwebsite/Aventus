@@ -1,4 +1,109 @@
+var Aventus;
+(Aventus||(Aventus = {}));
+(function (Aventus) {
+const moduleName = `Aventus`;
+const _ = {};
 
+
+let _n;
+let Style=class Style {
+    static instance;
+    static noAnimation;
+    static defaultStyleSheets = {
+        "@default": `:host{display:inline-block;box-sizing:border-box}:host *{box-sizing:border-box}`,
+    };
+    static store(name, content) {
+        this.getInstance().store(name, content);
+    }
+    static get(name) {
+        return this.getInstance().get(name);
+    }
+    static getAsString(name) {
+        return this.getInstance().getAsString(name);
+    }
+    static sheetToString(stylesheet) {
+        return this.getInstance().sheetToString(stylesheet);
+    }
+    static load(name, url) {
+        return this.getInstance().load(name, url);
+    }
+    static appendToHead(name) {
+        if (!document.head.querySelector(`style[data-name="${name}"]`)) {
+            const styleNode = document.createElement('style');
+            styleNode.setAttribute(`data-name`, name);
+            styleNode.innerHTML = Aventus.Style.getAsString(name);
+            document.getElementsByTagName('head')[0].appendChild(styleNode);
+        }
+    }
+    static refreshHead(name) {
+        const styleNode = document.head.querySelector(`style[data-name="${name}"]`);
+        if (styleNode) {
+            styleNode.innerHTML = Aventus.Style.getAsString(name);
+        }
+    }
+    static getInstance() {
+        if (!this.instance) {
+            this.instance = new Style();
+        }
+        return this.instance;
+    }
+    constructor() {
+        for (let name in Style.defaultStyleSheets) {
+            this.store(name, Style.defaultStyleSheets[name]);
+        }
+        Style.noAnimation = new CSSStyleSheet();
+        Style.noAnimation.replaceSync(`:host{-webkit-transition: none !important;-moz-transition: none !important;-ms-transition: none !important;-o-transition: none !important;transition: none !important;}:host *{-webkit-transition: none !important;-moz-transition: none !important;-ms-transition: none !important;-o-transition: none !important;transition: none !important;}`);
+    }
+    stylesheets = new Map();
+    async load(name, url) {
+        try {
+            let style = this.stylesheets.get(name);
+            if (!style || style.cssRules.length == 0) {
+                let txt = await (await fetch(url)).text();
+                this.store(name, txt);
+            }
+        }
+        catch (e) {
+        }
+    }
+    store(name, content) {
+        let style = this.stylesheets.get(name);
+        if (!style) {
+            const sheet = new CSSStyleSheet();
+            sheet.replaceSync(content);
+            this.stylesheets.set(name, sheet);
+            return sheet;
+        }
+        else {
+            style.replaceSync(content);
+            Style.refreshHead(name);
+            return style;
+        }
+    }
+    get(name) {
+        let style = this.stylesheets.get(name);
+        if (!style) {
+            style = this.store(name, "");
+        }
+        return style;
+    }
+    getAsString(name) {
+        return this.sheetToString(this.get(name));
+    }
+    sheetToString(stylesheet) {
+        return stylesheet.cssRules
+            ? Array.from(stylesheet.cssRules)
+                .map(rule => rule.cssText || '')
+                .join('\n')
+            : '';
+    }
+}
+Style.Namespace=`Aventus`;
+_.Style=Style;
+
+
+for(let key in _) { Aventus[key] = _[key] }
+})(Aventus);
 
 Object.defineProperty(window, "AvInstance", {
 	get() {return Aventus.Instance;}
@@ -59,6 +164,20 @@ let Style=class Style {
     static load(name, url) {
         return this.getInstance().load(name, url);
     }
+    static appendToHead(name) {
+        if (!document.head.querySelector(`style[data-name="${name}"]`)) {
+            const styleNode = document.createElement('style');
+            styleNode.setAttribute(`data-name`, name);
+            styleNode.innerHTML = Aventus.Style.getAsString(name);
+            document.getElementsByTagName('head')[0].appendChild(styleNode);
+        }
+    }
+    static refreshHead(name) {
+        const styleNode = document.head.querySelector(`style[data-name="${name}"]`);
+        if (styleNode) {
+            styleNode.innerHTML = Aventus.Style.getAsString(name);
+        }
+    }
     static getInstance() {
         if (!this.instance) {
             this.instance = new Style();
@@ -94,6 +213,7 @@ let Style=class Style {
         }
         else {
             style.replaceSync(content);
+            Style.refreshHead(name);
             return style;
         }
     }
@@ -117,245 +237,6 @@ let Style=class Style {
 }
 Style.Namespace=`Aventus`;
 _.Style=Style;
-
-let ElementExtension=class ElementExtension {
-    /**
-     * Find a parent by tagname if exist Static.findParentByTag(this, "av-img")
-     */
-    static findParentByTag(element, tagname, untilNode) {
-        let el = element;
-        if (Array.isArray(tagname)) {
-            for (let i = 0; i < tagname.length; i++) {
-                tagname[i] = tagname[i].toLowerCase();
-            }
-        }
-        else {
-            tagname = [tagname.toLowerCase()];
-        }
-        let checkFunc = (el) => {
-            return tagname.indexOf((el.nodeName || el.tagName).toLowerCase()) != -1;
-        };
-        if (el) {
-            if (el instanceof ShadowRoot) {
-                el = el.host;
-            }
-            else {
-                el = el.parentNode;
-            }
-        }
-        while (el) {
-            if (checkFunc(el)) {
-                return el;
-            }
-            if (el instanceof ShadowRoot) {
-                el = el.host;
-            }
-            else {
-                el = el.parentNode;
-            }
-            if (el == untilNode) {
-                break;
-            }
-        }
-        return null;
-    }
-    /**
-     * Find a parent by class name if exist Static.findParentByClass(this, "my-class-img") = querySelector('.my-class-img')
-     */
-    static findParentByClass(element, classname, untilNode) {
-        let el = element;
-        if (!Array.isArray(classname)) {
-            classname = [classname];
-        }
-        if (el) {
-            if (el instanceof ShadowRoot) {
-                el = el.host;
-            }
-            else {
-                el = el.parentNode;
-            }
-        }
-        while (el) {
-            for (let classnameTemp of classname) {
-                if (el['classList'] && el['classList'].contains(classnameTemp)) {
-                    return el;
-                }
-            }
-            if (el instanceof ShadowRoot) {
-                el = el.host;
-            }
-            else {
-                el = el.parentNode;
-            }
-            if (el == untilNode) {
-                break;
-            }
-        }
-        return null;
-    }
-    /**
-     * Find a parent by type if exist Static.findParentyType(this, Aventus.Img)
-     */
-    static findParentByType(element, type, untilNode) {
-        let el = element;
-        let checkFunc = (el) => {
-            return false;
-        };
-        if (typeof type == "function" && type['prototype']['constructor']) {
-            checkFunc = (el) => {
-                if (el instanceof type) {
-                    return true;
-                }
-                return false;
-            };
-        }
-        else {
-            console.error("you must provide a class inside this function");
-            return null;
-        }
-        if (el) {
-            if (el instanceof ShadowRoot) {
-                el = el.host;
-            }
-            else {
-                el = el.parentNode;
-            }
-        }
-        while (el) {
-            if (checkFunc(el)) {
-                return el;
-            }
-            if (el instanceof ShadowRoot) {
-                el = el.host;
-            }
-            else {
-                el = el.parentNode;
-            }
-            if (el == untilNode) {
-                break;
-            }
-        }
-        return null;
-    }
-    /**
-     * Find list of parents by tagname
-     */
-    static findParents(element, tagname, untilNode) {
-        let el = element;
-        if (Array.isArray(tagname)) {
-            for (let i = 0; i < tagname.length; i++) {
-                tagname[i] = tagname[i].toLowerCase();
-            }
-        }
-        else {
-            tagname = [tagname.toLowerCase()];
-        }
-        let result = [];
-        if (el) {
-            if (el instanceof ShadowRoot) {
-                el = el.host;
-            }
-            else {
-                el = el.parentNode;
-            }
-        }
-        while (el) {
-            if (tagname.indexOf((el.nodeName || el['tagName']).toLowerCase()) != -1) {
-                result.push(el);
-            }
-            if (el instanceof ShadowRoot) {
-                el = el.host;
-            }
-            else {
-                el = el.parentNode;
-            }
-            if (el == untilNode) {
-                break;
-            }
-        }
-        return result;
-    }
-    /**
-     * Check if element contains a child
-     */
-    static containsChild(element, child) {
-        var rootScope = element.getRootNode();
-        var elScope = child.getRootNode();
-        while (elScope != rootScope) {
-            if (!elScope['host']) {
-                return false;
-            }
-            child = elScope['host'];
-            elScope = elScope['host'].getRootNode();
-        }
-        return element.contains(child);
-    }
-    /**
-     * Get element inside slot
-     */
-    static getElementsInSlot(element, slotName) {
-        let result = [];
-        if (element.shadowRoot) {
-            let slotEl;
-            if (slotName) {
-                slotEl = element.shadowRoot.querySelector('slot[name="' + slotName + '"]');
-            }
-            else {
-                slotEl = element.shadowRoot.querySelector("slot:not([name])");
-                if (!slotEl) {
-                    slotEl = element.shadowRoot.querySelector("slot");
-                }
-            }
-            while (true) {
-                if (!slotEl) {
-                    return result;
-                }
-                var listChild = Array.from(slotEl.assignedElements());
-                if (!listChild) {
-                    return result;
-                }
-                let slotFound = false;
-                for (let i = 0; i < listChild.length; i++) {
-                    let child = listChild[i];
-                    if (listChild[i].nodeName == "SLOT") {
-                        slotEl = listChild[i];
-                        slotFound = true;
-                    }
-                    else if (child instanceof HTMLElement) {
-                        result.push(child);
-                    }
-                }
-                if (!slotFound) {
-                    return result;
-                }
-            }
-        }
-        return result;
-    }
-    /**
-     * Get deeper element inside dom at the position X and Y
-     */
-    static getElementAtPosition(x, y, startFrom) {
-        var _realTarget = (el, i = 0) => {
-            if (i == 50) {
-                debugger;
-            }
-            if (el.shadowRoot && x !== undefined && y !== undefined) {
-                var newEl = el.shadowRoot.elementFromPoint(x, y);
-                if (newEl && newEl != el && (el.shadowRoot.contains(newEl) || el.contains(newEl))) {
-                    return _realTarget(newEl, i + 1);
-                }
-            }
-            return el;
-        };
-        if (startFrom == null) {
-            startFrom = document.body;
-        }
-        return _realTarget(startFrom);
-    }
-}
-ElementExtension.Namespace=`Aventus`;
-_.ElementExtension=ElementExtension;
 
 let uuidv4=function uuidv4() {
     let uid = '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c => (Number(c) ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> Number(c) / 4).toString(16));
@@ -5637,13 +5518,20 @@ let TemplateInstance=class TemplateInstance {
                 elements = this.context.getValueFromItem(currentPath);
             }
             if (!elements && onThis) {
-                elements = this.component.__watch;
+                const splittedPath = basePath.split(".");
+                const firstPart = splittedPath.length > 0 ? splittedPath[0] : null;
+                if (firstPart && this.component.__signals[firstPart]) {
+                    elements = this.component.__signals[firstPart];
+                }
+                else {
+                    elements = this.component.__watch;
+                }
             }
-            if (!elements || !elements.__isProxy) {
+            if (!elements || !(elements.__isProxy || elements instanceof Signal)) {
                 debugger;
             }
             const subTemp = (action, path, value) => {
-                if (basePath.startsWith(path)) {
+                if (basePath.startsWith(path) || path == "*") {
                     elements.unsubscribe(subTemp);
                     this.renderLoopSimple(loop, simple);
                     return;
@@ -6730,14 +6618,14 @@ let WebComponent=class WebComponent extends HTMLElement {
         }
     }
     getStringAttr(name) {
-        return this.getAttribute(name) ?? undefined;
+        return this.getAttribute(name)?.replace(/&avquot;/g, '"') ?? undefined;
     }
     setStringAttr(name, val) {
         if (val === undefined || val === null) {
             this.removeAttribute(name);
         }
         else {
-            this.setAttribute(name, val);
+            this.setAttribute(name, (val + "").replace(/"/g, '&avquot;'));
         }
     }
     getStringProp(name) {
@@ -6915,6 +6803,12 @@ let WebComponent=class WebComponent extends HTMLElement {
     getElementsInSlot(slotName) {
         return ElementExtension.getElementsInSlot(this, slotName);
     }
+    /**
+     * Get active element from the shadowroot or the document
+     */
+    getActiveElement(document) {
+        return ElementExtension.getActiveElement(document ?? this.shadowRoot);
+    }
 }
 WebComponent.Namespace=`Aventus`;
 _.WebComponent=WebComponent;
@@ -6991,6 +6885,261 @@ let WebComponentInstance=class WebComponentInstance {
 }
 WebComponentInstance.Namespace=`Aventus`;
 _.WebComponentInstance=WebComponentInstance;
+
+let ElementExtension=class ElementExtension {
+    /**
+     * Find a parent by tagname if exist Static.findParentByTag(this, "av-img")
+     */
+    static findParentByTag(element, tagname, untilNode) {
+        let el = element;
+        if (Array.isArray(tagname)) {
+            for (let i = 0; i < tagname.length; i++) {
+                tagname[i] = tagname[i].toLowerCase();
+            }
+        }
+        else {
+            tagname = [tagname.toLowerCase()];
+        }
+        let checkFunc = (el) => {
+            return tagname.indexOf((el.nodeName || el.tagName).toLowerCase()) != -1;
+        };
+        if (el) {
+            if (el instanceof ShadowRoot) {
+                el = el.host;
+            }
+            else {
+                el = el.parentNode;
+            }
+        }
+        while (el) {
+            if (checkFunc(el)) {
+                return el;
+            }
+            if (el instanceof ShadowRoot) {
+                el = el.host;
+            }
+            else {
+                el = el.parentNode;
+            }
+            if (el == untilNode) {
+                break;
+            }
+        }
+        return null;
+    }
+    /**
+     * Find a parent by class name if exist Static.findParentByClass(this, "my-class-img") = querySelector('.my-class-img')
+     */
+    static findParentByClass(element, classname, untilNode) {
+        let el = element;
+        if (!Array.isArray(classname)) {
+            classname = [classname];
+        }
+        if (el) {
+            if (el instanceof ShadowRoot) {
+                el = el.host;
+            }
+            else {
+                el = el.parentNode;
+            }
+        }
+        while (el) {
+            for (let classnameTemp of classname) {
+                if (el['classList'] && el['classList'].contains(classnameTemp)) {
+                    return el;
+                }
+            }
+            if (el instanceof ShadowRoot) {
+                el = el.host;
+            }
+            else {
+                el = el.parentNode;
+            }
+            if (el == untilNode) {
+                break;
+            }
+        }
+        return null;
+    }
+    /**
+     * Find a parent by type if exist Static.findParentyType(this, Aventus.Img)
+     */
+    static findParentByType(element, type, untilNode) {
+        let el = element;
+        let checkFunc = (el) => {
+            return false;
+        };
+        if (typeof type == "function" && type['prototype']['constructor']) {
+            checkFunc = (el) => {
+                if (el instanceof type) {
+                    return true;
+                }
+                return false;
+            };
+        }
+        else {
+            console.error("you must provide a class inside this function");
+            return null;
+        }
+        if (el) {
+            if (el instanceof ShadowRoot) {
+                el = el.host;
+            }
+            else {
+                el = el.parentNode;
+            }
+        }
+        while (el) {
+            if (checkFunc(el)) {
+                return el;
+            }
+            if (el instanceof ShadowRoot) {
+                el = el.host;
+            }
+            else {
+                el = el.parentNode;
+            }
+            if (el == untilNode) {
+                break;
+            }
+        }
+        return null;
+    }
+    /**
+     * Find list of parents by tagname
+     */
+    static findParents(element, tagname, untilNode) {
+        let el = element;
+        if (Array.isArray(tagname)) {
+            for (let i = 0; i < tagname.length; i++) {
+                tagname[i] = tagname[i].toLowerCase();
+            }
+        }
+        else {
+            tagname = [tagname.toLowerCase()];
+        }
+        let result = [];
+        if (el) {
+            if (el instanceof ShadowRoot) {
+                el = el.host;
+            }
+            else {
+                el = el.parentNode;
+            }
+        }
+        while (el) {
+            if (tagname.indexOf((el.nodeName || el['tagName']).toLowerCase()) != -1) {
+                result.push(el);
+            }
+            if (el instanceof ShadowRoot) {
+                el = el.host;
+            }
+            else {
+                el = el.parentNode;
+            }
+            if (el == untilNode) {
+                break;
+            }
+        }
+        return result;
+    }
+    /**
+     * Check if element contains a child
+     */
+    static containsChild(element, child) {
+        var rootScope = element.getRootNode();
+        var elScope = child.getRootNode();
+        while (elScope != rootScope) {
+            if (!elScope['host']) {
+                return false;
+            }
+            child = elScope['host'];
+            elScope = elScope['host'].getRootNode();
+        }
+        return element.contains(child);
+    }
+    /**
+     * Get element inside slot
+     */
+    static getElementsInSlot(element, slotName) {
+        let result = [];
+        if (element.shadowRoot) {
+            let slotEl;
+            if (slotName) {
+                slotEl = element.shadowRoot.querySelector('slot[name="' + slotName + '"]');
+            }
+            else {
+                slotEl = element.shadowRoot.querySelector("slot:not([name])");
+                if (!slotEl) {
+                    slotEl = element.shadowRoot.querySelector("slot");
+                }
+            }
+            while (true) {
+                if (!slotEl) {
+                    return result;
+                }
+                var listChild = Array.from(slotEl.assignedElements());
+                if (!listChild) {
+                    return result;
+                }
+                let slotFound = false;
+                for (let i = 0; i < listChild.length; i++) {
+                    let child = listChild[i];
+                    if (listChild[i].nodeName == "SLOT") {
+                        slotEl = listChild[i];
+                        slotFound = true;
+                    }
+                    else if (child instanceof HTMLElement) {
+                        result.push(child);
+                    }
+                }
+                if (!slotFound) {
+                    return result;
+                }
+            }
+        }
+        return result;
+    }
+    /**
+     * Get deeper element inside dom at the position X and Y
+     */
+    static getElementAtPosition(x, y, startFrom) {
+        var _realTarget = (el, i = 0) => {
+            if (i == 50) {
+                debugger;
+            }
+            if (el.shadowRoot && x !== undefined && y !== undefined) {
+                const elements = el.shadowRoot.elementsFromPoint(x, y);
+                var newEl = elements.length > 0 ? elements[0] : null;
+                if (newEl && newEl != el && (el.shadowRoot.contains(newEl) || el.contains(newEl))) {
+                    return _realTarget(newEl, i + 1);
+                }
+            }
+            return el;
+        };
+        if (startFrom == null) {
+            startFrom = document.body;
+        }
+        return _realTarget(startFrom);
+    }
+    /**
+     * Get active element from the define root
+     */
+    static getActiveElement(root = document) {
+        if (!root)
+            return null;
+        let el = root.activeElement;
+        while (el instanceof WebComponent) {
+            let elTemp = el.shadowRoot?.activeElement;
+            if (!elTemp)
+                return el;
+            el = elTemp;
+        }
+        return el;
+    }
+}
+ElementExtension.Namespace=`Aventus`;
+_.ElementExtension=ElementExtension;
 
 
 for(let key in _) { Aventus[key] = _[key] }

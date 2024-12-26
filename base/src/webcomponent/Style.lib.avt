@@ -23,6 +23,20 @@ export class Style {
     public static load(name: string, url: string): Promise<void> {
         return this.getInstance().load(name, url);
     }
+    public static appendToHead(name: string) {
+        if(!document.head.querySelector(`style[data-name="${name}"]`)) {
+            const styleNode = document.createElement('style');
+            styleNode.setAttribute(`data-name`, name);
+            styleNode.innerHTML = Aventus.Style.getAsString(name);
+            document.getElementsByTagName('head')[0].appendChild(styleNode);
+        }
+    }
+    public static refreshHead(name: string) {
+        const styleNode = document.head.querySelector(`style[data-name="${name}"]`);
+        if(styleNode) {
+            styleNode.innerHTML = Aventus.Style.getAsString(name);
+        }
+    }
 
     private static getInstance(): Style {
         if(!this.instance) {
@@ -64,6 +78,7 @@ export class Style {
         }
         else {
             style.replaceSync(content);
+            Style.refreshHead(name);
             return style;
         }
     }

@@ -1,5 +1,23 @@
 # Change Log
 
+## 1.3.6 (2024-12-26)
+
+### Bug Fixes
+ - Escape " into attributes
+ - Correct @Bindthis
+
+### Features
+ - Add @Injectable
+ - Add getActiveElement on webcomponent
+ - Add function to append style to head
+ - Add useDefaultTemplate to disable default aventus template
+
+
+## 1.3.5 (2024-11-27)
+
+### Bug Fixes
+ - Correct BindThis to add parameters (actually wrong typing but not important for package and build)
+
 ## 1.3.4 (2024-11-26)
 
 ### Bug Fixes

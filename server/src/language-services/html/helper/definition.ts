@@ -14,7 +14,7 @@ export interface HTMLTagDoc {
 export interface HTMLAttributeDoc {
 	name: string,
 	description: string,
-	type: CustomTypeAttribute,
+	type?: CustomTypeAttribute,
 	values: {
 		name: string,
 		description: string,

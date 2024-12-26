@@ -135,7 +135,7 @@ export class AventusHTMLLanguageService {
                         if (temp.documentation) {
                             let customInfo: {
                                 description: string,
-                                type: CustomTypeAttribute
+                                type?: CustomTypeAttribute
                             } = JSON.parse(temp.documentation["value"]);
 
                             if (customInfo.description == "") {

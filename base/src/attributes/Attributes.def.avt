@@ -58,6 +58,10 @@ declare global {
      */
     function Watch<T>(onChange: (component: T, action: Aventus.WatchAction, path: string, value: any) => void);
     /**
+     * Allow injection autocompletion
+     */
+    function Injectable();
+    /**
      * Add a function inside a watcher to be notify of changing
      */
     function Effect(options?: { autoInit?: boolean; });
@@ -124,7 +128,7 @@ declare global {
         /** If set to true, only meta will be generated. Usefull to create custom pages */
         noLive?: boolean;
         /** If set to true, no default story will be created. This will also prevent the rendering of the live section */
-        noDefaultStory?:boolean;
+        noDefaultStory?: boolean;
         /** Define the configruation for your slots */
         slots?: {
             /** Define the slot content base on the name */

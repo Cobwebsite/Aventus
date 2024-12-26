@@ -175,7 +175,8 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
     private __pressManagers: PressManager[] = [];
     @Internal()
     public __signalActions: { [key: string]: () => void; } = {};
-    private __signals: { [key: string]: Signal<unknown>; } = {};
+    @Internal()
+    public __signals: { [key: string]: Signal<unknown>; } = {};
 
     private __isDefaultState: boolean = true;
     private __defaultActiveState: Map<StateManager, (() => void)[]> = new Map();
@@ -691,11 +692,11 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
 
     //#region string
     private getStringAttr(name: string) {
-        return this.getAttribute(name) ?? undefined;
+        return this.getAttribute(name)?.replace(/&avquot;/g, '"') ?? undefined;
     }
     private setStringAttr(name: string, val: any) {
         if(val === undefined || val === null) { this.removeAttribute(name); }
-        else { this.setAttribute(name, val); }
+        else { this.setAttribute(name, (val + "").replace(/"/g, '&avquot;')); }
     }
     private getStringProp(name: string) {
         this.__registerPropToWatcher(name);
@@ -880,6 +881,12 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
      */
     public getElementsInSlot(slotName?: string): HTMLElement[] {
         return ElementExtension.getElementsInSlot(this, slotName);
+    }
+    /**
+     * Get active element from the shadowroot or the document
+     */
+    public getActiveElement(document?: Document): Element | null {
+        return ElementExtension.getActiveElement(document ?? this.shadowRoot);
     }
     //#endregion
 }

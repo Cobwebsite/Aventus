@@ -97,9 +97,11 @@ export class TemplateManager {
 
 	public readBaseTemplates() {
 		const templates: TemplatesByName = {};
-		for (let key in BaseTemplateList) {
-			let template = new BaseTemplateList[key]();
-			setValueToObject(template.name(), templates, template);
+		if (SettingsManager.getInstance().settings.useDefaultTemplate) {
+			for (let key in BaseTemplateList) {
+				let template = new BaseTemplateList[key]();
+				setValueToObject(template.name(), templates, template);
+			}
 		}
 		return {
 			templates,
@@ -157,10 +159,10 @@ export class TemplateManager {
 	private async askTemplate() {
 		// let result = await window.showInformationMessage('Do you want to install project templates (recommended)', 'Yes', 'No');
 		// if (result == 'Yes') {
-		this.selectProjectToImport();
+		this.selectProjectToImport(true);
 		// }
 	}
-	public async selectProjectToImport() {
+	public async selectProjectToImport(picked: boolean) {
 		if (this.projectPath.length == 0) {
 			GenericServer.showErrorMessage("No project path registered");
 			return;
@@ -178,7 +180,7 @@ export class TemplateManager {
 						let quickPick: SelectItem = {
 							label: config.name,
 							detail: config.description ?? "",
-							picked: true,
+							picked: picked,
 						}
 						quickPicks.set(quickPick, folderPath);
 					} catch { }

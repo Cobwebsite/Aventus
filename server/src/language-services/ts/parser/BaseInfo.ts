@@ -43,7 +43,7 @@ export type DependanceInfo = {
     hotReloadReplacement: string | null,
     npmReplacement: string | null,
     typeRemplacement: string | null,
-    locations: { [key: string]: { start: number, end: number, isType: boolean } }
+    locations: { [key: string]: { start: number, end: number, isType: boolean, isNpm?: boolean } }
 }
 
 export abstract class BaseInfo {
@@ -938,6 +938,9 @@ export abstract class BaseInfo {
                     };
                 }
             }
+            if (start > 0 && end > 0) {
+                this.dependancesLocations[name].locations[start + "_" + end].isNpm = true;
+            }
             onName(name, npmReplacement);
             return;
         }
@@ -1016,6 +1019,10 @@ export abstract class BaseInfo {
                                 start: location.start - start,
                                 end: location.end - start,
                             })
+                        }
+                        else if(location.isNpm && location.isType) {
+                            // TODO check to set a value for a node_module type imported for the package
+                            continue;
                         }
                         else {
                             transformations.push({

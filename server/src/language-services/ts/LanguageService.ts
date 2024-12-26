@@ -1278,7 +1278,7 @@ export class AventusTsLanguageService {
             let ls: LanguageService = createLanguageService(host);
             let result = ls.getEmitOutput("temp.js", true, true).outputFiles[0].text.replace(/^declare /g, '');
             if(element instanceof ClassInfo && !element.constructorBody && element.extraConstructorCode.length > 0) {
-                result = result.replace("constructor();", "");
+                result = result.replace(/^ *constructor\(.*\);$/gm, "");
             }
             return result;
         } catch (e) {

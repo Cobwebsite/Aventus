@@ -229,7 +229,8 @@ let ElementExtension=class ElementExtension {
                 debugger;
             }
             if (el.shadowRoot && x !== undefined && y !== undefined) {
-                var newEl = el.shadowRoot.elementFromPoint(x, y);
+                const elements = el.shadowRoot.elementsFromPoint(x, y);
+                var newEl = elements.length > 0 ? elements[0] : null;
                 if (newEl && newEl != el && (el.shadowRoot.contains(newEl) || el.contains(newEl))) {
                     return _realTarget(newEl, i + 1);
                 }
@@ -240,6 +241,21 @@ let ElementExtension=class ElementExtension {
             startFrom = document.body;
         }
         return _realTarget(startFrom);
+    }
+    /**
+     * Get active element from the define root
+     */
+    static getActiveElement(root = document) {
+        if (!root)
+            return null;
+        let el = root.activeElement;
+        while (el instanceof WebComponent) {
+            let elTemp = el.shadowRoot?.activeElement;
+            if (!elTemp)
+                return el;
+            el = elTemp;
+        }
+        return el;
     }
 }
 ElementExtension.Namespace=`Aventus`;
@@ -293,6 +309,20 @@ let Style=class Style {
     static load(name, url) {
         return this.getInstance().load(name, url);
     }
+    static appendToHead(name) {
+        if (!document.head.querySelector(`style[data-name="${name}"]`)) {
+            const styleNode = document.createElement('style');
+            styleNode.setAttribute(`data-name`, name);
+            styleNode.innerHTML = Aventus.Style.getAsString(name);
+            document.getElementsByTagName('head')[0].appendChild(styleNode);
+        }
+    }
+    static refreshHead(name) {
+        const styleNode = document.head.querySelector(`style[data-name="${name}"]`);
+        if (styleNode) {
+            styleNode.innerHTML = Aventus.Style.getAsString(name);
+        }
+    }
     static getInstance() {
         if (!this.instance) {
             this.instance = new Style();
@@ -328,6 +358,7 @@ let Style=class Style {
         }
         else {
             style.replaceSync(content);
+            Style.refreshHead(name);
             return style;
         }
     }
@@ -1965,7 +1996,7 @@ let PressManager=class PressManager {
         this.element.addEventListener("trigger_pointer_pressmove", this.functionsBinded.childPressMove);
     }
     identifyEvent(touch) {
-        if (touch instanceof Touch)
+        if ('Touch' in window && touch instanceof Touch)
             return touch.identifier;
         return touch.pointerId;
     }
@@ -3343,13 +3374,20 @@ let TemplateInstance=class TemplateInstance {
                 elements = this.context.getValueFromItem(currentPath);
             }
             if (!elements && onThis) {
-                elements = this.component.__watch;
+                const splittedPath = basePath.split(".");
+                const firstPart = splittedPath.length > 0 ? splittedPath[0] : null;
+                if (firstPart && this.component.__signals[firstPart]) {
+                    elements = this.component.__signals[firstPart];
+                }
+                else {
+                    elements = this.component.__watch;
+                }
             }
-            if (!elements || !elements.__isProxy) {
+            if (!elements || !(elements.__isProxy || elements instanceof Signal)) {
                 debugger;
             }
             const subTemp = (action, path, value) => {
-                if (basePath.startsWith(path)) {
+                if (basePath.startsWith(path) || path == "*") {
                     elements.unsubscribe(subTemp);
                     this.renderLoopSimple(loop, simple);
                     return;
@@ -4230,14 +4268,14 @@ let WebComponent=class WebComponent extends HTMLElement {
         }
     }
     getStringAttr(name) {
-        return this.getAttribute(name) ?? undefined;
+        return this.getAttribute(name)?.replace(/&avquot;/g, '"') ?? undefined;
     }
     setStringAttr(name, val) {
         if (val === undefined || val === null) {
             this.removeAttribute(name);
         }
         else {
-            this.setAttribute(name, val);
+            this.setAttribute(name, (val + "").replace(/"/g, '&avquot;'));
         }
     }
     getStringProp(name) {
@@ -4414,6 +4452,12 @@ let WebComponent=class WebComponent extends HTMLElement {
      */
     getElementsInSlot(slotName) {
         return ElementExtension.getElementsInSlot(this, slotName);
+    }
+    /**
+     * Get active element from the shadowroot or the document
+     */
+    getActiveElement(document) {
+        return ElementExtension.getActiveElement(document ?? this.shadowRoot);
     }
 }
 WebComponent.Namespace=`Aventus`;

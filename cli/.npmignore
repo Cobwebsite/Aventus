@@ -5,3 +5,4 @@ webpack.interaction.config.js
 webpack.server.config.js
 av.cmd
 postBuild.mjs
+build.mjs
