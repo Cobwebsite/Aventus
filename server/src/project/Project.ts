@@ -10,6 +10,7 @@ import { AventusGlobalSCSSLanguageService } from '../language-services/scss/Glob
 import { FilesManager } from '../files/FilesManager';
 import { AventusGlobalSCSSFile } from '../language-services/scss/GlobalFile';
 import { ClassInfo } from '../language-services/ts/parser/ClassInfo';
+import { Mutex } from '../Mutex';
 
 export class Project {
     private configFile: AventusFile;
@@ -152,10 +153,13 @@ export class Project {
         this.builds = [];
         this.config = newConfig;
     }
+
+    private onConfigSaveMutex: Mutex = new Mutex();
     /**
      * Load the new config file and create build
      */
     public async onConfigSave() {
+        await this.onConfigSaveMutex.waitOne();
         await this.loadConfig();
         if (this.config) {
             
@@ -187,6 +191,7 @@ export class Project {
                 }
             }
         }
+        this.onConfigSaveMutex.release();
     }
 
     public async onFormatting(document: AventusFile, range: Range, options: FormattingOptions): Promise<TextEdit[]> {
