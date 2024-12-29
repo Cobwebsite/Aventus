@@ -393,7 +393,7 @@ export class AventusTsLanguageService {
                                             else {
                                                 let finalPath = newImport[1];
                                                 finalPath = this.filesNeeded.find(p => p.toLowerCase() == finalPath) ?? finalPath;
-                                                finalPath = finalPath.replace("file:///", "");
+                                                finalPath = finalPath.replace("file:///", "").replace(/\.\.\//g, "");;
                                                 txtChange.newText = txtChange.newText.replace(newImport[1], finalPath);
                                             }
                                         }
