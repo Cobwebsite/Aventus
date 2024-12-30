@@ -1,5 +1,15 @@
 # Change Log
 
+## 1.3.7 (2024-12-30)
+
+### Bug Fixes
+ - Prevent concurrency during config saving
+ - Correct linux import for package
+
+### Features
+ - Improve error message
+
+
 ## 1.3.6 (2024-12-26)
 
 ### Bug Fixes

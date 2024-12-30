@@ -9,7 +9,8 @@
 		"outDir": "out",
 		"rootDir": "src",
 		"noImplicitAny": false,
-		"noImplicitReturns": true
+		"noImplicitReturns": true,
+		"skipLibCheck": true
 	},
 	"include": ["src"],
 	"exclude": ["node_modules", ".vscode-test"]
