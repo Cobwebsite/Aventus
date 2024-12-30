@@ -11,7 +11,8 @@
 		"rootDir": "src",
 		"noImplicitAny": false,
 		"noImplicitReturns": true,
-		"composite": true
+		"composite": false,
+		"skipLibCheck": true
 	},
 	"include": ["src"],
 	"exclude": ["../node_modules", ".vscode-test"]

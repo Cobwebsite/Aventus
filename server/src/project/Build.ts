@@ -1943,7 +1943,7 @@ class ExternalPackageInformation {
         if (this.informations[fullName]) {
             let file = this.files[this.informations[fullName].uri];
             if (!file.npmUri && this.build.initDone) {
-                GenericServer.showErrorMessage("Can't find a npm package for " + file.name);
+                GenericServer.showErrorMessage("Can't find a npm package for " + file.name+". You must define the npm field inside the dependances section of your aventus.conf.avt. Otherwise, you can disable storybook or remove npm export.");
             }
             const splitted = fullName.split(".");
             let name = splitted.pop() as string;
