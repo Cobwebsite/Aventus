@@ -247,7 +247,7 @@ export class AventusWebcomponentCompiler {
                         this.storyArgTypes["@" + slotName].description = slot.documentation
                     }
                     if (this.classInfo.storieDecorator?.slots?.values && this.classInfo.storieDecorator.slots.values[slotName]) {
-                        this.storyArgs["@" + slotName] = this.classInfo.storieDecorator.slots.values[slotName].slice(1, -1);
+                        this.storyArgs["@" + slotName] = this.classInfo.storieDecorator.slots.values[slotName];
                     }
                     else {
                         this.storyArgs["@" + slotName] = '';
