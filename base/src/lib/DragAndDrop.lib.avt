@@ -1,5 +1,4 @@
 import { NormalizedEvent, PressManager } from "./PressManager.lib.avt";
-
 @Storybook({
     prefix: "Lib/DragAndDrop"
 })
@@ -22,9 +21,9 @@ export interface DragAndDropOptions {
     /** If set to false, the element won't move */
     applyDrag?: boolean;
     /** Element to drag and drog */
-    element: HTMLElement;
+    element: HTMLElement | SVGElement;
     /** Element that trigger the drag action; default is element */
-    elementTrigger?: HTMLElement;
+    elementTrigger?: HTMLElement | SVGElement;
     /** Set the default offset for the drag trigger; default is DragAndDrop.defaultOffsetDrag */
     offsetDrag?: number;
     /** Options to create a shadow element */
@@ -57,7 +56,7 @@ export interface DragAndDropOptions {
     /** Trigger after stop moving */
     onStop?: (e: NormalizedEvent) => void;
     /** Trigger after drop if at least one target found; Element is the shadow or the target*/
-    onDrop?: (element: HTMLElement, targets: HTMLElement[]) => void;
+    onDrop?: (element: HTMLElement | SVGElement, targets: HTMLElement[] | SVGAElement[]) => void;
     /** correct the position if you need */
     correctPosition?: (position: Coordinate) => Coordinate;
 }
@@ -87,7 +86,10 @@ export class DragAndDrop {
     private startCursorPosition: Coordinate = { x: 0, y: 0 };
     private startElementPosition: Coordinate = { x: 0, y: 0 };
     private isEnable: boolean = true;
-    private draggableElement!: HTMLElement;
+    private draggableElement!: HTMLElement | SVGElement;
+
+    //Allow to keep the position of the children of a group
+    private childrenAbsolutePosition: Coordinate[] = [];
     constructor(options: DragAndDropOptions) {
         this.options = this.getDefaultOptions(options.element);
         this.mergeProperties(options);
@@ -105,7 +107,7 @@ export class DragAndDrop {
         });
     }
     // #region merge params
-    private getDefaultOptions(element: HTMLElement): DragAndDropOptionsInternal {
+    private getDefaultOptions(element: HTMLElement | SVGElement): DragAndDropOptionsInternal {
         return {
             applyDrag: true,
             element: element,
@@ -211,10 +213,29 @@ export class DragAndDrop {
             x: e.pageX,
             y: e.pageY
         };
-        this.startElementPosition = {
-            x: draggableElement.offsetLeft,
-            y: draggableElement.offsetTop
-        };
+        if(draggableElement instanceof HTMLElement) {
+            this.startElementPosition = {
+                x: draggableElement.offsetLeft,
+                y: draggableElement.offsetTop
+            };
+        }
+        else if(draggableElement instanceof SVGElement) {
+            this.startElementPosition = {
+                x: parseFloat(draggableElement.getAttribute("x") || "0"),
+                y: parseFloat(draggableElement.getAttribute("y") || "0")
+            };
+            if(draggableElement instanceof SVGGElement) {
+                const children = draggableElement.children;
+                for(let i = 0; i < children.length; i++) {
+                    let child = children[i];
+                    this.childrenAbsolutePosition.push({
+                        x: parseFloat(child.getAttribute("x") || "0"),
+                        y: parseFloat(child.getAttribute("y") || "0")
+                    });
+                }
+            }
+        }
+
         if(this.options.shadow.enable) {
             draggableElement = this.options.element.cloneNode(true) as HTMLElement;
             let elBox = this.options.element.getBoundingClientRect();
@@ -264,7 +285,7 @@ export class DragAndDrop {
         }
         let targets = this.getMatchingTargets();
         let draggableElement = this.draggableElement;
-        if(this.options.shadow.enable && this.options.shadow.removeOnStop) {
+        if(this.options.shadow.enable && this.options.shadow.removeOnStop && draggableElement instanceof HTMLElement) {
             this.options.shadow.delete(draggableElement);
         }
         if(targets.length > 0) {
@@ -276,23 +297,49 @@ export class DragAndDrop {
     private setPosition(position: Coordinate): Coordinate {
         let draggableElement = this.draggableElement;
         if(this.options.usePercent) {
-            let elementParent = draggableElement.offsetParent as HTMLElement;
-            let percentPosition = {
-                x: (position.x / elementParent.offsetWidth) * 100,
-                y: (position.y / elementParent.offsetHeight) * 100
-            };
-            percentPosition = this.options.correctPosition(percentPosition);
-            if(this.options.applyDrag) {
-                draggableElement.style.left = percentPosition.x + '%';
-                draggableElement.style.top = percentPosition.y + '%';
+            if(draggableElement instanceof HTMLElement) {
+                let elementParent = draggableElement.offsetParent as HTMLElement;
+                let percentPosition = {
+                    x: (position.x / elementParent.offsetWidth) * 100,
+                    y: (position.y / elementParent.offsetHeight) * 100
+                };
+                percentPosition = this.options.correctPosition(percentPosition);
+                if(this.options.applyDrag) {
+                    draggableElement.style.left = percentPosition.x + '%';
+                    draggableElement.style.top = percentPosition.y + '%';
+                }
+                return percentPosition;
             }
-            return percentPosition;
         }
         else {
             position = this.options.correctPosition(position);
             if(this.options.applyDrag) {
-                draggableElement.style.left = position.x + 'px';
-                draggableElement.style.top = position.y + 'px';
+                if(draggableElement instanceof HTMLElement) {
+                    draggableElement.style.left = position.x + 'px';
+                    draggableElement.style.top = position.y + 'px';
+                }
+                else if(draggableElement instanceof SVGElement) {
+
+                    //Check if it's a group
+                    if(draggableElement instanceof SVGGElement) {
+
+                        //Adjust the position of the group and its children
+                        const children = draggableElement.children;
+                        draggableElement.setAttribute("x", position.x.toString());
+                        draggableElement.setAttribute("y", position.y.toString());
+                        for(let i = 0; i < children.length; i++) {
+                            //Adjust the position of the child inside the group
+                            let childAbsolutePosition: Coordinate = this.childrenAbsolutePosition[i];
+                            let child = children[i];
+                            child.setAttribute("x", (position.x + childAbsolutePosition.x).toString());
+                            child.setAttribute("y", (position.y + childAbsolutePosition.y).toString());
+                        }
+                    } else {
+                        draggableElement.setAttribute("x", position.x.toString());
+                        draggableElement.setAttribute("y", position.y.toString());
+                    }
+
+                }
             }
         }
         return position;
@@ -352,7 +399,7 @@ export class DragAndDrop {
     /**
      * Get element currently dragging
      */
-    public getElementDrag(): HTMLElement {
+    public getElementDrag(): HTMLElement | SVGElement {
         return this.options.element;
     }
     /**
