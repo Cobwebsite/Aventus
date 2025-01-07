@@ -1460,6 +1460,26 @@ let HttpError=class HttpError extends GenericError {
 HttpError.Namespace=`Aventus`;
 _.HttpError=HttpError;
 
+let ResultWithError=class ResultWithError extends VoidWithError {
+    /**
+      * The result value of the action.
+      * @type {U | undefined}
+      */
+    result;
+    /**
+     * Converts the current instance to a ResultWithError object.
+     * @returns {ResultWithError<U>} A new instance of ResultWithError with the same error list and result value.
+     */
+    toGeneric() {
+        const result = new ResultWithError();
+        result.errors = this.errors;
+        result.result = this.result;
+        return result;
+    }
+}
+ResultWithError.Namespace=`Aventus`;
+_.ResultWithError=ResultWithError;
+
 let HttpRouter=class HttpRouter {
     options;
     constructor() {
@@ -1503,26 +1523,6 @@ let HttpRoute=class HttpRoute {
 }
 HttpRoute.Namespace=`Aventus`;
 _.HttpRoute=HttpRoute;
-
-let ResultWithError=class ResultWithError extends VoidWithError {
-    /**
-      * The result value of the action.
-      * @type {U | undefined}
-      */
-    result;
-    /**
-     * Converts the current instance to a ResultWithError object.
-     * @returns {ResultWithError<U>} A new instance of ResultWithError with the same error list and result value.
-     */
-    toGeneric() {
-        const result = new ResultWithError();
-        result.errors = this.errors;
-        result.result = this.result;
-        return result;
-    }
-}
-ResultWithError.Namespace=`Aventus`;
-_.ResultWithError=ResultWithError;
 
 let HttpRequest=class HttpRequest {
     request;
