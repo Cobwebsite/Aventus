@@ -56,7 +56,7 @@ export interface DragAndDropOptions {
     /** Trigger after stop moving */
     onStop?: (e: NormalizedEvent) => void;
     /** Trigger after drop if at least one target found; Element is the shadow or the target*/
-    onDrop?: (element: HTMLElement | SVGElement, targets: HTMLElement[] | SVGAElement[]) => void;
+    onDrop?: (element: HTMLElement | SVGElement, targets: HTMLElement[] | SVGElement[]) => void;
     /** correct the position if you need */
     correctPosition?: (position: Coordinate) => Coordinate;
 }
