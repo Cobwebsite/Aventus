@@ -88,8 +88,7 @@ export class DragAndDrop {
     private isEnable: boolean = true;
     private draggableElement!: HTMLElement | SVGElement;
 
-    //Allow to keep the position of the children of a group
-    private childrenAbsolutePosition: Coordinate[] = [];
+    
     constructor(options: DragAndDropOptions) {
         this.options = this.getDefaultOptions(options.element);
         this.mergeProperties(options);
@@ -224,16 +223,6 @@ export class DragAndDrop {
                 x: parseFloat(draggableElement.getAttribute("x") || "0"),
                 y: parseFloat(draggableElement.getAttribute("y") || "0")
             };
-            if(draggableElement instanceof SVGGElement) {
-                const children = draggableElement.children;
-                for(let i = 0; i < children.length; i++) {
-                    let child = children[i];
-                    this.childrenAbsolutePosition.push({
-                        x: parseFloat(child.getAttribute("x") || "0"),
-                        y: parseFloat(child.getAttribute("y") || "0")
-                    });
-                }
-            }
         }
 
         if(this.options.shadow.enable) {
@@ -322,23 +311,13 @@ export class DragAndDrop {
 
                     //Check if it's a group
                     if(draggableElement instanceof SVGGElement) {
-
-                        //Adjust the position of the group and its children
-                        const children = draggableElement.children;
+                        draggableElement.setAttribute("transform", `translate(${position.x},${position.y})`);
                         draggableElement.setAttribute("x", position.x.toString());
                         draggableElement.setAttribute("y", position.y.toString());
-                        for(let i = 0; i < children.length; i++) {
-                            //Adjust the position of the child inside the group
-                            let childAbsolutePosition: Coordinate = this.childrenAbsolutePosition[i];
-                            let child = children[i];
-                            child.setAttribute("x", (position.x + childAbsolutePosition.x).toString());
-                            child.setAttribute("y", (position.y + childAbsolutePosition.y).toString());
-                        }
                     } else {
                         draggableElement.setAttribute("x", position.x.toString());
                         draggableElement.setAttribute("y", position.y.toString());
                     }
-
                 }
             }
         }
