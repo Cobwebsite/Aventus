@@ -1,4 +1,9 @@
 import { NormalizedEvent, PressManager } from "./PressManager.lib.avt";
+
+/**
+ * If you want to use shadow with an SVGElement, make sure to set the shadow container to the SVGElement parent
+ * otherwise the shadow will be added to the body and wont be visible
+ */
 @Storybook({
     prefix: "Lib/DragAndDrop"
 })
@@ -287,7 +292,7 @@ export class DragAndDrop {
         }
         let targets = this.getMatchingTargets();
         let draggableElement = this.draggableElement;
-        if(this.options.shadow.enable && this.options.shadow.removeOnStop && draggableElement instanceof HTMLElement) {
+        if(this.options.shadow.enable && this.options.shadow.removeOnStop) {
             this.options.shadow.delete(draggableElement);
         }
         if(targets.length > 0) {
