@@ -397,7 +397,6 @@ export class DragAndDrop {
 
     public getMatchingTargetsWithMousePosition(mouse: Coordinate): TargetableElement[] {
         let matchingTargets: TargetableElement[] = [];
-        debugger;
         if(this.options.shadow.enable == false || this.options.shadow.container == null) {
             console.warn("DragAndDrop : To use useMouseFinalPosition=true, you must enable shadow and set a container");
             return matchingTargets;
