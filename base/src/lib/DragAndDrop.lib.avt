@@ -6,7 +6,7 @@ export interface DragAndDropOptionsShadow {
     /** If set to true, the drag and drop will create a shadow element while dragging and removing it on drop. It will not move the original element anymore */
     enable: boolean,
     /** The container where the shadow element will be added, default is body */
-    container?: DragElement;
+    container?: ContainerElement;
     /** Remove shadow from tree */
     removeOnStop?: boolean,
 
@@ -15,11 +15,12 @@ export interface DragAndDropOptionsShadow {
     /** Trigger to destroy the clone element, If you set the paramater you must remove the element from DOM yourself */
     delete?: (el: DragElement) => void;
 }
+export const DragElementXYType = [SVGGElement, SVGRectElement, SVGEllipseElement, SVGTextElement] as const;
+export const DragElementLeftTopType = [HTMLElement, SVGSVGElement] as const;
 
-export type DragElement = DragElementXY | DragElementLeftRight;
-export type DragElementXY = SVGGElement | SVGRectElement | SVGEllipseElement | SVGTextElement;
-export type DragElementLeftRight = HTMLElement | SVGElement;
-
+export type DragElement = DragElementXY | DragElementLeftTop;
+export type DragElementXY = InstanceType<typeof DragElementXYType[number]>;
+export type DragElementLeftTop = InstanceType<typeof DragElementLeftTopType[number]>;
 
 @Storybook({
     prefix: "Lib/DragAndDrop"
@@ -30,7 +31,7 @@ export interface DragAndDropOptions {
     /** Element to drag and drog */
     element: DragElement;
     /** Element that trigger the drag action; default is element */
-    elementTrigger?: DragElement;
+    elementTrigger?: HTMLElement | SVGElement;
     /** Set the default offset for the drag trigger; default is DragAndDrop.defaultOffsetDrag */
     offsetDrag?: number;
     /** Options to create a shadow element */
@@ -38,7 +39,7 @@ export interface DragAndDropOptions {
     /** If set to false, the element will be considered as in the target if it touches it */
     strict?: boolean;
     /** The targets for the drop action */
-    targets?: DragElement[] | (() => DragElement[]);
+    targets?: TargetableElement[] | (() => TargetableElement[]);
     /** Use percent instead of pixel */
     usePercent?: boolean;
     /** Stop Propagation */
@@ -46,7 +47,7 @@ export interface DragAndDropOptions {
 
     /** If set to true, the drag and drop will use the mouse position to calculate drop targets */
     useMouseFinalPosition?: boolean;
-    
+
 
     /** Determine if drag is active or not */
     isDragEnable?: () => boolean;
@@ -67,7 +68,7 @@ export interface DragAndDropOptions {
     /** Trigger after stop moving */
     onStop?: (e: NormalizedEvent) => void;
     /** Trigger after drop if at least one target found; Element is the shadow or the target*/
-    onDrop?: (element: DragElement, targets: DragElement[]) => void;
+    onDrop?: (element: DragElement, targets: TargetableElement[]) => void;
     /** correct the position if you need */
     correctPosition?: (position: Coordinate) => Coordinate;
 }
@@ -83,6 +84,9 @@ interface Coordinate {
     x: number;
     y: number;
 }
+
+type TargetableElement = HTMLElement | SVGElement;
+type ContainerElement = HTMLElement | SVGSVGElement;
 
 @Storybook({
     prefix: "Lib/DragAndDrop"
@@ -147,7 +151,7 @@ export class DragAndDrop {
             onStart: (e: NormalizedEvent) => { },
             onMove: (e: NormalizedEvent) => { },
             onStop: (e: NormalizedEvent) => { },
-            onDrop: (element: DragElement, targets: DragElement[]) => { },
+            onDrop: (element: DragElement, targets: TargetableElement[]) => { },
             correctPosition: (position: Coordinate) => position
         };
     }
@@ -225,7 +229,7 @@ export class DragAndDrop {
             x: e.pageX,
             y: e.pageY
         };
-        if(this.isLeftRightElement(draggableElement)) {
+        if(this.isLeftTopElement(draggableElement)) {
             this.startElementPosition = {
                 //using getBoundingClientRect because offsetLeft and offsetTop are not working with SVGElements
                 x: draggableElement.getBoundingClientRect().left,
@@ -234,7 +238,7 @@ export class DragAndDrop {
 
         }
         else {
-            this.startElementPosition = this.getCoordinateFromTranslateAttribute(draggableElement as DragElementXY);
+            this.startElementPosition = this.getCoordinateFromTranslateAttribute(draggableElement);
         }
 
         if(this.options.shadow.enable) {
@@ -302,6 +306,8 @@ export class DragAndDrop {
     private setPosition(position: Coordinate): Coordinate {
         let draggableElement = this.draggableElement;
         if(this.options.usePercent) {
+
+            //TODO improve to add % with SVG
             if(draggableElement instanceof HTMLElement) {
                 let elementParent = draggableElement.offsetParent as HTMLElement;
                 let percentPosition = {
@@ -322,7 +328,7 @@ export class DragAndDrop {
         else {
             position = this.options.correctPosition(position);
             if(this.options.applyDrag) {
-                if(this.isLeftRightElement(draggableElement)) {
+                if(this.isLeftTopElement(draggableElement)) {
                     draggableElement.style.left = position.x + 'px';
                     draggableElement.style.top = position.y + 'px';
                 }
@@ -334,7 +340,7 @@ export class DragAndDrop {
         return position;
     }
 
-    private getTargets(): DragElement[] {
+    private getTargets(): TargetableElement[] {
         if(typeof this.options.targets == "function") {
             return this.options.targets();
         }
@@ -345,10 +351,10 @@ export class DragAndDrop {
     /**
      * Get targets within the current element position is matching
      */
-    public getMatchingTargets(): DragElement[] {
+    public getMatchingTargets(): TargetableElement[] {
         let draggableElement = this.draggableElement;
-        let matchingTargets: DragElement[] = [];
-        let srcTargets: DragElement[] = this.getTargets();
+        let matchingTargets: TargetableElement[] = [];
+        let srcTargets: TargetableElement[] = this.getTargets();
 
         for(let target of srcTargets) {
             let elementCoordinates: DOMRect = this.getBoundingBox(draggableElement);
@@ -389,8 +395,8 @@ export class DragAndDrop {
         return matchingTargets;
     }
 
-    public getMatchingTargetsWithMousePosition(mouse: Coordinate): DragElement[] {
-        let matchingTargets: DragElement[] = [];
+    public getMatchingTargetsWithMousePosition(mouse: Coordinate): TargetableElement[] {
+        let matchingTargets: TargetableElement[] = [];
         debugger;
         if(this.options.shadow.enable == false || this.options.shadow.container == null) {
             console.warn("DragAndDrop : To use useMouseFinalPosition=true, you must enable shadow and set a container");
@@ -404,13 +410,13 @@ export class DragAndDrop {
 
 
         for(let target of this.getTargets()) {
-            if(this.isLeftRightElement(target)) {
-                if(this.matchPosition(target as DragElement, { x: mouse.x, y: mouse.y })) {
+            if(this.isLeftTopElement(target)) {
+                if(this.matchPosition(target, { x: mouse.x, y: mouse.y })) {
                     matchingTargets.push(target);
                 }
 
             } else {
-                if(this.matchPosition(target as DragElementXY, { x: xCorrected, y: yCorrected })) {
+                if(this.matchPosition(target, { x: xCorrected, y: yCorrected })) {
                     matchingTargets.push(target);
                 }
             }
@@ -419,7 +425,7 @@ export class DragAndDrop {
         return matchingTargets;
     }
 
-    private matchPosition(element: DragElement, point: Coordinate): boolean {
+    private matchPosition(element: TargetableElement, point: Coordinate): boolean {
         let elementCoordinates: DOMRect = this.getBoundingBox(element);
         if(
             point.x >= elementCoordinates.x &&
@@ -442,13 +448,13 @@ export class DragAndDrop {
     /**
      * Set targets where to drop
      */
-    public setTargets(targets: DragElement[]) {
+    public setTargets(targets: TargetableElement[]) {
         this.options.targets = targets;
     }
     /**
      * Set targets where to drop
      */
-    public setTargetsFct(targets: () => DragElement[]) {
+    public setTargetsFct(targets: () => TargetableElement[]) {
         this.options.targets = targets;
     }
     /**
@@ -458,12 +464,27 @@ export class DragAndDrop {
         this.pressManager.destroy();
     }
 
-    private isLeftRightElement(element: DragElement): boolean {
-        //HOW ???
-        return element instanceof HTMLElement || element instanceof SVGSVGElement;
+    private isLeftTopElement(element: any): element is DragElementLeftTop {
+        for(let Type of DragElementLeftTopType) {
+            if(element instanceof Type) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+    private isXYElement(element: any): element is DragElementXY {
+        for(let Type of DragElementXYType) {
+            if(element instanceof Type) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private getCoordinateFromTranslateAttribute(element: DragElementXY): Coordinate {
+
         const transform = element.getAttribute("transform");
         const tvalue = transform?.match(/translate\(([^,]+),([^,]+)\)/);
         const x = tvalue ? parseFloat(tvalue[1]) : 0;
@@ -493,12 +514,28 @@ export class DragAndDrop {
         };
     }
 
-    private getBoundingBox(element: DragElement): DOMRect {
-        if(this.isLeftRightElement(element)) {
+    private getBoundingBox(element: HTMLElement | SVGElement): DOMRect {
+        if(this.isLeftTopElement(element)) {
             return element.getBoundingClientRect();
         }
-        else {
-            return this.XYElementToBoundingBox(element as DragElementXY);
+        else if(this.isXYElement(element)) {
+            return this.XYElementToBoundingBox(element);
+        }
+        else{
+            console.error("Element type not supported");
+            return {
+                x: 0,
+                y: 0,
+                width: 0,
+                height: 0,
+                bottom: 0,
+                right: 0,
+                top: 0,
+                left: 0,
+                toJSON(): string {
+                    return JSON.stringify(this);
+                }
+            }
         }
     }
 
