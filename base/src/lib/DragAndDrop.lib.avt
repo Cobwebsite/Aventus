@@ -1,9 +1,4 @@
 import { NormalizedEvent, PressManager } from "./PressManager.lib.avt";
-
-/**
- * If you want to use shadow with an SVGElement, make sure to set the shadow container to the SVGElement parent
- * otherwise the shadow will be added to the body and wont be visible
- */
 @Storybook({
     prefix: "Lib/DragAndDrop"
 })
@@ -21,7 +16,7 @@ export interface DragAndDropOptionsShadow {
 }
 
 export type DragElement = DragElementXY | DragElementLeftRight;
-export type DragElementXY = SVGGElement | SVGRectElement;
+export type DragElementXY = SVGGElement | SVGRectElement | SVGEllipseElement | SVGTextElement;
 export type DragElementLeftRight = HTMLElement | SVGElement;
 
 
