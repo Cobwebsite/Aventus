@@ -9,6 +9,7 @@ export interface DragAndDropOptionsShadow {
     container?: DragElement;
     /** Remove shadow from tree */
     removeOnStop?: boolean,
+
     /** Add custom transformation for the shadow element */
     transform?: (el: DragElement) => void;
     /** Trigger to destroy the clone element, If you set the paramater you must remove the element from DOM yourself */
@@ -42,6 +43,10 @@ export interface DragAndDropOptions {
     usePercent?: boolean;
     /** Stop Propagation */
     stopPropagation?: boolean | (() => boolean);
+
+    /** If set to true, the drag and drop will use the mouse position to calculate drop targets */
+    useMouseFinalPosition?: boolean;
+    
 
     /** Determine if drag is active or not */
     isDragEnable?: () => boolean;
@@ -131,6 +136,7 @@ export class DragAndDrop {
             targets: [],
             usePercent: false,
             stopPropagation: true,
+            useMouseFinalPosition: false,
 
             isDragEnable: () => true,
             getZoom: () => 1,
@@ -162,6 +168,7 @@ export class DragAndDrop {
         this.defaultMerge(options, "targets");
         this.defaultMerge(options, "usePercent");
         this.defaultMerge(options, "stopPropagation");
+        this.defaultMerge(options, "useMouseFinalPosition");
         if(options.shadow !== void 0) {
             this.options.shadow.enable = options.shadow.enable;
             if(options.shadow.container !== void 0) {
@@ -227,15 +234,7 @@ export class DragAndDrop {
 
         }
         else {
-            draggableElement = draggableElement as DragElementXY;
-            const transform = draggableElement.getAttribute("transform");
-            const tvalue = transform?.match(/translate\(([^,]+),([^,]+)\)/);
-            const x = tvalue ? parseFloat(tvalue[1]) : 0;
-            const y = tvalue ? parseFloat(tvalue[2]) : 0;
-            this.startElementPosition = {
-                x: x,
-                y: y
-            };
+            this.startElementPosition = this.getCoordinateFromTranslateAttribute(draggableElement as DragElementXY);
         }
 
         if(this.options.shadow.enable) {
@@ -250,9 +249,10 @@ export class DragAndDrop {
                 draggableElement.style.position = "absolute";
                 draggableElement.style.top = this.positionShadowRelativeToElement.y + this.options.getOffsetY() + 'px';
                 draggableElement.style.left = this.positionShadowRelativeToElement.x + this.options.getOffsetX() + 'px';
+                this.options.shadow.transform(draggableElement);
+                this.options.shadow.container.appendChild(draggableElement);
             }
-            this.options.shadow.transform(draggableElement);
-            this.options.shadow.container.appendChild(draggableElement);
+
         }
         this.draggableElement = draggableElement;
         return this.options.onStart(e);
@@ -285,7 +285,10 @@ export class DragAndDrop {
         if(!this.isEnable) {
             return;
         }
-        let targets = this.getMatchingTargets();
+        let targets = this.options.useMouseFinalPosition ? this.getMatchingTargetsWithMousePosition({
+            x: e.clientX,
+            y: e.clientY
+        }) : this.getMatchingTargets();
         let draggableElement = this.draggableElement;
         if(this.options.shadow.enable && this.options.shadow.removeOnStop) {
             this.options.shadow.delete(draggableElement);
@@ -330,22 +333,26 @@ export class DragAndDrop {
         }
         return position;
     }
+
+    private getTargets(): DragElement[] {
+        if(typeof this.options.targets == "function") {
+            return this.options.targets();
+        }
+        else {
+            return this.options.targets;
+        }
+    }
     /**
      * Get targets within the current element position is matching
      */
     public getMatchingTargets(): DragElement[] {
         let draggableElement = this.draggableElement;
         let matchingTargets: DragElement[] = [];
-        let srcTargets: DragElement[];
-        if(typeof this.options.targets == "function") {
-            srcTargets = this.options.targets();
-        }
-        else {
-            srcTargets = this.options.targets;
-        }
+        let srcTargets: DragElement[] = this.getTargets();
+
         for(let target of srcTargets) {
-            const elementCoordinates = draggableElement.getBoundingClientRect();
-            const targetCoordinates = target.getBoundingClientRect();
+            let elementCoordinates: DOMRect = this.getBoundingBox(draggableElement);
+            let targetCoordinates: DOMRect = this.getBoundingBox(target);
             let offsetX = this.options.getOffsetX();
             let offsetY = this.options.getOffsetY();
             let zoom = this.options.getZoom();
@@ -382,6 +389,50 @@ export class DragAndDrop {
         return matchingTargets;
     }
 
+    public getMatchingTargetsWithMousePosition(mouse: Coordinate): DragElement[] {
+        let matchingTargets: DragElement[] = [];
+        debugger;
+        if(this.options.shadow.enable == false || this.options.shadow.container == null) {
+            console.warn("DragAndDrop : To use useMouseFinalPosition=true, you must enable shadow and set a container");
+            return matchingTargets;
+        }
+        const container = this.options.shadow.container;
+
+        //Correct the mouse position to be relative to the container
+        let xCorrected = mouse.x - container.getBoundingClientRect().left;
+        let yCorrected = mouse.y - container.getBoundingClientRect().top;
+
+
+        for(let target of this.getTargets()) {
+            if(this.isLeftRightElement(target)) {
+                if(this.matchPosition(target as DragElement, { x: mouse.x, y: mouse.y })) {
+                    matchingTargets.push(target);
+                }
+
+            } else {
+                if(this.matchPosition(target as DragElementXY, { x: xCorrected, y: yCorrected })) {
+                    matchingTargets.push(target);
+                }
+            }
+
+        }
+        return matchingTargets;
+    }
+
+    private matchPosition(element: DragElement, point: Coordinate): boolean {
+        let elementCoordinates: DOMRect = this.getBoundingBox(element);
+        if(
+            point.x >= elementCoordinates.x &&
+            point.x <= elementCoordinates.x + elementCoordinates.width &&
+            point.y >= elementCoordinates.y &&
+            point.y <= elementCoordinates.y + elementCoordinates.height
+        ) {
+            return true;
+        }
+
+        return false;
+    }
+
     /**
      * Get element currently dragging
      */
@@ -411,4 +462,44 @@ export class DragAndDrop {
         //HOW ???
         return element instanceof HTMLElement || element instanceof SVGSVGElement;
     }
+
+    private getCoordinateFromTranslateAttribute(element: DragElementXY): Coordinate {
+        const transform = element.getAttribute("transform");
+        const tvalue = transform?.match(/translate\(([^,]+),([^,]+)\)/);
+        const x = tvalue ? parseFloat(tvalue[1]) : 0;
+        const y = tvalue ? parseFloat(tvalue[2]) : 0;
+        return {
+            x: x,
+            y: y
+        };
+    }
+
+    private XYElementToBoundingBox(element: DragElementXY): DOMRect {
+        const coordinates = this.getCoordinateFromTranslateAttribute(element);
+        const width = parseFloat(element.getAttribute("width") as string);
+        const height = parseFloat(element.getAttribute("height") as string);
+        return {
+            x: coordinates.x,
+            y: coordinates.y,
+            width: width,
+            height: height,
+            bottom: coordinates.y + height,
+            right: coordinates.x + width,
+            top: coordinates.y,
+            left: coordinates.x,
+            toJSON(): string {
+                return JSON.stringify(this);
+            }
+        };
+    }
+
+    private getBoundingBox(element: DragElement): DOMRect {
+        if(this.isLeftRightElement(element)) {
+            return element.getBoundingClientRect();
+        }
+        else {
+            return this.XYElementToBoundingBox(element as DragElementXY);
+        }
+    }
+
 }
