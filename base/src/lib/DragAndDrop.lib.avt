@@ -48,6 +48,11 @@ export interface DragAndDropOptions {
     /** If set to true, the drag and drop will use the mouse position to calculate drop targets */
     useMouseFinalPosition?: boolean;
 
+    /** Determine if should use x,y coordinates or transform="translate(x,y)" */
+    useTransform?: boolean;
+
+    positionRelative?: boolean;
+
 
     /** Determine if drag is active or not */
     isDragEnable?: () => boolean;
@@ -141,6 +146,8 @@ export class DragAndDrop {
             usePercent: false,
             stopPropagation: true,
             useMouseFinalPosition: false,
+            useTransform: false,
+            positionRelative: false,
 
             isDragEnable: () => true,
             getZoom: () => 1,
@@ -173,6 +180,8 @@ export class DragAndDrop {
         this.defaultMerge(options, "usePercent");
         this.defaultMerge(options, "stopPropagation");
         this.defaultMerge(options, "useMouseFinalPosition");
+        this.defaultMerge(options, "useTransform");
+        this.defaultMerge(options, "positionRelative");
         if(options.shadow !== void 0) {
             this.options.shadow.enable = options.shadow.enable;
             if(options.shadow.container !== void 0) {
@@ -333,7 +342,13 @@ export class DragAndDrop {
                     draggableElement.style.top = position.y + 'px';
                 }
                 else {
-                    draggableElement.setAttribute("transform", `translate(${position.x},${position.y})`);
+                    if(this.options.useTransform) {
+                        draggableElement.setAttribute("transform", `translate(${position.x},${position.y})`);
+                    }
+                    else {
+                        draggableElement.style.left = position.x + 'px';
+                        draggableElement.style.top = position.y + 'px';
+                    }
                 }
             }
         }
@@ -495,7 +510,27 @@ export class DragAndDrop {
     }
 
     private XYElementToBoundingBox(element: DragElementXY): DOMRect {
-        const coordinates = this.getCoordinateFromTranslateAttribute(element);
+        let coordinates: Coordinate;
+        if(this.options.useTransform) {
+            coordinates = this.getCoordinateFromTranslateAttribute(element);
+        } else {
+            coordinates = {
+                x: parseFloat(element.getAttribute("x") as string),
+                y: parseFloat(element.getAttribute("y") as string)
+            };
+            if(this.options.positionRelative) {
+                const parent = element.parentElement;
+                //In the case of x,y coordinates, the only time we need to check the parent is when it's a SVG element inside of an svg group
+                if(parent instanceof SVGGElement) {
+                    const parentCoordinates: Coordinate = this.getCoordinateFromTranslateAttribute(parent);
+                    coordinates = {
+                        x: coordinates.x + parentCoordinates.x,
+                        y: coordinates.y + parentCoordinates.y
+                    };
+
+                }
+            }
+        }
         const width = parseFloat(element.getAttribute("width") as string);
         const height = parseFloat(element.getAttribute("height") as string);
         return {
@@ -520,7 +555,7 @@ export class DragAndDrop {
         else if(this.isXYElement(element)) {
             return this.XYElementToBoundingBox(element);
         }
-        else{
+        else {
             console.error("Element type not supported");
             return {
                 x: 0,
@@ -534,7 +569,7 @@ export class DragAndDrop {
                 toJSON(): string {
                     return JSON.stringify(this);
                 }
-            }
+            };
         }
     }
 
