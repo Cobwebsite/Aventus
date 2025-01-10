@@ -1,4 +1,33 @@
 import { NormalizedEvent, PressManager } from "./PressManager.lib.avt";
+
+export const DragElementXYType = [SVGGElement, SVGRectElement, SVGEllipseElement, SVGTextElement] as const;
+export const DragElementLeftTopType = [HTMLElement, SVGSVGElement] as const;
+
+@Storybook({
+    prefix: "Lib/DragAndDrop"
+})
+export type DragElement = DragElementXY | DragElementLeftTop;
+
+@Storybook({
+    prefix: "Lib/DragAndDrop"
+})
+export type DragElementXY = InstanceType<typeof DragElementXYType[number]>;
+
+@Storybook({
+    prefix: "Lib/DragAndDrop"
+})
+export type DragElementLeftTop = InstanceType<typeof DragElementLeftTopType[number]>;
+
+@Storybook({
+    prefix: "Lib/DragAndDrop"
+})
+type TargetableElement = HTMLElement | SVGElement;
+
+@Storybook({
+    prefix: "Lib/DragAndDrop"
+})
+type ContainerElement = HTMLElement | SVGSVGElement;
+
 @Storybook({
     prefix: "Lib/DragAndDrop"
 })
@@ -15,12 +44,7 @@ export interface DragAndDropOptionsShadow {
     /** Trigger to destroy the clone element, If you set the paramater you must remove the element from DOM yourself */
     delete?: (el: DragElement) => void;
 }
-export const DragElementXYType = [SVGGElement, SVGRectElement, SVGEllipseElement, SVGTextElement] as const;
-export const DragElementLeftTopType = [HTMLElement, SVGSVGElement] as const;
 
-export type DragElement = DragElementXY | DragElementLeftTop;
-export type DragElementXY = InstanceType<typeof DragElementXYType[number]>;
-export type DragElementLeftTop = InstanceType<typeof DragElementLeftTopType[number]>;
 
 @Storybook({
     prefix: "Lib/DragAndDrop"
@@ -89,9 +113,6 @@ interface Coordinate {
     x: number;
     y: number;
 }
-
-type TargetableElement = HTMLElement | SVGElement;
-type ContainerElement = HTMLElement | SVGSVGElement;
 
 @Storybook({
     prefix: "Lib/DragAndDrop"
@@ -238,21 +259,10 @@ export class DragAndDrop {
             x: e.pageX,
             y: e.pageY
         };
-        if(this.isLeftTopElement(draggableElement)) {
-            this.startElementPosition = {
-                //using getBoundingClientRect because offsetLeft and offsetTop are not working with SVGElements
-                x: draggableElement.getBoundingClientRect().left,
-                y: draggableElement.getBoundingClientRect().top
-            };
-
-        }
-        else {
-            this.startElementPosition = this.getCoordinateFromTranslateAttribute(draggableElement);
-        }
-
+        this.startElementPosition = this.getBoundingBox(draggableElement);
         if(this.options.shadow.enable) {
             draggableElement = this.options.element.cloneNode(true) as DragElement;
-            let elBox = this.options.element.getBoundingClientRect();
+            let elBox = this.getBoundingBox(this.options.element);
             let containerBox = this.options.shadow.container.getBoundingClientRect();
             this.positionShadowRelativeToElement = {
                 x: elBox.x - containerBox.x,
@@ -548,8 +558,27 @@ export class DragAndDrop {
         };
     }
 
-    private getBoundingBox(element: HTMLElement | SVGElement): DOMRect {
+
+    private getBoundingBox(element: TargetableElement): DOMRect {
         if(this.isLeftTopElement(element)) {
+            if(element instanceof HTMLElement) {
+                return {
+                    x: element.offsetLeft,
+                    y: element.offsetTop,
+                    width: element.offsetWidth,
+                    height: element.offsetHeight,
+                    bottom: element.offsetTop + element.offsetHeight,
+                    right: element.offsetLeft + element.offsetWidth,
+                    top: element.offsetTop,
+                    left: element.offsetLeft,
+                    toJSON(): string {
+                        return JSON.stringify(this);
+                    }
+                }
+            } else {
+                console.error("Element type not supported");
+                return element.getBBox();
+            }
             return element.getBoundingClientRect();
         }
         else if(this.isXYElement(element)) {
