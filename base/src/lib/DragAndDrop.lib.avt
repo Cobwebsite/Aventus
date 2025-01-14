@@ -21,12 +21,17 @@ export type DragElementLeftTop = InstanceType<typeof DragElementLeftTopType[numb
 @Storybook({
     prefix: "Lib/DragAndDrop"
 })
-type TargetableElement = HTMLElement | SVGElement;
+    type TargetableElement = HTMLElement | SVGElement;
 
 @Storybook({
     prefix: "Lib/DragAndDrop"
 })
-type ContainerElement = HTMLElement | SVGSVGElement;
+    type ContainerElement = HTMLElement | SVGSVGElement;
+
+@Storybook({
+    prefix: "Lib/DragAndDrop"
+})
+type AnyElement = TargetableElement | ContainerElement
 
 @Storybook({
     prefix: "Lib/DragAndDrop"
@@ -75,7 +80,8 @@ export interface DragAndDropOptions {
     /** Determine if should use x,y coordinates or transform="translate(x,y)" */
     useTransform?: boolean;
 
-    positionRelative?: boolean;
+    /** Determine if the x,y coordinates of the element is relative to its parent */
+    svgRelativePosition?: boolean;
 
 
     /** Determine if drag is active or not */
@@ -168,7 +174,7 @@ export class DragAndDrop {
             stopPropagation: true,
             useMouseFinalPosition: false,
             useTransform: false,
-            positionRelative: false,
+            svgRelativePosition: false,
 
             isDragEnable: () => true,
             getZoom: () => 1,
@@ -325,10 +331,8 @@ export class DragAndDrop {
     private setPosition(position: Coordinate): Coordinate {
         let draggableElement = this.draggableElement;
         if(this.options.usePercent) {
-
-            //TODO improve to add % with SVG
-            if(draggableElement instanceof HTMLElement) {
-                let elementParent = draggableElement.offsetParent as HTMLElement;
+            let elementParent = this.getOffsetParent(draggableElement);
+            if(elementParent instanceof HTMLElement) {
                 let percentPosition = {
                     x: (position.x / elementParent.offsetWidth) * 100,
                     y: (position.y / elementParent.offsetHeight) * 100
@@ -341,7 +345,7 @@ export class DragAndDrop {
                 return percentPosition;
             }
             else {
-                console.error("usePercent is not supported for anything else than HTMLElement");
+                console.error("Can't find parent. Contact an admin", draggableElement);
             }
         }
         else {
@@ -420,7 +424,11 @@ export class DragAndDrop {
         return matchingTargets;
     }
 
-    public getMatchingTargetsWithMousePosition(mouse: Coordinate): TargetableElement[] {
+    /**
+     * This function will return the targets that are matching with the mouse position
+     * @param mouse The mouse position
+     */
+    protected getMatchingTargetsWithMousePosition(mouse: Coordinate): TargetableElement[] {
         let matchingTargets: TargetableElement[] = [];
         if(this.options.shadow.enable == false || this.options.shadow.container == null) {
             console.warn("DragAndDrop : To use useMouseFinalPosition=true, you must enable shadow and set a container");
@@ -528,7 +536,7 @@ export class DragAndDrop {
                 x: parseFloat(element.getAttribute("x") as string),
                 y: parseFloat(element.getAttribute("y") as string)
             };
-            if(this.options.positionRelative) {
+            if(this.options.svgRelativePosition) {
                 const parent = element.parentElement;
                 //In the case of x,y coordinates, the only time we need to check the parent is when it's a SVG element inside of an svg group
                 if(parent instanceof SVGGElement) {
@@ -537,7 +545,6 @@ export class DragAndDrop {
                         x: coordinates.x + parentCoordinates.x,
                         y: coordinates.y + parentCoordinates.y
                     };
-
                 }
             }
         }
@@ -559,7 +566,7 @@ export class DragAndDrop {
     }
 
 
-    private getBoundingBox(element: TargetableElement): DOMRect {
+    private getBoundingBox(element: AnyElement): DOMRect {
         if(this.isLeftTopElement(element)) {
             if(element instanceof HTMLElement) {
                 return {
@@ -574,32 +581,70 @@ export class DragAndDrop {
                     toJSON(): string {
                         return JSON.stringify(this);
                     }
-                }
-            } else {
-                console.error("Element type not supported");
-                return element.getBBox();
+                };
             }
-            return element.getBoundingClientRect();
         }
         else if(this.isXYElement(element)) {
             return this.XYElementToBoundingBox(element);
         }
-        else {
-            console.error("Element type not supported");
+
+        const parent = this.getOffsetParent(element);
+        if(parent instanceof HTMLElement) {
+            const rect = element.getBoundingClientRect();
+            const rectParent = parent.getBoundingClientRect();
+            const x = rect.left - rectParent.left;
+            const y = rect.top - rectParent.top;
             return {
-                x: 0,
-                y: 0,
-                width: 0,
-                height: 0,
-                bottom: 0,
-                right: 0,
-                top: 0,
-                left: 0,
+                x: x,
+                y: y,
+                width: rect.width,
+                height: rect.height,
+                bottom: y + rect.height,
+                right: x + rect.width,
+                left: rect.left - rectParent.left,
+                top: rect.top - rectParent.top,
                 toJSON(): string {
                     return JSON.stringify(this);
                 }
             };
         }
+        console.error("Element type not supported");
+        return {
+            x: 0,
+            y: 0,
+            width: 0,
+            height: 0,
+            bottom: 0,
+            right: 0,
+            top: 0,
+            left: 0,
+            toJSON(): string {
+                return JSON.stringify(this);
+            }
+        };
+    }
+
+    private getOffsetParent(element: AnyElement): Element | null {
+        if(element instanceof HTMLElement) {
+            return element.offsetParent;
+        }
+
+        let current: Node | ShadowRoot | null = element.parentNode;
+        while(current) {
+            if(current instanceof Element) {
+                const style = getComputedStyle(current);
+                if(style.position !== 'static') {
+                    return current;
+                }
+            }
+            if(current instanceof ShadowRoot) {
+                current = current.host;
+            } else {
+                current = current.parentNode;
+            }
+        }
+
+        return null;
     }
 
 }
