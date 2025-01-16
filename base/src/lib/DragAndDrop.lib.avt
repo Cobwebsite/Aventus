@@ -208,7 +208,7 @@ export class DragAndDrop {
         this.defaultMerge(options, "stopPropagation");
         this.defaultMerge(options, "useMouseFinalPosition");
         this.defaultMerge(options, "useTransform");
-        this.defaultMerge(options, "positionRelative");
+        this.defaultMerge(options, "svgRelativePosition");
         if(options.shadow !== void 0) {
             this.options.shadow.enable = options.shadow.enable;
             if(options.shadow.container !== void 0) {
