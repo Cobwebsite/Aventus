@@ -913,7 +913,7 @@ export class AventusTsLanguageService {
     }
 
     private static replaceFirstExport(txt: string): string {
-        return txt.replace(/^\s*export\s+(class|interface|enum|type|abstract|function)/m, "$1");
+        return txt.replace(/^\s*export\s+(class|interface|enum|type|abstract|function|async)/m, "$1");
     }
     private static prepareDataSchema(classInfo: ClassInfo, moduleName: string, npm?: boolean): string {
         let template: { [prop: string]: string } = {};
