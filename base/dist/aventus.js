@@ -1398,7 +1398,7 @@ let GenericError=class GenericError {
      */
     constructor(code, message) {
         this.code = code;
-        this.message = message;
+        this.message = message + '';
     }
 }
 GenericError.Namespace=`Aventus`;
