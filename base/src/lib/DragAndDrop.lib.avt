@@ -268,7 +268,8 @@ export class DragAndDrop {
         this.startElementPosition = this.getBoundingBox(draggableElement);
         if(this.options.shadow.enable) {
             draggableElement = this.options.element.cloneNode(true) as DragElement;
-            let elBox = this.getBoundingBox(this.options.element);
+            // change to position from top left
+            let elBox = this.options.element.getBoundingClientRect();
             let containerBox = this.options.shadow.container.getBoundingClientRect();
             this.positionShadowRelativeToElement = {
                 x: elBox.x - containerBox.x,
@@ -585,6 +586,7 @@ export class DragAndDrop {
             }
         }
         else if(this.isXYElement(element)) {
+            
             return this.XYElementToBoundingBox(element);
         }
 
