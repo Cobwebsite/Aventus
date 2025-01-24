@@ -99,7 +99,7 @@ export class AventusWebSCSSFile extends AventusBaseFile {
                 //remove comment @import
                 textToSearch = textToSearch.replace(/\/\*[\s\S]*?@import[\s\S]*?\*\/|\/\/.*@import.*/g, '');
 
-                
+
                 let regex = /@import *?('|")(\S*?)('|");?/g;
                 let arrMatch: RegExpExecArray | null = null;
                 while (arrMatch = regex.exec(textToSearch)) {
@@ -127,6 +127,7 @@ export class AventusWebSCSSFile extends AventusBaseFile {
                     let compiled = compileString(oneFileContent, {
                         style: 'compressed'
                     }).css.toString().trim();
+                    compiled = compiled.replace(/\\/g, "\\\\");
                     newCompiledTxt = compiled;
                     if (this.diagnosticCompile) {
                         this.diagnosticCompile = undefined;

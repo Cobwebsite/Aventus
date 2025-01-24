@@ -109,6 +109,7 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 					let compiled = compileString(oneFileContent, {
 						style: 'compressed'
 					}).css.toString().trim();
+					compiled = compiled.replace(/\\/g, "\\\\");
 					newCompiledTxt = compiled;
 					if (this.diagnosticCompile) {
 						this.diagnosticCompile = undefined;
