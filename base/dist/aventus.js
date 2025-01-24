@@ -502,129 +502,6 @@ var RamErrorCode;
 })(RamErrorCode || (RamErrorCode = {}));
 _.RamErrorCode=RamErrorCode;
 
-let compareObject=function compareObject(obj1, obj2) {
-    if (Array.isArray(obj1)) {
-        if (!Array.isArray(obj2)) {
-            return false;
-        }
-        obj2 = obj2.slice();
-        if (obj1.length !== obj2.length) {
-            return false;
-        }
-        for (let i = 0; i < obj1.length; i++) {
-            let foundElement = false;
-            for (let j = 0; j < obj2.length; j++) {
-                if (compareObject(obj1[i], obj2[j])) {
-                    obj2.splice(j, 1);
-                    foundElement = true;
-                    break;
-                }
-            }
-            if (!foundElement) {
-                return false;
-            }
-        }
-        return true;
-    }
-    else if (typeof obj1 === 'object' && obj1 !== undefined && obj1 !== null) {
-        if (typeof obj2 !== 'object' || obj2 === undefined || obj2 === null) {
-            return false;
-        }
-        if (obj1 == obj2) {
-            return true;
-        }
-        if (obj1 instanceof HTMLElement || obj2 instanceof HTMLElement) {
-            return false;
-        }
-        if (obj1 instanceof Date || obj2 instanceof Date) {
-            return obj1.toString() === obj2.toString();
-        }
-        let oneProxy = false;
-        if (Watcher.is(obj1)) {
-            oneProxy = true;
-            obj1 = Watcher.extract(obj1, false);
-        }
-        if (Watcher.is(obj2)) {
-            oneProxy = true;
-            obj2 = Watcher.extract(obj2, false);
-        }
-        if (obj1 instanceof Map && obj2 instanceof Map) {
-            if (obj1.size != obj2.size) {
-                return false;
-            }
-            const keys = obj1.keys();
-            for (let key in keys) {
-                if (!obj2.has(key)) {
-                    return false;
-                }
-                if (!compareObject(obj1.get(key), obj2.get(key))) {
-                    return false;
-                }
-            }
-            return true;
-        }
-        else {
-            if (Object.keys(obj1).length !== Object.keys(obj2).length) {
-                return false;
-            }
-            for (let key in obj1) {
-                if (oneProxy && Watcher['__reservedName'][key]) {
-                    continue;
-                }
-                if (!(key in obj2)) {
-                    return false;
-                }
-                if (!compareObject(obj1[key], obj2[key])) {
-                    return false;
-                }
-            }
-            return true;
-        }
-    }
-    else {
-        return obj1 === obj2;
-    }
-}
-_.compareObject=compareObject;
-
-let getValueFromObject=function getValueFromObject(path, obj) {
-    if (path === undefined) {
-        path = '';
-    }
-    path = path.replace(/\[(.*?)\]/g, '.$1');
-    if (path == "") {
-        return obj;
-    }
-    const val = (key) => {
-        if (obj instanceof Map) {
-            return obj.get(key);
-        }
-        return obj[key];
-    };
-    let splitted = path.split(".");
-    for (let i = 0; i < splitted.length - 1; i++) {
-        let split = splitted[i];
-        let value = val(split);
-        if (!value || typeof value !== 'object') {
-            return undefined;
-        }
-        obj = value;
-    }
-    if (!obj || typeof obj !== 'object') {
-        return undefined;
-    }
-    return val(splitted[splitted.length - 1]);
-}
-_.getValueFromObject=getValueFromObject;
-
-var WatchAction;
-(function (WatchAction) {
-    WatchAction[WatchAction["CREATED"] = 0] = "CREATED";
-    WatchAction[WatchAction["UPDATED"] = 1] = "UPDATED";
-    WatchAction[WatchAction["DELETED"] = 2] = "DELETED";
-})(WatchAction || (WatchAction = {}));
-_.WatchAction=WatchAction;
-
 let ResourceLoader=class ResourceLoader {
     static headerLoaded = {};
     static headerWaiting = {};
@@ -834,6 +711,12 @@ let Instance=class Instance {
 Instance.Namespace=`Aventus`;
 _.Instance=Instance;
 
+let DragElementXYType= [SVGGElement, SVGRectElement, SVGEllipseElement, SVGTextElement];
+_.DragElementXYType=DragElementXYType;
+
+let DragElementLeftTopType= [HTMLElement, SVGSVGElement];
+_.DragElementLeftTopType=DragElementLeftTopType;
+
 let NormalizedEvent=class NormalizedEvent {
     _event;
     get event() {
@@ -997,6 +880,129 @@ let CallbackGroup=class CallbackGroup {
 }
 CallbackGroup.Namespace=`Aventus`;
 _.CallbackGroup=CallbackGroup;
+
+let compareObject=function compareObject(obj1, obj2) {
+    if (Array.isArray(obj1)) {
+        if (!Array.isArray(obj2)) {
+            return false;
+        }
+        obj2 = obj2.slice();
+        if (obj1.length !== obj2.length) {
+            return false;
+        }
+        for (let i = 0; i < obj1.length; i++) {
+            let foundElement = false;
+            for (let j = 0; j < obj2.length; j++) {
+                if (compareObject(obj1[i], obj2[j])) {
+                    obj2.splice(j, 1);
+                    foundElement = true;
+                    break;
+                }
+            }
+            if (!foundElement) {
+                return false;
+            }
+        }
+        return true;
+    }
+    else if (typeof obj1 === 'object' && obj1 !== undefined && obj1 !== null) {
+        if (typeof obj2 !== 'object' || obj2 === undefined || obj2 === null) {
+            return false;
+        }
+        if (obj1 == obj2) {
+            return true;
+        }
+        if (obj1 instanceof HTMLElement || obj2 instanceof HTMLElement) {
+            return false;
+        }
+        if (obj1 instanceof Date || obj2 instanceof Date) {
+            return obj1.toString() === obj2.toString();
+        }
+        let oneProxy = false;
+        if (Watcher.is(obj1)) {
+            oneProxy = true;
+            obj1 = Watcher.extract(obj1, false);
+        }
+        if (Watcher.is(obj2)) {
+            oneProxy = true;
+            obj2 = Watcher.extract(obj2, false);
+        }
+        if (obj1 instanceof Map && obj2 instanceof Map) {
+            if (obj1.size != obj2.size) {
+                return false;
+            }
+            const keys = obj1.keys();
+            for (let key in keys) {
+                if (!obj2.has(key)) {
+                    return false;
+                }
+                if (!compareObject(obj1.get(key), obj2.get(key))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        else {
+            if (Object.keys(obj1).length !== Object.keys(obj2).length) {
+                return false;
+            }
+            for (let key in obj1) {
+                if (oneProxy && Watcher['__reservedName'][key]) {
+                    continue;
+                }
+                if (!(key in obj2)) {
+                    return false;
+                }
+                if (!compareObject(obj1[key], obj2[key])) {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+    else {
+        return obj1 === obj2;
+    }
+}
+_.compareObject=compareObject;
+
+let getValueFromObject=function getValueFromObject(path, obj) {
+    if (path === undefined) {
+        path = '';
+    }
+    path = path.replace(/\[(.*?)\]/g, '.$1');
+    if (path == "") {
+        return obj;
+    }
+    const val = (key) => {
+        if (obj instanceof Map) {
+            return obj.get(key);
+        }
+        return obj[key];
+    };
+    let splitted = path.split(".");
+    for (let i = 0; i < splitted.length - 1; i++) {
+        let split = splitted[i];
+        let value = val(split);
+        if (!value || typeof value !== 'object') {
+            return undefined;
+        }
+        obj = value;
+    }
+    if (!obj || typeof obj !== 'object') {
+        return undefined;
+    }
+    return val(splitted[splitted.length - 1]);
+}
+_.getValueFromObject=getValueFromObject;
+
+var WatchAction;
+(function (WatchAction) {
+    WatchAction[WatchAction["CREATED"] = 0] = "CREATED";
+    WatchAction[WatchAction["UPDATED"] = 1] = "UPDATED";
+    WatchAction[WatchAction["DELETED"] = 2] = "DELETED";
+})(WatchAction || (WatchAction = {}));
+_.WatchAction=WatchAction;
 
 var HttpMethod;
 (function (HttpMethod) {
@@ -1459,1324 +1465,6 @@ let HttpError=class HttpError extends GenericError {
 }
 HttpError.Namespace=`Aventus`;
 _.HttpError=HttpError;
-
-let ResultWithError=class ResultWithError extends VoidWithError {
-    /**
-      * The result value of the action.
-      * @type {U | undefined}
-      */
-    result;
-    /**
-     * Converts the current instance to a ResultWithError object.
-     * @returns {ResultWithError<U>} A new instance of ResultWithError with the same error list and result value.
-     */
-    toGeneric() {
-        const result = new ResultWithError();
-        result.errors = this.errors;
-        result.result = this.result;
-        return result;
-    }
-}
-ResultWithError.Namespace=`Aventus`;
-_.ResultWithError=ResultWithError;
-
-let HttpRouter=class HttpRouter {
-    options;
-    constructor() {
-        this.options = this.defineOptions(this.defaultOptionsValue());
-    }
-    defaultOptionsValue() {
-        return {
-            url: location.protocol + "//" + location.host
-        };
-    }
-    defineOptions(options) {
-        return options;
-    }
-    async get(url) {
-        return await new HttpRequest(url).queryJSON(this);
-    }
-    async post(url, data) {
-        return await new HttpRequest(url, HttpMethod.POST, data).queryJSON(this);
-    }
-    async put(url, data) {
-        return await new HttpRequest(url, HttpMethod.PUT, data).queryJSON(this);
-    }
-    async delete(url, data) {
-        return await new HttpRequest(url, HttpMethod.DELETE, data).queryJSON(this);
-    }
-    async option(url, data) {
-        return await new HttpRequest(url, HttpMethod.OPTION, data).queryJSON(this);
-    }
-}
-HttpRouter.Namespace=`Aventus`;
-_.HttpRouter=HttpRouter;
-
-let HttpRoute=class HttpRoute {
-    router;
-    constructor(router) {
-        this.router = router ?? new HttpRouter();
-    }
-    getPrefix() {
-        return "";
-    }
-}
-HttpRoute.Namespace=`Aventus`;
-_.HttpRoute=HttpRoute;
-
-let HttpRequest=class HttpRequest {
-    request;
-    url;
-    constructor(url, method = HttpMethod.GET, body) {
-        this.url = url;
-        this.request = {};
-        this.setMethod(method);
-        this.prepareBody(body);
-    }
-    setUrl(url) {
-        this.url = url;
-    }
-    toString() {
-        return this.url + " : " + JSON.stringify(this.request);
-    }
-    setBody(body) {
-        this.prepareBody(body);
-    }
-    setMethod(method) {
-        this.request.method = method;
-    }
-    objectToFormData(obj, formData, parentKey) {
-        formData = formData || new FormData();
-        let byPass = obj;
-        if (byPass.__isProxy) {
-            obj = byPass.getTarget();
-        }
-        const keys = obj.toJSON ? Object.keys(obj.toJSON()) : Object.keys(obj);
-        for (let i = 0; i < keys.length; i++) {
-            const key = keys[i];
-            let value = obj[key];
-            const newKey = parentKey ? `${parentKey}[${key}]` : key;
-            if (value instanceof Date) {
-                formData.append(newKey, DateConverter.converter.toString(value));
-            }
-            else if (typeof value === 'object' &&
-                value !== null &&
-                !(value instanceof File)) {
-                if (Array.isArray(value)) {
-                    for (let j = 0; j < value.length; j++) {
-                        const arrayKey = `${newKey}[${j}]`;
-                        this.objectToFormData({ [arrayKey]: value[j] }, formData);
-                    }
-                }
-                else {
-                    this.objectToFormData(value, formData, newKey);
-                }
-            }
-            else {
-                if (value === undefined || value === null) {
-                    value = "";
-                }
-                formData.append(newKey, value);
-            }
-        }
-        return formData;
-    }
-    jsonReplacer(key, value) {
-        if (this[key] instanceof Date) {
-            return DateConverter.converter.toString(this[key]);
-        }
-        return value;
-    }
-    prepareBody(data) {
-        if (!data) {
-            return;
-        }
-        else if (data instanceof FormData) {
-            this.request.body = data;
-        }
-        else {
-            let useFormData = false;
-            const analyseFormData = (obj) => {
-                for (let key in obj) {
-                    if (obj[key] instanceof File) {
-                        useFormData = true;
-                        break;
-                    }
-                    else if (Array.isArray(obj[key]) && obj[key].length > 0 && obj[key][0] instanceof File) {
-                        useFormData = true;
-                        break;
-                    }
-                    else if (typeof obj[key] == 'object' && !Array.isArray(obj[key]) && !(obj[key] instanceof Date)) {
-                        analyseFormData(obj[key]);
-                        if (useFormData) {
-                            break;
-                        }
-                    }
-                }
-            };
-            analyseFormData(data);
-            if (useFormData) {
-                this.request.body = this.objectToFormData(data);
-            }
-            else {
-                this.request.body = JSON.stringify(data, this.jsonReplacer);
-                this.setHeader("Content-Type", "Application/json");
-            }
-        }
-    }
-    setHeader(name, value) {
-        if (!this.request.headers) {
-            this.request.headers = [];
-        }
-        this.request.headers.push([name, value]);
-    }
-    async query(router) {
-        let result = new ResultWithError();
-        try {
-            const fullUrl = router ? router.options.url + this.url : this.url;
-            result.result = await fetch(fullUrl, this.request);
-        }
-        catch (e) {
-            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
-        }
-        return result;
-    }
-    async queryVoid(router) {
-        let resultTemp = await this.query(router);
-        let result = new VoidWithError();
-        if (!resultTemp.success) {
-            result.errors = resultTemp.errors;
-            return result;
-        }
-        try {
-            if (!resultTemp.result) {
-                return result;
-            }
-            if (resultTemp.result.status != 204) {
-                let tempResult = Converter.transform(await resultTemp.result.json());
-                if (tempResult instanceof VoidWithError) {
-                    for (let error of tempResult.errors) {
-                        result.errors.push(error);
-                    }
-                }
-            }
-        }
-        catch (e) {
-        }
-        return result;
-    }
-    async queryJSON(router) {
-        let resultTemp = await this.query(router);
-        let result = new ResultWithError();
-        if (!resultTemp.success) {
-            result.errors = resultTemp.errors;
-            return result;
-        }
-        try {
-            if (!resultTemp.result) {
-                return result;
-            }
-            let tempResult = Converter.transform(await resultTemp.result.json());
-            if (tempResult instanceof VoidWithError) {
-                for (let error of tempResult.errors) {
-                    result.errors.push(error);
-                }
-                if (tempResult instanceof ResultWithError) {
-                    result.result = tempResult.result;
-                }
-            }
-            else {
-                result.result = tempResult;
-            }
-        }
-        catch (e) {
-            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
-        }
-        return result;
-    }
-    async queryTxt(router) {
-        let resultTemp = await this.query(router);
-        let result = new ResultWithError();
-        if (!resultTemp.success) {
-            result.errors = resultTemp.errors;
-            return result;
-        }
-        try {
-            if (!resultTemp.result) {
-                return result;
-            }
-            result.result = await resultTemp.result.text();
-        }
-        catch (e) {
-            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
-        }
-        return result;
-    }
-    async queryBlob(router) {
-        let resultTemp = await this.query(router);
-        let result = new ResultWithError();
-        if (!resultTemp.success) {
-            result.errors = resultTemp.errors;
-            return result;
-        }
-        try {
-            if (!resultTemp.result) {
-                return result;
-            }
-            result.result = await resultTemp.result.blob();
-        }
-        catch (e) {
-            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
-        }
-        return result;
-    }
-}
-HttpRequest.Namespace=`Aventus`;
-_.HttpRequest=HttpRequest;
-
-let StorableRoute=class StorableRoute extends HttpRoute {
-    async GetAll() {
-        const request = new HttpRequest(`/${this.StorableName()}`, HttpMethod.GET);
-        return await request.queryJSON(this.router);
-    }
-    async Create(body) {
-        const request = new HttpRequest(`/${this.StorableName()}`, HttpMethod.POST);
-        request.setBody(body);
-        return await request.queryJSON(this.router);
-    }
-    async GetById(id) {
-        const request = new HttpRequest(`/${this.StorableName()}/${id}`, HttpMethod.GET);
-        return await request.queryJSON(this.router);
-    }
-    async Update(id, body) {
-        const request = new HttpRequest(`/${this.StorableName()}/${id}`, HttpMethod.PUT);
-        request.setBody(body);
-        return await request.queryJSON(this.router);
-    }
-    async Delete(id) {
-        const request = new HttpRequest(`/${this.StorableName()}/${id}`, HttpMethod.DELETE);
-        return await request.queryJSON(this.router);
-    }
-}
-StorableRoute.Namespace=`Aventus`;
-_.StorableRoute=StorableRoute;
-
-let Animation=class Animation {
-    /**
-     * Default FPS for all Animation if not set inside options
-     */
-    static FPS_DEFAULT = 60;
-    options;
-    nextFrame = 0;
-    fpsInterval;
-    continueAnimation = false;
-    frame_id = 0;
-    constructor(options) {
-        if (!options.animate) {
-            options.animate = () => { };
-        }
-        if (!options.stopped) {
-            options.stopped = () => { };
-        }
-        if (!options.fps) {
-            options.fps = Animation.FPS_DEFAULT;
-        }
-        this.options = options;
-        this.fpsInterval = 1000 / options.fps;
-    }
-    animate() {
-        let now = window.performance.now();
-        let elapsed = now - this.nextFrame;
-        if (elapsed <= this.fpsInterval) {
-            this.frame_id = requestAnimationFrame(() => this.animate());
-            return;
-        }
-        this.nextFrame = now - (elapsed % this.fpsInterval);
-        setTimeout(() => {
-            this.options.animate();
-        }, 0);
-        if (this.continueAnimation) {
-            this.frame_id = requestAnimationFrame(() => this.animate());
-        }
-        else {
-            this.options.stopped();
-        }
-    }
-    /**
-     * Start the of animation
-     */
-    start() {
-        if (this.continueAnimation == false) {
-            this.continueAnimation = true;
-            this.nextFrame = window.performance.now();
-            this.animate();
-        }
-    }
-    /**
-     * Stop the animation
-     */
-    stop() {
-        this.continueAnimation = false;
-    }
-    /**
-     * Stop the animation
-     */
-    immediateStop() {
-        cancelAnimationFrame(this.frame_id);
-        this.continueAnimation = false;
-        this.options.stopped();
-    }
-    /**
-     * Get the FPS
-     */
-    getFPS() {
-        return this.options.fps;
-    }
-    /**
-     * Set the FPS
-     */
-    setFPS(fps) {
-        this.options.fps = fps;
-        this.fpsInterval = 1000 / this.options.fps;
-    }
-    /**
-     * Get the animation status (true if animation is running)
-     */
-    isStarted() {
-        return this.continueAnimation;
-    }
-}
-Animation.Namespace=`Aventus`;
-_.Animation=Animation;
-
-let PressManager=class PressManager {
-    static globalConfig = {
-        delayDblPress: 250,
-        delayLongPress: 700,
-        offsetDrag: 20
-    };
-    static setGlobalConfig(options) {
-        this.globalConfig = options;
-    }
-    static create(options) {
-        if (Array.isArray(options.element)) {
-            let result = [];
-            for (let el of options.element) {
-                let cloneOpt = { ...options };
-                cloneOpt.element = el;
-                result.push(new PressManager(cloneOpt));
-            }
-            return result;
-        }
-        else {
-            return new PressManager(options);
-        }
-    }
-    options;
-    element;
-    delayDblPress;
-    delayLongPress;
-    nbPress = 0;
-    offsetDrag;
-    state = {
-        oneActionTriggered: null,
-    };
-    startPosition = { x: 0, y: 0 };
-    customFcts = {};
-    timeoutDblPress = 0;
-    timeoutLongPress = 0;
-    downEventSaved;
-    useDblPress = false;
-    stopPropagation = () => true;
-    pointersRecord = {};
-    functionsBinded = {
-        downAction: (e) => { },
-        upAction: (e) => { },
-        moveAction: (e) => { },
-        childPressStart: (e) => { },
-        childPressEnd: (e) => { },
-        childPressMove: (e) => { }
-    };
-    /**
-     * @param {*} options - The options
-     * @param {HTMLElement | HTMLElement[]} options.element - The element to manage
-     */
-    constructor(options) {
-        if (options.element === void 0) {
-            throw 'You must provide an element';
-        }
-        this.offsetDrag = PressManager.globalConfig.offsetDrag !== undefined ? PressManager.globalConfig.offsetDrag : 20;
-        this.delayLongPress = PressManager.globalConfig.delayLongPress ?? 700;
-        this.delayDblPress = PressManager.globalConfig.delayDblPress ?? 150;
-        this.element = options.element;
-        this.checkDragConstraint(options);
-        this.assignValueOption(options);
-        this.options = options;
-        this.init();
-    }
-    /**
-     * Get the current element focused by the PressManager
-     */
-    getElement() {
-        return this.element;
-    }
-    checkDragConstraint(options) {
-        if (options.onDrag !== void 0) {
-            if (options.onDragStart === void 0) {
-                options.onDragStart = (e) => { };
-            }
-            if (options.onDragEnd === void 0) {
-                options.onDragEnd = (e) => { };
-            }
-        }
-        if (options.onDragStart !== void 0) {
-            if (options.onDrag === void 0) {
-                options.onDrag = (e) => { };
-            }
-            if (options.onDragEnd === void 0) {
-                options.onDragEnd = (e) => { };
-            }
-        }
-        if (options.onDragEnd !== void 0) {
-            if (options.onDragStart === void 0) {
-                options.onDragStart = (e) => { };
-            }
-            if (options.onDrag === void 0) {
-                options.onDrag = (e) => { };
-            }
-        }
-    }
-    assignValueOption(options) {
-        if (PressManager.globalConfig.delayDblPress !== undefined) {
-            this.delayDblPress = PressManager.globalConfig.delayDblPress;
-        }
-        if (options.delayDblPress !== undefined) {
-            this.delayDblPress = options.delayDblPress;
-        }
-        if (PressManager.globalConfig.delayLongPress !== undefined) {
-            this.delayLongPress = PressManager.globalConfig.delayLongPress;
-        }
-        if (options.delayLongPress !== undefined) {
-            this.delayLongPress = options.delayLongPress;
-        }
-        if (PressManager.globalConfig.offsetDrag !== undefined) {
-            this.offsetDrag = PressManager.globalConfig.offsetDrag;
-        }
-        if (options.offsetDrag !== undefined) {
-            this.offsetDrag = options.offsetDrag;
-        }
-        if (options.onDblPress !== undefined) {
-            this.useDblPress = true;
-        }
-        if (PressManager.globalConfig.forceDblPress !== undefined) {
-            this.useDblPress = PressManager.globalConfig.forceDblPress;
-        }
-        if (options.forceDblPress !== undefined) {
-            this.useDblPress = options.forceDblPress;
-        }
-        if (typeof PressManager.globalConfig.stopPropagation == 'function') {
-            this.stopPropagation = PressManager.globalConfig.stopPropagation;
-        }
-        else if (options.stopPropagation === false) {
-            this.stopPropagation = () => false;
-        }
-        if (typeof options.stopPropagation == 'function') {
-            this.stopPropagation = options.stopPropagation;
-        }
-        else if (options.stopPropagation === false) {
-            this.stopPropagation = () => false;
-        }
-        if (!options.buttonAllowed)
-            options.buttonAllowed = PressManager.globalConfig.buttonAllowed;
-        if (!options.buttonAllowed)
-            options.buttonAllowed = [0];
-        if (!options.onEvent)
-            options.onEvent = PressManager.globalConfig.onEvent;
-    }
-    bindAllFunction() {
-        this.functionsBinded.downAction = this.downAction.bind(this);
-        this.functionsBinded.moveAction = this.moveAction.bind(this);
-        this.functionsBinded.upAction = this.upAction.bind(this);
-        this.functionsBinded.childPressStart = this.childPressStart.bind(this);
-        this.functionsBinded.childPressEnd = this.childPressEnd.bind(this);
-        this.functionsBinded.childPressMove = this.childPressMove.bind(this);
-    }
-    init() {
-        this.bindAllFunction();
-        this.element.addEventListener("pointerdown", this.functionsBinded.downAction);
-        this.element.addEventListener("touchstart", this.functionsBinded.downAction);
-        this.element.addEventListener("trigger_pointer_pressstart", this.functionsBinded.childPressStart);
-        this.element.addEventListener("trigger_pointer_pressend", this.functionsBinded.childPressEnd);
-        this.element.addEventListener("trigger_pointer_pressmove", this.functionsBinded.childPressMove);
-    }
-    identifyEvent(touch) {
-        if ('Touch' in window && touch instanceof Touch)
-            return touch.identifier;
-        return touch.pointerId;
-    }
-    registerEvent(ev) {
-        if ('TouchEvent' in window && ev instanceof TouchEvent) {
-            for (let touch of ev.targetTouches) {
-                const id = this.identifyEvent(touch);
-                if (this.pointersRecord[id]) {
-                    return false;
-                }
-                this.pointersRecord[id] = ev;
-            }
-            return true;
-        }
-        else {
-            const id = this.identifyEvent(ev);
-            if (this.pointersRecord[id]) {
-                return false;
-            }
-            this.pointersRecord[id] = ev;
-            return true;
-        }
-    }
-    unregisterEvent(ev) {
-        let result = true;
-        if ('TouchEvent' in window && ev instanceof TouchEvent) {
-            for (let touch of ev.changedTouches) {
-                const id = this.identifyEvent(touch);
-                if (!this.pointersRecord[id]) {
-                    result = false;
-                }
-                else {
-                    delete this.pointersRecord[id];
-                }
-            }
-        }
-        else {
-            const id = this.identifyEvent(ev);
-            if (!this.pointersRecord[id]) {
-                result = false;
-            }
-            else {
-                delete this.pointersRecord[id];
-            }
-        }
-        return result;
-    }
-    genericDownAction(state, e) {
-        this.downEventSaved = e;
-        if (this.options.onLongPress) {
-            this.timeoutLongPress = setTimeout(() => {
-                if (!state.oneActionTriggered) {
-                    if (this.options.onLongPress) {
-                        if (this.options.onLongPress(e, this) !== false) {
-                            state.oneActionTriggered = this;
-                        }
-                    }
-                }
-            }, this.delayLongPress);
-        }
-    }
-    downAction(ev) {
-        const isFirst = Object.values(this.pointersRecord).length == 0;
-        if (!this.registerEvent(ev)) {
-            if (this.stopPropagation()) {
-                ev.stopImmediatePropagation();
-            }
-            return;
-        }
-        const e = new NormalizedEvent(ev);
-        if (this.options.onEvent) {
-            this.options.onEvent(e);
-        }
-        if (e.button != undefined && !this.options.buttonAllowed?.includes(e.button)) {
-            this.unregisterEvent(ev);
-            return;
-        }
-        if (this.stopPropagation()) {
-            e.stopImmediatePropagation();
-        }
-        this.customFcts = {};
-        if (this.nbPress == 0 && isFirst) {
-            this.state.oneActionTriggered = null;
-            clearTimeout(this.timeoutDblPress);
-        }
-        this.startPosition = { x: e.pageX, y: e.pageY };
-        if (isFirst) {
-            document.addEventListener("pointerup", this.functionsBinded.upAction);
-            document.addEventListener("pointercancel", this.functionsBinded.upAction);
-            document.addEventListener("touchend", this.functionsBinded.upAction);
-            document.addEventListener("touchcancel", this.functionsBinded.upAction);
-            document.addEventListener("pointermove", this.functionsBinded.moveAction);
-        }
-        this.genericDownAction(this.state, e);
-        if (this.options.onPressStart) {
-            this.options.onPressStart(e, this);
-            this.lastEmitEvent = e;
-            // this.emitTriggerFunctionParent("pressstart", e);
-        }
-        this.emitTriggerFunction("pressstart", e);
-    }
-    genericUpAction(state, e) {
-        clearTimeout(this.timeoutLongPress);
-        if (state.oneActionTriggered == this) {
-            if (this.options.onDragEnd) {
-                this.options.onDragEnd(e, this);
-            }
-            else if (this.customFcts.src && this.customFcts.onDragEnd) {
-                this.customFcts.onDragEnd(e, this.customFcts.src);
-            }
-        }
-        else {
-            if (this.useDblPress) {
-                this.nbPress++;
-                if (this.nbPress == 2) {
-                    if (!state.oneActionTriggered) {
-                        this.nbPress = 0;
-                        if (this.options.onDblPress) {
-                            if (this.options.onDblPress(e, this) !== false) {
-                                state.oneActionTriggered = this;
-                            }
-                        }
-                    }
-                }
-                else if (this.nbPress == 1) {
-                    this.timeoutDblPress = setTimeout(() => {
-                        this.nbPress = 0;
-                        if (!state.oneActionTriggered) {
-                            if (this.options.onPress) {
-                                if (this.options.onPress(e, this) !== false) {
-                                    state.oneActionTriggered = this;
-                                }
-                            }
-                        }
-                    }, this.delayDblPress);
-                }
-            }
-            else {
-                if (!state.oneActionTriggered) {
-                    if (this.options.onPress) {
-                        if (this.options.onPress(e, this) !== false) {
-                            state.oneActionTriggered = this;
-                        }
-                    }
-                }
-            }
-        }
-    }
-    upAction(ev) {
-        if (!this.unregisterEvent(ev)) {
-            if (this.stopPropagation()) {
-                ev.stopImmediatePropagation();
-            }
-            return;
-        }
-        const e = new NormalizedEvent(ev);
-        if (this.options.onEvent) {
-            this.options.onEvent(e);
-        }
-        if (this.stopPropagation()) {
-            e.stopImmediatePropagation();
-        }
-        if (Object.values(this.pointersRecord).length == 0) {
-            document.removeEventListener("pointerup", this.functionsBinded.upAction);
-            document.removeEventListener("pointercancel", this.functionsBinded.upAction);
-            document.removeEventListener("touchend", this.functionsBinded.upAction);
-            document.removeEventListener("touchcancel", this.functionsBinded.upAction);
-            document.removeEventListener("pointermove", this.functionsBinded.moveAction);
-        }
-        this.genericUpAction(this.state, e);
-        if (this.options.onPressEnd) {
-            this.options.onPressEnd(e, this);
-            this.lastEmitEvent = e;
-            // this.emitTriggerFunctionParent("pressend", e);
-        }
-        this.emitTriggerFunction("pressend", e);
-    }
-    genericMoveAction(state, e) {
-        if (!state.oneActionTriggered) {
-            let xDist = e.pageX - this.startPosition.x;
-            let yDist = e.pageY - this.startPosition.y;
-            let distance = Math.sqrt(xDist * xDist + yDist * yDist);
-            if (distance > this.offsetDrag && this.downEventSaved) {
-                if (this.options.onDragStart) {
-                    if (this.options.onDragStart(this.downEventSaved, this) !== false) {
-                        state.oneActionTriggered = this;
-                    }
-                }
-            }
-        }
-        else if (state.oneActionTriggered == this) {
-            if (this.options.onDrag) {
-                this.options.onDrag(e, this);
-            }
-            else if (this.customFcts.src && this.customFcts.onDrag) {
-                this.customFcts.onDrag(e, this.customFcts.src);
-            }
-        }
-    }
-    moveAction(ev) {
-        const e = new NormalizedEvent(ev);
-        if (this.options.onEvent) {
-            this.options.onEvent(e);
-        }
-        if (this.stopPropagation()) {
-            e.stopImmediatePropagation();
-        }
-        this.genericMoveAction(this.state, e);
-        this.lastEmitEvent = e;
-        // if(this.options.onDrag) {
-        //     this.emitTriggerFunctionParent("pressmove", e);
-        this.emitTriggerFunction("pressmove", e);
-    }
-    childPressStart(e) {
-        if (this.lastEmitEvent == e.detail.realEvent)
-            return;
-        this.genericDownAction(e.detail.state, e.detail.realEvent);
-        if (this.options.onPressStart) {
-            this.options.onPressStart(e.detail.realEvent, this);
-        }
-    }
-    childPressEnd(e) {
-        if (this.lastEmitEvent == e.detail.realEvent)
-            return;
-        this.genericUpAction(e.detail.state, e.detail.realEvent);
-        if (this.options.onPressEnd) {
-            this.options.onPressEnd(e.detail.realEvent, this);
-        }
-    }
-    childPressMove(e) {
-        if (this.lastEmitEvent == e.detail.realEvent)
-            return;
-        this.genericMoveAction(e.detail.state, e.detail.realEvent);
-    }
-    lastEmitEvent;
-    emitTriggerFunction(action, e, el) {
-        let ev = new CustomEvent("trigger_pointer_" + action, {
-            bubbles: true,
-            cancelable: true,
-            composed: true,
-            detail: {
-                state: this.state,
-                customFcts: this.customFcts,
-                realEvent: e
-            }
-        });
-        this.lastEmitEvent = e;
-        if (!el) {
-            el = this.element;
-        }
-        el.dispatchEvent(ev);
-    }
-    /**
-     * Destroy the Press instance byremoving all events
-     */
-    destroy() {
-        if (this.element) {
-            this.element.removeEventListener("pointerdown", this.functionsBinded.downAction);
-            this.element.removeEventListener("trigger_pointer_pressstart", this.functionsBinded.childPressStart);
-            this.element.removeEventListener("trigger_pointer_pressend", this.functionsBinded.childPressEnd);
-            this.element.removeEventListener("trigger_pointer_pressmove", this.functionsBinded.childPressMove);
-            document.removeEventListener("pointerup", this.functionsBinded.upAction);
-            document.removeEventListener("pointercancel", this.functionsBinded.upAction);
-            document.removeEventListener("pointermove", this.functionsBinded.moveAction);
-        }
-    }
-}
-PressManager.Namespace=`Aventus`;
-_.PressManager=PressManager;
-
-let DragAndDrop=class DragAndDrop {
-    /**
-     * Default offset before drag element
-     */
-    static defaultOffsetDrag = 20;
-    pressManager;
-    options;
-    startCursorPosition = { x: 0, y: 0 };
-    startElementPosition = { x: 0, y: 0 };
-    isEnable = true;
-    draggableElement;
-    constructor(options) {
-        this.options = this.getDefaultOptions(options.element);
-        this.mergeProperties(options);
-        this.mergeFunctions(options);
-        this.options.elementTrigger.style.touchAction = 'none';
-        this.pressManager = new PressManager({
-            element: this.options.elementTrigger,
-            onPressStart: this.onPressStart.bind(this),
-            onPressEnd: this.onPressEnd.bind(this),
-            onDragStart: this.onDragStart.bind(this),
-            onDrag: this.onDrag.bind(this),
-            onDragEnd: this.onDragEnd.bind(this),
-            offsetDrag: this.options.offsetDrag,
-            stopPropagation: this.options.stopPropagation
-        });
-    }
-    getDefaultOptions(element) {
-        return {
-            applyDrag: true,
-            element: element,
-            elementTrigger: element,
-            offsetDrag: DragAndDrop.defaultOffsetDrag,
-            shadow: {
-                enable: false,
-                container: document.body,
-                removeOnStop: true,
-                transform: () => { },
-                delete: (el) => {
-                    el.remove();
-                }
-            },
-            strict: false,
-            targets: [],
-            usePercent: false,
-            stopPropagation: true,
-            isDragEnable: () => true,
-            getZoom: () => 1,
-            getOffsetX: () => 0,
-            getOffsetY: () => 0,
-            onPointerDown: (e) => { },
-            onPointerUp: (e) => { },
-            onStart: (e) => { },
-            onMove: (e) => { },
-            onStop: (e) => { },
-            onDrop: (element, targets) => { },
-            correctPosition: (position) => position
-        };
-    }
-    mergeProperties(options) {
-        if (options.element === void 0) {
-            throw "You must define the element for the drag&drop";
-        }
-        this.options.element = options.element;
-        if (options.elementTrigger === void 0) {
-            this.options.elementTrigger = this.options.element;
-        }
-        else {
-            this.options.elementTrigger = options.elementTrigger;
-        }
-        this.defaultMerge(options, "applyDrag");
-        this.defaultMerge(options, "offsetDrag");
-        this.defaultMerge(options, "strict");
-        this.defaultMerge(options, "targets");
-        this.defaultMerge(options, "usePercent");
-        this.defaultMerge(options, "stopPropagation");
-        if (options.shadow !== void 0) {
-            this.options.shadow.enable = options.shadow.enable;
-            if (options.shadow.container !== void 0) {
-                this.options.shadow.container = options.shadow.container;
-            }
-            else {
-                this.options.shadow.container = document.body;
-            }
-            if (options.shadow.removeOnStop !== void 0) {
-                this.options.shadow.removeOnStop = options.shadow.removeOnStop;
-            }
-            if (options.shadow.transform !== void 0) {
-                this.options.shadow.transform = options.shadow.transform;
-            }
-            if (options.shadow.delete !== void 0) {
-                this.options.shadow.delete = options.shadow.delete;
-            }
-        }
-    }
-    mergeFunctions(options) {
-        this.defaultMerge(options, "isDragEnable");
-        this.defaultMerge(options, "getZoom");
-        this.defaultMerge(options, "getOffsetX");
-        this.defaultMerge(options, "getOffsetY");
-        this.defaultMerge(options, "onPointerDown");
-        this.defaultMerge(options, "onPointerUp");
-        this.defaultMerge(options, "onStart");
-        this.defaultMerge(options, "onMove");
-        this.defaultMerge(options, "onStop");
-        this.defaultMerge(options, "onDrop");
-        this.defaultMerge(options, "correctPosition");
-    }
-    defaultMerge(options, name) {
-        if (options[name] !== void 0) {
-            this.options[name] = options[name];
-        }
-    }
-    positionShadowRelativeToElement = { x: 0, y: 0 };
-    onPressStart(e) {
-        this.options.onPointerDown(e);
-    }
-    onPressEnd(e) {
-        this.options.onPointerUp(e);
-    }
-    onDragStart(e) {
-        this.isEnable = this.options.isDragEnable();
-        if (!this.isEnable) {
-            return false;
-        }
-        let draggableElement = this.options.element;
-        this.startCursorPosition = {
-            x: e.pageX,
-            y: e.pageY
-        };
-        this.startElementPosition = {
-            x: draggableElement.offsetLeft,
-            y: draggableElement.offsetTop
-        };
-        if (this.options.shadow.enable) {
-            draggableElement = this.options.element.cloneNode(true);
-            let elBox = this.options.element.getBoundingClientRect();
-            let containerBox = this.options.shadow.container.getBoundingClientRect();
-            this.positionShadowRelativeToElement = {
-                x: elBox.x - containerBox.x,
-                y: elBox.y - containerBox.y
-            };
-            if (this.options.applyDrag) {
-                draggableElement.style.position = "absolute";
-                draggableElement.style.top = this.positionShadowRelativeToElement.y + this.options.getOffsetY() + 'px';
-                draggableElement.style.left = this.positionShadowRelativeToElement.x + this.options.getOffsetX() + 'px';
-            }
-            this.options.shadow.transform(draggableElement);
-            this.options.shadow.container.appendChild(draggableElement);
-        }
-        this.draggableElement = draggableElement;
-        return this.options.onStart(e);
-    }
-    onDrag(e) {
-        if (!this.isEnable) {
-            return;
-        }
-        let zoom = this.options.getZoom();
-        let diff = {
-            x: 0,
-            y: 0
-        };
-        if (this.options.shadow.enable) {
-            diff = {
-                x: (e.pageX - this.startCursorPosition.x) + this.positionShadowRelativeToElement.x + this.options.getOffsetX(),
-                y: (e.pageY - this.startCursorPosition.y) + this.positionShadowRelativeToElement.y + this.options.getOffsetY(),
-            };
-        }
-        else {
-            diff = {
-                x: (e.pageX - this.startCursorPosition.x) / zoom + this.startElementPosition.x + this.options.getOffsetX(),
-                y: (e.pageY - this.startCursorPosition.y) / zoom + this.startElementPosition.y + this.options.getOffsetY()
-            };
-        }
-        let newPos = this.setPosition(diff);
-        this.options.onMove(e, newPos);
-    }
-    onDragEnd(e) {
-        if (!this.isEnable) {
-            return;
-        }
-        let targets = this.getMatchingTargets();
-        let draggableElement = this.draggableElement;
-        if (this.options.shadow.enable && this.options.shadow.removeOnStop) {
-            this.options.shadow.delete(draggableElement);
-        }
-        if (targets.length > 0) {
-            this.options.onDrop(this.options.element, targets);
-        }
-        this.options.onStop(e);
-    }
-    setPosition(position) {
-        let draggableElement = this.draggableElement;
-        if (this.options.usePercent) {
-            let elementParent = draggableElement.offsetParent;
-            let percentPosition = {
-                x: (position.x / elementParent.offsetWidth) * 100,
-                y: (position.y / elementParent.offsetHeight) * 100
-            };
-            percentPosition = this.options.correctPosition(percentPosition);
-            if (this.options.applyDrag) {
-                draggableElement.style.left = percentPosition.x + '%';
-                draggableElement.style.top = percentPosition.y + '%';
-            }
-            return percentPosition;
-        }
-        else {
-            position = this.options.correctPosition(position);
-            if (this.options.applyDrag) {
-                draggableElement.style.left = position.x + 'px';
-                draggableElement.style.top = position.y + 'px';
-            }
-        }
-        return position;
-    }
-    /**
-     * Get targets within the current element position is matching
-     */
-    getMatchingTargets() {
-        let draggableElement = this.draggableElement;
-        let matchingTargets = [];
-        let srcTargets;
-        if (typeof this.options.targets == "function") {
-            srcTargets = this.options.targets();
-        }
-        else {
-            srcTargets = this.options.targets;
-        }
-        for (let target of srcTargets) {
-            const elementCoordinates = draggableElement.getBoundingClientRect();
-            const targetCoordinates = target.getBoundingClientRect();
-            let offsetX = this.options.getOffsetX();
-            let offsetY = this.options.getOffsetY();
-            let zoom = this.options.getZoom();
-            targetCoordinates.x += offsetX;
-            targetCoordinates.y += offsetY;
-            targetCoordinates.width *= zoom;
-            targetCoordinates.height *= zoom;
-            if (this.options.strict) {
-                if ((elementCoordinates.x >= targetCoordinates.x && elementCoordinates.x + elementCoordinates.width <= targetCoordinates.x + targetCoordinates.width) &&
-                    (elementCoordinates.y >= targetCoordinates.y && elementCoordinates.y + elementCoordinates.height <= targetCoordinates.y + targetCoordinates.height)) {
-                    matchingTargets.push(target);
-                }
-            }
-            else {
-                let elementLeft = elementCoordinates.x;
-                let elementRight = elementCoordinates.x + elementCoordinates.width;
-                let elementTop = elementCoordinates.y;
-                let elementBottom = elementCoordinates.y + elementCoordinates.height;
-                let targetLeft = targetCoordinates.x;
-                let targetRight = targetCoordinates.x + targetCoordinates.width;
-                let targetTop = targetCoordinates.y;
-                let targetBottom = targetCoordinates.y + targetCoordinates.height;
-                if (!(elementRight < targetLeft ||
-                    elementLeft > targetRight ||
-                    elementBottom < targetTop ||
-                    elementTop > targetBottom)) {
-                    matchingTargets.push(target);
-                }
-            }
-        }
-        return matchingTargets;
-    }
-    /**
-     * Get element currently dragging
-     */
-    getElementDrag() {
-        return this.options.element;
-    }
-    /**
-     * Set targets where to drop
-     */
-    setTargets(targets) {
-        this.options.targets = targets;
-    }
-    /**
-     * Set targets where to drop
-     */
-    setTargetsFct(targets) {
-        this.options.targets = targets;
-    }
-    /**
-     * Destroy the current drag&drop instance
-     */
-    destroy() {
-        this.pressManager.destroy();
-    }
-}
-DragAndDrop.Namespace=`Aventus`;
-_.DragAndDrop=DragAndDrop;
-
-let ResizeObserver=class ResizeObserver {
-    callback;
-    targets;
-    fpsInterval = -1;
-    nextFrame;
-    entriesChangedEvent;
-    willTrigger;
-    static resizeObserverClassByObject = {};
-    static uniqueInstance;
-    static getUniqueInstance() {
-        if (!ResizeObserver.uniqueInstance) {
-            ResizeObserver.uniqueInstance = new window.ResizeObserver(entries => {
-                let allClasses = [];
-                for (let j = 0; j < entries.length; j++) {
-                    let entry = entries[j];
-                    let index = entry.target['sourceIndex'];
-                    if (ResizeObserver.resizeObserverClassByObject[index]) {
-                        for (let i = 0; i < ResizeObserver.resizeObserverClassByObject[index].length; i++) {
-                            let classTemp = ResizeObserver.resizeObserverClassByObject[index][i];
-                            classTemp.entryChanged(entry);
-                            if (allClasses.indexOf(classTemp) == -1) {
-                                allClasses.push(classTemp);
-                            }
-                        }
-                    }
-                }
-                for (let i = 0; i < allClasses.length; i++) {
-                    allClasses[i].triggerCb();
-                }
-            });
-        }
-        return ResizeObserver.uniqueInstance;
-    }
-    constructor(options) {
-        let realOption;
-        if (options instanceof Function) {
-            realOption = {
-                callback: options,
-            };
-        }
-        else {
-            realOption = options;
-        }
-        this.callback = realOption.callback;
-        this.targets = [];
-        if (!realOption.fps) {
-            realOption.fps = 60;
-        }
-        if (realOption.fps != -1) {
-            this.fpsInterval = 1000 / realOption.fps;
-        }
-        this.nextFrame = 0;
-        this.entriesChangedEvent = {};
-        this.willTrigger = false;
-    }
-    /**
-     * Observe size changing for the element
-     */
-    observe(target) {
-        if (!target["sourceIndex"]) {
-            target["sourceIndex"] = Math.random().toString(36);
-            this.targets.push(target);
-            ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]] = [];
-            ResizeObserver.getUniqueInstance().observe(target);
-        }
-        if (ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]].indexOf(this) == -1) {
-            ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]].push(this);
-        }
-    }
-    /**
-     * Stop observing size changing for the element
-     */
-    unobserve(target) {
-        for (let i = 0; this.targets.length; i++) {
-            let tempTarget = this.targets[i];
-            if (tempTarget == target) {
-                let position = ResizeObserver.resizeObserverClassByObject[target['sourceIndex']].indexOf(this);
-                if (position != -1) {
-                    ResizeObserver.resizeObserverClassByObject[target['sourceIndex']].splice(position, 1);
-                }
-                if (ResizeObserver.resizeObserverClassByObject[target['sourceIndex']].length == 0) {
-                    delete ResizeObserver.resizeObserverClassByObject[target['sourceIndex']];
-                }
-                ResizeObserver.getUniqueInstance().unobserve(target);
-                this.targets.splice(i, 1);
-                return;
-            }
-        }
-    }
-    /**
-     * Destroy the resize observer
-     */
-    disconnect() {
-        for (let i = 0; this.targets.length; i++) {
-            this.unobserve(this.targets[i]);
-        }
-    }
-    entryChanged(entry) {
-        let index = entry.target.sourceIndex;
-        this.entriesChangedEvent[index] = entry;
-    }
-    triggerCb() {
-        if (!this.willTrigger) {
-            this.willTrigger = true;
-            this._triggerCb();
-        }
-    }
-    _triggerCb() {
-        let now = window.performance.now();
-        let elapsed = now - this.nextFrame;
-        if (this.fpsInterval != -1 && elapsed <= this.fpsInterval) {
-            requestAnimationFrame(() => {
-                this._triggerCb();
-            });
-            return;
-        }
-        this.nextFrame = now - (elapsed % this.fpsInterval);
-        let changed = Object.values(this.entriesChangedEvent);
-        this.entriesChangedEvent = {};
-        this.willTrigger = false;
-        setTimeout(() => {
-            this.callback(changed);
-        }, 0);
-    }
-}
-ResizeObserver.Namespace=`Aventus`;
-_.ResizeObserver=ResizeObserver;
-
-let Uri=class Uri {
-    static prepare(uri) {
-        let params = [];
-        let i = 0;
-        let regexState = uri.replace(/{.*?}/g, (group, position) => {
-            group = group.slice(1, -1);
-            let splitted = group.split(":");
-            let name = splitted[0].trim();
-            let type = "string";
-            let result = "([^\\/]+)";
-            i++;
-            if (splitted.length > 1) {
-                if (splitted[1].trim() == "number") {
-                    result = "([0-9]+)";
-                    type = "number";
-                }
-            }
-            params.push({
-                name,
-                type,
-                position: i
-            });
-            return result;
-        });
-        regexState = regexState.replace(/\*/g, ".*?").toLowerCase();
-        regexState = "^" + regexState + '$';
-        return {
-            regex: new RegExp(regexState),
-            params
-        };
-    }
-    static getParams(from, current) {
-        if (typeof from == "string") {
-            from = this.prepare(from);
-        }
-        let matches = from.regex.exec(current.toLowerCase());
-        if (matches) {
-            let slugs = {};
-            for (let param of from.params) {
-                if (param.type == "number") {
-                    slugs[param.name] = Number(matches[param.position]);
-                }
-                else {
-                    slugs[param.name] = matches[param.position];
-                }
-            }
-            return slugs;
-        }
-        return null;
-    }
-    static isActive(from, current) {
-        if (typeof from == "string") {
-            from = this.prepare(from);
-        }
-        return from.regex.test(current);
-    }
-    static normalize(path) {
-        const isAbsolute = path.startsWith('/');
-        const parts = path.split('/');
-        const normalizedParts = [];
-        for (let i = 0; i < parts.length; i++) {
-            if (parts[i] === '..') {
-                normalizedParts.pop();
-            }
-            else if (parts[i] !== '.' && parts[i] !== '') {
-                normalizedParts.push(parts[i]);
-            }
-        }
-        let normalizedPath = normalizedParts.join('/');
-        if (isAbsolute) {
-            normalizedPath = '/' + normalizedPath;
-        }
-        return normalizedPath;
-    }
-}
-Uri.Namespace=`Aventus`;
-_.Uri=Uri;
 
 let Signal=class Signal {
     __subscribes = [];
@@ -3840,6 +2528,1528 @@ let EffectNoRecomputed=class EffectNoRecomputed extends Effect {
 }
 EffectNoRecomputed.Namespace=`Aventus`;
 _.EffectNoRecomputed=EffectNoRecomputed;
+
+let ResultWithError=class ResultWithError extends VoidWithError {
+    /**
+      * The result value of the action.
+      * @type {U | undefined}
+      */
+    result;
+    /**
+     * Converts the current instance to a ResultWithError object.
+     * @returns {ResultWithError<U>} A new instance of ResultWithError with the same error list and result value.
+     */
+    toGeneric() {
+        const result = new ResultWithError();
+        result.errors = this.errors;
+        result.result = this.result;
+        return result;
+    }
+}
+ResultWithError.Namespace=`Aventus`;
+_.ResultWithError=ResultWithError;
+
+let HttpRouter=class HttpRouter {
+    options;
+    constructor() {
+        this.options = this.defineOptions(this.defaultOptionsValue());
+    }
+    defaultOptionsValue() {
+        return {
+            url: location.protocol + "//" + location.host
+        };
+    }
+    defineOptions(options) {
+        return options;
+    }
+    async get(url) {
+        return await new HttpRequest(url).queryJSON(this);
+    }
+    async post(url, data) {
+        return await new HttpRequest(url, HttpMethod.POST, data).queryJSON(this);
+    }
+    async put(url, data) {
+        return await new HttpRequest(url, HttpMethod.PUT, data).queryJSON(this);
+    }
+    async delete(url, data) {
+        return await new HttpRequest(url, HttpMethod.DELETE, data).queryJSON(this);
+    }
+    async option(url, data) {
+        return await new HttpRequest(url, HttpMethod.OPTION, data).queryJSON(this);
+    }
+}
+HttpRouter.Namespace=`Aventus`;
+_.HttpRouter=HttpRouter;
+
+let HttpRoute=class HttpRoute {
+    router;
+    constructor(router) {
+        this.router = router ?? new HttpRouter();
+    }
+    getPrefix() {
+        return "";
+    }
+}
+HttpRoute.Namespace=`Aventus`;
+_.HttpRoute=HttpRoute;
+
+let HttpRequest=class HttpRequest {
+    request;
+    url;
+    constructor(url, method = HttpMethod.GET, body) {
+        this.url = url;
+        this.request = {};
+        this.setMethod(method);
+        this.prepareBody(body);
+    }
+    setUrl(url) {
+        this.url = url;
+    }
+    toString() {
+        return this.url + " : " + JSON.stringify(this.request);
+    }
+    setBody(body) {
+        this.prepareBody(body);
+    }
+    setMethod(method) {
+        this.request.method = method;
+    }
+    objectToFormData(obj, formData, parentKey) {
+        formData = formData || new FormData();
+        let byPass = obj;
+        if (byPass.__isProxy) {
+            obj = byPass.getTarget();
+        }
+        const keys = obj.toJSON ? Object.keys(obj.toJSON()) : Object.keys(obj);
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
+            let value = obj[key];
+            const newKey = parentKey ? `${parentKey}[${key}]` : key;
+            if (value instanceof Date) {
+                formData.append(newKey, DateConverter.converter.toString(value));
+            }
+            else if (typeof value === 'object' &&
+                value !== null &&
+                !(value instanceof File)) {
+                if (Array.isArray(value)) {
+                    for (let j = 0; j < value.length; j++) {
+                        const arrayKey = `${newKey}[${j}]`;
+                        this.objectToFormData({ [arrayKey]: value[j] }, formData);
+                    }
+                }
+                else {
+                    this.objectToFormData(value, formData, newKey);
+                }
+            }
+            else {
+                if (value === undefined || value === null) {
+                    value = "";
+                }
+                else if (Watcher.is(value)) {
+                    value = Watcher.extract(value);
+                }
+                formData.append(newKey, value);
+            }
+        }
+        return formData;
+    }
+    jsonReplacer(key, value) {
+        if (this[key] instanceof Date) {
+            return DateConverter.converter.toString(this[key]);
+        }
+        return value;
+    }
+    prepareBody(data) {
+        if (!data) {
+            return;
+        }
+        else if (data instanceof FormData) {
+            this.request.body = data;
+        }
+        else {
+            let useFormData = false;
+            const analyseFormData = (obj) => {
+                for (let key in obj) {
+                    if (obj[key] instanceof File) {
+                        useFormData = true;
+                        break;
+                    }
+                    else if (Array.isArray(obj[key]) && obj[key].length > 0 && obj[key][0] instanceof File) {
+                        useFormData = true;
+                        break;
+                    }
+                    else if (typeof obj[key] == 'object' && !Array.isArray(obj[key]) && !(obj[key] instanceof Date)) {
+                        analyseFormData(obj[key]);
+                        if (useFormData) {
+                            break;
+                        }
+                    }
+                }
+            };
+            analyseFormData(data);
+            if (useFormData) {
+                this.request.body = this.objectToFormData(data);
+            }
+            else {
+                this.request.body = JSON.stringify(data, this.jsonReplacer);
+                this.setHeader("Content-Type", "Application/json");
+            }
+        }
+    }
+    setHeader(name, value) {
+        if (!this.request.headers) {
+            this.request.headers = [];
+        }
+        this.request.headers.push([name, value]);
+    }
+    async query(router) {
+        let result = new ResultWithError();
+        try {
+            const fullUrl = router ? router.options.url + this.url : this.url;
+            result.result = await fetch(fullUrl, this.request);
+        }
+        catch (e) {
+            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
+        }
+        return result;
+    }
+    async queryVoid(router) {
+        let resultTemp = await this.query(router);
+        let result = new VoidWithError();
+        if (!resultTemp.success) {
+            result.errors = resultTemp.errors;
+            return result;
+        }
+        try {
+            if (!resultTemp.result) {
+                return result;
+            }
+            if (resultTemp.result.status != 204) {
+                let tempResult = Converter.transform(await resultTemp.result.json());
+                if (tempResult instanceof VoidWithError) {
+                    for (let error of tempResult.errors) {
+                        result.errors.push(error);
+                    }
+                }
+            }
+        }
+        catch (e) {
+        }
+        return result;
+    }
+    async queryJSON(router) {
+        let resultTemp = await this.query(router);
+        let result = new ResultWithError();
+        if (!resultTemp.success) {
+            result.errors = resultTemp.errors;
+            return result;
+        }
+        try {
+            if (!resultTemp.result) {
+                return result;
+            }
+            let tempResult = Converter.transform(await resultTemp.result.json());
+            if (tempResult instanceof VoidWithError) {
+                for (let error of tempResult.errors) {
+                    result.errors.push(error);
+                }
+                if (tempResult instanceof ResultWithError) {
+                    result.result = tempResult.result;
+                }
+            }
+            else {
+                result.result = tempResult;
+            }
+        }
+        catch (e) {
+            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
+        }
+        return result;
+    }
+    async queryTxt(router) {
+        let resultTemp = await this.query(router);
+        let result = new ResultWithError();
+        if (!resultTemp.success) {
+            result.errors = resultTemp.errors;
+            return result;
+        }
+        try {
+            if (!resultTemp.result) {
+                return result;
+            }
+            result.result = await resultTemp.result.text();
+        }
+        catch (e) {
+            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
+        }
+        return result;
+    }
+    async queryBlob(router) {
+        let resultTemp = await this.query(router);
+        let result = new ResultWithError();
+        if (!resultTemp.success) {
+            result.errors = resultTemp.errors;
+            return result;
+        }
+        try {
+            if (!resultTemp.result) {
+                return result;
+            }
+            result.result = await resultTemp.result.blob();
+        }
+        catch (e) {
+            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
+        }
+        return result;
+    }
+}
+HttpRequest.Namespace=`Aventus`;
+_.HttpRequest=HttpRequest;
+
+let StorableRoute=class StorableRoute extends HttpRoute {
+    async GetAll() {
+        const request = new HttpRequest(`/${this.StorableName()}`, HttpMethod.GET);
+        return await request.queryJSON(this.router);
+    }
+    async Create(body) {
+        const request = new HttpRequest(`/${this.StorableName()}`, HttpMethod.POST);
+        request.setBody(body);
+        return await request.queryJSON(this.router);
+    }
+    async GetById(id) {
+        const request = new HttpRequest(`/${this.StorableName()}/${id}`, HttpMethod.GET);
+        return await request.queryJSON(this.router);
+    }
+    async Update(id, body) {
+        const request = new HttpRequest(`/${this.StorableName()}/${id}`, HttpMethod.PUT);
+        request.setBody(body);
+        return await request.queryJSON(this.router);
+    }
+    async Delete(id) {
+        const request = new HttpRequest(`/${this.StorableName()}/${id}`, HttpMethod.DELETE);
+        return await request.queryJSON(this.router);
+    }
+}
+StorableRoute.Namespace=`Aventus`;
+_.StorableRoute=StorableRoute;
+
+let Animation=class Animation {
+    /**
+     * Default FPS for all Animation if not set inside options
+     */
+    static FPS_DEFAULT = 60;
+    options;
+    nextFrame = 0;
+    fpsInterval;
+    continueAnimation = false;
+    frame_id = 0;
+    constructor(options) {
+        if (!options.animate) {
+            options.animate = () => { };
+        }
+        if (!options.stopped) {
+            options.stopped = () => { };
+        }
+        if (!options.fps) {
+            options.fps = Animation.FPS_DEFAULT;
+        }
+        this.options = options;
+        this.fpsInterval = 1000 / options.fps;
+    }
+    animate() {
+        let now = window.performance.now();
+        let elapsed = now - this.nextFrame;
+        if (elapsed <= this.fpsInterval) {
+            this.frame_id = requestAnimationFrame(() => this.animate());
+            return;
+        }
+        this.nextFrame = now - (elapsed % this.fpsInterval);
+        setTimeout(() => {
+            this.options.animate();
+        }, 0);
+        if (this.continueAnimation) {
+            this.frame_id = requestAnimationFrame(() => this.animate());
+        }
+        else {
+            this.options.stopped();
+        }
+    }
+    /**
+     * Start the of animation
+     */
+    start() {
+        if (this.continueAnimation == false) {
+            this.continueAnimation = true;
+            this.nextFrame = window.performance.now();
+            this.animate();
+        }
+    }
+    /**
+     * Stop the animation
+     */
+    stop() {
+        this.continueAnimation = false;
+    }
+    /**
+     * Stop the animation
+     */
+    immediateStop() {
+        cancelAnimationFrame(this.frame_id);
+        this.continueAnimation = false;
+        this.options.stopped();
+    }
+    /**
+     * Get the FPS
+     */
+    getFPS() {
+        return this.options.fps;
+    }
+    /**
+     * Set the FPS
+     */
+    setFPS(fps) {
+        this.options.fps = fps;
+        this.fpsInterval = 1000 / this.options.fps;
+    }
+    /**
+     * Get the animation status (true if animation is running)
+     */
+    isStarted() {
+        return this.continueAnimation;
+    }
+}
+Animation.Namespace=`Aventus`;
+_.Animation=Animation;
+
+let PressManager=class PressManager {
+    static globalConfig = {
+        delayDblPress: 250,
+        delayLongPress: 700,
+        offsetDrag: 20
+    };
+    static setGlobalConfig(options) {
+        this.globalConfig = options;
+    }
+    static create(options) {
+        if (Array.isArray(options.element)) {
+            let result = [];
+            for (let el of options.element) {
+                let cloneOpt = { ...options };
+                cloneOpt.element = el;
+                result.push(new PressManager(cloneOpt));
+            }
+            return result;
+        }
+        else {
+            return new PressManager(options);
+        }
+    }
+    options;
+    element;
+    delayDblPress;
+    delayLongPress;
+    nbPress = 0;
+    offsetDrag;
+    state = {
+        oneActionTriggered: null,
+    };
+    startPosition = { x: 0, y: 0 };
+    customFcts = {};
+    timeoutDblPress = 0;
+    timeoutLongPress = 0;
+    downEventSaved;
+    useDblPress = false;
+    stopPropagation = () => true;
+    pointersRecord = {};
+    functionsBinded = {
+        downAction: (e) => { },
+        upAction: (e) => { },
+        moveAction: (e) => { },
+        childPressStart: (e) => { },
+        childPressEnd: (e) => { },
+        childPressMove: (e) => { }
+    };
+    /**
+     * @param {*} options - The options
+     * @param {HTMLElement | HTMLElement[]} options.element - The element to manage
+     */
+    constructor(options) {
+        if (options.element === void 0) {
+            throw 'You must provide an element';
+        }
+        this.offsetDrag = PressManager.globalConfig.offsetDrag !== undefined ? PressManager.globalConfig.offsetDrag : 20;
+        this.delayLongPress = PressManager.globalConfig.delayLongPress ?? 700;
+        this.delayDblPress = PressManager.globalConfig.delayDblPress ?? 150;
+        this.element = options.element;
+        this.checkDragConstraint(options);
+        this.assignValueOption(options);
+        this.options = options;
+        this.init();
+    }
+    /**
+     * Get the current element focused by the PressManager
+     */
+    getElement() {
+        return this.element;
+    }
+    checkDragConstraint(options) {
+        if (options.onDrag !== void 0) {
+            if (options.onDragStart === void 0) {
+                options.onDragStart = (e) => { };
+            }
+            if (options.onDragEnd === void 0) {
+                options.onDragEnd = (e) => { };
+            }
+        }
+        if (options.onDragStart !== void 0) {
+            if (options.onDrag === void 0) {
+                options.onDrag = (e) => { };
+            }
+            if (options.onDragEnd === void 0) {
+                options.onDragEnd = (e) => { };
+            }
+        }
+        if (options.onDragEnd !== void 0) {
+            if (options.onDragStart === void 0) {
+                options.onDragStart = (e) => { };
+            }
+            if (options.onDrag === void 0) {
+                options.onDrag = (e) => { };
+            }
+        }
+    }
+    assignValueOption(options) {
+        if (PressManager.globalConfig.delayDblPress !== undefined) {
+            this.delayDblPress = PressManager.globalConfig.delayDblPress;
+        }
+        if (options.delayDblPress !== undefined) {
+            this.delayDblPress = options.delayDblPress;
+        }
+        if (PressManager.globalConfig.delayLongPress !== undefined) {
+            this.delayLongPress = PressManager.globalConfig.delayLongPress;
+        }
+        if (options.delayLongPress !== undefined) {
+            this.delayLongPress = options.delayLongPress;
+        }
+        if (PressManager.globalConfig.offsetDrag !== undefined) {
+            this.offsetDrag = PressManager.globalConfig.offsetDrag;
+        }
+        if (options.offsetDrag !== undefined) {
+            this.offsetDrag = options.offsetDrag;
+        }
+        if (options.onDblPress !== undefined) {
+            this.useDblPress = true;
+        }
+        if (PressManager.globalConfig.forceDblPress !== undefined) {
+            this.useDblPress = PressManager.globalConfig.forceDblPress;
+        }
+        if (options.forceDblPress !== undefined) {
+            this.useDblPress = options.forceDblPress;
+        }
+        if (typeof PressManager.globalConfig.stopPropagation == 'function') {
+            this.stopPropagation = PressManager.globalConfig.stopPropagation;
+        }
+        else if (options.stopPropagation === false) {
+            this.stopPropagation = () => false;
+        }
+        if (typeof options.stopPropagation == 'function') {
+            this.stopPropagation = options.stopPropagation;
+        }
+        else if (options.stopPropagation === false) {
+            this.stopPropagation = () => false;
+        }
+        if (!options.buttonAllowed)
+            options.buttonAllowed = PressManager.globalConfig.buttonAllowed;
+        if (!options.buttonAllowed)
+            options.buttonAllowed = [0];
+        if (!options.onEvent)
+            options.onEvent = PressManager.globalConfig.onEvent;
+    }
+    bindAllFunction() {
+        this.functionsBinded.downAction = this.downAction.bind(this);
+        this.functionsBinded.moveAction = this.moveAction.bind(this);
+        this.functionsBinded.upAction = this.upAction.bind(this);
+        this.functionsBinded.childPressStart = this.childPressStart.bind(this);
+        this.functionsBinded.childPressEnd = this.childPressEnd.bind(this);
+        this.functionsBinded.childPressMove = this.childPressMove.bind(this);
+    }
+    init() {
+        this.bindAllFunction();
+        this.element.addEventListener("pointerdown", this.functionsBinded.downAction);
+        this.element.addEventListener("touchstart", this.functionsBinded.downAction);
+        this.element.addEventListener("trigger_pointer_pressstart", this.functionsBinded.childPressStart);
+        this.element.addEventListener("trigger_pointer_pressend", this.functionsBinded.childPressEnd);
+        this.element.addEventListener("trigger_pointer_pressmove", this.functionsBinded.childPressMove);
+    }
+    identifyEvent(touch) {
+        if ('Touch' in window && touch instanceof Touch)
+            return touch.identifier;
+        return touch.pointerId;
+    }
+    registerEvent(ev) {
+        if ('TouchEvent' in window && ev instanceof TouchEvent) {
+            for (let touch of ev.targetTouches) {
+                const id = this.identifyEvent(touch);
+                if (this.pointersRecord[id]) {
+                    return false;
+                }
+                this.pointersRecord[id] = ev;
+            }
+            return true;
+        }
+        else {
+            const id = this.identifyEvent(ev);
+            if (this.pointersRecord[id]) {
+                return false;
+            }
+            this.pointersRecord[id] = ev;
+            return true;
+        }
+    }
+    unregisterEvent(ev) {
+        let result = true;
+        if ('TouchEvent' in window && ev instanceof TouchEvent) {
+            for (let touch of ev.changedTouches) {
+                const id = this.identifyEvent(touch);
+                if (!this.pointersRecord[id]) {
+                    result = false;
+                }
+                else {
+                    delete this.pointersRecord[id];
+                }
+            }
+        }
+        else {
+            const id = this.identifyEvent(ev);
+            if (!this.pointersRecord[id]) {
+                result = false;
+            }
+            else {
+                delete this.pointersRecord[id];
+            }
+        }
+        return result;
+    }
+    genericDownAction(state, e) {
+        this.downEventSaved = e;
+        if (this.options.onLongPress) {
+            this.timeoutLongPress = setTimeout(() => {
+                if (!state.oneActionTriggered) {
+                    if (this.options.onLongPress) {
+                        if (this.options.onLongPress(e, this) !== false) {
+                            state.oneActionTriggered = this;
+                        }
+                    }
+                }
+            }, this.delayLongPress);
+        }
+    }
+    downAction(ev) {
+        const isFirst = Object.values(this.pointersRecord).length == 0;
+        if (!this.registerEvent(ev)) {
+            if (this.stopPropagation()) {
+                ev.stopImmediatePropagation();
+            }
+            return;
+        }
+        const e = new NormalizedEvent(ev);
+        if (this.options.onEvent) {
+            this.options.onEvent(e);
+        }
+        if (e.button != undefined && !this.options.buttonAllowed?.includes(e.button)) {
+            this.unregisterEvent(ev);
+            return;
+        }
+        if (this.stopPropagation()) {
+            e.stopImmediatePropagation();
+        }
+        this.customFcts = {};
+        if (this.nbPress == 0 && isFirst) {
+            this.state.oneActionTriggered = null;
+            clearTimeout(this.timeoutDblPress);
+        }
+        this.startPosition = { x: e.pageX, y: e.pageY };
+        if (isFirst) {
+            document.addEventListener("pointerup", this.functionsBinded.upAction);
+            document.addEventListener("pointercancel", this.functionsBinded.upAction);
+            document.addEventListener("touchend", this.functionsBinded.upAction);
+            document.addEventListener("touchcancel", this.functionsBinded.upAction);
+            document.addEventListener("pointermove", this.functionsBinded.moveAction);
+        }
+        this.genericDownAction(this.state, e);
+        if (this.options.onPressStart) {
+            this.options.onPressStart(e, this);
+            this.lastEmitEvent = e;
+            // this.emitTriggerFunctionParent("pressstart", e);
+        }
+        this.emitTriggerFunction("pressstart", e);
+    }
+    genericUpAction(state, e) {
+        clearTimeout(this.timeoutLongPress);
+        if (state.oneActionTriggered == this) {
+            if (this.options.onDragEnd) {
+                this.options.onDragEnd(e, this);
+            }
+            else if (this.customFcts.src && this.customFcts.onDragEnd) {
+                this.customFcts.onDragEnd(e, this.customFcts.src);
+            }
+        }
+        else {
+            if (this.useDblPress) {
+                this.nbPress++;
+                if (this.nbPress == 2) {
+                    if (!state.oneActionTriggered) {
+                        this.nbPress = 0;
+                        if (this.options.onDblPress) {
+                            if (this.options.onDblPress(e, this) !== false) {
+                                state.oneActionTriggered = this;
+                            }
+                        }
+                    }
+                }
+                else if (this.nbPress == 1) {
+                    this.timeoutDblPress = setTimeout(() => {
+                        this.nbPress = 0;
+                        if (!state.oneActionTriggered) {
+                            if (this.options.onPress) {
+                                if (this.options.onPress(e, this) !== false) {
+                                    state.oneActionTriggered = this;
+                                }
+                            }
+                        }
+                    }, this.delayDblPress);
+                }
+            }
+            else {
+                if (!state.oneActionTriggered) {
+                    if (this.options.onPress) {
+                        if (this.options.onPress(e, this) !== false) {
+                            state.oneActionTriggered = this;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    upAction(ev) {
+        if (!this.unregisterEvent(ev)) {
+            if (this.stopPropagation()) {
+                ev.stopImmediatePropagation();
+            }
+            return;
+        }
+        const e = new NormalizedEvent(ev);
+        if (this.options.onEvent) {
+            this.options.onEvent(e);
+        }
+        if (this.stopPropagation()) {
+            e.stopImmediatePropagation();
+        }
+        if (Object.values(this.pointersRecord).length == 0) {
+            document.removeEventListener("pointerup", this.functionsBinded.upAction);
+            document.removeEventListener("pointercancel", this.functionsBinded.upAction);
+            document.removeEventListener("touchend", this.functionsBinded.upAction);
+            document.removeEventListener("touchcancel", this.functionsBinded.upAction);
+            document.removeEventListener("pointermove", this.functionsBinded.moveAction);
+        }
+        this.genericUpAction(this.state, e);
+        if (this.options.onPressEnd) {
+            this.options.onPressEnd(e, this);
+            this.lastEmitEvent = e;
+            // this.emitTriggerFunctionParent("pressend", e);
+        }
+        this.emitTriggerFunction("pressend", e);
+    }
+    genericMoveAction(state, e) {
+        if (!state.oneActionTriggered) {
+            let xDist = e.pageX - this.startPosition.x;
+            let yDist = e.pageY - this.startPosition.y;
+            let distance = Math.sqrt(xDist * xDist + yDist * yDist);
+            if (distance > this.offsetDrag && this.downEventSaved) {
+                if (this.options.onDragStart) {
+                    if (this.options.onDragStart(this.downEventSaved, this) !== false) {
+                        state.oneActionTriggered = this;
+                    }
+                }
+            }
+        }
+        else if (state.oneActionTriggered == this) {
+            if (this.options.onDrag) {
+                this.options.onDrag(e, this);
+            }
+            else if (this.customFcts.src && this.customFcts.onDrag) {
+                this.customFcts.onDrag(e, this.customFcts.src);
+            }
+        }
+    }
+    moveAction(ev) {
+        const e = new NormalizedEvent(ev);
+        if (this.options.onEvent) {
+            this.options.onEvent(e);
+        }
+        if (this.stopPropagation()) {
+            e.stopImmediatePropagation();
+        }
+        this.genericMoveAction(this.state, e);
+        this.lastEmitEvent = e;
+        // if(this.options.onDrag) {
+        //     this.emitTriggerFunctionParent("pressmove", e);
+        this.emitTriggerFunction("pressmove", e);
+    }
+    childPressStart(e) {
+        if (this.lastEmitEvent == e.detail.realEvent)
+            return;
+        this.genericDownAction(e.detail.state, e.detail.realEvent);
+        if (this.options.onPressStart) {
+            this.options.onPressStart(e.detail.realEvent, this);
+        }
+    }
+    childPressEnd(e) {
+        if (this.lastEmitEvent == e.detail.realEvent)
+            return;
+        this.genericUpAction(e.detail.state, e.detail.realEvent);
+        if (this.options.onPressEnd) {
+            this.options.onPressEnd(e.detail.realEvent, this);
+        }
+    }
+    childPressMove(e) {
+        if (this.lastEmitEvent == e.detail.realEvent)
+            return;
+        this.genericMoveAction(e.detail.state, e.detail.realEvent);
+    }
+    lastEmitEvent;
+    emitTriggerFunction(action, e, el) {
+        let ev = new CustomEvent("trigger_pointer_" + action, {
+            bubbles: true,
+            cancelable: true,
+            composed: true,
+            detail: {
+                state: this.state,
+                customFcts: this.customFcts,
+                realEvent: e
+            }
+        });
+        this.lastEmitEvent = e;
+        if (!el) {
+            el = this.element;
+        }
+        el.dispatchEvent(ev);
+    }
+    /**
+     * Destroy the Press instance byremoving all events
+     */
+    destroy() {
+        if (this.element) {
+            this.element.removeEventListener("pointerdown", this.functionsBinded.downAction);
+            this.element.removeEventListener("trigger_pointer_pressstart", this.functionsBinded.childPressStart);
+            this.element.removeEventListener("trigger_pointer_pressend", this.functionsBinded.childPressEnd);
+            this.element.removeEventListener("trigger_pointer_pressmove", this.functionsBinded.childPressMove);
+            document.removeEventListener("pointerup", this.functionsBinded.upAction);
+            document.removeEventListener("pointercancel", this.functionsBinded.upAction);
+            document.removeEventListener("pointermove", this.functionsBinded.moveAction);
+        }
+    }
+}
+PressManager.Namespace=`Aventus`;
+_.PressManager=PressManager;
+
+let DragAndDrop=class DragAndDrop {
+    /**
+     * Default offset before drag element
+     */
+    static defaultOffsetDrag = 20;
+    pressManager;
+    options;
+    startCursorPosition = { x: 0, y: 0 };
+    startElementPosition = { x: 0, y: 0 };
+    isEnable = true;
+    draggableElement;
+    constructor(options) {
+        this.options = this.getDefaultOptions(options.element);
+        this.mergeProperties(options);
+        this.mergeFunctions(options);
+        this.options.elementTrigger.style.touchAction = 'none';
+        this.pressManager = new PressManager({
+            element: this.options.elementTrigger,
+            onPressStart: this.onPressStart.bind(this),
+            onPressEnd: this.onPressEnd.bind(this),
+            onDragStart: this.onDragStart.bind(this),
+            onDrag: this.onDrag.bind(this),
+            onDragEnd: this.onDragEnd.bind(this),
+            offsetDrag: this.options.offsetDrag,
+            stopPropagation: this.options.stopPropagation
+        });
+    }
+    getDefaultOptions(element) {
+        return {
+            applyDrag: true,
+            element: element,
+            elementTrigger: element,
+            offsetDrag: DragAndDrop.defaultOffsetDrag,
+            shadow: {
+                enable: false,
+                container: document.body,
+                removeOnStop: true,
+                transform: () => { },
+                delete: (el) => {
+                    el.remove();
+                }
+            },
+            strict: false,
+            targets: [],
+            usePercent: false,
+            stopPropagation: true,
+            useMouseFinalPosition: false,
+            useTransform: false,
+            svgRelativePosition: false,
+            isDragEnable: () => true,
+            getZoom: () => 1,
+            getOffsetX: () => 0,
+            getOffsetY: () => 0,
+            onPointerDown: (e) => { },
+            onPointerUp: (e) => { },
+            onStart: (e) => { },
+            onMove: (e) => { },
+            onStop: (e) => { },
+            onDrop: (element, targets) => { },
+            correctPosition: (position) => position
+        };
+    }
+    mergeProperties(options) {
+        if (options.element === void 0) {
+            throw "You must define the element for the drag&drop";
+        }
+        this.options.element = options.element;
+        if (options.elementTrigger === void 0) {
+            this.options.elementTrigger = this.options.element;
+        }
+        else {
+            this.options.elementTrigger = options.elementTrigger;
+        }
+        this.defaultMerge(options, "applyDrag");
+        this.defaultMerge(options, "offsetDrag");
+        this.defaultMerge(options, "strict");
+        this.defaultMerge(options, "targets");
+        this.defaultMerge(options, "usePercent");
+        this.defaultMerge(options, "stopPropagation");
+        this.defaultMerge(options, "useMouseFinalPosition");
+        this.defaultMerge(options, "useTransform");
+        this.defaultMerge(options, "svgRelativePosition");
+        if (options.shadow !== void 0) {
+            this.options.shadow.enable = options.shadow.enable;
+            if (options.shadow.container !== void 0) {
+                this.options.shadow.container = options.shadow.container;
+            }
+            else {
+                this.options.shadow.container = document.body;
+            }
+            if (options.shadow.removeOnStop !== void 0) {
+                this.options.shadow.removeOnStop = options.shadow.removeOnStop;
+            }
+            if (options.shadow.transform !== void 0) {
+                this.options.shadow.transform = options.shadow.transform;
+            }
+            if (options.shadow.delete !== void 0) {
+                this.options.shadow.delete = options.shadow.delete;
+            }
+        }
+    }
+    mergeFunctions(options) {
+        this.defaultMerge(options, "isDragEnable");
+        this.defaultMerge(options, "getZoom");
+        this.defaultMerge(options, "getOffsetX");
+        this.defaultMerge(options, "getOffsetY");
+        this.defaultMerge(options, "onPointerDown");
+        this.defaultMerge(options, "onPointerUp");
+        this.defaultMerge(options, "onStart");
+        this.defaultMerge(options, "onMove");
+        this.defaultMerge(options, "onStop");
+        this.defaultMerge(options, "onDrop");
+        this.defaultMerge(options, "correctPosition");
+    }
+    defaultMerge(options, name) {
+        if (options[name] !== void 0) {
+            this.options[name] = options[name];
+        }
+    }
+    positionShadowRelativeToElement = { x: 0, y: 0 };
+    onPressStart(e) {
+        this.options.onPointerDown(e);
+    }
+    onPressEnd(e) {
+        this.options.onPointerUp(e);
+    }
+    onDragStart(e) {
+        this.isEnable = this.options.isDragEnable();
+        if (!this.isEnable) {
+            return false;
+        }
+        let draggableElement = this.options.element;
+        this.startCursorPosition = {
+            x: e.pageX,
+            y: e.pageY
+        };
+        this.startElementPosition = this.getBoundingBox(draggableElement);
+        if (this.options.shadow.enable) {
+            draggableElement = this.options.element.cloneNode(true);
+            let elBox = this.options.element.getBoundingClientRect();
+            let containerBox = this.options.shadow.container.getBoundingClientRect();
+            this.positionShadowRelativeToElement = {
+                x: elBox.x - containerBox.x,
+                y: elBox.y - containerBox.y
+            };
+            if (this.options.applyDrag) {
+                draggableElement.style.position = "absolute";
+                draggableElement.style.top = this.positionShadowRelativeToElement.y + this.options.getOffsetY() + 'px';
+                draggableElement.style.left = this.positionShadowRelativeToElement.x + this.options.getOffsetX() + 'px';
+                this.options.shadow.transform(draggableElement);
+                this.options.shadow.container.appendChild(draggableElement);
+            }
+        }
+        this.draggableElement = draggableElement;
+        return this.options.onStart(e);
+    }
+    onDrag(e) {
+        if (!this.isEnable) {
+            return;
+        }
+        let zoom = this.options.getZoom();
+        let diff = {
+            x: 0,
+            y: 0
+        };
+        if (this.options.shadow.enable) {
+            diff = {
+                x: (e.pageX - this.startCursorPosition.x) + this.positionShadowRelativeToElement.x + this.options.getOffsetX(),
+                y: (e.pageY - this.startCursorPosition.y) + this.positionShadowRelativeToElement.y + this.options.getOffsetY(),
+            };
+        }
+        else {
+            diff = {
+                x: (e.pageX - this.startCursorPosition.x) / zoom + this.startElementPosition.x + this.options.getOffsetX(),
+                y: (e.pageY - this.startCursorPosition.y) / zoom + this.startElementPosition.y + this.options.getOffsetY()
+            };
+        }
+        let newPos = this.setPosition(diff);
+        this.options.onMove(e, newPos);
+    }
+    onDragEnd(e) {
+        if (!this.isEnable) {
+            return;
+        }
+        let targets = this.options.useMouseFinalPosition ? this.getMatchingTargetsWithMousePosition({
+            x: e.clientX,
+            y: e.clientY
+        }) : this.getMatchingTargets();
+        let draggableElement = this.draggableElement;
+        if (this.options.shadow.enable && this.options.shadow.removeOnStop) {
+            this.options.shadow.delete(draggableElement);
+        }
+        if (targets.length > 0) {
+            this.options.onDrop(this.options.element, targets);
+        }
+        this.options.onStop(e);
+    }
+    setPosition(position) {
+        let draggableElement = this.draggableElement;
+        if (this.options.usePercent) {
+            let elementParent = this.getOffsetParent(draggableElement);
+            if (elementParent instanceof HTMLElement) {
+                let percentPosition = {
+                    x: (position.x / elementParent.offsetWidth) * 100,
+                    y: (position.y / elementParent.offsetHeight) * 100
+                };
+                percentPosition = this.options.correctPosition(percentPosition);
+                if (this.options.applyDrag) {
+                    draggableElement.style.left = percentPosition.x + '%';
+                    draggableElement.style.top = percentPosition.y + '%';
+                }
+                return percentPosition;
+            }
+            else {
+                console.error("Can't find parent. Contact an admin", draggableElement);
+            }
+        }
+        else {
+            position = this.options.correctPosition(position);
+            if (this.options.applyDrag) {
+                if (this.isLeftTopElement(draggableElement)) {
+                    draggableElement.style.left = position.x + 'px';
+                    draggableElement.style.top = position.y + 'px';
+                }
+                else {
+                    if (this.options.useTransform) {
+                        draggableElement.setAttribute("transform", `translate(${position.x},${position.y})`);
+                    }
+                    else {
+                        draggableElement.style.left = position.x + 'px';
+                        draggableElement.style.top = position.y + 'px';
+                    }
+                }
+            }
+        }
+        return position;
+    }
+    getTargets() {
+        if (typeof this.options.targets == "function") {
+            return this.options.targets();
+        }
+        else {
+            return this.options.targets;
+        }
+    }
+    /**
+     * Get targets within the current element position is matching
+     */
+    getMatchingTargets() {
+        let draggableElement = this.draggableElement;
+        let matchingTargets = [];
+        let srcTargets = this.getTargets();
+        for (let target of srcTargets) {
+            let elementCoordinates = this.getBoundingBox(draggableElement);
+            let targetCoordinates = this.getBoundingBox(target);
+            let offsetX = this.options.getOffsetX();
+            let offsetY = this.options.getOffsetY();
+            let zoom = this.options.getZoom();
+            targetCoordinates.x += offsetX;
+            targetCoordinates.y += offsetY;
+            targetCoordinates.width *= zoom;
+            targetCoordinates.height *= zoom;
+            if (this.options.strict) {
+                if ((elementCoordinates.x >= targetCoordinates.x && elementCoordinates.x + elementCoordinates.width <= targetCoordinates.x + targetCoordinates.width) &&
+                    (elementCoordinates.y >= targetCoordinates.y && elementCoordinates.y + elementCoordinates.height <= targetCoordinates.y + targetCoordinates.height)) {
+                    matchingTargets.push(target);
+                }
+            }
+            else {
+                let elementLeft = elementCoordinates.x;
+                let elementRight = elementCoordinates.x + elementCoordinates.width;
+                let elementTop = elementCoordinates.y;
+                let elementBottom = elementCoordinates.y + elementCoordinates.height;
+                let targetLeft = targetCoordinates.x;
+                let targetRight = targetCoordinates.x + targetCoordinates.width;
+                let targetTop = targetCoordinates.y;
+                let targetBottom = targetCoordinates.y + targetCoordinates.height;
+                if (!(elementRight < targetLeft ||
+                    elementLeft > targetRight ||
+                    elementBottom < targetTop ||
+                    elementTop > targetBottom)) {
+                    matchingTargets.push(target);
+                }
+            }
+        }
+        return matchingTargets;
+    }
+    /**
+     * This function will return the targets that are matching with the mouse position
+     * @param mouse The mouse position
+     */
+    getMatchingTargetsWithMousePosition(mouse) {
+        let matchingTargets = [];
+        if (this.options.shadow.enable == false || this.options.shadow.container == null) {
+            console.warn("DragAndDrop : To use useMouseFinalPosition=true, you must enable shadow and set a container");
+            return matchingTargets;
+        }
+        const container = this.options.shadow.container;
+        let xCorrected = mouse.x - container.getBoundingClientRect().left;
+        let yCorrected = mouse.y - container.getBoundingClientRect().top;
+        for (let target of this.getTargets()) {
+            if (this.isLeftTopElement(target)) {
+                if (this.matchPosition(target, { x: mouse.x, y: mouse.y })) {
+                    matchingTargets.push(target);
+                }
+            }
+            else {
+                if (this.matchPosition(target, { x: xCorrected, y: yCorrected })) {
+                    matchingTargets.push(target);
+                }
+            }
+        }
+        return matchingTargets;
+    }
+    matchPosition(element, point) {
+        let elementCoordinates = this.getBoundingBox(element);
+        if (point.x >= elementCoordinates.x &&
+            point.x <= elementCoordinates.x + elementCoordinates.width &&
+            point.y >= elementCoordinates.y &&
+            point.y <= elementCoordinates.y + elementCoordinates.height) {
+            return true;
+        }
+        return false;
+    }
+    /**
+     * Get element currently dragging
+     */
+    getElementDrag() {
+        return this.options.element;
+    }
+    /**
+     * Set targets where to drop
+     */
+    setTargets(targets) {
+        this.options.targets = targets;
+    }
+    /**
+     * Set targets where to drop
+     */
+    setTargetsFct(targets) {
+        this.options.targets = targets;
+    }
+    /**
+     * Destroy the current drag&drop instance
+     */
+    destroy() {
+        this.pressManager.destroy();
+    }
+    isLeftTopElement(element) {
+        for (let Type of DragElementLeftTopType) {
+            if (element instanceof Type) {
+                return true;
+            }
+        }
+        return false;
+    }
+    isXYElement(element) {
+        for (let Type of DragElementXYType) {
+            if (element instanceof Type) {
+                return true;
+            }
+        }
+        return false;
+    }
+    getCoordinateFromTranslateAttribute(element) {
+        const transform = element.getAttribute("transform");
+        const tvalue = transform?.match(/translate\(([^,]+),([^,]+)\)/);
+        const x = tvalue ? parseFloat(tvalue[1]) : 0;
+        const y = tvalue ? parseFloat(tvalue[2]) : 0;
+        return {
+            x: x,
+            y: y
+        };
+    }
+    XYElementToBoundingBox(element) {
+        let coordinates;
+        if (this.options.useTransform) {
+            coordinates = this.getCoordinateFromTranslateAttribute(element);
+        }
+        else {
+            coordinates = {
+                x: parseFloat(element.getAttribute("x")),
+                y: parseFloat(element.getAttribute("y"))
+            };
+            if (this.options.svgRelativePosition) {
+                const parent = element.parentElement;
+                if (parent instanceof SVGGElement) {
+                    const parentCoordinates = this.getCoordinateFromTranslateAttribute(parent);
+                    coordinates = {
+                        x: coordinates.x + parentCoordinates.x,
+                        y: coordinates.y + parentCoordinates.y
+                    };
+                }
+            }
+        }
+        const width = parseFloat(element.getAttribute("width"));
+        const height = parseFloat(element.getAttribute("height"));
+        return {
+            x: coordinates.x,
+            y: coordinates.y,
+            width: width,
+            height: height,
+            bottom: coordinates.y + height,
+            right: coordinates.x + width,
+            top: coordinates.y,
+            left: coordinates.x,
+            toJSON() {
+                return JSON.stringify(this);
+            }
+        };
+    }
+    getBoundingBox(element) {
+        if (this.isLeftTopElement(element)) {
+            if (element instanceof HTMLElement) {
+                return {
+                    x: element.offsetLeft,
+                    y: element.offsetTop,
+                    width: element.offsetWidth,
+                    height: element.offsetHeight,
+                    bottom: element.offsetTop + element.offsetHeight,
+                    right: element.offsetLeft + element.offsetWidth,
+                    top: element.offsetTop,
+                    left: element.offsetLeft,
+                    toJSON() {
+                        return JSON.stringify(this);
+                    }
+                };
+            }
+        }
+        else if (this.isXYElement(element)) {
+            return this.XYElementToBoundingBox(element);
+        }
+        const parent = this.getOffsetParent(element);
+        if (parent instanceof HTMLElement) {
+            const rect = element.getBoundingClientRect();
+            const rectParent = parent.getBoundingClientRect();
+            const x = rect.left - rectParent.left;
+            const y = rect.top - rectParent.top;
+            return {
+                x: x,
+                y: y,
+                width: rect.width,
+                height: rect.height,
+                bottom: y + rect.height,
+                right: x + rect.width,
+                left: rect.left - rectParent.left,
+                top: rect.top - rectParent.top,
+                toJSON() {
+                    return JSON.stringify(this);
+                }
+            };
+        }
+        console.error("Element type not supported");
+        return {
+            x: 0,
+            y: 0,
+            width: 0,
+            height: 0,
+            bottom: 0,
+            right: 0,
+            top: 0,
+            left: 0,
+            toJSON() {
+                return JSON.stringify(this);
+            }
+        };
+    }
+    getOffsetParent(element) {
+        if (element instanceof HTMLElement) {
+            return element.offsetParent;
+        }
+        let current = element.parentNode;
+        while (current) {
+            if (current instanceof Element) {
+                const style = getComputedStyle(current);
+                if (style.position !== 'static') {
+                    return current;
+                }
+            }
+            if (current instanceof ShadowRoot) {
+                current = current.host;
+            }
+            else {
+                current = current.parentNode;
+            }
+        }
+        return null;
+    }
+}
+DragAndDrop.Namespace=`Aventus`;
+_.DragAndDrop=DragAndDrop;
+
+let ResizeObserver=class ResizeObserver {
+    callback;
+    targets;
+    fpsInterval = -1;
+    nextFrame;
+    entriesChangedEvent;
+    willTrigger;
+    static resizeObserverClassByObject = {};
+    static uniqueInstance;
+    static getUniqueInstance() {
+        if (!ResizeObserver.uniqueInstance) {
+            ResizeObserver.uniqueInstance = new window.ResizeObserver(entries => {
+                let allClasses = [];
+                for (let j = 0; j < entries.length; j++) {
+                    let entry = entries[j];
+                    let index = entry.target['sourceIndex'];
+                    if (ResizeObserver.resizeObserverClassByObject[index]) {
+                        for (let i = 0; i < ResizeObserver.resizeObserverClassByObject[index].length; i++) {
+                            let classTemp = ResizeObserver.resizeObserverClassByObject[index][i];
+                            classTemp.entryChanged(entry);
+                            if (allClasses.indexOf(classTemp) == -1) {
+                                allClasses.push(classTemp);
+                            }
+                        }
+                    }
+                }
+                for (let i = 0; i < allClasses.length; i++) {
+                    allClasses[i].triggerCb();
+                }
+            });
+        }
+        return ResizeObserver.uniqueInstance;
+    }
+    constructor(options) {
+        let realOption;
+        if (options instanceof Function) {
+            realOption = {
+                callback: options,
+            };
+        }
+        else {
+            realOption = options;
+        }
+        this.callback = realOption.callback;
+        this.targets = [];
+        if (!realOption.fps) {
+            realOption.fps = 60;
+        }
+        if (realOption.fps != -1) {
+            this.fpsInterval = 1000 / realOption.fps;
+        }
+        this.nextFrame = 0;
+        this.entriesChangedEvent = {};
+        this.willTrigger = false;
+    }
+    /**
+     * Observe size changing for the element
+     */
+    observe(target) {
+        if (!target["sourceIndex"]) {
+            target["sourceIndex"] = Math.random().toString(36);
+            this.targets.push(target);
+            ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]] = [];
+            ResizeObserver.getUniqueInstance().observe(target);
+        }
+        if (ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]].indexOf(this) == -1) {
+            ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]].push(this);
+        }
+    }
+    /**
+     * Stop observing size changing for the element
+     */
+    unobserve(target) {
+        for (let i = 0; this.targets.length; i++) {
+            let tempTarget = this.targets[i];
+            if (tempTarget == target) {
+                let position = ResizeObserver.resizeObserverClassByObject[target['sourceIndex']].indexOf(this);
+                if (position != -1) {
+                    ResizeObserver.resizeObserverClassByObject[target['sourceIndex']].splice(position, 1);
+                }
+                if (ResizeObserver.resizeObserverClassByObject[target['sourceIndex']].length == 0) {
+                    delete ResizeObserver.resizeObserverClassByObject[target['sourceIndex']];
+                }
+                ResizeObserver.getUniqueInstance().unobserve(target);
+                this.targets.splice(i, 1);
+                return;
+            }
+        }
+    }
+    /**
+     * Destroy the resize observer
+     */
+    disconnect() {
+        for (let i = 0; this.targets.length; i++) {
+            this.unobserve(this.targets[i]);
+        }
+    }
+    entryChanged(entry) {
+        let index = entry.target.sourceIndex;
+        this.entriesChangedEvent[index] = entry;
+    }
+    triggerCb() {
+        if (!this.willTrigger) {
+            this.willTrigger = true;
+            this._triggerCb();
+        }
+    }
+    _triggerCb() {
+        let now = window.performance.now();
+        let elapsed = now - this.nextFrame;
+        if (this.fpsInterval != -1 && elapsed <= this.fpsInterval) {
+            requestAnimationFrame(() => {
+                this._triggerCb();
+            });
+            return;
+        }
+        this.nextFrame = now - (elapsed % this.fpsInterval);
+        let changed = Object.values(this.entriesChangedEvent);
+        this.entriesChangedEvent = {};
+        this.willTrigger = false;
+        setTimeout(() => {
+            this.callback(changed);
+        }, 0);
+    }
+}
+ResizeObserver.Namespace=`Aventus`;
+_.ResizeObserver=ResizeObserver;
+
+let Uri=class Uri {
+    static prepare(uri) {
+        let params = [];
+        let i = 0;
+        let regexState = uri.replace(/{.*?}/g, (group, position) => {
+            group = group.slice(1, -1);
+            let splitted = group.split(":");
+            let name = splitted[0].trim();
+            let type = "string";
+            let result = "([^\\/]+)";
+            i++;
+            if (splitted.length > 1) {
+                if (splitted[1].trim() == "number") {
+                    result = "([0-9]+)";
+                    type = "number";
+                }
+            }
+            params.push({
+                name,
+                type,
+                position: i
+            });
+            return result;
+        });
+        regexState = regexState.replace(/\*/g, ".*?").toLowerCase();
+        regexState = "^" + regexState + '$';
+        return {
+            regex: new RegExp(regexState),
+            params
+        };
+    }
+    static getParams(from, current) {
+        if (typeof from == "string") {
+            from = this.prepare(from);
+        }
+        let matches = from.regex.exec(current.toLowerCase());
+        if (matches) {
+            let slugs = {};
+            for (let param of from.params) {
+                if (param.type == "number") {
+                    slugs[param.name] = Number(matches[param.position]);
+                }
+                else {
+                    slugs[param.name] = matches[param.position];
+                }
+            }
+            return slugs;
+        }
+        return null;
+    }
+    static isActive(from, current) {
+        if (typeof from == "string") {
+            from = this.prepare(from);
+        }
+        return from.regex.test(current);
+    }
+    static normalize(path) {
+        const isAbsolute = path.startsWith('/');
+        const parts = path.split('/');
+        const normalizedParts = [];
+        for (let i = 0; i < parts.length; i++) {
+            if (parts[i] === '..') {
+                normalizedParts.pop();
+            }
+            else if (parts[i] !== '.' && parts[i] !== '') {
+                normalizedParts.push(parts[i]);
+            }
+        }
+        let normalizedPath = normalizedParts.join('/');
+        if (isAbsolute) {
+            normalizedPath = '/' + normalizedPath;
+        }
+        return normalizedPath;
+    }
+}
+Uri.Namespace=`Aventus`;
+_.Uri=Uri;
 
 let RamError=class RamError extends GenericError {
 }
