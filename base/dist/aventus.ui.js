@@ -6,6 +6,12 @@ const _ = {};
 
 
 let _n;
+let DragElementXYType= [SVGGElement, SVGRectElement, SVGEllipseElement, SVGTextElement];
+_.DragElementXYType=DragElementXYType;
+
+let DragElementLeftTopType= [HTMLElement, SVGSVGElement];
+_.DragElementLeftTopType=DragElementLeftTopType;
+
 let ElementExtension=class ElementExtension {
     /**
      * Find a parent by tagname if exist Static.findParentByTag(this, "av-img")
@@ -4968,6 +4974,9 @@ let DragAndDrop=class DragAndDrop {
             targets: [],
             usePercent: false,
             stopPropagation: true,
+            useMouseFinalPosition: false,
+            useTransform: false,
+            svgRelativePosition: false,
             isDragEnable: () => true,
             getZoom: () => 1,
             getOffsetX: () => 0,
@@ -4998,6 +5007,9 @@ let DragAndDrop=class DragAndDrop {
         this.defaultMerge(options, "targets");
         this.defaultMerge(options, "usePercent");
         this.defaultMerge(options, "stopPropagation");
+        this.defaultMerge(options, "useMouseFinalPosition");
+        this.defaultMerge(options, "useTransform");
+        this.defaultMerge(options, "svgRelativePosition");
         if (options.shadow !== void 0) {
             this.options.shadow.enable = options.shadow.enable;
             if (options.shadow.container !== void 0) {
@@ -5052,10 +5064,7 @@ let DragAndDrop=class DragAndDrop {
             x: e.pageX,
             y: e.pageY
         };
-        this.startElementPosition = {
-            x: draggableElement.offsetLeft,
-            y: draggableElement.offsetTop
-        };
+        this.startElementPosition = this.getBoundingBox(draggableElement);
         if (this.options.shadow.enable) {
             draggableElement = this.options.element.cloneNode(true);
             let elBox = this.options.element.getBoundingClientRect();
@@ -5068,9 +5077,9 @@ let DragAndDrop=class DragAndDrop {
                 draggableElement.style.position = "absolute";
                 draggableElement.style.top = this.positionShadowRelativeToElement.y + this.options.getOffsetY() + 'px';
                 draggableElement.style.left = this.positionShadowRelativeToElement.x + this.options.getOffsetX() + 'px';
+                this.options.shadow.transform(draggableElement);
+                this.options.shadow.container.appendChild(draggableElement);
             }
-            this.options.shadow.transform(draggableElement);
-            this.options.shadow.container.appendChild(draggableElement);
         }
         this.draggableElement = draggableElement;
         return this.options.onStart(e);
@@ -5103,7 +5112,10 @@ let DragAndDrop=class DragAndDrop {
         if (!this.isEnable) {
             return;
         }
-        let targets = this.getMatchingTargets();
+        let targets = this.options.useMouseFinalPosition ? this.getMatchingTargetsWithMousePosition({
+            x: e.clientX,
+            y: e.clientY
+        }) : this.getMatchingTargets();
         let draggableElement = this.draggableElement;
         if (this.options.shadow.enable && this.options.shadow.removeOnStop) {
             this.options.shadow.delete(draggableElement);
@@ -5116,26 +5128,50 @@ let DragAndDrop=class DragAndDrop {
     setPosition(position) {
         let draggableElement = this.draggableElement;
         if (this.options.usePercent) {
-            let elementParent = draggableElement.offsetParent;
-            let percentPosition = {
-                x: (position.x / elementParent.offsetWidth) * 100,
-                y: (position.y / elementParent.offsetHeight) * 100
-            };
-            percentPosition = this.options.correctPosition(percentPosition);
-            if (this.options.applyDrag) {
-                draggableElement.style.left = percentPosition.x + '%';
-                draggableElement.style.top = percentPosition.y + '%';
+            let elementParent = this.getOffsetParent(draggableElement);
+            if (elementParent instanceof HTMLElement) {
+                let percentPosition = {
+                    x: (position.x / elementParent.offsetWidth) * 100,
+                    y: (position.y / elementParent.offsetHeight) * 100
+                };
+                percentPosition = this.options.correctPosition(percentPosition);
+                if (this.options.applyDrag) {
+                    draggableElement.style.left = percentPosition.x + '%';
+                    draggableElement.style.top = percentPosition.y + '%';
+                }
+                return percentPosition;
             }
-            return percentPosition;
+            else {
+                console.error("Can't find parent. Contact an admin", draggableElement);
+            }
         }
         else {
             position = this.options.correctPosition(position);
             if (this.options.applyDrag) {
-                draggableElement.style.left = position.x + 'px';
-                draggableElement.style.top = position.y + 'px';
+                if (this.isLeftTopElement(draggableElement)) {
+                    draggableElement.style.left = position.x + 'px';
+                    draggableElement.style.top = position.y + 'px';
+                }
+                else {
+                    if (this.options.useTransform) {
+                        draggableElement.setAttribute("transform", `translate(${position.x},${position.y})`);
+                    }
+                    else {
+                        draggableElement.style.left = position.x + 'px';
+                        draggableElement.style.top = position.y + 'px';
+                    }
+                }
             }
         }
         return position;
+    }
+    getTargets() {
+        if (typeof this.options.targets == "function") {
+            return this.options.targets();
+        }
+        else {
+            return this.options.targets;
+        }
     }
     /**
      * Get targets within the current element position is matching
@@ -5143,16 +5179,10 @@ let DragAndDrop=class DragAndDrop {
     getMatchingTargets() {
         let draggableElement = this.draggableElement;
         let matchingTargets = [];
-        let srcTargets;
-        if (typeof this.options.targets == "function") {
-            srcTargets = this.options.targets();
-        }
-        else {
-            srcTargets = this.options.targets;
-        }
+        let srcTargets = this.getTargets();
         for (let target of srcTargets) {
-            const elementCoordinates = draggableElement.getBoundingClientRect();
-            const targetCoordinates = target.getBoundingClientRect();
+            let elementCoordinates = this.getBoundingBox(draggableElement);
+            let targetCoordinates = this.getBoundingBox(target);
             let offsetX = this.options.getOffsetX();
             let offsetY = this.options.getOffsetY();
             let zoom = this.options.getZoom();
@@ -5186,6 +5216,43 @@ let DragAndDrop=class DragAndDrop {
         return matchingTargets;
     }
     /**
+     * This function will return the targets that are matching with the mouse position
+     * @param mouse The mouse position
+     */
+    getMatchingTargetsWithMousePosition(mouse) {
+        let matchingTargets = [];
+        if (this.options.shadow.enable == false || this.options.shadow.container == null) {
+            console.warn("DragAndDrop : To use useMouseFinalPosition=true, you must enable shadow and set a container");
+            return matchingTargets;
+        }
+        const container = this.options.shadow.container;
+        let xCorrected = mouse.x - container.getBoundingClientRect().left;
+        let yCorrected = mouse.y - container.getBoundingClientRect().top;
+        for (let target of this.getTargets()) {
+            if (this.isLeftTopElement(target)) {
+                if (this.matchPosition(target, { x: mouse.x, y: mouse.y })) {
+                    matchingTargets.push(target);
+                }
+            }
+            else {
+                if (this.matchPosition(target, { x: xCorrected, y: yCorrected })) {
+                    matchingTargets.push(target);
+                }
+            }
+        }
+        return matchingTargets;
+    }
+    matchPosition(element, point) {
+        let elementCoordinates = this.getBoundingBox(element);
+        if (point.x >= elementCoordinates.x &&
+            point.x <= elementCoordinates.x + elementCoordinates.width &&
+            point.y >= elementCoordinates.y &&
+            point.y <= elementCoordinates.y + elementCoordinates.height) {
+            return true;
+        }
+        return false;
+    }
+    /**
      * Get element currently dragging
      */
     getElementDrag() {
@@ -5208,6 +5275,146 @@ let DragAndDrop=class DragAndDrop {
      */
     destroy() {
         this.pressManager.destroy();
+    }
+    isLeftTopElement(element) {
+        for (let Type of DragElementLeftTopType) {
+            if (element instanceof Type) {
+                return true;
+            }
+        }
+        return false;
+    }
+    isXYElement(element) {
+        for (let Type of DragElementXYType) {
+            if (element instanceof Type) {
+                return true;
+            }
+        }
+        return false;
+    }
+    getCoordinateFromTranslateAttribute(element) {
+        const transform = element.getAttribute("transform");
+        const tvalue = transform?.match(/translate\(([^,]+),([^,]+)\)/);
+        const x = tvalue ? parseFloat(tvalue[1]) : 0;
+        const y = tvalue ? parseFloat(tvalue[2]) : 0;
+        return {
+            x: x,
+            y: y
+        };
+    }
+    XYElementToBoundingBox(element) {
+        let coordinates;
+        if (this.options.useTransform) {
+            coordinates = this.getCoordinateFromTranslateAttribute(element);
+        }
+        else {
+            coordinates = {
+                x: parseFloat(element.getAttribute("x")),
+                y: parseFloat(element.getAttribute("y"))
+            };
+            if (this.options.svgRelativePosition) {
+                const parent = element.parentElement;
+                if (parent instanceof SVGGElement) {
+                    const parentCoordinates = this.getCoordinateFromTranslateAttribute(parent);
+                    coordinates = {
+                        x: coordinates.x + parentCoordinates.x,
+                        y: coordinates.y + parentCoordinates.y
+                    };
+                }
+            }
+        }
+        const width = parseFloat(element.getAttribute("width"));
+        const height = parseFloat(element.getAttribute("height"));
+        return {
+            x: coordinates.x,
+            y: coordinates.y,
+            width: width,
+            height: height,
+            bottom: coordinates.y + height,
+            right: coordinates.x + width,
+            top: coordinates.y,
+            left: coordinates.x,
+            toJSON() {
+                return JSON.stringify(this);
+            }
+        };
+    }
+    getBoundingBox(element) {
+        if (this.isLeftTopElement(element)) {
+            if (element instanceof HTMLElement) {
+                return {
+                    x: element.offsetLeft,
+                    y: element.offsetTop,
+                    width: element.offsetWidth,
+                    height: element.offsetHeight,
+                    bottom: element.offsetTop + element.offsetHeight,
+                    right: element.offsetLeft + element.offsetWidth,
+                    top: element.offsetTop,
+                    left: element.offsetLeft,
+                    toJSON() {
+                        return JSON.stringify(this);
+                    }
+                };
+            }
+        }
+        else if (this.isXYElement(element)) {
+            return this.XYElementToBoundingBox(element);
+        }
+        const parent = this.getOffsetParent(element);
+        if (parent instanceof HTMLElement) {
+            const rect = element.getBoundingClientRect();
+            const rectParent = parent.getBoundingClientRect();
+            const x = rect.left - rectParent.left;
+            const y = rect.top - rectParent.top;
+            return {
+                x: x,
+                y: y,
+                width: rect.width,
+                height: rect.height,
+                bottom: y + rect.height,
+                right: x + rect.width,
+                left: rect.left - rectParent.left,
+                top: rect.top - rectParent.top,
+                toJSON() {
+                    return JSON.stringify(this);
+                }
+            };
+        }
+        console.error("Element type not supported");
+        return {
+            x: 0,
+            y: 0,
+            width: 0,
+            height: 0,
+            bottom: 0,
+            right: 0,
+            top: 0,
+            left: 0,
+            toJSON() {
+                return JSON.stringify(this);
+            }
+        };
+    }
+    getOffsetParent(element) {
+        if (element instanceof HTMLElement) {
+            return element.offsetParent;
+        }
+        let current = element.parentNode;
+        while (current) {
+            if (current instanceof Element) {
+                const style = getComputedStyle(current);
+                if (style.position !== 'static') {
+                    return current;
+                }
+            }
+            if (current instanceof ShadowRoot) {
+                current = current.host;
+            }
+            else {
+                current = current.parentNode;
+            }
+        }
+        return null;
     }
 }
 DragAndDrop.Namespace=`Aventus`;

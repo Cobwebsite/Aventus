@@ -191,6 +191,8 @@ export class AventusPackageFile extends AventusBaseFile {
 
 	protected async onContentChange(): Promise<void> {
 		this.prepareFile();
+		this.build.reloadPage = true;
+        this.build.build()
 	}
 	protected async onValidate(): Promise<Diagnostic[]> {
 		return [];

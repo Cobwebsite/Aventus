@@ -55,7 +55,7 @@ export class DocumentationInfo {
 									}
 									let description = match[3];
 									if (description) {
-										this.documentationSlots[name] = description;
+										this.documentationSlots[name] = description.trim();
 									}
 								}
 
