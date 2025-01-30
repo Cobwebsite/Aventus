@@ -3401,7 +3401,6 @@ let DragAndDrop=class DragAndDrop {
             stopPropagation: true,
             useMouseFinalPosition: false,
             useTransform: false,
-            svgRelativePosition: false,
             isDragEnable: () => true,
             getZoom: () => 1,
             getOffsetX: () => 0,
@@ -3434,7 +3433,6 @@ let DragAndDrop=class DragAndDrop {
         this.defaultMerge(options, "stopPropagation");
         this.defaultMerge(options, "useMouseFinalPosition");
         this.defaultMerge(options, "useTransform");
-        this.defaultMerge(options, "svgRelativePosition");
         if (options.shadow !== void 0) {
             this.options.shadow.enable = options.shadow.enable;
             if (options.shadow.container !== void 0) {
@@ -3489,7 +3487,7 @@ let DragAndDrop=class DragAndDrop {
             x: e.pageX,
             y: e.pageY
         };
-        this.startElementPosition = this.getBoundingBox(draggableElement);
+        this.startElementPosition = this.getBoundingBoxRelative(draggableElement);
         if (this.options.shadow.enable) {
             draggableElement = this.options.element.cloneNode(true);
             let elBox = this.options.element.getBoundingClientRect();
@@ -3606,8 +3604,8 @@ let DragAndDrop=class DragAndDrop {
         let matchingTargets = [];
         let srcTargets = this.getTargets();
         for (let target of srcTargets) {
-            let elementCoordinates = this.getBoundingBox(draggableElement);
-            let targetCoordinates = this.getBoundingBox(target);
+            let elementCoordinates = this.getBoundingBoxAbsolute(draggableElement);
+            let targetCoordinates = this.getBoundingBoxAbsolute(target);
             let offsetX = this.options.getOffsetX();
             let offsetY = this.options.getOffsetY();
             let zoom = this.options.getZoom();
@@ -3668,7 +3666,7 @@ let DragAndDrop=class DragAndDrop {
         return matchingTargets;
     }
     matchPosition(element, point) {
-        let elementCoordinates = this.getBoundingBox(element);
+        let elementCoordinates = this.getBoundingBoxAbsolute(element);
         if (point.x >= elementCoordinates.x &&
             point.x <= elementCoordinates.x + elementCoordinates.width &&
             point.y >= elementCoordinates.y &&
@@ -3717,36 +3715,49 @@ let DragAndDrop=class DragAndDrop {
         }
         return false;
     }
-    getCoordinateFromTranslateAttribute(element) {
-        const transform = element.getAttribute("transform");
-        const tvalue = transform?.match(/translate\(([^,]+),([^,]+)\)/);
-        const x = tvalue ? parseFloat(tvalue[1]) : 0;
-        const y = tvalue ? parseFloat(tvalue[2]) : 0;
+    getCoordinateFromAttribute(element) {
+        if (this.options.useTransform) {
+            const transform = element.getAttribute("transform");
+            const tvalue = transform?.match(/translate\(([^,]+),([^,]+)\)/);
+            const x = tvalue ? parseFloat(tvalue[1]) : 0;
+            const y = tvalue ? parseFloat(tvalue[2]) : 0;
+            return {
+                x: x,
+                y: y
+            };
+        }
         return {
-            x: x,
-            y: y
+            x: parseFloat(element.getAttribute("x")),
+            y: parseFloat(element.getAttribute("y"))
         };
     }
-    XYElementToBoundingBox(element) {
-        let coordinates;
-        if (this.options.useTransform) {
-            coordinates = this.getCoordinateFromTranslateAttribute(element);
-        }
-        else {
-            coordinates = {
-                x: parseFloat(element.getAttribute("x")),
-                y: parseFloat(element.getAttribute("y"))
-            };
-            if (this.options.svgRelativePosition) {
-                const parent = element.parentElement;
-                if (parent instanceof SVGGElement) {
-                    const parentCoordinates = this.getCoordinateFromTranslateAttribute(parent);
-                    coordinates = {
-                        x: coordinates.x + parentCoordinates.x,
-                        y: coordinates.y + parentCoordinates.y
-                    };
-                }
+    XYElementToRelativeBox(element) {
+        let coordinates = this.getCoordinateFromAttribute(element);
+        const width = parseFloat(element.getAttribute("width"));
+        const height = parseFloat(element.getAttribute("height"));
+        return {
+            x: coordinates.x,
+            y: coordinates.y,
+            width: width,
+            height: height,
+            bottom: coordinates.y + height,
+            right: coordinates.x + width,
+            top: coordinates.y,
+            left: coordinates.x,
+            toJSON() {
+                return JSON.stringify(this);
             }
+        };
+    }
+    XYElementToAbsoluteBox(element) {
+        let coordinates = this.getCoordinateFromAttribute(element);
+        const parent = this.getOffsetParent(element);
+        if (parent) {
+            const box = parent.getBoundingClientRect();
+            coordinates = {
+                x: coordinates.x + box.x,
+                y: coordinates.y + box.y
+            };
         }
         const width = parseFloat(element.getAttribute("width"));
         const height = parseFloat(element.getAttribute("height"));
@@ -3764,7 +3775,64 @@ let DragAndDrop=class DragAndDrop {
             }
         };
     }
-    getBoundingBox(element) {
+    getBoundingBoxAbsolute(element) {
+        if (this.isLeftTopElement(element)) {
+            if (element instanceof HTMLElement) {
+                const bounds = element.getBoundingClientRect();
+                return {
+                    x: bounds.x,
+                    y: bounds.y,
+                    width: bounds.width,
+                    height: bounds.height,
+                    bottom: bounds.bottom,
+                    right: bounds.right,
+                    top: bounds.top,
+                    left: bounds.left,
+                    toJSON() {
+                        return JSON.stringify(this);
+                    }
+                };
+            }
+        }
+        else if (this.isXYElement(element)) {
+            return this.XYElementToAbsoluteBox(element);
+        }
+        const parent = this.getOffsetParent(element);
+        if (parent instanceof HTMLElement) {
+            const rect = element.getBoundingClientRect();
+            const rectParent = parent.getBoundingClientRect();
+            const x = rect.left - rectParent.left;
+            const y = rect.top - rectParent.top;
+            return {
+                x: x,
+                y: y,
+                width: rect.width,
+                height: rect.height,
+                bottom: y + rect.height,
+                right: x + rect.width,
+                left: rect.left - rectParent.left,
+                top: rect.top - rectParent.top,
+                toJSON() {
+                    return JSON.stringify(this);
+                }
+            };
+        }
+        console.error("Element type not supported");
+        return {
+            x: 0,
+            y: 0,
+            width: 0,
+            height: 0,
+            bottom: 0,
+            right: 0,
+            top: 0,
+            left: 0,
+            toJSON() {
+                return JSON.stringify(this);
+            }
+        };
+    }
+    getBoundingBoxRelative(element) {
         if (this.isLeftTopElement(element)) {
             if (element instanceof HTMLElement) {
                 return {
@@ -3783,7 +3851,7 @@ let DragAndDrop=class DragAndDrop {
             }
         }
         else if (this.isXYElement(element)) {
-            return this.XYElementToBoundingBox(element);
+            return this.XYElementToRelativeBox(element);
         }
         const parent = this.getOffsetParent(element);
         if (parent instanceof HTMLElement) {

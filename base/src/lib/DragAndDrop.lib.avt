@@ -31,7 +31,7 @@ export type DragElementLeftTop = InstanceType<typeof DragElementLeftTopType[numb
 @Storybook({
     prefix: "Lib/DragAndDrop"
 })
-type AnyElement = TargetableElement | ContainerElement
+    type AnyElement = TargetableElement | ContainerElement;
 
 @Storybook({
     prefix: "Lib/DragAndDrop"
@@ -79,10 +79,6 @@ export interface DragAndDropOptions {
 
     /** Determine if should use x,y coordinates or transform="translate(x,y)" */
     useTransform?: boolean;
-
-    /** Determine if the x,y coordinates of the element is relative to its parent */
-    svgRelativePosition?: boolean;
-
 
     /** Determine if drag is active or not */
     isDragEnable?: () => boolean;
@@ -174,7 +170,6 @@ export class DragAndDrop {
             stopPropagation: true,
             useMouseFinalPosition: false,
             useTransform: false,
-            svgRelativePosition: false,
 
             isDragEnable: () => true,
             getZoom: () => 1,
@@ -208,7 +203,6 @@ export class DragAndDrop {
         this.defaultMerge(options, "stopPropagation");
         this.defaultMerge(options, "useMouseFinalPosition");
         this.defaultMerge(options, "useTransform");
-        this.defaultMerge(options, "svgRelativePosition");
         if(options.shadow !== void 0) {
             this.options.shadow.enable = options.shadow.enable;
             if(options.shadow.container !== void 0) {
@@ -265,7 +259,7 @@ export class DragAndDrop {
             x: e.pageX,
             y: e.pageY
         };
-        this.startElementPosition = this.getBoundingBox(draggableElement);
+        this.startElementPosition = this.getBoundingBoxRelative(draggableElement);
         if(this.options.shadow.enable) {
             draggableElement = this.options.element.cloneNode(true) as DragElement;
             // change to position from top left
@@ -387,8 +381,8 @@ export class DragAndDrop {
         let srcTargets: TargetableElement[] = this.getTargets();
 
         for(let target of srcTargets) {
-            let elementCoordinates: DOMRect = this.getBoundingBox(draggableElement);
-            let targetCoordinates: DOMRect = this.getBoundingBox(target);
+            let elementCoordinates: DOMRect = this.getBoundingBoxAbsolute(draggableElement);
+            let targetCoordinates: DOMRect = this.getBoundingBoxAbsolute(target);
             let offsetX = this.options.getOffsetX();
             let offsetY = this.options.getOffsetY();
             let zoom = this.options.getZoom();
@@ -459,7 +453,7 @@ export class DragAndDrop {
     }
 
     private matchPosition(element: TargetableElement, point: Coordinate): boolean {
-        let elementCoordinates: DOMRect = this.getBoundingBox(element);
+        let elementCoordinates: DOMRect = this.getBoundingBoxAbsolute(element);
         if(
             point.x >= elementCoordinates.x &&
             point.x <= elementCoordinates.x + elementCoordinates.width &&
@@ -516,39 +510,52 @@ export class DragAndDrop {
         return false;
     }
 
-    private getCoordinateFromTranslateAttribute(element: DragElementXY): Coordinate {
-
-        const transform = element.getAttribute("transform");
-        const tvalue = transform?.match(/translate\(([^,]+),([^,]+)\)/);
-        const x = tvalue ? parseFloat(tvalue[1]) : 0;
-        const y = tvalue ? parseFloat(tvalue[2]) : 0;
+    private getCoordinateFromAttribute(element: DragElementXY): Coordinate {
+        if(this.options.useTransform) {
+            const transform = element.getAttribute("transform");
+            const tvalue = transform?.match(/translate\(([^,]+),([^,]+)\)/);
+            const x = tvalue ? parseFloat(tvalue[1]) : 0;
+            const y = tvalue ? parseFloat(tvalue[2]) : 0;
+            return {
+                x: x,
+                y: y
+            };
+        }
         return {
-            x: x,
-            y: y
+            x: parseFloat(element.getAttribute("x") as string),
+            y: parseFloat(element.getAttribute("y") as string)
         };
     }
 
-    private XYElementToBoundingBox(element: DragElementXY): DOMRect {
-        let coordinates: Coordinate;
-        if(this.options.useTransform) {
-            coordinates = this.getCoordinateFromTranslateAttribute(element);
-        } else {
-            coordinates = {
-                x: parseFloat(element.getAttribute("x") as string),
-                y: parseFloat(element.getAttribute("y") as string)
-            };
-            if(this.options.svgRelativePosition) {
-                const parent = element.parentElement;
-                //In the case of x,y coordinates, the only time we need to check the parent is when it's a SVG element inside of an svg group
-                if(parent instanceof SVGGElement) {
-                    const parentCoordinates: Coordinate = this.getCoordinateFromTranslateAttribute(parent);
-                    coordinates = {
-                        x: coordinates.x + parentCoordinates.x,
-                        y: coordinates.y + parentCoordinates.y
-                    };
-                }
+    private XYElementToRelativeBox(element: DragElementXY): DOMRect {
+        let coordinates = this.getCoordinateFromAttribute(element);
+        const width = parseFloat(element.getAttribute("width") as string);
+        const height = parseFloat(element.getAttribute("height") as string);
+        return {
+            x: coordinates.x,
+            y: coordinates.y,
+            width: width,
+            height: height,
+            bottom: coordinates.y + height,
+            right: coordinates.x + width,
+            top: coordinates.y,
+            left: coordinates.x,
+            toJSON(): string {
+                return JSON.stringify(this);
             }
+        };
+    }
+    private XYElementToAbsoluteBox(element: DragElementXY): DOMRect {
+        let coordinates = this.getCoordinateFromAttribute(element);
+        const parent = this.getOffsetParent(element);
+        if(parent){
+            const box = parent.getBoundingClientRect();
+            coordinates = {
+                x: coordinates.x + box.x,
+                y: coordinates.y + box.y
+            };
         }
+       
         const width = parseFloat(element.getAttribute("width") as string);
         const height = parseFloat(element.getAttribute("height") as string);
         return {
@@ -566,8 +573,65 @@ export class DragAndDrop {
         };
     }
 
+    private getBoundingBoxAbsolute(element: AnyElement): DOMRect {
+        if(this.isLeftTopElement(element)) {
+            if(element instanceof HTMLElement) {
+                const bounds = element.getBoundingClientRect();
+                return {
+                    x: bounds.x,
+                    y: bounds.y,
+                    width: bounds.width,
+                    height: bounds.height,
+                    bottom: bounds.bottom,
+                    right: bounds.right,
+                    top: bounds.top,
+                    left: bounds.left,
+                    toJSON(): string {
+                        return JSON.stringify(this);
+                    }
+                };
+            }
+        }
+        else if(this.isXYElement(element)) {
+            return this.XYElementToAbsoluteBox(element);
+        }
 
-    private getBoundingBox(element: AnyElement): DOMRect {
+        const parent = this.getOffsetParent(element);
+        if(parent instanceof HTMLElement) {
+            const rect = element.getBoundingClientRect();
+            const rectParent = parent.getBoundingClientRect();
+            const x = rect.left - rectParent.left;
+            const y = rect.top - rectParent.top;
+            return {
+                x: x,
+                y: y,
+                width: rect.width,
+                height: rect.height,
+                bottom: y + rect.height,
+                right: x + rect.width,
+                left: rect.left - rectParent.left,
+                top: rect.top - rectParent.top,
+                toJSON(): string {
+                    return JSON.stringify(this);
+                }
+            };
+        }
+        console.error("Element type not supported");
+        return {
+            x: 0,
+            y: 0,
+            width: 0,
+            height: 0,
+            bottom: 0,
+            right: 0,
+            top: 0,
+            left: 0,
+            toJSON(): string {
+                return JSON.stringify(this);
+            }
+        };
+    }
+    private getBoundingBoxRelative(element: AnyElement): DOMRect {
         if(this.isLeftTopElement(element)) {
             if(element instanceof HTMLElement) {
                 return {
@@ -586,8 +650,7 @@ export class DragAndDrop {
             }
         }
         else if(this.isXYElement(element)) {
-            
-            return this.XYElementToBoundingBox(element);
+            return this.XYElementToRelativeBox(element);
         }
 
         const parent = this.getOffsetParent(element);
