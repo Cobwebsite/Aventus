@@ -385,8 +385,6 @@ export class DragAndDrop {
         let draggableElement = this.draggableElement;
         let matchingTargets: TargetableElement[] = [];
         let srcTargets: TargetableElement[] = this.getTargets();
-        debugger;
-
         for(let target of srcTargets) {
             let elementCoordinates: DOMRect = this.getBoundingBox(draggableElement);
             let targetCoordinates: DOMRect = this.getBoundingBox(target);
