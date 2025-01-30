@@ -1,6 +1,7 @@
 import type { HttpRouterOptions } from "./HttpRouterOptions.lib.avt";
 import { HttpMethod } from "./HttpMethod.lib.avt";
 import { HttpRequest } from "./HttpRequest.lib.avt";
+import type { GenericError, ResultWithError } from "../tools/Error.lib.avt";
 
 
 @Storybook({
@@ -24,23 +25,23 @@ export class HttpRouter {
     }
 
 
-    public async get<T>(url: string) {
+    public async get<T>(url: string): Promise<ResultWithError<T>> {
         return await new HttpRequest(url).queryJSON<T>(this);
     }
 
-    public async post<T>(url: string, data?: { [key: string | number]: any; } | FormData) {
+    public async post<T>(url: string, data?: { [key: string | number]: any; } | FormData): Promise<ResultWithError<T>> {
         return await new HttpRequest(url, HttpMethod.POST, data).queryJSON<T>(this);
     }
 
-    public async put<T>(url: string, data?: { [key: string | number]: any; } | FormData) {
+    public async put<T>(url: string, data?: { [key: string | number]: any; } | FormData): Promise<ResultWithError<T>> {
         return await new HttpRequest(url, HttpMethod.PUT, data).queryJSON<T>(this);
     }
 
-    public async delete<T>(url: string, data?: { [key: string | number]: any; } | FormData) {
+    public async delete<T>(url: string, data?: { [key: string | number]: any; } | FormData): Promise<ResultWithError<T>> {
         return await new HttpRequest(url, HttpMethod.DELETE, data).queryJSON<T>(this);
     }
 
-    public async option<T>(url: string, data?: { [key: string | number]: any; } | FormData) {
+    public async option<T>(url: string, data?: { [key: string | number]: any; } | FormData): Promise<ResultWithError<T>> {
         return await new HttpRequest(url, HttpMethod.OPTION, data).queryJSON<T>(this);
     }
 }

@@ -3,6 +3,7 @@ import { ResultWithError, VoidWithError } from "../tools/Error.lib.avt";
 import { HttpMethod } from "./HttpMethod.lib.avt";
 import { HttpError, HttpErrorCode } from "./HttpError.lib.avt";
 import { Converter, DateConverter } from "../tools/Converter.lib.avt";
+import { Watcher } from "../lib/Watcher.lib.avt";
 
 @Storybook({
     prefix: "Http"
@@ -68,6 +69,9 @@ export class HttpRequest {
                 // Add simple key-value pair to FormData
                 if(value === undefined || value === null) {
                     value = "";
+                }
+                else if(Watcher.is(value)) {
+                    value = Watcher.extract(value);
                 }
                 formData.append(newKey, value);
             }

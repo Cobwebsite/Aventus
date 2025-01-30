@@ -1,5 +1,18 @@
 # Change Log
 
+## 1.3.8 (2025-01-26)
+
+### Bug Fixes
+ - Correct missing types inside HttpRouter
+ - Allow support for exported async function
+ - Force error message to be a string
+ - Allow reload when external package changed
+ - Remove watcher before sending httprequest
+ - Fix escape inside css file
+
+### Features
+ - Add support for svg inside Drag&drop
+
 ## 1.3.7 (2024-12-30)
 
 ### Bug Fixes

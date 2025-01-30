@@ -30,7 +30,7 @@ export class GenericError<T extends (number | Enum) = any> {
      */
     public constructor(code: EnumValue<T>, message: string) {
         this.code = code;
-        this.message = message;
+        this.message = message+'';
     }
 }
 
