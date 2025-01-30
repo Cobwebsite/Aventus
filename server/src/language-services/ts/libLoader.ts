@@ -14,7 +14,7 @@ const contents: { [name: string]: string } = {};
 
 
 
-const serverFolder = () => GenericServer.extensionPath;
+export const serverFolder = () => GenericServer.extensionPath;
 let _node_modules_folder: string | undefined = undefined;
 const node_modules_folder = () => {
 	if(_node_modules_folder !== undefined) return _node_modules_folder;

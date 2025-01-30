@@ -80,7 +80,8 @@
 				"filenames": [
 					"aventus.conf.avt",
 					"aventus.sharp.avt",
-					"template.avt"
+					"template.avt",
+					"template.avt.ts"
 				],
 				"icon": {
 					"light": "./icons/icon.png",

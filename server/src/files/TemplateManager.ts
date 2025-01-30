@@ -1,13 +1,15 @@
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync } from 'fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'fs';
 import { GenericServer } from '../GenericServer';
 import { join, normalize, sep } from 'path';
 import { SelectItem } from '../IConnection';
 import { Template } from './Template';
 import { SettingsManager } from '../settings/Settings';
-import { setValueToObject } from '../tools';
+import { pathToUri, setValueToObject } from '../tools';
 import { BaseTemplate } from './Templates/BaseTemplate';
 import { BaseTemplateList } from './Templates';
-import { execSync } from 'child_process';
+import { execSync, spawn } from 'child_process';
+import * as md5 from 'md5';
+import { serverFolder } from '../language-services/ts/libLoader';
 
 
 export type TemplatesByName = { [name: string]: Template | BaseTemplate | TemplatesByName }
@@ -121,6 +123,36 @@ export class TemplateManager {
 					nb++;
 				} catch {
 					GenericServer.showErrorMessage("Error when parsing file " + configPath);
+				}
+				return;
+			}
+			let configPathScript = join(currentFolder, "template.avt.ts");
+			if (existsSync(configPathScript)) {
+				try {
+					const rootPath = join(serverFolder(), 'lib/templateScript/AventusTemplate.ts').replace(/\\/g, "\\\\");
+					const txt = `
+					import { AventusTemplate } from 'file://${rootPath}';
+					import { Template } from 'file://${configPathScript.replace(/\\/g, "\\\\")}'
+					let t = new Template();
+					console.log(t.version())`;
+
+					let tempPath = join(GenericServer.savePath, "temp");
+					if (!existsSync(tempPath)) {
+						mkdirSync(tempPath);
+					}
+					let scriptPath = join(tempPath, md5(configPathScript)+".ts");
+					writeFileSync(scriptPath, txt);
+
+					var a = execSync(`node ${scriptPath}`).toString();
+					console.log(a);
+					// let config = readFileSync(configPathScript, 'utf-8');
+
+					// let template = new Template(config, currentFolder);
+					// setValueToObject(template.config.name, templates, template);
+					// nb++;
+				} catch (e) {
+					console.error(e);
+					GenericServer.showErrorMessage("Error when parsing file " + configPathScript);
 				}
 				return;
 			}

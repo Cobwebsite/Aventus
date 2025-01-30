@@ -1231,7 +1231,7 @@ export class AventusTsLanguageService {
         return null;
     }
 
-    public static compileDocTs(txt: string, element: BaseInfo): string {
+    public static compileDocTs(txt: string, element?: BaseInfo): string {
         try {
             const host: LanguageServiceHost = {
                 getCompilationSettings: () => {
@@ -1541,7 +1541,7 @@ const enum Kind {
     parameter = 'parameter',
     typeParameter = 'type parameter'
 }
-function convertKind(kind: string): CompletionItemKind {
+export function convertKind(kind: string): CompletionItemKind {
     switch (kind) {
         case Kind.primitiveType:
         case Kind.keyword:
@@ -1643,10 +1643,10 @@ export function simplifyPath(importPathTxt, currentPath) {
     finalPathToImport += importPath.join("/");
     return finalPathToImport;
 }
-function isWhitespaceOnly(str: string) {
+export function isWhitespaceOnly(str: string) {
     return /^\s*$/.test(str);
 }
-function generateIndent(level: number, options: FormattingOptions) {
+export function generateIndent(level: number, options: FormattingOptions) {
     if (options.insertSpaces) {
         return repeat(' ', level * options.tabSize);
     } else {

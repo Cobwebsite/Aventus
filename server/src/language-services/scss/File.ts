@@ -177,7 +177,7 @@ export class AventusWebSCSSFile extends AventusBaseFile {
             this._rules = this.build.scssLanguageService.getRules(this.file);
             let htmlFile = this.build.htmlFiles[this.file.uri.replace(AventusExtension.ComponentStyle, AventusExtension.ComponentView)];
             if (htmlFile instanceof AventusHTMLFile) {
-                ParserHtml.refreshStyle(htmlFile, this._build);
+                ParserHtml.refreshStyle(htmlFile, this.build);
             }
         } catch (e) {
             console.error(e);
