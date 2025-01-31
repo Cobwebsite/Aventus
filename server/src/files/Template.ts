@@ -410,6 +410,41 @@ export class TemplateScript {
 									answer(payload.cmd, null);
 								}
 							}
+							else if (payload.cmd == "exec") {
+								let params: ExecSyncOptionsWithBufferEncoding = {};
+								let cwd = uriToPath(GenericServer.getWorkspaceUri());
+								params.cwd = cwd;
+								let config = payload.config as string
+								try {
+									execSync(config, params)
+								} catch (e) {
+									console.log(e);
+									GenericServer.showErrorMessage("The command " + config + " failed");
+								}
+								answer(payload.cmd, "done");
+							}
+							else if (payload.cmd == "execAdmin") {
+								let config = payload.config as string
+								let cwd = uriToPath(GenericServer.getWorkspaceUri());
+
+								try {
+									let moveToCwd = `cd /d "${cwd}"`;
+									if (process.platform == 'darwin') {
+										moveToCwd = `cd "${cwd}"`;
+									}
+									execAdmin("cd " + cwd + " && " + config, (error, stdout, stderr) => {
+										if (error) {
+											console.log('error: ' + error);
+											console.log('stdout: ' + stdout);
+											console.log('stderr: ' + stderr);
+										}
+									})
+								} catch (e) {
+									console.log(e);
+									GenericServer.showErrorMessage("The command " + config + " failed");
+								}
+								answer(payload.cmd, "done");
+							}
 						}
 					} catch (e) {
 						console.log(e);

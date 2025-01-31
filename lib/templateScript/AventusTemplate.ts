@@ -36,17 +36,22 @@ export type BlockInfo = {
 	custom: (txt: string) => string
 }
 
+export type TemplateInfo = {
+	name: string,
+	description?: string,
+	version?: Version
+}
+
 export abstract class AventusTemplate {
-	public abstract name(): string;
-	public abstract description(): string;
-	public abstract version(): Version;
 	private basicInfo() {
-		return JSON.stringify({
-			name: this.name(),
-			description: this.description(),
-			version: this.version(),
-		})
+		const defaultValues = {
+			description: "",
+			version: "1.0.0"
+		}
+		const values = { ...defaultValues, ...this.meta() };
+		return JSON.stringify(values);
 	}
+	protected abstract meta(): TemplateInfo;
 
 	protected variables: { [key: string]: string | null | undefined } = {}
 	protected blocks: {
@@ -107,7 +112,7 @@ export abstract class AventusTemplate {
 		})
 	}
 
-	public abstract run(destination: string): Promise<void>;
+	protected abstract run(destination: string): Promise<void>;
 
 	protected async input(config: InputOptions): Promise<string | null> {
 		let response = await this.runCommandWithAnswer('input', config);
@@ -154,7 +159,10 @@ export abstract class AventusTemplate {
 		this.blocks[name] = { ...defaultBlock, ...block };
 	}
 
-	protected async writeFile(cb: WriteCallback) {
+	protected async writeFile(cb?: WriteCallback) {
+		if(!cb) {
+			cb = () => true;
+		}
 		let configFiles: { [path: string]: string } = {};
 		let filesPath: string[] = [];
 		const _internalLoop = async (currentPath) => {
@@ -184,7 +192,7 @@ export abstract class AventusTemplate {
 					await _internalLoop(templatePath);
 				}
 				else {
-					if (templatePath == this.templatePath + sep + "template.avt" || templatePath == this.templatePath + sep + "template.avt.ts" ) {
+					if (templatePath == this.templatePath + sep + "template.avt" || templatePath == this.templatePath + sep + "template.avt.ts") {
 						continue;
 					}
 					let rawCtx = readFileSync(templatePath, 'utf-8');
@@ -276,6 +284,15 @@ export abstract class AventusTemplate {
 	}
 	protected removeIndent(text: string) {
 		return text.split('\n').map(line => line.startsWith('\t') ? line.slice(1) : line).join('\n');
+	}
+
+	protected async exec(cmd: string, asAdmin: boolean = false): Promise<void> {
+		if (asAdmin) {
+			await this.runCommand("execAdmin", cmd);
+		}
+		else {
+			await this.runCommand("exec", cmd);
+		}
 	}
 }
 

@@ -181,7 +181,7 @@ export class TemplateManager {
 			GenericServer.showErrorMessage("No project path registered");
 			return;
 		}
-		let projectsFolder = GenericServer.extensionPath + sep + "projects";
+		let projectsFolder = GenericServer.extensionPath + sep + "templates" + sep + "projects";
 		let folders = readdirSync(projectsFolder);
 		let quickPicks: Map<SelectItem, string> = new Map<SelectItem, string>();
 		for (let folder of folders) {

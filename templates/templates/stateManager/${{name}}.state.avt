@@ -1,0 +1,11 @@
+#{{namespace}}
+	export class ${{className}}StateManager extends Aventus.StateManager implements Aventus.IStateManager {
+		/**
+		 * Get the instance of the StateManager
+		 */
+		public static getInstance(): ${{className}}StateManager {
+			return Aventus.Instance.get(${{className}}StateManager);
+		}
+
+	}
+#{{namespace/}}

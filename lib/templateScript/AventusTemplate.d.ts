@@ -25,6 +25,12 @@ declare type WriteInfo = {
     isDir: boolean;
     openFileOnEnd: () => void;
 };
+declare type TemplateInfo = {
+	name: string,
+	description?: string,
+	version?: Version
+}
+
 declare type WriteCallback = (info: WriteInfo) => void | boolean;
 declare type ReservedVariables = "module" | "namespace";
 declare type BlockInfo = {
@@ -33,9 +39,7 @@ declare type BlockInfo = {
     custom: (txt: string) => string;
 };
 declare abstract class AventusTemplate {
-    abstract name(): string;
-    abstract description(): string;
-    abstract version(): Version;
+    protected abstract meta(): TemplateInfo;
     private basicInfo;
     protected variables: {
         [key: string]: string | null | undefined;
@@ -48,7 +52,7 @@ declare abstract class AventusTemplate {
     protected templatePath: string;
     private _run;
     protected defaultBlocks(): void;
-    abstract run(destination: string): Promise<void>;
+    protected abstract run(destination: string): Promise<void>;
     protected input(config: InputOptions): Promise<string | null>;
     protected select(items: SelectItem[], options: SelectOptions): Promise<SelectItem | null>;
     protected waitingResponse: {
@@ -58,10 +62,11 @@ declare abstract class AventusTemplate {
     private runCommand;
     protected registerVar<T extends string>(name: T & (T extends ReservedVariables ? never : {}), value: string | null | undefined): void;
     protected registerBlock(name: string, block: Partial<BlockInfo>): void;
-    protected writeFile(cb: WriteCallback): Promise<void>;
+    protected writeFile(cb?: WriteCallback): Promise<void>;
     protected replaceVariables(ctx: string): string;
     protected replaceBlocks(ctx: string): string;
     protected addIndent(text: string): string;
     protected removeIndent(text: string): string;
+    protected exec(cmd: string, asAdmin?: boolean): Promise<void>;
 }
 
