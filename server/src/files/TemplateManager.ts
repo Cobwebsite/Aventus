@@ -2,17 +2,15 @@ import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statS
 import { GenericServer } from '../GenericServer';
 import { join, normalize, sep } from 'path';
 import { SelectItem } from '../IConnection';
-import { Template } from './Template';
+import { TemplateJSON, TemplateScript } from './Template';
 import { SettingsManager } from '../settings/Settings';
 import { pathToUri, setValueToObject } from '../tools';
 import { BaseTemplate } from './Templates/BaseTemplate';
 import { BaseTemplateList } from './Templates';
 import { execSync, spawn } from 'child_process';
-import * as md5 from 'md5';
-import { serverFolder } from '../language-services/ts/libLoader';
 
 
-export type TemplatesByName = { [name: string]: Template | BaseTemplate | TemplatesByName }
+export type TemplatesByName = { [name: string]: TemplateJSON | TemplateScript | BaseTemplate | TemplatesByName }
 
 export class TemplateManager {
 	private templatePath: string[] = [];
@@ -118,7 +116,7 @@ export class TemplateManager {
 				try {
 					let config = JSON.parse(readFileSync(configPath, 'utf-8'));
 
-					let template = new Template(config, currentFolder);
+					let template = new TemplateJSON(config, currentFolder);
 					setValueToObject(template.config.name, templates, template);
 					nb++;
 				} catch {
@@ -129,27 +127,11 @@ export class TemplateManager {
 			let configPathScript = join(currentFolder, "template.avt.ts");
 			if (existsSync(configPathScript)) {
 				try {
-					const rootPath = join(serverFolder(), 'lib/templateScript/AventusTemplate.ts').replace(/\\/g, "\\\\");
-					const txt = `
-					import { AventusTemplate } from 'file://${rootPath}';
-					import { Template } from 'file://${configPathScript.replace(/\\/g, "\\\\")}'
-					let t = new Template();
-					console.log(t.version())`;
 
-					let tempPath = join(GenericServer.savePath, "temp");
-					if (!existsSync(tempPath)) {
-						mkdirSync(tempPath);
-					}
-					let scriptPath = join(tempPath, md5(configPathScript)+".ts");
-					writeFileSync(scriptPath, txt);
+					let template = TemplateScript.create(configPathScript, currentFolder);
+					setValueToObject(template.name, templates, template);
+					nb++;
 
-					var a = execSync(`node ${scriptPath}`).toString();
-					console.log(a);
-					// let config = readFileSync(configPathScript, 'utf-8');
-
-					// let template = new Template(config, currentFolder);
-					// setValueToObject(template.config.name, templates, template);
-					// nb++;
 				} catch (e) {
 					console.error(e);
 					GenericServer.showErrorMessage("Error when parsing file " + configPathScript);
@@ -317,18 +299,25 @@ export class TemplateManager {
 		return null;
 	}
 
-	public async query(templates: TemplatesByName): Promise<Template | BaseTemplate | null> {
+	public async query(templates: TemplatesByName): Promise<TemplateJSON | TemplateScript | BaseTemplate | null> {
 		let quickPicksTemplateByName: Map<SelectItem, TemplatesByName> = new Map();
-		let quickPicksTemplate: Map<SelectItem, Template> = new Map();
+		let quickPicksTemplate: Map<SelectItem, TemplateJSON | TemplateScript> = new Map();
 		let quickPicksBaseTemplate: Map<SelectItem, BaseTemplate> = new Map();
 		const quickPicks: SelectItem[] = [];
 		for (let name in templates) {
 			const current = templates[name];
 			let quickPick: SelectItem;
-			if (current instanceof Template) {
+			if (current instanceof TemplateJSON) {
 				quickPick = {
 					label: name,
 					detail: current.config.description ?? "",
+				}
+				quickPicksTemplate.set(quickPick, current);
+			}
+			else if (current instanceof TemplateScript) {
+				quickPick = {
+					label: name,
+					detail: current.description ?? "",
 				}
 				quickPicksTemplate.set(quickPick, current);
 			}

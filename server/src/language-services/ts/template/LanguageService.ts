@@ -1,9 +1,9 @@
-import { CompilerOptions, createLanguageService, Extension, Diagnostic as DiagnosticTs, JsxEmit, LanguageService, LanguageServiceHost, ModuleDetectionKind, ModuleResolutionKind, ResolvedModule, ResolvedModuleFull, ResolvedProjectReference, resolveModuleName, ScriptKind, ScriptTarget, SourceFile, flattenDiagnosticMessageText, WithMetadata, CompletionInfo, GetCompletionsAtPositionOptions, displayPartsToString, SemicolonPreference, IndentStyle, FormatCodeSettings, CodeFixAction } from 'typescript';
+import { CompilerOptions, createLanguageService, Extension, Diagnostic as DiagnosticTs, JsxEmit, LanguageService, LanguageServiceHost, ModuleDetectionKind, ModuleResolutionKind, ResolvedModule, ResolvedModuleFull, ResolvedProjectReference, resolveModuleName, ScriptKind, ScriptTarget, SourceFile, flattenDiagnosticMessageText, WithMetadata, CompletionInfo, GetCompletionsAtPositionOptions, displayPartsToString, SemicolonPreference, IndentStyle, FormatCodeSettings, CodeFixAction, ModuleKind } from 'typescript';
 import { Build } from '../../../project/Build';
 import { AventusFile } from '../../../files/AventusFile';
 import { existsSync } from 'fs';
 import { convertRange, getWordAtText, pathToUri, uriToPath } from '../../../tools';
-import { loadLibrary, serverFolder } from '../libLoader';
+import { loadLibrary, NODE_MODULES, serverFolder } from '../libLoader';
 import { CodeAction, CodeLens, CompletionItem, CompletionList, Definition, Diagnostic, DiagnosticSeverity, DiagnosticTag, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver';
 import { AventusLanguageId } from '../../../definition';
 import { join } from 'path';
@@ -93,6 +93,17 @@ export class AventusTemplateLanguageService {
 	private resolveModuleNames(host: LanguageServiceHost, moduleNames: string[], containingFile: string, reusedNames: string[] | undefined, redirectedReference: ResolvedProjectReference | undefined, options: CompilerOptions, containingSourceFile?: SourceFile): (ResolvedModule | undefined)[] {
 		const resolvedModules: ResolvedModule[] = [];
 		for (let moduleName of moduleNames) {
+			if (require('module').builtinModules.includes(moduleName)) {
+				const resolvePath = join(NODE_MODULES(), `@types/node/${moduleName}.d.ts`);
+				let temp: ResolvedModuleFull = {
+					extension: Extension.Ts,
+					resolvedFileName: resolvePath,
+					isExternalLibraryImport: true
+				}
+				resolvedModules.push(temp);
+				continue;
+			}
+
 			let result = resolveModuleName(moduleName, containingFile, compilerOptionsRead, host)
 			if (result.resolvedModule) {
 				resolvedModules.push(result.resolvedModule);
@@ -438,6 +449,8 @@ export class AventusTemplateLanguageService {
 }
 
 const compilerOptionsRead: CompilerOptions = {
+	types: ["node"],
+	module: ModuleKind.ES2022,
 	allowNonTsExtensions: true,
 	jsx: JsxEmit.None,
 	importHelpers: false,

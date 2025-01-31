@@ -1,14 +1,16 @@
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, rmdirSync, statSync, writeFileSync } from 'fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, rmdirSync, statSync, unlinkSync, writeFileSync } from 'fs';
 import { join, normalize, sep } from 'path';
 import { pathToFileURL } from 'url';
 
-import { ExecSyncOptionsWithBufferEncoding, execSync } from 'child_process';
+import { ExecSyncOptionsWithBufferEncoding, execSync, spawn, spawnSync } from 'child_process';
 import { pathToUri, uriToPath } from '../tools';
 import { ProjectManager } from '../project/ProjectManager';
 import { FilesManager } from './FilesManager';
 import { GenericServer } from '../GenericServer';
-import { SelectItem } from '../IConnection';
 import { exec as execAdmin } from 'sudo-prompt'
+import { serverFolder } from '../language-services/ts/libLoader';
+import * as md5 from 'md5';
+import { InputOptions, SelectItem, SelectOptions } from '../IConnection';
 
 
 export interface TemplateConfigVariable {
@@ -32,7 +34,7 @@ export interface TemplateConfig {
 	"cmdsAfterAdmin"?: string[],
 }
 
-export class Template {
+export class TemplateJSON {
 	public config: TemplateConfig;
 	public folderPath: string;
 	public currentVars: { [name: string]: string } = {};
@@ -93,7 +95,7 @@ export class Template {
 		let uri: string = pathToUri(path);
 		let builds = ProjectManager.getInstance().getMatchingBuildsByUri(uri);
 		if (builds.length > 0) {
-			result.namespace = builds[0].getNamespaceForUri(uri, false);
+			result.namespace = builds[0].getNamespaceForUri(uri);
 			result.module = builds[0].project.getConfig()?.module ?? "";
 		}
 		return result;
@@ -285,4 +287,187 @@ export class Template {
 			}, 500)
 		})
 	}
+}
+
+export class TemplateScript {
+	public config: string;
+	public folderPath: string;
+
+	public name: string;
+	public version: string;
+	public description: string;
+	public lastModified: Date;
+
+	private static memory: { [key: string]: TemplateScript } = {}
+	public static create(config: string, folderPath: string) {
+		if (this.memory[config]) {
+			let lastModified = statSync(config).mtime
+			if (lastModified.getTime() > this.memory[config].lastModified.getTime()) {
+				this.memory[config] = new TemplateScript(config, folderPath);
+			}
+		}
+		else {
+			this.memory[config] = new TemplateScript(config, folderPath);
+		}
+		return this.memory[config];
+	}
+
+	private constructor(config: string, folderPath: string) {
+		this.config = config;
+		this.folderPath = folderPath;
+		const basicInfo = this.prepareScript();
+		this.name = basicInfo.name;
+		this.description = basicInfo.description;
+		this.version = basicInfo.version;
+		this.lastModified = statSync(this.config).mtime
+	}
+
+	public init(path: string) {
+		return new Promise<void>((resolve) => {
+			try {
+				const rootPath = join(serverFolder(), 'lib/templateScript/AventusTemplate.ts').replace(/\\/g, "\\\\");
+
+				const txt = `
+					import { AventusTemplate } from 'file://${rootPath}';
+					import { Template } from 'file://${this.config.replace(/\\/g, "\\\\")}'
+
+					process.on('uncaughtException', function(err) {
+						console.log('Caught exception: ' + err);
+					});
+
+					const t = new Template();
+					await t._run(\`${this.folderPath.replace(/\\/g, "\\\\")}\`, \`${path.replace(/\\/g, "\\\\")}\`)`;
+				let tempPath = join(GenericServer.savePath, "temp");
+				if (!existsSync(tempPath)) {
+					mkdirSync(tempPath);
+				}
+				let scriptPath = join(tempPath, md5(this.config) + "_1.ts");
+				writeFileSync(scriptPath, txt);
+
+				const child = spawn("node", ["--no-warnings", scriptPath], {
+					cwd: this.folderPath,
+					detached: true,
+				});
+
+				const answer = (cmd: string, result: string | null) => {
+					const data = JSON.stringify({ cmd, result: result ?? 'NULL' }) + "\n";
+					console.log("send " + data);
+					child.stdin.write(data);
+				}
+
+				child.stdout.on("data", async (data) => {
+					const txt = data.toString().trim();
+					let messages = [txt];
+					if (txt.indexOf("}\n{") != -1) {
+						messages = txt.split("}\n{");
+						for (let i = 1; i < messages.length; i++) {
+							messages[i - 1] += "}";
+							messages[i] = "{" + messages[i];
+						}
+					}
+
+					try {
+						for (let message of messages) {
+							const payload: { cmd: string, config?: any } = JSON.parse(message);
+							if (payload.cmd == "input") {
+								const config: InputOptions = payload.config
+								let response = await GenericServer.Input(config)
+								answer(payload.cmd, response)
+							}
+							else if (payload.cmd == "select") {
+								const config: {
+									items: SelectItem[],
+									options: SelectOptions,
+								} = payload.config
+								let response = await GenericServer.Select(config.items, config.options);
+								if (response == null) {
+									answer(payload.cmd, "NULL");
+								}
+								else {
+									answer(payload.cmd, JSON.stringify(response));
+								}
+							}
+							else if (payload.cmd == "registerFile") {
+								let config = payload.config as string[];
+								for (let path of config) {
+									FilesManager.getInstance().onCreatedUri(pathToUri(path));
+								}
+							}
+							else if (payload.cmd == "openFile") {
+								let config = payload.config as string[];
+								for (let path of config) {
+									GenericServer.sendNotification("aventus/openfile", pathToFileURL(path).toString());
+								}
+							}
+							else if (payload.cmd == "getNamespace") {
+								let config = payload.config as string;
+								let builds = ProjectManager.getInstance().getMatchingBuildsByUri(pathToUri(config));
+								if (builds.length > 0) {
+									const namespace = builds[0].getNamespaceForUri(pathToUri(config));
+									answer(payload.cmd, namespace);
+								}
+								else {
+									answer(payload.cmd, null);
+								}
+							}
+						}
+					} catch (e) {
+						console.log(e);
+						console.log("message " + txt);
+						console.log(messages);
+					}
+				});
+
+				// Lire les erreurs du programme secondaire
+				child.stderr.on("data", (data) => {
+					console.error(`Erreur du programme secondaire: ${data.toString().trim()}`);
+				});
+
+				child.on("close", (code) => {
+					console.log(`Processus enfant terminé avec le code ${code}`);
+					unlinkSync(scriptPath);
+					resolve();
+				});
+			} catch (e) {
+				resolve();
+			}
+		})
+	}
+
+	protected prepareScript(): { name: string, version: string, description: string } {
+		const rootPath = join(serverFolder(), 'lib/templateScript/AventusTemplate.ts').replace(/\\/g, "\\\\");
+
+		const txt = `
+					import { AventusTemplate } from 'file://${rootPath}';
+					import { Template } from 'file://${this.config.replace(/\\/g, "\\\\")}'
+					const t = new Template();
+					console.log(t.basicInfo())`;
+
+
+		let tempPath = join(GenericServer.savePath, "temp");
+		if (!existsSync(tempPath)) {
+			mkdirSync(tempPath);
+		}
+		let scriptPath = join(tempPath, md5(this.config) + ".ts");
+		writeFileSync(scriptPath, txt);
+		let values: { name: string, version: string, description: string } = {
+			name: "",
+			version: "1.0.0",
+			description: ""
+		}
+		try {
+			var a = spawnSync(`node`, ["--no-warnings", scriptPath], {
+				cwd: this.folderPath,
+			}).stdout.toString();
+
+			const valuesTemp = JSON.parse(a.trim());
+			values = { ...values, ...valuesTemp };
+		} catch (e) {
+			console.log(e);
+		}
+		unlinkSync(scriptPath);
+		return values;
+	}
+
+
 }

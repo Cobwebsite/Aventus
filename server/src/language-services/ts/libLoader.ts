@@ -35,7 +35,7 @@ export const TYPESCRIPT_LIB_SOURCE = () => join(node_modules_folder(), 'node_mod
 export const AVENTUS_DEF_BASE_PATH = () => join(serverFolder(), 'lib/Aventus@Main.package.avt');
 export const AVENTUS_DEF_UI_PATH = () => join(serverFolder(), 'lib/Aventus@UI.package.avt');
 export const AVENTUS_DEF_SHARP_PATH = () => join(serverFolder(), 'lib/Aventus@Sharp.package.avt');
-const NODE_MODULES = () => join(node_modules_folder(), 'node_modules');
+export const NODE_MODULES = () => join(node_modules_folder(), 'node_modules');
 
 const libsTypescript: string[] = [];
 

@@ -1825,7 +1825,7 @@ export class Build {
         return undefined;
     }
 
-    public getNamespaceForUri(uri: string, removeParentFolder: boolean): string {
+    public getNamespaceForUri(uri: string): string {
         if (this.buildConfig.namespaceStrategy == 'manual') {
             return "";
         }
@@ -1839,6 +1839,7 @@ export class Build {
             }
         }
         else if (this.buildConfig.namespaceStrategy == "followFolders" || this.buildConfig.namespaceStrategy == "followFoldersCamelCase") {
+            let removeParentFolder = uri.endsWith(AventusExtension.ComponentLogic);
             let path = uriToPath(uri);
             let splittedPath = path.split("/");
             splittedPath.pop();
