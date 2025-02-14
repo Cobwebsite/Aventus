@@ -141,6 +141,9 @@ export class AventusHTMLLanguageService {
                             if (customInfo.description == "") {
                                 delete temp.documentation;
                             }
+                            else {
+                                temp.documentation = customInfo.description;
+                            }
 
                             if (customInfo.type == 'boolean') {
                                 temp.textEdit.newText = temp.textEdit.newText.split("=")[0];

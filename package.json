@@ -212,6 +212,14 @@
 					"items": {
 						"type": "string"
 					}
+				},
+				"aventus.preventCustomData": {
+					"type": "array",
+					"title": "Define uri to avoid",
+					"default": [],
+					"items": {
+						"type": "string"
+					}
 				}
 			}
 		},
@@ -406,6 +414,10 @@
 			{
 				"command": "aventus.storybook.build",
 				"title": "Aventus : Build storybook"
+			},
+			{
+				"command": "aventus.npm.build",
+				"title": "Aventus : Build npm"
 			}
 		],
 		"menus": {

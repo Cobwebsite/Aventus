@@ -83,7 +83,7 @@ export class TemplateManager {
 
 	public async createProject(path: string) {
 		if (this.loadedProjectsLength == 0) {
-			let result = await GenericServer.Popup("You have no template for project!! Do you want to load some?", 'Yes', 'No');
+			let result = await GenericServer.Popup("You have no template for project! Do you want to load some?", 'Yes', 'No');
 			if (result == 'Yes') {
 				this.selectTemplateToImport();
 			}

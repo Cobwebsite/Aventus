@@ -64,7 +64,6 @@ export class AventusStaticFile extends AventusTsFile {
                 internal: false
             }, // actually its exported if written correctly
             convertibleName: '',
-            story: {}
         }]);
     }
     protected async onCompletion(document: AventusFile, position: Position): Promise<CompletionList> {

@@ -147,7 +147,15 @@ export const AventusConfigSchema: JSONSchema = {
                                         "npmName": {
                                             type: "string",
                                             description: "Define the name set inside your package.json",
-                                        }
+                                        },
+                                        "manifest": {
+                                            type: "boolean",
+                                            description: "Define if you need to generate manifest for your components",
+                                        },
+                                        "live": {
+                                            type: "boolean",
+                                            description: "Define if the npm content must be recompiled on change. Default is false",
+                                        },
                                     },
                                     items: {
                                         type: "string",

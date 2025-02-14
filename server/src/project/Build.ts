@@ -36,6 +36,7 @@ import { AliasInfo } from '../language-services/ts/parser/AliasInfo';
 import { Storie } from './storybook/Stories';
 import * as md5 from 'md5';
 import { Statistics } from '../notification/Statistics';
+import { Manifest } from '../manifest/Manifest';
 
 export type BuildErrors = { file: string, title: string }[]
 
@@ -60,7 +61,8 @@ export type LocalCodeResult = {
             names: string[],
             content: string[],
             imports: { [uri: string]: string[] },
-            forcedDependances: string[]
+            forcedDependances: string[],
+            sourceUri: string[]
         }
     },
 
@@ -349,13 +351,16 @@ export class Build {
                 existing: result.codeNotRenderInJs
             }
             this.writeBuildDocumentation(compile.package, result, srcInfo, compile.outputNpm)
-            this.writeBuildNpm(compile.outputNpm, result);
+            if (compile.outputNpm.live) {
+                this.writeBuildNpm(compile.outputNpm, result);
+            }
             if (this.buildConfig.stories && this.buildConfig.stories.live) {
                 await this.stories.check();
                 this.writeBuildNpm({
                     path: [join(this.buildConfig.stories.output, "generated")],
                     packageJson: false,
-                    npmName: ''
+                    npmName: '',
+                    live: false
                 }, result);
                 this.stories.write(this.tsFiles);
             }
@@ -443,10 +448,18 @@ export class Build {
             this.writeBuildNpm({
                 path: [join(this.buildConfig.stories.output, "generated")],
                 packageJson: false,
-                npmName: ''
+                npmName: '',
+                live: false
             }, result);
         }
         this.stories.write(this.tsFiles, true);
+    }
+    public async buildNpm() {
+        for (let compile of this.buildConfig.compile) {
+            let compilationInfo = await this.buildOrderCompilationInfo(compile);
+            let result = await this.buildLocalCode(compilationInfo.toCompile, this.buildConfig.module);
+            this.writeBuildNpm(compile.outputNpm, result);
+        }
     }
 
     /**
@@ -594,6 +607,8 @@ export class Build {
         //         rmSync(p, { recursive: true, force: true });
         //     }
         // }
+        const manifest = outputNpm.manifest ? new Manifest(outputNpm.manifest, this) : null;
+
         for (let path in result.npmsrc) {
             let txt = "";
             for (let uri in result.npmsrc[path].imports) {
@@ -607,6 +622,16 @@ export class Build {
             }
             txt += result.npmsrc[path].content.join(EOL);
             txt = AventusTsLanguageService.removeUnusedImport(txt, result.npmsrc[path].forcedDependances);
+
+            if (manifest) {
+                for (let uri of result.npmsrc[path].sourceUri) {
+                    let file = this.tsFiles[uri];
+                    if (file) {
+                        manifest.register(file);
+                    }
+                }
+            }
+
             for (let outputPackage of outputNpm.path) {
                 const folder = getFolder(path);
                 const outputDir = join(outputPackage, "__src", ...folder.split(sep))
@@ -636,6 +661,8 @@ export class Build {
                 }
                 exportByNamespace[_namespace][outputFile].push(realName);
             }
+
+
         }
         const createFileDef = (_namespace: string, content: { content: string[], imports: { [uri: string]: string[] } } | undefined) => {
             if (!content) {
@@ -746,7 +773,6 @@ export class Build {
                 }
             }
 
-
             let packageJson = {
                 name: outputNpm.npmName == '' ? ("@" + this.buildConfig.module + "/" + this.buildConfig.name).toLowerCase() : outputNpm.npmName,
                 displayName: this.buildConfig.module + " " + this.buildConfig.name,
@@ -763,8 +789,6 @@ export class Build {
                 dependencies
             }
 
-
-
             for (let outputPackage of outputNpm.path) {
                 if (!existsSync(outputPackage)) {
                     mkdirSync(outputPackage, { recursive: true });
@@ -772,6 +796,16 @@ export class Build {
                 this.writeFile(join(outputPackage, "package.json"), JSON.stringify(packageJson, null, 2));
             }
         }
+
+        if (manifest) {
+            for (let outputPackage of outputNpm.path) {
+                if (!existsSync(outputPackage)) {
+                    mkdirSync(outputPackage, { recursive: true });
+                }
+                manifest.write(outputPackage);
+            }
+        }
+
     }
 
     /**
@@ -928,10 +962,14 @@ export class Build {
                             imports: {},
                             names: [],
                             forcedDependances: [],
+                            sourceUri: []
                         }
                     }
                     const txt = info.isExported.internal ? "export " + info.npm.src : info.npm.src;
                     result.npmsrc[info.npm.exportPath].content.push(txt);
+                    if (!result.npmsrc[info.npm.exportPath].sourceUri.includes(info.uri)) {
+                        result.npmsrc[info.npm.exportPath].sourceUri.push(info.uri);
+                    }
                 }
                 addHTMLDoc(info, false);
             }
@@ -1015,7 +1053,8 @@ export class Build {
                             content: [],
                             imports: {},
                             names: [],
-                            forcedDependances: []
+                            forcedDependances: [],
+                            sourceUri: []
                         }
                         let fileParsed = this.tsFiles[info.npm.uri].fileParsed;
                         let importsNpm = fileParsed?.npmGeneratedImport;
@@ -1061,6 +1100,9 @@ export class Build {
                     }
                     const txt = info.isExported.internal ? "export " + info.npm.src : info.npm.src;
                     result.npmsrc[info.npm.exportPath].content.push(txt);
+                    if (!result.npmsrc[info.npm.exportPath].sourceUri.includes(info.uri)) {
+                        result.npmsrc[info.npm.exportPath].sourceUri.push(info.uri);
+                    }
 
                     if (info.isExported.internal && info.classScript) {
                         result.npmsrc[info.npm.exportPath].names.push(this.module + "." + info.classScript);
@@ -1943,7 +1985,7 @@ class ExternalPackageInformation {
         if (this.informations[fullName]) {
             let file = this.files[this.informations[fullName].uri];
             if (!file.npmUri && this.build.initDone) {
-                GenericServer.showErrorMessage("Can't find a npm package for " + file.name+". You must define the npm field inside the dependances section of your aventus.conf.avt. Otherwise, you can disable storybook or remove npm export.");
+                GenericServer.showErrorMessage("Can't find a npm package for " + file.name + ". You must define the npm field inside the dependances section of your aventus.conf.avt. Otherwise, you can disable storybook or remove npm export.");
             }
             const splitted = fullName.split(".");
             let name = splitted.pop() as string;

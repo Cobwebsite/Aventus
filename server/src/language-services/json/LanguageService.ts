@@ -236,7 +236,8 @@ export class AventusJSONLanguageService {
                 compile.outputNpm = {
                     path: [],
                     packageJson: false,
-                    npmName: ''
+                    npmName: '',
+                    live: false,
                 };
             }
             else {
@@ -244,14 +245,18 @@ export class AventusJSONLanguageService {
                     compile.outputNpm = {
                         path: [compile.outputNpm],
                         packageJson: true,
-                        npmName: ''
+                        npmName: '',
+                        manifest: {},
+                        live: false,
                     };
                 }
                 else if (Array.isArray(compile.outputNpm)) {
                     compile.outputNpm = {
                         path: compile.outputNpm,
                         packageJson: true,
-                        npmName: ''
+                        npmName: '',
+                        manifest: {},
+                        live: false,
                     };
                 }
 
@@ -262,8 +267,14 @@ export class AventusJSONLanguageService {
                 if (compile.outputNpm.packageJson === undefined) {
                     compile.outputNpm.packageJson = true;
                 }
+                if (compile.outputNpm.manifest === undefined) {
+                    compile.outputNpm.manifest = {};
+                }
                 if (compile.outputNpm.npmName === undefined) {
                     compile.outputNpm.npmName = '';
+                }
+                if (compile.outputNpm.live === undefined) {
+                    compile.outputNpm.live = false;
                 }
 
 

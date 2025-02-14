@@ -640,14 +640,14 @@ export class ParserHtml {
 					else if (scanner.getTokenType() == TokenType.Whitespace) {
 					}
 					else if (scanner.getTokenType() == TokenType.Unknown) {
-						debugger;
+						//debugger;
 					}
 					else if (scanner.getTokenType() == TokenType.Script) {
 						// ParserHtml.addError(scanner.getTokenOffset(), scanner.getTokenEnd(), "You can't use script inside")
-						debugger;
+						//debugger;
 					}
 					else if (scanner.getTokenType() == TokenType.Styles) {
-						debugger;
+						//debugger;
 					}
 				}
 			}

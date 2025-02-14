@@ -465,7 +465,7 @@ export class AventusSCSSLanguageService {
                                 if (comment?.default) {
                                     cssProperty.defaultValue = comment.default;
                                 }
-                                
+
                                 let finalNode: Node | null = expressionNode;
                                 let chainValues: string[] = [];
                                 let lastChain: string = '';
@@ -489,6 +489,9 @@ export class AventusSCSSLanguageService {
                                 }
                                 if (chainValues.length > 0) {
                                     cssProperty.chainValues = chainValues;
+                                    if (cssProperty.defaultValue == undefined) {
+                                        cssProperty.defaultValue = cssProperty.chainValues[cssProperty.chainValues.length - 1]
+                                    }
                                 }
 
                                 result[cssProperty.name] = cssProperty;

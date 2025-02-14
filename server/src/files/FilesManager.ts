@@ -44,9 +44,11 @@ export class FilesManager {
     public async onCreatedUri(uri: string) {
         if (!this.files[uri]) {
             let extension = getLanguageIdByUri(uri);
-            let currentPath = uriToPath(uri);
-            let textDoc = TextDocument.create(uri, extension, 0, readFileSync(currentPath, 'utf8'));
-            this.registerFile(textDoc);
+            if (extension) {
+                let currentPath = uriToPath(uri);
+                let textDoc = TextDocument.create(uri, extension, 0, readFileSync(currentPath, 'utf8'));
+                this.registerFile(textDoc);
+            }
         }
     }
     public async onUpdatedUri(uri: string) {
@@ -168,7 +170,7 @@ export class FilesManager {
                         }
                     }
                 }
-                
+
                 Statistics.startSendLoadFile();
                 project.loadFiles();
                 Statistics.sendLoadFile();
