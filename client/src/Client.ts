@@ -8,6 +8,7 @@ import { Notifications } from "./notification";
 import { DebugFile } from './file-system/DebugFile';
 import { CommandsInternal } from './cmds-internal';
 import { ReloadSettings } from './cmds/ReloadSettings';
+import { AutoLoader } from './manifest/AutoLoader';
 
 export class Client {
     private _context: ExtensionContext | undefined = undefined;
@@ -24,7 +25,7 @@ export class Client {
     public async init(context: ExtensionContext) {
         this.debugFile = new DebugFile();
         context.subscriptions.push(workspace.registerTextDocumentContentProvider(DebugFile.schema, this.debugFile));
-
+        AutoLoader.getInstance();
         this.components = new AvenutsVsComponent();
         this._context = context;
         let serverOptions = this.createServerOption(context.asAbsolutePath(

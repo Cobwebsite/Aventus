@@ -18,6 +18,7 @@ import { HTMLFormat } from '../../html/parser/definition';
 import { join } from 'path';
 import { InjectionRender } from '../../html/parser/TagInfo';
 import { InputType } from '@aventusjs/storybook';
+import { AventusWebSCSSFile } from '../../scss/File';
 
 type ViewMethodInfo = {
     name: string
@@ -67,6 +68,12 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
             return this.build.wcFiles[this.file.uri].view;
         }
         return this.build.htmlFiles[this.file.uri.replace(AventusExtension.ComponentLogic, AventusExtension.ComponentView)];
+    }
+    public get SCSSFile(): AventusWebSCSSFile | undefined {
+        if (this.file.uri.endsWith(AventusExtension.Component)) {
+            return this.build.wcFiles[this.file.uri].style;
+        }
+        return this.build.scssFiles[this.file.uri.replace(AventusExtension.ComponentLogic, AventusExtension.ComponentStyle)];
     }
     private _fullname: string = "";
     public get fullName(): string {

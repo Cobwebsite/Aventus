@@ -33,10 +33,15 @@ export interface AventusConfigBuildCompile {
 	compressed?: boolean,
 }
 
+export interface AventusConfigBuildCompileOutputNpmManifest {
+	srcBaseUrl?: string
+}
 export interface AventusConfigBuildCompileOutputNpm {
 	path: string[],
 	packageJson: boolean,
-	npmName: string
+	npmName: string,
+	manifest?: AventusConfigBuildCompileOutputNpmManifest,
+	live: boolean
 }
 
 export interface AventusConfigBuildDependance {

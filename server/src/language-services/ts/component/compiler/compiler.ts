@@ -126,7 +126,6 @@ export class AventusWebcomponentCompiler {
         },
         convertibleName: '',
         tagName: '',
-        story: {}
     }
     private parentClassName: string = "";
     private parentClassNameNpm: string = "";
@@ -1846,7 +1845,7 @@ this.clearWatchHistory = () => {
             }
             this.htmlDoc[this.tagName].attributes[field.name] = {
                 name: field.name,
-                description: field.documentation?.fullDefinitions.join(EOL) ?? '',
+                description: field.documentation?.definitions.join(EOL) ?? '',
                 type: realType,
                 values: definedValues
             }

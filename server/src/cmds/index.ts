@@ -29,6 +29,7 @@ import { ReloadSettings } from './ReloadSettings';
 import { CreateCSSVariable } from './webcomponent/CreateCSSVariable';
 import { StorybookBuild } from './storybook/Build';
 import { ImportProject } from './file-system/ImportProject';
+import { NpmBuild } from './npm/Build';
 
 export const Commands = {
     allCommandes: {
@@ -61,7 +62,8 @@ export const Commands = {
         [ImportProject.cmd]: ImportProject,
         [SharpExport.cmd]: SharpExport,
         [ReloadSettings.cmd]: ReloadSettings,
-        [StorybookBuild.cmd]: StorybookBuild
+        [StorybookBuild.cmd]: StorybookBuild,
+        [NpmBuild.cmd]: NpmBuild,
     },
     execute: function (params: ExecuteCommandParams) {
         let cmd = this.allCommandes[params.command];

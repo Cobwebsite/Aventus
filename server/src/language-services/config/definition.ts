@@ -59,6 +59,8 @@ interface ICompileConfig {
 interface IOutputNpmConfig {
     path?: string | string[];
     packageJson?: boolean;
+    manifest?: boolean,
+    live?: boolean;
 }
 
 interface IStaticConfig {

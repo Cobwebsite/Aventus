@@ -225,6 +225,15 @@ export class Project {
         }
         return result;
     }
+    public getBuildsNameWithNpm(): string[] {
+        let result: string[] = [];
+        for (let build of this.builds) {
+            if (build.hasNpmOutput) {
+                result.push(build.fullname);
+            }
+        }
+        return result;
+    }
     public getBuild(name: string): Build | undefined {
         for (let build of this.builds) {
             if (build.fullname == name) {

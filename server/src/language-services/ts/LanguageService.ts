@@ -1009,7 +1009,6 @@ export class AventusTsLanguageService {
                 uri: file.file.uri,
                 src: ""
             },
-            story: {}
         }
         try {
             let additionContent = "";
@@ -1405,9 +1404,7 @@ export type CompileTsResultNpm = {
     uri: string,
     src: string
 }
-export type CompileTsResultStory = {
 
-}
 export type CompileTsResult = {
     compiled: string,
     hotReload: string,
@@ -1427,7 +1424,6 @@ export type CompileTsResult = {
     convertibleName: string,
     tagName?: string,
     npm: CompileTsResultNpm;
-    story: CompileTsResultStory
 }
 
 

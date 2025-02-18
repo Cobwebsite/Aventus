@@ -345,6 +345,16 @@ export class ClassInfo extends BaseInfo {
 		}
 		return false;
 	}
+	public getStaticFieldParentClass(name: string): ClassInfo | null {
+		let classToSearch: ClassInfo | null = this.parentClass;
+		while (classToSearch != null) {
+			if (classToSearch.propertiesStatic[name] != undefined) {
+				return classToSearch;
+			}
+			classToSearch = classToSearch.parentClass;
+		}
+		return null;
+	}
 	public hasField(name: string): boolean {
 		return this.getField(name) != null
 	}
@@ -353,6 +363,36 @@ export class ClassInfo extends BaseInfo {
 		while (classToSearch != null) {
 			if (classToSearch.properties[name] != undefined) {
 				return classToSearch.properties[name];
+			}
+			classToSearch = classToSearch.parentClass;
+		}
+		return null;
+	}
+	public getFieldParentClass(name: string): ClassInfo | null {
+		let classToSearch: ClassInfo | null = this.parentClass;
+		while (classToSearch != null) {
+			if (classToSearch.properties[name] != undefined) {
+				return classToSearch;
+			}
+			classToSearch = classToSearch.parentClass;
+		}
+		return null;
+	}
+	public getMethodParentClass(name: string): ClassInfo | null {
+		let classToSearch: ClassInfo | null = this.parentClass;
+		while (classToSearch != null) {
+			if (classToSearch.methods[name] != undefined) {
+				return classToSearch;
+			}
+			classToSearch = classToSearch.parentClass;
+		}
+		return null;
+	}
+	public getStaticMethodParentClass(name: string): ClassInfo | null {
+		let classToSearch: ClassInfo | null = this.parentClass;
+		while (classToSearch != null) {
+			if (classToSearch.methodsStatic[name] != undefined) {
+				return classToSearch;
 			}
 			classToSearch = classToSearch.parentClass;
 		}

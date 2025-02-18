@@ -26,6 +26,7 @@ import { ReloadSettings } from './ReloadSettings';
 import { CreateCSSVariable } from './webcomponent/CreateCSSVariable';
 import { StorybookBuild } from './storybook/StorybookBuild';
 import { ProjectImport } from './file-system/ImportProject';
+import { NpmBuild } from './npm/StorybookBuild';
 
 
 export const Commands = {
@@ -57,6 +58,7 @@ export const Commands = {
         [SplitComponent.cmd]: SplitComponent,
         [SharpExport.cmd]: SharpExport,
         [ReloadSettings.cmd]: ReloadSettings,
-        [StorybookBuild.cmd]: StorybookBuild
+        [StorybookBuild.cmd]: StorybookBuild,
+        [NpmBuild.cmd]: NpmBuild,
     },
 }
