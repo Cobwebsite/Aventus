@@ -26,7 +26,7 @@ import { ReloadSettings } from './ReloadSettings';
 import { CreateCSSVariable } from './webcomponent/CreateCSSVariable';
 import { StorybookBuild } from './storybook/StorybookBuild';
 import { ProjectImport } from './file-system/ImportProject';
-import { NpmBuild } from './npm/StorybookBuild';
+import { NpmBuild } from './npm/NpmBuild';
 
 
 export const Commands = {
