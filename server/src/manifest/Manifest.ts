@@ -13,6 +13,7 @@ import { TypeInfo } from '../language-services/ts/parser/TypeInfo';
 import { Build } from '../project/Build';
 import { CustomElements } from './CustomElements';
 import { HtmlCustomData } from './HtmlCustomData';
+import { WebTypes } from './WebTypes';
 
 type SlotsInfo = { [name: string]: { local: boolean, doc?: string } }
 export type ManifestInfo = {
@@ -31,6 +32,7 @@ export class Manifest {
 
 	private customElements: CustomElements;
 	private htmlCustomData: HtmlCustomData;
+	private webTypes: WebTypes;
 	public configFile: AventusFile;
 	public manifestConfig: AventusConfigBuildCompileOutputNpmManifest;
 	public build: Build;
@@ -38,6 +40,7 @@ export class Manifest {
 		this.build = build;
 		this.customElements = new CustomElements(this);
 		this.htmlCustomData = new HtmlCustomData(this);
+		this.webTypes = new WebTypes(this);
 		this.manifestConfig = manifest;
 		this.configFile = this.build.project.getConfigFile();
 	}
@@ -138,6 +141,7 @@ export class Manifest {
 
 			this.customElements.register(file, info)
 			this.htmlCustomData.register(file, info)
+			this.webTypes.register(file, info);
 		}
 	}
 
@@ -216,6 +220,120 @@ export class Manifest {
 		if (typeInfo.isArray) {
 			result += "[]";
 		}
+		return result;
+	}
+
+
+	public generateDescription(info: ManifestInfo) {
+
+		let result = "## " + info.fullName;
+		if (info.class.documentation) {
+			result += "\n" + info.class.documentation?.definitions.join("\n");
+		}
+		result += "\n";
+
+		const addTitle = (title: string) => {
+			result += `\n### **${title}:**\n`
+		}
+		const addProp = (name: string, value?: string) => {
+			if (value) {
+				result += ` - **${name}** - ${value}\n`
+			}
+			else {
+				result += ` - **${name}**\n`
+			}
+		}
+
+		const { attributes, methods, methodsStatic, props, propsStatic, slots, cssProperties } = info;
+
+
+		const addProps = (properties: PropertyInfo[], title: string) => {
+			if (properties.length > 0) {
+				addTitle(title);
+				for (let field of properties) {
+					let values: string = this.getTypeTxt(field.type)
+					const descr = field.documentation?.definitions.join("\n");
+					if (values) {
+						addProp(field.name + ": " + values, descr)
+					}
+					else {
+						addProp(field.name, descr)
+					}
+				}
+			}
+		}
+		addProps(attributes, "Attributes")
+		addProps(props, "Properties")
+		addProps(propsStatic, "Static Properties")
+
+		// add slot
+		if (Object.keys(slots).length > 0) {
+			addTitle("Slots");
+			for (let name in slots) {
+				addProp(name, slots[name].doc);
+			}
+		}
+		// add css variables
+		if (cssProperties.length > 0) {
+			addTitle("CSS Variables");
+			for (let cssVar of cssProperties) {
+
+				let name = cssVar.name;
+				if (cssVar.type) {
+					if (cssVar.type == "literal" && cssVar.typeValues) {
+						name += ": " + cssVar.typeValues.join(" | ");
+					}
+					else {
+						name += ": " + cssVar.type
+					}
+				}
+				addProp(name, cssVar.documentation);
+
+				if (cssVar.chainValues) {
+					result += `   - ${cssVar.chainValues.join(" < ")}\n`
+				}
+			}
+		}
+		// add cssPart // not ready
+
+		// add method
+		const addMethod = (methods: MethodInfo[], title: string) => {
+			if (methods.length > 0) {
+				addTitle(title);
+				for (let method of methods) {
+					const parameters: string[] = [];
+					if (method.node.parameters.length > 0) {
+						for (let p of method.node.parameters) {
+							let txt = p.name.getText();
+
+							if (p.questionToken) {
+								txt += "?";
+							}
+							if (p.type) {
+								txt += ": " + this.getTypeTxt(new TypeInfo(p.type))
+							}
+							if (p.initializer) {
+								txt += " = " + p.initializer.getText();
+							}
+							parameters.push(txt);
+						}
+					}
+					let descr = `${method.name}(${parameters.join(", ")})`;
+					if (method.node.type) {
+						const type = this.getTypeTxt(new TypeInfo(method.node.type));
+						descr += ": " + type;
+					}
+					addProp(descr, method.documentation?.definitions.join("\n"))
+				}
+			}
+		}
+		addMethod(methods, "Methods");
+		addMethod(methodsStatic, "Static Methods");
+
+		if (result.endsWith("\n")) {
+			result = result.substring(0, result.length - 1);
+		}
+
 		return result;
 	}
 }

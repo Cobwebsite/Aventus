@@ -490,7 +490,8 @@ export interface BaseContribution {
 	html?: Html
 	css?: Css
 	js?: Js
-	"exclusive-contributions"?: ExclusiveContributions
+	"exclusive-contributions"?: ExclusiveContributions,
+	type?: string
 }
 /**
  * Custom sections to be shown below description in the documentation popup.
