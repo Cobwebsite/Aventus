@@ -435,7 +435,7 @@ let Callback=class Callback {
     /**
      * Trigger all callbacks
      */
-    trigger(args) {
+    trigger(...args) {
         let result = [];
         let cbs = [...this.callbacks];
         for (let [cb, scope] of cbs) {

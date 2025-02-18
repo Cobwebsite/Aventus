@@ -81,7 +81,7 @@ namespace Form {
             this.validate();
             if(this.inputEl && this.inputEl.value != this.value) {
                 this.value = this.inputEl.value;
-                this.onChange.trigger([this.value]);
+                this.onChange.trigger(this.value);
             }
         }
 

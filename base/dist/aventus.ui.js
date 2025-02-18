@@ -441,7 +441,7 @@ let Callback=class Callback {
     /**
      * Trigger all callbacks
      */
-    trigger(args) {
+    trigger(...args) {
         let result = [];
         let cbs = [...this.callbacks];
         for (let [cb, scope] of cbs) {
@@ -5676,11 +5676,11 @@ Navigation.RouterLink = class RouterLink extends Aventus.WebComponent {
         Aventus.Instance.get(RouterStateManager).subscribe(activeState, {
             active: () => {
                 this.classList.add("active");
-                this.onActiveChange.trigger([true]);
+                this.onActiveChange.trigger(true);
             },
             inactive: () => {
                 this.classList.remove("active");
-                this.onActiveChange.trigger([false]);
+                this.onActiveChange.trigger(false);
             }
         });
     }
@@ -6233,7 +6233,7 @@ Form.Input = class Input extends Aventus.WebComponent {
         this.validate();
         if (this.inputEl && this.inputEl.value != this.value) {
             this.value = this.inputEl.value;
-            this.onChange.trigger([this.value]);
+            this.onChange.trigger(this.value);
         }
     }
     addValidationRule(cb) {
@@ -6391,7 +6391,7 @@ Form.Checkbox = class Checkbox extends Aventus.WebComponent {
             element: this,
             onPress: () => {
                 this.checked = !this.checked;
-                this.onChange.trigger([this.checked]);
+                this.onChange.trigger(this.checked);
             }
         });
     }
@@ -6732,7 +6732,7 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
         return value;
     }
     triggerScrollChange() {
-        this.onScrollChange.trigger([this.x, this.y]);
+        this.onScrollChange.trigger(this.x, this.y);
     }
     scrollToPosition(x, y) {
         this.scrollDirection('x', x);

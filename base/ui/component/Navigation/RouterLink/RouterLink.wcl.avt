@@ -62,11 +62,11 @@ namespace Navigation {
             Aventus.Instance.get(RouterStateManager).subscribe(activeState, {
                 active: () => {
                     this.classList.add("active");
-                    this.onActiveChange.trigger([true]);
+                    this.onActiveChange.trigger(true);
                 },
                 inactive: () => {
                     this.classList.remove("active");
-                    this.onActiveChange.trigger([false]);
+                    this.onActiveChange.trigger(false);
                 }
             });
         }

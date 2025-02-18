@@ -282,7 +282,7 @@ namespace Layout {
         }
 
         private triggerScrollChange() {
-            this.onScrollChange.trigger([this.x, this.y]);
+            this.onScrollChange.trigger(this.x, this.y);
         }
 
 

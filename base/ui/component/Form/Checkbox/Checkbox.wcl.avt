@@ -83,7 +83,7 @@ namespace Form {
                 element: this,
                 onPress: () => {
                     this.checked = !this.checked;
-                    this.onChange.trigger([this.checked]);
+                    this.onChange.trigger(this.checked);
                 }
             });
         }

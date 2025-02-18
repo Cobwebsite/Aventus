@@ -821,7 +821,7 @@ let Callback=class Callback {
     /**
      * Trigger all callbacks
      */
-    trigger(args) {
+    trigger(...args) {
         let result = [];
         let cbs = [...this.callbacks];
         for (let [cb, scope] of cbs) {
@@ -869,7 +869,7 @@ let CallbackGroup=class CallbackGroup {
     /**
      * Trigger all callbacks inside a group
      */
-    trigger(group, args) {
+    trigger(group, ...args) {
         if (this.callbacks[group]) {
             let cbs = [...this.callbacks[group]];
             for (let [cb, scope] of cbs) {
@@ -5244,7 +5244,7 @@ let StateManager=class StateManager {
                 }
                 stateToUse.onActivate();
             }
-            this.afterStateChanged.trigger([]);
+            this.afterStateChanged.trigger();
             return true;
         });
         return result ?? false;

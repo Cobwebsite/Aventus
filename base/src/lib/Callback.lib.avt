@@ -37,7 +37,7 @@ export class CallbackGroup<U extends (...args: any) => void> {
     /**
      * Trigger all callbacks inside a group
      */
-    public trigger(group: string | number, args: Parameters<U>): void {
+    public trigger(group: string | number, ...args: Parameters<U>): void {
         if(this.callbacks[group]) {
             let cbs = [...this.callbacks[group]];
             for(let [cb, scope] of cbs) {
@@ -75,7 +75,7 @@ export class Callback<U extends (...args: any) => T, T = void> {
     /**
      * Trigger all callbacks
      */
-    public trigger(args: Parameters<U>): T[] {
+    public trigger(...args: Parameters<U>): T[] {
         let result: T[] = [];
         let cbs = [...this.callbacks];
         for(let [cb, scope] of cbs) {
