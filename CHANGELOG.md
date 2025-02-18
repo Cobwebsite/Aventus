@@ -1,5 +1,16 @@
 # Change Log
 
+## 1.3.8 ()
+
+### Bug Fixes
+ - Fix drag&drop to get right position for svg and htmlelement
+
+### Features
+ - Add custom-elemments.json generation
+ - Add html-custom-data.json generation
+ - Add web-types.json generation
+ - Auto detect new html-custom-data.json inside your project and ask to add it into your vscode settings
+
 ## 1.3.8 (2025-01-26)
 
 ### Bug Fixes
