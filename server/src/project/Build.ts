@@ -5,7 +5,7 @@ import { Diagnostic, DiagnosticSeverity, TextEdit } from 'vscode-languageserver'
 import { AventusErrorCode, AventusExtension, AventusLanguageId } from "../definition";
 import { AventusFile } from '../files/AventusFile';
 import { FilesManager } from '../files/FilesManager';
-import { AventusHTMLFile } from "../language-services/html/File";
+import { AventusHTMLFile, SlotsInfo } from "../language-services/html/File";
 import { HTMLDoc } from '../language-services/html/helper/definition';
 import { AventusHTMLLanguageService } from "../language-services/html/LanguageService";
 import { AventusConfigBuild, AventusConfigBuildCompile, AventusConfigBuildCompileOutputNpm } from "../language-services/json/definition";
@@ -37,6 +37,7 @@ import { Storie } from './storybook/Stories';
 import * as md5 from 'md5';
 import { Statistics } from '../notification/Statistics';
 import { Manifest } from '../manifest/Manifest';
+import { OverrideViewDecorator } from '../language-services/ts/parser/decorators/OverrideViewDecorator';
 
 export type BuildErrors = { file: string, title: string }[]
 
@@ -921,8 +922,9 @@ export class Build {
                             type: info.type,
                             isExported: info.isExported.external,
                             convertibleName: info.convertibleName,
-                            tagName: info.tagName
+                            tagName: info.tagName,
                         }
+                        if (info.slots) renderInJsByFullname[info.classScript].slots = info.slots
                     }
                 }
                 else {
@@ -997,6 +999,7 @@ export class Build {
                             convertibleName: info.convertibleName,
                             tagName: info.tagName
                         }
+                        if (info.slots) renderInJsByFullname[exportName].slots = info.slots
                     }
                 }
                 else {
@@ -1823,6 +1826,58 @@ export class Build {
             return this.externalPackageInformation.getExternalWebComponentDefinitionFile(className);
         }
         return undefined;
+    }
+    public getSlotsInfo(_class: ClassInfo): SlotsInfo {
+        let slots: SlotsInfo = {};
+        const preventSlots: string[] = [];
+        let noMoreSlots: boolean = false;
+        let classTemp: ClassInfo | null = _class;
+        while (classTemp && classTemp.fullName != 'Aventus.WebComponent') {
+            const tsfile = this.tsFiles[classTemp.fileUri];
+            if (!tsfile) {
+                let info = this.externalPackageInformation.getByFullName(classTemp.fullName);
+                if (info.content != "noCode" && info.content.slots && !noMoreSlots) {
+                    for (let name in info.content.slots) {
+                        if (preventSlots.includes(name)) continue;
+                        if (!slots[name]) {
+                            slots[name] = {
+                                local: classTemp == _class,
+                            }
+                        }
+                        if (!slots[name].doc && classTemp.documentation?.documentationSlots[name]) {
+                            slots[name].doc = classTemp.documentation?.documentationSlots[name];
+                        }
+                    }
+                }
+            }
+            else if (tsfile instanceof AventusWebComponentLogicalFile) {
+                if (tsfile.HTMLFile?.fileParsed?.slotsInfo && !noMoreSlots) {
+                    for (let name in tsfile.HTMLFile.fileParsed.slotsInfo) {
+                        if (preventSlots.includes(name)) continue;
+                        if (!slots[name]) {
+                            slots[name] = {
+                                local: classTemp == _class,
+                            }
+                        }
+                        if (!slots[name].doc && classTemp.documentation?.documentationSlots[name]) {
+                            slots[name].doc = classTemp.documentation?.documentationSlots[name];
+                        }
+                    }
+                    for (let name in tsfile.HTMLFile.fileParsed.blocksInfo) {
+                        // if there is no slot name X inside children
+                        if (!slots[name]) {
+                            // we prevent adding slot
+                            preventSlots.push(name);
+                        }
+                    }
+                }
+            }
+            if (classTemp.decorators.find(p => OverrideViewDecorator.is(p))) {
+                noMoreSlots = true;
+            }
+            classTemp = classTemp.parentClass;
+        }
+        return slots;
     }
 
     public getNamespaceForUri(uri: string): string {

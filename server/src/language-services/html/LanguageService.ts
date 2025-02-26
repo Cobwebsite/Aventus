@@ -13,6 +13,7 @@ import { PropertyInfo } from '../ts/parser/PropertyInfo';
 import { ClassInfo } from '../ts/parser/ClassInfo';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { convertRange, getWordAtText } from '../../tools';
+import { TagInfo } from './parser/TagInfo';
 
 
 export class AventusHTMLLanguageService {
@@ -74,6 +75,7 @@ export class AventusHTMLLanguageService {
                     provideValues: this.provideValues.bind(this)
                 }
             ],
+
         });
     }
     public getId(): string {
@@ -83,31 +85,81 @@ export class AventusHTMLLanguageService {
         return this.customTagsData;
     }
     public provideAttributes(tag: string): IAttributeData[] {
-        let result: IAttributeData[] = [...defaultAttrs];
-        if (this.documentationInfo[tag]) {
-            let attrs = this.documentationInfo[tag].attributes;
-            for (let attrName in attrs) {
-                let current = attrs[attrName];
-                if (this.isAutoComplete) {
-                    result.push({
-                        name: "!!" + current.name,
-                        description: JSON.stringify({
-                            description: current.description,
-                            type: current.type,
+        let result: IAttributeData[] = [];
+        if (tag == "block") {
+            const attr: IAttributeData = {
+                name: "name",
+                values: []
+            }
+            const info = this.currentFile?.slotsInfo ?? {};
+            for (let name in info) {
+                attr.values?.push({
+                    name: name,
+                    description: info[name].doc,
+                })
+            }
+            result.push(attr);
+        }
+        else {
+            result = [...defaultAttrs];
+            if (this.documentationInfo[tag]) {
+                let attrs = this.documentationInfo[tag].attributes;
+                for (let attrName in attrs) {
+                    let current = attrs[attrName];
+                    if (this.isAutoComplete) {
+                        result.push({
+                            name: "!!" + current.name,
+                            description: JSON.stringify({
+                                description: current.description,
+                                type: current.type,
+                            })
                         })
-                    })
-                }
-                else {
-                    result.push({
-                        name: current.name,
-                        description: current.description
-                    })
+                    }
+                    else {
+                        result.push({
+                            name: current.name,
+                            description: current.description
+                        })
+                    }
                 }
             }
         }
         return result;
     }
     public provideValues(tag: string, attribute: string): IValueData[] {
+        if (tag == "block") {
+            if (attribute == "name") {
+                const result: IValueData[] = [];
+                const info = this.currentFile?.slotsInfo ?? {};
+                for (let name in info) {
+                    result.push({
+                        name: name,
+                        description: info[name].doc,
+                    })
+                }
+                return result;
+            }
+        }
+        if (attribute == "slot") {
+            // load slot from parent tag
+            if (this.currentFile && this.currentFileOffset) {
+                let tagInfo = this.getTag(this.currentFile, this.currentFileOffset);
+                if (tagInfo?.parent) {
+                    let file = this.currentFile.build.getWebComponentDefinition(tagInfo.parent.tagName);
+                    if (file?.class) {
+                        const slotsInfo = this.currentFile.build.getSlotsInfo(file?.class);
+                        const result: IValueData[] = [];
+                        for (let name in slotsInfo) {
+                            result.push({
+                                name: name,
+                                description: slotsInfo[name].doc,
+                            })
+                        }
+                        return result;
+                    }
+                }
+            }
+        }
         if (this.documentationInfo[tag] && this.documentationInfo[tag].attributes[attribute]) {
             return this.documentationInfo[tag].attributes[attribute].values;
         }
@@ -117,10 +169,14 @@ export class AventusHTMLLanguageService {
     //#endregion
 
     //#region language service function
+    private currentFile: AventusHTMLFile | undefined = undefined;
+    private currentFileOffset: number | undefined = undefined;
     public async doValidation(file: AventusFile): Promise<Diagnostic[]> {
         return [];
     }
     public async doComplete(htmlFile: AventusHTMLFile, position: Position): Promise<CompletionList> {
+        this.currentFile = htmlFile;
+        this.currentFileOffset = htmlFile.file.documentUser.offsetAt(position);
         let docHTML = this.languageService.parseHTMLDocument(htmlFile.file.documentUser);
         if (docHTML) {
             this.isAutoComplete = true;
@@ -159,8 +215,12 @@ export class AventusHTMLLanguageService {
                 }
             }
             result.items = result.items.concat(this.doCustomComplete(htmlFile, position));
+            this.currentFile = undefined;
+            this.currentFileOffset = undefined;
             return result;
         }
+        this.currentFile = undefined;
+        this.currentFileOffset = undefined;
         return { isIncomplete: false, items: [] };
     }
 
@@ -196,9 +256,25 @@ export class AventusHTMLLanguageService {
         return result;
     }
 
+    private getTag(file: AventusHTMLFile, offset: number): TagInfo | null {
+        if (!file.fileParsed) return null;
+        for (let tag of file.fileParsed.tags) {
+            if (offset < tag.start) {
+                break;
+            }
+
+            if (offset >= tag.openTagStart && offset <= tag.openTagEnd) {
+                return tag;
+            }
+        }
+        return null;
+    }
+
     public async doHover(file: AventusHTMLFile, position: Position): Promise<Hover | null> {
+        this.currentFile = file;
         let info = this.getLinkToLogic(file, position);
         if (info) {
+            this.currentFile = undefined;
             return {
                 contents: {
                     kind: 'markdown',
@@ -210,9 +286,11 @@ export class AventusHTMLLanguageService {
         else {
             let docHTML = this.languageService.parseHTMLDocument(file.file.documentUser);
             if (docHTML) {
+                this.currentFile = undefined;
                 return this.languageService.doHover(file.file.documentUser, position, docHTML)
             }
         }
+        this.currentFile = undefined;
         return null;
     }
     public async format(document: TextDocument, range: Range, formatParams: FormattingOptions): Promise<TextEdit[]> {
@@ -397,7 +475,7 @@ export class AventusHTMLLanguageService {
         return this.internalTagUri[tag];
     }
     public addInternalTagUri(tag: string, uri: string, fullname: string) {
-        this.internalTagUri[tag] = {uri, fullname};
+        this.internalTagUri[tag] = { uri, fullname };
     }
     public removeInternalTagUri(uri: string) {
         for (let tag in this.internalTagUri) {

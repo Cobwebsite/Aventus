@@ -297,6 +297,7 @@ export class AventusWebcomponentCompiler {
             if (!this.classInfo.isAbstract && !this.classInfo.isInterface) {
                 this.componentResult.tagName = this.tagName;
             }
+            this.componentResult.slots = this.htmlFile?.slotsInfo;
             this.componentResult.compiled = this.template.replace("//todelete for hmr °", "");
             this.componentResult.npm.src = this.templateNpm?.replace("//todelete for hmr °", "") ?? '';
             if (HttpServer.isRunning) {

@@ -2657,7 +2657,7 @@ let StateManager=class StateManager {
                 }
                 stateToUse.onActivate();
             }
-            this.afterStateChanged.trigger([]);
+            this.afterStateChanged.trigger();
             return true;
         });
         return result ?? false;
