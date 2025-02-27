@@ -9,6 +9,7 @@ import { TypeInfo } from './TypeInfo';
 import { StorybookDecorator } from './decorators/StorybookDecorator';
 import * as md5 from 'md5';
 import { EOL } from 'os';
+import { ListCallbacks } from '../component/compiler/def';
 
 
 export class ClassInfo extends BaseInfo {
@@ -395,6 +396,31 @@ export class ClassInfo extends BaseInfo {
 				return classToSearch;
 			}
 			classToSearch = classToSearch.parentClass;
+		}
+		return null;
+	}
+	public getEvent(name: string): PropertyInfo | null {
+		let eventsToLook: string[];
+		if(name.startsWith("@")) {
+			name = name.slice(1)
+		}
+		if (name.startsWith("on")) {
+			eventsToLook = [name];
+		}
+		else {
+			eventsToLook = [name, 'on' + name, 'on' + name.charAt(0).toUpperCase() + name.slice(1)];
+		}
+		for (let eventName of eventsToLook) {
+			let classToSearch: ClassInfo | null = this;
+			while (classToSearch != null) {
+				if (classToSearch.properties[eventName] != undefined) {
+					let type = classToSearch.properties[eventName].type.value;
+					if (ListCallbacks.includes(type)) {
+						return classToSearch.properties[eventName];
+					}
+				}
+				classToSearch = classToSearch.parentClass;
+			}
 		}
 		return null;
 	}

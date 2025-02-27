@@ -523,11 +523,18 @@ export class AttributeInfo {
 				end: this.valueEnd
 			})
 			ParserHtml.addInterestPoint({
+				name: this.name.slice(1),
+				start: this.nameStart,
+				end: this.nameEnd,
+				type: 'event'
+			})
+			ParserHtml.addInterestPoint({
 				name: value,
 				start: this.nameStart,
 				end: this.valueEnd,
 				type: 'method'
 			})
+			
 		}
 		else {
 			let result = parseTxt(value, this.valueStart);

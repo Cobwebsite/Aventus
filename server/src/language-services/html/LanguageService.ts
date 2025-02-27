@@ -278,7 +278,7 @@ export class AventusHTMLLanguageService {
             return {
                 contents: {
                     kind: 'markdown',
-                    value: info.documentation?.fullDefinitions.join("\n") ?? '',
+                    value: info.documentation?.definitions.join("\n") ?? '',
                 }
             };
 
@@ -297,9 +297,11 @@ export class AventusHTMLLanguageService {
         return this.languageService.format(document, range, formatParams);
     }
     public async onDefinition(file: AventusHTMLFile, position: Position): Promise<Definition | null> {
+        this.currentFile = file;
         let info = this.getLinkToLogic(file, position);
-        let tsFile = file.tsFile;
-        if ((info instanceof MethodInfo || info instanceof PropertyInfo) && tsFile) {
+        if ((info instanceof MethodInfo || info instanceof PropertyInfo)) {
+            let tsFile = file.build.tsFiles[info._class.fileUri]
+            this.currentFile = undefined;
             return {
                 uri: tsFile.file.uri,
                 range: {
@@ -309,6 +311,7 @@ export class AventusHTMLLanguageService {
             }
         }
         else if (info instanceof ClassInfo) {
+            this.currentFile = undefined;
             return {
                 uri: info.document.uri,
                 range: {
@@ -317,8 +320,7 @@ export class AventusHTMLLanguageService {
                 }
             }
         }
-
-
+        this.currentFile = undefined;
         return null;
     }
     //#endregion
@@ -332,6 +334,17 @@ export class AventusHTMLLanguageService {
             for (let point of file.fileParsed.interestPoints) {
                 if (offset >= point.start && offset <= point.end) {
                     let element: MethodInfo | PropertyInfo | null = null;
+                    if (point.type == "event") {
+                        // find tag
+                        let tag = this.getTag(file, offset);
+                        if (tag) {
+                            let classInfo = file.build.getWebComponentDefinition(tag.tagName);
+                            if (classInfo) {
+                                let _event = classInfo.class.getEvent(point.name);
+                                if (_event) return _event;
+                            }
+                        }
+                    }
                     if (point.type == "method") {
                         element = classInfo.methods[point.name];
                     }
@@ -357,6 +370,7 @@ export class AventusHTMLLanguageService {
                             }
                         }
                     }
+
                     return element;
                 }
                 else if (point.end >= offset) {
