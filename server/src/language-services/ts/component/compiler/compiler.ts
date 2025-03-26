@@ -778,7 +778,7 @@ export class AventusWebcomponentCompiler {
                     injectables.push(field);
                 }
             }
-            if(ListCallbacks.includes(field.type.value)) {
+            if (ListCallbacks.includes(field.type.value)) {
                 events.push(field);
             }
 
@@ -1867,7 +1867,7 @@ this.clearWatchHistory = () => {
         if (this.htmlDoc) {
             for (let field of fields) {
                 let evName = field.name;
-                if(evName.startsWith("on")) {
+                if (evName.startsWith("on")) {
                     evName = evName.slice(2);
                     evName = evName.charAt(0).toLowerCase() + evName.slice(1)
                 }
@@ -1904,15 +1904,11 @@ this.clearWatchHistory = () => {
             this.result.missingMethods.position = startPos;
         }
         let errorTxt = "missing method " + methodName;
-        if (this.result.missingMethods.position != -1) {
-            if (!this.result.missingMethods.elements.includes(methodName)) {
-                this.result.missingMethods.elements.push(methodName);
-                this.result.diagnostics.push(createErrorTsSection(this.document, errorTxt, "methods", AventusErrorCode.MissingMethod))
-            }
-        }
-        else {
+        if (!this.result.missingMethods.elements.includes(methodName)) {
+            this.result.missingMethods.elements.push(methodName);
             this.result.diagnostics.push(createErrorTsSection(this.document, errorTxt, "methods", AventusErrorCode.MissingMethod))
         }
+
         if (this.htmlFile) {
             this.htmlFile.tsErrors.push(createErrorHTMLPos(this.htmlFile.file.documentUser, errorTxt, start, end));
         }
