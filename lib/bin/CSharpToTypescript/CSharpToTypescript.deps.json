@@ -487,7 +487,10 @@
           "System.Drawing.Common": "8.0.1"
         },
         "runtime": {
-          "AventusSharp.dll": {}
+          "AventusSharp.dll": {
+            "assemblyVersion": "0.0.6.0",
+            "fileVersion": "0.0.6.0"
+          }
         }
       }
     }

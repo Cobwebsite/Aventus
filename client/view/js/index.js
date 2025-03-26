@@ -837,7 +837,7 @@ let Effect=class Effect {
         }
         else {
             cb = (action, changePath, value, dones) => {
-                let full = fullPath;
+                // if(changePath == path || changePath.startsWith(path + ".") || changePath.startsWith(path + "[")) {
                 if (changePath == path) {
                     this.onChange(action, changePath, value, dones);
                 }
@@ -1725,6 +1725,14 @@ let Watcher=class Watcher {
         return comp;
     }
     /**
+     * Create an effect variable that will watch any changes inside the fct and trigger the cb on change
+     */
+    static watch(fct, cb) {
+        const comp = new Effect(fct);
+        comp.subscribe(cb);
+        return comp;
+    }
+    /**
      * Create a signal variable
      */
     static signal(item, onChange) {
@@ -1858,6 +1866,7 @@ let PressManager=class PressManager {
             return new PressManager(options);
         }
     }
+    static onEvent = new Callback();
     options;
     element;
     delayDblPress;
@@ -2070,6 +2079,7 @@ let PressManager=class PressManager {
         if (this.options.onEvent) {
             this.options.onEvent(e);
         }
+        PressManager.onEvent.trigger(e, this);
         if (e.button != undefined && !this.options.buttonAllowed?.includes(e.button)) {
             this.unregisterEvent(ev);
             return;
@@ -2156,6 +2166,7 @@ let PressManager=class PressManager {
         if (this.options.onEvent) {
             this.options.onEvent(e);
         }
+        PressManager.onEvent.trigger(e, this);
         if (this.stopPropagation()) {
             e.stopImmediatePropagation();
         }
@@ -2201,6 +2212,7 @@ let PressManager=class PressManager {
         if (this.options.onEvent) {
             this.options.onEvent(e);
         }
+        PressManager.onEvent.trigger(e, this);
         if (this.stopPropagation()) {
             e.stopImmediatePropagation();
         }

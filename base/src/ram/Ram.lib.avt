@@ -236,7 +236,8 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Add element inside Ram or update it. The instance inside the ram is unique and ll never be replaced
      */
-    protected async addOrUpdateData(item: KeysObject<T>, result: ResultWithError<RamItem<T>>): Promise<void> {
+    protected async addOrUpdateData(item: KeysObject<T>, result: ResultWithError<RamItem<T>>): Promise<'created' | 'updated' | null> {
+        let resultTemp: 'created' | 'updated' | null = null;
         try {
             let idWithError = this.getIdWithError(item);
             if(idWithError.success && idWithError.result !== undefined) {
@@ -246,22 +247,27 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
                     await this.beforeRecordSet(uniqueRecord);
                     this.mergeObject(uniqueRecord, item);
                     await this.afterRecordSet(uniqueRecord);
+                    resultTemp = 'updated';
                 }
                 else {
                     let realObject = this.getObjectForRam(item);
                     await this.beforeRecordSet(realObject);
                     this.records.set(id, realObject);
                     await this.afterRecordSet(realObject);
+                    resultTemp = 'created';
                 }
                 result.result = this.records.get(id);
             }
             else {
                 result.errors = [...result.errors, ...idWithError.errors];
+                resultTemp = null;
             }
         }
         catch(e) {
             result.errors.push(new RamError(RamErrorCode.unknow, e));
+            resultTemp = null;
         }
+        return resultTemp;
     }
 
     /**
