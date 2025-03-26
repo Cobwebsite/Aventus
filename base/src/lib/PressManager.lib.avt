@@ -1,3 +1,4 @@
+import { Callback } from "Aventus@Main:Aventus.package.avt";
 
 @Storybook({
     prefix: "Lib/PressManager"
@@ -154,6 +155,7 @@ export class PressManager {
             return new PressManager(options);
         }
     }
+    public static onEvent: Callback<(e: NormalizedEvent, instance: PressManager) => void> = new Callback();
 
     protected options: PressManagerOptions;
     protected element: Element;
@@ -382,6 +384,7 @@ export class PressManager {
         if(this.options.onEvent) {
             this.options.onEvent(e);
         }
+        PressManager.onEvent.trigger(e, this);
         // TODO edit this to implement the full logic to avoid cancelling parent
         if(e.button != undefined && !this.options.buttonAllowed?.includes(e.button)) {
             this.unregisterEvent(ev);
@@ -477,6 +480,7 @@ export class PressManager {
         if(this.options.onEvent) {
             this.options.onEvent(e);
         }
+        PressManager.onEvent.trigger(e, this);
         if(this.stopPropagation()) {
             e.stopImmediatePropagation();
         }
@@ -525,6 +529,7 @@ export class PressManager {
         if(this.options.onEvent) {
             this.options.onEvent(e);
         }
+        PressManager.onEvent.trigger(e, this);
         if(this.stopPropagation()) {
             e.stopImmediatePropagation();
         }
