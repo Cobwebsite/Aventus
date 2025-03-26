@@ -928,6 +928,14 @@ export class Watcher {
         return comp;
     }
     /**
+     * Create an effect variable that will watch any changes inside the fct and trigger the cb on change
+     */
+    public static watch(fct: () => any, cb: () => any): Effect {
+        const comp = new Effect(fct);
+        comp.subscribe(cb);
+        return comp;
+    }
+    /**
      * Create a signal variable
      */
     public static signal<T>(item: T, onChange?: () => void): Signal<T> {
@@ -1028,7 +1036,7 @@ export class Effect {
         }
         else {
             cb = (action, changePath, value, dones) => {
-                let full = fullPath;
+                // if(changePath == path || changePath.startsWith(path + ".") || changePath.startsWith(path + "[")) {
                 if(changePath == path) {
                     this.onChange(action, changePath, value, dones);
                 }
