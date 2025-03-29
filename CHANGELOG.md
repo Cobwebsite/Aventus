@@ -1,15 +1,21 @@
 # Change Log
 
-## 1.3.8 ()
+## 1.3.9 (2025-03-29)
 
 ### Bug Fixes
  - Fix drag&drop to get right position for svg and htmlelement
+ - Fix import methods if no "region methods" found
 
 ### Features
  - Add custom-elemments.json generation
  - Add html-custom-data.json generation
  - Add web-types.json generation
  - Auto detect new html-custom-data.json inside your project and ask to add it into your vscode settings
+ - Change Callback to have a list of params instead of an array
+ - Add global press event on PressManager
+ - Add Watch function on Watcher
+ - Beta : replace template.avt by template.avt.ts to create custom script logic for templating
+ - Add tag &lt;a href&gt; inside RouterLink
 
 ## 1.3.8 (2025-01-26)
 
