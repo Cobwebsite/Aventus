@@ -12,6 +12,7 @@ import { Commands } from './cmds';
 import { join } from 'path';
 import { LocalTemplateManager } from './files/LocalTemplate';
 import { TemplateManager as TemplateFileManager } from './files/TemplateManager';
+import { TemplateFileManager as TemplateFileTsManager } from './language-services/ts/template/TemplateFileManager';
 import { CSharpManager } from './language-services/json/CSharpManager';
 import { Build } from './project/Build';
 
@@ -264,6 +265,9 @@ export class GenericServer {
 		if (document.uri.endsWith(AventusExtension.Base) || document.uri.endsWith(AventusExtension.Config)) {
 			return true;
 		}
+		if (document.uri.endsWith("template.avt.ts")) {
+			return true;
+		}
 		return false;
 	}
 	protected isStyleDocument(document: TextDocument) {
@@ -297,7 +301,8 @@ export class GenericServer {
 			CSharpManager.getInstance();
 		}
 
-		ProjectManager.getInstance()
+		ProjectManager.getInstance();
+		TemplateFileTsManager.getInstance();
 		if (settings.onlyBuild) {
 			if (settings.configPath) {
 				await FilesManager.getInstance().loadConfigFile(settings.configPath, settings.builds, settings.statics);

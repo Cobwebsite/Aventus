@@ -1,16 +1,16 @@
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync } from 'fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'fs';
 import { GenericServer } from '../GenericServer';
 import { join, normalize, sep } from 'path';
 import { SelectItem } from '../IConnection';
-import { Template } from './Template';
+import { TemplateJSON, TemplateScript } from './Template';
 import { SettingsManager } from '../settings/Settings';
-import { setValueToObject } from '../tools';
+import { pathToUri, setValueToObject } from '../tools';
 import { BaseTemplate } from './Templates/BaseTemplate';
 import { BaseTemplateList } from './Templates';
-import { execSync } from 'child_process';
+import { execSync, spawn } from 'child_process';
 
 
-export type TemplatesByName = { [name: string]: Template | BaseTemplate | TemplatesByName }
+export type TemplatesByName = { [name: string]: TemplateJSON | TemplateScript | BaseTemplate | TemplatesByName }
 
 export class TemplateManager {
 	private templatePath: string[] = [];
@@ -116,11 +116,25 @@ export class TemplateManager {
 				try {
 					let config = JSON.parse(readFileSync(configPath, 'utf-8'));
 
-					let template = new Template(config, currentFolder);
+					let template = new TemplateJSON(config, currentFolder);
 					setValueToObject(template.config.name, templates, template);
 					nb++;
 				} catch {
 					GenericServer.showErrorMessage("Error when parsing file " + configPath);
+				}
+				return;
+			}
+			let configPathScript = join(currentFolder, "template.avt.ts");
+			if (existsSync(configPathScript)) {
+				try {
+
+					let template = TemplateScript.create(configPathScript, currentFolder);
+					setValueToObject(template.name, templates, template);
+					nb++;
+
+				} catch (e) {
+					console.error(e);
+					GenericServer.showErrorMessage("Error when parsing file " + configPathScript);
 				}
 				return;
 			}
@@ -167,7 +181,7 @@ export class TemplateManager {
 			GenericServer.showErrorMessage("No project path registered");
 			return;
 		}
-		let projectsFolder = GenericServer.extensionPath + sep + "projects";
+		let projectsFolder = GenericServer.extensionPath + sep + "templates" + sep + "projects";
 		let folders = readdirSync(projectsFolder);
 		let quickPicks: Map<SelectItem, string> = new Map<SelectItem, string>();
 		for (let folder of folders) {
@@ -285,18 +299,25 @@ export class TemplateManager {
 		return null;
 	}
 
-	public async query(templates: TemplatesByName): Promise<Template | BaseTemplate | null> {
+	public async query(templates: TemplatesByName): Promise<TemplateJSON | TemplateScript | BaseTemplate | null> {
 		let quickPicksTemplateByName: Map<SelectItem, TemplatesByName> = new Map();
-		let quickPicksTemplate: Map<SelectItem, Template> = new Map();
+		let quickPicksTemplate: Map<SelectItem, TemplateJSON | TemplateScript> = new Map();
 		let quickPicksBaseTemplate: Map<SelectItem, BaseTemplate> = new Map();
 		const quickPicks: SelectItem[] = [];
 		for (let name in templates) {
 			const current = templates[name];
 			let quickPick: SelectItem;
-			if (current instanceof Template) {
+			if (current instanceof TemplateJSON) {
 				quickPick = {
 					label: name,
 					detail: current.config.description ?? "",
+				}
+				quickPicksTemplate.set(quickPick, current);
+			}
+			else if (current instanceof TemplateScript) {
+				quickPick = {
+					label: name,
+					detail: current.description ?? "",
 				}
 				quickPicksTemplate.set(quickPick, current);
 			}

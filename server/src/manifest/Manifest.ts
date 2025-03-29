@@ -1,4 +1,5 @@
 import { AventusFile } from '../files/AventusFile';
+import { SlotsInfo } from '../language-services/html/File';
 import { AventusConfigBuildCompileOutputNpmManifest } from '../language-services/json/definition';
 import { CustomCssProperty } from '../language-services/scss/helper/CSSNode';
 import { AventusWebComponentLogicalFile } from '../language-services/ts/component/File';
@@ -15,7 +16,6 @@ import { CustomElements } from './CustomElements';
 import { HtmlCustomData } from './HtmlCustomData';
 import { WebTypes } from './WebTypes';
 
-type SlotsInfo = { [name: string]: { local: boolean, doc?: string } }
 export type ManifestInfo = {
 	fullName: string,
 	class: ClassInfo,
@@ -55,7 +55,7 @@ export class Manifest {
 			const methods: (MethodInfo & { local: boolean })[] = [];
 			const methodsStatic: (MethodInfo & { local: boolean })[] = [];
 			const cssProperties: (CustomCssProperty & { local: boolean })[] = [];
-			let slots: { [name: string]: { local: boolean, doc?: string } } = {};
+			let slots: { [name: string]: { local?: boolean, doc?: string } } = {};
 			const preventSlots: string[] = [];
 			let noMoreSlots: boolean = false;
 			let classTemp: ClassInfo | null = _class;

@@ -1,8 +1,5 @@
-import * as open from 'open'
 import { GenericServer } from '../GenericServer';
-import { SelectItem } from '../IConnection';
 import { uriToPath } from '../tools';
-import { Template } from './Template';
 import { TemplateManager } from './TemplateManager';
 
 export class LocalTemplateManager {

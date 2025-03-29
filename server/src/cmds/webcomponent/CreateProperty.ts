@@ -65,7 +65,7 @@ export class CreateProperty {
 			let oldEnd = file.documentUser.positionAt(file.contentUser.length);
 			let builds = FilesManager.getInstance().getBuild(file.documentUser);
 			let componentName = "";
-			if (builds.length > 0) {
+			if (builds && builds.length > 0) {
 				let fileTs = builds[0].tsFiles[uri]
 				if (fileTs instanceof AventusWebComponentLogicalFile) {
 					componentName = fileTs.getComponentName();

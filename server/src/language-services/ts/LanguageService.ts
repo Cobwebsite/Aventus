@@ -24,6 +24,7 @@ import { HttpServer } from '../../live-server/HttpServer';
 import { AventusPackageNamespaceFileTs } from './package/File';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { SettingsManager } from '../../settings/Settings';
+import { SlotsInfo } from '../html/File';
 
 
 
@@ -918,32 +919,40 @@ export class AventusTsLanguageService {
     private static prepareDataSchema(classInfo: ClassInfo, moduleName: string, npm?: boolean): string {
         let template: { [prop: string]: string } = {};
         const _loadType = (type: TypeInfo) => {
-            if (type.kind == "boolean") {
-                return 'boolean';
-            }
-            else if (type.kind == "number") {
-                return 'number';
-            }
-            else if (type.kind == "string") {
-                return "string";
-            }
-            else if (type.kind == "type") {
-                if (type.value.includes(".")) {
-                    return type.value;
+            const basic = () => {
+                if (type.kind == "boolean") {
+                    return 'boolean';
                 }
-                else {
-                    let importInfo = classInfo.parserInfo.importsLocal[type.value]?.info
-                    if (importInfo) {
-                        let name = npm ? importInfo.name : moduleName + '.' + importInfo.fullName
-                        return name;
+                else if (type.kind == "number") {
+                    return 'number';
+                }
+                else if (type.kind == "string") {
+                    return "string";
+                }
+                else if (type.kind == "type") {
+                    if (type.value.includes(".")) {
+                        return type.value;
                     }
-                    return type.value;
+                    else {
+                        let importInfo = classInfo.parserInfo.importsLocal[type.value]?.info
+                        if (importInfo) {
+                            let name = npm ? importInfo.name : moduleName + '.' + importInfo.fullName
+                            return name;
+                        }
+                        return type.value;
+                    }
                 }
+                else if (type.kind == "literal" || type.kind == "typeLiteral") {
+                    return 'literal'
+                }
+                return null;
             }
-            else if (type.kind == "literal" || type.kind == "typeLiteral") {
-                return 'literal'
+
+            let result = basic();
+            if (result && type.isArray) {
+                result += "[]";
             }
-            return null;
+            return result;
         }
         for (let propName in classInfo.properties) {
             let prop = classInfo.properties[propName];
@@ -1231,7 +1240,7 @@ export class AventusTsLanguageService {
         return null;
     }
 
-    public static compileDocTs(txt: string, element: BaseInfo): string {
+    public static compileDocTs(txt: string, element?: BaseInfo): string {
         try {
             const host: LanguageServiceHost = {
                 getCompilationSettings: () => {
@@ -1276,7 +1285,7 @@ export class AventusTsLanguageService {
             };
             let ls: LanguageService = createLanguageService(host);
             let result = ls.getEmitOutput("temp.js", true, true).outputFiles[0].text.replace(/^declare /g, '');
-            if(element instanceof ClassInfo && !element.constructorBody && element.extraConstructorCode.length > 0) {
+            if (element instanceof ClassInfo && !element.constructorBody && element.extraConstructorCode.length > 0) {
                 result = result.replace(/^ *constructor\(.*\);$/gm, "");
             }
             return result;
@@ -1424,6 +1433,7 @@ export type CompileTsResult = {
     convertibleName: string,
     tagName?: string,
     npm: CompileTsResultNpm;
+    slots?: SlotsInfo
 }
 
 
@@ -1541,7 +1551,7 @@ const enum Kind {
     parameter = 'parameter',
     typeParameter = 'type parameter'
 }
-function convertKind(kind: string): CompletionItemKind {
+export function convertKind(kind: string): CompletionItemKind {
     switch (kind) {
         case Kind.primitiveType:
         case Kind.keyword:
@@ -1643,10 +1653,10 @@ export function simplifyPath(importPathTxt, currentPath) {
     finalPathToImport += importPath.join("/");
     return finalPathToImport;
 }
-function isWhitespaceOnly(str: string) {
+export function isWhitespaceOnly(str: string) {
     return /^\s*$/.test(str);
 }
-function generateIndent(level: number, options: FormattingOptions) {
+export function generateIndent(level: number, options: FormattingOptions) {
     if (options.insertSpaces) {
         return repeat(' ', level * options.tabSize);
     } else {

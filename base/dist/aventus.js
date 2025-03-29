@@ -660,7 +660,7 @@ let ResourceLoader=class ResourceLoader {
                 result.type = 'img';
             }
             else {
-                throw 'unknow extension found :' + extension + ". Please define your extension inside options";
+                delete result.type;
             }
         }
         else {
@@ -1558,7 +1558,7 @@ let Effect=class Effect {
         }
         else {
             cb = (action, changePath, value, dones) => {
-                let full = fullPath;
+                // if(changePath == path || changePath.startsWith(path + ".") || changePath.startsWith(path + "[")) {
                 if (changePath == path) {
                     this.onChange(action, changePath, value, dones);
                 }
@@ -2486,6 +2486,14 @@ let Watcher=class Watcher {
         return comp;
     }
     /**
+     * Create an effect variable that will watch any changes inside the fct and trigger the cb on change
+     */
+    static watch(fct, cb) {
+        const comp = new Effect(fct);
+        comp.subscribe(cb);
+        return comp;
+    }
+    /**
      * Create a signal variable
      */
     static signal(item, onChange) {
@@ -2944,6 +2952,7 @@ let PressManager=class PressManager {
             return new PressManager(options);
         }
     }
+    static onEvent = new Callback();
     options;
     element;
     delayDblPress;
@@ -3156,6 +3165,7 @@ let PressManager=class PressManager {
         if (this.options.onEvent) {
             this.options.onEvent(e);
         }
+        PressManager.onEvent.trigger(e, this);
         if (e.button != undefined && !this.options.buttonAllowed?.includes(e.button)) {
             this.unregisterEvent(ev);
             return;
@@ -3242,6 +3252,7 @@ let PressManager=class PressManager {
         if (this.options.onEvent) {
             this.options.onEvent(e);
         }
+        PressManager.onEvent.trigger(e, this);
         if (this.stopPropagation()) {
             e.stopImmediatePropagation();
         }
@@ -3287,6 +3298,7 @@ let PressManager=class PressManager {
         if (this.options.onEvent) {
             this.options.onEvent(e);
         }
+        PressManager.onEvent.trigger(e, this);
         if (this.stopPropagation()) {
             e.stopImmediatePropagation();
         }
@@ -4310,6 +4322,7 @@ let GenericRam=class GenericRam {
      * Add element inside Ram or update it. The instance inside the ram is unique and ll never be replaced
      */
     async addOrUpdateData(item, result) {
+        let resultTemp = null;
         try {
             let idWithError = this.getIdWithError(item);
             if (idWithError.success && idWithError.result !== undefined) {
@@ -4319,22 +4332,27 @@ let GenericRam=class GenericRam {
                     await this.beforeRecordSet(uniqueRecord);
                     this.mergeObject(uniqueRecord, item);
                     await this.afterRecordSet(uniqueRecord);
+                    resultTemp = 'updated';
                 }
                 else {
                     let realObject = this.getObjectForRam(item);
                     await this.beforeRecordSet(realObject);
                     this.records.set(id, realObject);
                     await this.afterRecordSet(realObject);
+                    resultTemp = 'created';
                 }
                 result.result = this.records.get(id);
             }
             else {
                 result.errors = [...result.errors, ...idWithError.errors];
+                resultTemp = null;
             }
         }
         catch (e) {
             result.errors.push(new RamError(RamErrorCode.unknow, e));
+            resultTemp = null;
         }
+        return resultTemp;
     }
     /**
      * Merge object and create real instance of class

@@ -1,0 +1,24 @@
+#{{namespace}}
+	export class ${{className}} extends Aventus.Ram<${{objectName}}> implements Aventus.IRam {
+
+		/**
+		 * Create a singleton to store data
+		 */
+		public static getInstance(): ${{className}} {
+			return Aventus.Instance.get(${{className}});
+		}
+
+		/**
+		 * @inheritdoc
+		 */
+		public override defineIndexKey(): keyof ${{objectName}} {
+			return 'id';
+		}
+		/**
+		 * @inheritdoc
+		 */
+		protected override getTypeForData(objJson: Aventus.KeysObject<${{objectName}}> | ${{objectName}}): new () => ${{objectName}} {
+			return ${{objectName}};
+		}
+	}
+#{{namespace/}}

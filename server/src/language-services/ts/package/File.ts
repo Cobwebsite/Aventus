@@ -17,6 +17,7 @@ import { EnumInfo } from '../parser/EnumInfo';
 import { FunctionInfo } from '../parser/FunctionInfo';
 import { VariableInfo } from '../parser/VariableInfo';
 import { ParserTs } from '../parser/ParserTs';
+import { SlotsInfo } from '../../html/File';
 
 
 export interface AventusPackageTsFileExport {
@@ -29,6 +30,7 @@ export interface AventusPackageTsFileExport {
 	isExported: boolean,
 	convertibleName: string,
 	tagName?: string,
+	slots?: SlotsInfo
 }
 export interface AventusPackageTsFileExportNoCode {
 	fullName: string;

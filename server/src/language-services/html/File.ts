@@ -9,7 +9,10 @@ import { AventusWebSCSSFile } from '../scss/File';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { ActionChange } from './parser/definition';
 import { ContextEditing, ForLoop, IfInfo, IfInfoCondition } from './parser/TagInfo';
+import { ClassInfo } from '../ts/parser/ClassInfo';
+import { OverrideViewDecorator } from '../ts/parser/decorators/OverrideViewDecorator';
 
+export type SlotsInfo = { [name: string]: { local?: boolean, doc?: string } }
 
 export class AventusHTMLFile extends AventusBaseFile {
 
@@ -33,6 +36,15 @@ export class AventusHTMLFile extends AventusBaseFile {
             return file;
         }
         return null;
+    }
+    private _slotsInfo: SlotsInfo | undefined;
+    private slotsInfoVersion: number = 0;
+    public get slotsInfo(): SlotsInfo {
+        if (this.slotsInfoVersion != this.file.versionInternal || !this._slotsInfo) {
+            this._slotsInfo = this.getSlotsInfo();
+            this.slotsInfoVersion = this.file.versionInternal
+        }
+        return this._slotsInfo;
     }
     constructor(file: AventusFile, build: Build) {
         super(file, build);
@@ -289,5 +301,13 @@ export class AventusHTMLFile extends AventusBaseFile {
             return resultTemp;
         }
         return null;
+    }
+
+    protected getSlotsInfo(): SlotsInfo {
+        const _class = this.tsFile?.fileParsed?.classes[this.tsFile.componentClassName] ?? null;
+        if (_class) {
+            return this.build.getSlotsInfo(_class);
+        }
+        return {}
     }
 }

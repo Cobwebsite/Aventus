@@ -1,0 +1,17 @@
+<script>
+	#{{namespace}}
+		export class ${{className}} extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+		}
+	#{{namespace/}}
+</script>
+
+<template>
+	<slot></slot>
+</template>
+
+<style>
+	:host {
+
+	}
+</style>

@@ -1,0 +1,50 @@
+#{{namespace}}
+	interface ${{objectName}}Method {
+		// define your methods here
+		
+	}
+
+	export type ${{objectName}}Extended = ${{objectName}} & ${{objectName}}Method;
+
+	export class ${{className}} extends Aventus.Ram<${{objectName}}, ${{objectName}}Extended> implements Aventus.IRam {
+
+		/**
+		 * Create a singleton to store data
+		 */
+		public static getInstance(): ${{className}} {
+			return Aventus.Instance.get(${{className}});
+		}
+
+		/**
+		 * @inheritdoc
+		 */
+		public override defineIndexKey(): keyof ${{objectName}} {
+			return 'id';
+		}
+		/**
+		 * @inheritdoc
+		 */
+		protected override getTypeForData(objJson: Aventus.KeysObject<${{objectName}}> | ${{objectName}}): new () => ${{objectName}}Extended {
+			return this.add${{objectName}}Method(${{objectName}});
+		}
+
+		/**
+		 * Mixin pattern to add methods
+		 */
+		private add${{objectName}}Method<B extends (new (...args: any[]) => ${{objectName}}) & { className?: string; }>(Base: B) {
+			return class Extension extends Base implements ${{objectName}}Extended {
+				public static override get className(): string {
+					return Base.className || Base.name;
+				}
+				public override get className(): string {
+					return Base.className || Base.name;
+				}
+
+				// code your methods here
+
+				
+			};
+		}
+
+	}
+#{{namespace/}}

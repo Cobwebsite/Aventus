@@ -1,0 +1,13 @@
+#{{namespace}}
+	export class ${{name}} extends Aventus.State implements Aventus.IState {
+		public static get state(): string {
+			return "";
+		}
+		/**
+		 * @inheritdoc
+		 */
+		public override get name(): string {
+			return ${{name}}.state;
+		}
+	}
+#{{namespace/}}

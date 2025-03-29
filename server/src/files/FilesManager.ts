@@ -83,8 +83,13 @@ export class FilesManager {
         if (this.files[uri]) {
             if (SettingsManager.getInstance().settings.errorByBuild) {
                 const builds = this.files[uri].getBuild();
-                for (let build of builds) {
-                    GenericServer.sendDiagnostics({ uri: uri, diagnostics: [] }, build)
+                if (builds === null) {
+                    GenericServer.sendDiagnostics({ uri: uri, diagnostics: [] })
+                }
+                else {
+                    for (let build of builds) {
+                        GenericServer.sendDiagnostics({ uri: uri, diagnostics: [] }, build)
+                    }
                 }
             }
             else {
@@ -285,6 +290,17 @@ export class FilesManager {
         }
     }
 
+    protected async fileExists(document: TextDocument) {
+        if (!this.files[document.uri]) {
+            if (document.uri.endsWith("template.avt.ts")) {
+                await this.registerFile(document);
+                return true;
+            }
+            return false;
+        }
+        return true;
+    }
+
     /**
      * Register a file from outside of the project - used only for package
      * @param uri 
@@ -335,64 +351,64 @@ export class FilesManager {
     }
 
     public async onCompletion(document: TextDocument, position: Position): Promise<CompletionList> {
-        if (!this.files[document.uri]) {
+        if (!await this.fileExists(document)) {
             return { isIncomplete: false, items: [] }
         }
         return this.files[document.uri].getCompletion(position);
     }
     public async onCompletionResolve(document: TextDocument, item: CompletionItem): Promise<CompletionItem> {
-        if (!this.files[document.uri]) {
+        if (!await this.fileExists(document)) {
             return item;
         }
         return this.files[document.uri].getCompletionResolve(item);
     }
 
     public async onHover(document: TextDocument, position: Position): Promise<Hover | null> {
-        if (!this.files[document.uri]) {
+        if (!await this.fileExists(document)) {
             return null;
         }
         return this.files[document.uri].getHover(position);
     }
 
     public async onDefinition(document: TextDocument, position: Position): Promise<Definition | null> {
-        if (!this.files[document.uri]) {
+        if (!await this.fileExists(document)) {
             return null;
         }
         return this.files[document.uri].getDefinition(position);
     }
     public async onFormatting(document: TextDocument, options: FormattingOptions): Promise<TextEdit[]> {
-        if (!this.files[document.uri]) {
+        if (!await this.fileExists(document)) {
             return [];
         }
         return this.files[document.uri].getFormatting(options);
     }
     public async onCodeAction(document: TextDocument, range: Range): Promise<CodeAction[]> {
-        if (!this.files[document.uri]) {
+        if (!await this.fileExists(document)) {
             return [];
         }
         return this.files[document.uri].getCodeAction(range);
     }
     public async onReferences(document: TextDocument, position: Position): Promise<Location[] | null> {
-        if (!this.files[document.uri]) {
+        if (!await this.fileExists(document)) {
             return [];
         }
         return this.files[document.uri].getReferences(position);
     }
     public async onCodeLens(document: TextDocument): Promise<CodeLens[]> {
-        if (!this.files[document.uri]) {
+        if (!await this.fileExists(document)) {
             return [];
         }
         return this.files[document.uri].getCodeLens();
     }
 
     public async onRename(document: TextDocument, position: Position, newName: string): Promise<WorkspaceEdit | null> {
-        if (!this.files[document.uri]) {
+        if (!await this.fileExists(document)) {
             return null
         }
         return this.files[document.uri].getRename(position, newName)
     }
 
-    public getBuild(document: TextDocument): Build[] {
+    public getBuild(document: TextDocument): Build[] | null {
         if (!this.files[document.uri]) {
             return [];
         }

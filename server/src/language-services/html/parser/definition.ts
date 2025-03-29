@@ -4,7 +4,7 @@ export type InterestPoint = {
 	start: number,
 	end: number,
 	name: string,
-	type: 'method' | 'property' | 'tag'
+	type: 'method' | 'event' | 'property' | 'tag'
 }
 export type PressEventMapKey = keyof typeof pressEventMap;
 export type PressEventMapValues = typeof pressEventMap[PressEventMapKey];

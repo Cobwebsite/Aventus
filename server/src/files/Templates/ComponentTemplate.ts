@@ -72,7 +72,7 @@ export class ComponentTemplate extends BaseTemplate {
 	//#endregion
 	
 }`
-			defaultTs = this.addNamespace(defaultTs, pathToUri(newScriptPath + AventusExtension.ComponentLogic), true);
+			defaultTs = this.addNamespace(defaultTs, pathToUri(newScriptPath + AventusExtension.ComponentLogic));
 			writeFileSync(newScriptPath + AventusExtension.ComponentLogic, defaultTs);
 			let textDocumentTs: TextDocument = TextDocument.create(pathToUri(newScriptPath + AventusExtension.ComponentLogic), AventusLanguageId.TypeScript, 0, defaultTs);
 

@@ -3,7 +3,7 @@
 })
 export interface ResourceLoaderOptions {
     url: string;
-    type: 'js' | 'css' | 'img' | 'svg';
+    type?: 'js' | 'css' | 'img' | 'svg';
 }
 @Storybook({
     prefix: "Lib/ResourceLoader"
@@ -183,7 +183,7 @@ export class ResourceLoader {
                 result.type = 'img';
             }
             else {
-                throw 'unknow extension found :' + extension + ". Please define your extension inside options";
+                delete result.type;
             }
         }
         else {

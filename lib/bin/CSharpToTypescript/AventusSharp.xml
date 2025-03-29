@@ -40,22 +40,42 @@
             Attribute used to allow a null value for the Property
             </summary>
         </member>
-        <member name="T:AventusSharp.Data.IAventusFile">
+        <member name="T:AventusSharp.Data.CustomTableMembers.IAventusFile">
             <summary>
             Generic interface for File that you can upload and save into the database
             </summary>
         </member>
-        <member name="T:AventusSharp.Data.AventusFile">
+        <member name="T:AventusSharp.Data.CustomTableMembers.AventusFile">
             <summary>
             Class to handle file during process
             </summary>
         </member>
-        <member name="P:AventusSharp.Data.AventusFile.Uri">
+        <member name="P:AventusSharp.Data.CustomTableMembers.AventusFile.Uri">
             <summary>
             The current file Uri
             </summary>
         </member>
-        <member name="P:AventusSharp.Data.AventusFile.Upload">
+        <member name="P:AventusSharp.Data.CustomTableMembers.AventusFile.Upload">
+            <summary>
+            The file uploaded though a form
+            </summary>
+        </member>
+        <member name="T:AventusSharp.Data.CustomTableMembers.IGenericFile">
+            <summary>
+            Generic interface for File that you can upload and save into the database
+            </summary>
+        </member>
+        <member name="T:AventusSharp.Data.CustomTableMembers._GenericFile">
+            <summary>
+            Class to handle file during process
+            </summary>
+        </member>
+        <member name="P:AventusSharp.Data.CustomTableMembers._GenericFile.Uri">
+            <summary>
+            The current file Uri
+            </summary>
+        </member>
+        <member name="P:AventusSharp.Data.CustomTableMembers._GenericFile.Upload">
             <summary>
             The file uploaded though a form
             </summary>
