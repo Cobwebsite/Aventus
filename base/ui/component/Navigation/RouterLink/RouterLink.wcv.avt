@@ -1,1 +1,1 @@
-<slot></slot>
+<a href="{{ this.state }}" @click="prevent"><slot></slot></a>

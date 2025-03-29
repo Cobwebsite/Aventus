@@ -5639,7 +5639,7 @@ Navigation.RouterLink = class RouterLink extends Aventus.WebComponent {
     get 'state'() { return this.getStringAttr('state') }
     set 'state'(val) { this.setStringAttr('state', val) }get 'active_state'() { return this.getStringAttr('active_state') }
     set 'active_state'(val) { this.setStringAttr('active_state', val) }    onActiveChange = new Aventus.Callback();
-    static __style = ``;
+    static __style = `:host a{color:inherit;text-decoration:none}`;
     __getStatic() {
         return RouterLink;
     }
@@ -5651,9 +5651,24 @@ Navigation.RouterLink = class RouterLink extends Aventus.WebComponent {
     __getHtml() {
     this.__getStatic().__template.setHTML({
         slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<slot></slot>` }
+        blocks: { 'default':`<a _id="routerlink_0"><slot></slot></a>` }
     });
 }
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "content": {
+    "routerlink_0°href": {
+      "fct": (c) => `${c.print(c.comp.__ad88894dc7dea62195d227cdd21fc210method0())}`,
+      "once": true
+    }
+  },
+  "events": [
+    {
+      "eventName": "click",
+      "id": "routerlink_0",
+      "fct": (e, c) => c.comp.prevent(e)
+    }
+  ]
+}); }
     getClassName() {
         return "RouterLink";
     }
@@ -5696,9 +5711,15 @@ Navigation.RouterLink = class RouterLink extends Aventus.WebComponent {
             }
         });
     }
+    prevent(e) {
+        e.preventDefault();
+    }
     postCreation() {
         this.registerActiveStateListener();
         this.addClickEvent();
+    }
+    __ad88894dc7dea62195d227cdd21fc210method0() {
+        return this.state;
     }
 }
 Navigation.RouterLink.Namespace=`Aventus.Navigation`;

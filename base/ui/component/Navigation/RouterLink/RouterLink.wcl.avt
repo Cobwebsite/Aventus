@@ -70,6 +70,9 @@ namespace Navigation {
                 }
             });
         }
+        protected prevent(e: Event) {
+            e.preventDefault();
+        }
         protected override postCreation(): void {
             this.registerActiveStateListener();
             this.addClickEvent();
