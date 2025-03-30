@@ -87,6 +87,17 @@
 					"light": "./icons/icon.png",
 					"dark": "./icons/icon.png"
 				}
+			},
+			{
+				"id": "Aventus I18n",
+				"extensions": [
+					".i18n.avt"
+				],
+				"configuration": "./syntaxes/i18n-language-configuration.json",
+				"icon": {
+					"light": "./icons/icon.png",
+					"dark": "./icons/icon.png"
+				}
 			}
 		],
 		"grammars": [
@@ -114,6 +125,11 @@
 					"source.js": "Aventus Ts",
 					"text.html1.basic": "Aventus HTML"
 				}
+			},
+			{
+				"language": "Aventus I18n",
+				"scopeName": "source.json",
+				"path": "./syntaxes/i18n.tmLanguage.json"
 			}
 		],
 		"configuration": {

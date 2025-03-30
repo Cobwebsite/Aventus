@@ -84,6 +84,7 @@ export class Client {
                 { scheme: 'file', language: "Aventus HTML" },
                 { scheme: 'file', language: 'Aventus SCSS' },
                 { scheme: 'file', language: 'Aventus WebComponent' },
+                { scheme: 'file', language: 'Aventus I18n' },
             ],
             middleware: {
                 executeCommand: async (command, args, next) => {

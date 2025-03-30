@@ -205,7 +205,6 @@ export const AventusConfigSchema: JSONSchema = {
                         },
                         description: "List of html tag that mustn't be parsed by the html compiler"
                     },
-
                     "nodeModulesDir": {
                         type: ["string", "array"],
                         items: {
@@ -213,6 +212,20 @@ export const AventusConfigSchema: JSONSchema = {
                         },
                         description: "The dirs where node_modules are located"
                     },
+                    "i18n": {
+                        type: "object",
+                        properties: {
+                            "locales": {
+                                type: "array",
+                                items: { type: "string" },
+                                description: "Locales that is required inside your project"
+                            },
+                            "fallback": {
+                                type: "string"
+                            }
+                        },
+                        description: "Define options for i18n"
+                    }
                 },
                 required: ["name", "src"]
             },

@@ -182,55 +182,55 @@ export class GenericServer {
 		await FilesManager.getInstance().onShutdown();
 	}
 	protected async onCompletion(document: TextDocument | undefined, position: Position) {
-		if (document && this.isAllowed(document)) {
+		if (this.isAllowed(document)) {
 			return await FilesManager.getInstance().onCompletion(document, position);
 		}
 		return null;
 	}
 	protected async onCompletionResolve(document: TextDocument | undefined, completionItem: CompletionItem) {
-		if (document && this.isAllowed(document)) {
+		if (this.isAllowed(document)) {
 			return await FilesManager.getInstance().onCompletionResolve(document, completionItem);
 		}
 		return completionItem;
 	}
 	protected async onHover(document: TextDocument | undefined, position: Position) {
-		if (document && this.isAllowed(document)) {
+		if (this.isAllowed(document)) {
 			return await FilesManager.getInstance().onHover(document, position);
 		}
 		return null;
 	}
 	protected async onDefinition(document: TextDocument | undefined, position: Position) {
-		if (document && this.isAllowed(document)) {
+		if (this.isAllowed(document)) {
 			return await FilesManager.getInstance().onDefinition(document, position);
 		}
 		return null;
 	}
 	protected async onDocumentFormatting(document: TextDocument | undefined, options: FormattingOptions) {
-		if (document && this.isAllowed(document)) {
+		if (this.isAllowed(document)) {
 			return await FilesManager.getInstance().onFormatting(document, options);
 		}
 		return null;
 	}
 	protected async onCodeAction(document: TextDocument | undefined, range: Range) {
-		if (document && this.isAllowed(document)) {
+		if (this.isAllowed(document)) {
 			return await FilesManager.getInstance().onCodeAction(document, range);
 		}
 		return null;
 	}
 	protected async onCodeLens(document: TextDocument | undefined) {
-		if (document && this.isAllowed(document)) {
+		if (this.isAllowed(document)) {
 			return await FilesManager.getInstance().onCodeLens(document);
 		}
 		return null;
 	}
 	protected async onReferences(document: TextDocument | undefined, position: Position) {
-		if (document && this.isAllowed(document)) {
+		if (this.isAllowed(document)) {
 			return await FilesManager.getInstance().onReferences(document, position);
 		}
 		return null;
 	}
 	protected async onRenameRequest(document: TextDocument | undefined, position: Position, newName: string) {
-		if (document && this.isAllowed(document)) {
+		if (this.isAllowed(document)) {
 			return await FilesManager.getInstance().onRename(document, position, newName);
 		}
 		return null;
@@ -255,7 +255,8 @@ export class GenericServer {
 	}
 
 
-	public isAllowed(document: TextDocument) {
+	public isAllowed(document?: TextDocument): document is TextDocument {
+		if(!document) return false;
 		return GenericServer.isAllowed(document);
 	}
 	public static isAllowed(document: TextDocument) {

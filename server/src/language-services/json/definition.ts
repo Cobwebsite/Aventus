@@ -19,7 +19,8 @@ export interface AventusConfigBuild {
 	namespaceRoot: string,
 	avoidParsingInsideTags: string[],
 	dependances: AventusConfigBuildDependance[],
-	nodeModulesDir: string
+	nodeModulesDir: string,
+	i18n?: AventusConfigBuildI18n
 }
 export type IncludeType = 'none' | 'need' | 'full';
 
@@ -84,6 +85,11 @@ export interface AventusConfig {
 	aliases: {
 		[alias: string]: string
 	}
+}
+
+export interface AventusConfigBuildI18n {
+	locales: string[],
+	fallback: string
 }
 
 export interface AventusSharp {

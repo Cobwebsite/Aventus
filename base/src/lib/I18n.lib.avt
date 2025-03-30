@@ -1,0 +1,115 @@
+import { ActionGuard, Watcher } from "Aventus@Main:Aventus.package.avt";
+
+@Storybook({
+    prefix: "Lib/I18n"
+})
+export class I18n {
+    private currentLocale: string = "en-GB";
+    protected langMutex: ActionGuard = new ActionGuard();
+
+    private watcher: {} = Watcher.get({
+        locale: {}
+    });
+    protected get locale(): any {
+        return this.watcher['locale'];
+    }
+    protected set locale(value: any) {
+        this.watcher['locale'] = value;
+    }
+    protected files: string[] = [];
+    protected waitingFiles: string[] = [];
+
+    protected __translations: { [lang: string]: {}; } = {};
+
+    public async setLocale(lang: string) {
+        this.currentLocale = lang;
+        if(!this.__translations[lang]) {
+            await this.langMutex.run([""], async () => {
+                const proms: Promise<string>[] = [];
+                for(let file of this.files) {
+                    let uri = file.replace(/\$locale/g, lang);
+                    proms.push(Aventus.ResourceLoader.load(uri));
+                }
+                const results = await Promise.all(proms);
+                let items = {};
+                for(let result of results) {
+                    try {
+                        this.merge(items, JSON.parse(result));
+                    } catch(e) {
+                        console.error(e);
+                    }
+                }
+                this.__translations[lang] = items;
+                this.waitingFiles = [];
+            });
+        }
+        this.locale = this.__translations[lang];
+    }
+
+    private merge(from: {}, to: {}) {
+        for(let key in to) {
+            let val = to[key];
+            if(typeof val == 'object') {
+                let temp = {};
+                this.merge(temp, val);
+                from[key] = temp;
+            }
+            else {
+                from[key] = val;
+            }
+        }
+    }
+
+    private registerFileTimeout: number = 0;
+    public registerFile(file: string) {
+        if(this.files.includes(file)) return;
+
+        this.waitingFiles.push(file);
+
+        clearTimeout(this.registerFileTimeout);
+        this.registerFileTimeout = setTimeout(() => {
+            this.loadFileDelay();
+        }, 200);
+    }
+
+    protected async loadFileDelay() {
+        await this.langMutex.run([""], async () => {
+            const lang = this.currentLocale;
+            const proms: Promise<string>[] = [];
+            for(let file of this.waitingFiles) {
+                let uri = file.replace(/\$locale/g, lang);
+                proms.push(Aventus.ResourceLoader.load(uri));
+            }
+            const results = await Promise.all(proms);
+            let items = this.locale;
+            for(let result of results) {
+                try {
+                    this.merge(items, JSON.parse(result));
+                } catch(e) {
+                    console.error(e);
+                }
+            }
+            for(let file of this.waitingFiles) {
+                this.files.push(file);
+            }
+            this.__translations[lang] = items;
+            this.waitingFiles = [];
+        });
+    }
+
+
+    public hasKey(key: string): boolean {
+        return this.locale[key] !== undefined;
+    }
+    public t(key: string, params: { [key: string]: string; } = {}): string {
+        let translation = this.locale[key];
+        if(translation === undefined) {
+            translation = key;
+        }
+        for(let key in params) {
+            let regex = new RegExp("\\{\\{ *" + key + " *\\}\\}", "g");
+            translation = translation.replace(regex, params[key]);
+        }
+        return translation;
+    }
+}

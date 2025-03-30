@@ -38,6 +38,7 @@ import * as md5 from 'md5';
 import { Statistics } from '../notification/Statistics';
 import { Manifest } from '../manifest/Manifest';
 import { OverrideViewDecorator } from '../language-services/ts/parser/decorators/OverrideViewDecorator';
+import { AventusI18nFile } from '../language-services/i18n/File';
 
 export type BuildErrors = { file: string, title: string }[]
 
@@ -87,6 +88,7 @@ export class Build {
     public noNamespaceUri: { [uri: string]: boolean } = {};
     public htmlFiles: { [uri: string]: AventusHTMLFile } = {}
     public wcFiles: { [uri: string]: AventusWebComponentSingleFile } = {};
+    // public i18nFiles: { [uri: string]: AventusI18nFile } = {}
 
     public namespaces: string[] = [];
 
@@ -227,6 +229,9 @@ export class Build {
         this.htmlLanguageService.allowRebuildDefinition(false);
         // validate
         if (isInit) {
+            for (let uri in this.tsLanguageService.i18nFiles) {
+                await this.tsLanguageService.i18nFiles[uri].validate();
+            }
             for (let uri in this.wcFiles) {
                 await this.wcFiles[uri].init();
             }
@@ -245,6 +250,9 @@ export class Build {
             
         }
         else {
+            for (let uri in this.tsLanguageService.i18nFiles) {
+                await this.tsLanguageService.i18nFiles[uri].validate();
+            }
             for (let uri in this.scssFiles) {
                 await this.scssFiles[uri].validate();
             }
@@ -1714,6 +1722,16 @@ export class Build {
                 this.registerOnFileDelete(file);
             }
         }
+        else if (file.uri.endsWith(AventusExtension.I18n)) {
+            if (file.name.startsWith("@")) {
+                if (!this.tsLanguageService.i18nFiles[file.uri]) {
+                    this.tsLanguageService.i18nFiles[file.uri] = new AventusI18nFile(file, this);
+                    if (!isInit)
+                        await this.tsLanguageService.i18nFiles[file.uri].validate();
+                    this.registerOnFileDelete(file);
+                }
+            }
+        }
         else {
             if (!this.tsFiles[file.uri]) {
                 let fileCreated = AventusTsFileSelector(file, this);
@@ -2003,6 +2021,10 @@ export class Build {
         for (let uri in this.tsFiles) {
             this.tsFiles[uri].removeEvents();
             this.tsFiles[uri].file.removeOnDelete(this.onFileDeleteUUIDs[uri]);
+        }
+        for (let uri in this.tsLanguageService.i18nFiles) {
+            this.tsLanguageService.i18nFiles[uri].removeEvents();
+            this.tsLanguageService.i18nFiles[uri].file.removeOnDelete(this.onFileDeleteUUIDs[uri]);
         }
         UnregisterBuild.send(this.project.getConfigFile().path, this.buildConfig.fullname);
     }

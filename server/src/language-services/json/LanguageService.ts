@@ -1,12 +1,11 @@
 import { normalize } from "path";
-import { Diagnostic, getLanguageService, JSONSchema, LanguageService } from "vscode-json-languageservice";
+import { Diagnostic, getLanguageService, LanguageService } from "vscode-json-languageservice";
 import { CompletionItem, CompletionList, DiagnosticSeverity, FormattingOptions, Hover, Position, Range, TextEdit } from 'vscode-languageserver';
 import { AventusErrorCode, AventusExtension } from "../../definition";
 import { AventusFile } from '../../files/AventusFile';
 import { createErrorTs, escapeRegex, getFolder, uriToPath } from "../../tools";
 import { AventusConfig, AventusConfigBuild, AventusConfigBuildCompile, AventusConfigBuildDependance, AventusConfigBuildStories, AventusConfigStatic } from "./definition";
 import { AventusConfigSchema, AventusSharpSchema, AventusTemplateSchema } from "./schema";
-import { TextDocument } from 'vscode-languageserver-textdocument';
 import { env } from 'process';
 
 export class AventusJSONLanguageService {
@@ -456,6 +455,12 @@ export class AventusJSONLanguageService {
             }
             build.namespaceRoot = normalize(uriToPath(baseDir) + slash + build.namespaceRoot).replace(/\\/g, '/');
         }
+
+        // i18n
+        if(build.i18n) {
+            
+        }
+
         return build;
     }
 
