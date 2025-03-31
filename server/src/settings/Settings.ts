@@ -31,6 +31,9 @@ export interface Settings {
 	statics?: string[],
 	errorByBuild?: boolean
 }
+export interface SettingsHtml {
+	customData: string[]
+}
 
 const defaultSettings: Settings = {
 	liveserver: {
@@ -58,13 +61,24 @@ function getDefaultSettings(): Settings {
 	return JSON.parse(JSON.stringify(defaultSettings));
 }
 
+
+const defaultSettingsHtml: SettingsHtml = {
+	customData: []
+}
+function getDefaultSettingsHtml(): SettingsHtml {
+	return JSON.parse(JSON.stringify(defaultSettingsHtml));
+}
 export class SettingsManager {
 	private static instance: SettingsManager;
 
 	private _settings: Settings = getDefaultSettings();
+	private _settingsHtml: SettingsHtml = getDefaultSettingsHtml();
 
 	public get settings() {
 		return this._settings;
+	}
+	public get settingsHtml() {
+		return this._settingsHtml;
 	}
 
 	public static getInstance(): SettingsManager {
@@ -87,6 +101,19 @@ export class SettingsManager {
 	private cbOnSettingsChange: (() => void)[] = []
 	public onSettingsChange(cb: () => void) {
 		this.cbOnSettingsChange.push(cb);
+	}
+
+
+	public setSettingsHtml(newSettings: Partial<SettingsHtml>) {
+		this._settingsHtml = this.mergeDeep(getDefaultSettingsHtml(), newSettings);
+		let cbs = [...this.cbOnSettingsChangeHtml];
+		for (let cb of cbs) {
+			cb();
+		}
+	}
+	private cbOnSettingsChangeHtml: (() => void)[] = []
+	public onSettingsChangeHtml(cb: () => void) {
+		this.cbOnSettingsChangeHtml.push(cb);
 	}
 
 	private isObject(item) {

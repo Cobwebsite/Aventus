@@ -4,20 +4,17 @@ import { Build } from '../../project/Build';
 import { AventusBaseFile } from '../BaseFile';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AventusI18nLanguageService } from './LanguageService';
+import { I18nParsed, I18nParser } from './Parser';
 
 export type AventusI18nFileSrcParsed = { [key: string]: { [locale: string]: string } };
 export class AventusI18nFile extends AventusBaseFile {
 
-	// declare module "Aventus" {
-	// 	interface AventusI18n {
-	// 		'resource': string;
-	// 	}
-	// }
 
-	public parsed: AventusI18nFileSrcParsed = {};
+	public parsedSrc: AventusI18nFileSrcParsed = {};
+	public parsed?: I18nParsed;
 
 	public get keys(): string[] {
-		return Object.keys(this.parsed);
+		return Object.keys(this.parsedSrc);
 	}
 
 	public constructor(file: AventusFile, build?: Build) {
@@ -27,7 +24,8 @@ export class AventusI18nFile extends AventusBaseFile {
 
 	protected async onContentChange(): Promise<void> {
 		try {
-			this.parsed = JSON.parse(this.file.contentInternal);
+			this.parsedSrc = JSON.parse(this.file.contentUser);
+			this.parsed = I18nParser.parse(this.file.documentUser);
 			if (this.file instanceof InternalAventusFile) {
 				const values = this.keys.map(p => `"${p.replace(/"/g, "\\\"")}": string`).join(",\r\n")
 				const content = `declare global {

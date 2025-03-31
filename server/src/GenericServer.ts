@@ -290,6 +290,12 @@ export class GenericServer {
 		}
 		SettingsManager.getInstance().setSettings(result);
 		this.isDebug = SettingsManager.getInstance().settings.debug;
+
+		let resultHtml = await this.connection.getSettingsHtml();
+		if (!resultHtml) {
+			resultHtml = {};
+		}
+		SettingsManager.getInstance().setSettingsHtml(resultHtml);
 	}
 
 	protected async startServer() {
