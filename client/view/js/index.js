@@ -261,6 +261,80 @@ let ElementExtension=class ElementExtension {
 ElementExtension.Namespace=`Aventus`;
 _.ElementExtension=ElementExtension;
 
+let ActionGuard=class ActionGuard {
+    /**
+     * Map to store actions that are currently running.
+     * @type {Map<any[], ((res: any) => void)[]>}
+     * @private
+     */
+    runningAction = new Map();
+    /**
+     * Executes an action uniquely based on the specified keys.
+     * @template T
+     * @param {any[]} keys The keys associated with the action.
+     * @param {() => Promise<T>} action The action to execute.
+     * @returns {Promise<T>} A promise that resolves with the result of the action.
+     * @example
+     *
+     *
+     * const actionGuard = new Aventus.ActionGuard();
+     *
+     *
+     * const keys = ["key1", "key2"];
+     *
+     *
+     * const action = async () => {
+     *
+     *     await new Promise(resolve => setTimeout(resolve, 1000));
+     *     return "Action executed";
+     * };
+     *
+     *
+     * await actionGuard.run(keys, action)
+     *
+     */
+    run(keys, action) {
+        return new Promise(async (resolve) => {
+            let actions = undefined;
+            let runningKeys = Array.from(this.runningAction.keys());
+            for (let runningKey of runningKeys) {
+                if (runningKey.length == keys.length) {
+                    let found = true;
+                    for (let i = 0; i < keys.length; i++) {
+                        if (runningKey[i] != keys[i]) {
+                            found = false;
+                            break;
+                        }
+                    }
+                    if (found) {
+                        actions = this.runningAction.get(runningKey);
+                        break;
+                    }
+                }
+            }
+            if (actions) {
+                actions.push((res) => {
+                    resolve(res);
+                });
+            }
+            else {
+                this.runningAction.set(keys, []);
+                let res = await action();
+                let actions = this.runningAction.get(keys);
+                if (actions) {
+                    for (let action of actions) {
+                        action(res);
+                    }
+                }
+                this.runningAction.delete(keys);
+                resolve(res);
+            }
+        });
+    }
+}
+ActionGuard.Namespace=`Aventus`;
+_.ActionGuard=ActionGuard;
+
 let Instance=class Instance {
     static elements = new Map();
     static get(type) {
@@ -3749,6 +3823,282 @@ let Template=class Template {
 Template.Namespace=`Aventus`;
 _.Template=Template;
 
+let ResourceLoader=class ResourceLoader {
+    static headerLoaded = {};
+    static headerWaiting = {};
+    /**
+     * Load the resource inside the head tag
+     */
+    static async loadInHead(options) {
+        const _options = this.prepareOptions(options);
+        if (this.headerLoaded[_options.url]) {
+            return true;
+        }
+        else if (this.headerWaiting.hasOwnProperty(_options.url)) {
+            return await this.awaitFctHead(_options.url);
+        }
+        else {
+            this.headerWaiting[_options.url] = [];
+            let tagEl;
+            if (_options.type == "js") {
+                tagEl = document.createElement("SCRIPT");
+            }
+            else if (_options.type == "css") {
+                tagEl = document.createElement("LINK");
+                tagEl.setAttribute("rel", "stylesheet");
+            }
+            else {
+                throw "unknow type " + _options.type + " to append into head";
+            }
+            document.head.appendChild(tagEl);
+            let result = await this.loadTag(tagEl, _options.url);
+            this.headerLoaded[_options.url] = true;
+            this.releaseAwaitFctHead(_options.url, result);
+            return result;
+        }
+    }
+    static loadTag(tagEl, url) {
+        return new Promise((resolve, reject) => {
+            tagEl.addEventListener("load", (e) => {
+                resolve(true);
+            });
+            tagEl.addEventListener("error", (e) => {
+                resolve(false);
+            });
+            if (tagEl instanceof HTMLLinkElement) {
+                tagEl.setAttribute("href", url);
+            }
+            else {
+                tagEl.setAttribute('src', url);
+            }
+        });
+    }
+    static releaseAwaitFctHead(url, result) {
+        if (this.headerWaiting[url]) {
+            for (let i = 0; i < this.headerWaiting[url].length; i++) {
+                this.headerWaiting[url][i](result);
+            }
+            delete this.headerWaiting[url];
+        }
+    }
+    static awaitFctHead(url) {
+        return new Promise((resolve) => {
+            this.headerWaiting[url].push((result) => {
+                resolve(result);
+            });
+        });
+    }
+    static requestLoaded = {};
+    static requestWaiting = {};
+    /**
+     *
+    */
+    static async load(options) {
+        options = this.prepareOptions(options);
+        if (this.requestLoaded[options.url]) {
+            return this.requestLoaded[options.url];
+        }
+        else if (this.requestWaiting.hasOwnProperty(options.url)) {
+            await this.awaitFct(options.url);
+            return this.requestLoaded[options.url];
+        }
+        else {
+            this.requestWaiting[options.url] = [];
+            let blob = false;
+            if (options.type == "img") {
+                blob = true;
+            }
+            let content = await this.fetching(options.url, blob);
+            if (options.type == "img" && content.startsWith("data:text/html;")) {
+                console.error("Can't load img " + options.url);
+                content = "";
+            }
+            this.requestLoaded[options.url] = content;
+            this.releaseAwaitFct(options.url);
+            return content;
+        }
+    }
+    static releaseAwaitFct(url) {
+        if (this.requestWaiting[url]) {
+            for (let i = 0; i < this.requestWaiting[url].length; i++) {
+                this.requestWaiting[url][i]();
+            }
+            delete this.requestWaiting[url];
+        }
+    }
+    static awaitFct(url) {
+        return new Promise((resolve) => {
+            this.requestWaiting[url].push(() => {
+                resolve('');
+            });
+        });
+    }
+    static async fetching(url, useBlob = false) {
+        if (useBlob) {
+            let result = await fetch(url, {
+                headers: {
+                    responseType: 'blob'
+                }
+            });
+            let blob = await result.blob();
+            return await this.readFile(blob);
+        }
+        else {
+            let result = await fetch(url);
+            return await result.text();
+        }
+    }
+    static readFile(blob) {
+        return new Promise((resolve) => {
+            var reader = new FileReader();
+            reader.onloadend = function () {
+                resolve(reader.result);
+            };
+            reader.readAsDataURL(blob);
+        });
+    }
+    static imgExtensions = ["png", "jpg", "jpeg", "gif"];
+    static prepareOptions(options) {
+        let result;
+        if (typeof options === 'string' || options instanceof String) {
+            result = {
+                url: options,
+                type: 'js'
+            };
+            let splittedURI = result.url.split('.');
+            let extension = splittedURI[splittedURI.length - 1];
+            extension = extension.split("?")[0];
+            if (extension == "svg") {
+                result.type = 'svg';
+            }
+            else if (extension == "js") {
+                result.type = 'js';
+            }
+            else if (extension == "css") {
+                result.type = 'css';
+            }
+            else if (this.imgExtensions.indexOf(extension) != -1) {
+                result.type = 'img';
+            }
+            else {
+                delete result.type;
+            }
+        }
+        else {
+            result = options;
+        }
+        return result;
+    }
+}
+ResourceLoader.Namespace=`Aventus`;
+_.ResourceLoader=ResourceLoader;
+
+let I18n=class I18n {
+    currentLocale = "en-GB";
+    langMutex = new Aventus.ActionGuard();
+    watcher = Aventus.Watcher.get({
+        locale: {}
+    });
+    get locale() {
+        return this.watcher['locale'];
+    }
+    set locale(value) {
+        this.watcher['locale'] = value;
+    }
+    files = [];
+    waitingFiles = [];
+    __translations = {};
+    async setLocale(lang) {
+        this.currentLocale = lang;
+        if (!this.__translations[lang]) {
+            await this.langMutex.run([""], async () => {
+                const proms = [];
+                for (let file of this.files) {
+                    let uri = file.replace(/\$locale/g, lang);
+                    proms.push(Aventus.ResourceLoader.load(uri));
+                }
+                const results = await Promise.all(proms);
+                let items = {};
+                for (let result of results) {
+                    try {
+                        this.merge(items, JSON.parse(result));
+                    }
+                    catch (e) {
+                        console.error(e);
+                    }
+                }
+                this.__translations[lang] = items;
+                this.waitingFiles = [];
+            });
+        }
+        this.locale = this.__translations[lang];
+    }
+    merge(from, to) {
+        for (let key in to) {
+            let val = to[key];
+            if (typeof val == 'object') {
+                let temp = {};
+                this.merge(temp, val);
+                from[key] = temp;
+            }
+            else {
+                from[key] = val;
+            }
+        }
+    }
+    registerFileTimeout = 0;
+    registerFile(file) {
+        if (this.files.includes(file))
+            return;
+        this.waitingFiles.push(file);
+        clearTimeout(this.registerFileTimeout);
+        this.registerFileTimeout = setTimeout(() => {
+            this.loadFileDelay();
+        }, 200);
+    }
+    async loadFileDelay() {
+        await this.langMutex.run([""], async () => {
+            const lang = this.currentLocale;
+            const proms = [];
+            for (let file of this.waitingFiles) {
+                let uri = file.replace(/\$locale/g, lang);
+                proms.push(Aventus.ResourceLoader.load(uri));
+            }
+            const results = await Promise.all(proms);
+            let items = this.locale;
+            for (let result of results) {
+                try {
+                    this.merge(items, JSON.parse(result));
+                }
+                catch (e) {
+                    console.error(e);
+                }
+            }
+            for (let file of this.waitingFiles) {
+                this.files.push(file);
+            }
+            this.__translations[lang] = items;
+            this.waitingFiles = [];
+        });
+    }
+    hasKey(key) {
+        return this.locale[key] !== undefined;
+    }
+    t(key, params = {}) {
+        let translation = this.locale[key];
+        if (translation === undefined) {
+            translation = key;
+        }
+        for (let key in params) {
+            let regex = new RegExp("\\{\\{ *" + key + " *\\}\\}", "g");
+            translation = translation.replace(regex, params[key]);
+        }
+        return translation;
+    }
+}
+I18n.Namespace=`Aventus`;
+_.I18n=I18n;
+
 let WebComponent=class WebComponent extends HTMLElement {
     /**
      * Add attributes informations
@@ -4470,6 +4820,17 @@ let WebComponent=class WebComponent extends HTMLElement {
      */
     getActiveElement(document) {
         return ElementExtension.getActiveElement(document ?? this.shadowRoot);
+    }
+    t(key, params = {}) {
+        const _class = I18n;
+        if (!_class)
+            return key;
+        const i18n = Aventus.Instance.get(_class);
+        const localeKey = this.$type.replace(/\./g, '°');
+        if (i18n.hasKey(localeKey)) {
+            return i18n.t(localeKey, params);
+        }
+        return i18n.t(key, params);
     }
 }
 WebComponent.Namespace=`Aventus`;

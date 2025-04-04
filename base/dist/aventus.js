@@ -33,6 +33,101 @@ let Instance=class Instance {
 Instance.Namespace=`Aventus`;
 _.Instance=Instance;
 
+let Style=class Style {
+    static instance;
+    static noAnimation;
+    static defaultStyleSheets = {
+        "@default": `:host{display:inline-block;box-sizing:border-box}:host *{box-sizing:border-box}`,
+    };
+    static store(name, content) {
+        this.getInstance().store(name, content);
+    }
+    static get(name) {
+        return this.getInstance().get(name);
+    }
+    static getAsString(name) {
+        return this.getInstance().getAsString(name);
+    }
+    static sheetToString(stylesheet) {
+        return this.getInstance().sheetToString(stylesheet);
+    }
+    static load(name, url) {
+        return this.getInstance().load(name, url);
+    }
+    static appendToHead(name) {
+        if (!document.head.querySelector(`style[data-name="${name}"]`)) {
+            const styleNode = document.createElement('style');
+            styleNode.setAttribute(`data-name`, name);
+            styleNode.innerHTML = Aventus.Style.getAsString(name);
+            document.getElementsByTagName('head')[0].appendChild(styleNode);
+        }
+    }
+    static refreshHead(name) {
+        const styleNode = document.head.querySelector(`style[data-name="${name}"]`);
+        if (styleNode) {
+            styleNode.innerHTML = Aventus.Style.getAsString(name);
+        }
+    }
+    static getInstance() {
+        if (!this.instance) {
+            this.instance = new Style();
+        }
+        return this.instance;
+    }
+    constructor() {
+        for (let name in Style.defaultStyleSheets) {
+            this.store(name, Style.defaultStyleSheets[name]);
+        }
+        Style.noAnimation = new CSSStyleSheet();
+        Style.noAnimation.replaceSync(`:host{-webkit-transition: none !important;-moz-transition: none !important;-ms-transition: none !important;-o-transition: none !important;transition: none !important;}:host *{-webkit-transition: none !important;-moz-transition: none !important;-ms-transition: none !important;-o-transition: none !important;transition: none !important;}`);
+    }
+    stylesheets = new Map();
+    async load(name, url) {
+        try {
+            let style = this.stylesheets.get(name);
+            if (!style || style.cssRules.length == 0) {
+                let txt = await (await fetch(url)).text();
+                this.store(name, txt);
+            }
+        }
+        catch (e) {
+        }
+    }
+    store(name, content) {
+        let style = this.stylesheets.get(name);
+        if (!style) {
+            const sheet = new CSSStyleSheet();
+            sheet.replaceSync(content);
+            this.stylesheets.set(name, sheet);
+            return sheet;
+        }
+        else {
+            style.replaceSync(content);
+            Style.refreshHead(name);
+            return style;
+        }
+    }
+    get(name) {
+        let style = this.stylesheets.get(name);
+        if (!style) {
+            style = this.store(name, "");
+        }
+        return style;
+    }
+    getAsString(name) {
+        return this.sheetToString(this.get(name));
+    }
+    sheetToString(stylesheet) {
+        return stylesheet.cssRules
+            ? Array.from(stylesheet.cssRules)
+                .map(rule => rule.cssText || '')
+                .join('\n')
+            : '';
+    }
+}
+Style.Namespace=`Aventus`;
+_.Style=Style;
+
 let compareObject=function compareObject(obj1, obj2) {
     if (Array.isArray(obj1)) {
         if (!Array.isArray(obj2)) {
@@ -272,101 +367,6 @@ let ActionGuard=class ActionGuard {
 }
 ActionGuard.Namespace=`Aventus`;
 _.ActionGuard=ActionGuard;
-
-let Style=class Style {
-    static instance;
-    static noAnimation;
-    static defaultStyleSheets = {
-        "@default": `:host{display:inline-block;box-sizing:border-box}:host *{box-sizing:border-box}`,
-    };
-    static store(name, content) {
-        this.getInstance().store(name, content);
-    }
-    static get(name) {
-        return this.getInstance().get(name);
-    }
-    static getAsString(name) {
-        return this.getInstance().getAsString(name);
-    }
-    static sheetToString(stylesheet) {
-        return this.getInstance().sheetToString(stylesheet);
-    }
-    static load(name, url) {
-        return this.getInstance().load(name, url);
-    }
-    static appendToHead(name) {
-        if (!document.head.querySelector(`style[data-name="${name}"]`)) {
-            const styleNode = document.createElement('style');
-            styleNode.setAttribute(`data-name`, name);
-            styleNode.innerHTML = Aventus.Style.getAsString(name);
-            document.getElementsByTagName('head')[0].appendChild(styleNode);
-        }
-    }
-    static refreshHead(name) {
-        const styleNode = document.head.querySelector(`style[data-name="${name}"]`);
-        if (styleNode) {
-            styleNode.innerHTML = Aventus.Style.getAsString(name);
-        }
-    }
-    static getInstance() {
-        if (!this.instance) {
-            this.instance = new Style();
-        }
-        return this.instance;
-    }
-    constructor() {
-        for (let name in Style.defaultStyleSheets) {
-            this.store(name, Style.defaultStyleSheets[name]);
-        }
-        Style.noAnimation = new CSSStyleSheet();
-        Style.noAnimation.replaceSync(`:host{-webkit-transition: none !important;-moz-transition: none !important;-ms-transition: none !important;-o-transition: none !important;transition: none !important;}:host *{-webkit-transition: none !important;-moz-transition: none !important;-ms-transition: none !important;-o-transition: none !important;transition: none !important;}`);
-    }
-    stylesheets = new Map();
-    async load(name, url) {
-        try {
-            let style = this.stylesheets.get(name);
-            if (!style || style.cssRules.length == 0) {
-                let txt = await (await fetch(url)).text();
-                this.store(name, txt);
-            }
-        }
-        catch (e) {
-        }
-    }
-    store(name, content) {
-        let style = this.stylesheets.get(name);
-        if (!style) {
-            const sheet = new CSSStyleSheet();
-            sheet.replaceSync(content);
-            this.stylesheets.set(name, sheet);
-            return sheet;
-        }
-        else {
-            style.replaceSync(content);
-            Style.refreshHead(name);
-            return style;
-        }
-    }
-    get(name) {
-        let style = this.stylesheets.get(name);
-        if (!style) {
-            style = this.store(name, "");
-        }
-        return style;
-    }
-    getAsString(name) {
-        return this.sheetToString(this.get(name));
-    }
-    sheetToString(stylesheet) {
-        return stylesheet.cssRules
-            ? Array.from(stylesheet.cssRules)
-                .map(rule => rule.cssText || '')
-                .join('\n')
-            : '';
-    }
-}
-Style.Namespace=`Aventus`;
-_.Style=Style;
 
 let Effect=class Effect {
     callbacks = [];
@@ -1544,7 +1544,7 @@ Object.defineProperty(window, "AvInstance", {
 	if(window['t']) {
 		window['t'] = Aventus.I18n.t;
 	}
-})()
+})();
 
 (() => {
 	Map.prototype._defaultHas = Map.prototype.has;
@@ -1569,7 +1569,7 @@ Object.defineProperty(window, "AvInstance", {
 		}
 		return Map.prototype._defaultGet.call(this, key);
 	}
-})()
+})();
 
  
 var Aventus;
@@ -1580,112 +1580,6 @@ const _ = {};
 
 
 let _n;
-let I18n=class I18n {
-    currentLocale = "en-GB";
-    langMutex = new Aventus.ActionGuard();
-    watcher = Aventus.Watcher.get({
-        locale: {}
-    });
-    get locale() {
-        return this.watcher['locale'];
-    }
-    set locale(value) {
-        this.watcher['locale'] = value;
-    }
-    files = [];
-    waitingFiles = [];
-    __translations = {};
-    async setLocale(lang) {
-        this.currentLocale = lang;
-        if (!this.__translations[lang]) {
-            await this.langMutex.run([""], async () => {
-                const proms = [];
-                for (let file of this.files) {
-                    let uri = file.replace(/\$locale/g, lang);
-                    proms.push(Aventus.ResourceLoader.load(uri));
-                }
-                const results = await Promise.all(proms);
-                let items = {};
-                for (let result of results) {
-                    try {
-                        this.merge(items, JSON.parse(result));
-                    }
-                    catch (e) {
-                        console.error(e);
-                    }
-                }
-                this.__translations[lang] = items;
-                this.waitingFiles = [];
-            });
-        }
-        this.locale = this.__translations[lang];
-    }
-    merge(from, to) {
-        for (let key in to) {
-            let val = to[key];
-            if (typeof val == 'object') {
-                let temp = {};
-                this.merge(temp, val);
-                from[key] = temp;
-            }
-            else {
-                from[key] = val;
-            }
-        }
-    }
-    registerFileTimeout = 0;
-    registerFile(file) {
-        if (this.files.includes(file))
-            return;
-        this.waitingFiles.push(file);
-        clearTimeout(this.registerFileTimeout);
-        this.registerFileTimeout = setTimeout(() => {
-            this.loadFileDelay();
-        }, 200);
-    }
-    async loadFileDelay() {
-        await this.langMutex.run([""], async () => {
-            const lang = this.currentLocale;
-            const proms = [];
-            for (let file of this.waitingFiles) {
-                let uri = file.replace(/\$locale/g, lang);
-                proms.push(Aventus.ResourceLoader.load(uri));
-            }
-            const results = await Promise.all(proms);
-            let items = this.locale;
-            for (let result of results) {
-                try {
-                    this.merge(items, JSON.parse(result));
-                }
-                catch (e) {
-                    console.error(e);
-                }
-            }
-            for (let file of this.waitingFiles) {
-                this.files.push(file);
-            }
-            this.__translations[lang] = items;
-            this.waitingFiles = [];
-        });
-    }
-    hasKey(key) {
-        return this.locale[key] !== undefined;
-    }
-    t(key, params = {}) {
-        let translation = this.locale[key];
-        if (translation === undefined) {
-            translation = key;
-        }
-        for (let key in params) {
-            let regex = new RegExp("\\{\\{ *" + key + " *\\}\\}", "g");
-            translation = translation.replace(regex, params[key]);
-        }
-        return translation;
-    }
-}
-I18n.Namespace=`Aventus`;
-_.I18n=I18n;
-
 let Style=class Style {
     static instance;
     static noAnimation;
@@ -2253,6 +2147,112 @@ let Instance=class Instance {
 }
 Instance.Namespace=`Aventus`;
 _.Instance=Instance;
+
+let I18n=class I18n {
+    currentLocale = "en-GB";
+    langMutex = new Aventus.ActionGuard();
+    watcher = Aventus.Watcher.get({
+        locale: {}
+    });
+    get locale() {
+        return this.watcher['locale'];
+    }
+    set locale(value) {
+        this.watcher['locale'] = value;
+    }
+    files = [];
+    waitingFiles = [];
+    __translations = {};
+    async setLocale(lang) {
+        this.currentLocale = lang;
+        if (!this.__translations[lang]) {
+            await this.langMutex.run([""], async () => {
+                const proms = [];
+                for (let file of this.files) {
+                    let uri = file.replace(/\$locale/g, lang);
+                    proms.push(Aventus.ResourceLoader.load(uri));
+                }
+                const results = await Promise.all(proms);
+                let items = {};
+                for (let result of results) {
+                    try {
+                        this.merge(items, JSON.parse(result));
+                    }
+                    catch (e) {
+                        console.error(e);
+                    }
+                }
+                this.__translations[lang] = items;
+                this.waitingFiles = [];
+            });
+        }
+        this.locale = this.__translations[lang];
+    }
+    merge(from, to) {
+        for (let key in to) {
+            let val = to[key];
+            if (typeof val == 'object') {
+                let temp = {};
+                this.merge(temp, val);
+                from[key] = temp;
+            }
+            else {
+                from[key] = val;
+            }
+        }
+    }
+    registerFileTimeout = 0;
+    registerFile(file) {
+        if (this.files.includes(file))
+            return;
+        this.waitingFiles.push(file);
+        clearTimeout(this.registerFileTimeout);
+        this.registerFileTimeout = setTimeout(() => {
+            this.loadFileDelay();
+        }, 200);
+    }
+    async loadFileDelay() {
+        await this.langMutex.run([""], async () => {
+            const lang = this.currentLocale;
+            const proms = [];
+            for (let file of this.waitingFiles) {
+                let uri = file.replace(/\$locale/g, lang).toLowerCase();
+                proms.push(Aventus.ResourceLoader.load(uri));
+            }
+            const results = await Promise.all(proms);
+            let items = this.locale;
+            for (let result of results) {
+                try {
+                    this.merge(items, JSON.parse(result));
+                }
+                catch (e) {
+                    console.error(e);
+                }
+            }
+            for (let file of this.waitingFiles) {
+                this.files.push(file);
+            }
+            this.__translations[lang] = items;
+            this.waitingFiles = [];
+        });
+    }
+    hasKey(key) {
+        return this.locale[key] !== undefined;
+    }
+    t(key, params = {}) {
+        let translation = this.locale[key];
+        if (translation === undefined) {
+            translation = key;
+        }
+        for (let key in params) {
+            let regex = new RegExp("\\{\\{ *" + key + " *\\}\\}", "g");
+            translation = translation.replace(regex, params[key]);
+        }
+        return translation;
+    }
+}
+I18n.Namespace=`Aventus`;
+_.I18n=I18n;
 
 let DragElementXYType= [SVGGElement, SVGRectElement, SVGEllipseElement, SVGTextElement];
 _.DragElementXYType=DragElementXYType;

@@ -47,9 +47,9 @@ export class AventusI18nLanguageService {
 				const locales = file.build.buildConfig.i18n?.locales ?? [];
 
 				for (let key in parsed) {
-					for (let locale in parsed[key]) {
+					for (let locale in parsed[key].locales) {
 						const info = parsed[key].locales[locale];
-						if (locales.includes(locale)) {
+						if (!locales.includes(locale)) {
 							errors.push(createWarningI18nPos(file.file.documentUser, "Locale not needed", info.localeStart, info.localeEnd));
 						}
 

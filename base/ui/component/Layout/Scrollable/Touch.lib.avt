@@ -6,11 +6,11 @@ export class Tracker {
     public velocity: { x: number, y: number; } = { x: 0, y: 0 };
     public lastPosition: { x: number, y: number; } = { x: 0, y: 0 };
 
-    constructor(touch: Touch) {
+    constructor(touch: Touch | PointerEvent | MouseEvent) {
         this.lastPosition = this.getPosition(touch);
     }
 
-    public update(touch: Touch) {
+    public update(touch: Touch | PointerEvent | MouseEvent) {
         const {
             velocity,
             updateTime,
@@ -83,6 +83,15 @@ export class TouchRecord {
         return { ...tracker.velocity };
     }
 
+    public getNbOfTouches() {
+        return Object.values(this._touchList).length;
+    }
+    public getTouches() {
+        return Object.values(this._touchList);
+    }
+
+
+
     public getEasingDistance(damping: number) {
         const deAcceleration = 1 - damping;
 
@@ -92,8 +101,8 @@ export class TouchRecord {
         };
 
         const vel = this.getVelocity();
-        const dirs = Object.keys(vel);
-        for(let dir of dirs) {
+
+        Object.keys(vel).forEach(dir => {
             // ignore small velocity
             let v = Math.abs(vel[dir]) <= 10 ? 0 : vel[dir];
 
@@ -101,78 +110,107 @@ export class TouchRecord {
                 distance[dir] += v;
                 v = (v * deAcceleration) | 0;
             }
-        }
+        });
 
         return distance;
     }
 
-    public track(evt: TouchEvent) {
-        const {
-            targetTouches,
-        } = evt;
+    public track(evt: TouchEvent | PointerEvent | MouseEvent) {
+        if('TouchEvent' in window && evt instanceof TouchEvent) {
+            const {
+                targetTouches,
+            } = evt;
 
-        const touches = Array.from(targetTouches);
-        for(let touch of touches) {
-            this._add(touch);
+            Array.from(targetTouches).forEach(touch => {
+                this._add(touch);
+            });
         }
-        return this._touchList;
-    }
-
-    public update(evt: TouchEvent) {
-        const {
-            touches,
-            changedTouches,
-        } = evt;
-        const touchesArray = Array.from(touches);
-        for(let touch of touchesArray) {
-            this._renew(touch);
+        else {
+            this._add(evt as PointerEvent);
         }
-
-        this._setActiveID(changedTouches);
 
         return this._touchList;
     }
 
-    public release(evt: TouchEvent) {
-        delete this._activeTouchID;
+    public update(evt: TouchEvent | PointerEvent | MouseEvent) {
+        if('TouchEvent' in window && evt instanceof TouchEvent) {
+            const {
+                touches,
+                changedTouches,
+            } = evt;
 
-        const touchesArray = Array.from(evt.changedTouches);
-        for(let touch of touchesArray) {
-            this._delete(touch);
+            Array.from(touches).forEach(touch => {
+                this._renew(touch);
+            });
+
+            this._setActiveID(changedTouches);
+        } else if(evt instanceof PointerEvent) {
+            this._renew(evt);
+            this._setActiveID(evt);
+        }
+
+        return this._touchList;
+    }
+
+    public release(evt: TouchEvent | PointerEvent | MouseEvent) {
+        if('TouchEvent' in window && evt instanceof TouchEvent) {
+            Array.from(evt.changedTouches).forEach(touch => {
+                this._delete(touch);
+            });
+        }
+        else {
+            this._delete(evt as PointerEvent);
         }
     }
 
-    private _add(touch: Touch) {
+
+    private _getIdentifier(touch: Touch | PointerEvent | MouseEvent): number {
+        if('Touch' in window && touch instanceof Touch) return touch.identifier;
+        if(touch instanceof PointerEvent) return touch.pointerId;
+        return (touch as MouseEvent).button;
+    }
+
+    private _add(touch: Touch | PointerEvent | MouseEvent) {
         if(this._has(touch)) {
             // reset tracker
             this._delete(touch);
         }
 
         const tracker = new Tracker(touch);
-
-        this._touchList[touch.identifier] = tracker;
+        const identifier = this._getIdentifier(touch);
+        this._touchList[identifier] = tracker;
     }
 
-    private _renew(touch: Touch) {
+    private _renew(touch: Touch | PointerEvent | MouseEvent) {
         if(!this._has(touch)) {
             return;
         }
 
-        const tracker = this._touchList[touch.identifier];
-
+        const identifier = this._getIdentifier(touch);
+        const tracker = this._touchList[identifier];
         tracker.update(touch);
     }
 
-    private _delete(touch: Touch) {
-        delete this._touchList[touch.identifier];
+    private _delete(touch: Touch | PointerEvent | MouseEvent) {
+        const identifier = this._getIdentifier(touch);
+        delete this._touchList[identifier];
+        if(this._activeTouchID == identifier) {
+            this._activeTouchID = undefined;
+        }
     }
 
-    private _has(touch: Touch): boolean {
-        return this._touchList.hasOwnProperty(touch.identifier);
+    private _has(touch: Touch | PointerEvent | MouseEvent): boolean {
+        const identifier = this._getIdentifier(touch);
+        return this._touchList.hasOwnProperty(identifier);
     }
 
-    private _setActiveID(touches: TouchList) {
-        this._activeTouchID = touches[touches.length - 1].identifier;
+    private _setActiveID(touches: TouchList | PointerEvent | MouseEvent) {
+        if(touches instanceof PointerEvent || touches instanceof MouseEvent) {
+            this._activeTouchID = this._getIdentifier(touches);
+        }
+        else {
+            this._activeTouchID = touches[touches.length - 1].identifier;
+        }
     }
 
     private _getActiveTracker(): Tracker | undefined {

@@ -32,6 +32,7 @@ export interface AventusConfigBuildCompile {
 	package: string[],
 	outputNpm: AventusConfigBuildCompileOutputNpm,
 	compressed?: boolean,
+	outputI18n: AventusConfigBuildCompileOutputI18n[]
 }
 
 export interface AventusConfigBuildCompileOutputNpmManifest {
@@ -43,6 +44,10 @@ export interface AventusConfigBuildCompileOutputNpm {
 	npmName: string,
 	manifest?: AventusConfigBuildCompileOutputNpmManifest,
 	live: boolean
+}
+export interface AventusConfigBuildCompileOutputI18n {
+	path: string,
+	mount: string
 }
 
 export interface AventusConfigBuildDependance {
@@ -89,7 +94,8 @@ export interface AventusConfig {
 
 export interface AventusConfigBuildI18n {
 	locales: string[],
-	fallback: string
+	fallback: string,
+	autoRegister?: boolean
 }
 
 export interface AventusSharp {

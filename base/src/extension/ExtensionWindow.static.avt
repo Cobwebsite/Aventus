@@ -6,7 +6,7 @@ Object.defineProperty(window, "AvInstance", {
 	if(window['t']) {
 		window['t'] = Aventus.I18n.t;
 	}
-})()
+})();
 
 (() => {
 	Map.prototype._defaultHas = Map.prototype.has;
@@ -31,4 +31,4 @@ Object.defineProperty(window, "AvInstance", {
 		}
 		return Map.prototype._defaultGet.call(this, key);
 	}
-})()
+})();

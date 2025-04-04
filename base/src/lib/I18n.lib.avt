@@ -77,7 +77,7 @@ export class I18n {
             const lang = this.currentLocale;
             const proms: Promise<string>[] = [];
             for(let file of this.waitingFiles) {
-                let uri = file.replace(/\$locale/g, lang);
+                let uri = file.replace(/\$locale/g, lang).toLowerCase();
                 proms.push(Aventus.ResourceLoader.load(uri));
             }
             const results = await Promise.all(proms);

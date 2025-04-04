@@ -8,7 +8,7 @@ import { FilesManager } from '../files/FilesManager';
 import { AventusHTMLFile, SlotsInfo } from "../language-services/html/File";
 import { HTMLDoc } from '../language-services/html/helper/definition';
 import { AventusHTMLLanguageService } from "../language-services/html/LanguageService";
-import { AventusConfigBuild, AventusConfigBuildCompile, AventusConfigBuildCompileOutputNpm } from "../language-services/json/definition";
+import { AventusConfigBuild, AventusConfigBuildCompile, AventusConfigBuildCompileOutputI18n, AventusConfigBuildCompileOutputNpm } from "../language-services/json/definition";
 import { AventusWebSCSSFile } from "../language-services/scss/File";
 import { AventusSCSSLanguageService } from "../language-services/scss/LanguageService";
 import { AventusWebComponentLogicalFile } from "../language-services/ts/component/File";
@@ -38,7 +38,7 @@ import * as md5 from 'md5';
 import { Statistics } from '../notification/Statistics';
 import { Manifest } from '../manifest/Manifest';
 import { OverrideViewDecorator } from '../language-services/ts/parser/decorators/OverrideViewDecorator';
-import { AventusI18nFile } from '../language-services/i18n/File';
+import { AventusI18nExported, AventusI18nFile } from '../language-services/i18n/File';
 
 export type BuildErrors = { file: string, title: string }[]
 
@@ -364,7 +364,10 @@ export class Build {
                 available: result.codeRenderInJs,
                 existing: result.codeNotRenderInJs
             }
-            this.writeBuildDocumentation(compile.package, result, srcInfo, compile.outputNpm)
+            this.writeBuildDocumentation(compile.package, result, srcInfo, compile.outputNpm);
+            if (compile.outputI18n) {
+                this.writeBuildI18n(compile.outputI18n);
+            }
             if (compile.outputNpm.live) {
                 this.writeBuildNpm(compile.outputNpm, result);
             }
@@ -820,6 +823,23 @@ export class Build {
             }
         }
 
+    }
+
+    public writeBuildI18n(outputs: AventusConfigBuildCompileOutputI18n[]) {
+        const locales = this.buildConfig.i18n?.locales ?? [];
+        for (let locale of locales) {
+            for (let uri in this.tsLanguageService.i18nFiles) {
+                const file = this.tsLanguageService.i18nFiles[uri];
+                for (let output of outputs) {
+                    if (!existsSync(output.path)) {
+                        mkdirSync(output.path, { recursive: true });
+                    }
+                    const name = file.file.name.replace("@", "").replace(AventusExtension.I18n, "");
+                    const outputFile = join(output.path, name + "_" + locale + ".json").toLowerCase();
+                    this.writeFile(outputFile, JSON.stringify(file.exported[locale], null, 4));
+                }
+            }
+        }
     }
 
     /**
@@ -1575,6 +1595,17 @@ export class Build {
                 stylesheets.push(`Aventus.Style.store("${name}", \`${stylesheetsInfo[name]}\`)`);
             }
             let codeModule = this._buildStringModule(libInfo.namespace, libInfo.before, libInfo.code, libInfo.classesName, libInfo.after, stylesheets);
+            if (libInfo.namespace == "Aventus") {
+
+                if (this.buildConfig.i18n && this.buildConfig.i18n.autoRegister !== false) {
+                    for (let uri in this.tsLanguageService.i18nFiles) {
+                        const file = this.tsLanguageService.i18nFiles[uri];
+                        const name = file.file.name.replace("@", "").replace(AventusExtension.I18n, "");
+                        const outputFile = (compileConfig.outputI18n[0].mount + "/" + name + "_$locale.json").toLowerCase();
+                        codeModule += `Aventus.Instance.get(Aventus.I18n).registerFile("${outputFile}")` + EOL;
+                    }
+                }
+            }
             libSrc.push(codeModule);
 
         }

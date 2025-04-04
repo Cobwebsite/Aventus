@@ -1,4 +1,4 @@
-import { normalize } from "path";
+import { join, normalize, sep } from "path";
 import { Diagnostic, getLanguageService, LanguageService } from "vscode-json-languageservice";
 import { CompletionItem, CompletionList, DiagnosticSeverity, FormattingOptions, Hover, Position, Range, TextEdit } from 'vscode-languageserver';
 import { AventusErrorCode, AventusExtension } from "../../definition";
@@ -7,6 +7,7 @@ import { createErrorTs, escapeRegex, getFolder, uriToPath } from "../../tools";
 import { AventusConfig, AventusConfigBuild, AventusConfigBuildCompile, AventusConfigBuildDependance, AventusConfigBuildStories, AventusConfigStatic } from "./definition";
 import { AventusConfigSchema, AventusSharpSchema, AventusTemplateSchema } from "./schema";
 import { env } from 'process';
+import { GenericServer } from '../../GenericServer';
 
 export class AventusJSONLanguageService {
     private static instance: AventusJSONLanguageService;
@@ -307,6 +308,57 @@ export class AventusJSONLanguageService {
                     }
                 }
             }
+
+            if (build.i18n) {
+                if (!compile.outputI18n) {
+                    compile.outputI18n = []
+                    for (let output of compile.output) {
+                        const splitted = output.split(sep);
+                        splitted.pop();
+                        const outputPath = splitted.join(sep);
+                        const final = join(outputPath, "locales");
+                        const root = normalize(uriToPath(GenericServer.getWorkspaceUri()));
+                        let mount = final.replace(root, "").replace(/\\/g, "/");
+                        if (mount.startsWith("/dist")) {
+                            mount = mount.replace("/dist", "");
+                        }
+                        compile.outputI18n.push({
+                            path: final,
+                            mount: mount
+                        });
+
+                    }
+                }
+                else {
+                    if (!Array.isArray(compile.outputI18n)) {
+                        compile.outputI18n = [{
+                            path: compile.outputI18n,
+                            mount: ''
+                        }];
+                    }
+                    for (let i = 0; i < compile.outputI18n.length; i++) {
+                        if (compile.outputI18n[i].path.endsWith("/")) {
+                            compile.outputI18n[i].path = compile.outputI18n[i].path.slice(0, -1)
+                        }
+                        compile.outputI18n[i].path = compile.outputI18n[i].path.trim();
+                        if (compile.outputI18n[i].path.length > 0) {
+                            compile.outputI18n[i].path = replaceEnvVar(compile.outputI18n[i].path);
+                        }
+
+                        if (compile.outputI18n[i].mount == '') {
+                            const root = normalize(uriToPath(GenericServer.getWorkspaceUri()));
+                            let mount = compile.outputI18n[i].path.replace(root, "").replace(/\\/g, "/");
+                            if (mount.startsWith("/dist")) {
+                                mount = mount.replace("/dist", "");
+                            }
+                            compile.outputI18n[i].mount = mount
+                        }
+                        if (compile.outputI18n[i].mount.endsWith("/")) {
+                            compile.outputI18n[i].mount = compile.outputI18n[i].mount.slice(0, -1)
+                        }
+                    }
+                }
+            }
         }
         // src
         let regexsSrc: string[] = [];
@@ -457,8 +509,8 @@ export class AventusJSONLanguageService {
         }
 
         // i18n
-        if(build.i18n) {
-            
+        if (build.i18n) {
+
         }
 
         return build;

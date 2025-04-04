@@ -174,6 +174,21 @@ export const AventusConfigSchema: JSONSchema = {
                                     pattern: "^\\S+\\.package\\.avt",
                                     description: "The package file generated path (for lib)"
                                 },
+                                "i18n": {
+                                    type: ["string", "array"],
+                                    items: {
+                                        type: "object",
+                                        properties: {
+                                            "path": {
+                                                type: "string"
+                                            },
+                                            "mount": {
+                                                type: "string"
+                                            }
+                                        },
+                                        required: ["path", "mount"]
+                                    }
+                                }
                             }
                         }
                     },
@@ -222,6 +237,9 @@ export const AventusConfigSchema: JSONSchema = {
                             },
                             "fallback": {
                                 type: "string"
+                            },
+                            "autoRegister": {
+                                type: "boolean"
                             }
                         },
                         description: "Define options for i18n"

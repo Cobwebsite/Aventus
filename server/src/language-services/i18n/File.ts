@@ -7,11 +7,14 @@ import { AventusI18nLanguageService } from './LanguageService';
 import { I18nParsed, I18nParser } from './Parser';
 
 export type AventusI18nFileSrcParsed = { [key: string]: { [locale: string]: string } };
+export type AventusI18nExported = { [locales: string]: { [key: string]: string } };
 export class AventusI18nFile extends AventusBaseFile {
 
 
 	public parsedSrc: AventusI18nFileSrcParsed = {};
 	public parsed?: I18nParsed;
+	public exported: AventusI18nExported = {};
+
 
 	public get keys(): string[] {
 		return Object.keys(this.parsedSrc);
@@ -26,6 +29,7 @@ export class AventusI18nFile extends AventusBaseFile {
 		try {
 			this.parsedSrc = JSON.parse(this.file.contentUser);
 			this.parsed = I18nParser.parse(this.file.documentUser);
+			this.transformForExport();
 			if (this.file instanceof InternalAventusFile) {
 				const values = this.keys.map(p => `"${p.replace(/"/g, "\\\"")}": string`).join(",\r\n")
 				const content = `declare global {
@@ -41,6 +45,22 @@ export class AventusI18nFile extends AventusBaseFile {
 		catch (e) {
 
 		}
+	}
+	protected transformForExport() {
+		const result: AventusI18nExported = {};
+		const locales = this.build.buildConfig.i18n?.locales ?? [];
+		for (let locale of locales) {
+			result[locale] = {};
+		}
+
+		for (let key in this.parsedSrc) {
+			for (let locale in this.parsedSrc[key]) {
+				if (!locales.includes(locale)) continue;
+
+				result[locale][key] = this.parsedSrc[key][locale];
+			}
+		}
+		this.exported = result;
 	}
 	protected async onValidate(): Promise<Diagnostic[]> {
 		const diags: Diagnostic[] = await AventusI18nLanguageService.getInstance().validate(this);
