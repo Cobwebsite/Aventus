@@ -178,15 +178,21 @@ export const AventusConfigSchema: JSONSchema = {
                                     type: ["string", "array"],
                                     items: {
                                         type: "object",
+                                        additionalProperties: false,
                                         properties: {
-                                            "path": {
+                                            "output": {
                                                 type: "string"
                                             },
                                             "mount": {
                                                 type: "string"
+                                            },
+                                            "mode": {
+                                                type: "string",
+                                                enum: ['singleFile', 'oneToOne', 'groupComponent', 'basedOnAttribute', 'include'],
+                                                default: "singleFile",
                                             }
                                         },
-                                        required: ["path", "mount"]
+                                        required: ["output"]
                                     }
                                 }
                             }

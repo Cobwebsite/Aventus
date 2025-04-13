@@ -3,12 +3,6 @@ Object.defineProperty(window, "AvInstance", {
 });
 
 (() => {
-	if(window['t']) {
-		window['t'] = Aventus.I18n.t;
-	}
-})();
-
-(() => {
 	Map.prototype._defaultHas = Map.prototype.has;
 	Map.prototype._defaultSet = Map.prototype.set;
 	Map.prototype._defaultGet = Map.prototype.get;

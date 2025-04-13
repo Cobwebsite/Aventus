@@ -272,7 +272,8 @@ export class ImportInfo {
 			for (let type of types) {
 				for (let name in type) {
 					let _class = type[name]
-					for (let dependance of _class.dependances) {
+					const dependances = Object.values(_class.dependances);
+					for (let dependance of dependances) {
 						if (dependance.uri == "@external" && dependance.fullName == localName) {
 							dependance.uri = "@local";
 							dependance.fullName = "$namespace$" + baseInfoLinked.fullName;

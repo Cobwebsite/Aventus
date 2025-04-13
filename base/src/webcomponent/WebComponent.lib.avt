@@ -6,7 +6,6 @@ import { StateManager, type StateSlug } from "../state/StateManager.state.avt";
 import { ElementExtension } from "./ElementExtension.lib.avt";
 import { Instance } from "../lib/Instance.lib.avt";
 import { type Computed, WatchAction, Watcher, type EffectReceiver, type WatcherChange, Signal } from "../lib/Watcher.lib.avt";
-import { I18n } from "../lib/I18n.lib.avt";
 
 @Storybook({
     prefix: "Webcomponent"
@@ -888,19 +887,6 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
      */
     public getActiveElement(document?: Document): Element | null {
         return ElementExtension.getActiveElement(document ?? this.shadowRoot);
-    }
-    //#endregion
-
-    //#region i18n
-    protected t(key: string, params: { [key: string]: string; } = {}) {
-        const _class = I18n;
-        if(!_class) return key;
-        const i18n = Aventus.Instance.get(_class) as I18n;
-        const localeKey = this.$type.replace(/\./g, '°');
-        if(i18n.hasKey(localeKey)) {
-            return i18n.t(localeKey, params);
-        }
-        return i18n.t(key, params);
     }
     //#endregion
 }

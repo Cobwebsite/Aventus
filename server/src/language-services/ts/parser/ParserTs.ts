@@ -42,13 +42,13 @@ import { ImportInfo } from './ImportInfo';
 export class ParserTs {
     private static waitingUri: { [uri: string]: (() => void)[] } = {};
     public static parsedDoc: { [uri: string]: { version: number, result: ParserTs } } = {};
-    public static parse(document: AventusFile, isLib: boolean, build: Build): ParserTs {
+    public static parse(document: AventusFile, isExternal: boolean, build: Build): ParserTs {
         if (ParserTs.parsedDoc[document.uri]) {
             if (this.parsedDoc[document.uri].version == document.versionInternal) {
                 return this.parsedDoc[document.uri].result;
             }
         }
-        new ParserTs(document, isLib, build);
+        new ParserTs(document, isExternal, build);
         return ParserTs.parsedDoc[document.uri].result;
     }
     private static parsingDocs: ParserTs[] = [];
@@ -59,7 +59,7 @@ export class ParserTs {
         return null;
     }
     public static addError(start: number, end: number, msg: string) {
-        if (this.currentParsingDoc && !this.currentParsingDoc.isLib) {
+        if (this.currentParsingDoc && !this.currentParsingDoc.isExternal) {
             let error = {
                 range: Range.create(this.currentParsingDoc.document.positionAt(start), this.currentParsingDoc.document.positionAt(end)),
                 severity: DiagnosticSeverity.Error,
@@ -70,7 +70,7 @@ export class ParserTs {
         }
     }
     public static addWarning(start: number, end: number, msg: string) {
-        if (this.currentParsingDoc && !this.currentParsingDoc.isLib) {
+        if (this.currentParsingDoc && !this.currentParsingDoc.isExternal) {
             let error = {
                 range: Range.create(this.currentParsingDoc.document.positionAt(start), this.currentParsingDoc.document.positionAt(end)),
                 severity: DiagnosticSeverity.Warning,
@@ -167,7 +167,7 @@ export class ParserTs {
     public waitingImports: { [localName: string]: ((info: BaseInfo) => void)[] } = {};
     public aliases: { [shortName: string]: AliasInfo } = {};
     public variables: { [shortName: string]: VariableInfo } = {};
-    public isLib: boolean = false;
+    public isExternal: boolean = false;
     public isReady: boolean = false;
     public build: Build;
     private file: AventusFile;
@@ -175,7 +175,7 @@ export class ParserTs {
 
     public npmAliases: { [fullname: string]: string } = {}
 
-    private constructor(file: AventusFile, isLib: boolean, build: Build) {
+    private constructor(file: AventusFile, isExternal: boolean, build: Build) {
         this.build = build;
         this.build.npmBuilder.unregister(file.documentUser.uri);
         this.file = file;
@@ -187,7 +187,7 @@ export class ParserTs {
         ParserTs.parsingDocs.push(this);
         this.content = file.documentInternal.getText();
         this._document = file.documentInternal;
-        this.isLib = isLib;
+        this.isExternal = isExternal;
         let srcFile = createSourceFile("sample.ts", this.content, ScriptTarget.ESNext, true);
         this.srcFile = srcFile;
         this.quickLoadRoot(srcFile);

@@ -1,4 +1,4 @@
-import { Callback } from "Aventus@Main:Aventus.package.avt";
+import { Callback } from "./Callback.lib.avt";
 
 @Storybook({
     prefix: "Lib/PressManager"

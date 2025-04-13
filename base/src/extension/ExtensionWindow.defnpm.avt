@@ -1,3 +1,2 @@
 export var AvInstance: typeof Aventus.Instance;
 export type NotVoid = { [key: string]: NotVoid } | object | string | boolean | symbol | number | null | undefined;
-export function t(key: string, params: { [key: string]: string; } = {}): string;

@@ -5,6 +5,9 @@ import { AventusBaseFile } from '../BaseFile';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AventusI18nLanguageService } from './LanguageService';
 import { I18nParsed, I18nParser } from './Parser';
+import { AventusExtension } from '../../definition';
+import { AventusWebComponentLogicalFile } from '../ts/component/File';
+import { ClassInfo } from '../ts/parser/ClassInfo';
 
 export type AventusI18nFileSrcParsed = { [key: string]: { [locale: string]: string } };
 export type AventusI18nExported = { [locales: string]: { [key: string]: string } };
@@ -15,13 +18,23 @@ export class AventusI18nFile extends AventusBaseFile {
 	public parsed?: I18nParsed;
 	public exported: AventusI18nExported = {};
 
+	public get classInfo(): ClassInfo | undefined {
+		var tsFile = this.build.tsFiles[this.file.uri.replace(AventusExtension.I18n, AventusExtension.ComponentLogic)];
+		if (tsFile instanceof AventusWebComponentLogicalFile && tsFile.fileParsed) {
+			return tsFile.fileParsed.classes[tsFile.componentClassName];
+		}
+		return undefined
+	}
+
+	public isGlobal: boolean = false;
 
 	public get keys(): string[] {
 		return Object.keys(this.parsedSrc);
 	}
 
-	public constructor(file: AventusFile, build?: Build) {
+	public constructor(file: AventusFile, isGlobal: boolean, build?: Build) {
 		super(file, build);
+		this.isGlobal = isGlobal;
 		this.onContentChange();
 	}
 
@@ -31,33 +44,50 @@ export class AventusI18nFile extends AventusBaseFile {
 			this.parsed = I18nParser.parse(this.file.documentUser);
 			this.transformForExport();
 			if (this.file instanceof InternalAventusFile) {
-				const values = this.keys.map(p => `"${p.replace(/"/g, "\\\"")}": string`).join(",\r\n")
-				const content = `declare global {
+				if (this.isGlobal) {
+					const values = this.keys.map(p => `"${p.replace(/"/g, "\\\"")}": string`).join(",\r\n")
+					const content = `declare global {
 	namespace Aventus { 
 		interface AventusI18n {
 			${values}
 		}
 	}
 }`;
-				this.file.setDocumentInternal(TextDocument.create(this.file.documentUser.uri, this.file.documentUser.languageId, this.file.documentUser.version, content));
+					this.file.setDocumentInternal(TextDocument.create(this.file.documentUser.uri, this.file.documentUser.languageId, this.file.documentUser.version, content));
+				}
 			}
 		}
 		catch (e) {
 
 		}
 	}
-	protected transformForExport() {
+	public transformForExport() {
 		const result: AventusI18nExported = {};
 		const locales = this.build.buildConfig.i18n?.locales ?? [];
 		for (let locale of locales) {
 			result[locale] = {};
 		}
+		if (this.isGlobal) {
+			for (let key in this.parsedSrc) {
+				for (let locale in this.parsedSrc[key]) {
+					if (!locales.includes(locale)) continue;
 
-		for (let key in this.parsedSrc) {
-			for (let locale in this.parsedSrc[key]) {
-				if (!locales.includes(locale)) continue;
+					result[locale][key] = this.parsedSrc[key][locale];
+				}
+			}
+		}
+		else {
+			let prefix = this.build.module + "°" + (this.classInfo?.fullName.replace(/\./g, "°") ?? '');
+			if (prefix) {
+				prefix += '°';
+			}
+			this.build.module
+			for (let key in this.parsedSrc) {
+				for (let locale in this.parsedSrc[key]) {
+					if (!locales.includes(locale)) continue;
 
-				result[locale][key] = this.parsedSrc[key][locale];
+					result[locale][prefix + key] = this.parsedSrc[key][locale];
+				}
 			}
 		}
 		this.exported = result;
@@ -67,8 +97,10 @@ export class AventusI18nFile extends AventusBaseFile {
 		return diags;
 	}
 	protected async onSave(): Promise<void> {
+		this.build.build()
 	}
 	protected async onDelete(): Promise<void> {
+		this.build.build()
 	}
 	protected async onCompletion(document: AventusFile, position: Position): Promise<CompletionList> {
 		return {

@@ -32,7 +32,7 @@ export interface AventusConfigBuildCompile {
 	package: string[],
 	outputNpm: AventusConfigBuildCompileOutputNpm,
 	compressed?: boolean,
-	outputI18n: AventusConfigBuildCompileOutputI18n[]
+	i18n: AventusConfigBuildCompileOutputI18n[]
 }
 
 export interface AventusConfigBuildCompileOutputNpmManifest {
@@ -46,8 +46,9 @@ export interface AventusConfigBuildCompileOutputNpm {
 	live: boolean
 }
 export interface AventusConfigBuildCompileOutputI18n {
-	path: string,
-	mount: string
+	output: string,
+	mount: string,
+	mode: 'singleFile' | 'oneToOne' | 'groupComponent' | 'basedOnAttribute' | 'include'
 }
 
 export interface AventusConfigBuildDependance {

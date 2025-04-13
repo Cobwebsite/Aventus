@@ -186,13 +186,13 @@
 					"name": "invalid.illegal.unrecognized-string-escape.json"
 				},
 				{
-					"begin": "({{)",
+					"begin": "({)",
 					"beginCaptures": {
 						"1": {
 							"name": "aventus.wcv.changingstart"
 						}
 					},
-					"end": "}}",
+					"end": "}",
 					"endCaptures": {
 						"0": {
 							"name": "aventus.wcv.changingstart"
