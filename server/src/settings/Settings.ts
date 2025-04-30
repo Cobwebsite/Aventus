@@ -29,7 +29,8 @@ export interface Settings {
 	builds?: string[],
 	/** The statics to watch */
 	statics?: string[],
-	errorByBuild?: boolean
+	errorByBuild?: boolean,
+	defaultHideWarnings: boolean
 }
 export interface SettingsHtml {
 	customData: string[]
@@ -56,6 +57,7 @@ const defaultSettings: Settings = {
 	debug: false,
 	useStats: false,
 	useDefaultTemplate: true,
+	defaultHideWarnings: false,
 }
 function getDefaultSettings(): Settings {
 	return JSON.parse(JSON.stringify(defaultSettings));

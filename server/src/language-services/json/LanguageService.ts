@@ -8,6 +8,7 @@ import { AventusConfig, AventusConfigBuild, AventusConfigBuildCompile, AventusCo
 import { AventusConfigSchema, AventusSharpSchema, AventusTemplateSchema } from "./schema";
 import { env } from 'process';
 import { GenericServer } from '../../GenericServer';
+import { SettingsManager } from '../../settings/Settings';
 
 export class AventusJSONLanguageService {
     private static instance: AventusJSONLanguageService;
@@ -559,7 +560,7 @@ export class AventusJSONLanguageService {
     private defaultConfigValue(): AventusConfig {
         return {
             module: '',
-            hideWarnings: false,
+            hideWarnings: SettingsManager.getInstance().settings.defaultHideWarnings,
             version: '1.0.0',
             componentPrefix: '',
             dependances: [],

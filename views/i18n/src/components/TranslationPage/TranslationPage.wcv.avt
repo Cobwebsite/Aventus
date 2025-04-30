@@ -1,0 +1,33 @@
+<div class="header">
+    <div class="bar">
+        <h1 class="title">@General.i18n.avt</h1>
+        <div class="menu-actions">
+            <vscode-form-group>
+                <vscode-label>Seulement les traductions manquantes : </vscode-label>
+                <vscode-checkbox></vscode-checkbox>
+            </vscode-form-group>
+            <vscode-form-group>
+                <vscode-label>Recherche:</vscode-label>
+                <vscode-textfield></vscode-textfield>
+            </vscode-form-group>
+        </div>
+    </div>
+    <div class="menu">
+        <av-icon-tooltip></av-icon-tooltip>
+        <av-icon-tooltip></av-icon-tooltip>
+        <av-icon-tooltip></av-icon-tooltip>
+        <!-- <vscode-icon name="book"></vscode-icon> -->
+    </div>
+    <av-scrollable x_scroll y_scroll="true" mouse_drag auto_hide @element="headerEl">
+        <av-translation-row-header></av-translation-row-header>
+    </av-scrollable>
+</div>
+<vscode-scrollable>
+    <av-scrollable x_scroll y_scroll="true" mouse_drag auto_hide @element="bodyEl">
+        <div class="content">
+            for(let i = 0; i < 30; i++) { 
+                <av-translation-row></av-translation-row>
+            }
+        </div>
+    </av-scrollable>
+</vscode-scrollable>

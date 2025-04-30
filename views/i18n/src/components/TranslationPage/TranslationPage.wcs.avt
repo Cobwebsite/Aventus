@@ -1,0 +1,63 @@
+:host {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	margin: 0;
+	margin-block: 0 !important;
+	width: 100%;
+
+	vscode-scrollable {
+		height: calc(100% - 195px);
+		margin: 0 20px;
+		width: calc(100% - 40px);
+	}
+
+	av-scrollable {
+		--scroller-width: 0;
+		height: min-content;
+		min-height: 0;
+	}
+
+	.header {
+		flex-shrink: 0;
+		height: 185px;
+		padding: 20px;
+		padding-bottom: 0;
+
+		.bar {
+			display: flex;
+			justify-content: space-between;
+			width: 100%;
+
+			.menu-actions {
+				display: flex;
+				gap: 50px;
+
+				vscode-form-group {
+					--label-width: auto;
+				}
+			}
+		}
+
+		.menu {
+			border: 1px solid var(--vscode-widget-border);
+			padding: 8px;
+
+			vscode-icon {
+				background-color: transparent;
+				cursor: pointer;
+				padding: 8px;
+				transition: background-color linear 0.2s;
+			}
+
+			vscode-icon:hover {
+				background-color: var(--vscode-button-secondaryBackground);
+			}
+		}
+	}
+
+	.content {
+		display: flex;
+		flex-direction: column;
+	}
+}

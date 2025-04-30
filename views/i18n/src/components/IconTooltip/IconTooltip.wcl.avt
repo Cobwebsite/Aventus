@@ -1,0 +1,31 @@
+export class IconTooltip extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+    //#region static
+
+    //#endregion
+
+
+    //#region this
+
+    //#endregion
+
+
+    //#region variables
+
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+
+    //#region methods
+
+
+    protected override postCreation(): void {
+        super.postCreation();
+    }
+    //#endregion
+
+}

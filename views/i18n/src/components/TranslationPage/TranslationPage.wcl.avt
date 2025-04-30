@@ -1,0 +1,55 @@
+import * as VscodeElement from '@vscode-elements/elements/dist/main.js';
+import { Translator, type I18nParsed } from "../../libs/I18n.lib.avt";
+
+export class TranslationPage extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+    //#region static
+
+    //#endregion
+
+
+    //#region props
+
+    //#endregion
+
+
+    //#region variables
+    @ViewElement()
+    protected headerEl!: Aventus.Layout.Scrollable;
+    @ViewElement()
+    protected bodyEl!: Aventus.Layout.Scrollable;
+
+    @Watch()
+    public parsed: I18nParsed = {};
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+
+    //#region methods
+    protected syncScroll() {
+        this.headerEl?.onScrollChange.add((x, y) => {
+            if(this.bodyEl?.x != x) {
+                this.bodyEl?.scrollX(x);
+            }
+        });
+        this.bodyEl?.onScrollChange.add((x, y) => {
+            if(this.headerEl?.x != x) {
+                this.headerEl?.scrollX(x);
+            }
+        });
+    }
+
+    
+
+    protected override postCreation(): void {
+        super.postCreation();
+        let vscodeElements = VscodeElement;
+        this.syncScroll();
+    }
+    //#endregion
+
+}

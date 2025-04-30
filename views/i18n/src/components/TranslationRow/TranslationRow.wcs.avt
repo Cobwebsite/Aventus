@@ -1,0 +1,49 @@
+:host {
+	align-items: stretch;
+	border-left: 1px solid var(--vscode-widget-border);
+	border-right: 1px solid var(--vscode-widget-border);
+	display: flex;
+	gap: 0px;
+
+	.col {
+		border-right: 1px solid var(--vscode-widget-border);
+		padding: 10px 20px;
+
+		vscode-icon {
+			background-color: transparent;
+			border-radius: 5px;
+			cursor: pointer;
+			padding: 4px;
+			transition: background-color linear 0.2s;
+		}
+
+		vscode-icon:hover {
+			background-color: var(--vscode-button-secondaryBackground);
+		}
+	}
+
+	.key {
+		flex-shrink: 0;
+		width: 300px;
+	}
+
+	.input {
+		align-items: center;
+		display: flex;
+		flex-shrink: 0;
+		gap: 10px;
+		margin: 0;
+		width: 500px;
+	}
+}
+
+:host(:nth-child(odd)) {
+	background-color: rgba(87, 87, 87, 0.2);
+	background-color: var(--vscode-editorWidget-background);
+}
+
+:host(:nth-last-child(2)) {
+	border-bottom: 1px solid var(--vscode-widget-border);
+	border-bottom-left-radius: 5px;
+	border-bottom-right-radius: 5px;
+}

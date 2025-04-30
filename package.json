@@ -237,6 +237,11 @@
 					"items": {
 						"type": "string"
 					}
+				},
+				"aventus.defaultHideWarnings" : {
+					"type": "boolean",
+					"title": "Define if the default value of hide warnings",
+					"default": false
 				}
 			}
 		},
@@ -435,6 +440,25 @@
 			{
 				"command": "aventus.npm.build",
 				"title": "Aventus : Build npm"
+			},
+			{
+				"command": "aventus.i18n.open",
+				"title": "Aventus : Open i18n file",
+				"icon": {
+					"light": "./icons/translate_black.svg",
+					"dark": "./icons/translate_light.svg"
+				}
+			}
+		],
+		"customEditors": [
+			{
+				"viewType": "aventus.i18n",
+				"displayName": "Aventus i18n",
+				"selector": [
+					{
+						"filenamePattern": "*.i18n.avt"
+					}
+				]
 			}
 		],
 		"menus": {
@@ -514,6 +538,13 @@
 					"when": "resourceFilename =~ /^.*\\.cs/",
 					"command": "aventus.sharp.export",
 					"group": "navigation@-50"
+				}
+			],
+			"editor/title": [
+				{
+					"command": "aventus.i18n.open",
+					"when": "resourceFilename =~ /^.*\\.i18n.avt/",
+					"group": "navigation"
 				}
 			],
 			"commandPalette": [
@@ -607,6 +638,10 @@
 				},
 				{
 					"command": "aventus.openfile.debugsharp",
+					"when": "false"
+				},
+				{
+					"command": "aventus.i18n.open",
 					"when": "false"
 				}
 			]

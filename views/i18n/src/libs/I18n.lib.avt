@@ -1,0 +1,33 @@
+import { Router } from "VscodeView@Main:VscodeView.package.avt";
+
+export type I18nParsed = { [key: string]: I18nParsedItem; };
+export type I18nParsedItem = {
+    key: string,
+    keyStart: number,
+    keyEnd: number,
+    locales: { [locale: string]: I18nParsedItemLocale; };
+};
+export type I18nParsedItemLocale = {
+    locale: string,
+    localeStart: number,
+    localeEnd: number,
+
+    value: string,
+    valueStart: number,
+    valueEnd: number,
+};
+
+
+export class Translator {
+    public static async translate(value: string, source: string, destination: string) {
+        const result = await VscodeView.Router.getInstance().sendWithResponse<string>({
+            channel: "translate",
+            body: {
+                value,
+                source,
+                destination
+            }
+        });
+		return result;
+    }
+}

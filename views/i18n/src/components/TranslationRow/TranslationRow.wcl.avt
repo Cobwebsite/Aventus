@@ -1,0 +1,33 @@
+import { Translator } from "../../libs/I18n.lib.avt";
+
+export class TranslationRow extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+	//#region static
+	
+	//#endregion
+	
+	
+	//#region props
+	
+	//#endregion
+	
+	
+	//#region variables
+	
+	//#endregion
+	
+	
+	//#region constructor
+	
+	//#endregion
+	
+	
+	//#region methods
+	protected async askTranslate() {
+        debugger
+        const result = await Translator.translate("Je m'appelle maxime", "fr_CH", "en_GB");
+        debugger
+    }
+	//#endregion
+	
+}

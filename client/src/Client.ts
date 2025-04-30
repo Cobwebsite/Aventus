@@ -9,6 +9,7 @@ import { DebugFile } from './file-system/DebugFile';
 import { CommandsInternal } from './cmds-internal';
 import { ReloadSettings } from './cmds/ReloadSettings';
 import { AutoLoader } from './manifest/AutoLoader';
+import { AventusI18nEditor } from './customEditors/AventusI18nEditor';
 
 export class Client {
     private _context: ExtensionContext | undefined = undefined;
@@ -25,6 +26,7 @@ export class Client {
     public async init(context: ExtensionContext) {
         this.debugFile = new DebugFile();
         context.subscriptions.push(workspace.registerTextDocumentContentProvider(DebugFile.schema, this.debugFile));
+        context.subscriptions.push(AventusI18nEditor.register(context));
         AutoLoader.getInstance();
         this.components = new AvenutsVsComponent();
         this._context = context;

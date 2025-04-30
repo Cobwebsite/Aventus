@@ -1,0 +1,7 @@
+:host {
+	width: 100%;
+
+	vscode-textarea {
+		width: 100%;
+	}
+}

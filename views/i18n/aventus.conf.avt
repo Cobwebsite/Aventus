@@ -1,0 +1,35 @@
+{
+	"module": "AventusI18nView",
+	"componentPrefix": "av",
+	"hideWarnings": true,
+	"build": [
+		{
+			"name": "Main",
+			"src": [
+				"./src/components/*",
+				"./src/data/*",
+				"./src/libs/*",
+				"./src/ram/*"
+			],
+			"compile": [{
+					"output": "../../client/view/i18n/index.js"
+			}],
+			"dependances": [
+				{
+					"uri": "@AventusUI"
+				},
+				{
+					"uri": "@local:VscodeView@Main",
+					"include": "full"
+				}
+			]
+		}
+	],
+	"static": [
+		{
+			"name": "Main",
+			"input": "./src/static/*",
+			"output": "../../client/view/i18n/"
+		}
+	]
+}

@@ -1,0 +1,45 @@
+import { DragAndDrop } from "Aventus@Main:Aventus.package.avt";
+
+export class Textarea extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+    //#region static
+
+    //#endregion
+
+
+    //#region props
+
+    //#endregion
+
+
+    //#region variables
+    protected preventDrag?: DragAndDrop;
+
+    @ViewElement()
+    protected textarea!: HTMLElement;
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+
+    //#region methods
+    protected preventDragFct() {
+        this.preventDrag = new DragAndDrop({
+			element: this,
+			applyDrag: false,
+			offsetDrag: 0,
+			onMove: () => {
+
+			}
+		});
+    }
+    protected override postCreation(): void {
+        super.postCreation();
+        this.preventDragFct();
+    }
+    //#endregion
+
+}

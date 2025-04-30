@@ -1,0 +1,37 @@
+:host {
+	align-items: stretch;
+	border: 1px solid var(--vscode-widget-border);
+	border-left: 1px solid var(--vscode-widget-border);
+	border-right: 1px solid var(--vscode-widget-border);
+	border-top-left-radius: 5px;
+	border-top-right-radius: 5px;
+	display: flex;
+	font-weight: bold;
+	gap: 0px;
+	height: 39px;
+	text-align: center;
+	user-select: none;
+	width: 100%;
+
+	.col {
+		border-right: 1px solid var(--vscode-widget-border);
+		justify-content: center;
+		padding: 10px 20px;
+	}
+
+	.key {
+		align-items: center;
+		display: flex;
+		flex-shrink: 0;
+		width: 300px;
+	}
+
+	.input {
+		align-items: center;
+		display: flex;
+		flex-shrink: 0;
+		gap: 10px;
+		margin: 0;
+		width: 500px;
+	}
+}

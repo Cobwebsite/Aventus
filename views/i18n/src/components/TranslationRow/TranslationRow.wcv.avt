@@ -1,0 +1,22 @@
+<div class="col key">
+	<vscode-label @press="askTranslate">click me12</vscode-label>
+</div>
+<div class="col input">
+	<av-textarea></av-textarea>
+	<div class="action">
+		<vscode-icon name="book"></vscode-icon>
+		<vscode-context-menu id="context-menu" class="context-menu"></vscode-context-menu>
+	</div>
+</div>
+<div class="col input">
+	<av-textarea></av-textarea>
+	<vscode-icon name="book"></vscode-icon>
+</div>
+<div class="col input">
+	<av-textarea></av-textarea>
+	<vscode-icon name="book"></vscode-icon>
+</div>
+<div class="col input">
+	<av-textarea></av-textarea>
+	<vscode-icon name="book"></vscode-icon>
+</div>
