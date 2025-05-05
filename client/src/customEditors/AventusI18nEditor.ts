@@ -3,6 +3,8 @@ import { getNonce } from '../tool';
 import { normalize } from 'path';
 import { readFileSync } from 'fs';
 import { Communication } from './_Communication';
+import { SourceLanguageCode, TargetLanguageCode, Translator } from 'deepl-node';
+import { SettingsManager } from '../Settings';
 
 export class AventusI18nEditor implements CustomTextEditorProvider {
 
@@ -41,17 +43,42 @@ export class AventusI18nEditor implements CustomTextEditorProvider {
 
 		comm.addRoute({
 			channel: "translate",
-			callback: (data, params, uid) => {
-				debugger;
+			callback: async (data, params, uid) => {
+				const d = data as {
+					value: string,
+					source: string,
+					destination: string
+				};
+				const result = await this.translate(d.value, d.source, d.destination);
 				comm.send({
 					channel: "translate",
-					body: {
-						result: "salut",
-					},
+					body: result,
 					uid
 				})
 			}
 		})
+	}
+
+	protected async translate(value: string, source: string, destination: string): Promise<{ error?: string, result?: string }> {
+		const key = SettingsManager.getInstance().settings.deeplApiKey;
+		if (!key) {
+			return { error: "No api key" }
+		}
+		const translator = new Translator(key);
+		const sourceCode = source.split('-')[0] as SourceLanguageCode;
+		const destinationCode = destination.split('-')[0] as TargetLanguageCode;
+		try {
+			const result = await translator.translateText(value, sourceCode, destinationCode);
+			return {
+				result: result.text
+			}
+		} catch (e) {
+			console.error(e);
+			return {
+				error: e + ''
+			}
+		}
+
 	}
 
 	/**

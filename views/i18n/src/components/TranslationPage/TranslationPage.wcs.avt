@@ -1,4 +1,8 @@
 :host {
+	--_translation-page-key-width: var(--translation-page-key-width, 300px);
+}
+
+:host {
 	display: flex;
 	flex-direction: column;
 	height: 100%;
@@ -7,7 +11,7 @@
 	width: 100%;
 
 	vscode-scrollable {
-		height: calc(100% - 195px);
+		height: calc(100% - 190px);
 		margin: 0 20px;
 		width: calc(100% - 40px);
 	}
@@ -20,7 +24,7 @@
 
 	.header {
 		flex-shrink: 0;
-		height: 185px;
+		height: 180px;
 		padding: 20px;
 		padding-bottom: 0;
 

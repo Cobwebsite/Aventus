@@ -13,21 +13,19 @@
         </div>
     </div>
     <div class="menu">
-        <av-icon-tooltip></av-icon-tooltip>
-        <av-icon-tooltip></av-icon-tooltip>
-        <av-icon-tooltip></av-icon-tooltip>
-        <!-- <vscode-icon name="book"></vscode-icon> -->
+        <av-icon-tooltip name="save" :notif="this.need_save" @press="save">Save</av-icon-tooltip>
+        <av-icon-tooltip name="warning">Import missing</av-icon-tooltip>
     </div>
     <av-scrollable x_scroll y_scroll="true" mouse_drag auto_hide @element="headerEl">
-        <av-translation-row-header></av-translation-row-header>
+        <av-translation-row-header :locales="this.locales"></av-translation-row-header>
     </av-scrollable>
 </div>
 <vscode-scrollable>
     <av-scrollable x_scroll y_scroll="true" mouse_drag auto_hide @element="bodyEl">
-        <div class="content">
-            for(let i = 0; i < 30; i++) { 
-                <av-translation-row></av-translation-row>
-            }
+        <div class="content" @element="contentEl">
+            
         </div>
     </av-scrollable>
 </vscode-scrollable>
+
+<!-- <av-loading visible></av-loading> -->

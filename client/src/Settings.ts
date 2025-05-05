@@ -1,3 +1,4 @@
+import { workspace } from 'vscode'
 
 export type LiveServerSettings = {
 	host: string,
@@ -92,9 +93,26 @@ export class SettingsManager {
 		return this.instance;
 	}
 
-	private constructor() { }
+	private constructor() {
+		this.reload();
 
-	public setSettings(newSettings: Partial<Settings>) {
+		workspace.onDidChangeConfiguration(() => {
+			this.reload();
+		})
+
+	}
+
+	private reload() {
+		const settings = workspace.getConfiguration("aventus") as Partial<Settings>
+		this.setSettings(settings);
+
+		const settingsHtml = workspace.getConfiguration("html") as Partial<SettingsHtml>
+		this.setSettingsHtml(settingsHtml);
+	}
+
+
+
+	private setSettings(newSettings: Partial<Settings>) {
 		this._settings = this.mergeDeep(getDefaultSettings(), newSettings);
 		let cbs = [...this.cbOnSettingsChange];
 		for (let cb of cbs) {

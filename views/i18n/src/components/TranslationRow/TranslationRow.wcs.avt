@@ -8,32 +8,18 @@
 	.col {
 		border-right: 1px solid var(--vscode-widget-border);
 		padding: 10px 20px;
+	}
 
-		vscode-icon {
-			background-color: transparent;
-			border-radius: 5px;
-			cursor: pointer;
-			padding: 4px;
-			transition: background-color linear 0.2s;
-		}
-
-		vscode-icon:hover {
-			background-color: var(--vscode-button-secondaryBackground);
-		}
+	.inputs {
+		display: flex;
+		gap: 0px;
 	}
 
 	.key {
 		flex-shrink: 0;
-		width: 300px;
-	}
-
-	.input {
-		align-items: center;
-		display: flex;
-		flex-shrink: 0;
-		gap: 10px;
-		margin: 0;
-		width: 500px;
+		position: relative;
+		width: var(--_translation-page-key-width);
+		min-width: 100px;
 	}
 }
 
@@ -42,7 +28,7 @@
 	background-color: var(--vscode-editorWidget-background);
 }
 
-:host(:nth-last-child(2)) {
+:host(:nth-last-child(1)) {
 	border-bottom: 1px solid var(--vscode-widget-border);
 	border-bottom-left-radius: 5px;
 	border-bottom-right-radius: 5px;

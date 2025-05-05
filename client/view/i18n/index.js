@@ -9740,6 +9740,30 @@ const _ = {};
 
 
 let _n;
+let DateConverter=class DateConverter {
+    static __converter = new DateConverter();
+    static get converter() {
+        return this.__converter;
+    }
+    static set converter(value) {
+        this.__converter = value;
+    }
+    isStringDate(txt) {
+        return /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3})Z$/.exec(txt) !== null;
+    }
+    fromString(txt) {
+        return new Date(txt);
+    }
+    toString(date) {
+        if (date.getFullYear() < 100) {
+            return "0001-01-01T00:00:00.000Z";
+        }
+        return date.toISOString();
+    }
+}
+DateConverter.Namespace=`Aventus`;
+_.DateConverter=DateConverter;
+
 var HttpErrorCode;
 (function (HttpErrorCode) {
     HttpErrorCode[HttpErrorCode["unknow"] = 0] = "unknow";
@@ -9811,6 +9835,22 @@ var RamErrorCode;
     RamErrorCode[RamErrorCode["noItemInsideRam"] = 2] = "noItemInsideRam";
 })(RamErrorCode || (RamErrorCode = {}));
 _.RamErrorCode=RamErrorCode;
+
+let isClass=function isClass(v) {
+    return typeof v === 'function' && /^\s*class\s+/.test(v.toString());
+}
+_.isClass=isClass;
+
+let sleep=function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+_.sleep=sleep;
+
+let uuidv4=function uuidv4() {
+    let uid = '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c => (Number(c) ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> Number(c) / 4).toString(16));
+    return uid;
+}
+_.uuidv4=uuidv4;
 
 let ActionGuard=class ActionGuard {
     /**
@@ -9885,46 +9925,6 @@ let ActionGuard=class ActionGuard {
 }
 ActionGuard.Namespace=`Aventus`;
 _.ActionGuard=ActionGuard;
-
-let isClass=function isClass(v) {
-    return typeof v === 'function' && /^\s*class\s+/.test(v.toString());
-}
-_.isClass=isClass;
-
-let sleep=function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-_.sleep=sleep;
-
-let uuidv4=function uuidv4() {
-    let uid = '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c => (Number(c) ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> Number(c) / 4).toString(16));
-    return uid;
-}
-_.uuidv4=uuidv4;
-
-let DateConverter=class DateConverter {
-    static __converter = new DateConverter();
-    static get converter() {
-        return this.__converter;
-    }
-    static set converter(value) {
-        this.__converter = value;
-    }
-    isStringDate(txt) {
-        return /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3})Z$/.exec(txt) !== null;
-    }
-    fromString(txt) {
-        return new Date(txt);
-    }
-    toString(date) {
-        if (date.getFullYear() < 100) {
-            return "0001-01-01T00:00:00.000Z";
-        }
-        return date.toISOString();
-    }
-}
-DateConverter.Namespace=`Aventus`;
-_.DateConverter=DateConverter;
 
 let DragElementXYType= [SVGGElement, SVGRectElement, SVGEllipseElement, SVGTextElement];
 _.DragElementXYType=DragElementXYType;
@@ -10136,6 +10136,48 @@ let ElementExtension=class ElementExtension {
                         slotFound = true;
                     }
                     else if (child instanceof HTMLElement) {
+                        result.push(child);
+                    }
+                }
+                if (!slotFound) {
+                    return result;
+                }
+            }
+        }
+        return result;
+    }
+    /**
+     * Get element inside slot
+     */
+    static getNodesInSlot(element, slotName) {
+        let result = [];
+        if (element.shadowRoot) {
+            let slotEl;
+            if (slotName) {
+                slotEl = element.shadowRoot.querySelector('slot[name="' + slotName + '"]');
+            }
+            else {
+                slotEl = element.shadowRoot.querySelector("slot:not([name])");
+                if (!slotEl) {
+                    slotEl = element.shadowRoot.querySelector("slot");
+                }
+            }
+            while (true) {
+                if (!slotEl) {
+                    return result;
+                }
+                var listChild = Array.from(slotEl.assignedNodes());
+                if (!listChild) {
+                    return result;
+                }
+                let slotFound = false;
+                for (let i = 0; i < listChild.length; i++) {
+                    let child = listChild[i];
+                    if (listChild[i].nodeName == "SLOT") {
+                        slotEl = listChild[i];
+                        slotFound = true;
+                    }
+                    else if (child instanceof Node) {
                         result.push(child);
                     }
                 }
@@ -14402,10 +14444,16 @@ let WebComponent=class WebComponent extends HTMLElement {
         return ElementExtension.containsChild(this, el);
     }
     /**
-     * Get element inside slot
+     * Get elements inside slot
      */
     getElementsInSlot(slotName) {
         return ElementExtension.getElementsInSlot(this, slotName);
+    }
+    /**
+     * Get nodes inside slot
+     */
+    getNodesInSlot(slotName) {
+        return ElementExtension.getNodesInSlot(this, slotName);
     }
     /**
      * Get active element from the shadowroot or the document
@@ -14489,6 +14537,222 @@ let WebComponentInstance=class WebComponentInstance {
 }
 WebComponentInstance.Namespace=`Aventus`;
 _.WebComponentInstance=WebComponentInstance;
+
+let ResizeObserver=class ResizeObserver {
+    callback;
+    targets;
+    fpsInterval = -1;
+    nextFrame;
+    entriesChangedEvent;
+    willTrigger;
+    static resizeObserverClassByObject = {};
+    static uniqueInstance;
+    static getUniqueInstance() {
+        if (!ResizeObserver.uniqueInstance) {
+            ResizeObserver.uniqueInstance = new window.ResizeObserver(entries => {
+                let allClasses = [];
+                for (let j = 0; j < entries.length; j++) {
+                    let entry = entries[j];
+                    let index = entry.target['sourceIndex'];
+                    if (ResizeObserver.resizeObserverClassByObject[index]) {
+                        for (let i = 0; i < ResizeObserver.resizeObserverClassByObject[index].length; i++) {
+                            let classTemp = ResizeObserver.resizeObserverClassByObject[index][i];
+                            classTemp.entryChanged(entry);
+                            if (allClasses.indexOf(classTemp) == -1) {
+                                allClasses.push(classTemp);
+                            }
+                        }
+                    }
+                }
+                for (let i = 0; i < allClasses.length; i++) {
+                    allClasses[i].triggerCb();
+                }
+            });
+        }
+        return ResizeObserver.uniqueInstance;
+    }
+    constructor(options) {
+        let realOption;
+        if (options instanceof Function) {
+            realOption = {
+                callback: options,
+            };
+        }
+        else {
+            realOption = options;
+        }
+        this.callback = realOption.callback;
+        this.targets = [];
+        if (!realOption.fps) {
+            realOption.fps = 60;
+        }
+        if (realOption.fps != -1) {
+            this.fpsInterval = 1000 / realOption.fps;
+        }
+        this.nextFrame = 0;
+        this.entriesChangedEvent = {};
+        this.willTrigger = false;
+    }
+    /**
+     * Observe size changing for the element
+     */
+    observe(target) {
+        if (!target["sourceIndex"]) {
+            target["sourceIndex"] = Math.random().toString(36);
+            this.targets.push(target);
+            ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]] = [];
+            ResizeObserver.getUniqueInstance().observe(target);
+        }
+        if (ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]].indexOf(this) == -1) {
+            ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]].push(this);
+        }
+    }
+    /**
+     * Stop observing size changing for the element
+     */
+    unobserve(target) {
+        for (let i = 0; this.targets.length; i++) {
+            let tempTarget = this.targets[i];
+            if (tempTarget == target) {
+                let position = ResizeObserver.resizeObserverClassByObject[target['sourceIndex']].indexOf(this);
+                if (position != -1) {
+                    ResizeObserver.resizeObserverClassByObject[target['sourceIndex']].splice(position, 1);
+                }
+                if (ResizeObserver.resizeObserverClassByObject[target['sourceIndex']].length == 0) {
+                    delete ResizeObserver.resizeObserverClassByObject[target['sourceIndex']];
+                }
+                ResizeObserver.getUniqueInstance().unobserve(target);
+                this.targets.splice(i, 1);
+                return;
+            }
+        }
+    }
+    /**
+     * Destroy the resize observer
+     */
+    disconnect() {
+        for (let i = 0; this.targets.length; i++) {
+            this.unobserve(this.targets[i]);
+        }
+    }
+    entryChanged(entry) {
+        let index = entry.target.sourceIndex;
+        this.entriesChangedEvent[index] = entry;
+    }
+    triggerCb() {
+        if (!this.willTrigger) {
+            this.willTrigger = true;
+            this._triggerCb();
+        }
+    }
+    _triggerCb() {
+        let now = window.performance.now();
+        let elapsed = now - this.nextFrame;
+        if (this.fpsInterval != -1 && elapsed <= this.fpsInterval) {
+            requestAnimationFrame(() => {
+                this._triggerCb();
+            });
+            return;
+        }
+        this.nextFrame = now - (elapsed % this.fpsInterval);
+        let changed = Object.values(this.entriesChangedEvent);
+        this.entriesChangedEvent = {};
+        this.willTrigger = false;
+        setTimeout(() => {
+            this.callback(changed);
+        }, 0);
+    }
+}
+ResizeObserver.Namespace=`Aventus`;
+_.ResizeObserver=ResizeObserver;
+
+let Animation=class Animation {
+    /**
+     * Default FPS for all Animation if not set inside options
+     */
+    static FPS_DEFAULT = 60;
+    options;
+    nextFrame = 0;
+    fpsInterval;
+    continueAnimation = false;
+    frame_id = 0;
+    constructor(options) {
+        if (!options.animate) {
+            options.animate = () => { };
+        }
+        if (!options.stopped) {
+            options.stopped = () => { };
+        }
+        if (!options.fps) {
+            options.fps = Animation.FPS_DEFAULT;
+        }
+        this.options = options;
+        this.fpsInterval = 1000 / options.fps;
+    }
+    animate() {
+        let now = window.performance.now();
+        let elapsed = now - this.nextFrame;
+        if (elapsed <= this.fpsInterval) {
+            this.frame_id = requestAnimationFrame(() => this.animate());
+            return;
+        }
+        this.nextFrame = now - (elapsed % this.fpsInterval);
+        setTimeout(() => {
+            this.options.animate();
+        }, 0);
+        if (this.continueAnimation) {
+            this.frame_id = requestAnimationFrame(() => this.animate());
+        }
+        else {
+            this.options.stopped();
+        }
+    }
+    /**
+     * Start the of animation
+     */
+    start() {
+        if (this.continueAnimation == false) {
+            this.continueAnimation = true;
+            this.nextFrame = window.performance.now();
+            this.animate();
+        }
+    }
+    /**
+     * Stop the animation
+     */
+    stop() {
+        this.continueAnimation = false;
+    }
+    /**
+     * Stop the animation
+     */
+    immediateStop() {
+        cancelAnimationFrame(this.frame_id);
+        this.continueAnimation = false;
+        this.options.stopped();
+    }
+    /**
+     * Get the FPS
+     */
+    getFPS() {
+        return this.options.fps;
+    }
+    /**
+     * Set the FPS
+     */
+    setFPS(fps) {
+        this.options.fps = fps;
+        this.fpsInterval = 1000 / this.options.fps;
+    }
+    /**
+     * Get the animation status (true if animation is running)
+     */
+    isStarted() {
+        return this.continueAnimation;
+    }
+}
+Animation.Namespace=`Aventus`;
+_.Animation=Animation;
 
 let DragAndDrop=class DragAndDrop {
     /**
@@ -15050,221 +15314,187 @@ let DragAndDrop=class DragAndDrop {
 DragAndDrop.Namespace=`Aventus`;
 _.DragAndDrop=DragAndDrop;
 
-let ResizeObserver=class ResizeObserver {
-    callback;
-    targets;
-    fpsInterval = -1;
-    nextFrame;
-    entriesChangedEvent;
-    willTrigger;
-    static resizeObserverClassByObject = {};
-    static uniqueInstance;
-    static getUniqueInstance() {
-        if (!ResizeObserver.uniqueInstance) {
-            ResizeObserver.uniqueInstance = new window.ResizeObserver(entries => {
-                let allClasses = [];
-                for (let j = 0; j < entries.length; j++) {
-                    let entry = entries[j];
-                    let index = entry.target['sourceIndex'];
-                    if (ResizeObserver.resizeObserverClassByObject[index]) {
-                        for (let i = 0; i < ResizeObserver.resizeObserverClassByObject[index].length; i++) {
-                            let classTemp = ResizeObserver.resizeObserverClassByObject[index][i];
-                            classTemp.entryChanged(entry);
-                            if (allClasses.indexOf(classTemp) == -1) {
-                                allClasses.push(classTemp);
-                            }
-                        }
-                    }
-                }
-                for (let i = 0; i < allClasses.length; i++) {
-                    allClasses[i].triggerCb();
-                }
-            });
+let ResourceLoader=class ResourceLoader {
+    static headerLoaded = {};
+    static headerWaiting = {};
+    /**
+     * Load the resource inside the head tag
+     */
+    static async loadInHead(options) {
+        const _options = this.prepareOptions(options);
+        if (this.headerLoaded[_options.url]) {
+            return true;
         }
-        return ResizeObserver.uniqueInstance;
-    }
-    constructor(options) {
-        let realOption;
-        if (options instanceof Function) {
-            realOption = {
-                callback: options,
-            };
+        else if (this.headerWaiting.hasOwnProperty(_options.url)) {
+            return await this.awaitFctHead(_options.url);
         }
         else {
-            realOption = options;
-        }
-        this.callback = realOption.callback;
-        this.targets = [];
-        if (!realOption.fps) {
-            realOption.fps = 60;
-        }
-        if (realOption.fps != -1) {
-            this.fpsInterval = 1000 / realOption.fps;
-        }
-        this.nextFrame = 0;
-        this.entriesChangedEvent = {};
-        this.willTrigger = false;
-    }
-    /**
-     * Observe size changing for the element
-     */
-    observe(target) {
-        if (!target["sourceIndex"]) {
-            target["sourceIndex"] = Math.random().toString(36);
-            this.targets.push(target);
-            ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]] = [];
-            ResizeObserver.getUniqueInstance().observe(target);
-        }
-        if (ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]].indexOf(this) == -1) {
-            ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]].push(this);
+            this.headerWaiting[_options.url] = [];
+            let tagEl;
+            if (_options.type == "js") {
+                tagEl = document.createElement("SCRIPT");
+            }
+            else if (_options.type == "css") {
+                tagEl = document.createElement("LINK");
+                tagEl.setAttribute("rel", "stylesheet");
+            }
+            else {
+                throw "unknow type " + _options.type + " to append into head";
+            }
+            document.head.appendChild(tagEl);
+            let result = await this.loadTag(tagEl, _options.url);
+            this.headerLoaded[_options.url] = true;
+            this.releaseAwaitFctHead(_options.url, result);
+            return result;
         }
     }
+    static loadTag(tagEl, url) {
+        return new Promise((resolve, reject) => {
+            tagEl.addEventListener("load", (e) => {
+                resolve(true);
+            });
+            tagEl.addEventListener("error", (e) => {
+                resolve(false);
+            });
+            if (tagEl instanceof HTMLLinkElement) {
+                tagEl.setAttribute("href", url);
+            }
+            else {
+                tagEl.setAttribute('src', url);
+            }
+        });
+    }
+    static releaseAwaitFctHead(url, result) {
+        if (this.headerWaiting[url]) {
+            for (let i = 0; i < this.headerWaiting[url].length; i++) {
+                this.headerWaiting[url][i](result);
+            }
+            delete this.headerWaiting[url];
+        }
+    }
+    static awaitFctHead(url) {
+        return new Promise((resolve) => {
+            this.headerWaiting[url].push((result) => {
+                resolve(result);
+            });
+        });
+    }
+    static requestLoaded = {};
+    static requestWaiting = {};
     /**
-     * Stop observing size changing for the element
-     */
-    unobserve(target) {
-        for (let i = 0; this.targets.length; i++) {
-            let tempTarget = this.targets[i];
-            if (tempTarget == target) {
-                let position = ResizeObserver.resizeObserverClassByObject[target['sourceIndex']].indexOf(this);
-                if (position != -1) {
-                    ResizeObserver.resizeObserverClassByObject[target['sourceIndex']].splice(position, 1);
+     *
+    */
+    static async load(options) {
+        options = this.prepareOptions(options);
+        if (this.requestLoaded[options.url]) {
+            return this.requestLoaded[options.url];
+        }
+        else if (this.requestWaiting.hasOwnProperty(options.url)) {
+            await this.awaitFct(options.url);
+            return this.requestLoaded[options.url];
+        }
+        else {
+            this.requestWaiting[options.url] = [];
+            let blob = false;
+            if (options.type == "img") {
+                blob = true;
+            }
+            let content = await this.fetching(options.url, blob);
+            if (options.type == "img" && content.startsWith("data:text/html;")) {
+                console.error("Can't load img " + options.url);
+                content = "";
+            }
+            this.requestLoaded[options.url] = content;
+            this.releaseAwaitFct(options.url);
+            return content;
+        }
+    }
+    static releaseAwaitFct(url) {
+        if (this.requestWaiting[url]) {
+            for (let i = 0; i < this.requestWaiting[url].length; i++) {
+                this.requestWaiting[url][i]();
+            }
+            delete this.requestWaiting[url];
+        }
+    }
+    static awaitFct(url) {
+        return new Promise((resolve) => {
+            this.requestWaiting[url].push(() => {
+                resolve('');
+            });
+        });
+    }
+    static async fetching(url, useBlob = false) {
+        if (useBlob) {
+            let result = await fetch(url, {
+                headers: {
+                    responseType: 'blob'
                 }
-                if (ResizeObserver.resizeObserverClassByObject[target['sourceIndex']].length == 0) {
-                    delete ResizeObserver.resizeObserverClassByObject[target['sourceIndex']];
-                }
-                ResizeObserver.getUniqueInstance().unobserve(target);
-                this.targets.splice(i, 1);
-                return;
+            });
+            let blob = await result.blob();
+            return await this.readFile(blob);
+        }
+        else {
+            let result = await fetch(url);
+            return await result.text();
+        }
+    }
+    static readFile(blob) {
+        return new Promise((resolve) => {
+            var reader = new FileReader();
+            reader.onloadend = function () {
+                resolve(reader.result);
+            };
+            reader.readAsDataURL(blob);
+        });
+    }
+    static imgExtensions = ["png", "jpg", "jpeg", "gif"];
+    static prepareOptions(options) {
+        let result;
+        if (typeof options === 'string' || options instanceof String) {
+            result = {
+                url: options,
+                type: 'js'
+            };
+            let splittedURI = result.url.split('.');
+            let extension = splittedURI[splittedURI.length - 1];
+            extension = extension.split("?")[0];
+            if (extension == "svg") {
+                result.type = 'svg';
+            }
+            else if (extension == "js") {
+                result.type = 'js';
+            }
+            else if (extension == "css") {
+                result.type = 'css';
+            }
+            else if (this.imgExtensions.indexOf(extension) != -1) {
+                result.type = 'img';
+            }
+            else {
+                delete result.type;
             }
         }
-    }
-    /**
-     * Destroy the resize observer
-     */
-    disconnect() {
-        for (let i = 0; this.targets.length; i++) {
-            this.unobserve(this.targets[i]);
+        else {
+            result = options;
         }
-    }
-    entryChanged(entry) {
-        let index = entry.target.sourceIndex;
-        this.entriesChangedEvent[index] = entry;
-    }
-    triggerCb() {
-        if (!this.willTrigger) {
-            this.willTrigger = true;
-            this._triggerCb();
-        }
-    }
-    _triggerCb() {
-        let now = window.performance.now();
-        let elapsed = now - this.nextFrame;
-        if (this.fpsInterval != -1 && elapsed <= this.fpsInterval) {
-            requestAnimationFrame(() => {
-                this._triggerCb();
-            });
-            return;
-        }
-        this.nextFrame = now - (elapsed % this.fpsInterval);
-        let changed = Object.values(this.entriesChangedEvent);
-        this.entriesChangedEvent = {};
-        this.willTrigger = false;
-        setTimeout(() => {
-            this.callback(changed);
-        }, 0);
+        return result;
     }
 }
-ResizeObserver.Namespace=`Aventus`;
-_.ResizeObserver=ResizeObserver;
+ResourceLoader.Namespace=`Aventus`;
+_.ResourceLoader=ResourceLoader;
 
-let Animation=class Animation {
-    /**
-     * Default FPS for all Animation if not set inside options
-     */
-    static FPS_DEFAULT = 60;
-    options;
-    nextFrame = 0;
-    fpsInterval;
-    continueAnimation = false;
-    frame_id = 0;
-    constructor(options) {
-        if (!options.animate) {
-            options.animate = () => { };
-        }
-        if (!options.stopped) {
-            options.stopped = () => { };
-        }
-        if (!options.fps) {
-            options.fps = Animation.FPS_DEFAULT;
-        }
-        this.options = options;
-        this.fpsInterval = 1000 / options.fps;
-    }
-    animate() {
-        let now = window.performance.now();
-        let elapsed = now - this.nextFrame;
-        if (elapsed <= this.fpsInterval) {
-            this.frame_id = requestAnimationFrame(() => this.animate());
-            return;
-        }
-        this.nextFrame = now - (elapsed % this.fpsInterval);
-        setTimeout(() => {
-            this.options.animate();
-        }, 0);
-        if (this.continueAnimation) {
-            this.frame_id = requestAnimationFrame(() => this.animate());
+let Async=function Async(el) {
+    return new Promise((resolve) => {
+        if (el instanceof Promise) {
+            el.then(resolve);
         }
         else {
-            this.options.stopped();
+            resolve(el);
         }
-    }
-    /**
-     * Start the of animation
-     */
-    start() {
-        if (this.continueAnimation == false) {
-            this.continueAnimation = true;
-            this.nextFrame = window.performance.now();
-            this.animate();
-        }
-    }
-    /**
-     * Stop the animation
-     */
-    stop() {
-        this.continueAnimation = false;
-    }
-    /**
-     * Stop the animation
-     */
-    immediateStop() {
-        cancelAnimationFrame(this.frame_id);
-        this.continueAnimation = false;
-        this.options.stopped();
-    }
-    /**
-     * Get the FPS
-     */
-    getFPS() {
-        return this.options.fps;
-    }
-    /**
-     * Set the FPS
-     */
-    setFPS(fps) {
-        this.options.fps = fps;
-        this.fpsInterval = 1000 / this.options.fps;
-    }
-    /**
-     * Get the animation status (true if animation is running)
-     */
-    isStarted() {
-        return this.continueAnimation;
-    }
+    });
 }
-Animation.Namespace=`Aventus`;
-_.Animation=Animation;
+_.Async=Async;
 
 let Json=class Json {
     /**
@@ -15935,188 +16165,6 @@ let HttpRequest=class HttpRequest {
 }
 HttpRequest.Namespace=`Aventus`;
 _.HttpRequest=HttpRequest;
-
-let ResourceLoader=class ResourceLoader {
-    static headerLoaded = {};
-    static headerWaiting = {};
-    /**
-     * Load the resource inside the head tag
-     */
-    static async loadInHead(options) {
-        const _options = this.prepareOptions(options);
-        if (this.headerLoaded[_options.url]) {
-            return true;
-        }
-        else if (this.headerWaiting.hasOwnProperty(_options.url)) {
-            return await this.awaitFctHead(_options.url);
-        }
-        else {
-            this.headerWaiting[_options.url] = [];
-            let tagEl;
-            if (_options.type == "js") {
-                tagEl = document.createElement("SCRIPT");
-            }
-            else if (_options.type == "css") {
-                tagEl = document.createElement("LINK");
-                tagEl.setAttribute("rel", "stylesheet");
-            }
-            else {
-                throw "unknow type " + _options.type + " to append into head";
-            }
-            document.head.appendChild(tagEl);
-            let result = await this.loadTag(tagEl, _options.url);
-            this.headerLoaded[_options.url] = true;
-            this.releaseAwaitFctHead(_options.url, result);
-            return result;
-        }
-    }
-    static loadTag(tagEl, url) {
-        return new Promise((resolve, reject) => {
-            tagEl.addEventListener("load", (e) => {
-                resolve(true);
-            });
-            tagEl.addEventListener("error", (e) => {
-                resolve(false);
-            });
-            if (tagEl instanceof HTMLLinkElement) {
-                tagEl.setAttribute("href", url);
-            }
-            else {
-                tagEl.setAttribute('src', url);
-            }
-        });
-    }
-    static releaseAwaitFctHead(url, result) {
-        if (this.headerWaiting[url]) {
-            for (let i = 0; i < this.headerWaiting[url].length; i++) {
-                this.headerWaiting[url][i](result);
-            }
-            delete this.headerWaiting[url];
-        }
-    }
-    static awaitFctHead(url) {
-        return new Promise((resolve) => {
-            this.headerWaiting[url].push((result) => {
-                resolve(result);
-            });
-        });
-    }
-    static requestLoaded = {};
-    static requestWaiting = {};
-    /**
-     *
-    */
-    static async load(options) {
-        options = this.prepareOptions(options);
-        if (this.requestLoaded[options.url]) {
-            return this.requestLoaded[options.url];
-        }
-        else if (this.requestWaiting.hasOwnProperty(options.url)) {
-            await this.awaitFct(options.url);
-            return this.requestLoaded[options.url];
-        }
-        else {
-            this.requestWaiting[options.url] = [];
-            let blob = false;
-            if (options.type == "img") {
-                blob = true;
-            }
-            let content = await this.fetching(options.url, blob);
-            if (options.type == "img" && content.startsWith("data:text/html;")) {
-                console.error("Can't load img " + options.url);
-                content = "";
-            }
-            this.requestLoaded[options.url] = content;
-            this.releaseAwaitFct(options.url);
-            return content;
-        }
-    }
-    static releaseAwaitFct(url) {
-        if (this.requestWaiting[url]) {
-            for (let i = 0; i < this.requestWaiting[url].length; i++) {
-                this.requestWaiting[url][i]();
-            }
-            delete this.requestWaiting[url];
-        }
-    }
-    static awaitFct(url) {
-        return new Promise((resolve) => {
-            this.requestWaiting[url].push(() => {
-                resolve('');
-            });
-        });
-    }
-    static async fetching(url, useBlob = false) {
-        if (useBlob) {
-            let result = await fetch(url, {
-                headers: {
-                    responseType: 'blob'
-                }
-            });
-            let blob = await result.blob();
-            return await this.readFile(blob);
-        }
-        else {
-            let result = await fetch(url);
-            return await result.text();
-        }
-    }
-    static readFile(blob) {
-        return new Promise((resolve) => {
-            var reader = new FileReader();
-            reader.onloadend = function () {
-                resolve(reader.result);
-            };
-            reader.readAsDataURL(blob);
-        });
-    }
-    static imgExtensions = ["png", "jpg", "jpeg", "gif"];
-    static prepareOptions(options) {
-        let result;
-        if (typeof options === 'string' || options instanceof String) {
-            result = {
-                url: options,
-                type: 'js'
-            };
-            let splittedURI = result.url.split('.');
-            let extension = splittedURI[splittedURI.length - 1];
-            extension = extension.split("?")[0];
-            if (extension == "svg") {
-                result.type = 'svg';
-            }
-            else if (extension == "js") {
-                result.type = 'js';
-            }
-            else if (extension == "css") {
-                result.type = 'css';
-            }
-            else if (this.imgExtensions.indexOf(extension) != -1) {
-                result.type = 'img';
-            }
-            else {
-                delete result.type;
-            }
-        }
-        else {
-            result = options;
-        }
-        return result;
-    }
-}
-ResourceLoader.Namespace=`Aventus`;
-_.ResourceLoader=ResourceLoader;
-
-let Async=function Async(el) {
-    return new Promise((resolve) => {
-        if (el instanceof Promise) {
-            el.then(resolve);
-        }
-        else {
-            resolve(el);
-        }
-    });
-}
-_.Async=Async;
 
 let HttpRouter=class HttpRouter {
     options;
@@ -18283,6 +18331,7 @@ Components.Tooltip = class Tooltip extends Aventus.WebComponent {
     timeout = 0;
     pressManager;
     screenMargin = 10;
+    elementsMoved = new Map();
     static __style = `:host{--local-tooltip-from-y: 0;--local-tooltip-from-x: 0;--local-tooltip-to-y: 0;--local-tooltip-to-x: 0;--local-offset-carret-x: 0px;--local-offset-carret-y: 0px;--_tooltip-background-color: var(--tooltip-background-color, var(--vscode-menu-background));--_tooltip-color: var(--tooltip-color, var(--vscode-menu-foreground));--_tooltip-border: var(--tooltip-border, var(--vscode-menu-border))}:host{background-color:var(--_tooltip-background-color);border:1px solid var(--_tooltip-border);border-radius:2px;color:var(--_tooltip-color);opacity:0;padding:5px 15px;pointer-events:none;position:absolute;transition:.3s opacity ease-in-out,.3s visibility ease-in-out,.3s top ease-in-out,.3s bottom ease-in-out,.3s right ease-in-out,.3s left ease-in-out,.3s transform ease-in-out;visibility:hidden;width:max-content;z-index:1}:host::after{content:"";position:absolute}:host([no_caret])::after{display:none}:host([visible]){opacity:1;visibility:visible}:host([position=bottom]){transform:translateX(-50%)}:host([position=bottom])::after{border-bottom:9px solid var(--_tooltip-background-color);border-left:6px solid rgba(0,0,0,0);border-right:6px solid rgba(0,0,0,0);left:calc(50% + var(--local-offset-carret-x));top:-8px;transform:translateX(-50%)}:host([use_absolute][position=bottom]){left:var(--local-tooltip-from-x);max-height:calc(100% - var(--local-tooltip-to-y) - 10px);top:var(--local-tooltip-from-y)}:host([use_absolute][visible][position=bottom]){top:var(--local-tooltip-to-y)}:host([position=bottom]:not([use_absolute])){bottom:0px;left:50%;transform:translateX(-50%) translateY(calc(100% - 10px))}:host([position=bottom][visible]:not([use_absolute])){transform:translateX(-50%) translateY(calc(100% + 10px))}:host([no_caret][use_absolute][position=bottom]){top:calc(var(--local-tooltip-from-y) - 8px)}:host([no_caret][use_absolute][visible][position=bottom]){top:calc(var(--local-tooltip-to-y) - 8px)}:host([position=top]){transform:translateX(-50%)}:host([position=top])::after{border-left:6px solid rgba(0,0,0,0);border-right:6px solid rgba(0,0,0,0);border-top:9px solid var(--_tooltip-background-color);bottom:-8px;left:calc(50% + var(--local-offset-carret-x));transform:translateX(-50%)}:host([use_absolute][position=top]){bottom:var(--local-tooltip-from-y);left:var(--local-tooltip-from-x);max-height:calc(100% - var(--local-tooltip-to-y) - 10px)}:host([use_absolute][visible][position=top]){bottom:var(--local-tooltip-to-y)}:host([position=top]:not([use_absolute])){left:50%;top:0px;transform:translateX(-50%) translateY(calc(-100% + 10px))}:host([position=top][visible]:not([use_absolute])){transform:translateX(-50%) translateY(calc(-100% - 10px))}:host([no_caret][use_absolute][position=top]){bottom:calc(var(--local-tooltip-from-y) - 6px)}:host([no_caret][use_absolute][visible][position=top]){bottom:calc(var(--local-tooltip-to-y) - 6px)}:host([position=right]){transform:translateY(-50%)}:host([position=right])::after{border-bottom:6px solid rgba(0,0,0,0);border-right:9px solid var(--_tooltip-background-color);border-top:6px solid rgba(0,0,0,0);left:-8px;top:calc(50% + var(--local-offset-carret-y));transform:translateY(-50%)}:host([use_absolute][position=right]){left:var(--local-tooltip-from-x);max-width:calc(100% - var(--local-tooltip-to-x) - 10px);top:var(--local-tooltip-from-y)}:host([use_absolute][visible][position=right]){left:var(--local-tooltip-to-x)}:host([position=right]:not([use_absolute])){right:0;top:50%;transform:translateX(calc(100% - 10px)) translateY(-50%)}:host([visible][position=right]:not([use_absolute])){transform:translateX(calc(100% + 10px)) translateY(-50%)}:host([no_caret][use_absolute][position=right]){left:calc(var(--local-tooltip-from-x) - 6px)}:host([no_caret][use_absolute][visible][position=right]){left:calc(var(--local-tooltip-to-x) - 6px)}:host([position=left]){right:var(--local-tooltip-from-x);top:var(--local-tooltip-from-y);transform:translateY(-50%)}:host([position=left])::after{border-bottom:6px solid rgba(0,0,0,0);border-left:9px solid var(--_tooltip-background-color);border-top:6px solid rgba(0,0,0,0);right:-8px;top:calc(50% + var(--local-offset-carret-y));transform:translateY(-50%)}:host([use_absolute][position=left]){max-width:calc(100% - var(--local-tooltip-to-x) - 10px);right:var(--local-tooltip-from-x);top:var(--local-tooltip-from-y)}:host([use_absolute][visible][position=left]){right:var(--local-tooltip-to-x)}:host([position=left]:not([use_absolute])){left:0;top:50%;transform:translateX(calc(-100% + 10px)) translateY(-50%)}:host([visible][position=left]:not([use_absolute])){transform:translateX(calc(-100% - 10px)) translateY(-50%)}:host([no_caret][use_absolute][position=left]){right:calc(var(--local-tooltip-from-x) - 6px)}:host([no_caret][use_absolute][visible][position=left]){right:calc(var(--local-tooltip-to-x) - 6px)}`;
     constructor() { super(); this.onMouseEnter=this.onMouseEnter.bind(this)this.onMouseLeave=this.onMouseLeave.bind(this)this.onTransitionEnd=this.onTransitionEnd.bind(this) }
     __getStatic() {
@@ -18368,7 +18417,25 @@ Components.Tooltip = class Tooltip extends Aventus.WebComponent {
             this.style.setProperty("--local-tooltip-to-y", center.y + 'px');
         }
     }
+    moveNodesToThis() {
+        if (this.use_absolute) {
+            const elements = this.getNodesInSlot();
+            for (let element of elements) {
+                this.elementsMoved.set(element, element.parentElement);
+                this.shadowRoot.appendChild(element);
+            }
+        }
+    }
+    removeNodesFromThis() {
+        if (this.use_absolute) {
+            for (const [node, parent] of this.elementsMoved) {
+                // TODO solution simpliste voir si ça marche vrm
+                parent.appendChild(node);
+            }
+        }
+    }
     onMouseEnter() {
+        this.moveNodesToThis();
         this.calculatePosition();
         let delay = this.delay == 0 ? 50 : this.delay;
         if (this.use_absolute) {
@@ -18410,6 +18477,7 @@ Components.Tooltip = class Tooltip extends Aventus.WebComponent {
     onTransitionEnd() {
         if (!this.use_absolute || this.visible)
             return;
+        this.removeNodesFromThis();
         if (this.parent && !this.isDestroyed)
             this.parent?.appendChild(this);
         else
@@ -18461,48 +18529,66 @@ Components.Tooltip.Tag=`av-tooltip`;
 _.Components.Tooltip=Components.Tooltip;
 if(!window.customElements.get('av-tooltip')){window.customElements.define('av-tooltip', Components.Tooltip);Aventus.WebComponentInstance.registerDefinition(Components.Tooltip);}
 
-let Translator=class Translator {
-    static async translate(value, source, destination) {
-        const result = await VscodeView.Router.getInstance().sendWithResponse({
-            channel: "translate",
-            body: {
-                value,
-                source,
-                destination
-            }
-        });
-        return result;
-    }
+const TranslationColHeader = class TranslationColHeader extends Aventus.WebComponent {
+    get 'locale'() {
+						return this.__watch["locale"];
+					}
+					set 'locale'(val) {
+						this.__watch["locale"] = val;
+					}    __registerWatchesActions() {
+    this.__addWatchesActions("locale", ((target) => {
+    target.style.setProperty("--translation-col-width", "var(--col-width-" + target.locale + ")");
+}));    super.__registerWatchesActions();
 }
-Translator.Namespace=`AventusI18nView`;
-_.Translator=Translator;
-
-const TranslationRowHeader = class TranslationRowHeader extends Aventus.WebComponent {
-    static __style = `:host{align-items:stretch;border:1px solid var(--vscode-widget-border);border-left:1px solid var(--vscode-widget-border);border-right:1px solid var(--vscode-widget-border);border-top-left-radius:5px;border-top-right-radius:5px;display:flex;font-weight:bold;gap:0px;height:39px;text-align:center;user-select:none;width:100%}:host .col{border-right:1px solid var(--vscode-widget-border);justify-content:center;padding:10px 20px}:host .key{align-items:center;display:flex;flex-shrink:0;width:300px}:host .input{align-items:center;display:flex;flex-shrink:0;gap:10px;margin:0;width:500px}`;
+    static __style = `:host{--_translation-col-width: var(--translation-col-width, 200px)}:host{align-items:center;border-right:1px solid var(--vscode-widget-border);display:flex;flex-shrink:0;gap:10px;justify-content:center;margin:0;padding:10px 20px;position:relative;width:var(--translation-col-width);min-width:200px}`;
     __getStatic() {
-        return TranslationRowHeader;
+        return TranslationColHeader;
     }
     __getStyle() {
         let arrStyle = super.__getStyle();
-        arrStyle.push(TranslationRowHeader.__style);
+        arrStyle.push(TranslationColHeader.__style);
         return arrStyle;
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="col key">Key</div><div class="col input">en-GB</div><div class="col input">fr-CH</div><div class="col input">en-GB</div><div class="col input">fr-CH</div>` }
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<slot></slot><av-resize _id="translationcolheader_0"></av-resize>` }
     });
 }
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "content": {
+    "translationcolheader_0°locale": {
+      "fct": (c) => `${c.print(c.comp.__c0f6c43ffbd917481fc06076601eea8amethod0())}`,
+      "once": true
+    }
+  }
+}); }
     getClassName() {
-        return "TranslationRowHeader";
+        return "TranslationColHeader";
+    }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["locale"] = ""; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('locale'); }
+    __c0f6c43ffbd917481fc06076601eea8amethod0() {
+        return this.locale;
     }
 }
-TranslationRowHeader.Namespace=`AventusI18nView`;
-TranslationRowHeader.Tag=`av-translation-row-header`;
-_.TranslationRowHeader=TranslationRowHeader;
-if(!window.customElements.get('av-translation-row-header')){window.customElements.define('av-translation-row-header', TranslationRowHeader);Aventus.WebComponentInstance.registerDefinition(TranslationRowHeader);}
+TranslationColHeader.Namespace=`AventusI18nView`;
+TranslationColHeader.Tag=`av-translation-col-header`;
+_.TranslationColHeader=TranslationColHeader;
+if(!window.customElements.get('av-translation-col-header')){window.customElements.define('av-translation-col-header', TranslationColHeader);Aventus.WebComponentInstance.registerDefinition(TranslationColHeader);}
 
 const Textarea = class Textarea extends Aventus.WebComponent {
-    preventDrag;
+    get 'value'() {
+						return this.__watch["value"];
+					}
+					set 'value'(val) {
+						this.__watch["value"] = val;
+					}    preventDrag;
+    __registerWatchesActions() {
+    this.__addWatchesActions("value", ((target) => {
+    target.textarea.value = target.value;
+}));    super.__registerWatchesActions();
+}
     static __style = `:host{width:100%}:host vscode-textarea{width:100%}`;
     __getStatic() {
         return Textarea;
@@ -18530,6 +18616,8 @@ const Textarea = class Textarea extends Aventus.WebComponent {
     getClassName() {
         return "Textarea";
     }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["value"] = "salut"; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('value'); }
     preventDragFct() {
         this.preventDrag = new Aventus.DragAndDrop({
             element: this,
@@ -18549,8 +18637,70 @@ Textarea.Tag=`av-textarea`;
 _.Textarea=Textarea;
 if(!window.customElements.get('av-textarea')){window.customElements.define('av-textarea', Textarea);Aventus.WebComponentInstance.registerDefinition(Textarea);}
 
+const Loading = class Loading extends Aventus.WebComponent {
+    get 'visible'() { return this.getBoolAttr('visible') }
+    set 'visible'(val) { this.setBoolAttr('visible', val) }    static _instance;
+    static _minTime;
+    static _showTime;
+    static __style = `:host{align-items:center;background-color:rgba(0,0,0,.3);display:none;inset:0;justify-content:center;position:fixed;z-index:999}@keyframes l4{to{transform:rotate(1turn)}}:host .loader{--b: 16px;animation:l4 1s infinite steps(10);aspect-ratio:1;background:conic-gradient(rgba(0, 0, 0, 0) 10%, var(--vscode-input-foreground)) content-box;border-radius:50%;-webkit-mask:repeating-conic-gradient(rgba(0, 0, 0, 0) 0deg, #000 1deg 20deg, rgba(0, 0, 0, 0) 21deg 36deg),radial-gradient(farthest-side, rgba(0, 0, 0, 0) calc(100% - var(--b) - 1px), #000 calc(100% - var(--b)));-webkit-mask-composite:destination-in;mask-composite:intersect;padding:1px;width:84px}:host([visible]){display:flex}`;
+    __getStatic() {
+        return Loading;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Loading.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<div class="loader"></div>` }
+    });
+}
+    getClassName() {
+        return "Loading";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('visible')) { this.attributeChangedCallback('visible', false, false); } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('visible'); }
+    __listBoolProps() { return ["visible"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    static show(minTime) {
+        this._minTime = minTime;
+        if (!this._instance) {
+            this._instance = new Loading();
+            document.body.appendChild(this._instance);
+        }
+        if (this._minTime) {
+            const d = new Date();
+            this._showTime = d.getTime();
+        }
+        this._instance.visible = true;
+    }
+    static hide() {
+        if (this._minTime && this._showTime && this._instance) {
+            const now = new Date();
+            const diff = now.getTime() - this._showTime;
+            if (diff > this._minTime) {
+                this._instance.visible = false;
+            }
+            else {
+                const instance = this._instance;
+                const delay = this._minTime - diff;
+                setTimeout(() => {
+                    instance.visible = false;
+                }, delay);
+            }
+        }
+    }
+}
+Loading.Namespace=`AventusI18nView`;
+Loading.Tag=`av-loading`;
+_.Loading=Loading;
+if(!window.customElements.get('av-loading')){window.customElements.define('av-loading', Loading);Aventus.WebComponentInstance.registerDefinition(Loading);}
+
 const IconTooltip = class IconTooltip extends Aventus.WebComponent {
-    static __style = `:host{position:relative}`;
+    static get observedAttributes() {return ["name"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'notif'() { return this.getBoolAttr('notif') }
+    set 'notif'(val) { this.setBoolAttr('notif', val) }    get 'name'() { return this.getStringProp('name') }
+    set 'name'(val) { this.setStringAttr('name', val) }    static __style = `:host{border-radius:6px;cursor:pointer;height:32px;padding:8px;position:relative;transition:background-color .2s linear;width:32px}:host vscode-icon{height:100%;width:100%}:host .notif{background-color:var(--vscode-icon-foreground);border-radius:10px;display:none;height:10px;position:absolute;right:3px;top:3px;width:10px}:host(:hover){background-color:var(--vscode-button-secondaryHoverBackground)}:host([notif]) .notif{display:block}`;
     __getStatic() {
         return IconTooltip;
     }
@@ -18561,14 +18711,29 @@ const IconTooltip = class IconTooltip extends Aventus.WebComponent {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<vscode-icon name="book"></vscode-icon><av-tooltip use_absolute no_caret>je suis une demo</av-tooltip>` }
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<vscode-icon _id="icontooltip_0"></vscode-icon><av-tooltip use_absolute no_caret>    <slot></slot></av-tooltip><div class="notif"></div>` }
     });
 }
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "content": {
+    "icontooltip_0°name": {
+      "fct": (c) => `${c.print(c.comp.__6b93c63e12520a69df7261ff7f843c0fmethod0())}`,
+      "once": true
+    }
+  }
+}); }
     getClassName() {
         return "IconTooltip";
     }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('notif')) { this.attributeChangedCallback('notif', false, false); }if(!this.hasAttribute('name')){ this['name'] = "symbol-array"; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('notif');this.__upgradeProperty('name'); }
+    __listBoolProps() { return ["notif"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     postCreation() {
         super.postCreation();
+    }
+    __6b93c63e12520a69df7261ff7f843c0fmethod0() {
+        return this.name;
     }
 }
 IconTooltip.Namespace=`AventusI18nView`;
@@ -18576,8 +18741,283 @@ IconTooltip.Tag=`av-icon-tooltip`;
 _.IconTooltip=IconTooltip;
 if(!window.customElements.get('av-icon-tooltip')){window.customElements.define('av-icon-tooltip', IconTooltip);Aventus.WebComponentInstance.registerDefinition(IconTooltip);}
 
+const GenericPopup = class GenericPopup extends Aventus.WebComponent {
+    static get observedAttributes() {return ["popup_title"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'popup_title'() { return this.getStringProp('popup_title') }
+    set 'popup_title'(val) { this.setStringAttr('popup_title', val) }    cb;
+    static __style = `:host{align-items:center;background-color:rgba(0,0,0,.3);display:flex;inset:0;justify-content:center;position:fixed;z-index:999}:host .popup{background-color:var(--vscode-panel-background);border:var(--vscode-panel-border);border-radius:4px;box-shadow:var(--elevation-8);max-width:min(800px,100% - 100px);min-width:400px;padding:15px}:host .popup .title{font-size:24px;font-weight:bold;margin-bottom:10px}:host .popup .content{font-size:16px}:host .popup .actions{align-items:center;display:flex;font-size:16px;gap:10px;justify-content:flex-end;margin-top:10px}`;
+    __getStatic() {
+        return GenericPopup;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(GenericPopup.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>`,'actions':`<slot name="actions">            <vscode-button _id="genericpopup_1">Fermer</vscode-button>        </slot>` }, 
+        blocks: { 'default':`<div class="popup">    <div class="title" _id="genericpopup_0"></div>    <div class="content">        <slot></slot>    </div>    <div class="actions">        <slot name="actions">            <vscode-button _id="genericpopup_1">Fermer</vscode-button>        </slot>    </div></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "content": {
+    "genericpopup_0°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__e07b11b2e32632baaa472cf6cd242d2fmethod0())}`,
+      "once": true
+    }
+  },
+  "pressEvents": [
+    {
+      "id": "genericpopup_1",
+      "onPress": (e, pressInstance, c) => { c.comp.close(e, pressInstance); }
+    }
+  ]
+}); }
+    getClassName() {
+        return "GenericPopup";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('popup_title')){ this['popup_title'] = undefined; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('popup_title'); }
+    close() {
+        this.remove();
+        if (this.cb) {
+            this.cb();
+        }
+    }
+    __e07b11b2e32632baaa472cf6cd242d2fmethod0() {
+        return this.popup_title;
+    }
+}
+GenericPopup.Namespace=`AventusI18nView`;
+GenericPopup.Tag=`av-generic-popup`;
+_.GenericPopup=GenericPopup;
+if(!window.customElements.get('av-generic-popup')){window.customElements.define('av-generic-popup', GenericPopup);Aventus.WebComponentInstance.registerDefinition(GenericPopup);}
+
+const Popup = class Popup extends GenericPopup {
+    static __style = ``;
+    __getStatic() {
+        return Popup;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Popup.__style);
+        return arrStyle;
+    }
+    __getHtml() {super.__getHtml();
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`` }
+    });
+}
+    getClassName() {
+        return "Popup";
+    }
+}
+Popup.Namespace=`AventusI18nView`;
+Popup.Tag=`av-popup`;
+_.Popup=Popup;
+if(!window.customElements.get('av-popup')){window.customElements.define('av-popup', Popup);Aventus.WebComponentInstance.registerDefinition(Popup);}
+
+const Alert = class Alert extends GenericPopup {
+    static __style = ``;
+    __getStatic() {
+        return Alert;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Alert.__style);
+        return arrStyle;
+    }
+    __getHtml() {super.__getHtml();
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<slot></slot>` }
+    });
+}
+    getClassName() {
+        return "Alert";
+    }
+    static show(title, content) {
+        return new Promise((resolve) => {
+            const el = new Alert();
+            el.popup_title = title;
+            el.innerHTML = content;
+            el.cb = resolve;
+            document.body.appendChild(el);
+        });
+    }
+}
+Alert.Namespace=`AventusI18nView`;
+Alert.Tag=`av-alert`;
+_.Alert=Alert;
+if(!window.customElements.get('av-alert')){window.customElements.define('av-alert', Alert);Aventus.WebComponentInstance.registerDefinition(Alert);}
+
+let Translator=class Translator {
+    static async translate(value, source, destination) {
+        const result = await VscodeView.Router.getInstance().sendWithResponse({
+            channel: "translate",
+            body: {
+                value,
+                source,
+                destination
+            }
+        });
+        if (!result.result)
+            return null;
+        if (result.result.error) {
+            await Alert.show("Error", result.result.error);
+            return null;
+        }
+        return result.result.result;
+    }
+}
+Translator.Namespace=`AventusI18nView`;
+_.Translator=Translator;
+
+let DemoData= {
+    "click me1": {
+        key: "click me1",
+        keyStart: 0,
+        keyEnd: 0,
+        locales: {
+            "fr-CH": {
+                locale: "fr-CH",
+                localeStart: 0,
+                localeEnd: 0,
+                value: "presse moi",
+                valueStart: 0,
+                valueEnd: 0
+            },
+            "en-GB": {
+                locale: "en-GB",
+                localeStart: 0,
+                localeEnd: 0,
+                value: "click me",
+                valueStart: 0,
+                valueEnd: 0
+            }
+        }
+    },
+    "click me": {
+        key: "click me",
+        keyStart: 0,
+        keyEnd: 0,
+        locales: {
+            "fr-CH": {
+                locale: "fr-CH",
+                localeStart: 0,
+                localeEnd: 0,
+                value: "##",
+                valueStart: 0,
+                valueEnd: 0
+            },
+            "en-GB": {
+                locale: "en-GB",
+                localeStart: 0,
+                localeEnd: 0,
+                value: "click me",
+                valueStart: 0,
+                valueEnd: 0
+            }
+        }
+    }
+};
+_.DemoData=DemoData;
+
+const TranslationCol = class TranslationCol extends Aventus.WebComponent {
+    get 'icon_btn'() { return this.getBoolAttr('icon_btn') }
+    set 'icon_btn'(val) { this.setBoolAttr('icon_btn', val) }    get 'parsedLocale'() {
+						return this.__watch["parsedLocale"];
+					}
+					set 'parsedLocale'(val) {
+						this.__watch["parsedLocale"] = val;
+					}    __registerWatchesActions() {
+    this.__addWatchesActions("parsedLocale", ((target) => {
+    target.style.setProperty("--translation-col-width", "var(--col-width-" + target.parsedLocale.locale + ")");
+    target.icon_btn = target.parsedLocale.value == "" || target.parsedLocale.value == "##";
+}));    super.__registerWatchesActions();
+}
+    static __style = `:host{--_translation-col-width: var(--translation-col-width, 200px)}:host{align-items:center;display:flex;flex-shrink:0;gap:10px;margin:0;min-width:200px;position:relative;width:var(--_translation-col-width)}:host vscode-icon{background-color:rgba(0,0,0,0);border-radius:5px;cursor:pointer;display:none;padding:4px;transition:background-color linear .2s}:host vscode-icon:hover{background-color:var(--vscode-button-secondaryBackground)}:host .resize{background-color:red;bottom:0;cursor:col-resize;position:absolute;right:-4px;top:0;width:8px}:host([icon_btn]) vscode-icon{display:inline-block}`;
+    __getStatic() {
+        return TranslationCol;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(TranslationCol.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<av-textarea _id="translationcol_0"></av-textarea><div class="action">    <vscode-icon name="book" _id="translationcol_1"></vscode-icon></div><av-resize _id="translationcol_2"></av-resize>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "content": {
+    "translationcol_2°locale": {
+      "fct": (c) => `${c.print(c.comp.__5c58baf68a3de763ecfa54cfd926bb36method1())}`,
+      "once": true
+    }
+  },
+  "injection": [
+    {
+      "id": "translationcol_0",
+      "injectionName": "value",
+      "inject": (c) => c.comp.__5c58baf68a3de763ecfa54cfd926bb36method0(),
+      "once": true
+    }
+  ],
+  "pressEvents": [
+    {
+      "id": "translationcol_1",
+      "onPress": (e, pressInstance, c) => { c.comp.getTranslatation(e, pressInstance); }
+    }
+  ]
+}); }
+    getClassName() {
+        return "TranslationCol";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('icon_btn')) { this.attributeChangedCallback('icon_btn', false, false); } }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["parsedLocale"] = undefined; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('icon_btn');this.__correctGetter('parsedLocale'); }
+    __listBoolProps() { return ["icon_btn"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    getValue() {
+        if (this.parsedLocale.value == "##")
+            return "";
+        return this.parsedLocale.value;
+    }
+    async getTranslatation() {
+        let row = this.findParentByType(TranslationRow);
+        let page = this.findParentByType(TranslationPage);
+        const result = await Translator.translate(row.parsedItem.key, page.fallback, this.parsedLocale.locale);
+        if (result) {
+            this.parsedLocale.value = result;
+        }
+    }
+    postCreation() {
+    }
+    __5c58baf68a3de763ecfa54cfd926bb36method1() {
+        return this.parsedLocale.locale;
+    }
+    __5c58baf68a3de763ecfa54cfd926bb36method0() {
+        return this.getValue();
+    }
+}
+TranslationCol.Namespace=`AventusI18nView`;
+TranslationCol.Tag=`av-translation-col`;
+_.TranslationCol=TranslationCol;
+if(!window.customElements.get('av-translation-col')){window.customElements.define('av-translation-col', TranslationCol);Aventus.WebComponentInstance.registerDefinition(TranslationCol);}
+
 const TranslationRow = class TranslationRow extends Aventus.WebComponent {
-    static __style = `:host{align-items:stretch;border-left:1px solid var(--vscode-widget-border);border-right:1px solid var(--vscode-widget-border);display:flex;gap:0px}:host .col{border-right:1px solid var(--vscode-widget-border);padding:10px 20px}:host .col vscode-icon{background-color:rgba(0,0,0,0);border-radius:5px;cursor:pointer;padding:4px;transition:background-color linear .2s}:host .col vscode-icon:hover{background-color:var(--vscode-button-secondaryBackground)}:host .key{flex-shrink:0;width:300px}:host .input{align-items:center;display:flex;flex-shrink:0;gap:10px;margin:0;width:500px}:host(:nth-child(odd)){background-color:rgba(87,87,87,.2);background-color:var(--vscode-editorWidget-background)}:host(:nth-last-child(2)){border-bottom:1px solid var(--vscode-widget-border);border-bottom-left-radius:5px;border-bottom-right-radius:5px}`;
+    get 'locales'() {
+						return this.__watch["locales"];
+					}
+					set 'locales'(val) {
+						this.__watch["locales"] = val;
+					}    parsedItem;
+    __registerWatchesActions() {
+    this.__addWatchesActions("locales");    super.__registerWatchesActions();
+}
+    static __style = `:host{align-items:stretch;border-left:1px solid var(--vscode-widget-border);border-right:1px solid var(--vscode-widget-border);display:flex;gap:0px}:host .col{border-right:1px solid var(--vscode-widget-border);padding:10px 20px}:host .inputs{display:flex;gap:0px}:host .key{flex-shrink:0;position:relative;width:var(--_translation-page-key-width);min-width:100px}:host(:nth-child(odd)){background-color:rgba(87,87,87,.2);background-color:var(--vscode-editorWidget-background)}:host(:nth-last-child(1)){border-bottom:1px solid var(--vscode-widget-border);border-bottom-left-radius:5px;border-bottom-right-radius:5px}`;
     __getStatic() {
         return TranslationRow;
     }
@@ -18588,24 +19028,43 @@ const TranslationRow = class TranslationRow extends Aventus.WebComponent {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="col key">	<vscode-label _id="translationrow_0">click me12</vscode-label></div><div class="col input">	<av-textarea></av-textarea>	<div class="action">		<vscode-icon name="book"></vscode-icon>		<vscode-context-menu id="context-menu" class="context-menu"></vscode-context-menu>	</div></div><div class="col input">	<av-textarea></av-textarea>	<vscode-icon name="book"></vscode-icon></div><div class="col input">	<av-textarea></av-textarea>	<vscode-icon name="book"></vscode-icon></div><div class="col input">	<av-textarea></av-textarea>	<vscode-icon name="book"></vscode-icon></div>` }
+        blocks: { 'default':`<div class="col key">	<vscode-label _id="translationrow_0"></vscode-label>	<av-resize is_key></av-resize></div><div class="inputs" _id="translationrow_1"></div>` }
     });
 }
     __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
-  "pressEvents": [
+  "elements": [
     {
-      "id": "translationrow_0",
-      "onPress": (e, pressInstance, c) => { c.comp.askTranslate(e, pressInstance); }
+      "name": "inputsEl",
+      "ids": [
+        "translationrow_1"
+      ]
     }
-  ]
+  ],
+  "content": {
+    "translationrow_0°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__c86b13a0b49a096fc47a9596b8ca6beemethod0())}`,
+      "once": true
+    }
+  }
 }); }
     getClassName() {
         return "TranslationRow";
     }
-    async askTranslate() {
-        debugger;
-        const result = await Translator.translate("Je m'appelle maxime", "fr_CH", "en_GB");
-        debugger;
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["locales"] = undefined; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('locales'); }
+    loadData() {
+        for (let locale of this.locales) {
+            const col = new TranslationCol();
+            col.parsedLocale = this.parsedItem.locales[locale];
+            col.classList.add("col");
+            this.inputsEl.appendChild(col);
+        }
+    }
+    postCreation() {
+        this.loadData();
+    }
+    __c86b13a0b49a096fc47a9596b8ca6beemethod0() {
+        return this.parsedItem.key;
     }
 }
 TranslationRow.Namespace=`AventusI18nView`;
@@ -18613,16 +19072,81 @@ TranslationRow.Tag=`av-translation-row`;
 _.TranslationRow=TranslationRow;
 if(!window.customElements.get('av-translation-row')){window.customElements.define('av-translation-row', TranslationRow);Aventus.WebComponentInstance.registerDefinition(TranslationRow);}
 
-const TranslationPage = class TranslationPage extends Aventus.WebComponent {
-    get 'parsed'() {
-						return this.__watch["parsed"];
+const TranslationRowHeader = class TranslationRowHeader extends Aventus.WebComponent {
+    get 'locales'() {
+						return this.__watch["locales"];
 					}
-					set 'parsed'(val) {
-						this.__watch["parsed"] = val;
+					set 'locales'(val) {
+						this.__watch["locales"] = val;
 					}    __registerWatchesActions() {
-    this.__addWatchesActions("parsed");    super.__registerWatchesActions();
+    this.__addWatchesActions("locales");    super.__registerWatchesActions();
 }
-    static __style = `:host{display:flex;flex-direction:column;height:100%;margin:0;margin-block:0 !important;width:100%}:host vscode-scrollable{height:calc(100% - 195px);margin:0 20px;width:calc(100% - 40px)}:host av-scrollable{--scroller-width: 0;height:min-content;min-height:0}:host .header{flex-shrink:0;height:185px;padding:20px;padding-bottom:0}:host .header .bar{display:flex;justify-content:space-between;width:100%}:host .header .bar .menu-actions{display:flex;gap:50px}:host .header .bar .menu-actions vscode-form-group{--label-width: auto}:host .header .menu{border:1px solid var(--vscode-widget-border);padding:8px}:host .header .menu vscode-icon{background-color:rgba(0,0,0,0);cursor:pointer;padding:8px;transition:background-color linear .2s}:host .header .menu vscode-icon:hover{background-color:var(--vscode-button-secondaryBackground)}:host .content{display:flex;flex-direction:column}`;
+    static __style = `:host{align-items:stretch;border-left:1px solid var(--vscode-widget-border);border-right:1px solid var(--vscode-widget-border);display:flex;font-weight:bold;gap:0px;height:39px;text-align:center;user-select:none}:host .key{align-items:center;display:flex;flex-shrink:0;width:var(--_translation-page-key-width);border-right:1px solid var(--vscode-widget-border);justify-content:center;padding:10px 20px;position:relative;min-width:100px}:host .inputs{display:flex;gap:0px}`;
+    __getStatic() {
+        return TranslationRowHeader;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(TranslationRowHeader.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<div class="key">    <span>Key</span>    <av-resize is_key></av-resize></div><div class="inputs"><template _id="translationrowheader_0"></template></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();const templ0 = new Aventus.Template(this);templ0.setTemplate(`    <av-translation-col-header _id="translationrowheader_1"></av-translation-col-header>`);templ0.setActions({
+  "content": {
+    "translationrowheader_1°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__189fa087d6daa05734acb2853341f755method2(c.data.locale))}`,
+      "once": true
+    }
+  },
+  "injection": [
+    {
+      "id": "translationrowheader_1",
+      "injectionName": "locale",
+      "inject": (c) => c.comp.__189fa087d6daa05734acb2853341f755method1(c.data.locale),
+      "once": true
+    }
+  ]
+});this.__getStatic().__template.addLoop({
+                    anchorId: 'translationrowheader_0',
+                    template: templ0,
+                simple:{data: "this.locales",item:"locale"}}); }
+    getClassName() {
+        return "TranslationRowHeader";
+    }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["locales"] = []; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('locales'); }
+    __189fa087d6daa05734acb2853341f755method2(locale) {
+        return locale;
+    }
+    __189fa087d6daa05734acb2853341f755method1(locale) {
+        return locale;
+    }
+}
+TranslationRowHeader.Namespace=`AventusI18nView`;
+TranslationRowHeader.Tag=`av-translation-row-header`;
+_.TranslationRowHeader=TranslationRowHeader;
+if(!window.customElements.get('av-translation-row-header')){window.customElements.define('av-translation-row-header', TranslationRowHeader);Aventus.WebComponentInstance.registerDefinition(TranslationRowHeader);}
+
+const TranslationPage = class TranslationPage extends Aventus.WebComponent {
+    static get observedAttributes() {return ["need_save"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'need_save'() { return this.getBoolProp('need_save') }
+    set 'need_save'(val) { this.setBoolAttr('need_save', val) }    get 'fallback'() {
+						return this.__watch["fallback"];
+					}
+					set 'fallback'(val) {
+						this.__watch["fallback"] = val;
+					}    parsed = {};
+    locales = ["en-GB", "fr-CH"];
+    guard = new Aventus.ActionGuard();
+    rows = {};
+    __registerWatchesActions() {
+    this.__addWatchesActions("fallback");    super.__registerWatchesActions();
+}
+    static __style = `:host{--_translation-page-key-width: var(--translation-page-key-width, 300px)}:host{display:flex;flex-direction:column;height:100%;margin:0;margin-block:0 !important;width:100%}:host vscode-scrollable{height:calc(100% - 190px);margin:0 20px;width:calc(100% - 40px)}:host av-scrollable{--scroller-width: 0;height:min-content;min-height:0}:host .header{flex-shrink:0;height:180px;padding:20px;padding-bottom:0}:host .header .bar{display:flex;justify-content:space-between;width:100%}:host .header .bar .menu-actions{display:flex;gap:50px}:host .header .bar .menu-actions vscode-form-group{--label-width: auto}:host .header .menu{border:1px solid var(--vscode-widget-border);padding:8px}:host .header .menu vscode-icon{background-color:rgba(0,0,0,0);cursor:pointer;padding:8px;transition:background-color linear .2s}:host .header .menu vscode-icon:hover{background-color:var(--vscode-button-secondaryBackground)}:host .content{display:flex;flex-direction:column}`;
     __getStatic() {
         return TranslationPage;
     }
@@ -18633,7 +19157,7 @@ const TranslationPage = class TranslationPage extends Aventus.WebComponent {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="header">    <div class="bar">        <h1 class="title">@General.i18n.avt</h1>        <div class="menu-actions">            <vscode-form-group>                <vscode-label>Seulement les traductions manquantes : </vscode-label>                <vscode-checkbox></vscode-checkbox>            </vscode-form-group>            <vscode-form-group>                <vscode-label>Recherche:</vscode-label>                <vscode-textfield></vscode-textfield>            </vscode-form-group>        </div>    </div>    <div class="menu">        <av-icon-tooltip></av-icon-tooltip>        <av-icon-tooltip></av-icon-tooltip>        <av-icon-tooltip></av-icon-tooltip>    </div>    <av-scrollable x_scroll y_scroll="true" mouse_drag auto_hide _id="translationpage_0">        <av-translation-row-header></av-translation-row-header>    </av-scrollable></div><vscode-scrollable>    <av-scrollable x_scroll y_scroll="true" mouse_drag auto_hide _id="translationpage_1">        <div class="content">            <template _id="translationpage_2"></template>        </div>    </av-scrollable></vscode-scrollable>` }
+        blocks: { 'default':`<div class="header">    <div class="bar">        <h1 class="title">@General.i18n.avt</h1>        <div class="menu-actions">            <vscode-form-group>                <vscode-label>Seulement les traductions manquantes : </vscode-label>                <vscode-checkbox></vscode-checkbox>            </vscode-form-group>            <vscode-form-group>                <vscode-label>Recherche:</vscode-label>                <vscode-textfield></vscode-textfield>            </vscode-form-group>        </div>    </div>    <div class="menu">        <av-icon-tooltip name="save" _id="translationpage_0">Save</av-icon-tooltip>        <av-icon-tooltip name="warning">Import missing</av-icon-tooltip>    </div>    <av-scrollable x_scroll y_scroll="true" mouse_drag auto_hide _id="translationpage_1">        <av-translation-row-header _id="translationpage_2"></av-translation-row-header>    </av-scrollable></div><vscode-scrollable>    <av-scrollable x_scroll y_scroll="true" mouse_drag auto_hide _id="translationpage_3">        <div class="content" _id="translationpage_4">        </div>    </av-scrollable></vscode-scrollable>` }
     });
 }
     __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
@@ -18641,25 +19165,50 @@ const TranslationPage = class TranslationPage extends Aventus.WebComponent {
     {
       "name": "headerEl",
       "ids": [
-        "translationpage_0"
+        "translationpage_1"
       ]
     },
     {
       "name": "bodyEl",
       "ids": [
-        "translationpage_1"
+        "translationpage_3"
+      ]
+    },
+    {
+      "name": "contentEl",
+      "ids": [
+        "translationpage_4"
       ]
     }
+  ],
+  "injection": [
+    {
+      "id": "translationpage_0",
+      "injectionName": "notif",
+      "inject": (c) => c.comp.__30556103ea6c6df6f19f3f0f01bfbf73method0(),
+      "once": true
+    },
+    {
+      "id": "translationpage_2",
+      "injectionName": "locales",
+      "inject": (c) => c.comp.__30556103ea6c6df6f19f3f0f01bfbf73method1(),
+      "once": true
+    }
+  ],
+  "pressEvents": [
+    {
+      "id": "translationpage_0",
+      "onPress": (e, pressInstance, c) => { c.comp.save(e, pressInstance); }
+    }
   ]
-});const templ0 = new Aventus.Template(this);templ0.setTemplate(`                 <av-translation-row></av-translation-row>            `);this.__getStatic().__template.addLoop({
-                    anchorId: 'translationpage_2',
-                    template: templ0,
-                func: (c) => c.comp.__30556103ea6c6df6f19f3f0f01bfbf73method1()}); }
+}); }
     getClassName() {
         return "TranslationPage";
     }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["parsed"] = {}; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('parsed'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('need_save')) { this.attributeChangedCallback('need_save', false, false); } }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["fallback"] = "en-GB"; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('need_save');this.__correctGetter('fallback'); }
+    __listBoolProps() { return ["need_save"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     syncScroll() {
         this.headerEl?.onScrollChange.add((x, y) => {
             if (this.bodyEl?.x != x) {
@@ -18671,31 +19220,121 @@ const TranslationPage = class TranslationPage extends Aventus.WebComponent {
                 this.headerEl?.scrollX(x);
             }
         });
+        new Aventus.ResizeObserver(() => {
+            this.style.setProperty("--content-width", this.headerEl.offsetWidth - 2 + "px");
+        }).observe(this.headerEl);
+        this.style.setProperty("--content-width", this.headerEl.offsetWidth - 2 + "px");
+    }
+    async save() {
+        this.guard.run(['save'], async () => {
+            Loading.show(10000);
+            // try {
+            //     const result = await VscodeView.Router.getInstance().sendWithResponse<boolean>({
+            //         channel: "save",
+            //         body: {
+            //             content: this.parsed
+            //         }
+            //     });
+            //     if(result.result) {
+            //         this.need_save = false;
+            //     }
+            // } catch {}
+            Loading.hide();
+        });
+    }
+    loadData() {
+        this.parsed = DemoData;
+        for (let key in this.parsed) {
+            const row = new TranslationRow();
+            row.parsedItem = this.parsed[key];
+            row.locales = this.locales;
+            this.rows[key] = row;
+            this.contentEl.appendChild(row);
+        }
+        const w = "calc((var(--content-width) - var(--_translation-page-key-width)) / " + this.locales.length + ")";
+        for (let locale of this.locales) {
+            this.style.setProperty("--col-width-" + locale, w);
+        }
     }
     postCreation() {
         super.postCreation();
         let vscodeElements = npmCompilation['1608514c9acd4a97df63533df1b9d0fd'].VscodeElement;
         this.syncScroll();
+        this.loadData();
+    }
+    __30556103ea6c6df6f19f3f0f01bfbf73method0() {
+        return this.need_save;
     }
     __30556103ea6c6df6f19f3f0f01bfbf73method1() {
-        let i = 0;
-        return {
-            transform: () => {
-                i++;
-            },
-            condition: () => {
-                return (i < 30);
-            },
-            apply: () => {
-                return ({ i });
-            }
-        };
+        return this.locales;
     }
 }
 TranslationPage.Namespace=`AventusI18nView`;
 TranslationPage.Tag=`av-translation-page`;
 _.TranslationPage=TranslationPage;
 if(!window.customElements.get('av-translation-page')){window.customElements.define('av-translation-page', TranslationPage);Aventus.WebComponentInstance.registerDefinition(TranslationPage);}
+
+const Resize = class Resize extends Aventus.WebComponent {
+    static get observedAttributes() {return ["locale", "is_key"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'locale'() { return this.getStringProp('locale') }
+    set 'locale'(val) { this.setStringAttr('locale', val) }get 'is_key'() { return this.getBoolProp('is_key') }
+    set 'is_key'(val) { this.setBoolAttr('is_key', val) }    static __style = `:host{bottom:0;cursor:col-resize;position:absolute;right:-4px;top:0;width:8px}`;
+    __getStatic() {
+        return Resize;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Resize.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<slot></slot>` }
+    });
+}
+    getClassName() {
+        return "Resize";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('locale')){ this['locale'] = ""; }if(!this.hasAttribute('is_key')) { this.attributeChangedCallback('is_key', false, false); } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('locale');this.__upgradeProperty('is_key'); }
+    __listBoolProps() { return ["is_key"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    postCreation() {
+        let page = this.findParentByType(TranslationPage);
+        let width = 0;
+        let startX = 0;
+        let _parent = this.parentNode;
+        if (_parent instanceof ShadowRoot) {
+            _parent = _parent.host;
+        }
+        const parent = _parent;
+        new Aventus.DragAndDrop({
+            element: this,
+            applyDrag: false,
+            offsetDrag: 0,
+            onStart: (e) => {
+                width = parent.offsetWidth;
+                startX = e.clientX;
+            },
+            onMove: (e) => {
+                let newW = width + (e.clientX - startX);
+                if (this.is_key) {
+                    if (newW > page.offsetWidth / 2) {
+                        newW = page.offsetWidth / 2;
+                    }
+                    page.style.setProperty("--translation-page-key-width", newW + 'px');
+                }
+                else {
+                    page.style.setProperty("--col-width-" + this.locale, newW + 'px');
+                }
+            }
+        });
+    }
+}
+Resize.Namespace=`AventusI18nView`;
+Resize.Tag=`av-resize`;
+_.Resize=Resize;
+if(!window.customElements.get('av-resize')){window.customElements.define('av-resize', Resize);Aventus.WebComponentInstance.registerDefinition(Resize);}
 
 
 for(let key in _) { AventusI18nView[key] = _[key] }

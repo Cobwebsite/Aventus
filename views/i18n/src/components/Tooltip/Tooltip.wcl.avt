@@ -38,6 +38,7 @@ namespace Components {
         protected timeout: number = 0;
         protected pressManager?: Aventus.PressManager;
         protected screenMargin: number = 10;
+        protected elementsMoved: Map<Node, HTMLElement> = new Map();
         //#endregion
 
 
@@ -114,8 +115,27 @@ namespace Components {
             }
         }
 
+        protected moveNodesToThis() {
+            if(this.use_absolute) {
+                const elements = this.getNodesInSlot();
+                for(let element of elements) {
+                    this.elementsMoved.set(element, element.parentElement!);
+                    this.shadowRoot.appendChild(element);
+                }
+            }
+        }
+        protected removeNodesFromThis() {
+            if(this.use_absolute) {
+                for(const [node, parent] of this.elementsMoved) {
+                    // TODO solution simpliste voir si ça marche vrm
+                    parent.appendChild(node);
+                }
+            }
+        }
+
         @BindThis()
         protected onMouseEnter() {
+            this.moveNodesToThis();
             this.calculatePosition();
             let delay = this.delay == 0 ? 50 : this.delay;
             if(this.use_absolute) {
@@ -160,6 +180,8 @@ namespace Components {
         @BindThis()
         protected onTransitionEnd() {
             if(!this.use_absolute || this.visible) return;
+
+            this.removeNodesFromThis();
 
             if(this.parent && !this.isDestroyed)
                 this.parent?.appendChild(this);

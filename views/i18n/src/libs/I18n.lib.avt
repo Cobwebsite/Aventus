@@ -1,4 +1,5 @@
-import { Router } from "VscodeView@Main:VscodeView.package.avt";
+import { HttpMethod, HttpRequest } from "Aventus@Main:Aventus.package.avt";
+import { Alert } from "../components/Alert/Alert.wcl.avt";
 
 export type I18nParsed = { [key: string]: I18nParsedItem; };
 export type I18nParsedItem = {
@@ -17,10 +18,60 @@ export type I18nParsedItemLocale = {
     valueEnd: number,
 };
 
+export const DemoData: I18nParsed = {
+    "click me1": {
+        key: "click me1",
+        keyStart: 0,
+        keyEnd: 0,
+        locales: {
+            "fr-CH": {
+                locale: "fr-CH",
+                localeStart: 0,
+                localeEnd: 0,
+                value: "presse moi",
+                valueStart: 0,
+                valueEnd: 0
+            },
+            "en-GB": {
+                locale: "en-GB",
+                localeStart: 0,
+                localeEnd: 0,
+                value: "click me",
+                valueStart: 0,
+                valueEnd: 0
+            }
+        }
+    },
+    "click me": {
+        key: "click me",
+        keyStart: 0,
+        keyEnd: 0,
+        locales: {
+            "fr-CH": {
+                locale: "fr-CH",
+                localeStart: 0,
+                localeEnd: 0,
+                value: "##",
+                valueStart: 0,
+                valueEnd: 0
+            },
+            "en-GB": {
+                locale: "en-GB",
+                localeStart: 0,
+                localeEnd: 0,
+                value: "click me",
+                valueStart: 0,
+                valueEnd: 0
+            }
+        }
+    }
+};
+
+
 
 export class Translator {
     public static async translate(value: string, source: string, destination: string) {
-        const result = await VscodeView.Router.getInstance().sendWithResponse<string>({
+        const result = await VscodeView.Router.getInstance().sendWithResponse<{ error?: string, result?: string; }>({
             channel: "translate",
             body: {
                 value,
@@ -28,6 +79,11 @@ export class Translator {
                 destination
             }
         });
-		return result;
+        if(!result.result) return null;
+        if(result.result.error) {
+            await Alert.show("Error", result.result.error);
+            return null;
+        }
+        return result.result.result!;
     }
 }

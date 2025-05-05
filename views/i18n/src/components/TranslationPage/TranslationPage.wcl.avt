@@ -1,5 +1,9 @@
 import * as VscodeElement from '@vscode-elements/elements/dist/main.js';
-import { Translator, type I18nParsed } from "../../libs/I18n.lib.avt";
+import { DemoData, Translator, type I18nParsed } from "../../libs/I18n.lib.avt";
+import { TranslationRow } from "../TranslationRow/TranslationRow.wcl.avt";
+import { ActionGuard, ResizeObserver } from "Aventus@Main:Aventus.package.avt";
+import { Alert } from "../Alert/Alert.wcl.avt";
+import { Loading } from "../Loading/Loading.wcl.avt";
 
 export class TranslationPage extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
@@ -9,7 +13,8 @@ export class TranslationPage extends Aventus.WebComponent implements Aventus.Def
 
 
     //#region props
-
+    @Property()
+    public need_save!: boolean;
     //#endregion
 
 
@@ -18,9 +23,17 @@ export class TranslationPage extends Aventus.WebComponent implements Aventus.Def
     protected headerEl!: Aventus.Layout.Scrollable;
     @ViewElement()
     protected bodyEl!: Aventus.Layout.Scrollable;
+    @ViewElement()
+    protected contentEl!: HTMLDivElement;
 
     @Watch()
+    public fallback: string = "en-GB";
+
     public parsed: I18nParsed = {};
+    public locales: string[] = ["en-GB", "fr-CH"];
+    protected guard: ActionGuard = new ActionGuard();
+
+    protected rows: { [key: string]: TranslationRow; } = {};
     //#endregion
 
 
@@ -41,14 +54,53 @@ export class TranslationPage extends Aventus.WebComponent implements Aventus.Def
                 this.headerEl?.scrollX(x);
             }
         });
+
+        new ResizeObserver(() => {
+            this.style.setProperty("--content-width", this.headerEl.offsetWidth - 2 + "px");
+        }).observe(this.headerEl);
+        this.style.setProperty("--content-width", this.headerEl.offsetWidth - 2 + "px");
     }
 
-    
+    protected async save() {
+        this.guard.run(['save'], async () => {
+            Loading.show(10000);
+            // try {
+            //     const result = await VscodeView.Router.getInstance().sendWithResponse<boolean>({
+            //         channel: "save",
+            //         body: {
+            //             content: this.parsed
+            //         }
+            //     });
+
+            //     if(result.result) {
+            //         this.need_save = false;
+            //     }
+            // } catch {}
+            Loading.hide();
+        });
+    }
+
+    protected loadData() {
+        this.parsed = DemoData;
+        for(let key in this.parsed) {
+            const row = new TranslationRow();
+            row.parsedItem = this.parsed[key];
+            row.locales = this.locales;
+            this.rows[key] = row;
+            this.contentEl.appendChild(row);
+        }
+
+        const w = "calc((var(--content-width) - var(--_translation-page-key-width)) / " + this.locales.length + ")";
+        for(let locale of this.locales) {
+            this.style.setProperty("--col-width-" + locale, w);
+        }
+    }
 
     protected override postCreation(): void {
         super.postCreation();
         let vscodeElements = VscodeElement;
         this.syncScroll();
+        this.loadData();
     }
     //#endregion
 

@@ -1,0 +1,54 @@
+import { Translator, type I18nParsedItemLocale } from "../../libs/I18n.lib.avt";
+import { TranslationPage } from "../TranslationPage/TranslationPage.wcl.avt";
+import { TranslationRow } from "../TranslationRow/TranslationRow.wcl.avt";
+
+export class TranslationCol extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+    //#region static
+
+    //#endregion
+
+
+    //#region props
+    @Attribute()
+    public icon_btn!: boolean;
+    //#endregion
+
+
+    //#region variables
+
+    @Watch((target: TranslationCol) => {
+        target.style.setProperty("--translation-col-width", "var(--col-width-" + target.parsedLocale.locale + ")");
+        target.icon_btn = target.parsedLocale.value == "" || target.parsedLocale.value == "##"
+    })
+    public parsedLocale!: I18nParsedItemLocale;
+
+
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+
+    //#region methods
+    protected getValue() {
+        if(this.parsedLocale.value == "##") return "";
+        return this.parsedLocale.value;
+    }
+    protected async getTranslatation() {
+        let row = this.findParentByType(TranslationRow)!;
+        let page = this.findParentByType(TranslationPage)!;
+        
+        const result = await Translator.translate(row.parsedItem.key, page.fallback, this.parsedLocale.locale);
+        if(result) {
+            this.parsedLocale.value = result;
+        }
+    }
+    protected override postCreation(): void {
+
+    }
+    //#endregion
+
+}

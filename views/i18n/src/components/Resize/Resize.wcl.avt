@@ -1,0 +1,63 @@
+import { DragAndDrop } from "Aventus@Main:Aventus.package.avt";
+import { TranslationPage } from "../TranslationPage/TranslationPage.wcl.avt";
+
+export class Resize extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+    //#region static
+
+    //#endregion
+
+
+    //#region props
+    @Property()
+    public locale: string = "";
+    @Property()
+    public is_key!: boolean;
+    //#endregion
+
+
+    //#region variables
+
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+
+    //#region methods
+    protected override postCreation(): void {
+        let page = this.findParentByType(TranslationPage)!;
+        let width = 0;
+        let startX = 0;
+        let _parent = this.parentNode;
+        if(_parent instanceof ShadowRoot) {
+            _parent = _parent.host;
+        }
+        const parent = _parent as HTMLElement;
+        new DragAndDrop({
+            element: this,
+            applyDrag: false,
+            offsetDrag: 0,
+            onStart: (e) => {
+                width = parent.offsetWidth;
+                startX = e.clientX;
+            },
+            onMove: (e) => {
+                let newW = width + (e.clientX - startX);
+                if(this.is_key) {
+                    if(newW > page.offsetWidth / 2) {
+                        newW = page.offsetWidth / 2;
+                    }
+                    page.style.setProperty("--translation-page-key-width", newW + 'px');
+                }
+                else {
+                    page.style.setProperty("--col-width-" + this.locale, newW + 'px');
+                }
+            }
+        });
+    }
+    //#endregion
+
+}

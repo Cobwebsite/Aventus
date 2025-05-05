@@ -238,10 +238,15 @@
 						"type": "string"
 					}
 				},
-				"aventus.defaultHideWarnings" : {
+				"aventus.defaultHideWarnings": {
 					"type": "boolean",
 					"title": "Define if the default value of hide warnings",
 					"default": false
+				},
+				"aventus.deeplApiKey": {
+					"type": "string",
+					"title": "Define the deepl api key to translate",
+					"default": ""
 				}
 			}
 		},
@@ -758,6 +763,7 @@
 		"command-exists": "^1.2.9",
 		"commander": "^12.1.0",
 		"connect": "^3.7.0",
+		"deepl-node": "^1.17.3",
 		"event-stream": "^4.0.1",
 		"inquirer-file-tree-selection-prompt": "^2.0.5",
 		"md5": "^2.3.0",

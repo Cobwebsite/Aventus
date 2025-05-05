@@ -5,8 +5,12 @@ export class IconTooltip extends Aventus.WebComponent implements Aventus.Default
     //#endregion
 
 
-    //#region this
+    //#region props
+    @Property()
+    public name: string = "symbol-array";
 
+    @Attribute()
+    public notif!: boolean;
     //#endregion
 
 

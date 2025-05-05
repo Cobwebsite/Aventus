@@ -877,10 +877,16 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
         return ElementExtension.containsChild(this, el);
     }
     /**
-     * Get element inside slot
+     * Get elements inside slot
      */
     public getElementsInSlot(slotName?: string): HTMLElement[] {
         return ElementExtension.getElementsInSlot(this, slotName);
+    }
+    /**
+     * Get nodes inside slot
+     */
+    public getNodesInSlot(slotName?: string): Node[] {
+        return ElementExtension.getNodesInSlot(this, slotName);
     }
     /**
      * Get active element from the shadowroot or the document

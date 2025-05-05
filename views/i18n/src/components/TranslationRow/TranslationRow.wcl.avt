@@ -1,33 +1,47 @@
-import { Translator } from "../../libs/I18n.lib.avt";
+import { Translator, type I18nParsedItem } from "../../libs/I18n.lib.avt";
+import { TranslationCol } from "../TranslationCol/TranslationCol.wcl.avt";
 
 export class TranslationRow extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
-	//#region static
-	
-	//#endregion
-	
-	
-	//#region props
-	
-	//#endregion
-	
-	
-	//#region variables
-	
-	//#endregion
-	
-	
-	//#region constructor
-	
-	//#endregion
-	
-	
-	//#region methods
-	protected async askTranslate() {
-        debugger
-        const result = await Translator.translate("Je m'appelle maxime", "fr_CH", "en_GB");
-        debugger
+    //#region static
+
+    //#endregion
+
+
+    //#region props
+
+    //#endregion
+
+
+    //#region variables
+    @ViewElement()
+    protected inputsEl!: HTMLDivElement;
+
+    public parsedItem!: I18nParsedItem;
+
+    @Watch()
+    public locales!: string[];
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+
+    //#region methods
+    protected loadData() {
+        for(let locale of this.locales) {
+            const col = new TranslationCol();
+            col.parsedLocale = this.parsedItem.locales[locale];
+            col.classList.add("col");
+            this.inputsEl.appendChild(col);
+        }
     }
-	//#endregion
-	
+
+    protected override postCreation(): void {
+        this.loadData();
+    }
+    //#endregion
+
 }

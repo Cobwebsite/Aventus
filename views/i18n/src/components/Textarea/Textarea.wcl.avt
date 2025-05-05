@@ -16,7 +16,12 @@ export class Textarea extends Aventus.WebComponent implements Aventus.DefaultCom
     protected preventDrag?: DragAndDrop;
 
     @ViewElement()
-    protected textarea!: HTMLElement;
+    protected textarea!: HTMLTextAreaElement;
+
+    @Watch((target: Textarea) => {
+        target.textarea.value = target.value;
+    })
+    public value: string = "salut";
     //#endregion
 
 
@@ -28,13 +33,13 @@ export class Textarea extends Aventus.WebComponent implements Aventus.DefaultCom
     //#region methods
     protected preventDragFct() {
         this.preventDrag = new DragAndDrop({
-			element: this,
-			applyDrag: false,
-			offsetDrag: 0,
-			onMove: () => {
+            element: this,
+            applyDrag: false,
+            offsetDrag: 0,
+            onMove: () => {
 
-			}
-		});
+            }
+        });
     }
     protected override postCreation(): void {
         super.postCreation();

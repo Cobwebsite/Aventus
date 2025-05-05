@@ -1,4 +1,6 @@
-export class TranslationRowHeader extends Aventus.WebComponent implements Aventus.DefaultComponent {
+import { GenericPopup } from "../GenericPopup/GenericPopup.wcl.avt";
+
+export class Popup extends GenericPopup implements Aventus.DefaultComponent {
 
 	//#region static
 	
@@ -11,9 +13,6 @@ export class TranslationRowHeader extends Aventus.WebComponent implements Aventu
 	
 	
 	//#region variables
-	@Watch()
-	@Injectable()
-    public locales: string[] = [];
 	
 	//#endregion
 	

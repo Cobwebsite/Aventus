@@ -1,2 +1,5 @@
-<vscode-icon name="book"></vscode-icon>
-<av-tooltip use_absolute no_caret>je suis une demo</av-tooltip>
+<vscode-icon name="{{ this.name }}"></vscode-icon>
+<av-tooltip use_absolute no_caret>
+    <slot></slot>
+</av-tooltip>
+<div class="notif"></div>
