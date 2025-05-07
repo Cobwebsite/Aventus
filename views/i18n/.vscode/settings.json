@@ -1,5 +1,8 @@
 {
     "aventus.liveserver": {
         "rootFolder": "../../client/view/i18n"
-    }
+    },
+    "html.customData": [
+        "./node_modules/@vscode-elements/elements/vscode.html-custom-data.json"
+    ]
 }

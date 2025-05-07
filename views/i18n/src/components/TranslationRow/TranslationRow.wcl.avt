@@ -39,6 +39,47 @@ export class TranslationRow extends Aventus.WebComponent implements Aventus.Defa
         }
     }
 
+    public search(txt: string, onlyMissing: boolean) {
+        let isVisible = false;
+        if(txt == "") {
+            isVisible = true;
+        }
+        else if(this.parsedItem.key.includes(txt)) {
+            isVisible = true;
+        }
+        else {
+            for(let locale in this.parsedItem.locales) {
+                const value = this.parsedItem.locales[locale].value;
+                if(value.includes(txt)) {
+                    isVisible = true;
+                    break;
+                }
+            }
+        }
+
+        if(!isVisible) {
+            this.style.display = 'none';
+        }
+        else {
+            if(onlyMissing) {
+                isVisible = false;
+                for(let locale in this.parsedItem.locales) {
+                    const value = this.parsedItem.locales[locale].value;
+                    if(value == "##" || value == "") {
+                        isVisible = true;
+                        break;
+                    }
+                }
+            }
+            if(isVisible) {
+                this.style.display = '';
+            }
+            else {
+                this.style.display = 'none';
+            }
+        }
+    }
+
     protected override postCreation(): void {
         this.loadData();
     }

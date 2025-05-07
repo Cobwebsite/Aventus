@@ -29,6 +29,21 @@ export class TranslationPage extends Aventus.WebComponent implements Aventus.Def
     @Watch()
     public fallback: string = "en-GB";
 
+    @Watch((target: TranslationPage) => {
+        target.search();
+    })
+    protected searchTxt: string = "";
+
+    @Watch((target: TranslationPage) => {
+        target.search();
+    })
+    public onlyMissing: boolean = false;
+
+    @Watch()
+    public importMissingBtn: boolean = false;
+
+
+
     public parsed: I18nParsed = {};
     public locales: string[] = ["en-GB", "fr-CH"];
     protected guard: ActionGuard = new ActionGuard();
@@ -63,25 +78,54 @@ export class TranslationPage extends Aventus.WebComponent implements Aventus.Def
 
     protected async save() {
         this.guard.run(['save'], async () => {
-            Loading.show(10000);
-            // try {
-            //     const result = await VscodeView.Router.getInstance().sendWithResponse<boolean>({
-            //         channel: "save",
-            //         body: {
-            //             content: this.parsed
-            //         }
-            //     });
+            Loading.show();
+            try {
+                const result = await VscodeView.Router.getInstance().sendWithResponse<boolean>({
+                    channel: "save",
+                    body: {
+                        content: this.parsed
+                    }
+                });
 
-            //     if(result.result) {
-            //         this.need_save = false;
-            //     }
-            // } catch {}
+                if(result.result) {
+                    this.need_save = false;
+                }
+            } catch { }
             Loading.hide();
         });
     }
 
-    protected loadData() {
-        this.parsed = DemoData;
+    protected addRoutes() {
+        VscodeView.Router.getInstance().addRoute<I18nParsed>('has_missing', (value) => {
+            this.importMissingBtn = value;
+        });
+    }
+    /**
+     * 
+     */
+    protected importMissing() {
+        this.guard.run(['import_missing'], async () => {
+            Loading.show();
+            try {
+                const result = await VscodeView.Router.getInstance().sendWithResponse<I18nParsed>({
+                    channel: "import_missing",
+                    body: {}
+                });
+                this.parsed = result;
+            } catch { }
+            Loading.hide();
+        });
+    }
+
+
+    protected search() {
+        const txt = this.searchTxt;
+        const onlyMissing = this.onlyMissing;
+        for(let key in this.rows) {
+            this.rows[key].search(txt, onlyMissing);
+        }
+    }
+    protected render() {
         for(let key in this.parsed) {
             const row = new TranslationRow();
             row.parsedItem = this.parsed[key];
@@ -95,6 +139,28 @@ export class TranslationPage extends Aventus.WebComponent implements Aventus.Def
             this.style.setProperty("--col-width-" + locale, w);
         }
     }
+
+    protected async loadData() {
+        await this.guard.run(['import_missing'], async () => {
+            Loading.show();
+            // const result = await VscodeView.Router.getInstance().sendWithResponse<I18nParsed>({
+            //     channel: "get_data",
+            //     body: {}
+            // });
+            const result = DemoData;
+            this.parsed = result;
+            this.render();
+        });
+
+    }
+
+    /**
+     * 
+     */
+    protected toogleOnlyMissing() {
+        this.onlyMissing = !this.onlyMissing;
+    }
+
 
     protected override postCreation(): void {
         super.postCreation();

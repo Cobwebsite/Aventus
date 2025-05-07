@@ -3,18 +3,20 @@
         <h1 class="title">@General.i18n.avt</h1>
         <div class="menu-actions">
             <vscode-form-group>
-                <vscode-label>Seulement les traductions manquantes : </vscode-label>
-                <vscode-checkbox></vscode-checkbox>
+                <vscode-label @press="toogleOnlyMissing">Seulement les traductions manquantes : </vscode-label>
+                <vscode-checkbox id="only-missing" @bind_change:checked="this.onlyMissing"></vscode-checkbox>
             </vscode-form-group>
             <vscode-form-group>
                 <vscode-label>Recherche:</vscode-label>
-                <vscode-textfield></vscode-textfield>
+                <vscode-textfield @bind_keyup="this.searchTxt"></vscode-textfield>
             </vscode-form-group>
         </div>
     </div>
     <div class="menu">
         <av-icon-tooltip name="save" :notif="this.need_save" @press="save">Save</av-icon-tooltip>
-        <av-icon-tooltip name="warning">Import missing</av-icon-tooltip>
+        if(this.importMissingBtn) {
+        <av-icon-tooltip name="warning" @press="importMissing">Import missing</av-icon-tooltip>
+        }
     </div>
     <av-scrollable x_scroll y_scroll="true" mouse_drag auto_hide @element="headerEl">
         <av-translation-row-header :locales="this.locales"></av-translation-row-header>

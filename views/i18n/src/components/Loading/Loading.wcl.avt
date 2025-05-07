@@ -4,7 +4,7 @@ export class Loading extends Aventus.WebComponent implements Aventus.DefaultComp
     private static _instance?: Loading;
     private static _minTime?: number;
     private static _showTime?: number;
-    public static show(minTime?: number) {
+    public static show(minTime: number = 1000) {
         this._minTime = minTime;
         if(!this._instance) {
             this._instance = new Loading();
