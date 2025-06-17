@@ -5,14 +5,14 @@ namespace Form {
     export class Form extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
         //#region static
-        public static create<T>(schema: FormSchema<T>, config?: FormHandlerConfig<T>): FormHandler<T> {
+        public static create<T>(schema: FormSchema<T>, config?: FormHandlerConfig) {
             let form = new FormHandler<T>(schema, config);
             return form;
         }
-        public static set defaultConfig(value: FormHandlerConfig<any>) {
+        public static set defaultConfig(value: FormHandlerConfig) {
             FormHandler._globalConfig = value;
         };
-        public static get defaultConfig(): FormHandlerConfig<any> | undefined {
+        public static get defaultConfig(): FormHandlerConfig | undefined {
             return FormHandler._globalConfig;
         };
         //#endregion
