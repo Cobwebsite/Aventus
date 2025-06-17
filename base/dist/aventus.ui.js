@@ -980,6 +980,89 @@ let Effect=class Effect {
 Effect.Namespace=`Aventus`;
 _.Effect=Effect;
 
+let Signal=class Signal {
+    __subscribes = [];
+    _value;
+    _onChange;
+    get value() {
+        Watcher._register?.register(this, "*", Watcher._register.version, "*");
+        return this._value;
+    }
+    set value(item) {
+        const oldValue = this._value;
+        this._value = item;
+        if (oldValue != item) {
+            if (this._onChange) {
+                this._onChange();
+            }
+            for (let fct of this.__subscribes) {
+                fct(WatchAction.UPDATED, "*", item, []);
+            }
+        }
+    }
+    constructor(item, onChange) {
+        this._value = item;
+        this._onChange = onChange;
+    }
+    subscribe(fct) {
+        let index = this.__subscribes.indexOf(fct);
+        if (index == -1) {
+            this.__subscribes.push(fct);
+        }
+    }
+    unsubscribe(fct) {
+        let index = this.__subscribes.indexOf(fct);
+        if (index > -1) {
+            this.__subscribes.splice(index, 1);
+        }
+    }
+    destroy() {
+        this.__subscribes = [];
+    }
+}
+Signal.Namespace=`Aventus`;
+_.Signal=Signal;
+
+let Computed=class Computed extends Effect {
+    _value;
+    __path = "*";
+    get value() {
+        if (!this.isInit) {
+            this.init();
+        }
+        Watcher._register?.register(this, "*", Watcher._register.version, "*");
+        return this._value;
+    }
+    autoInit() {
+        return false;
+    }
+    constructor(fct) {
+        super(fct);
+    }
+    init() {
+        this.isInit = true;
+        this.computedValue();
+    }
+    computedValue() {
+        this._value = this.run();
+    }
+    onChange(action, changePath, value, dones) {
+        if (!this.checkCanChange(action, changePath, value, dones)) {
+            return;
+        }
+        let oldValue = this._value;
+        this.computedValue();
+        if (oldValue === this._value) {
+            return;
+        }
+        for (let fct of this.__subscribes) {
+            fct(action, changePath, value, dones);
+        }
+    }
+}
+Computed.Namespace=`Aventus`;
+_.Computed=Computed;
+
 let Watcher=class Watcher {
     constructor() { }
     ;
@@ -1818,89 +1901,6 @@ let Watcher=class Watcher {
 }
 Watcher.Namespace=`Aventus`;
 _.Watcher=Watcher;
-
-let Signal=class Signal {
-    __subscribes = [];
-    _value;
-    _onChange;
-    get value() {
-        Watcher._register?.register(this, "*", Watcher._register.version, "*");
-        return this._value;
-    }
-    set value(item) {
-        const oldValue = this._value;
-        this._value = item;
-        if (oldValue != item) {
-            if (this._onChange) {
-                this._onChange();
-            }
-            for (let fct of this.__subscribes) {
-                fct(WatchAction.UPDATED, "*", item, []);
-            }
-        }
-    }
-    constructor(item, onChange) {
-        this._value = item;
-        this._onChange = onChange;
-    }
-    subscribe(fct) {
-        let index = this.__subscribes.indexOf(fct);
-        if (index == -1) {
-            this.__subscribes.push(fct);
-        }
-    }
-    unsubscribe(fct) {
-        let index = this.__subscribes.indexOf(fct);
-        if (index > -1) {
-            this.__subscribes.splice(index, 1);
-        }
-    }
-    destroy() {
-        this.__subscribes = [];
-    }
-}
-Signal.Namespace=`Aventus`;
-_.Signal=Signal;
-
-let Computed=class Computed extends Effect {
-    _value;
-    __path = "*";
-    get value() {
-        if (!this.isInit) {
-            this.init();
-        }
-        Watcher._register?.register(this, "*", Watcher._register.version, "*");
-        return this._value;
-    }
-    autoInit() {
-        return false;
-    }
-    constructor(fct) {
-        super(fct);
-    }
-    init() {
-        this.isInit = true;
-        this.computedValue();
-    }
-    computedValue() {
-        this._value = this.run();
-    }
-    onChange(action, changePath, value, dones) {
-        if (!this.checkCanChange(action, changePath, value, dones)) {
-            return;
-        }
-        let oldValue = this._value;
-        this.computedValue();
-        if (oldValue === this._value) {
-            return;
-        }
-        for (let fct of this.__subscribes) {
-            fct(action, changePath, value, dones);
-        }
-    }
-}
-Computed.Namespace=`Aventus`;
-_.Computed=Computed;
 
 let ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
     init() {
@@ -4654,6 +4654,104 @@ let WebComponentInstance=class WebComponentInstance {
 WebComponentInstance.Namespace=`Aventus`;
 _.WebComponentInstance=WebComponentInstance;
 
+let GenericError=class GenericError {
+    /**
+     * Code for the error
+     */
+    code;
+    /**
+     * Description of the error
+     */
+    message;
+    /**
+     * Additional details related to the error.
+     * @type {any[]}
+     */
+    details = [];
+    /**
+     * Creates a new instance of GenericError.
+     * @param {EnumValue<T>} code - The error code.
+     * @param {string} message - The error message.
+     */
+    constructor(code, message) {
+        this.code = code;
+        this.message = message + '';
+    }
+}
+GenericError.Namespace=`Aventus`;
+_.GenericError=GenericError;
+
+let VoidWithError=class VoidWithError {
+    /**
+     * Determine if the action is a success
+     */
+    get success() {
+        return this.errors.length == 0;
+    }
+    /**
+     * List of errors
+     */
+    errors = [];
+    /**
+     * Converts the current instance to a VoidWithError object.
+     * @returns {VoidWithError} A new instance of VoidWithError with the same error list.
+     */
+    toGeneric() {
+        const result = new VoidWithError();
+        result.errors = this.errors;
+        return result;
+    }
+    /**
+    * Checks if the error list contains a specific error code.
+    * @template U - The type of error, extending GenericError.
+    * @template T - The type of the error code, which extends either number or Enum.
+    * @param {EnumValue<T>} code - The error code to check for.
+    * @param {new (...args: any[]) => U} [type] - Optional constructor function of the error type.
+    * @returns {boolean} True if the error list contains the specified error code, otherwise false.
+    */
+    containsCode(code, type) {
+        if (type) {
+            for (let error of this.errors) {
+                if (error instanceof type) {
+                    if (error.code == code) {
+                        return true;
+                    }
+                }
+            }
+        }
+        else {
+            for (let error of this.errors) {
+                if (error.code == code) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+}
+VoidWithError.Namespace=`Aventus`;
+_.VoidWithError=VoidWithError;
+
+let ResultWithError=class ResultWithError extends VoidWithError {
+    /**
+      * The result value of the action.
+      * @type {U | undefined}
+      */
+    result;
+    /**
+     * Converts the current instance to a ResultWithError object.
+     * @returns {ResultWithError<U>} A new instance of ResultWithError with the same error list and result value.
+     */
+    toGeneric() {
+        const result = new ResultWithError();
+        result.errors = this.errors;
+        result.result = this.result;
+        return result;
+    }
+}
+ResultWithError.Namespace=`Aventus`;
+_.ResultWithError=ResultWithError;
+
 let ResizeObserver=class ResizeObserver {
     callback;
     targets;
@@ -5610,13 +5708,203 @@ var Aventus;
 const moduleName = `Aventus`;
 const _ = {};
 
-let Navigation = {};
-_.Navigation = Aventus.Navigation ?? {};
 let Layout = {};
 _.Layout = Aventus.Layout ?? {};
 let Form = {};
 _.Form = Aventus.Form ?? {};
+let Navigation = {};
+_.Navigation = Aventus.Navigation ?? {};
+Form.Validators = {};
+_.Form.Validators = Aventus.Form?.Validators ?? {};
 let _n;
+Layout.GridHelper = class GridHelper extends Aventus.WebComponent {
+    static get observedAttributes() {return ["nb_col", "nb_row", "col_width", "row_height"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'show_rulers'() { return this.getBoolAttr('show_rulers') }
+    set 'show_rulers'(val) { this.setBoolAttr('show_rulers', val) }get 'visible'() { return this.getBoolAttr('visible') }
+    set 'visible'(val) { this.setBoolAttr('visible', val) }    get 'nb_col'() { return this.getNumberProp('nb_col') }
+    set 'nb_col'(val) { this.setNumberAttr('nb_col', val) }get 'nb_row'() { return this.getNumberProp('nb_row') }
+    set 'nb_row'(val) { this.setNumberAttr('nb_row', val) }get 'col_width'() { return this.getNumberProp('col_width') }
+    set 'col_width'(val) { this.setNumberAttr('col_width', val) }get 'row_height'() { return this.getNumberProp('row_height') }
+    set 'row_height'(val) { this.setNumberAttr('row_height', val) }    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("nb_row", ((target) => {
+}));this.__addPropertyActions("row_height", ((target) => {
+})); }
+    static __style = `:host{display:none;inset:0;pointer-events:none;position:fixed;z-index:9999}:host .guide-x{background-color:#c7c7c7;cursor:ns-resize;height:2px;left:0;pointer-events:all;position:absolute;top:50px;width:100%}:host .guide-y{background-color:#c7c7c7;cursor:ew-resize;height:100%;left:50px;pointer-events:all;position:absolute;top:0px;width:2px}:host .grid{inset:0;position:absolute}:host .grid .cols,:host .grid .rows{display:flex;inset:0;position:absolute}:host .grid .rows{flex-direction:column}:host .grid .col{flex-shrink:0;height:100%;position:relative;width:var(--local-col-width)}:host .grid .col::after{background-color:#e78181;content:"";height:100%;position:absolute;right:-1px;top:0;width:2px}:host .grid .col:last-child::after{display:none}:host .grid .row{flex-shrink:0;height:var(--local-row-height);position:relative;width:100%}:host .grid .row::after{background-color:#e78181;bottom:-1px;content:"";height:2px;left:0;position:absolute;width:100%}:host .grid .row:last-child::after{display:none}:host .ruler-top{background-color:#fff;height:20px;position:absolute;top:0;width:100%;z-index:3}:host .ruler-top::after{bottom:0;box-shadow:5px 0 5px #818181;content:"";height:100%;left:20px;pointer-events:none;position:absolute;width:calc(100% - 20px)}:host .ruler-left{background-color:#fff;box-shadow:0px 5px 5px #818181;height:calc(100% - 20px);position:absolute;top:20px;width:20px;z-index:2}:host([visible]){display:block}`;
+    __getStatic() {
+        return GridHelper;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(GridHelper.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<div class="ruler-top"></div><div class="ruler-left"></div><div class="grid" _id="gridhelper_0">    <div class="cols" _id="gridhelper_1"></div>    <div class="rows" _id="gridhelper_2"></div></div><div class="guides">    <div class="guide guide-x"></div>    <div class="guide guide-y"></div></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "elements": [
+    {
+      "name": "gridEl",
+      "ids": [
+        "gridhelper_0"
+      ]
+    },
+    {
+      "name": "colsEl",
+      "ids": [
+        "gridhelper_1"
+      ]
+    },
+    {
+      "name": "rowsEl",
+      "ids": [
+        "gridhelper_2"
+      ]
+    }
+  ]
+}); }
+    getClassName() {
+        return "GridHelper";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('show_rulers')) { this.attributeChangedCallback('show_rulers', false, false); }if(!this.hasAttribute('visible')) {this.setAttribute('visible' ,'true'); }if(!this.hasAttribute('nb_col')){ this['nb_col'] = 0; }if(!this.hasAttribute('nb_row')){ this['nb_row'] = 0; }if(!this.hasAttribute('col_width')){ this['col_width'] = 200; }if(!this.hasAttribute('row_height')){ this['row_height'] = 200; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('show_rulers');this.__upgradeProperty('visible');this.__upgradeProperty('nb_col');this.__upgradeProperty('nb_row');this.__upgradeProperty('col_width');this.__upgradeProperty('row_height'); }
+    __listBoolProps() { return ["show_rulers","visible"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    draw() {
+        let nbCol = 0;
+        if (this.nb_col) {
+            this.gridEl.style.setProperty('--local-col-width', `calc(100% / ${this.nb_col})`);
+            nbCol = this.nb_col;
+        }
+        else {
+            let width = this.col_width == 0 ? 16 : this.col_width;
+            this.gridEl.style.setProperty('--local-col-width', width + 'px');
+            nbCol = Math.ceil(this.offsetWidth / width);
+        }
+        if (this.colsEl.children.length != nbCol) {
+            this.colsEl.innerHTML = '';
+            for (let i = 0; i < nbCol; i++) {
+                const col = document.createElement("DIV");
+                col.classList.add('col');
+                this.colsEl.appendChild(col);
+            }
+        }
+        let nbRow = 0;
+        if (this.nb_row) {
+            this.gridEl.style.setProperty('--local-row-height', `calc(100% / ${this.nb_row})`);
+            nbRow = this.nb_row;
+        }
+        else {
+            let height = this.row_height == 0 ? 16 : this.row_height;
+            this.gridEl.style.setProperty('--local-row-height', height + 'px');
+            nbRow = Math.ceil(this.offsetHeight / height);
+        }
+        if (this.rowsEl.children.length != nbRow) {
+            this.rowsEl.innerHTML = '';
+            for (let i = 0; i < nbRow; i++) {
+                const row = document.createElement("DIV");
+                row.classList.add('row');
+                this.rowsEl.appendChild(row);
+            }
+        }
+    }
+    addShortCut() {
+        let isKActive = false;
+        let timeout = 0;
+        Lib.ShortcutManager.subscribe([Lib.SpecialTouch.Control, 'k'], () => {
+            isKActive = true;
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                isKActive = false;
+            }, 1000);
+        });
+        const commande = (letter, cb) => {
+            Lib.ShortcutManager.subscribe([letter], () => {
+                if (!isKActive)
+                    return false;
+                isKActive = false;
+                cb();
+                return;
+            });
+            Lib.ShortcutManager.subscribe([Lib.SpecialTouch.Control, letter], () => {
+                if (!isKActive)
+                    return false;
+                isKActive = false;
+                cb();
+                return;
+            });
+        };
+        commande('v', () => { this.visible = !this.visible; });
+    }
+    addResize() {
+        new Aventus.ResizeObserver({
+            callback: () => {
+                this.draw();
+            },
+            fps: 30
+        }).observe(this);
+    }
+    postCreation() {
+        this.addResize();
+        this.addShortCut();
+        this.draw();
+    }
+}
+Layout.GridHelper.Namespace=`Aventus.Layout`;
+Layout.GridHelper.Tag=`av-grid-helper`;
+_.Layout.GridHelper=Layout.GridHelper;
+if(!window.customElements.get('av-grid-helper')){window.customElements.define('av-grid-helper', Layout.GridHelper);Aventus.WebComponentInstance.registerDefinition(Layout.GridHelper);}
+
+Form.isSubclassOf=function isSubclassOf(subClass, superClass) {
+    if (typeof subClass !== 'function' || typeof superClass !== 'function')
+        return false;
+    let proto = subClass.prototype;
+    while (proto) {
+        if (proto === superClass.prototype)
+            return true;
+        proto = Object.getPrototypeOf(proto);
+    }
+    return false;
+}
+_.Form.isSubclassOf=Form.isSubclassOf;
+
+Form.Button = class Button extends Aventus.WebComponent {
+    static get observedAttributes() {return ["icon"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'round'() { return this.getBoolAttr('round') }
+    set 'round'(val) { this.setBoolAttr('round', val) }get 'loading'() { return this.getBoolAttr('loading') }
+    set 'loading'(val) { this.setBoolAttr('loading', val) }get 'disabled'() { return this.getBoolAttr('disabled') }
+    set 'disabled'(val) { this.setBoolAttr('disabled', val) }get 'outline'() { return this.getBoolAttr('outline') }
+    set 'outline'(val) { this.setBoolAttr('outline', val) }get 'ghost'() { return this.getBoolAttr('ghost') }
+    set 'ghost'(val) { this.setBoolAttr('ghost', val) }get 'color'() { return this.getStringAttr('color') }
+    set 'color'(val) { this.setStringAttr('color', val) }get 'size'() { return this.getStringAttr('size') }
+    set 'size'(val) { this.setStringAttr('size', val) }    get 'icon'() { return this.getStringProp('icon') }
+    set 'icon'(val) { this.setStringAttr('icon', val) }    static __style = `:host{--_button-border-radius: var(--button-border-radius, var(--border-radius-md));--_button-font-size: var(--button-font-size, var(--text-base));--_button-padding: var(--button-padding, var(--space-2) var(--space-4));--_button-background-color: var(--button-background-color, var(--color-primary));--_button-background-color-hover: var(--button-background-color-hover, var(--color-primary-hover));--_button-color: var(--button-color, var(--color-text-inverse));--_button-color-hover: var(--button-color-hover, var(--_button-color));--_button-border: var(--button-border, none)}:host([color=secondary]){--_button-background-color: var(--button-background-color, var(--color-surface));--_button-border: var(--button-border, var(--border-width) solid var(--color-border));--_button-color: var(--button-color, var(--color-text))}:host([color=secondary]:hover){--_button-background-color-hover: var(--button-background-color-hover, var(--color-bg-muted))}:host([color=danger]){--_button-background-color: var(--button-background-color, var(--color-error));--_button-color: var(--button-color, var(--color-text-inverse))}:host([color=danger]:hover){--_button-background-color-hover: var(--button-background-color-hover, #dc2626)}:host([color=neutral]){--_button-background-color: var(--button-background-color, #6b7280);--_button-color: var(--button-color, white)}:host([color=neutral]:hover){--_button-background-color-hover: var(--button-background-color-hover, #4b5563)}:host{align-items:center;background-color:var(--_button-background-color);border:var(--_button-border);border-radius:var(--_button-border-radius);color:var(--_button-color);cursor:pointer;display:inline-flex;font-family:inherit;font-size:var(--_button-font-size);font-weight:500;gap:var(--space-2);justify-content:center;line-height:1;padding:var(--_button-padding);text-decoration:none;transition:all var(--transition-fast);user-select:none}:host(:hover){background-color:var(--_button-background-color-hover);color:var(--_button-color-hover)}:host(:active){transform:scale(0.98)}:host([disabled]){cursor:not-allowed;opacity:.5;pointer-events:none}:host([round]){border-radius:9999px}:host([outline]:not(:hover)){--_button-color: var(--button-color, var(--color-text));--_button-border: var(--button-border, var(--border-width) solid var(--color-border));--_button-background-color: var(--button-background-color, transparent)}:host([outline]:hover){--_button-border: var(--button-border, var(--border-width) solid var(--_button-background-color));--_button-color: var(--button-color, var(--_button-background-color));--_button-background-color-hover: var(--button-background-color-hover, transparent)}:host([ghost]){--_button-background-color: var(--button-background-color, transparent);--_button-color: var(--button-color, var(--color-text))}:host([ghost]:hover){--_button-background-color-hover: var(--button-background-color-hover, var(--color-bg-muted))}:host([size=sm]){--_button-padding: var(--button-padding, var(--space-1) var(--space-3));--_button-font-size: var(--button-font-size, var(--text-sm))}:host([size=lg]){--_button-padding: var(--button-padding, var(--space-3) var(--space-5));--_button-font-size: var(--button-font-size, var(--text-lg))}:host([icon_only]){height:2.5rem;justify-content:center;padding:var(--space-2);width:2.5rem}`;
+    __getStatic() {
+        return Button;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Button.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<slot></slot>` }
+    });
+}
+    getClassName() {
+        return "Button";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('round')) { this.attributeChangedCallback('round', false, false); }if(!this.hasAttribute('loading')) { this.attributeChangedCallback('loading', false, false); }if(!this.hasAttribute('disabled')) { this.attributeChangedCallback('disabled', false, false); }if(!this.hasAttribute('outline')) { this.attributeChangedCallback('outline', false, false); }if(!this.hasAttribute('ghost')) { this.attributeChangedCallback('ghost', false, false); }if(!this.hasAttribute('color')){ this['color'] = undefined; }if(!this.hasAttribute('size')){ this['size'] = undefined; }if(!this.hasAttribute('icon')){ this['icon'] = undefined; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('round');this.__upgradeProperty('loading');this.__upgradeProperty('disabled');this.__upgradeProperty('outline');this.__upgradeProperty('ghost');this.__upgradeProperty('color');this.__upgradeProperty('size');this.__upgradeProperty('icon'); }
+    __listBoolProps() { return ["round","loading","disabled","outline","ghost"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+}
+Form.Button.Namespace=`Aventus.Form`;
+Form.Button.Tag=`av-button`;
+_.Form.Button=Form.Button;
+if(!window.customElements.get('av-button')){window.customElements.define('av-button', Form.Button);Aventus.WebComponentInstance.registerDefinition(Form.Button);}
+
 const ProgressCircle = class ProgressCircle extends Aventus.WebComponent {
     static get observedAttributes() {return ["value", "stroke_width"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'value'() { return this.getNumberProp('value') }
@@ -6257,30 +6545,69 @@ Img.Tag=`av-img`;
 _.Img=Img;
 if(!window.customElements.get('av-img')){window.customElements.define('av-img', Img);Aventus.WebComponentInstance.registerDefinition(Img);}
 
-Form.Form = class Form extends Aventus.WebComponent {
-    static __style = ``;
-    __getStatic() {
-        return Form;
+Form.Validator=class Validator {
+    static async Test(validators, value, name, globalValidation) {
+        if (!Array.isArray(validators)) {
+            validators = [validators];
+        }
+        let result = [];
+        for (let validator of validators) {
+            let resultTemp = new validator();
+            const temp = await resultTemp.validate(value, name, globalValidation);
+            if (temp === false) {
+                result.push('Le champs n\'est pas valide');
+            }
+            else if (Array.isArray(temp)) {
+                for (let error of temp) {
+                    result.push(error);
+                }
+            }
+            else if (typeof temp == 'string') {
+                result.push(temp);
+            }
+        }
+        return result.length == 0 ? undefined : result;
     }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(Form.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<slot></slot>` }
-    });
 }
-    getClassName() {
-        return "Form";
+Form.Validator.Namespace=`Aventus.Form`;
+_.Form.Validator=Form.Validator;
+
+Form.Validators.Required=class Required extends Form.Validator {
+    static msg = "Le champs {name} est requis";
+    /**
+     * @inheritdoc
+     */
+    validate(value, name, globalValidation) {
+        const txt = Form.Validators.Required.msg.replace(/\{ *name *\}/g, name);
+        if (value === undefined || value === null) {
+            return txt;
+        }
+        if (typeof value == 'string' && value.trim() == "") {
+            return txt;
+        }
+        return true;
     }
 }
-Form.Form.Namespace=`Aventus.Form`;
-Form.Form.Tag=`av-form`;
-_.Form.Form=Form.Form;
-if(!window.customElements.get('av-form')){window.customElements.define('av-form', Form.Form);Aventus.WebComponentInstance.registerDefinition(Form.Form);}
+Form.Validators.Required.Namespace=`Aventus.Form.Validators`;
+_.Form.Validators.Required=Form.Validators.Required;
+
+Form.Validators.Email=class Email extends Form.Validator {
+    static msg = "Merci de saisir un email valide";
+    /**
+     * @inheritdoc
+     */
+    validate(value, name, globalValidation) {
+        if (typeof value == "string" && value) {
+            if (value.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}\b/) != null) {
+                return true;
+            }
+            return Form.Validators.Email.msg;
+        }
+        return true;
+    }
+}
+Form.Validators.Email.Namespace=`Aventus.Form.Validators`;
+_.Form.Validators.Email=Form.Validators.Email;
 
 Form.Input = class Input extends Aventus.WebComponent {
     static get observedAttributes() {return ["value", "label"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
@@ -6536,6 +6863,440 @@ Form.Checkbox.Namespace=`Aventus.Form`;
 Form.Checkbox.Tag=`av-checkbox`;
 _.Form.Checkbox=Form.Checkbox;
 if(!window.customElements.get('av-checkbox')){window.customElements.define('av-checkbox', Form.Checkbox);Aventus.WebComponentInstance.registerDefinition(Form.Checkbox);}
+
+Form.FormElement = class FormElement extends Aventus.WebComponent {
+    get 'has_errors'() { return this.getBoolAttr('has_errors') }
+    set 'has_errors'(val) { this.setBoolAttr('has_errors', val) }    get 'value'() {
+						return this.__watch["value"];
+					}
+					set 'value'(val) {
+						this.__watch["value"] = val;
+					}get 'errors'() {
+						return this.__watch["errors"];
+					}
+					set 'errors'(val) {
+						this.__watch["errors"] = val;
+					}    _form;
+    get form() {
+        return this._form;
+    }
+    set form(value) {
+        this.unlinkFormPart();
+        this._form = value;
+        this.linkFormPart();
+    }
+    onChange = new Aventus.Callback();
+    __registerWatchesActions() {
+    this.__addWatchesActions("value");this.__addWatchesActions("errors", ((target) => {
+    target.has_errors = target.errors.length > 0;
+}));    super.__registerWatchesActions();
+}
+    static __style = ``;
+    constructor() { super(); if (this.constructor == FormElement) { throw "can't instanciate an abstract class"; }this.refreshValueFromForm=this.refreshValueFromForm.bind(this)this.onFormValidation=this.onFormValidation.bind(this) }
+    __getStatic() {
+        return FormElement;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(FormElement.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<slot></slot>` }
+    });
+}
+    getClassName() {
+        return "FormElement";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('has_errors')) { this.attributeChangedCallback('has_errors', false, false); } }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["value"] = undefined;w["errors"] = []; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('form');this.__upgradeProperty('has_errors');this.__correctGetter('value');this.__correctGetter('errors'); }
+    __listBoolProps() { return ["has_errors"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    refreshValueFromForm() {
+        if (this._form) {
+            this.errors = [];
+            this.value = this._form.value.get();
+        }
+    }
+    unlinkFormPart() {
+        if (this._form) {
+            this._form.unregister(this);
+            this._form.onValueChange.remove(this.refreshValueFromForm);
+            this._form.onValidation.remove(this.onFormValidation);
+        }
+    }
+    linkFormPart() {
+        if (this._form) {
+            this._form.register(this);
+            this._form.onValueChange.add(this.refreshValueFromForm);
+            this._form.onValidation.add(this.onFormValidation);
+            this.refreshValueFromForm();
+        }
+        else {
+            this.value = undefined;
+        }
+    }
+    async onFormValidation(errors) {
+        let _errors = await this.validation();
+        if (_errors.length == 0) {
+            _errors = errors;
+        }
+        else if (errors.length > 0) {
+            for (let error of errors) {
+                if (!_errors.includes(error)) {
+                    _errors.push(error);
+                }
+            }
+        }
+        this.errors = _errors;
+        return this.errors;
+    }
+    async validate() {
+        if (!this.form) {
+            this.errors = await this.validation();
+            return this.errors.length == 0;
+        }
+        return await this.form.test();
+    }
+    clearErrors() {
+        this.errors = [];
+    }
+    triggerChange(value) {
+        this.value = value;
+        this.onChange.trigger(this.value);
+        if (this.form) {
+            this.form.value.set(this.value);
+        }
+    }
+    postDestruction() {
+        super.postDestruction();
+        this.unlinkFormPart();
+    }
+}
+Form.FormElement.Namespace=`Aventus.Form`;
+_.Form.FormElement=Form.FormElement;
+
+Form.FormHandler=class FormHandler {
+    static _globalConfig;
+    __watcher;
+    get item() {
+        return this.__watcher.item;
+    }
+    set item(item) {
+        this.__watcher.item = item;
+    }
+    get parts() {
+        return this.__watcher.form;
+    }
+    _elements = {};
+    get elements() {
+        return { ...this._elements };
+    }
+    _globalValidation;
+    _validateOnChange = false;
+    _handleValidateNoInputError;
+    _handleExecuteNoInputError;
+    onItemChange = new Aventus.Callback();
+    constructor(schema, config) {
+        this._globalValidation = config?.validate ?? Form.FormHandler._globalConfig?.validate;
+        this._validateOnChange = config?.validateOnChange ?? Form.FormHandler._globalConfig?.validateOnChange ?? false;
+        this._handleValidateNoInputError = config?.handleValidateNoInputError ?? Form.FormHandler._globalConfig?.handleValidateNoInputError;
+        this._handleExecuteNoInputError = config?.handleExecuteNoInputError ?? Form.FormHandler._globalConfig?.handleExecuteNoInputError;
+        this.onWatcherChanged = this.onWatcherChanged.bind(this);
+        this.__watcher = Aventus.Watcher.get({
+            form: {}
+        }, this.onWatcherChanged);
+        this.__watcher.form = this.transformForm(schema);
+    }
+    transformForm(form) {
+        const result = form;
+        const normalizePart = (part) => {
+            let needTransform = true;
+            if (typeof part == 'object' && !Array.isArray(part)) {
+                const keys = Object.keys(part);
+                const keysAllows = ['validate', 'validateOnChange'];
+                let isValid = true;
+                for (let i = 0; i < keys.length; i++) {
+                    const allows = keysAllows;
+                    if (!allows.includes(keys[i])) {
+                        isValid = false;
+                        break;
+                    }
+                }
+                if (isValid) {
+                    needTransform = false;
+                }
+            }
+            if (needTransform) {
+                return {
+                    validate: part
+                };
+            }
+            return part;
+        };
+        const createKey = (key) => {
+            form[key] = normalizePart(form[key]);
+            this.transformFormPart(key, form[key]);
+        };
+        for (let key in result) {
+            createKey(key);
+        }
+        return result;
+    }
+    transformFormPart(key, part) {
+        if (!part)
+            return;
+        const realPart = part;
+        realPart.onValidation = new Aventus.Callback();
+        realPart.onValueChange = new Aventus.Callback();
+        if (part.validate) {
+            const isValidate = (validate) => {
+                return validate.name == "validate";
+            };
+            let validate;
+            if (Array.isArray(part.validate)) {
+                const fcts = [];
+                for (let temp of part.validate) {
+                    if (temp instanceof Form.Validator) {
+                        fcts.push(temp.validate);
+                    }
+                    else {
+                        let resultTemp = new temp();
+                        fcts.push(resultTemp.validate);
+                    }
+                }
+                validate = async (value, name, globalFct) => {
+                    let result = [];
+                    for (let fct of fcts) {
+                        const temp = await fct(value, name, globalFct);
+                        if (temp === false) {
+                            result.push('Le champs n\'est pas valide');
+                        }
+                        else if (Array.isArray(temp)) {
+                            for (let error of temp) {
+                                result.push(error);
+                            }
+                        }
+                        else if (typeof temp == 'string') {
+                            result.push(temp);
+                        }
+                    }
+                    return result.length == 0 ? undefined : result;
+                };
+            }
+            else if (part.validate instanceof Form.Validator) {
+                validate = part.validate.validate;
+            }
+            else if (isValidate(part.validate)) {
+                validate = part.validate;
+            }
+            else {
+                let cst = part.validate;
+                let resultTemp = new cst();
+                validate = resultTemp.validate;
+            }
+            realPart.validate = validate;
+        }
+        realPart.test = async () => {
+            const result = await this.validate(key);
+            return result;
+        };
+        if (!this._elements[key]) {
+            this._elements[key] = [];
+        }
+        realPart.register = (el) => {
+            if (this._elements[key] && !this._elements[key].includes(el)) {
+                this._elements[key].push(el);
+            }
+        };
+        realPart.unregister = (el) => {
+            if (!this._elements[key])
+                return;
+            const index = this._elements[key].indexOf(el);
+            if (index != -1) {
+                this._elements[key].splice(index, 1);
+            }
+        };
+        realPart.value = {
+            get: () => {
+                return Aventus.getValueFromObject(key, this.item);
+            },
+            set: (value) => {
+                return Aventus.setValueToObject(key, this.item, value);
+            }
+        };
+        return;
+    }
+    async onWatcherChanged(action, path, value) {
+        if (!this.parts)
+            return;
+        if (path == "item") {
+            for (let key in this.parts) {
+                let formPart = this.parts[key];
+                formPart.onValueChange.trigger();
+            }
+        }
+        else if (path.startsWith("item.")) {
+            let key = path.substring("item.".length);
+            if (this.parts[key]) {
+                let formPart = this.parts[key];
+                formPart.onValueChange.trigger();
+                const validateOnChange = formPart.validateOnChange === undefined ? this._validateOnChange : formPart.validateOnChange;
+                if (validateOnChange) {
+                    this.validate(key);
+                }
+            }
+            this.onItemChange.trigger(action, key, value);
+        }
+    }
+    async _validate(key) {
+        try {
+            if (!this.parts)
+                return { "@general": ["Aucun formulaire trouvé"] };
+            if (key !== undefined) {
+                let errorsForm = [];
+                if (this.parts[key]) {
+                    let formPart = this.parts[key];
+                    let value = formPart.value.get();
+                    const resultToError = (result) => {
+                        if (result === false) {
+                            errorsForm.push('Le champs n\'est pas valide');
+                        }
+                        else if (typeof result == 'string' && result !== "") {
+                            errorsForm.push(result);
+                        }
+                        else if (Array.isArray(result)) {
+                            errorsForm = [...errorsForm, ...result];
+                        }
+                    };
+                    if (formPart.validate) {
+                        const global = async () => {
+                            if (this._globalValidation) {
+                                const result = await this._globalValidation(key, value);
+                                resultToError(result);
+                            }
+                        };
+                        let result = await formPart.validate(value, key, global);
+                        resultToError(result);
+                    }
+                    else if (this._globalValidation) {
+                        const result = await this._globalValidation(key, value);
+                        resultToError(result);
+                    }
+                    const proms = formPart.onValidation.trigger(errorsForm);
+                    const errors2d = await Promise.all(proms);
+                    const errors = [];
+                    for (let errorsTemp of errors2d) {
+                        for (let errorTemp of errorsTemp) {
+                            if (!errors.includes(errorTemp)) {
+                                errors.push(errorTemp);
+                            }
+                        }
+                    }
+                    errorsForm = errors;
+                }
+                return errorsForm.length == 0 ? {} : { [key]: errorsForm };
+            }
+            let errors = {};
+            for (let key in this.parts) {
+                errors = { ...errors, ...await this._validate(key) };
+            }
+            return errors;
+        }
+        catch (e) {
+            return { "@general": [e + ""] };
+        }
+    }
+    async validate(key) {
+        const result = await this._validate(key);
+        const unhandle = {};
+        let triggerUnhandle = false;
+        for (let key in result) {
+            if (!this._elements[key] || this._elements[key].length == 0) {
+                triggerUnhandle = true;
+                unhandle[key] = result[key];
+            }
+        }
+        if (triggerUnhandle && this._handleValidateNoInputError) {
+            this._handleValidateNoInputError(unhandle);
+        }
+        return Object.keys(result).length == 0;
+    }
+    async execute(query) {
+        let queryResult = await query;
+        if (queryResult.errors.length > 0) {
+            queryResult.errors = this.parseErrors(queryResult);
+            if (queryResult.errors.length > 0 && this._handleExecuteNoInputError) {
+                this._handleExecuteNoInputError(queryResult.errors);
+            }
+        }
+        return queryResult;
+    }
+    parseErrors(queryResult) {
+        let noPrintErrors = [];
+        const elements = this.elements;
+        for (let error of queryResult.errors) {
+            if (error.details) {
+                let found = false;
+                for (let detail of error.details) {
+                    if (Object.hasOwn(detail, "Name")) {
+                        if (elements[detail.Name]) {
+                            for (const element of elements[detail.Name]) {
+                                element.errors.push(error.message);
+                            }
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+                if (found) {
+                    continue;
+                }
+            }
+            noPrintErrors.push(error);
+        }
+        return noPrintErrors;
+    }
+}
+Form.FormHandler.Namespace=`Aventus.Form`;
+_.Form.FormHandler=Form.FormHandler;
+
+Form.Form = class Form extends Aventus.WebComponent {
+    static set defaultConfig(value) {
+        Form.FormHandler._globalConfig = value;
+    }
+    static get defaultConfig() {
+        return Form.FormHandler._globalConfig;
+    }
+    static __style = ``;
+    __getStatic() {
+        return Form;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Form.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<slot></slot>` }
+    });
+}
+    getClassName() {
+        return "Form";
+    }
+    static create(schema, config) {
+        let form = new Form.FormHandler(schema, config);
+        return form;
+    }
+}
+Form.Form.Namespace=`Aventus.Form`;
+Form.Form.Tag=`av-form`;
+_.Form.Form=Form.Form;
+if(!window.customElements.get('av-form')){window.customElements.define('av-form', Form.Form);Aventus.WebComponentInstance.registerDefinition(Form.Form);}
 
 let TouchRecord=class TouchRecord {
     _activeTouchID;

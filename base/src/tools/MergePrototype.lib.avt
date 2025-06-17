@@ -9,6 +9,11 @@ type OnlyConstructor = (abstract new (...args: any[]) => any);
 })
 export type AnyConstructor = OnlyConstructor | {};
 
+@Storybook({
+    prefix: "Tools/Type"
+})
+export type Constructor<T> = abstract new (...args: any[]) => T
+
 
 
 // type GetInstanceType<B extends AnyConstructor> = B extends OnlyConstructor ? InstanceType<B> : {};

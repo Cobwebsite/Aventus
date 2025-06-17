@@ -1,0 +1,31 @@
+import type { Constructor, FormValidateResult } from "./FormType.lib.avt";
+
+namespace Form {
+    export abstract class Validator<T> {
+        public static async Test(validators: Constructor<Validator<any>> | Constructor<Validator<any>>[], value: any, globalValidation: () => Promise<void>) : Promise<string[] | undefined> {
+            if(!Array.isArray(validators)) {
+                validators = [validators];
+            }
+            let result: string[] = [];
+            for(let validator of validators) {
+                let resultTemp = new validator();
+                const temp = await resultTemp.validate(value, globalValidation);
+                if(temp === false) {
+                    result.push('Le champs n\'est pas valide');
+                }
+                else if(Array.isArray(temp)) {
+                    for(let error of temp) {
+                        result.push(error);
+                    }
+                }
+                else if(typeof temp == 'string') {
+                    result.push(temp);
+                }
+            }
+            return result.length == 0 ? undefined : result;
+        }
+
+
+        public abstract validate(value: T | undefined, globalValidation: () => Promise<void>): FormValidateResult;
+    }
+}

@@ -1,0 +1,289 @@
+import { isSubclassOf, type Constructor, type FormHandlerConfig, type FormPart, type FormPartValidate, type FormSchema, type FormValidate, type FormValidateResult, type IFormElement, type InternalForm, type InternalFormPart, type WithError } from "./FormType.lib.avt";
+import { Validator } from "./Validator.lib.avt";
+
+namespace Form {
+
+
+    export class FormHandler<T> {
+
+
+        public static _globalConfig?: FormHandlerConfig;
+
+        private __watcher: any;
+
+        public get item(): T | undefined {
+            return this.__watcher.item;
+        }
+
+        public set item(item: T | undefined) {
+            this.__watcher.item = item;
+        }
+
+        public get parts(): InternalForm<T> {
+            return this.__watcher.form;
+        }
+
+        private _elements: { [key: string]: IFormElement[]; } = {};
+
+        public get elements(): { [key: string]: IFormElement[]; } {
+            return { ...this._elements };
+        }
+        private _globalValidation?: FormValidate;
+        private _validateOnChange?: boolean;
+        private _handleValidateNoInputError?: (errors: { [key: string]: string[]; }) => any;
+        private _handleExecuteNoInputError?: (errors: Aventus.GenericError[]) => any;
+
+
+        public onItemChange: Aventus.Callback<(action: Aventus.WatchAction, path: string, value: any) => void> = new Aventus.Callback();
+
+
+        public constructor(schema: FormSchema<T>, config?: FormHandlerConfig) {
+            this._globalValidation = config?.validate ?? FormHandler._globalConfig?.validate;
+            this._validateOnChange = config?.validateOnChange ?? FormHandler._globalConfig?.validateOnChange;
+            this._handleValidateNoInputError = config?.handleValidateNoInputError ?? FormHandler._globalConfig?.handleValidateNoInputError;
+            this._handleExecuteNoInputError = config?.handleExecuteNoInputError ?? FormHandler._globalConfig?.handleExecuteNoInputError;
+
+            this.onWatcherChanged = this.onWatcherChanged.bind(this);
+            this.__watcher = Aventus.Watcher.get({
+                form: {}
+            }, this.onWatcherChanged);
+
+            this.__watcher.form = this.transformForm(schema);
+        }
+
+        protected transformForm(form: FormSchema<T>): InternalForm<T> {
+            const result = form as InternalForm<T>;
+            const createKey = (key: string) => {
+                this.transformFormPart(key, result[key]);
+            };
+            for(let key in result) {
+                createKey(key);
+            }
+            return result;
+        }
+        protected transformFormPart(key: string, part: FormPart | undefined): void {
+            if(!part) return;
+
+            const realPart = part as InternalFormPart;
+            realPart.onValidation = new Aventus.Callback();
+            realPart.onValueChange = new Aventus.Callback();
+            if(part.validate) {
+                const isValidate = (validate: FormPartValidate<T> | Constructor<Validator<any>>): validate is FormPartValidate<any> => {
+                    return validate.name == "validate";
+                };
+                let validate: FormPartValidate<any>;
+                if(Array.isArray(part.validate)) {
+                    const fcts: FormPartValidate<any>[] = [];
+                    for(let temp of part.validate) {
+                        if(temp instanceof Validator) {
+                            fcts.push(temp.validate);
+                        }
+                        else {
+                            let resultTemp = new temp();
+                            fcts.push(resultTemp.validate);
+                        }
+                    }
+                    validate = async (value, globalFct) => {
+                        let result: string[] = [];
+                        for(let fct of fcts) {
+                            const temp = await fct(value, globalFct);
+                            if(temp === false) {
+                                result.push('Le champs n\'est pas valide');
+                            }
+                            else if(Array.isArray(temp)) {
+                                for(let error of temp) {
+                                    result.push(error);
+                                }
+                            }
+                            else if(typeof temp == 'string') {
+                                result.push(temp);
+                            }
+                        }
+                        return result.length == 0 ? undefined : result;
+                    };
+                }
+                else if(part.validate instanceof Validator) {
+                    validate = part.validate.validate;
+                }
+                else if(isValidate(part.validate)) {
+                    validate = part.validate;
+                }
+                else {
+                    let cst = part.validate;
+                    let resultTemp = new cst() as Validator<any>;
+                    validate = resultTemp.validate;
+                }
+                realPart.validate = validate;
+            }
+            realPart.test = async () => {
+                const result = await this.validate(key);
+                return result;
+            };
+            if(!this._elements[key]) {
+                this._elements[key] = [];
+            }
+            realPart.register = (el) => {
+                if(!this._elements[key].includes(el)) {
+                    this._elements[key].push(el);
+                }
+            };
+            realPart.unregister = (el) => {
+                const index = this._elements[key].indexOf(el);
+                if(index != -1) {
+                    this._elements[key].splice(index, 1);
+                }
+            };
+            realPart.value = {
+                get: () => {
+                    return Aventus.getValueFromObject(key, this.item);
+                },
+                set: (value: any) => {
+                    return Aventus.setValueToObject(key, this.item, value);
+                }
+            };
+        }
+
+
+
+        protected async onWatcherChanged(action: Aventus.WatchAction, path: string, value: any) {
+            if(!this.parts) return;
+            if(path == "item") {
+                for(let key in this.parts) {
+                    let formPart = this.parts[key] as InternalFormPart;
+                    formPart.onValueChange.trigger([]);
+                }
+            }
+            else if(path.startsWith("item.")) {
+                let key = path.substring("item.".length);
+                if(this.parts[key]) {
+                    let formPart = this.parts[key] as InternalFormPart;
+                    formPart.onValueChange.trigger([]);
+                    const validateOnChange = formPart.validateOnChange === undefined ? this._validateOnChange : formPart.validateOnChange;
+                    if(validateOnChange) {
+                        this.validate(key);
+                    }
+                }
+                this.onItemChange.trigger([action, key, value]);
+            }
+        }
+        private async _validate(key: string | undefined): Promise<{ [key: string]: string[]; }> {
+            try {
+                if(!this.parts) return { "@general": ["Aucun formulaire trouvé"] };
+
+                if(key !== undefined) {
+                    let errorsForm: string[] = [];
+                    if(this.parts[key]) {
+                        let formPart = this.parts[key] as InternalFormPart;
+                        let value = formPart.value.get();
+
+                        const resultToError = (result: FormValidateResult) => {
+                            if(result === false) {
+                                errorsForm.push('Le champs n\'est pas valide');
+                            }
+                            else if(typeof result == 'string' && result !== "") {
+                                errorsForm.push(result);
+                            }
+                            else if(Array.isArray(result)) {
+                                errorsForm = [...errorsForm, ...result];
+                            }
+                        };
+
+                        if(formPart.validate) {
+                            const global = async () => {
+                                if(this._globalValidation) {
+                                    const result = await this._globalValidation(key, value);
+                                    resultToError(result);
+                                }
+                            };
+
+                            let result = await formPart.validate(value, global);
+                            resultToError(result);
+
+                            const proms = formPart.onValidation.trigger([errorsForm]);
+                            // const errors2d = await Promise.all(proms);
+                            // const errors: string[] = [];
+                            // for(let errorsTemp of errors2d) {
+                            //     for(let errorTemp of errorsTemp) {
+                            //         if(!errors.includes(errorTemp)) {
+                            //             errors.push(errorTemp);
+                            //         }
+                            //     }
+                            // }
+                        }
+                        else if(this._globalValidation) {
+                            const result = await this._globalValidation(key, value);
+                            resultToError(result);
+                        }
+                    }
+                    return errorsForm.length == 0 ? {} : { [key]: errorsForm };
+                }
+
+                let errors: { [key: string]: string[]; } = {};
+                for(let key in this.parts) {
+                    errors = { ...errors, ...await this._validate(key) };
+                }
+
+                return errors;
+            } catch(e) {
+                return { "@general": [e + ""] };
+            }
+        }
+
+        public async validate(key?: string): Promise<boolean> {
+            const result = await this._validate(key);
+            const unhandle: { [key: string]: string[]; } = {};
+            let triggerUnhandle = false;
+            for(let key in result) {
+                // si on ne trouve pas de formElement, on affiche un message
+                if(!this._elements[key] || this._elements[key].length == 0) {
+                    triggerUnhandle = true;
+                    unhandle[key] = result[key];
+                }
+            }
+
+            if(triggerUnhandle && this._handleValidateNoInputError) {
+                this._handleValidateNoInputError(unhandle);
+            }
+
+            return Object.keys(result).length == 0;
+        }
+
+        public async execute<X>(query: Aventus.Asyncable<WithError<X>>): Promise<WithError<X>> {
+            let queryResult = await query;
+
+            if(queryResult.errors.length > 0) {
+
+                if(noPrintErrors.length > 0 && this._handleExecuteNoInputError) {
+                    this._handleExecuteNoInputError(noPrintErrors);
+                }
+                queryResult.errors = noPrintErrors;
+            }
+            return queryResult;
+        }
+
+        public parseErrors(queryResult: WithError<X>) : Aventus.GenericError[] {
+            let noPrintErrors: Aventus.GenericError[] = [];
+            const elements = this.elements;
+            for(let error of queryResult.errors) {
+                if(error.details) {
+                    let found = false;
+                    for(let detail of error.details) {
+                        if(detail instanceof AventusSharp.Data.FieldErrorInfo) {
+                            if(elements[detail.Name]) {
+                                for(const element of elements[detail.Name]) {
+                                    element.errors.push(error.message);
+                                }
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+                    if(found) {
+                        continue;
+                    }
+                }
+                noPrintErrors.push(error);
+            }
+        }
+    }
+}

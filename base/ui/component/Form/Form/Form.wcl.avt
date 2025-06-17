@@ -1,34 +1,46 @@
+import { FormHandler } from "./FormHandler.lib.avt";
+import type { FormHandlerConfig, FormSchema } from "./FormType.lib.avt";
+
 namespace Form {
-	export class Form extends Aventus.WebComponent implements Aventus.DefaultComponent {
-	
-		//#region static
-		
-		//#endregion
-		
-		
-		//#region props
-		
-		//#endregion
-		
-		
-		//#region variables
-		
-		//#endregion
-		
-		
-		//#region states
-		
-		//#endregion
-		
-		
-		//#region constructor
-		
-		//#endregion
-		
-		
-		//#region methods
-		
-		//#endregion
-		
-	}
+    export class Form extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+        //#region static
+        public static create<T>(schema: FormSchema<T>, config?: FormHandlerConfig) {
+            let form = new FormHandler<T>(schema, config);
+            return form;
+        }
+        public static set defaultConfig(value: FormHandlerConfig) {
+            FormHandler._globalConfig = value;
+        };
+        public static get defaultConfig(): FormHandlerConfig | undefined {
+            return FormHandler._globalConfig;
+        };
+        //#endregion
+
+
+        //#region props
+
+        //#endregion
+
+
+        //#region variables
+
+        //#endregion
+
+
+        //#region states
+
+        //#endregion
+
+
+        //#region constructor
+
+        //#endregion
+
+
+        //#region methods
+
+        //#endregion
+
+    }
 }

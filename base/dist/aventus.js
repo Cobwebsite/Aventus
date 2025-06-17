@@ -278,6 +278,19 @@ let sleep=function sleep(ms) {
 }
 _.sleep=sleep;
 
+let isSubclassOf=function isSubclassOf(subClass, superClass) {
+    if (typeof subClass !== 'function' || typeof superClass !== 'function')
+        return false;
+    let proto = subClass.prototype;
+    while (proto) {
+        if (proto === superClass.prototype)
+            return true;
+        proto = Object.getPrototypeOf(proto);
+    }
+    return false;
+}
+_.isSubclassOf=isSubclassOf;
+
 let isClass=function isClass(v) {
     return typeof v === 'function' && /^\s*class\s+/.test(v.toString());
 }

@@ -1,0 +1,93 @@
+import type { Validator } from "./Validator.lib.avt";
+
+namespace Form {
+    export interface IFormElement<T = any> {
+        errors: string[];
+        value: T | undefined;
+        onChange: Aventus.Callback<(value: T) => void>;
+        formPart?: InternalFormPart<T>;
+    }
+    export type InternalForm<T> = { [K in keyof T]?: InternalFormPart<T[K]> };
+
+    export interface InternalFormPart<T = any> {
+        /**
+         * The value of the form part, which can be of type T or an object with get and set methods.
+         */
+        value: { get: () => T; set: (value: T | undefined) => void; },
+        /**
+         * A validation function for the form part.
+         */
+        validate?: FormPartValidate<T>;
+        /**
+         * Indicates whether validation should be performed on value change.
+         */
+        validateOnChange?: boolean,
+
+        onValueChange: Aventus.Callback<() => void>,
+        onValidation: Aventus.Callback<(errors: string[]) => Aventus.Asyncable<string[]>, Aventus.Asyncable<string[]>>,
+        register: (element: IFormElement) => void;
+        unregister: (element: IFormElement) => void;
+        test: () => Promise<boolean>;
+    };
+    export type FormSchema<T> = { [K in keyof T]: FormPart<T[K]> };
+
+    export interface FormPart<T = any> {
+        /**
+         * A validation function for the form part.
+         */
+        validate?:
+        FormPartValidate<T> |
+        Constructor<Validator<T>> |
+        Validator<T> |
+        (
+            Constructor<Validator<T>> |
+            Validator<T>
+        )[];
+        /**
+         * Indicates whether validation should be performed on value change.
+         */
+        validateOnChange?: boolean,
+    };
+
+
+    /**
+    * Represents the result of form validation.
+    * It can be a string, a boolean, undefined, or a promise of these types.
+    */
+
+    export type FormValidateResult = Aventus.Asyncable<string | string[] | boolean | undefined>;
+    /**
+     * Represents a validation function for a value of type T.
+     * The function takes a value of type T or undefined and returns a FormValidateResult.
+     */
+
+    export type FormPartValidate<T> = (value: T | undefined, globalValidation: () => Promise<void>) => FormValidateResult;
+
+    export type FormValidate = (field: string, value: unknown) => FormValidateResult;
+
+    export type FormHandlerConfig = {
+        validate?: FormValidate,
+        validateOnChange?: boolean,
+        handleValidateNoInputError?: (errors: { [key: string]: string[]; }) => any,
+        handleExecuteNoInputError?: (errors: Aventus.GenericError[]) => any;
+    };
+
+    @Storybook({
+        export: 'protected'
+    })
+    export type WithError<X> = Aventus.ResultWithError<X> | Aventus.VoidWithError;
+
+    export type Constructor<T> = new (...args: any[]) => T;
+
+
+    export function isSubclassOf(subClass: Function, superClass: Function): boolean {
+        if(typeof subClass !== 'function' || typeof superClass !== 'function') return false;
+
+        let proto = subClass.prototype;
+        while(proto) {
+            if(proto === superClass.prototype) return true;
+            proto = Object.getPrototypeOf(proto);
+        }
+        return false;
+    }
+}
