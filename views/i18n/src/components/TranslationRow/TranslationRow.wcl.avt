@@ -1,4 +1,5 @@
-import { Translator, type I18nParsedItem } from "../../libs/I18n.lib.avt";
+import { Callback } from "Aventus@Main:Aventus.package.avt";
+import { Translator } from "../../libs/I18n.lib.avt";
 import { TranslationCol } from "../TranslationCol/TranslationCol.wcl.avt";
 
 export class TranslationRow extends Aventus.WebComponent implements Aventus.DefaultComponent {
@@ -17,10 +18,18 @@ export class TranslationRow extends Aventus.WebComponent implements Aventus.Defa
     @ViewElement()
     protected inputsEl!: HTMLDivElement;
 
-    public parsedItem!: I18nParsedItem;
+    public parsedItem!: { [locale: string]: string; };
+
+
+    @Watch()
+    public key!: string;
 
     @Watch()
     public locales!: string[];
+
+    public hasChanged: boolean = false;
+
+    private cols: { [locale: string]: TranslationCol; } = {};
     //#endregion
 
 
@@ -28,15 +37,45 @@ export class TranslationRow extends Aventus.WebComponent implements Aventus.Defa
 
     //#endregion
 
+    //#region events
+    public change: Callback<() => void> = new Callback();
+    //#endregion
+
 
     //#region methods
     protected loadData() {
+        this.hasChanged = false;
         for(let locale of this.locales) {
-            const col = new TranslationCol();
-            col.parsedLocale = this.parsedItem.locales[locale];
-            col.classList.add("col");
-            this.inputsEl.appendChild(col);
+            this.createCol(locale);
         }
+    }
+    public updateData(data: { [locale: string]: string; }) {
+        this.parsedItem = data;
+        for(let locale of this.locales) {
+            if(this.cols[locale]) {
+                this.cols[locale].value = this.parsedItem[locale];
+                this.cols[locale].initialValue = this.parsedItem[locale];
+            }
+        }
+    }
+    protected createCol(locale: string) {
+        const col = new TranslationCol();
+        col.locale = locale;
+        col.value = this.parsedItem[locale];
+        col.initialValue = this.parsedItem[locale];
+        col.change.add((value) => {
+            this.parsedItem[locale] = value;
+
+            const hasChanged = value != col.initialValue;
+
+            if(this.hasChanged != hasChanged) {
+                this.hasChanged = hasChanged;
+            }
+            this.change.trigger();
+        });
+        col.classList.add("col");
+        this.cols[locale] = col;
+        this.inputsEl.appendChild(col);
     }
 
     public search(txt: string, onlyMissing: boolean) {
@@ -44,12 +83,12 @@ export class TranslationRow extends Aventus.WebComponent implements Aventus.Defa
         if(txt == "") {
             isVisible = true;
         }
-        else if(this.parsedItem.key.includes(txt)) {
+        else if(this.key.includes(txt)) {
             isVisible = true;
         }
         else {
-            for(let locale in this.parsedItem.locales) {
-                const value = this.parsedItem.locales[locale].value;
+            for(let locale in this.parsedItem) {
+                const value = this.parsedItem[locale];
                 if(value.includes(txt)) {
                     isVisible = true;
                     break;
@@ -63,9 +102,9 @@ export class TranslationRow extends Aventus.WebComponent implements Aventus.Defa
         else {
             if(onlyMissing) {
                 isVisible = false;
-                for(let locale in this.parsedItem.locales) {
-                    const value = this.parsedItem.locales[locale].value;
-                    if(value == "##" || value == "") {
+                for(let locale in this.locales) {
+                    const value = this.parsedItem[locale];
+                    if(value == "##" || !value) {
                         isVisible = true;
                         break;
                     }

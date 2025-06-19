@@ -15,6 +15,7 @@ import { TemplateManager as TemplateFileManager } from './files/TemplateManager'
 import { TemplateFileManager as TemplateFileTsManager } from './language-services/ts/template/TemplateFileManager';
 import { CSharpManager } from './language-services/json/CSharpManager';
 import { Build } from './project/Build';
+import { Communication } from './communication';
 
 
 
@@ -150,6 +151,9 @@ export class GenericServer {
 		})
 		this.connection.onDidChangeConfiguration(async () => {
 			return await this.onDidChangeConfiguration();
+		})
+		this.connection.onRequest(async (method, params) => {
+			return await Communication.execute(method, params);
 		})
 	}
 

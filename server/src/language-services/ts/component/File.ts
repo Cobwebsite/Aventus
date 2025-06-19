@@ -590,12 +590,12 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                     }
 
                     const writeI18n = (i18n: AventusI18nFile) => {
-                        const methodTxt = `\n@NoCompile()\public override t(key: keyof ${this.componentClassName}__Generated | keyof Aventus.AventusI18n, , params: { [key: string]: string; } = {}): string {
+                        const methodTxt = `\n@NoCompile()\npublic override t(key: keyof ${this.componentClassName}__Generated | keyof Aventus.AventusI18n, params: { [key: string]: string; } = {}): string {
         return super.t(key as keyof Aventus.AventusI18n, );
     }`
                         newContent += methodTxt + "\n";
                         const values = i18n.keys.map(p => `"${p.replace(/"/g, "\\\"")}": string`).join(",\r\n")
-                        contentAfter += `\type ${this.componentClassName}__Generated = {
+                        contentAfter += `\ntype ${this.componentClassName}__Generated = {
     ${values}
 }`;
                     }

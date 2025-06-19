@@ -1,69 +1,16 @@
 import { HttpMethod, HttpRequest } from "Aventus@Main:Aventus.package.avt";
 import { Alert } from "../components/Alert/Alert.wcl.avt";
 
-export type I18nParsed = { [key: string]: I18nParsedItem; };
-export type I18nParsedItem = {
-    key: string,
-    keyStart: number,
-    keyEnd: number,
-    locales: { [locale: string]: I18nParsedItemLocale; };
-};
-export type I18nParsedItemLocale = {
-    locale: string,
-    localeStart: number,
-    localeEnd: number,
-
-    value: string,
-    valueStart: number,
-    valueEnd: number,
-};
+export type I18nParsed = { [key: string]: { [locale: string]: string; }; };
 
 export const DemoData: I18nParsed = {
     "click me1": {
-        key: "click me1",
-        keyStart: 0,
-        keyEnd: 0,
-        locales: {
-            "fr-CH": {
-                locale: "fr-CH",
-                localeStart: 0,
-                localeEnd: 0,
-                value: "presse moi",
-                valueStart: 0,
-                valueEnd: 0
-            },
-            "en-GB": {
-                locale: "en-GB",
-                localeStart: 0,
-                localeEnd: 0,
-                value: "click me",
-                valueStart: 0,
-                valueEnd: 0
-            }
-        }
+        "en-GB": "click me",
+        "fr-CH": "presse moi"
     },
-    "click me": {
-        key: "click me",
-        keyStart: 0,
-        keyEnd: 0,
-        locales: {
-            "fr-CH": {
-                locale: "fr-CH",
-                localeStart: 0,
-                localeEnd: 0,
-                value: "##",
-                valueStart: 0,
-                valueEnd: 0
-            },
-            "en-GB": {
-                locale: "en-GB",
-                localeStart: 0,
-                localeEnd: 0,
-                value: "click me",
-                valueStart: 0,
-                valueEnd: 0
-            }
-        }
+    "click me2": {
+        "en-GB": "ⵌⵌ",
+        "fr-CH": "presse moi"
     }
 };
 

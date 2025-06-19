@@ -1,6 +1,6 @@
 <div class="header">
     <div class="bar">
-        <h1 class="title">@General.i18n.avt</h1>
+        <h1 class="title">{{this.pageName}}</h1>
         <div class="menu-actions">
             <vscode-form-group>
                 <vscode-label @press="toogleOnlyMissing">Seulement les traductions manquantes : </vscode-label>
@@ -29,5 +29,3 @@
         </div>
     </av-scrollable>
 </vscode-scrollable>
-
-<!-- <av-loading visible></av-loading> -->

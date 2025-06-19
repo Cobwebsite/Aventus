@@ -1,17 +1,18 @@
 import { TextDocument, Webview } from 'vscode';
 
-export interface Route<T = any> {
+export interface Route<T = any, U = void> {
 	channel: string;
-	callback: (data: T, params: UriParamsValue, uid?: string) => void;
+	callback: (data: T, params: UriParamsValue, uid?: string) => Promise<U> | U;
 }
 
-export type InternalRoute = Route & {
+export type InternalRoute<T = any, U = void> = Route<T, U> & {
 	regex: RegExp;
 	params: UriParams[];
+	withResponse: boolean;
 }
-export interface Options {
+export interface Options<T = any> {
 	channel: string,
-	body?: { [key: string | number]: any; },
+	body?: T,
 	timeout?: number,
 	uid?: string;
 }
@@ -24,7 +25,7 @@ export interface Message {
 export class Communication {
 	protected waitingList: { [uuid: string]: (channel: string, data: any) => void; } = {};
 
-	private routes: { [key: string]: InternalRoute[]; } = {};
+	private routes: { [key: string]: InternalRoute<any, any>[]; } = {};
 
 	public constructor(
 		private document: TextDocument,
@@ -81,7 +82,7 @@ export class Communication {
 		this.webview.postMessage(message);
 	}
 
-	private onMessage(data: any) {
+	private async onMessage(data: any) {
 		const message: Message = data;
 
 		for (let channel in this.routes) {
@@ -89,13 +90,26 @@ export class Communication {
 			for (let info of current) {
 				let params = Uri.getParams(info, message.channel);
 				if (params) {
-					info.callback(data.data, params, message.uid);
+					const result = await info.callback(data.data, params, message.uid);
+					if(info.withResponse) {
+						this.send({
+							channel: message.channel,
+							uid: message.uid,
+							body: result
+						})
+					}
 				}
 			}
 		}
 	}
 
-	public addRoute(route: Route): void {
+	public addRoute<T = any>(route: Route<T>): void {
+		this._addRoute(route, false);
+	}
+	public addRouteWithResponse<T = any, U = void>(route: Route<T, U>): void {
+		this._addRoute(route, true);
+	}
+	private _addRoute<T = any, U = void>(route: Route<T, U>, withResponse: boolean): void {
 		if (!this.routes.hasOwnProperty(route.channel)) {
 			this.routes[route.channel] = [];
 		}
@@ -108,11 +122,12 @@ export class Communication {
 		}
 
 		const { params, regex } = Uri.prepare(route.channel);
-		let prepared: InternalRoute = {
+		let prepared: InternalRoute<T, U> = {
 			callback: route.callback,
 			channel: route.channel,
 			regex,
-			params
+			params,
+			withResponse: withResponse
 		};
 		this.routes[route.channel].push(prepared);
 	}

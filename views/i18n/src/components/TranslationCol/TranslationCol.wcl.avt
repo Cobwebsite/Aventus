@@ -1,4 +1,5 @@
-import { Translator, type I18nParsedItemLocale } from "../../libs/I18n.lib.avt";
+import { Callback } from "Aventus@Main:Aventus.package.avt";
+import { Translator } from "../../libs/I18n.lib.avt";
 import { TranslationPage } from "../TranslationPage/TranslationPage.wcl.avt";
 import { TranslationRow } from "../TranslationRow/TranslationRow.wcl.avt";
 
@@ -12,17 +13,24 @@ export class TranslationCol extends Aventus.WebComponent implements Aventus.Defa
     //#region props
     @Attribute()
     public icon_btn!: boolean;
+    @Property()
+    public error!: boolean;
     //#endregion
 
 
     //#region variables
+    @Watch((target: TranslationCol) => {
+        target.style.setProperty("--translation-col-width", "var(--col-width-" + target.locale + ")");
+    })
+    public locale!: string;
 
     @Watch((target: TranslationCol) => {
-        target.style.setProperty("--translation-col-width", "var(--col-width-" + target.parsedLocale.locale + ")");
-        target.icon_btn = target.parsedLocale.value == "" || target.parsedLocale.value == "##"
+        target.icon_btn = target.value == "" || target.value == "##";
     })
-    public parsedLocale!: I18nParsedItemLocale;
+    public value!: string;
 
+    @Injectable()
+    public initialValue!: string;
 
     //#endregion
 
@@ -31,20 +39,36 @@ export class TranslationCol extends Aventus.WebComponent implements Aventus.Defa
 
     //#endregion
 
+    //#region events
+    public change: Callback<(value: string) => void> = new Callback();
+    //#endregion
+
 
     //#region methods
     protected getValue() {
-        if(this.parsedLocale.value == "##") return "";
-        return this.parsedLocale.value;
+        if(this.value == "##" || !this.value) {
+            this.error = true;
+            return "";
+        }
+        this.error = false;
+        return this.value;
     }
     protected async getTranslatation() {
         let row = this.findParentByType(TranslationRow)!;
         let page = this.findParentByType(TranslationPage)!;
-        
-        const result = await Translator.translate(row.parsedItem.key, page.fallback, this.parsedLocale.locale);
+
+        const result = await Translator.translate(row.key, page.fallback, this.locale);
         if(result) {
-            this.parsedLocale.value = result;
+            this.value = result;
         }
+    }
+
+    /**
+     * 
+     */
+    protected onChange(value: string) {
+        this.value = value;
+        this.change.trigger(value);
     }
     protected override postCreation(): void {
 

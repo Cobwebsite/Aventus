@@ -136,4 +136,20 @@ export class AventusI18nFile extends AventusBaseFile {
 	protected onGetBuild(): Build[] | null {
 		return [this.build];
 	}
+
+
+	public getKeyFromLocation(range: [Position, Position]): string | null {
+		if (!this.parsed) return null;
+
+		const start = this.file.documentUser.offsetAt(range[0]);
+		const end = this.file.documentUser.offsetAt(range[1]);
+
+		for (let key in this.parsed) {
+			const info = this.parsed[key];
+			if(info.keyStart <= start && info.keyEnd >= end) {
+				return key;
+			}
+		}
+		return null;
+	}
 }

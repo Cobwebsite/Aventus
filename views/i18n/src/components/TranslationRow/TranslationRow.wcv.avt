@@ -1,5 +1,5 @@
 <div class="col key">
-	<vscode-label>{{ this.parsedItem.key }}</vscode-label>
+	<vscode-label>{{ this.key }}</vscode-label>
 	<av-resize is_key></av-resize>
 </div>
 <div class="inputs" @element="inputsEl">

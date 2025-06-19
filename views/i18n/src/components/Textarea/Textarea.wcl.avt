@@ -1,4 +1,4 @@
-import { DragAndDrop } from "Aventus@Main:Aventus.package.avt";
+import { Callback, DragAndDrop } from "Aventus@Main:Aventus.package.avt";
 
 export class Textarea extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
@@ -8,7 +8,8 @@ export class Textarea extends Aventus.WebComponent implements Aventus.DefaultCom
 
 
     //#region props
-
+    @Property()
+    public error!: boolean;
     //#endregion
 
 
@@ -29,6 +30,10 @@ export class Textarea extends Aventus.WebComponent implements Aventus.DefaultCom
 
     //#endregion
 
+    //#region events
+    public change: Callback<(value: string) => void> = new Callback();
+    //#endregion
+
 
     //#region methods
     protected preventDragFct() {
@@ -40,6 +45,11 @@ export class Textarea extends Aventus.WebComponent implements Aventus.DefaultCom
 
             }
         });
+    }
+
+    protected onChange() {
+        this.value = this.textarea.value;
+        this.change.trigger(this.value);
     }
     protected override postCreation(): void {
         super.postCreation();

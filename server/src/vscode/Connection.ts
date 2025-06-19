@@ -210,6 +210,11 @@ export class VsCodeConnection implements IConnection {
 			await cb();
 		});
 	}
+	public onRequest(cb: (method: string, params: object | any[] | undefined) => Promise<any>) {
+		this._connection.onRequest(async (channel, params) => {
+			return await cb(channel, params);
+		});
+	}
 
 
 	public async Input(options: InputOptions): Promise<string | null> {

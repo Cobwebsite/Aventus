@@ -17086,7 +17086,172 @@ _.Ram=Ram;
 for(let key in _) { Aventus[key] = _[key] }
 })(Aventus);
 
+var VscodeView;
+(VscodeView||(VscodeView = {}));
+(function (VscodeView) {
+const moduleName = `VscodeView`;
+const _ = {};
 
+
+let _n;
+var ErrorCode;
+(function (ErrorCode) {
+    ErrorCode[ErrorCode["unknow"] = 0] = "unknow";
+    ErrorCode[ErrorCode["differentChannel"] = 1] = "differentChannel";
+    ErrorCode[ErrorCode["timeout"] = 2] = "timeout";
+})(ErrorCode || (ErrorCode = {}));
+_.ErrorCode=ErrorCode;
+
+let Error=class Error extends Aventus.GenericError {
+}
+Error.Namespace=`VscodeView`;
+_.Error=Error;
+
+let Router=class Router {
+    static getInstance() {
+        return Aventus.Instance.get(Router);
+    }
+    routes = {};
+    waitingList = {};
+    vscode;
+    constructor() {
+        this.vscode = acquireVsCodeApi();
+        window.addEventListener('message', (e) => this.onMessage(e));
+    }
+    addRoute(route) {
+        if (!this.routes.hasOwnProperty(route.channel)) {
+            this.routes[route.channel] = [];
+        }
+        for (let info of this.routes[route.channel]) {
+            if (info.callback == route.callback) {
+                return;
+            }
+        }
+        const { params, regex } = Aventus.Uri.prepare(route.channel);
+        let prepared = {
+            callback: route.callback,
+            channel: route.channel,
+            regex,
+            params
+        };
+        this.routes[route.channel].push(prepared);
+    }
+    removeRoute(route) {
+        for (let i = 0; i < this.routes[route.channel].length; i++) {
+            let info = this.routes[route.channel][i];
+            if (info.callback == route.callback) {
+                this.routes[route.channel].splice(i, 1);
+                i--;
+            }
+        }
+    }
+    onMessage(event) {
+        let response = event.data;
+        let data = {};
+        try {
+            data = Aventus.Converter.transform(response.data);
+        }
+        catch (e) {
+            console.error(e);
+        }
+        for (let channel in this.routes) {
+            let current = this.routes[channel];
+            for (let info of current) {
+                let params = Aventus.Uri.getParams(info, response.channel);
+                if (params) {
+                    let valueCb = data;
+                    if (data instanceof Aventus.ResultWithError) {
+                        valueCb = data.result;
+                    }
+                    else if (data instanceof Aventus.VoidWithError) {
+                        valueCb = undefined;
+                    }
+                    info.callback(valueCb, params, response.uid);
+                }
+            }
+        }
+        if (response.uid) {
+            if (this.waitingList.hasOwnProperty(response.uid)) {
+                this.waitingList[response.uid](response.channel, data);
+                delete this.waitingList[response.uid];
+            }
+        }
+    }
+    send(options) {
+        let result = new Aventus.VoidWithError();
+        try {
+            let message = {
+                channel: options.channel,
+            };
+            if (options.uid) {
+                message.uid = options.uid;
+            }
+            if (options.body) {
+                message.data = options.body;
+            }
+            this.vscode.postMessage(message);
+        }
+        catch (e) {
+            result.errors.push(new Error(ErrorCode.unknow, e));
+        }
+        return result;
+    }
+    sendWithResponse(options) {
+        return new Promise(async (resolve) => {
+            let result = new Aventus.ResultWithError();
+            try {
+                let _uid = options.uid ? options.uid : Aventus.uuidv4();
+                options.uid = _uid;
+                let timeoutInfo;
+                this.waitingList[_uid] = (channel, data) => {
+                    clearTimeout(timeoutInfo);
+                    if (channel.toLowerCase() != options.channel.toLowerCase()) {
+                        result.errors.push(new Error(ErrorCode.differentChannel, `We sent a message on ${options.channel} but we receive on ${channel}`));
+                        resolve(result);
+                    }
+                    else {
+                        if (data instanceof Aventus.VoidWithError) {
+                            for (let error of data.errors) {
+                                result.errors.push(error);
+                            }
+                            if (data instanceof Aventus.ResultWithError) {
+                                result.result = data.result;
+                            }
+                        }
+                        else {
+                            result.result = data;
+                        }
+                        resolve(result);
+                    }
+                };
+                if (options.timeout !== undefined) {
+                    timeoutInfo = setTimeout(() => {
+                        delete this.waitingList[_uid];
+                        result.errors.push(new Error(ErrorCode.timeout, "No message received after " + options.timeout + "ms"));
+                        resolve(result);
+                    }, options.timeout);
+                }
+                let sendMessageResult = this.send(options);
+                if (!sendMessageResult.success) {
+                    for (let error of sendMessageResult.errors) {
+                        result.errors.push(error);
+                    }
+                    resolve(result);
+                }
+            }
+            catch (e) {
+                result.errors.push(new Error(ErrorCode.unknow, e));
+                resolve(result);
+            }
+        });
+    }
+}
+Router.Namespace=`VscodeView`;
+_.Router=Router;
+
+
+for(let key in _) { VscodeView[key] = _[key] }
+})(VscodeView);
 
 var Aventus;
 (Aventus||(Aventus = {}));
@@ -18413,12 +18578,15 @@ _.TranslationColHeader=TranslationColHeader;
 if(!window.customElements.get('av-translation-col-header')){window.customElements.define('av-translation-col-header', TranslationColHeader);Aventus.WebComponentInstance.registerDefinition(TranslationColHeader);}
 
 const Textarea = class Textarea extends Aventus.WebComponent {
-    get 'value'() {
+    static get observedAttributes() {return ["error"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'error'() { return this.getBoolProp('error') }
+    set 'error'(val) { this.setBoolAttr('error', val) }    get 'value'() {
 						return this.__watch["value"];
 					}
 					set 'value'(val) {
 						this.__watch["value"] = val;
 					}    preventDrag;
+    change = new Aventus.Callback();
     __registerWatchesActions() {
     this.__addWatchesActions("value", ((target) => {
     target.textarea.value = target.value;
@@ -18446,13 +18614,30 @@ const Textarea = class Textarea extends Aventus.WebComponent {
         "textarea_0"
       ]
     }
+  ],
+  "injection": [
+    {
+      "id": "textarea_0",
+      "injectionName": "invalid",
+      "inject": (c) => c.comp.__9affda56eddd377764c7a23adf1303f8method0(),
+      "once": true
+    }
+  ],
+  "events": [
+    {
+      "eventName": "change",
+      "id": "textarea_0",
+      "fct": (e, c) => c.comp.onChange(e)
+    }
   ]
 }); }
     getClassName() {
         return "Textarea";
     }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('error')) { this.attributeChangedCallback('error', false, false); } }
     __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["value"] = "salut"; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('value'); }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('error');this.__correctGetter('value'); }
+    __listBoolProps() { return ["error"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     preventDragFct() {
         this.preventDrag = new Aventus.DragAndDrop({
             element: this,
@@ -18462,9 +18647,16 @@ const Textarea = class Textarea extends Aventus.WebComponent {
             }
         });
     }
+    onChange() {
+        this.value = this.textarea.value;
+        this.change.trigger(this.value);
+    }
     postCreation() {
         super.postCreation();
         this.preventDragFct();
+    }
+    __9affda56eddd377764c7a23adf1303f8method0() {
+        return this.error;
     }
 }
 Textarea.Namespace=`AventusI18nView`;
@@ -18472,10 +18664,23 @@ Textarea.Tag=`av-textarea`;
 _.Textarea=Textarea;
 if(!window.customElements.get('av-textarea')){window.customElements.define('av-textarea', Textarea);Aventus.WebComponentInstance.registerDefinition(Textarea);}
 
+let DemoData= {
+    "click me1": {
+        "en-GB": "click me",
+        "fr-CH": "presse moi"
+    },
+    "click me2": {
+        "en-GB": "ⵌⵌ",
+        "fr-CH": "presse moi"
+    }
+};
+_.DemoData=DemoData;
+
 const Loading = class Loading extends Aventus.WebComponent {
     get 'visible'() { return this.getBoolAttr('visible') }
     set 'visible'(val) { this.setBoolAttr('visible', val) }    static _instance;
-    static _minTime;
+    static _minTimeDisplay;
+    static _minTimeShow;
     static _showTime;
     static __style = `:host{align-items:center;background-color:rgba(0,0,0,.3);display:none;inset:0;justify-content:center;position:fixed;z-index:999}@keyframes l4{to{transform:rotate(1turn)}}:host .loader{--b: 16px;animation:l4 1s infinite steps(10);aspect-ratio:1;background:conic-gradient(rgba(0, 0, 0, 0) 10%, var(--vscode-input-foreground)) content-box;border-radius:50%;-webkit-mask:repeating-conic-gradient(rgba(0, 0, 0, 0) 0deg, #000 1deg 20deg, rgba(0, 0, 0, 0) 21deg 36deg),radial-gradient(farthest-side, rgba(0, 0, 0, 0) calc(100% - var(--b) - 1px), #000 calc(100% - var(--b)));-webkit-mask-composite:destination-in;mask-composite:intersect;padding:1px;width:84px}:host([visible]){display:flex}`;
     __getStatic() {
@@ -18497,28 +18702,29 @@ const Loading = class Loading extends Aventus.WebComponent {
     __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('visible')) { this.attributeChangedCallback('visible', false, false); } }
     __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('visible'); }
     __listBoolProps() { return ["visible"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
-    static show(minTime = 1000) {
-        this._minTime = minTime;
+    static show(minTimeShow = 100, minTimeDisplay = 1000) {
+        this._minTimeDisplay = minTimeDisplay;
+        this._minTimeShow = minTimeShow;
         if (!this._instance) {
             this._instance = new Loading();
             document.body.appendChild(this._instance);
         }
-        if (this._minTime) {
+        if (this._minTimeDisplay) {
             const d = new Date();
             this._showTime = d.getTime();
         }
         this._instance.visible = true;
     }
     static hide() {
-        if (this._minTime && this._showTime && this._instance) {
+        if (this._minTimeDisplay && this._showTime && this._instance) {
             const now = new Date();
             const diff = now.getTime() - this._showTime;
-            if (diff > this._minTime) {
+            if (diff > this._minTimeDisplay) {
                 this._instance.visible = false;
             }
             else {
                 const instance = this._instance;
-                const delay = this._minTime - diff;
+                const delay = this._minTimeDisplay - diff;
                 setTimeout(() => {
                     instance.visible = false;
                 }, delay);
@@ -18709,67 +18915,27 @@ let Translator=class Translator {
 Translator.Namespace=`AventusI18nView`;
 _.Translator=Translator;
 
-let DemoData= {
-    "click me1": {
-        key: "click me1",
-        keyStart: 0,
-        keyEnd: 0,
-        locales: {
-            "fr-CH": {
-                locale: "fr-CH",
-                localeStart: 0,
-                localeEnd: 0,
-                value: "presse moi",
-                valueStart: 0,
-                valueEnd: 0
-            },
-            "en-GB": {
-                locale: "en-GB",
-                localeStart: 0,
-                localeEnd: 0,
-                value: "click me",
-                valueStart: 0,
-                valueEnd: 0
-            }
-        }
-    },
-    "click me": {
-        key: "click me",
-        keyStart: 0,
-        keyEnd: 0,
-        locales: {
-            "fr-CH": {
-                locale: "fr-CH",
-                localeStart: 0,
-                localeEnd: 0,
-                value: "##",
-                valueStart: 0,
-                valueEnd: 0
-            },
-            "en-GB": {
-                locale: "en-GB",
-                localeStart: 0,
-                localeEnd: 0,
-                value: "click me",
-                valueStart: 0,
-                valueEnd: 0
-            }
-        }
-    }
-};
-_.DemoData=DemoData;
-
 const TranslationCol = class TranslationCol extends Aventus.WebComponent {
+    static get observedAttributes() {return ["error"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'icon_btn'() { return this.getBoolAttr('icon_btn') }
-    set 'icon_btn'(val) { this.setBoolAttr('icon_btn', val) }    get 'parsedLocale'() {
-						return this.__watch["parsedLocale"];
+    set 'icon_btn'(val) { this.setBoolAttr('icon_btn', val) }    get 'error'() { return this.getBoolProp('error') }
+    set 'error'(val) { this.setBoolAttr('error', val) }    get 'locale'() {
+						return this.__watch["locale"];
 					}
-					set 'parsedLocale'(val) {
-						this.__watch["parsedLocale"] = val;
-					}    __registerWatchesActions() {
-    this.__addWatchesActions("parsedLocale", ((target) => {
-    target.style.setProperty("--translation-col-width", "var(--col-width-" + target.parsedLocale.locale + ")");
-    target.icon_btn = target.parsedLocale.value == "" || target.parsedLocale.value == "##";
+					set 'locale'(val) {
+						this.__watch["locale"] = val;
+					}get 'value'() {
+						return this.__watch["value"];
+					}
+					set 'value'(val) {
+						this.__watch["value"] = val;
+					}    initialValue;
+    change = new Aventus.Callback();
+    __registerWatchesActions() {
+    this.__addWatchesActions("locale", ((target) => {
+    target.style.setProperty("--translation-col-width", "var(--col-width-" + target.locale + ")");
+}));this.__addWatchesActions("value", ((target) => {
+    target.icon_btn = target.value == "" || target.value == "##";
 }));    super.__registerWatchesActions();
 }
     static __style = `:host{--_translation-col-width: var(--translation-col-width, 200px)}:host{align-items:center;display:flex;flex-shrink:0;gap:10px;margin:0;min-width:200px;position:relative;width:var(--_translation-col-width)}:host vscode-icon{background-color:rgba(0,0,0,0);border-radius:5px;cursor:pointer;display:none;padding:4px;transition:background-color linear .2s}:host vscode-icon:hover{background-color:var(--vscode-button-secondaryBackground)}:host .resize{background-color:red;bottom:0;cursor:col-resize;position:absolute;right:-4px;top:0;width:8px}:host([icon_btn]) vscode-icon{display:inline-block}`;
@@ -18789,7 +18955,7 @@ const TranslationCol = class TranslationCol extends Aventus.WebComponent {
     __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
   "content": {
     "translationcol_2°locale": {
-      "fct": (c) => `${c.print(c.comp.__5c58baf68a3de763ecfa54cfd926bb36method1())}`,
+      "fct": (c) => `${c.print(c.comp.__5c58baf68a3de763ecfa54cfd926bb36method2())}`,
       "once": true
     }
   },
@@ -18799,6 +18965,20 @@ const TranslationCol = class TranslationCol extends Aventus.WebComponent {
       "injectionName": "value",
       "inject": (c) => c.comp.__5c58baf68a3de763ecfa54cfd926bb36method0(),
       "once": true
+    },
+    {
+      "id": "translationcol_0",
+      "injectionName": "error",
+      "inject": (c) => c.comp.__5c58baf68a3de763ecfa54cfd926bb36method1(),
+      "once": true
+    }
+  ],
+  "events": [
+    {
+      "eventName": "change",
+      "id": "translationcol_0",
+      "fct": (c, ...args) => c.comp.onChange.apply(c.comp, ...args),
+      "isCallback": true
     }
   ],
   "pressEvents": [
@@ -18811,30 +18991,40 @@ const TranslationCol = class TranslationCol extends Aventus.WebComponent {
     getClassName() {
         return "TranslationCol";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('icon_btn')) { this.attributeChangedCallback('icon_btn', false, false); } }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["parsedLocale"] = undefined; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('icon_btn');this.__correctGetter('parsedLocale'); }
-    __listBoolProps() { return ["icon_btn"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('icon_btn')) { this.attributeChangedCallback('icon_btn', false, false); }if(!this.hasAttribute('error')) { this.attributeChangedCallback('error', false, false); } }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["locale"] = undefined;w["value"] = undefined; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('icon_btn');this.__upgradeProperty('error');this.__correctGetter('locale');this.__correctGetter('value'); }
+    __listBoolProps() { return ["icon_btn","error"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     getValue() {
-        if (this.parsedLocale.value == "##")
+        if (this.value == "##" || !this.value) {
+            this.error = true;
             return "";
-        return this.parsedLocale.value;
+        }
+        this.error = false;
+        return this.value;
     }
     async getTranslatation() {
         let row = this.findParentByType(TranslationRow);
         let page = this.findParentByType(TranslationPage);
-        const result = await Translator.translate(row.parsedItem.key, page.fallback, this.parsedLocale.locale);
+        const result = await Translator.translate(row.key, page.fallback, this.locale);
         if (result) {
-            this.parsedLocale.value = result;
+            this.value = result;
         }
+    }
+    onChange(value) {
+        this.value = value;
+        this.change.trigger(value);
     }
     postCreation() {
     }
-    __5c58baf68a3de763ecfa54cfd926bb36method1() {
-        return this.parsedLocale.locale;
+    __5c58baf68a3de763ecfa54cfd926bb36method2() {
+        return this.locale;
     }
     __5c58baf68a3de763ecfa54cfd926bb36method0() {
         return this.getValue();
+    }
+    __5c58baf68a3de763ecfa54cfd926bb36method1() {
+        return this.error;
     }
 }
 TranslationCol.Namespace=`AventusI18nView`;
@@ -18843,14 +19033,22 @@ _.TranslationCol=TranslationCol;
 if(!window.customElements.get('av-translation-col')){window.customElements.define('av-translation-col', TranslationCol);Aventus.WebComponentInstance.registerDefinition(TranslationCol);}
 
 const TranslationRow = class TranslationRow extends Aventus.WebComponent {
-    get 'locales'() {
+    get 'key'() {
+						return this.__watch["key"];
+					}
+					set 'key'(val) {
+						this.__watch["key"] = val;
+					}get 'locales'() {
 						return this.__watch["locales"];
 					}
 					set 'locales'(val) {
 						this.__watch["locales"] = val;
 					}    parsedItem;
+    hasChanged = false;
+    cols = {};
+    change = new Aventus.Callback();
     __registerWatchesActions() {
-    this.__addWatchesActions("locales");    super.__registerWatchesActions();
+    this.__addWatchesActions("key");this.__addWatchesActions("locales");    super.__registerWatchesActions();
 }
     static __style = `:host{align-items:stretch;border-left:1px solid var(--vscode-widget-border);border-right:1px solid var(--vscode-widget-border);display:flex;gap:0px}:host .col{border-right:1px solid var(--vscode-widget-border);padding:10px 20px}:host .inputs{display:flex;gap:0px}:host .key{flex-shrink:0;position:relative;width:var(--_translation-page-key-width);min-width:100px}:host(:nth-child(odd)){background-color:rgba(87,87,87,.2);background-color:var(--vscode-editorWidget-background)}:host(:nth-last-child(1)){border-bottom:1px solid var(--vscode-widget-border);border-bottom-left-radius:5px;border-bottom-right-radius:5px}`;
     __getStatic() {
@@ -18885,27 +19083,51 @@ const TranslationRow = class TranslationRow extends Aventus.WebComponent {
     getClassName() {
         return "TranslationRow";
     }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["locales"] = undefined; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('locales'); }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["key"] = undefined;w["locales"] = undefined; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('key');this.__correctGetter('locales'); }
     loadData() {
+        this.hasChanged = false;
         for (let locale of this.locales) {
-            const col = new TranslationCol();
-            col.parsedLocale = this.parsedItem.locales[locale];
-            col.classList.add("col");
-            this.inputsEl.appendChild(col);
+            this.createCol(locale);
         }
+    }
+    updateData(data) {
+        this.parsedItem = data;
+        for (let locale of this.locales) {
+            if (this.cols[locale]) {
+                this.cols[locale].value = this.parsedItem[locale];
+                this.cols[locale].initialValue = this.parsedItem[locale];
+            }
+        }
+    }
+    createCol(locale) {
+        const col = new TranslationCol();
+        col.locale = locale;
+        col.value = this.parsedItem[locale];
+        col.initialValue = this.parsedItem[locale];
+        col.change.add((value) => {
+            this.parsedItem[locale] = value;
+            const hasChanged = value != col.initialValue;
+            if (this.hasChanged != hasChanged) {
+                this.hasChanged = hasChanged;
+            }
+            this.change.trigger();
+        });
+        col.classList.add("col");
+        this.cols[locale] = col;
+        this.inputsEl.appendChild(col);
     }
     search(txt, onlyMissing) {
         let isVisible = false;
         if (txt == "") {
             isVisible = true;
         }
-        else if (this.parsedItem.key.includes(txt)) {
+        else if (this.key.includes(txt)) {
             isVisible = true;
         }
         else {
-            for (let locale in this.parsedItem.locales) {
-                const value = this.parsedItem.locales[locale].value;
+            for (let locale in this.parsedItem) {
+                const value = this.parsedItem[locale];
                 if (value.includes(txt)) {
                     isVisible = true;
                     break;
@@ -18918,9 +19140,9 @@ const TranslationRow = class TranslationRow extends Aventus.WebComponent {
         else {
             if (onlyMissing) {
                 isVisible = false;
-                for (let locale in this.parsedItem.locales) {
-                    const value = this.parsedItem.locales[locale].value;
-                    if (value == "##" || value == "") {
+                for (let locale in this.locales) {
+                    const value = this.parsedItem[locale];
+                    if (value == "##" || !value) {
                         isVisible = true;
                         break;
                     }
@@ -18938,7 +19160,7 @@ const TranslationRow = class TranslationRow extends Aventus.WebComponent {
         this.loadData();
     }
     __c86b13a0b49a096fc47a9596b8ca6beemethod0() {
-        return this.parsedItem.key;
+        return this.key;
     }
 }
 TranslationRow.Namespace=`AventusI18nView`;
@@ -19028,8 +19250,17 @@ const TranslationPage = class TranslationPage extends Aventus.WebComponent {
 					}
 					set 'importMissingBtn'(val) {
 						this.__watch["importMissingBtn"] = val;
+					}get 'pageName'() {
+						return this.__watch["pageName"];
+					}
+					set 'pageName'(val) {
+						this.__watch["pageName"] = val;
+					}get 'locales'() {
+						return this.__watch["locales"];
+					}
+					set 'locales'(val) {
+						this.__watch["locales"] = val;
 					}    parsed = {};
-    locales = ["en-GB", "fr-CH"];
     guard = new Aventus.ActionGuard();
     rows = {};
     __registerWatchesActions() {
@@ -19037,9 +19268,10 @@ const TranslationPage = class TranslationPage extends Aventus.WebComponent {
     target.search();
 }));this.__addWatchesActions("onlyMissing", ((target) => {
     target.search();
-}));this.__addWatchesActions("importMissingBtn");    super.__registerWatchesActions();
+}));this.__addWatchesActions("importMissingBtn");this.__addWatchesActions("pageName");this.__addWatchesActions("locales");    super.__registerWatchesActions();
 }
-    static __style = `:host{--_translation-page-key-width: var(--translation-page-key-width, 300px)}:host{display:flex;flex-direction:column;height:100%;margin:0;margin-block:0 !important;width:100%}:host vscode-scrollable{height:calc(100% - 190px);margin:0 20px;width:calc(100% - 40px)}:host av-scrollable{--scroller-width: 0;height:min-content;min-height:0}:host .header{flex-shrink:0;height:180px;padding:20px;padding-bottom:0}:host .header .bar{display:flex;justify-content:space-between;width:100%}:host .header .bar .menu-actions{display:flex;gap:50px}:host .header .bar .menu-actions vscode-form-group{--label-width: auto}:host .header .menu{border:1px solid var(--vscode-widget-border);padding:8px}:host .header .menu vscode-icon{background-color:rgba(0,0,0,0);cursor:pointer;padding:8px;transition:background-color linear .2s}:host .header .menu vscode-icon:hover{background-color:var(--vscode-button-secondaryBackground)}:host .content{display:flex;flex-direction:column}`;
+    static __style = `:host{--_translation-page-key-width: var(--translation-page-key-width, 300px)}:host{display:flex;flex-direction:column;height:100%;margin:0;margin-block:0 !important;width:100%}:host vscode-scrollable{height:calc(100% - 190px);margin:0 20px;width:calc(100% - 40px)}:host av-scrollable{--scroller-width: 0;height:min-content;min-height:0}:host .header{flex-shrink:0;height:177px;padding:20px;padding-bottom:0}:host .header .bar{display:flex;justify-content:space-between;width:100%}:host .header .bar .menu-actions{display:flex;gap:50px}:host .header .bar .menu-actions vscode-form-group{--label-width: auto}:host .header .menu{border:1px solid var(--vscode-widget-border);padding:8px}:host .header .menu vscode-icon{background-color:rgba(0,0,0,0);cursor:pointer;padding:8px;transition:background-color linear .2s}:host .header .menu vscode-icon:hover{background-color:var(--vscode-button-secondaryBackground)}:host .content{display:flex;flex-direction:column}`;
+    constructor() { super(); this.triggerChange=this.triggerChange.bind(this) }
     __getStatic() {
         return TranslationPage;
     }
@@ -19050,7 +19282,7 @@ const TranslationPage = class TranslationPage extends Aventus.WebComponent {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="header">    <div class="bar">        <h1 class="title">@General.i18n.avt</h1>        <div class="menu-actions">            <vscode-form-group>                <vscode-label _id="translationpage_0">Seulement les traductions manquantes : </vscode-label>                <vscode-checkbox id="only-missing" _id="translationpage_1"></vscode-checkbox>            </vscode-form-group>            <vscode-form-group>                <vscode-label>Recherche:</vscode-label>                <vscode-textfield _id="translationpage_2"></vscode-textfield>            </vscode-form-group>        </div>    </div>    <div class="menu">        <av-icon-tooltip name="save" _id="translationpage_3">Save</av-icon-tooltip>        <template _id="translationpage_4"></template>    </div>    <av-scrollable x_scroll y_scroll="true" mouse_drag auto_hide _id="translationpage_6">        <av-translation-row-header _id="translationpage_7"></av-translation-row-header>    </av-scrollable></div><vscode-scrollable>    <av-scrollable x_scroll y_scroll="true" mouse_drag auto_hide _id="translationpage_8">        <div class="content" _id="translationpage_9">        </div>    </av-scrollable></vscode-scrollable>` }
+        blocks: { 'default':`<div class="header">    <div class="bar">        <h1 class="title" _id="translationpage_0"></h1>        <div class="menu-actions">            <vscode-form-group>                <vscode-label _id="translationpage_1">Seulement les traductions manquantes : </vscode-label>                <vscode-checkbox id="only-missing" _id="translationpage_2"></vscode-checkbox>            </vscode-form-group>            <vscode-form-group>                <vscode-label>Recherche:</vscode-label>                <vscode-textfield _id="translationpage_3"></vscode-textfield>            </vscode-form-group>        </div>    </div>    <div class="menu">        <av-icon-tooltip name="save" _id="translationpage_4">Save</av-icon-tooltip>        <template _id="translationpage_5"></template>    </div>    <av-scrollable x_scroll y_scroll="true" mouse_drag auto_hide _id="translationpage_7">        <av-translation-row-header _id="translationpage_8"></av-translation-row-header>    </av-scrollable></div><vscode-scrollable>    <av-scrollable x_scroll y_scroll="true" mouse_drag auto_hide _id="translationpage_9">        <div class="content" _id="translationpage_10">        </div>    </av-scrollable></vscode-scrollable>` }
     });
 }
     __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
@@ -19058,77 +19290,83 @@ const TranslationPage = class TranslationPage extends Aventus.WebComponent {
     {
       "name": "headerEl",
       "ids": [
-        "translationpage_6"
+        "translationpage_7"
       ]
     },
     {
       "name": "bodyEl",
       "ids": [
-        "translationpage_8"
+        "translationpage_9"
       ]
     },
     {
       "name": "contentEl",
       "ids": [
-        "translationpage_9"
+        "translationpage_10"
       ]
     }
   ],
+  "content": {
+    "translationpage_0°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__30556103ea6c6df6f19f3f0f01bfbf73method1())}`,
+      "once": true
+    }
+  },
   "injection": [
     {
-      "id": "translationpage_3",
+      "id": "translationpage_4",
       "injectionName": "notif",
-      "inject": (c) => c.comp.__30556103ea6c6df6f19f3f0f01bfbf73method5(),
+      "inject": (c) => c.comp.__30556103ea6c6df6f19f3f0f01bfbf73method6(),
       "once": true
     },
     {
-      "id": "translationpage_7",
+      "id": "translationpage_8",
       "injectionName": "locales",
-      "inject": (c) => c.comp.__30556103ea6c6df6f19f3f0f01bfbf73method6(),
+      "inject": (c) => c.comp.__30556103ea6c6df6f19f3f0f01bfbf73method7(),
       "once": true
     }
   ],
   "bindings": [
     {
-      "id": "translationpage_1",
+      "id": "translationpage_2",
       "injectionName": "checked",
       "eventNames": [
         "change"
       ],
-      "inject": (c) => c.comp.__30556103ea6c6df6f19f3f0f01bfbf73method1(),
-      "extract": (c, v) => c.comp.__30556103ea6c6df6f19f3f0f01bfbf73method2(v),
+      "inject": (c) => c.comp.__30556103ea6c6df6f19f3f0f01bfbf73method2(),
+      "extract": (c, v) => c.comp.__30556103ea6c6df6f19f3f0f01bfbf73method3(v),
       "once": true
     },
     {
-      "id": "translationpage_2",
+      "id": "translationpage_3",
       "injectionName": "value",
       "eventNames": [
         "keyup"
       ],
-      "inject": (c) => c.comp.__30556103ea6c6df6f19f3f0f01bfbf73method3(),
-      "extract": (c, v) => c.comp.__30556103ea6c6df6f19f3f0f01bfbf73method4(v),
+      "inject": (c) => c.comp.__30556103ea6c6df6f19f3f0f01bfbf73method4(),
+      "extract": (c, v) => c.comp.__30556103ea6c6df6f19f3f0f01bfbf73method5(v),
       "once": true
     }
   ],
   "pressEvents": [
     {
-      "id": "translationpage_0",
+      "id": "translationpage_1",
       "onPress": (e, pressInstance, c) => { c.comp.toogleOnlyMissing(e, pressInstance); }
     },
     {
-      "id": "translationpage_3",
+      "id": "translationpage_4",
       "onPress": (e, pressInstance, c) => { c.comp.save(e, pressInstance); }
     }
   ]
-});const templ0 = new Aventus.Template(this);templ0.setTemplate(`        <av-icon-tooltip name="warning" _id="translationpage_5">Import missing</av-icon-tooltip>        `);templ0.setActions({
+});const templ0 = new Aventus.Template(this);templ0.setTemplate(`        <av-icon-tooltip name="warning" _id="translationpage_6">Import missing</av-icon-tooltip>        `);templ0.setActions({
   "pressEvents": [
     {
-      "id": "translationpage_5",
+      "id": "translationpage_6",
       "onPress": (e, pressInstance, c) => { c.comp.importMissing(e, pressInstance); }
     }
   ]
 });this.__getStatic().__template.addIf({
-                    anchorId: 'translationpage_4',
+                    anchorId: 'translationpage_5',
                     parts: [{once: true,
                     condition: (c) => c.comp.__30556103ea6c6df6f19f3f0f01bfbf73method0(),
                     template: templ0
@@ -19138,8 +19376,8 @@ const TranslationPage = class TranslationPage extends Aventus.WebComponent {
         return "TranslationPage";
     }
     __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('need_save')) { this.attributeChangedCallback('need_save', false, false); } }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["fallback"] = "en-GB";w["searchTxt"] = "";w["onlyMissing"] = false;w["importMissingBtn"] = false; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('need_save');this.__correctGetter('fallback');this.__correctGetter('searchTxt');this.__correctGetter('onlyMissing');this.__correctGetter('importMissingBtn'); }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["fallback"] = "en-GB";w["searchTxt"] = "";w["onlyMissing"] = false;w["importMissingBtn"] = false;w["pageName"] = "";w["locales"] = []; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('need_save');this.__correctGetter('fallback');this.__correctGetter('searchTxt');this.__correctGetter('onlyMissing');this.__correctGetter('importMissingBtn');this.__correctGetter('pageName');this.__correctGetter('locales'); }
     __listBoolProps() { return ["need_save"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     syncScroll() {
         this.headerEl?.onScrollChange.add((x, y) => {
@@ -19157,27 +19395,37 @@ const TranslationPage = class TranslationPage extends Aventus.WebComponent {
         }).observe(this.headerEl);
         this.style.setProperty("--content-width", this.headerEl.offsetWidth - 2 + "px");
     }
+    async triggerChange() {
+        this.guard.run(['triggerChange'], async () => {
+            Loading.show();
+            try {
+                await VscodeView.Router.getInstance().sendWithResponse({
+                    channel: "triggerChange",
+                    body: this.parsed
+                });
+            }
+            catch { }
+            Loading.hide();
+        });
+    }
     async save() {
         this.guard.run(['save'], async () => {
             Loading.show();
             try {
-                const result = await VscodeView.Router.getInstance().sendWithResponse({
-                    channel: "save",
-                    body: {
-                        content: this.parsed
-                    }
+                await VscodeView.Router.getInstance().sendWithResponse({
+                    channel: "save"
                 });
-                if (result.result) {
-                    this.need_save = false;
-                }
             }
             catch { }
             Loading.hide();
         });
     }
     addRoutes() {
-        VscodeView.Router.getInstance().addRoute('has_missing', (value) => {
-            this.importMissingBtn = value;
+        VscodeView.Router.getInstance().addRoute({
+            channel: 'has_missing',
+            callback: (value) => {
+                this.importMissingBtn = value;
+            }
         });
     }
     importMissing() {
@@ -19188,7 +19436,8 @@ const TranslationPage = class TranslationPage extends Aventus.WebComponent {
                     channel: "import_missing",
                     body: {}
                 });
-                this.parsed = result;
+                if (result.result)
+                    this.parsed = result.result;
             }
             catch { }
             Loading.hide();
@@ -19204,8 +19453,10 @@ const TranslationPage = class TranslationPage extends Aventus.WebComponent {
     render() {
         for (let key in this.parsed) {
             const row = new TranslationRow();
+            row.key = key;
             row.parsedItem = this.parsed[key];
             row.locales = this.locales;
+            row.change.add(this.triggerChange);
             this.rows[key] = row;
             this.contentEl.appendChild(row);
         }
@@ -19214,16 +19465,59 @@ const TranslationPage = class TranslationPage extends Aventus.WebComponent {
             this.style.setProperty("--col-width-" + locale, w);
         }
     }
-    async loadData() {
-        await this.guard.run(['import_missing'], async () => {
+    async init() {
+        await this.guard.run(['init'], async () => {
             Loading.show();
-            // const result = await VscodeView.Router.getInstance().sendWithResponse<I18nParsed>({
-            //     channel: "get_data",
-            //     body: {}
-            // });
-            const result = DemoData;
-            this.parsed = result;
-            this.render();
+            const result = await VscodeView.Router.getInstance().sendWithResponse({
+                channel: "init",
+                body: {}
+            });
+            if (result.result) {
+                this.locales = result.result.locales;
+                this.searchTxt = result.result.filter ?? '';
+                this.parsed = result.result.content;
+                this.pageName = result.result.pageName;
+                this.render();
+                Loading.hide();
+            }
+        });
+        VscodeView.Router.getInstance().addRoute({
+            channel: "is_dirty",
+            callback: (data) => {
+                this.need_save = data;
+            }
+        });
+        VscodeView.Router.getInstance().addRoute({
+            channel: "update_content",
+            callback: (data) => {
+                debugger;
+                const oldKeys = Object.keys(this.parsed);
+                this.parsed = data;
+                for (let key in this.parsed) {
+                    if (this.rows[key]) {
+                        let index = oldKeys.indexOf(key);
+                        if (index > -1) {
+                            oldKeys.splice(index, 1);
+                        }
+                        this.rows[key].updateData(this.parsed[key]);
+                    }
+                    else {
+                        const row = new TranslationRow();
+                        row.key = key;
+                        row.parsedItem = this.parsed[key];
+                        row.locales = this.locales;
+                        row.change.add(this.triggerChange);
+                        this.rows[key] = row;
+                        this.contentEl.appendChild(row);
+                    }
+                }
+                for (let key of oldKeys) {
+                    if (this.rows[key]) {
+                        this.rows[key].remove();
+                        delete this.rows[key];
+                    }
+                }
+            }
         });
     }
     toogleOnlyMissing() {
@@ -19233,29 +19527,32 @@ const TranslationPage = class TranslationPage extends Aventus.WebComponent {
         super.postCreation();
         let vscodeElements = npmCompilation['1608514c9acd4a97df63533df1b9d0fd'].VscodeElement;
         this.syncScroll();
-        this.loadData();
+        this.init();
+    }
+    __30556103ea6c6df6f19f3f0f01bfbf73method1() {
+        return this.pageName;
     }
     __30556103ea6c6df6f19f3f0f01bfbf73method0() {
         return this.importMissingBtn;
     }
-    __30556103ea6c6df6f19f3f0f01bfbf73method5() {
+    __30556103ea6c6df6f19f3f0f01bfbf73method6() {
         return this.need_save;
     }
-    __30556103ea6c6df6f19f3f0f01bfbf73method6() {
+    __30556103ea6c6df6f19f3f0f01bfbf73method7() {
         return this.locales;
     }
-    __30556103ea6c6df6f19f3f0f01bfbf73method1() {
+    __30556103ea6c6df6f19f3f0f01bfbf73method2() {
         return this.onlyMissing;
     }
-    __30556103ea6c6df6f19f3f0f01bfbf73method2(v) {
+    __30556103ea6c6df6f19f3f0f01bfbf73method3(v) {
         if (this) {
             this.onlyMissing = v;
         }
     }
-    __30556103ea6c6df6f19f3f0f01bfbf73method3() {
+    __30556103ea6c6df6f19f3f0f01bfbf73method4() {
         return this.searchTxt;
     }
-    __30556103ea6c6df6f19f3f0f01bfbf73method4(v) {
+    __30556103ea6c6df6f19f3f0f01bfbf73method5(v) {
         if (this) {
             this.searchTxt = v;
         }

@@ -30,6 +30,7 @@ export interface IConnection {
 	onColorPresentation(cb: (document: TextDocument | undefined, range: Range, color: Color) => Promise<ColorPresentation[] | null>);
 	onExecuteCommand(cb: (params: ExecuteCommandParams) => void): void;
 	onDidChangeConfiguration(cb: () => void): void;
+	onRequest(cb: (method: string, params: any[] | object | undefined) => Promise<any>): void;
 
 	Input(options: InputOptions): Promise<string | null>;
 	Select(items: SelectItem[], options: SelectOptions): Promise<SelectItem | null>;

@@ -24,7 +24,7 @@
 
 	.header {
 		flex-shrink: 0;
-		height: 180px;
+		height: 177px;
 		padding: 20px;
 		padding-bottom: 0;
 
