@@ -1,19 +1,24 @@
 import * as VscodeElement from '@vscode-elements/elements/dist/main.js';
-import { DemoData, type I18nParsed } from "../../libs/I18n.lib.avt";
+import { DemoData, Translator, type I18nParsed } from "../../libs/I18n.lib.avt";
 import { TranslationRow } from "../TranslationRow/TranslationRow.wcl.avt";
 import { ActionGuard, ResizeObserver } from "Aventus@Main:Aventus.package.avt";
 import { Loading } from "../Loading/Loading.wcl.avt";
+import { TranslateAllPopup } from "../TranslateAllPopup/TranslateAllPopup.wcl.avt";
 
 export class TranslationPage extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
     //#region static
-
+    public static KeyUndefined: string = "ⵌⵌ";
     //#endregion
 
 
     //#region props
     @Property()
     public need_save!: boolean;
+    @Property()
+    public has_empty!: boolean;
+    @Attribute()
+    public is_init!: boolean;
     //#endregion
 
 
@@ -82,18 +87,21 @@ export class TranslationPage extends Aventus.WebComponent implements Aventus.Def
     @BindThis()
     protected async triggerChange() {
         this.guard.run(['triggerChange'], async () => {
-            Loading.show();
+            // Loading.show();
             try {
-                await VscodeView.Router.getInstance().sendWithResponse<boolean>({
+                const promise = VscodeView.Router.getInstance().sendWithResponse<boolean>({
                     channel: "triggerChange",
                     body: this.parsed
                 });
+                this.calculateEmpty();
+                await promise;
             } catch { }
-            Loading.hide();
+            // Loading.hide();
         });
     }
 
     protected async save() {
+        if(!this.need_save) return;
         this.guard.run(['save'], async () => {
             Loading.show();
             try {
@@ -141,8 +149,26 @@ export class TranslationPage extends Aventus.WebComponent implements Aventus.Def
     }
 
 
-
+    public calculateEmpty() {
+        let result = false;
+        for(let key in this.parsed) {
+            for(let locale of this.locales) {
+                if(!this.parsed[key][locale] || this.parsed[key][locale] == TranslationPage.KeyUndefined) {
+                    result = true;
+                    break;
+                }
+            }
+            if(result) {
+                break;
+            }
+        }
+        this.has_empty = result;
+    }
     protected render() {
+        while(this.contentEl.lastElementChild) {
+            this.contentEl.lastElementChild.remove();
+        }
+        let search = this.searchTxt != "";
         for(let key in this.parsed) {
             const row = new TranslationRow();
             row.key = key;
@@ -151,12 +177,16 @@ export class TranslationPage extends Aventus.WebComponent implements Aventus.Def
             row.change.add(this.triggerChange);
             this.rows[key] = row;
             this.contentEl.appendChild(row);
+            if(search)
+                row.search(this.searchTxt, this.onlyMissing);
         }
 
         const w = "calc((var(--content-width) - var(--_translation-page-key-width)) / " + this.locales.length + ")";
         for(let locale of this.locales) {
             this.style.setProperty("--col-width-" + locale, w);
         }
+
+        this.calculateEmpty();
     }
 
 
@@ -173,8 +203,9 @@ export class TranslationPage extends Aventus.WebComponent implements Aventus.Def
                 this.parsed = result.result.content;
                 this.pageName = result.result.pageName;
                 this.render();
-                Loading.hide();
             }
+            this.is_init = true;
+            Loading.hide();
         });
 
         VscodeView.Router.getInstance().addRoute<boolean>({
@@ -187,7 +218,6 @@ export class TranslationPage extends Aventus.WebComponent implements Aventus.Def
         VscodeView.Router.getInstance().addRoute<I18nParsed>({
             channel: "update_content",
             callback: (data) => {
-                debugger;
                 const oldKeys = Object.keys(this.parsed);
                 this.parsed = data;
 
@@ -228,6 +258,24 @@ export class TranslationPage extends Aventus.WebComponent implements Aventus.Def
     protected toogleOnlyMissing() {
         this.onlyMissing = !this.onlyMissing;
     }
+
+    /**
+     * 
+     */
+    protected async translateAll() {
+        await this.guard.run(['translateAll'], async () => {
+            let popup = new TranslateAllPopup();
+            popup.parsed = this.parsed;
+            popup.locales = this.locales;
+            popup.fallback = this.fallback;
+            this.shadowRoot.appendChild(popup);
+            await popup.run();
+            this.calculateEmpty();
+            this.render();
+            await this.triggerChange();
+        });
+    }
+
 
 
     protected override postCreation(): void {

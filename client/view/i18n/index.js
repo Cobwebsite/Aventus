@@ -9841,16 +9841,16 @@ let isClass=function isClass(v) {
 }
 _.isClass=isClass;
 
-let sleep=function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-_.sleep=sleep;
-
 let uuidv4=function uuidv4() {
     let uid = '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c => (Number(c) ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> Number(c) / 4).toString(16));
     return uid;
 }
 _.uuidv4=uuidv4;
+
+let sleep=function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+_.sleep=sleep;
 
 let ActionGuard=class ActionGuard {
     /**
@@ -18577,6 +18577,44 @@ TranslationColHeader.Tag=`av-translation-col-header`;
 _.TranslationColHeader=TranslationColHeader;
 if(!window.customElements.get('av-translation-col-header')){window.customElements.define('av-translation-col-header', TranslationColHeader);Aventus.WebComponentInstance.registerDefinition(TranslationColHeader);}
 
+let StringTools=class StringTools {
+    static removeAccents(value) {
+        return value
+            .replace(/[áàãâä]/gi, "a")
+            .replace(/[éè¨ê]/gi, "e")
+            .replace(/[íìïî]/gi, "i")
+            .replace(/[óòöôõ]/gi, "o")
+            .replace(/[úùüû]/gi, "u")
+            .replace(/[ç]/gi, "c")
+            .replace(/[ñ]/gi, "n")
+            .replace(/[^a-zA-Z0-9]/g, " ");
+    }
+    static contains(src, search) {
+        if (src === undefined)
+            return false;
+        const _src = this.removeAccents((src + '').toLowerCase());
+        const _search = this.removeAccents((search + '').toLowerCase());
+        return _src.includes(_search);
+    }
+    static search(src, search) {
+        const terms = search.split(" ");
+        for (let _term of terms) {
+            const term = _term.trim();
+            if (term) {
+                if (this.contains(src, term)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    static firstLetterUpper(txt) {
+        return txt.slice(0, 1).toUpperCase() + txt.slice(1);
+    }
+}
+StringTools.Namespace=`AventusI18nView`;
+_.StringTools=StringTools;
+
 const Textarea = class Textarea extends Aventus.WebComponent {
     static get observedAttributes() {return ["error"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'error'() { return this.getBoolProp('error') }
@@ -18682,7 +18720,7 @@ const Loading = class Loading extends Aventus.WebComponent {
     static _minTimeDisplay;
     static _minTimeShow;
     static _showTime;
-    static __style = `:host{align-items:center;background-color:rgba(0,0,0,.3);display:none;inset:0;justify-content:center;position:fixed;z-index:999}@keyframes l4{to{transform:rotate(1turn)}}:host .loader{--b: 16px;animation:l4 1s infinite steps(10);aspect-ratio:1;background:conic-gradient(rgba(0, 0, 0, 0) 10%, var(--vscode-input-foreground)) content-box;border-radius:50%;-webkit-mask:repeating-conic-gradient(rgba(0, 0, 0, 0) 0deg, #000 1deg 20deg, rgba(0, 0, 0, 0) 21deg 36deg),radial-gradient(farthest-side, rgba(0, 0, 0, 0) calc(100% - var(--b) - 1px), #000 calc(100% - var(--b)));-webkit-mask-composite:destination-in;mask-composite:intersect;padding:1px;width:84px}:host([visible]){display:flex}`;
+    static __style = `:host{--_loading-dot-size: var(--loading-dot-size, 16px);--_loading-size: var(--loading-size, 84px)}:host{align-items:center;background-color:rgba(0,0,0,.3);display:none;inset:0;justify-content:center;position:fixed;z-index:999}@keyframes l4{to{transform:rotate(1turn)}}:host .loader{animation:l4 1s infinite steps(10);aspect-ratio:1;background:conic-gradient(rgba(0, 0, 0, 0) 10%, var(--vscode-input-foreground)) content-box;border-radius:50%;-webkit-mask:repeating-conic-gradient(rgba(0, 0, 0, 0) 0deg, #000 1deg 20deg, rgba(0, 0, 0, 0) 21deg 36deg),radial-gradient(farthest-side, rgba(0, 0, 0, 0) calc(100% - var(--_loading-dot-size) - 1px), #000 calc(100% - var(--_loading-dot-size)));-webkit-mask-composite:destination-in;mask-composite:intersect;padding:1px;width:var(--_loading-size)}:host([visible]){display:flex}`;
     __getStatic() {
         return Loading;
     }
@@ -18740,8 +18778,9 @@ if(!window.customElements.get('av-loading')){window.customElements.define('av-lo
 const IconTooltip = class IconTooltip extends Aventus.WebComponent {
     static get observedAttributes() {return ["name"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'notif'() { return this.getBoolAttr('notif') }
-    set 'notif'(val) { this.setBoolAttr('notif', val) }    get 'name'() { return this.getStringProp('name') }
-    set 'name'(val) { this.setStringAttr('name', val) }    static __style = `:host{border-radius:6px;cursor:pointer;height:32px;padding:8px;position:relative;transition:background-color .2s linear;width:32px}:host vscode-icon{height:100%;width:100%}:host .notif{background-color:var(--vscode-icon-foreground);border-radius:10px;display:none;height:10px;position:absolute;right:3px;top:3px;width:10px}:host(:hover){background-color:var(--vscode-button-secondaryHoverBackground)}:host([notif]) .notif{display:block}`;
+    set 'notif'(val) { this.setBoolAttr('notif', val) }get 'active'() { return this.getBoolAttr('active') }
+    set 'active'(val) { this.setBoolAttr('active', val) }    get 'name'() { return this.getStringProp('name') }
+    set 'name'(val) { this.setStringAttr('name', val) }    static __style = `:host{border-radius:6px;cursor:pointer;height:32px;padding:8px;position:relative;transition:background-color .2s linear;width:32px}:host vscode-icon{height:100%;width:100%}:host .notif{background-color:var(--vscode-icon-foreground);border-radius:10px;display:none;height:10px;position:absolute;right:3px;top:3px;width:10px}:host([active])::after{border:1px solid var(--vscode-button-secondaryHoverBackground);border-radius:6px;content:"";height:100%;left:50%;pointer-events:none;position:absolute;top:50%;transform:translate(-50%, -50%);width:100%}:host(:hover){background-color:var(--vscode-button-secondaryHoverBackground)}:host([notif]) .notif{display:block}`;
     __getStatic() {
         return IconTooltip;
     }
@@ -18767,9 +18806,9 @@ const IconTooltip = class IconTooltip extends Aventus.WebComponent {
     getClassName() {
         return "IconTooltip";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('notif')) { this.attributeChangedCallback('notif', false, false); }if(!this.hasAttribute('name')){ this['name'] = "symbol-array"; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('notif');this.__upgradeProperty('name'); }
-    __listBoolProps() { return ["notif"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('notif')) { this.attributeChangedCallback('notif', false, false); }if(!this.hasAttribute('active')) { this.attributeChangedCallback('active', false, false); }if(!this.hasAttribute('name')){ this['name'] = "symbol-array"; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('notif');this.__upgradeProperty('active');this.__upgradeProperty('name'); }
+    __listBoolProps() { return ["notif","active"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     postCreation() {
         super.postCreation();
     }
@@ -18802,6 +18841,14 @@ const GenericPopup = class GenericPopup extends Aventus.WebComponent {
     });
 }
     __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "elements": [
+    {
+      "name": "closeBtn",
+      "ids": [
+        "genericpopup_1"
+      ]
+    }
+  ],
   "content": {
     "genericpopup_0°@HTML": {
       "fct": (c) => `${c.print(c.comp.__e07b11b2e32632baaa472cf6cd242d2fmethod0())}`,
@@ -18915,6 +18962,113 @@ let Translator=class Translator {
 Translator.Namespace=`AventusI18nView`;
 _.Translator=Translator;
 
+const TranslateAllPopup = class TranslateAllPopup extends GenericPopup {
+    static get observedAttributes() {return ["is_running"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'is_running'() { return this.getBoolProp('is_running') }
+    set 'is_running'(val) { this.setBoolAttr('is_running', val) }    get 'fallback'() {
+						return this.__watch["fallback"];
+					}
+					set 'fallback'(val) {
+						this.__watch["fallback"] = val;
+					}    parsed = {};
+    locales = [];
+    __registerWatchesActions() {
+    this.__addWatchesActions("fallback");    super.__registerWatchesActions();
+}
+    static __style = `:host .popup{height:calc(100% - 50px);max-width:calc(100% - 100px);min-width:auto;width:100%}:host .popup .content{height:calc(100% - 45px)}:host .header{display:flex;gap:20px;justify-content:stretch}:host .header .left{width:100%}:host .header .right{position:relative;width:100px}:host .header .right av-loading{--loading-size: 40px;--loading-dot-size: 5px;background-color:rgba(0,0,0,0);position:absolute}:host .sub-title{font-size:calc(var(--vscode-font-size)*.9)}:host .list{border:1px solid var(--vscode-widget-border);border-radius:5px;display:flex;flex-direction:column;height:calc(100% - 78px);margin-top:15px;overflow:hidden}:host .list .item{align-items:stretch;display:flex;padding:0 15px}:host .list .item .source{align-items:center;border-right:1px solid var(--vscode-widget-border);display:flex;flex-shrink:0;padding:5px 10px;width:50%}:host .list .item .result{display:flex;flex-direction:column;flex-shrink:0;gap:2px;justify-content:center;padding:5px 10px;width:50%}:host .list .item .result span:nth-child(2){color:var(--vscode-settings-textInputForeground);font-size:calc(var(--vscode-font-size)*.8)}:host .list .item:nth-child(odd){background-color:var(--vscode-editorWidget-background)}:host .list .item:last-child{border-bottom:1px solid var(--vscode-widget-border)}:host .list .item.head{background-color:rgba(0,0,0,0);border-bottom:1px solid var(--vscode-widget-border);border-left:1px solid var(--vscode-widget-border);border-right:1px solid var(--vscode-widget-border)}:host .list .item.head .result,:host .list .item.head .source{flex-direction:row;font-weight:bold;justify-content:center;padding:10px 0}:host .scroll{height:calc(100% - 40px)}`;
+    __getStatic() {
+        return TranslateAllPopup;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(TranslateAllPopup.__style);
+        return arrStyle;
+    }
+    __getHtml() {super.__getHtml();
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<div class="header">	<div class="left">		<div class="title">Translate all</div>		<div class="sub-title" _id="translateallpopup_0"></div>	</div>	<div class="right">		<av-loading _id="translateallpopup_1"></av-loading>	</div></div><div class="list">	<div class="item head">		<div class="source" _id="translateallpopup_2"></div>		<div class="result">Result</div>	</div>	<av-scrollable class="scroll" floating_scroll auto_hide mouse_drag _id="translateallpopup_3">	</av-scrollable></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "elements": [
+    {
+      "name": "scrollEl",
+      "ids": [
+        "translateallpopup_3"
+      ]
+    }
+  ],
+  "content": {
+    "translateallpopup_0°@HTML": {
+      "fct": (c) => `Source lang : ${c.print(c.comp.__68a6f2046cb9c9d100a4c888b5011073method0())}`,
+      "once": true
+    },
+    "translateallpopup_2°@HTML": {
+      "fct": (c) => `Source (${c.print(c.comp.__68a6f2046cb9c9d100a4c888b5011073method0())})`,
+      "once": true
+    }
+  },
+  "injection": [
+    {
+      "id": "translateallpopup_1",
+      "injectionName": "visible",
+      "inject": (c) => c.comp.__68a6f2046cb9c9d100a4c888b5011073method1(),
+      "once": true
+    }
+  ]
+}); }
+    getClassName() {
+        return "TranslateAllPopup";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('is_running')) { this.attributeChangedCallback('is_running', false, false); } }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["fallback"] = ""; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('is_running');this.__correctGetter('fallback'); }
+    __listBoolProps() { return ["is_running"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    async run() {
+        this.closeBtn['disabled'] = true;
+        this.is_running = true;
+        await Aventus.sleep(5000);
+        for (let key in this.parsed) {
+            for (let locale of this.locales) {
+                if (!this.parsed[key][locale] || this.parsed[key][locale] == TranslationPage.KeyUndefined) {
+                    if (locale == this.fallback) {
+                        this.parsed[key][locale] = key;
+                        this.addTranslation(key, locale, key);
+                    }
+                    else {
+                        const result = await Translator.translate(key, this.fallback, locale);
+                        if (result) {
+                            this.parsed[key][locale] = result;
+                            this.addTranslation(key, locale, result);
+                        }
+                    }
+                }
+            }
+        }
+        this.closeBtn['disabled'] = false;
+        this.is_running = false;
+    }
+    addTranslation(key, locale, result) {
+        const el = document.createElement("div");
+        el.classList.add("item");
+        el.innerHTML = `<div class="source">${key}</div><div class="result"><span>${result}</span><span>${locale}</span></div>`;
+        this.scrollEl.prepend(el);
+    }
+    postCreation() {
+        super.postCreation();
+    }
+    __68a6f2046cb9c9d100a4c888b5011073method0() {
+        return this.fallback;
+    }
+    __68a6f2046cb9c9d100a4c888b5011073method1() {
+        return this.is_running;
+    }
+}
+TranslateAllPopup.Namespace=`AventusI18nView`;
+TranslateAllPopup.Tag=`av-translate-all-popup`;
+_.TranslateAllPopup=TranslateAllPopup;
+if(!window.customElements.get('av-translate-all-popup')){window.customElements.define('av-translate-all-popup', TranslateAllPopup);Aventus.WebComponentInstance.registerDefinition(TranslateAllPopup);}
+
 const TranslationCol = class TranslationCol extends Aventus.WebComponent {
     static get observedAttributes() {return ["error"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'icon_btn'() { return this.getBoolAttr('icon_btn') }
@@ -18935,7 +19089,7 @@ const TranslationCol = class TranslationCol extends Aventus.WebComponent {
     this.__addWatchesActions("locale", ((target) => {
     target.style.setProperty("--translation-col-width", "var(--col-width-" + target.locale + ")");
 }));this.__addWatchesActions("value", ((target) => {
-    target.icon_btn = target.value == "" || target.value == "##";
+    target.showIcon();
 }));    super.__registerWatchesActions();
 }
     static __style = `:host{--_translation-col-width: var(--translation-col-width, 200px)}:host{align-items:center;display:flex;flex-shrink:0;gap:10px;margin:0;min-width:200px;position:relative;width:var(--_translation-col-width)}:host vscode-icon{background-color:rgba(0,0,0,0);border-radius:5px;cursor:pointer;display:none;padding:4px;transition:background-color linear .2s}:host vscode-icon:hover{background-color:var(--vscode-button-secondaryBackground)}:host .resize{background-color:red;bottom:0;cursor:col-resize;position:absolute;right:-4px;top:0;width:8px}:host([icon_btn]) vscode-icon{display:inline-block}`;
@@ -18996,7 +19150,7 @@ const TranslationCol = class TranslationCol extends Aventus.WebComponent {
     __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('icon_btn');this.__upgradeProperty('error');this.__correctGetter('locale');this.__correctGetter('value'); }
     __listBoolProps() { return ["icon_btn","error"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     getValue() {
-        if (this.value == "##" || !this.value) {
+        if (this.value == TranslationPage.KeyUndefined || !this.value) {
             this.error = true;
             return "";
         }
@@ -19006,16 +19160,24 @@ const TranslationCol = class TranslationCol extends Aventus.WebComponent {
     async getTranslatation() {
         let row = this.findParentByType(TranslationRow);
         let page = this.findParentByType(TranslationPage);
+        if (this.locale == page.fallback) {
+            this.value = row.key;
+            return;
+        }
         const result = await Translator.translate(row.key, page.fallback, this.locale);
         if (result) {
-            this.value = result;
+            this.onChange(result);
         }
+    }
+    showIcon() {
+        this.icon_btn = !this.value || this.value == TranslationPage.KeyUndefined;
     }
     onChange(value) {
         this.value = value;
         this.change.trigger(value);
     }
     postCreation() {
+        this.showIcon();
     }
     __5c58baf68a3de763ecfa54cfd926bb36method2() {
         return this.locale;
@@ -19122,13 +19284,13 @@ const TranslationRow = class TranslationRow extends Aventus.WebComponent {
         if (txt == "") {
             isVisible = true;
         }
-        else if (this.key.includes(txt)) {
+        else if (StringTools.search(this.key, txt)) {
             isVisible = true;
         }
         else {
             for (let locale in this.parsedItem) {
                 const value = this.parsedItem[locale];
-                if (value.includes(txt)) {
+                if (StringTools.search(value, txt)) {
                     isVisible = true;
                     break;
                 }
@@ -19140,9 +19302,9 @@ const TranslationRow = class TranslationRow extends Aventus.WebComponent {
         else {
             if (onlyMissing) {
                 isVisible = false;
-                for (let locale in this.locales) {
+                for (let locale of this.locales) {
                     const value = this.parsedItem[locale];
-                    if (value == "##" || !value) {
+                    if (value == TranslationPage.KeyUndefined || !value) {
                         isVisible = true;
                         break;
                     }
@@ -19177,7 +19339,7 @@ const TranslationRowHeader = class TranslationRowHeader extends Aventus.WebCompo
 					}    __registerWatchesActions() {
     this.__addWatchesActions("locales");    super.__registerWatchesActions();
 }
-    static __style = `:host{align-items:stretch;border-left:1px solid var(--vscode-widget-border);border-right:1px solid var(--vscode-widget-border);display:flex;font-weight:bold;gap:0px;height:39px;text-align:center;user-select:none}:host .key{align-items:center;display:flex;flex-shrink:0;width:var(--_translation-page-key-width);border-right:1px solid var(--vscode-widget-border);justify-content:center;padding:10px 20px;position:relative;min-width:100px}:host .inputs{display:flex;gap:0px}`;
+    static __style = `:host{align-items:stretch;border-bottom:1px solid var(--vscode-widget-border);border-left:1px solid var(--vscode-widget-border);border-right:1px solid var(--vscode-widget-border);display:flex;font-weight:bold;gap:0px;height:39px;text-align:center;user-select:none}:host .key{align-items:center;border-right:1px solid var(--vscode-widget-border);display:flex;flex-shrink:0;justify-content:center;min-width:100px;padding:10px 20px;position:relative;width:var(--_translation-page-key-width)}:host .inputs{display:flex;gap:0px}`;
     __getStatic() {
         return TranslationRowHeader;
     }
@@ -19228,9 +19390,11 @@ _.TranslationRowHeader=TranslationRowHeader;
 if(!window.customElements.get('av-translation-row-header')){window.customElements.define('av-translation-row-header', TranslationRowHeader);Aventus.WebComponentInstance.registerDefinition(TranslationRowHeader);}
 
 const TranslationPage = class TranslationPage extends Aventus.WebComponent {
-    static get observedAttributes() {return ["need_save"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
-    get 'need_save'() { return this.getBoolProp('need_save') }
-    set 'need_save'(val) { this.setBoolAttr('need_save', val) }    get 'fallback'() {
+    static get observedAttributes() {return ["need_save", "has_empty"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'is_init'() { return this.getBoolAttr('is_init') }
+    set 'is_init'(val) { this.setBoolAttr('is_init', val) }    get 'need_save'() { return this.getBoolProp('need_save') }
+    set 'need_save'(val) { this.setBoolAttr('need_save', val) }get 'has_empty'() { return this.getBoolProp('has_empty') }
+    set 'has_empty'(val) { this.setBoolAttr('has_empty', val) }    get 'fallback'() {
 						return this.__watch["fallback"];
 					}
 					set 'fallback'(val) {
@@ -19260,7 +19424,8 @@ const TranslationPage = class TranslationPage extends Aventus.WebComponent {
 					}
 					set 'locales'(val) {
 						this.__watch["locales"] = val;
-					}    parsed = {};
+					}    static KeyUndefined = "ⵌⵌ";
+    parsed = {};
     guard = new Aventus.ActionGuard();
     rows = {};
     __registerWatchesActions() {
@@ -19270,7 +19435,7 @@ const TranslationPage = class TranslationPage extends Aventus.WebComponent {
     target.search();
 }));this.__addWatchesActions("importMissingBtn");this.__addWatchesActions("pageName");this.__addWatchesActions("locales");    super.__registerWatchesActions();
 }
-    static __style = `:host{--_translation-page-key-width: var(--translation-page-key-width, 300px)}:host{display:flex;flex-direction:column;height:100%;margin:0;margin-block:0 !important;width:100%}:host vscode-scrollable{height:calc(100% - 190px);margin:0 20px;width:calc(100% - 40px)}:host av-scrollable{--scroller-width: 0;height:min-content;min-height:0}:host .header{flex-shrink:0;height:177px;padding:20px;padding-bottom:0}:host .header .bar{display:flex;justify-content:space-between;width:100%}:host .header .bar .menu-actions{display:flex;gap:50px}:host .header .bar .menu-actions vscode-form-group{--label-width: auto}:host .header .menu{border:1px solid var(--vscode-widget-border);padding:8px}:host .header .menu vscode-icon{background-color:rgba(0,0,0,0);cursor:pointer;padding:8px;transition:background-color linear .2s}:host .header .menu vscode-icon:hover{background-color:var(--vscode-button-secondaryBackground)}:host .content{display:flex;flex-direction:column}`;
+    static __style = `:host{--_translation-page-key-width: var(--translation-page-key-width, 300px)}:host{display:none;flex-direction:column;height:100%;margin:0;margin-block:0 !important;width:100%}:host vscode-scrollable{height:calc(100% - 190px);margin:0 20px;width:calc(100% - 40px)}:host av-scrollable{--scroller-width: 0;height:min-content;min-height:0}:host .header{flex-shrink:0;height:177px;padding:20px;padding-bottom:0}:host .header .bar{display:flex;justify-content:space-between;width:100%;gap:20px}:host .header .bar .menu-actions{display:flex;flex-wrap:nowrap;gap:50px}:host .header .bar .menu-actions div{display:flex;margin:15px 0;white-space:nowrap;height:26px}:host .header .bar .menu-actions div vscode-label{margin-right:14px;text-align:right;width:auto}:host .header .bar .menu-actions div vscode-textfield{width:auto}:host .header .menu{border:1px solid var(--vscode-widget-border);padding:8px}:host .header .menu vscode-icon{background-color:rgba(0,0,0,0);cursor:pointer;padding:8px;transition:background-color linear .2s}:host .header .menu vscode-icon:hover{background-color:var(--vscode-button-secondaryBackground)}:host .content{display:flex;flex-direction:column}:host([is_init]){display:flex}`;
     constructor() { super(); this.triggerChange=this.triggerChange.bind(this) }
     __getStatic() {
         return TranslationPage;
@@ -19282,7 +19447,7 @@ const TranslationPage = class TranslationPage extends Aventus.WebComponent {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="header">    <div class="bar">        <h1 class="title" _id="translationpage_0"></h1>        <div class="menu-actions">            <vscode-form-group>                <vscode-label _id="translationpage_1">Seulement les traductions manquantes : </vscode-label>                <vscode-checkbox id="only-missing" _id="translationpage_2"></vscode-checkbox>            </vscode-form-group>            <vscode-form-group>                <vscode-label>Recherche:</vscode-label>                <vscode-textfield _id="translationpage_3"></vscode-textfield>            </vscode-form-group>        </div>    </div>    <div class="menu">        <av-icon-tooltip name="save" _id="translationpage_4">Save</av-icon-tooltip>        <template _id="translationpage_5"></template>    </div>    <av-scrollable x_scroll y_scroll="true" mouse_drag auto_hide _id="translationpage_7">        <av-translation-row-header _id="translationpage_8"></av-translation-row-header>    </av-scrollable></div><vscode-scrollable>    <av-scrollable x_scroll y_scroll="true" mouse_drag auto_hide _id="translationpage_9">        <div class="content" _id="translationpage_10">        </div>    </av-scrollable></vscode-scrollable>` }
+        blocks: { 'default':`<div class="header">    <div class="bar">        <h1 class="title" _id="translationpage_0"></h1>        <div class="menu-actions">            <div>                <vscode-label>Recherche:</vscode-label>                <vscode-textfield _id="translationpage_1"></vscode-textfield>            </div>        </div>    </div>    <div class="menu">        <av-icon-tooltip name="save" _id="translationpage_2">Save</av-icon-tooltip>        <av-icon-tooltip name="bug" _id="translationpage_3">Only missing</av-icon-tooltip>        <template _id="translationpage_4"></template>        <template _id="translationpage_6"></template>    </div>    <av-scrollable x_scroll y_scroll="true" mouse_drag auto_hide _id="translationpage_8">        <av-translation-row-header _id="translationpage_9"></av-translation-row-header>    </av-scrollable></div><vscode-scrollable>    <av-scrollable x_scroll y_scroll="true" mouse_drag auto_hide _id="translationpage_10">        <div class="content" _id="translationpage_11">        </div>    </av-scrollable></vscode-scrollable>` }
     });
 }
     __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
@@ -19290,95 +19455,112 @@ const TranslationPage = class TranslationPage extends Aventus.WebComponent {
     {
       "name": "headerEl",
       "ids": [
-        "translationpage_7"
+        "translationpage_8"
       ]
     },
     {
       "name": "bodyEl",
       "ids": [
-        "translationpage_9"
+        "translationpage_10"
       ]
     },
     {
       "name": "contentEl",
       "ids": [
-        "translationpage_10"
+        "translationpage_11"
       ]
     }
   ],
   "content": {
     "translationpage_0°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__30556103ea6c6df6f19f3f0f01bfbf73method1())}`,
+      "fct": (c) => `${c.print(c.comp.__30556103ea6c6df6f19f3f0f01bfbf73method2())}`,
       "once": true
     }
   },
   "injection": [
     {
-      "id": "translationpage_4",
+      "id": "translationpage_2",
       "injectionName": "notif",
+      "inject": (c) => c.comp.__30556103ea6c6df6f19f3f0f01bfbf73method5(),
+      "once": true
+    },
+    {
+      "id": "translationpage_3",
+      "injectionName": "active",
       "inject": (c) => c.comp.__30556103ea6c6df6f19f3f0f01bfbf73method6(),
       "once": true
     },
     {
-      "id": "translationpage_8",
+      "id": "translationpage_9",
       "injectionName": "locales",
-      "inject": (c) => c.comp.__30556103ea6c6df6f19f3f0f01bfbf73method7(),
+      "inject": (c) => c.comp.__30556103ea6c6df6f19f3f0f01bfbf73method8(),
       "once": true
     }
   ],
   "bindings": [
     {
-      "id": "translationpage_2",
-      "injectionName": "checked",
-      "eventNames": [
-        "change"
-      ],
-      "inject": (c) => c.comp.__30556103ea6c6df6f19f3f0f01bfbf73method2(),
-      "extract": (c, v) => c.comp.__30556103ea6c6df6f19f3f0f01bfbf73method3(v),
-      "once": true
-    },
-    {
-      "id": "translationpage_3",
+      "id": "translationpage_1",
       "injectionName": "value",
       "eventNames": [
         "keyup"
       ],
-      "inject": (c) => c.comp.__30556103ea6c6df6f19f3f0f01bfbf73method4(),
-      "extract": (c, v) => c.comp.__30556103ea6c6df6f19f3f0f01bfbf73method5(v),
+      "inject": (c) => c.comp.__30556103ea6c6df6f19f3f0f01bfbf73method3(),
+      "extract": (c, v) => c.comp.__30556103ea6c6df6f19f3f0f01bfbf73method4(v),
       "once": true
     }
   ],
   "pressEvents": [
     {
-      "id": "translationpage_1",
-      "onPress": (e, pressInstance, c) => { c.comp.toogleOnlyMissing(e, pressInstance); }
+      "id": "translationpage_2",
+      "onPress": (e, pressInstance, c) => { c.comp.save(e, pressInstance); }
     },
     {
-      "id": "translationpage_4",
-      "onPress": (e, pressInstance, c) => { c.comp.save(e, pressInstance); }
+      "id": "translationpage_3",
+      "onPress": (e, pressInstance, c) => { c.comp.toogleOnlyMissing(e, pressInstance); }
     }
   ]
-});const templ0 = new Aventus.Template(this);templ0.setTemplate(`        <av-icon-tooltip name="warning" _id="translationpage_6">Import missing</av-icon-tooltip>        `);templ0.setActions({
+});const templ0 = new Aventus.Template(this);templ0.setTemplate(`            <av-icon-tooltip name="check-all" _id="translationpage_5">Translate all</av-icon-tooltip>        `);templ0.setActions({
+  "injection": [
+    {
+      "id": "translationpage_5",
+      "injectionName": "active",
+      "inject": (c) => c.comp.__30556103ea6c6df6f19f3f0f01bfbf73method7(),
+      "once": true
+    }
+  ],
   "pressEvents": [
     {
-      "id": "translationpage_6",
+      "id": "translationpage_5",
+      "onPress": (e, pressInstance, c) => { c.comp.translateAll(e, pressInstance); }
+    }
+  ]
+});this.__getStatic().__template.addIf({
+                    anchorId: 'translationpage_4',
+                    parts: [{once: true,
+                    condition: (c) => c.comp.__30556103ea6c6df6f19f3f0f01bfbf73method0(),
+                    template: templ0
+                }]
+            });const templ1 = new Aventus.Template(this);templ1.setTemplate(`            <av-icon-tooltip name="warning" _id="translationpage_7">Import missing</av-icon-tooltip>        `);templ1.setActions({
+  "pressEvents": [
+    {
+      "id": "translationpage_7",
       "onPress": (e, pressInstance, c) => { c.comp.importMissing(e, pressInstance); }
     }
   ]
 });this.__getStatic().__template.addIf({
-                    anchorId: 'translationpage_5',
+                    anchorId: 'translationpage_6',
                     parts: [{once: true,
-                    condition: (c) => c.comp.__30556103ea6c6df6f19f3f0f01bfbf73method0(),
-                    template: templ0
+                    condition: (c) => c.comp.__30556103ea6c6df6f19f3f0f01bfbf73method1(),
+                    template: templ1
                 }]
             }); }
     getClassName() {
         return "TranslationPage";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('need_save')) { this.attributeChangedCallback('need_save', false, false); } }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('is_init')) { this.attributeChangedCallback('is_init', false, false); }if(!this.hasAttribute('need_save')) { this.attributeChangedCallback('need_save', false, false); }if(!this.hasAttribute('has_empty')) { this.attributeChangedCallback('has_empty', false, false); } }
     __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["fallback"] = "en-GB";w["searchTxt"] = "";w["onlyMissing"] = false;w["importMissingBtn"] = false;w["pageName"] = "";w["locales"] = []; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('need_save');this.__correctGetter('fallback');this.__correctGetter('searchTxt');this.__correctGetter('onlyMissing');this.__correctGetter('importMissingBtn');this.__correctGetter('pageName');this.__correctGetter('locales'); }
-    __listBoolProps() { return ["need_save"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('is_init');this.__upgradeProperty('need_save');this.__upgradeProperty('has_empty');this.__correctGetter('fallback');this.__correctGetter('searchTxt');this.__correctGetter('onlyMissing');this.__correctGetter('importMissingBtn');this.__correctGetter('pageName');this.__correctGetter('locales'); }
+    __listBoolProps() { return ["is_init","need_save","has_empty"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     syncScroll() {
         this.headerEl?.onScrollChange.add((x, y) => {
             if (this.bodyEl?.x != x) {
@@ -19397,18 +19579,22 @@ const TranslationPage = class TranslationPage extends Aventus.WebComponent {
     }
     async triggerChange() {
         this.guard.run(['triggerChange'], async () => {
-            Loading.show();
+            // Loading.show();
             try {
-                await VscodeView.Router.getInstance().sendWithResponse({
+                const promise = VscodeView.Router.getInstance().sendWithResponse({
                     channel: "triggerChange",
                     body: this.parsed
                 });
+                this.calculateEmpty();
+                await promise;
             }
             catch { }
-            Loading.hide();
+            // Loading.hide();
         });
     }
     async save() {
+        if (!this.need_save)
+            return;
         this.guard.run(['save'], async () => {
             Loading.show();
             try {
@@ -19450,7 +19636,26 @@ const TranslationPage = class TranslationPage extends Aventus.WebComponent {
             this.rows[key].search(txt, onlyMissing);
         }
     }
+    calculateEmpty() {
+        let result = false;
+        for (let key in this.parsed) {
+            for (let locale of this.locales) {
+                if (!this.parsed[key][locale] || this.parsed[key][locale] == TranslationPage.KeyUndefined) {
+                    result = true;
+                    break;
+                }
+            }
+            if (result) {
+                break;
+            }
+        }
+        this.has_empty = result;
+    }
     render() {
+        while (this.contentEl.lastElementChild) {
+            this.contentEl.lastElementChild.remove();
+        }
+        let search = this.searchTxt != "";
         for (let key in this.parsed) {
             const row = new TranslationRow();
             row.key = key;
@@ -19459,11 +19664,14 @@ const TranslationPage = class TranslationPage extends Aventus.WebComponent {
             row.change.add(this.triggerChange);
             this.rows[key] = row;
             this.contentEl.appendChild(row);
+            if (search)
+                row.search(this.searchTxt, this.onlyMissing);
         }
         const w = "calc((var(--content-width) - var(--_translation-page-key-width)) / " + this.locales.length + ")";
         for (let locale of this.locales) {
             this.style.setProperty("--col-width-" + locale, w);
         }
+        this.calculateEmpty();
     }
     async init() {
         await this.guard.run(['init'], async () => {
@@ -19478,8 +19686,9 @@ const TranslationPage = class TranslationPage extends Aventus.WebComponent {
                 this.parsed = result.result.content;
                 this.pageName = result.result.pageName;
                 this.render();
-                Loading.hide();
             }
+            this.is_init = true;
+            Loading.hide();
         });
         VscodeView.Router.getInstance().addRoute({
             channel: "is_dirty",
@@ -19490,7 +19699,6 @@ const TranslationPage = class TranslationPage extends Aventus.WebComponent {
         VscodeView.Router.getInstance().addRoute({
             channel: "update_content",
             callback: (data) => {
-                debugger;
                 const oldKeys = Object.keys(this.parsed);
                 this.parsed = data;
                 for (let key in this.parsed) {
@@ -19523,36 +19731,50 @@ const TranslationPage = class TranslationPage extends Aventus.WebComponent {
     toogleOnlyMissing() {
         this.onlyMissing = !this.onlyMissing;
     }
+    async translateAll() {
+        await this.guard.run(['translateAll'], async () => {
+            let popup = new TranslateAllPopup();
+            popup.parsed = this.parsed;
+            popup.locales = this.locales;
+            popup.fallback = this.fallback;
+            this.shadowRoot.appendChild(popup);
+            await popup.run();
+            this.calculateEmpty();
+            this.render();
+            await this.triggerChange();
+        });
+    }
     postCreation() {
         super.postCreation();
         let vscodeElements = npmCompilation['1608514c9acd4a97df63533df1b9d0fd'].VscodeElement;
         this.syncScroll();
         this.init();
     }
-    __30556103ea6c6df6f19f3f0f01bfbf73method1() {
+    __30556103ea6c6df6f19f3f0f01bfbf73method2() {
         return this.pageName;
     }
     __30556103ea6c6df6f19f3f0f01bfbf73method0() {
+        return this.has_empty;
+    }
+    __30556103ea6c6df6f19f3f0f01bfbf73method1() {
         return this.importMissingBtn;
     }
-    __30556103ea6c6df6f19f3f0f01bfbf73method6() {
+    __30556103ea6c6df6f19f3f0f01bfbf73method5() {
         return this.need_save;
     }
-    __30556103ea6c6df6f19f3f0f01bfbf73method7() {
-        return this.locales;
-    }
-    __30556103ea6c6df6f19f3f0f01bfbf73method2() {
+    __30556103ea6c6df6f19f3f0f01bfbf73method6() {
         return this.onlyMissing;
     }
-    __30556103ea6c6df6f19f3f0f01bfbf73method3(v) {
-        if (this) {
-            this.onlyMissing = v;
-        }
+    __30556103ea6c6df6f19f3f0f01bfbf73method7() {
+        return this.onlyMissing;
     }
-    __30556103ea6c6df6f19f3f0f01bfbf73method4() {
+    __30556103ea6c6df6f19f3f0f01bfbf73method8() {
+        return this.locales;
+    }
+    __30556103ea6c6df6f19f3f0f01bfbf73method3() {
         return this.searchTxt;
     }
-    __30556103ea6c6df6f19f3f0f01bfbf73method5(v) {
+    __30556103ea6c6df6f19f3f0f01bfbf73method4(v) {
         if (this) {
             this.searchTxt = v;
         }

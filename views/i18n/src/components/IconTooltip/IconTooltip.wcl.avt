@@ -11,6 +11,8 @@ export class IconTooltip extends Aventus.WebComponent implements Aventus.Default
 
     @Attribute()
     public notif!: boolean;
+    @Attribute()
+    public active!: boolean;
     //#endregion
 
 

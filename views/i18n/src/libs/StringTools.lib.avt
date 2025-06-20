@@ -1,0 +1,38 @@
+
+export class StringTools {
+    public static removeAccents(value: string): string {
+        return value
+            .replace(/[áàãâä]/gi, "a")
+            .replace(/[éè¨ê]/gi, "e")
+            .replace(/[íìïî]/gi, "i")
+            .replace(/[óòöôõ]/gi, "o")
+            .replace(/[úùüû]/gi, "u")
+            .replace(/[ç]/gi, "c")
+            .replace(/[ñ]/gi, "n")
+            .replace(/[^a-zA-Z0-9]/g, " ");
+    }
+
+    public static contains(src: string | undefined, search: string): boolean {
+        if(src === undefined) return false;
+        const _src = this.removeAccents((src + '').toLowerCase());
+        const _search = this.removeAccents((search + '').toLowerCase());
+        return _src.includes(_search);
+    }
+
+    public static search(src: string, search: string): boolean {
+        const terms = search.split(" ");
+        for(let _term of terms) {
+            const term = _term.trim();
+            if(term) {
+                if(this.contains(src, term)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public static firstLetterUpper(txt: string): string {
+        return txt.slice(0, 1).toUpperCase() + txt.slice(1);
+    }
+}

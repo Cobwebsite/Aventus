@@ -6,6 +6,7 @@ import { Communication } from './_Communication';
 import { SourceLanguageCode, TargetLanguageCode, Translator } from 'deepl-node';
 import { SettingsManager } from '../Settings';
 import { GetLocales } from '../communication/i18n/GetLocales';
+import { Singleton } from '../Singleton';
 
 export class AventusI18nEditor implements CustomTextEditorProvider {
 
@@ -96,6 +97,7 @@ export class AventusI18nEditor implements CustomTextEditorProvider {
 		comm.addRouteWithResponse<void, { content: AventusI18nFileSrcParsed, locales: string[], filter: string | undefined, pageName: string }>({
 			channel: "init",
 			callback: async (data, params, uid) => {
+				await Singleton.client.waitInit();
 				const filter = initialFilter;
 				initialFilter = undefined;
 				let content: AventusI18nFileSrcParsed = {};
@@ -166,6 +168,9 @@ export class AventusI18nEditor implements CustomTextEditorProvider {
 				result: result.text
 			}
 		} catch (e) {
+			console.error("value : " + value);
+			console.error("source : " + sourceCode);
+			console.error("destination : " + destinationCode);
 			console.error(e);
 			return {
 				error: e + ''

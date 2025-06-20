@@ -18,6 +18,10 @@ export class Client {
     public components: AvenutsVsComponent | undefined = undefined;
     private fileSystem: FileSystem | undefined = undefined;
     public debugFile!: DebugFile;
+    private _isInit = false;
+    public get isInit(): boolean {
+        return this._isInit;
+    }
 
     public get context() {
         return this._context;
@@ -185,5 +189,28 @@ export class Client {
 
     public sendRequest<U>(channel: string, body: any) {
         return this.client!.sendRequest<U>(channel, body);
+    }
+
+
+    public initDone() {
+        this._isInit = true;
+        const cbs = [...this.initCbs];
+        for (let cb of cbs) {
+            cb();
+        }
+    }
+    private initCbs: (() => any)[] = []
+    public onInit(cb: () => any) {
+        if (this.isInit) {
+            cb();
+        }
+        else {
+            this.initCbs.push(cb)
+        }
+    }
+    public waitInit(): Promise<void> {
+        return new Promise<void>((resolve) => {
+            this.onInit(resolve);
+        });
     }
 }

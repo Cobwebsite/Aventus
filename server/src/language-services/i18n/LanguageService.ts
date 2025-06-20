@@ -1,5 +1,5 @@
-import { CodeAction, Diagnostic, DiagnosticSeverity, FormattingOptions, getLanguageService, LanguageService, Position, Range, TextEdit } from 'vscode-json-languageservice';
-import { AventusErrorCode, AventusExtension } from '../../definition';
+import { CodeAction, Diagnostic, DiagnosticSeverity, FormattingOptions, getLanguageService, LanguageService, Position, Range, TextDocument, TextEdit } from 'vscode-json-languageservice';
+import { AventusErrorCode, AventusExtension, AventusLanguageId } from '../../definition';
 import { AventusFile } from '../../files/AventusFile';
 import { createErrorI18n, createErrorI18nPos, createWarningI18nPos } from '../../tools';
 import { AventusI18nSchema } from './schema';
@@ -126,8 +126,10 @@ export class AventusI18nLanguageService {
 		})
 		return txt;
 	}
-
-	private sortObj(unordered: AventusI18nFileSrcParsed) {
+	public sortObj(unordered: AventusI18nFileSrcParsed) {
+		return AventusI18nLanguageService.sortObj(unordered);
+	}
+	public static sortObj(unordered: AventusI18nFileSrcParsed) {
 		const ordered = Object.keys(unordered).sort().reduce(
 			(obj, key) => {
 				const temp = unordered[key];
@@ -178,5 +180,17 @@ export class AventusI18nLanguageService {
 			};
 		}
 		return undefined;
+	}
+
+	public addValueToFile(file: AventusI18nFile, value: string) {
+		const newEl = JSON.parse(JSON.stringify(file.parsedSrc));
+		newEl[value] = {};
+		const locales = file.build.buildConfig.i18n?.locales ?? [];
+		const fallback = file.build.buildConfig.i18n?.fallback ?? 'en-GB'
+		for (let locale of locales) {
+			newEl[value][locale] = locale == fallback ? value : AventusI18nLanguageService.empty;
+		}
+		const txt = JSON.stringify(this.sortObj(newEl), null, 4);
+		let newDocument = TextDocument.create(file.file.uri, AventusLanguageId.I18n, file.file.versionUser + 1, txt);
 	}
 }

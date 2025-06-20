@@ -38,6 +38,7 @@ import { HttpServer } from '../../../../live-server/HttpServer';
 import { IStoryContentWebComponent, IStoryContentWebComponentSlot, IStoryContentWebComponentStyle, InputType } from '@aventusjs/storybook';
 import { SignalDecorator } from '../../parser/decorators/SignalDecorator';
 import { InjectableDecorator } from '../../parser/decorators/InjectableDecorator';
+import { AventusI18nFile } from '../../../i18n/File';
 
 
 export class AventusWebcomponentCompiler {
@@ -45,21 +46,26 @@ export class AventusWebcomponentCompiler {
         let version = {
             ts: logicalFile.file.documentUser.version,
             scss: -1,
-            html: -1
+            html: -1,
+            i18n: -1
         }
         let scssFile: AventusWebSCSSFile | undefined;
         let htmlFile: AventusHTMLFile | undefined;
+        let i18nFile: AventusI18nFile | undefined;
         if (logicalFile.file.uri.endsWith(AventusExtension.Component)) {
             scssFile = build.wcFiles[logicalFile.file.uri].style;
             htmlFile = build.wcFiles[logicalFile.file.uri].view;
+            i18nFile = build.wcFiles[logicalFile.file.uri].i18n;
         }
         else {
             scssFile = build.scssFiles[logicalFile.file.uri.replace(AventusExtension.ComponentLogic, AventusExtension.ComponentStyle)];
             htmlFile = build.htmlFiles[logicalFile.file.uri.replace(AventusExtension.ComponentLogic, AventusExtension.ComponentView)];
+            i18nFile = build.i18nComponentsFiles[logicalFile.file.uri.replace(AventusExtension.ComponentLogic, AventusExtension.I18n)];
         }
 
         if (scssFile) { version.scss = scssFile.compiledVersion; }
         if (htmlFile) { version.html = htmlFile.compiledVersion; }
+        if (i18nFile) { version.i18n = i18nFile.file.versionUser; }
         return version;
     }
 

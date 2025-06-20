@@ -1,6 +1,8 @@
 import { Callback } from "Aventus@Main:Aventus.package.avt";
 import { Translator } from "../../libs/I18n.lib.avt";
 import { TranslationCol } from "../TranslationCol/TranslationCol.wcl.avt";
+import { TranslationPage } from "../TranslationPage/TranslationPage.wcl.avt";
+import { StringTools } from "../../libs/StringTools.lib.avt";
 
 export class TranslationRow extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
@@ -83,13 +85,13 @@ export class TranslationRow extends Aventus.WebComponent implements Aventus.Defa
         if(txt == "") {
             isVisible = true;
         }
-        else if(this.key.includes(txt)) {
+        else if(StringTools.search(this.key, txt)) {
             isVisible = true;
         }
         else {
             for(let locale in this.parsedItem) {
                 const value = this.parsedItem[locale];
-                if(value.includes(txt)) {
+                if(StringTools.search(value, txt)) {
                     isVisible = true;
                     break;
                 }
@@ -102,9 +104,9 @@ export class TranslationRow extends Aventus.WebComponent implements Aventus.Defa
         else {
             if(onlyMissing) {
                 isVisible = false;
-                for(let locale in this.locales) {
+                for(let locale of this.locales) {
                     const value = this.parsedItem[locale];
-                    if(value == "##" || !value) {
+                    if(value == TranslationPage.KeyUndefined || !value) {
                         isVisible = true;
                         break;
                     }

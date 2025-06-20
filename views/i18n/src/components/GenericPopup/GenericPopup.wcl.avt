@@ -13,6 +13,10 @@ export class GenericPopup extends Aventus.WebComponent implements Aventus.Defaul
 
     //#region variables
     protected cb?: () => void;
+
+    @ViewElement()
+    protected closeBtn!: HTMLElement;
+
     //#endregion
 
 
@@ -28,11 +32,11 @@ export class GenericPopup extends Aventus.WebComponent implements Aventus.Defaul
      * 
      */
     protected close() {
-		this.remove();
+        this.remove();
         if(this.cb) {
             this.cb();
         }
-	}
+    }
     //#endregion
 
 }

@@ -453,6 +453,10 @@
 					"light": "./icons/translate_black.svg",
 					"dark": "./icons/translate_light.svg"
 				}
+			},
+			{
+				"command": "aventus.i18n.add",
+				"title": "Aventus : Add translation to I18n file"
 			}
 		],
 		"customEditors": [
@@ -648,6 +652,10 @@
 				{
 					"command": "aventus.i18n.open",
 					"when": "false"
+				},
+				{
+					"command": "aventus.i18n.add",
+					"when": "false"
 				}
 			]
 		},
@@ -763,7 +771,7 @@
 		"command-exists": "^1.2.9",
 		"commander": "^12.1.0",
 		"connect": "^3.7.0",
-		"deepl-node": "^1.17.3",
+		"deepl-node": "^1.18.0",
 		"event-stream": "^4.0.1",
 		"inquirer-file-tree-selection-prompt": "^2.0.5",
 		"md5": "^2.3.0",

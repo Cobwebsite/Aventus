@@ -8,6 +8,7 @@ import { AventusBaseFile } from "../../BaseFile";
 import { AventusHTMLFile } from "../../html/File";
 import { AventusWebSCSSFile } from "../../scss/File";
 import { AventusWebComponentLogicalFile } from './File';
+import { AventusI18nFile } from '../../i18n/File';
 
 interface AventusWebComponentSingleFileRegion<T extends AventusBaseFile> {
     start: number,
@@ -32,6 +33,10 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
         start: 0,
         end: 0
     }
+    private regionI18n: AventusWebComponentSingleFileRegion<AventusI18nFile> = {
+        start: 0,
+        end: 0
+    }
 
     public get logic(): AventusWebComponentLogicalFile {
         if (this.regionLogic.file) {
@@ -44,6 +49,9 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
     }
     public get view(): AventusHTMLFile | undefined {
         return this.regionView.file
+    }
+    public get i18n(): AventusI18nFile | undefined {
+        return this.regionI18n.file
     }
 
     protected get extension(): string {

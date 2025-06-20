@@ -25,7 +25,7 @@ export class TranslationCol extends Aventus.WebComponent implements Aventus.Defa
     public locale!: string;
 
     @Watch((target: TranslationCol) => {
-        target.icon_btn = target.value == "" || target.value == "##";
+        target.showIcon();
     })
     public value!: string;
 
@@ -46,7 +46,7 @@ export class TranslationCol extends Aventus.WebComponent implements Aventus.Defa
 
     //#region methods
     protected getValue() {
-        if(this.value == "##" || !this.value) {
+        if(this.value == TranslationPage.KeyUndefined || !this.value) {
             this.error = true;
             return "";
         }
@@ -57,10 +57,19 @@ export class TranslationCol extends Aventus.WebComponent implements Aventus.Defa
         let row = this.findParentByType(TranslationRow)!;
         let page = this.findParentByType(TranslationPage)!;
 
+        if(this.locale == page.fallback) {
+            this.value = row.key;
+            return;
+        }
+
         const result = await Translator.translate(row.key, page.fallback, this.locale);
         if(result) {
-            this.value = result;
+            this.onChange(result);
         }
+    }
+
+    protected showIcon() {
+        this.icon_btn = !this.value || this.value == TranslationPage.KeyUndefined;
     }
 
     /**
@@ -71,7 +80,7 @@ export class TranslationCol extends Aventus.WebComponent implements Aventus.Defa
         this.change.trigger(value);
     }
     protected override postCreation(): void {
-
+        this.showIcon()
     }
     //#endregion
 

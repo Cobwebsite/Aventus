@@ -108,7 +108,7 @@ export class GenericServer {
 			this.onInitialize(params);
 		})
 		this.connection.onInitialized(async () => {
-			this.onInitialized();
+			await this.onInitialized();
 		})
 		this.connection.onShutdown(async () => {
 			await this.onShutdown();

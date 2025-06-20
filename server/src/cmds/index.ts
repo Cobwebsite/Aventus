@@ -30,6 +30,7 @@ import { CreateCSSVariable } from './webcomponent/CreateCSSVariable';
 import { StorybookBuild } from './storybook/Build';
 import { ImportProject } from './file-system/ImportProject';
 import { NpmBuild } from './npm/Build';
+import { AddI18nValue } from './i18n/AddI18nValue';
 
 export const Commands = {
     allCommandes: {
@@ -64,6 +65,7 @@ export const Commands = {
         [ReloadSettings.cmd]: ReloadSettings,
         [StorybookBuild.cmd]: StorybookBuild,
         [NpmBuild.cmd]: NpmBuild,
+        [AddI18nValue.cmd]: AddI18nValue
     },
     execute: function (params: ExecuteCommandParams) {
         let cmd = this.allCommandes[params.command];

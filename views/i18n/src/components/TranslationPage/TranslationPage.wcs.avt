@@ -3,7 +3,7 @@
 }
 
 :host {
-	display: flex;
+	display: none;
 	flex-direction: column;
 	height: 100%;
 	margin: 0;
@@ -32,13 +32,27 @@
 			display: flex;
 			justify-content: space-between;
 			width: 100%;
+			gap: 20px;
 
 			.menu-actions {
 				display: flex;
+				flex-wrap: nowrap;
 				gap: 50px;
 
-				vscode-form-group {
-					--label-width: auto;
+				div {
+					display: flex;
+					margin: 15px 0;
+					white-space: nowrap;
+					height: 26px;
+
+					vscode-label {
+						margin-right: 14px;
+						text-align: right;
+						width: auto;
+					}
+					vscode-textfield {
+						width: auto;
+					}
 				}
 			}
 		}
@@ -64,4 +78,8 @@
 		display: flex;
 		flex-direction: column;
 	}
+}
+
+:host([is_init]) {
+	display: flex;
 }

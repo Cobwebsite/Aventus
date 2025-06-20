@@ -113,12 +113,12 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
 
 
     private waitingFct: { [version: string]: (() => void)[] } = {};
-    private mergedVersion = '-1_-1_-1';
+    private mergedVersion = '-1_-1_-1_-1';
     private isCompiling = false;
     public runWebCompiler() {
         return new Promise<void>((resolve) => {
             let version = AventusWebcomponentCompiler.getVersion(this, this.build);
-            let mergedVersion = version.ts + '_' + version.scss + '_' + version.html;
+            let mergedVersion = version.ts + '_' + version.scss + '_' + version.html+'_'+version.i18n;
             let force = this.build.insideRebuildAll;
             if (mergedVersion == this.mergedVersion && !force) {
                 resolve();
@@ -169,7 +169,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         let htmlVersion = htmlFile?.file.versionUser ?? 0;
         let i18nFile = this.I18nFile;
         let i18nVersion = i18nFile?.file.versionUser ?? 0;
-        let v = this.file.documentUser.version + htmlVersion + 1 // use +1 to allow version to be bigger than 0 at start
+        let v = this.file.documentUser.version + htmlVersion + i18nVersion + 1 // use +1 to allow version to be bigger than 0 at start
         if (htmlFile) {
             let mustWrite = false;
             let tsIsDiff = false;
@@ -178,6 +178,9 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                 tsIsDiff = true;
             }
             else if (this.lastFileVersionCreated.html != htmlVersion) {
+                mustWrite = true;
+            }
+            else if (this.lastFileVersionCreated.i18n != i18nVersion) {
                 mustWrite = true;
             }
             if (mustWrite) {
@@ -591,7 +594,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
 
                     const writeI18n = (i18n: AventusI18nFile) => {
                         const methodTxt = `\n@NoCompile()\npublic override t(key: keyof ${this.componentClassName}__Generated | keyof Aventus.AventusI18n, params: { [key: string]: string; } = {}): string {
-        return super.t(key as keyof Aventus.AventusI18n, );
+        return super.t(key as keyof Aventus.AventusI18n, params);
     }`
                         newContent += methodTxt + "\n";
                         const values = i18n.keys.map(p => `"${p.replace(/"/g, "\\\"")}": string`).join(",\r\n")
