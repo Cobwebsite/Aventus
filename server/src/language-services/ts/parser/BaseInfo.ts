@@ -820,18 +820,25 @@ export abstract class BaseInfo {
             }
             const npmReplacement = this.getNpmReplacementName([this.build.module, fullName].join("."))
             if (this.dependancesLocations[name]) {
-                let replacement = fullName;
+                let typeRemplacement = fullName;
                 if (this.isExported != importInfo.isExported) {
                     if (!this.isExported) {
-                        replacement = ['globalThis', this.build.module, fullName].join(".");
+                        typeRemplacement = ['globalThis', this.build.module, fullName].join(".");
                     }
                     else {
-                        replacement = ['___' + this.build.module, fullName].join(".");
+                        typeRemplacement = ['___' + this.build.module, fullName].join(".");
                     }
                 }
-
-                this.dependancesLocations[name].typeRemplacement = replacement;
-                this.dependancesLocations[name].replacement = fullName;
+                
+                let remplacement = fullName;
+                const splittedLocalFullName = this.fullName.split(".");
+                splittedLocalFullName.slice(0, 1);
+                const replacementStart = fullName.split('.')[0];
+                if (splittedLocalFullName.includes(replacementStart)) {
+                    remplacement = '_.' + remplacement;
+                }
+                this.dependancesLocations[name].typeRemplacement = typeRemplacement;
+                this.dependancesLocations[name].replacement = remplacement;
                 this.dependancesLocations[name].npmReplacement = npmReplacement;
                 this.dependancesLocations[name].hotReloadReplacement = hotReloadName;
 

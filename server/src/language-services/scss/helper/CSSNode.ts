@@ -75,6 +75,7 @@ export enum NodeType {
 	MixinContentReference,
 	MixinContentDeclaration,
 	Media,
+	Scope,
 	Keyframe,
 	FontFace,
 	Import,
@@ -105,6 +106,15 @@ export enum NodeType {
 	Forward,
 	ForwardVisibility,
 	Module,
+	UnicodeRange,
+	Layer,
+	LayerNameList,
+	LayerName,
+	PropertyAtRule,
+	Container,
+	ModuleConfig,
+	SelectorList,
+	StartingStyleAtRule,
 }
 
 export enum ReferenceType {
@@ -117,6 +127,7 @@ export enum ReferenceType {
 	Module,
 	Forward,
 	ForwardVisibility,
+	Property
 }
 
 
@@ -206,7 +217,6 @@ export class Node {
 	public get type(): NodeType {
 		return this.nodeType || NodeType.Undefined;
 	}
-
 
 	private getTextProvider(): ITextProvider {
 		let node: Node | null = this;
@@ -423,6 +433,7 @@ export interface NodeConstructor<T> {
 }
 
 export class Nodelist extends Node {
+	private _nodeList!: void; // workaround for https://github.com/Microsoft/TypeScript/issues/12083
 
 	constructor(parent: Node, index: number = -1) {
 		super(-1, -1);
@@ -432,6 +443,35 @@ export class Nodelist extends Node {
 	}
 }
 
+export class UnicodeRange extends Node {
+
+	public rangeStart?: Node;
+	public rangeEnd?: Node;
+
+	constructor(offset: number, length: number) {
+		super(offset, length);
+	}
+
+	public get type(): NodeType {
+		return NodeType.UnicodeRange;
+	}
+
+	public setRangeStart(rangeStart: Node | null): rangeStart is Node {
+		return this.setNode('rangeStart', rangeStart);
+	}
+
+	public getRangeStart(): Node | undefined {
+		return this.rangeStart;
+	}
+
+	public setRangeEnd(rangeEnd: Node | null): rangeEnd is Node {
+		return this.setNode('rangeEnd', rangeEnd);
+	}
+
+	public getRangeEnd(): Node | undefined {
+		return this.rangeEnd;
+	}
+}
 
 export class Identifier extends Node {
 
@@ -463,6 +503,7 @@ export class Stylesheet extends Node {
 }
 
 export class Declarations extends Node {
+	private _declarations!: void; // workaround for https://github.com/Microsoft/TypeScript/issues/18276
 
 	constructor(offset: number, length: number) {
 		super(offset, length);
@@ -517,6 +558,7 @@ export class RuleSet extends BodyDeclaration {
 
 export class Selector extends Node {
 
+	private _selector!: void; // workaround for https://github.com/Microsoft/TypeScript/issues/12083
 
 	constructor(offset: number, length: number) {
 		super(offset, length);
@@ -529,6 +571,8 @@ export class Selector extends Node {
 }
 
 export class SimpleSelector extends Node {
+
+	private _simpleSelector!: void; // workaround for https://github.com/Microsoft/TypeScript/issues/12083
 
 	constructor(offset: number, length: number) {
 		super(offset, length);
@@ -693,7 +737,7 @@ export class Property extends Node {
 		return !!this.identifier && this.identifier.isCustomProperty;
 	}
 
-	public trim(str: string, regexp: RegExp): string {
+	private trim(str: string, regexp: RegExp): string {
 		const m = regexp.exec(str);
 		if (m && m[0].length) {
 			return str.substr(0, str.length - m[0].length);
@@ -1022,16 +1066,17 @@ export class Import extends Node {
 export class Use extends Node {
 
 	public identifier?: Identifier;
-	public parameters?: Nodelist;
+	public parameters?: Node;
 
 	public get type(): NodeType {
 		return NodeType.Use;
 	}
 
-	public getParameters(): Nodelist {
-		if (!this.parameters) {
-			this.parameters = new Nodelist(this);
-		}
+	public setParameters(value: Node | null): value is Node {
+		return this.setNode('parameters', value);
+	}
+
+	public getParameters(): Node | undefined {
 		return this.parameters;
 	}
 
@@ -1077,8 +1122,7 @@ export class ModuleConfiguration extends Node {
 export class Forward extends Node {
 
 	public identifier?: Node;
-	public members?: Nodelist;
-	public parameters?: Nodelist;
+	public parameters?: Node;
 
 	public get type(): NodeType {
 		return NodeType.Forward;
@@ -1092,17 +1136,11 @@ export class Forward extends Node {
 		return this.identifier;
 	}
 
-	public getMembers(): Nodelist {
-		if (!this.members) {
-			this.members = new Nodelist(this);
-		}
-		return this.members;
+	public setParameters(value: Node | null): value is Node {
+		return this.setNode('parameters', value);
 	}
 
-	public getParameters(): Nodelist {
-		if (!this.parameters) {
-			this.parameters = new Nodelist(this);
-		}
+	public getParameters(): Node | undefined {
 		return this.parameters;
 	}
 
@@ -1149,6 +1187,58 @@ export class Media extends BodyDeclaration {
 	}
 }
 
+export class Scope extends BodyDeclaration {
+	constructor(offset: number, length: number) {
+		super(offset, length);
+	}
+
+	public get type(): NodeType {
+		return NodeType.Scope;
+	}
+}
+
+export class ScopeLimits extends Node {
+	public scopeStart?: Node;
+	public scopeEnd?: Node;
+
+	constructor(offset: number, length: number) {
+		super(offset, length);
+	}
+
+	public get type(): NodeType {
+		return NodeType.Scope;
+	}
+
+	public getScopeStart(): Node | undefined {
+		return this.scopeStart;
+	}
+
+	public setScopeStart(right: Node | null): right is Node {
+		return this.setNode('scopeStart', right);
+	}
+
+	public getScopeEnd(): Node | undefined {
+		return this.scopeEnd;
+	}
+
+	public setScopeEnd(right: Node | null): right is Node {
+		return this.setNode('scopeEnd', right);
+	}
+
+	public getName(): string {
+		let name = ''
+
+		if (this.scopeStart) {
+			name += this.scopeStart.getText()
+		}
+		if (this.scopeEnd) {
+			name += `${this.scopeStart ? ' ' : ''}→ ${this.scopeEnd.getText()}`
+		}
+
+		return name
+	}
+}
+
 export class Supports extends BodyDeclaration {
 
 	constructor(offset: number, length: number) {
@@ -1160,6 +1250,65 @@ export class Supports extends BodyDeclaration {
 	}
 }
 
+export class Layer extends BodyDeclaration {
+
+	public names?: Node;
+
+	constructor(offset: number, length: number) {
+		super(offset, length);
+	}
+
+	public get type(): NodeType {
+		return NodeType.Layer;
+	}
+
+	public setNames(names: Node | null): names is Node {
+		return this.setNode('names', names);
+	}
+
+	public getNames(): Node | undefined {
+		return this.names;
+	}
+
+}
+
+export class PropertyAtRule extends BodyDeclaration {
+
+	private name: Identifier | undefined;
+
+	constructor(offset: number, length: number) {
+		super(offset, length);
+	}
+
+	public get type(): NodeType {
+		return NodeType.PropertyAtRule;
+	}
+
+	public setName(node: Identifier | undefined | null): node is Identifier {
+		if (node) {
+			node.attachTo(this);
+			this.name = node;
+			return true;
+		}
+		return false;
+	}
+
+	public getName(): Identifier | undefined {
+		return this.name;
+	}
+
+}
+
+export class StartingStyleAtRule extends BodyDeclaration {
+
+	constructor(offset: number, length: number) {
+		super(offset, length);
+	}
+
+	get type(): NodeType {
+		return NodeType.StartingStyleAtRule;
+	}
+}
 
 export class Document extends BodyDeclaration {
 
@@ -1172,18 +1321,20 @@ export class Document extends BodyDeclaration {
 	}
 }
 
-export class Medialist extends Node {
-	private mediums?: Nodelist;
+export class Container extends BodyDeclaration {
 
 	constructor(offset: number, length: number) {
 		super(offset, length);
 	}
 
-	public getMediums(): Nodelist {
-		if (!this.mediums) {
-			this.mediums = new Nodelist(this);
-		}
-		return this.mediums;
+	public get type(): NodeType {
+		return NodeType.Container;
+	}
+}
+
+export class Medialist extends Node {
+	constructor(offset: number, length: number) {
+		super(offset, length);
 	}
 }
 
@@ -1260,6 +1411,8 @@ export class PageBoxMarginBox extends BodyDeclaration {
 }
 
 export class Expression extends Node {
+
+	private _expression!: void; // workaround for https://github.com/Microsoft/TypeScript/issues/12083
 
 	constructor(offset: number, length: number) {
 		super(offset, length);
@@ -1400,6 +1553,8 @@ export class Operator extends Node {
 }
 
 export class HexColorValue extends Node {
+	private _hexColorValue!: void; // workaround for https://github.com/Microsoft/TypeScript/issues/18276
+
 	constructor(offset: number, length: number) {
 		super(offset, length);
 	}
@@ -1456,8 +1611,8 @@ export class NumericValue extends Node {
 
 export class VariableDeclaration extends AbstractDeclaration {
 
-	private variable: Variable | null = null;
-	private value: Node | null = null;
+	private variable: Variable | undefined;
+	private value: Node | undefined;
 	public needsSemicolon: boolean = true;
 
 	constructor(offset: number, length: number) {
@@ -1468,7 +1623,7 @@ export class VariableDeclaration extends AbstractDeclaration {
 		return NodeType.VariableDeclaration;
 	}
 
-	public setVariable(node: Variable | null): node is Variable {
+	public setVariable(node: Variable | undefined | null): node is Variable {
 		if (node) {
 			node.attachTo(this);
 			this.variable = node;
@@ -1477,7 +1632,7 @@ export class VariableDeclaration extends AbstractDeclaration {
 		return false;
 	}
 
-	public getVariable(): Variable | null {
+	public getVariable(): Variable | undefined {
 		return this.variable;
 	}
 
@@ -1485,7 +1640,7 @@ export class VariableDeclaration extends AbstractDeclaration {
 		return this.variable ? this.variable.getName() : '';
 	}
 
-	public setValue(node: Node | null): node is Node {
+	public setValue(node: Node | undefined | null): node is Node {
 		if (node) {
 			node.attachTo(this);
 			this.value = node;
@@ -1494,7 +1649,7 @@ export class VariableDeclaration extends AbstractDeclaration {
 		return false;
 	}
 
-	public getValue(): Node | null {
+	public getValue(): Node | undefined {
 		return this.value;
 	}
 }
@@ -1577,7 +1732,7 @@ export class MixinContentDeclaration extends BodyDeclaration {
 	}
 
 	public get type(): NodeType {
-		return NodeType.MixinContentReference;
+		return NodeType.MixinContentDeclaration;
 	}
 
 	public getParameters(): Nodelist {
@@ -1644,6 +1799,7 @@ export class MixinDeclaration extends BodyDeclaration {
 
 	public identifier?: Identifier;
 	private parameters?: Nodelist;
+	private guard?: LessGuard;
 
 	constructor(offset: number, length: number) {
 		super(offset, length);
@@ -1675,6 +1831,7 @@ export class MixinDeclaration extends BodyDeclaration {
 	public setGuard(node: LessGuard | null): boolean {
 		if (node) {
 			node.attachTo(this);
+			this.guard = node;
 		}
 		return false;
 	}
@@ -1719,7 +1876,6 @@ export class ListEntry extends Node {
 
 export class LessGuard extends Node {
 
-	public isNegated?: boolean;
 	private conditions?: Nodelist;
 
 	public getConditions(): Nodelist {
@@ -1732,6 +1888,7 @@ export class LessGuard extends Node {
 
 export class GuardCondition extends Node {
 
+	public isNegated?: boolean;
 	public variable?: Node;
 	public isEquals?: boolean;
 	public isGreater?: boolean;

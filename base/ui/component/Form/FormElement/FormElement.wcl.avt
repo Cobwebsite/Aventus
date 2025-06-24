@@ -1,0 +1,132 @@
+import type { IFormElement, InternalFormPart } from "../Form/FormType.lib.avt";
+
+namespace Form {
+    export abstract class FormElement<T> extends Aventus.WebComponent implements Aventus.DefaultComponent, IFormElement<T> {
+
+        //#region static
+
+        //#endregion
+
+
+        //#region props
+        @Attribute()
+        protected has_errors!: boolean;
+        //#endregion
+
+
+        //#region variables
+        /**
+         * Value for the current form element
+         */
+        @Watch()
+        public value: T | undefined;
+
+        /**
+         * List of errors. You must display errors in child component
+         */
+        @Watch((target: FormElement<T>) => {
+            target.has_errors = target.errors.length > 0;
+        })
+        public errors: string[] = [];
+
+        private _form?: InternalFormPart<T>;
+
+        @Injectable()
+        public get form(): InternalFormPart<T> | undefined {
+            return this._form;
+        }
+        public set form(value: InternalFormPart<T> | undefined) {
+            this.unlinkFormPart();
+            this._form = value;
+            this.linkFormPart();
+        }
+        //#endregion
+
+
+        //#region constructor
+
+        //#endregion
+
+        //#region events
+        public onChange: Aventus.Callback<(value: T | undefined) => void> = new Aventus.Callback();
+        //#endregion
+
+
+        //#region methods
+        @BindThis()
+        protected refreshValueFromForm() {
+            if(this._form) {
+                this.errors = [];
+                this.value = this._form.value.get();
+            }
+        }
+
+        protected unlinkFormPart() {
+            if(this._form) {
+                this._form.unregister(this);
+                this._form.onValueChange.remove(this.refreshValueFromForm);
+                this._form.onValidation.remove(this.onFormValidation);
+            }
+        }
+        protected linkFormPart() {
+            if(this._form) {
+                this._form.register(this);
+                this._form.onValueChange.add(this.refreshValueFromForm);
+                this._form.onValidation.add(this.onFormValidation);
+                this.refreshValueFromForm();
+            }
+            else {
+                this.value = undefined;
+            }
+        }
+
+        @BindThis()
+        public async onFormValidation(errors: string[]): Promise<string[]> {
+            debugger
+            const _errors = await this.validation();
+            for(let error of errors) {
+                if(_errors.includes(error)) {
+                    _errors.push(error);
+                }
+            }
+            this.errors = _errors;
+            return this.errors;
+        }
+
+
+        public async validate(): Promise<boolean> {
+            if(!this.form) {
+                this.errors = await this.validation();
+                return this.errors.length == 0;
+            }
+            return await this.form.test();
+        }
+
+        /**
+         * Define your customs validations rules
+         */
+        protected abstract validation(): Promise<string[]>;
+
+        /**
+         * 
+         */
+        protected clearErrors() {
+            this.errors = [];
+        }
+
+        protected triggerChange(value: T | undefined) {
+            this.value = value;
+            this.onChange.trigger(this.value);
+            if(this.form) {
+                this.form.value.set(this.value);
+            }
+        }
+
+        protected override postDestruction(): void {
+            super.postDestruction();
+            this.unlinkFormPart();
+        }
+        //#endregion
+
+    }
+}

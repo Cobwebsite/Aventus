@@ -1,0 +1,45 @@
+namespace Form {
+    export class Button extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+        //#region static
+
+        //#endregion
+
+
+        //#region props
+        @Attribute()
+        public round!: boolean;
+        @Attribute()
+        public loading!: boolean;
+        @Attribute()
+        public disabled!: boolean;
+        @Attribute()
+        public outline!: boolean;
+        @Attribute()
+        public ghost!: boolean;
+        @Attribute()
+        public color?: 'primary' | 'secondary' | 'danger' | 'neutral';
+        @Attribute()
+        public size?: 'sm' | 'md';
+
+        @Property()
+        public icon?: string;
+        //#endregion
+
+
+        //#region variables
+
+        //#endregion
+
+
+        //#region constructor
+
+        //#endregion
+
+
+        //#region methods
+
+        //#endregion
+
+    }
+}

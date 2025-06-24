@@ -24,7 +24,7 @@ namespace Form {
         validateOnChange?: boolean,
 
         onValueChange: Aventus.Callback<() => void>,
-        onValidation: Aventus.Callback<(errors: string[]) => Aventus.Asyncable<string[]>, Aventus.Asyncable<string[]>>,
+        onValidation: Aventus.Callback<(errors: string[]) => Promise<string[]>, Promise<string[]>>,
         register: (element: IFormElement) => void;
         unregister: (element: IFormElement) => void;
         test: () => Promise<boolean>;

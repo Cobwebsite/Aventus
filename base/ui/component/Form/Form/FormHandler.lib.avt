@@ -1,4 +1,4 @@
-import { isSubclassOf, type Constructor, type FormHandlerConfig, type FormPart, type FormPartValidate, type FormSchema, type FormValidate, type FormValidateResult, type IFormElement, type InternalForm, type InternalFormPart, type WithError } from "./FormType.lib.avt";
+import { type Constructor, type FormHandlerConfig, type FormPart, type FormPartValidate, type FormSchema, type FormValidate, type FormValidateResult, type IFormElement, type InternalForm, type InternalFormPart, type WithError } from "./FormType.lib.avt";
 import { Validator } from "./Validator.lib.avt";
 
 namespace Form {
@@ -6,7 +6,7 @@ namespace Form {
 
     export class FormHandler<T> {
 
-
+        @Internal()
         public static _globalConfig?: FormHandlerConfig;
 
         private __watcher: any;
@@ -150,20 +150,20 @@ namespace Form {
             if(path == "item") {
                 for(let key in this.parts) {
                     let formPart = this.parts[key] as InternalFormPart;
-                    formPart.onValueChange.trigger([]);
+                    formPart.onValueChange.trigger();
                 }
             }
             else if(path.startsWith("item.")) {
                 let key = path.substring("item.".length);
                 if(this.parts[key]) {
                     let formPart = this.parts[key] as InternalFormPart;
-                    formPart.onValueChange.trigger([]);
+                    formPart.onValueChange.trigger();
                     const validateOnChange = formPart.validateOnChange === undefined ? this._validateOnChange : formPart.validateOnChange;
                     if(validateOnChange) {
                         this.validate(key);
                     }
                 }
-                this.onItemChange.trigger([action, key, value]);
+                this.onItemChange.trigger(action, key, value);
             }
         }
         private async _validate(key: string | undefined): Promise<{ [key: string]: string[]; }> {
@@ -199,21 +199,24 @@ namespace Form {
                             let result = await formPart.validate(value, global);
                             resultToError(result);
 
-                            const proms = formPart.onValidation.trigger([errorsForm]);
-                            // const errors2d = await Promise.all(proms);
-                            // const errors: string[] = [];
-                            // for(let errorsTemp of errors2d) {
-                            //     for(let errorTemp of errorsTemp) {
-                            //         if(!errors.includes(errorTemp)) {
-                            //             errors.push(errorTemp);
-                            //         }
-                            //     }
-                            // }
+
                         }
                         else if(this._globalValidation) {
                             const result = await this._globalValidation(key, value);
                             resultToError(result);
                         }
+
+                        const proms = formPart.onValidation.trigger(errorsForm);
+                        const errors2d = await Promise.all(proms);
+                        const errors: string[] = [];
+                        for(let errorsTemp of errors2d) {
+                            for(let errorTemp of errorsTemp) {
+                                if(!errors.includes(errorTemp)) {
+                                    errors.push(errorTemp);
+                                }
+                            }
+                        }
+                        errorsForm = errors;
                     }
                     return errorsForm.length == 0 ? {} : { [key]: errorsForm };
                 }
@@ -252,23 +255,22 @@ namespace Form {
             let queryResult = await query;
 
             if(queryResult.errors.length > 0) {
-
-                if(noPrintErrors.length > 0 && this._handleExecuteNoInputError) {
-                    this._handleExecuteNoInputError(noPrintErrors);
+                queryResult.errors = this.parseErrors(queryResult);
+                if(queryResult.errors.length > 0 && this._handleExecuteNoInputError) {
+                    this._handleExecuteNoInputError(queryResult.errors);
                 }
-                queryResult.errors = noPrintErrors;
             }
             return queryResult;
         }
 
-        public parseErrors(queryResult: WithError<X>) : Aventus.GenericError[] {
+        public parseErrors<X>(queryResult: WithError<X>): Aventus.GenericError[] {
             let noPrintErrors: Aventus.GenericError[] = [];
             const elements = this.elements;
             for(let error of queryResult.errors) {
                 if(error.details) {
                     let found = false;
                     for(let detail of error.details) {
-                        if(detail instanceof AventusSharp.Data.FieldErrorInfo) {
+                        if(Object.hasOwn(detail, "Name")) {
                             if(elements[detail.Name]) {
                                 for(const element of elements[detail.Name]) {
                                     element.errors.push(error.message);
@@ -284,6 +286,7 @@ namespace Form {
                 }
                 noPrintErrors.push(error);
             }
+            return noPrintErrors;
         }
     }
 }

@@ -21,7 +21,7 @@
     "static": [
         {
             "name": "static",
-            "input": "./static/",
+            "input": "./static/*",
             "output": "../dist/"
         }
     ]

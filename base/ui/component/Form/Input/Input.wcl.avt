@@ -1,7 +1,8 @@
-import type { FormElement } from "../Form/FormElement.lib.avt";
+import { Email } from "../Form/Validator/Email.lib.avt";
+import { FormElement } from "../FormElement/FormElement.wcl.avt";
 
 namespace Form {
-    export class Input extends Aventus.WebComponent implements Aventus.DefaultComponent, FormElement<string> {
+    export class Input extends FormElement<string> implements Aventus.DefaultComponent {
 
         //#region static
 
@@ -9,54 +10,25 @@ namespace Form {
 
 
         //#region props
-        /**
-         * @inheritdoc
-         */
-        @Property((target: Input) => {
-            target.onAttrChange();
-        })
-        public value: string = "";
-        /**
-         * 
-         */
         @Property()
-        public label: string = "";
-        /**
-         * Determine if the field is required
-         */
-        @Attribute()
-        public required!: boolean;
+        public type: string = "text";
 
-        /**
-         * Determine if the fields is disabled
-         */
-        @Attribute()
-        public disabled!: boolean;
+        @Property()
+        public placeholder?: string;
 
+        @Property()
+        public label?: string;
 
-        @Attribute()
-        public min_length!: number;
-
-        @Attribute()
-        public max_length!: number;
-
-        @Attribute()
-        public pattern?: string;
+        @Property((target: Input) => {
+            target.inputEl.value = target.value ?? "";
+        })
+        public override value: string = "";
         //#endregion
 
 
         //#region variables
         @ViewElement()
-        protected errorEl!: HTMLDivElement;
-        @ViewElement()
         protected inputEl!: HTMLInputElement;
-
-        private customValidationRules: ((value: string) => boolean | { success: boolean, error: string; })[] = [];
-        //#endregion
-
-
-        //#region states
-
         //#endregion
 
 
@@ -69,99 +41,23 @@ namespace Form {
         /**
          * @inheritdoc
          */
-        public onChange: Aventus.Callback<(value: string) => void> = new Aventus.Callback();
-
-        protected onAttrChange() {
-            if(this.inputEl && this.inputEl.value != this.value) {
-                this.inputEl.value = this.value;
+        protected override async validation(): Promise<string[]> {
+            const result: string[] = [];
+            if(this.type == "email") {
+                if(this.value.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,4}\b/) == null) {
+                    result.push("L'email n'est pas valide");
+                }
             }
-            this.validate();
-        }
-        protected inputChange() {
-            this.validate();
-            if(this.inputEl && this.inputEl.value != this.value) {
-                this.value = this.inputEl.value;
-                this.onChange.trigger(this.value);
-            }
+            return result;
         }
 
-        public addValidationRule(cb: (value: string) => boolean | { success: boolean, error: string; }) {
-            if(this.customValidationRules.includes(cb)) {
-                this.customValidationRules.push(cb);
-            }
-        }
-        public removeValidationRule(cb: (value: string) => boolean | { success: boolean, error: string; }) {
-            let index = this.customValidationRules.indexOf(cb);
-            if(index > -1) {
-                this.customValidationRules.slice(index, 1);
-            }
-        }
-
-        private errors: string[] = [];
-        public addError(msg: string) {
-            this.errors.push(msg);
-        }
-        public clearErrors() {
-            this.errors = [];
-            this.printErrors();
-        }
-        public printErrors() {
-            if(this.errorEl) {
-                this.errorEl.innerHTML = this.errors.join("<br />");
-            }
-        }
         /**
-         * @inheritdoc
+         * 
          */
-        public validate(): boolean {
-            this.errors = [];
-            if(!this.isReady) {
-                return false;
-            }
-            if(this.disabled) {
-                return true;
-            }
-            if(this.required) {
-                if(!this.value) {
-                    this.addError("The field is required");
-                    this.printErrors();
-                    return false;
-                }
-            }
-
-            if(this.min_length) {
-                if(this.value.length < this.min_length) {
-                    this.addError("The length must be at least " + this.min_length + " characters");
-                }
-            }
-            if(this.max_length) {
-                if(this.value.length > this.max_length) {
-                    this.addError("The length must be less thant " + this.max_length + " characters");
-                }
-            }
-            if(this.pattern) {
-                let reg = new RegExp(this.pattern);
-                if(!this.value.match(reg)) {
-                    this.addError("The field isn't valide");
-                }
-            }
-
-            for(let fct of this.customValidationRules) {
-                let result = fct(this.value);
-                if(result instanceof Object) {
-                    if(!result.success) {
-                        this.addError(result.error);
-                    }
-                }
-                else if(!result) {
-                    this.addError("The field isn't valide");
-                }
-            }
-            this.printErrors();
-            return this.errors.length == 0;
+        protected onValueChange() {
+            this.triggerChange(this.inputEl.value);
         }
-
         //#endregion
 
-    }
+	}
 }

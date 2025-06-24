@@ -1,5 +1,19 @@
-<input id="input" @element="inputEl" @blur="validate" @focus="clearErrors" @input="inputChange" />
-<label for="input">{{this.label}}</label>
-<div class="grid">
-	<div @element="errorEl" class="error"></div>
+<label for="input" class="label">{{ this.label }}</label>
+
+<div class="wrapper">
+    <div class="before">
+        <slot name="before"></slot>
+    </div>
+
+    <input @element="inputEl" type="{{ this.type }}" id="input" class="input" placeholder="{{ this.placeholder }}" @focus="clearErrors" @input="onValueChange" />
+
+    <div class="after">
+        <slot name="after"></slot>
+    </div>
+</div>
+
+<div class="errors">
+    for(let error of this.errors) {
+        <div>{{ error }}</div>
+    }
 </div>
