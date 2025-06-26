@@ -29,20 +29,19 @@ namespace Form {
         unregister: (element: IFormElement) => void;
         test: () => Promise<boolean>;
     };
-    export type FormSchema<T> = { [K in keyof T]: FormPart<T[K]> };
+    export type FormSchema<T> = { [K in keyof T]: FormPart<T[K]> | FormPartValidateList<T> };
+
+    export type FormPartValidateList<T> = FormPartValidate<T> | Constructor<Validator<T>> | Validator<T> | (
+        Constructor<Validator<T>> |
+        Validator<T>
+    )[];
 
     export interface FormPart<T = any> {
         /**
          * A validation function for the form part.
          */
-        validate?:
-        FormPartValidate<T> |
-        Constructor<Validator<T>> |
-        Validator<T> |
-        (
-            Constructor<Validator<T>> |
-            Validator<T>
-        )[];
+        validate?: FormPartValidateList<T>
+
         /**
          * Indicates whether validation should be performed on value change.
          */
@@ -61,14 +60,14 @@ namespace Form {
      * The function takes a value of type T or undefined and returns a FormValidateResult.
      */
 
-    export type FormPartValidate<T> = (value: T | undefined, globalValidation: () => Promise<void>) => FormValidateResult;
+    export type FormPartValidate<T> = (value: T | undefined, name: string, globalValidation: () => Promise<void>) => FormValidateResult;
 
     export type FormValidate = (field: string, value: unknown) => FormValidateResult;
 
-    export type FormHandlerConfig = {
+    export type FormHandlerConfig<T> = {
         validate?: FormValidate,
         validateOnChange?: boolean,
-        handleValidateNoInputError?: (errors: { [key: string]: string[]; }) => any,
+        handleValidateNoInputError?: (errors: { [K in keyof T]?: string[]; }) => any,
         handleExecuteNoInputError?: (errors: Aventus.GenericError[]) => any;
     };
 

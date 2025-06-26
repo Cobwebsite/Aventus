@@ -23,6 +23,8 @@ namespace Form {
             target.inputEl.value = target.value ?? "";
         })
         public override value: string = "";
+
+        private focusValue: string = "";
         //#endregion
 
 
@@ -44,11 +46,22 @@ namespace Form {
         protected override async validation(): Promise<string[]> {
             const result: string[] = [];
             if(this.type == "email") {
-                if(this.value.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,4}\b/) == null) {
+                if(this.value && this.value.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,4}\b/) == null) {
                     result.push("L'email n'est pas valide");
                 }
             }
             return result;
+        }
+
+        protected onFocus() {
+            this.clearErrors();
+            this.focusValue = this.inputEl.value;
+        }
+
+        protected onBlur() {
+            if(this.inputEl.value == this.focusValue) {
+                this.validate();
+            }
         }
 
         /**

@@ -6831,13 +6831,13 @@ Form.FormHandler=class FormHandler {
         return { ...this._elements };
     }
     _globalValidation;
-    _validateOnChange;
+    _validateOnChange = false;
     _handleValidateNoInputError;
     _handleExecuteNoInputError;
     onItemChange = new Aventus.Callback();
     constructor(schema, config) {
         this._globalValidation = config?.validate ?? Form.FormHandler._globalConfig?.validate;
-        this._validateOnChange = config?.validateOnChange ?? Form.FormHandler._globalConfig?.validateOnChange;
+        this._validateOnChange = config?.validateOnChange ?? Form.FormHandler._globalConfig?.validateOnChange ?? false;
         this._handleValidateNoInputError = config?.handleValidateNoInputError ?? Form.FormHandler._globalConfig?.handleValidateNoInputError;
         this._handleExecuteNoInputError = config?.handleExecuteNoInputError ?? Form.FormHandler._globalConfig?.handleExecuteNoInputError;
         this.onWatcherChanged = this.onWatcherChanged.bind(this);
@@ -6848,8 +6848,33 @@ Form.FormHandler=class FormHandler {
     }
     transformForm(form) {
         const result = form;
+        const normalizePart = (part) => {
+            let needTransform = true;
+            if (typeof part == 'object' && !Array.isArray(part)) {
+                const keys = Object.keys(part);
+                const keysAllows = ['validate', 'validateOnChange'];
+                let isValid = true;
+                for (let i = 0; i < keys.length; i++) {
+                    const allows = keysAllows;
+                    if (!allows.includes(keys[i])) {
+                        isValid = false;
+                        break;
+                    }
+                }
+                if (isValid) {
+                    needTransform = false;
+                }
+            }
+            if (needTransform) {
+                return {
+                    validate: part
+                };
+            }
+            return part;
+        };
         const createKey = (key) => {
-            this.transformFormPart(key, result[key]);
+            form[key] = normalizePart(form[key]);
+            this.transformFormPart(key, form[key]);
         };
         for (let key in result) {
             createKey(key);
@@ -6878,10 +6903,10 @@ Form.FormHandler=class FormHandler {
                         fcts.push(resultTemp.validate);
                     }
                 }
-                validate = async (value, globalFct) => {
+                validate = async (value, name, globalFct) => {
                     let result = [];
                     for (let fct of fcts) {
-                        const temp = await fct(value, globalFct);
+                        const temp = await fct(value, name, globalFct);
                         if (temp === false) {
                             result.push('Le champs n\'est pas valide');
                         }
@@ -6918,11 +6943,13 @@ Form.FormHandler=class FormHandler {
             this._elements[key] = [];
         }
         realPart.register = (el) => {
-            if (!this._elements[key].includes(el)) {
+            if (this._elements[key] && !this._elements[key].includes(el)) {
                 this._elements[key].push(el);
             }
         };
         realPart.unregister = (el) => {
+            if (!this._elements[key])
+                return;
             const index = this._elements[key].indexOf(el);
             if (index != -1) {
                 this._elements[key].splice(index, 1);
@@ -6936,6 +6963,7 @@ Form.FormHandler=class FormHandler {
                 return Aventus.setValueToObject(key, this.item, value);
             }
         };
+        return;
     }
     async onWatcherChanged(action, path, value) {
         if (!this.parts)
@@ -6986,7 +7014,7 @@ Form.FormHandler=class FormHandler {
                                 resultToError(result);
                             }
                         };
-                        let result = await formPart.validate(value, global);
+                        let result = await formPart.validate(value, key, global);
                         resultToError(result);
                     }
                     else if (this._globalValidation) {
@@ -7112,7 +7140,8 @@ Form.Input = class Input extends Form.FormElement {
     set 'type'(val) { this.setStringAttr('type', val) }get 'placeholder'() { return this.getStringProp('placeholder') }
     set 'placeholder'(val) { this.setStringAttr('placeholder', val) }get 'label'() { return this.getStringProp('label') }
     set 'label'(val) { this.setStringAttr('label', val) }get 'value'() { return this.getStringProp('value') }
-    set 'value'(val) { this.setStringAttr('value', val) }    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("value", ((target) => {
+    set 'value'(val) { this.setStringAttr('value', val) }    focusValue = "";
+    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("value", ((target) => {
     target.inputEl.value = target.value ?? "";
 })); }
     static __style = `:host{display:flex;flex-direction:column;gap:var(--space-2);width:100%}:host .label{color:var(--color-text);font-size:var(--text-sm);font-weight:500;display:none}:host .wrapper{align-items:center;background-color:var(--color-bg-muted);border:var(--border-width) solid var(--border-color);border-radius:var(--border-radius-md);box-shadow:var(--shadow-xs);display:flex;padding:0 var(--space-3);position:relative;transition:border-color var(--transition-fast),box-shadow var(--transition-fast)}:host .wrapper .input{background:rgba(0,0,0,0);border:none;color:var(--color-text);flex:1;font-family:var(--font-sans);font-size:var(--text-base);outline:none;padding:var(--space-2) 0}:host .wrapper .before,:host .wrapper .after{align-items:center;color:var(--color-text-muted);display:flex}:host .wrapper .before{margin-right:var(--space-2)}:host .wrapper .after{margin-left:var(--space-2)}:host .wrapper:focus-within{border-color:var(--color-primary);box-shadow:0 0 0 1px var(--color-primary)}:host .errors{color:var(--color-error);display:none;font-size:var(--text-sm);margin-top:var(--space-1)}:host([label]:not([label=""])) .label{display:flex}:host([has_errors]) .wrapper{border-color:var(--color-error)}:host([has_errors]) .wrapper:focus-within{box-shadow:0 0 0 1px var(--color-error)}:host([has_errors]) .errors{display:block}`;
@@ -7157,7 +7186,12 @@ Form.Input = class Input extends Form.FormElement {
     {
       "eventName": "focus",
       "id": "input_1",
-      "fct": (e, c) => c.comp.clearErrors(e)
+      "fct": (e, c) => c.comp.onFocus(e)
+    },
+    {
+      "eventName": "blur",
+      "id": "input_1",
+      "fct": (e, c) => c.comp.onBlur(e)
     },
     {
       "eventName": "input",
@@ -7184,11 +7218,20 @@ Form.Input = class Input extends Form.FormElement {
     async validation() {
         const result = [];
         if (this.type == "email") {
-            if (this.value.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,4}\b/) == null) {
+            if (this.value && this.value.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,4}\b/) == null) {
                 result.push("L'email n'est pas valide");
             }
         }
         return result;
+    }
+    onFocus() {
+        this.clearErrors();
+        this.focusValue = this.inputEl.value;
+    }
+    onBlur() {
+        if (this.inputEl.value == this.focusValue) {
+            this.validate();
+        }
     }
     onValueChange() {
         this.triggerChange(this.inputEl.value);

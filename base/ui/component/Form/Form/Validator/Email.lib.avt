@@ -1,17 +1,20 @@
-import type { FormValidateResult } from "../FormType.lib.avt";
 import { Validator } from "../Validator.lib.avt";
 
 namespace Form.Validators {
-	export class Email extends Validator<string> {
+    export class Email extends Validator<string> {
+        public static msg: string = "Merci de saisir un email valide";
         /**
          * @inheritdoc
          */
-        public override validate(value: string | undefined, globalValidation: () => Promise<void>): FormValidateResult {
-            if(value && typeof value == "string") {
-            	return value.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,4}\b/) != null;
+        public override validate(value: string | undefined, name: string, globalValidation: () => Promise<void>): boolean | string {
+            if(typeof value == "string" && value) {
+                if(value.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}\b/) != null) {
+                    return true;
+                }
+                return Email.msg;
             }
             return true;
         }
 
-	}
+    }
 }

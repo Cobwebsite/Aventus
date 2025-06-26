@@ -5,7 +5,7 @@
         <slot name="before"></slot>
     </div>
 
-    <input @element="inputEl" type="{{ this.type }}" id="input" class="input" placeholder="{{ this.placeholder }}" @focus="clearErrors" @input="onValueChange" />
+    <input @element="inputEl" type="{{ this.type }}" id="input" class="input" placeholder="{{ this.placeholder }}" @focus="onFocus" @blur="onBlur" @input="onValueChange" />
 
     <div class="after">
         <slot name="after"></slot>

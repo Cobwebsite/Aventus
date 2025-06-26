@@ -82,11 +82,15 @@ namespace Form {
 
         @BindThis()
         public async onFormValidation(errors: string[]): Promise<string[]> {
-            debugger
-            const _errors = await this.validation();
-            for(let error of errors) {
-                if(_errors.includes(error)) {
-                    _errors.push(error);
+            let _errors = await this.validation();
+            if(_errors.length == 0) {
+                _errors = errors;
+            }
+            else if(errors.length > 0) {
+                for(let error of errors) {
+                    if(!_errors.includes(error)) {
+                        _errors.push(error);
+                    }
                 }
             }
             this.errors = _errors;
