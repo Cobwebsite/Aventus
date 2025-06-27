@@ -1,0 +1,10 @@
+<div class="ruler-top"></div>
+<div class="ruler-left"></div>
+<div class="grid" @element="gridEl">
+    <div class="cols" @element="colsEl"></div>
+    <div class="rows" @element="rowsEl"></div>
+</div>
+<div class="guides">
+    <div class="guide guide-x"></div>
+    <div class="guide guide-y"></div>
+</div>

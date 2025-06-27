@@ -1,0 +1,125 @@
+:host {
+	display: none;
+	inset: 0;
+	pointer-events: none;
+	position: fixed;
+	z-index: 9999;
+
+	.guide-x {
+		background-color: #c7c7c7;
+		cursor: ns-resize;
+		height: 2px;
+		left: 0;
+		pointer-events: all;
+		position: absolute;
+		top: 50px;
+		width: 100%;
+	}
+
+	.guide-y {
+		background-color: #c7c7c7;
+		cursor: ew-resize;
+		height: 100%;
+		left: 50px;
+		pointer-events: all;
+		position: absolute;
+		top: 0px;
+		width: 2px;
+	}
+
+	.grid {
+		inset: 0;
+		position: absolute;
+
+		.cols,
+		.rows {
+			display: flex;
+			inset: 0;
+			position: absolute;
+		}
+
+		.rows {
+			flex-direction: column;
+		}
+
+		.col {
+			flex-shrink: 0;
+			height: 100%;
+			position: relative;
+			width: var(--local-col-width);
+
+			&::after {
+				background-color: #e78181;
+				content: "";
+				height: 100%;
+				position: absolute;
+				right: -1px;
+				top: 0;
+				width: 2px;
+			}
+		}
+
+		.col:last-child {
+			&::after {
+				display: none;
+			}
+		}
+
+		.row {
+			flex-shrink: 0;
+			height: var(--local-row-height);
+			position: relative;
+			width: 100%;
+
+			&::after {
+				background-color: #e78181;
+				bottom: -1px;
+				content: "";
+				height: 2px;
+				left: 0;
+				position: absolute;
+				width: 100%;
+			}
+		}
+
+		.row:last-child {
+			&::after {
+				display: none;
+			}
+		}
+	}
+
+	.ruler-top {
+		background-color: white;
+		height: 20px;
+		position: absolute;
+		top: 0;
+		width: 100%;
+		z-index: 3;
+
+		&::after {
+			bottom: 0;
+			box-shadow: 5px 0 5px #818181;
+			content: "";
+			height: 100%;
+			left: 20px;
+			pointer-events: none;
+			position: absolute;
+			width: calc(100% - 20px);
+		}
+	}
+
+	.ruler-left {
+		background-color: white;
+		box-shadow: 0px 5px 5px #818181;
+		height: calc(100% - 20px);
+		position: absolute;
+		top: 20px;
+		width: 20px;
+		z-index: 2;
+	}
+}
+
+:host([visible]) {
+	display: block;
+}

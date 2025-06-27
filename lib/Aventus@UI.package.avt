@@ -129,6 +129,36 @@ class Tracker {
     private getPosition;
 }
 
+namespace Lib {
+enum SpecialTouch {
+    Backspace = 0,
+    Insert = 1,
+    End = 2,
+    PageDown = 3,
+    PageUp = 4,
+    Escape = 5,
+    AltGraph = 6,
+    Control = 7,
+    Alt = 8,
+    Shift = 9,
+    CapsLock = 10,
+    Tab = 11,
+    Delete = 12,
+    ArrowRight = 13,
+    ArrowLeft = 14,
+    ArrowUp = 15,
+    ArrowDown = 16,
+    Enter = 17
+}
+}
+
+namespace Lib {
+interface ShortcutManagerOptions {
+    replaceTemp?: boolean;
+    preventDefault?: boolean;
+}
+}
+
 namespace Layout {
 class GridCol extends Aventus.WebComponent implements Aventus.DefaultComponent {
     @Attribute()

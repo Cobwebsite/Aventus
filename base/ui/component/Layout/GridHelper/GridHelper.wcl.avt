@@ -1,0 +1,140 @@
+import { ShortcutManager, SpecialTouch } from "../../../lib/ShortcutManager.lib.avt";
+
+namespace Layout {
+    export class GridHelper extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+        //#region static
+
+        //#endregion
+
+
+        //#region props
+        @Property()
+        public nb_col: number = 0;
+
+        @Property((target: GridHelper) => {
+
+        })
+        public nb_row: number = 0;
+
+        @Property()
+        public col_width: number = 200;
+        @Property((target: GridHelper) => {
+
+        })
+        public row_height: number = 200;
+
+        @Attribute()
+        public show_rulers!: boolean;
+
+        @Attribute()
+        public visible: boolean = true;
+        //#endregion
+
+
+        //#region variables
+        @ViewElement()
+        protected gridEl!: HTMLDivElement;
+        @ViewElement()
+        protected colsEl!: HTMLDivElement;
+        @ViewElement()
+        protected rowsEl!: HTMLDivElement;
+        //#endregion
+
+
+        //#region constructor
+
+        //#endregion
+
+
+        //#region methods
+        protected draw() {
+            let nbCol = 0;
+            if(this.nb_col) {
+                this.gridEl.style.setProperty('--local-col-width', `calc(100% / ${this.nb_col})`);
+                nbCol = this.nb_col;
+            }
+            else {
+                let width = this.col_width == 0 ? 16 : this.col_width;
+                this.gridEl.style.setProperty('--local-col-width', width + 'px');
+                nbCol = Math.ceil(this.offsetWidth / width);
+            }
+            if(this.colsEl.children.length != nbCol) {
+                this.colsEl.innerHTML = '';
+                for(let i = 0; i < nbCol; i++) {
+                    const col = document.createElement("DIV");
+                    col.classList.add('col');
+                    this.colsEl.appendChild(col);
+                }
+            }
+
+            let nbRow = 0;
+            if(this.nb_row) {
+                this.gridEl.style.setProperty('--local-row-height', `calc(100% / ${this.nb_row})`);
+                nbRow = this.nb_row;
+            }
+            else {
+                let height = this.row_height == 0 ? 16 : this.row_height;
+                this.gridEl.style.setProperty('--local-row-height', height + 'px');
+                nbRow = Math.ceil(this.offsetHeight / height);
+            }
+            if(this.rowsEl.children.length != nbRow) {
+                this.rowsEl.innerHTML = '';
+                for(let i = 0; i < nbRow; i++) {
+                    const row = document.createElement("DIV");
+                    row.classList.add('row');
+                    this.rowsEl.appendChild(row);
+                }
+            }
+        }
+
+
+        protected addShortCut() {
+            let isKActive = false;
+            let timeout: number = 0;
+            ShortcutManager.subscribe([SpecialTouch.Control, 'k'], () => {
+                isKActive = true;
+                clearTimeout(timeout);
+                timeout = setTimeout(() => {
+                    isKActive = false;
+                }, 1000);
+            });
+
+            const commande = (letter: string, cb: () => void | Promise<void>) => {
+                ShortcutManager.subscribe([letter], () => {
+                    if(!isKActive) return false;
+                    isKActive = false;
+                    cb();
+                    return;
+                });
+                ShortcutManager.subscribe([SpecialTouch.Control, letter], () => {
+                    if(!isKActive) return false;
+                    isKActive = false;
+                    cb();
+                    return;
+                });
+            };
+
+            commande('v', () => { this.visible = !this.visible; });
+
+        }
+
+        protected addResize() {
+            new Aventus.ResizeObserver({
+                callback: () => {
+                    this.draw();
+                },
+                fps: 30
+            }).observe(this);
+        }
+
+
+        protected override postCreation(): void {
+            this.addResize();
+            this.addShortCut();
+            this.draw();
+        }
+        //#endregion
+
+    }
+}
