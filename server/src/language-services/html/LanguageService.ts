@@ -27,6 +27,7 @@ export class AventusHTMLLanguageService {
     private internalDocumentation: { [key: string]: HTMLDoc } = {};
     private internalDocumentationReverse: { [className: string]: AventusWebComponentLogicalFile } = {};
     private internalTagUri: { [tag: string]: { uri: string, fullname: string } } = {};
+    private _allowRebuildDefinition: boolean = true;
 
     public constructor(build: Build) {
         this.languageService = this.getHTMLLanguageService();
@@ -403,7 +404,12 @@ export class AventusHTMLLanguageService {
     }
 
     //#region custom definition
+    public allowRebuildDefinition(value: boolean) {
+        this._allowRebuildDefinition = value;
+        this.rebuildDefinition();
+    }
     public rebuildDefinition() {
+        if (!this._allowRebuildDefinition) return
         this.documentationInfo = {};
         for (let uri in this.extenalDocumentation) {
             let doc = this.extenalDocumentation[uri];

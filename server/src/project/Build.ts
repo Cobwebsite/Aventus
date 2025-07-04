@@ -222,6 +222,9 @@ export class Build {
     public async rebuildAll(isInit: boolean = false) {
         this.allowBuild = false;
         this.insideRebuildAll = true;
+        
+        this.scssLanguageService.allowRebuildDefinition(false);
+        this.htmlLanguageService.allowRebuildDefinition(false);
         // validate
         if (isInit) {
             for (let uri in this.wcFiles) {
@@ -231,15 +234,15 @@ export class Build {
                 await this.scssFiles[uri].init();
                 await this.scssFiles[uri].validate();
             }
-
             for (let uri in this.htmlFiles) {
                 await this.htmlFiles[uri].init();
                 await this.htmlFiles[uri].validate();
             }
+            
             for (let uri in this.tsFiles) {
                 await this.tsFiles[uri].validate();
             }
-
+            
         }
         else {
             for (let uri in this.scssFiles) {
@@ -255,20 +258,22 @@ export class Build {
                 await this.tsFiles[uri].validate();
             }
         }
+        this.scssLanguageService.allowRebuildDefinition(true);
+        this.htmlLanguageService.allowRebuildDefinition(true);
+        this.insideRebuildAll = false;
 
         for (let uri in this.scssFiles) {
             await this.scssFiles[uri].triggerSave();
         }
-        for (let uri in this.htmlFiles) {
-            await this.htmlFiles[uri].triggerSave();
-        }
+        // for (let uri in this.htmlFiles) {
+        //     await this.htmlFiles[uri].triggerSave();
+        // }
         for (let uri in this.wcFiles) {
             await this.wcFiles[uri].triggerSave();
         }
         for (let uri in this.tsFiles) {
             await this.tsFiles[uri].triggerSave();
         }
-        this.insideRebuildAll = false;
         this.allowBuild = true;
         this.npmBuilder.rebuildInfo();
         if (this.initDone) {
@@ -1836,7 +1841,7 @@ export class Build {
             const tsfile = this.tsFiles[classTemp.fileUri];
             if (!tsfile) {
                 let info = this.externalPackageInformation.getByFullName(classTemp.fullName);
-                if (info.content != "noCode" && info.content.slots && !noMoreSlots) {
+                if (info && info.content != "noCode" && info.content.slots && !noMoreSlots) {
                     for (let name in info.content.slots) {
                         if (preventSlots.includes(name)) continue;
                         if (!slots[name]) {

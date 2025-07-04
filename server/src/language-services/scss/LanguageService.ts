@@ -18,6 +18,7 @@ export class AventusSCSSLanguageService {
     private externalDocumentation: { [key: string]: SCSSDoc } = {};
     private internalDocumentation: { [uri: string]: SCSSDoc } = {};
     private build: Build;
+    private _allowRebuildDefinition: boolean = true;
 
     public getInternalDocumentation(): SCSSDoc {
         let result: SCSSDoc = {};
@@ -174,7 +175,12 @@ export class AventusSCSSLanguageService {
 
 
     //#region custom definition
+    public allowRebuildDefinition(value: boolean) {
+        this._allowRebuildDefinition = value;
+        this.rebuildDefinition();
+    }
     private rebuildDefinition() {
+        if (!this._allowRebuildDefinition) return
         this.documentationInfo = {};
         for (let uri in this.externalDocumentation) {
             let doc = this.externalDocumentation[uri];
