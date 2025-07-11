@@ -180,6 +180,7 @@ export class PressManager {
 
     protected functionsBinded: {
         downAction: (e: PointerEvent) => void,
+        downActionDelay: (e: PointerEvent) => void,
         upAction: (e: PointerEvent) => void,
         moveAction: (e: PointerEvent) => void,
         childPressStart: (e: InternalPointerEvent) => void,
@@ -187,6 +188,7 @@ export class PressManager {
         childPressMove: (e: InternalPointerEvent) => void,
     } = {
             downAction: (e: PointerEvent) => { },
+            downActionDelay: (e: PointerEvent) => { },
             upAction: (e: PointerEvent) => { },
             moveAction: (e: PointerEvent) => { },
             childPressStart: (e: InternalPointerEvent) => { },
@@ -292,6 +294,7 @@ export class PressManager {
     }
     protected bindAllFunction() {
         this.functionsBinded.downAction = this.downAction.bind(this);
+        this.functionsBinded.downActionDelay = this.downActionDelay.bind(this);
         this.functionsBinded.moveAction = this.moveAction.bind(this);
         this.functionsBinded.upAction = this.upAction.bind(this);
         this.functionsBinded.childPressStart = this.childPressStart.bind(this);
@@ -301,7 +304,7 @@ export class PressManager {
     protected init() {
         this.bindAllFunction();
         this.element.addEventListener("pointerdown", this.functionsBinded.downAction);
-        this.element.addEventListener("touchstart", this.functionsBinded.downAction);
+        this.element.addEventListener("touchstart", this.functionsBinded.downActionDelay);
         this.element.addEventListener("trigger_pointer_pressstart", this.functionsBinded.childPressStart);
         this.element.addEventListener("trigger_pointer_pressend", this.functionsBinded.childPressEnd);
         this.element.addEventListener("trigger_pointer_pressmove", this.functionsBinded.childPressMove);
@@ -358,6 +361,7 @@ export class PressManager {
     }
     protected genericDownAction(state: PressManagerState, e: NormalizedEvent) {
         this.downEventSaved = e;
+        this.startPosition = { x: e.pageX, y: e.pageY };
         if(this.options.onLongPress) {
             this.timeoutLongPress = setTimeout(() => {
                 if(!state.oneActionTriggered) {
@@ -371,7 +375,20 @@ export class PressManager {
             }, this.delayLongPress);
         }
     }
+    private pointerEventTriggered: boolean = false;
+    protected downActionDelay(ev: PointerEvent | TouchEvent) {
+        if(!this.pointerEventTriggered) {
+            this.downAction(ev);
+        }
+        else {
+            ev.stopImmediatePropagation();
+        }
+        setTimeout(() => {
+            this.pointerEventTriggered = false;
+        }, 0);
+    }
     protected downAction(ev: PointerEvent | TouchEvent) {
+        this.pointerEventTriggered = true;
         const isFirst = Object.values(this.pointersRecord).length == 0;
         if(!this.registerEvent(ev)) {
             if(this.stopPropagation()) {
@@ -399,7 +416,6 @@ export class PressManager {
             this.state.oneActionTriggered = null;
             clearTimeout(this.timeoutDblPress);
         }
-        this.startPosition = { x: e.pageX, y: e.pageY };
 
         if(isFirst) {
             document.addEventListener("pointerup", this.functionsBinded.upAction);
@@ -556,6 +572,14 @@ export class PressManager {
 
     }
     protected childPressEnd(e: InternalPointerEvent) {
+        this.unregisterEvent(e.detail.realEvent.event);
+        if(Object.values(this.pointersRecord).length == 0) {
+            document.removeEventListener("pointerup", this.functionsBinded.upAction);
+            document.removeEventListener("pointercancel", this.functionsBinded.upAction);
+            document.removeEventListener("touchend", this.functionsBinded.upAction);
+            document.removeEventListener("touchcancel", this.functionsBinded.upAction);
+            document.removeEventListener("pointermove", this.functionsBinded.moveAction);
+        }
         if(this.lastEmitEvent == e.detail.realEvent) return;
 
         this.genericUpAction(e.detail.state, e.detail.realEvent);
