@@ -1,0 +1,5 @@
+<av-textarea :value="this.getValue()" @change="onChange" :error="this.error"></av-textarea>
+<div class="action">
+    <vscode-icon name="book" @press="getTranslatation"></vscode-icon>
+</div>
+<av-resize locale="{{ this.locale }}"></av-resize>

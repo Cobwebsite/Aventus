@@ -1,3 +1,32 @@
+Object.defineProperty(window, "AvInstance", {
+	get() {return Aventus.Instance;}
+});
+
+(() => {
+	Map.prototype._defaultHas = Map.prototype.has;
+	Map.prototype._defaultSet = Map.prototype.set;
+	Map.prototype._defaultGet = Map.prototype.get;
+	Map.prototype.has = function(key) {
+		if(Aventus.Watcher?.is(key)) {
+			return Map.prototype._defaultHas.call(this,key.getTarget())
+		}
+		return Map.prototype._defaultHas.call(this,key);
+	}
+
+	Map.prototype.set = function(key, value) {
+		if(Aventus.Watcher?.is(key)) {
+			return Map.prototype._defaultSet.call(this, key.getTarget(), value)
+		}
+		return Map.prototype._defaultSet.call(this, key, value);
+	}
+	Map.prototype.get = function(key) {
+		if(Aventus.Watcher?.is(key)) {
+			return Map.prototype._defaultGet.call(this, key.getTarget())
+		}
+		return Map.prototype._defaultGet.call(this, key);
+	}
+})();
+
 var Aventus;
 (Aventus||(Aventus = {}));
 (function (Aventus) {
@@ -221,6 +250,48 @@ let ElementExtension=class ElementExtension {
         return result;
     }
     /**
+     * Get element inside slot
+     */
+    static getNodesInSlot(element, slotName) {
+        let result = [];
+        if (element.shadowRoot) {
+            let slotEl;
+            if (slotName) {
+                slotEl = element.shadowRoot.querySelector('slot[name="' + slotName + '"]');
+            }
+            else {
+                slotEl = element.shadowRoot.querySelector("slot:not([name])");
+                if (!slotEl) {
+                    slotEl = element.shadowRoot.querySelector("slot");
+                }
+            }
+            while (true) {
+                if (!slotEl) {
+                    return result;
+                }
+                var listChild = Array.from(slotEl.assignedNodes());
+                if (!listChild) {
+                    return result;
+                }
+                let slotFound = false;
+                for (let i = 0; i < listChild.length; i++) {
+                    let child = listChild[i];
+                    if (listChild[i].nodeName == "SLOT") {
+                        slotEl = listChild[i];
+                        slotFound = true;
+                    }
+                    else if (child instanceof Node) {
+                        result.push(child);
+                    }
+                }
+                if (!slotFound) {
+                    return result;
+                }
+            }
+        }
+        return result;
+    }
+    /**
      * Get deeper element inside dom at the position X and Y
      */
     static getElementAtPosition(x, y, startFrom) {
@@ -409,43 +480,6 @@ let setValueToObject=function setValueToObject(path, obj, value) {
     }
 }
 _.setValueToObject=setValueToObject;
-
-let Callback=class Callback {
-    callbacks = new Map();
-    /**
-     * Clear all callbacks
-     */
-    clear() {
-        this.callbacks.clear();
-    }
-    /**
-     * Add a callback
-     */
-    add(cb, scope = null) {
-        if (!this.callbacks.has(cb)) {
-            this.callbacks.set(cb, scope);
-        }
-    }
-    /**
-     * Remove a callback
-     */
-    remove(cb) {
-        this.callbacks.delete(cb);
-    }
-    /**
-     * Trigger all callbacks
-     */
-    trigger(...args) {
-        let result = [];
-        let cbs = [...this.callbacks];
-        for (let [cb, scope] of cbs) {
-            result.push(cb.apply(scope, args));
-        }
-        return result;
-    }
-}
-Callback.Namespace=`Aventus`;
-_.Callback=Callback;
 
 let Mutex=class Mutex {
     /**
@@ -664,6 +698,43 @@ let NormalizedEvent=class NormalizedEvent {
 }
 NormalizedEvent.Namespace=`Aventus`;
 _.NormalizedEvent=NormalizedEvent;
+
+let Callback=class Callback {
+    callbacks = new Map();
+    /**
+     * Clear all callbacks
+     */
+    clear() {
+        this.callbacks.clear();
+    }
+    /**
+     * Add a callback
+     */
+    add(cb, scope = null) {
+        if (!this.callbacks.has(cb)) {
+            this.callbacks.set(cb, scope);
+        }
+    }
+    /**
+     * Remove a callback
+     */
+    remove(cb) {
+        this.callbacks.delete(cb);
+    }
+    /**
+     * Trigger all callbacks
+     */
+    trigger(...args) {
+        let result = [];
+        let cbs = [...this.callbacks];
+        for (let [cb, scope] of cbs) {
+            result.push(cb.apply(scope, args));
+        }
+        return result;
+    }
+}
+Callback.Namespace=`Aventus`;
+_.Callback=Callback;
 
 let compareObject=function compareObject(obj1, obj2) {
     if (Array.isArray(obj1)) {
@@ -4460,10 +4531,16 @@ let WebComponent=class WebComponent extends HTMLElement {
         return ElementExtension.containsChild(this, el);
     }
     /**
-     * Get element inside slot
+     * Get elements inside slot
      */
     getElementsInSlot(slotName) {
         return ElementExtension.getElementsInSlot(this, slotName);
+    }
+    /**
+     * Get nodes inside slot
+     */
+    getNodesInSlot(slotName) {
+        return ElementExtension.getNodesInSlot(this, slotName);
     }
     /**
      * Get active element from the shadowroot or the document

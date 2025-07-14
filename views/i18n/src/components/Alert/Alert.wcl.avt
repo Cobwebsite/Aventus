@@ -1,0 +1,37 @@
+import { GenericPopup } from "../GenericPopup/GenericPopup.wcl.avt";
+
+export class Alert extends GenericPopup implements Aventus.DefaultComponent {
+
+    //#region static
+    public static show(title: string, content: string): Promise<void> {
+        return new Promise<void>((resolve) => {
+            const el = new Alert();
+            el.popup_title = title;
+            el.innerHTML = content;
+            el.cb = resolve;
+            document.body.appendChild(el);
+        });
+    }
+    //#endregion
+
+
+    //#region props
+
+    //#endregion
+
+
+    //#region variables
+
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+
+    //#region methods
+
+    //#endregion
+
+}

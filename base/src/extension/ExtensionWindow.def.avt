@@ -1,9 +1,9 @@
 declare global {
     var AvInstance: typeof Aventus.Instance;
-    type NotVoid = { [key: string]: NotVoid } | object | string | boolean | symbol | number | null | undefined;
+    type NotVoid = { [key: string]: NotVoid; } | object | string | boolean | symbol | number | null | undefined;
     declare namespace Aventus {
         interface WebComponent extends HTMLElement {
-            shadowRoot: ShadowRoot
+            shadowRoot: ShadowRoot;
         }
     }
 }

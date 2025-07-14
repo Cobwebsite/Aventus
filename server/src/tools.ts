@@ -126,6 +126,27 @@ export function createErrorHTMLPos(currentDoc: TextDocument, msg: string, start:
         message: flattenDiagnosticMessageText(msg, '\n')
     }
 }
+
+export function createErrorI18n(currentDoc: TextDocument, msg: string): Diagnostic {
+    return createErrorI18nPos(currentDoc, msg, 0, currentDoc.getText().length)
+}
+
+export function createErrorI18nPos(currentDoc: TextDocument, msg: string, start: number, end: number): Diagnostic {
+    return {
+        range: Range.create(currentDoc.positionAt(start), currentDoc.positionAt(end)),
+        severity: DiagnosticSeverity.Error,
+        source: AventusLanguageId.I18n,
+        message: flattenDiagnosticMessageText(msg, '\n')
+    }
+}
+export function createWarningI18nPos(currentDoc: TextDocument, msg: string, start: number, end: number): Diagnostic {
+    return {
+        range: Range.create(currentDoc.positionAt(start), currentDoc.positionAt(end)),
+        severity: DiagnosticSeverity.Warning,
+        source: AventusLanguageId.I18n,
+        message: flattenDiagnosticMessageText(msg, '\n')
+    }
+}
 //#endregion
 
 

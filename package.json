@@ -87,6 +87,17 @@
 					"light": "./icons/icon.png",
 					"dark": "./icons/icon.png"
 				}
+			},
+			{
+				"id": "Aventus I18n",
+				"extensions": [
+					".i18n.avt"
+				],
+				"configuration": "./syntaxes/i18n-language-configuration.json",
+				"icon": {
+					"light": "./icons/icon.png",
+					"dark": "./icons/icon.png"
+				}
 			}
 		],
 		"grammars": [
@@ -114,6 +125,11 @@
 					"source.js": "Aventus Ts",
 					"text.html1.basic": "Aventus HTML"
 				}
+			},
+			{
+				"language": "Aventus I18n",
+				"scopeName": "source.json",
+				"path": "./syntaxes/i18n.tmLanguage.json"
 			}
 		],
 		"configuration": {
@@ -221,6 +237,16 @@
 					"items": {
 						"type": "string"
 					}
+				},
+				"aventus.defaultHideWarnings": {
+					"type": "boolean",
+					"title": "Define if the default value of hide warnings",
+					"default": false
+				},
+				"aventus.deeplApiKey": {
+					"type": "string",
+					"title": "Define the deepl api key to translate",
+					"default": ""
 				}
 			}
 		},
@@ -419,6 +445,29 @@
 			{
 				"command": "aventus.npm.build",
 				"title": "Aventus : Build npm"
+			},
+			{
+				"command": "aventus.i18n.open",
+				"title": "Aventus : Open i18n file",
+				"icon": {
+					"light": "./icons/translate_black.svg",
+					"dark": "./icons/translate_light.svg"
+				}
+			},
+			{
+				"command": "aventus.i18n.add",
+				"title": "Aventus : Add translation to I18n file"
+			}
+		],
+		"customEditors": [
+			{
+				"viewType": "aventus.i18n",
+				"displayName": "Aventus i18n",
+				"selector": [
+					{
+						"filenamePattern": "*.i18n.avt"
+					}
+				]
 			}
 		],
 		"menus": {
@@ -498,6 +547,13 @@
 					"when": "resourceFilename =~ /^.*\\.cs/",
 					"command": "aventus.sharp.export",
 					"group": "navigation@-50"
+				}
+			],
+			"editor/title": [
+				{
+					"command": "aventus.i18n.open",
+					"when": "resourceFilename =~ /^.*\\.i18n.avt/",
+					"group": "navigation"
 				}
 			],
 			"commandPalette": [
@@ -591,6 +647,14 @@
 				},
 				{
 					"command": "aventus.openfile.debugsharp",
+					"when": "false"
+				},
+				{
+					"command": "aventus.i18n.open",
+					"when": "false"
+				},
+				{
+					"command": "aventus.i18n.add",
 					"when": "false"
 				}
 			]
@@ -703,11 +767,11 @@
 		"@rollup/plugin-virtual": "^3.0.1",
 		"@types/estree": "^1.0.0",
 		"@types/serve-index": "^1.9.1",
-		"babel-minify": "^0.5.2",
 		"chokidar": "^3.5.3",
 		"command-exists": "^1.2.9",
 		"commander": "^12.1.0",
 		"connect": "^3.7.0",
+		"deepl-node": "^1.18.0",
 		"event-stream": "^4.0.1",
 		"inquirer-file-tree-selection-prompt": "^2.0.5",
 		"md5": "^2.3.0",
@@ -718,11 +782,11 @@
 		"postcss-sorting": "^7.0.1",
 		"rollup": "^3.23.0",
 		"sass": "^1.83.4",
-		"send": "^0.18.0",
+		"send": "^1.2.0",
 		"serve-index": "^1.9.1",
 		"sudo-prompt": "^9.2.1",
 		"terser": "^5.19.0",
-		"typescript": "^5.5.3",
+		"typescript": "^5.8.3",
 		"typescript-transform-paths": "^3.4.6",
 		"uglify-js": "^3.17.1",
 		"url": "^0.11.0",

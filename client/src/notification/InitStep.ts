@@ -12,6 +12,7 @@ export class InitStep {
             Singleton.client.components.lastCompiledInfo.text = txt;
             if (txt == InitStep.doneTxt) {
                 this.isDone = true;
+                Singleton.client.initDone();
                 Singleton.client.startFileSystem();
                 setTimeout(() => {
                     Compiled.render();

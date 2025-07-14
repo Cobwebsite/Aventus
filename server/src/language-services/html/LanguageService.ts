@@ -1,4 +1,4 @@
-import { getLanguageService, IAttributeData, InsertTextFormat, InsertTextMode, ITagData, IValueData, LanguageService, TokenType } from "vscode-html-languageservice";
+import { getLanguageService, IAttributeData, IHTMLDataProvider, InsertTextFormat, InsertTextMode, ITagData, IValueData, LanguageService, newHTMLDataProvider, TokenType } from "vscode-html-languageservice";
 import { CompletionItem, CompletionItemKind, CompletionList, Definition, Diagnostic, FormattingOptions, Hover, Location, Position, Range, TextEdit } from "vscode-languageserver";
 import { AventusLanguageId } from "../../definition";
 import { AventusFile } from '../../files/AventusFile';
@@ -12,8 +12,12 @@ import { MethodInfo } from '../ts/parser/MethodInfo';
 import { PropertyInfo } from '../ts/parser/PropertyInfo';
 import { ClassInfo } from '../ts/parser/ClassInfo';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { convertRange, getWordAtText } from '../../tools';
+import { convertRange, getWordAtText, uriToPath } from '../../tools';
 import { TagInfo } from './parser/TagInfo';
+import { SettingsManager } from '../../settings/Settings';
+import { GenericServer } from '../../GenericServer';
+import { normalize } from 'path';
+import { existsSync, readFileSync } from 'fs';
 
 
 export class AventusHTMLLanguageService {
@@ -31,6 +35,10 @@ export class AventusHTMLLanguageService {
 
     public constructor(build: Build) {
         this.languageService = this.getHTMLLanguageService();
+
+        SettingsManager.getInstance().onSettingsChangeHtml(() => {
+            this.languageService.setDataProviders(true, [this.defaultProvider(), ...this.loadOthersProviders()])
+        })
     }
 
     public getInternalDocumentation(): HTMLDoc {
@@ -66,19 +74,49 @@ export class AventusHTMLLanguageService {
         return getLanguageService({
             useDefaultDataProvider: true,
             customDataProviders: [
-                {
-                    getId: this.getId.bind(this),
-                    isApplicable(languageId) {
-                        return languageId == AventusLanguageId.HTML;
-                    },
-                    provideTags: this.provideTags.bind(this),
-                    provideAttributes: this.provideAttributes.bind(this),
-                    provideValues: this.provideValues.bind(this)
-                }
+                this.defaultProvider(),
+                ...this.loadOthersProviders()
             ],
-
         });
     }
+
+    protected defaultProvider(): IHTMLDataProvider {
+        return {
+            getId: this.getId.bind(this),
+            isApplicable(languageId) {
+                return languageId == AventusLanguageId.HTML;
+            },
+            provideTags: this.provideTags.bind(this),
+            provideAttributes: this.provideAttributes.bind(this),
+            provideValues: this.provideValues.bind(this)
+        }
+    }
+    protected loadOthersProviders() {
+        const settings = SettingsManager.getInstance().settingsHtml;
+        const providers: IHTMLDataProvider[] = []
+        for (let uri of settings.customData) {
+            let realPath = normalize(uriToPath(GenericServer.getWorkspaceUri() + "/" + uri));
+            if (existsSync(realPath)) {
+                let rawData: any;
+                try {
+                    const source = readFileSync(realPath, 'utf8');
+                    rawData = JSON.parse(source);
+                    let provider = newHTMLDataProvider(uri, {
+                        version: rawData.version || 1,
+                        tags: rawData.tags || [],
+                        globalAttributes: rawData.globalAttributes || [],
+                        valueSets: rawData.valueSets || []
+                    });
+                    providers.push(provider);
+                } catch (err) {
+                }
+            }
+
+        }
+        return providers;
+    }
+
+
     public getId(): string {
         return this.id + "";
     }

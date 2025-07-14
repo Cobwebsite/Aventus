@@ -1,0 +1,289 @@
+import * as VscodeElement from '@vscode-elements/elements/dist/main.js';
+import { DemoData, Translator, type I18nParsed } from "../../libs/I18n.lib.avt";
+import { TranslationRow } from "../TranslationRow/TranslationRow.wcl.avt";
+import { ActionGuard, ResizeObserver } from "Aventus@Main:Aventus.package.avt";
+import { Loading } from "../Loading/Loading.wcl.avt";
+import { TranslateAllPopup } from "../TranslateAllPopup/TranslateAllPopup.wcl.avt";
+
+export class TranslationPage extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+    //#region static
+    public static KeyUndefined: string = "ⵌⵌ";
+    //#endregion
+
+
+    //#region props
+    @Property()
+    public need_save!: boolean;
+    @Property()
+    public has_empty!: boolean;
+    @Attribute()
+    public is_init!: boolean;
+    //#endregion
+
+
+    //#region variables
+    @ViewElement()
+    protected headerEl!: Aventus.Layout.Scrollable;
+    @ViewElement()
+    protected bodyEl!: Aventus.Layout.Scrollable;
+    @ViewElement()
+    protected contentEl!: HTMLDivElement;
+
+    @Watch()
+    public fallback: string = "en-GB";
+
+    @Watch((target: TranslationPage) => {
+        target.search();
+    })
+    protected searchTxt: string = "";
+
+    @Watch((target: TranslationPage) => {
+        target.search();
+    })
+    public onlyMissing: boolean = false;
+
+    @Watch()
+    public importMissingBtn: boolean = false;
+    @Watch()
+    public pageName: string = "";
+
+
+
+
+    public parsed: I18nParsed = {};
+    @Watch()
+    public locales: string[] = [];
+    protected guard: ActionGuard = new ActionGuard();
+
+    protected rows: { [key: string]: TranslationRow; } = {};
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+
+    //#region methods
+    protected syncScroll() {
+        this.headerEl?.onScrollChange.add((x, y) => {
+            if(this.bodyEl?.x != x) {
+                this.bodyEl?.scrollX(x);
+            }
+        });
+        this.bodyEl?.onScrollChange.add((x, y) => {
+            if(this.headerEl?.x != x) {
+                this.headerEl?.scrollX(x);
+            }
+        });
+
+        new ResizeObserver(() => {
+            this.style.setProperty("--content-width", this.headerEl.offsetWidth - 2 + "px");
+        }).observe(this.headerEl);
+        this.style.setProperty("--content-width", this.headerEl.offsetWidth - 2 + "px");
+    }
+
+    @BindThis()
+    protected async triggerChange() {
+        this.guard.run(['triggerChange'], async () => {
+            // Loading.show();
+            try {
+                const promise = VscodeView.Router.getInstance().sendWithResponse<boolean>({
+                    channel: "triggerChange",
+                    body: this.parsed
+                });
+                this.calculateEmpty();
+                await promise;
+            } catch { }
+            // Loading.hide();
+        });
+    }
+
+    protected async save() {
+        if(!this.need_save) return;
+        this.guard.run(['save'], async () => {
+            Loading.show();
+            try {
+                await VscodeView.Router.getInstance().sendWithResponse<boolean>({
+                    channel: "save"
+                });
+            } catch { }
+            Loading.hide();
+        });
+    }
+
+    protected addRoutes() {
+        VscodeView.Router.getInstance().addRoute<boolean>({
+            channel: 'has_missing',
+            callback: (value) => {
+                this.importMissingBtn = value;
+            }
+        });
+    }
+    /**
+     * 
+     */
+    protected importMissing() {
+        this.guard.run(['import_missing'], async () => {
+            Loading.show();
+            try {
+                const result = await VscodeView.Router.getInstance().sendWithResponse<I18nParsed>({
+                    channel: "import_missing",
+                    body: {}
+                });
+                if(result.result)
+                    this.parsed = result.result;
+            } catch { }
+            Loading.hide();
+        });
+    }
+
+
+    protected search() {
+        const txt = this.searchTxt;
+        const onlyMissing = this.onlyMissing;
+        for(let key in this.rows) {
+            this.rows[key].search(txt, onlyMissing);
+        }
+    }
+
+
+    public calculateEmpty() {
+        let result = false;
+        for(let key in this.parsed) {
+            for(let locale of this.locales) {
+                if(!this.parsed[key][locale] || this.parsed[key][locale] == TranslationPage.KeyUndefined) {
+                    result = true;
+                    break;
+                }
+            }
+            if(result) {
+                break;
+            }
+        }
+        this.has_empty = result;
+    }
+    protected render() {
+        while(this.contentEl.lastElementChild) {
+            this.contentEl.lastElementChild.remove();
+        }
+        let search = this.searchTxt != "";
+        for(let key in this.parsed) {
+            const row = new TranslationRow();
+            row.key = key;
+            row.parsedItem = this.parsed[key];
+            row.locales = this.locales;
+            row.change.add(this.triggerChange);
+            this.rows[key] = row;
+            this.contentEl.appendChild(row);
+            if(search)
+                row.search(this.searchTxt, this.onlyMissing);
+        }
+
+        const w = "calc((var(--content-width) - var(--_translation-page-key-width)) / " + this.locales.length + ")";
+        for(let locale of this.locales) {
+            this.style.setProperty("--col-width-" + locale, w);
+        }
+
+        this.calculateEmpty();
+    }
+
+
+    protected async init() {
+        await this.guard.run(['init'], async () => {
+            Loading.show();
+            const result = await VscodeView.Router.getInstance().sendWithResponse<{ content: I18nParsed, locales: string[], filter: string | undefined, pageName: string; }>({
+                channel: "init",
+                body: {}
+            });
+            if(result.result) {
+                this.locales = result.result.locales;
+                this.searchTxt = result.result.filter ?? '';
+                this.parsed = result.result.content;
+                this.pageName = result.result.pageName;
+                this.render();
+            }
+            this.is_init = true;
+            Loading.hide();
+        });
+
+        VscodeView.Router.getInstance().addRoute<boolean>({
+            channel: "is_dirty",
+            callback: (data) => {
+                this.need_save = data;
+            }
+        });
+
+        VscodeView.Router.getInstance().addRoute<I18nParsed>({
+            channel: "update_content",
+            callback: (data) => {
+                const oldKeys = Object.keys(this.parsed);
+                this.parsed = data;
+
+                for(let key in this.parsed) {
+                    if(this.rows[key]) {
+                        let index = oldKeys.indexOf(key);
+                        if(index > -1) {
+                            oldKeys.splice(index, 1);
+                        }
+
+                        this.rows[key].updateData(this.parsed[key]);
+                    }
+                    else {
+                        const row = new TranslationRow();
+                        row.key = key;
+                        row.parsedItem = this.parsed[key];
+                        row.locales = this.locales;
+                        row.change.add(this.triggerChange);
+                        this.rows[key] = row;
+                        this.contentEl.appendChild(row);
+                    }
+
+                }
+
+                for(let key of oldKeys) {
+                    if(this.rows[key]) {
+                        this.rows[key].remove();
+                        delete this.rows[key];
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * 
+     */
+    protected toogleOnlyMissing() {
+        this.onlyMissing = !this.onlyMissing;
+    }
+
+    /**
+     * 
+     */
+    protected async translateAll() {
+        await this.guard.run(['translateAll'], async () => {
+            let popup = new TranslateAllPopup();
+            popup.parsed = this.parsed;
+            popup.locales = this.locales;
+            popup.fallback = this.fallback;
+            this.shadowRoot.appendChild(popup);
+            await popup.run();
+            this.calculateEmpty();
+            this.render();
+            await this.triggerChange();
+        });
+    }
+
+
+
+    protected override postCreation(): void {
+        super.postCreation();
+        let vscodeElements = VscodeElement;
+        this.syncScroll();
+        this.init();
+    }
+    //#endregion
+
+}

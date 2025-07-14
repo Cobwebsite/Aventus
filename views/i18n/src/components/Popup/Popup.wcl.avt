@@ -1,0 +1,29 @@
+import { GenericPopup } from "../GenericPopup/GenericPopup.wcl.avt";
+
+export class Popup extends GenericPopup implements Aventus.DefaultComponent {
+
+	//#region static
+	
+	//#endregion
+	
+	
+	//#region props
+	
+	//#endregion
+	
+	
+	//#region variables
+	
+	//#endregion
+	
+	
+	//#region constructor
+	
+	//#endregion
+	
+	
+	//#region methods
+	
+	//#endregion
+	
+}

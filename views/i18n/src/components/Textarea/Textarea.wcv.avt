@@ -1,0 +1,1 @@
+<vscode-textarea resize="vertical" rows="1" @element="textarea" @change="onChange" :invalid="this.error"></vscode-textarea>

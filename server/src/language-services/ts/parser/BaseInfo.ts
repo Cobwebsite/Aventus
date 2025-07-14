@@ -108,7 +108,7 @@ export abstract class BaseInfo {
     public storyType: 'all' | 'none' | 'public' | 'protected' = 'none';
 
     // public dependancesFullName: string[] = [];
-    public dependances: DependanceType[] = []
+    public dependances: { [name: string]: DependanceType } = {};
     public compiled: string = "";
     public documentation?: DocumentationInfo;
     public isExported: boolean = false;
@@ -130,7 +130,6 @@ export abstract class BaseInfo {
     }
     public debug: boolean = false;
     public document: TextDocument;
-    private dependanceNameLoaded: string[] = [];
     private dependancePrevented: string[] = [];
     public dependancesLocations: {
         [name: string]: DependanceInfo
@@ -161,7 +160,7 @@ export abstract class BaseInfo {
             this.fullName = [...namespaces, this.name].join(".");
             this.content = node.getText();
 
-            if (!parserInfo.isLib) {
+            if (!parserInfo.isExternal) {
                 BaseInfo.infoByShortName[this.name] = this;
             }
 
@@ -319,7 +318,7 @@ export abstract class BaseInfo {
     private loadDependanceContext: undefined | 'Decorator' = undefined;
     private maybeDependances: { [name: string]: { uri: string, name: string, compiled: boolean } } = {}
     protected loadOnlyDependancesRecu(node: Node, depth: number = 0, isStrongDependance: boolean = false) {
-        if (this.parserInfo.isLib) {
+        if (this.parserInfo.isExternal) {
             return
         }
         if (node.kind == SyntaxKind.Decorator) {
@@ -345,7 +344,7 @@ export abstract class BaseInfo {
      * @param isStrongDependance 
      */
     protected addDependance(type: TypeNode, isStrongDependance: boolean): void {
-        if (this.parserInfo.isLib) {
+        if (this.parserInfo.isExternal) {
             return
         }
         // TODO : add scope declaration variable
@@ -379,7 +378,7 @@ export abstract class BaseInfo {
      * @param isStrongDependance 
      */
     protected addDependanceWaitName(type: TypeNode, isStrongDependance: boolean, cb: (names: string[], namesNpm: string[]) => void): void {
-        if (this.parserInfo.isLib) {
+        if (this.parserInfo.isExternal) {
             cb([type.getText()], [type.getText()])
             return
         }
@@ -599,7 +598,7 @@ export abstract class BaseInfo {
         }
     }
     protected addDependanceName(name: string, isStrongDependance: boolean, start: number, end: number, onNameTemp?: ((name?: string, nameNpm?: string) => void)): void {
-        if (this.parserInfo.isLib) {
+        if (this.parserInfo.isExternal) {
             return
         }
         let onName: (name?: string, nameNpm?: string) => void
@@ -675,7 +674,7 @@ export abstract class BaseInfo {
             onName();
             return
         }
-        if (this.dependanceNameLoaded.includes(name)) {
+        if (this.dependances[name]) {
             onName();
             // there is a dependance but not loaded bc of context => check if can be loaded
             if (this.loadDependanceContext === undefined && this.maybeDependances[name]) {
@@ -691,15 +690,14 @@ export abstract class BaseInfo {
             }
             return
         }
-        this.dependanceNameLoaded.push(name);
 
         if (name.includes(".")) {
             // lib name => impossible to be a local name
-            this.dependances.push({
+            this.dependances[name] = {
                 fullName: name,
                 uri: "@external",
                 isStrong: isStrongDependance,
-            });
+            };
 
             let classExternal = this.build.externalPackageInformation.getNpmUri(name);
             const npmReplacement = this.getNpmReplacementName(name);
@@ -776,11 +774,11 @@ export abstract class BaseInfo {
             if (fullName == this.fullName) {
                 isStrongDependance = false;
             }
-            this.dependances.push({
+            this.dependances[name] = {
                 fullName: "$namespace$" + fullName,
                 uri: '@local',
                 isStrong: isStrongDependance,
-            });
+            };
             if (this.debug) {
                 console.log("add dependance " + name + " : same file");
             }
@@ -812,11 +810,11 @@ export abstract class BaseInfo {
             // it's an imported class
             let fullName = importInfo.fullName
             let hotReloadName = [this.build.module, ...this.build.namespaces, fullName].join(".");
-            this.dependances.push({
+            this.dependances[name] = {
                 fullName: "$namespace$" + fullName,
                 uri: importInfo.fileUri,
                 isStrong: isStrongDependance,
-            });
+            };
             if (this.debug) {
                 console.log("add dependance " + name + " : imported file");
             }
@@ -868,11 +866,11 @@ export abstract class BaseInfo {
 
                     registerLocal(fullName, info.willBeCompiled, npmReplacement)
                 }
-                this.dependances.push({
+                this.dependances[name] ={
                     fullName: "$namespace$" + fullName,
                     uri: info.fileUri,
                     isStrong: isStrongDependance
-                });
+                };
                 onName(fullName, npmReplacement);
             })
             return;
@@ -880,11 +878,11 @@ export abstract class BaseInfo {
         else if (this.parserInfo.packages[name]) {
             let fullName = this.parserInfo.packages[name].fullname;
             let classExternal = this.build.externalPackageInformation.getNpmUri(fullName);
-            this.dependances.push({
+            this.dependances[name] = {
                 fullName: fullName,
                 uri: "@external",
                 isStrong: isStrongDependance,
-            });
+            };
             const npmReplacement = this.getNpmReplacementName(fullName);
             if (this.dependancesLocations[name]) {
                 this.dependancesLocations[name].typeRemplacement = fullName;
@@ -906,11 +904,11 @@ export abstract class BaseInfo {
         }
 
         if (this.parserInfo.npmImports[name]) {
-            this.dependances.push({
+            this.dependances[name] ={
                 fullName: name,
                 uri: "@npm",
                 isStrong: isStrongDependance,
-            });
+            };
             if (this.debug) {
                 console.log("add dependance " + name + " : npm");
             }
@@ -945,11 +943,11 @@ export abstract class BaseInfo {
             return;
         }
         // should be a lib dependances outside the module
-        this.dependances.push({
+        this.dependances[name] = {
             fullName: name,
             uri: "@external",
             isStrong: isStrongDependance,
-        });
+        };
         if (this.debug) {
             console.log("add dependance " + name + " : external");
         }
@@ -1020,7 +1018,7 @@ export abstract class BaseInfo {
                                 end: location.end - start,
                             })
                         }
-                        else if(location.isNpm && location.isType) {
+                        else if (location.isNpm && location.isType) {
                             // TODO check to set a value for a node_module type imported for the package
                             continue;
                         }
@@ -1057,7 +1055,7 @@ export abstract class BaseInfo {
     }
 
     public loadStorieContent() {
-        if (this.build.buildConfig.stories && !this._parserInfo.isLib) {
+        if (this.build.buildConfig.stories && !this._parserInfo.isExternal) {
             for (let decorator of this.decorators) {
                 const decoratorTemp = StorybookDecorator.is(decorator);
                 if (decoratorTemp) {

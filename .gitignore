@@ -11,4 +11,4 @@ server/out
 *tsconfig.tsbuildinfo
 *.vsix
 lib/*.avt
-open_folder.ps1
+scripts/*

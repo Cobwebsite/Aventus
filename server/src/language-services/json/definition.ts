@@ -19,7 +19,8 @@ export interface AventusConfigBuild {
 	namespaceRoot: string,
 	avoidParsingInsideTags: string[],
 	dependances: AventusConfigBuildDependance[],
-	nodeModulesDir: string
+	nodeModulesDir: string,
+	i18n?: AventusConfigBuildI18n
 }
 export type IncludeType = 'none' | 'need' | 'full';
 
@@ -31,6 +32,7 @@ export interface AventusConfigBuildCompile {
 	package: string[],
 	outputNpm: AventusConfigBuildCompileOutputNpm,
 	compressed?: boolean,
+	i18n: AventusConfigBuildCompileOutputI18n[]
 }
 
 export interface AventusConfigBuildCompileOutputNpmManifest {
@@ -42,6 +44,11 @@ export interface AventusConfigBuildCompileOutputNpm {
 	npmName: string,
 	manifest?: AventusConfigBuildCompileOutputNpmManifest,
 	live: boolean
+}
+export interface AventusConfigBuildCompileOutputI18n {
+	output: string,
+	mount: string,
+	mode: 'singleFile' | 'oneToOne' | 'groupComponent' | 'basedOnAttribute' | 'include'
 }
 
 export interface AventusConfigBuildDependance {
@@ -84,6 +91,12 @@ export interface AventusConfig {
 	aliases: {
 		[alias: string]: string
 	}
+}
+
+export interface AventusConfigBuildI18n {
+	locales: string[],
+	fallback: string,
+	autoRegister?: boolean
 }
 
 export interface AventusSharp {

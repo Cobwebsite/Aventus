@@ -14,11 +14,14 @@ import { OverrideViewDecorator } from '../ts/parser/decorators/OverrideViewDecor
 
 export type SlotsInfo = { [name: string]: { local?: boolean, doc?: string } }
 
+type HtmlCodeAction = (CodeAction & { range: { start: number, end: number } })
+
 export class AventusHTMLFile extends AventusBaseFile {
 
     public fileParsed: ParserHtml | undefined;
     public tsErrors: Diagnostic[] = [];
     private version: number = -1;
+    private codeactions: HtmlCodeAction[] = [];
 
     public get compiledVersion() {
         return this.version;
@@ -75,6 +78,26 @@ export class AventusHTMLFile extends AventusBaseFile {
         diagnostics = [...diagnostics, ...this.tsErrors]
         if (this.tsFile) {
             diagnostics = [...diagnostics, ...this.tsFile.htmlDiagnostics]
+        }
+        this.codeactions = [];
+        for (let diag of diagnostics) {
+            if (diag.message.endsWith("keyof AventusI18n'.")) {
+                const txt = this.file.documentUser.getText(diag.range).slice(1, -1);
+                let codeAction: HtmlCodeAction = {
+                    title: "Add value into translation file",
+                    command: {
+                        command: "aventus.i18n.add",
+                        title: "Add value into translation file",
+                        arguments: [this.file.uri, txt]
+                    },
+                    diagnostics: [diag],
+                    range: {
+                        start: this.file.documentUser.offsetAt(diag.range.start),
+                        end: this.file.documentUser.offsetAt(diag.range.end),
+                    }
+                }
+                this.codeactions.push(codeAction)
+            }
         }
         return diagnostics;
     }
@@ -280,7 +303,9 @@ export class AventusHTMLFile extends AventusBaseFile {
     }
 
     protected async onCodeAction(document: AventusFile, range: Range): Promise<CodeAction[]> {
-        return [];
+        let start = document.documentUser.offsetAt(range.start);
+        let end = document.documentUser.offsetAt(range.end);
+        return this.codeactions.filter(p => p.range.start <= start && p.range.end >= end)
     }
     protected async onReferences(document: AventusFile, position: Position): Promise<Location[]> {
         let resultTemp = await this.tsFile?.doReferences(position)

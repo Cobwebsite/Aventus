@@ -24,6 +24,9 @@ export abstract class AventusTsFile extends AventusBaseFile {
     public get version(): number {
         return this.file.versionUser;
     }
+    public get versionInternal(): number {
+        return this.file.versionInternal;
+    }
 
     public abstract get extension(): string;
     public fileParsed: ParserTs | null = null;
@@ -40,10 +43,10 @@ export abstract class AventusTsFile extends AventusBaseFile {
         }
     }
 
-    protected refreshFileParsed(isLib: boolean = false): void {
-        this.fileParsed = ParserTs.parse(this.file, isLib, this.build);
+    protected refreshFileParsed(isExternal: boolean = false): void {
+        this.fileParsed = ParserTs.parse(this.file, isExternal, this.build);
         this._contentForLanguageService = this.file.documentInternal.getText();
-        if (!isLib) {
+        if (!isExternal) {
             this.replaceNamespace();
         }
     }

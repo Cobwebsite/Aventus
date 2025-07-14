@@ -2,7 +2,7 @@ import { createReadStream, createWriteStream, existsSync, mkdirSync, readFileSyn
 import { AventusConfigBuild, AventusConfigBuildDependance, IncludeType } from '../language-services/json/definition';
 import * as md5 from 'md5';
 import { join, normalize } from 'path';
-import { AVENTUS_DEF_BASE_PATH, AVENTUS_DEF_SHARP_PATH, AVENTUS_DEF_UI_PATH } from '../language-services/ts/libLoader';
+import { AVENTUS_DEF_BASE_PATH, AVENTUS_DEF_I18N_PATH, AVENTUS_DEF_SHARP_PATH, AVENTUS_DEF_UI_PATH } from '../language-services/ts/libLoader';
 import { pathToUri } from '../tools';
 import { AventusExtension, AventusLanguageId } from '../definition';
 import { AventusPackageFile } from '../language-services/ts/package/File';
@@ -46,19 +46,28 @@ export class DependanceManager {
 
 	private predefinedPaths = {
 		"@Aventus": AVENTUS_DEF_BASE_PATH(),
+		"Aventus@Main": AVENTUS_DEF_BASE_PATH(),
+
 		"@AventusUI": AVENTUS_DEF_UI_PATH(),
 		"Aventus@UI": AVENTUS_DEF_UI_PATH(),
+
 		"@AventusSharp": AVENTUS_DEF_SHARP_PATH(),
 		"Aventus@Sharp": AVENTUS_DEF_SHARP_PATH(),
+
+		"Aventus@I18n": AVENTUS_DEF_I18N_PATH(),
+		"@AventusI18n": AVENTUS_DEF_I18N_PATH()
 	}
 	private predefinedNpm = {
 		[AVENTUS_DEF_BASE_PATH()]: "@aventusjs/main",
 		[AVENTUS_DEF_UI_PATH()]: "@aventusjs/ui",
 		[AVENTUS_DEF_SHARP_PATH()]: "@aventussharp/main",
+		[AVENTUS_DEF_I18N_PATH()]: "@aventussharp/i18n",
 	}
 	private aventusLoaded: boolean = false;
+	private aventusI18nLoaded: boolean = false;
 	public async loadDependancesFromBuild(config: AventusConfigBuild, build: Build): Promise<{ files: AventusPackageFile[], dependanceNeedUris: string[], dependanceFullUris: string[], dependanceUris: string[] }> {
 		this.aventusLoaded = false;
+		this.aventusI18nLoaded = build.buildConfig.i18n === undefined;
 		let result: { files: AventusPackageFile[], dependanceNeedUris: string[], dependanceFullUris: string[], dependanceUris: string[] } = {
 			files: [],
 			dependanceNeedUris: [],
@@ -76,15 +85,22 @@ export class DependanceManager {
 		}
 
 		if (!this.aventusLoaded) {
-			let uri = pathToUri(AVENTUS_DEF_BASE_PATH());
-			let avFile = await this.loadByUri(build, uri)
-			avFile.npmUri = this.predefinedNpm[AVENTUS_DEF_BASE_PATH()];
-			loopResult["Aventus@Main"] = {
-				dependances: [],
-				file: avFile,
-				uri: uri,
-				version: avFile.version
-			}
+			await this.loadDependance({
+				uri: "Aventus@Main",
+				npm: "",
+				version: "x.x.x",
+				include: 'need',
+				subDependancesInclude: { ['*']: 'need' }
+			}, config, build, loopResult)
+		}
+		if (!this.aventusI18nLoaded) {
+			await this.loadDependance({
+				uri: "Aventus@I18n",
+				npm: "",
+				version: "x.x.x",
+				include: 'need',
+				subDependancesInclude: { ['*']: 'need' }
+			}, config, build, loopResult)
 		}
 
 
@@ -110,6 +126,7 @@ export class DependanceManager {
 				}
 			}
 			else {
+				result.dependanceNeedUris.push(current.uri);
 				result.dependanceUris.push(current.uri);
 			}
 		}
@@ -138,14 +155,19 @@ export class DependanceManager {
 	private async loadDependance(dep: AventusConfigBuildDependance, config: AventusConfigBuild, build: Build, result: DependanceLoop) {
 		let packageFile: AventusPackageFile | undefined;
 		let finalUri: string | undefined;
-		if (dep.uri.match("^(@|&)")) {
+		if (dep.uri.match("^(@|&)") || dep.uri.match("^(Aventus@)")) {
 			let regexTemp: RegExpExecArray | null;
 			if (this.predefinedPaths[dep.uri]) {
-				let uri = pathToUri(this.predefinedPaths[dep.uri]);
+				dep.uri = this.predefinedPaths[dep.uri];
+				let uri = pathToUri(dep.uri);
 				packageFile = await this.loadByUri(build, uri);
+
 				finalUri = uri;
-				if (dep.uri == "@Aventus") {
+				if (packageFile.name == "Aventus@Main") {
 					this.aventusLoaded = true;
+				}
+				if (packageFile.name == "Aventus@I18n") {
+					this.aventusI18nLoaded = true;
 				}
 			}
 
@@ -197,7 +219,7 @@ export class DependanceManager {
 			}
 			else {
 				let npmInfo = /\/\/ npm:(.*)$/m.exec(packageFile.file.contentUser);
-				if(npmInfo) {
+				if (npmInfo) {
 					packageFile.npmUri = npmInfo[1];
 				}
 			}

@@ -1,10 +1,22 @@
-import { TouchRecord } from "./Touch.lib.avt";
+import { NormalizedEvent, PressManager } from "Aventus@Main:Aventus.package.avt";
+import { TouchRecord, Tracker } from "./Touch.lib.avt";
 
 namespace Layout {
     export class Scrollable extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
         //#region static
-
+        public static lock(element: Aventus.WebComponent) {
+            const container = element.findParentByType(Scrollable);
+            if(container) {
+                container.disable = true;
+            }
+        }
+        public static unlock(element: Aventus.WebComponent) {
+            const container = element.findParentByType(Scrollable);
+            if(container) {
+                container.disable = false;
+            }
+        }
         //#endregion
 
 
@@ -16,6 +28,10 @@ namespace Layout {
             target.changeZoom();
         })
         public zoom: number = 1;
+        @Attribute()
+        public min_zoom: number = 1;
+        @Attribute()
+        public max_zoom!: number;
 
         @Attribute()
         private y_scroll_visible!: boolean;
@@ -59,6 +75,14 @@ namespace Layout {
         @Attribute()
         private no_user_select!: boolean;
 
+        /**
+         * Allow scroll by dragging with the mouse
+         */
+        @Attribute()
+        public mouse_drag!: boolean;
+
+        @Attribute()
+        public pinch!: boolean;
         //#endregion
 
 
@@ -93,16 +117,10 @@ namespace Layout {
         private observer?: Aventus.ResizeObserver;
 
         private display: { x: number, y: number; } = { x: 0, y: 0 };
-        private _max: { x: number, y: number; } = {
+        private max: { x: number, y: number; } = {
             x: 0,
             y: 0
         };
-        public get max(): { x: number, y: number; } {
-            return {
-                x: this._max.x,
-                y: this._max.y,
-            };
-        }
         private margin: { x: number, y: number; } = {
             x: 0,
             y: 0
@@ -155,7 +173,13 @@ namespace Layout {
 
         private touchRecord: TouchRecord;
         private pointerCount: number = 0;
-        private savedBreak: number = 1;
+        private loadedOnce: boolean = false;
+        private savedPercent?: { x: number, y: number; };
+        private isDragScroller: boolean = false;
+        private cachedSvg?: SVGSVGElement;
+        private previousMidPoint?: { x: number, y: number; };
+        private previousDistance?: number;
+        private startTranslate: { x: number, y: number; } = { x: 0, y: 0 };
 
 
         public get x(): number {
@@ -163,6 +187,12 @@ namespace Layout {
         }
         public get y(): number {
             return this.position.y;
+        }
+        public get xMax(): number {
+            return this.max.x;
+        }
+        public get yMax(): number {
+            return this.max.y;
         }
         //#endregion
 
@@ -173,19 +203,26 @@ namespace Layout {
             this.renderAnimation = this.createAnimation();
             this.onWheel = this.onWheel.bind(this);
             this.onTouchStart = this.onTouchStart.bind(this);
+            this.onTouchMovePointer = this.onTouchMovePointer.bind(this);
             this.onTouchMove = this.onTouchMove.bind(this);
+            this.onTouchMovePointer = this.onTouchMovePointer.bind(this);
             this.onTouchEnd = this.onTouchEnd.bind(this);
+            this.onTouchEndPointer = this.onTouchEndPointer.bind(this);
             this.touchRecord = new TouchRecord();
         }
         //#endregion
 
-
-        //#region methods
+        //#region events
 
         /**
          * Callback trigger when the scroll change
          */
         public onScrollChange: Aventus.Callback<(x: number, y: number) => void> = new Aventus.Callback();
+        public onZoomChange: Aventus.Callback<(zoom: number) => void> = new Aventus.Callback();
+
+        //#endregion
+
+        //#region methods
 
         //#region render
         private renderAnimation: Aventus.Animation;
@@ -225,7 +262,8 @@ namespace Layout {
                 result.position = current + remain;
             }
             else {
-                let nextMomentum = remain * (1 - this.break);
+                const _break = this.pointerCount > 0 ? 0.5 : this.break;
+                let nextMomentum = remain * (1 - _break);
                 nextMomentum |= 0;
                 result.momentum = nextMomentum;
                 result.position = current + remain - nextMomentum;
@@ -237,6 +275,8 @@ namespace Layout {
                 result.position = correctPosition;
                 result.momentum = 0;
             }
+
+
 
 
             return result;
@@ -270,6 +310,13 @@ namespace Layout {
             }
             this.triggerScrollChange();
         }
+        /**
+         * @param percent number between 0 - 100
+         */
+        private scrollDirectionPercent(direction: 'x' | 'y', percent: number) {
+            const max = this.max[direction];
+            this.scrollDirection(direction, max * percent / 100);
+        }
 
         private correctScrollValue(value: number, direction: 'x' | 'y'): number {
             if(value < 0) {
@@ -300,30 +347,338 @@ namespace Layout {
             this.scrollDirection('x', x);
         }
         /**
+        * Scroll left - right
+        * @param x percent between 0 - 100
+        */
+        public scrollXPercent(x: number) {
+            this.scrollDirectionPercent('x', x);
+        }
+        /**
          * Scroll bottom - top
          */
         public scrollY(y: number) {
             this.scrollDirection('y', y);
         }
+        /**
+        * Scroll bottom - top
+        * @param y percent between 0 - 100
+        */
+        public scrollYPercent(y: number) {
+            this.scrollDirectionPercent('y', y);
+        }
+        private autoScrollInterval: { top: number, left: number, right: number, bottom: number; } = {
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+        };
+        private autoScrollSpeed: { top: number, left: number, right: number, bottom: number; } = {
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+        };
+        private startAutoScrollRight() {
+            if(!this.autoScrollInterval.right) {
+                this.stopAutoScrollLeft();
+                this.autoScrollInterval.right = setInterval(() => {
+                    if(this.x == this.max.x) {
+                        this.stopAutoScrollRight();
+                        return;
+                    }
+                    this.addDelta({
+                        x: this.autoScrollSpeed.right,
+                        y: 0
+                    });
+                }, 100);
+            }
+        }
+        /**
+         * Define a speed percent to auto scroll right
+         */
+        public autoScrollRight(percent: number = 50) {
+            let slow = this.max.x * 1 / 100;
+            let fast = this.max.x * 10 / 100;
+            this.autoScrollSpeed.right = (fast - slow) * (percent / 100) + slow;
+            this.startAutoScrollRight();
+        }
+        /**
+         * Stop auto scrolling right
+         */
+        public stopAutoScrollRight() {
+            if(this.autoScrollInterval.right) {
+                clearInterval(this.autoScrollInterval.right);
+                this.autoScrollInterval.right = 0;
+            }
+        }
 
+        private startAutoScrollLeft() {
+            if(!this.autoScrollInterval.left) {
+                this.stopAutoScrollRight();
+                this.autoScrollInterval.left = setInterval(() => {
+                    if(this.x == 0) {
+                        this.stopAutoScrollLeft();
+                        return;
+                    }
+                    this.addDelta({
+                        x: this.autoScrollSpeed.left * -1,
+                        y: 0
+                    });
+                }, 100);
+            }
+        }
+        /**
+         * Define a speed percent to auto scroll left
+         */
+        public autoScrollLeft(percent: number = 50) {
+            let slow = this.max.x * 1 / 100;
+            let fast = this.max.x * 10 / 100;
+            this.autoScrollSpeed.left = (fast - slow) * (percent / 100) + slow;
+            this.startAutoScrollLeft();
+        }
+        /**
+         * Stop auto scrolling left
+         */
+        public stopAutoScrollLeft() {
+            if(this.autoScrollInterval.left) {
+                clearInterval(this.autoScrollInterval.left);
+                this.autoScrollInterval.left = 0;
+            }
+        }
+
+        private startAutoScrollTop() {
+            if(!this.autoScrollInterval.top) {
+                this.stopAutoScrollBottom();
+                this.autoScrollInterval.top = setInterval(() => {
+                    if(this.y == 0) {
+                        this.stopAutoScrollTop();
+                        return;
+                    }
+                    this.addDelta({
+                        x: 0,
+                        y: this.autoScrollSpeed.top * -1
+                    });
+                }, 100);
+            }
+        }
+        /**
+         * Define a speed percent to auto scroll top
+         */
+        public autoScrollTop(percent: number = 50) {
+            let slow = this.max.y * 1 / 100;
+            let fast = this.max.y * 10 / 100;
+            this.autoScrollSpeed.top = (fast - slow) * (percent / 100) + slow;
+            this.startAutoScrollTop();
+        }
+        /**
+         * Stop auto scrolling top
+         */
+        public stopAutoScrollTop() {
+            if(this.autoScrollInterval.top) {
+                clearInterval(this.autoScrollInterval.top);
+                this.autoScrollInterval.top = 0;
+            }
+        }
+
+        private startAutoScrollBottom() {
+            if(!this.autoScrollInterval.bottom) {
+                this.stopAutoScrollTop();
+                this.autoScrollInterval.bottom = setInterval(() => {
+                    if(this.y == this.max.y) {
+                        this.stopAutoScrollBottom();
+                        return;
+                    }
+                    this.addDelta({
+                        x: 0,
+                        y: this.autoScrollSpeed.bottom
+                    });
+                }, 100);
+            }
+        }
+        /**
+         * Define a speed percent to auto scroll bottom
+         */
+        public autoScrollBottom(percent: number = 50) {
+            let slow = this.max.y * 1 / 100;
+            let fast = this.max.y * 10 / 100;
+            this.autoScrollSpeed.bottom = (fast - slow) * (percent / 100) + slow;
+            this.startAutoScrollBottom();
+        }
+        /**
+         * Stop auto scrolling bottom
+         */
+        public stopAutoScrollBottom() {
+            if(this.autoScrollInterval.bottom) {
+                clearInterval(this.autoScrollInterval.bottom);
+                this.autoScrollInterval.bottom = 0;
+            }
+        }
+
+
+        private createMatrix(): DOMMatrix {
+            if(!this.cachedSvg) {
+                this.cachedSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            }
+            return this.cachedSvg.createSVGMatrix();
+        }
+        private getMidPoint(a: Tracker, b: Tracker) {
+            return {
+                x: (a.lastPosition.x + b.lastPosition.x) / 2,
+                y: (a.lastPosition.y + b.lastPosition.y) / 2,
+            };
+        }
+        private getDistance(a: Tracker, b: Tracker) {
+            return Math.sqrt((b.lastPosition.x - a.lastPosition.x) ** 2 + (b.lastPosition.y - a.lastPosition.y) ** 2);
+        }
+
+        /**
+         * Zoom on a specific point
+         */
+        public zoomOnPoint(clientX: number, clientY: number, newZoom: number) {
+            let targetCoordinates = this.getBoundingClientRect();
+            let mousePositionRelativeToTarget = {
+                x: targetCoordinates.x - clientX,
+                y: targetCoordinates.y - clientY
+            };
+
+            let oldScale = this.zoom;
+            let newScale: number;
+            if(this.max_zoom > 0) {
+                newScale = Math.max(this.min_zoom, Math.min(this.max_zoom, newZoom));
+            }
+            else {
+                newScale = Math.max(this.min_zoom, newZoom);
+            }
+            let scaleDiff = newScale / oldScale;
+            const matrix = this.createMatrix()
+                .translate(this.x, this.y)
+                .translate(mousePositionRelativeToTarget.x, mousePositionRelativeToTarget.y)
+                .scale(scaleDiff)
+                .translate(-mousePositionRelativeToTarget.x, -mousePositionRelativeToTarget.y)
+                .scale(this.zoom);
+
+            const newZoomFinal = matrix.a || 1;
+            const newX = matrix.e || 0;
+            const newY = matrix.f || 0;
+
+            this.zoom = newZoomFinal;
+            this.onZoomChange.trigger(newZoomFinal);
+            this.scrollDirection('x', newX);
+            this.scrollDirection('y', newY);
+        }
+
+        private pinchAction() {
+            const touches = this.touchRecord.getTouches();
+            if(touches.length == 2) {
+                const newMidpoint = this.getMidPoint(touches[0], touches[1]);
+                const prevMidpoint = this.previousMidPoint ?? newMidpoint;
+                const positioningElRect = this.getBoundingClientRect();
+
+                const originX = (positioningElRect.left + this.x - this.startTranslate.x) - prevMidpoint.x;
+                const originY = (positioningElRect.top + this.y - this.startTranslate.y) - prevMidpoint.y;
+
+                const newDistance = this.getDistance(touches[0], touches[1]);
+                const prevDistance = this.previousDistance;
+
+                let scaleDiff = prevDistance ? newDistance / prevDistance : 1;
+                const panX = prevMidpoint.x - newMidpoint.x;
+                const panY = prevMidpoint.y - newMidpoint.y;
+
+                let oldScale = this.zoom;
+                let newScale: number;
+                if(this.max_zoom > 0) {
+                    newScale = Math.max(this.min_zoom, Math.min(this.max_zoom, oldScale * scaleDiff));
+                }
+                else {
+                    newScale = Math.max(this.min_zoom, oldScale * scaleDiff);
+                }
+                scaleDiff = newScale / oldScale;
+
+                const matrix = this.createMatrix()
+                    .translate(panX, panY)
+                    .translate(originX, originY)
+                    .translate(this.x, this.y)
+                    .scale(scaleDiff)
+                    .translate(-originX, -originY)
+                    .scale(this.zoom);
+
+                const newZoom = matrix.a || 1;
+                const newX = matrix.e || 0;
+                const newY = matrix.f || 0;
+
+                this.zoom = newZoom;
+                this.onZoomChange.trigger(newZoom);
+                this.scrollDirection('x', newX);
+                this.scrollDirection('y', newY);
+
+                this.previousMidPoint = newMidpoint;
+                this.previousDistance = newDistance;
+            }
+            return null;
+        }
         //#endregion
 
         //#region events
+        private pressManager!: PressManager;
         private addAction() {
-            this.addEventListener("wheel", this.onWheel);
-            this.addEventListener("touchstart", this.onTouchStart);
-            this.addEventListener("touchmove", this.onTouchMove);
-            this.addEventListener("touchcancel", this.onTouchEnd);
-            this.addEventListener("touchend", this.onTouchEnd);
+            this.addEventListener("wheel", this.onWheel, { passive: false });
+            this.pressManager = new PressManager({
+                element: this,
+                offsetDrag: 0,
+                onPressStart: (e) => {
+                    this.touchRecord.track(e.event);
+                    this.pointerCount = this.touchRecord.getNbOfTouches();
+                },
+                onPressEnd: (e) => {
+                    this.touchRecord.release(e.event);
+                    this.pointerCount = this.touchRecord.getNbOfTouches();
+                },
+                onDragStart: (e) => {
+                    if(!this.pinch && !this.x_scroll_visible && !this.y_scroll_visible) {
+                        return false;
+                    }
+                    return this.onTouchStartPointer(e);
+                },
+                onDrag: (e) => {
+                    this.onTouchMovePointer(e);
+                },
+                onDragEnd: (e) => {
+                    this.onTouchEndPointer(e);
+                }
+            });
+            // this.addEventListener("touchstart", this.onTouchStart);
+            // this.addEventListener("trigger_pointer_pressstart", this.onTouchStartPointer);
+
+            if(this.mouse_drag) {
+                // this.addEventListener("mousedown", this.onTouchStart);
+            }
             this.addScrollDrag('x');
             this.addScrollDrag('y');
+        }
+        private addActionMove() {
+            // document.body.addEventListener("touchmove", this.onTouchMove);
+            // document.body.addEventListener("trigger_pointer_pressmove", this.onTouchMovePointer);
+            // document.body.addEventListener("touchcancel", this.onTouchEnd);
+            // document.body.addEventListener("touchend", this.onTouchEnd);
+            // document.body.addEventListener("trigger_pointer_pressend", this.onTouchEndPointer);
+            if(this.mouse_drag) {
+                // document.body.addEventListener("mousemove", this.onTouchMove);
+                // document.body.addEventListener("mouseup", this.onTouchEnd);
+            }
+        }
+        private removeActionMove() {
+            // document.body.removeEventListener("touchmove", this.onTouchMove);
+            // document.body.removeEventListener("trigger_pointer_pressmove", this.onTouchMovePointer);
+            // document.body.removeEventListener("touchcancel", this.onTouchEnd);
+            // document.body.removeEventListener("touchend", this.onTouchEnd);
+            // document.body.removeEventListener("trigger_pointer_pressend", this.onTouchEndPointer);
+            // document.body.removeEventListener("mousemove", this.onTouchMove);
+            // document.body.removeEventListener("mouseup", this.onTouchEnd);
         }
 
         private addScrollDrag(direction: 'x' | 'y') {
             let scroller = this.scroller[direction]();
-            scroller.addEventListener("touchstart", (e) => {
-                e.stopPropagation();
-            });
+
             let startPosition = 0;
             new Aventus.DragAndDrop({
                 element: scroller,
@@ -332,6 +687,7 @@ namespace Layout {
                 offsetDrag: 0,
                 isDragEnable: () => !this.disable,
                 onStart: (e) => {
+                    this.isDragScroller = true;
                     this.no_user_select = true;
                     scroller.classList.add("active");
                     startPosition = this.position[direction];
@@ -344,11 +700,29 @@ namespace Layout {
                 onStop: () => {
                     this.no_user_select = false;
                     scroller.classList.remove("active");
+                    this.isDragScroller = false;
                 }
             });
         }
 
-
+        private shouldStopPropagation(e: Event, delta: { x: number, y: number; }) {
+            if(!this.y_scroll && this.x_scroll) {
+                if(
+                    (delta.x > 0 && this.x != this.max.x) ||
+                    (delta.x <= 0 && this.x != 0)
+                ) {
+                    e.stopPropagation();
+                }
+            }
+            else {
+                if(
+                    (delta.y > 0 && this.y != this.max.y) ||
+                    (delta.y <= 0 && this.y != 0)
+                ) {
+                    e.stopPropagation();
+                }
+            }
+        }
         private addDelta(delta: { x: number, y: number; }) {
             if(this.disable) {
                 return;
@@ -358,6 +732,18 @@ namespace Layout {
             this.renderAnimation?.start();
         }
         private onWheel(e: WheelEvent) {
+            if(e.ctrlKey) {
+                e.preventDefault();
+                e.stopPropagation();
+                if(this.pinch) {
+                    let factor = 0.9;
+                    if(e.deltaY < 0) {
+                        factor = 1.1;
+                    }
+                    this.zoomOnPoint(e.clientX, e.clientY, this.zoom * factor);
+                }
+                return;
+            }
             const DELTA_MODE = [1.0, 28.0, 500.0];
             const mode = DELTA_MODE[e.deltaMode] || DELTA_MODE[0];
             let newValue = {
@@ -369,27 +755,33 @@ namespace Layout {
                     x: e.deltaY * mode,
                     y: 0,
                 };
-                if(
-                    (newValue.x > 0 && this.x != this.max.x) ||
-                    (newValue.x <= 0 && this.x != 0)
-                ) {
-                    e.stopPropagation();
-                }
             }
-            else {
-                if(
-                    (newValue.y > 0 && this.y != this.max.y) ||
-                    (newValue.y <= 0 && this.y != 0)
-                ) {
-                    e.stopPropagation();
-                }
+            else if(this.x_scroll && e.altKey) {
+                newValue = {
+                    x: e.deltaY * mode,
+                    y: 0,
+                };
             }
-
+            this.shouldStopPropagation(e, newValue);
             this.addDelta(newValue);
         }
 
-
-        private onTouchStart(e: TouchEvent) {
+        private onTouchStartPointer(e: NormalizedEvent) {
+            const ev = e.event;
+            if('TouchEvent' in window && ev instanceof TouchEvent) {
+                this.onTouchStart(ev);
+                return true;
+            }
+            else if(ev instanceof PointerEvent) {
+                if(this.mouse_drag || ev.pointerType == "touch") {
+                    this.onTouchStart(ev);
+                    return true;
+                }
+            }
+            return false;
+        }
+        private onTouchStart(e: TouchEvent | PointerEvent | MouseEvent) {
+            if(this.isDragScroller) return;
             this.touchRecord.track(e);
 
             this.momentum = {
@@ -398,37 +790,86 @@ namespace Layout {
             };
 
             if(this.pointerCount === 0) {
-                this.savedBreak = this.break;
-                this.break = Math.max(this.break, 0.5); // less frames on touchmove
+                this.addActionMove();
             }
-            this.pointerCount++;
+            this.pointerCount = this.touchRecord.getNbOfTouches();
+
+            if(this.pinch && this.pointerCount == 2) {
+                this.startTranslate = { x: this.x, y: this.y };
+            }
         }
-        private onTouchMove(e: TouchEvent) {
+
+        private onTouchMovePointer(e: NormalizedEvent) {
+            const ev = e.event;
+            if('TouchEvent' in window && ev instanceof TouchEvent) {
+                this.onTouchMove(ev);
+            }
+            else if(ev instanceof PointerEvent) {
+                if(this.mouse_drag || ev.pointerType == "touch") {
+                    this.onTouchMove(ev);
+                }
+            }
+        }
+        private onTouchMove(e: TouchEvent | PointerEvent | MouseEvent) {
+            if(this.isDragScroller) return;
             this.touchRecord.update(e);
-            const delta = this.touchRecord.getDelta();
-            this.addDelta(delta);
+
+            if(this.pinch && this.pointerCount == 2) {
+                // zoom
+                e.stopPropagation();
+                this.renderAnimation?.stop();
+                this.pinchAction();
+            }
+            else {
+                const delta = this.touchRecord.getDelta();
+                this.shouldStopPropagation(e, delta);
+                this.addDelta(delta);
+            }
         }
-        private onTouchEnd(e: TouchEvent) {
-            const delta = this.touchRecord.getEasingDistance(this.savedBreak);
+        private onTouchEndPointer(e: NormalizedEvent) {
+            const ev = e.event;
+            if('TouchEvent' in window && ev instanceof TouchEvent) {
+                this.onTouchEnd(ev);
+            }
+            else if(ev instanceof PointerEvent) {
+                if(this.mouse_drag || ev.pointerType == "touch") {
+                    this.onTouchEnd(ev);
+                }
+
+            }
+        }
+        private onTouchEnd(e: TouchEvent | PointerEvent | MouseEvent) {
+            if(this.isDragScroller) return;
+            const delta = this.touchRecord.getEasingDistance(this.break);
+            this.shouldStopPropagation(e, delta);
             this.addDelta(delta);
-            this.pointerCount--;
+            this.touchRecord.release(e);
+            this.pointerCount = this.touchRecord.getNbOfTouches();
 
             if(this.pointerCount === 0) {
-                this.break = this.savedBreak;
+                this.removeActionMove();
+            }
+            if(this.pointerCount < 2) {
+                this.previousMidPoint = undefined;
+                this.previousDistance = undefined;
             }
 
-            this.touchRecord.release(e);
         }
 
         //#endregion
 
         //#region position
-        private calculateRealSize() {
+        private calculateRealSize(): boolean {
             if(!this.contentZoom || !this.mainContainer || !this.contentWrapper) {
-                return;
+                return false;
             }
             const currentOffsetWidth = this.contentZoom.offsetWidth;
             const currentOffsetHeight = this.contentZoom.offsetHeight;
+
+            let hasChanged = false;
+
+            if(this.contentWrapper.offsetWidth != this.contentWrapperSize.x || this.contentWrapper.offsetHeight != this.contentWrapperSize.y)
+                hasChanged = true;
 
             this.contentWrapperSize.x = this.contentWrapper.offsetWidth;
             this.contentWrapperSize.y = this.contentWrapper.offsetHeight;
@@ -437,13 +878,27 @@ namespace Layout {
                 // scale the container for zoom
                 this.contentZoom.style.width = this.mainContainer.offsetWidth / this.zoom + 'px';
                 this.contentZoom.style.height = this.mainContainer.offsetHeight / this.zoom + 'px';
+                this.contentZoom.style.maxHeight = this.mainContainer.offsetHeight / this.zoom + 'px';
+                if(currentOffsetHeight != this.display.y || currentOffsetWidth != this.display.x)
+                    hasChanged = true;
+
                 this.display.y = currentOffsetHeight;
                 this.display.x = currentOffsetWidth;
             }
             else {
-                this.display.y = currentOffsetHeight / this.zoom;
-                this.display.x = currentOffsetWidth / this.zoom;
+                const newX = currentOffsetWidth / this.zoom;
+                const newY = currentOffsetHeight / this.zoom;
+                if(newY != this.display.y || newX != this.display.x)
+                    hasChanged = true;
+
+                this.display.y = newY;
+                this.display.x = newX;
+
+                this.contentZoom.style.width = '';
+                this.contentZoom.style.height = '';
+                this.contentZoom.style.maxHeight = '';
             }
+            return hasChanged;
         }
 
         private calculatePositionScrollerContainer(direction: 'x' | 'y') {
@@ -495,19 +950,37 @@ namespace Layout {
             if(maxScrollContent < 0) {
                 maxScrollContent = 0;
             }
-            this._max[direction] = maxScrollContent + this.margin[direction];
+            this.max[direction] = maxScrollContent + this.margin[direction];
         }
 
         //#endregion
 
         private changeZoom() {
             this.contentZoom.style.transform = 'scale(' + this.zoom + ')';
-            this.dimensionRefreshed();
+            this.dimensionRefreshed(true);
         }
 
-        private dimensionRefreshed() {
-            this.calculateRealSize();
-
+        /**
+         * Inform that the size has changed
+         */
+        private dimensionRefreshed(force: boolean = false) {
+            if(this.contentWrapper.offsetHeight > 0 && this.contentWrapper.offsetWidth > 0) {
+                this.loadedOnce = true;
+                if(this.savedPercent) {
+                    this.position.x = this.contentWrapper.offsetWidth * this.savedPercent.x;
+                    this.position.y = this.contentWrapper.offsetHeight * this.savedPercent.y;
+                    this.savedPercent = undefined;
+                }
+            }
+            else if(this.loadedOnce) {
+                this.savedPercent = {
+                    x: this.position.x / this.contentWrapperSize.x,
+                    y: this.position.y / this.contentWrapperSize.y
+                };
+            }
+            if(!this.calculateRealSize() && !force) {
+                return;
+            }
             if(this.contentWrapperSize.y - this.display.y > 0) {
                 if(!this.y_scroll_visible) {
                     this.y_scroll_visible = true;
@@ -538,6 +1011,7 @@ namespace Layout {
                 this.scrollDirection('x', 0);
             }
 
+
         }
         private createResizeObserver() {
             let inProgress = false;
@@ -562,6 +1036,7 @@ namespace Layout {
             this.observer.observe(this);
         }
         protected override postCreation(): void {
+            this.dimensionRefreshed();
             this.addResizeObserver();
             this.addAction();
         }

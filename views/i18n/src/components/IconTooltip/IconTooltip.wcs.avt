@@ -1,0 +1,50 @@
+:host {
+	border-radius: 6px;
+	cursor: pointer;
+	height: 32px;
+	padding: 8px;
+	position: relative;
+	transition: background-color 0.2s linear;
+	width: 32px;
+
+	vscode-icon {
+		height: 100%;
+		width: 100%;
+	}
+
+	.notif {
+		background-color: var(--vscode-icon-foreground);
+		border-radius: 10px;
+		display: none;
+		height: 10px;
+		position: absolute;
+		right: 3px;
+		top: 3px;
+		width: 10px;
+	}
+}
+
+:host([active]) {
+	&::after {
+		border: 1px solid var(--vscode-button-secondaryHoverBackground);
+		border-radius: 6px;
+		content: "";
+		height: 100%;
+		left: 50%;
+		pointer-events: none;
+		position: absolute;
+		top: 50%;
+		transform: translate(-50%, -50%);
+		width: 100%;
+	}
+}
+
+:host(:hover) {
+	background-color: var(--vscode-button-secondaryHoverBackground);
+}
+
+:host([notif]) {
+	.notif {
+		display: block;
+	}
+}

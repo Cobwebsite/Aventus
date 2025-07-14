@@ -25,4 +25,4 @@ Object.defineProperty(window, "AvInstance", {
 		}
 		return Map.prototype._defaultGet.call(this, key);
 	}
-})()
+})();

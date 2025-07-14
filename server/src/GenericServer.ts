@@ -15,6 +15,7 @@ import { TemplateManager as TemplateFileManager } from './files/TemplateManager'
 import { TemplateFileManager as TemplateFileTsManager } from './language-services/ts/template/TemplateFileManager';
 import { CSharpManager } from './language-services/json/CSharpManager';
 import { Build } from './project/Build';
+import { Communication } from './communication';
 
 
 
@@ -107,7 +108,7 @@ export class GenericServer {
 			this.onInitialize(params);
 		})
 		this.connection.onInitialized(async () => {
-			this.onInitialized();
+			await this.onInitialized();
 		})
 		this.connection.onShutdown(async () => {
 			await this.onShutdown();
@@ -151,6 +152,9 @@ export class GenericServer {
 		this.connection.onDidChangeConfiguration(async () => {
 			return await this.onDidChangeConfiguration();
 		})
+		this.connection.onRequest(async (method, params) => {
+			return await Communication.execute(method, params);
+		})
 	}
 
 	protected onInitialize(params: AvInitializeParams) {
@@ -182,55 +186,55 @@ export class GenericServer {
 		await FilesManager.getInstance().onShutdown();
 	}
 	protected async onCompletion(document: TextDocument | undefined, position: Position) {
-		if (document && this.isAllowed(document)) {
+		if (this.isAllowed(document)) {
 			return await FilesManager.getInstance().onCompletion(document, position);
 		}
 		return null;
 	}
 	protected async onCompletionResolve(document: TextDocument | undefined, completionItem: CompletionItem) {
-		if (document && this.isAllowed(document)) {
+		if (this.isAllowed(document)) {
 			return await FilesManager.getInstance().onCompletionResolve(document, completionItem);
 		}
 		return completionItem;
 	}
 	protected async onHover(document: TextDocument | undefined, position: Position) {
-		if (document && this.isAllowed(document)) {
+		if (this.isAllowed(document)) {
 			return await FilesManager.getInstance().onHover(document, position);
 		}
 		return null;
 	}
 	protected async onDefinition(document: TextDocument | undefined, position: Position) {
-		if (document && this.isAllowed(document)) {
+		if (this.isAllowed(document)) {
 			return await FilesManager.getInstance().onDefinition(document, position);
 		}
 		return null;
 	}
 	protected async onDocumentFormatting(document: TextDocument | undefined, options: FormattingOptions) {
-		if (document && this.isAllowed(document)) {
+		if (this.isAllowed(document)) {
 			return await FilesManager.getInstance().onFormatting(document, options);
 		}
 		return null;
 	}
 	protected async onCodeAction(document: TextDocument | undefined, range: Range) {
-		if (document && this.isAllowed(document)) {
+		if (this.isAllowed(document)) {
 			return await FilesManager.getInstance().onCodeAction(document, range);
 		}
 		return null;
 	}
 	protected async onCodeLens(document: TextDocument | undefined) {
-		if (document && this.isAllowed(document)) {
+		if (this.isAllowed(document)) {
 			return await FilesManager.getInstance().onCodeLens(document);
 		}
 		return null;
 	}
 	protected async onReferences(document: TextDocument | undefined, position: Position) {
-		if (document && this.isAllowed(document)) {
+		if (this.isAllowed(document)) {
 			return await FilesManager.getInstance().onReferences(document, position);
 		}
 		return null;
 	}
 	protected async onRenameRequest(document: TextDocument | undefined, position: Position, newName: string) {
-		if (document && this.isAllowed(document)) {
+		if (this.isAllowed(document)) {
 			return await FilesManager.getInstance().onRename(document, position, newName);
 		}
 		return null;
@@ -255,7 +259,8 @@ export class GenericServer {
 	}
 
 
-	public isAllowed(document: TextDocument) {
+	public isAllowed(document?: TextDocument): document is TextDocument {
+		if(!document) return false;
 		return GenericServer.isAllowed(document);
 	}
 	public static isAllowed(document: TextDocument) {
@@ -289,6 +294,12 @@ export class GenericServer {
 		}
 		SettingsManager.getInstance().setSettings(result);
 		this.isDebug = SettingsManager.getInstance().settings.debug;
+
+		let resultHtml = await this.connection.getSettingsHtml();
+		if (!resultHtml) {
+			resultHtml = {};
+		}
+		SettingsManager.getInstance().setSettingsHtml(resultHtml);
 	}
 
 	protected async startServer() {

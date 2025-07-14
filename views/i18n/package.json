@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@vscode-elements/elements": "^1.14.0"
+  }
+}

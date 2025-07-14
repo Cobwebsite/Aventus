@@ -1,0 +1,17 @@
+:host {
+	--_translation-col-width: var(--translation-col-width, 200px);
+}
+
+:host {
+	align-items: center;
+	border-right: 1px solid var(--vscode-widget-border);
+	display: flex;
+	flex-shrink: 0;
+	gap: 10px;
+	justify-content: center;
+	margin: 0;
+	padding: 10px 20px;
+	position: relative;
+	width: var(--translation-col-width);
+	min-width: 200px;
+}

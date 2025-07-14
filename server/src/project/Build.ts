@@ -8,7 +8,7 @@ import { FilesManager } from '../files/FilesManager';
 import { AventusHTMLFile, SlotsInfo } from "../language-services/html/File";
 import { HTMLDoc } from '../language-services/html/helper/definition';
 import { AventusHTMLLanguageService } from "../language-services/html/LanguageService";
-import { AventusConfigBuild, AventusConfigBuildCompile, AventusConfigBuildCompileOutputNpm } from "../language-services/json/definition";
+import { AventusConfigBuild, AventusConfigBuildCompile, AventusConfigBuildCompileOutputI18n, AventusConfigBuildCompileOutputNpm } from "../language-services/json/definition";
 import { AventusWebSCSSFile } from "../language-services/scss/File";
 import { AventusSCSSLanguageService } from "../language-services/scss/LanguageService";
 import { AventusWebComponentLogicalFile } from "../language-services/ts/component/File";
@@ -38,6 +38,7 @@ import * as md5 from 'md5';
 import { Statistics } from '../notification/Statistics';
 import { Manifest } from '../manifest/Manifest';
 import { OverrideViewDecorator } from '../language-services/ts/parser/decorators/OverrideViewDecorator';
+import { AventusI18nExported, AventusI18nFile } from '../language-services/i18n/File';
 
 export type BuildErrors = { file: string, title: string }[]
 
@@ -87,6 +88,7 @@ export class Build {
     public noNamespaceUri: { [uri: string]: boolean } = {};
     public htmlFiles: { [uri: string]: AventusHTMLFile } = {}
     public wcFiles: { [uri: string]: AventusWebComponentSingleFile } = {};
+    public i18nComponentsFiles: { [uri: string]: AventusI18nFile } = {}
 
     public namespaces: string[] = [];
 
@@ -227,6 +229,12 @@ export class Build {
         this.htmlLanguageService.allowRebuildDefinition(false);
         // validate
         if (isInit) {
+            for (let uri in this.tsLanguageService.i18nFiles) {
+                await this.tsLanguageService.i18nFiles[uri].validate();
+            }
+            for (let uri in this.i18nComponentsFiles) {
+                await this.i18nComponentsFiles[uri].validate();
+            }
             for (let uri in this.wcFiles) {
                 await this.wcFiles[uri].init();
             }
@@ -245,6 +253,12 @@ export class Build {
             
         }
         else {
+            for (let uri in this.tsLanguageService.i18nFiles) {
+                await this.tsLanguageService.i18nFiles[uri].validate();
+            }
+            for (let uri in this.i18nComponentsFiles) {
+                await this.i18nComponentsFiles[uri].validate();
+            }
             for (let uri in this.scssFiles) {
                 await this.scssFiles[uri].validate();
             }
@@ -344,6 +358,9 @@ export class Build {
         let buildErrors: BuildErrors = []
 
         for (let compile of this.buildConfig.compile) {
+            if (compile.i18n) {
+                this.writeBuildI18n(compile.i18n);
+            }
             let compilationInfo = await this.buildOrderCompilationInfo(compile);
             let result = await this.buildLocalCode(compilationInfo.toCompile, this.buildConfig.module);
 
@@ -356,7 +373,8 @@ export class Build {
                 available: result.codeRenderInJs,
                 existing: result.codeNotRenderInJs
             }
-            this.writeBuildDocumentation(compile.package, result, srcInfo, compile.outputNpm)
+            this.writeBuildDocumentation(compile.package, result, srcInfo, compile.outputNpm);
+
             if (compile.outputNpm.live) {
                 this.writeBuildNpm(compile.outputNpm, result);
             }
@@ -812,6 +830,83 @@ export class Build {
             }
         }
 
+    }
+
+    public writeBuildI18n(outputs: AventusConfigBuildCompileOutputI18n[]) {
+        const locales = this.buildConfig.i18n?.locales ?? [];
+        for (let output of outputs) {
+            if (locales.length > 0 && !existsSync(output.output)) {
+                mkdirSync(output.output, { recursive: true });
+            }
+            for (let locale of locales) {
+                if (output.mode == "singleFile") {
+                    let content: { [key: string]: string } = {};
+                    for (let uri in this.tsLanguageService.i18nFiles) {
+                        const file = this.tsLanguageService.i18nFiles[uri];
+                        content = { ...content, ...file.exported[locale] };
+                    }
+                    for (let uri in this.i18nComponentsFiles) {
+                        const file = this.i18nComponentsFiles[uri];
+                        content = { ...content, ...file.exported[locale] };
+                    }
+                    const outputFile = join(output.output, locale + ".json").toLowerCase();
+
+                    this.writeFile(outputFile, JSON.stringify(content, null, 4));
+                }
+                else if (output.mode == "oneToOne") {
+                    for (let uri in this.tsLanguageService.i18nFiles) {
+                        const file = this.tsLanguageService.i18nFiles[uri];
+
+                        const name = file.file.name.replace("@", "").replace(AventusExtension.I18n, "");
+                        const outputFile = join(output.output, name + "_" + locale + ".json").toLowerCase();
+
+                        this.writeFile(outputFile, JSON.stringify(file.exported[locale], null, 4));
+                    }
+                    for (let uri in this.i18nComponentsFiles) {
+                        const file = this.i18nComponentsFiles[uri];
+                        const tsFile = this.tsFiles[uri.replace(AventusExtension.I18n, AventusExtension.ComponentLogic)];
+                        if (tsFile instanceof AventusWebComponentLogicalFile && tsFile.fileParsed) {
+                            const _class = tsFile.fileParsed.classes[tsFile.componentClassName];
+                            const folderName = _class.namespace.replace(/\./g, sep);
+                            const fullPath = join(output.output, folderName);
+                            if (!existsSync(fullPath)) {
+                                mkdirSync(fullPath, { recursive: true });
+                            }
+
+                            const name = file.file.name.replace(AventusExtension.I18n, "");
+                            const outputFile = join(output.output, name + "_" + locale + ".json").toLowerCase();
+
+                            this.writeFile(outputFile, JSON.stringify(file.exported[locale], null, 4));
+                        }
+                    }
+                }
+                else if (output.mode == "groupComponent") {
+                    for (let uri in this.tsLanguageService.i18nFiles) {
+                        const file = this.tsLanguageService.i18nFiles[uri];
+
+                        const name = file.file.name.replace("@", "").replace(AventusExtension.I18n, "");
+                        const outputFile = join(output.output, name + "_" + locale + ".json").toLowerCase();
+
+                        this.writeFile(outputFile, JSON.stringify(file.exported[locale], null, 4));
+                    }
+                    let content: { [key: string]: string } = {};
+                    for (let uri in this.i18nComponentsFiles) {
+                        const file = this.i18nComponentsFiles[uri];
+                        content = { ...content, ...file.exported[locale] };
+                    }
+
+                    const outputFile = join(output.output, "_components_" + locale + ".json").toLowerCase();
+                    this.writeFile(outputFile, JSON.stringify(content, null, 4));
+                }
+                else if (output.mode == "basedOnAttribute") {
+
+                }
+                else if(output.mode == "include") {
+
+                }
+
+            }
+        }
     }
 
     /**
@@ -1567,6 +1662,58 @@ export class Build {
                 stylesheets.push(`Aventus.Style.store("${name}", \`${stylesheetsInfo[name]}\`)`);
             }
             let codeModule = this._buildStringModule(libInfo.namespace, libInfo.before, libInfo.code, libInfo.classesName, libInfo.after, stylesheets);
+            if (libInfo.namespace == "Aventus" && libInfo.classesName['I18n']) {
+                if (this.buildConfig.i18n && this.buildConfig.i18n.autoRegister !== false) {
+                    const output = compileConfig.i18n[0];
+                    if (output.mode == "singleFile") {
+                        const outputFile = (output.mount + "/" + "$locale.json").toLowerCase();
+                        codeModule += `Aventus.I18n.registerFile("${outputFile}")` + EOL;
+                    }
+                    else if (output.mode == "oneToOne") {
+                        for (let uri in this.tsLanguageService.i18nFiles) {
+                            const file = this.tsLanguageService.i18nFiles[uri];
+                            const name = file.file.name.replace("@", "").replace(AventusExtension.I18n, "");
+                            const outputFile = (output.mount + "/" + name + "_$locale.json").toLowerCase();
+                            codeModule += `Aventus.I18n.registerFile("${outputFile}")` + EOL;
+                        }
+                        for (let uri in this.i18nComponentsFiles) {
+                            const file = this.i18nComponentsFiles[uri];
+                            const tsFile = this.tsFiles[uri.replace(AventusExtension.I18n, AventusExtension.ComponentLogic)];
+                            if (tsFile instanceof AventusWebComponentLogicalFile && tsFile.fileParsed) {
+                                const _class = tsFile.fileParsed.classes[tsFile.componentClassName];
+                                let folderName = _class.namespace.replace(/\./g, '/');
+                                if (folderName) {
+                                    folderName + '/';
+                                }
+
+                                const name = file.file.name.replace(AventusExtension.I18n, "");
+                                const outputFile = (output.mount + "/" + folderName + name + "_$locale.json").toLowerCase();
+                                codeModule += `Aventus.I18n.registerFile("${outputFile}")` + EOL;
+
+                            }
+                        }
+                    }
+                    else if (output.mode == "groupComponent") {
+                        for (let uri in this.tsLanguageService.i18nFiles) {
+                            const file = this.tsLanguageService.i18nFiles[uri];
+                            const name = file.file.name.replace("@", "").replace(AventusExtension.I18n, "");
+                            const outputFile = (output.mount + "/" + name + "_$locale.json").toLowerCase();
+                            codeModule += `Aventus.I18n.registerFile("${outputFile}")` + EOL;
+                        }
+                        if (Object.keys(this.i18nComponentsFiles).length > 0) {
+                            const outputFile = (output.mount + "/_components_$locale.json").toLowerCase();
+                            codeModule += `Aventus.I18n.registerFile("${outputFile}")` + EOL;
+                        }
+                    }
+                    else if (output.mode == "basedOnAttribute") {
+
+                    }
+                    else if(output.mode == "include") {
+                    
+                    }
+
+                }
+            }
             libSrc.push(codeModule);
 
         }
@@ -1712,6 +1859,24 @@ export class Build {
                 if (!isInit)
                     await this.wcFiles[file.uri].init();
                 this.registerOnFileDelete(file);
+            }
+        }
+        else if (file.uri.endsWith(AventusExtension.I18n)) {
+            if (file.name.startsWith("@")) {
+                if (!this.tsLanguageService.i18nFiles[file.uri]) {
+                    this.tsLanguageService.i18nFiles[file.uri] = new AventusI18nFile(file, true, this);
+                    if (!isInit)
+                        await this.tsLanguageService.i18nFiles[file.uri].validate();
+                    this.registerOnFileDelete(file);
+                }
+            }
+            else {
+                if (!this.i18nComponentsFiles[file.uri]) {
+                    this.i18nComponentsFiles[file.uri] = new AventusI18nFile(file, false, this);
+                    if (!isInit)
+                        await this.i18nComponentsFiles[file.uri].validate();
+                    this.registerOnFileDelete(file);
+                }
             }
         }
         else {
@@ -2004,6 +2169,14 @@ export class Build {
             this.tsFiles[uri].removeEvents();
             this.tsFiles[uri].file.removeOnDelete(this.onFileDeleteUUIDs[uri]);
         }
+        for (let uri in this.tsLanguageService.i18nFiles) {
+            this.tsLanguageService.i18nFiles[uri].removeEvents();
+            this.tsLanguageService.i18nFiles[uri].file.removeOnDelete(this.onFileDeleteUUIDs[uri]);
+        }
+        for (let uri in this.i18nComponentsFiles) {
+            this.i18nComponentsFiles[uri].removeEvents();
+            this.i18nComponentsFiles[uri].file.removeOnDelete(this.onFileDeleteUUIDs[uri]);
+        }
         UnregisterBuild.send(this.project.getConfigFile().path, this.buildConfig.fullname);
     }
 
@@ -2088,6 +2261,12 @@ class ExternalPackageInformation {
             for (let available of defFile.srcInfo.available) {
                 if (available.required) {
                     this.informationsRequired[uri].push(available);
+                }
+                else {
+                    // force Aventus.I18n when config define i18n
+                    if (this.build.buildConfig.i18n && available.fullName == "Aventus.I18n") {
+                        this.informationsRequired[uri].push(available);
+                    }
                 }
                 if (available.fullName) {
                     if (!this.informations[available.fullName]) {

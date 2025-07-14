@@ -31,7 +31,7 @@ export class ClassInfo extends BaseInfo {
 	public parameters: string[] = [];
 	private methodParameters: string[] = [];
 	public convertibleName: string = '';
-	public extendsType?: TypeInfo;
+	public extendsType?: TypeInfo; // only used for stories
 	public implementsType: TypeInfo[] = [];
 	public extraConstructorCode: string[] = [];
 
@@ -40,7 +40,10 @@ export class ClassInfo extends BaseInfo {
 			if (this.extraConstructorCode.length > 0) {
 				let _params = this.parentClass ? this.parentClass.constructorParams.map(c => c.getText()).join() : '';
 				let _paramsSuper = this.parentClass ? this.parentClass.constructorParams.map(c => c.name.getText()).join() : '';
-				return 'constructor(' + _params + ') { super(' + _paramsSuper + '); ' + EOL + this.extraConstructorCode.join(EOL) + ' }'
+				if (this.parentClass) {
+					return 'constructor(' + _params + ') { super(' + _paramsSuper + '); ' + EOL + this.extraConstructorCode.join(EOL) + ' }'
+				}
+				return 'constructor(' + _params + ') {' + this.extraConstructorCode.join(EOL) + ' }'
 			}
 			return "";
 		}
@@ -55,7 +58,9 @@ export class ClassInfo extends BaseInfo {
 			if (this.extraConstructorCode.length > 0) {
 				let _params = this.parentClass ? this.parentClass.constructorParams.map(c => c.getText()).join() : '';
 				let _paramsSuper = this.parentClass ? this.parentClass.constructorParams.map(c => c.name.getText()).join() : '';
-				return 'constructor(' + _params + ') { super(' + _paramsSuper + '); ' + EOL + this.extraConstructorCode.join(EOL) + ' }'
+				if (this.parentClass)
+					return 'constructor(' + _params + ') { super(' + _paramsSuper + '); ' + EOL + this.extraConstructorCode.join(EOL) + ' }'
+				return 'constructor(' + _params + ') {' + this.extraConstructorCode.join(EOL) + ' }'
 			}
 			return "";
 		}
@@ -69,7 +74,9 @@ export class ClassInfo extends BaseInfo {
 			if (this.extraConstructorCode.length > 0) {
 				let _params = this.parentClass ? this.parentClass.constructorParams.map(c => c.getText()).join() : '';
 				let _paramsSuper = this.parentClass ? this.parentClass.constructorParams.map(c => c.name.getText()).join() : '';
-				return 'constructor(' + _params + ') { super(' + _paramsSuper + '); ' + EOL + this.extraConstructorCode.join(EOL) + ' }'
+				if (this.parentClass)
+					return 'constructor(' + _params + ') { super(' + _paramsSuper + '); ' + EOL + this.extraConstructorCode.join(EOL) + ' }'
+				return 'constructor(' + _params + ') {' + this.extraConstructorCode.join(EOL) + ' }'
 			}
 			return "";
 		}
@@ -297,20 +304,27 @@ export class ClassInfo extends BaseInfo {
 				}
 			}
 			else {
-				let _params = '';
-				let _paramsSuper = '';
-				if (this.parentClass) {
-					// TODO add typing to get right type (care when came from different package)
-					_params = this.parentClass.constructorParams.map(c => c.getText()).join()
-					_paramsSuper = this.parentClass.constructorParams.map(c => c.name.getText()).join()
-				}
 				const bodyStart = this.node.getChildren().find(p => p.kind == SyntaxKind.OpenBraceToken)?.end ?? 0;
 				const key = bodyStart + "_" + bodyStart
-				this.compileTransformations[key] = {
-					start: bodyStart,
-					end: bodyStart,
-					newText: 'constructor(' + _params + ') { super(' + _paramsSuper + '); ' + EOL + this.extraConstructorCode.join(EOL) + ' }'
+				if (this.parentClass) {
+					// TODO add typing to get right type (care when came from different package)
+					let _params = this.parentClass.constructorParams.map(c => c.getText()).join()
+					let _paramsSuper = this.parentClass.constructorParams.map(c => c.name.getText()).join()
+					this.compileTransformations[key] = {
+						start: bodyStart,
+						end: bodyStart,
+						newText: 'constructor(' + _params + ') { super(' + _paramsSuper + '); ' + EOL + this.extraConstructorCode.join(EOL) + ' }'
+					}
 				}
+				else {
+					this.compileTransformations[key] = {
+						start: bodyStart,
+						end: bodyStart,
+						newText: 'constructor() { ' + this.extraConstructorCode.join(EOL) + ' }'
+					}
+				}
+
+
 			}
 		}
 	}
@@ -401,7 +415,7 @@ export class ClassInfo extends BaseInfo {
 	}
 	public getEvent(name: string): PropertyInfo | null {
 		let eventsToLook: string[];
-		if(name.startsWith("@")) {
+		if (name.startsWith("@")) {
 			name = name.slice(1)
 		}
 		if (name.startsWith("on")) {

@@ -14,7 +14,9 @@ export const AventusLanguageId = {
     HTML: "Aventus HTML",
     SCSS: "Aventus SCSS",
     WebComponent: "Aventus WebComponent",
-    Package: "Aventus Ts"
+    Package: "Aventus Ts",
+    I18n: "Aventus I18n"
+
 }
 export const AventusExtension = {
     Base: ".avt",
@@ -33,7 +35,8 @@ export const AventusExtension = {
     Definition: ".def.avt",
     DefinitionNpm: ".defnpm.avt",
     Template: "template.avt",
-    Package: ".package.avt"
+    Package: ".package.avt",
+    I18n: ".i18n.avt",
 } as const;
 
 export enum AventusErrorCode {
