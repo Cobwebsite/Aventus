@@ -37,6 +37,23 @@ export interface AventusPackageTsFileExportNoCode {
 	dependances: { fullName: string; isStrong: boolean }[];
 }
 export class AventusPackageFile extends AventusBaseFile {
+	public static getQuickInfo(file: AventusFile): { name: string, version: { major: number, minor: number, patch: number } } | undefined {
+		if (file.contentUser.match(/\/\/#region js def \/\/((\s|\S)*)\/\/#endregion js def \/\//g)) {
+			let regexInfo = /^\/\/ (\S+):([0-9]+)\.([0-9]+)\.([0-9]+)$/gm.exec(file.contentUser);
+			if (regexInfo) {
+				return {
+					name: regexInfo[1],
+					version: {
+						major: Number(regexInfo[2]),
+						minor: Number(regexInfo[3]),
+						patch: Number(regexInfo[4]),
+					}
+				}
+			}
+		}
+		return undefined;
+	}
+
 	private tsFile: InternalAventusFile | null = null;
 	private tsDef: AventusPackageFileTs | null = null;
 	public srcInfo: {
@@ -194,7 +211,7 @@ export class AventusPackageFile extends AventusBaseFile {
 	protected async onContentChange(): Promise<void> {
 		this.prepareFile();
 		this.build.reloadPage = true;
-        this.build.build()
+		this.build.build()
 	}
 	protected async onValidate(): Promise<Diagnostic[]> {
 		return [];

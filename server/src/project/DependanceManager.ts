@@ -11,6 +11,7 @@ import { get } from 'http';
 import { get as gets } from 'https';
 import { GenericServer } from '../GenericServer';
 import { FilesManager } from '../files/FilesManager';
+import { AventusFile } from '../files/AventusFile';
 
 type DependanceLoopPart = {
 	file: AventusPackageFile,
@@ -63,11 +64,8 @@ export class DependanceManager {
 		[AVENTUS_DEF_SHARP_PATH()]: "@aventussharp/main",
 		[AVENTUS_DEF_I18N_PATH()]: "@aventussharp/i18n",
 	}
-	private aventusLoaded: boolean = false;
-	private aventusI18nLoaded: boolean = false;
+	private loadedPackages: { [name: string]: { [version: string]: AventusPackageFile } } = {};
 	public async loadDependancesFromBuild(config: AventusConfigBuild, build: Build): Promise<{ files: AventusPackageFile[], dependanceNeedUris: string[], dependanceFullUris: string[], dependanceUris: string[] }> {
-		this.aventusLoaded = false;
-		this.aventusI18nLoaded = build.buildConfig.i18n === undefined;
 		let result: { files: AventusPackageFile[], dependanceNeedUris: string[], dependanceFullUris: string[], dependanceUris: string[] } = {
 			files: [],
 			dependanceNeedUris: [],
@@ -84,7 +82,7 @@ export class DependanceManager {
 			includeNames = { ...includeNames, ...dep.subDependancesInclude };
 		}
 
-		if (!this.aventusLoaded) {
+		if (!loopResult["Aventus@Main"]) {
 			await this.loadDependance({
 				uri: "Aventus@Main",
 				npm: "",
@@ -93,7 +91,7 @@ export class DependanceManager {
 				subDependancesInclude: { ['*']: 'need' }
 			}, config, build, loopResult)
 		}
-		if (!this.aventusI18nLoaded) {
+		if (build.buildConfig.i18n !== undefined && !loopResult["Aventus@I18n"]) {
 			await this.loadDependance({
 				uri: "Aventus@I18n",
 				npm: "",
@@ -161,14 +159,7 @@ export class DependanceManager {
 				dep.uri = this.predefinedPaths[dep.uri];
 				let uri = pathToUri(dep.uri);
 				packageFile = await this.loadByUri(build, uri);
-
 				finalUri = uri;
-				if (packageFile.name == "Aventus@Main") {
-					this.aventusLoaded = true;
-				}
-				if (packageFile.name == "Aventus@I18n") {
-					this.aventusI18nLoaded = true;
-				}
 			}
 
 			else if ((regexTemp = /@local:(\S+)/g.exec(dep.uri))) {
@@ -231,9 +222,7 @@ export class DependanceManager {
 					version: version,
 					dependances: [],
 				}
-				if (file.name != "Aventus@Main") {
-					result[file.name].dependances = ['Aventus@Main'] // force aventus to be a dependance
-				}
+
 				for (let dep of file.dependances) {
 					// include if root package need include
 					let resultDep = await this.loadDependance(dep, config, build, result);
@@ -241,6 +230,13 @@ export class DependanceManager {
 						if (!result[file.name].dependances.includes(resultDep.name)) {
 							result[file.name].dependances.push(resultDep.name);
 						}
+
+					}
+				}
+				if (file.name != "Aventus@Main") {
+					// force aventus to be a dependance
+					if (!result[file.name].dependances.includes("Aventus@Main")) {
+						result[file.name].dependances.push("Aventus@Main");
 					}
 				}
 			}
@@ -263,9 +259,9 @@ export class DependanceManager {
 	}
 
 
-	private async loadByUri(build: Build, uri: string): Promise<AventusPackageFile> {
+	private async loadByUri(build: Build, uri: string): Promise<AventusPackageFile | undefined> {
 		let file = await FilesManager.getInstance().registerFilePackage(uri)
-		return new AventusPackageFile(file, build);
+		return this.loadPackage(file, build);
 	}
 
 
@@ -275,9 +271,10 @@ export class DependanceManager {
 			uri += AventusExtension.Package;
 		}
 		let file = await FilesManager.getInstance().registerFilePackage(uri)
+		const packageFile = this.loadPackage(file, build);
 		return {
 			uri,
-			file: new AventusPackageFile(file, build)
+			file: packageFile
 		}
 	}
 
@@ -368,9 +365,10 @@ export class DependanceManager {
 				if (versionToUse.info.localUri && existsSync(join(uriMd5, versionToUse.info.localUri))) {
 					let packageUri = pathToUri(join(uriMd5, versionToUse.info.localUri));
 					let file = await FilesManager.getInstance().registerFilePackage(packageUri)
+					const packageFile = this.loadPackage(file, build);
 					return {
 						uri: packageUri,
-						file: new AventusPackageFile(file, build)
+						file: packageFile
 					}
 				}
 				else {
@@ -382,9 +380,10 @@ export class DependanceManager {
 					versionToUse.info.localUri = localUri;
 					let file = await FilesManager.getInstance().registerFilePackage(packageUri)
 					writeFileSync(infoFile, JSON.stringify(info, null, 4));
+					const packageFile = this.loadPackage(file, build);
 					return {
 						uri: packageUri,
-						file: new AventusPackageFile(file, build)
+						file: packageFile
 					}
 				}
 			}
@@ -393,6 +392,22 @@ export class DependanceManager {
 
 		}
 		return null;
+	}
+
+	private loadPackage(file: AventusFile, build: Build): AventusPackageFile | undefined {
+		return new AventusPackageFile(file, build);
+		// const info = AventusPackageFile.getQuickInfo(file);
+		// if (!info) {
+		// 	return undefined;
+		// }
+		// const v = info.version.major + "." + info.version.minor + "." + info.version.patch;
+		// if (!this.loadedPackages[info.name]) {
+		// 	this.loadedPackages[info.name] = {};
+		// }
+		// if (!this.loadedPackages[info.name][v]) {
+		// 	this.loadedPackages[info.name][v] = new AventusPackageFile(file, build)
+		// }
+		// return this.loadedPackages[info.name][v]
 	}
 
 	private downloadFile(fileUri: string, httpUri: string): Promise<boolean> {

@@ -14,10 +14,12 @@ export function pathToUri(path: string): string {
     if (path.startsWith("file://")) {
         return path;
     }
+    let uriTemp = path[0].toLowerCase() + path.substring(1);
+    uriTemp = normalizeUri(encodeURI(uriTemp.replace(/\\/g, '/')))
     if (sep === "/") {
-        return "file://" + normalizeUri(encodeURI(path.replace(/\\/g, '/')));
+        return "file://" + uriTemp;
     }
-    return "file:///" + normalizeUri(encodeURI(path.replace(/\\/g, '/')));
+    return "file:///" + uriTemp;
 }
 
 export function normalizeUri(path: string) {
