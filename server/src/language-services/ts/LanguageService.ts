@@ -1531,7 +1531,8 @@ const compilerOptionsRead: CompilerOptions = {
     noImplicitReturns: true,
     noUnusedLocals: true,
     strictNullChecks: true,
-    verbatimModuleSyntax: true
+    verbatimModuleSyntax: true,
+    baseUrl: "./",
 };
 const compilerOptionsCompile: CompilerOptions = {
     allowNonTsExtensions: true,
@@ -1548,7 +1549,8 @@ const compilerOptionsCompile: CompilerOptions = {
     strictPropertyInitialization: true,
     noImplicitReturns: true,
     strictNullChecks: true,
-    verbatimModuleSyntax: true
+    verbatimModuleSyntax: true,
+    baseUrl: "./",
 };
 const completionOptions: GetCompletionsAtPositionOptions = {
     includeExternalModuleExports: true,
