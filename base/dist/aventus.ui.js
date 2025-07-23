@@ -1950,6 +1950,7 @@ let PressManager=class PressManager {
     delayLongPress;
     nbPress = 0;
     offsetDrag;
+    dragDirection;
     state = {
         oneActionTriggered: null,
     };
@@ -1979,6 +1980,7 @@ let PressManager=class PressManager {
             throw 'You must provide an element';
         }
         this.offsetDrag = PressManager.globalConfig.offsetDrag !== undefined ? PressManager.globalConfig.offsetDrag : 20;
+        this.dragDirection = 'XY';
         this.delayLongPress = PressManager.globalConfig.delayLongPress ?? 700;
         this.delayDblPress = PressManager.globalConfig.delayDblPress ?? 150;
         this.element = options.element;
@@ -2037,6 +2039,9 @@ let PressManager=class PressManager {
         }
         if (options.offsetDrag !== undefined) {
             this.offsetDrag = options.offsetDrag;
+        }
+        if (options.dragDirection !== undefined) {
+            this.dragDirection = options.dragDirection;
         }
         if (options.onDblPress !== undefined) {
             this.useDblPress = true;
@@ -2281,7 +2286,13 @@ let PressManager=class PressManager {
         if (!state.oneActionTriggered) {
             let xDist = e.pageX - this.startPosition.x;
             let yDist = e.pageY - this.startPosition.y;
-            let distance = Math.sqrt(xDist * xDist + yDist * yDist);
+            let distance = 0;
+            if (this.dragDirection == 'XY')
+                distance = Math.sqrt(xDist * xDist + yDist * yDist);
+            else if (this.dragDirection == 'X')
+                distance = xDist;
+            else
+                distance = yDist;
             if (distance > this.offsetDrag && this.downEventSaved) {
                 if (this.options.onDragStart) {
                     if (this.options.onDragStart(this.downEventSaved, this) !== false) {
@@ -5162,6 +5173,7 @@ let DragAndDrop=class DragAndDrop {
             onDrag: this.onDrag.bind(this),
             onDragEnd: this.onDragEnd.bind(this),
             offsetDrag: this.options.offsetDrag,
+            dragDirection: this.options.dragDirection,
             stopPropagation: this.options.stopPropagation
         });
     }
@@ -5171,6 +5183,7 @@ let DragAndDrop=class DragAndDrop {
             element: element,
             elementTrigger: element,
             offsetDrag: DragAndDrop.defaultOffsetDrag,
+            dragDirection: 'XY',
             shadow: {
                 enable: false,
                 container: document.body,
@@ -5212,6 +5225,7 @@ let DragAndDrop=class DragAndDrop {
         }
         this.defaultMerge(options, "applyDrag");
         this.defaultMerge(options, "offsetDrag");
+        this.defaultMerge(options, "dragDirection");
         this.defaultMerge(options, "strict");
         this.defaultMerge(options, "targets");
         this.defaultMerge(options, "usePercent");
@@ -6421,7 +6435,7 @@ Form.Validator=class Validator {
 Form.Validator.Namespace=`Aventus.Form`;
 _.Form.Validator=Form.Validator;
 
-Form.Validators.Required=class Required extends Form.Validator {
+Form.Validators.Required=class Required extends _.Form.Validator {
     static msg = "Le champs {name} est requis";
     /**
      * @inheritdoc
@@ -6440,7 +6454,7 @@ Form.Validators.Required=class Required extends Form.Validator {
 Form.Validators.Required.Namespace=`Aventus.Form.Validators`;
 _.Form.Validators.Required=Form.Validators.Required;
 
-Form.Validators.Email=class Email extends Form.Validator {
+Form.Validators.Email=class Email extends _.Form.Validator {
     static msg = "Merci de saisir un email valide";
     /**
      * @inheritdoc
@@ -6810,7 +6824,7 @@ Form.FormHandler=class FormHandler {
             if (Array.isArray(part.validate)) {
                 const fcts = [];
                 for (let temp of part.validate) {
-                    if (temp instanceof Form.Validator) {
+                    if (temp instanceof _.Form.Validator) {
                         fcts.push(temp.validate);
                     }
                     else {
@@ -6837,7 +6851,7 @@ Form.FormHandler=class FormHandler {
                     return result.length == 0 ? undefined : result;
                 };
             }
-            else if (part.validate instanceof Form.Validator) {
+            else if (part.validate instanceof _.Form.Validator) {
                 validate = part.validate.validate;
             }
             else if (isValidate(part.validate)) {
@@ -7016,10 +7030,10 @@ _.Form.FormHandler=Form.FormHandler;
 
 Form.Form = class Form extends Aventus.WebComponent {
     static set defaultConfig(value) {
-        Form.FormHandler._globalConfig = value;
+        _.Form.FormHandler._globalConfig = value;
     }
     static get defaultConfig() {
-        return Form.FormHandler._globalConfig;
+        return _.Form.FormHandler._globalConfig;
     }
     static __style = ``;
     __getStatic() {
@@ -7040,7 +7054,7 @@ Form.Form = class Form extends Aventus.WebComponent {
         return "Form";
     }
     static create(schema, config) {
-        let form = new Form.FormHandler(schema, config);
+        let form = new _.Form.FormHandler(schema, config);
         return form;
     }
 }

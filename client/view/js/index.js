@@ -1944,6 +1944,7 @@ let PressManager=class PressManager {
     delayLongPress;
     nbPress = 0;
     offsetDrag;
+    dragDirection;
     state = {
         oneActionTriggered: null,
     };
@@ -1973,6 +1974,7 @@ let PressManager=class PressManager {
             throw 'You must provide an element';
         }
         this.offsetDrag = PressManager.globalConfig.offsetDrag !== undefined ? PressManager.globalConfig.offsetDrag : 20;
+        this.dragDirection = 'XY';
         this.delayLongPress = PressManager.globalConfig.delayLongPress ?? 700;
         this.delayDblPress = PressManager.globalConfig.delayDblPress ?? 150;
         this.element = options.element;
@@ -2031,6 +2033,9 @@ let PressManager=class PressManager {
         }
         if (options.offsetDrag !== undefined) {
             this.offsetDrag = options.offsetDrag;
+        }
+        if (options.dragDirection !== undefined) {
+            this.dragDirection = options.dragDirection;
         }
         if (options.onDblPress !== undefined) {
             this.useDblPress = true;
@@ -2275,7 +2280,13 @@ let PressManager=class PressManager {
         if (!state.oneActionTriggered) {
             let xDist = e.pageX - this.startPosition.x;
             let yDist = e.pageY - this.startPosition.y;
-            let distance = Math.sqrt(xDist * xDist + yDist * yDist);
+            let distance = 0;
+            if (this.dragDirection == 'XY')
+                distance = Math.sqrt(xDist * xDist + yDist * yDist);
+            else if (this.dragDirection == 'X')
+                distance = xDist;
+            else
+                distance = yDist;
             if (distance > this.offsetDrag && this.downEventSaved) {
                 if (this.options.onDragStart) {
                     if (this.options.onDragStart(this.downEventSaved, this) !== false) {
