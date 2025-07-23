@@ -12341,9 +12341,15 @@ let PressManager=class PressManager {
             if (this.dragDirection == 'XY')
                 distance = Math.sqrt(xDist * xDist + yDist * yDist);
             else if (this.dragDirection == 'X')
+<<<<<<< HEAD
                 distance = Math.abs(xDist);
             else
                 distance = Math.abs(yDist);
+=======
+                distance = xDist;
+            else
+                distance = yDist;
+>>>>>>> 6333d76 (WIP)
             if (distance > this.offsetDrag && this.downEventSaved) {
                 if (this.options.onDragStart) {
                     if (this.options.onDragStart(this.downEventSaved, this) !== false) {
