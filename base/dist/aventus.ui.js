@@ -5725,16 +5725,23 @@ const moduleName = `Aventus`;
 const _ = {};
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 72107e8 (WIP)
 let Navigation = {};
 _.Navigation = Aventus.Navigation ?? {};
 let Lib = {};
 _.Lib = Aventus.Lib ?? {};
+<<<<<<< HEAD
 =======
 >>>>>>> 84854f0 (WIP)
+=======
+>>>>>>> 72107e8 (WIP)
 let Layout = {};
 _.Layout = Aventus.Layout ?? {};
 let Form = {};
 _.Form = Aventus.Form ?? {};
+<<<<<<< HEAD
 <<<<<<< HEAD
 =======
 let Navigation = {};
@@ -5931,6 +5938,11 @@ Form.Button.Tag=`av-button`;
 _.Form.Button=Form.Button;
 if(!window.customElements.get('av-button')){window.customElements.define('av-button', Form.Button);Aventus.WebComponentInstance.registerDefinition(Form.Button);}
 
+=======
+Form.Validators = {};
+_.Form.Validators = Aventus.Form?.Validators ?? {};
+let _n;
+>>>>>>> 72107e8 (WIP)
 const ProgressCircle = class ProgressCircle extends Aventus.WebComponent {
     static get observedAttributes() {return ["value", "stroke_width"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'value'() { return this.getNumberProp('value') }
@@ -6594,6 +6606,9 @@ _.Img=Img;
 if(!window.customElements.get('av-img')){window.customElements.define('av-img', Img);Aventus.WebComponentInstance.registerDefinition(Img);}
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 72107e8 (WIP)
 Form.isSubclassOf=function isSubclassOf(subClass, superClass) {
     if (typeof subClass !== 'function' || typeof superClass !== 'function')
         return false;
@@ -6607,8 +6622,11 @@ Form.isSubclassOf=function isSubclassOf(subClass, superClass) {
 }
 _.Form.isSubclassOf=Form.isSubclassOf;
 
+<<<<<<< HEAD
 =======
 >>>>>>> 84854f0 (WIP)
+=======
+>>>>>>> 72107e8 (WIP)
 Form.Validator=class Validator {
     static async Test(validators, value, name, globalValidation) {
         if (!Array.isArray(validators)) {
@@ -7230,6 +7248,7 @@ Form.FormHandler=class FormHandler {
 Form.FormHandler.Namespace=`Aventus.Form`;
 _.Form.FormHandler=Form.FormHandler;
 
+<<<<<<< HEAD
 Form.Form = class Form extends Aventus.WebComponent {
     static set defaultConfig(value) {
         Form.FormHandler._globalConfig = value;
@@ -8021,6 +8040,8 @@ Form.FormHandler=class FormHandler {
 Form.FormHandler.Namespace=`Aventus.Form`;
 _.Form.FormHandler=Form.FormHandler;
 
+=======
+>>>>>>> 72107e8 (WIP)
 Form.Form = class Form extends Aventus.WebComponent {
     static set defaultConfig(value) {
         Form.FormHandler._globalConfig = value;
@@ -8056,6 +8077,329 @@ Form.Form.Tag=`av-form`;
 _.Form.Form=Form.Form;
 if(!window.customElements.get('av-form')){window.customElements.define('av-form', Form.Form);Aventus.WebComponentInstance.registerDefinition(Form.Form);}
 
+<<<<<<< HEAD
+=======
+Lib.ShortcutManager=class ShortcutManager {
+    static memory = {};
+    static autoPrevents = [];
+    static isInit = false;
+    static arrayKeys = [];
+    static options = new Map();
+    static replacingMemory = {};
+    static isTxt(touch) {
+        return touch.match(/[a-zA-Z0-9_\+\-]/g);
+    }
+    static getText(combinaison) {
+        let allTouches = [];
+        for (let touch of combinaison) {
+            let realTouch = "";
+            if (typeof touch == "number" && Lib.SpecialTouch[touch] !== undefined) {
+                realTouch = Lib.SpecialTouch[touch];
+            }
+            else if (this.isTxt(touch)) {
+                realTouch = touch;
+            }
+            else {
+                throw "I can't use " + touch + " to add a shortcut";
+            }
+            allTouches.push(realTouch);
+        }
+        allTouches.sort();
+        return allTouches.join("+");
+    }
+    static subscribe(combinaison, cb, options) {
+        if (!Array.isArray(combinaison)) {
+            combinaison = [combinaison];
+        }
+        let key = this.getText(combinaison);
+        if (options?.replaceTemp) {
+            if (Lib.ShortcutManager.memory[key]) {
+                if (!this.replacingMemory[key]) {
+                    this.replacingMemory[key] = [];
+                }
+                this.replacingMemory[key].push(Lib.ShortcutManager.memory[key]);
+                delete Lib.ShortcutManager.memory[key];
+            }
+        }
+        if (!Lib.ShortcutManager.memory[key]) {
+            Lib.ShortcutManager.memory[key] = [];
+        }
+        if (!Lib.ShortcutManager.memory[key].includes(cb)) {
+            Lib.ShortcutManager.memory[key].push(cb);
+            if (options) {
+                this.options.set(cb, options);
+            }
+        }
+        if (!Lib.ShortcutManager.isInit) {
+            Lib.ShortcutManager.init();
+        }
+    }
+    static unsubscribe(combinaison, cb) {
+        if (!Array.isArray(combinaison)) {
+            combinaison = [combinaison];
+        }
+        let key = this.getText(combinaison);
+        if (Lib.ShortcutManager.memory[key]) {
+            let index = Lib.ShortcutManager.memory[key].indexOf(cb);
+            if (index != -1) {
+                Lib.ShortcutManager.memory[key].splice(index, 1);
+                let options = this.options.get(cb);
+                if (options) {
+                    this.options.delete(cb);
+                }
+                if (Lib.ShortcutManager.memory[key].length == 0) {
+                    delete Lib.ShortcutManager.memory[key];
+                    if (options?.replaceTemp) {
+                        if (this.replacingMemory[key]) {
+                            if (this.replacingMemory[key].length > 0) {
+                                Lib.ShortcutManager.memory[key] = this.replacingMemory[key].pop();
+                                if (this.replacingMemory[key].length == 0) {
+                                    delete this.replacingMemory[key];
+                                }
+                            }
+                            else {
+                                delete this.replacingMemory[key];
+                            }
+                        }
+                    }
+                }
+                if (Object.keys(Lib.ShortcutManager.memory).length == 0 && Lib.ShortcutManager.isInit) {
+                    //ShortcutManager.uninit();
+                }
+            }
+        }
+    }
+    static onKeyDown(e) {
+        if (e.ctrlKey) {
+            let txt = Lib.SpecialTouch[Lib.SpecialTouch.Control];
+            if (!this.arrayKeys.includes(txt)) {
+                this.arrayKeys.push(txt);
+            }
+        }
+        if (e.altKey) {
+            let txt = Lib.SpecialTouch[Lib.SpecialTouch.Alt];
+            if (!this.arrayKeys.includes(txt)) {
+                this.arrayKeys.push(txt);
+            }
+        }
+        if (e.shiftKey) {
+            let txt = Lib.SpecialTouch[Lib.SpecialTouch.Shift];
+            if (!this.arrayKeys.includes(txt)) {
+                this.arrayKeys.push(txt);
+            }
+        }
+        if (this.isTxt(e.key) && !this.arrayKeys.includes(e.key)) {
+            this.arrayKeys.push(e.key);
+        }
+        else if (Lib.SpecialTouch[e.key] !== undefined && !this.arrayKeys.includes(e.key)) {
+            this.arrayKeys.push(e.key);
+        }
+        this.arrayKeys.sort();
+        let key = this.arrayKeys.join("+");
+        if (Lib.ShortcutManager.memory[key]) {
+            let preventDefault = true;
+            for (let cb of Lib.ShortcutManager.memory[key]) {
+                let options = this.options.get(cb);
+                if (options && options.preventDefault === false) {
+                    preventDefault = false;
+                }
+            }
+            this.arrayKeys = [];
+            for (let cb of Lib.ShortcutManager.memory[key]) {
+                const result = cb();
+                if (result === false) {
+                    preventDefault = result;
+                }
+            }
+            if (preventDefault) {
+                e.preventDefault();
+            }
+        }
+        else if (Lib.ShortcutManager.autoPrevents.includes(key)) {
+            e.preventDefault();
+        }
+    }
+    static onKeyUp(e) {
+        let index = this.arrayKeys.indexOf(e.key);
+        if (index != -1) {
+            this.arrayKeys.splice(index, 1);
+        }
+    }
+    static init() {
+        if (Lib.ShortcutManager.isInit)
+            return;
+        Lib.ShortcutManager.isInit = true;
+        this.onKeyDown = this.onKeyDown.bind(this);
+        this.onKeyUp = this.onKeyUp.bind(this);
+        Lib.ShortcutManager.autoPrevents = [
+            this.getText([Lib.SpecialTouch.Control, "s"]),
+            this.getText([Lib.SpecialTouch.Control, "p"]),
+            this.getText([Lib.SpecialTouch.Control, "l"]),
+            this.getText([Lib.SpecialTouch.Control, "k"]),
+            this.getText([Lib.SpecialTouch.Control, "j"]),
+            this.getText([Lib.SpecialTouch.Control, "h"]),
+            this.getText([Lib.SpecialTouch.Control, "g"]),
+            this.getText([Lib.SpecialTouch.Control, "f"]),
+            this.getText([Lib.SpecialTouch.Control, "d"]),
+            this.getText([Lib.SpecialTouch.Control, "o"]),
+            this.getText([Lib.SpecialTouch.Control, "u"]),
+            this.getText([Lib.SpecialTouch.Control, "e"]),
+        ];
+        window.addEventListener("blur", () => {
+            this.arrayKeys = [];
+        });
+        document.body.addEventListener("keydown", this.onKeyDown);
+        document.body.addEventListener("keyup", this.onKeyUp);
+    }
+    static uninit() {
+        document.body.removeEventListener("keydown", this.onKeyDown);
+        document.body.removeEventListener("keyup", this.onKeyUp);
+        this.arrayKeys = [];
+        Lib.ShortcutManager.isInit = false;
+    }
+}
+Lib.ShortcutManager.Namespace=`Aventus.Lib`;
+_.Lib.ShortcutManager=Lib.ShortcutManager;
+
+Layout.GridHelper = class GridHelper extends Aventus.WebComponent {
+    static get observedAttributes() {return ["nb_col", "nb_row", "col_width", "row_height"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'show_rulers'() { return this.getBoolAttr('show_rulers') }
+    set 'show_rulers'(val) { this.setBoolAttr('show_rulers', val) }get 'visible'() { return this.getBoolAttr('visible') }
+    set 'visible'(val) { this.setBoolAttr('visible', val) }    get 'nb_col'() { return this.getNumberProp('nb_col') }
+    set 'nb_col'(val) { this.setNumberAttr('nb_col', val) }get 'nb_row'() { return this.getNumberProp('nb_row') }
+    set 'nb_row'(val) { this.setNumberAttr('nb_row', val) }get 'col_width'() { return this.getNumberProp('col_width') }
+    set 'col_width'(val) { this.setNumberAttr('col_width', val) }get 'row_height'() { return this.getNumberProp('row_height') }
+    set 'row_height'(val) { this.setNumberAttr('row_height', val) }    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("nb_row", ((target) => {
+}));this.__addPropertyActions("row_height", ((target) => {
+})); }
+    static __style = `:host{display:none;inset:0;pointer-events:none;position:fixed;z-index:9999}:host .guide-x{background-color:#c7c7c7;cursor:ns-resize;height:2px;left:0;pointer-events:all;position:absolute;top:50px;width:100%}:host .guide-y{background-color:#c7c7c7;cursor:ew-resize;height:100%;left:50px;pointer-events:all;position:absolute;top:0px;width:2px}:host .grid{inset:0;position:absolute}:host .grid .cols,:host .grid .rows{display:flex;inset:0;position:absolute}:host .grid .rows{flex-direction:column}:host .grid .col{flex-shrink:0;height:100%;position:relative;width:var(--local-col-width)}:host .grid .col::after{background-color:#e78181;content:"";height:100%;position:absolute;right:-1px;top:0;width:2px}:host .grid .col:last-child::after{display:none}:host .grid .row{flex-shrink:0;height:var(--local-row-height);position:relative;width:100%}:host .grid .row::after{background-color:#e78181;bottom:-1px;content:"";height:2px;left:0;position:absolute;width:100%}:host .grid .row:last-child::after{display:none}:host .ruler-top{background-color:#fff;height:20px;position:absolute;top:0;width:100%;z-index:3}:host .ruler-top::after{bottom:0;box-shadow:5px 0 5px #818181;content:"";height:100%;left:20px;pointer-events:none;position:absolute;width:calc(100% - 20px)}:host .ruler-left{background-color:#fff;box-shadow:0px 5px 5px #818181;height:calc(100% - 20px);position:absolute;top:20px;width:20px;z-index:2}:host([visible]){display:block}`;
+    __getStatic() {
+        return GridHelper;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(GridHelper.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<div class="ruler-top"></div><div class="ruler-left"></div><div class="grid" _id="gridhelper_0">    <div class="cols" _id="gridhelper_1"></div>    <div class="rows" _id="gridhelper_2"></div></div><div class="guides">    <div class="guide guide-x"></div>    <div class="guide guide-y"></div></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "elements": [
+    {
+      "name": "gridEl",
+      "ids": [
+        "gridhelper_0"
+      ]
+    },
+    {
+      "name": "colsEl",
+      "ids": [
+        "gridhelper_1"
+      ]
+    },
+    {
+      "name": "rowsEl",
+      "ids": [
+        "gridhelper_2"
+      ]
+    }
+  ]
+}); }
+    getClassName() {
+        return "GridHelper";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('show_rulers')) { this.attributeChangedCallback('show_rulers', false, false); }if(!this.hasAttribute('visible')) {this.setAttribute('visible' ,'true'); }if(!this.hasAttribute('nb_col')){ this['nb_col'] = 0; }if(!this.hasAttribute('nb_row')){ this['nb_row'] = 0; }if(!this.hasAttribute('col_width')){ this['col_width'] = 200; }if(!this.hasAttribute('row_height')){ this['row_height'] = 200; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('show_rulers');this.__upgradeProperty('visible');this.__upgradeProperty('nb_col');this.__upgradeProperty('nb_row');this.__upgradeProperty('col_width');this.__upgradeProperty('row_height'); }
+    __listBoolProps() { return ["show_rulers","visible"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    draw() {
+        let nbCol = 0;
+        if (this.nb_col) {
+            this.gridEl.style.setProperty('--local-col-width', `calc(100% / ${this.nb_col})`);
+            nbCol = this.nb_col;
+        }
+        else {
+            let width = this.col_width == 0 ? 16 : this.col_width;
+            this.gridEl.style.setProperty('--local-col-width', width + 'px');
+            nbCol = Math.ceil(this.offsetWidth / width);
+        }
+        if (this.colsEl.children.length != nbCol) {
+            this.colsEl.innerHTML = '';
+            for (let i = 0; i < nbCol; i++) {
+                const col = document.createElement("DIV");
+                col.classList.add('col');
+                this.colsEl.appendChild(col);
+            }
+        }
+        let nbRow = 0;
+        if (this.nb_row) {
+            this.gridEl.style.setProperty('--local-row-height', `calc(100% / ${this.nb_row})`);
+            nbRow = this.nb_row;
+        }
+        else {
+            let height = this.row_height == 0 ? 16 : this.row_height;
+            this.gridEl.style.setProperty('--local-row-height', height + 'px');
+            nbRow = Math.ceil(this.offsetHeight / height);
+        }
+        if (this.rowsEl.children.length != nbRow) {
+            this.rowsEl.innerHTML = '';
+            for (let i = 0; i < nbRow; i++) {
+                const row = document.createElement("DIV");
+                row.classList.add('row');
+                this.rowsEl.appendChild(row);
+            }
+        }
+    }
+    addShortCut() {
+        let isKActive = false;
+        let timeout = 0;
+        Lib.ShortcutManager.subscribe([Lib.SpecialTouch.Control, 'k'], () => {
+            isKActive = true;
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                isKActive = false;
+            }, 1000);
+        });
+        const commande = (letter, cb) => {
+            Lib.ShortcutManager.subscribe([letter], () => {
+                if (!isKActive)
+                    return false;
+                isKActive = false;
+                cb();
+                return;
+            });
+            Lib.ShortcutManager.subscribe([Lib.SpecialTouch.Control, letter], () => {
+                if (!isKActive)
+                    return false;
+                isKActive = false;
+                cb();
+                return;
+            });
+        };
+        commande('v', () => { this.visible = !this.visible; });
+    }
+    addResize() {
+        new Aventus.ResizeObserver({
+            callback: () => {
+                this.draw();
+            },
+            fps: 30
+        }).observe(this);
+    }
+    postCreation() {
+        this.addResize();
+        this.addShortCut();
+        this.draw();
+    }
+}
+Layout.GridHelper.Namespace=`Aventus.Layout`;
+Layout.GridHelper.Tag=`av-grid-helper`;
+_.Layout.GridHelper=Layout.GridHelper;
+if(!window.customElements.get('av-grid-helper')){window.customElements.define('av-grid-helper', Layout.GridHelper);Aventus.WebComponentInstance.registerDefinition(Layout.GridHelper);}
+
+>>>>>>> 72107e8 (WIP)
 let TouchRecord=class TouchRecord {
     _activeTouchID;
     _touchList = {};
