@@ -26,9 +26,9 @@ declare type WriteInfo = {
     openFileOnEnd: () => void;
 };
 declare type TemplateInfo = {
-	name: string,
-	description?: string,
-	version?: Version
+    name: string,
+    description?: string,
+    version?: Version
 }
 
 declare type WriteCallback = (info: WriteInfo) => void | boolean;
@@ -68,5 +68,7 @@ declare abstract class AventusTemplate {
     protected addIndent(text: string): string;
     protected removeIndent(text: string): string;
     protected exec(cmd: string, asAdmin?: boolean): Promise<void>;
+    protected showProgress(txt: string): Promise<string>;
+    protected hideProgress(uuid: string): Promise<void>;
+    protected runWithProgress(txt: string, cb: () => Promise<void>);
 }
-

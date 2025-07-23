@@ -160,7 +160,7 @@ export abstract class AventusTemplate {
 	}
 
 	protected async writeFile(cb?: WriteCallback) {
-		if(!cb) {
+		if (!cb) {
 			cb = () => true;
 		}
 		let configFiles: { [path: string]: string } = {};
@@ -175,6 +175,7 @@ export abstract class AventusTemplate {
 				exportPath = normalize(exportPath);
 
 				if (statSync(templatePath).isDirectory()) {
+					if (file == '.empty') continue;
 					if (file == '.git') continue;
 
 					const writeInfo: WriteInfo = {
@@ -292,6 +293,20 @@ export abstract class AventusTemplate {
 		}
 		else {
 			await this.runCommand("exec", cmd);
+		}
+	}
+
+	protected async showProgress(txt: string): Promise<string> {
+		return await this.runCommandWithAnswer("progressStart", txt);
+	}
+	protected async hideProgress(uuid: string): Promise<void> {
+		await this.runCommand("progressStop", uuid);
+	}
+	protected async runWithProgress(txt:string, cb: () => Promise<void>) {
+		let uuid = await this.showProgress(txt);
+		await cb();
+		if(uuid) {
+			await this.hideProgress(uuid);
 		}
 	}
 }

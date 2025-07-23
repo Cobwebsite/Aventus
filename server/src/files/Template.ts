@@ -11,6 +11,8 @@ import { exec as execAdmin } from 'sudo-prompt'
 import { serverFolder } from '../language-services/ts/libLoader';
 import * as md5 from 'md5';
 import { InputOptions, SelectItem, SelectOptions } from '../IConnection';
+import { ProgressStart } from '../notification/ProgressStart';
+import { ProgressStop } from '../notification/ProgressStop';
 
 
 export interface TemplateConfigVariable {
@@ -158,6 +160,7 @@ export class TemplateJSON {
 					_internalLoop(templatePath);
 				}
 				else {
+					if (file == '.empty') continue;
 					if (templatePath == this.folderPath + sep + "template.avt") {
 						continue;
 					}
@@ -444,6 +447,15 @@ export class TemplateScript {
 									GenericServer.showErrorMessage("The command " + config + " failed");
 								}
 								answer(payload.cmd, "done");
+							}
+							else if (payload.cmd == "progressStart") {
+								let txt = payload.config as string;
+								let uuid = ProgressStart.send(txt);
+								answer(payload.cmd, uuid);
+							}
+							else if (payload.cmd == "progressStop") {
+								let uuid = payload.config as string;
+								ProgressStop.send(uuid);
 							}
 						}
 					} catch (e) {
