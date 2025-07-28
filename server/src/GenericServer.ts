@@ -84,6 +84,7 @@ export class GenericServer {
 
 	protected connection: IConnection;
 	protected isLoading: boolean = true;
+	protected isDown: boolean = false;
 	protected workspaces: string[] = [];
 	protected isDebug = false;
 	private isIDE = false;
@@ -176,6 +177,7 @@ export class GenericServer {
 		await this.startServer();
 	}
 	protected async onShutdown() {
+		this.isDown = true;
 		const settings = SettingsManager.getInstance().settings;
 		if (!settings.onlyBuild) {
 			await FilesWatcher.getInstance().destroy();
@@ -264,6 +266,7 @@ export class GenericServer {
 		return GenericServer.isAllowed(document);
 	}
 	public static isAllowed(document: TextDocument) {
+		if(this.instance.isDown) return false;
 		if (this.instance.isLoading) {
 			return false;
 		}

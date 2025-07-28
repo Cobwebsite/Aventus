@@ -2290,9 +2290,9 @@ let PressManager=class PressManager {
             if (this.dragDirection == 'XY')
                 distance = Math.sqrt(xDist * xDist + yDist * yDist);
             else if (this.dragDirection == 'X')
-                distance = xDist;
+                distance = Math.abs(xDist);
             else
-                distance = yDist;
+                distance = Math.abs(yDist);
             if (distance > this.offsetDrag && this.downEventSaved) {
                 if (this.options.onDragStart) {
                     if (this.options.onDragStart(this.downEventSaved, this) !== false) {
@@ -4825,8 +4825,10 @@ let ResizeObserver=class ResizeObserver {
         if (!target["sourceIndex"]) {
             target["sourceIndex"] = Math.random().toString(36);
             this.targets.push(target);
-            ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]] = [];
             ResizeObserver.getUniqueInstance().observe(target);
+        }
+        if (!ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]]) {
+            ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]] = [];
         }
         if (ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]].indexOf(this) == -1) {
             ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]].push(this);
@@ -6435,7 +6437,7 @@ Form.Validator=class Validator {
 Form.Validator.Namespace=`Aventus.Form`;
 _.Form.Validator=Form.Validator;
 
-Form.Validators.Required=class Required extends _.Form.Validator {
+Form.Validators.Required=class Required extends Form.Validator {
     static msg = "Le champs {name} est requis";
     /**
      * @inheritdoc
@@ -6454,7 +6456,7 @@ Form.Validators.Required=class Required extends _.Form.Validator {
 Form.Validators.Required.Namespace=`Aventus.Form.Validators`;
 _.Form.Validators.Required=Form.Validators.Required;
 
-Form.Validators.Email=class Email extends _.Form.Validator {
+Form.Validators.Email=class Email extends Form.Validator {
     static msg = "Merci de saisir un email valide";
     /**
      * @inheritdoc
@@ -6824,7 +6826,7 @@ Form.FormHandler=class FormHandler {
             if (Array.isArray(part.validate)) {
                 const fcts = [];
                 for (let temp of part.validate) {
-                    if (temp instanceof _.Form.Validator) {
+                    if (temp instanceof Form.Validator) {
                         fcts.push(temp.validate);
                     }
                     else {
@@ -6851,7 +6853,7 @@ Form.FormHandler=class FormHandler {
                     return result.length == 0 ? undefined : result;
                 };
             }
-            else if (part.validate instanceof _.Form.Validator) {
+            else if (part.validate instanceof Form.Validator) {
                 validate = part.validate.validate;
             }
             else if (isValidate(part.validate)) {
@@ -7030,10 +7032,10 @@ _.Form.FormHandler=Form.FormHandler;
 
 Form.Form = class Form extends Aventus.WebComponent {
     static set defaultConfig(value) {
-        _.Form.FormHandler._globalConfig = value;
+        Form.FormHandler._globalConfig = value;
     }
     static get defaultConfig() {
-        return _.Form.FormHandler._globalConfig;
+        return Form.FormHandler._globalConfig;
     }
     static __style = ``;
     __getStatic() {
@@ -7054,7 +7056,7 @@ Form.Form = class Form extends Aventus.WebComponent {
         return "Form";
     }
     static create(schema, config) {
-        let form = new _.Form.FormHandler(schema, config);
+        let form = new Form.FormHandler(schema, config);
         return form;
     }
 }

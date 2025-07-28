@@ -834,9 +834,9 @@ export abstract class BaseInfo {
                 const splittedLocalFullName = this.fullName.split(".");
                 splittedLocalFullName.slice(0, 1);
                 const replacementStart = fullName.split('.')[0];
-                if (splittedLocalFullName.includes(replacementStart)) {
-                    remplacement = '_.' + remplacement;
-                }
+                // if (splittedLocalFullName.includes(replacementStart)) {
+                //     remplacement = '_.' + remplacement;
+                // }
                 this.dependancesLocations[name].typeRemplacement = typeRemplacement;
                 this.dependancesLocations[name].replacement = remplacement;
                 this.dependancesLocations[name].npmReplacement = npmReplacement;
