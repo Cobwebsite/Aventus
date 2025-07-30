@@ -648,6 +648,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         if (this.fileParsed) {
             this.diagnostics = this.diagnostics.concat(this.fileParsed.errors)
         }
+        this.diagnostics = this.diagnostics.concat(this.getDeprecated())
         return this.diagnostics;
     }
     protected transformDiagnosticForView() {

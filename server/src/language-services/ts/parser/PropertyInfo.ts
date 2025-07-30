@@ -7,6 +7,7 @@ import { InternalDecorator, InternalProtectedDecorator } from './decorators/Inte
 import { BaseInfo } from './BaseInfo';
 import { DocumentationInfo } from './DocumentationInfo';
 import { StoryValueDecorator } from './decorators/StoryValueDecorator';
+import { DeprecatedDecorator } from './decorators/DeprecatedDecorator';
 
 type PropType = PropertyDeclaration | GetAccessorDeclaration | SetAccessorDeclaration | (PropertySignature & { exclamationToken?: boolean });
 export class PropertyInfo {
@@ -36,6 +37,8 @@ export class PropertyInfo {
     public overrideNullable: boolean = false;
     public _class: ClassInfo;
     public accessibilityModifierTransformation?: { newText: string, start: number, end: number };
+    public deprecated: boolean = false;
+    public deprecatedMsg: string = "";
     public get compiledContent(): string {
         let txt = BaseInfo.getContent(this.content, this.start, this.end, this._class.dependancesLocations, this._class.compileTransformations);
         return txt;
@@ -99,10 +102,15 @@ export class PropertyInfo {
         this.type = this.loadType(prop);
         this.loadInitializer(prop);
 
-        for(let decorator of this.decorators) {
+        for (let decorator of this.decorators) {
             let storyValue = StoryValueDecorator.is(decorator);
-            if(storyValue) {
+            if (storyValue) {
                 this.defaultValueStory = storyValue.value;
+            }
+            let deprecated = DeprecatedDecorator.is(decorator);
+            if (deprecated) {
+                this.deprecated = true;
+                this.deprecatedMsg = deprecated.msg;
             }
         }
     }

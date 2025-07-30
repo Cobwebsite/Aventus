@@ -50,7 +50,7 @@ export class AventusDataFile extends AventusTsFile {
 
             for (let className in struct.classes) {
                 let classTemp = struct.classes[className];
-                
+
                 if (!classTemp.isInterface) {
                     for (let propName in classTemp.properties) {
                         let field = classTemp.properties[propName];
@@ -75,6 +75,9 @@ export class AventusDataFile extends AventusTsFile {
                 }
             }
         }
+
+        this.diagnostics = this.diagnostics.concat(this.getDeprecated())
+
         return this.diagnostics;
     }
     protected async onContentChange(): Promise<void> {

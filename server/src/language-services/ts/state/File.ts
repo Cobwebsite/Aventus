@@ -36,6 +36,7 @@ export class AventusStateFile extends AventusTsFile {
                 class_implement: ['Aventus.IStateManager', 'Aventus.IState']
             })
         }
+        this.diagnostics = this.diagnostics.concat(this.getDeprecated())
         return this.diagnostics;
     }
     protected async onContentChange(): Promise<void> {

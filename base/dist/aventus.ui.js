@@ -5724,293 +5724,29 @@ var Aventus;
 const moduleName = `Aventus`;
 const _ = {};
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 72107e8 (WIP)
 let Navigation = {};
 _.Navigation = Aventus.Navigation ?? {};
 let Lib = {};
 _.Lib = Aventus.Lib ?? {};
-<<<<<<< HEAD
-=======
->>>>>>> 84854f0 (WIP)
-=======
->>>>>>> 72107e8 (WIP)
 let Layout = {};
 _.Layout = Aventus.Layout ?? {};
 let Form = {};
 _.Form = Aventus.Form ?? {};
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-let Navigation = {};
-_.Navigation = Aventus.Navigation ?? {};
->>>>>>> 84854f0 (WIP)
 Form.Validators = {};
 _.Form.Validators = Aventus.Form?.Validators ?? {};
 let _n;
-Layout.GridHelper = class GridHelper extends Aventus.WebComponent {
-    static get observedAttributes() {return ["nb_col", "nb_row", "col_width", "row_height"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
-    get 'show_rulers'() { return this.getBoolAttr('show_rulers') }
-    set 'show_rulers'(val) { this.setBoolAttr('show_rulers', val) }
-get 'visible'() { return this.getBoolAttr('visible') }
-    set 'visible'(val) { this.setBoolAttr('visible', val) }
-    get 'nb_col'() { return this.getNumberProp('nb_col') }
-    set 'nb_col'(val) { this.setNumberAttr('nb_col', val) }
-get 'nb_row'() { return this.getNumberProp('nb_row') }
-    set 'nb_row'(val) { this.setNumberAttr('nb_row', val) }
-get 'col_width'() { return this.getNumberProp('col_width') }
-    set 'col_width'(val) { this.setNumberAttr('col_width', val) }
-get 'row_height'() { return this.getNumberProp('row_height') }
-    set 'row_height'(val) { this.setNumberAttr('row_height', val) }
-    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("nb_row", ((target) => {
-}));
-this.__addPropertyActions("row_height", ((target) => {
-}));
- }
-    static __style = `:host{display:none;inset:0;pointer-events:none;position:fixed;z-index:9999}:host .guide-x{background-color:#c7c7c7;cursor:ns-resize;height:2px;left:0;pointer-events:all;position:absolute;top:50px;width:100%}:host .guide-y{background-color:#c7c7c7;cursor:ew-resize;height:100%;left:50px;pointer-events:all;position:absolute;top:0px;width:2px}:host .grid{inset:0;position:absolute}:host .grid .cols,:host .grid .rows{display:flex;inset:0;position:absolute}:host .grid .rows{flex-direction:column}:host .grid .col{flex-shrink:0;height:100%;position:relative;width:var(--local-col-width)}:host .grid .col::after{background-color:#e78181;content:"";height:100%;position:absolute;right:-1px;top:0;width:2px}:host .grid .col:last-child::after{display:none}:host .grid .row{flex-shrink:0;height:var(--local-row-height);position:relative;width:100%}:host .grid .row::after{background-color:#e78181;bottom:-1px;content:"";height:2px;left:0;position:absolute;width:100%}:host .grid .row:last-child::after{display:none}:host .ruler-top{background-color:#fff;height:20px;position:absolute;top:0;width:100%;z-index:3}:host .ruler-top::after{bottom:0;box-shadow:5px 0 5px #818181;content:"";height:100%;left:20px;pointer-events:none;position:absolute;width:calc(100% - 20px)}:host .ruler-left{background-color:#fff;box-shadow:0px 5px 5px #818181;height:calc(100% - 20px);position:absolute;top:20px;width:20px;z-index:2}:host([visible]){display:block}`;
-    __getStatic() {
-        return GridHelper;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(GridHelper.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="ruler-top"></div><div class="ruler-left"></div><div class="grid" _id="gridhelper_0">
-    <div class="cols" _id="gridhelper_1"></div>
-    <div class="rows" _id="gridhelper_2"></div>
-</div><div class="guides">
-    <div class="guide guide-x"></div>
-    <div class="guide guide-y"></div>
-</div>` }
-    });
-}
-    __registerTemplateAction() { super.__registerTemplateAction();
-this.__getStatic().__template.setActions({
-  "elements": [
-    {
-      "name": "gridEl",
-      "ids": [
-        "gridhelper_0"
-      ]
-    },
-    {
-      "name": "colsEl",
-      "ids": [
-        "gridhelper_1"
-      ]
-    },
-    {
-      "name": "rowsEl",
-      "ids": [
-        "gridhelper_2"
-      ]
-    }
-  ]
-});
- }
-    getClassName() {
-        return "GridHelper";
-    }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('show_rulers')) { this.attributeChangedCallback('show_rulers', false, false); }
-if(!this.hasAttribute('visible')) {this.setAttribute('visible' ,'true'); }
-if(!this.hasAttribute('nb_col')){ this['nb_col'] = 0; }
-if(!this.hasAttribute('nb_row')){ this['nb_row'] = 0; }
-if(!this.hasAttribute('col_width')){ this['col_width'] = 200; }
-if(!this.hasAttribute('row_height')){ this['row_height'] = 200; }
- }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('show_rulers');
-this.__upgradeProperty('visible');
-this.__upgradeProperty('nb_col');
-this.__upgradeProperty('nb_row');
-this.__upgradeProperty('col_width');
-this.__upgradeProperty('row_height');
- }
-    __listBoolProps() { return ["show_rulers","visible"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
-    draw() {
-        let nbCol = 0;
-        if (this.nb_col) {
-            this.gridEl.style.setProperty('--local-col-width', `calc(100% / ${this.nb_col})`);
-            nbCol = this.nb_col;
-        }
-        else {
-            let width = this.col_width == 0 ? 16 : this.col_width;
-            this.gridEl.style.setProperty('--local-col-width', width + 'px');
-            nbCol = Math.ceil(this.offsetWidth / width);
-        }
-        if (this.colsEl.children.length != nbCol) {
-            this.colsEl.innerHTML = '';
-            for (let i = 0; i < nbCol; i++) {
-                const col = document.createElement("DIV");
-                col.classList.add('col');
-                this.colsEl.appendChild(col);
-            }
-        }
-        let nbRow = 0;
-        if (this.nb_row) {
-            this.gridEl.style.setProperty('--local-row-height', `calc(100% / ${this.nb_row})`);
-            nbRow = this.nb_row;
-        }
-        else {
-            let height = this.row_height == 0 ? 16 : this.row_height;
-            this.gridEl.style.setProperty('--local-row-height', height + 'px');
-            nbRow = Math.ceil(this.offsetHeight / height);
-        }
-        if (this.rowsEl.children.length != nbRow) {
-            this.rowsEl.innerHTML = '';
-            for (let i = 0; i < nbRow; i++) {
-                const row = document.createElement("DIV");
-                row.classList.add('row');
-                this.rowsEl.appendChild(row);
-            }
-        }
-    }
-    addShortCut() {
-        let isKActive = false;
-        let timeout = 0;
-        Lib.ShortcutManager.subscribe([Lib.SpecialTouch.Control, 'k'], () => {
-            isKActive = true;
-            clearTimeout(timeout);
-            timeout = setTimeout(() => {
-                isKActive = false;
-            }, 1000);
-        });
-        const commande = (letter, cb) => {
-            Lib.ShortcutManager.subscribe([letter], () => {
-                if (!isKActive)
-                    return false;
-                isKActive = false;
-                cb();
-                return;
-            });
-            Lib.ShortcutManager.subscribe([Lib.SpecialTouch.Control, letter], () => {
-                if (!isKActive)
-                    return false;
-                isKActive = false;
-                cb();
-                return;
-            });
-        };
-        commande('v', () => { this.visible = !this.visible; });
-    }
-    addResize() {
-        new Aventus.ResizeObserver({
-            callback: () => {
-                this.draw();
-            },
-            fps: 30
-        }).observe(this);
-    }
-    postCreation() {
-        this.addResize();
-        this.addShortCut();
-        this.draw();
-    }
-}
-Layout.GridHelper.Namespace=`Aventus.Layout`;
-Layout.GridHelper.Tag=`av-grid-helper`;
-_.Layout.GridHelper=Layout.GridHelper;
-if(!window.customElements.get('av-grid-helper')){window.customElements.define('av-grid-helper', Layout.GridHelper);Aventus.WebComponentInstance.registerDefinition(Layout.GridHelper);}
-
-Form.isSubclassOf=function isSubclassOf(subClass, superClass) {
-    if (typeof subClass !== 'function' || typeof superClass !== 'function')
-        return false;
-    let proto = subClass.prototype;
-    while (proto) {
-        if (proto === superClass.prototype)
-            return true;
-        proto = Object.getPrototypeOf(proto);
-    }
-    return false;
-}
-_.Form.isSubclassOf=Form.isSubclassOf;
-
-Form.Button = class Button extends Aventus.WebComponent {
-    static get observedAttributes() {return ["icon"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
-    get 'round'() { return this.getBoolAttr('round') }
-    set 'round'(val) { this.setBoolAttr('round', val) }
-get 'loading'() { return this.getBoolAttr('loading') }
-    set 'loading'(val) { this.setBoolAttr('loading', val) }
-get 'disabled'() { return this.getBoolAttr('disabled') }
-    set 'disabled'(val) { this.setBoolAttr('disabled', val) }
-get 'outline'() { return this.getBoolAttr('outline') }
-    set 'outline'(val) { this.setBoolAttr('outline', val) }
-get 'ghost'() { return this.getBoolAttr('ghost') }
-    set 'ghost'(val) { this.setBoolAttr('ghost', val) }
-get 'color'() { return this.getStringAttr('color') }
-    set 'color'(val) { this.setStringAttr('color', val) }
-get 'size'() { return this.getStringAttr('size') }
-    set 'size'(val) { this.setStringAttr('size', val) }
-    get 'icon'() { return this.getStringProp('icon') }
-    set 'icon'(val) { this.setStringAttr('icon', val) }
-    static __style = `:host{--_button-border-radius: var(--button-border-radius, var(--border-radius-md));--_button-font-size: var(--button-font-size, var(--text-base));--_button-padding: var(--button-padding, var(--space-2) var(--space-4));--_button-background-color: var(--button-background-color, var(--color-primary));--_button-background-color-hover: var(--button-background-color-hover, var(--color-primary-hover));--_button-color: var(--button-color, var(--color-text-inverse));--_button-color-hover: var(--button-color-hover, var(--_button-color));--_button-border: var(--button-border, none)}:host([color=secondary]){--_button-background-color: var(--button-background-color, var(--color-surface));--_button-border: var(--button-border, var(--border-width) solid var(--color-border));--_button-color: var(--button-color, var(--color-text))}:host([color=secondary]:hover){--_button-background-color-hover: var(--button-background-color-hover, var(--color-bg-muted))}:host([color=danger]){--_button-background-color: var(--button-background-color, var(--color-error));--_button-color: var(--button-color, var(--color-text-inverse))}:host([color=danger]:hover){--_button-background-color-hover: var(--button-background-color-hover, #dc2626)}:host([color=neutral]){--_button-background-color: var(--button-background-color, #6b7280);--_button-color: var(--button-color, white)}:host([color=neutral]:hover){--_button-background-color-hover: var(--button-background-color-hover, #4b5563)}:host{align-items:center;background-color:var(--_button-background-color);border:var(--_button-border);border-radius:var(--_button-border-radius);color:var(--_button-color);cursor:pointer;display:inline-flex;font-family:inherit;font-size:var(--_button-font-size);font-weight:500;gap:var(--space-2);justify-content:center;line-height:1;padding:var(--_button-padding);text-decoration:none;transition:all var(--transition-fast);user-select:none}:host(:hover){background-color:var(--_button-background-color-hover);color:var(--_button-color-hover)}:host(:active){transform:scale(0.98)}:host([disabled]){cursor:not-allowed;opacity:.5;pointer-events:none}:host([round]){border-radius:9999px}:host([outline]:not(:hover)){--_button-color: var(--button-color, var(--color-text));--_button-border: var(--button-border, var(--border-width) solid var(--color-border));--_button-background-color: var(--button-background-color, transparent)}:host([outline]:hover){--_button-border: var(--button-border, var(--border-width) solid var(--_button-background-color));--_button-color: var(--button-color, var(--_button-background-color));--_button-background-color-hover: var(--button-background-color-hover, transparent)}:host([ghost]){--_button-background-color: var(--button-background-color, transparent);--_button-color: var(--button-color, var(--color-text))}:host([ghost]:hover){--_button-background-color-hover: var(--button-background-color-hover, var(--color-bg-muted))}:host([size=sm]){--_button-padding: var(--button-padding, var(--space-1) var(--space-3));--_button-font-size: var(--button-font-size, var(--text-sm))}:host([size=lg]){--_button-padding: var(--button-padding, var(--space-3) var(--space-5));--_button-font-size: var(--button-font-size, var(--text-lg))}:host([icon_only]){height:2.5rem;justify-content:center;padding:var(--space-2);width:2.5rem}`;
-    __getStatic() {
-        return Button;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(Button.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<slot></slot>` }
-    });
-}
-    getClassName() {
-        return "Button";
-    }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('round')) { this.attributeChangedCallback('round', false, false); }
-if(!this.hasAttribute('loading')) { this.attributeChangedCallback('loading', false, false); }
-if(!this.hasAttribute('disabled')) { this.attributeChangedCallback('disabled', false, false); }
-if(!this.hasAttribute('outline')) { this.attributeChangedCallback('outline', false, false); }
-if(!this.hasAttribute('ghost')) { this.attributeChangedCallback('ghost', false, false); }
-if(!this.hasAttribute('color')){ this['color'] = undefined; }
-if(!this.hasAttribute('size')){ this['size'] = undefined; }
-if(!this.hasAttribute('icon')){ this['icon'] = undefined; }
- }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('round');
-this.__upgradeProperty('loading');
-this.__upgradeProperty('disabled');
-this.__upgradeProperty('outline');
-this.__upgradeProperty('ghost');
-this.__upgradeProperty('color');
-this.__upgradeProperty('size');
-this.__upgradeProperty('icon');
- }
-    __listBoolProps() { return ["round","loading","disabled","outline","ghost"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
-}
-Form.Button.Namespace=`Aventus.Form`;
-Form.Button.Tag=`av-button`;
-_.Form.Button=Form.Button;
-if(!window.customElements.get('av-button')){window.customElements.define('av-button', Form.Button);Aventus.WebComponentInstance.registerDefinition(Form.Button);}
-
-=======
-Form.Validators = {};
-_.Form.Validators = Aventus.Form?.Validators ?? {};
-let _n;
->>>>>>> 72107e8 (WIP)
 const ProgressCircle = class ProgressCircle extends Aventus.WebComponent {
     static get observedAttributes() {return ["value", "stroke_width"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'value'() { return this.getNumberProp('value') }
-    set 'value'(val) { this.setNumberAttr('value', val) }
-get 'stroke_width'() { return this.getNumberProp('stroke_width') }
-    set 'stroke_width'(val) { this.setNumberAttr('stroke_width', val) }
-    svg;
+    set 'value'(val) { this.setNumberAttr('value', val) }get 'stroke_width'() { return this.getNumberProp('stroke_width') }
+    set 'stroke_width'(val) { this.setNumberAttr('stroke_width', val) }    svg;
     backCircle;
     percentCircle;
     __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("value", ((target) => {
     target.render();
-}));
-this.__addPropertyActions("stroke_width", ((target) => {
+}));this.__addPropertyActions("stroke_width", ((target) => {
     target.render();
-}));
- }
+})); }
     static __style = `:host{--_progress-circle-back-circle-color: var(--progress-circle-back-circle-color, rgba(191, 219, 254, .5));--_progress-circle-percent-circle-color: var(--progress-circle-percent-circle-color, #3b82f6);--_progress-circle-transition: var(--progress-circle-transition, stroke 0.3s cubic-bezier(.4, 0, .2, 1), stroke-dashoffset 0.3s cubic-bezier(.4, 0, .2, 1))}:host{align-items:center;aspect-ratio:1/1;display:flex;flex-direction:column;justify-content:center;position:relative;width:60px}:host .container{align-items:center;display:flex;flex-direction:column;height:100%;justify-content:center;position:relative;width:100%}:host .container svg{height:100%;transform:rotate(-90deg);width:100%}:host .container svg .back-circle{fill:rgba(0,0,0,0);stroke:var(--_progress-circle-back-circle-color);transition:stroke linear .2s}:host .container svg .percent-circle{fill:rgba(0,0,0,0);stroke:var(--_progress-circle-percent-circle-color);transition:var(--_progress-circle-transition)}:host .content{display:flex;position:absolute}`;
     __getStatic() {
         return ProgressCircle;
@@ -6023,13 +5759,10 @@ this.__addPropertyActions("stroke_width", ((target) => {
     __getHtml() {
     this.__getStatic().__template.setHTML({
         slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<div class="container" _id="progresscircle_0"></div><div class="content">
-	<slot></slot>
-</div>` }
+        blocks: { 'default':`<div class="container" _id="progresscircle_0"></div><div class="content">	<slot></slot></div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();
-this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "containerEl",
@@ -6038,17 +5771,12 @@ this.__getStatic().__template.setActions({
       ]
     }
   ]
-});
- }
+}); }
     getClassName() {
         return "ProgressCircle";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('value')){ this['value'] = 40; }
-if(!this.hasAttribute('stroke_width')){ this['stroke_width'] = 6; }
- }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('value');
-this.__upgradeProperty('stroke_width');
- }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('value')){ this['value'] = 40; }if(!this.hasAttribute('stroke_width')){ this['stroke_width'] = 6; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('value');this.__upgradeProperty('stroke_width'); }
     getLimitedValue(input) {
         if (input === undefined) {
             return 0;
@@ -6127,10 +5855,8 @@ _.RouterStateManager=RouterStateManager;
 
 Navigation.RouterLink = class RouterLink extends Aventus.WebComponent {
     get 'state'() { return this.getStringAttr('state') }
-    set 'state'(val) { this.setStringAttr('state', val) }
-get 'active_state'() { return this.getStringAttr('active_state') }
-    set 'active_state'(val) { this.setStringAttr('active_state', val) }
-    onActiveChange = new Aventus.Callback();
+    set 'state'(val) { this.setStringAttr('state', val) }get 'active_state'() { return this.getStringAttr('active_state') }
+    set 'active_state'(val) { this.setStringAttr('active_state', val) }    onActiveChange = new Aventus.Callback();
     static __style = `:host a{color:inherit;text-decoration:none}`;
     __getStatic() {
         return RouterLink;
@@ -6146,8 +5872,7 @@ get 'active_state'() { return this.getStringAttr('active_state') }
         blocks: { 'default':`<a _id="routerlink_0"><slot></slot></a>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();
-this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
   "content": {
     "routerlink_0°href": {
       "fct": (c) => `${c.print(c.comp.__ad88894dc7dea62195d227cdd21fc210method0())}`,
@@ -6161,17 +5886,12 @@ this.__getStatic().__template.setActions({
       "fct": (e, c) => c.comp.prevent(e)
     }
   ]
-});
- }
+}); }
     getClassName() {
         return "RouterLink";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('state')){ this['state'] = undefined; }
-if(!this.hasAttribute('active_state')){ this['active_state'] = undefined; }
- }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('state');
-this.__upgradeProperty('active_state');
- }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('state')){ this['state'] = undefined; }if(!this.hasAttribute('active_state')){ this['active_state'] = undefined; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('state');this.__upgradeProperty('active_state'); }
     addClickEvent() {
         new Aventus.PressManager({
             element: this,
@@ -6289,14 +6009,10 @@ _.Lib.SpecialTouch=Lib.SpecialTouch;
 
 Layout.GridCol = class GridCol extends Aventus.WebComponent {
     get 'column'() { return this.getStringAttr('column') }
-    set 'column'(val) { this.setStringAttr('column', val) }
-get 'row'() { return this.getStringAttr('row') }
-    set 'row'(val) { this.setStringAttr('row', val) }
-get 'c_start'() { return this.getNumberAttr('c_start') }
-    set 'c_start'(val) { this.setNumberAttr('c_start', val) }
-get 'c_end'() { return this.getNumberAttr('c_end') }
-    set 'c_end'(val) { this.setNumberAttr('c_end', val) }
-    static __style = ``;
+    set 'column'(val) { this.setStringAttr('column', val) }get 'row'() { return this.getStringAttr('row') }
+    set 'row'(val) { this.setStringAttr('row', val) }get 'c_start'() { return this.getNumberAttr('c_start') }
+    set 'c_start'(val) { this.setNumberAttr('c_start', val) }get 'c_end'() { return this.getNumberAttr('c_end') }
+    set 'c_end'(val) { this.setNumberAttr('c_end', val) }    static __style = ``;
     __getStatic() {
         return GridCol;
     }
@@ -6314,16 +6030,8 @@ get 'c_end'() { return this.getNumberAttr('c_end') }
     getClassName() {
         return "GridCol";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('column')){ this['column'] = undefined; }
-if(!this.hasAttribute('row')){ this['row'] = undefined; }
-if(!this.hasAttribute('c_start')){ this['c_start'] = undefined; }
-if(!this.hasAttribute('c_end')){ this['c_end'] = undefined; }
- }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('column');
-this.__upgradeProperty('row');
-this.__upgradeProperty('c_start');
-this.__upgradeProperty('c_end');
- }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('column')){ this['column'] = undefined; }if(!this.hasAttribute('row')){ this['row'] = undefined; }if(!this.hasAttribute('c_start')){ this['c_start'] = undefined; }if(!this.hasAttribute('c_end')){ this['c_end'] = undefined; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('column');this.__upgradeProperty('row');this.__upgradeProperty('c_start');this.__upgradeProperty('c_end'); }
 }
 Layout.GridCol.Namespace=`Aventus.Layout`;
 Layout.GridCol.Tag=`av-grid-col`;
@@ -6333,8 +6041,7 @@ if(!window.customElements.get('av-grid-col')){window.customElements.define('av-g
 Layout.Grid = class Grid extends Aventus.WebComponent {
     static get observedAttributes() {return ["cols"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'cols'() { return this.getNumberProp('cols') }
-    set 'cols'(val) { this.setNumberAttr('cols', val) }
-    static __style = `:host{display:grid}:host([cols=j]){grid-template-columns:repeat(1, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(2, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(3, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(4, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(5, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(6, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(7, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(8, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(9, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(10, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(11, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(12, minmax(0, 1fr))}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_xs="0"]){margin-right:0%}::slotted(av-grid-col[size_xs="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_xs="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_xs="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_xs="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_xs="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_xs="3"]){margin-right:25%}::slotted(av-grid-col[size_xs="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_xs="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_xs="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_xs="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_xs="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_xs="6"]){margin-right:50%}::slotted(av-grid-col[size_xs="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_xs="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_xs="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_xs="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_xs="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_xs="9"]){margin-right:75%}::slotted(av-grid-col[size_xs="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_xs="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_xs="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_xs="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_xs="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_xs="12"]){margin-right:100%}::slotted(av-grid-col[size_xs="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_sm="0"]){margin-right:0%}::slotted(av-grid-col[size_sm="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_sm="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_sm="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_sm="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_sm="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_sm="3"]){margin-right:25%}::slotted(av-grid-col[size_sm="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_sm="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_sm="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_sm="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_sm="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_sm="6"]){margin-right:50%}::slotted(av-grid-col[size_sm="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_sm="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_sm="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_sm="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_sm="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_sm="9"]){margin-right:75%}::slotted(av-grid-col[size_sm="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_sm="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_sm="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_sm="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_sm="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_sm="12"]){margin-right:100%}::slotted(av-grid-col[size_sm="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_md="0"]){margin-right:0%}::slotted(av-grid-col[size_md="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_md="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_md="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_md="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_md="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_md="3"]){margin-right:25%}::slotted(av-grid-col[size_md="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_md="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_md="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_md="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_md="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_md="6"]){margin-right:50%}::slotted(av-grid-col[size_md="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_md="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_md="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_md="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_md="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_md="9"]){margin-right:75%}::slotted(av-grid-col[size_md="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_md="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_md="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_md="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_md="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_md="12"]){margin-right:100%}::slotted(av-grid-col[size_md="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_lg="0"]){margin-right:0%}::slotted(av-grid-col[size_lg="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_lg="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_lg="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_lg="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_lg="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_lg="3"]){margin-right:25%}::slotted(av-grid-col[size_lg="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_lg="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_lg="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_lg="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_lg="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_lg="6"]){margin-right:50%}::slotted(av-grid-col[size_lg="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_lg="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_lg="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_lg="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_lg="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_lg="9"]){margin-right:75%}::slotted(av-grid-col[size_lg="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_lg="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_lg="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_lg="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_lg="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_lg="12"]){margin-right:100%}::slotted(av-grid-col[size_lg="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_xl="0"]){margin-right:0%}::slotted(av-grid-col[size_xl="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_xl="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_xl="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_xl="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_xl="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_xl="3"]){margin-right:25%}::slotted(av-grid-col[size_xl="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_xl="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_xl="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_xl="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_xl="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_xl="6"]){margin-right:50%}::slotted(av-grid-col[size_xl="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_xl="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_xl="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_xl="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_xl="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_xl="9"]){margin-right:75%}::slotted(av-grid-col[size_xl="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_xl="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_xl="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_xl="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_xl="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_xl="12"]){margin-right:100%}::slotted(av-grid-col[size_xl="12"]){width:100%}}`;
+    set 'cols'(val) { this.setNumberAttr('cols', val) }    static __style = `:host{display:grid}:host([cols=j]){grid-template-columns:repeat(1, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(2, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(3, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(4, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(5, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(6, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(7, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(8, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(9, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(10, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(11, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(12, minmax(0, 1fr))}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_xs="0"]){margin-right:0%}::slotted(av-grid-col[size_xs="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_xs="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_xs="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_xs="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_xs="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_xs="3"]){margin-right:25%}::slotted(av-grid-col[size_xs="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_xs="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_xs="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_xs="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_xs="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_xs="6"]){margin-right:50%}::slotted(av-grid-col[size_xs="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_xs="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_xs="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_xs="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_xs="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_xs="9"]){margin-right:75%}::slotted(av-grid-col[size_xs="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_xs="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_xs="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_xs="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_xs="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_xs="12"]){margin-right:100%}::slotted(av-grid-col[size_xs="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_sm="0"]){margin-right:0%}::slotted(av-grid-col[size_sm="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_sm="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_sm="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_sm="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_sm="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_sm="3"]){margin-right:25%}::slotted(av-grid-col[size_sm="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_sm="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_sm="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_sm="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_sm="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_sm="6"]){margin-right:50%}::slotted(av-grid-col[size_sm="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_sm="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_sm="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_sm="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_sm="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_sm="9"]){margin-right:75%}::slotted(av-grid-col[size_sm="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_sm="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_sm="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_sm="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_sm="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_sm="12"]){margin-right:100%}::slotted(av-grid-col[size_sm="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_md="0"]){margin-right:0%}::slotted(av-grid-col[size_md="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_md="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_md="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_md="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_md="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_md="3"]){margin-right:25%}::slotted(av-grid-col[size_md="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_md="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_md="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_md="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_md="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_md="6"]){margin-right:50%}::slotted(av-grid-col[size_md="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_md="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_md="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_md="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_md="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_md="9"]){margin-right:75%}::slotted(av-grid-col[size_md="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_md="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_md="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_md="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_md="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_md="12"]){margin-right:100%}::slotted(av-grid-col[size_md="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_lg="0"]){margin-right:0%}::slotted(av-grid-col[size_lg="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_lg="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_lg="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_lg="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_lg="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_lg="3"]){margin-right:25%}::slotted(av-grid-col[size_lg="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_lg="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_lg="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_lg="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_lg="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_lg="6"]){margin-right:50%}::slotted(av-grid-col[size_lg="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_lg="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_lg="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_lg="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_lg="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_lg="9"]){margin-right:75%}::slotted(av-grid-col[size_lg="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_lg="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_lg="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_lg="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_lg="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_lg="12"]){margin-right:100%}::slotted(av-grid-col[size_lg="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_xl="0"]){margin-right:0%}::slotted(av-grid-col[size_xl="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_xl="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_xl="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_xl="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_xl="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_xl="3"]){margin-right:25%}::slotted(av-grid-col[size_xl="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_xl="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_xl="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_xl="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_xl="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_xl="6"]){margin-right:50%}::slotted(av-grid-col[size_xl="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_xl="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_xl="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_xl="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_xl="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_xl="9"]){margin-right:75%}::slotted(av-grid-col[size_xl="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_xl="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_xl="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_xl="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_xl="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_xl="12"]){margin-right:100%}::slotted(av-grid-col[size_xl="12"]){width:100%}}`;
     __getStatic() {
         return Grid;
     }
@@ -6352,10 +6059,8 @@ Layout.Grid = class Grid extends Aventus.WebComponent {
     getClassName() {
         return "Grid";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('cols')){ this['cols'] = 12; }
- }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('cols');
- }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('cols')){ this['cols'] = 12; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('cols'); }
 }
 Layout.Grid.Namespace=`Aventus.Layout`;
 Layout.Grid.Tag=`av-grid`;
@@ -6364,8 +6069,7 @@ if(!window.customElements.get('av-grid')){window.customElements.define('av-grid'
 
 Layout.DynamicRow = class DynamicRow extends Aventus.WebComponent {
     get 'max_width'() { return this.getStringAttr('max_width') }
-    set 'max_width'(val) { this.setStringAttr('max_width', val) }
-    sizes = { "xs": 300, "sm": 540, "md": 720, "lg": 960, "xl": 1140 };
+    set 'max_width'(val) { this.setStringAttr('max_width', val) }    sizes = { "xs": 300, "sm": 540, "md": 720, "lg": 960, "xl": 1140 };
     static __style = `:host{display:flex;flex-wrap:wrap;flex-direction:row;width:100%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="0"]){margin-left:0%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="0"]){margin-right:0%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="0"]){width:0%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="1"]){margin-left:8.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="1"]){margin-right:8.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="1"]){width:8.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="2"]){margin-left:16.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="2"]){margin-right:16.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="2"]){width:16.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="3"]){margin-left:25%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="3"]){margin-right:25%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="3"]){width:25%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="4"]){margin-left:33.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="4"]){margin-right:33.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="4"]){width:33.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="5"]){margin-left:41.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="5"]){margin-right:41.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="5"]){width:41.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="6"]){margin-left:50%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="6"]){margin-right:50%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="6"]){width:50%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="7"]){margin-left:58.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="7"]){margin-right:58.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="7"]){width:58.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="8"]){margin-left:66.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="8"]){margin-right:66.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="8"]){width:66.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="9"]){margin-left:75%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="9"]){margin-right:75%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="9"]){width:75%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="10"]){margin-left:83.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="10"]){margin-right:83.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="10"]){width:83.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="11"]){margin-left:91.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="11"]){margin-right:91.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="11"]){width:91.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="12"]){margin-left:100%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="12"]){margin-right:100%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="12"]){width:100%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="0"]){margin-left:0%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="0"]){margin-right:0%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="0"]){width:0%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="1"]){margin-left:8.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="1"]){margin-right:8.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="1"]){width:8.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="2"]){margin-left:16.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="2"]){margin-right:16.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="2"]){width:16.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="3"]){margin-left:25%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="3"]){margin-right:25%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="3"]){width:25%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="4"]){margin-left:33.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="4"]){margin-right:33.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="4"]){width:33.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="5"]){margin-left:41.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="5"]){margin-right:41.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="5"]){width:41.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="6"]){margin-left:50%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="6"]){margin-right:50%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="6"]){width:50%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="7"]){margin-left:58.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="7"]){margin-right:58.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="7"]){width:58.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="8"]){margin-left:66.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="8"]){margin-right:66.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="8"]){width:66.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="9"]){margin-left:75%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="9"]){margin-right:75%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="9"]){width:75%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="10"]){margin-left:83.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="10"]){margin-right:83.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="10"]){width:83.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="11"]){margin-left:91.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="11"]){margin-right:91.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="11"]){width:91.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="12"]){margin-left:100%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="12"]){margin-right:100%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="12"]){width:100%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="0"]){margin-left:0%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="0"]){margin-right:0%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="0"]){width:0%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="1"]){margin-left:8.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="1"]){margin-right:8.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="1"]){width:8.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="2"]){margin-left:16.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="2"]){margin-right:16.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="2"]){width:16.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="3"]){margin-left:25%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="3"]){margin-right:25%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="3"]){width:25%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="4"]){margin-left:33.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="4"]){margin-right:33.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="4"]){width:33.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="5"]){margin-left:41.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="5"]){margin-right:41.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="5"]){width:41.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="6"]){margin-left:50%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="6"]){margin-right:50%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="6"]){width:50%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="7"]){margin-left:58.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="7"]){margin-right:58.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="7"]){width:58.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="8"]){margin-left:66.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="8"]){margin-right:66.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="8"]){width:66.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="9"]){margin-left:75%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="9"]){margin-right:75%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="9"]){width:75%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="10"]){margin-left:83.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="10"]){margin-right:83.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="10"]){width:83.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="11"]){margin-left:91.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="11"]){margin-right:91.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="11"]){width:91.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="12"]){margin-left:100%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="12"]){margin-right:100%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="12"]){width:100%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="0"]){margin-left:0%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="0"]){margin-right:0%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="0"]){width:0%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="1"]){margin-left:8.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="1"]){margin-right:8.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="1"]){width:8.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="2"]){margin-left:16.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="2"]){margin-right:16.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="2"]){width:16.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="3"]){margin-left:25%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="3"]){margin-right:25%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="3"]){width:25%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="4"]){margin-left:33.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="4"]){margin-right:33.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="4"]){width:33.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="5"]){margin-left:41.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="5"]){margin-right:41.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="5"]){width:41.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="6"]){margin-left:50%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="6"]){margin-right:50%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="6"]){width:50%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="7"]){margin-left:58.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="7"]){margin-right:58.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="7"]){width:58.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="8"]){margin-left:66.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="8"]){margin-right:66.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="8"]){width:66.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="9"]){margin-left:75%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="9"]){margin-right:75%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="9"]){width:75%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="10"]){margin-left:83.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="10"]){margin-right:83.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="10"]){width:83.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="11"]){margin-left:91.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="11"]){margin-right:91.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="11"]){width:91.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="12"]){margin-left:100%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="12"]){margin-right:100%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="12"]){width:100%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="0"]){margin-left:0%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="0"]){margin-right:0%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="0"]){width:0%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="1"]){margin-left:8.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="1"]){margin-right:8.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="1"]){width:8.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="2"]){margin-left:16.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="2"]){margin-right:16.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="2"]){width:16.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="3"]){margin-left:25%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="3"]){margin-right:25%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="3"]){width:25%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="4"]){margin-left:33.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="4"]){margin-right:33.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="4"]){width:33.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="5"]){margin-left:41.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="5"]){margin-right:41.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="5"]){width:41.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="6"]){margin-left:50%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="6"]){margin-right:50%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="6"]){width:50%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="7"]){margin-left:58.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="7"]){margin-right:58.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="7"]){width:58.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="8"]){margin-left:66.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="8"]){margin-right:66.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="8"]){width:66.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="9"]){margin-left:75%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="9"]){margin-right:75%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="9"]){width:75%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="10"]){margin-left:83.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="10"]){margin-right:83.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="10"]){width:83.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="11"]){margin-left:91.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="11"]){margin-right:91.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="11"]){width:91.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="12"]){margin-left:100%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="12"]){margin-right:100%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="12"]){width:100%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="0"]){margin-left:0%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="0"]){margin-right:0%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="0"]){width:0%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="1"]){margin-left:8.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="1"]){margin-right:8.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="1"]){width:8.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="2"]){margin-left:16.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="2"]){margin-right:16.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="2"]){width:16.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="3"]){margin-left:25%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="3"]){margin-right:25%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="3"]){width:25%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="4"]){margin-left:33.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="4"]){margin-right:33.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="4"]){width:33.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="5"]){margin-left:41.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="5"]){margin-right:41.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="5"]){width:41.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="6"]){margin-left:50%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="6"]){margin-right:50%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="6"]){width:50%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="7"]){margin-left:58.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="7"]){margin-right:58.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="7"]){width:58.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="8"]){margin-left:66.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="8"]){margin-right:66.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="8"]){width:66.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="9"]){margin-left:75%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="9"]){margin-right:75%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="9"]){width:75%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="10"]){margin-left:83.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="10"]){margin-right:83.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="10"]){width:83.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="11"]){margin-left:91.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="11"]){margin-right:91.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="11"]){width:91.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="12"]){margin-left:100%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="12"]){margin-right:100%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="12"]){width:100%}`;
     __getStatic() {
         return DynamicRow;
@@ -6384,10 +6088,8 @@ Layout.DynamicRow = class DynamicRow extends Aventus.WebComponent {
     getClassName() {
         return "DynamicRow";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('max_width')){ this['max_width'] = undefined; }
- }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('max_width');
- }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('max_width')){ this['max_width'] = undefined; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('max_width'); }
     calculateWidth() {
         let size = this.offsetWidth;
         let labels = [];
@@ -6416,46 +6118,26 @@ if(!window.customElements.get('av-dynamic-row')){window.customElements.define('a
 
 Layout.DynamicCol = class DynamicCol extends Aventus.WebComponent {
     get 'size'() { return this.getNumberAttr('size') }
-    set 'size'(val) { this.setNumberAttr('size', val) }
-get 'size_xs'() { return this.getNumberAttr('size_xs') }
-    set 'size_xs'(val) { this.setNumberAttr('size_xs', val) }
-get 'size_sm'() { return this.getNumberAttr('size_sm') }
-    set 'size_sm'(val) { this.setNumberAttr('size_sm', val) }
-get 'size_md'() { return this.getNumberAttr('size_md') }
-    set 'size_md'(val) { this.setNumberAttr('size_md', val) }
-get 'size_lg'() { return this.getNumberAttr('size_lg') }
-    set 'size_lg'(val) { this.setNumberAttr('size_lg', val) }
-get 'size_xl'() { return this.getNumberAttr('size_xl') }
-    set 'size_xl'(val) { this.setNumberAttr('size_xl', val) }
-get 'offset'() { return this.getNumberAttr('offset') }
-    set 'offset'(val) { this.setNumberAttr('offset', val) }
-get 'offset_xs'() { return this.getNumberAttr('offset_xs') }
-    set 'offset_xs'(val) { this.setNumberAttr('offset_xs', val) }
-get 'offset_sm'() { return this.getNumberAttr('offset_sm') }
-    set 'offset_sm'(val) { this.setNumberAttr('offset_sm', val) }
-get 'offset_md'() { return this.getNumberAttr('offset_md') }
-    set 'offset_md'(val) { this.setNumberAttr('offset_md', val) }
-get 'offset_lg'() { return this.getNumberAttr('offset_lg') }
-    set 'offset_lg'(val) { this.setNumberAttr('offset_lg', val) }
-get 'offset_xl'() { return this.getNumberAttr('offset_xl') }
-    set 'offset_xl'(val) { this.setNumberAttr('offset_xl', val) }
-get 'offset_right'() { return this.getNumberAttr('offset_right') }
-    set 'offset_right'(val) { this.setNumberAttr('offset_right', val) }
-get 'offset_right_xs'() { return this.getNumberAttr('offset_right_xs') }
-    set 'offset_right_xs'(val) { this.setNumberAttr('offset_right_xs', val) }
-get 'offset_right_sm'() { return this.getNumberAttr('offset_right_sm') }
-    set 'offset_right_sm'(val) { this.setNumberAttr('offset_right_sm', val) }
-get 'offset_right_md'() { return this.getNumberAttr('offset_right_md') }
-    set 'offset_right_md'(val) { this.setNumberAttr('offset_right_md', val) }
-get 'offset_right_lg'() { return this.getNumberAttr('offset_right_lg') }
-    set 'offset_right_lg'(val) { this.setNumberAttr('offset_right_lg', val) }
-get 'offset_right_xl'() { return this.getNumberAttr('offset_right_xl') }
-    set 'offset_right_xl'(val) { this.setNumberAttr('offset_right_xl', val) }
-get 'nobreak'() { return this.getBoolAttr('nobreak') }
-    set 'nobreak'(val) { this.setBoolAttr('nobreak', val) }
-get 'center'() { return this.getBoolAttr('center') }
-    set 'center'(val) { this.setBoolAttr('center', val) }
-    static __style = `:host{display:flex;flex-direction:column;padding:0 10px;width:100%;margin-left:0;margin-right:0}:host([nobreak]){white-space:nowrap;text-overflow:ellipsis;overflow:hidden}:host([center]){text-align:center}:host([size="0"]){width:0%;display:flex}:host([offset="0"]){margin-left:0%}:host([offset-right="0"]){margin-right:0%}:host([size="1"]){width:8.3333333333%;display:flex}:host([offset="1"]){margin-left:8.3333333333%}:host([offset-right="1"]){margin-right:8.3333333333%}:host([size="2"]){width:16.6666666667%;display:flex}:host([offset="2"]){margin-left:16.6666666667%}:host([offset-right="2"]){margin-right:16.6666666667%}:host([size="3"]){width:25%;display:flex}:host([offset="3"]){margin-left:25%}:host([offset-right="3"]){margin-right:25%}:host([size="4"]){width:33.3333333333%;display:flex}:host([offset="4"]){margin-left:33.3333333333%}:host([offset-right="4"]){margin-right:33.3333333333%}:host([size="5"]){width:41.6666666667%;display:flex}:host([offset="5"]){margin-left:41.6666666667%}:host([offset-right="5"]){margin-right:41.6666666667%}:host([size="6"]){width:50%;display:flex}:host([offset="6"]){margin-left:50%}:host([offset-right="6"]){margin-right:50%}:host([size="7"]){width:58.3333333333%;display:flex}:host([offset="7"]){margin-left:58.3333333333%}:host([offset-right="7"]){margin-right:58.3333333333%}:host([size="8"]){width:66.6666666667%;display:flex}:host([offset="8"]){margin-left:66.6666666667%}:host([offset-right="8"]){margin-right:66.6666666667%}:host([size="9"]){width:75%;display:flex}:host([offset="9"]){margin-left:75%}:host([offset-right="9"]){margin-right:75%}:host([size="10"]){width:83.3333333333%;display:flex}:host([offset="10"]){margin-left:83.3333333333%}:host([offset-right="10"]){margin-right:83.3333333333%}:host([size="11"]){width:91.6666666667%;display:flex}:host([offset="11"]){margin-left:91.6666666667%}:host([offset-right="11"]){margin-right:91.6666666667%}:host([size="12"]){width:100%;display:flex}:host([offset="12"]){margin-left:100%}:host([offset-right="12"]){margin-right:100%}`;
+    set 'size'(val) { this.setNumberAttr('size', val) }get 'size_xs'() { return this.getNumberAttr('size_xs') }
+    set 'size_xs'(val) { this.setNumberAttr('size_xs', val) }get 'size_sm'() { return this.getNumberAttr('size_sm') }
+    set 'size_sm'(val) { this.setNumberAttr('size_sm', val) }get 'size_md'() { return this.getNumberAttr('size_md') }
+    set 'size_md'(val) { this.setNumberAttr('size_md', val) }get 'size_lg'() { return this.getNumberAttr('size_lg') }
+    set 'size_lg'(val) { this.setNumberAttr('size_lg', val) }get 'size_xl'() { return this.getNumberAttr('size_xl') }
+    set 'size_xl'(val) { this.setNumberAttr('size_xl', val) }get 'offset'() { return this.getNumberAttr('offset') }
+    set 'offset'(val) { this.setNumberAttr('offset', val) }get 'offset_xs'() { return this.getNumberAttr('offset_xs') }
+    set 'offset_xs'(val) { this.setNumberAttr('offset_xs', val) }get 'offset_sm'() { return this.getNumberAttr('offset_sm') }
+    set 'offset_sm'(val) { this.setNumberAttr('offset_sm', val) }get 'offset_md'() { return this.getNumberAttr('offset_md') }
+    set 'offset_md'(val) { this.setNumberAttr('offset_md', val) }get 'offset_lg'() { return this.getNumberAttr('offset_lg') }
+    set 'offset_lg'(val) { this.setNumberAttr('offset_lg', val) }get 'offset_xl'() { return this.getNumberAttr('offset_xl') }
+    set 'offset_xl'(val) { this.setNumberAttr('offset_xl', val) }get 'offset_right'() { return this.getNumberAttr('offset_right') }
+    set 'offset_right'(val) { this.setNumberAttr('offset_right', val) }get 'offset_right_xs'() { return this.getNumberAttr('offset_right_xs') }
+    set 'offset_right_xs'(val) { this.setNumberAttr('offset_right_xs', val) }get 'offset_right_sm'() { return this.getNumberAttr('offset_right_sm') }
+    set 'offset_right_sm'(val) { this.setNumberAttr('offset_right_sm', val) }get 'offset_right_md'() { return this.getNumberAttr('offset_right_md') }
+    set 'offset_right_md'(val) { this.setNumberAttr('offset_right_md', val) }get 'offset_right_lg'() { return this.getNumberAttr('offset_right_lg') }
+    set 'offset_right_lg'(val) { this.setNumberAttr('offset_right_lg', val) }get 'offset_right_xl'() { return this.getNumberAttr('offset_right_xl') }
+    set 'offset_right_xl'(val) { this.setNumberAttr('offset_right_xl', val) }get 'nobreak'() { return this.getBoolAttr('nobreak') }
+    set 'nobreak'(val) { this.setBoolAttr('nobreak', val) }get 'center'() { return this.getBoolAttr('center') }
+    set 'center'(val) { this.setBoolAttr('center', val) }    static __style = `:host{display:flex;flex-direction:column;padding:0 10px;width:100%;margin-left:0;margin-right:0}:host([nobreak]){white-space:nowrap;text-overflow:ellipsis;overflow:hidden}:host([center]){text-align:center}:host([size="0"]){width:0%;display:flex}:host([offset="0"]){margin-left:0%}:host([offset-right="0"]){margin-right:0%}:host([size="1"]){width:8.3333333333%;display:flex}:host([offset="1"]){margin-left:8.3333333333%}:host([offset-right="1"]){margin-right:8.3333333333%}:host([size="2"]){width:16.6666666667%;display:flex}:host([offset="2"]){margin-left:16.6666666667%}:host([offset-right="2"]){margin-right:16.6666666667%}:host([size="3"]){width:25%;display:flex}:host([offset="3"]){margin-left:25%}:host([offset-right="3"]){margin-right:25%}:host([size="4"]){width:33.3333333333%;display:flex}:host([offset="4"]){margin-left:33.3333333333%}:host([offset-right="4"]){margin-right:33.3333333333%}:host([size="5"]){width:41.6666666667%;display:flex}:host([offset="5"]){margin-left:41.6666666667%}:host([offset-right="5"]){margin-right:41.6666666667%}:host([size="6"]){width:50%;display:flex}:host([offset="6"]){margin-left:50%}:host([offset-right="6"]){margin-right:50%}:host([size="7"]){width:58.3333333333%;display:flex}:host([offset="7"]){margin-left:58.3333333333%}:host([offset-right="7"]){margin-right:58.3333333333%}:host([size="8"]){width:66.6666666667%;display:flex}:host([offset="8"]){margin-left:66.6666666667%}:host([offset-right="8"]){margin-right:66.6666666667%}:host([size="9"]){width:75%;display:flex}:host([offset="9"]){margin-left:75%}:host([offset-right="9"]){margin-right:75%}:host([size="10"]){width:83.3333333333%;display:flex}:host([offset="10"]){margin-left:83.3333333333%}:host([offset-right="10"]){margin-right:83.3333333333%}:host([size="11"]){width:91.6666666667%;display:flex}:host([offset="11"]){margin-left:91.6666666667%}:host([offset-right="11"]){margin-right:91.6666666667%}:host([size="12"]){width:100%;display:flex}:host([offset="12"]){margin-left:100%}:host([offset-right="12"]){margin-right:100%}`;
     __getStatic() {
         return DynamicCol;
     }
@@ -6473,48 +6155,8 @@ get 'center'() { return this.getBoolAttr('center') }
     getClassName() {
         return "DynamicCol";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('size')){ this['size'] = undefined; }
-if(!this.hasAttribute('size_xs')){ this['size_xs'] = undefined; }
-if(!this.hasAttribute('size_sm')){ this['size_sm'] = undefined; }
-if(!this.hasAttribute('size_md')){ this['size_md'] = undefined; }
-if(!this.hasAttribute('size_lg')){ this['size_lg'] = undefined; }
-if(!this.hasAttribute('size_xl')){ this['size_xl'] = undefined; }
-if(!this.hasAttribute('offset')){ this['offset'] = undefined; }
-if(!this.hasAttribute('offset_xs')){ this['offset_xs'] = undefined; }
-if(!this.hasAttribute('offset_sm')){ this['offset_sm'] = undefined; }
-if(!this.hasAttribute('offset_md')){ this['offset_md'] = undefined; }
-if(!this.hasAttribute('offset_lg')){ this['offset_lg'] = undefined; }
-if(!this.hasAttribute('offset_xl')){ this['offset_xl'] = undefined; }
-if(!this.hasAttribute('offset_right')){ this['offset_right'] = undefined; }
-if(!this.hasAttribute('offset_right_xs')){ this['offset_right_xs'] = undefined; }
-if(!this.hasAttribute('offset_right_sm')){ this['offset_right_sm'] = undefined; }
-if(!this.hasAttribute('offset_right_md')){ this['offset_right_md'] = undefined; }
-if(!this.hasAttribute('offset_right_lg')){ this['offset_right_lg'] = undefined; }
-if(!this.hasAttribute('offset_right_xl')){ this['offset_right_xl'] = undefined; }
-if(!this.hasAttribute('nobreak')) { this.attributeChangedCallback('nobreak', false, false); }
-if(!this.hasAttribute('center')) { this.attributeChangedCallback('center', false, false); }
- }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('size');
-this.__upgradeProperty('size_xs');
-this.__upgradeProperty('size_sm');
-this.__upgradeProperty('size_md');
-this.__upgradeProperty('size_lg');
-this.__upgradeProperty('size_xl');
-this.__upgradeProperty('offset');
-this.__upgradeProperty('offset_xs');
-this.__upgradeProperty('offset_sm');
-this.__upgradeProperty('offset_md');
-this.__upgradeProperty('offset_lg');
-this.__upgradeProperty('offset_xl');
-this.__upgradeProperty('offset_right');
-this.__upgradeProperty('offset_right_xs');
-this.__upgradeProperty('offset_right_sm');
-this.__upgradeProperty('offset_right_md');
-this.__upgradeProperty('offset_right_lg');
-this.__upgradeProperty('offset_right_xl');
-this.__upgradeProperty('nobreak');
-this.__upgradeProperty('center');
- }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('size')){ this['size'] = undefined; }if(!this.hasAttribute('size_xs')){ this['size_xs'] = undefined; }if(!this.hasAttribute('size_sm')){ this['size_sm'] = undefined; }if(!this.hasAttribute('size_md')){ this['size_md'] = undefined; }if(!this.hasAttribute('size_lg')){ this['size_lg'] = undefined; }if(!this.hasAttribute('size_xl')){ this['size_xl'] = undefined; }if(!this.hasAttribute('offset')){ this['offset'] = undefined; }if(!this.hasAttribute('offset_xs')){ this['offset_xs'] = undefined; }if(!this.hasAttribute('offset_sm')){ this['offset_sm'] = undefined; }if(!this.hasAttribute('offset_md')){ this['offset_md'] = undefined; }if(!this.hasAttribute('offset_lg')){ this['offset_lg'] = undefined; }if(!this.hasAttribute('offset_xl')){ this['offset_xl'] = undefined; }if(!this.hasAttribute('offset_right')){ this['offset_right'] = undefined; }if(!this.hasAttribute('offset_right_xs')){ this['offset_right_xs'] = undefined; }if(!this.hasAttribute('offset_right_sm')){ this['offset_right_sm'] = undefined; }if(!this.hasAttribute('offset_right_md')){ this['offset_right_md'] = undefined; }if(!this.hasAttribute('offset_right_lg')){ this['offset_right_lg'] = undefined; }if(!this.hasAttribute('offset_right_xl')){ this['offset_right_xl'] = undefined; }if(!this.hasAttribute('nobreak')) { this.attributeChangedCallback('nobreak', false, false); }if(!this.hasAttribute('center')) { this.attributeChangedCallback('center', false, false); } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('size');this.__upgradeProperty('size_xs');this.__upgradeProperty('size_sm');this.__upgradeProperty('size_md');this.__upgradeProperty('size_lg');this.__upgradeProperty('size_xl');this.__upgradeProperty('offset');this.__upgradeProperty('offset_xs');this.__upgradeProperty('offset_sm');this.__upgradeProperty('offset_md');this.__upgradeProperty('offset_lg');this.__upgradeProperty('offset_xl');this.__upgradeProperty('offset_right');this.__upgradeProperty('offset_right_xs');this.__upgradeProperty('offset_right_sm');this.__upgradeProperty('offset_right_md');this.__upgradeProperty('offset_right_lg');this.__upgradeProperty('offset_right_xl');this.__upgradeProperty('nobreak');this.__upgradeProperty('center'); }
     __listBoolProps() { return ["nobreak","center"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
 }
 Layout.DynamicCol.Namespace=`Aventus.Layout`;
@@ -6524,10 +6166,8 @@ if(!window.customElements.get('av-dynamic-col')){window.customElements.define('a
 
 const Collapse = class Collapse extends Aventus.WebComponent {
     get 'open'() { return this.getBoolAttr('open') }
-    set 'open'(val) { this.setBoolAttr('open', val) }
-get 'no_animation'() { return this.getBoolAttr('no_animation') }
-    set 'no_animation'(val) { this.setBoolAttr('no_animation', val) }
-    static __style = `:host{--_collapse-transition-duration: var(--collapse-transition-duration, 0.5s);--_collapse-transition-timing-function: var(--collapse-transition-timing-function, cubic-bezier(0.65, 0, 0.15, 1))}:host .title{cursor:pointer;-webkit-tap-highlight-color:rgba(0,0,0,0)}:host .collapse{display:grid;grid-template-rows:0fr;transition-duration:var(--_collapse-transition-duration);transition-timing-function:var(--_collapse-transition-timing-function);transition-property:grid-template-rows}:host .collapse .content{overflow:hidden}:host([open]) .collapse{grid-template-rows:1fr}:host([no_animation]) .collapse{transition:none}`;
+    set 'open'(val) { this.setBoolAttr('open', val) }get 'no_animation'() { return this.getBoolAttr('no_animation') }
+    set 'no_animation'(val) { this.setBoolAttr('no_animation', val) }    static __style = `:host{--_collapse-transition-duration: var(--collapse-transition-duration, 0.5s);--_collapse-transition-timing-function: var(--collapse-transition-timing-function, cubic-bezier(0.65, 0, 0.15, 1))}:host .title{cursor:pointer;-webkit-tap-highlight-color:rgba(0,0,0,0)}:host .collapse{display:grid;grid-template-rows:0fr;transition-duration:var(--_collapse-transition-duration);transition-timing-function:var(--_collapse-transition-timing-function);transition-property:grid-template-rows}:host .collapse .content{overflow:hidden}:host([open]) .collapse{grid-template-rows:1fr}:host([no_animation]) .collapse{transition:none}`;
     __getStatic() {
         return Collapse;
     }
@@ -6539,17 +6179,10 @@ get 'no_animation'() { return this.getBoolAttr('no_animation') }
     __getHtml() {
     this.__getStatic().__template.setHTML({
         slots: { 'header':`<slot name="header"></slot>`,'default':`<slot></slot>` }, 
-        blocks: { 'default':`<div class="title" _id="collapse_0">
-    <slot name="header"></slot>
-</div><div class="collapse" _id="collapse_1">
-    <div class="content">
-        <slot></slot>
-    </div>
-</div>` }
+        blocks: { 'default':`<div class="title" _id="collapse_0">    <slot name="header"></slot></div><div class="collapse" _id="collapse_1">    <div class="content">        <slot></slot>    </div></div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();
-this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
   "events": [
     {
       "eventName": "transitionend",
@@ -6563,17 +6196,12 @@ this.__getStatic().__template.setActions({
       "onPress": (e, pressInstance, c) => { c.comp.toggleOpen(e, pressInstance); }
     }
   ]
-});
- }
+}); }
     getClassName() {
         return "Collapse";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('open')) { this.attributeChangedCallback('open', false, false); }
-if(!this.hasAttribute('no_animation')) { this.attributeChangedCallback('no_animation', false, false); }
- }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('open');
-this.__upgradeProperty('no_animation');
- }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('open')) { this.attributeChangedCallback('open', false, false); }if(!this.hasAttribute('no_animation')) { this.attributeChangedCallback('no_animation', false, false); } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('open');this.__upgradeProperty('no_animation'); }
     __listBoolProps() { return ["open","no_animation"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     transitionEnd(e) {
         let cst = e.constructor;
@@ -6592,24 +6220,19 @@ if(!window.customElements.get('av-collapse')){window.customElements.define('av-c
 const Img = class Img extends Aventus.WebComponent {
     static get observedAttributes() {return ["src", "mode"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'cache'() { return this.getBoolAttr('cache') }
-    set 'cache'(val) { this.setBoolAttr('cache', val) }
-    get 'src'() { return this.getStringProp('src') }
-    set 'src'(val) { this.setStringAttr('src', val) }
-get 'mode'() { return this.getStringProp('mode') }
-    set 'mode'(val) { this.setStringAttr('mode', val) }
-    isCalculing;
+    set 'cache'(val) { this.setBoolAttr('cache', val) }    get 'src'() { return this.getStringProp('src') }
+    set 'src'(val) { this.setStringAttr('src', val) }get 'mode'() { return this.getStringProp('mode') }
+    set 'mode'(val) { this.setStringAttr('mode', val) }    isCalculing;
     maxCalculateSize = 10;
     ratio = 1;
     resizeObserver;
     __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("src", ((target) => {
     target.onSrcChanged();
-}));
-this.__addPropertyActions("mode", ((target) => {
+}));this.__addPropertyActions("mode", ((target) => {
     if (target.src != "") {
         target.calculateSize();
     }
-}));
- }
+})); }
     static __style = `:host{--internal-img-color: var(--img-color);--internal-img-stroke-color: var(--img-stroke-color, var(--internal-img-color));--internal-img-fill-color: var(--img-fill-color, var(--internal-img-color));--internal-img-color-transition: var(--img-color-transition, none)}:host{display:inline-block;overflow:hidden;font-size:0}:host *{box-sizing:border-box}:host img{opacity:0;transition:filter .3s linear}:host .svg{display:none;height:100%;width:100%}:host .svg svg{height:100%;width:100%}:host([src$=".svg"]) img{display:none}:host([src$=".svg"]) .svg{display:flex}:host([src$=".svg"]) .svg svg{transition:var(--internal-img-color-transition);stroke:var(--internal-img-stroke-color);fill:var(--internal-img-fill-color)}:host([display_bigger]) img{cursor:pointer}:host([display_bigger]) img:hover{filter:brightness(50%)}`;
     __getStatic() {
         return Img;
@@ -6624,8 +6247,7 @@ this.__addPropertyActions("mode", ((target) => {
         blocks: { 'default':`<img _id="img_0" /><div class="svg" _id="img_1"></div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();
-this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "imgEl",
@@ -6640,19 +6262,12 @@ this.__getStatic().__template.setActions({
       ]
     }
   ]
-});
- }
+}); }
     getClassName() {
         return "Img";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('cache')) { this.attributeChangedCallback('cache', false, false); }
-if(!this.hasAttribute('src')){ this['src'] = undefined; }
-if(!this.hasAttribute('mode')){ this['mode'] = "contains"; }
- }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('cache');
-this.__upgradeProperty('src');
-this.__upgradeProperty('mode');
- }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('cache')) { this.attributeChangedCallback('cache', false, false); }if(!this.hasAttribute('src')){ this['src'] = undefined; }if(!this.hasAttribute('mode')){ this['mode'] = "contains"; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('cache');this.__upgradeProperty('src');this.__upgradeProperty('mode'); }
     __listBoolProps() { return ["cache"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     calculateSize(attempt = 0) {
         if (this.isCalculing || !this.imgEl || !this.svgEl) {
@@ -6782,10 +6397,6 @@ Img.Tag=`av-img`;
 _.Img=Img;
 if(!window.customElements.get('av-img')){window.customElements.define('av-img', Img);Aventus.WebComponentInstance.registerDefinition(Img);}
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 72107e8 (WIP)
 Form.isSubclassOf=function isSubclassOf(subClass, superClass) {
     if (typeof subClass !== 'function' || typeof superClass !== 'function')
         return false;
@@ -6799,11 +6410,6 @@ Form.isSubclassOf=function isSubclassOf(subClass, superClass) {
 }
 _.Form.isSubclassOf=Form.isSubclassOf;
 
-<<<<<<< HEAD
-=======
->>>>>>> 84854f0 (WIP)
-=======
->>>>>>> 72107e8 (WIP)
 Form.Validator=class Validator {
     static async Test(validators, value, name, globalValidation) {
         if (!Array.isArray(validators)) {
@@ -6826,13 +6432,12 @@ Form.Validator=class Validator {
             }
         }
         return result.length == 0 ? undefined : result;
-<<<<<<< HEAD
     }
 }
 Form.Validator.Namespace=`Aventus.Form`;
 _.Form.Validator=Form.Validator;
 
-Form.Validators.Required=class Required extends _.Form.Validator {
+Form.Validators.Required=class Required extends Form.Validator {
     static msg = "Le champs {name} est requis";
     /**
      * @inheritdoc
@@ -6851,7 +6456,7 @@ Form.Validators.Required=class Required extends _.Form.Validator {
 Form.Validators.Required.Namespace=`Aventus.Form.Validators`;
 _.Form.Validators.Required=Form.Validators.Required;
 
-Form.Validators.Email=class Email extends _.Form.Validator {
+Form.Validators.Email=class Email extends Form.Validator {
     static msg = "Merci de saisir un email valide";
     /**
      * @inheritdoc
@@ -6872,22 +6477,14 @@ _.Form.Validators.Email=Form.Validators.Email;
 Form.Button = class Button extends Aventus.WebComponent {
     static get observedAttributes() {return ["icon"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'round'() { return this.getBoolAttr('round') }
-    set 'round'(val) { this.setBoolAttr('round', val) }
-get 'loading'() { return this.getBoolAttr('loading') }
-    set 'loading'(val) { this.setBoolAttr('loading', val) }
-get 'disabled'() { return this.getBoolAttr('disabled') }
-    set 'disabled'(val) { this.setBoolAttr('disabled', val) }
-get 'outline'() { return this.getBoolAttr('outline') }
-    set 'outline'(val) { this.setBoolAttr('outline', val) }
-get 'ghost'() { return this.getBoolAttr('ghost') }
-    set 'ghost'(val) { this.setBoolAttr('ghost', val) }
-get 'color'() { return this.getStringAttr('color') }
-    set 'color'(val) { this.setStringAttr('color', val) }
-get 'size'() { return this.getStringAttr('size') }
-    set 'size'(val) { this.setStringAttr('size', val) }
-    get 'icon'() { return this.getStringProp('icon') }
-    set 'icon'(val) { this.setStringAttr('icon', val) }
-    static __style = `:host{--_button-border-radius: var(--button-border-radius, var(--border-radius-md));--_button-font-size: var(--button-font-size, var(--text-base));--_button-padding: var(--button-padding, var(--space-2) var(--space-4));--_button-background-color: var(--button-background-color, var(--color-primary));--_button-background-color-hover: var(--button-background-color-hover, var(--color-primary-hover));--_button-color: var(--button-color, var(--color-text-inverse));--_button-color-hover: var(--button-color-hover, var(--_button-color));--_button-border: var(--button-border, none)}:host([color=secondary]){--_button-background-color: var(--button-background-color, var(--color-surface));--_button-border: var(--button-border, var(--border-width) solid var(--color-border));--_button-color: var(--button-color, var(--color-text))}:host([color=secondary]:hover){--_button-background-color-hover: var(--button-background-color-hover, var(--color-bg-muted))}:host([color=danger]){--_button-background-color: var(--button-background-color, var(--color-error));--_button-color: var(--button-color, var(--color-text-inverse))}:host([color=danger]:hover){--_button-background-color-hover: var(--button-background-color-hover, #dc2626)}:host([color=neutral]){--_button-background-color: var(--button-background-color, #6b7280);--_button-color: var(--button-color, white)}:host([color=neutral]:hover){--_button-background-color-hover: var(--button-background-color-hover, #4b5563)}:host{align-items:center;background-color:var(--_button-background-color);border:var(--_button-border);border-radius:var(--_button-border-radius);color:var(--_button-color);cursor:pointer;display:inline-flex;font-family:inherit;font-size:var(--_button-font-size);font-weight:500;gap:var(--space-2);justify-content:center;line-height:1;padding:var(--_button-padding);text-decoration:none;transition:all var(--transition-fast);user-select:none}:host(:hover){background-color:var(--_button-background-color-hover);color:var(--_button-color-hover)}:host(:active){transform:scale(0.98)}:host([disabled]){cursor:not-allowed;opacity:.5;pointer-events:none}:host([round]){border-radius:9999px}:host([outline]:not(:hover)){--_button-color: var(--button-color, var(--color-text));--_button-border: var(--button-border, var(--border-width) solid var(--color-border));--_button-background-color: var(--button-background-color, transparent)}:host([outline]:hover){--_button-border: var(--button-border, var(--border-width) solid var(--_button-background-color));--_button-color: var(--button-color, var(--_button-background-color));--_button-background-color-hover: var(--button-background-color-hover, transparent)}:host([ghost]){--_button-background-color: var(--button-background-color, transparent);--_button-color: var(--button-color, var(--color-text))}:host([ghost]:hover){--_button-background-color-hover: var(--button-background-color-hover, var(--color-bg-muted))}:host([size=sm]){--_button-padding: var(--button-padding, var(--space-1) var(--space-3));--_button-font-size: var(--button-font-size, var(--text-sm))}:host([size=lg]){--_button-padding: var(--button-padding, var(--space-3) var(--space-5));--_button-font-size: var(--button-font-size, var(--text-lg))}:host([icon_only]){height:2.5rem;justify-content:center;padding:var(--space-2);width:2.5rem}`;
+    set 'round'(val) { this.setBoolAttr('round', val) }get 'loading'() { return this.getBoolAttr('loading') }
+    set 'loading'(val) { this.setBoolAttr('loading', val) }get 'disabled'() { return this.getBoolAttr('disabled') }
+    set 'disabled'(val) { this.setBoolAttr('disabled', val) }get 'outline'() { return this.getBoolAttr('outline') }
+    set 'outline'(val) { this.setBoolAttr('outline', val) }get 'ghost'() { return this.getBoolAttr('ghost') }
+    set 'ghost'(val) { this.setBoolAttr('ghost', val) }get 'color'() { return this.getStringAttr('color') }
+    set 'color'(val) { this.setStringAttr('color', val) }get 'size'() { return this.getStringAttr('size') }
+    set 'size'(val) { this.setStringAttr('size', val) }    get 'icon'() { return this.getStringProp('icon') }
+    set 'icon'(val) { this.setStringAttr('icon', val) }    static __style = `:host{--_button-border-radius: var(--button-border-radius, var(--border-radius-md));--_button-font-size: var(--button-font-size, var(--text-base));--_button-padding: var(--button-padding, var(--space-2) var(--space-4));--_button-background-color: var(--button-background-color, var(--color-primary));--_button-background-color-hover: var(--button-background-color-hover, var(--color-primary-hover));--_button-color: var(--button-color, var(--color-text-inverse));--_button-color-hover: var(--button-color-hover, var(--_button-color));--_button-border: var(--button-border, none)}:host([color=secondary]){--_button-background-color: var(--button-background-color, var(--color-surface));--_button-border: var(--button-border, var(--border-width) solid var(--color-border));--_button-color: var(--button-color, var(--color-text))}:host([color=secondary]:hover){--_button-background-color-hover: var(--button-background-color-hover, var(--color-bg-muted))}:host([color=danger]){--_button-background-color: var(--button-background-color, var(--color-error));--_button-color: var(--button-color, var(--color-text-inverse))}:host([color=danger]:hover){--_button-background-color-hover: var(--button-background-color-hover, #dc2626)}:host([color=neutral]){--_button-background-color: var(--button-background-color, #6b7280);--_button-color: var(--button-color, white)}:host([color=neutral]:hover){--_button-background-color-hover: var(--button-background-color-hover, #4b5563)}:host{align-items:center;background-color:var(--_button-background-color);border:var(--_button-border);border-radius:var(--_button-border-radius);color:var(--_button-color);cursor:pointer;display:inline-flex;font-family:inherit;font-size:var(--_button-font-size);font-weight:500;gap:var(--space-2);justify-content:center;line-height:1;padding:var(--_button-padding);text-decoration:none;transition:all var(--transition-fast);user-select:none}:host(:hover){background-color:var(--_button-background-color-hover);color:var(--_button-color-hover)}:host(:active){transform:scale(0.98)}:host([disabled]){cursor:not-allowed;opacity:.5;pointer-events:none}:host([round]){border-radius:9999px}:host([outline]:not(:hover)){--_button-color: var(--button-color, var(--color-text));--_button-border: var(--button-border, var(--border-width) solid var(--color-border));--_button-background-color: var(--button-background-color, transparent)}:host([outline]:hover){--_button-border: var(--button-border, var(--border-width) solid var(--_button-background-color));--_button-color: var(--button-color, var(--_button-background-color));--_button-background-color-hover: var(--button-background-color-hover, transparent)}:host([ghost]){--_button-background-color: var(--button-background-color, transparent);--_button-color: var(--button-color, var(--color-text))}:host([ghost]:hover){--_button-background-color-hover: var(--button-background-color-hover, var(--color-bg-muted))}:host([size=sm]){--_button-padding: var(--button-padding, var(--space-1) var(--space-3));--_button-font-size: var(--button-font-size, var(--text-sm))}:host([size=lg]){--_button-padding: var(--button-padding, var(--space-3) var(--space-5));--_button-font-size: var(--button-font-size, var(--text-lg))}:host([icon_only]){height:2.5rem;justify-content:center;padding:var(--space-2);width:2.5rem}`;
     __getStatic() {
         return Button;
     }
@@ -6905,24 +6502,8 @@ get 'size'() { return this.getStringAttr('size') }
     getClassName() {
         return "Button";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('round')) { this.attributeChangedCallback('round', false, false); }
-if(!this.hasAttribute('loading')) { this.attributeChangedCallback('loading', false, false); }
-if(!this.hasAttribute('disabled')) { this.attributeChangedCallback('disabled', false, false); }
-if(!this.hasAttribute('outline')) { this.attributeChangedCallback('outline', false, false); }
-if(!this.hasAttribute('ghost')) { this.attributeChangedCallback('ghost', false, false); }
-if(!this.hasAttribute('color')){ this['color'] = undefined; }
-if(!this.hasAttribute('size')){ this['size'] = undefined; }
-if(!this.hasAttribute('icon')){ this['icon'] = undefined; }
- }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('round');
-this.__upgradeProperty('loading');
-this.__upgradeProperty('disabled');
-this.__upgradeProperty('outline');
-this.__upgradeProperty('ghost');
-this.__upgradeProperty('color');
-this.__upgradeProperty('size');
-this.__upgradeProperty('icon');
- }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('round')) { this.attributeChangedCallback('round', false, false); }if(!this.hasAttribute('loading')) { this.attributeChangedCallback('loading', false, false); }if(!this.hasAttribute('disabled')) { this.attributeChangedCallback('disabled', false, false); }if(!this.hasAttribute('outline')) { this.attributeChangedCallback('outline', false, false); }if(!this.hasAttribute('ghost')) { this.attributeChangedCallback('ghost', false, false); }if(!this.hasAttribute('color')){ this['color'] = undefined; }if(!this.hasAttribute('size')){ this['size'] = undefined; }if(!this.hasAttribute('icon')){ this['icon'] = undefined; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('round');this.__upgradeProperty('loading');this.__upgradeProperty('disabled');this.__upgradeProperty('outline');this.__upgradeProperty('ghost');this.__upgradeProperty('color');this.__upgradeProperty('size');this.__upgradeProperty('icon'); }
     __listBoolProps() { return ["round","loading","disabled","outline","ghost"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
 }
 Form.Button.Namespace=`Aventus.Form`;
@@ -6932,20 +6513,17 @@ if(!window.customElements.get('av-button')){window.customElements.define('av-but
 
 Form.FormElement = class FormElement extends Aventus.WebComponent {
     get 'has_errors'() { return this.getBoolAttr('has_errors') }
-    set 'has_errors'(val) { this.setBoolAttr('has_errors', val) }
-    get 'value'() {
+    set 'has_errors'(val) { this.setBoolAttr('has_errors', val) }    get 'value'() {
 						return this.__watch["value"];
 					}
 					set 'value'(val) {
 						this.__watch["value"] = val;
-					}
-get 'errors'() {
+					}get 'errors'() {
 						return this.__watch["errors"];
 					}
 					set 'errors'(val) {
 						this.__watch["errors"] = val;
-					}
-    _form;
+					}    _form;
     get form() {
         return this._form;
     }
@@ -6956,17 +6534,12 @@ get 'errors'() {
     }
     onChange = new Aventus.Callback();
     __registerWatchesActions() {
-    this.__addWatchesActions("value");
-this.__addWatchesActions("errors", ((target) => {
+    this.__addWatchesActions("value");this.__addWatchesActions("errors", ((target) => {
     target.has_errors = target.errors.length > 0;
-}));
-    super.__registerWatchesActions();
+}));    super.__registerWatchesActions();
 }
     static __style = ``;
-    constructor() { super(); 
-if (this.constructor == FormElement) { throw "can't instanciate an abstract class"; }
-this.refreshValueFromForm=this.refreshValueFromForm.bind(this)
-this.onFormValidation=this.onFormValidation.bind(this) }
+    constructor() { super(); if (this.constructor == FormElement) { throw "can't instanciate an abstract class"; }this.refreshValueFromForm=this.refreshValueFromForm.bind(this)this.onFormValidation=this.onFormValidation.bind(this) }
     __getStatic() {
         return FormElement;
     }
@@ -6984,16 +6557,9 @@ this.onFormValidation=this.onFormValidation.bind(this) }
     getClassName() {
         return "FormElement";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('has_errors')) { this.attributeChangedCallback('has_errors', false, false); }
- }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["value"] = undefined;
-w["errors"] = [];
- }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('form');
-this.__upgradeProperty('has_errors');
-this.__correctGetter('value');
-this.__correctGetter('errors');
- }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('has_errors')) { this.attributeChangedCallback('has_errors', false, false); } }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["value"] = undefined;w["errors"] = []; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('form');this.__upgradeProperty('has_errors');this.__correctGetter('value');this.__correctGetter('errors'); }
     __listBoolProps() { return ["has_errors"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     refreshValueFromForm() {
         if (this._form) {
@@ -7062,18 +6628,13 @@ _.Form.FormElement=Form.FormElement;
 Form.Input = class Input extends Form.FormElement {
     static get observedAttributes() {return ["type", "placeholder", "label", "value"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'type'() { return this.getStringProp('type') }
-    set 'type'(val) { this.setStringAttr('type', val) }
-get 'placeholder'() { return this.getStringProp('placeholder') }
-    set 'placeholder'(val) { this.setStringAttr('placeholder', val) }
-get 'label'() { return this.getStringProp('label') }
-    set 'label'(val) { this.setStringAttr('label', val) }
-get 'value'() { return this.getStringProp('value') }
-    set 'value'(val) { this.setStringAttr('value', val) }
-    focusValue = "";
+    set 'type'(val) { this.setStringAttr('type', val) }get 'placeholder'() { return this.getStringProp('placeholder') }
+    set 'placeholder'(val) { this.setStringAttr('placeholder', val) }get 'label'() { return this.getStringProp('label') }
+    set 'label'(val) { this.setStringAttr('label', val) }get 'value'() { return this.getStringProp('value') }
+    set 'value'(val) { this.setStringAttr('value', val) }    focusValue = "";
     __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("value", ((target) => {
     target.inputEl.value = target.value ?? "";
-}));
- }
+})); }
     static __style = `:host{display:flex;flex-direction:column;gap:var(--space-2);width:100%}:host .label{color:var(--color-text);font-size:var(--text-sm);font-weight:500;display:none}:host .wrapper{align-items:center;background-color:var(--color-bg-muted);border:var(--border-width) solid var(--border-color);border-radius:var(--border-radius-md);box-shadow:var(--shadow-xs);display:flex;padding:0 var(--space-3);position:relative;transition:border-color var(--transition-fast),box-shadow var(--transition-fast)}:host .wrapper .input{background:rgba(0,0,0,0);border:none;color:var(--color-text);flex:1;font-family:var(--font-sans);font-size:var(--text-base);outline:none;padding:var(--space-2) 0}:host .wrapper .before,:host .wrapper .after{align-items:center;color:var(--color-text-muted);display:flex}:host .wrapper .before{margin-right:var(--space-2)}:host .wrapper .after{margin-left:var(--space-2)}:host .wrapper:focus-within{border-color:var(--color-primary);box-shadow:0 0 0 1px var(--color-primary)}:host .errors{color:var(--color-error);display:none;font-size:var(--text-sm);margin-top:var(--space-1)}:host([label]:not([label=""])) .label{display:flex}:host([has_errors]) .wrapper{border-color:var(--color-error)}:host([has_errors]) .wrapper:focus-within{box-shadow:0 0 0 1px var(--color-error)}:host([has_errors]) .errors{display:block}`;
     __getStatic() {
         return Input;
@@ -7083,25 +6644,13 @@ get 'value'() { return this.getStringProp('value') }
         arrStyle.push(Input.__style);
         return arrStyle;
     }
-    __getHtml() {
-super.__getHtml();
+    __getHtml() {super.__getHtml();
     this.__getStatic().__template.setHTML({
         slots: { 'before':`<slot name="before"></slot>`,'after':`<slot name="after"></slot>` }, 
-        blocks: { 'default':`<label for="input" class="label" _id="input_0"></label><div class="wrapper">
-    <div class="before">
-        <slot name="before"></slot>
-    </div>
-    <input id="input" class="input" _id="input_1" />
-    <div class="after">
-        <slot name="after"></slot>
-    </div>
-</div><div class="errors">
-    <template _id="input_2"></template>
-</div>` }
+        blocks: { 'default':`<label for="input" class="label" _id="input_0"></label><div class="wrapper">    <div class="before">        <slot name="before"></slot>    </div>    <input id="input" class="input" _id="input_1" />    <div class="after">        <slot name="after"></slot>    </div></div><div class="errors">    <template _id="input_2"></template></div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();
-this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "inputEl",
@@ -7141,38 +6690,22 @@ this.__getStatic().__template.setActions({
       "fct": (e, c) => c.comp.onValueChange(e)
     }
   ]
-});
-const templ0 = new Aventus.Template(this);
-templ0.setTemplate(`
-        <div _id="input_3"></div>
-    `);
-templ0.setActions({
+});const templ0 = new Aventus.Template(this);templ0.setTemplate(`        <div _id="input_3"></div>    `);templ0.setActions({
   "content": {
     "input_3°@HTML": {
       "fct": (c) => `${c.print(c.comp.__c3d0451e83f327f9ac50560c1fff4e87method4(c.data.error))}`,
       "once": true
     }
   }
-});
-this.__getStatic().__template.addLoop({
+});this.__getStatic().__template.addLoop({
                     anchorId: 'input_2',
                     template: templ0,
-                simple:{data: "this.errors",item:"error"}
-});
- }
+                simple:{data: "this.errors",item:"error"}}); }
     getClassName() {
         return "Input";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('type')){ this['type'] = "text"; }
-if(!this.hasAttribute('placeholder')){ this['placeholder'] = undefined; }
-if(!this.hasAttribute('label')){ this['label'] = undefined; }
-if(!this.hasAttribute('value')){ this['value'] = ""; }
- }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('type');
-this.__upgradeProperty('placeholder');
-this.__upgradeProperty('label');
-this.__upgradeProperty('value');
- }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('type')){ this['type'] = "text"; }if(!this.hasAttribute('placeholder')){ this['placeholder'] = undefined; }if(!this.hasAttribute('label')){ this['label'] = undefined; }if(!this.hasAttribute('value')){ this['value'] = ""; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('type');this.__upgradeProperty('placeholder');this.__upgradeProperty('label');this.__upgradeProperty('value'); }
     async validation() {
         const result = [];
         if (this.type == "email") {
@@ -7211,841 +6744,6 @@ Form.Input.Namespace=`Aventus.Form`;
 Form.Input.Tag=`av-input`;
 _.Form.Input=Form.Input;
 if(!window.customElements.get('av-input')){window.customElements.define('av-input', Form.Input);Aventus.WebComponentInstance.registerDefinition(Form.Input);}
-
-Form.FormHandler=class FormHandler {
-    static _globalConfig;
-    __watcher;
-    get item() {
-        return this.__watcher.item;
-    }
-    set item(item) {
-        this.__watcher.item = item;
-    }
-    get parts() {
-        return this.__watcher.form;
-    }
-    _elements = {};
-    get elements() {
-        return { ...this._elements };
-    }
-    _globalValidation;
-    _validateOnChange = false;
-    _handleValidateNoInputError;
-    _handleExecuteNoInputError;
-    onItemChange = new Aventus.Callback();
-    constructor(schema, config) {
-        this._globalValidation = config?.validate ?? Form.FormHandler._globalConfig?.validate;
-        this._validateOnChange = config?.validateOnChange ?? Form.FormHandler._globalConfig?.validateOnChange ?? false;
-        this._handleValidateNoInputError = config?.handleValidateNoInputError ?? Form.FormHandler._globalConfig?.handleValidateNoInputError;
-        this._handleExecuteNoInputError = config?.handleExecuteNoInputError ?? Form.FormHandler._globalConfig?.handleExecuteNoInputError;
-        this.onWatcherChanged = this.onWatcherChanged.bind(this);
-        this.__watcher = Aventus.Watcher.get({
-            form: {}
-        }, this.onWatcherChanged);
-        this.__watcher.form = this.transformForm(schema);
-    }
-    transformForm(form) {
-        const result = form;
-        const normalizePart = (part) => {
-            let needTransform = true;
-            if (typeof part == 'object' && !Array.isArray(part)) {
-                const keys = Object.keys(part);
-                const keysAllows = ['validate', 'validateOnChange'];
-                let isValid = true;
-                for (let i = 0; i < keys.length; i++) {
-                    const allows = keysAllows;
-                    if (!allows.includes(keys[i])) {
-                        isValid = false;
-                        break;
-                    }
-                }
-                if (isValid) {
-                    needTransform = false;
-                }
-            }
-            if (needTransform) {
-                return {
-                    validate: part
-                };
-            }
-            return part;
-        };
-        const createKey = (key) => {
-            form[key] = normalizePart(form[key]);
-            this.transformFormPart(key, form[key]);
-        };
-        for (let key in result) {
-            createKey(key);
-        }
-        return result;
-    }
-    transformFormPart(key, part) {
-        if (!part)
-            return;
-        const realPart = part;
-        realPart.onValidation = new Aventus.Callback();
-        realPart.onValueChange = new Aventus.Callback();
-        if (part.validate) {
-            const isValidate = (validate) => {
-                return validate.name == "validate";
-            };
-            let validate;
-            if (Array.isArray(part.validate)) {
-                const fcts = [];
-                for (let temp of part.validate) {
-                    if (temp instanceof _.Form.Validator) {
-                        fcts.push(temp.validate);
-                    }
-                    else {
-                        let resultTemp = new temp();
-                        fcts.push(resultTemp.validate);
-                    }
-                }
-                validate = async (value, name, globalFct) => {
-                    let result = [];
-                    for (let fct of fcts) {
-                        const temp = await fct(value, name, globalFct);
-                        if (temp === false) {
-                            result.push('Le champs n\'est pas valide');
-                        }
-                        else if (Array.isArray(temp)) {
-                            for (let error of temp) {
-                                result.push(error);
-                            }
-                        }
-                        else if (typeof temp == 'string') {
-                            result.push(temp);
-                        }
-                    }
-                    return result.length == 0 ? undefined : result;
-                };
-            }
-            else if (part.validate instanceof _.Form.Validator) {
-                validate = part.validate.validate;
-            }
-            else if (isValidate(part.validate)) {
-                validate = part.validate;
-            }
-            else {
-                let cst = part.validate;
-                let resultTemp = new cst();
-                validate = resultTemp.validate;
-            }
-            realPart.validate = validate;
-        }
-        realPart.test = async () => {
-            const result = await this.validate(key);
-            return result;
-        };
-        if (!this._elements[key]) {
-            this._elements[key] = [];
-        }
-        realPart.register = (el) => {
-            if (this._elements[key] && !this._elements[key].includes(el)) {
-                this._elements[key].push(el);
-            }
-        };
-        realPart.unregister = (el) => {
-            if (!this._elements[key])
-                return;
-            const index = this._elements[key].indexOf(el);
-            if (index != -1) {
-                this._elements[key].splice(index, 1);
-            }
-        };
-        realPart.value = {
-            get: () => {
-                return Aventus.getValueFromObject(key, this.item);
-            },
-            set: (value) => {
-                return Aventus.setValueToObject(key, this.item, value);
-            }
-        };
-        return;
-    }
-    async onWatcherChanged(action, path, value) {
-        if (!this.parts)
-            return;
-        if (path == "item") {
-            for (let key in this.parts) {
-                let formPart = this.parts[key];
-                formPart.onValueChange.trigger();
-            }
-        }
-        else if (path.startsWith("item.")) {
-            let key = path.substring("item.".length);
-            if (this.parts[key]) {
-                let formPart = this.parts[key];
-                formPart.onValueChange.trigger();
-                const validateOnChange = formPart.validateOnChange === undefined ? this._validateOnChange : formPart.validateOnChange;
-                if (validateOnChange) {
-                    this.validate(key);
-                }
-            }
-            this.onItemChange.trigger(action, key, value);
-        }
-    }
-    async _validate(key) {
-        try {
-            if (!this.parts)
-                return { "@general": ["Aucun formulaire trouvé"] };
-            if (key !== undefined) {
-                let errorsForm = [];
-                if (this.parts[key]) {
-                    let formPart = this.parts[key];
-                    let value = formPart.value.get();
-                    const resultToError = (result) => {
-                        if (result === false) {
-                            errorsForm.push('Le champs n\'est pas valide');
-                        }
-                        else if (typeof result == 'string' && result !== "") {
-                            errorsForm.push(result);
-                        }
-                        else if (Array.isArray(result)) {
-                            errorsForm = [...errorsForm, ...result];
-                        }
-                    };
-                    if (formPart.validate) {
-                        const global = async () => {
-                            if (this._globalValidation) {
-                                const result = await this._globalValidation(key, value);
-                                resultToError(result);
-                            }
-                        };
-                        let result = await formPart.validate(value, key, global);
-                        resultToError(result);
-                    }
-                    else if (this._globalValidation) {
-                        const result = await this._globalValidation(key, value);
-                        resultToError(result);
-                    }
-                    const proms = formPart.onValidation.trigger(errorsForm);
-                    const errors2d = await Promise.all(proms);
-                    const errors = [];
-                    for (let errorsTemp of errors2d) {
-                        for (let errorTemp of errorsTemp) {
-                            if (!errors.includes(errorTemp)) {
-                                errors.push(errorTemp);
-                            }
-                        }
-                    }
-                    errorsForm = errors;
-                }
-                return errorsForm.length == 0 ? {} : { [key]: errorsForm };
-            }
-            let errors = {};
-            for (let key in this.parts) {
-                errors = { ...errors, ...await this._validate(key) };
-            }
-            return errors;
-        }
-        catch (e) {
-            return { "@general": [e + ""] };
-        }
-    }
-    async validate(key) {
-        const result = await this._validate(key);
-        const unhandle = {};
-        let triggerUnhandle = false;
-        for (let key in result) {
-            if (!this._elements[key] || this._elements[key].length == 0) {
-                triggerUnhandle = true;
-                unhandle[key] = result[key];
-            }
-        }
-        if (triggerUnhandle && this._handleValidateNoInputError) {
-            this._handleValidateNoInputError(unhandle);
-        }
-        return Object.keys(result).length == 0;
-    }
-    async execute(query) {
-        let queryResult = await query;
-        if (queryResult.errors.length > 0) {
-            queryResult.errors = this.parseErrors(queryResult);
-            if (queryResult.errors.length > 0 && this._handleExecuteNoInputError) {
-                this._handleExecuteNoInputError(queryResult.errors);
-            }
-        }
-        return queryResult;
-    }
-    parseErrors(queryResult) {
-        let noPrintErrors = [];
-        const elements = this.elements;
-        for (let error of queryResult.errors) {
-            if (error.details) {
-                let found = false;
-                for (let detail of error.details) {
-                    if (Object.hasOwn(detail, "Name")) {
-                        if (elements[detail.Name]) {
-                            for (const element of elements[detail.Name]) {
-                                element.errors.push(error.message);
-                            }
-                            found = true;
-                            break;
-                        }
-                    }
-                }
-                if (found) {
-                    continue;
-                }
-            }
-            noPrintErrors.push(error);
-        }
-        return noPrintErrors;
-    }
-}
-Form.FormHandler.Namespace=`Aventus.Form`;
-_.Form.FormHandler=Form.FormHandler;
-
-<<<<<<< HEAD
-Form.Form = class Form extends Aventus.WebComponent {
-    static set defaultConfig(value) {
-        _.Form.FormHandler._globalConfig = value;
-    }
-    static get defaultConfig() {
-        return _.Form.FormHandler._globalConfig;
-    }
-    static __style = ``;
-    __getStatic() {
-        return Form;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(Form.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<slot></slot>` }
-    });
-}
-    getClassName() {
-        return "Form";
-=======
->>>>>>> 84854f0 (WIP)
-    }
-    static create(schema, config) {
-        let form = new _.Form.FormHandler(schema, config);
-        return form;
-    }
-}
-Form.Validator.Namespace=`Aventus.Form`;
-_.Form.Validator=Form.Validator;
-
-Form.Validators.Required=class Required extends Form.Validator {
-    static msg = "Le champs {name} est requis";
-    /**
-     * @inheritdoc
-     */
-    validate(value, name, globalValidation) {
-        const txt = Form.Validators.Required.msg.replace(/\{ *name *\}/g, name);
-        if (value === undefined || value === null) {
-            return txt;
-        }
-        if (typeof value == 'string' && value.trim() == "") {
-            return txt;
-        }
-        return true;
-    }
-}
-Form.Validators.Required.Namespace=`Aventus.Form.Validators`;
-_.Form.Validators.Required=Form.Validators.Required;
-
-Form.Validators.Email=class Email extends Form.Validator {
-    static msg = "Merci de saisir un email valide";
-    /**
-     * @inheritdoc
-     */
-    validate(value, name, globalValidation) {
-        if (typeof value == "string" && value) {
-            if (value.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}\b/) != null) {
-                return true;
-            }
-            return Form.Validators.Email.msg;
-        }
-        return true;
-    }
-}
-Form.Validators.Email.Namespace=`Aventus.Form.Validators`;
-_.Form.Validators.Email=Form.Validators.Email;
-
-Lib.ShortcutManager=class ShortcutManager {
-    static memory = {};
-    static autoPrevents = [];
-    static isInit = false;
-    static arrayKeys = [];
-    static options = new Map();
-    static replacingMemory = {};
-    static isTxt(touch) {
-        return touch.match(/[a-zA-Z0-9_\+\-]/g);
-    }
-    static getText(combinaison) {
-        let allTouches = [];
-        for (let touch of combinaison) {
-            let realTouch = "";
-            if (typeof touch == "number" && Lib.SpecialTouch[touch] !== undefined) {
-                realTouch = Lib.SpecialTouch[touch];
-            }
-            else if (this.isTxt(touch)) {
-                realTouch = touch;
-            }
-            else {
-                throw "I can't use " + touch + " to add a shortcut";
-            }
-            allTouches.push(realTouch);
-        }
-        allTouches.sort();
-        return allTouches.join("+");
-    }
-    static subscribe(combinaison, cb, options) {
-        if (!Array.isArray(combinaison)) {
-            combinaison = [combinaison];
-        }
-        let key = this.getText(combinaison);
-        if (options?.replaceTemp) {
-            if (Lib.ShortcutManager.memory[key]) {
-                if (!this.replacingMemory[key]) {
-                    this.replacingMemory[key] = [];
-                }
-                this.replacingMemory[key].push(Lib.ShortcutManager.memory[key]);
-                delete Lib.ShortcutManager.memory[key];
-            }
-        }
-        if (!Lib.ShortcutManager.memory[key]) {
-            Lib.ShortcutManager.memory[key] = [];
-        }
-        if (!Lib.ShortcutManager.memory[key].includes(cb)) {
-            Lib.ShortcutManager.memory[key].push(cb);
-            if (options) {
-                this.options.set(cb, options);
-            }
-        }
-        if (!Lib.ShortcutManager.isInit) {
-            Lib.ShortcutManager.init();
-        }
-    }
-    static unsubscribe(combinaison, cb) {
-        if (!Array.isArray(combinaison)) {
-            combinaison = [combinaison];
-        }
-        let key = this.getText(combinaison);
-        if (Lib.ShortcutManager.memory[key]) {
-            let index = Lib.ShortcutManager.memory[key].indexOf(cb);
-            if (index != -1) {
-                Lib.ShortcutManager.memory[key].splice(index, 1);
-                let options = this.options.get(cb);
-                if (options) {
-                    this.options.delete(cb);
-                }
-                if (Lib.ShortcutManager.memory[key].length == 0) {
-                    delete Lib.ShortcutManager.memory[key];
-                    if (options?.replaceTemp) {
-                        if (this.replacingMemory[key]) {
-                            if (this.replacingMemory[key].length > 0) {
-                                Lib.ShortcutManager.memory[key] = this.replacingMemory[key].pop();
-                                if (this.replacingMemory[key].length == 0) {
-                                    delete this.replacingMemory[key];
-                                }
-                            }
-                            else {
-                                delete this.replacingMemory[key];
-                            }
-                        }
-                    }
-                }
-                if (Object.keys(Lib.ShortcutManager.memory).length == 0 && Lib.ShortcutManager.isInit) {
-                    //ShortcutManager.uninit();
-                }
-            }
-        }
-    }
-    static onKeyDown(e) {
-        if (e.ctrlKey) {
-            let txt = Lib.SpecialTouch[Lib.SpecialTouch.Control];
-            if (!this.arrayKeys.includes(txt)) {
-                this.arrayKeys.push(txt);
-            }
-        }
-        if (e.altKey) {
-            let txt = Lib.SpecialTouch[Lib.SpecialTouch.Alt];
-            if (!this.arrayKeys.includes(txt)) {
-                this.arrayKeys.push(txt);
-            }
-        }
-        if (e.shiftKey) {
-            let txt = Lib.SpecialTouch[Lib.SpecialTouch.Shift];
-            if (!this.arrayKeys.includes(txt)) {
-                this.arrayKeys.push(txt);
-            }
-        }
-        if (this.isTxt(e.key) && !this.arrayKeys.includes(e.key)) {
-            this.arrayKeys.push(e.key);
-        }
-        else if (Lib.SpecialTouch[e.key] !== undefined && !this.arrayKeys.includes(e.key)) {
-            this.arrayKeys.push(e.key);
-        }
-        this.arrayKeys.sort();
-        let key = this.arrayKeys.join("+");
-        if (Lib.ShortcutManager.memory[key]) {
-            let preventDefault = true;
-            for (let cb of Lib.ShortcutManager.memory[key]) {
-                let options = this.options.get(cb);
-                if (options && options.preventDefault === false) {
-                    preventDefault = false;
-                }
-            }
-            this.arrayKeys = [];
-            for (let cb of Lib.ShortcutManager.memory[key]) {
-                const result = cb();
-                if (result === false) {
-                    preventDefault = result;
-                }
-            }
-            if (preventDefault) {
-                e.preventDefault();
-            }
-        }
-        else if (Lib.ShortcutManager.autoPrevents.includes(key)) {
-            e.preventDefault();
-        }
-    }
-    static onKeyUp(e) {
-        let index = this.arrayKeys.indexOf(e.key);
-        if (index != -1) {
-            this.arrayKeys.splice(index, 1);
-        }
-    }
-    static init() {
-        if (Lib.ShortcutManager.isInit)
-            return;
-        Lib.ShortcutManager.isInit = true;
-        this.onKeyDown = this.onKeyDown.bind(this);
-        this.onKeyUp = this.onKeyUp.bind(this);
-        Lib.ShortcutManager.autoPrevents = [
-            this.getText([Lib.SpecialTouch.Control, "s"]),
-            this.getText([Lib.SpecialTouch.Control, "p"]),
-            this.getText([Lib.SpecialTouch.Control, "l"]),
-            this.getText([Lib.SpecialTouch.Control, "k"]),
-            this.getText([Lib.SpecialTouch.Control, "j"]),
-            this.getText([Lib.SpecialTouch.Control, "h"]),
-            this.getText([Lib.SpecialTouch.Control, "g"]),
-            this.getText([Lib.SpecialTouch.Control, "f"]),
-            this.getText([Lib.SpecialTouch.Control, "d"]),
-            this.getText([Lib.SpecialTouch.Control, "o"]),
-            this.getText([Lib.SpecialTouch.Control, "u"]),
-            this.getText([Lib.SpecialTouch.Control, "e"]),
-        ];
-        window.addEventListener("blur", () => {
-            this.arrayKeys = [];
-        });
-        document.body.addEventListener("keydown", this.onKeyDown);
-        document.body.addEventListener("keyup", this.onKeyUp);
-    }
-    static uninit() {
-        document.body.removeEventListener("keydown", this.onKeyDown);
-        document.body.removeEventListener("keyup", this.onKeyUp);
-        this.arrayKeys = [];
-        Lib.ShortcutManager.isInit = false;
-    }
-}
-Lib.ShortcutManager.Namespace=`Aventus.Lib`;
-_.Lib.ShortcutManager=Lib.ShortcutManager;
-
-Layout.GridHelper = class GridHelper extends Aventus.WebComponent {
-    static get observedAttributes() {return ["nb_col", "nb_row", "col_width", "row_height"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
-    get 'show_rulers'() { return this.getBoolAttr('show_rulers') }
-    set 'show_rulers'(val) { this.setBoolAttr('show_rulers', val) }
-get 'visible'() { return this.getBoolAttr('visible') }
-    set 'visible'(val) { this.setBoolAttr('visible', val) }
-    get 'nb_col'() { return this.getNumberProp('nb_col') }
-    set 'nb_col'(val) { this.setNumberAttr('nb_col', val) }
-get 'nb_row'() { return this.getNumberProp('nb_row') }
-    set 'nb_row'(val) { this.setNumberAttr('nb_row', val) }
-get 'col_width'() { return this.getNumberProp('col_width') }
-    set 'col_width'(val) { this.setNumberAttr('col_width', val) }
-get 'row_height'() { return this.getNumberProp('row_height') }
-    set 'row_height'(val) { this.setNumberAttr('row_height', val) }
-    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("nb_row", ((target) => {
-}));
-this.__addPropertyActions("row_height", ((target) => {
-}));
- }
-    static __style = `:host{display:none;inset:0;pointer-events:none;position:fixed;z-index:9999}:host .guide-x{background-color:#c7c7c7;cursor:ns-resize;height:2px;left:0;pointer-events:all;position:absolute;top:50px;width:100%}:host .guide-y{background-color:#c7c7c7;cursor:ew-resize;height:100%;left:50px;pointer-events:all;position:absolute;top:0px;width:2px}:host .grid{inset:0;position:absolute}:host .grid .cols,:host .grid .rows{display:flex;inset:0;position:absolute}:host .grid .rows{flex-direction:column}:host .grid .col{flex-shrink:0;height:100%;position:relative;width:var(--local-col-width)}:host .grid .col::after{background-color:#e78181;content:"";height:100%;position:absolute;right:-1px;top:0;width:2px}:host .grid .col:last-child::after{display:none}:host .grid .row{flex-shrink:0;height:var(--local-row-height);position:relative;width:100%}:host .grid .row::after{background-color:#e78181;bottom:-1px;content:"";height:2px;left:0;position:absolute;width:100%}:host .grid .row:last-child::after{display:none}:host .ruler-top{background-color:#fff;height:20px;position:absolute;top:0;width:100%;z-index:3}:host .ruler-top::after{bottom:0;box-shadow:5px 0 5px #818181;content:"";height:100%;left:20px;pointer-events:none;position:absolute;width:calc(100% - 20px)}:host .ruler-left{background-color:#fff;box-shadow:0px 5px 5px #818181;height:calc(100% - 20px);position:absolute;top:20px;width:20px;z-index:2}:host([visible]){display:block}`;
-    __getStatic() {
-        return GridHelper;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(GridHelper.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="ruler-top"></div><div class="ruler-left"></div><div class="grid" _id="gridhelper_0">
-    <div class="cols" _id="gridhelper_1"></div>
-    <div class="rows" _id="gridhelper_2"></div>
-</div><div class="guides">
-    <div class="guide guide-x"></div>
-    <div class="guide guide-y"></div>
-</div>` }
-    });
-}
-    __registerTemplateAction() { super.__registerTemplateAction();
-this.__getStatic().__template.setActions({
-  "elements": [
-    {
-      "name": "gridEl",
-      "ids": [
-        "gridhelper_0"
-      ]
-    },
-    {
-      "name": "colsEl",
-      "ids": [
-        "gridhelper_1"
-      ]
-    },
-    {
-      "name": "rowsEl",
-      "ids": [
-        "gridhelper_2"
-      ]
-    }
-  ]
-});
- }
-    getClassName() {
-        return "GridHelper";
-    }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('show_rulers')) { this.attributeChangedCallback('show_rulers', false, false); }
-if(!this.hasAttribute('visible')) {this.setAttribute('visible' ,'true'); }
-if(!this.hasAttribute('nb_col')){ this['nb_col'] = 0; }
-if(!this.hasAttribute('nb_row')){ this['nb_row'] = 0; }
-if(!this.hasAttribute('col_width')){ this['col_width'] = 200; }
-if(!this.hasAttribute('row_height')){ this['row_height'] = 200; }
- }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('show_rulers');
-this.__upgradeProperty('visible');
-this.__upgradeProperty('nb_col');
-this.__upgradeProperty('nb_row');
-this.__upgradeProperty('col_width');
-this.__upgradeProperty('row_height');
- }
-    __listBoolProps() { return ["show_rulers","visible"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
-    draw() {
-        let nbCol = 0;
-        if (this.nb_col) {
-            this.gridEl.style.setProperty('--local-col-width', `calc(100% / ${this.nb_col})`);
-            nbCol = this.nb_col;
-        }
-        else {
-            let width = this.col_width == 0 ? 16 : this.col_width;
-            this.gridEl.style.setProperty('--local-col-width', width + 'px');
-            nbCol = Math.ceil(this.offsetWidth / width);
-        }
-        if (this.colsEl.children.length != nbCol) {
-            this.colsEl.innerHTML = '';
-            for (let i = 0; i < nbCol; i++) {
-                const col = document.createElement("DIV");
-                col.classList.add('col');
-                this.colsEl.appendChild(col);
-            }
-        }
-        let nbRow = 0;
-        if (this.nb_row) {
-            this.gridEl.style.setProperty('--local-row-height', `calc(100% / ${this.nb_row})`);
-            nbRow = this.nb_row;
-        }
-        else {
-            let height = this.row_height == 0 ? 16 : this.row_height;
-            this.gridEl.style.setProperty('--local-row-height', height + 'px');
-            nbRow = Math.ceil(this.offsetHeight / height);
-        }
-        if (this.rowsEl.children.length != nbRow) {
-            this.rowsEl.innerHTML = '';
-            for (let i = 0; i < nbRow; i++) {
-                const row = document.createElement("DIV");
-                row.classList.add('row');
-                this.rowsEl.appendChild(row);
-            }
-        }
-    }
-    addShortCut() {
-        let isKActive = false;
-        let timeout = 0;
-        Lib.ShortcutManager.subscribe([Lib.SpecialTouch.Control, 'k'], () => {
-            isKActive = true;
-            clearTimeout(timeout);
-            timeout = setTimeout(() => {
-                isKActive = false;
-            }, 1000);
-        });
-        const commande = (letter, cb) => {
-            Lib.ShortcutManager.subscribe([letter], () => {
-                if (!isKActive)
-                    return false;
-                isKActive = false;
-                cb();
-                return;
-            });
-            Lib.ShortcutManager.subscribe([Lib.SpecialTouch.Control, letter], () => {
-                if (!isKActive)
-                    return false;
-                isKActive = false;
-                cb();
-                return;
-            });
-        };
-        commande('v', () => { this.visible = !this.visible; });
-    }
-    addResize() {
-        new Aventus.ResizeObserver({
-            callback: () => {
-                this.draw();
-            },
-            fps: 30
-        }).observe(this);
-    }
-    postCreation() {
-        this.addResize();
-        this.addShortCut();
-        this.draw();
-    }
-}
-Layout.GridHelper.Namespace=`Aventus.Layout`;
-Layout.GridHelper.Tag=`av-grid-helper`;
-_.Layout.GridHelper=Layout.GridHelper;
-if(!window.customElements.get('av-grid-helper')){window.customElements.define('av-grid-helper', Layout.GridHelper);Aventus.WebComponentInstance.registerDefinition(Layout.GridHelper);}
-
-Form.FormElement = class FormElement extends Aventus.WebComponent {
-    get 'has_errors'() { return this.getBoolAttr('has_errors') }
-    set 'has_errors'(val) { this.setBoolAttr('has_errors', val) }
-    get 'value'() {
-						return this.__watch["value"];
-					}
-					set 'value'(val) {
-						this.__watch["value"] = val;
-					}
-get 'errors'() {
-						return this.__watch["errors"];
-					}
-					set 'errors'(val) {
-						this.__watch["errors"] = val;
-					}
-    _form;
-    get form() {
-        return this._form;
-    }
-    set form(value) {
-        this.unlinkFormPart();
-        this._form = value;
-        this.linkFormPart();
-    }
-    onChange = new Aventus.Callback();
-    __registerWatchesActions() {
-    this.__addWatchesActions("value");
-this.__addWatchesActions("errors", ((target) => {
-    target.has_errors = target.errors.length > 0;
-}));
-    super.__registerWatchesActions();
-}
-    static __style = ``;
-    constructor() { super(); 
-if (this.constructor == FormElement) { throw "can't instanciate an abstract class"; }
-this.refreshValueFromForm=this.refreshValueFromForm.bind(this)
-this.onFormValidation=this.onFormValidation.bind(this) }
-    __getStatic() {
-        return FormElement;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(FormElement.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<slot></slot>` }
-    });
-}
-    getClassName() {
-        return "FormElement";
-    }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('has_errors')) { this.attributeChangedCallback('has_errors', false, false); }
- }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["value"] = undefined;
-w["errors"] = [];
- }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('form');
-this.__upgradeProperty('has_errors');
-this.__correctGetter('value');
-this.__correctGetter('errors');
- }
-    __listBoolProps() { return ["has_errors"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
-    refreshValueFromForm() {
-        if (this._form) {
-            this.errors = [];
-            this.value = this._form.value.get();
-        }
-    }
-    unlinkFormPart() {
-        if (this._form) {
-            this._form.unregister(this);
-            this._form.onValueChange.remove(this.refreshValueFromForm);
-            this._form.onValidation.remove(this.onFormValidation);
-        }
-    }
-    linkFormPart() {
-        if (this._form) {
-            this._form.register(this);
-            this._form.onValueChange.add(this.refreshValueFromForm);
-            this._form.onValidation.add(this.onFormValidation);
-            this.refreshValueFromForm();
-        }
-        else {
-            this.value = undefined;
-        }
-    }
-    async onFormValidation(errors) {
-        let _errors = await this.validation();
-        if (_errors.length == 0) {
-            _errors = errors;
-        }
-        else if (errors.length > 0) {
-            for (let error of errors) {
-                if (!_errors.includes(error)) {
-                    _errors.push(error);
-                }
-            }
-        }
-        this.errors = _errors;
-        return this.errors;
-    }
-    async validate() {
-        if (!this.form) {
-            this.errors = await this.validation();
-            return this.errors.length == 0;
-        }
-        return await this.form.test();
-    }
-    clearErrors() {
-        this.errors = [];
-    }
-    triggerChange(value) {
-        this.value = value;
-        this.onChange.trigger(this.value);
-        if (this.form) {
-            this.form.value.set(this.value);
-        }
-    }
-    postDestruction() {
-        super.postDestruction();
-        this.unlinkFormPart();
-    }
-}
-Form.FormElement.Namespace=`Aventus.Form`;
-_.Form.FormElement=Form.FormElement;
 
 Form.FormHandler=class FormHandler {
     static _globalConfig;
@@ -8332,8 +7030,6 @@ Form.FormHandler=class FormHandler {
 Form.FormHandler.Namespace=`Aventus.Form`;
 _.Form.FormHandler=Form.FormHandler;
 
-=======
->>>>>>> 72107e8 (WIP)
 Form.Form = class Form extends Aventus.WebComponent {
     static set defaultConfig(value) {
         Form.FormHandler._globalConfig = value;
@@ -8369,8 +7065,6 @@ Form.Form.Tag=`av-form`;
 _.Form.Form=Form.Form;
 if(!window.customElements.get('av-form')){window.customElements.define('av-form', Form.Form);Aventus.WebComponentInstance.registerDefinition(Form.Form);}
 
-<<<<<<< HEAD
-=======
 Lib.ShortcutManager=class ShortcutManager {
     static memory = {};
     static autoPrevents = [];
@@ -8556,22 +7250,14 @@ _.Lib.ShortcutManager=Lib.ShortcutManager;
 Layout.GridHelper = class GridHelper extends Aventus.WebComponent {
     static get observedAttributes() {return ["nb_col", "nb_row", "col_width", "row_height"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'show_rulers'() { return this.getBoolAttr('show_rulers') }
-    set 'show_rulers'(val) { this.setBoolAttr('show_rulers', val) }
-get 'visible'() { return this.getBoolAttr('visible') }
-    set 'visible'(val) { this.setBoolAttr('visible', val) }
-    get 'nb_col'() { return this.getNumberProp('nb_col') }
-    set 'nb_col'(val) { this.setNumberAttr('nb_col', val) }
-get 'nb_row'() { return this.getNumberProp('nb_row') }
-    set 'nb_row'(val) { this.setNumberAttr('nb_row', val) }
-get 'col_width'() { return this.getNumberProp('col_width') }
-    set 'col_width'(val) { this.setNumberAttr('col_width', val) }
-get 'row_height'() { return this.getNumberProp('row_height') }
-    set 'row_height'(val) { this.setNumberAttr('row_height', val) }
-    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("nb_row", ((target) => {
-}));
-this.__addPropertyActions("row_height", ((target) => {
-}));
- }
+    set 'show_rulers'(val) { this.setBoolAttr('show_rulers', val) }get 'visible'() { return this.getBoolAttr('visible') }
+    set 'visible'(val) { this.setBoolAttr('visible', val) }    get 'nb_col'() { return this.getNumberProp('nb_col') }
+    set 'nb_col'(val) { this.setNumberAttr('nb_col', val) }get 'nb_row'() { return this.getNumberProp('nb_row') }
+    set 'nb_row'(val) { this.setNumberAttr('nb_row', val) }get 'col_width'() { return this.getNumberProp('col_width') }
+    set 'col_width'(val) { this.setNumberAttr('col_width', val) }get 'row_height'() { return this.getNumberProp('row_height') }
+    set 'row_height'(val) { this.setNumberAttr('row_height', val) }    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("nb_row", ((target) => {
+}));this.__addPropertyActions("row_height", ((target) => {
+})); }
     static __style = `:host{display:none;inset:0;pointer-events:none;position:fixed;z-index:9999}:host .guide-x{background-color:#c7c7c7;cursor:ns-resize;height:2px;left:0;pointer-events:all;position:absolute;top:50px;width:100%}:host .guide-y{background-color:#c7c7c7;cursor:ew-resize;height:100%;left:50px;pointer-events:all;position:absolute;top:0px;width:2px}:host .grid{inset:0;position:absolute}:host .grid .cols,:host .grid .rows{display:flex;inset:0;position:absolute}:host .grid .rows{flex-direction:column}:host .grid .col{flex-shrink:0;height:100%;position:relative;width:var(--local-col-width)}:host .grid .col::after{background-color:#e78181;content:"";height:100%;position:absolute;right:-1px;top:0;width:2px}:host .grid .col:last-child::after{display:none}:host .grid .row{flex-shrink:0;height:var(--local-row-height);position:relative;width:100%}:host .grid .row::after{background-color:#e78181;bottom:-1px;content:"";height:2px;left:0;position:absolute;width:100%}:host .grid .row:last-child::after{display:none}:host .ruler-top{background-color:#fff;height:20px;position:absolute;top:0;width:100%;z-index:3}:host .ruler-top::after{bottom:0;box-shadow:5px 0 5px #818181;content:"";height:100%;left:20px;pointer-events:none;position:absolute;width:calc(100% - 20px)}:host .ruler-left{background-color:#fff;box-shadow:0px 5px 5px #818181;height:calc(100% - 20px);position:absolute;top:20px;width:20px;z-index:2}:host([visible]){display:block}`;
     __getStatic() {
         return GridHelper;
@@ -8583,17 +7269,10 @@ this.__addPropertyActions("row_height", ((target) => {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="ruler-top"></div><div class="ruler-left"></div><div class="grid" _id="gridhelper_0">
-    <div class="cols" _id="gridhelper_1"></div>
-    <div class="rows" _id="gridhelper_2"></div>
-</div><div class="guides">
-    <div class="guide guide-x"></div>
-    <div class="guide guide-y"></div>
-</div>` }
+        blocks: { 'default':`<div class="ruler-top"></div><div class="ruler-left"></div><div class="grid" _id="gridhelper_0">    <div class="cols" _id="gridhelper_1"></div>    <div class="rows" _id="gridhelper_2"></div></div><div class="guides">    <div class="guide guide-x"></div>    <div class="guide guide-y"></div></div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();
-this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "gridEl",
@@ -8614,25 +7293,12 @@ this.__getStatic().__template.setActions({
       ]
     }
   ]
-});
- }
+}); }
     getClassName() {
         return "GridHelper";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('show_rulers')) { this.attributeChangedCallback('show_rulers', false, false); }
-if(!this.hasAttribute('visible')) {this.setAttribute('visible' ,'true'); }
-if(!this.hasAttribute('nb_col')){ this['nb_col'] = 0; }
-if(!this.hasAttribute('nb_row')){ this['nb_row'] = 0; }
-if(!this.hasAttribute('col_width')){ this['col_width'] = 200; }
-if(!this.hasAttribute('row_height')){ this['row_height'] = 200; }
- }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('show_rulers');
-this.__upgradeProperty('visible');
-this.__upgradeProperty('nb_col');
-this.__upgradeProperty('nb_row');
-this.__upgradeProperty('col_width');
-this.__upgradeProperty('row_height');
- }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('show_rulers')) { this.attributeChangedCallback('show_rulers', false, false); }if(!this.hasAttribute('visible')) {this.setAttribute('visible' ,'true'); }if(!this.hasAttribute('nb_col')){ this['nb_col'] = 0; }if(!this.hasAttribute('nb_row')){ this['nb_row'] = 0; }if(!this.hasAttribute('col_width')){ this['col_width'] = 200; }if(!this.hasAttribute('row_height')){ this['row_height'] = 200; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('show_rulers');this.__upgradeProperty('visible');this.__upgradeProperty('nb_col');this.__upgradeProperty('nb_row');this.__upgradeProperty('col_width');this.__upgradeProperty('row_height'); }
     __listBoolProps() { return ["show_rulers","visible"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     draw() {
         let nbCol = 0;
@@ -8719,7 +7385,6 @@ Layout.GridHelper.Tag=`av-grid-helper`;
 _.Layout.GridHelper=Layout.GridHelper;
 if(!window.customElements.get('av-grid-helper')){window.customElements.define('av-grid-helper', Layout.GridHelper);Aventus.WebComponentInstance.registerDefinition(Layout.GridHelper);}
 
->>>>>>> 72107e8 (WIP)
 let TouchRecord=class TouchRecord {
     _activeTouchID;
     _touchList = {};
@@ -8857,34 +7522,20 @@ _.TouchRecord=TouchRecord;
 Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
     static get observedAttributes() {return ["zoom"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'min_zoom'() { return this.getNumberAttr('min_zoom') }
-    set 'min_zoom'(val) { this.setNumberAttr('min_zoom', val) }
-get 'max_zoom'() { return this.getNumberAttr('max_zoom') }
-    set 'max_zoom'(val) { this.setNumberAttr('max_zoom', val) }
-get 'y_scroll_visible'() { return this.getBoolAttr('y_scroll_visible') }
-    set 'y_scroll_visible'(val) { this.setBoolAttr('y_scroll_visible', val) }
-get 'x_scroll_visible'() { return this.getBoolAttr('x_scroll_visible') }
-    set 'x_scroll_visible'(val) { this.setBoolAttr('x_scroll_visible', val) }
-get 'floating_scroll'() { return this.getBoolAttr('floating_scroll') }
-    set 'floating_scroll'(val) { this.setBoolAttr('floating_scroll', val) }
-get 'x_scroll'() { return this.getBoolAttr('x_scroll') }
-    set 'x_scroll'(val) { this.setBoolAttr('x_scroll', val) }
-get 'y_scroll'() { return this.getBoolAttr('y_scroll') }
-    set 'y_scroll'(val) { this.setBoolAttr('y_scroll', val) }
-get 'auto_hide'() { return this.getBoolAttr('auto_hide') }
-    set 'auto_hide'(val) { this.setBoolAttr('auto_hide', val) }
-get 'break'() { return this.getNumberAttr('break') }
-    set 'break'(val) { this.setNumberAttr('break', val) }
-get 'disable'() { return this.getBoolAttr('disable') }
-    set 'disable'(val) { this.setBoolAttr('disable', val) }
-get 'no_user_select'() { return this.getBoolAttr('no_user_select') }
-    set 'no_user_select'(val) { this.setBoolAttr('no_user_select', val) }
-get 'mouse_drag'() { return this.getBoolAttr('mouse_drag') }
-    set 'mouse_drag'(val) { this.setBoolAttr('mouse_drag', val) }
-get 'pinch'() { return this.getBoolAttr('pinch') }
-    set 'pinch'(val) { this.setBoolAttr('pinch', val) }
-    get 'zoom'() { return this.getNumberProp('zoom') }
-    set 'zoom'(val) { this.setNumberAttr('zoom', val) }
-    observer;
+    set 'min_zoom'(val) { this.setNumberAttr('min_zoom', val) }get 'max_zoom'() { return this.getNumberAttr('max_zoom') }
+    set 'max_zoom'(val) { this.setNumberAttr('max_zoom', val) }get 'y_scroll_visible'() { return this.getBoolAttr('y_scroll_visible') }
+    set 'y_scroll_visible'(val) { this.setBoolAttr('y_scroll_visible', val) }get 'x_scroll_visible'() { return this.getBoolAttr('x_scroll_visible') }
+    set 'x_scroll_visible'(val) { this.setBoolAttr('x_scroll_visible', val) }get 'floating_scroll'() { return this.getBoolAttr('floating_scroll') }
+    set 'floating_scroll'(val) { this.setBoolAttr('floating_scroll', val) }get 'x_scroll'() { return this.getBoolAttr('x_scroll') }
+    set 'x_scroll'(val) { this.setBoolAttr('x_scroll', val) }get 'y_scroll'() { return this.getBoolAttr('y_scroll') }
+    set 'y_scroll'(val) { this.setBoolAttr('y_scroll', val) }get 'auto_hide'() { return this.getBoolAttr('auto_hide') }
+    set 'auto_hide'(val) { this.setBoolAttr('auto_hide', val) }get 'break'() { return this.getNumberAttr('break') }
+    set 'break'(val) { this.setNumberAttr('break', val) }get 'disable'() { return this.getBoolAttr('disable') }
+    set 'disable'(val) { this.setBoolAttr('disable', val) }get 'no_user_select'() { return this.getBoolAttr('no_user_select') }
+    set 'no_user_select'(val) { this.setBoolAttr('no_user_select', val) }get 'mouse_drag'() { return this.getBoolAttr('mouse_drag') }
+    set 'mouse_drag'(val) { this.setBoolAttr('mouse_drag', val) }get 'pinch'() { return this.getBoolAttr('pinch') }
+    set 'pinch'(val) { this.setBoolAttr('pinch', val) }    get 'zoom'() { return this.getNumberProp('zoom') }
+    set 'zoom'(val) { this.setNumberAttr('zoom', val) }    observer;
     display = { x: 0, y: 0 };
     max = {
         x: 0,
@@ -8968,21 +7619,9 @@ get 'pinch'() { return this.getBoolAttr('pinch') }
     pressManager;
     __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("zoom", ((target) => {
     target.changeZoom();
-}));
- }
+})); }
     static __style = `:host{--internal-scrollbar-container-color: var(--scrollbar-container-color, transparent);--internal-scrollbar-color: var(--scrollbar-color, #757575);--internal-scrollbar-active-color: var(--scrollbar-active-color, #858585);--internal-scroller-width: var(--scroller-width, 6px);--internal-scroller-top: var(--scroller-top, 3px);--internal-scroller-bottom: var(--scroller-bottom, 3px);--internal-scroller-right: var(--scroller-right, 3px);--internal-scroller-left: var(--scroller-left, 3px);--_scrollbar-content-padding: var(--scrollbar-content-padding, 0);--_scrollbar-container-display: var(--scrollbar-container-display, inline-block)}:host{display:block;height:100%;min-height:inherit;min-width:inherit;overflow:hidden;position:relative;-webkit-user-drag:none;-khtml-user-drag:none;-moz-user-drag:none;-o-user-drag:none;width:100%}:host .scroll-main-container{display:block;height:100%;min-height:inherit;min-width:inherit;position:relative;width:100%}:host .scroll-main-container .content-zoom{display:block;height:100%;min-height:inherit;min-width:inherit;position:relative;transform-origin:0 0;width:100%;z-index:4}:host .scroll-main-container .content-zoom .content-hidder{display:block;height:100%;min-height:inherit;min-width:inherit;overflow:hidden;position:relative;width:100%}:host .scroll-main-container .content-zoom .content-hidder .content-wrapper{display:var(--_scrollbar-container-display);height:100%;min-height:inherit;min-width:inherit;padding:var(--_scrollbar-content-padding);position:relative;width:100%}:host .scroll-main-container .scroller-wrapper .container-scroller{display:none;overflow:hidden;position:absolute;transition:transform .2s linear;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller{background-color:var(--internal-scrollbar-container-color);border-radius:5px}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller .scroller{background-color:var(--internal-scrollbar-color);border-radius:5px;cursor:pointer;position:absolute;-webkit-tap-highlight-color:rgba(0,0,0,0);touch-action:none;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .scroller.active{background-color:var(--internal-scrollbar-active-color)}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical{height:calc(100% - var(--internal-scroller-bottom)*2 - var(--internal-scroller-width));padding-left:var(--internal-scroller-left);right:var(--internal-scroller-right);top:var(--internal-scroller-bottom);transform:0;width:calc(var(--internal-scroller-width) + var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical.hide{transform:translateX(calc(var(--internal-scroller-width) + var(--internal-scroller-left)))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller .scroller{width:calc(100% - var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal{bottom:var(--internal-scroller-bottom);height:calc(var(--internal-scroller-width) + var(--internal-scroller-top));left:var(--internal-scroller-right);padding-top:var(--internal-scroller-top);transform:0;width:calc(100% - var(--internal-scroller-right)*2 - var(--internal-scroller-width))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal.hide{transform:translateY(calc(var(--internal-scroller-width) + var(--internal-scroller-top)))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller .scroller{height:calc(100% - var(--internal-scroller-top))}:host([y_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{height:auto}:host([x_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{width:auto}:host([y_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.vertical{display:block}:host([x_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.horizontal{display:block}:host([no_user_select]) .content-wrapper *{user-select:none}:host([no_user_select]) ::slotted{user-select:none}`;
-    constructor() {
-            super();
-            this.renderAnimation = this.createAnimation();
-            this.onWheel = this.onWheel.bind(this);
-            this.onTouchStart = this.onTouchStart.bind(this);
-            this.onTouchMovePointer = this.onTouchMovePointer.bind(this);
-            this.onTouchMove = this.onTouchMove.bind(this);
-            this.onTouchMovePointer = this.onTouchMovePointer.bind(this);
-            this.onTouchEnd = this.onTouchEnd.bind(this);
-            this.onTouchEndPointer = this.onTouchEndPointer.bind(this);
-            this.touchRecord = new TouchRecord();
-        }
+    constructor() {            super();            this.renderAnimation = this.createAnimation();            this.onWheel = this.onWheel.bind(this);            this.onTouchStart = this.onTouchStart.bind(this);            this.onTouchMovePointer = this.onTouchMovePointer.bind(this);            this.onTouchMove = this.onTouchMove.bind(this);            this.onTouchMovePointer = this.onTouchMovePointer.bind(this);            this.onTouchEnd = this.onTouchEnd.bind(this);            this.onTouchEndPointer = this.onTouchEndPointer.bind(this);            this.touchRecord = new TouchRecord();        }
     __getStatic() {
         return Scrollable;
     }
@@ -8994,31 +7633,10 @@ get 'pinch'() { return this.getBoolAttr('pinch') }
     __getHtml() {
     this.__getStatic().__template.setHTML({
         slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<div class="scroll-main-container" _id="scrollable_0">
-    <div class="content-zoom" _id="scrollable_1">
-        <div class="content-hidder" _id="scrollable_2">
-            <div class="content-wrapper" part="content-wrapper" _id="scrollable_3">
-                <slot></slot>
-            </div>
-        </div>
-    </div>
-    <div class="scroller-wrapper">
-        <div class="container-scroller vertical" _id="scrollable_4">
-            <div class="shadow-scroller">
-                <div class="scroller" _id="scrollable_5"></div>
-            </div>
-        </div>
-        <div class="container-scroller horizontal" _id="scrollable_6">
-            <div class="shadow-scroller">
-                <div class="scroller" _id="scrollable_7"></div>
-            </div>
-        </div>
-    </div>
-</div>` }
+        blocks: { 'default':`<div class="scroll-main-container" _id="scrollable_0">    <div class="content-zoom" _id="scrollable_1">        <div class="content-hidder" _id="scrollable_2">            <div class="content-wrapper" part="content-wrapper" _id="scrollable_3">                <slot></slot>            </div>        </div>    </div>    <div class="scroller-wrapper">        <div class="container-scroller vertical" _id="scrollable_4">            <div class="shadow-scroller">                <div class="scroller" _id="scrollable_5"></div>            </div>        </div>        <div class="container-scroller horizontal" _id="scrollable_6">            <div class="shadow-scroller">                <div class="scroller" _id="scrollable_7"></div>            </div>        </div>    </div></div>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();
-this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "mainContainer",
@@ -9069,45 +7687,12 @@ this.__getStatic().__template.setActions({
       ]
     }
   ]
-});
- }
+}); }
     getClassName() {
         return "Scrollable";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('min_zoom')){ this['min_zoom'] = 1; }
-if(!this.hasAttribute('max_zoom')){ this['max_zoom'] = undefined; }
-if(!this.hasAttribute('y_scroll_visible')) { this.attributeChangedCallback('y_scroll_visible', false, false); }
-if(!this.hasAttribute('x_scroll_visible')) { this.attributeChangedCallback('x_scroll_visible', false, false); }
-if(!this.hasAttribute('floating_scroll')) { this.attributeChangedCallback('floating_scroll', false, false); }
-if(!this.hasAttribute('x_scroll')) { this.attributeChangedCallback('x_scroll', false, false); }
-if(!this.hasAttribute('y_scroll')) {this.setAttribute('y_scroll' ,'true'); }
-if(!this.hasAttribute('auto_hide')) { this.attributeChangedCallback('auto_hide', false, false); }
-if(!this.hasAttribute('break')){ this['break'] = 0.1; }
-if(!this.hasAttribute('disable')) { this.attributeChangedCallback('disable', false, false); }
-if(!this.hasAttribute('no_user_select')) { this.attributeChangedCallback('no_user_select', false, false); }
-if(!this.hasAttribute('mouse_drag')) { this.attributeChangedCallback('mouse_drag', false, false); }
-if(!this.hasAttribute('pinch')) { this.attributeChangedCallback('pinch', false, false); }
-if(!this.hasAttribute('zoom')){ this['zoom'] = 1; }
- }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('x');
-this.__correctGetter('y');
-this.__correctGetter('xMax');
-this.__correctGetter('yMax');
-this.__upgradeProperty('min_zoom');
-this.__upgradeProperty('max_zoom');
-this.__upgradeProperty('y_scroll_visible');
-this.__upgradeProperty('x_scroll_visible');
-this.__upgradeProperty('floating_scroll');
-this.__upgradeProperty('x_scroll');
-this.__upgradeProperty('y_scroll');
-this.__upgradeProperty('auto_hide');
-this.__upgradeProperty('break');
-this.__upgradeProperty('disable');
-this.__upgradeProperty('no_user_select');
-this.__upgradeProperty('mouse_drag');
-this.__upgradeProperty('pinch');
-this.__upgradeProperty('zoom');
- }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('min_zoom')){ this['min_zoom'] = 1; }if(!this.hasAttribute('max_zoom')){ this['max_zoom'] = undefined; }if(!this.hasAttribute('y_scroll_visible')) { this.attributeChangedCallback('y_scroll_visible', false, false); }if(!this.hasAttribute('x_scroll_visible')) { this.attributeChangedCallback('x_scroll_visible', false, false); }if(!this.hasAttribute('floating_scroll')) { this.attributeChangedCallback('floating_scroll', false, false); }if(!this.hasAttribute('x_scroll')) { this.attributeChangedCallback('x_scroll', false, false); }if(!this.hasAttribute('y_scroll')) {this.setAttribute('y_scroll' ,'true'); }if(!this.hasAttribute('auto_hide')) { this.attributeChangedCallback('auto_hide', false, false); }if(!this.hasAttribute('break')){ this['break'] = 0.1; }if(!this.hasAttribute('disable')) { this.attributeChangedCallback('disable', false, false); }if(!this.hasAttribute('no_user_select')) { this.attributeChangedCallback('no_user_select', false, false); }if(!this.hasAttribute('mouse_drag')) { this.attributeChangedCallback('mouse_drag', false, false); }if(!this.hasAttribute('pinch')) { this.attributeChangedCallback('pinch', false, false); }if(!this.hasAttribute('zoom')){ this['zoom'] = 1; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('x');this.__correctGetter('y');this.__correctGetter('xMax');this.__correctGetter('yMax');this.__upgradeProperty('min_zoom');this.__upgradeProperty('max_zoom');this.__upgradeProperty('y_scroll_visible');this.__upgradeProperty('x_scroll_visible');this.__upgradeProperty('floating_scroll');this.__upgradeProperty('x_scroll');this.__upgradeProperty('y_scroll');this.__upgradeProperty('auto_hide');this.__upgradeProperty('break');this.__upgradeProperty('disable');this.__upgradeProperty('no_user_select');this.__upgradeProperty('mouse_drag');this.__upgradeProperty('pinch');this.__upgradeProperty('zoom'); }
     __listBoolProps() { return ["y_scroll_visible","x_scroll_visible","floating_scroll","x_scroll","y_scroll","auto_hide","disable","no_user_select","mouse_drag","pinch"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     createAnimation() {
         return new Aventus.Animation({
@@ -9814,12 +8399,7 @@ Navigation.Router = class Router extends Aventus.WebComponent {
     }
     page404;
     static __style = `:host{display:block}`;
-    constructor() {
-            super();
-            this.validError404 = this.validError404.bind(this);
-            this.canChangeState = this.canChangeState.bind(this);
-            this.stateManager.canChangeState(this.canChangeState);
-if (this.constructor == Router) { throw "can't instanciate an abstract class"; }}
+    constructor() {            super();            this.validError404 = this.validError404.bind(this);            this.canChangeState = this.canChangeState.bind(this);            this.stateManager.canChangeState(this.canChangeState);if (this.constructor == Router) { throw "can't instanciate an abstract class"; }}
     __getStatic() {
         return Router;
     }
@@ -9834,8 +8414,7 @@ if (this.constructor == Router) { throw "can't instanciate an abstract class"; }
         blocks: { 'default':`<slot name="before"></slot><div class="content" _id="router_0"></div><slot name="after"></slot>` }
     });
 }
-    __registerTemplateAction() { super.__registerTemplateAction();
-this.__getStatic().__template.setActions({
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
   "elements": [
     {
       "name": "contentEl",
@@ -9844,13 +8423,11 @@ this.__getStatic().__template.setActions({
       ]
     }
   ]
-});
- }
+}); }
     getClassName() {
         return "Router";
     }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('stateManager');
- }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('stateManager'); }
     addRouteAsync(options) {
         this.allRoutes[options.route] = options;
     }
@@ -10000,8 +8577,7 @@ _.Navigation.Router=Navigation.Router;
 Navigation.Page = class Page extends Aventus.WebComponent {
     static get observedAttributes() {return ["visible"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'visible'() { return this.getBoolProp('visible') }
-    set 'visible'(val) { this.setBoolAttr('visible', val) }
-    currentRouter;
+    set 'visible'(val) { this.setBoolAttr('visible', val) }    currentRouter;
     currentState;
     __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("visible", ((target) => {
     if (target.visible) {
@@ -10010,11 +8586,9 @@ Navigation.Page = class Page extends Aventus.WebComponent {
     else {
         target.onHide();
     }
-}));
- }
+})); }
     static __style = `:host{display:none}:host([visible]){display:block}`;
-    constructor() { super(); 
-if (this.constructor == Page) { throw "can't instanciate an abstract class"; } }
+    constructor() { super(); if (this.constructor == Page) { throw "can't instanciate an abstract class"; } }
     __getStatic() {
         return Page;
     }
@@ -10032,10 +8606,8 @@ if (this.constructor == Page) { throw "can't instanciate an abstract class"; } }
     getClassName() {
         return "Page";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('visible')) { this.attributeChangedCallback('visible', false, false); }
- }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('visible');
- }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('visible')) { this.attributeChangedCallback('visible', false, false); } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('visible'); }
     __listBoolProps() { return ["visible"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     pageTitle() {
         return undefined;

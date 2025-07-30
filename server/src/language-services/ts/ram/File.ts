@@ -33,6 +33,7 @@ export class AventusRamFile extends AventusTsFile {
                 class_implement: ['Aventus.IRam']
             })
         }
+        this.diagnostics = this.diagnostics.concat(this.getDeprecated())
         return this.diagnostics;
     }
     protected async onContentChange(): Promise<void> {

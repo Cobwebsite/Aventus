@@ -148,4 +148,8 @@ declare global {
     function AddToStory();
     function StoryValue(value: any);
 
+    /**
+     * Mark as deprecated
+     */
+    function Deprecated(msg?: string);
 }

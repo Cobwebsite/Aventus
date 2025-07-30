@@ -33,6 +33,7 @@ export class AventusLibFile extends AventusTsFile {
                 }
             ]
         });
+        this.diagnostics = this.diagnostics.concat(this.getDeprecated())
         return this.diagnostics;
     }
     protected async onContentChange(): Promise<void> {

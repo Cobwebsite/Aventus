@@ -100,6 +100,16 @@
             Define the name of sql table based on the current type
             </summary>
         </member>
+        <member name="P:AventusSharp.Data.DataManagerConfig.AutoCreateModel">
+            <summary>
+            Define if Aventus have to create models
+            </summary>
+        </member>
+        <member name="F:AventusSharp.Data.DataManagerConfig.Migration">
+            <summary>
+            Define config for migration
+            </summary>
+        </member>
         <member name="F:AventusSharp.Data.DataManagerConfigLog.monitorDataDependances">
             <summary>
             Display dependances for all your models
@@ -140,6 +150,11 @@
             Print all errors from storable action in the console
             </summary>
         </member>
+        <member name="F:AventusSharp.Data.DataManagerConfigMigration.MultipleProviders">
+            <summary>
+            Define if migrations will be applied though multiple prodivers (for example : 2 databases)
+            </summary>
+        </member>
         <member name="M:AventusSharp.Data.DataMainManager.DataInit.GetTypeForGenericClass(System.Type)">
             <summary>
             Always the first generic parameter for an abstract class
@@ -168,6 +183,11 @@
         <member name="P:AventusSharp.Data.Manager.DataMemberInfo.Name">
             <summary>
             Interface for Name
+            </summary>
+        </member>
+        <member name="P:AventusSharp.Data.Manager.DataMemberInfo.IsNullable">
+            <summary>
+            Interface for IsNullable
             </summary>
         </member>
         <member name="M:AventusSharp.Data.Manager.DataMemberInfo.GetCustomAttribute``1">
@@ -639,12 +659,26 @@
             <param name="func">The condition to apply to the query.</param>
             <returns>The current query builder instance for method chaining.</returns>
         </member>
+        <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.Fields">
+            <summary>
+            Specifies that all fields have to be included in the query results.
+            </summary>
+            <returns>The current query builder instance for method chaining.</returns>
+        </member>
         <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.Field``1(System.Linq.Expressions.Expression{System.Func{`0,``0}})">
             <summary>
             Specifies a field to be included in the query results.
             </summary>
             <typeparam name="U">The type of the field to include.</typeparam>
             <param name="memberExpression">The expression representing the field to include.</param>
+            <returns>The current query builder instance for method chaining.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.Ignore``1(System.Linq.Expressions.Expression{System.Func{`0,``0}})">
+            <summary>
+            Specifies a field to be excluded from the query results.
+            </summary>
+            <typeparam name="U">The type of the field to exclude.</typeparam>
+            <param name="memberExpression">The expression representing the field to exclude.</param>
             <returns>The current query builder instance for method chaining.</returns>
         </member>
         <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.Sort``1(System.Linq.Expressions.Expression{System.Func{`0,``0}},System.Nullable{AventusSharp.Data.Manager.DB.Sort})">
@@ -654,6 +688,14 @@
             <typeparam name="U">The type of the field to sort by.</typeparam>
             <param name="expression">The field to sort by.</param>
             <param name="sort">The sorting order (ascending or descending).</param>
+            <returns>The current query builder instance for method chaining.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.Group``1(System.Linq.Expressions.Expression{System.Func{`0,``0}})">
+            <summary>
+            Specifies grouping for the query based on the provided expression.
+            </summary>
+            <typeparam name="U">The type of the field to group by.</typeparam>
+            <param name="expression">The field to group by.</param>
             <returns>The current query builder instance for method chaining.</returns>
         </member>
         <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.Include(System.Linq.Expressions.Expression{System.Func{`0,AventusSharp.Data.IStorable}})">

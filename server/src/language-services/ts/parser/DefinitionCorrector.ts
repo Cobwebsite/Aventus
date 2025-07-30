@@ -91,13 +91,29 @@ export class DefinitionCorrector {
 		node.parameters.forEach(x => {
 			this.correctType(<TypeNode>x.type)
 		});
+
+		if (node.name) {
+			if (!this.currentElement) return;
+			const name = node.name.getText();
+			const method = this.currentElement.methods[name] ?? this.currentElement.methodsStatic[name];
+			if (method) {
+				let decorators = method.decorators;
+				for (let decorator of decorators) {
+					this.addChange(decorator.content + "\r\n\t", node.getStart(), node.getStart());
+				}
+			}
+		}
 	}
 	private static correctProperty(node: PropertyDeclaration) {
 		if (node.type) {
 			this.correctType(node.type);
 		}
-		if (this.currentElement && this.currentElement.properties[node.name.getText()]) {
-			let decorators = this.currentElement.properties[node.name.getText()].decorators;
+
+		if (!this.currentElement) return;
+		const name = node.name.getText();
+		const property = this.currentElement.properties[name] ?? this.currentElement.propertiesStatic[name];
+		if (property) {
+			let decorators = property.decorators;
 			for (let decorator of decorators) {
 				this.addChange(decorator.content + "\r\n\t", node.getStart(), node.getStart());
 			}

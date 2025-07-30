@@ -37,6 +37,8 @@ import { VariableInfo } from './VariableInfo';
 import { Build } from '../../../project/Build';
 import { AventusFile, InternalAventusFile } from '../../../files/AventusFile';
 import { ImportInfo } from './ImportInfo';
+import { MethodInfo } from './MethodInfo';
+import { PropertyInfo } from './PropertyInfo';
 
 
 export class ParserTs {
@@ -174,6 +176,8 @@ export class ParserTs {
     public srcFile: SourceFile;
 
     public npmAliases: { [fullname: string]: string } = {}
+
+    public deprecated: { start: number, end: number, msg: string }[] = [];
 
     private constructor(file: AventusFile, isExternal: boolean, build: Build) {
         this.build = build;
@@ -357,7 +361,18 @@ export class ParserTs {
             })
         }
     }
-
+    private loadDeprecated(info: { [key: string]: BaseInfo | MethodInfo | PropertyInfo }) {
+        for (let name in info) {
+            const el = info[name];
+            if (el.deprecated) {
+                this.deprecated.push({
+                    start: el.nameStart,
+                    end: el.nameEnd,
+                    msg: el.deprecatedMsg
+                })
+            }
+        }
+    }
     private loadClass(node: ClassDeclaration | InterfaceDeclaration) {
         if (node.name) {
             let classInfo = new ClassInfo(node, this.currentNamespace, this);
@@ -374,6 +389,13 @@ export class ParserTs {
                 this.classes[classInfo.name] = classInfo;
             }
             this.defineStorie(this.classes[classInfo.name]);
+
+
+            this.loadDeprecated({ [classInfo.name]: classInfo });
+            this.loadDeprecated(classInfo.methods)
+            this.loadDeprecated(classInfo.methodsStatic)
+            this.loadDeprecated(classInfo.properties)
+            this.loadDeprecated(classInfo.propertiesStatic)
         }
     }
     private loadFunction(node: FunctionDeclaration) {
@@ -381,17 +403,20 @@ export class ParserTs {
             let functionInfo = new FunctionInfo(node, this.currentNamespace, this);
             this.defineStorie(functionInfo);
             this.functions[functionInfo.name] = functionInfo;
+            this.loadDeprecated({ [functionInfo.name]: functionInfo });
         }
     }
     private loadEnum(node: EnumDeclaration) {
         let enumInfo = new EnumInfo(node, this.currentNamespace, this);
         this.defineStorie(enumInfo);
         this.enums[enumInfo.name] = enumInfo;
+        this.loadDeprecated({ [enumInfo.name]: enumInfo });
     }
     private loadAlias(node: TypeAliasDeclaration) {
         let aliasInfo = new AliasInfo(node, this.currentNamespace, this);
         this.defineStorie(aliasInfo);
         this.aliases[aliasInfo.name] = aliasInfo;
+        this.loadDeprecated({ [aliasInfo.name]: aliasInfo });
     }
 
     private loadVariableStatement(node: VariableStatement) {
@@ -407,6 +432,7 @@ export class ParserTs {
         let variableInfo = new VariableInfo(node, this.currentNamespace, this, statement);
         this.defineStorie(variableInfo);
         this.variables[variableInfo.name] = variableInfo;
+        this.loadDeprecated({ [variableInfo.name]: variableInfo });
     }
 
     private defineStorie(info: BaseInfo) {

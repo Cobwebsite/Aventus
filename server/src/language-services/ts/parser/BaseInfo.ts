@@ -18,6 +18,7 @@ import { Storie } from '../../../project/storybook/Stories';
 import { AventusExtension } from '../../../definition';
 import { CompileTsResult } from '../LanguageService';
 import { ImportInfo } from './ImportInfo';
+import { DeprecatedDecorator } from './decorators/DeprecatedDecorator';
 
 
 export enum InfoType {
@@ -115,6 +116,8 @@ export abstract class BaseInfo {
     public isInternalExported: boolean = false;
     private _parserInfo: ParserTs;
     public content: string = "";
+    public deprecated: boolean = false;
+    public deprecatedMsg: string = "";
     public compileTransformations: { [key: string]: { newText: string, start: number, end: number } } = {};
     public get compiledContent(): string {
         return BaseInfo.getContent(this.content, this.start, this.end, this.dependancesLocations, this.compileTransformations);
@@ -170,7 +173,7 @@ export abstract class BaseInfo {
             }
 
             if (autoLoadDepDecorator) {
-                this.loadDependancesDecorator();
+                this.loadDecorators();
             }
             if (node.kind != SyntaxKind.VariableDeclaration) {
                 this.isExported = BaseInfo.isExported(node);
@@ -190,13 +193,18 @@ export abstract class BaseInfo {
 
     }
 
-    protected loadDependancesDecorator() {
+    protected loadDecorators() {
         for (let decorator of this.decorators) {
             let temp = DependancesDecorator.is(decorator);
             if (temp) {
                 for (let dependance of temp.dependances) {
                     this.addDependanceName(dependance.type, dependance.strong, 0, 0);
                 }
+            }
+            let temp2 = DeprecatedDecorator.is(decorator);
+            if (temp2) {
+                this.deprecated = true;
+                this.deprecatedMsg = temp2.msg;
             }
         }
     }
@@ -829,7 +837,7 @@ export abstract class BaseInfo {
                         typeRemplacement = ['___' + this.build.module, fullName].join(".");
                     }
                 }
-                
+
                 let remplacement = fullName;
                 const splittedLocalFullName = this.fullName.split(".");
                 splittedLocalFullName.slice(0, 1);
@@ -873,7 +881,7 @@ export abstract class BaseInfo {
 
                     registerLocal(fullName, info.willBeCompiled, npmReplacement)
                 }
-                this.dependances[name] ={
+                this.dependances[name] = {
                     fullName: "$namespace$" + fullName,
                     uri: info.fileUri,
                     isStrong: isStrongDependance
@@ -911,7 +919,7 @@ export abstract class BaseInfo {
         }
 
         if (this.parserInfo.npmImports[name]) {
-            this.dependances[name] ={
+            this.dependances[name] = {
                 fullName: name,
                 uri: "@npm",
                 isStrong: isStrongDependance,

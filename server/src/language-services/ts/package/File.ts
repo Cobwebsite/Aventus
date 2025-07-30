@@ -91,6 +91,11 @@ export class AventusPackageFile extends AventusBaseFile {
 		this.prepareFile();
 	}
 
+	public async refreshDeprecated(sendRevalidate: boolean) {
+		if (this.tsDef)
+			await this.tsDef.refreshDeprecated(sendRevalidate);
+	}
+
 	public loadWebComponents() {
 		this.tsDef?.loadWebComponents();
 	}

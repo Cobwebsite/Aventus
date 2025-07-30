@@ -222,7 +222,7 @@ export class ClassInfo extends BaseInfo {
 
 		this.loadConvertible();
 
-		this.loadDependancesDecorator();
+		this.loadDecorators();
 
 		this.addConstructor();
 	}
