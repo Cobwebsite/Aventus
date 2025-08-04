@@ -1,4 +1,4 @@
-import { CancellationToken, CustomTextEditorProvider, Disposable, ExtensionContext, Range, TextDocument, Uri, Webview, WebviewPanel, window, workspace, WorkspaceEdit } from 'vscode';
+import { CancellationToken, ConfigurationTarget, CustomTextEditorProvider, Disposable, ExtensionContext, Range, TextDocument, Uri, Webview, WebviewPanel, window, workspace, WorkspaceEdit } from 'vscode';
 import { getNonce } from '../tool';
 import { normalize } from 'path';
 import { readFileSync } from 'fs';
@@ -115,6 +115,16 @@ export class AventusI18nEditor implements CustomTextEditorProvider {
 					locales,
 					pageName
 				};
+			}
+		})
+
+		comm.addRouteWithResponse<{
+			key: string
+		}, boolean>({
+			channel: "setApiKey",
+			callback: async (data, params, uid) => {
+				await workspace.getConfiguration('aventus').update('deeplApiKey', data.key, ConfigurationTarget.Global);
+				return true;
 			}
 		})
 

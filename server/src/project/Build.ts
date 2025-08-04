@@ -224,7 +224,7 @@ export class Build {
     public async rebuildAll(isInit: boolean = false) {
         this.allowBuild = false;
         this.insideRebuildAll = true;
-        
+
         this.scssLanguageService.allowRebuildDefinition(false);
         this.htmlLanguageService.allowRebuildDefinition(false);
         // validate
@@ -246,11 +246,11 @@ export class Build {
                 await this.htmlFiles[uri].init();
                 await this.htmlFiles[uri].validate();
             }
-            
+
             for (let uri in this.tsFiles) {
                 await this.tsFiles[uri].validate();
             }
-            
+
         }
         else {
             for (let uri in this.tsLanguageService.i18nFiles) {
@@ -288,6 +288,14 @@ export class Build {
         for (let uri in this.tsFiles) {
             await this.tsFiles[uri].triggerSave();
         }
+        // if (isInit) {
+        //     for (let uri in this.tsFiles) {
+        //         // twice to
+        //         if (this.tsFiles[uri] instanceof AventusWebComponentLogicalFile) {
+        //             await this.tsFiles[uri].rebuildDuringInit();
+        //         }
+        //     }
+        // }
         this.allowBuild = true;
         this.npmBuilder.rebuildInfo();
         if (this.initDone) {
@@ -901,7 +909,7 @@ export class Build {
                 else if (output.mode == "basedOnAttribute") {
 
                 }
-                else if(output.mode == "include") {
+                else if (output.mode == "include") {
 
                 }
 
@@ -1708,8 +1716,8 @@ export class Build {
                     else if (output.mode == "basedOnAttribute") {
 
                     }
-                    else if(output.mode == "include") {
-                    
+                    else if (output.mode == "include") {
+
                     }
 
                 }

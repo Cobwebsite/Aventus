@@ -105,7 +105,8 @@ export class AventusWebcomponentCompiler {
         result: [],
         htmlDoc: {},
         scssDoc: {},
-        debug: ''
+        debug: '',
+        needRebuild: false
     }
     private componentResult: CompileTsResult = {
         hotReload: "",
@@ -468,6 +469,10 @@ export class AventusWebcomponentCompiler {
                         let temp = this.build.getWebComponentDefinitionFile(interestPoint.name);
                         if (temp instanceof AventusWebComponentLogicalFile) {
                             fileByTag[interestPoint.name] = temp;
+                        }
+                        else if (this.build.htmlLanguageService.getInternalTagUri(interestPoint.name)) {
+                            this.result.needRebuild = true;
+                            fileByTag[interestPoint.name] = null;
                         }
                         else {
                             fileByTag[interestPoint.name] = null;
@@ -1557,6 +1562,9 @@ export class AventusWebcomponentCompiler {
                         temp.eventNames[0] = cbName;
                     }
                 }
+                else if (this.build.htmlLanguageService.getInternalTagUri(binding.tagName)) {
+                    this.result.needRebuild = true;
+                }
             }
             resultBindings.push(temp);
         }
@@ -1583,6 +1591,9 @@ export class AventusWebcomponentCompiler {
                             temp.eventName = cbName;
                             temp.fct = `@_@(c, ...args) => c.comp.${event.fct}.apply(c.comp, ...args)@_@`;
                         }
+                    }
+                    else if (this.build.htmlLanguageService.getInternalTagUri(event.tagName)) {
+                        this.result.needRebuild = true;
                     }
                 }
                 resultEvents.push(temp);

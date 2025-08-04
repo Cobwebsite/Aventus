@@ -16,6 +16,7 @@ export interface CompileComponentResult {
 	scssDoc: SCSSDoc
 	result: CompileTsResult[],
 	debug: string,
+	needRebuild: boolean
 }
 
 export type FieldType = 'Attribute' | 'Property' | 'Signal' | 'Watch' | 'ViewElement' | 'Simple';

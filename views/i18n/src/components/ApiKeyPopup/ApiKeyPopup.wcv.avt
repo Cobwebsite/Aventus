@@ -1,0 +1,5 @@
+<vscode-textfield placeholder="Deepl Api Key" @element="keyInput"></vscode-textfield>
+<block name="actions">
+	<vscode-button @press="close" @element="closeBtn" class="cancel">Close</vscode-button>
+	<vscode-button @press="save" @element="saveBtn">Save</vscode-button>
+</block>

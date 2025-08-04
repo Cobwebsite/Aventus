@@ -100,7 +100,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
     private _space: string = "";
     private writeHtml: boolean = false;
     private writeTs: boolean = false;
-
+    private needRebuild: boolean = false;
     public htmlDiagnostics: Diagnostic[] = [];
 
     constructor(file: AventusFile, build: Build) {
@@ -115,27 +115,30 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
     private waitingFct: { [version: string]: (() => void)[] } = {};
     private mergedVersion = '-1_-1_-1_-1';
     private isCompiling = false;
+    
     public runWebCompiler() {
         return new Promise<void>((resolve) => {
             let version = AventusWebcomponentCompiler.getVersion(this, this.build);
-            let mergedVersion = version.ts + '_' + version.scss + '_' + version.html+'_'+version.i18n;
-            let force = this.build.insideRebuildAll;
+            let mergedVersion = version.ts + '_' + version.scss + '_' + version.html + '_' + version.i18n;
+            let force = this.build.insideRebuildAll || this.needRebuild;
             if (mergedVersion == this.mergedVersion && !force) {
                 resolve();
             }
             else {
                 if (!this.isCompiling) {
                     this.isCompiling = true;
+                    this.needRebuild = false;
                     this.recreateFileContent();
                     let compiler = new AventusWebcomponentCompiler(this, this.build);
                     this._compilationResult = compiler.compile();
                     this.build.scssLanguageService.addInternalDefinition(this.file.uri, this._compilationResult.scssDoc);
                     this.build.htmlLanguageService.addInternalDefinition(this.file.uri, this._compilationResult.htmlDoc, this);
+                    this.needRebuild = this._compilationResult.needRebuild;
                     this.isCompiling = false;
                     this.mergedVersion = mergedVersion;
                     this.storyBookInfo.argsTypes = compiler.storyArgTypes;
                     this.storyBookInfo.args = compiler.storyArgs;
-                    if(this.I18nFile) {
+                    if (this.I18nFile) {
                         this.I18nFile.transformForExport();
                     }
                     if (this.waitingFct[mergedVersion]) {

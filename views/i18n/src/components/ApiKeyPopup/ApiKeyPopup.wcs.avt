@@ -1,0 +1,12 @@
+:host {
+
+	vscode-textfield {
+		width: calc(100% - 32px);
+		margin: 16px;
+	}
+
+	.cancel {
+		--vscode-button-background: var(--vscode-editorError-foreground);
+		--vscode-button-hoverBackground: #f45d5d;
+	}
+}

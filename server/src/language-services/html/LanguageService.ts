@@ -511,19 +511,6 @@ export class AventusHTMLLanguageService {
         if (info) {
             return this.internalDocumentationReverse[info.class];
         }
-        if (this.internalTagUri[tagName]) {
-            // load the uri first;
-            // TODO correct here
-            let file = this.build.tsFiles[this.internalTagUri[tagName].uri];
-            if (file instanceof AventusWebComponentLogicalFile) {
-                // file.runWebCompiler();
-                // let info = this.documentationInfo[tagName];
-                // if (info) {
-                //     return this.internalDocumentationReverse[info.class];
-                // }
-            }
-
-        }
         return undefined;
     }
     public addInternalDefinition(uri: string, doc: HTMLDoc, fromFile: AventusWebComponentLogicalFile) {

@@ -1,7 +1,12 @@
 export class GenericPopup extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
     //#region static
-
+    public static show(popup: GenericPopup): Promise<void> {
+        return new Promise<void>((resolve) => {
+            popup.cb = resolve;
+            document.body.appendChild(popup);
+        });
+    }
     //#endregion
 
 

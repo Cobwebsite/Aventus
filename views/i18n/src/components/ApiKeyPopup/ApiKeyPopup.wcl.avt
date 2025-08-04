@@ -1,0 +1,49 @@
+import { GenericPopup } from "../GenericPopup/GenericPopup.wcl.avt";
+
+export class ApiKeyPopup extends GenericPopup implements Aventus.DefaultComponent {
+
+    //#region static
+
+    //#endregion
+
+
+    //#region props
+    @Property()
+    public override popup_title: string = "Deepl api key is missing";
+    //#endregion
+
+
+    //#region variables
+    @ViewElement()
+    protected saveBtn!: HTMLElement;
+    @ViewElement()
+    protected keyInput!: HTMLInputElement;
+
+    public apiKeySet: boolean = false;
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+
+    //#region methods
+
+    /**
+     * 
+     */
+    protected async save() {
+		const value = this.keyInput.value.trim();
+        this.apiKeySet = value != '';
+        const result = await VscodeView.Router.getInstance().sendWithResponse<boolean>({
+            channel: "setApiKey",
+            body: {
+                key: value,
+            }
+        });
+        this.close();
+    }
+    //#endregion
+
+}
