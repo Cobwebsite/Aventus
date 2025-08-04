@@ -196,11 +196,11 @@ export class AventusI18nEditor implements CustomTextEditorProvider {
 	private setHtmlForWebview(context: ExtensionContext, webview: Webview): void {
 		// Local path to script and css for the webview
 
-		let viewUrl = webview.asWebviewUri(Uri.joinPath(context.extensionUri, 'client', 'view', 'i18n')).toString();
+		let viewUrl = webview.asWebviewUri(Uri.joinPath(context.extensionUri, 'client', 'views', 'i18n')).toString();
 
 		// Use a nonce to whitelist which scripts can be run
 		const nonce = getNonce();
-		let realPath = normalize(Uri.joinPath(context.extensionUri, 'client', 'view', 'i18n', 'index.html').path.slice(1));
+		let realPath = normalize(Uri.joinPath(context.extensionUri, 'client', 'views', 'i18n', 'index.html').path.slice(1));
 		let txt = readFileSync(realPath, 'utf8');
 		txt = txt.replace(/~/g, viewUrl);
 		txt = txt.replace(/\$nonce/g, nonce);

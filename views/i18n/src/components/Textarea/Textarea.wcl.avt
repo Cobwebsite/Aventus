@@ -48,6 +48,7 @@ export class Textarea extends Aventus.WebComponent implements Aventus.DefaultCom
     }
 
     protected onChange() {
+        debugger
         this.value = this.textarea.value;
         this.change.trigger(this.value);
     }

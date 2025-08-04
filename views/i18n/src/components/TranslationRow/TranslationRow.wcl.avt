@@ -66,6 +66,7 @@ export class TranslationRow extends Aventus.WebComponent implements Aventus.Defa
         col.value = this.parsedItem[locale];
         col.initialValue = this.parsedItem[locale];
         col.change.add((value) => {
+            debugger
             this.parsedItem[locale] = value;
 
             const hasChanged = value != col.initialValue;

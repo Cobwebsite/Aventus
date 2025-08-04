@@ -12,7 +12,7 @@
 				"./src/ram/*"
 			],
 			"compile": [{
-					"output": "../../client/view/i18n/index.js"
+					"output": "../../client/views/i18n/index.js"
 			}],
 			"dependances": [
 				{
@@ -29,7 +29,7 @@
 		{
 			"name": "Main",
 			"input": "./src/static/*",
-			"output": "../../client/view/i18n/"
+			"output": "../../client/views/i18n/"
 		}
 	]
 }

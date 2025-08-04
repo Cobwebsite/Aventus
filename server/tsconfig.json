@@ -4,7 +4,7 @@
 		"lib": ["ES2023", "dom"],
 		"module": "commonjs",
 		"moduleResolution": "node",
-		"declaration": true,
+		"declaration": false,
 		"sourceMap": true,
 		"strict": true,
 		"outDir": "out",

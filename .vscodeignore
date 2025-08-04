@@ -3,6 +3,7 @@ base/**
 cli/**
 client/**
 !client/out
+!client/views
 example/**
 node_modules
 !node_modules/typescript
@@ -11,9 +12,14 @@ node_modules
 server/**
 !server/out
 .gitignore
+.github
 .vscodeignore
 jsconfig.json
 package-lock.json
 shared.webpack.config.js
 *.drawio
 scripts/**
+views
+docu.txt
+test-cli.cmd
+babel.config.js

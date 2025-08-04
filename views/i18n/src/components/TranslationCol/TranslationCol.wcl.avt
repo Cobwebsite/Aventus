@@ -3,6 +3,9 @@ import { Translator } from "../../libs/I18n.lib.avt";
 import { TranslationPage } from "../TranslationPage/TranslationPage.wcl.avt";
 import { TranslationRow } from "../TranslationRow/TranslationRow.wcl.avt";
 
+@Debugger({
+    writeCompiled: true
+})
 export class TranslationCol extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
     //#region static

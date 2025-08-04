@@ -32,8 +32,10 @@ export class AventusHTMLLanguageService {
     private internalDocumentationReverse: { [className: string]: AventusWebComponentLogicalFile } = {};
     private internalTagUri: { [tag: string]: { uri: string, fullname: string } } = {};
     private _allowRebuildDefinition: boolean = true;
+    private build: Build;
 
     public constructor(build: Build) {
+        this.build = build;
         this.languageService = this.getHTMLLanguageService();
 
         SettingsManager.getInstance().onSettingsChangeHtml(() => {
@@ -508,6 +510,19 @@ export class AventusHTMLLanguageService {
         let info = this.documentationInfo[tagName];
         if (info) {
             return this.internalDocumentationReverse[info.class];
+        }
+        if (this.internalTagUri[tagName]) {
+            // load the uri first;
+            // TODO correct here
+            let file = this.build.tsFiles[this.internalTagUri[tagName].uri];
+            if (file instanceof AventusWebComponentLogicalFile) {
+                // file.runWebCompiler();
+                // let info = this.documentationInfo[tagName];
+                // if (info) {
+                //     return this.internalDocumentationReverse[info.class];
+                // }
+            }
+
         }
         return undefined;
     }
