@@ -27,6 +27,7 @@ import { CreateCSSVariable } from './webcomponent/CreateCSSVariable';
 import { StorybookBuild } from './storybook/StorybookBuild';
 import { ProjectImport } from './file-system/ImportProject';
 import { NpmBuild } from './npm/NpmBuild';
+import { PhpExport } from './php/Export';
 
 
 export const Commands = {
@@ -57,6 +58,7 @@ export const Commands = {
         [MergeComponent.cmd]: MergeComponent,
         [SplitComponent.cmd]: SplitComponent,
         [SharpExport.cmd]: SharpExport,
+        [PhpExport.cmd]: PhpExport,
         [ReloadSettings.cmd]: ReloadSettings,
         [StorybookBuild.cmd]: StorybookBuild,
         [NpmBuild.cmd]: NpmBuild,

@@ -5857,7 +5857,7 @@ Navigation.RouterLink = class RouterLink extends Aventus.WebComponent {
     get 'state'() { return this.getStringAttr('state') }
     set 'state'(val) { this.setStringAttr('state', val) }get 'active_state'() { return this.getStringAttr('active_state') }
     set 'active_state'(val) { this.setStringAttr('active_state', val) }    onActiveChange = new Aventus.Callback();
-    static __style = `:host a{color:inherit;text-decoration:none}`;
+    static __style = `:host a{color:inherit;display:contents;text-decoration:none}`;
     __getStatic() {
         return RouterLink;
     }

@@ -479,6 +479,7 @@ export const AventusSharpSchema: JSONSchema = {
                 uri: { type: "string", default: "", pattern: "^(?=\s*$)|^(\\/[a-zA-Z0-9_-]+?){1,}$", description: "Define the base uri for your router (ex: /api)" },
                 host: { type: "string", default: "https://localhost:5000", pattern: "^http(s)?:\\/\\/[a-zA-Z0-9_-]*?(:[0-9]{3,4})?$", description: "Define the host that the router will use" },
                 parent: { type: "string", default: "Aventus.HttpRouter", description: "Define the parent type to use for your router" },
+                parentFile: { type: "string", default: "", description: "Define the parent file to use for your router" },
                 namespace: { type: "string", default: "Routes", description: "Define the namespace for your router" }
             }
         },
@@ -495,6 +496,132 @@ export const AventusSharpSchema: JSONSchema = {
         }
     },
     "required": ["csProj", "outputPath"],
+    "$defs": {
+        "replacerPart": {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+                "type": {
+                    type: "object",
+                    description: "Apply a replacer based on the c# type",
+                    patternProperties: {
+                        "^\\S+$": {
+                            type: "object",
+                            additionalProperties: false,
+                            properties: {
+                                "result": {
+                                    type: "string"
+                                },
+                                "file": {
+                                    type: "string"
+                                },
+                                "useTypeImport": {
+                                    type: "boolean"
+                                }
+                            },
+                            required: ["result"]
+                        }
+                    }
+                },
+                "result": {
+                    type: "object",
+                    description: "Apply a replacer based on the result type (ex: to replace Aventus.IData when IStorable is exported)",
+                    patternProperties: {
+                        "^\\S+$": {
+                            type: "object",
+                            additionalProperties: false,
+                            properties: {
+                                "result": {
+                                    type: "string"
+                                },
+                                "file": {
+                                    type: "string"
+                                },
+                                "useTypeImport": {
+                                    type: "boolean"
+                                }
+                            },
+                            required: ["result"]
+                        }
+                    }
+                }
+            },
+
+        }
+    }
+}
+
+export const AventusPhpSchema: JSONSchema = {
+    "$schema": "foo://aventus/php.json",
+    "title": "JSON Schema for Aventus",
+    "description": "JSON Schema for Aventus",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "output": {
+            type: "string",
+            description: "Define the folder where to export the code"
+        },
+        "exportEnumByDefault": {
+            type: "boolean",
+            default: false,
+            description: "Define if enums must be exported. You can override behaviour with [Export] or [NoExport]"
+        },
+        "exportStorableByDefault": {
+            type: "boolean",
+            default: true,
+            description: "Define if storable must be exported. You can override behaviour with [Export] or [NoExport]"
+        },
+        "exportHttpRouteByDefault": {
+            type: "boolean",
+            default: true,
+            description: "Define if http route must be exported. You can override behaviour with [Export] or [NoExport]"
+        },
+        "exportHttpRequestByDefault": {
+            type: "boolean",
+            default: true,
+            description: "Define if request must be exported. You can override behaviour with [Export] or [NoExport]"
+        },
+        "exportHttpResourceByDefault": {
+            type: "boolean",
+            default: true,
+            description: "Define if resource must be exported. You can override behaviour with [Export] or [NoExport]"
+        },
+        "exportErrorsByDefault": {
+            type: "boolean",
+            default: true,
+            description: "Define if erros must be exported. You can override behaviour with [Export] or [NoExport]"
+        },
+        "replacer": {
+            type: "object",
+            additionalProperties: false,
+            description: "Create replacer to export type",
+            properties: {
+                "all": { "$ref": "#/$defs/replacerPart" },
+                "genericError": { "$ref": "#/$defs/replacerPart" },
+                "httpRouter": { "$ref": "#/$defs/replacerPart" },
+                "normalClass": { "$ref": "#/$defs/replacerPart" },
+                "storable": { "$ref": "#/$defs/replacerPart" },
+                "withError": { "$ref": "#/$defs/replacerPart" },
+                "httpRequest": { "$ref": "#/$defs/replacerPart" },
+                "httpResource": { "$ref": "#/$defs/replacerPart" }
+            }
+        },
+        "httpRouter": {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+                createRouter: { type: "boolean", default: true, description: "Create a router that your route will use" },
+                routerName: { type: "string", default: "GeneratedRouter", description: "The name of the router to generate" },
+                uri: { type: "string", default: "", pattern: "^(?=\s*$)|^(\\/[a-zA-Z0-9_-]+?){1,}$", description: "Define the base uri for your router (ex: /api)" },
+                host: { type: "string", default: "https://localhost:5000", pattern: "^http(s)?:\\/\\/[a-zA-Z0-9_-]*?(:[0-9]{3,4})?$", description: "Define the host that the router will use" },
+                parent: { type: "string", default: "Aventus.HttpRouter", description: "Define the parent type to use for your router" },
+                parentFile: { type: "string", default: "", description: "Define the parent file to load for your router" },
+                namespace: { type: "string", default: "Routes", description: "Define the namespace for your router" }
+            }
+        }
+    },
+    "required": ["output"],
     "$defs": {
         "replacerPart": {
             type: "object",

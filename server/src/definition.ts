@@ -22,6 +22,7 @@ export const AventusExtension = {
     Base: ".avt",
     Config: "aventus.conf.avt",
     CsharpConfig: "aventus.sharp.avt",
+    PhpConfig: "aventus.php.avt",
     ComponentLogic: ".wcl.avt",
     ComponentView: ".wcv.avt",
     ComponentStyle: ".wcs.avt",

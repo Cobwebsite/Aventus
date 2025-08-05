@@ -37,7 +37,7 @@ export class Translator {
             return null;
         }
         else if(result.result.error) {
-            await Alert.show("Error", result.result.error);
+            await Alert.make("Error", result.result.error);
             return null;
         }
         return result.result.result!;

@@ -31,6 +31,7 @@ import { StorybookBuild } from './storybook/Build';
 import { ImportProject } from './file-system/ImportProject';
 import { NpmBuild } from './npm/Build';
 import { AddI18nValue } from './i18n/AddI18nValue';
+import { PhpExport } from './php/Export';
 
 export const Commands = {
     allCommandes: {
@@ -62,6 +63,7 @@ export const Commands = {
         [ImportTemplate.cmd]: ImportTemplate,
         [ImportProject.cmd]: ImportProject,
         [SharpExport.cmd]: SharpExport,
+        [PhpExport.cmd]: PhpExport,
         [ReloadSettings.cmd]: ReloadSettings,
         [StorybookBuild.cmd]: StorybookBuild,
         [NpmBuild.cmd]: NpmBuild,

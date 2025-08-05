@@ -16,6 +16,7 @@ import { TemplateFileManager as TemplateFileTsManager } from './language-service
 import { CSharpManager } from './language-services/json/CSharpManager';
 import { Build } from './project/Build';
 import { Communication } from './communication';
+import { PhpManager } from './language-services/json/PhpManager';
 
 
 
@@ -183,6 +184,7 @@ export class GenericServer {
 			await FilesWatcher.getInstance().destroy();
 			TemplateManager.getInstance().destroy();
 			CSharpManager.getInstance().destroy();
+			PhpManager.getInstance().destroy();
 		}
 		ProjectManager.getInstance().destroyAll();
 		await FilesManager.getInstance().onShutdown();
@@ -313,6 +315,7 @@ export class GenericServer {
 			this._localTemplate = new LocalTemplateManager(this._template);
 			TemplateManager.getInstance();
 			CSharpManager.getInstance();
+			PhpManager.getInstance();
 		}
 
 		ProjectManager.getInstance();

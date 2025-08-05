@@ -144,21 +144,66 @@ interface AventusSharpReplacerPart {
 
 interface AventusSharpHttpRouter {
 	createRouter?: boolean,
-	autobindRoute?: AventusSharpHttpRouterAutoBind,
 	routerName?: string,
-	variableRoutesName?: string,
 	uri?: string,
 	host?: string,
 	parent?: string,
+	parentFile?: string,
 	namespace?: string
 }
 
-enum AventusSharpHttpRouterAutoBind {
-	none,
-	auto,
-	full,
-}
+
 
 interface AventusSharpWsEndPoint {
 	prefix?: string,
+}
+
+
+export interface AventusPhp {
+	output: string,
+	exportEnumByDefault?: boolean,
+	exportStorableByDefault?: boolean,
+	exportHttpRouteByDefault?: boolean,
+	exportErrorsByDefault?: boolean,
+	exportWsEndPointByDefault?: boolean,
+	exportWsEventByDefault?: boolean,
+	exportWsRouteByDefault?: boolean,
+	replacer?: {
+		all?: AventusPhpReplacerPart
+		genericError?: AventusPhpReplacerPart
+		httpRouter?: AventusPhpReplacerPart
+		normalClass?: AventusPhpReplacerPart
+		storable?: AventusPhpReplacerPart
+		withError?: AventusPhpReplacerPart
+		httpRequest?: AventusPhpReplacerPart
+		httpResource?: AventusPhpReplacerPart
+	},
+	httpRouter?: AventusPhpHttpRouter,
+}
+
+interface AventusPhpReplacerPart {
+	type: {
+		[key: string]: {
+			result: string,
+			file?: string,
+			useTypeImport?: boolean,
+		}
+	}
+	result: {
+		[key: string]: {
+			result: string,
+			file?: string,
+			useTypeImport?: boolean,
+		}
+	}
+}
+
+interface AventusPhpHttpRouter {
+	createRouter?: boolean,
+	routerName?: string,
+	uri?: string,
+	host?: string,
+	parent?: string,
+	parentFile?: string,
+	namespace?: string
 }

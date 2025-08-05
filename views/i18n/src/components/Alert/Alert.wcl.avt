@@ -3,7 +3,7 @@ import { GenericPopup } from "../GenericPopup/GenericPopup.wcl.avt";
 export class Alert extends GenericPopup implements Aventus.DefaultComponent {
 
     //#region static
-    public static show(title: string, content: string): Promise<void> {
+    public static make(title: string, content: string): Promise<void> {
         return new Promise<void>((resolve) => {
             const el = new Alert();
             el.popup_title = title;

@@ -457,6 +457,10 @@
 			{
 				"command": "aventus.i18n.add",
 				"title": "Aventus : Add translation to I18n file"
+			},
+			{
+				"command": "aventus.php.export",
+				"title": "Aventus : Export Php"
 			}
 		],
 		"customEditors": [
@@ -506,6 +510,11 @@
 					"when": "resourceFilename =~ /^.*\\.cs/",
 					"command": "aventus.sharp.export",
 					"group": "navigation@-50"
+				},
+				{
+					"when": "resourceFilename =~ /^.*\\.php/",
+					"command": "aventus.php.export",
+					"group": "navigation@-50"
 				}
 			],
 			"editor/context": [
@@ -546,6 +555,11 @@
 				{
 					"when": "resourceFilename =~ /^.*\\.cs/",
 					"command": "aventus.sharp.export",
+					"group": "navigation@-50"
+				},
+				{
+					"when": "resourceFilename =~ /^.*\\.php/",
+					"command": "aventus.php.export",
 					"group": "navigation@-50"
 				}
 			],
