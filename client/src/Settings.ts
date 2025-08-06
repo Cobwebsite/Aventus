@@ -1,4 +1,6 @@
-import { workspace } from 'vscode'
+import { ConfigurationTarget, ExtensionMode, workspace, WorkspaceConfiguration } from 'vscode'
+import { Singleton } from './Singleton'
+import { join } from 'path'
 
 export type LiveServerSettings = {
 	host: string,
@@ -94,12 +96,48 @@ export class SettingsManager {
 	}
 
 	private constructor() {
+		this.applyDefault();
 		this.reload();
 
 		workspace.onDidChangeConfiguration(() => {
 			this.reload();
 		})
 
+	}
+
+	private async applyDefault() {
+		if (!Singleton.client.context) return;
+		if (Singleton.client.context.extensionMode != ExtensionMode.Production) return;
+		const settingsEmmet = workspace.getConfiguration("emmet") as WorkspaceConfiguration & { extensionsPath?: string[] }
+		if (!settingsEmmet.extensionsPath) {
+			settingsEmmet.extensionsPath = [];
+		}
+		let emmetPath = join(Singleton.client.context.extensionPath, "lib", "emmet", "aventus.json");
+		let found = false;
+		let needSave = false;
+		for (let i = 0; i < settingsEmmet.extensionsPath.length; i++) {
+			const path = settingsEmmet.extensionsPath[i];
+			if (path == emmetPath) {
+				found = true;
+				break;
+			}
+			if (path.endsWith("aventus.json")) {
+				settingsEmmet.extensionsPath.splice(i, 1);
+				i--;
+				needSave = true;
+			}
+		}
+		if (!found) {
+			settingsEmmet.extensionsPath.push(emmetPath);
+			needSave = true;
+		}
+		if (needSave) {
+			try {
+				await settingsEmmet.update("extensionsPath", settingsEmmet.extensionsPath, ConfigurationTarget.Global, undefined);
+			} catch (e) {
+				// console.log(e);
+			}
+		}
 	}
 
 	private reload() {

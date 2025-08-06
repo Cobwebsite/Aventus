@@ -141,7 +141,6 @@ interface AventusSharpReplacerPart {
 	}
 }
 
-
 interface AventusSharpHttpRouter {
 	createRouter?: boolean,
 	routerName?: string,
@@ -152,15 +151,14 @@ interface AventusSharpHttpRouter {
 	namespace?: string
 }
 
-
-
 interface AventusSharpWsEndPoint {
 	prefix?: string,
 }
 
-
 export interface AventusPhp {
 	output: string,
+	exportAsTs?: boolean,
+	useNamespace?: boolean,
 	exportEnumByDefault?: boolean,
 	exportStorableByDefault?: boolean,
 	exportHttpRouteByDefault?: boolean,

@@ -5,8 +5,7 @@ import { execSync } from 'child_process';
 import { uriToPath } from '../../tools';
 import { SelectItem } from '../../IConnection';
 import { AventusExtension } from '../../definition';
-import { readFileSync } from 'fs';
-import { AventusSharp } from '../../language-services/json/definition';
+import { existsSync, readFileSync } from 'fs';
 import { Compiling } from '../../notification/sharp/Compiling';
 import { DebugFileAdd } from '../../notification/DebugFileAdd';
 import { PhpManager } from '../../language-services/json/PhpManager';
@@ -53,9 +52,12 @@ export class PhpExport {
 		}
 		let phpProjName = ''
 		try {
-			let ctx = readFileSync(uriToPath(uri), 'utf-8');
-			let aventusSharp = JSON.parse(ctx) as AventusSharp;
-			phpProjName = aventusSharp.csProj;
+			let pathComposer = uriToPath(uri.replace(AventusExtension.PhpConfig, "composer.json"));
+			if(existsSync(pathComposer)) {
+				let ctx = readFileSync(pathComposer, 'utf-8');
+				let composerJson = JSON.parse(ctx) as { name: string };
+				phpProjName = composerJson.name;
+			}
 		}
 		catch (e) {
 			console.log(e);
@@ -63,7 +65,7 @@ export class PhpExport {
 		this.isCompiling = true;
 		Compiling.send(phpProjName, 'compiling');
 		try {
-			let execPath = join(GenericServer.extensionPath, "lib", "bin", "PhpToTypescript", "PhpToTypescript")
+			let execPath = join(GenericServer.extensionPath, "lib", "bin", "PhpToTypescript", "PhpToTypescript.phar")
 			let phpProj = uriToPath(uri);
 			let result = execSync("php " + execPath + " " + phpProj).toString();
 			if (result.indexOf("Error : ") == -1) {

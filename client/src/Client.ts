@@ -11,6 +11,7 @@ import { ReloadSettings } from './cmds/ReloadSettings';
 import { AutoLoader } from './manifest/AutoLoader';
 import { AventusI18nEditor } from './customEditors/AventusI18nEditor';
 import { GetKeyFromPosition } from './communication/i18n/GetKeyFromPosition';
+import { SettingsManager } from './Settings';
 
 export class Client {
     private _context: ExtensionContext | undefined = undefined;
@@ -35,6 +36,7 @@ export class Client {
         AutoLoader.getInstance();
         this.components = new AvenutsVsComponent();
         this._context = context;
+        SettingsManager.getInstance();
         let serverOptions = this.createServerOption(context.asAbsolutePath(
             join('server', 'out', 'server.js')
         ));

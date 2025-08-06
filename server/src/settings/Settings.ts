@@ -92,7 +92,7 @@ export class SettingsManager {
 		return this.instance;
 	}
 
-	private constructor() { }
+	private constructor() {}
 
 	public setSettings(newSettings: Partial<Settings>) {
 		this._settings = this.mergeDeep(getDefaultSettings(), newSettings);

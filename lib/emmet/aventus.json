@@ -1,0 +1,7 @@
+{
+    "html": {
+        "snippets": {
+            "block": "<block name=\"${1}\">${2}<block>"
+        }
+    }
+}

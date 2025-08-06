@@ -562,6 +562,14 @@ export const AventusPhpSchema: JSONSchema = {
             type: "string",
             description: "Define the folder where to export the code"
         },
+        "exportAsTs": {
+            type: "boolean",
+            description: "Define if the code must be compiled as typescript"
+        },
+        "useNamespace": {
+            type: "boolean",
+            description: "Define if the compiler must used namespace"
+        },
         "exportEnumByDefault": {
             type: "boolean",
             default: false,
