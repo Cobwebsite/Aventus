@@ -642,11 +642,38 @@ export class AventusWebcomponentCompiler {
     }
     private writeFileConstructor() {
         if (this.classInfo) {
-            const classInfo = this.classInfo;
+            let methodsTxt = "";
+            let methodsTxtHotReload = "";
+            let methodsTxtNpm = "";
 
-            this.writeFileReplaceVar("constructor", this.classInfo.constructorContent);
-            this.writeFileHotReloadReplaceVar("constructor", this.classInfo.constructorContentHotReload);
-            this.writeFileNpmReplaceVar("constructor", this.classInfo.constructorContentNpm);
+            let fullClassFct = `class MyCompilationClassAventus {${this.classInfo.constructorContent}}`;
+            let fctCompiled = transpile(fullClassFct, AventusTsLanguageService.getCompilerOptionsCompile());
+            let matchContent = /\{((\s|\S)*)\}/gm.exec(fctCompiled);
+            if (matchContent) {
+                methodsTxt = matchContent[1].trim();
+            }
+
+            if (HttpServer.isRunning) {
+                let fullClassFctHotReload = `class MyCompilationClassAventus {${this.classInfo.constructorContentHotReload}}`;
+                let fctCompiledHotReload = transpile(fullClassFctHotReload, AventusTsLanguageService.getCompilerOptionsCompile());
+                let matchContentHotReload = /\{((\s|\S)*)\}/gm.exec(fctCompiledHotReload);
+                if (matchContentHotReload) {
+                    methodsTxtHotReload = matchContentHotReload[1].trim();
+                }
+            }
+
+            if (this.templateNpm) {
+                let fullClassFctNpm = `class MyCompilationClassAventus {${this.classInfo.constructorContentNpm}}`;
+                let fctCompiledNpm = transpile(fullClassFctNpm, AventusTsLanguageService.getCompilerOptionsCompile());
+                let matchContentNpm = /\{((\s|\S)*)\}/gm.exec(fctCompiledNpm);
+                if (matchContentNpm) {
+                    methodsTxtNpm = matchContentNpm[1].trim();
+                }
+            }
+
+            this.writeFileReplaceVar("constructor", methodsTxt);
+            this.writeFileHotReloadReplaceVar("constructor", methodsTxtHotReload);
+            this.writeFileNpmReplaceVar("constructor", methodsTxtNpm);
 
         }
     }
