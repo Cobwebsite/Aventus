@@ -1,4 +1,4 @@
-import { ArrayTypeNode, ClassDeclaration, ConstructorDeclaration, createSourceFile, EntityName, ExpressionWithTypeArguments, forEachChild, HeritageClause, MethodDeclaration, PropertyDeclaration, QualifiedName, ScriptTarget, SyntaxKind, TypeNode, TypeReferenceNode, UnionTypeNode } from 'typescript';
+import { ArrayTypeNode, ClassDeclaration, ConstructorDeclaration, createSourceFile, EntityName, ExpressionWithTypeArguments, forEachChild, GetAccessorDeclaration, HeritageClause, MethodDeclaration, PropertyDeclaration, QualifiedName, ScriptTarget, SetAccessorDeclaration, SyntaxKind, TypeNode, TypeReferenceNode, UnionTypeNode } from 'typescript';
 import { BaseInfo } from './BaseInfo';
 import { ClassInfo } from './ClassInfo';
 
@@ -56,6 +56,12 @@ export class DefinitionCorrector {
 					else if (x.kind == SyntaxKind.PropertyDeclaration) {
 						this.correctProperty(x as PropertyDeclaration);
 					}
+					else if (x.kind == SyntaxKind.GetAccessor) {
+						this.correctProperty(x as GetAccessorDeclaration);
+					}
+					else if (x.kind == SyntaxKind.SetAccessor) {
+						this.correctProperty(x as SetAccessorDeclaration);
+					}
 				});
 			})
 			this.allChanges.sort((a, b) => b.end - a.end); // order from end file to start file
@@ -104,7 +110,7 @@ export class DefinitionCorrector {
 			}
 		}
 	}
-	private static correctProperty(node: PropertyDeclaration) {
+	private static correctProperty(node: PropertyDeclaration | GetAccessorDeclaration | SetAccessorDeclaration) {
 		if (node.type) {
 			this.correctType(node.type);
 		}
