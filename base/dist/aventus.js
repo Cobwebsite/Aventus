@@ -401,6 +401,7 @@ let Mutex=class Mutex {
             result = cb.apply(null, []);
         }
         catch (e) {
+            console.error(e);
         }
         await this.release();
         return result;
@@ -418,6 +419,7 @@ let Mutex=class Mutex {
             result = await cb.apply(null, []);
         }
         catch (e) {
+            console.error(e);
         }
         await this.release();
         return result;
@@ -435,6 +437,7 @@ let Mutex=class Mutex {
                 result = cb.apply(null, []);
             }
             catch (e) {
+                console.error(e);
             }
             await this.releaseOnlyLast();
         }
@@ -453,6 +456,7 @@ let Mutex=class Mutex {
                 result = await cb.apply(null, []);
             }
             catch (e) {
+                console.error(e);
             }
             await this.releaseOnlyLast();
         }

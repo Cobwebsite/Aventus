@@ -10469,6 +10469,7 @@ let Mutex=class Mutex {
             result = cb.apply(null, []);
         }
         catch (e) {
+            console.error(e);
         }
         await this.release();
         return result;
@@ -10486,6 +10487,7 @@ let Mutex=class Mutex {
             result = await cb.apply(null, []);
         }
         catch (e) {
+            console.error(e);
         }
         await this.release();
         return result;
@@ -10503,6 +10505,7 @@ let Mutex=class Mutex {
                 result = cb.apply(null, []);
             }
             catch (e) {
+                console.error(e);
             }
             await this.releaseOnlyLast();
         }
@@ -10521,6 +10524,7 @@ let Mutex=class Mutex {
                 result = await cb.apply(null, []);
             }
             catch (e) {
+                console.error(e);
             }
             await this.releaseOnlyLast();
         }
@@ -17590,7 +17594,18 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
     target.changeZoom();
 })); }
     static __style = `:host{--internal-scrollbar-container-color: var(--scrollbar-container-color, transparent);--internal-scrollbar-color: var(--scrollbar-color, #757575);--internal-scrollbar-active-color: var(--scrollbar-active-color, #858585);--internal-scroller-width: var(--scroller-width, 6px);--internal-scroller-top: var(--scroller-top, 3px);--internal-scroller-bottom: var(--scroller-bottom, 3px);--internal-scroller-right: var(--scroller-right, 3px);--internal-scroller-left: var(--scroller-left, 3px);--_scrollbar-content-padding: var(--scrollbar-content-padding, 0);--_scrollbar-container-display: var(--scrollbar-container-display, inline-block)}:host{display:block;height:100%;min-height:inherit;min-width:inherit;overflow:hidden;position:relative;-webkit-user-drag:none;-khtml-user-drag:none;-moz-user-drag:none;-o-user-drag:none;width:100%}:host .scroll-main-container{display:block;height:100%;min-height:inherit;min-width:inherit;position:relative;width:100%}:host .scroll-main-container .content-zoom{display:block;height:100%;min-height:inherit;min-width:inherit;position:relative;transform-origin:0 0;width:100%;z-index:4}:host .scroll-main-container .content-zoom .content-hidder{display:block;height:100%;min-height:inherit;min-width:inherit;overflow:hidden;position:relative;width:100%}:host .scroll-main-container .content-zoom .content-hidder .content-wrapper{display:var(--_scrollbar-container-display);height:100%;min-height:inherit;min-width:inherit;padding:var(--_scrollbar-content-padding);position:relative;width:100%}:host .scroll-main-container .scroller-wrapper .container-scroller{display:none;overflow:hidden;position:absolute;transition:transform .2s linear;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller{background-color:var(--internal-scrollbar-container-color);border-radius:5px}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller .scroller{background-color:var(--internal-scrollbar-color);border-radius:5px;cursor:pointer;position:absolute;-webkit-tap-highlight-color:rgba(0,0,0,0);touch-action:none;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .scroller.active{background-color:var(--internal-scrollbar-active-color)}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical{height:calc(100% - var(--internal-scroller-bottom)*2 - var(--internal-scroller-width));padding-left:var(--internal-scroller-left);right:var(--internal-scroller-right);top:var(--internal-scroller-bottom);transform:0;width:calc(var(--internal-scroller-width) + var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical.hide{transform:translateX(calc(var(--internal-scroller-width) + var(--internal-scroller-left)))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller .scroller{width:calc(100% - var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal{bottom:var(--internal-scroller-bottom);height:calc(var(--internal-scroller-width) + var(--internal-scroller-top));left:var(--internal-scroller-right);padding-top:var(--internal-scroller-top);transform:0;width:calc(100% - var(--internal-scroller-right)*2 - var(--internal-scroller-width))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal.hide{transform:translateY(calc(var(--internal-scroller-width) + var(--internal-scroller-top)))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller .scroller{height:calc(100% - var(--internal-scroller-top))}:host([y_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{height:auto}:host([x_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{width:auto}:host([y_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.vertical{display:block}:host([x_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.horizontal{display:block}:host([no_user_select]) .content-wrapper *{user-select:none}:host([no_user_select]) ::slotted{user-select:none}`;
-    constructor() {            super();            this.renderAnimation = this.createAnimation();            this.onWheel = this.onWheel.bind(this);            this.onTouchStart = this.onTouchStart.bind(this);            this.onTouchMovePointer = this.onTouchMovePointer.bind(this);            this.onTouchMove = this.onTouchMove.bind(this);            this.onTouchMovePointer = this.onTouchMovePointer.bind(this);            this.onTouchEnd = this.onTouchEnd.bind(this);            this.onTouchEndPointer = this.onTouchEndPointer.bind(this);            this.touchRecord = new TouchRecord();        }
+    constructor() {
+        super();
+        this.renderAnimation = this.createAnimation();
+        this.onWheel = this.onWheel.bind(this);
+        this.onTouchStart = this.onTouchStart.bind(this);
+        this.onTouchMovePointer = this.onTouchMovePointer.bind(this);
+        this.onTouchMove = this.onTouchMove.bind(this);
+        this.onTouchMovePointer = this.onTouchMovePointer.bind(this);
+        this.onTouchEnd = this.onTouchEnd.bind(this);
+        this.onTouchEndPointer = this.onTouchEndPointer.bind(this);
+        this.touchRecord = new TouchRecord();
+    }
     __getStatic() {
         return Scrollable;
     }
@@ -18385,7 +18400,12 @@ Components.Tooltip = class Tooltip extends Aventus.WebComponent {
     screenMargin = 10;
     elementsMoved = new Map();
     static __style = `:host{--local-tooltip-from-y: 0;--local-tooltip-from-x: 0;--local-tooltip-to-y: 0;--local-tooltip-to-x: 0;--local-offset-carret-x: 0px;--local-offset-carret-y: 0px;--_tooltip-background-color: var(--tooltip-background-color, var(--vscode-menu-background));--_tooltip-color: var(--tooltip-color, var(--vscode-menu-foreground));--_tooltip-border: var(--tooltip-border, var(--vscode-menu-border))}:host{background-color:var(--_tooltip-background-color);border:1px solid var(--_tooltip-border);border-radius:2px;color:var(--_tooltip-color);opacity:0;padding:5px 15px;pointer-events:none;position:absolute;transition:.3s opacity ease-in-out,.3s visibility ease-in-out,.3s top ease-in-out,.3s bottom ease-in-out,.3s right ease-in-out,.3s left ease-in-out,.3s transform ease-in-out;visibility:hidden;width:max-content;z-index:1}:host::after{content:"";position:absolute}:host([no_caret])::after{display:none}:host([visible]){opacity:1;visibility:visible}:host([position=bottom]){transform:translateX(-50%)}:host([position=bottom])::after{border-bottom:9px solid var(--_tooltip-background-color);border-left:6px solid rgba(0,0,0,0);border-right:6px solid rgba(0,0,0,0);left:calc(50% + var(--local-offset-carret-x));top:-8px;transform:translateX(-50%)}:host([use_absolute][position=bottom]){left:var(--local-tooltip-from-x);max-height:calc(100% - var(--local-tooltip-to-y) - 10px);top:var(--local-tooltip-from-y)}:host([use_absolute][visible][position=bottom]){top:var(--local-tooltip-to-y)}:host([position=bottom]:not([use_absolute])){bottom:0px;left:50%;transform:translateX(-50%) translateY(calc(100% - 10px))}:host([position=bottom][visible]:not([use_absolute])){transform:translateX(-50%) translateY(calc(100% + 10px))}:host([no_caret][use_absolute][position=bottom]){top:calc(var(--local-tooltip-from-y) - 8px)}:host([no_caret][use_absolute][visible][position=bottom]){top:calc(var(--local-tooltip-to-y) - 8px)}:host([position=top]){transform:translateX(-50%)}:host([position=top])::after{border-left:6px solid rgba(0,0,0,0);border-right:6px solid rgba(0,0,0,0);border-top:9px solid var(--_tooltip-background-color);bottom:-8px;left:calc(50% + var(--local-offset-carret-x));transform:translateX(-50%)}:host([use_absolute][position=top]){bottom:var(--local-tooltip-from-y);left:var(--local-tooltip-from-x);max-height:calc(100% - var(--local-tooltip-to-y) - 10px)}:host([use_absolute][visible][position=top]){bottom:var(--local-tooltip-to-y)}:host([position=top]:not([use_absolute])){left:50%;top:0px;transform:translateX(-50%) translateY(calc(-100% + 10px))}:host([position=top][visible]:not([use_absolute])){transform:translateX(-50%) translateY(calc(-100% - 10px))}:host([no_caret][use_absolute][position=top]){bottom:calc(var(--local-tooltip-from-y) - 6px)}:host([no_caret][use_absolute][visible][position=top]){bottom:calc(var(--local-tooltip-to-y) - 6px)}:host([position=right]){transform:translateY(-50%)}:host([position=right])::after{border-bottom:6px solid rgba(0,0,0,0);border-right:9px solid var(--_tooltip-background-color);border-top:6px solid rgba(0,0,0,0);left:-8px;top:calc(50% + var(--local-offset-carret-y));transform:translateY(-50%)}:host([use_absolute][position=right]){left:var(--local-tooltip-from-x);max-width:calc(100% - var(--local-tooltip-to-x) - 10px);top:var(--local-tooltip-from-y)}:host([use_absolute][visible][position=right]){left:var(--local-tooltip-to-x)}:host([position=right]:not([use_absolute])){right:0;top:50%;transform:translateX(calc(100% - 10px)) translateY(-50%)}:host([visible][position=right]:not([use_absolute])){transform:translateX(calc(100% + 10px)) translateY(-50%)}:host([no_caret][use_absolute][position=right]){left:calc(var(--local-tooltip-from-x) - 6px)}:host([no_caret][use_absolute][visible][position=right]){left:calc(var(--local-tooltip-to-x) - 6px)}:host([position=left]){right:var(--local-tooltip-from-x);top:var(--local-tooltip-from-y);transform:translateY(-50%)}:host([position=left])::after{border-bottom:6px solid rgba(0,0,0,0);border-left:9px solid var(--_tooltip-background-color);border-top:6px solid rgba(0,0,0,0);right:-8px;top:calc(50% + var(--local-offset-carret-y));transform:translateY(-50%)}:host([use_absolute][position=left]){max-width:calc(100% - var(--local-tooltip-to-x) - 10px);right:var(--local-tooltip-from-x);top:var(--local-tooltip-from-y)}:host([use_absolute][visible][position=left]){right:var(--local-tooltip-to-x)}:host([position=left]:not([use_absolute])){left:0;top:50%;transform:translateX(calc(-100% + 10px)) translateY(-50%)}:host([visible][position=left]:not([use_absolute])){transform:translateX(calc(-100% - 10px)) translateY(-50%)}:host([no_caret][use_absolute][position=left]){right:calc(var(--local-tooltip-from-x) - 6px)}:host([no_caret][use_absolute][visible][position=left]){right:calc(var(--local-tooltip-to-x) - 6px)}`;
-    constructor() { super(); this.onMouseEnter=this.onMouseEnter.bind(this)this.onMouseLeave=this.onMouseLeave.bind(this)this.onTransitionEnd=this.onTransitionEnd.bind(this) }
+    constructor() {
+        super();
+        this.onMouseEnter = this.onMouseEnter.bind(this);
+        this.onMouseLeave = this.onMouseLeave.bind(this);
+        this.onTransitionEnd = this.onTransitionEnd.bind(this);
+    }
     __getStatic() {
         return Tooltip;
     }
@@ -19576,7 +19596,10 @@ const TranslationPage = class TranslationPage extends Aventus.WebComponent {
 }));this.__addWatchesActions("importMissingBtn");this.__addWatchesActions("pageName");this.__addWatchesActions("locales");    super.__registerWatchesActions();
 }
     static __style = `:host{--_translation-page-key-width: var(--translation-page-key-width, 300px)}:host{display:none;flex-direction:column;height:100%;margin:0;margin-block:0 !important;width:100%}:host vscode-scrollable{height:calc(100% - 190px);margin:0 20px;width:calc(100% - 40px)}:host av-scrollable{--scroller-width: 0;height:min-content;min-height:0}:host .header{flex-shrink:0;height:177px;padding:20px;padding-bottom:0}:host .header .bar{display:flex;justify-content:space-between;width:100%;gap:20px}:host .header .bar .menu-actions{display:flex;flex-wrap:nowrap;gap:50px}:host .header .bar .menu-actions div{display:flex;margin:15px 0;white-space:nowrap;height:26px}:host .header .bar .menu-actions div vscode-label{margin-right:14px;text-align:right;width:auto}:host .header .bar .menu-actions div vscode-textfield{width:auto}:host .header .menu{border:1px solid var(--vscode-widget-border);padding:8px}:host .header .menu vscode-icon{background-color:rgba(0,0,0,0);cursor:pointer;padding:8px;transition:background-color linear .2s}:host .header .menu vscode-icon:hover{background-color:var(--vscode-button-secondaryBackground)}:host .content{display:flex;flex-direction:column}:host([is_init]){display:flex}`;
-    constructor() { super(); this.triggerChange=this.triggerChange.bind(this) }
+    constructor() {
+        super();
+        this.triggerChange = this.triggerChange.bind(this);
+    }
     __getStatic() {
         return TranslationPage;
     }

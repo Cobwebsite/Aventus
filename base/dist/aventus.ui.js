@@ -565,6 +565,7 @@ let Mutex=class Mutex {
             result = cb.apply(null, []);
         }
         catch (e) {
+            console.error(e);
         }
         await this.release();
         return result;
@@ -582,6 +583,7 @@ let Mutex=class Mutex {
             result = await cb.apply(null, []);
         }
         catch (e) {
+            console.error(e);
         }
         await this.release();
         return result;
@@ -599,6 +601,7 @@ let Mutex=class Mutex {
                 result = cb.apply(null, []);
             }
             catch (e) {
+                console.error(e);
             }
             await this.releaseOnlyLast();
         }
@@ -617,6 +620,7 @@ let Mutex=class Mutex {
                 result = await cb.apply(null, []);
             }
             catch (e) {
+                console.error(e);
             }
             await this.releaseOnlyLast();
         }
@@ -6437,7 +6441,7 @@ Form.Validator=class Validator {
 Form.Validator.Namespace=`Aventus.Form`;
 _.Form.Validator=Form.Validator;
 
-Form.Validators.Required=class Required extends Form.Validator {
+Form.Validators.Required=class Required extends _.Form.Validator {
     static msg = "Le champs {name} est requis";
     /**
      * @inheritdoc
@@ -6456,7 +6460,7 @@ Form.Validators.Required=class Required extends Form.Validator {
 Form.Validators.Required.Namespace=`Aventus.Form.Validators`;
 _.Form.Validators.Required=Form.Validators.Required;
 
-Form.Validators.Email=class Email extends Form.Validator {
+Form.Validators.Email=class Email extends _.Form.Validator {
     static msg = "Merci de saisir un email valide";
     /**
      * @inheritdoc
@@ -6539,7 +6543,14 @@ Form.FormElement = class FormElement extends Aventus.WebComponent {
 }));    super.__registerWatchesActions();
 }
     static __style = ``;
-    constructor() { super(); if (this.constructor == FormElement) { throw "can't instanciate an abstract class"; }this.refreshValueFromForm=this.refreshValueFromForm.bind(this)this.onFormValidation=this.onFormValidation.bind(this) }
+    constructor() {
+        super();
+        if (this.constructor == FormElement) {
+            throw "can't instanciate an abstract class";
+        }
+        this.refreshValueFromForm = this.refreshValueFromForm.bind(this);
+        this.onFormValidation = this.onFormValidation.bind(this);
+    }
     __getStatic() {
         return FormElement;
     }
@@ -6826,7 +6837,7 @@ Form.FormHandler=class FormHandler {
             if (Array.isArray(part.validate)) {
                 const fcts = [];
                 for (let temp of part.validate) {
-                    if (temp instanceof Form.Validator) {
+                    if (temp instanceof _.Form.Validator) {
                         fcts.push(temp.validate);
                     }
                     else {
@@ -6853,7 +6864,7 @@ Form.FormHandler=class FormHandler {
                     return result.length == 0 ? undefined : result;
                 };
             }
-            else if (part.validate instanceof Form.Validator) {
+            else if (part.validate instanceof _.Form.Validator) {
                 validate = part.validate.validate;
             }
             else if (isValidate(part.validate)) {
@@ -7032,10 +7043,10 @@ _.Form.FormHandler=Form.FormHandler;
 
 Form.Form = class Form extends Aventus.WebComponent {
     static set defaultConfig(value) {
-        Form.FormHandler._globalConfig = value;
+        _.Form.FormHandler._globalConfig = value;
     }
     static get defaultConfig() {
-        return Form.FormHandler._globalConfig;
+        return _.Form.FormHandler._globalConfig;
     }
     static __style = ``;
     __getStatic() {
@@ -7056,7 +7067,7 @@ Form.Form = class Form extends Aventus.WebComponent {
         return "Form";
     }
     static create(schema, config) {
-        let form = new Form.FormHandler(schema, config);
+        let form = new _.Form.FormHandler(schema, config);
         return form;
     }
 }
@@ -7621,7 +7632,18 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
     target.changeZoom();
 })); }
     static __style = `:host{--internal-scrollbar-container-color: var(--scrollbar-container-color, transparent);--internal-scrollbar-color: var(--scrollbar-color, #757575);--internal-scrollbar-active-color: var(--scrollbar-active-color, #858585);--internal-scroller-width: var(--scroller-width, 6px);--internal-scroller-top: var(--scroller-top, 3px);--internal-scroller-bottom: var(--scroller-bottom, 3px);--internal-scroller-right: var(--scroller-right, 3px);--internal-scroller-left: var(--scroller-left, 3px);--_scrollbar-content-padding: var(--scrollbar-content-padding, 0);--_scrollbar-container-display: var(--scrollbar-container-display, inline-block)}:host{display:block;height:100%;min-height:inherit;min-width:inherit;overflow:hidden;position:relative;-webkit-user-drag:none;-khtml-user-drag:none;-moz-user-drag:none;-o-user-drag:none;width:100%}:host .scroll-main-container{display:block;height:100%;min-height:inherit;min-width:inherit;position:relative;width:100%}:host .scroll-main-container .content-zoom{display:block;height:100%;min-height:inherit;min-width:inherit;position:relative;transform-origin:0 0;width:100%;z-index:4}:host .scroll-main-container .content-zoom .content-hidder{display:block;height:100%;min-height:inherit;min-width:inherit;overflow:hidden;position:relative;width:100%}:host .scroll-main-container .content-zoom .content-hidder .content-wrapper{display:var(--_scrollbar-container-display);height:100%;min-height:inherit;min-width:inherit;padding:var(--_scrollbar-content-padding);position:relative;width:100%}:host .scroll-main-container .scroller-wrapper .container-scroller{display:none;overflow:hidden;position:absolute;transition:transform .2s linear;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller{background-color:var(--internal-scrollbar-container-color);border-radius:5px}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller .scroller{background-color:var(--internal-scrollbar-color);border-radius:5px;cursor:pointer;position:absolute;-webkit-tap-highlight-color:rgba(0,0,0,0);touch-action:none;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .scroller.active{background-color:var(--internal-scrollbar-active-color)}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical{height:calc(100% - var(--internal-scroller-bottom)*2 - var(--internal-scroller-width));padding-left:var(--internal-scroller-left);right:var(--internal-scroller-right);top:var(--internal-scroller-bottom);transform:0;width:calc(var(--internal-scroller-width) + var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical.hide{transform:translateX(calc(var(--internal-scroller-width) + var(--internal-scroller-left)))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller .scroller{width:calc(100% - var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal{bottom:var(--internal-scroller-bottom);height:calc(var(--internal-scroller-width) + var(--internal-scroller-top));left:var(--internal-scroller-right);padding-top:var(--internal-scroller-top);transform:0;width:calc(100% - var(--internal-scroller-right)*2 - var(--internal-scroller-width))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal.hide{transform:translateY(calc(var(--internal-scroller-width) + var(--internal-scroller-top)))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller .scroller{height:calc(100% - var(--internal-scroller-top))}:host([y_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{height:auto}:host([x_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{width:auto}:host([y_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.vertical{display:block}:host([x_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.horizontal{display:block}:host([no_user_select]) .content-wrapper *{user-select:none}:host([no_user_select]) ::slotted{user-select:none}`;
-    constructor() {            super();            this.renderAnimation = this.createAnimation();            this.onWheel = this.onWheel.bind(this);            this.onTouchStart = this.onTouchStart.bind(this);            this.onTouchMovePointer = this.onTouchMovePointer.bind(this);            this.onTouchMove = this.onTouchMove.bind(this);            this.onTouchMovePointer = this.onTouchMovePointer.bind(this);            this.onTouchEnd = this.onTouchEnd.bind(this);            this.onTouchEndPointer = this.onTouchEndPointer.bind(this);            this.touchRecord = new TouchRecord();        }
+    constructor() {
+        super();
+        this.renderAnimation = this.createAnimation();
+        this.onWheel = this.onWheel.bind(this);
+        this.onTouchStart = this.onTouchStart.bind(this);
+        this.onTouchMovePointer = this.onTouchMovePointer.bind(this);
+        this.onTouchMove = this.onTouchMove.bind(this);
+        this.onTouchMovePointer = this.onTouchMovePointer.bind(this);
+        this.onTouchEnd = this.onTouchEnd.bind(this);
+        this.onTouchEndPointer = this.onTouchEndPointer.bind(this);
+        this.touchRecord = new TouchRecord();
+    }
     __getStatic() {
         return Scrollable;
     }
@@ -8399,7 +8421,15 @@ Navigation.Router = class Router extends Aventus.WebComponent {
     }
     page404;
     static __style = `:host{display:block}`;
-    constructor() {            super();            this.validError404 = this.validError404.bind(this);            this.canChangeState = this.canChangeState.bind(this);            this.stateManager.canChangeState(this.canChangeState);if (this.constructor == Router) { throw "can't instanciate an abstract class"; }}
+    constructor() {
+        super();
+        this.validError404 = this.validError404.bind(this);
+        this.canChangeState = this.canChangeState.bind(this);
+        this.stateManager.canChangeState(this.canChangeState);
+        if (this.constructor == Router) {
+            throw "can't instanciate an abstract class";
+        }
+    }
     __getStatic() {
         return Router;
     }
@@ -8588,7 +8618,12 @@ Navigation.Page = class Page extends Aventus.WebComponent {
     }
 })); }
     static __style = `:host{display:none}:host([visible]){display:block}`;
-    constructor() { super(); if (this.constructor == Page) { throw "can't instanciate an abstract class"; } }
+    constructor() {
+        super();
+        if (this.constructor == Page) {
+            throw "can't instanciate an abstract class";
+        }
+    }
     __getStatic() {
         return Page;
     }
