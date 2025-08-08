@@ -1102,6 +1102,7 @@ export class AventusTsLanguageService {
             let additionContentNpm = "";
             // prepare content
             let txt = element.compiledContent;
+            let txtDoc = element.compiledContentDoc;
             let txtHotReload = element.compiledContentHotReload;
             let moduleName = file.build.module;
             if (element instanceof ClassInfo && !element.isInterface) {
@@ -1131,6 +1132,7 @@ export class AventusTsLanguageService {
             }
             else if (element instanceof VariableInfo) {
                 txt = element.type + " " + element.compiledContent;
+                txtDoc = element.type + " " + element.compiledContentDoc;
                 txtHotReload = element.type + " " + element.compiledContentHotReload;
             }
 
@@ -1146,7 +1148,9 @@ export class AventusTsLanguageService {
                 result.hotReload = transpile(txtHotReload, compilerOptionsCompile);
             }
 
-            let rawDoc = this.compileDocTs(txt, element);
+            txtDoc = this.removeComments(txtDoc);
+            txtDoc = this.replaceFirstExport(txtDoc);
+            let rawDoc = this.compileDocTs(txtDoc, element);
             let doc = DefinitionCorrector.correct(rawDoc, element);
 
             let buildNpm = this.compileTsToNpm(element, file);

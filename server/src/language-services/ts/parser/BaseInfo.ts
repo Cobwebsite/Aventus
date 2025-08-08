@@ -41,6 +41,7 @@ export type SupportedRootNodes = ClassDeclaration | EnumDeclaration | InterfaceD
 
 export type DependanceInfo = {
     replacement: string | null,
+    docReplacement: string | null,
     hotReloadReplacement: string | null,
     npmReplacement: string | null,
     typeRemplacement: string | null,
@@ -127,6 +128,9 @@ export abstract class BaseInfo {
     }
     public get compiledContentNpm(): string {
         return BaseInfo.getContentNpm(this.content, this.start, this.end, this.dependancesLocations, this.compileTransformations);
+    }
+    public get compiledContentDoc(): string {
+        return BaseInfo.getContentDoc(this.content, this.start, this.end, this.dependancesLocations, this.compileTransformations);
     }
     public get fileUri() {
         return this.document.uri;
@@ -639,7 +643,8 @@ export abstract class BaseInfo {
             if (!this.parserInfo.internalObjects[name] &&
                 !this.parserInfo.importsLocal[name] &&
                 !this.parserInfo.waitingImports[name] &&
-                !this.parserInfo.npmImports[name]
+                !this.parserInfo.npmImports[name] &&
+                !this.parserInfo.packages[name]
             ) {
                 onName();
                 return
@@ -652,6 +657,7 @@ export abstract class BaseInfo {
                     locations: {},
                     typeRemplacement: null,
                     replacement: null,
+                    docReplacement: null,
                     hotReloadReplacement: null,
                     npmReplacement: null
                 }
@@ -803,6 +809,7 @@ export abstract class BaseInfo {
 
                 this.dependancesLocations[name].typeRemplacement = replacement;
                 this.dependancesLocations[name].replacement = fullName;
+                this.dependancesLocations[name].docReplacement = fullName;
                 // no need to use getNpmReplacementName because local content can't change name
                 this.dependancesLocations[name].npmReplacement = name;
                 this.dependancesLocations[name].hotReloadReplacement = hotReloadName;
@@ -842,11 +849,12 @@ export abstract class BaseInfo {
                 const splittedLocalFullName = this.fullName.split(".");
                 splittedLocalFullName.slice(0, 1);
                 const replacementStart = fullName.split('.')[0];
-                // if (splittedLocalFullName.includes(replacementStart)) {
-                //     remplacement = '_.' + remplacement;
-                // }
+                if (splittedLocalFullName.includes(replacementStart)) {
+                    remplacement = '_.' + remplacement;
+                }
                 this.dependancesLocations[name].typeRemplacement = typeRemplacement;
                 this.dependancesLocations[name].replacement = remplacement;
+                this.dependancesLocations[name].docReplacement = fullName;
                 this.dependancesLocations[name].npmReplacement = npmReplacement;
                 this.dependancesLocations[name].hotReloadReplacement = hotReloadName;
 
@@ -876,6 +884,7 @@ export abstract class BaseInfo {
 
                     this.dependancesLocations[name].typeRemplacement = replacement;
                     this.dependancesLocations[name].replacement = fullName;
+                    this.dependancesLocations[name].docReplacement = fullName;
                     this.dependancesLocations[name].npmReplacement = npmReplacement;
                     this.dependancesLocations[name].hotReloadReplacement = hotReloadName;
 
@@ -902,6 +911,7 @@ export abstract class BaseInfo {
             if (this.dependancesLocations[name]) {
                 this.dependancesLocations[name].typeRemplacement = fullName;
                 this.dependancesLocations[name].replacement = fullName;
+                this.dependancesLocations[name].docReplacement = fullName;
                 this.dependancesLocations[name].npmReplacement = npmReplacement;
                 this.dependancesLocations[name].hotReloadReplacement = fullName;
             }
@@ -931,6 +941,7 @@ export abstract class BaseInfo {
             const npmReplacement = this.getNpmReplacementName(md5uri + "." + name);
             if (this.dependancesLocations[name]) {
                 this.dependancesLocations[name].replacement = "npmCompilation['" + md5uri + "']." + name;
+                this.dependancesLocations[name].docReplacement = "npmCompilation['" + md5uri + "']." + name;
                 if (npmReplacement != name) {
                     this.dependancesLocations[name].npmReplacement = npmReplacement;
                 }
@@ -1001,6 +1012,15 @@ export abstract class BaseInfo {
     ) {
         return this._getContent(txt, start, end, dependancesLocations, compileTransformations, 3);
     }
+    public static getContentDoc(
+        txt: string,
+        start: number,
+        end: number,
+        dependancesLocations: { [name: string]: DependanceInfo },
+        compileTransformations: { [key: string]: { newText: string, start: number, end: number } }
+    ) {
+        return this._getContent(txt, start, end, dependancesLocations, compileTransformations, 4);
+    }
     private static _getContent(
         txt: string,
         start: number,
@@ -1020,6 +1040,9 @@ export abstract class BaseInfo {
             }
             else if (typeContent == 3) {
                 replacement = dependancesLocations[depName].npmReplacement;
+            }
+            else if (typeContent == 4) {
+                replacement = dependancesLocations[depName].docReplacement;
             }
             let typeRemplacement = dependancesLocations[depName].typeRemplacement;
             if (replacement) {
