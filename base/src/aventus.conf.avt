@@ -5,7 +5,7 @@
         {
             "name": "Main",
             "hideWarnings": true,
-            "version": "1.0.1",
+            "version": "1.0.3",
             "src": [
                 "./data/",
                 "./lib/",

@@ -2,6 +2,7 @@ import { Email } from "../Form/Validator/Email.lib.avt";
 import { FormElement } from "../FormElement/FormElement.wcl.avt";
 
 namespace Form {
+    @Storybook()
     export class Input extends FormElement<string> implements Aventus.DefaultComponent {
 
         //#region static

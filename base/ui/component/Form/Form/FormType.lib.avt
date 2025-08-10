@@ -1,3 +1,4 @@
+import type { FormHandler } from "./FormHandler.lib.avt";
 import type { Validator } from "./Validator.lib.avt";
 
 namespace Form {
@@ -28,6 +29,7 @@ namespace Form {
         register: (element: IFormElement) => void;
         unregister: (element: IFormElement) => void;
         test: () => Promise<boolean>;
+        handler: FormHandler<any>
     };
     export type FormSchema<T> = { [K in keyof T]: FormPart<T[K]> | FormPartValidateList<T> };
 

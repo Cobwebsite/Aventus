@@ -10,13 +10,16 @@ export class FileSystem {
 	private stack: { created: string[], updated: string[], deleted: string[] } = { created: [], deleted: [], updated: [] };
 	private timeout: NodeJS.Timeout | undefined;
 	private mutex: Mutex = new Mutex();
-	private htmlManifest = "vscode.html-custom-data.json";
+
+	public get htmlManifest() { return AutoLoader.htmlManifest }
+	public get emmetManifest() { return AutoLoader.emmetManifest }
+
 	private aventusExtension = ".avt";
 	public constructor() {
 		this.onCreate = this.onCreate.bind(this);
 		this.onChange = this.onChange.bind(this);
 		this.onDelete = this.onDelete.bind(this);
-		this.fs = workspace.createFileSystemWatcher(`**/{*${this.aventusExtension},${this.htmlManifest}}`)
+		this.fs = workspace.createFileSystemWatcher(`**/{*${this.aventusExtension},${this.htmlManifest},${this.emmetManifest}}`)
 		this.fs.onDidCreate(this.onCreate)
 		this.fs.onDidChange(this.onChange)
 		this.fs.onDidDelete(this.onDelete)
@@ -29,7 +32,7 @@ export class FileSystem {
 		if (uriTxt.endsWith(this.aventusExtension)) {
 			this.onCreateAvt(uri);
 		}
-		else if (uriTxt.endsWith(this.htmlManifest)) {
+		else if (uriTxt.endsWith(this.htmlManifest) || uriTxt.endsWith(this.emmetManifest)) {
 			await AutoLoader.getInstance().register(uri)
 		}
 		this.mutex.release();

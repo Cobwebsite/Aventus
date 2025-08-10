@@ -384,14 +384,14 @@ let Style=class Style {
         if (!document.head.querySelector(`style[data-name="${name}"]`)) {
             const styleNode = document.createElement('style');
             styleNode.setAttribute(`data-name`, name);
-            styleNode.innerHTML = Aventus.Style.getAsString(name);
+            styleNode.innerHTML = Style.getAsString(name);
             document.getElementsByTagName('head')[0].appendChild(styleNode);
         }
     }
     static refreshHead(name) {
         const styleNode = document.head.querySelector(`style[data-name="${name}"]`);
         if (styleNode) {
-            styleNode.innerHTML = Aventus.Style.getAsString(name);
+            styleNode.innerHTML = Style.getAsString(name);
         }
     }
     static getInstance() {

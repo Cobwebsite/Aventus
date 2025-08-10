@@ -10,12 +10,20 @@
                 "./lib/",
                 "./test/"
             ],
-            "compile": [{
-                "package": "../../lib/Aventus@UI.package.avt",
-                "output": "../dist/aventus.ui.js"
-            }],
+            "compile": [
+                {
+                    "package": "../../lib/Aventus@UI.package.avt",
+                    "output": "../dist/aventus.ui.js"
+                }
+            ],
             "namespaceStrategy": "followFolders",
-            "namespaceRoot": "./component/"
+            "namespaceRoot": "./component/",
+            "stories": {
+                "output": "../../../Storybook/AventusUI_storybook",
+                "workspace": "../../../Storybook/AventusUI_storybook",
+                "format": "protected",
+                "live": false
+            }
         }
     ],
     "static": [

@@ -104,10 +104,14 @@ export class ProjectManager {
     }
     public getAllBuildsWithStory(): { name: string, uri: string }[] {
         let result: { name: string, uri: string }[] = [];
+        let keys: string[] = [];
         for (let uri in this.projects) {
             let project = this.projects[uri];
             let builds = project.getBuildsNameWithStory();
             for (let build of builds) {
+                const key = build + "_" + project.getConfigFile().uri;
+                if (keys.includes(key)) continue;
+                keys.push(key);
                 result.push({
                     name: build,
                     uri: project.getConfigFile().uri

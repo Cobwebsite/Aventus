@@ -1,3 +1,4 @@
+import { GenericError, VoidWithError } from "Aventus@Main:Aventus.package.avt";
 import { type Constructor, type FormHandlerConfig, type FormPart, type FormPartValidate, type FormSchema, type FormValidate, type FormValidateResult, type IFormElement, type InternalForm, type InternalFormPart, type WithError } from "./FormType.lib.avt";
 import { Validator } from "./Validator.lib.avt";
 
@@ -45,7 +46,8 @@ namespace Form {
 
             this.onWatcherChanged = this.onWatcherChanged.bind(this);
             this.__watcher = Aventus.Watcher.get({
-                form: {}
+                form: {},
+                item: {}
             }, this.onWatcherChanged);
 
             this.__watcher.form = this.transformForm(schema);
@@ -74,11 +76,11 @@ namespace Form {
 
                 if(needTransform) {
                     return {
-                        validate:part
-                    } as FormPart<T[keyof T]>
+                        validate: part
+                    } as FormPart<T[keyof T]>;
                 }
-                return part as FormPart<T[keyof T]>
-            }
+                return part as FormPart<T[keyof T]>;
+            };
             const createKey = (key: keyof T) => {
                 form[key] = normalizePart(form[key]);
                 this.transformFormPart(key, form[key]);
@@ -94,6 +96,7 @@ namespace Form {
             const realPart = part as InternalFormPart;
             realPart.onValidation = new Aventus.Callback();
             realPart.onValueChange = new Aventus.Callback();
+            realPart.handler = this;
             if(part.validate) {
                 const isValidate = (validate: FormPartValidate<T> | Constructor<Validator<any>>): validate is FormPartValidate<any> => {
                     return validate.name == "validate";
@@ -169,7 +172,7 @@ namespace Form {
                     return Aventus.setValueToObject(key as string, this.item, value);
                 }
             };
-            return
+            return;
         }
 
 
@@ -282,7 +285,22 @@ namespace Form {
             return Object.keys(result).length == 0;
         }
 
-        public async execute<X>(query: Aventus.Asyncable<WithError<X>>): Promise<WithError<X>> {
+        public async submit<X>(query: Aventus.Asyncable<WithError<X>> | ((body: T) => Aventus.Asyncable<WithError<X>>)): Promise<WithError<X> | null> {
+            const result = await this.validate();
+            if(!result) {
+                return null;
+            }
+            return this.execute(query);
+        }
+        public async execute<X>(query: Aventus.Asyncable<WithError<X>> | ((body: T) => Aventus.Asyncable<WithError<X>>)): Promise<WithError<X>> {
+            if(typeof query == "function") {
+                if(!this.item) {
+                    const result = new VoidWithError();
+                    result.errors.push(new GenericError(404, "No item inside the form"));
+                    return result;
+                }
+                query = query(this.item);
+            }
             let queryResult = await query;
 
             if(queryResult.errors.length > 0) {

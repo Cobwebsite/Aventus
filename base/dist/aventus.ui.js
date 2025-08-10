@@ -390,14 +390,14 @@ let Style=class Style {
         if (!document.head.querySelector(`style[data-name="${name}"]`)) {
             const styleNode = document.createElement('style');
             styleNode.setAttribute(`data-name`, name);
-            styleNode.innerHTML = Aventus.Style.getAsString(name);
+            styleNode.innerHTML = Style.getAsString(name);
             document.getElementsByTagName('head')[0].appendChild(styleNode);
         }
     }
     static refreshHead(name) {
         const styleNode = document.head.querySelector(`style[data-name="${name}"]`);
         if (styleNode) {
-            styleNode.innerHTML = Aventus.Style.getAsString(name);
+            styleNode.innerHTML = Style.getAsString(name);
         }
     }
     static getInstance() {
@@ -6414,6 +6414,68 @@ Form.isSubclassOf=function isSubclassOf(subClass, superClass) {
 }
 _.Form.isSubclassOf=Form.isSubclassOf;
 
+Form.ButtonGeneric = class ButtonGeneric extends Aventus.WebComponent {
+    static get observedAttributes() {return ["type"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'type'() { return this.getStringProp('type') }
+    set 'type'(val) { this.setStringAttr('type', val) }    static get formAssociated() { return true; }
+    internals;
+    handler = undefined;
+    static __style = ``;
+    constructor() {
+        super();
+        this.internals = this.attachInternals();
+        if (this.constructor == ButtonGeneric) {
+            throw "can't instanciate an abstract class";
+        }
+    }
+    __getStatic() {
+        return ButtonGeneric;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(ButtonGeneric.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<slot></slot>` }
+    });
+}
+    getClassName() {
+        return "ButtonGeneric";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('type')){ this['type'] = 'button'; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('type'); }
+    triggerSubmit() {
+        if (this.type == "submit") {
+            if (this.internals.form) {
+                this.internals.form.requestSubmit();
+            }
+            else if (this.handler) {
+                this.handler.requestSubmit();
+            }
+        }
+    }
+    postCreation() {
+        super.postCreation();
+        this.handler = this.findParentByType(_.Form.Form)?.registerSubmit(this);
+        new Aventus.PressManager({
+            element: this,
+            onPress: () => {
+                this.triggerSubmit();
+            }
+        });
+        this.addEventListener("keyup", (e) => {
+            if (e.key == 'Enter') {
+                this.triggerSubmit();
+            }
+        });
+    }
+}
+Form.ButtonGeneric.Namespace=`Aventus.Form`;
+_.Form.ButtonGeneric=Form.ButtonGeneric;
+
 Form.Validator=class Validator {
     static async Test(validators, value, name, globalValidation) {
         if (!Array.isArray(validators)) {
@@ -6488,7 +6550,12 @@ Form.Button = class Button extends Aventus.WebComponent {
     set 'ghost'(val) { this.setBoolAttr('ghost', val) }get 'color'() { return this.getStringAttr('color') }
     set 'color'(val) { this.setStringAttr('color', val) }get 'size'() { return this.getStringAttr('size') }
     set 'size'(val) { this.setStringAttr('size', val) }    get 'icon'() { return this.getStringProp('icon') }
-    set 'icon'(val) { this.setStringAttr('icon', val) }    static __style = `:host{--_button-border-radius: var(--button-border-radius, var(--border-radius-md));--_button-font-size: var(--button-font-size, var(--text-base));--_button-padding: var(--button-padding, var(--space-2) var(--space-4));--_button-background-color: var(--button-background-color, var(--color-primary));--_button-background-color-hover: var(--button-background-color-hover, var(--color-primary-hover));--_button-color: var(--button-color, var(--color-text-inverse));--_button-color-hover: var(--button-color-hover, var(--_button-color));--_button-border: var(--button-border, none)}:host([color=secondary]){--_button-background-color: var(--button-background-color, var(--color-surface));--_button-border: var(--button-border, var(--border-width) solid var(--color-border));--_button-color: var(--button-color, var(--color-text))}:host([color=secondary]:hover){--_button-background-color-hover: var(--button-background-color-hover, var(--color-bg-muted))}:host([color=danger]){--_button-background-color: var(--button-background-color, var(--color-error));--_button-color: var(--button-color, var(--color-text-inverse))}:host([color=danger]:hover){--_button-background-color-hover: var(--button-background-color-hover, #dc2626)}:host([color=neutral]){--_button-background-color: var(--button-background-color, #6b7280);--_button-color: var(--button-color, white)}:host([color=neutral]:hover){--_button-background-color-hover: var(--button-background-color-hover, #4b5563)}:host{align-items:center;background-color:var(--_button-background-color);border:var(--_button-border);border-radius:var(--_button-border-radius);color:var(--_button-color);cursor:pointer;display:inline-flex;font-family:inherit;font-size:var(--_button-font-size);font-weight:500;gap:var(--space-2);justify-content:center;line-height:1;padding:var(--_button-padding);text-decoration:none;transition:all var(--transition-fast);user-select:none}:host(:hover){background-color:var(--_button-background-color-hover);color:var(--_button-color-hover)}:host(:active){transform:scale(0.98)}:host([disabled]){cursor:not-allowed;opacity:.5;pointer-events:none}:host([round]){border-radius:9999px}:host([outline]:not(:hover)){--_button-color: var(--button-color, var(--color-text));--_button-border: var(--button-border, var(--border-width) solid var(--color-border));--_button-background-color: var(--button-background-color, transparent)}:host([outline]:hover){--_button-border: var(--button-border, var(--border-width) solid var(--_button-background-color));--_button-color: var(--button-color, var(--_button-background-color));--_button-background-color-hover: var(--button-background-color-hover, transparent)}:host([ghost]){--_button-background-color: var(--button-background-color, transparent);--_button-color: var(--button-color, var(--color-text))}:host([ghost]:hover){--_button-background-color-hover: var(--button-background-color-hover, var(--color-bg-muted))}:host([size=sm]){--_button-padding: var(--button-padding, var(--space-1) var(--space-3));--_button-font-size: var(--button-font-size, var(--text-sm))}:host([size=lg]){--_button-padding: var(--button-padding, var(--space-3) var(--space-5));--_button-font-size: var(--button-font-size, var(--text-lg))}:host([icon_only]){height:2.5rem;justify-content:center;padding:var(--space-2);width:2.5rem}`;
+    set 'icon'(val) { this.setStringAttr('icon', val) }    internals;
+    static __style = `:host{--_button-border-radius: var(--button-border-radius, var(--border-radius-md));--_button-font-size: var(--button-font-size, var(--text-base));--_button-padding: var(--button-padding, var(--space-2) var(--space-4));--_button-background-color: var(--button-background-color, var(--color-primary));--_button-background-color-hover: var(--button-background-color-hover, var(--color-primary-hover));--_button-color: var(--button-color, var(--color-text-inverse));--_button-color-hover: var(--button-color-hover, var(--_button-color));--_button-border: var(--button-border, none)}:host([color=secondary]){--_button-background-color: var(--button-background-color, var(--color-surface));--_button-border: var(--button-border, var(--border-width) solid var(--color-border));--_button-color: var(--button-color, var(--color-text))}:host([color=secondary]:hover){--_button-background-color-hover: var(--button-background-color-hover, var(--color-bg-muted))}:host([color=danger]){--_button-background-color: var(--button-background-color, var(--color-error));--_button-color: var(--button-color, var(--color-text-inverse))}:host([color=danger]:hover){--_button-background-color-hover: var(--button-background-color-hover, #dc2626)}:host([color=neutral]){--_button-background-color: var(--button-background-color, #6b7280);--_button-color: var(--button-color, white)}:host([color=neutral]:hover){--_button-background-color-hover: var(--button-background-color-hover, #4b5563)}:host{align-items:center;background-color:var(--_button-background-color);border:var(--_button-border);border-radius:var(--_button-border-radius);color:var(--_button-color);cursor:pointer;display:inline-flex;font-family:inherit;font-size:var(--_button-font-size);font-weight:500;gap:var(--space-2);justify-content:center;line-height:1;padding:var(--_button-padding);text-decoration:none;transition:all var(--transition-fast);user-select:none}:host(:hover){background-color:var(--_button-background-color-hover);color:var(--_button-color-hover)}:host(:active){transform:scale(0.98)}:host([disabled]){cursor:not-allowed;opacity:.5;pointer-events:none}:host([round]){border-radius:9999px}:host([outline]:not(:hover)){--_button-color: var(--button-color, var(--color-text));--_button-border: var(--button-border, var(--border-width) solid var(--color-border));--_button-background-color: var(--button-background-color, transparent)}:host([outline]:hover){--_button-border: var(--button-border, var(--border-width) solid var(--_button-background-color));--_button-color: var(--button-color, var(--_button-background-color));--_button-background-color-hover: var(--button-background-color-hover, transparent)}:host([ghost]){--_button-background-color: var(--button-background-color, transparent);--_button-color: var(--button-color, var(--color-text))}:host([ghost]:hover){--_button-background-color-hover: var(--button-background-color-hover, var(--color-bg-muted))}:host([size=sm]){--_button-padding: var(--button-padding, var(--space-1) var(--space-3));--_button-font-size: var(--button-font-size, var(--text-sm))}:host([size=lg]){--_button-padding: var(--button-padding, var(--space-3) var(--space-5));--_button-font-size: var(--button-font-size, var(--text-lg))}:host([icon_only]){height:2.5rem;justify-content:center;padding:var(--space-2);width:2.5rem}`;
+    constructor() {
+        super();
+        this.internals = this.attachInternals();
+    }
     __getStatic() {
         return Button;
     }
@@ -6516,8 +6583,10 @@ _.Form.Button=Form.Button;
 if(!window.customElements.get('av-button')){window.customElements.define('av-button', Form.Button);Aventus.WebComponentInstance.registerDefinition(Form.Button);}
 
 Form.FormElement = class FormElement extends Aventus.WebComponent {
+    static get observedAttributes() {return ["disabled"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'has_errors'() { return this.getBoolAttr('has_errors') }
-    set 'has_errors'(val) { this.setBoolAttr('has_errors', val) }    get 'value'() {
+    set 'has_errors'(val) { this.setBoolAttr('has_errors', val) }    get 'disabled'() { return this.getBoolProp('disabled') }
+    set 'disabled'(val) { this.setBoolAttr('disabled', val) }    get 'value'() {
 						return this.__watch["value"];
 					}
 					set 'value'(val) {
@@ -6527,7 +6596,8 @@ Form.FormElement = class FormElement extends Aventus.WebComponent {
 					}
 					set 'errors'(val) {
 						this.__watch["errors"] = val;
-					}    _form;
+					}    static get formAssociated() { return true; }
+    _form;
     get form() {
         return this._form;
     }
@@ -6536,15 +6606,21 @@ Form.FormElement = class FormElement extends Aventus.WebComponent {
         this._form = value;
         this.linkFormPart();
     }
+    internals;
+    canLinkValueToForm = false;
+    handler = undefined;
     onChange = new Aventus.Callback();
     __registerWatchesActions() {
-    this.__addWatchesActions("value");this.__addWatchesActions("errors", ((target) => {
-    target.has_errors = target.errors.length > 0;
+    this.__addWatchesActions("value", ((target) => {
+    target.onValueChange(target.value);
+}));this.__addWatchesActions("errors", ((target) => {
+    target.onErrorsChange();
 }));    super.__registerWatchesActions();
 }
     static __style = ``;
     constructor() {
         super();
+        this.internals = this.attachInternals();
         if (this.constructor == FormElement) {
             throw "can't instanciate an abstract class";
         }
@@ -6568,10 +6644,10 @@ Form.FormElement = class FormElement extends Aventus.WebComponent {
     getClassName() {
         return "FormElement";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('has_errors')) { this.attributeChangedCallback('has_errors', false, false); } }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('has_errors')) { this.attributeChangedCallback('has_errors', false, false); }if(!this.hasAttribute('disabled')) { this.attributeChangedCallback('disabled', false, false); } }
     __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["value"] = undefined;w["errors"] = []; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('form');this.__upgradeProperty('has_errors');this.__correctGetter('value');this.__correctGetter('errors'); }
-    __listBoolProps() { return ["has_errors"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('form');this.__upgradeProperty('has_errors');this.__upgradeProperty('disabled');this.__correctGetter('value');this.__correctGetter('errors'); }
+    __listBoolProps() { return ["has_errors","disabled"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     refreshValueFromForm() {
         if (this._form) {
             this.errors = [];
@@ -6627,6 +6703,48 @@ Form.FormElement = class FormElement extends Aventus.WebComponent {
         if (this.form) {
             this.form.value.set(this.value);
         }
+    }
+    onValueChange(value) {
+        this.linkValueToForm();
+    }
+    onErrorsChange() {
+        this.has_errors = this.errors.length > 0;
+        this.linkErrorToForm();
+    }
+    linkErrorToForm() {
+        if (!this.canLinkValueToForm)
+            return;
+        if (this.has_errors) {
+            this.internals.setValidity({
+                customError: true
+            }, this.errors.join(' & '));
+        }
+        else {
+            this.internals.setValidity({});
+        }
+    }
+    linkValueToForm() {
+        if (!this.canLinkValueToForm)
+            return;
+        if (this.value === undefined) {
+            this.internals.setFormValue(null);
+        }
+        else {
+            this.internals.setFormValue(this.value + '');
+        }
+    }
+    formAssociatedCallback(form) {
+        this.canLinkValueToForm = true;
+        this.linkValueToForm();
+        this.linkErrorToForm();
+        this.validate();
+    }
+    formDisabledCallback(disabled) {
+        this.disabled = disabled;
+    }
+    postCreation() {
+        super.postCreation();
+        this.handler = this.findParentByType(_.Form.Form)?.registerElement(this);
     }
     postDestruction() {
         super.postDestruction();
@@ -6784,7 +6902,8 @@ Form.FormHandler=class FormHandler {
         this._handleExecuteNoInputError = config?.handleExecuteNoInputError ?? Form.FormHandler._globalConfig?.handleExecuteNoInputError;
         this.onWatcherChanged = this.onWatcherChanged.bind(this);
         this.__watcher = Aventus.Watcher.get({
-            form: {}
+            form: {},
+            item: {}
         }, this.onWatcherChanged);
         this.__watcher.form = this.transformForm(schema);
     }
@@ -6829,6 +6948,7 @@ Form.FormHandler=class FormHandler {
         const realPart = part;
         realPart.onValidation = new Aventus.Callback();
         realPart.onValueChange = new Aventus.Callback();
+        realPart.handler = this;
         if (part.validate) {
             const isValidate = (validate) => {
                 return validate.name == "validate";
@@ -7002,7 +7122,22 @@ Form.FormHandler=class FormHandler {
         }
         return Object.keys(result).length == 0;
     }
+    async submit(query) {
+        const result = await this.validate();
+        if (!result) {
+            return null;
+        }
+        return this.execute(query);
+    }
     async execute(query) {
+        if (typeof query == "function") {
+            if (!this.item) {
+                const result = new Aventus.VoidWithError();
+                result.errors.push(new Aventus.GenericError(404, "No item inside the form"));
+                return result;
+            }
+            query = query(this.item);
+        }
         let queryResult = await query;
         if (queryResult.errors.length > 0) {
             queryResult.errors = this.parseErrors(queryResult);
@@ -7048,7 +7183,16 @@ Form.Form = class Form extends Aventus.WebComponent {
     static get defaultConfig() {
         return _.Form.FormHandler._globalConfig;
     }
+    form;
+    request;
+    elements = [];
+    btns = [];
+    onSubmit = new Aventus.Callback();
     static __style = ``;
+    constructor() {
+        super();
+        this.checkEnter = this.checkEnter.bind(this);
+    }
     __getStatic() {
         return Form;
     }
@@ -7065,6 +7209,41 @@ Form.Form = class Form extends Aventus.WebComponent {
 }
     getClassName() {
         return "Form";
+    }
+    checkEnter(e) {
+        if (e.key == "Enter") {
+            this.requestSubmit();
+        }
+    }
+    registerElement(element) {
+        if (this.elements.length > 0) {
+            this.elements[this.elements.length - 1].removeEventListener("keyup", this.checkEnter);
+        }
+        this.elements.push(element);
+        element.addEventListener("keyup", this.checkEnter);
+        return this;
+    }
+    registerSubmit(element) {
+        this.btns.push(element);
+        return this;
+    }
+    async requestSubmit() {
+        debugger;
+        if (!this.form) {
+            for (let element of this.elements) {
+                this.form = element.form?.handler;
+                if (this.form)
+                    break;
+            }
+        }
+        if (this.form) {
+            if (this.request) {
+                this.form.submit(this.request);
+            }
+            else if (await this.form.validate()) {
+                this.onSubmit.trigger();
+            }
+        }
     }
     static create(schema, config) {
         let form = new _.Form.FormHandler(schema, config);

@@ -825,7 +825,18 @@ export class Build {
                 if (!existsSync(outputPackage)) {
                     mkdirSync(outputPackage, { recursive: true });
                 }
-                this.writeFile(join(outputPackage, "package.json"), JSON.stringify(packageJson, null, 2));
+                const packageJsonPath = join(outputPackage, "package.json");
+                let oldPackage: any = {};
+                if (existsSync(packageJsonPath)) {
+                    try {
+                        oldPackage = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
+                    } catch { }
+                }
+                const finalPackage = { ...packageJson, ...oldPackage };
+                finalPackage.name = packageJson.name;
+                finalPackage.displayName = packageJson.displayName;
+                finalPackage.version = packageJson.version;
+                this.writeFile(packageJsonPath, JSON.stringify(finalPackage, null, 2));
             }
         }
 

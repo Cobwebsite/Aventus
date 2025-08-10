@@ -1,16 +1,21 @@
+import { Form } from "../Form/Form.wcl.avt";
+import type { FormHandler } from "../Form/FormHandler.lib.avt";
 import type { IFormElement, InternalFormPart } from "../Form/FormType.lib.avt";
 
 namespace Form {
+    @Storybook()
     export abstract class FormElement<T> extends Aventus.WebComponent implements Aventus.DefaultComponent, IFormElement<T> {
 
         //#region static
-
+        public static get formAssociated(): boolean { return true; }
         //#endregion
 
 
         //#region props
         @Attribute()
         protected has_errors!: boolean;
+        @Property()
+        public disabled!: boolean;
         //#endregion
 
 
@@ -18,14 +23,16 @@ namespace Form {
         /**
          * Value for the current form element
          */
-        @Watch()
+        @Watch((target: FormElement<T>) => {
+            target.onValueChange(target.value);
+        })
         public value: T | undefined;
 
         /**
          * List of errors. You must display errors in child component
          */
         @Watch((target: FormElement<T>) => {
-            target.has_errors = target.errors.length > 0;
+            target.onErrorsChange();
         })
         public errors: string[] = [];
 
@@ -40,11 +47,18 @@ namespace Form {
             this._form = value;
             this.linkFormPart();
         }
+
+        protected internals: ElementInternals;
+        protected canLinkValueToForm: boolean = false;
+        protected handler?: Form<any> = undefined;
         //#endregion
 
 
         //#region constructor
-
+        public constructor() {
+            super();
+            this.internals = this.attachInternals();
+        }
         //#endregion
 
         //#region events
@@ -126,6 +140,49 @@ namespace Form {
             }
         }
 
+        protected onValueChange(value: T | undefined) {
+            this.linkValueToForm();
+        }
+        protected onErrorsChange() {
+            this.has_errors = this.errors.length > 0;
+            this.linkErrorToForm();
+        }
+        protected linkErrorToForm() {
+            if(!this.canLinkValueToForm) return;
+            if(this.has_errors) {
+                this.internals.setValidity({
+                    customError: true
+                }, this.errors.join(' & '));
+            }
+            else {
+                this.internals.setValidity({});
+            }
+        }
+        protected linkValueToForm() {
+            if(!this.canLinkValueToForm) return;
+            if(this.value === undefined) {
+                this.internals.setFormValue(null);
+            }
+            else {
+                this.internals.setFormValue(this.value + '');
+            }
+        }
+
+        protected formAssociatedCallback(form: HTMLFormElement) {
+            this.canLinkValueToForm = true;
+            this.linkValueToForm();
+            this.linkErrorToForm();
+            this.validate();
+        }
+
+        protected formDisabledCallback(disabled: boolean) {
+            this.disabled = disabled;
+        }
+
+        protected override postCreation(): void {
+            super.postCreation();
+            this.handler = this.findParentByType(Form)?.registerElement(this);
+        }
         protected override postDestruction(): void {
             super.postDestruction();
             this.unlinkFormPart();

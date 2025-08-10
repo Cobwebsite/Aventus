@@ -1,7 +1,8 @@
 import { ConfigurationTarget, Uri, window, workspace } from 'vscode';
-import { SelectItem } from '../notification/AskSelect';
 
 export class AutoLoader {
+	public static readonly htmlManifest = "vscode.html-custom-data.json";
+	public static readonly emmetManifest = "snippets.json";
 	private static instance: AutoLoader | undefined = undefined
 	public static getInstance(): AutoLoader {
 		if (!this.instance) {
@@ -12,6 +13,7 @@ export class AutoLoader {
 
 	private preventUris: string[] = [];
 	private registeredUris: string[] = [];
+	private registeredUrisEmmet: string[] = [];
 	private constructor() {
 		this.load();
 		workspace.onDidChangeConfiguration(() => {
@@ -22,6 +24,7 @@ export class AutoLoader {
 	private load() {
 		this.preventUris = workspace.getConfiguration("aventus").get("preventCustomData") as string[];
 		this.registeredUris = workspace.getConfiguration("html").get("customData") as string[];
+		this.registeredUrisEmmet = workspace.getConfiguration("emmet").get("extensionsPath") as string[];
 	}
 
 
@@ -33,8 +36,9 @@ export class AutoLoader {
 				let fileUri = this.uriToString(uri);
 				if (fileUri.startsWith(workspaceUri)) {
 					const relativeUri = "." + fileUri.replace(workspaceUri, "");
-					if (this.registeredUris.includes(relativeUri)) return;
 					if (this.preventUris.includes(relativeUri)) return;
+					if (relativeUri.endsWith(AutoLoader.htmlManifest) && this.registeredUris.includes(relativeUri)) return;
+					if (relativeUri.endsWith(AutoLoader.emmetManifest) && this.registeredUrisEmmet.includes(this.dir(relativeUri))) return;
 
 					const temp = await window.showQuickPick([{ label: "Yes" }, { label: "No" }], {
 						canPickMany: false,
@@ -42,9 +46,17 @@ export class AutoLoader {
 					});
 
 					if (temp?.label == "Yes") {
-						const config = workspace.getConfiguration("html");
-						this.registeredUris.push(relativeUri);
-						await config.update("customData", this.registeredUris, ConfigurationTarget.Workspace);
+						if (relativeUri.endsWith(AutoLoader.htmlManifest)) {
+							const config = workspace.getConfiguration("html");
+							this.registeredUris.push(relativeUri);
+							await config.update("customData", this.registeredUris, ConfigurationTarget.Workspace);
+						}
+						else if (relativeUri.endsWith(AutoLoader.emmetManifest)) {
+							const config = workspace.getConfiguration("emmet");
+							this.registeredUrisEmmet.push(this.dir(relativeUri));
+							await config.update("extensionsPath", this.registeredUrisEmmet, ConfigurationTarget.Workspace);
+						}
+
 					}
 					else {
 						const config = workspace.getConfiguration("aventus");
@@ -56,6 +68,11 @@ export class AutoLoader {
 		}
 	}
 
+	public dir(uri: string): string {
+		let split = uri.split("/");
+		split.pop();
+		return split.join("/")
+	}
 	public uriToString(uri: Uri) {
 		let uriTxt = uri.toString();
 		uriTxt = uriTxt.replace("file:///", "").replace(/\/\//g, "/")

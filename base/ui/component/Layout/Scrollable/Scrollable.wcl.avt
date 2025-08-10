@@ -198,7 +198,7 @@ namespace Layout {
 
 
         //#region constructor
-        constructor() {
+        public constructor() {
             super();
             this.renderAnimation = this.createAnimation();
             this.onWheel = this.onWheel.bind(this);

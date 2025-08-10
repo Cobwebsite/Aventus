@@ -27,113 +27,6 @@ Object.defineProperty(window, "AvInstance", {
 	}
 })();
 
-var Aventus;
-(Aventus||(Aventus = {}));
-(function (Aventus) {
-const moduleName = `Aventus`;
-const _ = {};
-
-
-let _n;
-let Style=class Style {
-    static instance;
-    static noAnimation;
-    static defaultStyleSheets = {
-        "@default": `:host{display:inline-block;box-sizing:border-box}:host *{box-sizing:border-box}`,
-    };
-    static store(name, content) {
-        this.getInstance().store(name, content);
-    }
-    static get(name) {
-        return this.getInstance().get(name);
-    }
-    static getAsString(name) {
-        return this.getInstance().getAsString(name);
-    }
-    static sheetToString(stylesheet) {
-        return this.getInstance().sheetToString(stylesheet);
-    }
-    static load(name, url) {
-        return this.getInstance().load(name, url);
-    }
-    static appendToHead(name) {
-        if (!document.head.querySelector(`style[data-name="${name}"]`)) {
-            const styleNode = document.createElement('style');
-            styleNode.setAttribute(`data-name`, name);
-            styleNode.innerHTML = Aventus.Style.getAsString(name);
-            document.getElementsByTagName('head')[0].appendChild(styleNode);
-        }
-    }
-    static refreshHead(name) {
-        const styleNode = document.head.querySelector(`style[data-name="${name}"]`);
-        if (styleNode) {
-            styleNode.innerHTML = Aventus.Style.getAsString(name);
-        }
-    }
-    static getInstance() {
-        if (!this.instance) {
-            this.instance = new Style();
-        }
-        return this.instance;
-    }
-    constructor() {
-        for (let name in Style.defaultStyleSheets) {
-            this.store(name, Style.defaultStyleSheets[name]);
-        }
-        Style.noAnimation = new CSSStyleSheet();
-        Style.noAnimation.replaceSync(`:host{-webkit-transition: none !important;-moz-transition: none !important;-ms-transition: none !important;-o-transition: none !important;transition: none !important;}:host *{-webkit-transition: none !important;-moz-transition: none !important;-ms-transition: none !important;-o-transition: none !important;transition: none !important;}`);
-    }
-    stylesheets = new Map();
-    async load(name, url) {
-        try {
-            let style = this.stylesheets.get(name);
-            if (!style || style.cssRules.length == 0) {
-                let txt = await (await fetch(url)).text();
-                this.store(name, txt);
-            }
-        }
-        catch (e) {
-        }
-    }
-    store(name, content) {
-        let style = this.stylesheets.get(name);
-        if (!style) {
-            const sheet = new CSSStyleSheet();
-            sheet.replaceSync(content);
-            this.stylesheets.set(name, sheet);
-            return sheet;
-        }
-        else {
-            style.replaceSync(content);
-            Style.refreshHead(name);
-            return style;
-        }
-    }
-    get(name) {
-        let style = this.stylesheets.get(name);
-        if (!style) {
-            style = this.store(name, "");
-        }
-        return style;
-    }
-    getAsString(name) {
-        return this.sheetToString(this.get(name));
-    }
-    sheetToString(stylesheet) {
-        return stylesheet.cssRules
-            ? Array.from(stylesheet.cssRules)
-                .map(rule => rule.cssText || '')
-                .join('\n')
-            : '';
-    }
-}
-Style.Namespace=`Aventus`;
-_.Style=Style;
-
-
-for(let key in _) { Aventus[key] = _[key] }
-})(Aventus);
-
 Object.defineProperty(window, "AvInstance", {
 	get() {return Aventus.Instance;}
 });
@@ -197,14 +90,14 @@ let Style=class Style {
         if (!document.head.querySelector(`style[data-name="${name}"]`)) {
             const styleNode = document.createElement('style');
             styleNode.setAttribute(`data-name`, name);
-            styleNode.innerHTML = Aventus.Style.getAsString(name);
+            styleNode.innerHTML = Style.getAsString(name);
             document.getElementsByTagName('head')[0].appendChild(styleNode);
         }
     }
     static refreshHead(name) {
         const styleNode = document.head.querySelector(`style[data-name="${name}"]`);
         if (styleNode) {
-            styleNode.innerHTML = Aventus.Style.getAsString(name);
+            styleNode.innerHTML = Style.getAsString(name);
         }
     }
     static getInstance() {
@@ -2759,6 +2652,9 @@ let HttpRequest=class HttpRequest {
     async query(router) {
         let result = new ResultWithError();
         try {
+            if (!this.url.startsWith("/")) {
+                this.url = "/" + this.url;
+            }
             const fullUrl = router ? router.options.url + this.url : this.url;
             result.result = await fetch(fullUrl, this.request);
         }

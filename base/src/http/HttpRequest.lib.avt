@@ -51,8 +51,8 @@ export class HttpRequest {
                 formData.append(newKey, DateConverter.converter.toString(value));
             }
             else if(
-                typeof value === 'object' && 
-                value !== null && 
+                typeof value === 'object' &&
+                value !== null &&
                 !(value instanceof File)
             ) {
                 if(Array.isArray(value)) {
@@ -135,6 +135,9 @@ export class HttpRequest {
     public async query(router?: HttpRouter): Promise<ResultWithError<Response>> {
         let result = new ResultWithError<Response>();
         try {
+            if(!this.url.startsWith("/")) {
+                this.url = "/" + this.url;
+            }
             const fullUrl = router ? router.options.url + this.url : this.url;
             result.result = await fetch(fullUrl, this.request);
         } catch(e) {

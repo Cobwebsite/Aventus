@@ -1,8 +1,11 @@
+import { Callback } from "Aventus@Main:Aventus.package.avt";
+import type { FormElement } from "../FormElement/FormElement.wcl.avt";
 import { FormHandler } from "./FormHandler.lib.avt";
-import type { FormHandlerConfig, FormSchema } from "./FormType.lib.avt";
+import type { FormHandlerConfig, FormSchema, WithError } from "./FormType.lib.avt";
+import type { ButtonGeneric } from "../ButtonGeneric/ButtonGeneric.wcl.avt";
 
 namespace Form {
-    export class Form extends Aventus.WebComponent implements Aventus.DefaultComponent {
+    export class Form<T extends any = any> extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
         //#region static
         public static create<T>(schema: FormSchema<T>, config?: FormHandlerConfig<T>): FormHandler<T> {
@@ -24,7 +27,13 @@ namespace Form {
 
 
         //#region variables
+        @Injectable()
+        public form?: FormHandler<any>;
+        @Injectable()
+        public request?: ((body: T) => Aventus.Asyncable<WithError<any>>);
 
+        protected elements: FormElement<any>[] = [];
+        protected btns: ButtonGeneric[] = [];
         //#endregion
 
 
@@ -37,9 +46,48 @@ namespace Form {
 
         //#endregion
 
+        //#region events
+        public onSubmit: Callback<() => void> = new Callback();
+        //#endregion
 
         //#region methods
+        @BindThis()
+        protected checkEnter(e: KeyboardEvent) {
+            if(e.key == "Enter") {
+                this.requestSubmit();
+            }
+        }
+        public registerElement(element: FormElement<any>): Form {
+            if(this.elements.length > 0) {
+                this.elements[this.elements.length - 1].removeEventListener("keyup", this.checkEnter);
+            }
+            this.elements.push(element);
+            element.addEventListener("keyup", this.checkEnter);
+            return this;
+        }
+        public registerSubmit(element: ButtonGeneric): Form {
+            this.btns.push(element);
+            return this;
+        }
 
+
+        public async requestSubmit() {
+            debugger
+            if(!this.form) {
+                for(let element of this.elements) {
+                    this.form = element.form?.handler;
+                    if(this.form) break;
+                }
+            }
+            if(this.form) {
+                if(this.request) {
+                    this.form.submit(this.request);
+                }
+                else if(await this.form.validate()) {
+                    this.onSubmit.trigger();
+                }
+            }
+        }
         //#endregion
 
     }

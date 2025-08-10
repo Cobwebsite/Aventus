@@ -143,7 +143,7 @@ export class Storie {
 			else {
 				template = this.replaceVariable(template, "live", ``);
 			}
-			template = this.replaceVariable(template, "blocks", `import { Canvas, Controls, Title } from '@storybook/blocks'`);
+			template = this.replaceVariable(template, "blocks", `import { Canvas, Controls, Title } from '@storybook/addon-docs/blocks'`);
 			let typeUpper = storieContent.kind[0].toUpperCase() + storieContent.kind.slice(1);
 			template = this.replaceVariable(template, "render", `import { Story${typeUpper}Render } from '@aventusjs/storybook-render/AventusStorybook'`);
 

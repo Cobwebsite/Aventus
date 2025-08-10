@@ -758,7 +758,7 @@
 		"@types/send": "^0.17.1",
 		"@types/vscode": "^1.68.0",
 		"@types/ws": "^8.5.3",
-		"@vscode/vsce": "^3.2.1",
+		"@vscode/vsce": "^3.6.0",
 		"babel-jest": "^29.0.2",
 		"concurrently": "^7.6.0",
 		"jest": "^29.0.2",
