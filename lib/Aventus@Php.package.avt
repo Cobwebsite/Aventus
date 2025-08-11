@@ -1,0 +1,40 @@
+// AventusPhp@Main:1.0.0
+//#region js def //
+declare global {
+
+namespace AventusPhp{
+@Required()
+@Convertible()
+class LaravelResult<T> extends Aventus.ResultWithError<T> {
+    static get Fullname(): string;
+}
+
+enum LaraventusErrorEnum {
+    ValidationError = 422,
+    UnknowError = 500
+}
+
+@Required()
+@Convertible()
+class AventusError<T extends (number | Aventus.Enum) = any> extends Aventus.GenericError<T> {
+    static get Fullname(): string;
+}
+
+	}
+}
+//#endregion js def //
+//#region js src //
+{"namespace":"AventusPhp","available":[{"code":"let LaravelResult=class LaravelResult extends Aventus.ResultWithError {\n    static get Fullname() { return \"Aventus.Laraventus.Helpers.LaravelResult\"; }\n}\nLaravelResult.Namespace=`AventusPhp`;\r\nLaravelResult.$schema={...(Aventus.ResultWithError?.$schema ?? {}), };\r\nAventus.Converter.register(LaravelResult.Fullname, LaravelResult);\r\n_.LaravelResult=LaravelResult;\r\n","dependances":[{"fullName":"Aventus.ResultWithError","isStrong":true},{"fullName":"Convertible","isStrong":false},{"fullName":"Required","isStrong":false}],"fullName":"AventusPhp.LaravelResult","required":true,"type":1,"isExported":true,"convertibleName":"Fullname"},{"code":"var LaraventusErrorEnum;\n(function (LaraventusErrorEnum) {\n    LaraventusErrorEnum[LaraventusErrorEnum[\"ValidationError\"] = 422] = \"ValidationError\";\n    LaraventusErrorEnum[LaraventusErrorEnum[\"UnknowError\"] = 500] = \"UnknowError\";\n})(LaraventusErrorEnum || (LaraventusErrorEnum = {}));\n_.LaraventusErrorEnum=LaraventusErrorEnum;\r\n","dependances":[],"fullName":"AventusPhp.LaraventusErrorEnum","required":false,"type":6,"isExported":true,"convertibleName":""},{"code":"let AventusError=class AventusError extends Aventus.GenericError {\n    static get Fullname() { return \"Aventus.Laraventus.Helpers.AventusError\"; }\n}\nAventusError.Namespace=`AventusPhp`;\r\nAventusError.$schema={...(Aventus.GenericError?.$schema ?? {}), };\r\nAventus.Converter.register(AventusError.Fullname, AventusError);\r\n_.AventusError=AventusError;\r\n","dependances":[{"fullName":"Aventus.GenericError","isStrong":true},{"fullName":"Convertible","isStrong":false},{"fullName":"Required","isStrong":false},{"fullName":"Aventus.Enum","isStrong":false}],"fullName":"AventusPhp.AventusError","required":true,"type":1,"isExported":true,"convertibleName":"Fullname"}],"existing":[]}
+//#endregion js src //
+//#region css def //
+{}
+//#endregion css def //
+//#region css //
+{}
+//#endregion css //
+//#region html //
+{}
+//#endregion html //
+//#region dependances //
+[]
+//#endregion dependances //

@@ -19,9 +19,8 @@ export class GenericError<T extends (number | Enum) = any> {
 
     /**
      * Additional details related to the error.
-     * @type {any[]}
      */
-    public details: any[] = [];
+    public details: any[] | { [key: string]: any; } = [];
 
     /**
      * Creates a new instance of GenericError.
@@ -30,7 +29,7 @@ export class GenericError<T extends (number | Enum) = any> {
      */
     public constructor(code: EnumValue<T>, message: string) {
         this.code = code;
-        this.message = message+'';
+        this.message = message + '';
     }
 }
 

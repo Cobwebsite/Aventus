@@ -1,7 +1,14 @@
+import type { ButtonElement } from "../ButtonElement/ButtonElement.wcl.avt";
+import type { FormElement } from "../FormElement/FormElement.wcl.avt";
 import type { FormHandler } from "./FormHandler.lib.avt";
 import type { Validator } from "./Validator.lib.avt";
 
 namespace Form {
+    export interface IForm {
+        registerElement(element: FormElement<any>): IForm;
+        registerSubmit(element: ButtonElement): IForm;
+        requestSubmit(): Aventus.Asyncable<void>;
+    }
     export interface IFormElement<T = any> {
         errors: string[];
         value: T | undefined;
@@ -29,7 +36,7 @@ namespace Form {
         register: (element: IFormElement) => void;
         unregister: (element: IFormElement) => void;
         test: () => Promise<boolean>;
-        handler: FormHandler<any>
+        handler: FormHandler<any>;
     };
     export type FormSchema<T> = { [K in keyof T]: FormPart<T[K]> | FormPartValidateList<T> };
 
@@ -42,7 +49,7 @@ namespace Form {
         /**
          * A validation function for the form part.
          */
-        validate?: FormPartValidateList<T>
+        validate?: FormPartValidateList<T>;
 
         /**
          * Indicates whether validation should be performed on value change.
@@ -78,7 +85,7 @@ namespace Form {
     })
     export type WithError<X> = Aventus.ResultWithError<X> | Aventus.VoidWithError;
 
-    export type Constructor<T> = new (...args: any[]) => T;
+    export type Constructor<T, AllowAbstract extends boolean = false> = AllowAbstract extends false ? new (...args: any[]) => T : abstract new (...args: any[]) => T ;
 
 
     export function isSubclassOf(subClass: Function, superClass: Function): boolean {

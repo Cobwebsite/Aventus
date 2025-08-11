@@ -2,7 +2,7 @@ import { createReadStream, createWriteStream, existsSync, mkdirSync, readFileSyn
 import { AventusConfigBuild, AventusConfigBuildDependance, IncludeType } from '../language-services/json/definition';
 import * as md5 from 'md5';
 import { join, normalize } from 'path';
-import { AVENTUS_DEF_BASE_PATH, AVENTUS_DEF_I18N_PATH, AVENTUS_DEF_SHARP_PATH, AVENTUS_DEF_UI_PATH } from '../language-services/ts/libLoader';
+import { AVENTUS_DEF_BASE_PATH, AVENTUS_DEF_I18N_PATH, AVENTUS_DEF_PHP_PATH, AVENTUS_DEF_SHARP_PATH, AVENTUS_DEF_UI_PATH } from '../language-services/ts/libLoader';
 import { pathToUri } from '../tools';
 import { AventusExtension, AventusLanguageId } from '../definition';
 import { AventusPackageFile } from '../language-services/ts/package/File';
@@ -55,14 +55,18 @@ export class DependanceManager {
 		"@AventusSharp": AVENTUS_DEF_SHARP_PATH(),
 		"Aventus@Sharp": AVENTUS_DEF_SHARP_PATH(),
 
+		"@AventusPhp": AVENTUS_DEF_PHP_PATH(),
+		"Aventus@Php": AVENTUS_DEF_PHP_PATH(),
+
 		"Aventus@I18n": AVENTUS_DEF_I18N_PATH(),
 		"@AventusI18n": AVENTUS_DEF_I18N_PATH()
 	}
 	private predefinedNpm = {
 		[AVENTUS_DEF_BASE_PATH()]: "@aventusjs/main",
 		[AVENTUS_DEF_UI_PATH()]: "@aventusjs/ui",
+		[AVENTUS_DEF_I18N_PATH()]: "@aventusjs/i18n",
 		[AVENTUS_DEF_SHARP_PATH()]: "@aventussharp/main",
-		[AVENTUS_DEF_I18N_PATH()]: "@aventussharp/i18n",
+		[AVENTUS_DEF_PHP_PATH()]: "@aventusphp/main",
 	}
 	private loadedPackages: { [name: string]: { [version: string]: AventusPackageFile } } = {};
 	public async loadDependancesFromBuild(config: AventusConfigBuild, build: Build): Promise<{ files: AventusPackageFile[], dependanceNeedUris: string[], dependanceFullUris: string[], dependanceUris: string[] }> {

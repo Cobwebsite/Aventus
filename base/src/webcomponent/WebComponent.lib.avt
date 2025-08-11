@@ -861,14 +861,34 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
     /**
      * Find a parent by type if exist
      */
-    public findParentByType<T>(type: { prototype: T; }, untilNode?: Element): T | null {
+    public findParentByType<T>(type: { prototype: T; }, untilNode?: Element): T | null;
+    /**
+     * Find a parent by type if exist
+     */
+    public findParentByType<T extends { prototype: any; }[]>(type: [...T], untilNode?: Element): T[number]['prototype'] | null;
+    /**
+     * Find a parent by type if exist
+     */
+    public findParentByType<T>(type: any, untilNode?: Element): any {
         return ElementExtension.findParentByType(this, type, untilNode);
     }
     /**
      * Find list of parents by tagname
      */
-    public findParents<T>(tagname: string | string[], untilNode?: Element): T[] {
-        return ElementExtension.findParents(this, tagname, untilNode);
+    public findParentsByTag<T>(tagname: string | string[], untilNode?: Element): T[] {
+        return ElementExtension.findParentsByTag(this, tagname, untilNode);
+    }
+    /**
+     * Find list of parents by custom check
+     */
+    public findParents<T>(tagname: string | string[], check: (node: Node) => boolean, untilNode?: Element): T[] {
+        return ElementExtension.findParents(this, check, untilNode);
+    }
+    /**
+     * Find list of parents by custom check
+     */
+    public findParent<T>(tagname: string | string[], check: (node: Node) => boolean, untilNode?: Element): T | null {
+        return ElementExtension.findParent(this, check, untilNode);
     }
     /**
      * Check if element contains a child

@@ -68,7 +68,7 @@ namespace Form {
         /**
          * 
          */
-        protected onValueChange() {
+        protected onInput() {
             this.triggerChange(this.inputEl.value);
         }
         //#endregion

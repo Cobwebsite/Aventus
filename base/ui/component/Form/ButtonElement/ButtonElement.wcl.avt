@@ -1,0 +1,62 @@
+import { PressManager } from "Aventus@Main:Aventus.package.avt";
+import { Form } from "../Form/Form.wcl.avt";
+import { PageForm } from "../../Navigation/PageForm/PageForm.wcl.avt";
+import type { IForm } from "../Form/FormType.lib.avt";
+
+namespace Form {
+    export abstract class ButtonElement extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+        //#region static
+        public static get formAssociated(): boolean { return true; }
+        //#endregion
+
+
+        //#region props
+        @Property()
+        public type: 'button' | 'submit' | 'reset' | 'menu' = 'button';
+        //#endregion
+
+
+        //#region variables
+        protected internals: ElementInternals;
+        protected handler?: IForm = undefined;
+        //#endregion
+
+
+        //#region constructor
+        public constructor() {
+            super();
+            this.internals = this.attachInternals();
+        }
+        //#endregion
+
+
+        //#region methods
+        protected triggerSubmit() {
+            if(this.type == "submit") {
+                if(this.internals.form) {
+                    this.internals.form.requestSubmit();
+                } else if(this.handler) {
+                    this.handler.requestSubmit();
+                }
+            }
+        }
+        protected override postCreation(): void {
+            super.postCreation();
+            this.handler = this.findParentByType(Form.formElements)?.registerSubmit(this);
+            new PressManager({
+                element: this,
+                onPress: () => {
+                    this.triggerSubmit();
+                }
+            });
+            this.addEventListener("keyup", (e) => {
+                if(e.key == 'Enter') {
+                    this.triggerSubmit();
+                }
+            });
+        }
+        //#endregion
+
+    }
+}

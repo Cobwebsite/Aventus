@@ -36,6 +36,7 @@ export const AVENTUS_DEF_BASE_PATH = () => join(serverFolder(), 'lib/Aventus@Mai
 export const AVENTUS_DEF_UI_PATH = () => join(serverFolder(), 'lib/Aventus@UI.package.avt');
 export const AVENTUS_DEF_I18N_PATH = () => join(serverFolder(), 'lib/Aventus@I18n.package.avt');
 export const AVENTUS_DEF_SHARP_PATH = () => join(serverFolder(), 'lib/Aventus@Sharp.package.avt');
+export const AVENTUS_DEF_PHP_PATH = () => join(serverFolder(), 'lib/Aventus@Php.package.avt');
 export const NODE_MODULES = () => join(node_modules_folder(), 'node_modules');
 
 const libsTypescript: string[] = [];

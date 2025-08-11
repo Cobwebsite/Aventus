@@ -37,21 +37,10 @@ const _ = {};
 let _n;
 let ElementExtension=class ElementExtension {
     /**
-     * Find a parent by tagname if exist Static.findParentByTag(this, "av-img")
+     * Find a parent by custom check
      */
-    static findParentByTag(element, tagname, untilNode) {
+    static findParent(element, check, untilNode) {
         let el = element;
-        if (Array.isArray(tagname)) {
-            for (let i = 0; i < tagname.length; i++) {
-                tagname[i] = tagname[i].toLowerCase();
-            }
-        }
-        else {
-            tagname = [tagname.toLowerCase()];
-        }
-        let checkFunc = (el) => {
-            return tagname.indexOf((el.nodeName || el.tagName).toLowerCase()) != -1;
-        };
         if (el) {
             if (el instanceof ShadowRoot) {
                 el = el.host;
@@ -61,7 +50,7 @@ let ElementExtension=class ElementExtension {
             }
         }
         while (el) {
-            if (checkFunc(el)) {
+            if (check(el)) {
                 return el;
             }
             if (el instanceof ShadowRoot) {
@@ -77,97 +66,11 @@ let ElementExtension=class ElementExtension {
         return null;
     }
     /**
-     * Find a parent by class name if exist Static.findParentByClass(this, "my-class-img") = querySelector('.my-class-img')
+     * Find a list of parent by custom check
      */
-    static findParentByClass(element, classname, untilNode) {
-        let el = element;
-        if (!Array.isArray(classname)) {
-            classname = [classname];
-        }
-        if (el) {
-            if (el instanceof ShadowRoot) {
-                el = el.host;
-            }
-            else {
-                el = el.parentNode;
-            }
-        }
-        while (el) {
-            for (let classnameTemp of classname) {
-                if (el['classList'] && el['classList'].contains(classnameTemp)) {
-                    return el;
-                }
-            }
-            if (el instanceof ShadowRoot) {
-                el = el.host;
-            }
-            else {
-                el = el.parentNode;
-            }
-            if (el == untilNode) {
-                break;
-            }
-        }
-        return null;
-    }
-    /**
-     * Find a parent by type if exist Static.findParentyType(this, Aventus.Img)
-     */
-    static findParentByType(element, type, untilNode) {
-        let el = element;
-        let checkFunc = (el) => {
-            return false;
-        };
-        if (typeof type == "function" && type['prototype']['constructor']) {
-            checkFunc = (el) => {
-                if (el instanceof type) {
-                    return true;
-                }
-                return false;
-            };
-        }
-        else {
-            console.error("you must provide a class inside this function");
-            return null;
-        }
-        if (el) {
-            if (el instanceof ShadowRoot) {
-                el = el.host;
-            }
-            else {
-                el = el.parentNode;
-            }
-        }
-        while (el) {
-            if (checkFunc(el)) {
-                return el;
-            }
-            if (el instanceof ShadowRoot) {
-                el = el.host;
-            }
-            else {
-                el = el.parentNode;
-            }
-            if (el == untilNode) {
-                break;
-            }
-        }
-        return null;
-    }
-    /**
-     * Find list of parents by tagname
-     */
-    static findParents(element, tagname, untilNode) {
-        let el = element;
-        if (Array.isArray(tagname)) {
-            for (let i = 0; i < tagname.length; i++) {
-                tagname[i] = tagname[i].toLowerCase();
-            }
-        }
-        else {
-            tagname = [tagname.toLowerCase()];
-        }
+    static findParents(element, check, untilNode) {
         let result = [];
+        let el = element;
         if (el) {
             if (el instanceof ShadowRoot) {
                 el = el.host;
@@ -177,7 +80,7 @@ let ElementExtension=class ElementExtension {
             }
         }
         while (el) {
-            if (tagname.indexOf((el.nodeName || el['tagName']).toLowerCase()) != -1) {
+            if (check(el)) {
                 result.push(el);
             }
             if (el instanceof ShadowRoot) {
@@ -191,6 +94,83 @@ let ElementExtension=class ElementExtension {
             }
         }
         return result;
+    }
+    /**
+     * Find a parent by tagname if exist Static.findParentByTag(this, "av-img")
+     */
+    static findParentByTag(element, tagname, untilNode) {
+        if (Array.isArray(tagname)) {
+            for (let i = 0; i < tagname.length; i++) {
+                tagname[i] = tagname[i].toLowerCase();
+            }
+        }
+        else {
+            tagname = [tagname.toLowerCase()];
+        }
+        const checkFunc = (el) => {
+            return tagname.indexOf((el.nodeName || el.tagName).toLowerCase()) != -1;
+        };
+        return this.findParent(element, checkFunc, untilNode);
+    }
+    /**
+     * Find a parent by class name if exist Static.findParentByClass(this, "my-class-img") = querySelector('.my-class-img')
+     */
+    static findParentByClass(element, classname, untilNode) {
+        if (!Array.isArray(classname)) {
+            classname = [classname];
+        }
+        const check = (el) => {
+            for (let classnameTemp of classname) {
+                if (el['classList'] && el['classList'].contains(classnameTemp)) {
+                    return true;
+                }
+            }
+            return false;
+        };
+        return this.findParent(element, check, untilNode);
+    }
+    static findParentByType(element, types, untilNode) {
+        if (!Array.isArray(types)) {
+            types = [types];
+        }
+        let isValid = true;
+        for (let type of types) {
+            if (typeof type == "function" && type['prototype']['constructor'])
+                continue;
+            isValid = false;
+        }
+        if (isValid) {
+            let checkFunc = (el) => {
+                for (let type of types) {
+                    const t = type;
+                    if (el instanceof t) {
+                        return true;
+                    }
+                }
+                return false;
+            };
+            return this.findParent(element, checkFunc, untilNode);
+        }
+        console.error("you must provide a class inside this function");
+        return null;
+    }
+    /**
+     * Find list of parents by tagname
+     */
+    static findParentsByTag(element, tagname, untilNode) {
+        let el = element;
+        if (Array.isArray(tagname)) {
+            for (let i = 0; i < tagname.length; i++) {
+                tagname[i] = tagname[i].toLowerCase();
+            }
+        }
+        else {
+            tagname = [tagname.toLowerCase()];
+        }
+        let check = (el) => {
+            return tagname.indexOf((el.nodeName || el['tagName']).toLowerCase()) != -1;
+        };
+        return this.findParents(element, check, untilNode);
     }
     /**
      * Check if element contains a child
@@ -4559,8 +4539,20 @@ let WebComponent=class WebComponent extends HTMLElement {
     /**
      * Find list of parents by tagname
      */
-    findParents(tagname, untilNode) {
-        return ElementExtension.findParents(this, tagname, untilNode);
+    findParentsByTag(tagname, untilNode) {
+        return ElementExtension.findParentsByTag(this, tagname, untilNode);
+    }
+    /**
+     * Find list of parents by custom check
+     */
+    findParents(tagname, check, untilNode) {
+        return ElementExtension.findParents(this, check, untilNode);
+    }
+    /**
+     * Find list of parents by custom check
+     */
+    findParent(tagname, check, untilNode) {
+        return ElementExtension.findParent(this, check, untilNode);
     }
     /**
      * Check if element contains a child

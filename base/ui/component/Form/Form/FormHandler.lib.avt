@@ -1,6 +1,8 @@
 import { GenericError, VoidWithError } from "Aventus@Main:Aventus.package.avt";
-import { type Constructor, type FormHandlerConfig, type FormPart, type FormPartValidate, type FormSchema, type FormValidate, type FormValidateResult, type IFormElement, type InternalForm, type InternalFormPart, type WithError } from "./FormType.lib.avt";
+import { type Constructor, type FormHandlerConfig, type FormPart, type FormPartValidate, type FormSchema, type FormValidate, type FormValidateResult, type IForm, type IFormElement, type InternalForm, type InternalFormPart, type WithError } from "./FormType.lib.avt";
 import { Validator } from "./Validator.lib.avt";
+import { PageForm } from "../../Navigation/PageForm/PageForm.wcl.avt";
+import { Form } from "./Form.wcl.avt";
 
 namespace Form {
 
@@ -9,6 +11,9 @@ namespace Form {
 
         @Internal()
         public static _globalConfig?: FormHandlerConfig<any>;
+
+        @Internal()
+        public static _IFormElements: Constructor<IForm, true>[] = [Form, PageForm];
 
         private __watcher: any;
 
@@ -34,20 +39,20 @@ namespace Form {
         private _handleValidateNoInputError?: (errors: { [K in keyof T]?: string[]; }) => any;
         private _handleExecuteNoInputError?: (errors: Aventus.GenericError[]) => any;
 
-
+        public defaultValues: T;
         public onItemChange: Aventus.Callback<(action: Aventus.WatchAction, path: string, value: any) => void> = new Aventus.Callback();
 
 
-        public constructor(schema: FormSchema<T>, config?: FormHandlerConfig<T>) {
+        public constructor(schema: FormSchema<T>, config?: FormHandlerConfig<T>, defaultValues?: T) {
             this._globalValidation = config?.validate ?? FormHandler._globalConfig?.validate;
             this._validateOnChange = config?.validateOnChange ?? FormHandler._globalConfig?.validateOnChange ?? false;
             this._handleValidateNoInputError = config?.handleValidateNoInputError ?? FormHandler._globalConfig?.handleValidateNoInputError;
             this._handleExecuteNoInputError = config?.handleExecuteNoInputError ?? FormHandler._globalConfig?.handleExecuteNoInputError;
-
+            this.defaultValues = defaultValues ?? {} as T;
             this.onWatcherChanged = this.onWatcherChanged.bind(this);
             this.__watcher = Aventus.Watcher.get({
                 form: {},
-                item: {}
+                item: this.defaultValues
             }, this.onWatcherChanged);
 
             this.__watcher.form = this.transformForm(schema);
@@ -317,25 +322,55 @@ namespace Form {
             const elements = this.elements;
             for(let error of queryResult.errors) {
                 if(error.details) {
-                    let found = false;
-                    for(let detail of error.details) {
-                        if(Object.hasOwn(detail, "Name")) {
-                            if(elements[detail.Name]) {
-                                for(const element of elements[detail.Name]) {
-                                    element.errors.push(error.message);
+                    if(Array.isArray(error.details)) {
+                        let found = false;
+                        for(let detail of error.details) {
+                            if(Object.hasOwn(detail, "Name")) {
+                                if(elements[detail.Name]) {
+                                    for(const element of elements[detail.Name]) {
+                                        element.errors.push(error.message);
+                                    }
+                                    found = true;
+                                    break;
                                 }
-                                found = true;
-                                break;
                             }
                         }
+                        if(found) {
+                            continue;
+                        }
                     }
-                    if(found) {
-                        continue;
+                    else {
+                        let found = false;
+                        for(let key in error.details) {
+                            if(elements[key]) {
+                                if(Array.isArray(error.details[key])) {
+                                    for(const element of elements[key]) {
+                                        for(let detail of error.details[key]) {
+                                            element.errors.push(detail);
+                                        }
+                                    }
+                                    found = true;
+                                }
+                                else {
+                                    for(const element of elements[key]) {
+                                        element.errors.push(error.details[key]);
+                                    }
+                                    found = true;
+                                }
+                            }
+                        }
+                        if(found) {
+                            continue;
+                        }
                     }
                 }
                 noPrintErrors.push(error);
             }
             return noPrintErrors;
+        }
+
+        public reset() {
+            this.item = this.defaultValues;
         }
     }
 }

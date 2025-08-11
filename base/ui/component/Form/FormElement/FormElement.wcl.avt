@@ -1,6 +1,7 @@
+import { PageForm } from "../../Navigation/PageForm/PageForm.wcl.avt";
 import { Form } from "../Form/Form.wcl.avt";
 import type { FormHandler } from "../Form/FormHandler.lib.avt";
-import type { IFormElement, InternalFormPart } from "../Form/FormType.lib.avt";
+import type { IForm, IFormElement, InternalFormPart } from "../Form/FormType.lib.avt";
 
 namespace Form {
     @Storybook()
@@ -50,7 +51,7 @@ namespace Form {
 
         protected internals: ElementInternals;
         protected canLinkValueToForm: boolean = false;
-        protected handler?: Form<any> = undefined;
+        protected handler?: IForm = undefined;
         //#endregion
 
 
@@ -181,7 +182,7 @@ namespace Form {
 
         protected override postCreation(): void {
             super.postCreation();
-            this.handler = this.findParentByType(Form)?.registerElement(this);
+            let handler = this.findParentByType(Form.formElements)?.registerElement(this);
         }
         protected override postDestruction(): void {
             super.postDestruction();
