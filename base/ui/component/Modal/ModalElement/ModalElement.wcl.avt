@@ -1,0 +1,93 @@
+import { PressManager } from "Aventus@Main:Aventus.package.avt";
+import { ShortcutManager, SpecialTouch } from "../../../lib/ShortcutManager.lib.avt";
+
+namespace Modal {
+    export interface ModalInfo {
+        title: string,
+        closeWithEsc: boolean;
+        closeWithClick: boolean;
+    }
+    export abstract class ModalElement<T, U extends ModalInfo = ModalInfo> extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+        //#region static
+
+        //#endregion
+
+
+        //#region props
+
+        //#endregion
+
+
+        //#region variables
+        protected cb?: (response: T) => void;
+
+        @Watch((target: ModalElement<T, U>, action: Aventus.WatchAction, path: string, value: any) => {
+            target.onOptionsChanged();
+        })
+        protected options: U;
+
+        @ViewElement()
+        protected modalEl!: HTMLDivElement;
+
+        protected pressManagerClickClose?: PressManager;
+        protected pressManagerPrevent?: PressManager;
+        //#endregion
+
+
+        //#region constructor
+        public constructor() {
+            super();
+            this.options = this.defaultOptions();
+        }
+        //#endregion
+
+
+        //#region methods
+        public abstract defaultOptions(): U;
+        protected onOptionsChanged() { }
+
+        /**
+         * Define the callback
+         */
+        public init(cb: (response: T) => void) {
+            this.cb = cb;
+            if(this.options.closeWithEsc) {
+                ShortcutManager.subscribe(SpecialTouch.Escape, this.cancel);
+            }
+            if(this.options.closeWithClick) {
+                this.pressManagerClickClose = new PressManager({
+                    element: this,
+                    onPress: () => {
+                        this.cancel();
+                    }
+                });
+                this.pressManagerPrevent = new PressManager({
+                    element: this.modalEl,
+                    onPress: () => { }
+                });
+            }
+        }
+
+        protected close() {
+            ShortcutManager.unsubscribe(SpecialTouch.Escape, this.cancel);
+            this.pressManagerClickClose?.destroy();
+            this.pressManagerPrevent?.destroy();
+            this.remove();
+        }
+
+        @BindThis()
+        protected cancel() { }
+
+        protected resolve(response: T, no_close?: boolean) {
+            if(this.cb) {
+                this.cb(response);
+            }
+            if(!no_close) {
+                this.close();
+            }
+        }
+        //#endregion
+
+    }
+}

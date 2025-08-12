@@ -5729,6 +5729,10 @@ let Navigation = {};
 _.Navigation = Aventus.Navigation ?? {};
 Form.Validators = {};
 _.Form.Validators = Aventus.Form?.Validators ?? {};
+let Modal = {};
+_.Modal = Aventus.Modal ?? {};
+let Toast = {};
+_.Toast = Aventus.Toast ?? {};
 let _n;
 const ProgressCircle = class ProgressCircle extends Aventus.WebComponent {
     static get observedAttributes() {return ["value", "stroke_width"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
@@ -7281,7 +7285,7 @@ _.Navigation.PageForm=Navigation.PageForm;
 
 Form.FormHandler=class FormHandler {
     static _globalConfig;
-    static _IFormElements = [_.Form.Form, Navigation.PageForm];
+    static _IFormElements = [Form.Form, Navigation.PageForm];
     __watcher;
     get item() {
         return this.__watcher.item;
@@ -7794,6 +7798,96 @@ Lib.ShortcutManager=class ShortcutManager {
 }
 Lib.ShortcutManager.Namespace=`Aventus.Lib`;
 _.Lib.ShortcutManager=Lib.ShortcutManager;
+
+Modal.ModalElement = class ModalElement extends Aventus.WebComponent {
+    get 'options'() {
+						return this.__watch["options"];
+					}
+					set 'options'(val) {
+						this.__watch["options"] = val;
+					}    cb;
+    pressManagerClickClose;
+    pressManagerPrevent;
+    __registerWatchesActions() {
+    this.__addWatchesActions("options", ((target, action, path, value) => {
+    target.onOptionsChanged();
+}));    super.__registerWatchesActions();
+}
+    static __style = `:host{align-items:center;display:flex;inset:0;justify-content:center;position:fixed;z-index:60}:host .modal{background-color:#fff;padding:1.5rem;position:relative}`;
+    constructor() {
+        super();
+        this.options = this.defaultOptions();
+        if (this.constructor == ModalElement) {
+            throw "can't instanciate an abstract class";
+        }
+        this.cancel = this.cancel.bind(this);
+    }
+    __getStatic() {
+        return ModalElement;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(ModalElement.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<div class="modal" _id="modalelement_0">	<slot></slot></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "elements": [
+    {
+      "name": "modalEl",
+      "ids": [
+        "modalelement_0"
+      ]
+    }
+  ]
+}); }
+    getClassName() {
+        return "ModalElement";
+    }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["options"] = undefined; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('options'); }
+    onOptionsChanged() { }
+    init(cb) {
+        this.cb = cb;
+        if (this.options.closeWithEsc) {
+            Lib.ShortcutManager.subscribe(Lib.SpecialTouch.Escape, this.cancel);
+        }
+        if (this.options.closeWithClick) {
+            this.pressManagerClickClose = new Aventus.PressManager({
+                element: this,
+                onPress: () => {
+                    this.cancel();
+                }
+            });
+            this.pressManagerPrevent = new Aventus.PressManager({
+                element: this.modalEl,
+                onPress: () => { }
+            });
+        }
+    }
+    close() {
+        Lib.ShortcutManager.unsubscribe(Lib.SpecialTouch.Escape, this.cancel);
+        this.pressManagerClickClose?.destroy();
+        this.pressManagerPrevent?.destroy();
+        this.remove();
+    }
+    cancel() { }
+    resolve(response, no_close) {
+        if (this.cb) {
+            this.cb(response);
+        }
+        if (!no_close) {
+            this.close();
+        }
+    }
+}
+Modal.ModalElement.Namespace=`Aventus.Modal`;
+_.Modal.ModalElement=Modal.ModalElement;
 
 Layout.GridHelper = class GridHelper extends Aventus.WebComponent {
     static get observedAttributes() {return ["nb_col", "nb_row", "col_width", "row_height"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
@@ -8945,6 +9039,344 @@ Layout.Scrollable.Namespace=`Aventus.Layout`;
 Layout.Scrollable.Tag=`av-scrollable`;
 _.Layout.Scrollable=Layout.Scrollable;
 if(!window.customElements.get('av-scrollable')){window.customElements.define('av-scrollable', Layout.Scrollable);Aventus.WebComponentInstance.registerDefinition(Layout.Scrollable);}
+
+Toast.ToastElement = class ToastElement extends Aventus.WebComponent {
+    get 'position'() { return this.getStringAttr('position') }
+    set 'position'(val) { this.setStringAttr('position', val) }get 'delay'() { return this.getNumberAttr('delay') }
+    set 'delay'(val) { this.setNumberAttr('delay', val) }get 'is_active'() { return this.getBoolAttr('is_active') }
+    set 'is_active'(val) { this.setBoolAttr('is_active', val) }    showAsked = false;
+    onHideCallback = () => { };
+    timeout = 0;
+    isTransition = false;
+    waitTransitionCbs = [];
+    static __style = `:host{position:absolute}:host(:not([is_active])){opacity:0;visibility:hidden}:host([position="bottom left"]){bottom:var(--_toast-space-bottom);left:0px}:host([position="top left"]){left:var(--_toast-space-left);top:var(--_toast-space-top)}:host([position="bottom right"]){bottom:var(--_toast-space-bottom);right:var(--_toast-space-right)}:host([position="top right"]){right:var(--_toast-space-right);top:var(--_toast-space-top)}:host([position=top]){left:50%;top:var(--_toast-space-top);transform:translateX(-50%)}:host([position=bottom]){bottom:var(--_toast-space-bottom);left:50%;transform:translateX(-50%)}`;
+    constructor() {
+        super();
+        if (this.constructor == ToastElement) {
+            throw "can't instanciate an abstract class";
+        }
+    }
+    __getStatic() {
+        return ToastElement;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(ToastElement.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<slot></slot>` }
+    });
+}
+    getClassName() {
+        return "ToastElement";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('position')){ this['position'] = _.Toast.ToastManager.defaultPosition; }if(!this.hasAttribute('delay')){ this['delay'] = _.Toast.ToastManager.defaultDelay; }if(!this.hasAttribute('is_active')) { this.attributeChangedCallback('is_active', false, false); } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('position');this.__upgradeProperty('delay');this.__upgradeProperty('is_active'); }
+    __listBoolProps() { return ["is_active"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    _setOptions(options) {
+        if (options.position !== undefined)
+            this.position = options.position;
+        if (options.delay !== undefined)
+            this.delay = options.delay;
+        return this.setOptions(options);
+    }
+    show(onHideCallback) {
+        this.onHideCallback = onHideCallback;
+        if (this.isReady) {
+            this.is_active = true;
+            this.startDelay();
+        }
+        else {
+            this.showAsked = true;
+        }
+    }
+    startDelay() {
+        if (this.delay > 0) {
+            this.timeout = setTimeout(() => {
+                this.close();
+            }, this.delay);
+        }
+    }
+    async close() {
+        if (this.onHideCallback) {
+            this.is_active = false;
+            this.onHideCallback(false);
+            this.remove();
+        }
+    }
+    addTransition() {
+        this.addEventListener("transitionStart", (e) => {
+            this.isTransition = true;
+        });
+        this.addEventListener("transitionEnd", () => {
+            this.isTransition = false;
+            let cbs = [...this.waitTransitionCbs];
+            this.waitTransitionCbs = [];
+            for (let cb of cbs) {
+                cb();
+            }
+        });
+    }
+    waitTransition() {
+        if (this.isTransition) {
+            return new Promise((resolve) => {
+                this.waitTransitionCbs.push(resolve);
+            });
+        }
+        return new Promise((resolve) => {
+            resolve();
+        });
+    }
+    postCreation() {
+        if (this.showAsked) {
+            this.is_active = true;
+            this.startDelay();
+        }
+    }
+    static add(options) {
+        return _.Toast.ToastManager.add(options);
+    }
+}
+Toast.ToastElement.Namespace=`Aventus.Toast`;
+_.Toast.ToastElement=Toast.ToastElement;
+
+Toast.ToastManager = class ToastManager extends Aventus.WebComponent {
+    get 'gap'() { return this.getNumberAttr('gap') }
+    set 'gap'(val) { this.setNumberAttr('gap', val) }get 'not_main'() { return this.getBoolAttr('not_main') }
+    set 'not_main'(val) { this.setBoolAttr('not_main', val) }    static defaultToast;
+    static defaultToastManager;
+    static defaultPosition = 'top right';
+    static defaultDelay = 5000;
+    static heightLimitPercent = 100;
+    static instance;
+    activeToasts = {
+        top: [],
+        'top left': [],
+        'bottom left': [],
+        bottom: [],
+        'bottom right': [],
+        'top right': [],
+    };
+    waitingToasts = {
+        top: [],
+        'top left': [],
+        'bottom left': [],
+        bottom: [],
+        'bottom right': [],
+        'top right': [],
+    };
+    get containerHeight() {
+        return this.offsetHeight;
+    }
+    get heightLimit() {
+        return this.containerHeight * Toast.ToastManager.heightLimitPercent / 100;
+    }
+    mutex = new Aventus.Mutex();
+    static __style = `:host{--_toast-space-bottom: var(--toast-space-bottom, 20px);--_toast-space-top: var(--toast-space-top, 20px);--_toast-space-right: var(--toast-space-right, 10px);--_toast-space-left: var(--toast-space-left, 10px)}:host{inset:0;overflow:hidden;pointer-events:none;position:fixed;z-index:50}:host ::slotted(*){pointer-events:auto}`;
+    __getStatic() {
+        return ToastManager;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(ToastManager.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<slot></slot>` }
+    });
+}
+    getClassName() {
+        return "ToastManager";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('gap')){ this['gap'] = 10; }if(!this.hasAttribute('not_main')) { this.attributeChangedCallback('not_main', false, false); } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('containerHeight');this.__correctGetter('heightLimit');this.__upgradeProperty('gap');this.__upgradeProperty('not_main'); }
+    __listBoolProps() { return ["not_main"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    async add(toast) {
+        await this.mutex.waitOne();
+        console.log("inside");
+        let realToast;
+        if (toast instanceof _.Toast.ToastElement) {
+            realToast = toast;
+        }
+        else {
+            if (!Toast.ToastManager.defaultToast)
+                throw "No default toast. Try ToastManager.configure()";
+            realToast = new Toast.ToastManager.defaultToast();
+            await realToast._setOptions(toast);
+        }
+        this.appendChild(realToast);
+        if (realToast.position == "bottom") {
+            return this._notifyBottom(realToast, true);
+        }
+        else if (realToast.position == "bottom left") {
+            return this._notifyBottomLeft(realToast, true);
+        }
+        else if (realToast.position == "top left") {
+            return this._notifyTopLeft(realToast, true);
+        }
+        else if (realToast.position == "bottom right") {
+            return this._notifyBottomRight(realToast, true);
+        }
+        else if (realToast.position == "top right") {
+            return this._notifyTopRight(realToast, true);
+        }
+        else if (realToast.position == "top") {
+            return this._notifyTop(realToast, true);
+        }
+        return false;
+    }
+    _calculateBottom(toast, firstTime, position, from) {
+        return new Promise((resolve) => {
+            let height = toast.offsetHeight;
+            let containerHeight = this.containerHeight;
+            const _remove = (result) => {
+                let index = this.activeToasts[position].indexOf(toast);
+                if (index > -1) {
+                    this.activeToasts[position].splice(index, 1);
+                }
+                if (this.waitingToasts[position].length > 0) {
+                    let nextNotif = this.waitingToasts[position].splice(0, 1)[0];
+                    this._calculateBottom(nextNotif, false, position, index);
+                }
+                else {
+                    let containerHeight = this.containerHeight;
+                    for (let i = 0; i < index; i++) {
+                        let notif = this.activeToasts[position][i];
+                        let bottom = containerHeight - (notif.offsetTop + notif.offsetHeight);
+                        notif.style.bottom = bottom - height - this.gap + 'px';
+                    }
+                }
+                resolve(result);
+            };
+            let length = this.activeToasts[position].length;
+            if (length == 0) {
+                this.activeToasts[position].push(toast);
+                toast.show(_remove);
+            }
+            else {
+                let totHeight = 0;
+                for (let t of this.activeToasts[position]) {
+                    totHeight += t.offsetHeight + this.gap;
+                }
+                if (totHeight + height < this.heightLimit) {
+                    for (let i = from; i < this.activeToasts[position].length; i++) {
+                        let t = this.activeToasts[position][i];
+                        let bottom = containerHeight - (t.offsetTop + t.offsetHeight);
+                        t.style.bottom = bottom + height + this.gap + 'px';
+                    }
+                    this.activeToasts[position].push(toast);
+                    toast.show(_remove);
+                }
+                else if (firstTime) {
+                    this.waitingToasts[position].push(toast);
+                }
+            }
+        });
+    }
+    _calculateTop(toast, firstTime, position, from) {
+        return new Promise(async (resolve) => {
+            let height = toast.offsetHeight;
+            const _remove = (result) => {
+                let index = this.activeToasts[position].indexOf(toast);
+                if (index > -1) {
+                    this.activeToasts[position].splice(index, 1);
+                }
+                if (this.waitingToasts[position].length > 0) {
+                    let nextNotif = this.waitingToasts[position].splice(0, 1)[0];
+                    this._calculateTop(nextNotif, false, position, index);
+                }
+                else {
+                    for (let i = 0; i < index; i++) {
+                        let notif = this.activeToasts[position][i];
+                        let top = (notif.offsetTop - height - this.gap);
+                        notif.style.top = top + 'px';
+                    }
+                }
+                resolve(result);
+            };
+            let length = this.activeToasts[position].length;
+            if (length == 0) {
+                this.activeToasts[position].push(toast);
+                toast.show(_remove);
+            }
+            else {
+                let totHeight = 0;
+                for (let notif of this.activeToasts[position]) {
+                    await notif.waitTransition();
+                    console.log(notif.offsetHeight);
+                    totHeight += notif.offsetHeight + this.gap;
+                }
+                if (totHeight + height < this.heightLimit) {
+                    for (let i = from; i < this.activeToasts[position].length; i++) {
+                        let notif = this.activeToasts[position][i];
+                        await notif.waitTransition();
+                        let top = (notif.offsetTop + notif.offsetHeight);
+                        notif.style.top = top + this.gap + 'px';
+                    }
+                    this.activeToasts[position].push(toast);
+                    toast.show(_remove);
+                }
+                else if (firstTime) {
+                    this.waitingToasts[position].push(toast);
+                }
+            }
+            console.log("outside");
+            this.mutex.release();
+            return;
+        });
+    }
+    async _notifyBottomRight(toast, firstTime) {
+        return await this._calculateBottom(toast, firstTime, "bottom right", 0);
+    }
+    async _notifyTopRight(toast, firstTime) {
+        return await this._calculateTop(toast, firstTime, "top right", 0);
+    }
+    async _notifyBottomLeft(toast, firstTime) {
+        return await this._calculateBottom(toast, firstTime, "bottom left", 0);
+    }
+    async _notifyTopLeft(toast, firstTime) {
+        return await this._calculateTop(toast, firstTime, "top left", 0);
+    }
+    async _notifyTop(toast, firstTime, from = 0) {
+        return await this._calculateTop(toast, firstTime, "top", 0);
+    }
+    async _notifyBottom(toast, firstTime, from = 0) {
+        return await this._calculateBottom(toast, firstTime, "bottom", from);
+    }
+    postConnect() {
+        super.postConnect();
+        if (!Toast.ToastManager.instance && !this.not_main) {
+            Toast.ToastManager.instance = this;
+        }
+    }
+    postDisonnect() {
+        if (Toast.ToastManager.instance == this) {
+            Toast.ToastManager.instance = undefined;
+        }
+    }
+    static add(toast) {
+        if (!this.instance) {
+            this.instance = this.defaultToastManager ? new this.defaultToastManager() : new Toast.ToastManager();
+            document.body.appendChild(this.instance);
+        }
+        return this.instance.add(toast);
+    }
+    static configure(options) {
+        for (let key in options) {
+            if (options[key] !== undefined)
+                this[key] = options[key];
+        }
+    }
+}
+Toast.ToastManager.Namespace=`Aventus.Toast`;
+Toast.ToastManager.Tag=`av-toast-manager`;
+_.Toast.ToastManager=Toast.ToastManager;
+if(!window.customElements.get('av-toast-manager')){window.customElements.define('av-toast-manager', Toast.ToastManager);Aventus.WebComponentInstance.registerDefinition(Toast.ToastManager);}
 
 
 for(let key in _) { Aventus[key] = _[key] }

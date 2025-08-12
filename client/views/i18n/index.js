@@ -10003,33 +10003,15 @@ let ActionGuard=class ActionGuard {
      * @private
      */
     runningAction = new Map();
-    /**
-     * Executes an action uniquely based on the specified keys.
-     * @template T
-     * @param {any[]} keys The keys associated with the action.
-     * @param {() => Promise<T>} action The action to execute.
-     * @returns {Promise<T>} A promise that resolves with the result of the action.
-     * @example
-     *
-     *
-     * const actionGuard = new Aventus.ActionGuard();
-     *
-     *
-     * const keys = ["key1", "key2"];
-     *
-     *
-     * const action = async () => {
-     *
-     *     await new Promise(resolve => setTimeout(resolve, 1000));
-     *     return "Action executed";
-     * };
-     *
-     *
-     * await actionGuard.run(keys, action)
-     *
-     */
     run(keys, action) {
         return new Promise(async (resolve) => {
+            if (typeof keys == 'function') {
+                action = keys;
+                keys = [];
+            }
+            if (!action) {
+                throw "No action inside the Mutex.run";
+            }
             let actions = undefined;
             let runningKeys = Array.from(this.runningAction.keys());
             for (let runningKey of runningKeys) {

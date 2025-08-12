@@ -191,8 +191,17 @@ export class ActionGuard {
      * await actionGuard.run(keys, action)
      *
      */
-    public run<T extends any>(keys: any[], action: () => Promise<T>): Promise<T> {
+    public run<T extends any>(keys: any[], action: () => Promise<T>): Promise<T>;
+    public run<T extends any>(action: () => Promise<T>): Promise<T>;
+    public run<T extends any>(keys: any[] | (() => Promise<T>), action?: () => Promise<T>): Promise<T> {
         return new Promise<T>(async (resolve) => {
+            if(typeof keys == 'function') {
+                action = keys;
+                keys = [];
+            }
+            if(!action) {
+                throw "No action inside the Mutex.run"
+            }
             // Retrieve actions associated with the keys
             let actions: ((res: any) => void)[] | undefined = undefined;
             let runningKeys = Array.from(this.runningAction.keys());

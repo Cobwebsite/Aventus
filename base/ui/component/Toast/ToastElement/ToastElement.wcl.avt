@@ -1,0 +1,115 @@
+import { ToastManager, type ToastOptions, type ToastPosition } from "../ToastManager/ToastManager.wcl.avt";
+
+namespace Toast {
+    export abstract class ToastElement<T extends ToastOptions = ToastOptions> extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+        //#region static
+        public static add(options: ToastOptions): Promise<boolean> {
+            return ToastManager.add(options);
+        }
+        //#endregion
+
+
+        //#region props
+        @Attribute()
+        public position: ToastPosition = ToastManager.defaultPosition;
+        /**
+         * Use minus -1 to have an infinite timer
+         */
+        @Attribute()
+        public delay: number = ToastManager.defaultDelay;
+
+        @Attribute()
+        protected is_active: boolean = false;
+        //#endregion
+
+
+        //#region variables
+        protected showAsked: boolean = false;
+        protected onHideCallback: (result: boolean) => void = () => { };
+        public timeout: number = 0;
+        private isTransition: boolean = false;
+        private waitTransitionCbs: (() => void)[] = [];
+        //#endregion
+
+
+        //#region constructor
+
+        //#endregion
+
+
+        //#region methods
+        @Internal()
+        public _setOptions(options: T): Aventus.Asyncable<void> {
+            if(options.position !== undefined) this.position = options.position;
+            if(options.delay !== undefined) this.delay = options.delay;
+            return this.setOptions(options);
+        }
+
+        public abstract setOptions(options: T): Aventus.Asyncable<void>;
+
+        public show(onHideCallback: (result: boolean) => void) {
+            this.onHideCallback = onHideCallback;
+            if(this.isReady) {
+                this.is_active = true;
+                this.startDelay();
+            }
+            else {
+                this.showAsked = true;
+            }
+        }
+
+        protected startDelay() {
+            if(this.delay > 0) {
+                this.timeout = setTimeout(() => {
+                    this.close();
+                }, this.delay);
+            }
+        }
+
+        /**
+         * When the user click on the cross, close the notification
+         */
+        protected async close() {
+            if(this.onHideCallback) {
+                this.is_active = false;
+                this.onHideCallback(false);
+                this.remove();
+            }
+        }
+
+        protected addTransition() {
+            this.addEventListener("transitionStart", (e) => {
+                this.isTransition = true;
+            });
+            this.addEventListener("transitionEnd", () => {
+                this.isTransition = false;
+                let cbs = [...this.waitTransitionCbs];
+                this.waitTransitionCbs = [];
+                for(let cb of cbs) {
+                    cb();
+                }
+            });
+        }
+        public waitTransition(): Promise<void> {
+            if(this.isTransition) {
+                return new Promise((resolve) => {
+                    this.waitTransitionCbs.push(resolve);
+                });
+            }
+            return new Promise((resolve) => {
+                resolve();
+            });
+        }
+
+
+        protected override postCreation(): void {
+            if(this.showAsked) {
+                this.is_active = true;
+                this.startDelay();
+            }
+        }
+        //#endregion
+
+    }
+}

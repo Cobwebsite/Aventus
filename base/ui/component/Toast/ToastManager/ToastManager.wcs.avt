@@ -1,0 +1,18 @@
+:host {
+	--_toast-space-bottom: var(--toast-space-bottom, 20px);
+	--_toast-space-top: var(--toast-space-top, 20px);
+	--_toast-space-right: var(--toast-space-right, 10px);
+	--_toast-space-left: var(--toast-space-left, 10px);
+}
+
+:host {
+	inset: 0;
+	overflow: hidden;
+	pointer-events: none;
+	position: fixed;
+	z-index: 50;
+
+	::slotted(*) {
+		pointer-events: auto;
+	}
+}
