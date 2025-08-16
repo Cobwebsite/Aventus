@@ -227,6 +227,7 @@ export class ClassInfo extends BaseInfo {
 		this.loadDecorators();
 
 		this.addConstructor();
+		
 	}
 	private getClassInheritance(node: HeritageClause) {
 		if (node.token == SyntaxKind.ExtendsKeyword) {

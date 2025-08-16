@@ -1,6 +1,7 @@
+import type { Asyncable } from "Aventus@Main:Aventus.package.avt";
 import type { ButtonElement } from "../../Form/ButtonElement/ButtonElement.wcl.avt";
 import { FormHandler } from "../../Form/Form/FormHandler.lib.avt";
-import type { FormHandlerConfig, FormSchema, IForm, WithError } from "../../Form/Form/FormType.lib.avt";
+import type { Constructor, FormHandlerConfig, FormSchema, IForm, SubmitFunction, WithError } from "../../Form/Form/FormType.lib.avt";
 import type { FormElement } from "../../Form/FormElement/FormElement.wcl.avt";
 import { Page } from "../Page/Page.wcl.avt";
 
@@ -8,7 +9,9 @@ namespace Navigation {
     export type PageFormConfig = {
         submitWithEnter?: boolean;
     };
-    export abstract class PageForm<T> extends Page implements Aventus.DefaultComponent, IForm {
+
+
+    export abstract class PageForm<T, U> extends Page implements Aventus.DefaultComponent, IForm {
 
         //#region static
 
@@ -38,7 +41,7 @@ namespace Navigation {
 
 
         //#region methods
-        public abstract submitAction(): Aventus.Asyncable<WithError<any>> | ((body: T) => Aventus.Asyncable<WithError<any>>);
+
         protected abstract formSchema(): FormSchema<T>;
         protected formConfig(): FormHandlerConfig<T> {
             return {};
@@ -49,8 +52,9 @@ namespace Navigation {
             };
         }
 
+        protected abstract defineSubmit(submit: (fct: SubmitFunction<T, U>) => Promise<WithError<U> | null>): Promise<WithError<U> | null>;
         public async submit() {
-            return await this.form.submit(this.submitAction());
+            return await this.defineSubmit((fct) => this.form.submit(fct));
         }
         @BindThis()
         protected checkEnter(e: KeyboardEvent) {
@@ -58,7 +62,7 @@ namespace Navigation {
                 this.submit();
             }
         }
-        public registerElement(element: FormElement<any>): PageForm<T> {
+        public registerElement(element: FormElement<any>): PageForm<T, U> {
             const submitWithEnter = this.pageConfig().submitWithEnter;
             if(this.elements.length > 0) {
                 if(submitWithEnter)
@@ -69,7 +73,7 @@ namespace Navigation {
                 element.addEventListener("keyup", this.checkEnter);
             return this;
         }
-        public registerSubmit(element: ButtonElement): PageForm<T> {
+        public registerSubmit(element: ButtonElement): PageForm<T, U> {
             this.btns.push(element);
             return this;
         }

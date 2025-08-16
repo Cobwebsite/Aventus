@@ -1,12 +1,10 @@
-import { GenericError, VoidWithError } from "Aventus@Main:Aventus.package.avt";
-import { type Constructor, type FormHandlerConfig, type FormPart, type FormPartValidate, type FormSchema, type FormValidate, type FormValidateResult, type IForm, type IFormElement, type InternalForm, type InternalFormPart, type WithError } from "./FormType.lib.avt";
+import { GenericError, VoidWithError, type Asyncable } from "Aventus@Main:Aventus.package.avt";
+import { type Constructor, type FormHandlerConfig, type FormPart, type FormPartValidate, type FormSchema, type FormValidate, type FormValidateResult, type IForm, type IFormElement, type InternalForm, type InternalFormPart, type SubmitFunction, type WithError } from "./FormType.lib.avt";
 import { Validator } from "./Validator.lib.avt";
 import { PageForm } from "../../Navigation/PageForm/PageForm.wcl.avt";
 import { Form } from "./Form.wcl.avt";
 
 namespace Form {
-
-
     export class FormHandler<T> {
 
         @Internal()
@@ -36,8 +34,8 @@ namespace Form {
         }
         private _globalValidation?: FormValidate;
         private _validateOnChange: boolean = false;
-        private _handleValidateNoInputError?: (errors: { [K in keyof T]?: string[]; }) => any;
-        private _handleExecuteNoInputError?: (errors: Aventus.GenericError[]) => any;
+        private _handleValidateNoInputError?: (errors: { [K in keyof T]?: string[]; }) => Asyncable<void>;
+        private _handleExecuteNoInputError?: (errors: Aventus.GenericError[]) => Asyncable<void>;
 
         public defaultValues: T;
         public onItemChange: Aventus.Callback<(action: Aventus.WatchAction, path: string, value: any) => void> = new Aventus.Callback();
@@ -290,19 +288,19 @@ namespace Form {
             return Object.keys(result).length == 0;
         }
 
-        public async submit<X>(query: Aventus.Asyncable<WithError<X>> | ((body: T) => Aventus.Asyncable<WithError<X>>)): Promise<WithError<X> | null> {
+        public async submit<X>(query: SubmitFunction<T, X>): Promise<WithError<X> | null> {
             const result = await this.validate();
             if(!result) {
                 return null;
             }
             return this.execute(query);
         }
-        public async execute<X>(query: Aventus.Asyncable<WithError<X>> | ((body: T) => Aventus.Asyncable<WithError<X>>)): Promise<WithError<X>> {
+        public async execute<X>(query: SubmitFunction<T, X>): Promise<WithError<X>> {
             if(typeof query == "function") {
                 if(!this.item) {
                     const result = new VoidWithError();
                     result.errors.push(new GenericError(404, "No item inside the form"));
-                    return result;
+                    return result as WithError<X>;
                 }
                 query = query(this.item);
             }

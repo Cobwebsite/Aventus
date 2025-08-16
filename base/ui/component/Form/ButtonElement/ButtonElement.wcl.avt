@@ -44,17 +44,19 @@ namespace Form {
         protected override postCreation(): void {
             super.postCreation();
             this.handler = this.findParentByType(Form.formElements)?.registerSubmit(this);
-            new PressManager({
-                element: this,
-                onPress: () => {
-                    this.triggerSubmit();
-                }
-            });
-            this.addEventListener("keyup", (e) => {
-                if(e.key == 'Enter') {
-                    this.triggerSubmit();
-                }
-            });
+            if(this.type == "submit") {
+                new PressManager({
+                    element: this,
+                    onPress: () => {
+                        this.triggerSubmit();
+                    }
+                });
+                this.addEventListener("keyup", (e) => {
+                    if(e.key == 'Enter') {
+                        this.triggerSubmit();
+                    }
+                });
+            }
         }
         //#endregion
 

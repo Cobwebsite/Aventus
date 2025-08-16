@@ -1,0 +1,49 @@
+import type { Asyncable } from "Aventus@Main:Aventus.package.avt";
+import type { Constructor, ExtractError, FormSchema, SubmitFunction, WithError } from "../../Form/Form/FormType.lib.avt";
+import { PageForm } from "../PageForm/PageForm.wcl.avt";
+
+namespace Navigation {
+    export type LastParameter<T extends any> = T extends (...args: any) => any ? Last<Parameters<T>> : never;
+    export type Result<C extends Constructor<Aventus.HttpRoute>, M extends keyof InstanceType<C>> = InstanceType<C>[M] extends (...args: any) => any ? ReturnType<InstanceType<C>[M]> : any;
+
+    export abstract class PageFormRoute<C extends Constructor<Aventus.HttpRoute>, M extends keyof InstanceType<C>> extends PageForm<LastParameter<InstanceType<C>[M]>, ExtractError<Awaited<Result<C, M>>>> implements Aventus.DefaultComponent {
+
+        //#region static
+
+        //#endregion
+
+
+        //#region props
+
+        //#endregion
+
+
+        //#region variables
+
+        //#endregion
+
+
+        //#region constructor
+
+        //#endregion
+
+
+        //#region methods
+		protected override async defineSubmit(submit: (fct: SubmitFunction<LastParameter<InstanceType<C>[M]>, ExtractError<Awaited<Result<C, M>>>>) => Promise<WithError<ExtractError<Awaited<Result<C, M>>>> | null>): Promise<WithError<ExtractError<Awaited<Result<C, M>>>> | null> {
+			const info = this.route();
+            const router = new info[0];
+            const key = info[1] as string;
+            const result = await submit(router[key]) as Awaited<Result<C, M> | null>;
+            this.onResult(result);
+            return result;
+		}
+
+        public abstract route(): [C, M];
+        public abstract onResult(result: Awaited<Result<C, M> | null>): Asyncable<void>;
+
+        
+
+        //#endregion
+
+    }
+}

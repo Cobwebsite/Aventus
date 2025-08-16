@@ -1,3 +1,4 @@
+import type { Asyncable } from "Aventus@Main:Aventus.package.avt";
 import type { ButtonElement } from "../ButtonElement/ButtonElement.wcl.avt";
 import type { FormElement } from "../FormElement/FormElement.wcl.avt";
 import type { FormHandler } from "./FormHandler.lib.avt";
@@ -76,17 +77,20 @@ namespace Form {
     export type FormHandlerConfig<T> = {
         validate?: FormValidate,
         validateOnChange?: boolean,
-        handleValidateNoInputError?: (errors: { [K in keyof T]?: string[]; }) => any,
-        handleExecuteNoInputError?: (errors: Aventus.GenericError[]) => any;
+        handleValidateNoInputError?: (errors: { [K in keyof T]?: string[]; }) => Asyncable<void>,
+        handleExecuteNoInputError?: (errors: Aventus.GenericError[]) => Asyncable<void>;
     };
 
     @Storybook({
         export: 'protected'
     })
-    export type WithError<X> = Aventus.ResultWithError<X> | Aventus.VoidWithError;
+    export type WithError<X> = [X] extends [void] ? Aventus.VoidWithError : Aventus.ResultWithError<X>;
 
-    export type Constructor<T, AllowAbstract extends boolean = false> = AllowAbstract extends false ? new (...args: any[]) => T : abstract new (...args: any[]) => T ;
+    export type ExtractError<X> = [X] extends [Aventus.ResultWithError<infer Y>] ? Y : [X] extends [Aventus.VoidWithError] ? void : X;
 
+    export type Constructor<T, AllowAbstract extends boolean = false> = AllowAbstract extends false ? new (...args: any[]) => T : abstract new (...args: any[]) => T;
+
+    export type SubmitFunction<T, X> = Aventus.Asyncable<WithError<X>> | ((body: T) => Aventus.Asyncable<WithError<X>>);
 
     export function isSubclassOf(subClass: Function, superClass: Function): boolean {
         if(typeof subClass !== 'function' || typeof superClass !== 'function') return false;

@@ -35,6 +35,46 @@ const _ = {};
 
 
 let _n;
+var HttpErrorCode;
+(function (HttpErrorCode) {
+    HttpErrorCode[HttpErrorCode["unknow"] = 0] = "unknow";
+})(HttpErrorCode || (HttpErrorCode = {}));
+_.HttpErrorCode=HttpErrorCode;
+
+let DateConverter=class DateConverter {
+    static __converter = new DateConverter();
+    static get converter() {
+        return this.__converter;
+    }
+    static set converter(value) {
+        this.__converter = value;
+    }
+    isStringDate(txt) {
+        return /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3})Z$/.exec(txt) !== null;
+    }
+    fromString(txt) {
+        return new Date(txt);
+    }
+    toString(date) {
+        if (date.getFullYear() < 100) {
+            return "0001-01-01T00:00:00.000Z";
+        }
+        return date.toISOString();
+    }
+}
+DateConverter.Namespace=`Aventus`;
+_.DateConverter=DateConverter;
+
+var HttpMethod;
+(function (HttpMethod) {
+    HttpMethod["GET"] = "GET";
+    HttpMethod["POST"] = "POST";
+    HttpMethod["DELETE"] = "DELETE";
+    HttpMethod["PUT"] = "PUT";
+    HttpMethod["OPTION"] = "OPTION";
+})(HttpMethod || (HttpMethod = {}));
+_.HttpMethod=HttpMethod;
+
 let DragElementXYType= [SVGGElement, SVGRectElement, SVGEllipseElement, SVGTextElement];
 _.DragElementXYType=DragElementXYType;
 
@@ -5709,6 +5749,637 @@ let DragAndDrop=class DragAndDrop {
 DragAndDrop.Namespace=`Aventus`;
 _.DragAndDrop=DragAndDrop;
 
+let HttpError=class HttpError extends GenericError {
+}
+HttpError.Namespace=`Aventus`;
+_.HttpError=HttpError;
+
+let Json=class Json {
+    /**
+     * Converts a JavaScript class instance to a JSON object.
+     * @template T - The type of the object to convert.
+     * @param {T} obj - The object to convert to JSON.
+     * @param {JsonToOptions} [options] - Options for JSON conversion.
+     * @returns {{ [key: string | number]: any; }} Returns the JSON representation of the object.
+     */
+    static classToJson(obj, options) {
+        const realOptions = {
+            isValidKey: options?.isValidKey ?? (() => true),
+            replaceKey: options?.replaceKey ?? ((key) => key),
+            transformValue: options?.transformValue ?? ((key, value) => value),
+            beforeEnd: options?.beforeEnd ?? ((res) => res)
+        };
+        return this.__classToJson(obj, realOptions);
+    }
+    static __classToJson(obj, options) {
+        let result = {};
+        let descriptors = Object.getOwnPropertyDescriptors(obj);
+        for (let key in descriptors) {
+            if (options.isValidKey(key))
+                result[options.replaceKey(key)] = options.transformValue(key, descriptors[key].value);
+        }
+        let cst = obj.constructor;
+        while (cst.prototype && cst != Object.prototype) {
+            let descriptorsClass = Object.getOwnPropertyDescriptors(cst.prototype);
+            for (let key in descriptorsClass) {
+                if (options.isValidKey(key)) {
+                    let descriptor = descriptorsClass[key];
+                    if (descriptor?.get) {
+                        result[options.replaceKey(key)] = options.transformValue(key, obj[key]);
+                    }
+                }
+            }
+            cst = Object.getPrototypeOf(cst);
+        }
+        result = options.beforeEnd(result);
+        return result;
+    }
+    /**
+    * Converts a JSON object to a JavaScript class instance.
+    * @template T - The type of the object to convert.
+    * @param {T} obj - The object to populate with JSON data.
+    * @param {*} data - The JSON data to populate the object with.
+    * @param {JsonFromOptions} [options] - Options for JSON deserialization.
+    * @returns {T} Returns the populated object.
+    */
+    static classFromJson(obj, data, options) {
+        let realOptions = {
+            transformValue: options?.transformValue ?? ((key, value) => value),
+            replaceUndefined: options?.replaceUndefined ?? false,
+            replaceUndefinedWithKey: options?.replaceUndefinedWithKey ?? false,
+        };
+        return this.__classFromJson(obj, data, realOptions);
+    }
+    static __classFromJson(obj, data, options) {
+        let props = Object.getOwnPropertyNames(obj);
+        for (let prop of props) {
+            let propUpperFirst = prop[0].toUpperCase() + prop.slice(1);
+            let value = data[prop] === undefined ? data[propUpperFirst] : data[prop];
+            if (value !== undefined || options.replaceUndefined || (options.replaceUndefinedWithKey && (Object.hasOwn(data, prop) || Object.hasOwn(data, propUpperFirst)))) {
+                let propInfo = Object.getOwnPropertyDescriptor(obj, prop);
+                if (propInfo?.writable) {
+                    obj[prop] = options.transformValue(prop, value);
+                }
+            }
+        }
+        let cstTemp = obj.constructor;
+        while (cstTemp.prototype && cstTemp != Object.prototype) {
+            props = Object.getOwnPropertyNames(cstTemp.prototype);
+            for (let prop of props) {
+                let propUpperFirst = prop[0].toUpperCase() + prop.slice(1);
+                let value = data[prop] === undefined ? data[propUpperFirst] : data[prop];
+                if (value !== undefined || options.replaceUndefined || (options.replaceUndefinedWithKey && (Object.hasOwn(data, prop) || Object.hasOwn(data, propUpperFirst)))) {
+                    let propInfo = Object.getOwnPropertyDescriptor(cstTemp.prototype, prop);
+                    if (propInfo?.set) {
+                        obj[prop] = options.transformValue(prop, value);
+                    }
+                }
+            }
+            cstTemp = Object.getPrototypeOf(cstTemp);
+        }
+        return obj;
+    }
+}
+Json.Namespace=`Aventus`;
+_.Json=Json;
+
+let Data=class Data {
+    /**
+     * The schema for the class
+     */
+    static $schema;
+    /**
+     * The current namespace
+     */
+    static Namespace = "";
+    /**
+     * Get the unique type for the data. Define it as the namespace + class name
+     */
+    static get Fullname() { return this.Namespace + "." + this.name; }
+    /**
+     * The current namespace
+     */
+    get namespace() {
+        return this.constructor['Namespace'];
+    }
+    /**
+     * Get the unique type for the data. Define it as the namespace + class name
+     */
+    get $type() {
+        return this.constructor['Fullname'];
+    }
+    /**
+     * Get the name of the class
+     */
+    get className() {
+        return this.constructor.name;
+    }
+    /**
+     * Get a JSON for the current object
+     */
+    toJSON() {
+        let toAvoid = ['className', 'namespace'];
+        return Json.classToJson(this, {
+            isValidKey: (key) => !toAvoid.includes(key)
+        });
+    }
+    /**
+     * Clone the object by transforming a parsed JSON string back into the original type
+     */
+    clone() {
+        return Converter.transform(JSON.parse(JSON.stringify(this)));
+    }
+}
+Data.Namespace=`Aventus`;
+_.Data=Data;
+
+let ConverterTransform=class ConverterTransform {
+    transform(data) {
+        return this.transformLoop(data);
+    }
+    createInstance(data) {
+        if (data.$type) {
+            let cst = Converter.info.get(data.$type);
+            if (cst) {
+                return new cst();
+            }
+        }
+        return undefined;
+    }
+    beforeTransformObject(obj) {
+    }
+    afterTransformObject(obj) {
+    }
+    transformLoop(data) {
+        if (data === null) {
+            return data;
+        }
+        if (Array.isArray(data)) {
+            let result = [];
+            for (let element of data) {
+                result.push(this.transformLoop(element));
+            }
+            return result;
+        }
+        if (data instanceof Date) {
+            return data;
+        }
+        if (typeof data === 'object' && !/^\s*class\s+/.test(data.toString())) {
+            let objTemp = this.createInstance(data);
+            if (objTemp) {
+                if (objTemp instanceof Map) {
+                    if (data.values) {
+                        for (const keyValue of data.values) {
+                            objTemp.set(this.transformLoop(keyValue[0]), this.transformLoop(keyValue[1]));
+                        }
+                    }
+                    return objTemp;
+                }
+                let obj = objTemp;
+                this.beforeTransformObject(obj);
+                if (obj.fromJSON) {
+                    obj = obj.fromJSON(data);
+                }
+                else {
+                    obj = Json.classFromJson(obj, data, {
+                        transformValue: (key, value) => {
+                            if (obj[key] instanceof Date) {
+                                return value ? new Date(value) : null;
+                            }
+                            else if (typeof value == 'string' && DateConverter.converter.isStringDate(value)) {
+                                return value ? DateConverter.converter.fromString(value) : null;
+                            }
+                            else if (obj[key] instanceof Map) {
+                                let map = new Map();
+                                for (const keyValue of value) {
+                                    map.set(this.transformLoop(keyValue[0]), this.transformLoop(keyValue[1]));
+                                }
+                                return map;
+                            }
+                            else if (obj instanceof Data) {
+                                let cst = obj.constructor;
+                                if (cst.$schema[key] == 'boolean') {
+                                    return value ? true : false;
+                                }
+                                else if (cst.$schema[key] == 'number') {
+                                    return isNaN(Number(value)) ? 0 : Number(value);
+                                }
+                                else if (cst.$schema[key] == 'number') {
+                                    return isNaN(Number(value)) ? 0 : Number(value);
+                                }
+                                else if (cst.$schema[key] == 'Date') {
+                                    return value ? new Date(value) : null;
+                                }
+                            }
+                            return this.transformLoop(value);
+                        }
+                    });
+                }
+                this.afterTransformObject(obj);
+                return obj;
+            }
+            let result = {};
+            for (let key in data) {
+                result[key] = this.transformLoop(data[key]);
+            }
+            return result;
+        }
+        if (typeof data == 'string' && /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3})Z$/.exec(data)) {
+            return new Date(data);
+        }
+        return data;
+    }
+    copyValuesClass(target, src, options) {
+        const realOptions = {
+            isValidKey: options?.isValidKey ?? (() => true),
+            replaceKey: options?.replaceKey ?? ((key) => key),
+            transformValue: options?.transformValue ?? ((key, value) => value),
+        };
+        this.__classCopyValues(target, src, realOptions);
+    }
+    __classCopyValues(target, src, options) {
+        let props = Object.getOwnPropertyNames(target);
+        for (let prop of props) {
+            let propInfo = Object.getOwnPropertyDescriptor(target, prop);
+            if (propInfo?.writable) {
+                if (options.isValidKey(prop))
+                    target[options.replaceKey(prop)] = options.transformValue(prop, src[prop]);
+            }
+        }
+        let cstTemp = target.constructor;
+        while (cstTemp.prototype && cstTemp != Object.prototype) {
+            props = Object.getOwnPropertyNames(cstTemp.prototype);
+            for (let prop of props) {
+                let propInfo = Object.getOwnPropertyDescriptor(cstTemp.prototype, prop);
+                if (propInfo?.set && propInfo.get) {
+                    if (options.isValidKey(prop))
+                        target[options.replaceKey(prop)] = options.transformValue(prop, src[prop]);
+                }
+            }
+            cstTemp = Object.getPrototypeOf(cstTemp);
+        }
+    }
+}
+ConverterTransform.Namespace=`Aventus`;
+_.ConverterTransform=ConverterTransform;
+
+let Converter=class Converter {
+    /**
+    * Map storing information about registered types.
+    */
+    static info = new Map([["Aventus.Map", Map]]);
+    /**
+    * Map storing schemas for registered types.
+    */
+    static schema = new Map();
+    /**
+     * Internal converter instance.
+     */
+    static __converter = new ConverterTransform();
+    /**
+     * Getter for the internal converter instance.
+     */
+    static get converterTransform() {
+        return this.__converter;
+    }
+    /**
+    * Sets the converter instance.
+    * @param converter The converter instance to set.
+    */
+    static setConverter(converter) {
+        this.__converter = converter;
+    }
+    /**
+    * Registers a unique string type for any class.
+    * @param $type The unique string type identifier.
+    * @param cst The constructor function for the class.
+    * @param schema Optional schema for the registered type.
+    */
+    static register($type, cst, schema) {
+        this.info.set($type, cst);
+        if (schema) {
+            this.schema.set($type, schema);
+        }
+    }
+    /**
+     * Transforms the provided data using the current converter instance.
+     * @template T
+     * @param {*} data The data to transform.
+     * @param {IConverterTransform} [converter] Optional converter instance to use for transformation.
+     * @returns {T} Returns the transformed data.
+     */
+    static transform(data, converter) {
+        if (!converter) {
+            converter = this.converterTransform;
+        }
+        return converter.transform(data);
+    }
+    /**
+     * Copies values from one class instance to another using the current converter instance.
+     * @template T
+     * @param {T} to The destination class instance to copy values into.
+     * @param {T} from The source class instance to copy values from.
+     * @param {ClassCopyOptions} [options] Optional options for the copy operation.
+     * @param {IConverterTransform} [converter] Optional converter instance to use for the copy operation.
+     * @returns {T} Returns the destination class instance with copied values.
+     */
+    static copyValuesClass(to, from, options, converter) {
+        if (!converter) {
+            converter = this.converterTransform;
+        }
+        return converter.copyValuesClass(to, from, options);
+    }
+}
+Converter.Namespace=`Aventus`;
+_.Converter=Converter;
+
+let HttpRequest=class HttpRequest {
+    static options;
+    static configure(options) {
+        this.options = options;
+    }
+    request;
+    url;
+    constructor(url, method = HttpMethod.GET, body) {
+        this.url = url;
+        this.request = {};
+        this.setMethod(method);
+        this.prepareBody(body);
+    }
+    setUrl(url) {
+        this.url = url;
+    }
+    toString() {
+        return this.url + " : " + JSON.stringify(this.request);
+    }
+    setBody(body) {
+        this.prepareBody(body);
+    }
+    setMethod(method) {
+        this.request.method = method;
+    }
+    objectToFormData(obj, formData, parentKey) {
+        formData = formData || new FormData();
+        let byPass = obj;
+        if (byPass.__isProxy) {
+            obj = byPass.getTarget();
+        }
+        const keys = obj.toJSON ? Object.keys(obj.toJSON()) : Object.keys(obj);
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
+            let value = obj[key];
+            const newKey = parentKey ? `${parentKey}[${key}]` : key;
+            if (value instanceof Date) {
+                formData.append(newKey, DateConverter.converter.toString(value));
+            }
+            else if (typeof value === 'object' &&
+                value !== null &&
+                !(value instanceof File)) {
+                if (Array.isArray(value)) {
+                    for (let j = 0; j < value.length; j++) {
+                        const arrayKey = `${newKey}[${j}]`;
+                        this.objectToFormData({ [arrayKey]: value[j] }, formData);
+                    }
+                }
+                else {
+                    this.objectToFormData(value, formData, newKey);
+                }
+            }
+            else {
+                if (value === undefined || value === null) {
+                    value = "";
+                }
+                else if (Watcher.is(value)) {
+                    value = Watcher.extract(value);
+                }
+                formData.append(newKey, value);
+            }
+        }
+        return formData;
+    }
+    jsonReplacer(key, value) {
+        if (this[key] instanceof Date) {
+            return DateConverter.converter.toString(this[key]);
+        }
+        return value;
+    }
+    prepareBody(data) {
+        if (!data) {
+            return;
+        }
+        else if (data instanceof FormData) {
+            this.request.body = data;
+        }
+        else {
+            let useFormData = false;
+            const analyseFormData = (obj) => {
+                for (let key in obj) {
+                    if (obj[key] instanceof File) {
+                        useFormData = true;
+                        break;
+                    }
+                    else if (Array.isArray(obj[key]) && obj[key].length > 0 && obj[key][0] instanceof File) {
+                        useFormData = true;
+                        break;
+                    }
+                    else if (typeof obj[key] == 'object' && !Array.isArray(obj[key]) && !(obj[key] instanceof Date)) {
+                        analyseFormData(obj[key]);
+                        if (useFormData) {
+                            break;
+                        }
+                    }
+                }
+            };
+            analyseFormData(data);
+            if (useFormData) {
+                this.request.body = this.objectToFormData(data);
+            }
+            else {
+                this.request.body = JSON.stringify(data, this.jsonReplacer);
+                this.setHeader("Content-Type", "Application/json");
+            }
+        }
+    }
+    setHeader(name, value) {
+        if (!this.request.headers) {
+            this.request.headers = [];
+        }
+        this.request.headers.push([name, value]);
+    }
+    async _query(router) {
+        let result = new ResultWithError();
+        try {
+            if (!this.url.startsWith("/")) {
+                this.url = "/" + this.url;
+            }
+            if (HttpRequest.options.beforeSend) {
+                const beforeSendResult = await HttpRequest.options.beforeSend(this);
+                result.errors = beforeSendResult.errors;
+            }
+            const fullUrl = router ? router.options.url + this.url : this.url;
+            result.result = await fetch(fullUrl, this.request);
+        }
+        catch (e) {
+            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
+        }
+        return result;
+    }
+    async query(router) {
+        let result = await this._query(router);
+        if (HttpRequest.options.responseMiddleware) {
+            result = await HttpRequest.options.responseMiddleware(result, this);
+        }
+        return result;
+    }
+    async queryVoid(router) {
+        let resultTemp = await this._query(router);
+        let result = new VoidWithError();
+        if (!resultTemp.success) {
+            result.errors = resultTemp.errors;
+            return result;
+        }
+        try {
+            if (!resultTemp.result) {
+                return result;
+            }
+            if (resultTemp.result.status != 204) {
+                let tempResult = Converter.transform(await resultTemp.result.json());
+                if (tempResult instanceof VoidWithError) {
+                    for (let error of tempResult.errors) {
+                        result.errors.push(error);
+                    }
+                }
+            }
+        }
+        catch (e) {
+        }
+        if (HttpRequest.options.responseMiddleware) {
+            result = await HttpRequest.options.responseMiddleware(result, this);
+        }
+        return result;
+    }
+    async queryJSON(router) {
+        let resultTemp = await this._query(router);
+        let result = new ResultWithError();
+        if (!resultTemp.success) {
+            result.errors = resultTemp.errors;
+            return result;
+        }
+        try {
+            if (!resultTemp.result) {
+                return result;
+            }
+            let tempResult = Converter.transform(await resultTemp.result.json());
+            if (tempResult instanceof VoidWithError) {
+                for (let error of tempResult.errors) {
+                    result.errors.push(error);
+                }
+                if (tempResult instanceof ResultWithError) {
+                    result.result = tempResult.result;
+                }
+            }
+            else {
+                result.result = tempResult;
+            }
+        }
+        catch (e) {
+            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
+        }
+        if (HttpRequest.options.responseMiddleware) {
+            result = await HttpRequest.options.responseMiddleware(result, this);
+        }
+        return result;
+    }
+    async queryTxt(router) {
+        let resultTemp = await this._query(router);
+        let result = new ResultWithError();
+        if (!resultTemp.success) {
+            result.errors = resultTemp.errors;
+            return result;
+        }
+        try {
+            if (!resultTemp.result) {
+                return result;
+            }
+            result.result = await resultTemp.result.text();
+        }
+        catch (e) {
+            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
+        }
+        if (HttpRequest.options.responseMiddleware) {
+            result = await HttpRequest.options.responseMiddleware(result, this);
+        }
+        return result;
+    }
+    async queryBlob(router) {
+        let resultTemp = await this._query(router);
+        let result = new ResultWithError();
+        if (!resultTemp.success) {
+            result.errors = resultTemp.errors;
+            return result;
+        }
+        try {
+            if (!resultTemp.result) {
+                return result;
+            }
+            result.result = await resultTemp.result.blob();
+        }
+        catch (e) {
+            result.errors.push(new HttpError(HttpErrorCode.unknow, e));
+        }
+        if (HttpRequest.options.responseMiddleware) {
+            result = await HttpRequest.options.responseMiddleware(result, this);
+        }
+        return result;
+    }
+}
+HttpRequest.Namespace=`Aventus`;
+_.HttpRequest=HttpRequest;
+
+let HttpRouter=class HttpRouter {
+    options;
+    constructor() {
+        this.options = this.defineOptions(this.defaultOptionsValue());
+    }
+    defaultOptionsValue() {
+        return {
+            url: location.protocol + "//" + location.host
+        };
+    }
+    defineOptions(options) {
+        return options;
+    }
+    async get(url) {
+        return await new HttpRequest(url).queryJSON(this);
+    }
+    async post(url, data) {
+        return await new HttpRequest(url, HttpMethod.POST, data).queryJSON(this);
+    }
+    async put(url, data) {
+        return await new HttpRequest(url, HttpMethod.PUT, data).queryJSON(this);
+    }
+    async delete(url, data) {
+        return await new HttpRequest(url, HttpMethod.DELETE, data).queryJSON(this);
+    }
+    async option(url, data) {
+        return await new HttpRequest(url, HttpMethod.OPTION, data).queryJSON(this);
+    }
+}
+HttpRouter.Namespace=`Aventus`;
+_.HttpRouter=HttpRouter;
+
+let HttpRoute=class HttpRoute {
+    router;
+    constructor(router) {
+        this.router = router ?? new HttpRouter();
+    }
+    getPrefix() {
+        return "";
+    }
+}
+HttpRoute.Namespace=`Aventus`;
+_.HttpRoute=HttpRoute;
+
 
 for(let key in _) { Aventus[key] = _[key] }
 })(Aventus);
@@ -7113,26 +7784,25 @@ Form.ButtonElement = class ButtonElement extends Aventus.WebComponent {
     postCreation() {
         super.postCreation();
         this.handler = this.findParentByType(_.Form.Form.formElements)?.registerSubmit(this);
-        new Aventus.PressManager({
-            element: this,
-            onPress: () => {
-                this.triggerSubmit();
-            }
-        });
-        this.addEventListener("keyup", (e) => {
-            if (e.key == 'Enter') {
-                this.triggerSubmit();
-            }
-        });
+        if (this.type == "submit") {
+            new Aventus.PressManager({
+                element: this,
+                onPress: () => {
+                    this.triggerSubmit();
+                }
+            });
+            this.addEventListener("keyup", (e) => {
+                if (e.key == 'Enter') {
+                    this.triggerSubmit();
+                }
+            });
+        }
     }
 }
 Form.ButtonElement.Namespace=`Aventus.Form`;
 _.Form.ButtonElement=Form.ButtonElement;
 
 Form.Form = class Form extends Aventus.WebComponent {
-    static set defaultConfig(value) {
-        _.Form.FormHandler._globalConfig = value;
-    }
     static get defaultConfig() {
         return _.Form.FormHandler._globalConfig;
     }
@@ -7207,6 +7877,9 @@ Form.Form = class Form extends Aventus.WebComponent {
         let form = new _.Form.FormHandler(schema, config);
         return form;
     }
+    static configure(value) {
+        _.Form.FormHandler._globalConfig = value;
+    }
 }
 Form.Form.Namespace=`Aventus.Form`;
 Form.Form.Tag=`av-form`;
@@ -7254,7 +7927,7 @@ Navigation.PageForm = class PageForm extends Navigation.Page {
         };
     }
     async submit() {
-        return await this.form.submit(this.submitAction());
+        return await this.defineSubmit((fct) => this.form.submit(fct));
     }
     checkEnter(e) {
         if (e.key == "Enter") {
@@ -7282,6 +7955,43 @@ Navigation.PageForm = class PageForm extends Navigation.Page {
 }
 Navigation.PageForm.Namespace=`Aventus.Navigation`;
 _.Navigation.PageForm=Navigation.PageForm;
+
+Navigation.PageFormRoute = class PageFormRoute extends Navigation.PageForm {
+    static __style = ``;
+    constructor() {
+        super();
+        if (this.constructor == PageFormRoute) {
+            throw "can't instanciate an abstract class";
+        }
+    }
+    __getStatic() {
+        return PageFormRoute;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(PageFormRoute.__style);
+        return arrStyle;
+    }
+    __getHtml() {super.__getHtml();
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<slot></slot>` }
+    });
+}
+    getClassName() {
+        return "PageFormRoute";
+    }
+    async defineSubmit(submit) {
+        const info = this.route();
+        const router = new info[0];
+        const key = info[1];
+        const result = await submit(router[key]);
+        this.onResult(result);
+        return result;
+    }
+}
+Navigation.PageFormRoute.Namespace=`Aventus.Navigation`;
+_.Navigation.PageFormRoute=Navigation.PageFormRoute;
 
 Form.FormHandler=class FormHandler {
     static _globalConfig;
@@ -7799,96 +8509,6 @@ Lib.ShortcutManager=class ShortcutManager {
 Lib.ShortcutManager.Namespace=`Aventus.Lib`;
 _.Lib.ShortcutManager=Lib.ShortcutManager;
 
-Modal.ModalElement = class ModalElement extends Aventus.WebComponent {
-    get 'options'() {
-						return this.__watch["options"];
-					}
-					set 'options'(val) {
-						this.__watch["options"] = val;
-					}    cb;
-    pressManagerClickClose;
-    pressManagerPrevent;
-    __registerWatchesActions() {
-    this.__addWatchesActions("options", ((target, action, path, value) => {
-    target.onOptionsChanged();
-}));    super.__registerWatchesActions();
-}
-    static __style = `:host{align-items:center;display:flex;inset:0;justify-content:center;position:fixed;z-index:60}:host .modal{background-color:#fff;padding:1.5rem;position:relative}`;
-    constructor() {
-        super();
-        this.options = this.defaultOptions();
-        if (this.constructor == ModalElement) {
-            throw "can't instanciate an abstract class";
-        }
-        this.cancel = this.cancel.bind(this);
-    }
-    __getStatic() {
-        return ModalElement;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(ModalElement.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<div class="modal" _id="modalelement_0">	<slot></slot></div>` }
-    });
-}
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
-  "elements": [
-    {
-      "name": "modalEl",
-      "ids": [
-        "modalelement_0"
-      ]
-    }
-  ]
-}); }
-    getClassName() {
-        return "ModalElement";
-    }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["options"] = undefined; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('options'); }
-    onOptionsChanged() { }
-    init(cb) {
-        this.cb = cb;
-        if (this.options.closeWithEsc) {
-            Lib.ShortcutManager.subscribe(Lib.SpecialTouch.Escape, this.cancel);
-        }
-        if (this.options.closeWithClick) {
-            this.pressManagerClickClose = new Aventus.PressManager({
-                element: this,
-                onPress: () => {
-                    this.cancel();
-                }
-            });
-            this.pressManagerPrevent = new Aventus.PressManager({
-                element: this.modalEl,
-                onPress: () => { }
-            });
-        }
-    }
-    close() {
-        Lib.ShortcutManager.unsubscribe(Lib.SpecialTouch.Escape, this.cancel);
-        this.pressManagerClickClose?.destroy();
-        this.pressManagerPrevent?.destroy();
-        this.remove();
-    }
-    cancel() { }
-    resolve(response, no_close) {
-        if (this.cb) {
-            this.cb(response);
-        }
-        if (!no_close) {
-            this.close();
-        }
-    }
-}
-Modal.ModalElement.Namespace=`Aventus.Modal`;
-_.Modal.ModalElement=Modal.ModalElement;
-
 Layout.GridHelper = class GridHelper extends Aventus.WebComponent {
     static get observedAttributes() {return ["nb_col", "nb_row", "col_width", "row_height"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'show_rulers'() { return this.getBoolAttr('show_rulers') }
@@ -8262,7 +8882,7 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
     __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("zoom", ((target) => {
     target.changeZoom();
 })); }
-    static __style = `:host{--internal-scrollbar-container-color: var(--scrollbar-container-color, transparent);--internal-scrollbar-color: var(--scrollbar-color, #757575);--internal-scrollbar-active-color: var(--scrollbar-active-color, #858585);--internal-scroller-width: var(--scroller-width, 6px);--internal-scroller-top: var(--scroller-top, 3px);--internal-scroller-bottom: var(--scroller-bottom, 3px);--internal-scroller-right: var(--scroller-right, 3px);--internal-scroller-left: var(--scroller-left, 3px);--_scrollbar-content-padding: var(--scrollbar-content-padding, 0);--_scrollbar-container-display: var(--scrollbar-container-display, inline-block)}:host{display:block;height:100%;min-height:inherit;min-width:inherit;overflow:hidden;position:relative;-webkit-user-drag:none;-khtml-user-drag:none;-moz-user-drag:none;-o-user-drag:none;width:100%}:host .scroll-main-container{display:block;height:100%;min-height:inherit;min-width:inherit;position:relative;width:100%}:host .scroll-main-container .content-zoom{display:block;height:100%;min-height:inherit;min-width:inherit;position:relative;transform-origin:0 0;width:100%;z-index:4}:host .scroll-main-container .content-zoom .content-hidder{display:block;height:100%;min-height:inherit;min-width:inherit;overflow:hidden;position:relative;width:100%}:host .scroll-main-container .content-zoom .content-hidder .content-wrapper{display:var(--_scrollbar-container-display);height:100%;min-height:inherit;min-width:inherit;padding:var(--_scrollbar-content-padding);position:relative;width:100%}:host .scroll-main-container .scroller-wrapper .container-scroller{display:none;overflow:hidden;position:absolute;transition:transform .2s linear;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller{background-color:var(--internal-scrollbar-container-color);border-radius:5px}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller .scroller{background-color:var(--internal-scrollbar-color);border-radius:5px;cursor:pointer;position:absolute;-webkit-tap-highlight-color:rgba(0,0,0,0);touch-action:none;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .scroller.active{background-color:var(--internal-scrollbar-active-color)}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical{height:calc(100% - var(--internal-scroller-bottom)*2 - var(--internal-scroller-width));padding-left:var(--internal-scroller-left);right:var(--internal-scroller-right);top:var(--internal-scroller-bottom);transform:0;width:calc(var(--internal-scroller-width) + var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical.hide{transform:translateX(calc(var(--internal-scroller-width) + var(--internal-scroller-left)))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller .scroller{width:calc(100% - var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal{bottom:var(--internal-scroller-bottom);height:calc(var(--internal-scroller-width) + var(--internal-scroller-top));left:var(--internal-scroller-right);padding-top:var(--internal-scroller-top);transform:0;width:calc(100% - var(--internal-scroller-right)*2 - var(--internal-scroller-width))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal.hide{transform:translateY(calc(var(--internal-scroller-width) + var(--internal-scroller-top)))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller .scroller{height:calc(100% - var(--internal-scroller-top))}:host([y_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{height:auto}:host([x_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{width:auto}:host([y_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.vertical{display:block}:host([x_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.horizontal{display:block}:host([no_user_select]) .content-wrapper *{user-select:none}:host([no_user_select]) ::slotted{user-select:none}`;
+    static __style = `:host{--internal-scrollbar-container-color: var(--scrollbar-container-color, transparent);--internal-scrollbar-color: var(--scrollbar-color, #757575);--internal-scrollbar-active-color: var(--scrollbar-active-color, #858585);--internal-scroller-width: var(--scroller-width, 6px);--internal-scroller-top: var(--scroller-top, 3px);--internal-scroller-bottom: var(--scroller-bottom, 3px);--internal-scroller-right: var(--scroller-right, 3px);--internal-scroller-left: var(--scroller-left, 3px);--_scrollbar-content-padding: var(--scrollbar-content-padding, 0);--_scrollbar-container-display: var(--scrollbar-container-display, inline-block)}:host{display:block;height:100%;min-height:inherit;min-width:inherit;overflow:clip;position:relative;-webkit-user-drag:none;-khtml-user-drag:none;-moz-user-drag:none;-o-user-drag:none;width:100%}:host .scroll-main-container{display:block;height:100%;min-height:inherit;min-width:inherit;position:relative;width:100%}:host .scroll-main-container .content-zoom{display:block;height:100%;min-height:inherit;min-width:inherit;position:relative;transform-origin:0 0;width:100%;z-index:4}:host .scroll-main-container .content-zoom .content-hidder{display:block;height:100%;min-height:inherit;min-width:inherit;overflow:clip;position:relative;width:100%}:host .scroll-main-container .content-zoom .content-hidder .content-wrapper{display:var(--_scrollbar-container-display);height:100%;min-height:inherit;min-width:inherit;padding:var(--_scrollbar-content-padding);position:relative;width:100%}:host .scroll-main-container .scroller-wrapper .container-scroller{display:none;overflow:hidden;position:absolute;transition:transform .2s linear;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller{background-color:var(--internal-scrollbar-container-color);border-radius:5px}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller .scroller{background-color:var(--internal-scrollbar-color);border-radius:5px;cursor:pointer;position:absolute;-webkit-tap-highlight-color:rgba(0,0,0,0);touch-action:none;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .scroller.active{background-color:var(--internal-scrollbar-active-color)}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical{height:calc(100% - var(--internal-scroller-bottom)*2 - var(--internal-scroller-width));padding-left:var(--internal-scroller-left);right:var(--internal-scroller-right);top:var(--internal-scroller-bottom);transform:0;width:calc(var(--internal-scroller-width) + var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical.hide{transform:translateX(calc(var(--internal-scroller-width) + var(--internal-scroller-left)))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller .scroller{width:calc(100% - var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal{bottom:var(--internal-scroller-bottom);height:calc(var(--internal-scroller-width) + var(--internal-scroller-top));left:var(--internal-scroller-right);padding-top:var(--internal-scroller-top);transform:0;width:calc(100% - var(--internal-scroller-right)*2 - var(--internal-scroller-width))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal.hide{transform:translateY(calc(var(--internal-scroller-width) + var(--internal-scroller-top)))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller .scroller{height:calc(100% - var(--internal-scroller-top))}:host([y_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{height:auto}:host([x_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{width:auto}:host([y_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.vertical{display:block}:host([x_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.horizontal{display:block}:host([no_user_select]) .content-wrapper *{user-select:none}:host([no_user_select]) ::slotted{user-select:none}`;
     constructor() {
         super();
         this.renderAnimation = this.createAnimation();
@@ -9039,6 +9659,135 @@ Layout.Scrollable.Namespace=`Aventus.Layout`;
 Layout.Scrollable.Tag=`av-scrollable`;
 _.Layout.Scrollable=Layout.Scrollable;
 if(!window.customElements.get('av-scrollable')){window.customElements.define('av-scrollable', Layout.Scrollable);Aventus.WebComponentInstance.registerDefinition(Layout.Scrollable);}
+
+Modal.ModalElement = class ModalElement extends Aventus.WebComponent {
+    get 'options'() {
+						return this.__watch["options"];
+					}
+					set 'options'(val) {
+						this.__watch["options"] = val;
+					}    static defaultCloseWithEsc = true;
+    static defaultCloseWithClick = true;
+    static defaultRejectValue = null;
+    cb;
+    pressManagerClickClose;
+    pressManagerPrevent;
+    __registerWatchesActions() {
+    this.__addWatchesActions("options", ((target, action, path, value) => {
+    target.onOptionsChanged();
+}));    super.__registerWatchesActions();
+}
+    static __style = `:host{align-items:center;display:flex;inset:0;justify-content:center;position:fixed;z-index:60}:host .modal{background-color:#fff;padding:1.5rem;position:relative}`;
+    constructor() {
+        super();
+        this.options = this.configure();
+        if (this.options.closeWithClick === undefined)
+            this.options.closeWithClick = Modal.ModalElement.defaultCloseWithClick;
+        if (this.options.closeWithEsc === undefined)
+            this.options.closeWithEsc = Modal.ModalElement.defaultCloseWithEsc;
+        if (!Object.hasOwn(this.options, "rejectValue")) {
+            this.options.rejectValue = Modal.ModalElement.defaultRejectValue;
+        }
+        if (this.constructor == ModalElement) {
+            throw "can't instanciate an abstract class";
+        }
+        this.close = this.close.bind(this);
+        this.reject = this.reject.bind(this);
+        this.resolve = this.resolve.bind(this);
+    }
+    __getStatic() {
+        return ModalElement;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(ModalElement.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<div class="modal" _id="modalelement_0">	<slot></slot></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "elements": [
+    {
+      "name": "modalEl",
+      "ids": [
+        "modalelement_0"
+      ]
+    }
+  ]
+}); }
+    getClassName() {
+        return "ModalElement";
+    }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["options"] = undefined; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('options'); }
+    onOptionsChanged() { }
+    init(cb) {
+        this.cb = cb;
+        if (this.options.closeWithEsc) {
+            Lib.ShortcutManager.subscribe(Lib.SpecialTouch.Escape, this.reject, { replaceTemp: true });
+        }
+        if (this.options.closeWithClick) {
+            this.pressManagerClickClose = new Aventus.PressManager({
+                element: this,
+                onPress: () => {
+                    this.reject();
+                }
+            });
+            this.pressManagerPrevent = new Aventus.PressManager({
+                element: this.modalEl,
+                onPress: () => { }
+            });
+        }
+    }
+    close() {
+        Lib.ShortcutManager.unsubscribe(Lib.SpecialTouch.Escape, this.reject);
+        this.pressManagerClickClose?.destroy();
+        this.pressManagerPrevent?.destroy();
+        this.remove();
+    }
+    reject(no_close) {
+        if (this.cb) {
+            this.cb(this.options.rejectValue ?? null);
+        }
+        if (no_close !== true) {
+            this.close();
+        }
+    }
+    resolve(response, no_close) {
+        if (this.cb) {
+            this.cb(response);
+        }
+        if (no_close !== true) {
+            this.close();
+        }
+    }
+    static configure(options) {
+        if (options.closeWithClick !== undefined)
+            this.defaultCloseWithClick = options.closeWithClick;
+        if (options.closeWithEsc !== undefined)
+            this.defaultCloseWithEsc = options.closeWithEsc;
+        if (!Object.hasOwn(options, "rejectValue")) {
+            this.defaultRejectValue = options.rejectValue;
+        }
+    }
+    static _show(modal, element) {
+        return new Promise((resolve) => {
+            modal.init((response) => {
+                resolve(response);
+            });
+            if (!element) {
+                element = document.body;
+            }
+            element.appendChild(modal);
+        });
+    }
+}
+Modal.ModalElement.Namespace=`Aventus.Modal`;
+_.Modal.ModalElement=Modal.ModalElement;
 
 Toast.ToastElement = class ToastElement extends Aventus.WebComponent {
     get 'position'() { return this.getStringAttr('position') }

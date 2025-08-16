@@ -593,18 +593,6 @@ let ResourceLoader=class ResourceLoader {
 ResourceLoader.Namespace=`Aventus`;
 _.ResourceLoader=ResourceLoader;
 
-let Async=function Async(el) {
-    return new Promise((resolve) => {
-        if (el instanceof Promise) {
-            el.then(resolve);
-        }
-        else {
-            resolve(el);
-        }
-    });
-}
-_.Async=Async;
-
 let Instance=class Instance {
     static elements = new Map();
     static get(type) {
@@ -924,6 +912,18 @@ var WatchAction;
     WatchAction[WatchAction["DELETED"] = 2] = "DELETED";
 })(WatchAction || (WatchAction = {}));
 _.WatchAction=WatchAction;
+
+let Async=function Async(el) {
+    return new Promise((resolve) => {
+        if (el instanceof Promise) {
+            el.then(resolve);
+        }
+        else {
+            resolve(el);
+        }
+    });
+}
+_.Async=Async;
 
 var HttpMethod;
 (function (HttpMethod) {
@@ -1380,6 +1380,26 @@ let VoidWithError=class VoidWithError {
 }
 VoidWithError.Namespace=`Aventus`;
 _.VoidWithError=VoidWithError;
+
+let ResultWithError=class ResultWithError extends VoidWithError {
+    /**
+      * The result value of the action.
+      * @type {U | undefined}
+      */
+    result;
+    /**
+     * Converts the current instance to a ResultWithError object.
+     * @returns {ResultWithError<U>} A new instance of ResultWithError with the same error list and result value.
+     */
+    toGeneric() {
+        const result = new ResultWithError();
+        result.errors = this.errors;
+        result.result = this.result;
+        return result;
+    }
+}
+ResultWithError.Namespace=`Aventus`;
+_.ResultWithError=ResultWithError;
 
 let HttpError=class HttpError extends GenericError {
 }
@@ -2457,26 +2477,6 @@ let EffectNoRecomputed=class EffectNoRecomputed extends Effect {
 EffectNoRecomputed.Namespace=`Aventus`;
 _.EffectNoRecomputed=EffectNoRecomputed;
 
-let ResultWithError=class ResultWithError extends VoidWithError {
-    /**
-      * The result value of the action.
-      * @type {U | undefined}
-      */
-    result;
-    /**
-     * Converts the current instance to a ResultWithError object.
-     * @returns {ResultWithError<U>} A new instance of ResultWithError with the same error list and result value.
-     */
-    toGeneric() {
-        const result = new ResultWithError();
-        result.errors = this.errors;
-        result.result = this.result;
-        return result;
-    }
-}
-ResultWithError.Namespace=`Aventus`;
-_.ResultWithError=ResultWithError;
-
 let HttpRouter=class HttpRouter {
     options;
     constructor() {
@@ -2522,6 +2522,10 @@ HttpRoute.Namespace=`Aventus`;
 _.HttpRoute=HttpRoute;
 
 let HttpRequest=class HttpRequest {
+    static options;
+    static configure(options) {
+        this.options = options;
+    }
     request;
     url;
     constructor(url, method = HttpMethod.GET, body) {
@@ -2630,11 +2634,18 @@ let HttpRequest=class HttpRequest {
         }
         this.request.headers.push([name, value]);
     }
-    async query(router) {
+    setCredentials(credentials) {
+        this.request.credentials = credentials;
+    }
+    async _query(router) {
         let result = new ResultWithError();
         try {
             if (!this.url.startsWith("/")) {
                 this.url = "/" + this.url;
+            }
+            if (HttpRequest.options.beforeSend) {
+                const beforeSendResult = await HttpRequest.options.beforeSend(this);
+                result.errors = beforeSendResult.errors;
             }
             const fullUrl = router ? router.options.url + this.url : this.url;
             result.result = await fetch(fullUrl, this.request);
@@ -2644,8 +2655,15 @@ let HttpRequest=class HttpRequest {
         }
         return result;
     }
+    async query(router) {
+        let result = await this._query(router);
+        if (HttpRequest.options.responseMiddleware) {
+            result = await HttpRequest.options.responseMiddleware(result, this);
+        }
+        return result;
+    }
     async queryVoid(router) {
-        let resultTemp = await this.query(router);
+        let resultTemp = await this._query(router);
         let result = new VoidWithError();
         if (!resultTemp.success) {
             result.errors = resultTemp.errors;
@@ -2666,10 +2684,13 @@ let HttpRequest=class HttpRequest {
         }
         catch (e) {
         }
+        if (HttpRequest.options.responseMiddleware) {
+            result = await HttpRequest.options.responseMiddleware(result, this);
+        }
         return result;
     }
     async queryJSON(router) {
-        let resultTemp = await this.query(router);
+        let resultTemp = await this._query(router);
         let result = new ResultWithError();
         if (!resultTemp.success) {
             result.errors = resultTemp.errors;
@@ -2695,10 +2716,13 @@ let HttpRequest=class HttpRequest {
         catch (e) {
             result.errors.push(new HttpError(HttpErrorCode.unknow, e));
         }
+        if (HttpRequest.options.responseMiddleware) {
+            result = await HttpRequest.options.responseMiddleware(result, this);
+        }
         return result;
     }
     async queryTxt(router) {
-        let resultTemp = await this.query(router);
+        let resultTemp = await this._query(router);
         let result = new ResultWithError();
         if (!resultTemp.success) {
             result.errors = resultTemp.errors;
@@ -2713,10 +2737,13 @@ let HttpRequest=class HttpRequest {
         catch (e) {
             result.errors.push(new HttpError(HttpErrorCode.unknow, e));
         }
+        if (HttpRequest.options.responseMiddleware) {
+            result = await HttpRequest.options.responseMiddleware(result, this);
+        }
         return result;
     }
     async queryBlob(router) {
-        let resultTemp = await this.query(router);
+        let resultTemp = await this._query(router);
         let result = new ResultWithError();
         if (!resultTemp.success) {
             result.errors = resultTemp.errors;
@@ -2730,6 +2757,9 @@ let HttpRequest=class HttpRequest {
         }
         catch (e) {
             result.errors.push(new HttpError(HttpErrorCode.unknow, e));
+        }
+        if (HttpRequest.options.responseMiddleware) {
+            result = await HttpRequest.options.responseMiddleware(result, this);
         }
         return result;
     }

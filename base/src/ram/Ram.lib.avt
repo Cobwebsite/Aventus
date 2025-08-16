@@ -317,10 +317,10 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     //#endregion
 
     //#region records operation
-    protected async beforeRecordSet(item: Aventus.RamItem<T>): Promise<void> { }
-    protected async afterRecordSet(item: Aventus.RamItem<T>): Promise<void> { }
-    protected async beforeRecordDelete(item: Aventus.RamItem<T>): Promise<void> { }
-    protected async afterRecordDelete(item: Aventus.RamItem<T>): Promise<void> { }
+    protected async beforeRecordSet(item: RamItem<T>): Promise<void> { }
+    protected async afterRecordSet(item: RamItem<T>): Promise<void> { }
+    protected async beforeRecordDelete(item: RamItem<T>): Promise<void> { }
+    protected async afterRecordDelete(item: RamItem<T>): Promise<void> { }
     //#endregion
 
     //#region listener

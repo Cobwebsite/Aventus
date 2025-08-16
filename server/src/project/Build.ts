@@ -1299,6 +1299,7 @@ export class Build {
          */
         const loadAndOrderInfo = (info: { fullName: string; isStrong: boolean }, isLocal: boolean, indexByUri: { [uri: string]: number }, alreadyLooked: { [name: string]: (() => void)[] }, alreadyLookedStrong: { [name: string]: boolean }): { [uri: string]: number } | Promise<{ [uri: string]: string }> => {
             const fullName = info.fullName.replace("$namespace$", '');
+            
             let uri = "";
             let infoExternal: null | {
                 content: AventusPackageTsFileExport | "noCode";
@@ -1342,7 +1343,7 @@ export class Build {
                 alreadyLookedStrong[fullName] = true;
             }
             const promises: Promise<{ [uri: string]: string }>[] = [];
-            const calculate: () => void = () => {
+            const calculate: () => string | undefined = () => {
                 if (isLocal) {
                     if (!localClassByFullName[fullName]) {
                         if (indexByUri[uri] === undefined) {
@@ -1451,8 +1452,15 @@ export class Build {
                             cb()
                         }
                         alreadyLooked[fullName] = [];
+                        indexByUri[uri] = result.toCompile.length
                     }
-                    indexByUri[uri] = result.toCompile.length
+                    else {
+                        indexByUri[uri] = result.toCompile.length
+                        if (insertIndex == loadedInfoInternal.length) {
+                            return "@end_" + loadedInfoInternal[loadedInfoInternal.length - 1];
+                        }
+                        return loadedInfoInternal[insertIndex];
+                    }
                     return;
                 }
                 else {
@@ -1518,10 +1526,16 @@ export class Build {
                         }
                         alreadyLooked[fullName] = [];
                     }
+                    else {
+                        if (insertIndex == loadedInfoExternal[uri].length) {
+                            return "@end_" + loadedInfoExternal[uri][loadedInfoExternal[uri].length - 1];
+                        }
+                        return loadedInfoExternal[uri][insertIndex];
+                    }
                     return;
                 }
             }
-            calculate();
+            const oldName = calculate();
             if (info.isStrong) {
                 delete alreadyLookedStrong[fullName];
             }
@@ -1533,9 +1547,27 @@ export class Build {
                 return indexByUri;
             }
             else {
+
                 const prom = new Promise<{ [uri: string]: string }>(async (resolve) => {
                     const asyncResults = await Promise.all(promises);
                     let insertIndex = indexByUri[uri] ?? 0;
+                    if (oldName) {
+                        let indexOf = -1;
+                        let realName = oldName.replace("@end_", "");
+                        if (isLocal) {
+                            indexOf = loadedInfoInternal.indexOf(realName);
+                        }
+                        else {
+                            indexOf = loadedInfoExternal[uri].indexOf(realName);
+                        }
+
+                        if (indexOf != -1) {
+                            if (oldName.startsWith("@end_")) {
+                                indexOf++;
+                            }
+                            insertIndex = indexOf;
+                        }
+                    }
                     for (const result of asyncResults) {
                         if (result[uri]) {
                             let fullnameTemp = result[uri];
