@@ -1,0 +1,8 @@
+namespace Navigation.Page {
+    export interface PageConfig {
+        title?: string,
+        description?: string;
+        keywords?: string[];
+        destroy?: boolean;
+    }
+}

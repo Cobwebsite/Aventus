@@ -1,4 +1,6 @@
+import type { State } from "Aventus@Main:Aventus.package.avt";
 import { Router } from "../Router/Router.wcl.avt";
+import type { PageConfig } from "./PageConfig.lib.avt";
 
 namespace Navigation {
     export abstract class Page extends Aventus.WebComponent implements Aventus.DefaultComponent {
@@ -19,8 +21,8 @@ namespace Navigation {
         })
         public visible!: boolean;
 
-        public currentRouter?: Router;
-        protected currentState?: Aventus.State;
+        public router?: Router;
+        protected state?: Aventus.State;
         //#endregion
 
 
@@ -35,29 +37,30 @@ namespace Navigation {
 
 
         //#region methods
-        public pageTitle(): string | undefined {
-            return undefined;
-        }
-        public pageDescription(): string | undefined {
-            return undefined;
-        }
-        public pageKeywords(): string[] | undefined {
-            return undefined;
-        }
+        public abstract configure(): Aventus.Asyncable<PageConfig>;
 
         public async show(state?: Aventus.State) {
-            this.currentState = state;
+            this.state = state;
             this.visible = true;
         }
         public async hide() {
             this.visible = false;
-            this.currentState = undefined;
+            this.state = undefined;
         }
         public onShow() {
 
         }
         public onHide() {
 
+        }
+        /**
+         * Add custom check
+         * Return true if evrything is ok
+         * False will prevent showing
+         * string or state will redirect to the page
+         */
+        public isAllowed(state: State): Aventus.Asyncable<boolean | State | string> {
+            return true;
         }
         //#endregion
 

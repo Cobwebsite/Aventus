@@ -30,7 +30,8 @@ namespace Navigation {
 
         //#region methods
 		protected override async defineSubmit(submit: (fct: SubmitFunction<LastParameter<InstanceType<C>[M]>, ExtractError<Awaited<Result<C, M>>>>) => Promise<WithError<ExtractError<Awaited<Result<C, M>>>> | null>): Promise<WithError<ExtractError<Awaited<Result<C, M>>>> | null> {
-			const info = this.route();
+			await this.onSubmit();
+            const info = this.route();
             const router = new info[0];
             const key = info[1] as string;
             const result = await submit(router[key]) as Awaited<Result<C, M> | null>;
@@ -39,6 +40,7 @@ namespace Navigation {
 		}
 
         public abstract route(): [C, M];
+        public abstract onSubmit(): Asyncable<void>;
         public abstract onResult(result: Awaited<Result<C, M> | null>): Asyncable<void>;
 
         

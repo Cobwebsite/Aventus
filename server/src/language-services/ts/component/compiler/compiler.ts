@@ -2189,6 +2189,9 @@ this.clearWatchHistory = () => {
                 }
             }
         }
+        else if(type.kind == "typeOperator" && type.value == "keyof") {
+            return type;
+        }
         this.result.diagnostics.push(createErrorTsPos(currentDoc, "can't use the the type " + type.kind + "(" + type.value + ")" + " as attribute / property", field.nameStart, field.nameEnd, AventusErrorCode.WrongTypeDefinition));
         return null;
     }

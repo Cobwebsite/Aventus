@@ -6983,6 +6983,65 @@ Form.isSubclassOf=function isSubclassOf(subClass, superClass) {
 }
 _.Form.isSubclassOf=Form.isSubclassOf;
 
+_n = Navigation.Page;Navigation.Page = class Page extends Aventus.WebComponent {
+    static get observedAttributes() {return ["visible"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'visible'() { return this.getBoolProp('visible') }
+    set 'visible'(val) { this.setBoolAttr('visible', val) }    router;
+    state;
+    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("visible", ((target) => {
+    if (target.visible) {
+        target.onShow();
+    }
+    else {
+        target.onHide();
+    }
+})); }
+    static __style = `:host{display:none}:host([visible]){display:block}`;
+    constructor() {
+        super();
+        if (this.constructor == Page) {
+            throw "can't instanciate an abstract class";
+        }
+    }
+    __getStatic() {
+        return Page;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Page.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<slot></slot>` }
+    });
+}
+    getClassName() {
+        return "Page";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('visible')) { this.attributeChangedCallback('visible', false, false); } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('visible'); }
+    __listBoolProps() { return ["visible"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    async show(state) {
+        this.state = state;
+        this.visible = true;
+    }
+    async hide() {
+        this.visible = false;
+        this.state = undefined;
+    }
+    onShow() {
+    }
+    onHide() {
+    }
+    isAllowed(state) {
+        return true;
+    }
+}
+Navigation.Page.Namespace=`Aventus.Navigation`;
+_.Navigation.Page=Navigation.Page;
+Object.assign(Navigation.Page, _n);
 let RouterStateManager=class RouterStateManager extends Aventus.StateManager {
     static getInstance() {
         return Aventus.Instance.get(RouterStateManager);
@@ -7188,266 +7247,6 @@ Form.Button.Namespace=`Aventus.Form`;
 Form.Button.Tag=`av-button`;
 _.Form.Button=Form.Button;
 if(!window.customElements.get('av-button')){window.customElements.define('av-button', Form.Button);Aventus.WebComponentInstance.registerDefinition(Form.Button);}
-
-Navigation.Router = class Router extends Aventus.WebComponent {
-    oldPage;
-    allRoutes = {};
-    activePath = "";
-    activeState;
-    oneStateActive = false;
-    showPageMutex = new Aventus.Mutex();
-    get stateManager() {
-        return Aventus.Instance.get(RouterStateManager);
-    }
-    page404;
-    static __style = `:host{display:block}`;
-    constructor() {
-        super();
-        this.validError404 = this.validError404.bind(this);
-        this.canChangeState = this.canChangeState.bind(this);
-        this.stateManager.canChangeState(this.canChangeState);
-        if (this.constructor == Router) {
-            throw "can't instanciate an abstract class";
-        }
-    }
-    __getStatic() {
-        return Router;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(Router.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        slots: { 'before':`<slot name="before"></slot>`,'after':`<slot name="after"></slot>` }, 
-        blocks: { 'default':`<slot name="before"></slot><div class="content" _id="router_0"></div><slot name="after"></slot>` }
-    });
-}
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
-  "elements": [
-    {
-      "name": "contentEl",
-      "ids": [
-        "router_0"
-      ]
-    }
-  ]
-}); }
-    getClassName() {
-        return "Router";
-    }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('stateManager'); }
-    addRouteAsync(options) {
-        this.allRoutes[options.route] = options;
-    }
-    addRoute(route, elementCtr) {
-        this.allRoutes[route] = {
-            route: route,
-            scriptUrl: '',
-            render: () => elementCtr
-        };
-    }
-    register() {
-        try {
-            this.defineRoutes();
-            this.stateManager.onAfterStateChanged(this.validError404);
-            for (let key in this.allRoutes) {
-                this.initRoute(key);
-            }
-        }
-        catch (e) {
-            console.error(e);
-        }
-    }
-    initRoute(path) {
-        let element = undefined;
-        let allRoutes = this.allRoutes;
-        this.stateManager.subscribe(path, {
-            active: (currentState) => {
-                this.oneStateActive = true;
-                this.showPageMutex.safeRunLastAsync(async () => {
-                    if (!element) {
-                        let options = allRoutes[path];
-                        if (options.scriptUrl != "") {
-                            await Aventus.ResourceLoader.loadInHead(options.scriptUrl);
-                        }
-                        let cst = options.render();
-                        element = new cst;
-                        element.currentRouter = this;
-                        this.contentEl.appendChild(element);
-                    }
-                    if (this.oldPage && this.oldPage != element) {
-                        await this.oldPage.hide();
-                    }
-                    let oldPage = this.oldPage;
-                    let oldUrl = this.activePath;
-                    this.oldPage = element;
-                    this.activePath = path;
-                    this.activeState = currentState;
-                    await element.show(currentState);
-                    let title = element.pageTitle();
-                    if (title !== undefined)
-                        document.title = title;
-                    let keywords = element.pageKeywords();
-                    if (keywords !== undefined) {
-                        let meta = document.querySelector('meta[name="keywords"]');
-                        if (!meta) {
-                            meta = document.createElement('meta');
-                        }
-                        meta.setAttribute("content", keywords.join(", "));
-                    }
-                    let description = element.pageDescription();
-                    if (description !== undefined) {
-                        let meta = document.querySelector('meta[name="description"]');
-                        if (!meta) {
-                            meta = document.createElement('meta');
-                        }
-                        meta.setAttribute("content", description);
-                    }
-                    if (this.bindToUrl() && window.location.pathname != currentState.name) {
-                        let newUrl = window.location.origin + currentState.name;
-                        window.history.pushState({}, title ?? "", newUrl);
-                    }
-                    this.onNewPage(oldUrl, oldPage, path, element);
-                });
-            },
-            inactive: () => {
-                this.oneStateActive = false;
-            }
-        });
-    }
-    async validError404() {
-        if (!this.oneStateActive) {
-            let Page404 = this.error404(this.stateManager.getState());
-            if (Page404) {
-                if (!this.page404) {
-                    this.page404 = new Page404();
-                    this.page404.currentRouter = this;
-                    this.contentEl.appendChild(this.page404);
-                }
-                if (this.oldPage && this.oldPage != this.page404) {
-                    await this.oldPage.hide();
-                }
-                this.activeState = undefined;
-                this.oldPage = this.page404;
-                this.activePath = '';
-                await this.page404.show(this.activeState);
-            }
-        }
-    }
-    error404(state) {
-        return null;
-    }
-    onNewPage(oldUrl, oldPage, newUrl, newPage) {
-    }
-    getSlugs() {
-        return this.stateManager.getStateSlugs(this.activePath);
-    }
-    async canChangeState(newState) {
-        return true;
-    }
-    navigate(state) {
-        return this.stateManager.setState(state);
-    }
-    bindToUrl() {
-        return true;
-    }
-    defaultUrl() {
-        return "/";
-    }
-    postCreation() {
-        this.register();
-        let oldUrl = window.localStorage.getItem("navigation_url");
-        if (oldUrl !== null) {
-            Aventus.State.activate(oldUrl, this.stateManager);
-            window.localStorage.removeItem("navigation_url");
-        }
-        else if (this.bindToUrl()) {
-            Aventus.State.activate(window.location.pathname, this.stateManager);
-        }
-        else {
-            let defaultUrl = this.defaultUrl();
-            if (defaultUrl) {
-                Aventus.State.activate(defaultUrl, this.stateManager);
-            }
-        }
-        if (this.bindToUrl()) {
-            window.onpopstate = (e) => {
-                if (window.location.pathname != this.stateManager.getState()?.name) {
-                    Aventus.State.activate(window.location.pathname, this.stateManager);
-                }
-            };
-        }
-    }
-}
-Navigation.Router.Namespace=`Aventus.Navigation`;
-_.Navigation.Router=Navigation.Router;
-
-Navigation.Page = class Page extends Aventus.WebComponent {
-    static get observedAttributes() {return ["visible"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
-    get 'visible'() { return this.getBoolProp('visible') }
-    set 'visible'(val) { this.setBoolAttr('visible', val) }    currentRouter;
-    currentState;
-    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("visible", ((target) => {
-    if (target.visible) {
-        target.onShow();
-    }
-    else {
-        target.onHide();
-    }
-})); }
-    static __style = `:host{display:none}:host([visible]){display:block}`;
-    constructor() {
-        super();
-        if (this.constructor == Page) {
-            throw "can't instanciate an abstract class";
-        }
-    }
-    __getStatic() {
-        return Page;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(Page.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<slot></slot>` }
-    });
-}
-    getClassName() {
-        return "Page";
-    }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('visible')) { this.attributeChangedCallback('visible', false, false); } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('visible'); }
-    __listBoolProps() { return ["visible"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
-    pageTitle() {
-        return undefined;
-    }
-    pageDescription() {
-        return undefined;
-    }
-    pageKeywords() {
-        return undefined;
-    }
-    async show(state) {
-        this.currentState = state;
-        this.visible = true;
-    }
-    async hide() {
-        this.visible = false;
-        this.currentState = undefined;
-    }
-    onShow() {
-    }
-    onHide() {
-    }
-}
-Navigation.Page.Namespace=`Aventus.Navigation`;
-_.Navigation.Page=Navigation.Page;
 
 Form.FormElement = class FormElement extends Aventus.WebComponent {
     static get observedAttributes() {return ["disabled"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
@@ -7985,6 +7784,7 @@ Navigation.PageFormRoute = class PageFormRoute extends Navigation.PageForm {
         return "PageFormRoute";
     }
     async defineSubmit(submit) {
+        await this.onSubmit();
         const info = this.route();
         const router = new info[0];
         const key = info[1];
@@ -9791,6 +9591,270 @@ Modal.ModalElement = class ModalElement extends Aventus.WebComponent {
 }
 Modal.ModalElement.Namespace=`Aventus.Modal`;
 _.Modal.ModalElement=Modal.ModalElement;
+
+Navigation.Default404 = class Default404 extends Navigation.Page {
+    static __style = `:host{align-items:center;height:100%;justify-content:center;width:100%}:host h1{font-size:48px;text-align:center}:host([visible]){display:flex}`;
+    __getStatic() {
+        return Default404;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Default404.__style);
+        return arrStyle;
+    }
+    __getHtml() {super.__getHtml();
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<h1>Error 404</h1>` }
+    });
+}
+    getClassName() {
+        return "Default404";
+    }
+    configure() {
+        return {
+            destroy: true
+        };
+    }
+}
+Navigation.Default404.Namespace=`Aventus.Navigation`;
+Navigation.Default404.Tag=`av-default-404`;
+_.Navigation.Default404=Navigation.Default404;
+if(!window.customElements.get('av-default-404')){window.customElements.define('av-default-404', Navigation.Default404);Aventus.WebComponentInstance.registerDefinition(Navigation.Default404);}
+
+Navigation.Router = class Router extends Aventus.WebComponent {
+    static page404 = _.Navigation.Default404;
+    static destroyPage = false;
+    oldPage;
+    allRoutes = {};
+    activePath = "";
+    activeState;
+    oneStateActive = false;
+    showPageMutex = new Aventus.Mutex();
+    isReplace = false;
+    get stateManager() {
+        return Aventus.Instance.get(RouterStateManager);
+    }
+    page404;
+    static __style = `:host{display:block}`;
+    constructor() {
+        super();
+        this.validError404 = this.validError404.bind(this);
+        this.canChangeState = this.canChangeState.bind(this);
+        this.stateManager.canChangeState(this.canChangeState);
+        if (this.constructor == Router) {
+            throw "can't instanciate an abstract class";
+        }
+    }
+    __getStatic() {
+        return Router;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Router.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'before':`<slot name="before"></slot>`,'after':`<slot name="after"></slot>` }, 
+        blocks: { 'default':`<slot name="before"></slot><div class="content" _id="router_0"></div><slot name="after"></slot>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "elements": [
+    {
+      "name": "contentEl",
+      "ids": [
+        "router_0"
+      ]
+    }
+  ]
+}); }
+    getClassName() {
+        return "Router";
+    }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('stateManager'); }
+    addRouteAsync(options) {
+        this.allRoutes[options.route] = options;
+    }
+    addRoute(route, elementCtr) {
+        this.allRoutes[route] = {
+            route: route,
+            scriptUrl: '',
+            render: () => elementCtr
+        };
+    }
+    register() {
+        try {
+            this.defineRoutes();
+            this.stateManager.onAfterStateChanged(this.validError404);
+            for (let key in this.allRoutes) {
+                this.initRoute(key);
+            }
+        }
+        catch (e) {
+            console.error(e);
+        }
+    }
+    initRoute(path) {
+        let element = undefined;
+        let allRoutes = this.allRoutes;
+        this.stateManager.subscribe(path, {
+            active: (currentState) => {
+                this.oneStateActive = true;
+                this.showPageMutex.safeRunLastAsync(async () => {
+                    let isNew = false;
+                    if (!element || !element.parentElement) {
+                        let options = allRoutes[path];
+                        if (options.scriptUrl != "") {
+                            await Aventus.ResourceLoader.loadInHead(options.scriptUrl);
+                        }
+                        let cst = options.render();
+                        element = new cst;
+                        element.router = this;
+                        isNew = true;
+                    }
+                    const canResult = await element.isAllowed(currentState);
+                    if (canResult !== true) {
+                        if (canResult === false) {
+                            return;
+                        }
+                        this.navigate(canResult, { replace: true });
+                        return;
+                    }
+                    if (isNew)
+                        this.contentEl.appendChild(element);
+                    if (this.oldPage && this.oldPage != element) {
+                        await this.oldPage.hide();
+                        const { destroy } = await this.oldPage.configure();
+                        if (destroy === undefined && this.shouldDestroyFrame(this.oldPage)) {
+                            this.oldPage.remove();
+                        }
+                        else if (destroy === true) {
+                            this.oldPage.remove();
+                        }
+                    }
+                    let oldPage = this.oldPage;
+                    let oldUrl = this.activePath;
+                    this.oldPage = element;
+                    this.activePath = path;
+                    this.activeState = currentState;
+                    await element.show(currentState);
+                    const { title, description, keywords } = await element.configure();
+                    if (title !== undefined)
+                        document.title = title;
+                    if (keywords !== undefined) {
+                        let meta = document.querySelector('meta[name="keywords"]');
+                        if (!meta) {
+                            meta = document.createElement('meta');
+                        }
+                        meta.setAttribute("content", keywords.join(", "));
+                    }
+                    if (description !== undefined) {
+                        let meta = document.querySelector('meta[name="description"]');
+                        if (!meta) {
+                            meta = document.createElement('meta');
+                        }
+                        meta.setAttribute("content", description);
+                    }
+                    if (this.bindToUrl() && window.location.pathname != currentState.name) {
+                        let newUrl = window.location.origin + currentState.name;
+                        if (this.isReplace) {
+                            window.history.replaceState({}, title ?? "", newUrl);
+                        }
+                        else {
+                            window.history.pushState({}, title ?? "", newUrl);
+                        }
+                    }
+                    this.onNewPage(oldUrl, oldPage, path, element);
+                });
+            },
+            inactive: () => {
+                this.oneStateActive = false;
+            }
+        });
+    }
+    async validError404() {
+        if (!this.oneStateActive) {
+            let Page404 = this.error404(this.stateManager.getState()) ?? Navigation.Router.page404;
+            if (Page404) {
+                if (!this.page404 || !this.page404.parentElement) {
+                    this.page404 = new Page404();
+                    this.page404.router = this;
+                    this.contentEl.appendChild(this.page404);
+                }
+                if (this.oldPage && this.oldPage != this.page404) {
+                    await this.oldPage.hide();
+                }
+                this.activeState = undefined;
+                this.oldPage = this.page404;
+                this.activePath = '';
+                await this.page404.show(this.activeState);
+            }
+        }
+    }
+    error404(state) {
+        return null;
+    }
+    onNewPage(oldUrl, oldPage, newUrl, newPage) {
+    }
+    getSlugs() {
+        return this.stateManager.getStateSlugs(this.activePath);
+    }
+    async canChangeState(newState) {
+        return true;
+    }
+    async navigate(state, options) {
+        if (options?.replace) {
+            this.isReplace = true;
+        }
+        const result = await this.stateManager.setState(state);
+        if (options?.replace) {
+            this.isReplace = false;
+        }
+        return result;
+    }
+    bindToUrl() {
+        return true;
+    }
+    defaultUrl() {
+        return "/";
+    }
+    shouldDestroyFrame(page) {
+        return Navigation.Router.destroyPage;
+    }
+    postCreation() {
+        this.register();
+        let oldUrl = window.localStorage.getItem("navigation_url");
+        if (oldUrl !== null) {
+            Aventus.State.activate(oldUrl, this.stateManager);
+            window.localStorage.removeItem("navigation_url");
+        }
+        else if (this.bindToUrl()) {
+            Aventus.State.activate(window.location.pathname, this.stateManager);
+        }
+        else {
+            let defaultUrl = this.defaultUrl();
+            if (defaultUrl) {
+                Aventus.State.activate(defaultUrl, this.stateManager);
+            }
+        }
+        if (this.bindToUrl()) {
+            window.onpopstate = (e) => {
+                if (window.location.pathname != this.stateManager.getState()?.name) {
+                    Aventus.State.activate(window.location.pathname, this.stateManager);
+                }
+            };
+        }
+    }
+    static configure(options) {
+        if (options.page404 !== undefined)
+            this.page404 = options.page404;
+        if (options.destroyPage !== undefined)
+            this.destroyPage = options.destroyPage;
+    }
+}
+Navigation.Router.Namespace=`Aventus.Navigation`;
+_.Navigation.Router=Navigation.Router;
 
 Toast.ToastElement = class ToastElement extends Aventus.WebComponent {
     get 'position'() { return this.getStringAttr('position') }
