@@ -6983,7 +6983,7 @@ Form.isSubclassOf=function isSubclassOf(subClass, superClass) {
 }
 _.Form.isSubclassOf=Form.isSubclassOf;
 
-_n = Navigation.Page;Navigation.Page = class Page extends Aventus.WebComponent {
+Navigation.Page = class Page extends Aventus.WebComponent {
     static get observedAttributes() {return ["visible"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'visible'() { return this.getBoolProp('visible') }
     set 'visible'(val) { this.setBoolAttr('visible', val) }    router;
@@ -7041,7 +7041,7 @@ _n = Navigation.Page;Navigation.Page = class Page extends Aventus.WebComponent 
 }
 Navigation.Page.Namespace=`Aventus.Navigation`;
 _.Navigation.Page=Navigation.Page;
-Object.assign(Navigation.Page, _n);
+
 let RouterStateManager=class RouterStateManager extends Aventus.StateManager {
     static getInstance() {
         return Aventus.Instance.get(RouterStateManager);
@@ -7784,7 +7784,7 @@ Navigation.PageFormRoute = class PageFormRoute extends Navigation.PageForm {
         return "PageFormRoute";
     }
     async defineSubmit(submit) {
-        await this.onSubmit();
+        await this.beforeSubmit();
         const info = this.route();
         const router = new info[0];
         const key = info[1];
@@ -7792,6 +7792,7 @@ Navigation.PageFormRoute = class PageFormRoute extends Navigation.PageForm {
         this.onResult(result);
         return result;
     }
+    beforeSubmit() { }
 }
 Navigation.PageFormRoute.Namespace=`Aventus.Navigation`;
 _.Navigation.PageFormRoute=Navigation.PageFormRoute;
