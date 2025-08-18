@@ -10850,6 +10850,49 @@ let Effect=class Effect {
 Effect.Namespace=`Aventus`;
 _.Effect=Effect;
 
+let Signal=class Signal {
+    __subscribes = [];
+    _value;
+    _onChange;
+    get value() {
+        Watcher._register?.register(this, "*", Watcher._register.version, "*");
+        return this._value;
+    }
+    set value(item) {
+        const oldValue = this._value;
+        this._value = item;
+        if (oldValue != item) {
+            if (this._onChange) {
+                this._onChange();
+            }
+            for (let fct of this.__subscribes) {
+                fct(WatchAction.UPDATED, "*", item, []);
+            }
+        }
+    }
+    constructor(item, onChange) {
+        this._value = item;
+        this._onChange = onChange;
+    }
+    subscribe(fct) {
+        let index = this.__subscribes.indexOf(fct);
+        if (index == -1) {
+            this.__subscribes.push(fct);
+        }
+    }
+    unsubscribe(fct) {
+        let index = this.__subscribes.indexOf(fct);
+        if (index > -1) {
+            this.__subscribes.splice(index, 1);
+        }
+    }
+    destroy() {
+        this.__subscribes = [];
+    }
+}
+Signal.Namespace=`Aventus`;
+_.Signal=Signal;
+
 let Watcher=class Watcher {
     constructor() { }
     ;
@@ -11704,49 +11747,6 @@ let EffectNoRecomputed=class EffectNoRecomputed extends Effect {
 }
 EffectNoRecomputed.Namespace=`Aventus`;
 _.EffectNoRecomputed=EffectNoRecomputed;
-
-let Signal=class Signal {
-    __subscribes = [];
-    _value;
-    _onChange;
-    get value() {
-        Watcher._register?.register(this, "*", Watcher._register.version, "*");
-        return this._value;
-    }
-    set value(item) {
-        const oldValue = this._value;
-        this._value = item;
-        if (oldValue != item) {
-            if (this._onChange) {
-                this._onChange();
-            }
-            for (let fct of this.__subscribes) {
-                fct(WatchAction.UPDATED, "*", item, []);
-            }
-        }
-    }
-    constructor(item, onChange) {
-        this._value = item;
-        this._onChange = onChange;
-    }
-    subscribe(fct) {
-        let index = this.__subscribes.indexOf(fct);
-        if (index == -1) {
-            this.__subscribes.push(fct);
-        }
-    }
-    unsubscribe(fct) {
-        let index = this.__subscribes.indexOf(fct);
-        if (index > -1) {
-            this.__subscribes.splice(index, 1);
-        }
-    }
-    destroy() {
-        this.__subscribes = [];
-    }
-}
-Signal.Namespace=`Aventus`;
-_.Signal=Signal;
 
 let Computed=class Computed extends Effect {
     _value;
@@ -16095,13 +16095,16 @@ let HttpRequest=class HttpRequest {
         }
         this.request.headers.push([name, value]);
     }
+    setCredentials(credentials) {
+        this.request.credentials = credentials;
+    }
     async _query(router) {
         let result = new ResultWithError();
         try {
             if (!this.url.startsWith("/")) {
                 this.url = "/" + this.url;
             }
-            if (HttpRequest.options.beforeSend) {
+            if (HttpRequest.options?.beforeSend) {
                 const beforeSendResult = await HttpRequest.options.beforeSend(this);
                 result.errors = beforeSendResult.errors;
             }
@@ -16115,7 +16118,7 @@ let HttpRequest=class HttpRequest {
     }
     async query(router) {
         let result = await this._query(router);
-        if (HttpRequest.options.responseMiddleware) {
+        if (HttpRequest.options?.responseMiddleware) {
             result = await HttpRequest.options.responseMiddleware(result, this);
         }
         return result;
@@ -16142,7 +16145,7 @@ let HttpRequest=class HttpRequest {
         }
         catch (e) {
         }
-        if (HttpRequest.options.responseMiddleware) {
+        if (HttpRequest.options?.responseMiddleware) {
             result = await HttpRequest.options.responseMiddleware(result, this);
         }
         return result;
@@ -16174,7 +16177,7 @@ let HttpRequest=class HttpRequest {
         catch (e) {
             result.errors.push(new HttpError(HttpErrorCode.unknow, e));
         }
-        if (HttpRequest.options.responseMiddleware) {
+        if (HttpRequest.options?.responseMiddleware) {
             result = await HttpRequest.options.responseMiddleware(result, this);
         }
         return result;
@@ -16195,7 +16198,7 @@ let HttpRequest=class HttpRequest {
         catch (e) {
             result.errors.push(new HttpError(HttpErrorCode.unknow, e));
         }
-        if (HttpRequest.options.responseMiddleware) {
+        if (HttpRequest.options?.responseMiddleware) {
             result = await HttpRequest.options.responseMiddleware(result, this);
         }
         return result;
@@ -16216,7 +16219,7 @@ let HttpRequest=class HttpRequest {
         catch (e) {
             result.errors.push(new HttpError(HttpErrorCode.unknow, e));
         }
-        if (HttpRequest.options.responseMiddleware) {
+        if (HttpRequest.options?.responseMiddleware) {
             result = await HttpRequest.options.responseMiddleware(result, this);
         }
         return result;

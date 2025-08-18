@@ -1950,7 +1950,7 @@ let PressManager=class PressManager {
         delayLongPress: 700,
         offsetDrag: 20
     };
-    static setGlobalConfig(options) {
+    static configure(options) {
         this.globalConfig = options;
     }
     static create(options) {
@@ -6206,13 +6206,16 @@ let HttpRequest=class HttpRequest {
         }
         this.request.headers.push([name, value]);
     }
+    setCredentials(credentials) {
+        this.request.credentials = credentials;
+    }
     async _query(router) {
         let result = new ResultWithError();
         try {
             if (!this.url.startsWith("/")) {
                 this.url = "/" + this.url;
             }
-            if (HttpRequest.options.beforeSend) {
+            if (HttpRequest.options?.beforeSend) {
                 const beforeSendResult = await HttpRequest.options.beforeSend(this);
                 result.errors = beforeSendResult.errors;
             }
@@ -6226,7 +6229,7 @@ let HttpRequest=class HttpRequest {
     }
     async query(router) {
         let result = await this._query(router);
-        if (HttpRequest.options.responseMiddleware) {
+        if (HttpRequest.options?.responseMiddleware) {
             result = await HttpRequest.options.responseMiddleware(result, this);
         }
         return result;
@@ -6253,7 +6256,7 @@ let HttpRequest=class HttpRequest {
         }
         catch (e) {
         }
-        if (HttpRequest.options.responseMiddleware) {
+        if (HttpRequest.options?.responseMiddleware) {
             result = await HttpRequest.options.responseMiddleware(result, this);
         }
         return result;
@@ -6285,7 +6288,7 @@ let HttpRequest=class HttpRequest {
         catch (e) {
             result.errors.push(new HttpError(HttpErrorCode.unknow, e));
         }
-        if (HttpRequest.options.responseMiddleware) {
+        if (HttpRequest.options?.responseMiddleware) {
             result = await HttpRequest.options.responseMiddleware(result, this);
         }
         return result;
@@ -6306,7 +6309,7 @@ let HttpRequest=class HttpRequest {
         catch (e) {
             result.errors.push(new HttpError(HttpErrorCode.unknow, e));
         }
-        if (HttpRequest.options.responseMiddleware) {
+        if (HttpRequest.options?.responseMiddleware) {
             result = await HttpRequest.options.responseMiddleware(result, this);
         }
         return result;
@@ -6327,7 +6330,7 @@ let HttpRequest=class HttpRequest {
         catch (e) {
             result.errors.push(new HttpError(HttpErrorCode.unknow, e));
         }
-        if (HttpRequest.options.responseMiddleware) {
+        if (HttpRequest.options?.responseMiddleware) {
             result = await HttpRequest.options.responseMiddleware(result, this);
         }
         return result;

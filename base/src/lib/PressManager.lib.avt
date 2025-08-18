@@ -138,7 +138,7 @@ export class PressManager {
         delayLongPress: 700,
         offsetDrag: 20
     };
-    public static setGlobalConfig(options: Partial<PressManagerOptions>) {
+    public static configure(options: Partial<PressManagerOptions>) {
         this.globalConfig = options;
     }
     public static create(options: PressManagerOptions & { element: Element; }): PressManager;
