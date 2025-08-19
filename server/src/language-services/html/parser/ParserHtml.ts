@@ -687,7 +687,14 @@ export class ParserHtml {
 		return result;
 	}
 
-
+	public replaceId(newIdBase: string) {
+		let finalTxt = "";
+		for (let tag of this.rootTags) {
+			tag.replaceId(newIdBase);
+			finalTxt += tag.render();
+		}
+		this.manageSlotAndBlock(finalTxt);
+	}
 	// TODO replace it with tag management
 	private manageSlotAndBlock(finalTxt: string) {
 		let body = finalTxt;

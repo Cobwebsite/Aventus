@@ -350,6 +350,30 @@ export class AventusWebcomponentCompiler {
         }
         this.getClassName(info);
         if (this.htmlParsed) {
+            // ensure Id
+            let normalId = this.className.toLowerCase();
+            let loadedIds: string[] = [];
+            let replaceId: string | null = null;
+            let temp = this.classInfo?.parentClass
+            while (temp) {
+                let parentId = temp.name.toLowerCase();
+                loadedIds.push(parentId);
+                if (replaceId == null && loadedIds.includes(normalId)) {
+                    // il faut un remplacement
+                    replaceId = normalId + '1';
+                }
+                if (replaceId && loadedIds.includes(replaceId)) {
+                    let i = 1;
+                    while (loadedIds.includes(replaceId)) {
+                        i++;
+                        replaceId = normalId + i;
+                    }
+                }
+                temp = temp.parentClass;
+            }
+            if (replaceId) {
+                this.htmlParsed.replaceId(replaceId);
+            }
             this.htmlParsedResult = this.htmlParsed.getParsedInfo(this.className);
         }
     }
@@ -2189,7 +2213,7 @@ this.clearWatchHistory = () => {
                 }
             }
         }
-        else if(type.kind == "typeOperator" && type.value == "keyof") {
+        else if (type.kind == "typeOperator" && type.value == "keyof") {
             return type;
         }
         this.result.diagnostics.push(createErrorTsPos(currentDoc, "can't use the the type " + type.kind + "(" + type.value + ")" + " as attribute / property", field.nameStart, field.nameEnd, AventusErrorCode.WrongTypeDefinition));
