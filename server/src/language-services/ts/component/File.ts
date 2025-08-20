@@ -740,7 +740,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         this.writeHtml = quickParse.writeHtml;
         this.writeTs = quickParse.writeTs;
         if (quickParse.tagName)
-            this.build.htmlLanguageService.addInternalTagUri(quickParse.tagName, this.file.uri, this._componentClassName);
+            this.build.htmlLanguageService.addInternalTagUri(quickParse.tagName, this.file.uri, this._fullname);
         let space = "";
         for (let i = 0; i < quickParse.whiteSpaceBefore + 4; i++) {
             space += " ";

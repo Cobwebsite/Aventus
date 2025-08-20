@@ -1,32 +1,33 @@
-Object.defineProperty(window, "AvInstance", {
-	get() {return Aventus.Instance;}
-});
+if(!Object.hasOwn(window, "AvInstance")) {
+	Object.defineProperty(window, "AvInstance", {
+		get() {return Aventus.Instance;}
+	});
 
-(() => {
-	Map.prototype._defaultHas = Map.prototype.has;
-	Map.prototype._defaultSet = Map.prototype.set;
-	Map.prototype._defaultGet = Map.prototype.get;
-	Map.prototype.has = function(key) {
-		if(Aventus.Watcher?.is(key)) {
-			return Map.prototype._defaultHas.call(this,key.getTarget())
+	(() => {
+		Map.prototype._defaultHas = Map.prototype.has;
+		Map.prototype._defaultSet = Map.prototype.set;
+		Map.prototype._defaultGet = Map.prototype.get;
+		Map.prototype.has = function(key) {
+			if(Aventus.Watcher?.is(key)) {
+				return Map.prototype._defaultHas.call(this,key.getTarget())
+			}
+			return Map.prototype._defaultHas.call(this,key);
 		}
-		return Map.prototype._defaultHas.call(this,key);
-	}
 
-	Map.prototype.set = function(key, value) {
-		if(Aventus.Watcher?.is(key)) {
-			return Map.prototype._defaultSet.call(this, key.getTarget(), value)
+		Map.prototype.set = function(key, value) {
+			if(Aventus.Watcher?.is(key)) {
+				return Map.prototype._defaultSet.call(this, key.getTarget(), value)
+			}
+			return Map.prototype._defaultSet.call(this, key, value);
 		}
-		return Map.prototype._defaultSet.call(this, key, value);
-	}
-	Map.prototype.get = function(key) {
-		if(Aventus.Watcher?.is(key)) {
-			return Map.prototype._defaultGet.call(this, key.getTarget())
+		Map.prototype.get = function(key) {
+			if(Aventus.Watcher?.is(key)) {
+				return Map.prototype._defaultGet.call(this, key.getTarget())
+			}
+			return Map.prototype._defaultGet.call(this, key);
 		}
-		return Map.prototype._defaultGet.call(this, key);
-	}
-})();
-
+	})();
+}
 var Aventus;
 (Aventus||(Aventus = {}));
 (function (Aventus) {
@@ -2402,11 +2403,14 @@ let PressManager=class PressManager {
     destroy() {
         if (this.element) {
             this.element.removeEventListener("pointerdown", this.functionsBinded.downAction);
+            this.element.removeEventListener("touchstart", this.functionsBinded.downActionDelay);
             this.element.removeEventListener("trigger_pointer_pressstart", this.functionsBinded.childPressStart);
             this.element.removeEventListener("trigger_pointer_pressend", this.functionsBinded.childPressEnd);
             this.element.removeEventListener("trigger_pointer_pressmove", this.functionsBinded.childPressMove);
             document.removeEventListener("pointerup", this.functionsBinded.upAction);
             document.removeEventListener("pointercancel", this.functionsBinded.upAction);
+            document.removeEventListener("touchend", this.functionsBinded.upAction);
+            document.removeEventListener("touchcancel", this.functionsBinded.upAction);
             document.removeEventListener("pointermove", this.functionsBinded.moveAction);
         }
     }

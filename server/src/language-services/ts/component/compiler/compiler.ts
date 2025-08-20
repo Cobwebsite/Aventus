@@ -11,7 +11,7 @@ import { transpile } from "typescript";
 import { AventusTsLanguageService, CompileTsResult, getSectionStart } from "../../LanguageService";
 import { EOL } from "os";
 import { HTMLDoc } from "../../../html/helper/definition";
-import { SCSSDoc } from "../../../scss/helper/CSSNode";
+import { SCSSDoc } from "../../../scss/helper/CSSCustomNode";
 import { AventusFile } from '../../../../files/AventusFile';
 import { ParserTs } from '../../parser/ParserTs';
 import { ClassInfo } from '../../parser/ClassInfo';

@@ -806,7 +806,7 @@
 		"uglify-js": "^3.17.1",
 		"url": "^0.11.0",
 		"uuid": "^9.0.0",
-		"vscode-css-languageservice": "^6.3.2",
+		"vscode-css-languageservice": "^6.3.7",
 		"vscode-html-languageservice": "^5.3.1",
 		"vscode-json-languageservice": "^5.4.2",
 		"vscode-languageclient": "^9.0.1",

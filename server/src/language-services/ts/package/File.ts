@@ -3,7 +3,7 @@ import { AventusFile, InternalAventusFile } from '../../../files/AventusFile';
 import { Build } from '../../../project/Build';
 import { AventusBaseFile } from '../../BaseFile';
 import { HTMLDoc } from '../../html/helper/definition';
-import { SCSSDoc } from '../../scss/helper/CSSNode';
+import { SCSSDoc } from '../../scss/helper/CSSCustomNode';
 import { AventusTsFile } from '../File';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AventusExtension, AventusLanguageId } from '../../../definition';

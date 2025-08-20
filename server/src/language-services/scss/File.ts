@@ -15,7 +15,7 @@ import { Exception, compileString } from 'sass';
 import { existsSync, lstatSync, readFileSync } from 'fs';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { GenericServer } from '../../GenericServer';
-import { CustomCssProperty } from './helper/CSSNode';
+import { CustomCssProperty } from './helper/CSSCustomNode';
 
 export class AventusWebSCSSFile extends AventusBaseFile {
     public compiledVersion = -1;

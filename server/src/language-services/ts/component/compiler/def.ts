@@ -1,6 +1,6 @@
 import { Diagnostic } from 'vscode-languageserver';
 import { HTMLDoc } from '../../../html/helper/definition';
-import { SCSSDoc } from '../../../scss/helper/CSSNode';
+import { SCSSDoc } from '../../../scss/helper/CSSCustomNode';
 import { CompileTsResult } from '../../LanguageService';
 import { ClassInfo } from '../../parser/ClassInfo';
 import { PropertyInfo } from '../../parser/PropertyInfo';

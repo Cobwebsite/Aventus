@@ -1,7 +1,7 @@
 import { AventusFile } from '../files/AventusFile';
 import { SlotsInfo } from '../language-services/html/File';
 import { AventusConfigBuildCompileOutputNpmManifest } from '../language-services/json/definition';
-import { CustomCssProperty } from '../language-services/scss/helper/CSSNode';
+import { CustomCssProperty } from '../language-services/scss/helper/CSSCustomNode';
 import { AventusWebComponentLogicalFile } from '../language-services/ts/component/File';
 import { AventusTsFile } from '../language-services/ts/File';
 import { ClassInfo } from '../language-services/ts/parser/ClassInfo';

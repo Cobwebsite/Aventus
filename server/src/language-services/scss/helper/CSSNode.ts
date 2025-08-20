@@ -3,18 +3,13 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 'use strict';
-export declare interface SCSSDoc {
-	[key: string]: CustomCssProperty[],
-}
-export type CustomCssPropertyType = '*' | 'color' | 'number' | 'length' | 'percentage' | 'length-percentage' | 'image' | 'url' | 'integer' | 'angle' | 'time' | 'resolution' | 'transform-function' | 'custom-ident' | 'transform-list' | 'literal';
-export interface CustomCssProperty {
-	name: string;
-	documentation?: string,
-	type?: CustomCssPropertyType,
-	/** values if type is literal */
-	typeValues?: string[],
-	defaultValue?: string,
-	chainValues?: string[],
+
+function trim(str: string, regexp: RegExp): string {
+	const m = regexp.exec(str);
+	if (m && m[0].length) {
+		return str.substr(0, str.length - m[0].length);
+	}
+	return str;
 }
 
 /// <summary>
@@ -730,21 +725,12 @@ export class Property extends Node {
 	}
 
 	public getName(): string {
-		return this.trim(this.getText(), /[_\+]+$/); /* +_: less merge */
+		return trim(this.getText(), /[_\+]+$/); /* +_: less merge */
 	}
 
 	public isCustomProperty(): boolean {
 		return !!this.identifier && this.identifier.isCustomProperty;
 	}
-
-	private trim(str: string, regexp: RegExp): string {
-		const m = regexp.exec(str);
-		if (m && m[0].length) {
-			return str.substr(0, str.length - m[0].length);
-		}
-		return str;
-	}
-
 }
 
 export class Invocation extends Node {
@@ -1072,7 +1058,7 @@ export class Use extends Node {
 		return NodeType.Use;
 	}
 
-	public setParameters(value: Node | null): value is Node {
+	public setParameters(value: Node | null): value is Node{
 		return this.setNode('parameters', value);
 	}
 
@@ -1136,7 +1122,7 @@ export class Forward extends Node {
 		return this.identifier;
 	}
 
-	public setParameters(value: Node | null): value is Node {
+	public setParameters(value: Node | null): value is Node{
 		return this.setNode('parameters', value);
 	}
 

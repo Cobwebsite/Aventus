@@ -4,8 +4,9 @@ import * as postcssScss from 'postcss-scss';
 import { CSSFormatConfiguration, getSCSSLanguageService, LanguageService, TextDocument } from "vscode-css-languageservice";
 import { CodeAction, CodeActionContext, CompletionList, Definition, Diagnostic, FormattingOptions, Hover, Location, Position, Range, TextEdit } from "vscode-languageserver";
 import { AventusFile } from '../../files/AventusFile';
-import { getNodePath, Node, NodeType, CustomCssProperty } from './helper/CSSNode';
+import { getNodePath, Node, NodeType } from './helper/CSSNode';
 import { AventusGlobalSCSSFile } from './GlobalFile';
+
 
 
 export type GlobalCSSVariable = {
@@ -90,6 +91,9 @@ export class AventusGlobalSCSSLanguageService {
         let document = file.file.documentUser;
         let result: { [name: string]: GlobalCSSVariable } = {};
         const _loadCustomProperty = (node: Node) => {
+            if(node.getText().includes("--primary-color-opacity: rgba(220, 220, 220, 0.9)")) {
+                debugger
+            }
             if (node.type == NodeType.CustomPropertyDeclaration) {
                 let nodeParent: Node | null = node;
                 while (nodeParent && nodeParent["selectors"] == undefined) {
