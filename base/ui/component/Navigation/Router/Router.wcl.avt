@@ -1,3 +1,4 @@
+import type { UriParamsValue } from "Aventus@Main:Aventus.package.avt";
 import { RouterStateManager } from "../../../lib/RouterStateManager.lib.avt";
 import type { Constructor } from "../../Form/Form/FormType.lib.avt";
 import { Default404 } from "../Default404/Default404.wcl.avt";
@@ -106,7 +107,7 @@ namespace Navigation {
                             isNew = true;
                         }
 
-                        const canResult = await element.isAllowed(currentState);
+                        const canResult = await element.isAllowed(currentState, path, this);
                         if(canResult !== true) {
                             if(canResult === false) {
                                 return;
@@ -185,6 +186,17 @@ namespace Navigation {
                     if(this.oldPage && this.oldPage != this.page404) {
                         await this.oldPage.hide();
                     }
+                    if(this.bindToUrl()) {
+                        const currentState = this.stateManager.getState();
+                        if(currentState && window.location.pathname != currentState.name) {
+                            let newUrl = window.location.origin + currentState.name;
+                            if(this.isReplace) {
+                                window.history.replaceState({}, "Not found", newUrl);
+                            } else {
+                                window.history.pushState({}, "Not found", newUrl);
+                            }
+                        }
+                    }
                     this.activeState = undefined;
                     this.oldPage = this.page404;
                     this.activePath = '';
@@ -198,7 +210,7 @@ namespace Navigation {
         protected onNewPage(oldUrl: string, oldPage: Page | undefined, newUrl: string, newPage: Page) {
 
         }
-        public getSlugs() {
+        public getSlugs(): UriParamsValue | null {
             return this.stateManager.getStateSlugs(this.activePath);
         }
 

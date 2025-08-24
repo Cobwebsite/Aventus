@@ -1,0 +1,87 @@
+namespace Layout {
+    export interface ColOptions {
+        use_container?: boolean;
+    }
+    @Debugger({
+        writeCompiled: true
+    })
+    export class Col extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+        //#region static
+        private static use_container: boolean = false;
+        public static configure(options: ColOptions): void {
+            if(options.use_container !== undefined) this.use_container = options.use_container;
+        }
+        //#endregion
+
+
+        //#region props
+        @Attribute()
+        public use_container: boolean = Col.use_container;
+
+        //#region size
+        @Attribute()
+        public size!: number;
+        @Attribute()
+        public size_xs!: number;
+        @Attribute()
+        public size_sm!: number;
+        @Attribute()
+        public size_md!: number;
+        @Attribute()
+        public size_lg!: number;
+        @Attribute()
+        public size_xl!: number;
+        //#endregion
+
+        //#region offset
+        @Attribute()
+        public offset!: number;
+        @Attribute()
+        public offset_xs!: number;
+        @Attribute()
+        public offset_sm!: number;
+        @Attribute()
+        public offset_md!: number;
+        @Attribute()
+        public offset_lg!: number;
+        @Attribute()
+        public offset_xl!: number;
+        //#endregion
+
+        //#region offset-right
+        @Attribute()
+        public offset_right!: number;
+        @Attribute()
+        public offset_right_xs!: number;
+        @Attribute()
+        public offset_right_sm!: number;
+        @Attribute()
+        public offset_right_md!: number;
+        @Attribute()
+        public offset_right_lg!: number;
+        @Attribute()
+        public offset_right_xl!: number;
+        //#endregion
+
+        @Attribute()
+        public center!: boolean;
+        //#endregion
+
+
+        //#region variables
+
+        //#endregion
+
+
+        //#region constructor
+
+        //#endregion
+
+
+        //#region methods
+
+        //#endregion
+
+    }
+}

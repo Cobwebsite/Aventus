@@ -3,6 +3,12 @@ import { Validator } from "../Validator.lib.avt";
 namespace Form.Validators {
     export class Email extends Validator<string> {
         public static msg: string = "Merci de saisir un email valide";
+
+        private _msg: string;
+        public constructor(msg?: string) {
+            super();
+            this._msg = msg ?? Email.msg;
+        }
         /**
          * @inheritdoc
          */
@@ -11,7 +17,7 @@ namespace Form.Validators {
                 if(value.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}\b/) != null) {
                     return true;
                 }
-                return Email.msg;
+                return this._msg.replace(/\{ *name *\}/g, name);
             }
             return true;
         }

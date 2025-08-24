@@ -81,6 +81,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Get item id
      */
+    @BindThis()
     public getIdWithError(item: KeysObject<T> | T): ResultRamWithError<Index> {
         let action: ResultRamWithError<Index> = new ResultRamWithError();
         let idTemp = item[this.defineIndexKey()];
@@ -95,6 +96,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Get item id
      */
+    @BindThis()
     public getId(item: KeysObject<T> | T): Index {
         let result = this.getIdWithError(item);
         if(result.success) {
@@ -288,6 +290,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Create or update the item
      */
+    @BindThis()
     public async save(item: T, ...args: any[]): Promise<RamItem<U> | undefined> {
         let action = await this.saveWithError(item, ...args);
         if(action.success) {
@@ -298,6 +301,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Create or update the item
      */
+    @BindThis()
     public async saveWithError(item: T, ...args: any[]): Promise<ResultRamWithError<RamItem<U>>> {
         let action: ResultRamWithError<RamItem<U>> = new ResultRamWithError();
         let resultTemp = await this.getIdWithError(item);
@@ -351,36 +355,42 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
     * Add a callback that ll be triggered when a new item is stored
     */
+    @BindThis()
     public onCreated(cb: (item: RamItem<U>) => void) {
         this.subscribe('created', cb);
     }
     /**
      * Remove a created callback
      */
+    @BindThis()
     public offCreated(cb: (item: RamItem<U>) => void) {
         this.unsubscribe('created', cb);
     }
     /**
      * Add a callback that ll be triggered when an item is updated
      */
+    @BindThis()
     public onUpdated(cb: (item: RamItem<U>) => void) {
         this.subscribe('updated', cb);
     }
     /**
      * Remove an updated callback
      */
+    @BindThis()
     public offUpdated(cb: (item: RamItem<U>) => void) {
         this.unsubscribe('updated', cb);
     }
     /**
      * Add a callback that ll be triggered when an item is deleted
      */
+    @BindThis()
     public onDeleted(cb: (item: RamItem<U>) => void) {
         this.subscribe('deleted', cb);
     }
     /**
      * Remove an deleted callback
      */
+    @BindThis()
     public offDeleted(cb: (item: RamItem<U>) => void) {
         this.unsubscribe('deleted', cb);
     }
@@ -391,18 +401,21 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Get an item by id if exist (alias for getById)
      */
+    @BindThis()
     public async get(id: Index): Promise<RamItem<U> | undefined> {
         return await this.getById(id);
     };
     /**
      * Get an item by id if exist (alias for getById)
      */
+    @BindThis()
     public async getWithError(id: Index): Promise<ResultRamWithError<RamItem<U>>> {
         return await this.getByIdWithError(id);
     };
     /**
      * Get an item by id if exist
      */
+    @BindThis()
     public async getById(id: Index): Promise<RamItem<U> | undefined> {
         let action = await this.getByIdWithError(id);
         if(action.success) {
@@ -414,6 +427,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Get an item by id if exist
      */
+    @BindThis()
     public async getByIdWithError(id: Index): Promise<ResultRamWithError<RamItem<U>>> {
         return this.actionGuard.run(['getByIdWithError', id], async () => {
             let action: ResultRamWithError<RamItem<U>> = new ResultRamWithError();
@@ -442,6 +456,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Get multiple items by ids
      */
+    @BindThis()
     public async getByIds(ids: Index[]): Promise<RamItem<U>[]> {
         let result = await this.getByIdsWithError(ids);
         if(result.success) {
@@ -452,6 +467,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Get multiple items by ids
      */
+    @BindThis()
     public async getByIdsWithError(ids: Index[]): Promise<ResultRamWithError<RamItem<U>[]>> {
         return this.actionGuard.run(['getByIdsWithError', ids], async () => {
             let action: ResultRamWithError<RamItem<U>[]> = new ResultRamWithError();
@@ -487,6 +503,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Get all elements inside the Ram
      */
+    @BindThis()
     public async getAll(): Promise<Map<Index, RamItem<U>>> {
         let result = await this.getAllWithError();
         if(result.success) {
@@ -497,6 +514,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Get all elements inside the Ram
      */
+    @BindThis()
     public async getAllWithError(): Promise<ResultRamWithError<Map<Index, RamItem<U>>>> {
         return this.actionGuard.run(['getAllWithError'], async () => {
             let action: ResultRamWithError<Map<Index, RamItem<U>>> = new ResultRamWithError();
@@ -522,6 +540,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Get all elements inside the Ram 
      */
+    @BindThis()
     public async getList(): Promise<RamItem<U>[]> {
         let data = await this.getAll();
         return Array.from(data.values());
@@ -529,6 +548,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Get all elements inside the Ram 
      */
+    @BindThis()
     public async getListWithError(): Promise<ResultRamWithError<RamItem<U>[]>> {
         let action: ResultRamWithError<RamItem<U>[]> = new ResultRamWithError();
         action.result = [];
@@ -552,6 +572,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Create a list of items inside ram
      */
+    @BindThis()
     public async createList(list: T[]): Promise<RamItem<U>[]> {
         let result = await this.createListWithError(list);
         return result.result ?? [];
@@ -559,6 +580,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Create a list of items inside ram
      */
+    @BindThis()
     public async createListWithError(list: T[]): Promise<ResultRamWithError<RamItem<U>[]>> {
         list = this.removeWatch(list);
         let action: ResultRamWithError<RamItem<U>[]> = new ResultRamWithError();
@@ -588,6 +610,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Create an item inside ram
      */
+    @BindThis()
     public async create(item: T, ...args: any[]): Promise<RamItem<U> | undefined> {
         let action = await this.createWithError(item, args);
         if(action.success) {
@@ -598,6 +621,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Create an item inside ram
      */
+    @BindThis()
     public async createWithError(item: T, ...args: any[]): Promise<ResultRamWithError<RamItem<U>>> {
         return await this._create(item, false);
     }
@@ -656,6 +680,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Update a list of items inside ram
      */
+    @BindThis()
     public async updateList(list: T[]): Promise<RamItem<U>[]> {
         let result = await this.updateListWithError(list);
         return result.result ?? [];
@@ -663,6 +688,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Update a list of items inside ram
      */
+    @BindThis()
     public async updateListWithError(list: T[]): Promise<ResultRamWithError<RamItem<U>[]>> {
         list = this.removeWatch(list);
         let action: ResultRamWithError<RamItem<U>[]> = new ResultRamWithError();
@@ -691,6 +717,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Update an item inside ram
      */
+    @BindThis()
     public async update(item: T, ...args: any[]): Promise<RamItem<U> | undefined> {
         let action = await this.updateWithError(item, args);
         if(action.success) {
@@ -701,6 +728,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Update an item inside ram
      */
+    @BindThis()
     public async updateWithError(item: T, ...args: any[]): Promise<ResultRamWithError<RamItem<U>>> {
         return await this._update(item, false);
     }
@@ -773,6 +801,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Delete a list of items inside ram
      */
+    @BindThis()
     public async deleteList(list: T[]): Promise<RamItem<U>[]> {
         let result = await this.deleteListWithError(list);
         return result.result ?? [];
@@ -780,6 +809,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Delete a list of items inside ram
      */
+    @BindThis()
     public async deleteListWithError(list: T[]): Promise<ResultRamWithError<RamItem<U>[]>> {
         list = this.removeWatch(list);
         let action: ResultRamWithError<RamItem<U>[]> = new ResultRamWithError();
@@ -806,6 +836,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Delete an item inside ram
      */
+    @BindThis()
     public async delete(item: T, ...args: any[]): Promise<RamItem<U> | undefined> {
         let action = await this.deleteWithError(item, args);
         if(action.success) {
@@ -816,12 +847,14 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
     * Delete an item inside ram
     */
+    @BindThis()
     public async deleteWithError(item: T, ...args: any[]): Promise<ResultRamWithError<RamItem<U>>> {
         return await this._delete(item, false);
     };
     /**
      * Delete an item by id inside ram
      */
+    @BindThis()
     public async deleteById(id: Index): Promise<RamItem<U> | undefined> {
         let action = await this.deleteByIdWithError(id);
         if(action.success) {
@@ -832,6 +865,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
     * Delete an item by id inside ram
     */
+    @BindThis()
     public async deleteByIdWithError(id: Index): Promise<ResultRamWithError<RamItem<U>>> {
         let item = this.records.get(id);
         if(item) {

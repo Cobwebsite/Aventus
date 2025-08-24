@@ -26,6 +26,7 @@ namespace Form {
         }
 
 
+        @BindThis()
         public abstract validate(value: T | undefined, name:string, globalValidation: () => Promise<void>): FormValidateResult;
     }
 }

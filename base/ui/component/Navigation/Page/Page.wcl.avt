@@ -59,7 +59,7 @@ namespace Navigation {
          * False will prevent showing
          * string or state will redirect to the page
          */
-        public isAllowed(state: State): Aventus.Asyncable<boolean | State | string> {
+        public isAllowed(state: State, pattern: string, router: Router): Aventus.Asyncable<boolean | State | string> {
             return true;
         }
         //#endregion

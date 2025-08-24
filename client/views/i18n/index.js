@@ -16328,6 +16328,40 @@ let GenericRam=class GenericRam {
         if (this.constructor == GenericRam) {
             throw "can't instanciate an abstract class";
         }
+        this.getIdWithError = this.getIdWithError.bind(this);
+        this.getId = this.getId.bind(this);
+        this.save = this.save.bind(this);
+        this.saveWithError = this.saveWithError.bind(this);
+        this.onCreated = this.onCreated.bind(this);
+        this.offCreated = this.offCreated.bind(this);
+        this.onUpdated = this.onUpdated.bind(this);
+        this.offUpdated = this.offUpdated.bind(this);
+        this.onDeleted = this.onDeleted.bind(this);
+        this.offDeleted = this.offDeleted.bind(this);
+        this.get = this.get.bind(this);
+        this.getWithError = this.getWithError.bind(this);
+        this.getById = this.getById.bind(this);
+        this.getByIdWithError = this.getByIdWithError.bind(this);
+        this.getByIds = this.getByIds.bind(this);
+        this.getByIdsWithError = this.getByIdsWithError.bind(this);
+        this.getAll = this.getAll.bind(this);
+        this.getAllWithError = this.getAllWithError.bind(this);
+        this.getList = this.getList.bind(this);
+        this.getListWithError = this.getListWithError.bind(this);
+        this.createList = this.createList.bind(this);
+        this.createListWithError = this.createListWithError.bind(this);
+        this.create = this.create.bind(this);
+        this.createWithError = this.createWithError.bind(this);
+        this.updateList = this.updateList.bind(this);
+        this.updateListWithError = this.updateListWithError.bind(this);
+        this.update = this.update.bind(this);
+        this.updateWithError = this.updateWithError.bind(this);
+        this.deleteList = this.deleteList.bind(this);
+        this.deleteListWithError = this.deleteListWithError.bind(this);
+        this.delete = this.delete.bind(this);
+        this.deleteWithError = this.deleteWithError.bind(this);
+        this.deleteById = this.deleteById.bind(this);
+        this.deleteByIdWithError = this.deleteByIdWithError.bind(this);
     }
     /**
      * Get item id

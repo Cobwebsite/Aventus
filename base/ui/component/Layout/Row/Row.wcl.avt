@@ -1,0 +1,33 @@
+namespace Layout {
+    export class Row extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+        //#region static
+
+        //#endregion
+
+
+        //#region props
+
+        //#endregion
+
+
+        //#region variables
+
+        //#endregion
+
+
+        //#region constructor
+        public constructor() {
+            super();
+            this.style.containerName = "row";
+            this.style.containerType = "inline-size";
+        }
+        //#endregion
+
+
+        //#region methods
+
+		//#endregion
+
+    }
+}

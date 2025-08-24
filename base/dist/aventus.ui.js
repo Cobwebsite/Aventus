@@ -82,6 +82,11 @@ _.DragElementXYType=DragElementXYType;
 let DragElementLeftTopType= [HTMLElement, SVGSVGElement];
 _.DragElementLeftTopType=DragElementLeftTopType;
 
+let isClass=function isClass(v) {
+    return typeof v === 'function' && /^\s*class\s+/.test(v.toString());
+}
+_.isClass=isClass;
+
 let ElementExtension=class ElementExtension {
     /**
      * Find a parent by custom check
@@ -6397,10 +6402,10 @@ var Aventus;
 const moduleName = `Aventus`;
 const _ = {};
 
-let Lib = {};
-_.Lib = Aventus.Lib ?? {};
 let Layout = {};
 _.Layout = Aventus.Layout ?? {};
+let Lib = {};
+_.Lib = Aventus.Lib ?? {};
 let Form = {};
 _.Form = Aventus.Form ?? {};
 let Navigation = {};
@@ -6561,6 +6566,36 @@ let Tracker=class Tracker {
 }
 Tracker.Namespace=`Aventus`;
 _.Tracker=Tracker;
+
+Layout.Row = class Row extends Aventus.WebComponent {
+    static __style = `:host{--_col-gap: var(--col-gap, 0px)}:host{container-name:row;container-type:inline-size;display:flex;flex-direction:row;flex-wrap:wrap;gap:var(--_col-gap);width:100%}`;
+    constructor() {
+        super();
+        this.style.containerName = "row";
+        this.style.containerType = "inline-size";
+    }
+    __getStatic() {
+        return Row;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Row.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<slot></slot>` }
+    });
+}
+    getClassName() {
+        return "Row";
+    }
+}
+Layout.Row.Namespace=`Aventus.Layout`;
+Layout.Row.Tag=`av-row`;
+_.Layout.Row=Layout.Row;
+if(!window.customElements.get('av-row')){window.customElements.define('av-row', Layout.Row);Aventus.WebComponentInstance.registerDefinition(Layout.Row);}
 
 (function (SpecialTouch) {
     SpecialTouch[SpecialTouch["Backspace"] = 0] = "Backspace";
@@ -6794,6 +6829,59 @@ Collapse.Tag=`av-collapse`;
 _.Collapse=Collapse;
 if(!window.customElements.get('av-collapse')){window.customElements.define('av-collapse', Collapse);Aventus.WebComponentInstance.registerDefinition(Collapse);}
 
+Layout.Col = class Col extends Aventus.WebComponent {
+    get 'use_container'() { return this.getBoolAttr('use_container') }
+    set 'use_container'(val) { this.setBoolAttr('use_container', val) }get 'size'() { return this.getNumberAttr('size') }
+    set 'size'(val) { this.setNumberAttr('size', val) }get 'size_xs'() { return this.getNumberAttr('size_xs') }
+    set 'size_xs'(val) { this.setNumberAttr('size_xs', val) }get 'size_sm'() { return this.getNumberAttr('size_sm') }
+    set 'size_sm'(val) { this.setNumberAttr('size_sm', val) }get 'size_md'() { return this.getNumberAttr('size_md') }
+    set 'size_md'(val) { this.setNumberAttr('size_md', val) }get 'size_lg'() { return this.getNumberAttr('size_lg') }
+    set 'size_lg'(val) { this.setNumberAttr('size_lg', val) }get 'size_xl'() { return this.getNumberAttr('size_xl') }
+    set 'size_xl'(val) { this.setNumberAttr('size_xl', val) }get 'offset'() { return this.getNumberAttr('offset') }
+    set 'offset'(val) { this.setNumberAttr('offset', val) }get 'offset_xs'() { return this.getNumberAttr('offset_xs') }
+    set 'offset_xs'(val) { this.setNumberAttr('offset_xs', val) }get 'offset_sm'() { return this.getNumberAttr('offset_sm') }
+    set 'offset_sm'(val) { this.setNumberAttr('offset_sm', val) }get 'offset_md'() { return this.getNumberAttr('offset_md') }
+    set 'offset_md'(val) { this.setNumberAttr('offset_md', val) }get 'offset_lg'() { return this.getNumberAttr('offset_lg') }
+    set 'offset_lg'(val) { this.setNumberAttr('offset_lg', val) }get 'offset_xl'() { return this.getNumberAttr('offset_xl') }
+    set 'offset_xl'(val) { this.setNumberAttr('offset_xl', val) }get 'offset_right'() { return this.getNumberAttr('offset_right') }
+    set 'offset_right'(val) { this.setNumberAttr('offset_right', val) }get 'offset_right_xs'() { return this.getNumberAttr('offset_right_xs') }
+    set 'offset_right_xs'(val) { this.setNumberAttr('offset_right_xs', val) }get 'offset_right_sm'() { return this.getNumberAttr('offset_right_sm') }
+    set 'offset_right_sm'(val) { this.setNumberAttr('offset_right_sm', val) }get 'offset_right_md'() { return this.getNumberAttr('offset_right_md') }
+    set 'offset_right_md'(val) { this.setNumberAttr('offset_right_md', val) }get 'offset_right_lg'() { return this.getNumberAttr('offset_right_lg') }
+    set 'offset_right_lg'(val) { this.setNumberAttr('offset_right_lg', val) }get 'offset_right_xl'() { return this.getNumberAttr('offset_right_xl') }
+    set 'offset_right_xl'(val) { this.setNumberAttr('offset_right_xl', val) }get 'center'() { return this.getBoolAttr('center') }
+    set 'center'(val) { this.setBoolAttr('center', val) }    static use_container = false;
+    static __style = `:host{--_col-padding: var(--col-padding, 8px);--_col-gap: var(--col-gap, 0px)}:host{display:flex;padding:var(--internal-col-padding)}:host([center]){justify-content:center}:host([size="0"]){width:0}:host([offset="0"]){margin-left:0}:host([offset_right="0"]){margin-right:0}:host([size="1"]){width:calc(8.3333333333% - (var(--_col-gap, 0px) * 11 / 12))}:host([offset="1"]){margin-left:calc(8.3333333333% - (var(--_col-gap, 0px) * 11 / 12))}:host([offset_right="1"]){margin-right:calc(8.3333333333% - (var(--_col-gap, 0px) * 11 / 12))}:host([size="2"]){width:calc(16.6666666667% - (var(--_col-gap, 0px) * 5 / 6))}:host([offset="2"]){margin-left:calc(16.6666666667% - (var(--_col-gap, 0px) * 5 / 6))}:host([offset_right="2"]){margin-right:calc(16.6666666667% - (var(--_col-gap, 0px) * 5 / 6))}:host([size="3"]){width:calc(25% - (var(--_col-gap, 0px) * 3 / 4))}:host([offset="3"]){margin-left:calc(25% - (var(--_col-gap, 0px) * 3 / 4))}:host([offset_right="3"]){margin-right:calc(25% - (var(--_col-gap, 0px) * 3 / 4))}:host([size="4"]){width:calc(33.3333333333% - (var(--_col-gap, 0px) * 2 / 3))}:host([offset="4"]){margin-left:calc(33.3333333333% - (var(--_col-gap, 0px) * 2 / 3))}:host([offset_right="4"]){margin-right:calc(33.3333333333% - (var(--_col-gap, 0px) * 2 / 3))}:host([size="5"]){width:calc(41.6666666667% - (var(--_col-gap, 0px) * 1.4 / 2.4))}:host([offset="5"]){margin-left:calc(41.6666666667% - (var(--_col-gap, 0px) * 1.4 / 2.4))}:host([offset_right="5"]){margin-right:calc(41.6666666667% - (var(--_col-gap, 0px) * 1.4 / 2.4))}:host([size="6"]){width:calc(50% - (var(--_col-gap, 0px) * 1 / 2))}:host([offset="6"]){margin-left:calc(50% - (var(--_col-gap, 0px) * 1 / 2))}:host([offset_right="6"]){margin-right:calc(50% - (var(--_col-gap, 0px) * 1 / 2))}:host([size="7"]){width:calc(58.3333333333% - (var(--_col-gap, 0px) * 0.7142857143 / 1.7142857143))}:host([offset="7"]){margin-left:calc(58.3333333333% - (var(--_col-gap, 0px) * 0.7142857143 / 1.7142857143))}:host([offset_right="7"]){margin-right:calc(58.3333333333% - (var(--_col-gap, 0px) * 0.7142857143 / 1.7142857143))}:host([size="8"]){width:calc(66.6666666667% - (var(--_col-gap, 0px) * 0.5 / 1.5))}:host([offset="8"]){margin-left:calc(66.6666666667% - (var(--_col-gap, 0px) * 0.5 / 1.5))}:host([offset_right="8"]){margin-right:calc(66.6666666667% - (var(--_col-gap, 0px) * 0.5 / 1.5))}:host([size="9"]){width:calc(75% - (var(--_col-gap, 0px) * 0.3333333333 / 1.3333333333))}:host([offset="9"]){margin-left:calc(75% - (var(--_col-gap, 0px) * 0.3333333333 / 1.3333333333))}:host([offset_right="9"]){margin-right:calc(75% - (var(--_col-gap, 0px) * 0.3333333333 / 1.3333333333))}:host([size="10"]){width:calc(83.3333333333% - (var(--_col-gap, 0px) * 0.2 / 1.2))}:host([offset="10"]){margin-left:calc(83.3333333333% - (var(--_col-gap, 0px) * 0.2 / 1.2))}:host([offset_right="10"]){margin-right:calc(83.3333333333% - (var(--_col-gap, 0px) * 0.2 / 1.2))}:host([size="11"]){width:calc(91.6666666667% - (var(--_col-gap, 0px) * 0.0909090909 / 1.0909090909))}:host([offset="11"]){margin-left:calc(91.6666666667% - (var(--_col-gap, 0px) * 0.0909090909 / 1.0909090909))}:host([offset_right="11"]){margin-right:calc(91.6666666667% - (var(--_col-gap, 0px) * 0.0909090909 / 1.0909090909))}:host([size="12"]){width:100%}:host([offset="12"]){margin-left:100%}:host([offset_right="12"]){margin-right:100%}@container row (min-width: 300px){:host([use_container][size_xs="0"]){width:0}:host([use_container][offset_xs="0"]){margin-left:0}:host([use_container][offset_right_xs="0"]){margin-right:0}:host([use_container][size_xs="0"]){display:none}:host([use_container][size_xs="1"]){width:calc(8.3333333333% - (var(--_col-gap, 0px) * 11 / 12))}:host([use_container][offset_xs="1"]){margin-left:calc(8.3333333333% - (var(--_col-gap, 0px) * 11 / 12))}:host([use_container][offset_right_xs="1"]){margin-right:calc(8.3333333333% - (var(--_col-gap, 0px) * 11 / 12))}:host([use_container][size_xs="2"]){width:calc(16.6666666667% - (var(--_col-gap, 0px) * 5 / 6))}:host([use_container][offset_xs="2"]){margin-left:calc(16.6666666667% - (var(--_col-gap, 0px) * 5 / 6))}:host([use_container][offset_right_xs="2"]){margin-right:calc(16.6666666667% - (var(--_col-gap, 0px) * 5 / 6))}:host([use_container][size_xs="3"]){width:calc(25% - (var(--_col-gap, 0px) * 3 / 4))}:host([use_container][offset_xs="3"]){margin-left:calc(25% - (var(--_col-gap, 0px) * 3 / 4))}:host([use_container][offset_right_xs="3"]){margin-right:calc(25% - (var(--_col-gap, 0px) * 3 / 4))}:host([use_container][size_xs="4"]){width:calc(33.3333333333% - (var(--_col-gap, 0px) * 2 / 3))}:host([use_container][offset_xs="4"]){margin-left:calc(33.3333333333% - (var(--_col-gap, 0px) * 2 / 3))}:host([use_container][offset_right_xs="4"]){margin-right:calc(33.3333333333% - (var(--_col-gap, 0px) * 2 / 3))}:host([use_container][size_xs="5"]){width:calc(41.6666666667% - (var(--_col-gap, 0px) * 1.4 / 2.4))}:host([use_container][offset_xs="5"]){margin-left:calc(41.6666666667% - (var(--_col-gap, 0px) * 1.4 / 2.4))}:host([use_container][offset_right_xs="5"]){margin-right:calc(41.6666666667% - (var(--_col-gap, 0px) * 1.4 / 2.4))}:host([use_container][size_xs="6"]){width:calc(50% - (var(--_col-gap, 0px) * 1 / 2))}:host([use_container][offset_xs="6"]){margin-left:calc(50% - (var(--_col-gap, 0px) * 1 / 2))}:host([use_container][offset_right_xs="6"]){margin-right:calc(50% - (var(--_col-gap, 0px) * 1 / 2))}:host([use_container][size_xs="7"]){width:calc(58.3333333333% - (var(--_col-gap, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][offset_xs="7"]){margin-left:calc(58.3333333333% - (var(--_col-gap, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][offset_right_xs="7"]){margin-right:calc(58.3333333333% - (var(--_col-gap, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][size_xs="8"]){width:calc(66.6666666667% - (var(--_col-gap, 0px) * 0.5 / 1.5))}:host([use_container][offset_xs="8"]){margin-left:calc(66.6666666667% - (var(--_col-gap, 0px) * 0.5 / 1.5))}:host([use_container][offset_right_xs="8"]){margin-right:calc(66.6666666667% - (var(--_col-gap, 0px) * 0.5 / 1.5))}:host([use_container][size_xs="9"]){width:calc(75% - (var(--_col-gap, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][offset_xs="9"]){margin-left:calc(75% - (var(--_col-gap, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][offset_right_xs="9"]){margin-right:calc(75% - (var(--_col-gap, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][size_xs="10"]){width:calc(83.3333333333% - (var(--_col-gap, 0px) * 0.2 / 1.2))}:host([use_container][offset_xs="10"]){margin-left:calc(83.3333333333% - (var(--_col-gap, 0px) * 0.2 / 1.2))}:host([use_container][offset_right_xs="10"]){margin-right:calc(83.3333333333% - (var(--_col-gap, 0px) * 0.2 / 1.2))}:host([use_container][size_xs="11"]){width:calc(91.6666666667% - (var(--_col-gap, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][offset_xs="11"]){margin-left:calc(91.6666666667% - (var(--_col-gap, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][offset_right_xs="11"]){margin-right:calc(91.6666666667% - (var(--_col-gap, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][size_xs="12"]){width:100%}:host([use_container][offset_xs="12"]){margin-left:100%}:host([use_container][offset_right_xs="12"]){margin-right:100%}}@media screen and (min-width: 300px){:host(:not([use_container])[size_xs="0"]){width:0}:host(:not([use_container])[offset_xs="0"]){margin-left:0}:host(:not([use_container])[offset_right_xs="0"]){margin-right:0}:host(:not([use_container])[size_xs="0"]){display:none}:host(:not([use_container])[size_xs="1"]){width:calc(8.3333333333% - (var(--_col-gap, 0px) * 11 / 12))}:host(:not([use_container])[offset_xs="1"]){margin-left:calc(8.3333333333% - (var(--_col-gap, 0px) * 11 / 12))}:host(:not([use_container])[offset_right_xs="1"]){margin-right:calc(8.3333333333% - (var(--_col-gap, 0px) * 11 / 12))}:host(:not([use_container])[size_xs="2"]){width:calc(16.6666666667% - (var(--_col-gap, 0px) * 5 / 6))}:host(:not([use_container])[offset_xs="2"]){margin-left:calc(16.6666666667% - (var(--_col-gap, 0px) * 5 / 6))}:host(:not([use_container])[offset_right_xs="2"]){margin-right:calc(16.6666666667% - (var(--_col-gap, 0px) * 5 / 6))}:host(:not([use_container])[size_xs="3"]){width:calc(25% - (var(--_col-gap, 0px) * 3 / 4))}:host(:not([use_container])[offset_xs="3"]){margin-left:calc(25% - (var(--_col-gap, 0px) * 3 / 4))}:host(:not([use_container])[offset_right_xs="3"]){margin-right:calc(25% - (var(--_col-gap, 0px) * 3 / 4))}:host(:not([use_container])[size_xs="4"]){width:calc(33.3333333333% - (var(--_col-gap, 0px) * 2 / 3))}:host(:not([use_container])[offset_xs="4"]){margin-left:calc(33.3333333333% - (var(--_col-gap, 0px) * 2 / 3))}:host(:not([use_container])[offset_right_xs="4"]){margin-right:calc(33.3333333333% - (var(--_col-gap, 0px) * 2 / 3))}:host(:not([use_container])[size_xs="5"]){width:calc(41.6666666667% - (var(--_col-gap, 0px) * 1.4 / 2.4))}:host(:not([use_container])[offset_xs="5"]){margin-left:calc(41.6666666667% - (var(--_col-gap, 0px) * 1.4 / 2.4))}:host(:not([use_container])[offset_right_xs="5"]){margin-right:calc(41.6666666667% - (var(--_col-gap, 0px) * 1.4 / 2.4))}:host(:not([use_container])[size_xs="6"]){width:calc(50% - (var(--_col-gap, 0px) * 1 / 2))}:host(:not([use_container])[offset_xs="6"]){margin-left:calc(50% - (var(--_col-gap, 0px) * 1 / 2))}:host(:not([use_container])[offset_right_xs="6"]){margin-right:calc(50% - (var(--_col-gap, 0px) * 1 / 2))}:host(:not([use_container])[size_xs="7"]){width:calc(58.3333333333% - (var(--_col-gap, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[offset_xs="7"]){margin-left:calc(58.3333333333% - (var(--_col-gap, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[offset_right_xs="7"]){margin-right:calc(58.3333333333% - (var(--_col-gap, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[size_xs="8"]){width:calc(66.6666666667% - (var(--_col-gap, 0px) * 0.5 / 1.5))}:host(:not([use_container])[offset_xs="8"]){margin-left:calc(66.6666666667% - (var(--_col-gap, 0px) * 0.5 / 1.5))}:host(:not([use_container])[offset_right_xs="8"]){margin-right:calc(66.6666666667% - (var(--_col-gap, 0px) * 0.5 / 1.5))}:host(:not([use_container])[size_xs="9"]){width:calc(75% - (var(--_col-gap, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[offset_xs="9"]){margin-left:calc(75% - (var(--_col-gap, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[offset_right_xs="9"]){margin-right:calc(75% - (var(--_col-gap, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[size_xs="10"]){width:calc(83.3333333333% - (var(--_col-gap, 0px) * 0.2 / 1.2))}:host(:not([use_container])[offset_xs="10"]){margin-left:calc(83.3333333333% - (var(--_col-gap, 0px) * 0.2 / 1.2))}:host(:not([use_container])[offset_right_xs="10"]){margin-right:calc(83.3333333333% - (var(--_col-gap, 0px) * 0.2 / 1.2))}:host(:not([use_container])[size_xs="11"]){width:calc(91.6666666667% - (var(--_col-gap, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[offset_xs="11"]){margin-left:calc(91.6666666667% - (var(--_col-gap, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[offset_right_xs="11"]){margin-right:calc(91.6666666667% - (var(--_col-gap, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[size_xs="12"]){width:100%}:host(:not([use_container])[offset_xs="12"]){margin-left:100%}:host(:not([use_container])[offset_right_xs="12"]){margin-right:100%}}@container row (min-width: 540px){:host([use_container][size_sm="0"]){width:0}:host([use_container][offset_sm="0"]){margin-left:0}:host([use_container][offset_right_sm="0"]){margin-right:0}:host([use_container][size_sm="0"]){display:none}:host([use_container][size_sm="1"]){width:calc(8.3333333333% - (var(--_col-gap, 0px) * 11 / 12))}:host([use_container][offset_sm="1"]){margin-left:calc(8.3333333333% - (var(--_col-gap, 0px) * 11 / 12))}:host([use_container][offset_right_sm="1"]){margin-right:calc(8.3333333333% - (var(--_col-gap, 0px) * 11 / 12))}:host([use_container][size_sm="2"]){width:calc(16.6666666667% - (var(--_col-gap, 0px) * 5 / 6))}:host([use_container][offset_sm="2"]){margin-left:calc(16.6666666667% - (var(--_col-gap, 0px) * 5 / 6))}:host([use_container][offset_right_sm="2"]){margin-right:calc(16.6666666667% - (var(--_col-gap, 0px) * 5 / 6))}:host([use_container][size_sm="3"]){width:calc(25% - (var(--_col-gap, 0px) * 3 / 4))}:host([use_container][offset_sm="3"]){margin-left:calc(25% - (var(--_col-gap, 0px) * 3 / 4))}:host([use_container][offset_right_sm="3"]){margin-right:calc(25% - (var(--_col-gap, 0px) * 3 / 4))}:host([use_container][size_sm="4"]){width:calc(33.3333333333% - (var(--_col-gap, 0px) * 2 / 3))}:host([use_container][offset_sm="4"]){margin-left:calc(33.3333333333% - (var(--_col-gap, 0px) * 2 / 3))}:host([use_container][offset_right_sm="4"]){margin-right:calc(33.3333333333% - (var(--_col-gap, 0px) * 2 / 3))}:host([use_container][size_sm="5"]){width:calc(41.6666666667% - (var(--_col-gap, 0px) * 1.4 / 2.4))}:host([use_container][offset_sm="5"]){margin-left:calc(41.6666666667% - (var(--_col-gap, 0px) * 1.4 / 2.4))}:host([use_container][offset_right_sm="5"]){margin-right:calc(41.6666666667% - (var(--_col-gap, 0px) * 1.4 / 2.4))}:host([use_container][size_sm="6"]){width:calc(50% - (var(--_col-gap, 0px) * 1 / 2))}:host([use_container][offset_sm="6"]){margin-left:calc(50% - (var(--_col-gap, 0px) * 1 / 2))}:host([use_container][offset_right_sm="6"]){margin-right:calc(50% - (var(--_col-gap, 0px) * 1 / 2))}:host([use_container][size_sm="7"]){width:calc(58.3333333333% - (var(--_col-gap, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][offset_sm="7"]){margin-left:calc(58.3333333333% - (var(--_col-gap, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][offset_right_sm="7"]){margin-right:calc(58.3333333333% - (var(--_col-gap, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][size_sm="8"]){width:calc(66.6666666667% - (var(--_col-gap, 0px) * 0.5 / 1.5))}:host([use_container][offset_sm="8"]){margin-left:calc(66.6666666667% - (var(--_col-gap, 0px) * 0.5 / 1.5))}:host([use_container][offset_right_sm="8"]){margin-right:calc(66.6666666667% - (var(--_col-gap, 0px) * 0.5 / 1.5))}:host([use_container][size_sm="9"]){width:calc(75% - (var(--_col-gap, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][offset_sm="9"]){margin-left:calc(75% - (var(--_col-gap, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][offset_right_sm="9"]){margin-right:calc(75% - (var(--_col-gap, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][size_sm="10"]){width:calc(83.3333333333% - (var(--_col-gap, 0px) * 0.2 / 1.2))}:host([use_container][offset_sm="10"]){margin-left:calc(83.3333333333% - (var(--_col-gap, 0px) * 0.2 / 1.2))}:host([use_container][offset_right_sm="10"]){margin-right:calc(83.3333333333% - (var(--_col-gap, 0px) * 0.2 / 1.2))}:host([use_container][size_sm="11"]){width:calc(91.6666666667% - (var(--_col-gap, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][offset_sm="11"]){margin-left:calc(91.6666666667% - (var(--_col-gap, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][offset_right_sm="11"]){margin-right:calc(91.6666666667% - (var(--_col-gap, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][size_sm="12"]){width:100%}:host([use_container][offset_sm="12"]){margin-left:100%}:host([use_container][offset_right_sm="12"]){margin-right:100%}}@media screen and (min-width: 540px){:host(:not([use_container])[size_sm="0"]){width:0}:host(:not([use_container])[offset_sm="0"]){margin-left:0}:host(:not([use_container])[offset_right_sm="0"]){margin-right:0}:host(:not([use_container])[size_sm="0"]){display:none}:host(:not([use_container])[size_sm="1"]){width:calc(8.3333333333% - (var(--_col-gap, 0px) * 11 / 12))}:host(:not([use_container])[offset_sm="1"]){margin-left:calc(8.3333333333% - (var(--_col-gap, 0px) * 11 / 12))}:host(:not([use_container])[offset_right_sm="1"]){margin-right:calc(8.3333333333% - (var(--_col-gap, 0px) * 11 / 12))}:host(:not([use_container])[size_sm="2"]){width:calc(16.6666666667% - (var(--_col-gap, 0px) * 5 / 6))}:host(:not([use_container])[offset_sm="2"]){margin-left:calc(16.6666666667% - (var(--_col-gap, 0px) * 5 / 6))}:host(:not([use_container])[offset_right_sm="2"]){margin-right:calc(16.6666666667% - (var(--_col-gap, 0px) * 5 / 6))}:host(:not([use_container])[size_sm="3"]){width:calc(25% - (var(--_col-gap, 0px) * 3 / 4))}:host(:not([use_container])[offset_sm="3"]){margin-left:calc(25% - (var(--_col-gap, 0px) * 3 / 4))}:host(:not([use_container])[offset_right_sm="3"]){margin-right:calc(25% - (var(--_col-gap, 0px) * 3 / 4))}:host(:not([use_container])[size_sm="4"]){width:calc(33.3333333333% - (var(--_col-gap, 0px) * 2 / 3))}:host(:not([use_container])[offset_sm="4"]){margin-left:calc(33.3333333333% - (var(--_col-gap, 0px) * 2 / 3))}:host(:not([use_container])[offset_right_sm="4"]){margin-right:calc(33.3333333333% - (var(--_col-gap, 0px) * 2 / 3))}:host(:not([use_container])[size_sm="5"]){width:calc(41.6666666667% - (var(--_col-gap, 0px) * 1.4 / 2.4))}:host(:not([use_container])[offset_sm="5"]){margin-left:calc(41.6666666667% - (var(--_col-gap, 0px) * 1.4 / 2.4))}:host(:not([use_container])[offset_right_sm="5"]){margin-right:calc(41.6666666667% - (var(--_col-gap, 0px) * 1.4 / 2.4))}:host(:not([use_container])[size_sm="6"]){width:calc(50% - (var(--_col-gap, 0px) * 1 / 2))}:host(:not([use_container])[offset_sm="6"]){margin-left:calc(50% - (var(--_col-gap, 0px) * 1 / 2))}:host(:not([use_container])[offset_right_sm="6"]){margin-right:calc(50% - (var(--_col-gap, 0px) * 1 / 2))}:host(:not([use_container])[size_sm="7"]){width:calc(58.3333333333% - (var(--_col-gap, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[offset_sm="7"]){margin-left:calc(58.3333333333% - (var(--_col-gap, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[offset_right_sm="7"]){margin-right:calc(58.3333333333% - (var(--_col-gap, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[size_sm="8"]){width:calc(66.6666666667% - (var(--_col-gap, 0px) * 0.5 / 1.5))}:host(:not([use_container])[offset_sm="8"]){margin-left:calc(66.6666666667% - (var(--_col-gap, 0px) * 0.5 / 1.5))}:host(:not([use_container])[offset_right_sm="8"]){margin-right:calc(66.6666666667% - (var(--_col-gap, 0px) * 0.5 / 1.5))}:host(:not([use_container])[size_sm="9"]){width:calc(75% - (var(--_col-gap, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[offset_sm="9"]){margin-left:calc(75% - (var(--_col-gap, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[offset_right_sm="9"]){margin-right:calc(75% - (var(--_col-gap, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[size_sm="10"]){width:calc(83.3333333333% - (var(--_col-gap, 0px) * 0.2 / 1.2))}:host(:not([use_container])[offset_sm="10"]){margin-left:calc(83.3333333333% - (var(--_col-gap, 0px) * 0.2 / 1.2))}:host(:not([use_container])[offset_right_sm="10"]){margin-right:calc(83.3333333333% - (var(--_col-gap, 0px) * 0.2 / 1.2))}:host(:not([use_container])[size_sm="11"]){width:calc(91.6666666667% - (var(--_col-gap, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[offset_sm="11"]){margin-left:calc(91.6666666667% - (var(--_col-gap, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[offset_right_sm="11"]){margin-right:calc(91.6666666667% - (var(--_col-gap, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[size_sm="12"]){width:100%}:host(:not([use_container])[offset_sm="12"]){margin-left:100%}:host(:not([use_container])[offset_right_sm="12"]){margin-right:100%}}@container row (min-width: 720px){:host([use_container][size_md="0"]){width:0}:host([use_container][offset_md="0"]){margin-left:0}:host([use_container][offset_right_md="0"]){margin-right:0}:host([use_container][size_md="0"]){display:none}:host([use_container][size_md="1"]){width:calc(8.3333333333% - (var(--_col-gap, 0px) * 11 / 12))}:host([use_container][offset_md="1"]){margin-left:calc(8.3333333333% - (var(--_col-gap, 0px) * 11 / 12))}:host([use_container][offset_right_md="1"]){margin-right:calc(8.3333333333% - (var(--_col-gap, 0px) * 11 / 12))}:host([use_container][size_md="2"]){width:calc(16.6666666667% - (var(--_col-gap, 0px) * 5 / 6))}:host([use_container][offset_md="2"]){margin-left:calc(16.6666666667% - (var(--_col-gap, 0px) * 5 / 6))}:host([use_container][offset_right_md="2"]){margin-right:calc(16.6666666667% - (var(--_col-gap, 0px) * 5 / 6))}:host([use_container][size_md="3"]){width:calc(25% - (var(--_col-gap, 0px) * 3 / 4))}:host([use_container][offset_md="3"]){margin-left:calc(25% - (var(--_col-gap, 0px) * 3 / 4))}:host([use_container][offset_right_md="3"]){margin-right:calc(25% - (var(--_col-gap, 0px) * 3 / 4))}:host([use_container][size_md="4"]){width:calc(33.3333333333% - (var(--_col-gap, 0px) * 2 / 3))}:host([use_container][offset_md="4"]){margin-left:calc(33.3333333333% - (var(--_col-gap, 0px) * 2 / 3))}:host([use_container][offset_right_md="4"]){margin-right:calc(33.3333333333% - (var(--_col-gap, 0px) * 2 / 3))}:host([use_container][size_md="5"]){width:calc(41.6666666667% - (var(--_col-gap, 0px) * 1.4 / 2.4))}:host([use_container][offset_md="5"]){margin-left:calc(41.6666666667% - (var(--_col-gap, 0px) * 1.4 / 2.4))}:host([use_container][offset_right_md="5"]){margin-right:calc(41.6666666667% - (var(--_col-gap, 0px) * 1.4 / 2.4))}:host([use_container][size_md="6"]){width:calc(50% - (var(--_col-gap, 0px) * 1 / 2))}:host([use_container][offset_md="6"]){margin-left:calc(50% - (var(--_col-gap, 0px) * 1 / 2))}:host([use_container][offset_right_md="6"]){margin-right:calc(50% - (var(--_col-gap, 0px) * 1 / 2))}:host([use_container][size_md="7"]){width:calc(58.3333333333% - (var(--_col-gap, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][offset_md="7"]){margin-left:calc(58.3333333333% - (var(--_col-gap, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][offset_right_md="7"]){margin-right:calc(58.3333333333% - (var(--_col-gap, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][size_md="8"]){width:calc(66.6666666667% - (var(--_col-gap, 0px) * 0.5 / 1.5))}:host([use_container][offset_md="8"]){margin-left:calc(66.6666666667% - (var(--_col-gap, 0px) * 0.5 / 1.5))}:host([use_container][offset_right_md="8"]){margin-right:calc(66.6666666667% - (var(--_col-gap, 0px) * 0.5 / 1.5))}:host([use_container][size_md="9"]){width:calc(75% - (var(--_col-gap, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][offset_md="9"]){margin-left:calc(75% - (var(--_col-gap, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][offset_right_md="9"]){margin-right:calc(75% - (var(--_col-gap, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][size_md="10"]){width:calc(83.3333333333% - (var(--_col-gap, 0px) * 0.2 / 1.2))}:host([use_container][offset_md="10"]){margin-left:calc(83.3333333333% - (var(--_col-gap, 0px) * 0.2 / 1.2))}:host([use_container][offset_right_md="10"]){margin-right:calc(83.3333333333% - (var(--_col-gap, 0px) * 0.2 / 1.2))}:host([use_container][size_md="11"]){width:calc(91.6666666667% - (var(--_col-gap, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][offset_md="11"]){margin-left:calc(91.6666666667% - (var(--_col-gap, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][offset_right_md="11"]){margin-right:calc(91.6666666667% - (var(--_col-gap, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][size_md="12"]){width:100%}:host([use_container][offset_md="12"]){margin-left:100%}:host([use_container][offset_right_md="12"]){margin-right:100%}}@media screen and (min-width: 720px){:host(:not([use_container])[size_md="0"]){width:0}:host(:not([use_container])[offset_md="0"]){margin-left:0}:host(:not([use_container])[offset_right_md="0"]){margin-right:0}:host(:not([use_container])[size_md="0"]){display:none}:host(:not([use_container])[size_md="1"]){width:calc(8.3333333333% - (var(--_col-gap, 0px) * 11 / 12))}:host(:not([use_container])[offset_md="1"]){margin-left:calc(8.3333333333% - (var(--_col-gap, 0px) * 11 / 12))}:host(:not([use_container])[offset_right_md="1"]){margin-right:calc(8.3333333333% - (var(--_col-gap, 0px) * 11 / 12))}:host(:not([use_container])[size_md="2"]){width:calc(16.6666666667% - (var(--_col-gap, 0px) * 5 / 6))}:host(:not([use_container])[offset_md="2"]){margin-left:calc(16.6666666667% - (var(--_col-gap, 0px) * 5 / 6))}:host(:not([use_container])[offset_right_md="2"]){margin-right:calc(16.6666666667% - (var(--_col-gap, 0px) * 5 / 6))}:host(:not([use_container])[size_md="3"]){width:calc(25% - (var(--_col-gap, 0px) * 3 / 4))}:host(:not([use_container])[offset_md="3"]){margin-left:calc(25% - (var(--_col-gap, 0px) * 3 / 4))}:host(:not([use_container])[offset_right_md="3"]){margin-right:calc(25% - (var(--_col-gap, 0px) * 3 / 4))}:host(:not([use_container])[size_md="4"]){width:calc(33.3333333333% - (var(--_col-gap, 0px) * 2 / 3))}:host(:not([use_container])[offset_md="4"]){margin-left:calc(33.3333333333% - (var(--_col-gap, 0px) * 2 / 3))}:host(:not([use_container])[offset_right_md="4"]){margin-right:calc(33.3333333333% - (var(--_col-gap, 0px) * 2 / 3))}:host(:not([use_container])[size_md="5"]){width:calc(41.6666666667% - (var(--_col-gap, 0px) * 1.4 / 2.4))}:host(:not([use_container])[offset_md="5"]){margin-left:calc(41.6666666667% - (var(--_col-gap, 0px) * 1.4 / 2.4))}:host(:not([use_container])[offset_right_md="5"]){margin-right:calc(41.6666666667% - (var(--_col-gap, 0px) * 1.4 / 2.4))}:host(:not([use_container])[size_md="6"]){width:calc(50% - (var(--_col-gap, 0px) * 1 / 2))}:host(:not([use_container])[offset_md="6"]){margin-left:calc(50% - (var(--_col-gap, 0px) * 1 / 2))}:host(:not([use_container])[offset_right_md="6"]){margin-right:calc(50% - (var(--_col-gap, 0px) * 1 / 2))}:host(:not([use_container])[size_md="7"]){width:calc(58.3333333333% - (var(--_col-gap, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[offset_md="7"]){margin-left:calc(58.3333333333% - (var(--_col-gap, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[offset_right_md="7"]){margin-right:calc(58.3333333333% - (var(--_col-gap, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[size_md="8"]){width:calc(66.6666666667% - (var(--_col-gap, 0px) * 0.5 / 1.5))}:host(:not([use_container])[offset_md="8"]){margin-left:calc(66.6666666667% - (var(--_col-gap, 0px) * 0.5 / 1.5))}:host(:not([use_container])[offset_right_md="8"]){margin-right:calc(66.6666666667% - (var(--_col-gap, 0px) * 0.5 / 1.5))}:host(:not([use_container])[size_md="9"]){width:calc(75% - (var(--_col-gap, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[offset_md="9"]){margin-left:calc(75% - (var(--_col-gap, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[offset_right_md="9"]){margin-right:calc(75% - (var(--_col-gap, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[size_md="10"]){width:calc(83.3333333333% - (var(--_col-gap, 0px) * 0.2 / 1.2))}:host(:not([use_container])[offset_md="10"]){margin-left:calc(83.3333333333% - (var(--_col-gap, 0px) * 0.2 / 1.2))}:host(:not([use_container])[offset_right_md="10"]){margin-right:calc(83.3333333333% - (var(--_col-gap, 0px) * 0.2 / 1.2))}:host(:not([use_container])[size_md="11"]){width:calc(91.6666666667% - (var(--_col-gap, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[offset_md="11"]){margin-left:calc(91.6666666667% - (var(--_col-gap, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[offset_right_md="11"]){margin-right:calc(91.6666666667% - (var(--_col-gap, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[size_md="12"]){width:100%}:host(:not([use_container])[offset_md="12"]){margin-left:100%}:host(:not([use_container])[offset_right_md="12"]){margin-right:100%}}@container row (min-width: 960px){:host([use_container][size_lg="0"]){width:0}:host([use_container][offset_lg="0"]){margin-left:0}:host([use_container][offset_right_lg="0"]){margin-right:0}:host([use_container][size_lg="0"]){display:none}:host([use_container][size_lg="1"]){width:calc(8.3333333333% - (var(--_col-gap, 0px) * 11 / 12))}:host([use_container][offset_lg="1"]){margin-left:calc(8.3333333333% - (var(--_col-gap, 0px) * 11 / 12))}:host([use_container][offset_right_lg="1"]){margin-right:calc(8.3333333333% - (var(--_col-gap, 0px) * 11 / 12))}:host([use_container][size_lg="2"]){width:calc(16.6666666667% - (var(--_col-gap, 0px) * 5 / 6))}:host([use_container][offset_lg="2"]){margin-left:calc(16.6666666667% - (var(--_col-gap, 0px) * 5 / 6))}:host([use_container][offset_right_lg="2"]){margin-right:calc(16.6666666667% - (var(--_col-gap, 0px) * 5 / 6))}:host([use_container][size_lg="3"]){width:calc(25% - (var(--_col-gap, 0px) * 3 / 4))}:host([use_container][offset_lg="3"]){margin-left:calc(25% - (var(--_col-gap, 0px) * 3 / 4))}:host([use_container][offset_right_lg="3"]){margin-right:calc(25% - (var(--_col-gap, 0px) * 3 / 4))}:host([use_container][size_lg="4"]){width:calc(33.3333333333% - (var(--_col-gap, 0px) * 2 / 3))}:host([use_container][offset_lg="4"]){margin-left:calc(33.3333333333% - (var(--_col-gap, 0px) * 2 / 3))}:host([use_container][offset_right_lg="4"]){margin-right:calc(33.3333333333% - (var(--_col-gap, 0px) * 2 / 3))}:host([use_container][size_lg="5"]){width:calc(41.6666666667% - (var(--_col-gap, 0px) * 1.4 / 2.4))}:host([use_container][offset_lg="5"]){margin-left:calc(41.6666666667% - (var(--_col-gap, 0px) * 1.4 / 2.4))}:host([use_container][offset_right_lg="5"]){margin-right:calc(41.6666666667% - (var(--_col-gap, 0px) * 1.4 / 2.4))}:host([use_container][size_lg="6"]){width:calc(50% - (var(--_col-gap, 0px) * 1 / 2))}:host([use_container][offset_lg="6"]){margin-left:calc(50% - (var(--_col-gap, 0px) * 1 / 2))}:host([use_container][offset_right_lg="6"]){margin-right:calc(50% - (var(--_col-gap, 0px) * 1 / 2))}:host([use_container][size_lg="7"]){width:calc(58.3333333333% - (var(--_col-gap, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][offset_lg="7"]){margin-left:calc(58.3333333333% - (var(--_col-gap, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][offset_right_lg="7"]){margin-right:calc(58.3333333333% - (var(--_col-gap, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][size_lg="8"]){width:calc(66.6666666667% - (var(--_col-gap, 0px) * 0.5 / 1.5))}:host([use_container][offset_lg="8"]){margin-left:calc(66.6666666667% - (var(--_col-gap, 0px) * 0.5 / 1.5))}:host([use_container][offset_right_lg="8"]){margin-right:calc(66.6666666667% - (var(--_col-gap, 0px) * 0.5 / 1.5))}:host([use_container][size_lg="9"]){width:calc(75% - (var(--_col-gap, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][offset_lg="9"]){margin-left:calc(75% - (var(--_col-gap, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][offset_right_lg="9"]){margin-right:calc(75% - (var(--_col-gap, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][size_lg="10"]){width:calc(83.3333333333% - (var(--_col-gap, 0px) * 0.2 / 1.2))}:host([use_container][offset_lg="10"]){margin-left:calc(83.3333333333% - (var(--_col-gap, 0px) * 0.2 / 1.2))}:host([use_container][offset_right_lg="10"]){margin-right:calc(83.3333333333% - (var(--_col-gap, 0px) * 0.2 / 1.2))}:host([use_container][size_lg="11"]){width:calc(91.6666666667% - (var(--_col-gap, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][offset_lg="11"]){margin-left:calc(91.6666666667% - (var(--_col-gap, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][offset_right_lg="11"]){margin-right:calc(91.6666666667% - (var(--_col-gap, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][size_lg="12"]){width:100%}:host([use_container][offset_lg="12"]){margin-left:100%}:host([use_container][offset_right_lg="12"]){margin-right:100%}}@media screen and (min-width: 960px){:host(:not([use_container])[size_lg="0"]){width:0}:host(:not([use_container])[offset_lg="0"]){margin-left:0}:host(:not([use_container])[offset_right_lg="0"]){margin-right:0}:host(:not([use_container])[size_lg="0"]){display:none}:host(:not([use_container])[size_lg="1"]){width:calc(8.3333333333% - (var(--_col-gap, 0px) * 11 / 12))}:host(:not([use_container])[offset_lg="1"]){margin-left:calc(8.3333333333% - (var(--_col-gap, 0px) * 11 / 12))}:host(:not([use_container])[offset_right_lg="1"]){margin-right:calc(8.3333333333% - (var(--_col-gap, 0px) * 11 / 12))}:host(:not([use_container])[size_lg="2"]){width:calc(16.6666666667% - (var(--_col-gap, 0px) * 5 / 6))}:host(:not([use_container])[offset_lg="2"]){margin-left:calc(16.6666666667% - (var(--_col-gap, 0px) * 5 / 6))}:host(:not([use_container])[offset_right_lg="2"]){margin-right:calc(16.6666666667% - (var(--_col-gap, 0px) * 5 / 6))}:host(:not([use_container])[size_lg="3"]){width:calc(25% - (var(--_col-gap, 0px) * 3 / 4))}:host(:not([use_container])[offset_lg="3"]){margin-left:calc(25% - (var(--_col-gap, 0px) * 3 / 4))}:host(:not([use_container])[offset_right_lg="3"]){margin-right:calc(25% - (var(--_col-gap, 0px) * 3 / 4))}:host(:not([use_container])[size_lg="4"]){width:calc(33.3333333333% - (var(--_col-gap, 0px) * 2 / 3))}:host(:not([use_container])[offset_lg="4"]){margin-left:calc(33.3333333333% - (var(--_col-gap, 0px) * 2 / 3))}:host(:not([use_container])[offset_right_lg="4"]){margin-right:calc(33.3333333333% - (var(--_col-gap, 0px) * 2 / 3))}:host(:not([use_container])[size_lg="5"]){width:calc(41.6666666667% - (var(--_col-gap, 0px) * 1.4 / 2.4))}:host(:not([use_container])[offset_lg="5"]){margin-left:calc(41.6666666667% - (var(--_col-gap, 0px) * 1.4 / 2.4))}:host(:not([use_container])[offset_right_lg="5"]){margin-right:calc(41.6666666667% - (var(--_col-gap, 0px) * 1.4 / 2.4))}:host(:not([use_container])[size_lg="6"]){width:calc(50% - (var(--_col-gap, 0px) * 1 / 2))}:host(:not([use_container])[offset_lg="6"]){margin-left:calc(50% - (var(--_col-gap, 0px) * 1 / 2))}:host(:not([use_container])[offset_right_lg="6"]){margin-right:calc(50% - (var(--_col-gap, 0px) * 1 / 2))}:host(:not([use_container])[size_lg="7"]){width:calc(58.3333333333% - (var(--_col-gap, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[offset_lg="7"]){margin-left:calc(58.3333333333% - (var(--_col-gap, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[offset_right_lg="7"]){margin-right:calc(58.3333333333% - (var(--_col-gap, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[size_lg="8"]){width:calc(66.6666666667% - (var(--_col-gap, 0px) * 0.5 / 1.5))}:host(:not([use_container])[offset_lg="8"]){margin-left:calc(66.6666666667% - (var(--_col-gap, 0px) * 0.5 / 1.5))}:host(:not([use_container])[offset_right_lg="8"]){margin-right:calc(66.6666666667% - (var(--_col-gap, 0px) * 0.5 / 1.5))}:host(:not([use_container])[size_lg="9"]){width:calc(75% - (var(--_col-gap, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[offset_lg="9"]){margin-left:calc(75% - (var(--_col-gap, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[offset_right_lg="9"]){margin-right:calc(75% - (var(--_col-gap, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[size_lg="10"]){width:calc(83.3333333333% - (var(--_col-gap, 0px) * 0.2 / 1.2))}:host(:not([use_container])[offset_lg="10"]){margin-left:calc(83.3333333333% - (var(--_col-gap, 0px) * 0.2 / 1.2))}:host(:not([use_container])[offset_right_lg="10"]){margin-right:calc(83.3333333333% - (var(--_col-gap, 0px) * 0.2 / 1.2))}:host(:not([use_container])[size_lg="11"]){width:calc(91.6666666667% - (var(--_col-gap, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[offset_lg="11"]){margin-left:calc(91.6666666667% - (var(--_col-gap, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[offset_right_lg="11"]){margin-right:calc(91.6666666667% - (var(--_col-gap, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[size_lg="12"]){width:100%}:host(:not([use_container])[offset_lg="12"]){margin-left:100%}:host(:not([use_container])[offset_right_lg="12"]){margin-right:100%}}@container row (min-width: 1140px){:host([use_container][size_xl="0"]){width:0}:host([use_container][offset_xl="0"]){margin-left:0}:host([use_container][offset_right_xl="0"]){margin-right:0}:host([use_container][size_xl="0"]){display:none}:host([use_container][size_xl="1"]){width:calc(8.3333333333% - (var(--_col-gap, 0px) * 11 / 12))}:host([use_container][offset_xl="1"]){margin-left:calc(8.3333333333% - (var(--_col-gap, 0px) * 11 / 12))}:host([use_container][offset_right_xl="1"]){margin-right:calc(8.3333333333% - (var(--_col-gap, 0px) * 11 / 12))}:host([use_container][size_xl="2"]){width:calc(16.6666666667% - (var(--_col-gap, 0px) * 5 / 6))}:host([use_container][offset_xl="2"]){margin-left:calc(16.6666666667% - (var(--_col-gap, 0px) * 5 / 6))}:host([use_container][offset_right_xl="2"]){margin-right:calc(16.6666666667% - (var(--_col-gap, 0px) * 5 / 6))}:host([use_container][size_xl="3"]){width:calc(25% - (var(--_col-gap, 0px) * 3 / 4))}:host([use_container][offset_xl="3"]){margin-left:calc(25% - (var(--_col-gap, 0px) * 3 / 4))}:host([use_container][offset_right_xl="3"]){margin-right:calc(25% - (var(--_col-gap, 0px) * 3 / 4))}:host([use_container][size_xl="4"]){width:calc(33.3333333333% - (var(--_col-gap, 0px) * 2 / 3))}:host([use_container][offset_xl="4"]){margin-left:calc(33.3333333333% - (var(--_col-gap, 0px) * 2 / 3))}:host([use_container][offset_right_xl="4"]){margin-right:calc(33.3333333333% - (var(--_col-gap, 0px) * 2 / 3))}:host([use_container][size_xl="5"]){width:calc(41.6666666667% - (var(--_col-gap, 0px) * 1.4 / 2.4))}:host([use_container][offset_xl="5"]){margin-left:calc(41.6666666667% - (var(--_col-gap, 0px) * 1.4 / 2.4))}:host([use_container][offset_right_xl="5"]){margin-right:calc(41.6666666667% - (var(--_col-gap, 0px) * 1.4 / 2.4))}:host([use_container][size_xl="6"]){width:calc(50% - (var(--_col-gap, 0px) * 1 / 2))}:host([use_container][offset_xl="6"]){margin-left:calc(50% - (var(--_col-gap, 0px) * 1 / 2))}:host([use_container][offset_right_xl="6"]){margin-right:calc(50% - (var(--_col-gap, 0px) * 1 / 2))}:host([use_container][size_xl="7"]){width:calc(58.3333333333% - (var(--_col-gap, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][offset_xl="7"]){margin-left:calc(58.3333333333% - (var(--_col-gap, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][offset_right_xl="7"]){margin-right:calc(58.3333333333% - (var(--_col-gap, 0px) * 0.7142857143 / 1.7142857143))}:host([use_container][size_xl="8"]){width:calc(66.6666666667% - (var(--_col-gap, 0px) * 0.5 / 1.5))}:host([use_container][offset_xl="8"]){margin-left:calc(66.6666666667% - (var(--_col-gap, 0px) * 0.5 / 1.5))}:host([use_container][offset_right_xl="8"]){margin-right:calc(66.6666666667% - (var(--_col-gap, 0px) * 0.5 / 1.5))}:host([use_container][size_xl="9"]){width:calc(75% - (var(--_col-gap, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][offset_xl="9"]){margin-left:calc(75% - (var(--_col-gap, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][offset_right_xl="9"]){margin-right:calc(75% - (var(--_col-gap, 0px) * 0.3333333333 / 1.3333333333))}:host([use_container][size_xl="10"]){width:calc(83.3333333333% - (var(--_col-gap, 0px) * 0.2 / 1.2))}:host([use_container][offset_xl="10"]){margin-left:calc(83.3333333333% - (var(--_col-gap, 0px) * 0.2 / 1.2))}:host([use_container][offset_right_xl="10"]){margin-right:calc(83.3333333333% - (var(--_col-gap, 0px) * 0.2 / 1.2))}:host([use_container][size_xl="11"]){width:calc(91.6666666667% - (var(--_col-gap, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][offset_xl="11"]){margin-left:calc(91.6666666667% - (var(--_col-gap, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][offset_right_xl="11"]){margin-right:calc(91.6666666667% - (var(--_col-gap, 0px) * 0.0909090909 / 1.0909090909))}:host([use_container][size_xl="12"]){width:100%}:host([use_container][offset_xl="12"]){margin-left:100%}:host([use_container][offset_right_xl="12"]){margin-right:100%}}@media screen and (min-width: 1140px){:host(:not([use_container])[size_xl="0"]){width:0}:host(:not([use_container])[offset_xl="0"]){margin-left:0}:host(:not([use_container])[offset_right_xl="0"]){margin-right:0}:host(:not([use_container])[size_xl="0"]){display:none}:host(:not([use_container])[size_xl="1"]){width:calc(8.3333333333% - (var(--_col-gap, 0px) * 11 / 12))}:host(:not([use_container])[offset_xl="1"]){margin-left:calc(8.3333333333% - (var(--_col-gap, 0px) * 11 / 12))}:host(:not([use_container])[offset_right_xl="1"]){margin-right:calc(8.3333333333% - (var(--_col-gap, 0px) * 11 / 12))}:host(:not([use_container])[size_xl="2"]){width:calc(16.6666666667% - (var(--_col-gap, 0px) * 5 / 6))}:host(:not([use_container])[offset_xl="2"]){margin-left:calc(16.6666666667% - (var(--_col-gap, 0px) * 5 / 6))}:host(:not([use_container])[offset_right_xl="2"]){margin-right:calc(16.6666666667% - (var(--_col-gap, 0px) * 5 / 6))}:host(:not([use_container])[size_xl="3"]){width:calc(25% - (var(--_col-gap, 0px) * 3 / 4))}:host(:not([use_container])[offset_xl="3"]){margin-left:calc(25% - (var(--_col-gap, 0px) * 3 / 4))}:host(:not([use_container])[offset_right_xl="3"]){margin-right:calc(25% - (var(--_col-gap, 0px) * 3 / 4))}:host(:not([use_container])[size_xl="4"]){width:calc(33.3333333333% - (var(--_col-gap, 0px) * 2 / 3))}:host(:not([use_container])[offset_xl="4"]){margin-left:calc(33.3333333333% - (var(--_col-gap, 0px) * 2 / 3))}:host(:not([use_container])[offset_right_xl="4"]){margin-right:calc(33.3333333333% - (var(--_col-gap, 0px) * 2 / 3))}:host(:not([use_container])[size_xl="5"]){width:calc(41.6666666667% - (var(--_col-gap, 0px) * 1.4 / 2.4))}:host(:not([use_container])[offset_xl="5"]){margin-left:calc(41.6666666667% - (var(--_col-gap, 0px) * 1.4 / 2.4))}:host(:not([use_container])[offset_right_xl="5"]){margin-right:calc(41.6666666667% - (var(--_col-gap, 0px) * 1.4 / 2.4))}:host(:not([use_container])[size_xl="6"]){width:calc(50% - (var(--_col-gap, 0px) * 1 / 2))}:host(:not([use_container])[offset_xl="6"]){margin-left:calc(50% - (var(--_col-gap, 0px) * 1 / 2))}:host(:not([use_container])[offset_right_xl="6"]){margin-right:calc(50% - (var(--_col-gap, 0px) * 1 / 2))}:host(:not([use_container])[size_xl="7"]){width:calc(58.3333333333% - (var(--_col-gap, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[offset_xl="7"]){margin-left:calc(58.3333333333% - (var(--_col-gap, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[offset_right_xl="7"]){margin-right:calc(58.3333333333% - (var(--_col-gap, 0px) * 0.7142857143 / 1.7142857143))}:host(:not([use_container])[size_xl="8"]){width:calc(66.6666666667% - (var(--_col-gap, 0px) * 0.5 / 1.5))}:host(:not([use_container])[offset_xl="8"]){margin-left:calc(66.6666666667% - (var(--_col-gap, 0px) * 0.5 / 1.5))}:host(:not([use_container])[offset_right_xl="8"]){margin-right:calc(66.6666666667% - (var(--_col-gap, 0px) * 0.5 / 1.5))}:host(:not([use_container])[size_xl="9"]){width:calc(75% - (var(--_col-gap, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[offset_xl="9"]){margin-left:calc(75% - (var(--_col-gap, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[offset_right_xl="9"]){margin-right:calc(75% - (var(--_col-gap, 0px) * 0.3333333333 / 1.3333333333))}:host(:not([use_container])[size_xl="10"]){width:calc(83.3333333333% - (var(--_col-gap, 0px) * 0.2 / 1.2))}:host(:not([use_container])[offset_xl="10"]){margin-left:calc(83.3333333333% - (var(--_col-gap, 0px) * 0.2 / 1.2))}:host(:not([use_container])[offset_right_xl="10"]){margin-right:calc(83.3333333333% - (var(--_col-gap, 0px) * 0.2 / 1.2))}:host(:not([use_container])[size_xl="11"]){width:calc(91.6666666667% - (var(--_col-gap, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[offset_xl="11"]){margin-left:calc(91.6666666667% - (var(--_col-gap, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[offset_right_xl="11"]){margin-right:calc(91.6666666667% - (var(--_col-gap, 0px) * 0.0909090909 / 1.0909090909))}:host(:not([use_container])[size_xl="12"]){width:100%}:host(:not([use_container])[offset_xl="12"]){margin-left:100%}:host(:not([use_container])[offset_right_xl="12"]){margin-right:100%}}`;
+    __getStatic() {
+        return Col;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Col.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<slot></slot>` }
+    });
+}
+    getClassName() {
+        return "Col";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('use_container')) {this.setAttribute('use_container' ,'true'); }if(!this.hasAttribute('size')){ this['size'] = undefined; }if(!this.hasAttribute('size_xs')){ this['size_xs'] = undefined; }if(!this.hasAttribute('size_sm')){ this['size_sm'] = undefined; }if(!this.hasAttribute('size_md')){ this['size_md'] = undefined; }if(!this.hasAttribute('size_lg')){ this['size_lg'] = undefined; }if(!this.hasAttribute('size_xl')){ this['size_xl'] = undefined; }if(!this.hasAttribute('offset')){ this['offset'] = undefined; }if(!this.hasAttribute('offset_xs')){ this['offset_xs'] = undefined; }if(!this.hasAttribute('offset_sm')){ this['offset_sm'] = undefined; }if(!this.hasAttribute('offset_md')){ this['offset_md'] = undefined; }if(!this.hasAttribute('offset_lg')){ this['offset_lg'] = undefined; }if(!this.hasAttribute('offset_xl')){ this['offset_xl'] = undefined; }if(!this.hasAttribute('offset_right')){ this['offset_right'] = undefined; }if(!this.hasAttribute('offset_right_xs')){ this['offset_right_xs'] = undefined; }if(!this.hasAttribute('offset_right_sm')){ this['offset_right_sm'] = undefined; }if(!this.hasAttribute('offset_right_md')){ this['offset_right_md'] = undefined; }if(!this.hasAttribute('offset_right_lg')){ this['offset_right_lg'] = undefined; }if(!this.hasAttribute('offset_right_xl')){ this['offset_right_xl'] = undefined; }if(!this.hasAttribute('center')) { this.attributeChangedCallback('center', false, false); } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('use_container');this.__upgradeProperty('size');this.__upgradeProperty('size_xs');this.__upgradeProperty('size_sm');this.__upgradeProperty('size_md');this.__upgradeProperty('size_lg');this.__upgradeProperty('size_xl');this.__upgradeProperty('offset');this.__upgradeProperty('offset_xs');this.__upgradeProperty('offset_sm');this.__upgradeProperty('offset_md');this.__upgradeProperty('offset_lg');this.__upgradeProperty('offset_xl');this.__upgradeProperty('offset_right');this.__upgradeProperty('offset_right_xs');this.__upgradeProperty('offset_right_sm');this.__upgradeProperty('offset_right_md');this.__upgradeProperty('offset_right_lg');this.__upgradeProperty('offset_right_xl');this.__upgradeProperty('center'); }
+    __listBoolProps() { return ["use_container","center"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    static configure(options) {
+        if (options.use_container !== undefined)
+            this.use_container = options.use_container;
+    }
+}
+Layout.Col.Namespace=`Aventus.Layout`;
+Layout.Col.Tag=`av-col`;
+_.Layout.Col=Layout.Col;
+if(!window.customElements.get('av-col')){window.customElements.define('av-col', Layout.Col);Aventus.WebComponentInstance.registerDefinition(Layout.Col);}
+
 const Img = class Img extends Aventus.WebComponent {
     static get observedAttributes() {return ["src", "mode"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'cache'() { return this.getBoolAttr('cache') }
@@ -7000,7 +7088,7 @@ Navigation.Page = class Page extends Aventus.WebComponent {
         target.onHide();
     }
 })); }
-    static __style = `:host{display:none}:host([visible]){display:block}`;
+    static __style = `:host{display:block}:host(:not([visible])){display:none}`;
     constructor() {
         super();
         if (this.constructor == Page) {
@@ -7039,7 +7127,7 @@ Navigation.Page = class Page extends Aventus.WebComponent {
     }
     onHide() {
     }
-    isAllowed(state) {
+    isAllowed(state, pattern, router) {
         return true;
     }
 }
@@ -7146,7 +7234,100 @@ Navigation.RouterLink.Tag=`av-router-link`;
 _.Navigation.RouterLink=Navigation.RouterLink;
 if(!window.customElements.get('av-router-link')){window.customElements.define('av-router-link', Navigation.RouterLink);Aventus.WebComponentInstance.registerDefinition(Navigation.RouterLink);}
 
+Navigation.Link = class Link extends Aventus.WebComponent {
+    get 'to'() { return this.getStringAttr('to') }
+    set 'to'(val) { this.setStringAttr('to', val) }get 'active_pattern'() { return this.getStringAttr('active_pattern') }
+    set 'active_pattern'(val) { this.setStringAttr('active_pattern', val) }    onActiveChange = new Aventus.Callback();
+    static __style = `:host{display:contents}:host a{color:inherit;display:contents;text-decoration:none}`;
+    __getStatic() {
+        return Link;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Link.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<a _id="link_0"><slot></slot></a>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "content": {
+    "link_0°href": {
+      "fct": (c) => `${c.print(c.comp.__7e4c6c9fe944acd9b1174c61347fdcb6method0())}`,
+      "once": true
+    }
+  },
+  "events": [
+    {
+      "eventName": "click",
+      "id": "link_0",
+      "fct": (e, c) => c.comp.prevent(e)
+    }
+  ]
+}); }
+    getClassName() {
+        return "Link";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('to')){ this['to'] = undefined; }if(!this.hasAttribute('active_pattern')){ this['active_pattern'] = undefined; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('to');this.__upgradeProperty('active_pattern'); }
+    addClickEvent() {
+        new Aventus.PressManager({
+            element: this,
+            onPress: () => {
+                if (this.to === undefined)
+                    return;
+                let to = this.to;
+                if (this.to.startsWith(".")) {
+                    to = Aventus.Instance.get(RouterStateManager).getState()?.name ?? "";
+                    if (!to.endsWith("/")) {
+                        to += "/";
+                    }
+                    to += this.to;
+                    to = Aventus.Uri.normalize(to);
+                }
+                Aventus.State.activate(to, Aventus.Instance.get(RouterStateManager));
+            }
+        });
+    }
+    registerActivetoListener() {
+        let activeto = this.to;
+        if (this.active_pattern) {
+            activeto = this.active_pattern;
+        }
+        if (activeto === undefined)
+            return;
+        Aventus.Instance.get(RouterStateManager).subscribe(activeto, {
+            active: () => {
+                this.classList.add("active");
+                this.onActiveChange.trigger(true);
+            },
+            inactive: () => {
+                this.classList.remove("active");
+                this.onActiveChange.trigger(false);
+            }
+        });
+    }
+    prevent(e) {
+        e.preventDefault();
+    }
+    postCreation() {
+        this.registerActivetoListener();
+        this.addClickEvent();
+    }
+    __7e4c6c9fe944acd9b1174c61347fdcb6method0() {
+        return this.to;
+    }
+}
+Navigation.Link.Namespace=`Aventus.Navigation`;
+Navigation.Link.Tag=`av-link`;
+_.Navigation.Link=Navigation.Link;
+if(!window.customElements.get('av-link')){window.customElements.define('av-link', Navigation.Link);Aventus.WebComponentInstance.registerDefinition(Navigation.Link);}
+
 Form.Validator=class Validator {
+    constructor() { this.validate = this.validate.bind(this); }
     static async Test(validators, value, name, globalValidation) {
         if (!Array.isArray(validators)) {
             validators = [validators];
@@ -7175,11 +7356,16 @@ _.Form.Validator=Form.Validator;
 
 Form.Validators.Required=class Required extends _.Form.Validator {
     static msg = "Le champs {name} est requis";
+    _msg;
+    constructor(msg) {
+        super();
+        this._msg = msg ?? Form.Validators.Required.msg;
+    }
     /**
      * @inheritdoc
      */
     validate(value, name, globalValidation) {
-        const txt = Form.Validators.Required.msg.replace(/\{ *name *\}/g, name);
+        const txt = this._msg.replace(/\{ *name *\}/g, name);
         if (value === undefined || value === null) {
             return txt;
         }
@@ -7194,6 +7380,11 @@ _.Form.Validators.Required=Form.Validators.Required;
 
 Form.Validators.Email=class Email extends _.Form.Validator {
     static msg = "Merci de saisir un email valide";
+    _msg;
+    constructor(msg) {
+        super();
+        this._msg = msg ?? Form.Validators.Email.msg;
+    }
     /**
      * @inheritdoc
      */
@@ -7202,7 +7393,7 @@ Form.Validators.Email=class Email extends _.Form.Validator {
             if (value.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}\b/) != null) {
                 return true;
             }
-            return Form.Validators.Email.msg;
+            return this._msg.replace(/\{ *name *\}/g, name);
         }
         return true;
     }
@@ -7577,13 +7768,21 @@ Form.ButtonElement = class ButtonElement extends Aventus.WebComponent {
     }
     __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('type')){ this['type'] = 'button'; } }
     __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('type'); }
-    triggerSubmit() {
+    async triggerSubmit() {
         if (this.type == "submit") {
+            if ("loading" in this) {
+                if (this.loading)
+                    return;
+                this.loading = true;
+            }
             if (this.internals.form) {
                 this.internals.form.requestSubmit();
             }
             else if (this.handler) {
-                this.handler.requestSubmit();
+                await this.handler.requestSubmit();
+                if ("loading" in this) {
+                    this.loading = false;
+                }
             }
         }
     }
@@ -7825,10 +8024,12 @@ Form.FormHandler=class FormHandler {
     defaultValues;
     onItemChange = new Aventus.Callback();
     constructor(schema, config, defaultValues) {
+        this.writeValidationIntoConsole = this.writeValidationIntoConsole.bind(this);
+        this.writeErrorIntoConsole = this.writeErrorIntoConsole.bind(this);
         this._globalValidation = config?.validate ?? Form.FormHandler._globalConfig?.validate;
         this._validateOnChange = config?.validateOnChange ?? Form.FormHandler._globalConfig?.validateOnChange ?? false;
-        this._handleValidateNoInputError = config?.handleValidateNoInputError ?? Form.FormHandler._globalConfig?.handleValidateNoInputError;
-        this._handleExecuteNoInputError = config?.handleExecuteNoInputError ?? Form.FormHandler._globalConfig?.handleExecuteNoInputError;
+        this._handleValidateNoInputError = config?.handleValidateNoInputError ?? Form.FormHandler._globalConfig?.handleValidateNoInputError ?? this.writeValidationIntoConsole;
+        this._handleExecuteNoInputError = config?.handleExecuteNoInputError ?? Form.FormHandler._globalConfig?.handleExecuteNoInputError ?? this.writeErrorIntoConsole;
         this.defaultValues = defaultValues ?? {};
         this.onWatcherChanged = this.onWatcherChanged.bind(this);
         this.__watcher = Aventus.Watcher.get({
@@ -7836,6 +8037,20 @@ Form.FormHandler=class FormHandler {
             item: this.defaultValues
         }, this.onWatcherChanged);
         this.__watcher.form = this.transformForm(schema);
+    }
+    writeValidationIntoConsole(errors) {
+        for (let name in errors) {
+            if (!errors[name])
+                continue;
+            for (let error of errors[name]) {
+                console.log(name + ": " + error);
+            }
+        }
+    }
+    writeErrorIntoConsole(errors) {
+        for (let error in errors) {
+            console.log(error);
+        }
     }
     transformForm(form) {
         const result = form;
@@ -7880,8 +8095,8 @@ Form.FormHandler=class FormHandler {
         realPart.onValueChange = new Aventus.Callback();
         realPart.handler = this;
         if (part.validate) {
-            const isValidate = (validate) => {
-                return validate.name == "validate";
+            const isConstructor = (validate) => {
+                return Aventus.isClass(validate);
             };
             let validate;
             if (Array.isArray(part.validate)) {
@@ -7917,13 +8132,13 @@ Form.FormHandler=class FormHandler {
             else if (part.validate instanceof _.Form.Validator) {
                 validate = part.validate.validate;
             }
-            else if (isValidate(part.validate)) {
-                validate = part.validate;
-            }
-            else {
+            else if (isConstructor(part.validate)) {
                 let cst = part.validate;
                 let resultTemp = new cst();
                 validate = resultTemp.validate;
+            }
+            else {
+                validate = part.validate;
             }
             realPart.validate = validate;
         }
@@ -9718,7 +9933,7 @@ Navigation.Router = class Router extends Aventus.WebComponent {
                         element.router = this;
                         isNew = true;
                     }
-                    const canResult = await element.isAllowed(currentState);
+                    const canResult = await element.isAllowed(currentState, path, this);
                     if (canResult !== true) {
                         if (canResult === false) {
                             return;
@@ -9789,6 +10004,18 @@ Navigation.Router = class Router extends Aventus.WebComponent {
                 }
                 if (this.oldPage && this.oldPage != this.page404) {
                     await this.oldPage.hide();
+                }
+                if (this.bindToUrl()) {
+                    const currentState = this.stateManager.getState();
+                    if (currentState && window.location.pathname != currentState.name) {
+                        let newUrl = window.location.origin + currentState.name;
+                        if (this.isReplace) {
+                            window.history.replaceState({}, "Not found", newUrl);
+                        }
+                        else {
+                            window.history.pushState({}, "Not found", newUrl);
+                        }
+                    }
                 }
                 this.activeState = undefined;
                 this.oldPage = this.page404;

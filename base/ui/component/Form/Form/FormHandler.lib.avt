@@ -1,4 +1,4 @@
-import { GenericError, VoidWithError, type Asyncable } from "Aventus@Main:Aventus.package.avt";
+import { GenericError, isClass, VoidWithError, type Asyncable } from "Aventus@Main:Aventus.package.avt";
 import { type Constructor, type FormHandlerConfig, type FormPart, type FormPartValidate, type FormSchema, type FormValidate, type FormValidateResult, type IForm, type IFormElement, type InternalForm, type InternalFormPart, type SubmitFunction, type WithError } from "./FormType.lib.avt";
 import { Validator } from "./Validator.lib.avt";
 import { PageForm } from "../../Navigation/PageForm/PageForm.wcl.avt";
@@ -15,11 +15,11 @@ namespace Form {
 
         private __watcher: any;
 
-        public get item(): T | undefined {
+        public get item(): T {
             return this.__watcher.item;
         }
 
-        public set item(item: T | undefined) {
+        public set item(item: T) {
             this.__watcher.item = item;
         }
 
@@ -42,10 +42,12 @@ namespace Form {
 
 
         public constructor(schema: FormSchema<T>, config?: FormHandlerConfig<T>, defaultValues?: T) {
+            this.writeValidationIntoConsole = this.writeValidationIntoConsole.bind(this);
+            this.writeErrorIntoConsole = this.writeErrorIntoConsole.bind(this);
             this._globalValidation = config?.validate ?? FormHandler._globalConfig?.validate;
             this._validateOnChange = config?.validateOnChange ?? FormHandler._globalConfig?.validateOnChange ?? false;
-            this._handleValidateNoInputError = config?.handleValidateNoInputError ?? FormHandler._globalConfig?.handleValidateNoInputError;
-            this._handleExecuteNoInputError = config?.handleExecuteNoInputError ?? FormHandler._globalConfig?.handleExecuteNoInputError;
+            this._handleValidateNoInputError = config?.handleValidateNoInputError ?? FormHandler._globalConfig?.handleValidateNoInputError ?? this.writeValidationIntoConsole;
+            this._handleExecuteNoInputError = config?.handleExecuteNoInputError ?? FormHandler._globalConfig?.handleExecuteNoInputError ?? this.writeErrorIntoConsole;
             this.defaultValues = defaultValues ?? {} as T;
             this.onWatcherChanged = this.onWatcherChanged.bind(this);
             this.__watcher = Aventus.Watcher.get({
@@ -57,6 +59,19 @@ namespace Form {
         }
 
 
+        private writeValidationIntoConsole(errors: { [K in keyof T]?: string[]; }) {
+            for(let name in errors) {
+                if(!errors[name]) continue;
+                for(let error of errors[name]) {
+                    console.log(name + ": " + error);
+                }
+            }
+        }
+        private writeErrorIntoConsole(errors: Aventus.GenericError[]) {
+            for(let error in errors) {
+                console.log(error);
+            }
+        }
         protected transformForm(form: FormSchema<T>): InternalForm<T> {
             const result = form as InternalForm<T>;
             const normalizePart = (part: FormSchema<T>[keyof T]) => {
@@ -101,8 +116,8 @@ namespace Form {
             realPart.onValueChange = new Aventus.Callback();
             realPart.handler = this;
             if(part.validate) {
-                const isValidate = (validate: FormPartValidate<T> | Constructor<Validator<any>>): validate is FormPartValidate<any> => {
-                    return validate.name == "validate";
+                const isConstructor = (validate: FormPartValidate<T> | Constructor<Validator<any>>): validate is Constructor<Validator<any>> => {
+                    return isClass(validate);
                 };
                 let validate: FormPartValidate<any>;
                 if(Array.isArray(part.validate)) {
@@ -138,13 +153,13 @@ namespace Form {
                 else if(part.validate instanceof Validator) {
                     validate = part.validate.validate;
                 }
-                else if(isValidate(part.validate)) {
-                    validate = part.validate;
-                }
-                else {
+                else if(isConstructor(part.validate)) {
                     let cst = part.validate;
                     let resultTemp = new cst() as Validator<any>;
                     validate = resultTemp.validate;
+                }
+                else {
+                    validate = part.validate;
                 }
                 realPart.validate = validate;
             }

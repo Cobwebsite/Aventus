@@ -32,12 +32,19 @@ namespace Form {
 
 
         //#region methods
-        protected triggerSubmit() {
+        protected async triggerSubmit() {
             if(this.type == "submit") {
+                if("loading" in this) {
+                    if(this.loading) return;
+                    this.loading = true;
+                }
                 if(this.internals.form) {
                     this.internals.form.requestSubmit();
                 } else if(this.handler) {
-                    this.handler.requestSubmit();
+                    await this.handler.requestSubmit();
+                    if("loading" in this) {
+                        this.loading = false;
+                    }
                 }
             }
         }

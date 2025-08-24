@@ -39,7 +39,7 @@ namespace Form {
         test: () => Promise<boolean>;
         handler: FormHandler<any>;
     };
-    export type FormSchema<T> = { [K in keyof T]: FormPart<T[K]> | FormPartValidateList<T> };
+    export type FormSchema<T> = { [K in keyof T]: FormPart<T[K]> | FormPartValidateList<T[K]> };
 
     export type FormPartValidateList<T> = FormPartValidate<T> | Constructor<Validator<T>> | Validator<T> | (
         Constructor<Validator<T>> |
