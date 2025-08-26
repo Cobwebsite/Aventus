@@ -1,0 +1,5 @@
+<slot></slot>
+
+<div class="slot-header">
+    <slot name="header"></slot>
+</div>

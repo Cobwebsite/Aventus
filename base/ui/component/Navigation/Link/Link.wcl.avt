@@ -36,7 +36,7 @@ namespace Navigation {
             new Aventus.PressManager({
                 element: this,
                 onPress: () => {
-                    if(this.to === undefined) return;
+                    if(this.to === undefined) return false;
 
                     let to = this.to;
                     if(this.to.startsWith(".")) {
@@ -48,6 +48,7 @@ namespace Navigation {
                         to = Aventus.Uri.normalize(to);
                     }
                     Aventus.State.activate(to, Aventus.Instance.get(RouterStateManager));
+                    return true;
                 }
             });
         }

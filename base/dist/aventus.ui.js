@@ -6404,6 +6404,8 @@ const _ = {};
 
 let Layout = {};
 _.Layout = Aventus.Layout ?? {};
+Layout.Tabs = {};
+_.Layout.Tabs = Aventus.Layout?.Tabs ?? {};
 let Lib = {};
 _.Lib = Aventus.Lib ?? {};
 let Form = {};
@@ -6417,6 +6419,67 @@ _.Modal = Aventus.Modal ?? {};
 let Toast = {};
 _.Toast = Aventus.Toast ?? {};
 let _n;
+Layout.Tabs.TabHeader = class TabHeader extends Aventus.WebComponent {
+    get 'active'() { return this.getBoolAttr('active') }
+    set 'active'(val) { this.setBoolAttr('active', val) }    _tab;
+    get tab() {
+        return this._tab;
+    }
+    tabs;
+    static __style = ``;
+    constructor() {
+        super();
+        if (this.constructor == TabHeader) {
+            throw "can't instanciate an abstract class";
+        }
+    }
+    __getStatic() {
+        return TabHeader;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(TabHeader.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<slot></slot>` }
+    });
+}
+    getClassName() {
+        return "TabHeader";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('active')) { this.attributeChangedCallback('active', false, false); } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('tab');this.__upgradeProperty('active'); }
+    __listBoolProps() { return ["active"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    async init(tab, tabs) {
+        this.tabs = tabs;
+        this._tab = tab;
+        tab.tabHeader = this;
+        await this.render();
+    }
+    onPress() {
+        if (!this.active) {
+            this.tabs.setActive(this);
+        }
+    }
+    addPress() {
+        new Aventus.PressManager({
+            element: this,
+            onPress: () => {
+                this.onPress();
+            }
+        });
+    }
+    postCreation() {
+        super.postCreation();
+        this.addPress();
+    }
+}
+Layout.Tabs.TabHeader.Namespace=`Aventus.Layout.Tabs`;
+_.Layout.Tabs.TabHeader=Layout.Tabs.TabHeader;
+
 const ProgressCircle = class ProgressCircle extends Aventus.WebComponent {
     static get observedAttributes() {return ["value", "stroke_width"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'value'() { return this.getNumberProp('value') }
@@ -7278,7 +7341,7 @@ Navigation.Link = class Link extends Aventus.WebComponent {
             element: this,
             onPress: () => {
                 if (this.to === undefined)
-                    return;
+                    return false;
                 let to = this.to;
                 if (this.to.startsWith(".")) {
                     to = Aventus.Instance.get(RouterStateManager).getState()?.name ?? "";
@@ -7289,6 +7352,7 @@ Navigation.Link = class Link extends Aventus.WebComponent {
                     to = Aventus.Uri.normalize(to);
                 }
                 Aventus.State.activate(to, Aventus.Instance.get(RouterStateManager));
+                return true;
             }
         });
     }
@@ -10425,6 +10489,144 @@ Toast.ToastManager.Namespace=`Aventus.Toast`;
 Toast.ToastManager.Tag=`av-toast-manager`;
 _.Toast.ToastManager=Toast.ToastManager;
 if(!window.customElements.get('av-toast-manager')){window.customElements.define('av-toast-manager', Toast.ToastManager);Aventus.WebComponentInstance.registerDefinition(Toast.ToastManager);}
+
+Layout.Tabs.Tab = class Tab extends Aventus.WebComponent {
+    get 'selected'() { return this.getBoolAttr('selected') }
+    set 'selected'(val) { this.setBoolAttr('selected', val) }    tabHeader;
+    get headerContent() {
+        let elements = this.getElementsInSlot("header");
+        return elements;
+    }
+    static __style = ``;
+    constructor() {
+        super();
+        if (this.constructor == Tab) {
+            throw "can't instanciate an abstract class";
+        }
+    }
+    __getStatic() {
+        return Tab;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Tab.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>`,'header':`<slot name="header"></slot>` }, 
+        blocks: { 'default':`<slot></slot><div class="slot-header">    <slot name="header"></slot></div>` }
+    });
+}
+    getClassName() {
+        return "Tab";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('selected')) { this.attributeChangedCallback('selected', false, false); } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('headerContent');this.__upgradeProperty('selected'); }
+    __listBoolProps() { return ["selected"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+}
+Layout.Tabs.Tab.Namespace=`Aventus.Layout.Tabs`;
+_.Layout.Tabs.Tab=Layout.Tabs.Tab;
+
+Layout.Tabs.Tabs = class Tabs extends Aventus.WebComponent {
+    activeHeader;
+    tabs = {};
+    static __style = ``;
+    constructor() {
+        super();
+        if (this.constructor == Tabs) {
+            throw "can't instanciate an abstract class";
+        }
+    }
+    __getStatic() {
+        return Tabs;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Tabs.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<div class="header" _id="tabs_0"></div><div class="body" _id="tabs_1">	<slot></slot></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "elements": [
+    {
+      "name": "headerEl",
+      "ids": [
+        "tabs_0"
+      ]
+    },
+    {
+      "name": "bodyEl",
+      "ids": [
+        "tabs_1"
+      ]
+    }
+  ]
+}); }
+    getClassName() {
+        return "Tabs";
+    }
+    async loadTabs() {
+        // let elements = this.elements;
+        let elements = this.getElementsInSlot();
+        let first = null;
+        for (let element of elements) {
+            element.style.display = 'none';
+            if (element instanceof _.Layout.Tabs.Tab) {
+                this.tabs[element.identifier()] = element;
+                let header = new (this.defineTabHeader())();
+                this.headerEl.appendChild(header);
+                await header.init(element, this);
+                if (first == null) {
+                    first = header;
+                }
+                else if (!first.tab.selected && element.selected) {
+                    first = header;
+                }
+            }
+        }
+        if (first) {
+            this.setActive(first);
+        }
+    }
+    setActive(tabHeader) {
+        if (typeof tabHeader == 'number') {
+            if (this.headerEl.children.length > tabHeader) {
+                const header = this.headerEl.children[tabHeader];
+                if (header instanceof _.Layout.Tabs.TabHeader) {
+                    return this.setActive(header);
+                }
+            }
+            return false;
+        }
+        else if (typeof tabHeader == 'string') {
+            const header = this.tabs[tabHeader].tabHeader;
+            if (header)
+                return this.setActive(header);
+            return false;
+        }
+        if (this.activeHeader) {
+            this.activeHeader.active = false;
+            this.activeHeader.tab.selected = false;
+            this.activeHeader.tab.style.display = 'none';
+        }
+        this.activeHeader = tabHeader;
+        this.activeHeader.active = true;
+        this.activeHeader.tab.style.display = '';
+        this.activeHeader.tab.selected = true;
+    }
+    postCreation() {
+        super.postCreation();
+        this.loadTabs();
+    }
+}
+Layout.Tabs.Tabs.Namespace=`Aventus.Layout.Tabs`;
+_.Layout.Tabs.Tabs=Layout.Tabs.Tabs;
 
 
 for(let key in _) { Aventus[key] = _[key] }

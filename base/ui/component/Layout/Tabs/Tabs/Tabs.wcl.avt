@@ -1,0 +1,102 @@
+import type { Constructor } from "../../../Form/Form/FormType.lib.avt";
+import { Tab } from "../Tab/Tab.wcl.avt";
+import { TabHeader } from "../TabHeader/TabHeader.wcl.avt";
+
+namespace Layout.Tabs {
+    export abstract class Tabs<T extends Tab, U extends TabHeader<T>> extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+        //#region static
+
+        //#endregion
+
+
+        //#region props
+
+        //#endregion
+
+
+        //#region variables
+
+        @ViewElement()
+        protected headerEl!: HTMLDivElement;
+        @ViewElement()
+        protected bodyEl!: HTMLDivElement;
+
+        protected activeHeader?: TabHeader<T>;
+        protected tabs: { [label: string]: T; } = {};
+        //#endregion
+
+
+        //#region constructor
+
+        //#endregion
+
+
+        //#region methods
+        protected async loadTabs() {
+            // let elements = this.elements;
+            let elements = this.getElementsInSlot();
+
+            let first: U | null = null;
+            for(let element of elements) {
+                element.style.display = 'none';
+                if(element instanceof Tab) {
+                    this.tabs[element.identifier()] = element as T;
+
+                    let header = new (this.defineTabHeader())();
+                    this.headerEl.appendChild(header);
+                    await header.init(element as T, this);
+
+                    if(first == null) {
+                        first = header;
+                    }
+                    else if(!first.tab.selected && element.selected) {
+                        first = header;
+                    }
+                }
+            }
+
+            if(first) {
+                this.setActive(first);
+            }
+        }
+
+        public setActive(tabHeader: TabHeader<T> | number | string) {
+            if(typeof tabHeader == 'number') {
+                if(this.headerEl.children.length > tabHeader) {
+                    const header = this.headerEl.children[tabHeader];
+                    if(header instanceof TabHeader) {
+                        return this.setActive(header);
+                    }
+                }
+                return false;
+            }
+            else if(typeof tabHeader == 'string') {
+                const header = this.tabs[tabHeader].tabHeader as TabHeader<T>;
+                if(header)
+                    return this.setActive(header);
+                return false;
+            }
+
+            if(this.activeHeader) {
+                this.activeHeader.active = false;
+                this.activeHeader.tab.selected = false;
+                this.activeHeader.tab.style.display = 'none';
+            }
+
+            this.activeHeader = tabHeader;
+            this.activeHeader.active = true;
+            this.activeHeader.tab.style.display = '';
+            this.activeHeader.tab.selected = true;
+        }
+
+        protected abstract defineTabHeader(): Constructor<U>;
+
+		protected override postCreation(): void {
+            super.postCreation();
+            this.loadTabs();
+        }
+        //#endregion
+
+    }
+}
