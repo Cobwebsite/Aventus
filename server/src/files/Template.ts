@@ -502,15 +502,16 @@ export class TemplateScript {
 			version: "1.0.0",
 			description: ""
 		}
+		var a: string = "";
 		try {
-			var a = spawnSync(`node`, ["--no-warnings", scriptPath], {
+			a = spawnSync(`node`, ["--no-warnings", scriptPath], {
 				cwd: this.folderPath,
 			}).stdout.toString();
-
 			const valuesTemp = JSON.parse(a.trim());
 			values = { ...values, ...valuesTemp };
 		} catch (e) {
 			console.log(e);
+			console.log(a);
 		}
 		unlinkSync(scriptPath);
 		return values;

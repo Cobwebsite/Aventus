@@ -17,6 +17,7 @@ import { CSharpManager } from './language-services/json/CSharpManager';
 import { Build } from './project/Build';
 import { Communication } from './communication';
 import { PhpManager } from './language-services/json/PhpManager';
+import { LocalProjectManager } from './files/LocalProject';
 
 
 
@@ -81,6 +82,9 @@ export class GenericServer {
 	public static get localTemplateManager() {
 		return this.instance._localTemplate;
 	}
+	public static get localProjectManager() {
+		return this.instance._localProject;
+	}
 	public static refreshSettings() {
 		return this.instance.loadSettings();
 	}
@@ -97,6 +101,7 @@ export class GenericServer {
 	private _extensionPath: string = "";
 	private _template: TemplateFileManager | undefined;
 	private _localTemplate: LocalTemplateManager | undefined;
+	private _localProject: LocalProjectManager | undefined;
 
 	public constructor(connection: IConnection) {
 		this.connection = connection;
@@ -267,11 +272,11 @@ export class GenericServer {
 
 
 	public isAllowed(document?: TextDocument): document is TextDocument {
-		if(!document) return false;
+		if (!document) return false;
 		return GenericServer.isAllowed(document);
 	}
 	public static isAllowed(document: TextDocument) {
-		if(this.instance.isDown) return false;
+		if (this.instance.isDown) return false;
 		if (this.instance.isLoading) {
 			return false;
 		}
@@ -316,6 +321,7 @@ export class GenericServer {
 		if (!settings.onlyBuild) {
 			this._template = new TemplateFileManager();
 			this._localTemplate = new LocalTemplateManager(this._template);
+			this._localProject = new LocalProjectManager(this._template);
 			TemplateManager.getInstance();
 			CSharpManager.getInstance();
 			PhpManager.getInstance();

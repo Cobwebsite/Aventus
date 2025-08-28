@@ -28,6 +28,12 @@ export class TemplateManager {
 	public getGeneralTemplatesLength() {
 		return this.loadedTemplatesLength;
 	}
+	public getGeneralProjects() {
+		return this.loadedProjects;
+	}
+	public getGeneralProjectsLength() {
+		return this.loadedProjectsLength;
+	}
 
 	public constructor() {
 		this.loadTemplates();

@@ -33,6 +33,7 @@ export class Create {
 				placeHolder: 'What do you want to create?',
 			});
 			if (result) {
+				// await GenericServer.localProjectManager?.createProject(path);
 				await GenericServer.templateManager?.createProject(path);
 			}
 		}
