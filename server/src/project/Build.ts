@@ -39,6 +39,7 @@ import { Statistics } from '../notification/Statistics';
 import { Manifest } from '../manifest/Manifest';
 import { OverrideViewDecorator } from '../language-services/ts/parser/decorators/OverrideViewDecorator';
 import { AventusI18nExported, AventusI18nFile } from '../language-services/i18n/File';
+import { Store } from '../store/Store';
 
 export type BuildErrors = { file: string, title: string }[]
 
@@ -117,7 +118,7 @@ export class Build {
     public readonly npmBuilder: NpmBuilder;
 
     /**
-     * ModuleName@BuildName
+     * ModuleName@BuildName or ModuleName
      */
     public get fullname() {
         return this.buildConfig.fullname;
@@ -805,20 +806,32 @@ export class Build {
                 }
             }
 
-            let packageJson = {
+            let description = "Aventus build for " + "@" + this.buildConfig.module;
+            let displayName = this.buildConfig.module;
+            if (this.buildConfig.name) {
+                description += "/" + this.buildConfig.name
+                displayName += " " + this.buildConfig.name
+            }
+
+            let packageJson: { [key: string]: any } = {
                 name: outputNpm.npmName == '' ? ("@" + this.buildConfig.module + "/" + this.buildConfig.name).toLowerCase() : outputNpm.npmName,
-                displayName: this.buildConfig.module + " " + this.buildConfig.name,
-                description: "Aventus build for " + "@" + this.buildConfig.module + "/" + this.buildConfig.name,
+                displayName,
+                description,
                 version: this.buildConfig.version,
-                author: {
-                    name: "Cobwebsite",
-                    email: "info@cobwebsite.ch",
-                    url: "https://cobwesbite.ch"
-                },
                 type: "module",
                 main: "index.js",
                 types: "index.d.ts",
                 dependencies
+            }
+            if (this.buildConfig.organization) {
+                packageJson.author = {
+                    name: this.buildConfig.organization,
+                };
+            }
+            else if (Store.isConnected) {
+                packageJson.author = {
+                    name: Store.settings.username,
+                };
             }
 
             for (let outputPackage of outputNpm.path) {
@@ -1299,7 +1312,7 @@ export class Build {
          */
         const loadAndOrderInfo = (info: { fullName: string; isStrong: boolean }, isLocal: boolean, indexByUri: { [uri: string]: number }, alreadyLooked: { [name: string]: (() => void)[] }, alreadyLookedStrong: { [name: string]: boolean }): { [uri: string]: number } | Promise<{ [uri: string]: string }> => {
             const fullName = info.fullName.replace("$namespace$", '');
-            
+
             let uri = "";
             let infoExternal: null | {
                 content: AventusPackageTsFileExport | "noCode";
@@ -1849,7 +1862,7 @@ export class Build {
      * Load all aventus file needed for this build
      */
     private async loadFiles() {
-        Statistics.startSendBuildTime(this.buildConfig.name);
+        Statistics.startSendBuildTime(this.buildConfig.fullname);
         this.allowBuild = false;
         let dependancesInfo = await DependanceManager.getInstance().loadDependancesFromBuild(this.buildConfig, this);
         this.dependanceFullUris = dependancesInfo.dependanceFullUris;
@@ -1877,7 +1890,7 @@ export class Build {
         this.allowBuild = true;
         this._filesLoaded = true;
         await this.rebuildAll(true);
-        Statistics.sendBuildTime(this.buildConfig.name)
+        Statistics.sendBuildTime(this.buildConfig.fullname)
     }
     /**
      * Register one file inside this build

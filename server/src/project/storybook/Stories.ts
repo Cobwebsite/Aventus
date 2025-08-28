@@ -223,10 +223,16 @@ export class Storie {
 			mkdirSync(this.buildConfig.stories.output, { recursive: true });
 		}
 		const path = this.buildConfig.stories.output;
+		let name = "@" + this.buildConfig.module;
+		let displayName = this.buildConfig.module;
+		if (this.buildConfig.name) {
+			name += "/" + this.buildConfig.name;
+			displayName += " " + this.buildConfig.name;
+		}
 		const currentVars: { [name: string]: string } = {
-			"name": ("@" + this.buildConfig.module + "/" + this.buildConfig.name + "_storybook").toLowerCase(),
-			"displayName": this.buildConfig.module + " " + this.buildConfig.name + "_storybook",
-			"description": "Aventus storybook for " + "@" + this.buildConfig.module + "/" + this.buildConfig.name,
+			"name": (name + "_storybook").toLowerCase(),
+			"displayName": displayName + "_storybook",
+			"description": "Aventus storybook for " + name,
 			"version": this.buildConfig.version,
 		};
 		if (readdirSync(this.buildConfig.stories.output).length == 0) {

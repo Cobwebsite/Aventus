@@ -11,6 +11,7 @@ import { Popup } from '../notification/Popup';
 import { FilesManager } from '../files/FilesManager';
 import { AventusLanguageId } from '../definition';
 import { Settings, SettingsHtml } from '../settings/Settings';
+import { SetSettings } from '../notification/SetSettings';
 
 export class VsCodeConnection implements IConnection {
 
@@ -57,6 +58,9 @@ export class VsCodeConnection implements IConnection {
 		return this._connection.workspace.getConfiguration({
 			section: "aventus",
 		})
+	}
+	public async setSettings(settings: Partial<Settings>, global: boolean): Promise<void> {
+		await SetSettings.send(settings, global);
 	}
 	public async getSettingsHtml(): Promise<Partial<SettingsHtml>> {
 		return this._connection.workspace.getConfiguration({

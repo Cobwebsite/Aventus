@@ -17,6 +17,19 @@ export const AventusConfigSchema: JSONSchema = {
             pattern: "^[0-9]+\.[0-9]+\.[0-9]+$",
             description: "Version for all your builds (x.x.x)"
         },
+        "description": {
+            type: "string",
+            description: "Description of the package",
+        },
+        "organization": {
+            type: "string",
+            description: "Name of the organization",
+            pattern: "^[a-zA-Z0-9_@]+$",
+        },
+        "readme": {
+            type: "string",
+            description: "Path to the readme. By default, Aventus check Readme in the same folder as the configuration",
+        },
         "hideWarnings": {
             type: "boolean",
             description: "Hide warnings for all your builds"
@@ -51,6 +64,19 @@ export const AventusConfigSchema: JSONSchema = {
                         type: "string",
                         description: "Part name for the module. The export file will be ${module}@${name}",
                         pattern: "^[a-zA-Z0-9_]+$",
+                    },
+                    "description": {
+                        type: "string",
+                        description: "Description of the package",
+                    },
+                    "organization": {
+                        type: "string",
+                        description: "Name of the organization",
+                        pattern: "^[a-zA-Z0-9_@]+$",
+                    },
+                    "readme": {
+                        type: "string",
+                        description: "Path to the readme. By default, Aventus check Readme in the same folder as the configuration",
                     },
                     "version": {
                         type: "string",
@@ -251,7 +277,7 @@ export const AventusConfigSchema: JSONSchema = {
                         description: "Define options for i18n"
                     }
                 },
-                required: ["name", "src"]
+                required: ["src"]
             },
             minItems: 1
         },

@@ -34,7 +34,7 @@ export interface Settings {
 	statics?: string[],
 	errorByBuild?: boolean,
 	defaultHideWarnings: boolean,
-	deeplApiKey: string
+	deeplApiKey: string,
 }
 export interface SettingsHtml {
 	customData: string[]
@@ -62,7 +62,7 @@ const defaultSettings: Settings = {
 	useStats: false,
 	useDefaultTemplate: true,
 	defaultHideWarnings: false,
-	deeplApiKey: ""
+	deeplApiKey: "",
 }
 function getDefaultSettings(): Settings {
 	return JSON.parse(JSON.stringify(defaultSettings));
@@ -142,15 +142,25 @@ export class SettingsManager {
 
 	private reload() {
 		const settings = workspace.getConfiguration("aventus") as Partial<Settings>
-		this.setSettings(settings);
+		this.initSettings(settings);
 
 		const settingsHtml = workspace.getConfiguration("html") as Partial<SettingsHtml>
 		this.setSettingsHtml(settingsHtml);
 	}
 
 
-
-	private setSettings(newSettings: Partial<Settings>) {
+	public async setSettings(newSettings: Partial<Settings>, global: boolean) {
+		const config = workspace.getConfiguration("aventus");
+		try {
+			for (let key in newSettings) {
+				const result = await config.update(key, newSettings[key], global ? ConfigurationTarget.Global : ConfigurationTarget.Workspace);
+				console.log("in");
+			}
+		} catch (e) {
+			console.log(e)
+		}
+	}
+	private initSettings(newSettings: Partial<Settings>) {
 		this._settings = this.mergeDeep(getDefaultSettings(), newSettings);
 		let cbs = [...this.cbOnSettingsChange];
 		for (let cb of cbs) {

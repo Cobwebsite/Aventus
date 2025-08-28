@@ -165,7 +165,7 @@ export class Project {
             
             for (let build of this.config.build) {
                 if (this.buildsAllowed) {
-                    if (!this.buildsAllowed.includes(build.name)) {
+                    if (!this.buildsAllowed.includes(build.name ?? "")) {
                         continue;
                     }
                 }

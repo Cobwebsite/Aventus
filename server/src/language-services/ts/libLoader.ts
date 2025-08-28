@@ -161,47 +161,6 @@ export function loadNodeModules(nodeModulesPath: string): string[] {
 				const exportPaths = Array.isArray(packageJson.exports[key]) ? packageJson.exports[key] : [packageJson.exports[key]];
 				for (let exportPath of exportPaths) {
 					loop(exportPath);
-					// if (typeof exportPath === 'object') {
-					// 	const resolvedPath = exportPath.node || exportPath.import || exportPath.types || exportPath.require || exportPath.default || exportPath;
-					// 	if (typeof resolvedPath === 'object') {
-					// 		let defaultKey: string | null = null;
-					// 		let found = false;
-					// 		let hasCondition = Object.keys(resolvedPath).some(p => p.includes("@"));
-					// 		if (hasCondition) {
-					// 			for (let conditionKey of Object.keys(resolvedPath)) {
-					// 				const condition = conditionKey.split('@'); // Séparer la clé de la condition
-
-					// 				if (condition.length === 2) {
-					// 					const conditionVersion = condition[1]; // Ex: "<=5.0"
-
-					// 					// Vérifier si la feature et la version correspondent à une condition spécifique
-					// 					if (evaluateCondition(conditionVersion, version)) {
-					// 						const resolvedPath2 = resolvedPath[conditionKey].node || resolvedPath[conditionKey].import || resolvedPath[conditionKey].default || resolvedPath[conditionKey];
-					// 						addExportPath(resolvedPath2);
-					// 						found = true;
-					// 						break; // Sortir après avoir trouvé une correspondance
-					// 					}
-					// 				}
-					// 				else {
-					// 					defaultKey = conditionKey;
-					// 				}
-					// 			}
-					// 			if (!found && defaultKey) {
-					// 				const resolvedPath2 = resolvedPath[defaultKey].node || resolvedPath[defaultKey].import || resolvedPath[defaultKey].types || resolvedPath[defaultKey].require || resolvedPath[defaultKey].default || resolvedPath[defaultKey];
-					// 				addExportPath(resolvedPath2);
-					// 			}
-					// 		}
-					// 		else {
-					// 			const resolvedPath2 = resolvedPath.node || resolvedPath.import || resolvedPath.types || resolvedPath.require || resolvedPath.default || resolvedPath;
-					// 			addExportPath(resolvedPath2);
-					// 		}
-					// 	}
-					// 	else {
-					// 		addExportPath(resolvedPath);
-					// 	}
-					// } else {
-					// 	addExportPath(exportPath);
-					// }
 				}
 			}
 		}

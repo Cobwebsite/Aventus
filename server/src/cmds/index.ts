@@ -32,6 +32,9 @@ import { ImportProject } from './file-system/ImportProject';
 import { NpmBuild } from './npm/Build';
 import { AddI18nValue } from './i18n/AddI18nValue';
 import { PhpExport } from './php/Export';
+import { StoreConnect } from './store/Connect';
+import { StoreDisconnect } from './store/Disconnect';
+import { StorePublish } from './store/Publish';
 
 export const Commands = {
     allCommandes: {
@@ -67,7 +70,10 @@ export const Commands = {
         [ReloadSettings.cmd]: ReloadSettings,
         [StorybookBuild.cmd]: StorybookBuild,
         [NpmBuild.cmd]: NpmBuild,
-        [AddI18nValue.cmd]: AddI18nValue
+        [AddI18nValue.cmd]: AddI18nValue,
+        [StoreConnect.cmd]: StoreConnect,
+        [StoreDisconnect.cmd]: StoreDisconnect,
+        [StorePublish.cmd]: StorePublish,
     },
     execute: function (params: ExecuteCommandParams) {
         let cmd = this.allCommandes[params.command];

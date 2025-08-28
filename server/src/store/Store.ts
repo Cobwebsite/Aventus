@@ -1,0 +1,171 @@
+import { machineId as Id } from 'node-machine-id';
+import { hostname } from 'os';
+import { SettingsManager, HiddenSettings } from '../settings/Settings';
+import { Build } from '../project/Build';
+import { DependanceManager } from '../project/DependanceManager';
+import { join, normalize } from 'path';
+import { AventusExtension } from '../definition';
+import { existsSync, readdirSync, readFileSync } from 'fs';
+
+type StoreSettings = HiddenSettings["store"];
+
+export class Store {
+	private static _settings: StoreSettings;
+	public static get settings(): StoreSettings {
+		if (!this._settings) {
+			this._settings = SettingsManager.getInstance().hiddenSettings.store
+		}
+		return this._settings;
+	}
+	public static get token(): string {
+		return this.settings.token;
+	}
+	public static get isConnected(): boolean {
+		return this.token != "";
+	}
+
+	public static setSettings(settings: Partial<StoreSettings>) {
+		const newSettings: StoreSettings = { ...this.settings, ...settings }
+		SettingsManager.getInstance().setHiddenSettings({ store: newSettings });
+		this._settings = newSettings;
+	}
+
+	public static async connect(username: string, password: string) {
+		const machineId = await Id();
+		const machineName = hostname();
+		const token = await this.post<string>("/login", {
+			username,
+			password,
+			machineId,
+			machineName,
+		}, { withoutBearer: true })
+		if (token) {
+			this.setSettings({ token, username })
+			return true;
+		}
+
+		return false;
+	}
+	public static async disconnect() {
+		await this.post<boolean>('/logout')
+		this.setSettings({ token: "", username: undefined })
+	}
+	public static async publishPackage(build: Build): Promise<boolean | QueryError> {
+		const form = new FormData();
+		form.append("name", build.buildConfig.fullname);
+		form.append("description", build.buildConfig.description ?? "");
+		form.append("version", build.buildConfig.version);
+		if (build.buildConfig.organization) {
+			form.append("organization", build.buildConfig.organization);
+		}
+
+		let pathPackages = join(DependanceManager.getInstance().getPath(), "@locals", build.buildConfig.fullname + AventusExtension.Package);
+		if (!existsSync(pathPackages)) {
+			return false;
+		}
+		const packageFile = new Blob([readFileSync(pathPackages)], { type: "text/plain" });
+		form.append("packageFile", packageFile, build.buildConfig.fullname + AventusExtension.Package);
+
+		const rootPath = build.project.getConfigFile().folderPath;
+		if (build.buildConfig.readme) {
+			let finalPath: string | undefined = undefined;
+			if (build.buildConfig.readme.startsWith(".")) {
+				const temp = normalize(join(rootPath, build.buildConfig.readme));
+				if (existsSync(temp)) {
+					finalPath = temp;
+				}
+				else {
+					return new QueryError([{ code: -1, message: "Readme not found" }]);
+				}
+			}
+			else {
+				if (existsSync(build.buildConfig.readme)) {
+					finalPath = build.buildConfig.readme;
+				}
+				else {
+					const temp = normalize(join(rootPath, build.buildConfig.readme));
+					if (existsSync(temp)) {
+						finalPath = temp;
+					}
+					else {
+						return new QueryError([{ code: -1, message: "Readme not found" }]);
+					}
+				}
+			}
+			let packageFile: Blob | undefined = new Blob([readFileSync(join(rootPath, finalPath))], { type: "text/plain" });
+			form.append("readMe", packageFile, "README.md");
+		}
+		else {
+			const files = readdirSync(rootPath);
+			const readmeFile = files.find(f => f.toLowerCase() === "readme.md");
+			if (readmeFile) {
+				const packageFile = new Blob([readFileSync(join(rootPath, readmeFile))], { type: "text/plain" });
+				form.append("readMe", packageFile, "README.md");
+			}
+		}
+
+		const result = await this.postWithErrors<boolean>("/package/publish", form);
+		return result;
+	}
+
+	private static async post<T>(uri: string, body: FormData | {} = {}, options?: PostOptions): Promise<T | null> {
+		const result = await this.postWithErrors<T>(uri, body, options);
+		if (result instanceof QueryError) {
+			for (let error of result.errors) {
+				console.log(error.message)
+			}
+			return null;
+		}
+		return result;
+	}
+	private static async postWithErrors<T>(uri: string, body: FormData | {} = {}, options?: PostOptions): Promise<T | QueryError> {
+		let query: Response | null = null;
+		try {
+			const headers = {};
+			if (!(body instanceof FormData)) {
+				headers['Content-Type'] = 'application/json'
+			}
+			if (!options?.withoutBearer) {
+				const machineId = await Id();
+				const bearer = this.token + "|" + machineId;
+				headers['Authorization'] = 'Bearer ' + bearer;
+			}
+			query = await fetch("http://127.0.0.1:8000/api/remote" + uri, {
+				method: "POST",
+				body: body instanceof FormData ? body : JSON.stringify(body),
+				headers
+			});
+			const txt = await query.text();
+			let json: any = undefined;
+			try {
+				json = JSON.parse(txt);
+			} catch (e) {
+				console.log(txt);
+				throw e;
+			}
+
+			if (json.errors) {
+				if (json.errors.length > 0) {
+					return new QueryError(json.errors);
+				}
+				return json.result as T;
+			}
+			return new QueryError([{ code: -500, message: "Wrong response format from the api" }])
+		} catch (e) {
+
+			return new QueryError([{ code: -500, message: e + "" }])
+		}
+	}
+}
+
+
+type PostOptions = {
+	withoutBearer?: boolean
+}
+
+export class QueryError {
+	public constructor(
+		public errors: { code: number, message: string }[]
+	) {
+	}
+}

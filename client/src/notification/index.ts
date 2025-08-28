@@ -17,6 +17,7 @@ import { ProgressStop } from './ProgressStop';
 import { RegisterBuild } from "./RegisterBuild";
 import { RegisterData } from "./RegisterData";
 import { RegisterStatic } from "./RegisterStatic";
+import { SetSettings } from './SetSettings';
 import { Compiling } from './sharp/Compiling';
 import { UnregisterBuild } from "./UnregisterBuild";
 import { UnregisterData } from "./UnregisterData";
@@ -47,6 +48,7 @@ export const Notifications = {
         [Popup.cmd]: Popup,
         [DebugFileAdd.cmd]: DebugFileAdd,
         [ProgressStart.cmd]: ProgressStart,
-        [ProgressStop.cmd]: ProgressStop
+        [ProgressStop.cmd]: ProgressStop,
+        [SetSettings.cmd]: SetSettings,
     },
 }

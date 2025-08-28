@@ -177,7 +177,12 @@ export class AventusJSONLanguageService {
             ...this.defaultConfigBuildValue(config),
             ...build
         }
-        build.fullname = build.module + "@" + build.name;
+        if (build.name) {
+            build.fullname = build.module + "@" + build.name;
+        }
+        else {
+            build.fullname = build.module;
+        }
 
         const replaceEnvVar = (txt: string): string => {
             return this.replaceEnvVar(txt, baseDir);
@@ -584,6 +589,9 @@ export class AventusJSONLanguageService {
             fullname: '',
             name: '',
             version: config.version,
+            organization: config.organization,
+            description: config.description,
+            readme: config.readme,
             disabled: false,
             hideWarnings: config.hideWarnings,
             src: [],

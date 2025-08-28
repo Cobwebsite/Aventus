@@ -4,6 +4,7 @@ import { ReceiveInput } from '../cmds/ReceiveInput';
 export interface AskInputOptions {
 	title: string,
 	value?: string,
+	password?: boolean,
 	validations?: { regex: string, message: string }[]
 }
 
@@ -30,6 +31,7 @@ export class AskInput {
 		const name = await window.showInputBox({
 			title:options.title,
 			value: options.value,
+			password: options.password,
 			validateInput: async (value: string) => {
 				for (let validation of validations) {
 					let tempResult = validation(value);

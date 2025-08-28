@@ -462,6 +462,18 @@
 			{
 				"command": "aventus.php.export",
 				"title": "Aventus : Export Php"
+			},
+			{
+				"command": "aventus.store.connect",
+				"title": "Aventus : Connect to the store"
+			},
+			{
+				"command": "aventus.store.disconnect",
+				"title": "Aventus : Disconnect from the store"
+			},
+			{
+				"command": "aventus.store.publish",
+				"title": "Aventus : Publish package to the store"
 			}
 		],
 		"customEditors": [
@@ -790,6 +802,7 @@
 		"event-stream": "^4.0.1",
 		"inquirer-file-tree-selection-prompt": "^2.0.5",
 		"md5": "^2.3.0",
+		"node-machine-id": "^1.1.12",
 		"open": "^8.4.0",
 		"parse-color": "^1.0.0",
 		"postcss": "^8.4.17",

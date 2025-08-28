@@ -1,7 +1,10 @@
 export interface AventusConfigBuild {
 	fullname: string,
-	name: string,
+	description?: string,
+	name?: string,
 	version: string,
+	readme?: string,
+	organization?: string,
 	disabled: boolean,
 	hideWarnings: boolean,
 	src: string[],
@@ -80,6 +83,9 @@ export interface AventusConfig {
 	componentPrefix: string,
 	hideWarnings: boolean,
 	module: string;
+	description?: string,
+	organization?: string,
+	readme?: string,
 	dependances: AventusConfigBuildDependance[],
 	build: AventusConfigBuild[],
 	static: AventusConfigStatic[],

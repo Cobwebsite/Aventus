@@ -4,7 +4,7 @@ import { FilesManager } from './files/FilesManager';
 import { FilesWatcher } from './files/FilesWatcher';
 import { TemplateManager } from './language-services/json/TemplateManager';
 import { ProjectManager } from './project/ProjectManager';
-import { SettingsManager } from './settings/Settings';
+import { Settings, SettingsManager } from './settings/Settings';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AventusExtension } from './definition';
 import { ColorPicker } from './color-picker/ColorPicker';
@@ -62,6 +62,9 @@ export class GenericServer {
 	}
 	public static Popup(text: string, ...choices: string[]) {
 		return this.instance.connection.Popup(text, ...choices);
+	}
+	public static setSettings(settings: Partial<Settings>, global: boolean) {
+		return this.instance.connection.setSettings(settings, global);
 	}
 	public static get savePath(): string {
 		return this.instance._savePath;
@@ -297,7 +300,7 @@ export class GenericServer {
 		if (!result) {
 			result = {};
 		}
-		SettingsManager.getInstance().setSettings(result);
+		SettingsManager.getInstance().initSettings(result);
 		this.isDebug = SettingsManager.getInstance().settings.debug;
 
 		let resultHtml = await this.connection.getSettingsHtml();

@@ -16,6 +16,7 @@ export interface IConnection {
 	onShutdown(cb: () => Promise<void>);
 	getSettings(): Promise<Partial<Settings>>;
 	getSettingsHtml(): Promise<Partial<SettingsHtml>>;
+	setSettings(settings: Partial<Settings>, global: boolean): Promise<void>
 
 	onCompletion(cb: (document: TextDocument | undefined, position: Position) => Promise<CompletionList | null>);
 	onCompletionResolve(cb: (document: TextDocument | undefined, completionItem: CompletionItem) => Promise<CompletionItem>);
@@ -42,6 +43,7 @@ export interface IConnection {
 export interface InputOptions {
 	title: string,
 	value?: string,
+	password?: boolean,
 	validations?: { regex: string, message: string }[]
 }
 

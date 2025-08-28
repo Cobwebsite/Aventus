@@ -169,7 +169,7 @@ export class FilesManager {
                     }
                 }
                 for (let build of config.build) {
-                    if (!builds || builds.includes(build.name)) {
+                    if (!builds || builds.includes(build.name ?? "")) {
                         for (let src of build.srcPath) {
                             await readDir(src);
                         }
