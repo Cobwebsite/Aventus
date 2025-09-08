@@ -63,6 +63,7 @@ if(!Object.hasOwn(window, "AvInstance")) {
 var Aventus;
 (Aventus||(Aventus = {}));
 (function (Aventus) {
+const __as1 = (o, k, c) => { if (o[k] !== undefined) for (let w in o[k]) { c[w] = o[k][w] } o[k] = c; }
 const moduleName = `Aventus`;
 const _ = {};
 
@@ -161,18 +162,18 @@ let Style=class Style {
     }
 }
 Style.Namespace=`Aventus`;
-_.Style=Style;
+__as1(_, 'Style', Style);
 
 let uuidv4=function uuidv4() {
     let uid = '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c => (Number(c) ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> Number(c) / 4).toString(16));
     return uid;
 }
-_.uuidv4=uuidv4;
+__as1(_, 'uuidv4', uuidv4);
 
 let sleep=function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
-_.sleep=sleep;
+__as1(_, 'sleep', sleep);
 
 let isSubclassOf=function isSubclassOf(subClass, superClass) {
     if (typeof subClass !== 'function' || typeof superClass !== 'function')
@@ -185,12 +186,12 @@ let isSubclassOf=function isSubclassOf(subClass, superClass) {
     }
     return false;
 }
-_.isSubclassOf=isSubclassOf;
+__as1(_, 'isSubclassOf', isSubclassOf);
 
 let isClass=function isClass(v) {
     return typeof v === 'function' && /^\s*class\s+/.test(v.toString());
 }
-_.isClass=isClass;
+__as1(_, 'isClass', isClass);
 
 let setValueToObject=function setValueToObject(path, obj, value) {
     path = path.replace(/\[(.*?)\]/g, '.$1');
@@ -217,7 +218,7 @@ let setValueToObject=function setValueToObject(path, obj, value) {
         obj[splitted[splitted.length - 1]] = value;
     }
 }
-_.setValueToObject=setValueToObject;
+__as1(_, 'setValueToObject', setValueToObject);
 
 let Mutex=class Mutex {
     /**
@@ -360,7 +361,7 @@ let Mutex=class Mutex {
     }
 }
 Mutex.Namespace=`Aventus`;
-_.Mutex=Mutex;
+__as1(_, 'Mutex', Mutex);
 
 let ActionGuard=class ActionGuard {
     /**
@@ -416,7 +417,7 @@ let ActionGuard=class ActionGuard {
     }
 }
 ActionGuard.Namespace=`Aventus`;
-_.ActionGuard=ActionGuard;
+__as1(_, 'ActionGuard', ActionGuard);
 
 var RamErrorCode;
 (function (RamErrorCode) {
@@ -424,7 +425,7 @@ var RamErrorCode;
     RamErrorCode[RamErrorCode["noId"] = 1] = "noId";
     RamErrorCode[RamErrorCode["noItemInsideRam"] = 2] = "noItemInsideRam";
 })(RamErrorCode || (RamErrorCode = {}));
-_.RamErrorCode=RamErrorCode;
+__as1(_, 'RamErrorCode', RamErrorCode);
 
 let ResourceLoader=class ResourceLoader {
     static headerLoaded = {};
@@ -594,7 +595,7 @@ let ResourceLoader=class ResourceLoader {
     }
 }
 ResourceLoader.Namespace=`Aventus`;
-_.ResourceLoader=ResourceLoader;
+__as1(_, 'ResourceLoader', ResourceLoader);
 
 let Instance=class Instance {
     static elements = new Map();
@@ -621,13 +622,13 @@ let Instance=class Instance {
     }
 }
 Instance.Namespace=`Aventus`;
-_.Instance=Instance;
+__as1(_, 'Instance', Instance);
 
 let DragElementXYType= [SVGGElement, SVGRectElement, SVGEllipseElement, SVGTextElement];
-_.DragElementXYType=DragElementXYType;
+__as1(_, 'DragElementXYType', DragElementXYType);
 
 let DragElementLeftTopType= [HTMLElement, SVGSVGElement];
-_.DragElementLeftTopType=DragElementLeftTopType;
+__as1(_, 'DragElementLeftTopType', DragElementLeftTopType);
 
 let NormalizedEvent=class NormalizedEvent {
     _event;
@@ -706,7 +707,7 @@ let NormalizedEvent=class NormalizedEvent {
     }
 }
 NormalizedEvent.Namespace=`Aventus`;
-_.NormalizedEvent=NormalizedEvent;
+__as1(_, 'NormalizedEvent', NormalizedEvent);
 
 let Callback=class Callback {
     callbacks = new Map();
@@ -743,7 +744,7 @@ let Callback=class Callback {
     }
 }
 Callback.Namespace=`Aventus`;
-_.Callback=Callback;
+__as1(_, 'Callback', Callback);
 
 let CallbackGroup=class CallbackGroup {
     callbacks = {};
@@ -791,7 +792,7 @@ let CallbackGroup=class CallbackGroup {
     }
 }
 CallbackGroup.Namespace=`Aventus`;
-_.CallbackGroup=CallbackGroup;
+__as1(_, 'CallbackGroup', CallbackGroup);
 
 let compareObject=function compareObject(obj1, obj2) {
     if (Array.isArray(obj1)) {
@@ -876,7 +877,7 @@ let compareObject=function compareObject(obj1, obj2) {
         return obj1 === obj2;
     }
 }
-_.compareObject=compareObject;
+__as1(_, 'compareObject', compareObject);
 
 let getValueFromObject=function getValueFromObject(path, obj) {
     if (path === undefined) {
@@ -906,7 +907,7 @@ let getValueFromObject=function getValueFromObject(path, obj) {
     }
     return val(splitted[splitted.length - 1]);
 }
-_.getValueFromObject=getValueFromObject;
+__as1(_, 'getValueFromObject', getValueFromObject);
 
 var WatchAction;
 (function (WatchAction) {
@@ -914,7 +915,7 @@ var WatchAction;
     WatchAction[WatchAction["UPDATED"] = 1] = "UPDATED";
     WatchAction[WatchAction["DELETED"] = 2] = "DELETED";
 })(WatchAction || (WatchAction = {}));
-_.WatchAction=WatchAction;
+__as1(_, 'WatchAction', WatchAction);
 
 let Async=function Async(el) {
     return new Promise((resolve) => {
@@ -926,7 +927,7 @@ let Async=function Async(el) {
         }
     });
 }
-_.Async=Async;
+__as1(_, 'Async', Async);
 
 var HttpMethod;
 (function (HttpMethod) {
@@ -936,13 +937,13 @@ var HttpMethod;
     HttpMethod["PUT"] = "PUT";
     HttpMethod["OPTION"] = "OPTION";
 })(HttpMethod || (HttpMethod = {}));
-_.HttpMethod=HttpMethod;
+__as1(_, 'HttpMethod', HttpMethod);
 
 var HttpErrorCode;
 (function (HttpErrorCode) {
     HttpErrorCode[HttpErrorCode["unknow"] = 0] = "unknow";
 })(HttpErrorCode || (HttpErrorCode = {}));
-_.HttpErrorCode=HttpErrorCode;
+__as1(_, 'HttpErrorCode', HttpErrorCode);
 
 let DateConverter=class DateConverter {
     static __converter = new DateConverter();
@@ -966,7 +967,7 @@ let DateConverter=class DateConverter {
     }
 }
 DateConverter.Namespace=`Aventus`;
-_.DateConverter=DateConverter;
+__as1(_, 'DateConverter', DateConverter);
 
 let Json=class Json {
     /**
@@ -1055,7 +1056,7 @@ let Json=class Json {
     }
 }
 Json.Namespace=`Aventus`;
-_.Json=Json;
+__as1(_, 'Json', Json);
 
 let ConverterTransform=class ConverterTransform {
     transform(data) {
@@ -1185,7 +1186,7 @@ let ConverterTransform=class ConverterTransform {
     }
 }
 ConverterTransform.Namespace=`Aventus`;
-_.ConverterTransform=ConverterTransform;
+__as1(_, 'ConverterTransform', ConverterTransform);
 
 let Converter=class Converter {
     /**
@@ -1255,7 +1256,7 @@ let Converter=class Converter {
     }
 }
 Converter.Namespace=`Aventus`;
-_.Converter=Converter;
+__as1(_, 'Converter', Converter);
 
 let Data=class Data {
     /**
@@ -1305,7 +1306,7 @@ let Data=class Data {
     }
 }
 Data.Namespace=`Aventus`;
-_.Data=Data;
+__as1(_, 'Data', Data);
 
 let GenericError=class GenericError {
     /**
@@ -1331,7 +1332,7 @@ let GenericError=class GenericError {
     }
 }
 GenericError.Namespace=`Aventus`;
-_.GenericError=GenericError;
+__as1(_, 'GenericError', GenericError);
 
 let VoidWithError=class VoidWithError {
     /**
@@ -1382,7 +1383,7 @@ let VoidWithError=class VoidWithError {
     }
 }
 VoidWithError.Namespace=`Aventus`;
-_.VoidWithError=VoidWithError;
+__as1(_, 'VoidWithError', VoidWithError);
 
 let ResultWithError=class ResultWithError extends VoidWithError {
     /**
@@ -1402,12 +1403,12 @@ let ResultWithError=class ResultWithError extends VoidWithError {
     }
 }
 ResultWithError.Namespace=`Aventus`;
-_.ResultWithError=ResultWithError;
+__as1(_, 'ResultWithError', ResultWithError);
 
 let HttpError=class HttpError extends GenericError {
 }
 HttpError.Namespace=`Aventus`;
-_.HttpError=HttpError;
+__as1(_, 'HttpError', HttpError);
 
 let Signal=class Signal {
     __subscribes = [];
@@ -1450,7 +1451,7 @@ let Signal=class Signal {
     }
 }
 Signal.Namespace=`Aventus`;
-_.Signal=Signal;
+__as1(_, 'Signal', Signal);
 
 let Effect=class Effect {
     callbacks = [];
@@ -1565,7 +1566,7 @@ let Effect=class Effect {
     }
 }
 Effect.Namespace=`Aventus`;
-_.Effect=Effect;
+__as1(_, 'Effect', Effect);
 
 let Computed=class Computed extends Effect {
     _value;
@@ -1605,7 +1606,7 @@ let Computed=class Computed extends Effect {
     }
 }
 Computed.Namespace=`Aventus`;
-_.Computed=Computed;
+__as1(_, 'Computed', Computed);
 
 let Watcher=class Watcher {
     constructor() { }
@@ -2444,7 +2445,7 @@ let Watcher=class Watcher {
     }
 }
 Watcher.Namespace=`Aventus`;
-_.Watcher=Watcher;
+__as1(_, 'Watcher', Watcher);
 
 let ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
     init() {
@@ -2462,7 +2463,7 @@ let ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
     run() { }
 }
 ComputedNoRecomputed.Namespace=`Aventus`;
-_.ComputedNoRecomputed=ComputedNoRecomputed;
+__as1(_, 'ComputedNoRecomputed', ComputedNoRecomputed);
 
 let EffectNoRecomputed=class EffectNoRecomputed extends Effect {
     init() {
@@ -2478,7 +2479,7 @@ let EffectNoRecomputed=class EffectNoRecomputed extends Effect {
     }
 }
 EffectNoRecomputed.Namespace=`Aventus`;
-_.EffectNoRecomputed=EffectNoRecomputed;
+__as1(_, 'EffectNoRecomputed', EffectNoRecomputed);
 
 let HttpRouter=class HttpRouter {
     options;
@@ -2510,7 +2511,7 @@ let HttpRouter=class HttpRouter {
     }
 }
 HttpRouter.Namespace=`Aventus`;
-_.HttpRouter=HttpRouter;
+__as1(_, 'HttpRouter', HttpRouter);
 
 let HttpRoute=class HttpRoute {
     router;
@@ -2522,7 +2523,7 @@ let HttpRoute=class HttpRoute {
     }
 }
 HttpRoute.Namespace=`Aventus`;
-_.HttpRoute=HttpRoute;
+__as1(_, 'HttpRoute', HttpRoute);
 
 let HttpRequest=class HttpRequest {
     static options;
@@ -2768,7 +2769,7 @@ let HttpRequest=class HttpRequest {
     }
 }
 HttpRequest.Namespace=`Aventus`;
-_.HttpRequest=HttpRequest;
+__as1(_, 'HttpRequest', HttpRequest);
 
 let StorableRoute=class StorableRoute extends HttpRoute {
     async GetAll() {
@@ -2795,7 +2796,7 @@ let StorableRoute=class StorableRoute extends HttpRoute {
     }
 }
 StorableRoute.Namespace=`Aventus`;
-_.StorableRoute=StorableRoute;
+__as1(_, 'StorableRoute', StorableRoute);
 
 let Animation=class Animation {
     /**
@@ -2883,7 +2884,7 @@ let Animation=class Animation {
     }
 }
 Animation.Namespace=`Aventus`;
-_.Animation=Animation;
+__as1(_, 'Animation', Animation);
 
 let PressManager=class PressManager {
     static globalConfig = {
@@ -3356,7 +3357,7 @@ let PressManager=class PressManager {
     }
 }
 PressManager.Namespace=`Aventus`;
-_.PressManager=PressManager;
+__as1(_, 'PressManager', PressManager);
 
 let DragAndDrop=class DragAndDrop {
     /**
@@ -3919,7 +3920,7 @@ let DragAndDrop=class DragAndDrop {
     }
 }
 DragAndDrop.Namespace=`Aventus`;
-_.DragAndDrop=DragAndDrop;
+__as1(_, 'DragAndDrop', DragAndDrop);
 
 let ResizeObserver=class ResizeObserver {
     callback;
@@ -4049,7 +4050,7 @@ let ResizeObserver=class ResizeObserver {
     }
 }
 ResizeObserver.Namespace=`Aventus`;
-_.ResizeObserver=ResizeObserver;
+__as1(_, 'ResizeObserver', ResizeObserver);
 
 let Uri=class Uri {
     static prepare(uri) {
@@ -4127,22 +4128,22 @@ let Uri=class Uri {
     }
 }
 Uri.Namespace=`Aventus`;
-_.Uri=Uri;
+__as1(_, 'Uri', Uri);
 
 let RamError=class RamError extends GenericError {
 }
 RamError.Namespace=`Aventus`;
-_.RamError=RamError;
+__as1(_, 'RamError', RamError);
 
 let ResultRamWithError=class ResultRamWithError extends ResultWithError {
 }
 ResultRamWithError.Namespace=`Aventus`;
-_.ResultRamWithError=ResultRamWithError;
+__as1(_, 'ResultRamWithError', ResultRamWithError);
 
 let VoidRamWithError=class VoidRamWithError extends VoidWithError {
 }
 VoidRamWithError.Namespace=`Aventus`;
-_.VoidRamWithError=VoidRamWithError;
+__as1(_, 'VoidRamWithError', VoidRamWithError);
 
 let GenericRam=class GenericRam {
     /**
@@ -5016,12 +5017,12 @@ let GenericRam=class GenericRam {
     async afterDeleteList(result) { }
 }
 GenericRam.Namespace=`Aventus`;
-_.GenericRam=GenericRam;
+__as1(_, 'GenericRam', GenericRam);
 
 let Ram=class Ram extends GenericRam {
 }
 Ram.Namespace=`Aventus`;
-_.Ram=Ram;
+__as1(_, 'Ram', Ram);
 
 let StateManager=class StateManager {
     subscribers = {};
@@ -5331,7 +5332,7 @@ let StateManager=class StateManager {
     }
 }
 StateManager.Namespace=`Aventus`;
-_.StateManager=StateManager;
+__as1(_, 'StateManager', StateManager);
 
 let State=class State {
     /**
@@ -5356,7 +5357,7 @@ let State=class State {
     }
 }
 State.Namespace=`Aventus`;
-_.State=State;
+__as1(_, 'State', State);
 
 let EmptyState=class EmptyState extends State {
     localName;
@@ -5372,7 +5373,7 @@ let EmptyState=class EmptyState extends State {
     }
 }
 EmptyState.Namespace=`Aventus`;
-_.EmptyState=EmptyState;
+__as1(_, 'EmptyState', EmptyState);
 
 let TemplateInstance=class TemplateInstance {
     context;
@@ -6069,7 +6070,7 @@ let TemplateInstance=class TemplateInstance {
     }
 }
 TemplateInstance.Namespace=`Aventus`;
-_.TemplateInstance=TemplateInstance;
+__as1(_, 'TemplateInstance', TemplateInstance);
 
 let TemplateContext=class TemplateContext {
     data = {};
@@ -6275,7 +6276,7 @@ let TemplateContext=class TemplateContext {
     }
 }
 TemplateContext.Namespace=`Aventus`;
-_.TemplateContext=TemplateContext;
+__as1(_, 'TemplateContext', TemplateContext);
 
 let Template=class Template {
     static validatePath(path, pathToCheck) {
@@ -6413,7 +6414,7 @@ let Template=class Template {
     }
 }
 Template.Namespace=`Aventus`;
-_.Template=Template;
+__as1(_, 'Template', Template);
 
 let WebComponent=class WebComponent extends HTMLElement {
     /**
@@ -7157,7 +7158,7 @@ let WebComponent=class WebComponent extends HTMLElement {
     }
 }
 WebComponent.Namespace=`Aventus`;
-_.WebComponent=WebComponent;
+__as1(_, 'WebComponent', WebComponent);
 
 let WebComponentInstance=class WebComponentInstance {
     static __allDefinitions = [];
@@ -7230,7 +7231,7 @@ let WebComponentInstance=class WebComponentInstance {
     }
 }
 WebComponentInstance.Namespace=`Aventus`;
-_.WebComponentInstance=WebComponentInstance;
+__as1(_, 'WebComponentInstance', WebComponentInstance);
 
 let ElementExtension=class ElementExtension {
     /**
@@ -7507,7 +7508,7 @@ let ElementExtension=class ElementExtension {
     }
 }
 ElementExtension.Namespace=`Aventus`;
-_.ElementExtension=ElementExtension;
+__as1(_, 'ElementExtension', ElementExtension);
 
 
 for(let key in _) { Aventus[key] = _[key] }

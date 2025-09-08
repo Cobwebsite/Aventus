@@ -594,7 +594,8 @@ export class AventusWebcomponentCompiler {
             this.writeFileNpmReplaceVar("namespaceEnd", '');
         }
         if (this.classInfo?.isExported) {
-            this.writeFileReplaceVar("exported", "_." + this.fullName + "=" + this.fullName + ";");
+            const exported = `__as1(_${this.classInfo.namespace != '' ? '.' + this.classInfo.namespace : ''}, '${this.classInfo.name}', ${this.fullName});`
+            this.writeFileReplaceVar("exported", exported);
             this.writeFileHotReloadReplaceVar("exported", "_." + this.fullName + "=" + this.fullName + ";");
         }
         else {

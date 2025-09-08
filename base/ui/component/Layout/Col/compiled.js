@@ -48,6 +48,6 @@ Layout.Col = class Col extends Aventus.WebComponent {
 }
 Layout.Col.Namespace=`Aventus.Layout`;
 Layout.Col.Tag=`av-col`;
-_.Layout.Col=Layout.Col;
+__as1(_.Layout, 'Col', Layout.Col);
 if(!window.customElements.get('av-col')){window.customElements.define('av-col', Layout.Col);Aventus.WebComponentInstance.registerDefinition(Layout.Col);}
 

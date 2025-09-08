@@ -89,7 +89,7 @@ export class Build {
     public noNamespaceUri: { [uri: string]: boolean } = {};
     public htmlFiles: { [uri: string]: AventusHTMLFile } = {}
     public wcFiles: { [uri: string]: AventusWebComponentSingleFile } = {};
-    public i18nComponentsFiles: { [uri: string]: AventusI18nFile } = {}
+    public i18nComponentsFiles: { [uri: string]: AventusI18nFile } = {};
 
     public namespaces: string[] = [];
 
@@ -454,6 +454,7 @@ export class Build {
             }
 
             finalTxt += "(function (" + splittedNames[0] + ") {" + EOL;
+            finalTxt += `const __as1 = (o, k, c) => { if (o[k] !== undefined) for (let w in o[k]) { c[w] = o[k][w] } o[k] = c; }` + EOL;
             finalTxt += "const moduleName = `" + baseName + "`;" + EOL;
             finalTxt += "const _ = {};" + EOL;
             finalTxt += stylesheets.join(EOL) + EOL;
@@ -1118,6 +1119,7 @@ export class Build {
                 }
 
                 if (info.compiled != "") {
+                    if (info.classScript.endsWith("ConfigurationFrame")) debugger
                     result.code.push(replaceNotImportAliases(info.compiled, this.project.getConfig()))
                     let exportName = namespaceWithDot + info.classScript;
                     if (!renderInJsByFullname[exportName]) {

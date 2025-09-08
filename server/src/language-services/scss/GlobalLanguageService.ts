@@ -91,9 +91,6 @@ export class AventusGlobalSCSSLanguageService {
         let document = file.file.documentUser;
         let result: { [name: string]: GlobalCSSVariable } = {};
         const _loadCustomProperty = (node: Node) => {
-            if(node.getText().includes("--primary-color-opacity: rgba(220, 220, 220, 0.9)")) {
-                debugger
-            }
             if (node.type == NodeType.CustomPropertyDeclaration) {
                 let nodeParent: Node | null = node;
                 while (nodeParent && nodeParent["selectors"] == undefined) {

@@ -124,7 +124,9 @@ namespace Form {
         /**
          * Define your customs validations rules
          */
-        protected abstract validation(): Promise<string[]>;
+        protected async validation(): Promise<string[]> {
+            return [];
+        }
 
         /**
          * 

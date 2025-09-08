@@ -31,6 +31,7 @@ if(!Object.hasOwn(window, "AvInstance")) {
 var Aventus;
 (Aventus||(Aventus = {}));
 (function (Aventus) {
+const __as1 = (o, k, c) => { if (o[k] !== undefined) for (let w in o[k]) { c[w] = o[k][w] } o[k] = c; }
 const moduleName = `Aventus`;
 const _ = {};
 
@@ -40,7 +41,7 @@ var HttpErrorCode;
 (function (HttpErrorCode) {
     HttpErrorCode[HttpErrorCode["unknow"] = 0] = "unknow";
 })(HttpErrorCode || (HttpErrorCode = {}));
-_.HttpErrorCode=HttpErrorCode;
+__as1(_, 'HttpErrorCode', HttpErrorCode);
 
 let DateConverter=class DateConverter {
     static __converter = new DateConverter();
@@ -64,7 +65,7 @@ let DateConverter=class DateConverter {
     }
 }
 DateConverter.Namespace=`Aventus`;
-_.DateConverter=DateConverter;
+__as1(_, 'DateConverter', DateConverter);
 
 var HttpMethod;
 (function (HttpMethod) {
@@ -74,18 +75,18 @@ var HttpMethod;
     HttpMethod["PUT"] = "PUT";
     HttpMethod["OPTION"] = "OPTION";
 })(HttpMethod || (HttpMethod = {}));
-_.HttpMethod=HttpMethod;
+__as1(_, 'HttpMethod', HttpMethod);
 
 let DragElementXYType= [SVGGElement, SVGRectElement, SVGEllipseElement, SVGTextElement];
-_.DragElementXYType=DragElementXYType;
+__as1(_, 'DragElementXYType', DragElementXYType);
 
 let DragElementLeftTopType= [HTMLElement, SVGSVGElement];
-_.DragElementLeftTopType=DragElementLeftTopType;
+__as1(_, 'DragElementLeftTopType', DragElementLeftTopType);
 
 let isClass=function isClass(v) {
     return typeof v === 'function' && /^\s*class\s+/.test(v.toString());
 }
-_.isClass=isClass;
+__as1(_, 'isClass', isClass);
 
 let ElementExtension=class ElementExtension {
     /**
@@ -362,7 +363,7 @@ let ElementExtension=class ElementExtension {
     }
 }
 ElementExtension.Namespace=`Aventus`;
-_.ElementExtension=ElementExtension;
+__as1(_, 'ElementExtension', ElementExtension);
 
 let Instance=class Instance {
     static elements = new Map();
@@ -389,7 +390,7 @@ let Instance=class Instance {
     }
 }
 Instance.Namespace=`Aventus`;
-_.Instance=Instance;
+__as1(_, 'Instance', Instance);
 
 let Style=class Style {
     static instance;
@@ -484,7 +485,7 @@ let Style=class Style {
     }
 }
 Style.Namespace=`Aventus`;
-_.Style=Style;
+__as1(_, 'Style', Style);
 
 let setValueToObject=function setValueToObject(path, obj, value) {
     path = path.replace(/\[(.*?)\]/g, '.$1');
@@ -511,7 +512,7 @@ let setValueToObject=function setValueToObject(path, obj, value) {
         obj[splitted[splitted.length - 1]] = value;
     }
 }
-_.setValueToObject=setValueToObject;
+__as1(_, 'setValueToObject', setValueToObject);
 
 let Mutex=class Mutex {
     /**
@@ -654,7 +655,7 @@ let Mutex=class Mutex {
     }
 }
 Mutex.Namespace=`Aventus`;
-_.Mutex=Mutex;
+__as1(_, 'Mutex', Mutex);
 
 let NormalizedEvent=class NormalizedEvent {
     _event;
@@ -733,7 +734,7 @@ let NormalizedEvent=class NormalizedEvent {
     }
 }
 NormalizedEvent.Namespace=`Aventus`;
-_.NormalizedEvent=NormalizedEvent;
+__as1(_, 'NormalizedEvent', NormalizedEvent);
 
 let Callback=class Callback {
     callbacks = new Map();
@@ -770,7 +771,7 @@ let Callback=class Callback {
     }
 }
 Callback.Namespace=`Aventus`;
-_.Callback=Callback;
+__as1(_, 'Callback', Callback);
 
 let compareObject=function compareObject(obj1, obj2) {
     if (Array.isArray(obj1)) {
@@ -855,7 +856,7 @@ let compareObject=function compareObject(obj1, obj2) {
         return obj1 === obj2;
     }
 }
-_.compareObject=compareObject;
+__as1(_, 'compareObject', compareObject);
 
 let getValueFromObject=function getValueFromObject(path, obj) {
     if (path === undefined) {
@@ -885,7 +886,7 @@ let getValueFromObject=function getValueFromObject(path, obj) {
     }
     return val(splitted[splitted.length - 1]);
 }
-_.getValueFromObject=getValueFromObject;
+__as1(_, 'getValueFromObject', getValueFromObject);
 
 var WatchAction;
 (function (WatchAction) {
@@ -893,7 +894,7 @@ var WatchAction;
     WatchAction[WatchAction["UPDATED"] = 1] = "UPDATED";
     WatchAction[WatchAction["DELETED"] = 2] = "DELETED";
 })(WatchAction || (WatchAction = {}));
-_.WatchAction=WatchAction;
+__as1(_, 'WatchAction', WatchAction);
 
 let Effect=class Effect {
     callbacks = [];
@@ -1008,7 +1009,7 @@ let Effect=class Effect {
     }
 }
 Effect.Namespace=`Aventus`;
-_.Effect=Effect;
+__as1(_, 'Effect', Effect);
 
 let Signal=class Signal {
     __subscribes = [];
@@ -1051,7 +1052,7 @@ let Signal=class Signal {
     }
 }
 Signal.Namespace=`Aventus`;
-_.Signal=Signal;
+__as1(_, 'Signal', Signal);
 
 let Computed=class Computed extends Effect {
     _value;
@@ -1091,7 +1092,7 @@ let Computed=class Computed extends Effect {
     }
 }
 Computed.Namespace=`Aventus`;
-_.Computed=Computed;
+__as1(_, 'Computed', Computed);
 
 let Watcher=class Watcher {
     constructor() { }
@@ -1930,7 +1931,7 @@ let Watcher=class Watcher {
     }
 }
 Watcher.Namespace=`Aventus`;
-_.Watcher=Watcher;
+__as1(_, 'Watcher', Watcher);
 
 let ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
     init() {
@@ -1948,7 +1949,7 @@ let ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
     run() { }
 }
 ComputedNoRecomputed.Namespace=`Aventus`;
-_.ComputedNoRecomputed=ComputedNoRecomputed;
+__as1(_, 'ComputedNoRecomputed', ComputedNoRecomputed);
 
 let PressManager=class PressManager {
     static globalConfig = {
@@ -2421,7 +2422,7 @@ let PressManager=class PressManager {
     }
 }
 PressManager.Namespace=`Aventus`;
-_.PressManager=PressManager;
+__as1(_, 'PressManager', PressManager);
 
 let Uri=class Uri {
     static prepare(uri) {
@@ -2499,7 +2500,7 @@ let Uri=class Uri {
     }
 }
 Uri.Namespace=`Aventus`;
-_.Uri=Uri;
+__as1(_, 'Uri', Uri);
 
 let State=class State {
     /**
@@ -2524,7 +2525,7 @@ let State=class State {
     }
 }
 State.Namespace=`Aventus`;
-_.State=State;
+__as1(_, 'State', State);
 
 let EmptyState=class EmptyState extends State {
     localName;
@@ -2540,7 +2541,7 @@ let EmptyState=class EmptyState extends State {
     }
 }
 EmptyState.Namespace=`Aventus`;
-_.EmptyState=EmptyState;
+__as1(_, 'EmptyState', EmptyState);
 
 let StateManager=class StateManager {
     subscribers = {};
@@ -2850,7 +2851,7 @@ let StateManager=class StateManager {
     }
 }
 StateManager.Namespace=`Aventus`;
-_.StateManager=StateManager;
+__as1(_, 'StateManager', StateManager);
 
 let TemplateContext=class TemplateContext {
     data = {};
@@ -3056,7 +3057,7 @@ let TemplateContext=class TemplateContext {
     }
 }
 TemplateContext.Namespace=`Aventus`;
-_.TemplateContext=TemplateContext;
+__as1(_, 'TemplateContext', TemplateContext);
 
 let TemplateInstance=class TemplateInstance {
     context;
@@ -3753,7 +3754,7 @@ let TemplateInstance=class TemplateInstance {
     }
 }
 TemplateInstance.Namespace=`Aventus`;
-_.TemplateInstance=TemplateInstance;
+__as1(_, 'TemplateInstance', TemplateInstance);
 
 let Template=class Template {
     static validatePath(path, pathToCheck) {
@@ -3891,7 +3892,7 @@ let Template=class Template {
     }
 }
 Template.Namespace=`Aventus`;
-_.Template=Template;
+__as1(_, 'Template', Template);
 
 let WebComponent=class WebComponent extends HTMLElement {
     /**
@@ -4635,7 +4636,7 @@ let WebComponent=class WebComponent extends HTMLElement {
     }
 }
 WebComponent.Namespace=`Aventus`;
-_.WebComponent=WebComponent;
+__as1(_, 'WebComponent', WebComponent);
 
 let WebComponentInstance=class WebComponentInstance {
     static __allDefinitions = [];
@@ -4708,7 +4709,7 @@ let WebComponentInstance=class WebComponentInstance {
     }
 }
 WebComponentInstance.Namespace=`Aventus`;
-_.WebComponentInstance=WebComponentInstance;
+__as1(_, 'WebComponentInstance', WebComponentInstance);
 
 let GenericError=class GenericError {
     /**
@@ -4734,7 +4735,7 @@ let GenericError=class GenericError {
     }
 }
 GenericError.Namespace=`Aventus`;
-_.GenericError=GenericError;
+__as1(_, 'GenericError', GenericError);
 
 let VoidWithError=class VoidWithError {
     /**
@@ -4785,7 +4786,7 @@ let VoidWithError=class VoidWithError {
     }
 }
 VoidWithError.Namespace=`Aventus`;
-_.VoidWithError=VoidWithError;
+__as1(_, 'VoidWithError', VoidWithError);
 
 let ResultWithError=class ResultWithError extends VoidWithError {
     /**
@@ -4805,7 +4806,7 @@ let ResultWithError=class ResultWithError extends VoidWithError {
     }
 }
 ResultWithError.Namespace=`Aventus`;
-_.ResultWithError=ResultWithError;
+__as1(_, 'ResultWithError', ResultWithError);
 
 let ResourceLoader=class ResourceLoader {
     static headerLoaded = {};
@@ -4975,7 +4976,7 @@ let ResourceLoader=class ResourceLoader {
     }
 }
 ResourceLoader.Namespace=`Aventus`;
-_.ResourceLoader=ResourceLoader;
+__as1(_, 'ResourceLoader', ResourceLoader);
 
 let ResizeObserver=class ResizeObserver {
     callback;
@@ -5105,7 +5106,7 @@ let ResizeObserver=class ResizeObserver {
     }
 }
 ResizeObserver.Namespace=`Aventus`;
-_.ResizeObserver=ResizeObserver;
+__as1(_, 'ResizeObserver', ResizeObserver);
 
 let Animation=class Animation {
     /**
@@ -5193,7 +5194,7 @@ let Animation=class Animation {
     }
 }
 Animation.Namespace=`Aventus`;
-_.Animation=Animation;
+__as1(_, 'Animation', Animation);
 
 let DragAndDrop=class DragAndDrop {
     /**
@@ -5756,12 +5757,12 @@ let DragAndDrop=class DragAndDrop {
     }
 }
 DragAndDrop.Namespace=`Aventus`;
-_.DragAndDrop=DragAndDrop;
+__as1(_, 'DragAndDrop', DragAndDrop);
 
 let HttpError=class HttpError extends GenericError {
 }
 HttpError.Namespace=`Aventus`;
-_.HttpError=HttpError;
+__as1(_, 'HttpError', HttpError);
 
 let Json=class Json {
     /**
@@ -5850,7 +5851,7 @@ let Json=class Json {
     }
 }
 Json.Namespace=`Aventus`;
-_.Json=Json;
+__as1(_, 'Json', Json);
 
 let Data=class Data {
     /**
@@ -5900,7 +5901,7 @@ let Data=class Data {
     }
 }
 Data.Namespace=`Aventus`;
-_.Data=Data;
+__as1(_, 'Data', Data);
 
 let ConverterTransform=class ConverterTransform {
     transform(data) {
@@ -6030,7 +6031,7 @@ let ConverterTransform=class ConverterTransform {
     }
 }
 ConverterTransform.Namespace=`Aventus`;
-_.ConverterTransform=ConverterTransform;
+__as1(_, 'ConverterTransform', ConverterTransform);
 
 let Converter=class Converter {
     /**
@@ -6100,7 +6101,7 @@ let Converter=class Converter {
     }
 }
 Converter.Namespace=`Aventus`;
-_.Converter=Converter;
+__as1(_, 'Converter', Converter);
 
 let HttpRequest=class HttpRequest {
     static options;
@@ -6346,7 +6347,7 @@ let HttpRequest=class HttpRequest {
     }
 }
 HttpRequest.Namespace=`Aventus`;
-_.HttpRequest=HttpRequest;
+__as1(_, 'HttpRequest', HttpRequest);
 
 let HttpRouter=class HttpRouter {
     options;
@@ -6378,7 +6379,7 @@ let HttpRouter=class HttpRouter {
     }
 }
 HttpRouter.Namespace=`Aventus`;
-_.HttpRouter=HttpRouter;
+__as1(_, 'HttpRouter', HttpRouter);
 
 let HttpRoute=class HttpRoute {
     router;
@@ -6390,7 +6391,7 @@ let HttpRoute=class HttpRoute {
     }
 }
 HttpRoute.Namespace=`Aventus`;
-_.HttpRoute=HttpRoute;
+__as1(_, 'HttpRoute', HttpRoute);
 
 
 for(let key in _) { Aventus[key] = _[key] }
@@ -6399,6 +6400,7 @@ for(let key in _) { Aventus[key] = _[key] }
 var Aventus;
 (Aventus||(Aventus = {}));
 (function (Aventus) {
+const __as1 = (o, k, c) => { if (o[k] !== undefined) for (let w in o[k]) { c[w] = o[k][w] } o[k] = c; }
 const moduleName = `Aventus`;
 const _ = {};
 
@@ -6526,7 +6528,7 @@ const ProgressCircle = class ProgressCircle extends Aventus.WebComponent {
 }
 ProgressCircle.Namespace=`Aventus`;
 ProgressCircle.Tag=`av-progress-circle`;
-_.ProgressCircle=ProgressCircle;
+__as1(_, 'ProgressCircle', ProgressCircle);
 if(!window.customElements.get('av-progress-circle')){window.customElements.define('av-progress-circle', ProgressCircle);Aventus.WebComponentInstance.registerDefinition(ProgressCircle);}
 
 let Tracker=class Tracker {
@@ -6567,7 +6569,7 @@ let Tracker=class Tracker {
     }
 }
 Tracker.Namespace=`Aventus`;
-_.Tracker=Tracker;
+__as1(_, 'Tracker', Tracker);
 
 Layout.Row = class Row extends Aventus.WebComponent {
     static __style = `:host{--_col-gap: var(--col-gap, 0px)}:host{container-name:row;container-type:inline-size;display:flex;flex-direction:row;flex-wrap:wrap;gap:var(--_col-gap);width:100%}`;
@@ -6596,7 +6598,7 @@ Layout.Row = class Row extends Aventus.WebComponent {
 }
 Layout.Row.Namespace=`Aventus.Layout`;
 Layout.Row.Tag=`av-row`;
-_.Layout.Row=Layout.Row;
+__as1(_.Layout, 'Row', Layout.Row);
 if(!window.customElements.get('av-row')){window.customElements.define('av-row', Layout.Row);Aventus.WebComponentInstance.registerDefinition(Layout.Row);}
 
 (function (SpecialTouch) {
@@ -6619,7 +6621,7 @@ if(!window.customElements.get('av-row')){window.customElements.define('av-row', 
     SpecialTouch[SpecialTouch["ArrowDown"] = 16] = "ArrowDown";
     SpecialTouch[SpecialTouch["Enter"] = 17] = "Enter";
 })(Lib.SpecialTouch || (Lib.SpecialTouch = {}));
-_.Lib.SpecialTouch=Lib.SpecialTouch;
+__as1(_.Lib, 'SpecialTouch', Lib.SpecialTouch);
 
 Layout.GridCol = class GridCol extends Aventus.WebComponent {
     get 'column'() { return this.getStringAttr('column') }
@@ -6649,7 +6651,7 @@ Layout.GridCol = class GridCol extends Aventus.WebComponent {
 }
 Layout.GridCol.Namespace=`Aventus.Layout`;
 Layout.GridCol.Tag=`av-grid-col`;
-_.Layout.GridCol=Layout.GridCol;
+__as1(_.Layout, 'GridCol', Layout.GridCol);
 if(!window.customElements.get('av-grid-col')){window.customElements.define('av-grid-col', Layout.GridCol);Aventus.WebComponentInstance.registerDefinition(Layout.GridCol);}
 
 Layout.Grid = class Grid extends Aventus.WebComponent {
@@ -6678,7 +6680,7 @@ Layout.Grid = class Grid extends Aventus.WebComponent {
 }
 Layout.Grid.Namespace=`Aventus.Layout`;
 Layout.Grid.Tag=`av-grid`;
-_.Layout.Grid=Layout.Grid;
+__as1(_.Layout, 'Grid', Layout.Grid);
 if(!window.customElements.get('av-grid')){window.customElements.define('av-grid', Layout.Grid);Aventus.WebComponentInstance.registerDefinition(Layout.Grid);}
 
 Layout.DynamicRow = class DynamicRow extends Aventus.WebComponent {
@@ -6727,7 +6729,7 @@ Layout.DynamicRow = class DynamicRow extends Aventus.WebComponent {
 }
 Layout.DynamicRow.Namespace=`Aventus.Layout`;
 Layout.DynamicRow.Tag=`av-dynamic-row`;
-_.Layout.DynamicRow=Layout.DynamicRow;
+__as1(_.Layout, 'DynamicRow', Layout.DynamicRow);
 if(!window.customElements.get('av-dynamic-row')){window.customElements.define('av-dynamic-row', Layout.DynamicRow);Aventus.WebComponentInstance.registerDefinition(Layout.DynamicRow);}
 
 Layout.DynamicCol = class DynamicCol extends Aventus.WebComponent {
@@ -6775,7 +6777,7 @@ Layout.DynamicCol = class DynamicCol extends Aventus.WebComponent {
 }
 Layout.DynamicCol.Namespace=`Aventus.Layout`;
 Layout.DynamicCol.Tag=`av-dynamic-col`;
-_.Layout.DynamicCol=Layout.DynamicCol;
+__as1(_.Layout, 'DynamicCol', Layout.DynamicCol);
 if(!window.customElements.get('av-dynamic-col')){window.customElements.define('av-dynamic-col', Layout.DynamicCol);Aventus.WebComponentInstance.registerDefinition(Layout.DynamicCol);}
 
 const Collapse = class Collapse extends Aventus.WebComponent {
@@ -6828,7 +6830,7 @@ const Collapse = class Collapse extends Aventus.WebComponent {
 }
 Collapse.Namespace=`Aventus`;
 Collapse.Tag=`av-collapse`;
-_.Collapse=Collapse;
+__as1(_, 'Collapse', Collapse);
 if(!window.customElements.get('av-collapse')){window.customElements.define('av-collapse', Collapse);Aventus.WebComponentInstance.registerDefinition(Collapse);}
 
 Layout.Col = class Col extends Aventus.WebComponent {
@@ -6881,7 +6883,7 @@ Layout.Col = class Col extends Aventus.WebComponent {
 }
 Layout.Col.Namespace=`Aventus.Layout`;
 Layout.Col.Tag=`av-col`;
-_.Layout.Col=Layout.Col;
+__as1(_.Layout, 'Col', Layout.Col);
 if(!window.customElements.get('av-col')){window.customElements.define('av-col', Layout.Col);Aventus.WebComponentInstance.registerDefinition(Layout.Col);}
 
 const Img = class Img extends Aventus.WebComponent {
@@ -7061,7 +7063,7 @@ const Img = class Img extends Aventus.WebComponent {
 }
 Img.Namespace=`Aventus`;
 Img.Tag=`av-img`;
-_.Img=Img;
+__as1(_, 'Img', Img);
 if(!window.customElements.get('av-img')){window.customElements.define('av-img', Img);Aventus.WebComponentInstance.registerDefinition(Img);}
 
 Form.isSubclassOf=function isSubclassOf(subClass, superClass) {
@@ -7075,7 +7077,7 @@ Form.isSubclassOf=function isSubclassOf(subClass, superClass) {
     }
     return false;
 }
-_.Form.isSubclassOf=Form.isSubclassOf;
+__as1(_.Form, 'isSubclassOf', Form.isSubclassOf);
 
 Navigation.Page = class Page extends Aventus.WebComponent {
     static get observedAttributes() {return ["visible"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
@@ -7134,7 +7136,7 @@ Navigation.Page = class Page extends Aventus.WebComponent {
     }
 }
 Navigation.Page.Namespace=`Aventus.Navigation`;
-_.Navigation.Page=Navigation.Page;
+__as1(_.Navigation, 'Page', Navigation.Page);
 
 let RouterStateManager=class RouterStateManager extends Aventus.StateManager {
     static getInstance() {
@@ -7142,7 +7144,7 @@ let RouterStateManager=class RouterStateManager extends Aventus.StateManager {
     }
 }
 RouterStateManager.Namespace=`Aventus`;
-_.RouterStateManager=RouterStateManager;
+__as1(_, 'RouterStateManager', RouterStateManager);
 
 Navigation.RouterLink = class RouterLink extends Aventus.WebComponent {
     get 'state'() { return this.getStringAttr('state') }
@@ -7233,7 +7235,7 @@ Navigation.RouterLink = class RouterLink extends Aventus.WebComponent {
 }
 Navigation.RouterLink.Namespace=`Aventus.Navigation`;
 Navigation.RouterLink.Tag=`av-router-link`;
-_.Navigation.RouterLink=Navigation.RouterLink;
+__as1(_.Navigation, 'RouterLink', Navigation.RouterLink);
 if(!window.customElements.get('av-router-link')){window.customElements.define('av-router-link', Navigation.RouterLink);Aventus.WebComponentInstance.registerDefinition(Navigation.RouterLink);}
 
 Navigation.Link = class Link extends Aventus.WebComponent {
@@ -7326,7 +7328,7 @@ Navigation.Link = class Link extends Aventus.WebComponent {
 }
 Navigation.Link.Namespace=`Aventus.Navigation`;
 Navigation.Link.Tag=`av-link`;
-_.Navigation.Link=Navigation.Link;
+__as1(_.Navigation, 'Link', Navigation.Link);
 if(!window.customElements.get('av-link')){window.customElements.define('av-link', Navigation.Link);Aventus.WebComponentInstance.registerDefinition(Navigation.Link);}
 
 Layout.Tabs.Tabs = class Tabs extends Aventus.WebComponent {
@@ -7427,7 +7429,7 @@ Layout.Tabs.Tabs = class Tabs extends Aventus.WebComponent {
     }
 }
 Layout.Tabs.Tabs.Namespace=`Aventus.Layout.Tabs`;
-_.Layout.Tabs.Tabs=Layout.Tabs.Tabs;
+__as1(_.Layout.Tabs, 'Tabs', Layout.Tabs.Tabs);
 
 Form.Validator=class Validator {
     constructor() { this.validate = this.validate.bind(this); }
@@ -7455,7 +7457,7 @@ Form.Validator=class Validator {
     }
 }
 Form.Validator.Namespace=`Aventus.Form`;
-_.Form.Validator=Form.Validator;
+__as1(_.Form, 'Validator', Form.Validator);
 
 Form.Validators.Required=class Required extends _.Form.Validator {
     static msg = "Le champs {name} est requis";
@@ -7479,7 +7481,7 @@ Form.Validators.Required=class Required extends _.Form.Validator {
     }
 }
 Form.Validators.Required.Namespace=`Aventus.Form.Validators`;
-_.Form.Validators.Required=Form.Validators.Required;
+__as1(_.Form.Validators, 'Required', Form.Validators.Required);
 
 Form.Validators.Email=class Email extends _.Form.Validator {
     static msg = "Merci de saisir un email valide";
@@ -7502,7 +7504,7 @@ Form.Validators.Email=class Email extends _.Form.Validator {
     }
 }
 Form.Validators.Email.Namespace=`Aventus.Form.Validators`;
-_.Form.Validators.Email=Form.Validators.Email;
+__as1(_.Form.Validators, 'Email', Form.Validators.Email);
 
 Form.Button = class Button extends Aventus.WebComponent {
     static get observedAttributes() {return ["icon"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
@@ -7543,7 +7545,7 @@ Form.Button = class Button extends Aventus.WebComponent {
 }
 Form.Button.Namespace=`Aventus.Form`;
 Form.Button.Tag=`av-button`;
-_.Form.Button=Form.Button;
+__as1(_.Form, 'Button', Form.Button);
 if(!window.customElements.get('av-button')){window.customElements.define('av-button', Form.Button);Aventus.WebComponentInstance.registerDefinition(Form.Button);}
 
 Form.FormElement = class FormElement extends Aventus.WebComponent {
@@ -7658,6 +7660,9 @@ Form.FormElement = class FormElement extends Aventus.WebComponent {
         }
         return await this.form.test();
     }
+    async validation() {
+        return [];
+    }
     clearErrors() {
         this.errors = [];
     }
@@ -7716,7 +7721,7 @@ Form.FormElement = class FormElement extends Aventus.WebComponent {
     }
 }
 Form.FormElement.Namespace=`Aventus.Form`;
-_.Form.FormElement=Form.FormElement;
+__as1(_.Form, 'FormElement', Form.FormElement);
 
 Form.Input = class Input extends Form.FormElement {
     static get observedAttributes() {return ["type", "placeholder", "label", "value"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
@@ -7835,7 +7840,7 @@ Form.Input = class Input extends Form.FormElement {
 }
 Form.Input.Namespace=`Aventus.Form`;
 Form.Input.Tag=`av-input`;
-_.Form.Input=Form.Input;
+__as1(_.Form, 'Input', Form.Input);
 if(!window.customElements.get('av-input')){window.customElements.define('av-input', Form.Input);Aventus.WebComponentInstance.registerDefinition(Form.Input);}
 
 Form.ButtonElement = class ButtonElement extends Aventus.WebComponent {
@@ -7908,7 +7913,7 @@ Form.ButtonElement = class ButtonElement extends Aventus.WebComponent {
     }
 }
 Form.ButtonElement.Namespace=`Aventus.Form`;
-_.Form.ButtonElement=Form.ButtonElement;
+__as1(_.Form, 'ButtonElement', Form.ButtonElement);
 
 Form.Form = class Form extends Aventus.WebComponent {
     static get defaultConfig() {
@@ -7991,7 +7996,7 @@ Form.Form = class Form extends Aventus.WebComponent {
 }
 Form.Form.Namespace=`Aventus.Form`;
 Form.Form.Tag=`av-form`;
-_.Form.Form=Form.Form;
+__as1(_.Form, 'Form', Form.Form);
 if(!window.customElements.get('av-form')){window.customElements.define('av-form', Form.Form);Aventus.WebComponentInstance.registerDefinition(Form.Form);}
 
 Navigation.PageForm = class PageForm extends Navigation.Page {
@@ -8062,7 +8067,7 @@ Navigation.PageForm = class PageForm extends Navigation.Page {
     }
 }
 Navigation.PageForm.Namespace=`Aventus.Navigation`;
-_.Navigation.PageForm=Navigation.PageForm;
+__as1(_.Navigation, 'PageForm', Navigation.PageForm);
 
 Navigation.PageFormRoute = class PageFormRoute extends Navigation.PageForm {
     static __style = ``;
@@ -8101,7 +8106,7 @@ Navigation.PageFormRoute = class PageFormRoute extends Navigation.PageForm {
     beforeSubmit() { }
 }
 Navigation.PageFormRoute.Namespace=`Aventus.Navigation`;
-_.Navigation.PageFormRoute=Navigation.PageFormRoute;
+__as1(_.Navigation, 'PageFormRoute', Navigation.PageFormRoute);
 
 Form.FormHandler=class FormHandler {
     static _globalConfig;
@@ -8451,7 +8456,7 @@ Form.FormHandler=class FormHandler {
     }
 }
 Form.FormHandler.Namespace=`Aventus.Form`;
-_.Form.FormHandler=Form.FormHandler;
+__as1(_.Form, 'FormHandler', Form.FormHandler);
 
 Lib.ShortcutManager=class ShortcutManager {
     static memory = {};
@@ -8633,7 +8638,7 @@ Lib.ShortcutManager=class ShortcutManager {
     }
 }
 Lib.ShortcutManager.Namespace=`Aventus.Lib`;
-_.Lib.ShortcutManager=Lib.ShortcutManager;
+__as1(_.Lib, 'ShortcutManager', Lib.ShortcutManager);
 
 Layout.GridHelper = class GridHelper extends Aventus.WebComponent {
     static get observedAttributes() {return ["nb_col", "nb_row", "col_width", "row_height"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
@@ -8770,7 +8775,7 @@ Layout.GridHelper = class GridHelper extends Aventus.WebComponent {
 }
 Layout.GridHelper.Namespace=`Aventus.Layout`;
 Layout.GridHelper.Tag=`av-grid-helper`;
-_.Layout.GridHelper=Layout.GridHelper;
+__as1(_.Layout, 'GridHelper', Layout.GridHelper);
 if(!window.customElements.get('av-grid-helper')){window.customElements.define('av-grid-helper', Layout.GridHelper);Aventus.WebComponentInstance.registerDefinition(Layout.GridHelper);}
 
 let TouchRecord=class TouchRecord {
@@ -8905,7 +8910,7 @@ let TouchRecord=class TouchRecord {
     }
 }
 TouchRecord.Namespace=`Aventus`;
-_.TouchRecord=TouchRecord;
+__as1(_, 'TouchRecord', TouchRecord);
 
 Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
     static get observedAttributes() {return ["zoom"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
@@ -9783,7 +9788,7 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
 }
 Layout.Scrollable.Namespace=`Aventus.Layout`;
 Layout.Scrollable.Tag=`av-scrollable`;
-_.Layout.Scrollable=Layout.Scrollable;
+__as1(_.Layout, 'Scrollable', Layout.Scrollable);
 if(!window.customElements.get('av-scrollable')){window.customElements.define('av-scrollable', Layout.Scrollable);Aventus.WebComponentInstance.registerDefinition(Layout.Scrollable);}
 
 Layout.Tabs.TabHeader = class TabHeader extends Aventus.WebComponent {
@@ -9845,7 +9850,7 @@ Layout.Tabs.TabHeader = class TabHeader extends Aventus.WebComponent {
     }
 }
 Layout.Tabs.TabHeader.Namespace=`Aventus.Layout.Tabs`;
-_.Layout.Tabs.TabHeader=Layout.Tabs.TabHeader;
+__as1(_.Layout.Tabs, 'TabHeader', Layout.Tabs.TabHeader);
 
 Layout.Tabs.Tab = class Tab extends Aventus.WebComponent {
     get 'selected'() { return this.getBoolAttr('selected') }
@@ -9883,7 +9888,7 @@ Layout.Tabs.Tab = class Tab extends Aventus.WebComponent {
     __listBoolProps() { return ["selected"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
 }
 Layout.Tabs.Tab.Namespace=`Aventus.Layout.Tabs`;
-_.Layout.Tabs.Tab=Layout.Tabs.Tab;
+__as1(_.Layout.Tabs, 'Tab', Layout.Tabs.Tab);
 
 Modal.ModalElement = class ModalElement extends Aventus.WebComponent {
     get 'options'() {
@@ -10012,7 +10017,7 @@ Modal.ModalElement = class ModalElement extends Aventus.WebComponent {
     }
 }
 Modal.ModalElement.Namespace=`Aventus.Modal`;
-_.Modal.ModalElement=Modal.ModalElement;
+__as1(_.Modal, 'ModalElement', Modal.ModalElement);
 
 Navigation.Default404 = class Default404 extends Navigation.Page {
     static __style = `:host{align-items:center;height:100%;justify-content:center;width:100%}:host h1{font-size:48px;text-align:center}:host([visible]){display:flex}`;
@@ -10040,7 +10045,7 @@ Navigation.Default404 = class Default404 extends Navigation.Page {
 }
 Navigation.Default404.Namespace=`Aventus.Navigation`;
 Navigation.Default404.Tag=`av-default-404`;
-_.Navigation.Default404=Navigation.Default404;
+__as1(_.Navigation, 'Default404', Navigation.Default404);
 if(!window.customElements.get('av-default-404')){window.customElements.define('av-default-404', Navigation.Default404);Aventus.WebComponentInstance.registerDefinition(Navigation.Default404);}
 
 Navigation.Router = class Router extends Aventus.WebComponent {
@@ -10288,7 +10293,7 @@ Navigation.Router = class Router extends Aventus.WebComponent {
     }
 }
 Navigation.Router.Namespace=`Aventus.Navigation`;
-_.Navigation.Router=Navigation.Router;
+__as1(_.Navigation, 'Router', Navigation.Router);
 
 Toast.ToastElement = class ToastElement extends Aventus.WebComponent {
     get 'position'() { return this.getStringAttr('position') }
@@ -10391,7 +10396,7 @@ Toast.ToastElement = class ToastElement extends Aventus.WebComponent {
     }
 }
 Toast.ToastElement.Namespace=`Aventus.Toast`;
-_.Toast.ToastElement=Toast.ToastElement;
+__as1(_.Toast, 'ToastElement', Toast.ToastElement);
 
 Toast.ToastManager = class ToastManager extends Aventus.WebComponent {
     get 'gap'() { return this.getNumberAttr('gap') }
@@ -10625,7 +10630,7 @@ Toast.ToastManager = class ToastManager extends Aventus.WebComponent {
 }
 Toast.ToastManager.Namespace=`Aventus.Toast`;
 Toast.ToastManager.Tag=`av-toast-manager`;
-_.Toast.ToastManager=Toast.ToastManager;
+__as1(_.Toast, 'ToastManager', Toast.ToastManager);
 if(!window.customElements.get('av-toast-manager')){window.customElements.define('av-toast-manager', Toast.ToastManager);Aventus.WebComponentInstance.registerDefinition(Toast.ToastManager);}
 
 

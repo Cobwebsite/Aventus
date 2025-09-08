@@ -31,6 +31,7 @@ if(!Object.hasOwn(window, "AvInstance")) {
 var Aventus;
 (Aventus||(Aventus = {}));
 (function (Aventus) {
+const __as1 = (o, k, c) => { if (o[k] !== undefined) for (let w in o[k]) { c[w] = o[k][w] } o[k] = c; }
 const moduleName = `Aventus`;
 const _ = {};
 
@@ -311,7 +312,7 @@ let ElementExtension=class ElementExtension {
     }
 }
 ElementExtension.Namespace=`Aventus`;
-_.ElementExtension=ElementExtension;
+__as1(_, 'ElementExtension', ElementExtension);
 
 let Instance=class Instance {
     static elements = new Map();
@@ -338,7 +339,7 @@ let Instance=class Instance {
     }
 }
 Instance.Namespace=`Aventus`;
-_.Instance=Instance;
+__as1(_, 'Instance', Instance);
 
 let Style=class Style {
     static instance;
@@ -433,7 +434,7 @@ let Style=class Style {
     }
 }
 Style.Namespace=`Aventus`;
-_.Style=Style;
+__as1(_, 'Style', Style);
 
 let setValueToObject=function setValueToObject(path, obj, value) {
     path = path.replace(/\[(.*?)\]/g, '.$1');
@@ -460,7 +461,7 @@ let setValueToObject=function setValueToObject(path, obj, value) {
         obj[splitted[splitted.length - 1]] = value;
     }
 }
-_.setValueToObject=setValueToObject;
+__as1(_, 'setValueToObject', setValueToObject);
 
 let Mutex=class Mutex {
     /**
@@ -603,7 +604,7 @@ let Mutex=class Mutex {
     }
 }
 Mutex.Namespace=`Aventus`;
-_.Mutex=Mutex;
+__as1(_, 'Mutex', Mutex);
 
 let NormalizedEvent=class NormalizedEvent {
     _event;
@@ -682,7 +683,7 @@ let NormalizedEvent=class NormalizedEvent {
     }
 }
 NormalizedEvent.Namespace=`Aventus`;
-_.NormalizedEvent=NormalizedEvent;
+__as1(_, 'NormalizedEvent', NormalizedEvent);
 
 let Callback=class Callback {
     callbacks = new Map();
@@ -719,7 +720,7 @@ let Callback=class Callback {
     }
 }
 Callback.Namespace=`Aventus`;
-_.Callback=Callback;
+__as1(_, 'Callback', Callback);
 
 let compareObject=function compareObject(obj1, obj2) {
     if (Array.isArray(obj1)) {
@@ -804,7 +805,7 @@ let compareObject=function compareObject(obj1, obj2) {
         return obj1 === obj2;
     }
 }
-_.compareObject=compareObject;
+__as1(_, 'compareObject', compareObject);
 
 let getValueFromObject=function getValueFromObject(path, obj) {
     if (path === undefined) {
@@ -834,7 +835,7 @@ let getValueFromObject=function getValueFromObject(path, obj) {
     }
     return val(splitted[splitted.length - 1]);
 }
-_.getValueFromObject=getValueFromObject;
+__as1(_, 'getValueFromObject', getValueFromObject);
 
 var WatchAction;
 (function (WatchAction) {
@@ -842,7 +843,7 @@ var WatchAction;
     WatchAction[WatchAction["UPDATED"] = 1] = "UPDATED";
     WatchAction[WatchAction["DELETED"] = 2] = "DELETED";
 })(WatchAction || (WatchAction = {}));
-_.WatchAction=WatchAction;
+__as1(_, 'WatchAction', WatchAction);
 
 let Effect=class Effect {
     callbacks = [];
@@ -957,7 +958,7 @@ let Effect=class Effect {
     }
 }
 Effect.Namespace=`Aventus`;
-_.Effect=Effect;
+__as1(_, 'Effect', Effect);
 
 let Signal=class Signal {
     __subscribes = [];
@@ -1000,7 +1001,7 @@ let Signal=class Signal {
     }
 }
 Signal.Namespace=`Aventus`;
-_.Signal=Signal;
+__as1(_, 'Signal', Signal);
 
 let Watcher=class Watcher {
     constructor() { }
@@ -1839,7 +1840,7 @@ let Watcher=class Watcher {
     }
 }
 Watcher.Namespace=`Aventus`;
-_.Watcher=Watcher;
+__as1(_, 'Watcher', Watcher);
 
 let Computed=class Computed extends Effect {
     _value;
@@ -1879,7 +1880,7 @@ let Computed=class Computed extends Effect {
     }
 }
 Computed.Namespace=`Aventus`;
-_.Computed=Computed;
+__as1(_, 'Computed', Computed);
 
 let ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
     init() {
@@ -1897,7 +1898,7 @@ let ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
     run() { }
 }
 ComputedNoRecomputed.Namespace=`Aventus`;
-_.ComputedNoRecomputed=ComputedNoRecomputed;
+__as1(_, 'ComputedNoRecomputed', ComputedNoRecomputed);
 
 let PressManager=class PressManager {
     static globalConfig = {
@@ -2370,7 +2371,7 @@ let PressManager=class PressManager {
     }
 }
 PressManager.Namespace=`Aventus`;
-_.PressManager=PressManager;
+__as1(_, 'PressManager', PressManager);
 
 let Uri=class Uri {
     static prepare(uri) {
@@ -2448,7 +2449,7 @@ let Uri=class Uri {
     }
 }
 Uri.Namespace=`Aventus`;
-_.Uri=Uri;
+__as1(_, 'Uri', Uri);
 
 let State=class State {
     /**
@@ -2473,7 +2474,7 @@ let State=class State {
     }
 }
 State.Namespace=`Aventus`;
-_.State=State;
+__as1(_, 'State', State);
 
 let EmptyState=class EmptyState extends State {
     localName;
@@ -2489,7 +2490,7 @@ let EmptyState=class EmptyState extends State {
     }
 }
 EmptyState.Namespace=`Aventus`;
-_.EmptyState=EmptyState;
+__as1(_, 'EmptyState', EmptyState);
 
 let StateManager=class StateManager {
     subscribers = {};
@@ -2799,7 +2800,7 @@ let StateManager=class StateManager {
     }
 }
 StateManager.Namespace=`Aventus`;
-_.StateManager=StateManager;
+__as1(_, 'StateManager', StateManager);
 
 let TemplateContext=class TemplateContext {
     data = {};
@@ -3005,7 +3006,7 @@ let TemplateContext=class TemplateContext {
     }
 }
 TemplateContext.Namespace=`Aventus`;
-_.TemplateContext=TemplateContext;
+__as1(_, 'TemplateContext', TemplateContext);
 
 let TemplateInstance=class TemplateInstance {
     context;
@@ -3702,7 +3703,7 @@ let TemplateInstance=class TemplateInstance {
     }
 }
 TemplateInstance.Namespace=`Aventus`;
-_.TemplateInstance=TemplateInstance;
+__as1(_, 'TemplateInstance', TemplateInstance);
 
 let Template=class Template {
     static validatePath(path, pathToCheck) {
@@ -3840,7 +3841,7 @@ let Template=class Template {
     }
 }
 Template.Namespace=`Aventus`;
-_.Template=Template;
+__as1(_, 'Template', Template);
 
 let WebComponent=class WebComponent extends HTMLElement {
     /**
@@ -4584,7 +4585,7 @@ let WebComponent=class WebComponent extends HTMLElement {
     }
 }
 WebComponent.Namespace=`Aventus`;
-_.WebComponent=WebComponent;
+__as1(_, 'WebComponent', WebComponent);
 
 let WebComponentInstance=class WebComponentInstance {
     static __allDefinitions = [];
@@ -4657,7 +4658,7 @@ let WebComponentInstance=class WebComponentInstance {
     }
 }
 WebComponentInstance.Namespace=`Aventus`;
-_.WebComponentInstance=WebComponentInstance;
+__as1(_, 'WebComponentInstance', WebComponentInstance);
 
 
 for(let key in _) { Aventus[key] = _[key] }
@@ -4666,6 +4667,7 @@ for(let key in _) { Aventus[key] = _[key] }
 var dependances;
 (dependances||(dependances = {}));
 (function (dependances) {
+const __as1 = (o, k, c) => { if (o[k] !== undefined) for (let w in o[k]) { c[w] = o[k][w] } o[k] = c; }
 const moduleName = `dependances`;
 const _ = {};
 
@@ -4685,7 +4687,7 @@ let Message=class Message {
     }
 }
 Message.Namespace=`dependances`;
-_.Message=Message;
+__as1(_, 'Message', Message);
 
 const GeneralInformation = class GeneralInformation extends Aventus.WebComponent {
     static __style = `:host>div{margin:16px 0}`;
@@ -4708,7 +4710,7 @@ const GeneralInformation = class GeneralInformation extends Aventus.WebComponent
 }
 GeneralInformation.Namespace=`dependances`;
 GeneralInformation.Tag=`av-general-information`;
-_.GeneralInformation=GeneralInformation;
+__as1(_, 'GeneralInformation', GeneralInformation);
 if(!window.customElements.get('av-general-information')){window.customElements.define('av-general-information', GeneralInformation);Aventus.WebComponentInstance.registerDefinition(GeneralInformation);}
 
 const Dependances = class Dependances extends Aventus.WebComponent {
@@ -4779,7 +4781,7 @@ const Dependances = class Dependances extends Aventus.WebComponent {
 }
 Dependances.Namespace=`dependances`;
 Dependances.Tag=`av-dependances`;
-_.Dependances=Dependances;
+__as1(_, 'Dependances', Dependances);
 if(!window.customElements.get('av-dependances')){window.customElements.define('av-dependances', Dependances);Aventus.WebComponentInstance.registerDefinition(Dependances);}
 
 const Icon = class Icon extends Aventus.WebComponent {
@@ -4803,7 +4805,7 @@ const Icon = class Icon extends Aventus.WebComponent {
 }
 Icon.Namespace=`dependances`;
 Icon.Tag=`av-icon`;
-_.Icon=Icon;
+__as1(_, 'Icon', Icon);
 if(!window.customElements.get('av-icon')){window.customElements.define('av-icon', Icon);Aventus.WebComponentInstance.registerDefinition(Icon);}
 
 const ConfigurationEditor = class ConfigurationEditor extends Aventus.WebComponent {
@@ -4827,7 +4829,7 @@ const ConfigurationEditor = class ConfigurationEditor extends Aventus.WebCompone
 }
 ConfigurationEditor.Namespace=`dependances`;
 ConfigurationEditor.Tag=`av-configuration-editor`;
-_.ConfigurationEditor=ConfigurationEditor;
+__as1(_, 'ConfigurationEditor', ConfigurationEditor);
 if(!window.customElements.get('av-configuration-editor')){window.customElements.define('av-configuration-editor', ConfigurationEditor);Aventus.WebComponentInstance.registerDefinition(ConfigurationEditor);}
 
 

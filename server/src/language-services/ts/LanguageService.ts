@@ -616,7 +616,7 @@ export class AventusTsLanguageService {
                             else if (txt.startsWith("this.t(")) {
                                 const key = type.value;
                                 const fileTemp = this.build.tsFiles[file.uri];
-                                if(fileTemp instanceof AventusWebComponentLogicalFile) {
+                                if (fileTemp instanceof AventusWebComponentLogicalFile) {
                                     if (fileTemp.I18nFile?.parsed && fileTemp.I18nFile?.parsed[key]) {
                                         const fileI18n = fileTemp.I18nFile;
                                         const parsed = fileTemp.I18nFile.parsed[key];
@@ -1207,7 +1207,9 @@ export class AventusTsLanguageService {
 
                 }
                 if (element.isExported) {
-                    finalCompiled += "_." + element.fullName + "=" + element.fullName + ";";
+
+                    finalCompiled += `__as1(_${element.namespace != '' ? '.' + element.namespace : ''}, '${element.name}', ${element.fullName});`
+                    // finalCompiled += "_." + element.fullName + "=" + element.fullName + ";";
                     finalCompiled += EOL;
                 }
 
