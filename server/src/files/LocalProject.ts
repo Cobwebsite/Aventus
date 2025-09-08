@@ -16,16 +16,16 @@ export class LocalProjectManager {
 	}
 
 	private readProjects() {
-		let globalTemplate = this.templateManager.getGeneralTemplates();
-		let globalTemplateLength = this.templateManager.getGeneralTemplatesLength();
+		let globalProject = this.templateManager.getGeneralProjects();
+		let globalProjectLength = this.templateManager.getGeneralProjectsLength();
 		let uri = GenericServer.getWorkspaceUri()
 		if (uri) {
 			let aventusFolder = uriToPath(uri) + '/.aventus/projects';
-			return this.templateManager.readTemplates([aventusFolder], globalTemplate, globalTemplateLength);
+			return this.templateManager.readTemplates([aventusFolder], globalProject, globalProjectLength);
 		}
 		return {
-			templates: globalTemplate,
-			nb: globalTemplateLength
+			templates: globalProject,
+			nb: globalProjectLength
 		};
 	}
 }

@@ -457,6 +457,12 @@ export class TemplateScript {
 								let uuid = payload.config as string;
 								ProgressStop.send(uuid);
 							}
+							else if (payload.cmd == "log") {
+								console.log(payload.config)
+							}
+							else if (payload.cmd == "error") {
+								console.error(payload.config)
+							}
 						}
 					} catch (e) {
 						console.log(e);
@@ -485,10 +491,10 @@ export class TemplateScript {
 		const rootPath = join(serverFolder(), 'lib/templateScript/AventusTemplate.ts').replace(/\\/g, "\\\\");
 
 		const txt = `
-					import { AventusTemplate } from 'file://${rootPath}';
+					import { AventusTemplate, log } from 'file://${rootPath}';
 					import { Template } from 'file://${this.config.replace(/\\/g, "\\\\")}'
 					const t = new Template();
-					console.log(t.basicInfo())`;
+					log(t.basicInfo())`;
 
 
 		let tempPath = join(GenericServer.savePath, "temp");
@@ -503,14 +509,18 @@ export class TemplateScript {
 			description: ""
 		}
 		var a: string = "";
+		var err:string = "";
 		try {
-			a = spawnSync(`node`, ["--no-warnings", scriptPath], {
+			const sp = spawnSync(`node`, ["--no-warnings", scriptPath], {
 				cwd: this.folderPath,
-			}).stdout.toString();
+			});
+			err = sp.stderr.toString();
+			a = sp.stdout.toString();
 			const valuesTemp = JSON.parse(a.trim());
 			values = { ...values, ...valuesTemp };
 		} catch (e) {
 			console.log(e);
+			console.log(err);
 			console.log(a);
 		}
 		unlinkSync(scriptPath);

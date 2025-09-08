@@ -42,6 +42,16 @@ export type TemplateInfo = {
 	version?: Version
 }
 
+const trueLog = console.log;
+
+console.log = (message?: any, ...optionalParams: any[]) => {
+	trueLog(JSON.stringify({ cmd: "log", config: message }));
+}
+
+export function log(message?: any, ...optionalParams: any[]) {
+	trueLog(message, ...optionalParams);
+}
+
 export abstract class AventusTemplate {
 	private basicInfo() {
 		const defaultValues = {
@@ -139,11 +149,11 @@ export abstract class AventusTemplate {
 				delete this.waitingResponse[cmd];
 				resolve(response);
 			}
-			console.log(JSON.stringify({ cmd, config }));
+			log(JSON.stringify({ cmd, config }));
 		})
 	}
 	private runCommand(cmd: string, config?: any): void {
-		console.log(JSON.stringify({ cmd, config }));
+		log(JSON.stringify({ cmd, config }));
 	}
 
 	protected registerVar<T extends string>(name: T & (T extends ReservedVariables ? never : {}), value: string | null | undefined) {
@@ -166,64 +176,73 @@ export abstract class AventusTemplate {
 		let configFiles: { [path: string]: string } = {};
 		let filesPath: string[] = [];
 		const _internalLoop = async (currentPath) => {
-			let files = readdirSync(currentPath);
-			for (let file of files) {
-				let templatePath = currentPath + sep + file;
-				let relativePath = templatePath.replace(this.templatePath, "");
-				let exportPath = templatePath.replace(this.templatePath, this.destination);
-				exportPath = this.replaceVariables(exportPath);
-				exportPath = normalize(exportPath);
+			try {
+				let files = readdirSync(currentPath);
+				for (let file of files) {
+					let templatePath = currentPath + sep + file;
+					let relativePath = templatePath.replace(this.templatePath, "");
+					let exportPath = templatePath.replace(this.templatePath, this.destination);
+					exportPath = this.replaceVariables(exportPath);
+					exportPath = normalize(exportPath);
 
-				if (statSync(templatePath).isDirectory()) {
-					if (file == '.empty') continue;
-					if (file == '.git') continue;
 
-					const writeInfo: WriteInfo = {
-						content: '',
-						openFileOnEnd: () => { },
-						isDir: true,
-						rawContent: '',
-						templatePath: templatePath,
-						writePath: exportPath,
-						relativePath: relativePath
-					}
-					const result = cb(writeInfo)
-					if (result === false) continue;
-					mkdirSync(exportPath);
-					await _internalLoop(templatePath);
-				}
-				else {
-					if (templatePath == this.templatePath + sep + "template.avt" || templatePath == this.templatePath + sep + "template.avt.ts") {
-						continue;
-					}
-					let rawCtx = readFileSync(templatePath, 'utf-8');
-					this.variables["namespace"] = await this.runCommandWithAnswer("getNamespace", exportPath);
-					let ctx = this.replaceVariables(rawCtx);
-					ctx = this.replaceBlocks(ctx);
-					const writeInfo: WriteInfo = {
-						content: ctx,
-						openFileOnEnd: () => {
-							this.filesToOpen.push(writeInfo.writePath)
-						},
-						isDir: false,
-						rawContent: rawCtx,
-						templatePath: templatePath,
-						writePath: exportPath,
-						relativePath: relativePath
-					}
-					const result = cb(writeInfo)
+					if (statSync(templatePath).isDirectory()) {
+						if (file == '.git') continue;
 
-					if (result === false) continue;
-					if (file != "aventus.conf.avt") {
-						writeFileSync(exportPath, writeInfo.content);
-						if (exportPath.endsWith(".avt")) {
-							filesPath.push(writeInfo.writePath);
+						const writeInfo: WriteInfo = {
+							content: '',
+							openFileOnEnd: () => { },
+							isDir: true,
+							rawContent: '',
+							templatePath: templatePath,
+							writePath: exportPath,
+							relativePath: relativePath
 						}
+						const result = cb(writeInfo)
+						if (result === false) continue;
+						mkdirSync(exportPath, { recursive: true });
+						await _internalLoop(templatePath);
 					}
 					else {
-						configFiles[exportPath] = writeInfo.content;
+						if (file == '.empty') continue;
+						if (templatePath == this.templatePath + sep + "template.avt" || templatePath == this.templatePath + sep + "template.avt.ts") {
+							continue;
+						}
+						let rawCtx = readFileSync(templatePath, 'utf-8');
+						try {
+							this.variables["namespace"] = await this.runCommandWithAnswer("getNamespace", exportPath);
+						} catch (e) {
+
+						}
+						let ctx = this.replaceVariables(rawCtx);
+						ctx = this.replaceBlocks(ctx);
+						const writeInfo: WriteInfo = {
+							content: ctx,
+							openFileOnEnd: () => {
+								this.filesToOpen.push(writeInfo.writePath)
+							},
+							isDir: false,
+							rawContent: rawCtx,
+							templatePath: templatePath,
+							writePath: exportPath,
+							relativePath: relativePath
+						}
+						const result = cb(writeInfo)
+
+						if (result === false) continue;
+						if (file != "aventus.conf.avt") {
+							writeFileSync(exportPath, writeInfo.content);
+							if (exportPath.endsWith(".avt")) {
+								filesPath.push(writeInfo.writePath);
+							}
+						}
+						else {
+							configFiles[exportPath] = writeInfo.content;
+						}
 					}
 				}
+			} catch (e) {
+				console.log(e);
 			}
 		}
 
@@ -302,10 +321,10 @@ export abstract class AventusTemplate {
 	protected async hideProgress(uuid: string): Promise<void> {
 		await this.runCommand("progressStop", uuid);
 	}
-	protected async runWithProgress(txt:string, cb: () => Promise<void>) {
+	protected async runWithProgress(txt: string, cb: () => Promise<void>) {
 		let uuid = await this.showProgress(txt);
 		await cb();
-		if(uuid) {
+		if (uuid) {
 			await this.hideProgress(uuid);
 		}
 	}
