@@ -563,7 +563,7 @@ export abstract class BaseInfo {
             }
             else {
                 // if not imported on the top on the file we need to import it
-                const importInfo = ImportInfo.ManualLocalImport(this, dependance.fullName, dependance.uri);
+                const importInfo = ImportInfo.manualLocalImport(this, dependance.fullName, dependance.uri);
 
                 const fullNameOther = dependance.fullName;
                 let namespace1: string[] = this.fullName.split(".");

@@ -69,11 +69,13 @@ export abstract class AventusTemplate {
 	} = {}
 	protected filesToOpen: string[] = [];
 	protected destination: string = "";
+	protected workspacePath: string = "";
 	protected templatePath: string = "";
-	private _run(templatePath: string, destination: string) {
+	private _run(templatePath: string, destination: string, workspacePath: string) {
 		return new Promise<void>((resolve) => {
 			this.destination = destination;
 			this.templatePath = templatePath;
+			this.workspacePath = workspacePath;
 			this.defaultBlocks();
 			process.stdin.on("data", (data) => {
 				try {
@@ -169,9 +171,24 @@ export abstract class AventusTemplate {
 		this.blocks[name] = { ...defaultBlock, ...block };
 	}
 
+	protected defaultWriteDeny(info: WriteInfo, denyDir?: string[], denyFile?: string[]): boolean {
+		if (!denyDir) {
+			denyDir = [".git"]
+		}
+		if (!denyFile) {
+			denyFile = [".empty"]
+		}
+		const deny = info.isDir ? denyDir : denyFile;
+		for (let key of deny) {
+			if (info.templatePath.endsWith(sep + key))
+				return false;
+		}
+
+		return true;
+	}
 	protected async writeFile(cb?: WriteCallback) {
 		if (!cb) {
-			cb = () => true;
+			cb = this.defaultWriteDeny
 		}
 		let configFiles: { [path: string]: string } = {};
 		let filesPath: string[] = [];
@@ -187,8 +204,6 @@ export abstract class AventusTemplate {
 
 
 					if (statSync(templatePath).isDirectory()) {
-						if (file == '.git') continue;
-
 						const writeInfo: WriteInfo = {
 							content: '',
 							openFileOnEnd: () => { },
@@ -204,22 +219,17 @@ export abstract class AventusTemplate {
 						await _internalLoop(templatePath);
 					}
 					else {
-						if (file == '.empty') continue;
 						if (templatePath == this.templatePath + sep + "template.avt" || templatePath == this.templatePath + sep + "template.avt.ts") {
 							continue;
 						}
 						let rawCtx = readFileSync(templatePath, 'utf-8');
-						try {
-							this.variables["namespace"] = await this.runCommandWithAnswer("getNamespace", exportPath);
-						} catch (e) {
-
-						}
+						this.variables["namespace"] = await this.runCommandWithAnswer("getNamespace", exportPath);
 						let ctx = this.replaceVariables(rawCtx);
 						ctx = this.replaceBlocks(ctx);
 						const writeInfo: WriteInfo = {
 							content: ctx,
 							openFileOnEnd: () => {
-								this.filesToOpen.push(writeInfo.writePath)
+								this.filesToOpen.push(exportPath)
 							},
 							isDir: false,
 							rawContent: rawCtx,

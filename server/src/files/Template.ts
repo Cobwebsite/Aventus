@@ -295,6 +295,7 @@ export class TemplateJSON {
 export class TemplateScript {
 	public config: string;
 	public folderPath: string;
+	public workspacePath: string;
 
 	public name: string;
 	public version: string;
@@ -302,22 +303,23 @@ export class TemplateScript {
 	public lastModified: Date;
 
 	private static memory: { [key: string]: TemplateScript } = {}
-	public static create(config: string, folderPath: string) {
+	public static create(config: string, folderPath: string, workspacePath: string) {
 		if (this.memory[config]) {
 			let lastModified = statSync(config).mtime
 			if (lastModified.getTime() > this.memory[config].lastModified.getTime()) {
-				this.memory[config] = new TemplateScript(config, folderPath);
+				this.memory[config] = new TemplateScript(config, folderPath, workspacePath);
 			}
 		}
 		else {
-			this.memory[config] = new TemplateScript(config, folderPath);
+			this.memory[config] = new TemplateScript(config, folderPath, workspacePath);
 		}
 		return this.memory[config];
 	}
 
-	private constructor(config: string, folderPath: string) {
+	private constructor(config: string, folderPath: string, workspacePath: string) {
 		this.config = config;
 		this.folderPath = folderPath;
+		this.workspacePath = workspacePath;
 		const basicInfo = this.prepareScript();
 		this.name = basicInfo.name;
 		this.description = basicInfo.description;
@@ -339,7 +341,7 @@ export class TemplateScript {
 					});
 
 					const t = new Template();
-					await t._run(\`${this.folderPath.replace(/\\/g, "\\\\")}\`, \`${path.replace(/\\/g, "\\\\")}\`)`;
+					await t._run(\`${this.folderPath.replace(/\\/g, "\\\\")}\`, \`${path.replace(/\\/g, "\\\\")}\`, \`${this.workspacePath.replace(/\\/g, "\\\\")}\`)`;
 				let tempPath = join(GenericServer.savePath, "temp");
 				if (!existsSync(tempPath)) {
 					mkdirSync(tempPath);
@@ -354,7 +356,6 @@ export class TemplateScript {
 
 				const answer = (cmd: string, result: string | null) => {
 					const data = JSON.stringify({ cmd, result: result ?? 'NULL' }) + "\n";
-					console.log("send " + data);
 					child.stdin.write(data);
 				}
 
@@ -473,7 +474,7 @@ export class TemplateScript {
 
 				// Lire les erreurs du programme secondaire
 				child.stderr.on("data", (data) => {
-					console.error(`Erreur du programme secondaire: ${data.toString().trim()}`);
+					console.error(`Erreur with template : ${data.toString().trim()}`);
 				});
 
 				child.on("close", (code) => {
@@ -509,7 +510,7 @@ export class TemplateScript {
 			description: ""
 		}
 		var a: string = "";
-		var err:string = "";
+		var err: string = "";
 		try {
 			const sp = spawnSync(`node`, ["--no-warnings", scriptPath], {
 				cwd: this.folderPath,

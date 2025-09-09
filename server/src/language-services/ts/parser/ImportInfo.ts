@@ -1,4 +1,4 @@
-import { FunctionDeclaration, Identifier, ImportDeclaration, SyntaxKind, flattenDiagnosticMessageText, forEachChild } from 'typescript';
+import { FunctionDeclaration, Identifier, ImportDeclaration, ModuleExportName, SyntaxKind, flattenDiagnosticMessageText, forEachChild } from 'typescript';
 import { BaseInfo, InfoType } from './BaseInfo';
 import { ParserTs } from './ParserTs';
 import { DiagnosticSeverity, Range } from 'vscode-languageserver';
@@ -13,8 +13,9 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 type ImportInfoCst1 = {
 	parserInfo: ParserTs,
 	moduleName: string,
-	identifier: Identifier,
-	isTypeImport: boolean
+	identifier: Identifier | ModuleExportName,
+	isTypeImport: boolean,
+	alias?: string
 }
 type ImportInfoCst2 = {
 	parserInfo: ParserTs,
@@ -58,26 +59,27 @@ export class ImportInfo {
 					// it's a local import
 					if (moduleName.startsWith(".")) {
 						for (let element of node.importClause.namedBindings.elements) {
-							if (element.propertyName) {
-								// it's a rename
-								parserInfo.errors.push({
-									range: Range.create(parserInfo.document.positionAt(node.getStart()), parserInfo.document.positionAt(node.getEnd())),
-									severity: DiagnosticSeverity.Error,
-									source: AventusLanguageId.TypeScript,
-									message: flattenDiagnosticMessageText("error can't use renamed import", '\n')
-								})
+							// if (element.propertyName) {
+							// 	// it's a rename
+							// 	parserInfo.errors.push({
+							// 		range: Range.create(parserInfo.document.positionAt(node.getStart()), parserInfo.document.positionAt(node.getEnd())),
+							// 		severity: DiagnosticSeverity.Error,
+							// 		source: AventusLanguageId.TypeScript,
+							// 		message: flattenDiagnosticMessageText("error can't use renamed import", '\n')
+							// 	})
+							// }
+							// else {
+							let isTypeOnly = element.isTypeOnly || node.importClause.isTypeOnly;
+							const opts: ImportInfoCst1 = {
+								parserInfo: parserInfo,
+								moduleName: moduleName,
+								identifier: element.propertyName ? element.propertyName : element.name,
+								alias: element.propertyName ? element.name.getText() : undefined,
+								isTypeImport: isTypeOnly
 							}
-							else {
-								let isTypeOnly = element.isTypeOnly || node.importClause.isTypeOnly;
-								const opts = {
-									parserInfo: parserInfo,
-									moduleName: moduleName,
-									identifier: element.name,
-									isTypeImport: isTypeOnly
-								}
-								let info = new ImportInfo(opts);
-								parserInfo.importsLocal[info.name] = info;
-							}
+							let info = new ImportInfo(opts);
+							parserInfo.importsLocal[info.alias ?? info.name] = info;
+							// }
 						}
 					}
 					else if (!moduleName.startsWith(".") && moduleName.includes(AventusExtension.Package)) {
@@ -139,14 +141,14 @@ export class ImportInfo {
 				moduleName = parserInfo.build.project.resolveAlias(moduleName, file);
 
 				if (moduleName.startsWith(".")) {
-					const opts = {
+					const opts: ImportInfoCst1 = {
 						parserInfo: parserInfo,
 						moduleName: moduleName,
 						identifier: node.importClause.name,
 						isTypeImport: node.importClause.isTypeOnly
 					}
 					let info = new ImportInfo(opts);
-					parserInfo.importsLocal[info.name] = info;
+					parserInfo.importsLocal[info.alias ?? info.name] = info;
 				}
 				else {
 					if (!node.importClause.isTypeOnly) {
@@ -166,7 +168,7 @@ export class ImportInfo {
 		}
 	}
 
-	public static ManualLocalImport(from: BaseInfo, fullName: string, uri: string) {
+	public static manualLocalImport(from: BaseInfo, fullName: string, uri: string) {
 		const parserInfo = from.parserInfo;
 		const splitted = fullName.split(".");
 		let name = splitted.pop();
@@ -178,7 +180,7 @@ export class ImportInfo {
 			moduleUri: uri
 		}
 		let info = new ImportInfo(opts);
-		if (parserInfo.manualImportLocal[info.name]) {
+		if (parserInfo.manualImportLocal[info.alias ?? info.name]) {
 			let i = 0;
 			let nameTemp = name + i;
 			while (parserInfo.manualImportLocal[nameTemp]) {
@@ -222,6 +224,7 @@ export class ImportInfo {
 			this.nameStart = info.identifier.getStart();
 			this.nameEnd = info.identifier.getEnd();
 			this.isTypeImport = info.isTypeImport;
+			this.alias = info.alias;
 			moduleUri = pathToUri(normalize(getFolder(uriToPath(this.parserInfo.document.uri)) + '/' + info.moduleName));
 		}
 		else {
@@ -254,12 +257,12 @@ export class ImportInfo {
 			}
 		}
 		else {
-			if (this.parserInfo.waitingImports[this.name]) {
+			if (this.parserInfo.waitingImports[this.alias ?? this.name]) {
 				return;
 			}
-			this.parserInfo.waitingImports[this.name] = [];
+			this.parserInfo.waitingImports[this.alias ?? this.name] = [];
 			ParserTs.parsedDoc[moduleUri].result.onReady(() => {
-				this.asyncImportLocal(moduleUri, this.name);
+				this.asyncImportLocal(moduleUri, this.alias ?? this.name);
 			})
 		}
 	}

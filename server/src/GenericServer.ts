@@ -319,7 +319,7 @@ export class GenericServer {
 		// define the config for startServer
 		const settings = SettingsManager.getInstance().settings;
 		if (!settings.onlyBuild) {
-			this._template = new TemplateFileManager();
+			this._template = new TemplateFileManager(this.workspaces);
 			this._localTemplate = new LocalTemplateManager(this._template);
 			this._localProject = new LocalProjectManager(this._template);
 			TemplateManager.getInstance();

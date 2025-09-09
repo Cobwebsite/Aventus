@@ -4,7 +4,7 @@ import { join, normalize, sep } from 'path';
 import { SelectItem } from '../IConnection';
 import { TemplateJSON, TemplateScript } from './Template';
 import { SettingsManager } from '../settings/Settings';
-import { pathToUri, setValueToObject } from '../tools';
+import { pathToUri, setValueToObject, uriToPath } from '../tools';
 import { BaseTemplate } from './Templates/BaseTemplate';
 import { BaseTemplateList } from './Templates';
 import { execSync, spawn } from 'child_process';
@@ -20,6 +20,7 @@ export class TemplateManager {
 	private loadedProjects: TemplatesByName = {};
 	private loadedProjectsLength: number = 0;
 	private loadedTemplatesLength: number = 0;
+	private workspaces: string[] = [];
 	// private templatesByName: {[]}
 
 	public getGeneralTemplates() {
@@ -35,7 +36,8 @@ export class TemplateManager {
 		return this.loadedProjectsLength;
 	}
 
-	public constructor() {
+	public constructor(workspaces: string[]) {
+		this.workspaces = workspaces.map(p => uriToPath(p).replace(/\//g, sep));
 		this.loadTemplates();
 		SettingsManager.getInstance().onSettingsChange(() => {
 			this.loadTemplates();
@@ -133,8 +135,14 @@ export class TemplateManager {
 			let configPathScript = join(currentFolder, "template.avt.ts");
 			if (existsSync(configPathScript)) {
 				try {
-
-					let template = TemplateScript.create(configPathScript, currentFolder);
+					let workspacePath = "";
+					for(let workspace of this.workspaces) {
+						if(currentFolder.startsWith(workspace)) {
+							workspacePath = workspace;
+							break;
+						}
+					}
+					let template = TemplateScript.create(configPathScript, currentFolder, workspacePath);
 					setValueToObject(template.name, templates, template);
 					nb++;
 

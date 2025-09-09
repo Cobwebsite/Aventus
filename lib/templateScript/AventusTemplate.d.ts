@@ -49,6 +49,7 @@ declare abstract class AventusTemplate {
     };
     protected filesToOpen: string[];
     protected destination: string;
+    protected workspacePath: string;
     protected templatePath: string;
     private _run;
     protected defaultBlocks(): void;
@@ -62,6 +63,7 @@ declare abstract class AventusTemplate {
     private runCommand;
     protected registerVar<T extends string>(name: T & (T extends ReservedVariables ? never : {}), value: string | null | undefined): void;
     protected registerBlock(name: string, block: Partial<BlockInfo>): void;
+    protected defaultWriteDeny(info: WriteInfo, denyDir?: string[], denyFile?: string[]): boolean
     protected writeFile(cb?: WriteCallback): Promise<void>;
     protected replaceVariables(ctx: string): string;
     protected replaceBlocks(ctx: string): string;
