@@ -1116,6 +1116,9 @@ let ConverterTransform=class ConverterTransform {
                             }
                             else if (obj[key] instanceof Map) {
                                 let map = new Map();
+                                if ("$type" in value && value['$type'] == "Aventus.Map") {
+                                    value = value.values;
+                                }
                                 for (const keyValue of value) {
                                     map.set(this.transformLoop(keyValue[0]), this.transformLoop(keyValue[1]));
                                 }
@@ -2644,14 +2647,15 @@ let HttpRequest=class HttpRequest {
     async _query(router) {
         let result = new ResultWithError();
         try {
-            if (!this.url.startsWith("/")) {
+            const isFull = this.url.match("https?://");
+            if (!this.url.startsWith("/") && !isFull) {
                 this.url = "/" + this.url;
             }
             if (HttpRequest.options?.beforeSend) {
                 const beforeSendResult = await HttpRequest.options.beforeSend(this);
                 result.errors = beforeSendResult.errors;
             }
-            const fullUrl = router ? router.options.url + this.url : this.url;
+            const fullUrl = isFull ? this.url : router ? router.options.url + this.url : this.url;
             result.result = await fetch(fullUrl, this.request);
         }
         catch (e) {
@@ -2667,7 +2671,7 @@ let HttpRequest=class HttpRequest {
         return result;
     }
     async queryVoid(router) {
-        let resultTemp = await this._query(router);
+        let resultTemp = await this.query(router);
         let result = new VoidWithError();
         if (!resultTemp.success) {
             result.errors = resultTemp.errors;
@@ -2688,13 +2692,10 @@ let HttpRequest=class HttpRequest {
         }
         catch (e) {
         }
-        if (HttpRequest.options?.responseMiddleware) {
-            result = await HttpRequest.options.responseMiddleware(result, this);
-        }
         return result;
     }
     async queryJSON(router) {
-        let resultTemp = await this._query(router);
+        let resultTemp = await this.query(router);
         let result = new ResultWithError();
         if (!resultTemp.success) {
             result.errors = resultTemp.errors;
@@ -2720,13 +2721,10 @@ let HttpRequest=class HttpRequest {
         catch (e) {
             result.errors.push(new HttpError(HttpErrorCode.unknow, e));
         }
-        if (HttpRequest.options?.responseMiddleware) {
-            result = await HttpRequest.options.responseMiddleware(result, this);
-        }
         return result;
     }
     async queryTxt(router) {
-        let resultTemp = await this._query(router);
+        let resultTemp = await this.query(router);
         let result = new ResultWithError();
         if (!resultTemp.success) {
             result.errors = resultTemp.errors;
@@ -2741,13 +2739,10 @@ let HttpRequest=class HttpRequest {
         catch (e) {
             result.errors.push(new HttpError(HttpErrorCode.unknow, e));
         }
-        if (HttpRequest.options?.responseMiddleware) {
-            result = await HttpRequest.options.responseMiddleware(result, this);
-        }
         return result;
     }
     async queryBlob(router) {
-        let resultTemp = await this._query(router);
+        let resultTemp = await this.query(router);
         let result = new ResultWithError();
         if (!resultTemp.success) {
             result.errors = resultTemp.errors;
@@ -2761,9 +2756,6 @@ let HttpRequest=class HttpRequest {
         }
         catch (e) {
             result.errors.push(new HttpError(HttpErrorCode.unknow, e));
-        }
-        if (HttpRequest.options?.responseMiddleware) {
-            result = await HttpRequest.options.responseMiddleware(result, this);
         }
         return result;
     }

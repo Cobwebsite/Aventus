@@ -96,6 +96,9 @@ export class ConverterTransform implements IConverterTransform {
                             }
                             else if(obj[key] instanceof Map) {
                                 let map = new Map();
+                                if("$type" in value && value['$type'] == "Aventus.Map") {
+                                    value = value.values;
+                                }
                                 for(const keyValue of value) {
                                     map.set(this.transformLoop(keyValue[0]), this.transformLoop(keyValue[1]));
                                 }

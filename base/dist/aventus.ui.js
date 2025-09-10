@@ -5961,6 +5961,9 @@ let ConverterTransform=class ConverterTransform {
                             }
                             else if (obj[key] instanceof Map) {
                                 let map = new Map();
+                                if ("$type" in value && value['$type'] == "Aventus.Map") {
+                                    value = value.values;
+                                }
                                 for (const keyValue of value) {
                                     map.set(this.transformLoop(keyValue[0]), this.transformLoop(keyValue[1]));
                                 }
@@ -6222,14 +6225,15 @@ let HttpRequest=class HttpRequest {
     async _query(router) {
         let result = new ResultWithError();
         try {
-            if (!this.url.startsWith("/")) {
+            const isFull = this.url.match("https?://");
+            if (!this.url.startsWith("/") && !isFull) {
                 this.url = "/" + this.url;
             }
             if (HttpRequest.options?.beforeSend) {
                 const beforeSendResult = await HttpRequest.options.beforeSend(this);
                 result.errors = beforeSendResult.errors;
             }
-            const fullUrl = router ? router.options.url + this.url : this.url;
+            const fullUrl = isFull ? this.url : router ? router.options.url + this.url : this.url;
             result.result = await fetch(fullUrl, this.request);
         }
         catch (e) {

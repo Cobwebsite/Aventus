@@ -8,7 +8,7 @@ import type { Asyncable } from "../lib/Promise.lib.avt";
 
 export type HttpRequestOptions = {
     beforeSend?: (request: HttpRequest) => Asyncable<VoidWithError>;
-    responseMiddleware?: <T extends ResultWithError<any> | VoidWithError>(response: T, request: HttpRequest) => Asyncable<T>;
+    responseMiddleware?: (response: ResultWithError<Response>, request: HttpRequest) => Asyncable<ResultWithError<Response>>;
 };
 
 @Storybook({
@@ -150,14 +150,15 @@ export class HttpRequest {
     protected async _query(router?: HttpRouter): Promise<ResultWithError<Response>> {
         let result = new ResultWithError<Response>();
         try {
-            if(!this.url.startsWith("/")) {
+            const isFull = this.url.match("https?://")
+            if(!this.url.startsWith("/") && !isFull) {
                 this.url = "/" + this.url;
             }
             if(HttpRequest.options?.beforeSend) {
                 const beforeSendResult = await HttpRequest.options.beforeSend(this);
                 result.errors = beforeSendResult.errors;
             }
-            const fullUrl = router ? router.options.url + this.url : this.url;
+            const fullUrl = isFull ? this.url : router ? router.options.url + this.url : this.url;
             result.result = await fetch(fullUrl, this.request);
         } catch(e) {
             result.errors.push(new HttpError(HttpErrorCode.unknow, e));
@@ -174,7 +175,7 @@ export class HttpRequest {
     }
 
     public async queryVoid<T>(router?: HttpRouter): Promise<VoidWithError> {
-        let resultTemp = await this._query(router);
+        let resultTemp = await this.query(router);
         let result = new VoidWithError();
         if(!resultTemp.success) {
             result.errors = resultTemp.errors;
@@ -196,14 +197,12 @@ export class HttpRequest {
         } catch(e) {
 
         }
-        if(HttpRequest.options?.responseMiddleware) {
-            result = await HttpRequest.options.responseMiddleware(result, this);
-        }
+
         return result;
     }
 
     public async queryJSON<T>(router?: HttpRouter): Promise<ResultWithError<T>> {
-        let resultTemp = await this._query(router);
+        let resultTemp = await this.query(router);
         let result = new ResultWithError<T>();
         if(!resultTemp.success) {
             result.errors = resultTemp.errors;
@@ -228,14 +227,11 @@ export class HttpRequest {
         } catch(e) {
             result.errors.push(new HttpError(HttpErrorCode.unknow, e));
         }
-        if(HttpRequest.options?.responseMiddleware) {
-            result = await HttpRequest.options.responseMiddleware(result, this);
-        }
         return result;
     }
 
     public async queryTxt(router?: HttpRouter): Promise<ResultWithError<string>> {
-        let resultTemp = await this._query(router);
+        let resultTemp = await this.query(router);
         let result = new ResultWithError<string>();
         if(!resultTemp.success) {
             result.errors = resultTemp.errors;
@@ -249,14 +245,11 @@ export class HttpRequest {
         } catch(e) {
             result.errors.push(new HttpError(HttpErrorCode.unknow, e));
         }
-        if(HttpRequest.options?.responseMiddleware) {
-            result = await HttpRequest.options.responseMiddleware(result, this);
-        }
         return result;
     }
 
     public async queryBlob(router?: HttpRouter): Promise<ResultWithError<Blob>> {
-        let resultTemp = await this._query(router);
+        let resultTemp = await this.query(router);
         let result = new ResultWithError<Blob>();
         if(!resultTemp.success) {
             result.errors = resultTemp.errors;
@@ -269,9 +262,6 @@ export class HttpRequest {
             result.result = await resultTemp.result.blob();
         } catch(e) {
             result.errors.push(new HttpError(HttpErrorCode.unknow, e));
-        }
-        if(HttpRequest.options?.responseMiddleware) {
-            result = await HttpRequest.options.responseMiddleware(result, this);
         }
         return result;
     }
