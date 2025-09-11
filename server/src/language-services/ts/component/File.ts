@@ -1,6 +1,6 @@
 import { existsSync, unlinkSync, writeFileSync } from 'fs';
 import { EOL } from 'os';
-import { Position, CompletionList, CompletionItem, Hover, Definition, Range, FormattingOptions, TextEdit, CodeAction, Diagnostic, Location, CodeLens, WorkspaceEdit } from "vscode-languageserver";
+import { Position, CompletionList, CompletionItem, Hover, Range, FormattingOptions, TextEdit, CodeAction, Diagnostic, Location, CodeLens, WorkspaceEdit } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { AventusErrorCode, AventusExtension, AventusLanguageId } from "../../../definition";
 import { AventusFile, InternalAventusFile } from '../../../files/AventusFile';
@@ -936,7 +936,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         return this.tsLanguageService.doHover(document, position);
     }
 
-    public async doDefinition(htmlPosition: Position): Promise<Definition | null> {
+    public async doDefinition(htmlPosition: Position): Promise<Location[] | null> {
         const html = this.HTMLFile;
         if (!html) {
             return null;
@@ -956,7 +956,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         }
         return null;
     }
-    protected onDefinition(document: AventusFile, position: Position): Promise<Definition | null> {
+    protected onDefinition(document: AventusFile, position: Position): Promise<Location[] | null> {
         return this.tsLanguageService.findDefinition(document, position);
     }
 

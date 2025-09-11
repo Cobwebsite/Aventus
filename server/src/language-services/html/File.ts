@@ -1,4 +1,4 @@
-import { Position, CompletionList, CompletionItem, Hover, Definition, Range, FormattingOptions, TextEdit, CodeAction, Diagnostic, Location, CodeLens, WorkspaceEdit } from "vscode-languageserver";
+import { Position, CompletionList, CompletionItem, Hover, Range, FormattingOptions, TextEdit, CodeAction, Diagnostic, Location, CodeLens, WorkspaceEdit } from "vscode-languageserver";
 import { AventusExtension, AventusLanguageId, AventusType } from '../../definition';
 import { AventusFile } from '../../files/AventusFile';
 import { Build } from '../../project/Build';
@@ -139,7 +139,7 @@ export class AventusHTMLFile extends AventusBaseFile {
         }
         return await this.build.htmlLanguageService.doHover(this, position);
     }
-    protected async onDefinition(document: AventusFile, position: Position): Promise<Definition | null> {
+    protected async onDefinition(document: AventusFile, position: Position): Promise<Location[] | null> {
         let resultTemp = await this.tsFile?.doDefinition(position)
         if (resultTemp) {
             return resultTemp;

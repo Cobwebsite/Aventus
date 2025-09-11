@@ -1,6 +1,6 @@
 import { existsSync, lstatSync, readdirSync, readFileSync } from 'fs';
 import { Hover } from 'vscode-languageclient';
-import { CodeAction, CodeLens, CompletionItem, CompletionList, Definition, FormattingOptions, Location, Position, Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver';
+import { CodeAction, CodeLens, CompletionItem, CompletionList, FormattingOptions, Location, Position, Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AventusExtension, AventusLanguageId } from '../definition';
 import { escapeRegex, getLanguageIdByUri, pathToUri, Timer, uriToPath } from '../tools';
@@ -370,7 +370,7 @@ export class FilesManager {
         return this.files[document.uri].getHover(position);
     }
 
-    public async onDefinition(document: TextDocument, position: Position): Promise<Definition | null> {
+    public async onDefinition(document: TextDocument, position: Position): Promise<Location[] | null> {
         if (!await this.fileExists(document)) {
             return null;
         }

@@ -1,7 +1,7 @@
 import { EOL } from 'os';
 import { join, normalize, sep } from 'path';
 import { CodeFixAction, CompilerOptions, CompletionInfo, createLanguageService, Diagnostic as DiagnosticTs, displayPartsToString, Extension, flattenDiagnosticMessageText, FormatCodeSettings, GetCompletionsAtPositionOptions, IndentStyle, JsxEmit, LanguageService, LanguageServiceHost, ModuleDetectionKind, ModuleResolutionKind, RenameInfo, ResolvedModule, ResolvedModuleFull, resolveModuleName, ScriptKind, ScriptTarget, SemicolonPreference, transpile, WithMetadata, UserPreferences, getTokenAtPosition, createSourceFile, isTypeReferenceNode, SourceFile, TypeFormatFlags, ResolvedProjectReference, SyntaxKind } from 'typescript';
-import { CodeAction, CodeLens, CompletionItem, CompletionItemKind, CompletionList, Definition, Diagnostic, DiagnosticSeverity, DiagnosticTag, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver';
+import { CodeAction, CodeLens, CompletionItem, CompletionItemKind, CompletionList, Diagnostic, DiagnosticSeverity, DiagnosticTag, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver';
 import { AventusExtension, AventusLanguageId } from '../../definition';
 import { AventusFile } from '../../files/AventusFile';
 import { Build } from '../../project/Build';
@@ -546,7 +546,7 @@ export class AventusTsLanguageService {
         return undefined;
     }
 
-    public async findDefinition(file: AventusFile, position: Position): Promise<Definition | null> {
+    public async findDefinition(file: AventusFile, position: Position): Promise<Location[] | null> {
         let result: Location[] = [];
         try {
             const offset = file.documentInternal.offsetAt(position);

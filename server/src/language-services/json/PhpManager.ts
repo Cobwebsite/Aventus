@@ -1,4 +1,4 @@
-import { CodeAction, CodeLens, CompletionItem, CompletionList, Definition, Diagnostic, FormattingOptions, Hover, Location, Position, TextEdit, WorkspaceEdit, Range } from 'vscode-languageserver';
+import { CodeAction, CodeLens, CompletionItem, CompletionList, Diagnostic, FormattingOptions, Hover, Location, Position, TextEdit, WorkspaceEdit, Range } from 'vscode-languageserver';
 import { AventusFile, InternalAventusFile } from '../../files/AventusFile';
 import { FilesManager } from '../../files/FilesManager';
 import { AventusJSONLanguageService } from './LanguageService';
@@ -146,7 +146,7 @@ export class PhpFile {
 	protected async onHover(document: AventusFile, position: Position): Promise<Hover | null> {
 		return AventusJSONLanguageService.getInstance().doHover(document, position);
 	}
-	protected async onDefinition(document: AventusFile, position: Position): Promise<Definition | null> {
+	protected async onDefinition(document: AventusFile, position: Position): Promise<Location[] | null> {
 		return null;
 
 	}

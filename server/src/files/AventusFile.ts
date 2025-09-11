@@ -1,5 +1,5 @@
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { CodeAction, CodeLens, CompletionItem, CompletionList, Definition, Diagnostic, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from "vscode-languageserver";
+import { CodeAction, CodeLens, CompletionItem, CompletionList, Diagnostic, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from "vscode-languageserver";
 import { v4 as randomUUID } from 'uuid';
 import { getFolder, uriToPath } from '../tools';
 import { Build } from '../project/Build';
@@ -13,7 +13,7 @@ export type onContentChangeType = (document: AventusFile) => Promise<void>;
 export type onCompletionType = (document: AventusFile, position: Position) => Promise<CompletionList>;
 export type onCompletionResolveType = (document: AventusFile, item: CompletionItem) => Promise<CompletionItem>;
 export type onHoverType = (document: AventusFile, position: Position) => Promise<Hover | null>;
-export type onDefinitionType = (document: AventusFile, position: Position) => Promise<Definition | null>;
+export type onDefinitionType = (document: AventusFile, position: Position) => Promise<Location[] | null>;
 export type onFormattingType = (document: AventusFile, range: Range, options: FormattingOptions) => Promise<TextEdit[]>;
 export type onCodeActionType = (document: AventusFile, range: Range) => Promise<CodeAction[]>;
 export type onReferencesType = (document: AventusFile, position: Position) => Promise<Location[]>;
@@ -534,8 +534,8 @@ export class InternalAventusFile implements AventusFile {
     //#region onDefinition
     private onDefinitionCb: { [uuid: string]: onDefinitionType } = {};
 
-    public async getDefinition(position: Position): Promise<Definition | null> {
-        let proms: Promise<Definition | null>[] = [];
+    public async getDefinition(position: Position): Promise<Location[] | null> {
+        let proms: Promise<Location[] | null>[] = [];
         for (let uuid in this.onDefinitionCb) {
             proms.push(this.onDefinitionCb[uuid](this, position));
         }

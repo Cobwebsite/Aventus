@@ -2,7 +2,7 @@ import postcss from 'postcss';
 import * as postcssSorting from 'postcss-sorting';
 import * as postcssScss from 'postcss-scss';
 import { CSSFormatConfiguration, getSCSSLanguageService, LanguageService, TextDocument } from "vscode-css-languageservice";
-import { CodeAction, CodeActionContext, CompletionList, Definition, Diagnostic, FormattingOptions, Hover, Location, Position, Range, TextEdit } from "vscode-languageserver";
+import { CodeAction, CodeActionContext, CompletionList, Diagnostic, FormattingOptions, Hover, Location, Position, Range, TextEdit } from "vscode-languageserver";
 import { AventusFile } from '../../files/AventusFile';
 import { getNodePath, Node, NodeType } from './helper/CSSNode';
 import { AventusGlobalSCSSFile } from './GlobalFile';
@@ -37,8 +37,10 @@ export class AventusGlobalSCSSLanguageService {
         return this.languageService.doHover(file.documentUser, position, this.languageService.parseStylesheet(file.documentUser));
     }
 
-    public async findDefinition(file: AventusFile, position: Position): Promise<Definition | null> {
-        return this.languageService.findDefinition(file.documentUser, position, this.languageService.parseStylesheet(file.documentUser))
+    public async findDefinition(file: AventusFile, position: Position): Promise<Location[] | null> {
+        const result = this.languageService.findDefinition(file.documentUser, position, this.languageService.parseStylesheet(file.documentUser));
+        if (!result) return result;
+        return [result]
     }
     public async format(file: AventusFile, range: Range, formatParams: FormattingOptions): Promise<TextEdit[]> {
         let formatConfig: CSSFormatConfiguration = {

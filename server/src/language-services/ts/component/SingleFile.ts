@@ -1,5 +1,5 @@
 import { EOL } from 'os';
-import { Position, CompletionList, CompletionItem, Hover, Definition, Range, FormattingOptions, TextEdit, CodeAction, Diagnostic, Location, CodeLens, WorkspaceEdit } from "vscode-languageserver";
+import { Position, CompletionList, CompletionItem, Hover, Range, FormattingOptions, TextEdit, CodeAction, Diagnostic, Location, CodeLens, WorkspaceEdit } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { AventusExtension, AventusLanguageId } from "../../../definition";
 import { AventusFile, InternalAventusFile } from '../../../files/AventusFile';
@@ -304,9 +304,9 @@ export class AventusWebComponentSingleFile extends AventusBaseFile {
 
         return null;
     }
-    protected async onDefinition(document: AventusFile, position: Position): Promise<Definition | null> {
+    protected async onDefinition(document: AventusFile, position: Position): Promise<Location[] | null> {
         let currentOffset = document.documentInternal.offsetAt(position);
-        let result: Definition | null = null;
+        let result: Location[] | null = null;
         if (this.style && currentOffset >= this.regionStyle.start && currentOffset <= this.regionStyle.end) {
             result = await (this.style.file as InternalAventusFile).getDefinition(this.style.file.documentInternal.positionAt(currentOffset - this.regionStyle.start));
         }

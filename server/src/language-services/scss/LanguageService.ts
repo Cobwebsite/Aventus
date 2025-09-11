@@ -2,7 +2,7 @@ import postcss from 'postcss';
 import * as postcssSorting from 'postcss-sorting';
 import * as postcssScss from 'postcss-scss';
 import { CompletionItem, CSSFormatConfiguration, getSCSSLanguageService, LanguageService } from "vscode-css-languageservice";
-import { CodeAction, CodeActionContext, CompletionList, Definition, Diagnostic, FormattingOptions, Hover, Location, Position, Range, TextEdit } from "vscode-languageserver";
+import { CodeAction, CodeActionContext, CompletionList, Diagnostic, FormattingOptions, Hover, Location, Position, Range, TextEdit } from "vscode-languageserver";
 import { Build } from '../../project/Build';
 import { getNodePath, Node, NodeType } from './helper/CSSNode';
 import { SCSSDoc, CustomCssProperty, CustomCssPropertyType } from './helper/CSSCustomNode';
@@ -114,18 +114,20 @@ export class AventusSCSSLanguageService {
         return this.languageService.doHover(file.documentUser, position, this.languageService.parseStylesheet(file.documentUser));
     }
 
-    public async findDefinition(file: AventusFile, position: Position): Promise<Definition | null> {
+    public async findDefinition(file: AventusFile, position: Position): Promise<Location[] | null> {
         let element = this.getElementAtPosition(file, position);
         if (element?.type == NodeType.Identifier) {
             let def = this.build.globalSCSSLanguageService.getDefinition(element.getText());
             if (def) {
-                return {
+                return [{
                     uri: def.uri,
                     range: def.range
-                }
+                }]
             }
         }
-        return this.languageService.findDefinition(file.documentUser, position, this.languageService.parseStylesheet(file.documentUser))
+        const location = this.languageService.findDefinition(file.documentUser, position, this.languageService.parseStylesheet(file.documentUser))
+        if (!location) return location;
+        return [location];
     }
     async format(file: AventusFile, range: Range, formatParams: FormattingOptions): Promise<TextEdit[]> {
         let formatConfig: CSSFormatConfiguration = {

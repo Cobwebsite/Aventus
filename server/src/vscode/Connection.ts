@@ -1,4 +1,4 @@
-import { createConnection, ProposedFeatures, PublishDiagnosticsParams, _, _Connection, CompletionList, Definition, FormattingOptions, Hover, Position, TextEdit, InitializeParams, TextDocumentSyncKind, CodeActionKind, TextDocuments, CodeLens, Color, ColorInformation, ColorPresentation, ExecuteCommandParams, Range, WorkspaceEdit, Location } from 'vscode-languageserver/node';
+import { createConnection, ProposedFeatures, PublishDiagnosticsParams, _, _Connection, CompletionList, FormattingOptions, Hover, Position, TextEdit, InitializeParams, TextDocumentSyncKind, CodeActionKind, TextDocuments, CodeLens, Color, ColorInformation, ColorPresentation, ExecuteCommandParams, Range, WorkspaceEdit, Location } from 'vscode-languageserver/node';
 import { AvInitializeParams, IConnection, InputOptions, SelectItem, SelectOptions } from '../IConnection';
 import { Commands } from '../cmds';
 import { TextDocument } from 'vscode-languageserver-textdocument';
@@ -155,10 +155,13 @@ export class VsCodeConnection implements IConnection {
 			return await cb(document, params.position);
 		});
 	}
-	public onDefinition(cb: (document: TextDocument | undefined, position: Position) => Promise<Definition | null>) {
+	public onDefinition(cb: (document: TextDocument | undefined, position: Position) => Promise<Location[] | null>) {
 		this._connection.onDefinition(async (params, token) => {
 			const document = this.documents.get(params.textDocument.uri);
-			return await cb(document, params.position);
+			const result = await cb(document, params.position);
+			if (!result) return result;
+			if (result.length == 1) return result[0];
+			return result;
 		});
 	}
 	public onDocumentFormatting(cb: (document: TextDocument | undefined, options: FormattingOptions) => Promise<TextEdit[] | null>) {

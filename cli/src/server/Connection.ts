@@ -1,5 +1,5 @@
 import { CodeAction } from 'vscode-css-languageservice';
-import { Diagnostic, PublishDiagnosticsParams, Position, CompletionList, CompletionItem, Hover, Definition, FormattingOptions, TextEdit, Range, CodeLens, Location, WorkspaceEdit, ColorInformation, Color, ColorPresentation, ExecuteCommandParams, DiagnosticSeverity } from 'vscode-languageserver';
+import { Diagnostic, PublishDiagnosticsParams, Position, CompletionList, CompletionItem, Hover, FormattingOptions, TextEdit, Range, CodeLens, Location, WorkspaceEdit, ColorInformation, Color, ColorPresentation, ExecuteCommandParams, DiagnosticSeverity } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AvInitializeParams, IConnection, InputOptions, SelectItem, SelectOptions } from '../../../server/src/IConnection';
 import { Notifications } from './notification/index';
@@ -133,7 +133,7 @@ export class CliConnection implements IConnection {
 	}
 	async onHover(cb: (document: TextDocument | undefined, position: Position) => Promise<Hover | null>) {
 	}
-	async onDefinition(cb: (document: TextDocument | undefined, position: Position) => Promise<Definition | null>) {
+	async onDefinition(cb: (document: TextDocument | undefined, position: Position) => Promise<Location[] | null>) {
 	}
 	async onDocumentFormatting(cb: (document: TextDocument | undefined, options: FormattingOptions) => Promise<TextEdit[] | null>) {
 	}
