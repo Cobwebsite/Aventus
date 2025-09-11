@@ -6249,7 +6249,7 @@ let HttpRequest=class HttpRequest {
         return result;
     }
     async queryVoid(router) {
-        let resultTemp = await this._query(router);
+        let resultTemp = await this.query(router);
         let result = new VoidWithError();
         if (!resultTemp.success) {
             result.errors = resultTemp.errors;
@@ -6270,13 +6270,10 @@ let HttpRequest=class HttpRequest {
         }
         catch (e) {
         }
-        if (HttpRequest.options?.responseMiddleware) {
-            result = await HttpRequest.options.responseMiddleware(result, this);
-        }
         return result;
     }
     async queryJSON(router) {
-        let resultTemp = await this._query(router);
+        let resultTemp = await this.query(router);
         let result = new ResultWithError();
         if (!resultTemp.success) {
             result.errors = resultTemp.errors;
@@ -6302,13 +6299,10 @@ let HttpRequest=class HttpRequest {
         catch (e) {
             result.errors.push(new HttpError(HttpErrorCode.unknow, e));
         }
-        if (HttpRequest.options?.responseMiddleware) {
-            result = await HttpRequest.options.responseMiddleware(result, this);
-        }
         return result;
     }
     async queryTxt(router) {
-        let resultTemp = await this._query(router);
+        let resultTemp = await this.query(router);
         let result = new ResultWithError();
         if (!resultTemp.success) {
             result.errors = resultTemp.errors;
@@ -6323,13 +6317,10 @@ let HttpRequest=class HttpRequest {
         catch (e) {
             result.errors.push(new HttpError(HttpErrorCode.unknow, e));
         }
-        if (HttpRequest.options?.responseMiddleware) {
-            result = await HttpRequest.options.responseMiddleware(result, this);
-        }
         return result;
     }
     async queryBlob(router) {
-        let resultTemp = await this._query(router);
+        let resultTemp = await this.query(router);
         let result = new ResultWithError();
         if (!resultTemp.success) {
             result.errors = resultTemp.errors;
@@ -6343,9 +6334,6 @@ let HttpRequest=class HttpRequest {
         }
         catch (e) {
             result.errors.push(new HttpError(HttpErrorCode.unknow, e));
-        }
-        if (HttpRequest.options?.responseMiddleware) {
-            result = await HttpRequest.options.responseMiddleware(result, this);
         }
         return result;
     }
@@ -8101,8 +8089,24 @@ Navigation.PageFormRoute = class PageFormRoute extends Navigation.PageForm {
     async defineSubmit(submit) {
         await this.beforeSubmit();
         const info = this.route();
-        const router = new info[0];
-        const key = info[1];
+        let router;
+        let key = "";
+        if (Array.isArray(info)) {
+            router = new info[0];
+            key = info[1];
+        }
+        else {
+            router = new info;
+            const fcts = Object.getOwnPropertyNames(info[0].prototype).filter(m => m !== "constructor");
+            if (fcts.length == 1) {
+                key = fcts[0];
+            }
+            else {
+                const result = new Aventus.VoidWithError();
+                result.errors.push(new Aventus.GenericError(500, "More than one fonction is defined"));
+                return result;
+            }
+        }
         const result = await submit(router[key]);
         this.onResult(result);
         return result;
