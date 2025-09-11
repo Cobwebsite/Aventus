@@ -6,7 +6,7 @@ import { Notifications } from './notification/index';
 import { pathToUri } from '@server/tools'
 import { dirname, join } from 'path';
 import { RealServer } from './RealServer';
-import { Settings } from '@server/settings/Settings';
+import { Settings, SettingsHtml } from '@server/settings/Settings';
 import { ServerConfig } from './Server';
 
 export type CliErrors = { [build: string]: CliErrorsBuild };
@@ -22,8 +22,7 @@ export class CliConnection implements IConnection {
 		this._connection = new FakeConnection();
 		this.config = config;
 	}
-
-
+	
 	async open() {
 		this._connection.open();
 	}
@@ -126,6 +125,14 @@ export class CliConnection implements IConnection {
 			useStats: this.config.useStats
 		};
 	}
+	async getSettingsHtml(): Promise<Partial<SettingsHtml>> {
+		return {}
+	}
+	async setSettings(settings: Partial<Settings>, global: boolean): Promise<void> {
+	}
+	onRequest(cb: (method: string, params: any[] | object | undefined) => Promise<any>): void {
+	}
+
 	async onCompletion(cb: (document: TextDocument | undefined, position: Position) => Promise<CompletionList | null>) {
 
 	}

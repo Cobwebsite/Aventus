@@ -35,6 +35,8 @@ import { PhpExport } from './php/Export';
 import { StoreConnect } from './store/Connect';
 import { StoreDisconnect } from './store/Disconnect';
 import { StorePublish } from './store/Publish';
+import { QuickTemplateEdit } from './file-system/QuickTemplateEdit';
+import { QuickTemplate } from './file-system/QuickTemplate';
 
 export const Commands = {
     allCommandes: {
@@ -74,6 +76,8 @@ export const Commands = {
         [StoreConnect.cmd]: StoreConnect,
         [StoreDisconnect.cmd]: StoreDisconnect,
         [StorePublish.cmd]: StorePublish,
+        [QuickTemplate.cmd]: QuickTemplate,
+        [QuickTemplateEdit.cmd]: QuickTemplateEdit,
     },
     execute: function (params: ExecuteCommandParams) {
         let cmd = this.allCommandes[params.command];

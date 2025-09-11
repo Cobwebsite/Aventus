@@ -28,7 +28,9 @@ declare type WriteInfo = {
 declare type TemplateInfo = {
     name: string,
     description?: string,
-    version?: Version
+    version?: Version,
+    /** Determine if the template can be use without right click */
+    allowQuick?: boolean
 }
 
 declare type WriteCallback = (info: WriteInfo) => void | boolean;
@@ -56,6 +58,7 @@ declare abstract class AventusTemplate {
     protected abstract run(destination: string): Promise<void>;
     protected input(config: InputOptions): Promise<string | null>;
     protected select(items: SelectItem[], options: SelectOptions): Promise<SelectItem | null>;
+    protected selectMultiple(items: SelectItem[], options: SelectOptions): Promise<SelectItem[] | null>;
     protected waitingResponse: {
         [cmd: string]: (response: string | null) => void;
     };

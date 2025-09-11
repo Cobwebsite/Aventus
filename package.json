@@ -217,6 +217,14 @@
 					"title": "Use default aventus template",
 					"default": true
 				},
+				"aventus.quickCreations": {
+					"type": "array",
+					"title": "Define list of quick creation elements",
+					"default": [],
+					"items": {
+						"type": "string"
+					}
+				},
 				"aventus.readNodeModules": {
 					"type": "boolean",
 					"title": "Read the folder node_modules to suggest import",
@@ -474,6 +482,14 @@
 			{
 				"command": "aventus.store.publish",
 				"title": "Aventus : Publish package to the store"
+			},
+			{
+				"command": "aventus.template.quick_edit",
+				"title": "Aventus : Edit Quick Creation"
+			},
+			{
+				"command": "aventus.template.quick",
+				"title": "Aventus : Run Quick Creation"
 			}
 		],
 		"customEditors": [
@@ -728,6 +744,18 @@
 				"key": "ctrl+k ctrl+numpad5",
 				"mac": "cmd+f5",
 				"when": "editorTextFocus && resourceFilename =~ /^.*\\.(wcl|wc).avt/"
+			},
+			{
+				"command": "aventus.template.quick",
+				"key": "ctrl+k ctrl+v",
+				"mac": "cmd+f6",
+				"when": "true"
+			},
+			{
+				"command": "aventus.template.quick_edit",
+				"key": "ctrl+k ctrl+shift+v",
+				"mac": "cmd+shift+f6",
+				"when": "true"
 			}
 		]
 	},

@@ -34,7 +34,8 @@ export interface Settings {
 	statics?: string[],
 	errorByBuild?: boolean,
 	defaultHideWarnings: boolean,
-	deeplApiKey: string
+	deeplApiKey: string,
+	quickCreations: string[],
 }
 export interface SettingsHtml {
 	customData: string[]
@@ -69,7 +70,8 @@ const defaultSettings: Settings = {
 	useStats: false,
 	useDefaultTemplate: true,
 	defaultHideWarnings: false,
-	deeplApiKey: ""
+	deeplApiKey: "",
+	quickCreations: []
 }
 function getDefaultSettings(): Settings {
 	return JSON.parse(JSON.stringify(defaultSettings));

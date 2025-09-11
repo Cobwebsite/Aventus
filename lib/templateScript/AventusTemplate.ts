@@ -39,7 +39,8 @@ export type BlockInfo = {
 export type TemplateInfo = {
 	name: string,
 	description?: string,
-	version?: Version
+	version?: Version,
+	allowQuick?: boolean
 }
 
 const trueLog = console.log;
@@ -142,6 +143,21 @@ export abstract class AventusTemplate {
 			}
 		}
 		return null;
+	}
+
+	protected async selectMultiple(items: SelectItem[], options: SelectOptions): Promise<SelectItem[] | null> {
+		let response = await this.runCommandWithAnswer('selectMultiple', { items, options });
+		if (response == null) return null;
+		const optionsResult = JSON.parse(response) as SelectItem[];
+		const result: SelectItem[] = [];
+		for (let item of items) {
+			for (let opt of optionsResult) {
+				if (item.label == opt.label) {
+					result.push(item);
+				}
+			}
+		}
+		return result;
 	}
 
 	protected waitingResponse: { [cmd: string]: (response: string | null) => void } = {};

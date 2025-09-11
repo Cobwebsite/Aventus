@@ -15,7 +15,7 @@ export class LocalTemplateManager {
 		}
 	}
 
-	private readTemplates() {
+	public readTemplates() {
 		let globalTemplate = this.templateManager.getGeneralTemplates();
 		let globalTemplateLength = this.templateManager.getGeneralTemplatesLength();
 		let uri = GenericServer.getWorkspaceUri()

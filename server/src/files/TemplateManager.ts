@@ -20,7 +20,7 @@ export class TemplateManager {
 	private loadedProjects: TemplatesByName = {};
 	private loadedProjectsLength: number = 0;
 	private loadedTemplatesLength: number = 0;
-	private workspaces: string[] = [];
+	public workspaces: string[] = [];
 	// private templatesByName: {[]}
 
 	public getGeneralTemplates() {
@@ -136,8 +136,8 @@ export class TemplateManager {
 			if (existsSync(configPathScript)) {
 				try {
 					let workspacePath = "";
-					for(let workspace of this.workspaces) {
-						if(currentFolder.startsWith(workspace)) {
+					for (let workspace of this.workspaces) {
+						if (currentFolder.startsWith(workspace)) {
 							workspacePath = workspace;
 							break;
 						}

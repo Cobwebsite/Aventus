@@ -15,7 +15,7 @@ export class LocalProjectManager {
 		}
 	}
 
-	private readProjects() {
+	public readProjects() {
 		let globalProject = this.templateManager.getGeneralProjects();
 		let globalProjectLength = this.templateManager.getGeneralProjectsLength();
 		let uri = GenericServer.getWorkspaceUri()

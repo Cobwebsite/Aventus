@@ -301,6 +301,7 @@ export class TemplateScript {
 	public version: string;
 	public description: string;
 	public lastModified: Date;
+	public allowQuick: boolean;
 
 	private static memory: { [key: string]: TemplateScript } = {}
 	public static create(config: string, folderPath: string, workspacePath: string) {
@@ -324,6 +325,7 @@ export class TemplateScript {
 		this.name = basicInfo.name;
 		this.description = basicInfo.description;
 		this.version = basicInfo.version;
+		this.allowQuick = basicInfo.allowQuick ?? false;
 		this.lastModified = statSync(this.config).mtime
 	}
 
@@ -384,6 +386,19 @@ export class TemplateScript {
 									options: SelectOptions,
 								} = payload.config
 								let response = await GenericServer.Select(config.items, config.options);
+								if (response == null) {
+									answer(payload.cmd, "NULL");
+								}
+								else {
+									answer(payload.cmd, JSON.stringify(response));
+								}
+							}
+							else if (payload.cmd == "selectMultiple") {
+								const config: {
+									items: SelectItem[],
+									options: SelectOptions,
+								} = payload.config
+								let response = await GenericServer.SelectMultiple(config.items, config.options);
 								if (response == null) {
 									answer(payload.cmd, "NULL");
 								}
@@ -488,7 +503,7 @@ export class TemplateScript {
 		})
 	}
 
-	protected prepareScript(): { name: string, version: string, description: string } {
+	protected prepareScript(): { name: string, version: string, description: string, allowQuick?: boolean } {
 		const rootPath = join(serverFolder(), 'lib/templateScript/AventusTemplate.ts').replace(/\\/g, "\\\\");
 
 		const txt = `
@@ -504,7 +519,7 @@ export class TemplateScript {
 		}
 		let scriptPath = join(tempPath, md5(this.config) + ".ts");
 		writeFileSync(scriptPath, txt);
-		let values: { name: string, version: string, description: string } = {
+		let values: { name: string, version: string, description: string, allowQuick?: boolean } = {
 			name: "",
 			version: "1.0.0",
 			description: ""
