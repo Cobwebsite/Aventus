@@ -45,7 +45,7 @@ export class QuickTemplate {
 			const templatePathes: { [key: string]: string } = {}
 			for (let quickName of quickNames) {
 				if (!existsSync(quickName)) {
-					let template = TemplateScript.create(templatePath, workspace, workspace);
+					let template = TemplateScript.create(templatePath, workspace);
 					items.push({
 						label: template.name,
 						detail: template.description,
@@ -72,7 +72,7 @@ export class QuickTemplate {
 			GenericServer.showErrorMessage("The file doesn't exist : " + templatePath);
 			return;
 		}
-		let template = TemplateScript.create(templatePath, workspace, workspace);
+		let template = TemplateScript.create(templatePath, workspace);
 		await template.init(workspace);
 	}
 }

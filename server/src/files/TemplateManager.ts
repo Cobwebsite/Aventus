@@ -142,7 +142,7 @@ export class TemplateManager {
 							break;
 						}
 					}
-					let template = TemplateScript.create(configPathScript, currentFolder, workspacePath);
+					let template = TemplateScript.create(configPathScript, workspacePath);
 					setValueToObject(template.name, templates, template);
 					nb++;
 

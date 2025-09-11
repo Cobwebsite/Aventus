@@ -1,5 +1,5 @@
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, rmdirSync, statSync, unlinkSync, writeFileSync } from 'fs';
-import { join, normalize, sep } from 'path';
+import { dirname, join, normalize, sep } from 'path';
 import { pathToFileURL } from 'url';
 
 import { ExecSyncOptionsWithBufferEncoding, execSync, spawn, spawnSync } from 'child_process';
@@ -304,7 +304,8 @@ export class TemplateScript {
 	public allowQuick: boolean;
 
 	private static memory: { [key: string]: TemplateScript } = {}
-	public static create(config: string, folderPath: string, workspacePath: string) {
+	public static create(config: string, workspacePath: string) {
+		let folderPath = dirname(config);
 		if (this.memory[config]) {
 			let lastModified = statSync(config).mtime
 			if (lastModified.getTime() > this.memory[config].lastModified.getTime()) {
