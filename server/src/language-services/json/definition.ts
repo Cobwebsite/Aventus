@@ -1,6 +1,7 @@
 export interface AventusConfigBuild {
 	fullname: string,
 	description?: string,
+	tags: string[]
 	name?: string,
 	version: string,
 	readme?: string,
@@ -84,6 +85,7 @@ export interface AventusConfig {
 	hideWarnings: boolean,
 	module: string;
 	description?: string,
+	tags: string[],
 	organization?: string,
 	readme?: string,
 	dependances: AventusConfigBuildDependance[],

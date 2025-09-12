@@ -58,6 +58,9 @@ export class Store {
 		if (build.buildConfig.organization) {
 			form.append("organization", build.buildConfig.organization);
 		}
+		for (let tag of build.buildConfig.tags) {
+			form.append("tags[]", tag);
+		}
 
 		let pathPackages = join(DependanceManager.getInstance().getPath(), "@locals", build.buildConfig.fullname + AventusExtension.Package);
 		if (!existsSync(pathPackages)) {

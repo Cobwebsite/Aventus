@@ -8097,7 +8097,7 @@ Navigation.PageFormRoute = class PageFormRoute extends Navigation.PageForm {
         }
         else {
             router = new info;
-            const fcts = Object.getOwnPropertyNames(info[0].prototype).filter(m => m !== "constructor");
+            const fcts = Object.getOwnPropertyNames(info.prototype).filter(m => m !== "constructor");
             if (fcts.length == 1) {
                 key = fcts[0];
             }

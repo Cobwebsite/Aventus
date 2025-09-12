@@ -573,6 +573,7 @@ export class AventusJSONLanguageService {
             hideWarnings: SettingsManager.getInstance().settings.defaultHideWarnings,
             version: '1.0.0',
             componentPrefix: '',
+            tags: [],
             dependances: [],
             build: [],
             static: [],
@@ -588,6 +589,7 @@ export class AventusJSONLanguageService {
         return {
             fullname: '',
             name: '',
+            tags: config.tags,
             version: config.version,
             organization: config.organization,
             description: config.description,
