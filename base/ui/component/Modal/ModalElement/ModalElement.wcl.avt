@@ -79,7 +79,7 @@ namespace Modal {
         /**
          * Define the callback
          */
-        public init(cb: (response: T | null) => void) {
+        private init(cb: (response: T | null) => void) {
             this.cb = cb;
             if(this.options.closeWithEsc) {
                 ShortcutManager.subscribe(SpecialTouch.Escape, this.reject, { replaceTemp: true });
@@ -98,6 +98,9 @@ namespace Modal {
             }
         }
 
+        public show(element?: Element): Promise<T | null> {
+            return ModalElement._show(this as any, element);
+        }
         @BindThis()
         protected close() {
             ShortcutManager.unsubscribe(SpecialTouch.Escape, this.reject);

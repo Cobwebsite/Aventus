@@ -954,7 +954,7 @@ let DateConverter=class DateConverter {
         this.__converter = value;
     }
     isStringDate(txt) {
-        return /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3})Z$/.exec(txt) !== null;
+        return /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3,6})Z$/.exec(txt) !== null;
     }
     fromString(txt) {
         return new Date(txt);

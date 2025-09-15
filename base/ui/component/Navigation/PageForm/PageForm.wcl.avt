@@ -8,6 +8,7 @@ import { Page } from "../Page/Page.wcl.avt";
 namespace Navigation {
     export type PageFormConfig = {
         submitWithEnter?: boolean;
+        autoLoading?: boolean;
     };
 
 
@@ -48,14 +49,30 @@ namespace Navigation {
         }
         protected pageConfig(): PageFormConfig {
             return {
-                submitWithEnter: true
+                submitWithEnter: true,
+                autoLoading: true
             };
         }
 
         protected abstract defineSubmit(submit: (fct: SubmitFunction<T, U>) => Promise<WithError<U> | null>): Promise<WithError<U> | null>;
         public async submit() {
-            return await this.defineSubmit((fct) => this.form.submit(fct));
+            this.setLoading(true);
+            const result = await this.defineSubmit((fct) => this.form.submit(fct));
+            this.setLoading(false);
+            return result;
         }
+
+        protected setLoading(isLoading: boolean) {
+            const autoLoading = this.pageConfig().autoLoading;
+            if(autoLoading) {
+                for(let btn of this.btns) {
+                    if("loading" in btn) {
+                        btn.loading = isLoading;
+                    }
+                }
+            }
+        }
+
         @BindThis()
         protected checkEnter(e: KeyboardEvent) {
             if(e.key == "Enter") {

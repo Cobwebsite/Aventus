@@ -267,7 +267,7 @@ export class DateConverter {
     }
 
     public isStringDate(txt: string): boolean {
-        return /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3})Z$/.exec(txt) !== null;
+        return /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3,6})Z$/.exec(txt) !== null;
     }
     public fromString(txt: string): Date | null {
         return new Date(txt);

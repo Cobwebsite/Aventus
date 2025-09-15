@@ -52,7 +52,7 @@ let DateConverter=class DateConverter {
         this.__converter = value;
     }
     isStringDate(txt) {
-        return /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3})Z$/.exec(txt) !== null;
+        return /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3,6})Z$/.exec(txt) !== null;
     }
     fromString(txt) {
         return new Date(txt);
@@ -8028,11 +8028,25 @@ Navigation.PageForm = class PageForm extends Navigation.Page {
     }
     pageConfig() {
         return {
-            submitWithEnter: true
+            submitWithEnter: true,
+            autoLoading: true
         };
     }
     async submit() {
-        return await this.defineSubmit((fct) => this.form.submit(fct));
+        this.setLoading(true);
+        const result = await this.defineSubmit((fct) => this.form.submit(fct));
+        this.setLoading(false);
+        return result;
+    }
+    setLoading(isLoading) {
+        const autoLoading = this.pageConfig().autoLoading;
+        if (autoLoading) {
+            for (let btn of this.btns) {
+                if ("loading" in btn) {
+                    btn.loading = isLoading;
+                }
+            }
+        }
     }
     checkEnter(e) {
         if (e.key == "Enter") {
@@ -9980,6 +9994,9 @@ Modal.ModalElement = class ModalElement extends Aventus.WebComponent {
                 onPress: () => { }
             });
         }
+    }
+    show(element) {
+        return Modal.ModalElement._show(this, element);
     }
     close() {
         Lib.ShortcutManager.unsubscribe(Lib.SpecialTouch.Escape, this.reject);
