@@ -57,5 +57,5 @@ const I18n: I18nClass;
 {}
 //#endregion html //
 //#region dependances //
-[{"include":"need","subDependancesInclude":{},"version":"x.x.x","uri":"c:\\Users\\maxime.pitoeuf\\.vscode\\extensions\\cobwebsite.aventus-1.3.8\\lib\\Aventus@Main.package.avt","npm":""}]
+{}
 //#endregion dependances //

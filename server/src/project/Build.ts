@@ -593,7 +593,7 @@ export class Build {
         finaltxt += JSON.stringify(result.htmlDoc) + EOL;
         finaltxt += "//#endregion html //" + EOL;
         finaltxt += "//#region dependances //" + EOL;
-        finaltxt += JSON.stringify(this.buildConfig.dependances) + EOL;
+        finaltxt += JSON.stringify(this.buildConfig.rawDependances) + EOL;
         finaltxt += "//#endregion dependances //" + EOL;
 
         for (let outputPackage of outputsPackage) {

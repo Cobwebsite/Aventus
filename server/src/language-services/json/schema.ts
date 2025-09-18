@@ -336,45 +336,51 @@ export const AventusConfigSchema: JSONSchema = {
     "required": ["build", "module"],
     "$defs": {
         "dependances": {
-            type: "array",
+            type: "object",
             description: "List of dependances for this build",
-            items: {
-                type: "object",
-                additionalProperties: false,
-                properties: {
-                    uri: {
-                        type: "string",
-                        description: "Where to find the package or the json file"
-                    },
-                    npm: {
-                        type: "string",
-                        description: "The npm package name"
-                    },
-                    version: {
-                        type: "string",
-                        pattern: "^[0-9x]+\.[0-9x]+\.[0-9x]+$",
-                        description: "The version to use for this file. (default is x.x.x)",
-                        default: "x.x.x",
-                    },
-                    include: {
-                        type: "string",
-                        description: "Determine if the package must be included inside the final export. (default is need)",
-                        enum: ['none', 'need', 'full'],
-                        default: "need"
-                    },
-                    subDependancesInclude: {
-                        type: "object",
-                        description: "Inclusion pattern for each lib. You can use a star to select everythink. If nothink find for a lib, the need value ll be used",
-                        patternProperties: {
-                            "^\\S+$": {
-                                type: "string",
-                                enum: ['none', 'need', 'full'],
-                                default: "need"
-                            }
+            patternProperties: {
+                "^\\S+$": {
+                    type: ["object", "string"],
+                    additionalProperties: false,
+                    pattern: "^[0-9x]+\.[0-9x]+\.[0-9x]+$",
+                    properties: {
+                        uri: {
+                            type: "string",
+                            description: "Where to find the package or the json file"
                         },
-                    }
-                },
-                required: ["uri"]
+                        npm: {
+                            type: "string",
+                            description: "The npm package name"
+                        },
+                        version: {
+                            type: "string",
+                            pattern: "^[0-9x]+\.[0-9x]+\.[0-9x]+$",
+                            description: "The version to use for this file. (default is x.x.x)",
+                            default: "x.x.x",
+                        },
+                        isLocal: {
+                            type: "boolean",
+                            description: "Define if you want to use a local package"
+                        },
+                        include: {
+                            type: "string",
+                            description: "Determine if the package must be included inside the final export. (default is need)",
+                            enum: ['none', 'need', 'full'],
+                            default: "need"
+                        },
+                        subDependancesInclude: {
+                            type: "object",
+                            description: "Inclusion pattern for each lib. You can use a star to select everythink. If nothink find for a lib, the need value ll be used",
+                            patternProperties: {
+                                "^\\S+$": {
+                                    type: "string",
+                                    enum: ['none', 'need', 'full'],
+                                    default: "need"
+                                }
+                            },
+                        }
+                    },
+                }
             }
         }
     }

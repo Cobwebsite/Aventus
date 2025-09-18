@@ -18,9 +18,6 @@
                     }
                 }
             ],
-            "dependances": [{
-                "uri": "@Aventus"
-            }],
             "outsideModule": [
                 "./extension/"
             ]

@@ -138,6 +138,14 @@ export class Store {
 				body: body instanceof FormData ? body : JSON.stringify(body),
 				headers
 			});
+			if (query.status == 401) {
+				return new QueryError([{ code: 401, message: "No token provided" }])
+			}
+			if (query.status == 403) {
+				if (uri != '/logout')
+					this.disconnect();
+				return new QueryError([{ code: 403, message: "Invalid token provided" }])
+			}
 			const txt = await query.text();
 			let json: any = undefined;
 			try {

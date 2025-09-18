@@ -11,18 +11,17 @@
 				"./src/libs/*",
 				"./src/ram/*"
 			],
-			"compile": [{
+			"compile": [
+				{
 					"output": "../../client/views/i18n/index.js"
-			}],
-			"dependances": [
-				{
-					"uri": "@AventusUI"
-				},
-				{
-					"uri": "@local:VscodeView@Main",
-					"include": "full"
 				}
-			]
+			],
+			"dependances": {
+				"Aventus@UI": {},
+				"VscodeView@Main": {
+					"isLocal": true
+				}
+			}
 		}
 	],
 	"static": [

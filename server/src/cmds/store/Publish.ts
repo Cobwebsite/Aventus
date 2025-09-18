@@ -8,7 +8,7 @@ export class StorePublish {
 
 	public static async run() {
 		if (!Store.isConnected) {
-			GenericServer.showErrorMessage("You must connect your account first");
+			GenericServer.showErrorMessage("You must connect to your account first");
 			return;
 		}
 
