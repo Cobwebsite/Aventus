@@ -1,3 +1,9839 @@
+var npmCompilation;
+(npmCompilation||(npmCompilation = {}));
+(function (npmCompilation) {
+	var _ = (function () {
+    'use strict';
+
+    /**
+     * @license
+     * Copyright 2019 Google LLC
+     * SPDX-License-Identifier: BSD-3-Clause
+     */
+    const t$4=globalThis,e$7=t$4.ShadowRoot&&(void 0===t$4.ShadyCSS||t$4.ShadyCSS.nativeShadow)&&"adoptedStyleSheets"in Document.prototype&&"replace"in CSSStyleSheet.prototype,s$3=Symbol(),o$6=new WeakMap;let n$4 = class n{constructor(t,e,o){if(this._$cssResult$=!0,o!==s$3)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=t,this.t=e;}get styleSheet(){let t=this.o;const s=this.t;if(e$7&&void 0===t){const e=void 0!==s&&1===s.length;e&&(t=o$6.get(s)),void 0===t&&((this.o=t=new CSSStyleSheet).replaceSync(this.cssText),e&&o$6.set(s,t));}return t}toString(){return this.cssText}};const r$6=t=>new n$4("string"==typeof t?t:t+"",void 0,s$3),i$4=(t,...e)=>{const o=1===t.length?t[0]:e.reduce(((e,s,o)=>e+(t=>{if(!0===t._$cssResult$)return t.cssText;if("number"==typeof t)return t;throw Error("Value passed to 'css' function must be a 'css' function result: "+t+". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.")})(s)+t[o+1]),t[0]);return new n$4(o,t,s$3)},S$1=(s,o)=>{if(e$7)s.adoptedStyleSheets=o.map((t=>t instanceof CSSStyleSheet?t:t.styleSheet));else for(const e of o){const o=document.createElement("style"),n=t$4.litNonce;void 0!==n&&o.setAttribute("nonce",n),o.textContent=e.cssText,s.appendChild(o);}},c$3=e$7?t=>t:t=>t instanceof CSSStyleSheet?(t=>{let e="";for(const s of t.cssRules)e+=s.cssText;return r$6(e)})(t):t;
+
+    /**
+     * @license
+     * Copyright 2017 Google LLC
+     * SPDX-License-Identifier: BSD-3-Clause
+     */const{is:i$3,defineProperty:e$6,getOwnPropertyDescriptor:h$1,getOwnPropertyNames:r$5,getOwnPropertySymbols:o$5,getPrototypeOf:n$3}=Object,a$1=globalThis,c$2=a$1.trustedTypes,l$1=c$2?c$2.emptyScript:"",p$2=a$1.reactiveElementPolyfillSupport,d$1=(t,s)=>t,u$3={toAttribute(t,s){switch(s){case Boolean:t=t?l$1:null;break;case Object:case Array:t=null==t?t:JSON.stringify(t);}return t},fromAttribute(t,s){let i=t;switch(s){case Boolean:i=null!==t;break;case Number:i=null===t?null:Number(t);break;case Object:case Array:try{i=JSON.parse(t);}catch(t){i=null;}}return i}},f$1=(t,s)=>!i$3(t,s),b={attribute:!0,type:String,converter:u$3,reflect:!1,useDefault:!1,hasChanged:f$1};Symbol.metadata??=Symbol("metadata"),a$1.litPropertyMetadata??=new WeakMap;let y$1 = class y extends HTMLElement{static addInitializer(t){this._$Ei(),(this.l??=[]).push(t);}static get observedAttributes(){return this.finalize(),this._$Eh&&[...this._$Eh.keys()]}static createProperty(t,s=b){if(s.state&&(s.attribute=!1),this._$Ei(),this.prototype.hasOwnProperty(t)&&((s=Object.create(s)).wrapped=!0),this.elementProperties.set(t,s),!s.noAccessor){const i=Symbol(),h=this.getPropertyDescriptor(t,i,s);void 0!==h&&e$6(this.prototype,t,h);}}static getPropertyDescriptor(t,s,i){const{get:e,set:r}=h$1(this.prototype,t)??{get(){return this[s]},set(t){this[s]=t;}};return {get:e,set(s){const h=e?.call(this);r?.call(this,s),this.requestUpdate(t,h,i);},configurable:!0,enumerable:!0}}static getPropertyOptions(t){return this.elementProperties.get(t)??b}static _$Ei(){if(this.hasOwnProperty(d$1("elementProperties")))return;const t=n$3(this);t.finalize(),void 0!==t.l&&(this.l=[...t.l]),this.elementProperties=new Map(t.elementProperties);}static finalize(){if(this.hasOwnProperty(d$1("finalized")))return;if(this.finalized=!0,this._$Ei(),this.hasOwnProperty(d$1("properties"))){const t=this.properties,s=[...r$5(t),...o$5(t)];for(const i of s)this.createProperty(i,t[i]);}const t=this[Symbol.metadata];if(null!==t){const s=litPropertyMetadata.get(t);if(void 0!==s)for(const[t,i]of s)this.elementProperties.set(t,i);}this._$Eh=new Map;for(const[t,s]of this.elementProperties){const i=this._$Eu(t,s);void 0!==i&&this._$Eh.set(i,t);}this.elementStyles=this.finalizeStyles(this.styles);}static finalizeStyles(s){const i=[];if(Array.isArray(s)){const e=new Set(s.flat(1/0).reverse());for(const s of e)i.unshift(c$3(s));}else void 0!==s&&i.push(c$3(s));return i}static _$Eu(t,s){const i=s.attribute;return !1===i?void 0:"string"==typeof i?i:"string"==typeof t?t.toLowerCase():void 0}constructor(){super(),this._$Ep=void 0,this.isUpdatePending=!1,this.hasUpdated=!1,this._$Em=null,this._$Ev();}_$Ev(){this._$ES=new Promise((t=>this.enableUpdating=t)),this._$AL=new Map,this._$E_(),this.requestUpdate(),this.constructor.l?.forEach((t=>t(this)));}addController(t){(this._$EO??=new Set).add(t),void 0!==this.renderRoot&&this.isConnected&&t.hostConnected?.();}removeController(t){this._$EO?.delete(t);}_$E_(){const t=new Map,s=this.constructor.elementProperties;for(const i of s.keys())this.hasOwnProperty(i)&&(t.set(i,this[i]),delete this[i]);t.size>0&&(this._$Ep=t);}createRenderRoot(){const t=this.shadowRoot??this.attachShadow(this.constructor.shadowRootOptions);return S$1(t,this.constructor.elementStyles),t}connectedCallback(){this.renderRoot??=this.createRenderRoot(),this.enableUpdating(!0),this._$EO?.forEach((t=>t.hostConnected?.()));}enableUpdating(t){}disconnectedCallback(){this._$EO?.forEach((t=>t.hostDisconnected?.()));}attributeChangedCallback(t,s,i){this._$AK(t,i);}_$ET(t,s){const i=this.constructor.elementProperties.get(t),e=this.constructor._$Eu(t,i);if(void 0!==e&&!0===i.reflect){const h=(void 0!==i.converter?.toAttribute?i.converter:u$3).toAttribute(s,i.type);this._$Em=t,null==h?this.removeAttribute(e):this.setAttribute(e,h),this._$Em=null;}}_$AK(t,s){const i=this.constructor,e=i._$Eh.get(t);if(void 0!==e&&this._$Em!==e){const t=i.getPropertyOptions(e),h="function"==typeof t.converter?{fromAttribute:t.converter}:void 0!==t.converter?.fromAttribute?t.converter:u$3;this._$Em=e,this[e]=h.fromAttribute(s,t.type)??this._$Ej?.get(e)??null,this._$Em=null;}}requestUpdate(t,s,i){if(void 0!==t){const e=this.constructor,h=this[t];if(i??=e.getPropertyOptions(t),!((i.hasChanged??f$1)(h,s)||i.useDefault&&i.reflect&&h===this._$Ej?.get(t)&&!this.hasAttribute(e._$Eu(t,i))))return;this.C(t,s,i);}!1===this.isUpdatePending&&(this._$ES=this._$EP());}C(t,s,{useDefault:i,reflect:e,wrapped:h},r){i&&!(this._$Ej??=new Map).has(t)&&(this._$Ej.set(t,r??s??this[t]),!0!==h||void 0!==r)||(this._$AL.has(t)||(this.hasUpdated||i||(s=void 0),this._$AL.set(t,s)),!0===e&&this._$Em!==t&&(this._$Eq??=new Set).add(t));}async _$EP(){this.isUpdatePending=!0;try{await this._$ES;}catch(t){Promise.reject(t);}const t=this.scheduleUpdate();return null!=t&&await t,!this.isUpdatePending}scheduleUpdate(){return this.performUpdate()}performUpdate(){if(!this.isUpdatePending)return;if(!this.hasUpdated){if(this.renderRoot??=this.createRenderRoot(),this._$Ep){for(const[t,s]of this._$Ep)this[t]=s;this._$Ep=void 0;}const t=this.constructor.elementProperties;if(t.size>0)for(const[s,i]of t){const{wrapped:t}=i,e=this[s];!0!==t||this._$AL.has(s)||void 0===e||this.C(s,void 0,i,e);}}let t=!1;const s=this._$AL;try{t=this.shouldUpdate(s),t?(this.willUpdate(s),this._$EO?.forEach((t=>t.hostUpdate?.())),this.update(s)):this._$EM();}catch(s){throw t=!1,this._$EM(),s}t&&this._$AE(s);}willUpdate(t){}_$AE(t){this._$EO?.forEach((t=>t.hostUpdated?.())),this.hasUpdated||(this.hasUpdated=!0,this.firstUpdated(t)),this.updated(t);}_$EM(){this._$AL=new Map,this.isUpdatePending=!1;}get updateComplete(){return this.getUpdateComplete()}getUpdateComplete(){return this._$ES}shouldUpdate(t){return !0}update(t){this._$Eq&&=this._$Eq.forEach((t=>this._$ET(t,this[t]))),this._$EM();}updated(t){}firstUpdated(t){}};y$1.elementStyles=[],y$1.shadowRootOptions={mode:"open"},y$1[d$1("elementProperties")]=new Map,y$1[d$1("finalized")]=new Map,p$2?.({ReactiveElement:y$1}),(a$1.reactiveElementVersions??=[]).push("2.1.0");
+
+    /**
+     * @license
+     * Copyright 2017 Google LLC
+     * SPDX-License-Identifier: BSD-3-Clause
+     */
+    const t$3=globalThis,i$2=t$3.trustedTypes,s$2=i$2?i$2.createPolicy("lit-html",{createHTML:t=>t}):void 0,e$5="$lit$",h=`lit$${Math.random().toFixed(9).slice(2)}$`,o$4="?"+h,n$2=`<${o$4}>`,r$4=document,l=()=>r$4.createComment(""),c$1=t=>null===t||"object"!=typeof t&&"function"!=typeof t,a=Array.isArray,u$2=t=>a(t)||"function"==typeof t?.[Symbol.iterator],d="[ \t\n\f\r]",f=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,v$1=/-->/g,_=/>/g,m$1=RegExp(`>|${d}(?:([^\\s"'>=/]+)(${d}*=${d}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`,"g"),p$1=/'/g,g=/"/g,$=/^(?:script|style|textarea|title)$/i,y=t=>(i,...s)=>({_$litType$:t,strings:i,values:s}),x=y(1),T=Symbol.for("lit-noChange"),E=Symbol.for("lit-nothing"),A=new WeakMap,C=r$4.createTreeWalker(r$4,129);function P(t,i){if(!a(t)||!t.hasOwnProperty("raw"))throw Error("invalid template strings array");return void 0!==s$2?s$2.createHTML(i):i}const V=(t,i)=>{const s=t.length-1,o=[];let r,l=2===i?"<svg>":3===i?"<math>":"",c=f;for(let i=0;i<s;i++){const s=t[i];let a,u,d=-1,y=0;for(;y<s.length&&(c.lastIndex=y,u=c.exec(s),null!==u);)y=c.lastIndex,c===f?"!--"===u[1]?c=v$1:void 0!==u[1]?c=_:void 0!==u[2]?($.test(u[2])&&(r=RegExp("</"+u[2],"g")),c=m$1):void 0!==u[3]&&(c=m$1):c===m$1?">"===u[0]?(c=r??f,d=-1):void 0===u[1]?d=-2:(d=c.lastIndex-u[2].length,a=u[1],c=void 0===u[3]?m$1:'"'===u[3]?g:p$1):c===g||c===p$1?c=m$1:c===v$1||c===_?c=f:(c=m$1,r=void 0);const x=c===m$1&&t[i+1].startsWith("/>")?" ":"";l+=c===f?s+n$2:d>=0?(o.push(a),s.slice(0,d)+e$5+s.slice(d)+h+x):s+h+(-2===d?i:x);}return [P(t,l+(t[s]||"<?>")+(2===i?"</svg>":3===i?"</math>":"")),o]};class N{constructor({strings:t,_$litType$:s},n){let r;this.parts=[];let c=0,a=0;const u=t.length-1,d=this.parts,[f,v]=V(t,s);if(this.el=N.createElement(f,n),C.currentNode=this.el.content,2===s||3===s){const t=this.el.content.firstChild;t.replaceWith(...t.childNodes);}for(;null!==(r=C.nextNode())&&d.length<u;){if(1===r.nodeType){if(r.hasAttributes())for(const t of r.getAttributeNames())if(t.endsWith(e$5)){const i=v[a++],s=r.getAttribute(t).split(h),e=/([.?@])?(.*)/.exec(i);d.push({type:1,index:c,name:e[2],strings:s,ctor:"."===e[1]?H:"?"===e[1]?I:"@"===e[1]?L:k}),r.removeAttribute(t);}else t.startsWith(h)&&(d.push({type:6,index:c}),r.removeAttribute(t));if($.test(r.tagName)){const t=r.textContent.split(h),s=t.length-1;if(s>0){r.textContent=i$2?i$2.emptyScript:"";for(let i=0;i<s;i++)r.append(t[i],l()),C.nextNode(),d.push({type:2,index:++c});r.append(t[s],l());}}}else if(8===r.nodeType)if(r.data===o$4)d.push({type:2,index:c});else {let t=-1;for(;-1!==(t=r.data.indexOf(h,t+1));)d.push({type:7,index:c}),t+=h.length-1;}c++;}}static createElement(t,i){const s=r$4.createElement("template");return s.innerHTML=t,s}}function S(t,i,s=t,e){if(i===T)return i;let h=void 0!==e?s._$Co?.[e]:s._$Cl;const o=c$1(i)?void 0:i._$litDirective$;return h?.constructor!==o&&(h?._$AO?.(!1),void 0===o?h=void 0:(h=new o(t),h._$AT(t,s,e)),void 0!==e?(s._$Co??=[])[e]=h:s._$Cl=h),void 0!==h&&(i=S(t,h._$AS(t,i.values),h,e)),i}let M$1 = class M{constructor(t,i){this._$AV=[],this._$AN=void 0,this._$AD=t,this._$AM=i;}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(t){const{el:{content:i},parts:s}=this._$AD,e=(t?.creationScope??r$4).importNode(i,!0);C.currentNode=e;let h=C.nextNode(),o=0,n=0,l=s[0];for(;void 0!==l;){if(o===l.index){let i;2===l.type?i=new R(h,h.nextSibling,this,t):1===l.type?i=new l.ctor(h,l.name,l.strings,this,t):6===l.type&&(i=new z(h,this,t)),this._$AV.push(i),l=s[++n];}o!==l?.index&&(h=C.nextNode(),o++);}return C.currentNode=r$4,e}p(t){let i=0;for(const s of this._$AV)void 0!==s&&(void 0!==s.strings?(s._$AI(t,s,i),i+=s.strings.length-2):s._$AI(t[i])),i++;}};class R{get _$AU(){return this._$AM?._$AU??this._$Cv}constructor(t,i,s,e){this.type=2,this._$AH=E,this._$AN=void 0,this._$AA=t,this._$AB=i,this._$AM=s,this.options=e,this._$Cv=e?.isConnected??!0;}get parentNode(){let t=this._$AA.parentNode;const i=this._$AM;return void 0!==i&&11===t?.nodeType&&(t=i.parentNode),t}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(t,i=this){t=S(this,t,i),c$1(t)?t===E||null==t||""===t?(this._$AH!==E&&this._$AR(),this._$AH=E):t!==this._$AH&&t!==T&&this._(t):void 0!==t._$litType$?this.$(t):void 0!==t.nodeType?this.T(t):u$2(t)?this.k(t):this._(t);}O(t){return this._$AA.parentNode.insertBefore(t,this._$AB)}T(t){this._$AH!==t&&(this._$AR(),this._$AH=this.O(t));}_(t){this._$AH!==E&&c$1(this._$AH)?this._$AA.nextSibling.data=t:this.T(r$4.createTextNode(t)),this._$AH=t;}$(t){const{values:i,_$litType$:s}=t,e="number"==typeof s?this._$AC(t):(void 0===s.el&&(s.el=N.createElement(P(s.h,s.h[0]),this.options)),s);if(this._$AH?._$AD===e)this._$AH.p(i);else {const t=new M$1(e,this),s=t.u(this.options);t.p(i),this.T(s),this._$AH=t;}}_$AC(t){let i=A.get(t.strings);return void 0===i&&A.set(t.strings,i=new N(t)),i}k(t){a(this._$AH)||(this._$AH=[],this._$AR());const i=this._$AH;let s,e=0;for(const h of t)e===i.length?i.push(s=new R(this.O(l()),this.O(l()),this,this.options)):s=i[e],s._$AI(h),e++;e<i.length&&(this._$AR(s&&s._$AB.nextSibling,e),i.length=e);}_$AR(t=this._$AA.nextSibling,i){for(this._$AP?.(!1,!0,i);t&&t!==this._$AB;){const i=t.nextSibling;t.remove(),t=i;}}setConnected(t){void 0===this._$AM&&(this._$Cv=t,this._$AP?.(t));}}class k{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(t,i,s,e,h){this.type=1,this._$AH=E,this._$AN=void 0,this.element=t,this.name=i,this._$AM=e,this.options=h,s.length>2||""!==s[0]||""!==s[1]?(this._$AH=Array(s.length-1).fill(new String),this.strings=s):this._$AH=E;}_$AI(t,i=this,s,e){const h=this.strings;let o=!1;if(void 0===h)t=S(this,t,i,0),o=!c$1(t)||t!==this._$AH&&t!==T,o&&(this._$AH=t);else {const e=t;let n,r;for(t=h[0],n=0;n<h.length-1;n++)r=S(this,e[s+n],i,n),r===T&&(r=this._$AH[n]),o||=!c$1(r)||r!==this._$AH[n],r===E?t=E:t!==E&&(t+=(r??"")+h[n+1]),this._$AH[n]=r;}o&&!e&&this.j(t);}j(t){t===E?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,t??"");}}class H extends k{constructor(){super(...arguments),this.type=3;}j(t){this.element[this.name]=t===E?void 0:t;}}class I extends k{constructor(){super(...arguments),this.type=4;}j(t){this.element.toggleAttribute(this.name,!!t&&t!==E);}}class L extends k{constructor(t,i,s,e,h){super(t,i,s,e,h),this.type=5;}_$AI(t,i=this){if((t=S(this,t,i,0)??E)===T)return;const s=this._$AH,e=t===E&&s!==E||t.capture!==s.capture||t.once!==s.once||t.passive!==s.passive,h=t!==E&&(s===E||e);e&&this.element.removeEventListener(this.name,this,s),h&&this.element.addEventListener(this.name,this,t),this._$AH=t;}handleEvent(t){"function"==typeof this._$AH?this._$AH.call(this.options?.host??this.element,t):this._$AH.handleEvent(t);}}class z{constructor(t,i,s){this.element=t,this.type=6,this._$AN=void 0,this._$AM=i,this.options=s;}get _$AU(){return this._$AM._$AU}_$AI(t){S(this,t);}}const Z={M:e$5,P:h,A:o$4,C:1,L:V,R:M$1,D:u$2,V:S,I:R,H:k,N:I,U:L,B:H,F:z},j=t$3.litHtmlPolyfillSupport;j?.(N,R),(t$3.litHtmlVersions??=[]).push("3.3.0");const B=(t,i,s)=>{const e=s?.renderBefore??i;let h=e._$litPart$;if(void 0===h){const t=s?.renderBefore??null;e._$litPart$=h=new R(i.insertBefore(l(),t),t,void 0,s??{});}return h._$AI(t),h};
+
+    /**
+     * @license
+     * Copyright 2017 Google LLC
+     * SPDX-License-Identifier: BSD-3-Clause
+     */const s$1=globalThis;let i$1 = class i extends y$1{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0;}createRenderRoot(){const t=super.createRenderRoot();return this.renderOptions.renderBefore??=t.firstChild,t}update(t){const r=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(t),this._$Do=B(r,this.renderRoot,this.renderOptions);}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(!0);}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(!1);}render(){return T}};i$1._$litElement$=!0,i$1["finalized"]=!0,s$1.litElementHydrateSupport?.({LitElement:i$1});const o$3=s$1.litElementPolyfillSupport;o$3?.({LitElement:i$1});(s$1.litElementVersions??=[]).push("4.2.0");
+
+    /**
+     * @license
+     * Copyright 2017 Google LLC
+     * SPDX-License-Identifier: BSD-3-Clause
+     */
+    const t$2=t=>(e,o)=>{void 0!==o?o.addInitializer((()=>{customElements.define(t,e);})):customElements.define(t,e);};
+
+    /**
+     * @license
+     * Copyright 2017 Google LLC
+     * SPDX-License-Identifier: BSD-3-Clause
+     */const o$2={attribute:!0,type:String,converter:u$3,reflect:!1,hasChanged:f$1},r$3=(t=o$2,e,r)=>{const{kind:n,metadata:i}=r;let s=globalThis.litPropertyMetadata.get(i);if(void 0===s&&globalThis.litPropertyMetadata.set(i,s=new Map),"setter"===n&&((t=Object.create(t)).wrapped=!0),s.set(r.name,t),"accessor"===n){const{name:o}=r;return {set(r){const n=e.get.call(this);e.set.call(this,r),this.requestUpdate(o,n,t);},init(e){return void 0!==e&&this.C(o,void 0,t,e),e}}}if("setter"===n){const{name:o}=r;return function(r){const n=this[o];e.call(this,r),this.requestUpdate(o,n,t);}}throw Error("Unsupported decorator location: "+n)};function n$1(t){return (e,o)=>"object"==typeof o?r$3(t,e,o):((t,e,o)=>{const r=e.hasOwnProperty(o);return e.constructor.createProperty(o,t),r?Object.getOwnPropertyDescriptor(e,o):void 0})(t,e,o)}
+
+    /**
+     * @license
+     * Copyright 2017 Google LLC
+     * SPDX-License-Identifier: BSD-3-Clause
+     */function r$2(r){return n$1({...r,state:!0,attribute:!1})}
+
+    /**
+     * @license
+     * Copyright 2017 Google LLC
+     * SPDX-License-Identifier: BSD-3-Clause
+     */
+    const e$4=(e,t,c)=>(c.configurable=!0,c.enumerable=!0,Reflect.decorate&&"object"!=typeof t&&Object.defineProperty(e,t,c),c);
+
+    /**
+     * @license
+     * Copyright 2017 Google LLC
+     * SPDX-License-Identifier: BSD-3-Clause
+     */function e$3(e,r){return (n,s,i)=>{const o=t=>t.renderRoot?.querySelector(e)??null;if(r){const{get:e,set:r}="object"==typeof s?n:i??(()=>{const t=Symbol();return {get(){return this[t]},set(e){this[t]=e;}}})();return e$4(n,s,{get(){let t=e.call(this);return void 0===t&&(t=o(this),(null!==t||this.hasUpdated)&&r.call(this,t)),t}})}return e$4(n,s,{get(){return o(this)}})}}
+
+    /**
+     * @license
+     * Copyright 2017 Google LLC
+     * SPDX-License-Identifier: BSD-3-Clause
+     */
+    let e$2;function r$1(r){return (n,o)=>e$4(n,o,{get(){return (this.renderRoot??(e$2??=document.createDocumentFragment())).querySelectorAll(r)}})}
+
+    /**
+     * @license
+     * Copyright 2021 Google LLC
+     * SPDX-License-Identifier: BSD-3-Clause
+     */function o$1(o){return (e,n)=>{const{slot:r,selector:s}=o??{},c="slot"+(r?`[name=${r}]`:":not([name])");return e$4(e,n,{get(){const t=this.renderRoot?.querySelector(c),e=t?.assignedElements(o)??[];return void 0===s?e:e.filter((t=>t.matches(s)))}})}}
+
+    /**
+     * @license
+     * Copyright 2017 Google LLC
+     * SPDX-License-Identifier: BSD-3-Clause
+     */function n(n){return (o,r)=>{const{slot:e}=n??{},s="slot"+(e?`[name=${e}]`:":not([name])");return e$4(o,r,{get(){const t=this.renderRoot?.querySelector(s);return t?.assignedNodes(n)??[]}})}}
+
+    const VERSION = '1.16.1';
+    const CONFIG_KEY = '__vscodeElements_disableRegistryWarning__';
+    class VscElement extends i$1 {
+        /** VSCode Elements version */
+        get version() {
+            return VERSION;
+        }
+    }
+    /**
+     * Own implementation of Lit's customElement decorator.
+     */
+    const customElement = (tagName) => {
+        return (classOrTarget) => {
+            const customElementClass = customElements.get(tagName);
+            if (!customElementClass) {
+                customElements.define(tagName, classOrTarget);
+                return;
+            }
+            if (CONFIG_KEY in window) {
+                return;
+            }
+            const el = document.createElement(tagName);
+            const anotherVersion = el?.version;
+            let message = '';
+            if (!anotherVersion) {
+                console.warn(tagName, 'is already registered by an unknown custom element handler class.');
+                message +=
+                    'is already registered by an unknown custom element handler class.';
+            }
+            else if (anotherVersion !== VERSION) {
+                message +=
+                    'is already registered by a different version of VSCode Elements. ';
+                message += `This version is "${VERSION}", while the other one is "${anotherVersion}".`;
+            }
+            else {
+                message +=
+                    'is already registered by the same version of VSCode Elements. ';
+            }
+            console.warn(`[VSCode Elements] ${tagName} ${message}\nTo suppress this warning, set window.${CONFIG_KEY} to true`);
+        };
+    };
+
+    var defaultStyles = i$4 `
+  :host([hidden]) {
+    display: none;
+  }
+
+  :host([disabled]),
+  :host(:disabled) {
+    cursor: not-allowed;
+    opacity: 0.4;
+    pointer-events: none;
+  }
+`;
+
+    const DEFAULT_LINE_HEIGHT = 16;
+    const DEFAULT_FONT_SIZE = 13;
+    const INPUT_LINE_HEIGHT_RATIO = DEFAULT_LINE_HEIGHT / DEFAULT_FONT_SIZE;
+    function getDefaultFontStack() {
+        if (navigator.userAgent.indexOf('Linux') > -1) {
+            return 'system-ui, "Ubuntu", "Droid Sans", sans-serif';
+        }
+        else if (navigator.userAgent.indexOf('Mac') > -1) {
+            return '-apple-system, BlinkMacSystemFont, sans-serif';
+        }
+        else if (navigator.userAgent.indexOf('Windows') > -1) {
+            return '"Segoe WPC", "Segoe UI", sans-serif';
+        }
+        else {
+            return 'sans-serif';
+        }
+    }
+
+    const defaultFontStack$2 = r$6(getDefaultFontStack());
+    const styles$x = [
+        defaultStyles,
+        i$4 `
+    :host {
+      background-color: var(--vscode-badge-background, #616161);
+      border: 1px solid var(--vscode-contrastBorder, transparent);
+      border-radius: 2px;
+      box-sizing: border-box;
+      color: var(--vscode-badge-foreground, #f8f8f8);
+      display: inline-block;
+      font-family: var(--vscode-font-family, ${defaultFontStack$2});
+      font-size: 11px;
+      font-weight: 400;
+      line-height: 14px;
+      min-width: 18px;
+      padding: 2px 3px;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    :host([variant='counter']) {
+      border-radius: 11px;
+      line-height: 11px;
+      min-height: 18px;
+      min-width: 18px;
+      padding: 3px 6px;
+    }
+
+    :host([variant='activity-bar-counter']) {
+      background-color: var(--vscode-activityBarBadge-background, #0078d4);
+      border-radius: 20px;
+      color: var(--vscode-activityBarBadge-foreground, #ffffff);
+      font-size: 9px;
+      font-weight: 600;
+      line-height: 16px;
+      padding: 0 4px;
+    }
+
+    :host([variant='tab-header-counter']) {
+      background-color: var(--vscode-activityBarBadge-background, #0078d4);
+      border-radius: 10px;
+      color: var(--vscode-activityBarBadge-foreground, #ffffff);
+      line-height: 10px;
+      min-height: 16px;
+      min-width: 16px;
+      padding: 3px 5px;
+    }
+  `,
+    ];
+
+    var __decorate$C = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    /**
+     * Show counts or status information. Badges can also be used within [Textfield](https://vscode-elements.github.io/components/textfield) and [TabHeader](https://vscode-elements.github.io/components/tabs) components.
+     *
+     * @tag vscode-badge
+     *
+     * @cssprop [--vscode-font-family=sans-serif] - A sans-serif font type depends on the host OS.
+     * @cssprop [--vscode-contrastBorder=transparent]
+     * @cssprop [--vscode-badge-background=#616161] - default and counter variant background color
+     * @cssprop [--vscode-badge-foreground=#f8f8f8] - default and counter variant foreground color
+     * @cssprop [--vscode-activityBarBadge-background=#0078d4] - activity bar variant background color
+     * @cssprop [--vscode-activityBarBadge-foreground=#ffffff] - activity bar variant foreground color
+     */
+    let VscodeBadge = class VscodeBadge extends VscElement {
+        constructor() {
+            super(...arguments);
+            this.variant = 'default';
+        }
+        render() {
+            return x ` <slot></slot> `;
+        }
+    };
+    VscodeBadge.styles = styles$x;
+    __decorate$C([
+        n$1({ reflect: true })
+    ], VscodeBadge.prototype, "variant", void 0);
+    VscodeBadge = __decorate$C([
+        customElement('vscode-badge')
+    ], VscodeBadge);
+
+    /**
+     * @license
+     * Copyright 2017 Google LLC
+     * SPDX-License-Identifier: BSD-3-Clause
+     */
+    const t$1={ATTRIBUTE:1,CHILD:2,PROPERTY:3,BOOLEAN_ATTRIBUTE:4,EVENT:5,ELEMENT:6},e$1=t=>(...e)=>({_$litDirective$:t,values:e});class i{constructor(t){}get _$AU(){return this._$AM._$AU}_$AT(t,e,i){this._$Ct=t,this._$AM=e,this._$Ci=i;}_$AS(t,e){return this.update(t,e)}update(t,e){return this.render(...e)}}
+
+    /**
+     * @license
+     * Copyright 2018 Google LLC
+     * SPDX-License-Identifier: BSD-3-Clause
+     */const e=e$1(class extends i{constructor(t){if(super(t),t.type!==t$1.ATTRIBUTE||"class"!==t.name||t.strings?.length>2)throw Error("`classMap()` can only be used in the `class` attribute and must be the only part in the attribute.")}render(t){return " "+Object.keys(t).filter((s=>t[s])).join(" ")+" "}update(s,[i]){if(void 0===this.st){this.st=new Set,void 0!==s.strings&&(this.nt=new Set(s.strings.join(" ").split(/\s/).filter((t=>""!==t))));for(const t in i)i[t]&&!this.nt?.has(t)&&this.st.add(t);return this.render(i)}const r=s.element.classList;for(const t of this.st)t in i||(r.remove(t),this.st.delete(t));for(const t in i){const s=!!i[t];s===this.st.has(t)||this.nt?.has(t)||(s?(r.add(t),this.st.add(t)):(r.remove(t),this.st.delete(t)));}return T}});
+
+    /**
+     * @license
+     * Copyright 2018 Google LLC
+     * SPDX-License-Identifier: BSD-3-Clause
+     */const o=o=>o??E;
+
+    class StylePropertyMap extends i {
+        constructor(partInfo) {
+            super(partInfo);
+            this._prevProperties = {};
+            if (partInfo.type !== t$1.PROPERTY || partInfo.name !== 'style') {
+                throw new Error('The `stylePropertyMap` directive must be used in the `style` property');
+            }
+        }
+        update(part, [styleProps]) {
+            Object.entries(styleProps).forEach(([key, val]) => {
+                if (this._prevProperties[key] !== val) {
+                    if (key.startsWith('--')) {
+                        part.element.style.setProperty(key, val);
+                    }
+                    else {
+                        // @ts-expect-error I'm so sick of these stupid unresolvable TS errors.
+                        part.element.style[key] = val;
+                    }
+                    this._prevProperties[key] = val;
+                }
+            });
+            return T;
+        }
+        render(_styleProps) {
+            return T;
+        }
+    }
+    /**
+     * Implement a Lit directive similar to styleMap, but instead of setting styles via the style
+     * attribute (which violates CSP), it should apply styles using the style property.
+     *
+     * [MDN Reference](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy#unsafe-inline)
+     */
+    const stylePropertyMap = e$1(StylePropertyMap);
+
+    const styles$w = [
+        defaultStyles,
+        i$4 `
+    :host {
+      color: var(--vscode-icon-foreground, #cccccc);
+      display: inline-block;
+    }
+
+    .codicon[class*='codicon-'] {
+      display: block;
+    }
+
+    .icon,
+    .button {
+      background-color: transparent;
+      display: block;
+      padding: 0;
+    }
+
+    .button {
+      border-color: transparent;
+      border-style: solid;
+      border-width: 1px;
+      border-radius: 5px;
+      color: currentColor;
+      cursor: pointer;
+      padding: 2px;
+    }
+
+    .button:hover {
+      background-color: var(
+        --vscode-toolbar-hoverBackground,
+        rgba(90, 93, 94, 0.31)
+      );
+    }
+
+    .button:active {
+      background-color: var(
+        --vscode-toolbar-activeBackground,
+        rgba(99, 102, 103, 0.31)
+      );
+    }
+
+    .button:focus {
+      outline: none;
+    }
+
+    .button:focus-visible {
+      border-color: var(--vscode-focusBorder, #0078d4);
+    }
+
+    @keyframes icon-spin {
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    .spin {
+      animation-name: icon-spin;
+      animation-timing-function: linear;
+      animation-iteration-count: infinite;
+    }
+  `,
+    ];
+
+    var __decorate$B = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    var VscodeIcon_1;
+    /**
+     * Display a [Codicon](https://microsoft.github.io/vscode-codicons/dist/codicon.html).
+     * In "action-icon" mode it behaves like a button. In this case, it is
+     * recommended that a meaningful label is specified with the `label` property.
+     *
+     * @tag vscode-icon
+     *
+     * @cssprop [--vscode-icon-foreground=#cccccc]
+     * @cssprop [--vscode-toolbar-hoverBackground=rgba(90, 93, 94, 0.31)] - Hover state background color in `active-icon` mode
+     * @cssprop [--vscode-toolbar-activeBackground=rgba(99, 102, 103, 0.31)] - Active state background color in `active-icon` mode
+     * @cssprop [--vscode-focusBorder=#0078d4]
+     */
+    let VscodeIcon = VscodeIcon_1 = class VscodeIcon extends VscElement {
+        constructor() {
+            super(...arguments);
+            /**
+             * Set a meaningful label in `action-icon` mode for the screen readers
+             */
+            this.label = '';
+            /**
+             * [Codicon](https://microsoft.github.io/vscode-codicons/dist/codicon.html) icon name.
+             */
+            this.name = '';
+            /**
+             * Icon size in pixels
+             */
+            this.size = 16;
+            /**
+             * Enable rotation animation
+             */
+            this.spin = false;
+            /**
+             * Animation duration in seconds
+             */
+            this.spinDuration = 1.5;
+            /**
+             * Behaves like a button
+             */
+            this.actionIcon = false;
+            this._onButtonClick = (ev) => {
+                this.dispatchEvent(new CustomEvent('vsc-click', { detail: { originalEvent: ev } }));
+            };
+        }
+        connectedCallback() {
+            super.connectedCallback();
+            const { href, nonce } = this._getStylesheetConfig();
+            VscodeIcon_1.stylesheetHref = href;
+            VscodeIcon_1.nonce = nonce;
+        }
+        /**
+         * For using web fonts in web components, the font stylesheet must be included
+         * twice: on the page and in the web component. This function looks for the
+         * font stylesheet on the page and returns the stylesheet URL and the nonce
+         * id.
+         */
+        _getStylesheetConfig() {
+            const linkElement = document.getElementById('vscode-codicon-stylesheet');
+            const href = linkElement?.getAttribute('href') || undefined;
+            const nonce = linkElement?.nonce || undefined;
+            if (!linkElement) {
+                let msg = '[VSCode Elements] To use the Icon component, the codicons.css file must be included in the page with the id `vscode-codicon-stylesheet`! ';
+                msg +=
+                    'See https://vscode-elements.github.io/components/icon/ for more details.';
+                console.warn(msg);
+            }
+            return { nonce, href };
+        }
+        render() {
+            const { stylesheetHref, nonce } = VscodeIcon_1;
+            const content = x `<span
+      class=${e({
+            codicon: true,
+            ['codicon-' + this.name]: true,
+            spin: this.spin,
+        })}
+      .style=${stylePropertyMap({
+            animationDuration: String(this.spinDuration) + 's',
+            fontSize: this.size + 'px',
+            height: this.size + 'px',
+            width: this.size + 'px',
+        })}
+    ></span>`;
+            const wrapped = this.actionIcon
+                ? x ` <button
+          class="button"
+          @click=${this._onButtonClick}
+          aria-label=${this.label}
+        >
+          ${content}
+        </button>`
+                : x ` <span class="icon" aria-hidden="true" role="presentation"
+          >${content}</span
+        >`;
+            return x `
+      <link
+        rel="stylesheet"
+        href=${o(stylesheetHref)}
+        nonce=${o(nonce)}
+      >
+      ${wrapped}
+    `;
+        }
+    };
+    VscodeIcon.styles = styles$w;
+    VscodeIcon.stylesheetHref = '';
+    VscodeIcon.nonce = '';
+    __decorate$B([
+        n$1()
+    ], VscodeIcon.prototype, "label", void 0);
+    __decorate$B([
+        n$1({ type: String })
+    ], VscodeIcon.prototype, "name", void 0);
+    __decorate$B([
+        n$1({ type: Number })
+    ], VscodeIcon.prototype, "size", void 0);
+    __decorate$B([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeIcon.prototype, "spin", void 0);
+    __decorate$B([
+        n$1({ type: Number, attribute: 'spin-duration' })
+    ], VscodeIcon.prototype, "spinDuration", void 0);
+    __decorate$B([
+        n$1({ type: Boolean, reflect: true, attribute: 'action-icon' })
+    ], VscodeIcon.prototype, "actionIcon", void 0);
+    VscodeIcon = VscodeIcon_1 = __decorate$B([
+        customElement('vscode-icon')
+    ], VscodeIcon);
+
+    const defaultFontStack$1 = r$6(getDefaultFontStack());
+    const styles$v = [
+        defaultStyles,
+        i$4 `
+    :host {
+      background-color: var(--vscode-button-background, #0078d4);
+      border-color: var(--vscode-button-border, transparent);
+      border-style: solid;
+      border-radius: 2px;
+      border-width: 1px;
+      color: var(--vscode-button-foreground, #ffffff);
+      cursor: pointer;
+      display: inline-flex;
+      font-family: var(--vscode-font-family, ${defaultFontStack$1});
+      font-size: var(--vscode-font-size, 13px);
+      font-weight: var(--vscode-font-weight, normal);
+      line-height: 22px;
+      overflow: hidden;
+      padding: 0;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    :host([secondary]) {
+      color: var(--vscode-button-secondaryForeground, #cccccc);
+      background-color: var(--vscode-button-secondaryBackground, #313131);
+      border-color: var(
+        --vscode-button-border,
+        var(--vscode-button-secondaryBackground, rgba(255, 255, 255, 0.07))
+      );
+    }
+
+    :host([disabled]) {
+      cursor: default;
+      opacity: 0.4;
+      pointer-events: none;
+    }
+
+    :host(:hover) {
+      background-color: var(--vscode-button-hoverBackground, #026ec1);
+    }
+
+    :host([disabled]:hover) {
+      background-color: var(--vscode-button-background, #0078d4);
+    }
+
+    :host([secondary]:hover) {
+      background-color: var(--vscode-button-secondaryHoverBackground, #3c3c3c);
+    }
+
+    :host([secondary][disabled]:hover) {
+      background-color: var(--vscode-button-secondaryBackground, #313131);
+    }
+
+    :host(:focus),
+    :host(:active) {
+      outline: none;
+    }
+
+    :host(:focus) {
+      background-color: var(--vscode-button-hoverBackground, #026ec1);
+      outline: 1px solid var(--vscode-focusBorder, #0078d4);
+      outline-offset: 2px;
+    }
+
+    :host([disabled]:focus) {
+      background-color: var(--vscode-button-background, #0078d4);
+      outline: 0;
+    }
+
+    :host([secondary]:focus) {
+      background-color: var(--vscode-button-secondaryHoverBackground, #3c3c3c);
+    }
+
+    :host([secondary][disabled]:focus) {
+      background-color: var(--vscode-button-secondaryBackground, #313131);
+    }
+
+    ::slotted(*) {
+      display: inline-block;
+      margin-left: 4px;
+      margin-right: 4px;
+    }
+
+    ::slotted(*:first-child) {
+      margin-left: 0;
+    }
+
+    ::slotted(*:last-child) {
+      margin-right: 0;
+    }
+
+    ::slotted(vscode-icon) {
+      color: inherit;
+    }
+
+    .wrapper {
+      align-items: center;
+      box-sizing: border-box;
+      display: flex;
+      justify-content: center;
+      position: relative;
+      width: 100%;
+      height: 100%;
+      padding: 1px 13px;
+    }
+
+    :host(:empty) .wrapper,
+    :host([icon-only]) .wrapper {
+      min-height: 24px;
+      min-width: 16px;
+      padding: 1px 5px;
+    }
+
+    slot {
+      align-items: center;
+      display: flex;
+      height: 100%;
+    }
+
+    .icon,
+    .icon-after {
+      color: inherit;
+      display: block;
+    }
+
+    :host(:not(:empty)) .icon {
+      margin-right: 3px;
+    }
+
+    :host(:not(:empty)) .icon-after,
+    :host([icon]) .icon-after {
+      margin-left: 3px;
+    }
+
+    .divider {
+      display: var(--divider-display, none);
+      background-color: transparent;
+      padding: 4px 0;
+      box-sizing: border-box;
+    }
+
+    :host(:hover) .divider,
+    :host(:focus) .divider {
+      background-color: var(--vscode-button-hoverBackground, #026ec1);
+    }
+
+    :host([secondary]) .divider {
+      background-color: var(--vscode-button-secondaryBackground, #313131);
+    }
+
+    :host([secondary]:hover) .divider,
+    :host([secondary]:focus) .divider {
+      background-color: var(--vscode-button-secondaryHoverBackground, #3c3c3c);
+    }
+
+    .divider > div {
+      background-color: var(
+        --vscode-button-separator,
+        rgba(255, 255, 255, 0.4)
+      );
+      height: 100%;
+      width: 1px;
+      margin: 0;
+    }
+
+    :host([secondary]) .divider > div {
+      background-color: var(--vscode-button-secondaryForeground, #cccccc);
+      opacity: 0.4;
+    }
+  `,
+    ];
+
+    var __decorate$A = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    /**
+     * Clickable element that are used to trigger actions.
+     *
+     * @tag vscode-button
+     *
+     * @fires vsc-click Dispatched only when button is not in disabled state.
+     *
+     * @cssprop [--vscode-button-background=#0078d4]
+     * @cssprop [--vscode-button-foreground=#ffffff]
+     * @cssprop [--vscode-button-border=var(--vscode-button-background, rgba(255, 255, 255, 0.07))]
+     * @cssprop [--vscode-button-hoverBackground=#026ec1]
+     * @cssprop [--vscode-font-family=sans-serif] - A sans-serif font type depends on the host OS.
+     * @cssprop [--vscode-font-size=13px]
+     * @cssprop [--vscode-font-weight=normal]
+     * @cssprop [--vscode-button-secondaryForeground=#cccccc]
+     * @cssprop [--vscode-button-secondaryBackground=#313131]
+     * @cssprop [--vscode-button-secondaryHoverBackground=#3c3c3c]
+     * @cssprop [--vscode-focusBorder=#0078d4]
+     */
+    let VscodeButton = class VscodeButton extends VscElement {
+        get form() {
+            return this._internals.form;
+        }
+        constructor() {
+            super();
+            this.autofocus = false;
+            /** @internal */
+            this.tabIndex = 0;
+            /**
+             * Button has a less prominent style.
+             */
+            this.secondary = false;
+            /** @internal */
+            this.role = 'button';
+            this.disabled = false;
+            /**
+             * A [Codicon](https://microsoft.github.io/vscode-codicons/dist/codicon.html) before the label
+             */
+            this.icon = '';
+            /**
+             * Spin property for the icon
+             */
+            this.iconSpin = false;
+            /**
+             * A [Codicon](https://microsoft.github.io/vscode-codicons/dist/codicon.html) after the label
+             */
+            this.iconAfter = '';
+            /**
+             * Spin property for the after icon
+             */
+            this.iconAfterSpin = false;
+            this.focused = false;
+            this.name = undefined;
+            this.iconOnly = false;
+            this.type = 'button';
+            this.value = '';
+            this._prevTabindex = 0;
+            this._handleFocus = () => {
+                this.focused = true;
+            };
+            this._handleBlur = () => {
+                this.focused = false;
+            };
+            this.addEventListener('keydown', this._handleKeyDown.bind(this));
+            this.addEventListener('click', this._handleClick.bind(this));
+            this._internals = this.attachInternals();
+        }
+        connectedCallback() {
+            super.connectedCallback();
+            if (this.autofocus) {
+                if (this.tabIndex < 0) {
+                    this.tabIndex = 0;
+                }
+                this.updateComplete.then(() => {
+                    this.focus();
+                    this.requestUpdate();
+                });
+            }
+            this.addEventListener('focus', this._handleFocus);
+            this.addEventListener('blur', this._handleBlur);
+        }
+        disconnectedCallback() {
+            super.disconnectedCallback();
+            this.removeEventListener('focus', this._handleFocus);
+            this.removeEventListener('blur', this._handleBlur);
+        }
+        update(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        changedProperties) {
+            super.update(changedProperties);
+            if (changedProperties.has('value')) {
+                this._internals.setFormValue(this.value);
+            }
+            if (changedProperties.has('disabled')) {
+                if (this.disabled) {
+                    // Save the original tabIndex, which may have been modified by the user.
+                    this._prevTabindex = this.tabIndex;
+                    // It's a native property, we don't care about re-rendering.
+                    // eslint-disable-next-line lit/no-property-change-update
+                    this.tabIndex = -1;
+                }
+                else {
+                    // eslint-disable-next-line lit/no-property-change-update
+                    this.tabIndex = this._prevTabindex;
+                }
+            }
+        }
+        _executeAction() {
+            if (this.type === 'submit' && this._internals.form) {
+                this._internals.form.requestSubmit();
+            }
+            if (this.type === 'reset' && this._internals.form) {
+                this._internals.form.reset();
+            }
+        }
+        _handleKeyDown(event) {
+            if ((event.key === 'Enter' || event.key === ' ') &&
+                !this.hasAttribute('disabled')) {
+                /**
+                 * @deprecated
+                 * Please use the standard `click` event.
+                 */
+                this.dispatchEvent(new CustomEvent('vsc-click', {
+                    detail: {
+                        originalEvent: new MouseEvent('click'),
+                    },
+                }));
+                const syntheticClick = new MouseEvent('click', {
+                    bubbles: true,
+                    cancelable: true,
+                });
+                syntheticClick.synthetic = true;
+                this.dispatchEvent(syntheticClick);
+                this._executeAction();
+            }
+        }
+        _handleClick(event) {
+            if (event.synthetic) {
+                return;
+            }
+            if (!this.hasAttribute('disabled')) {
+                this.dispatchEvent(new CustomEvent('vsc-click', {
+                    detail: {
+                        originalEvent: event,
+                    },
+                }));
+                this._executeAction();
+            }
+        }
+        render() {
+            const hasIcon = this.icon !== '';
+            const hasIconAfter = this.iconAfter !== '';
+            const wrapperClasses = {
+                wrapper: true,
+                'has-icon-before': hasIcon,
+                'has-icon-after': hasIconAfter,
+                'icon-only': this.iconOnly,
+            };
+            const iconElem = hasIcon
+                ? x `<vscode-icon
+          name=${this.icon}
+          ?spin=${this.iconSpin}
+          spin-duration=${o(this.iconSpinDuration)}
+          class="icon"
+        ></vscode-icon>`
+                : E;
+            const iconAfterElem = hasIconAfter
+                ? x `<vscode-icon
+          name=${this.iconAfter}
+          ?spin=${this.iconAfterSpin}
+          spin-duration=${o(this.iconAfterSpinDuration)}
+          class="icon-after"
+        ></vscode-icon>`
+                : E;
+            return x `
+      <span class=${e(wrapperClasses)}>
+        ${iconElem}
+        <slot></slot>
+        ${iconAfterElem}
+      </span>
+      <div class="divider"><div></div></div>
+    `;
+        }
+    };
+    VscodeButton.styles = styles$v;
+    /** @internal */
+    VscodeButton.formAssociated = true;
+    __decorate$A([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeButton.prototype, "autofocus", void 0);
+    __decorate$A([
+        n$1({ type: Number, reflect: true })
+    ], VscodeButton.prototype, "tabIndex", void 0);
+    __decorate$A([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeButton.prototype, "secondary", void 0);
+    __decorate$A([
+        n$1({ reflect: true })
+    ], VscodeButton.prototype, "role", void 0);
+    __decorate$A([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeButton.prototype, "disabled", void 0);
+    __decorate$A([
+        n$1()
+    ], VscodeButton.prototype, "icon", void 0);
+    __decorate$A([
+        n$1({ type: Boolean, reflect: true, attribute: 'icon-spin' })
+    ], VscodeButton.prototype, "iconSpin", void 0);
+    __decorate$A([
+        n$1({ type: Number, reflect: true, attribute: 'icon-spin-duration' })
+    ], VscodeButton.prototype, "iconSpinDuration", void 0);
+    __decorate$A([
+        n$1({ attribute: 'icon-after' })
+    ], VscodeButton.prototype, "iconAfter", void 0);
+    __decorate$A([
+        n$1({ type: Boolean, reflect: true, attribute: 'icon-after-spin' })
+    ], VscodeButton.prototype, "iconAfterSpin", void 0);
+    __decorate$A([
+        n$1({
+            type: Number,
+            reflect: true,
+            attribute: 'icon-after-spin-duration',
+        })
+    ], VscodeButton.prototype, "iconAfterSpinDuration", void 0);
+    __decorate$A([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeButton.prototype, "focused", void 0);
+    __decorate$A([
+        n$1({ type: String, reflect: true })
+    ], VscodeButton.prototype, "name", void 0);
+    __decorate$A([
+        n$1({ type: Boolean, reflect: true, attribute: 'icon-only' })
+    ], VscodeButton.prototype, "iconOnly", void 0);
+    __decorate$A([
+        n$1({ reflect: true })
+    ], VscodeButton.prototype, "type", void 0);
+    __decorate$A([
+        n$1()
+    ], VscodeButton.prototype, "value", void 0);
+    VscodeButton = __decorate$A([
+        customElement('vscode-button')
+    ], VscodeButton);
+
+    const styles$u = [
+        defaultStyles,
+        i$4 `
+    :host {
+      display: inline-flex;
+      align-items: stretch;
+      padding: 0;
+      border: none;
+    }
+
+    ::slotted(vscode-button:not(:first-child)) {
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+      border-left-width: 0;
+    }
+
+    ::slotted(vscode-button:not(:last-child)) {
+      --divider-display: block;
+
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+      border-right-width: 0;
+    }
+
+    ::slotted(vscode-button:focus) {
+      z-index: 1;
+    }
+  `,
+    ];
+
+    var __decorate$z = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    /**
+     * Shows a split button, including several components in a single button. Commonly used to show a button with a dropdown to the right.
+     *
+     * @tag vscode-button-group
+     *
+     * @cssprop [--vscode-button-background=#0078d4]
+     * @cssprop [--vscode-button-foreground=#ffffff]
+     * @cssprop [--vscode-button-border=var(--vscode-button-background, rgba(255, 255, 255, 0.07))]
+     * @cssprop [--vscode-button-hoverBackground=#026ec1]
+     * @cssprop [--vscode-font-family=sans-serif] - A sans-serif font type depends on the host OS.
+     * @cssprop [--vscode-font-size=13px]
+     * @cssprop [--vscode-font-weight=normal]
+     * @cssprop [--vscode-button-secondaryForeground=#cccccc]
+     * @cssprop [--vscode-button-secondaryBackground=#313131]
+     * @cssprop [--vscode-button-secondaryHoverBackground=#3c3c3c]
+     * @cssprop [--vscode-focusBorder=#0078d4]
+     */
+    let VscodeButtonGroup = class VscodeButtonGroup extends VscElement {
+        render() {
+            return x ` <slot></slot> `;
+        }
+    };
+    VscodeButtonGroup.styles = styles$u;
+    VscodeButtonGroup = __decorate$z([
+        t$2('vscode-button-group')
+    ], VscodeButtonGroup);
+
+    var __decorate$y = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    class FormButtonWidgetBase extends VscElement {
+        constructor() {
+            super();
+            this.focused = false;
+            this._prevTabindex = 0;
+            this._handleFocus = () => {
+                this.focused = true;
+            };
+            this._handleBlur = () => {
+                this.focused = false;
+            };
+        }
+        connectedCallback() {
+            super.connectedCallback();
+            this.addEventListener('focus', this._handleFocus);
+            this.addEventListener('blur', this._handleBlur);
+        }
+        disconnectedCallback() {
+            super.disconnectedCallback();
+            this.removeEventListener('focus', this._handleFocus);
+            this.removeEventListener('blur', this._handleBlur);
+        }
+        attributeChangedCallback(name, oldVal, newVal) {
+            super.attributeChangedCallback(name, oldVal, newVal);
+            if (name === 'disabled' && this.hasAttribute('disabled')) {
+                this._prevTabindex = this.tabIndex;
+                this.tabIndex = -1;
+            }
+            else if (name === 'disabled' && !this.hasAttribute('disabled')) {
+                this.tabIndex = this._prevTabindex;
+            }
+        }
+    }
+    __decorate$y([
+        n$1({ type: Boolean, reflect: true })
+    ], FormButtonWidgetBase.prototype, "focused", void 0);
+
+    var __decorate$x = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    const LabelledCheckboxOrRadioMixin = (superClass) => {
+        class LabelledCheckboxOrRadio extends superClass {
+            constructor() {
+                super(...arguments);
+                this._label = '';
+                this._slottedText = '';
+            }
+            set label(val) {
+                this._label = val;
+                if (this._slottedText === '') {
+                    this.setAttribute('aria-label', val);
+                }
+            }
+            get label() {
+                return this._label;
+            }
+            _handleSlotChange() {
+                this._slottedText = this.textContent ? this.textContent.trim() : '';
+                if (this._slottedText !== '') {
+                    this.setAttribute('aria-label', this._slottedText);
+                }
+            }
+            _renderLabelAttribute() {
+                return this._slottedText === ''
+                    ? x `<span class="label-attr">${this._label}</span>`
+                    : x `${E}`;
+            }
+        }
+        __decorate$x([
+            n$1()
+        ], LabelledCheckboxOrRadio.prototype, "label", null);
+        return LabelledCheckboxOrRadio;
+    };
+
+    var baseStyles = [
+        i$4 `
+    :host {
+      color: var(--vscode-foreground, #cccccc);
+      display: inline-block;
+      font-family: var(--vscode-font-family, sans-serif);
+      font-size: var(--vscode-font-size, 13px);
+      font-weight: var(--vscode-font-weight, normal);
+      line-height: 18px;
+    }
+
+    :host(:focus) {
+      outline: none;
+    }
+
+    :host([disabled]) {
+      opacity: 0.4;
+    }
+
+    .wrapper {
+      cursor: pointer;
+      display: block;
+      font-size: var(--vscode-font-size, 13px);
+      margin-bottom: 4px;
+      margin-top: 4px;
+      min-height: 18px;
+      position: relative;
+      user-select: none;
+    }
+
+    :host([disabled]) .wrapper {
+      cursor: default;
+    }
+
+    input {
+      position: absolute;
+      height: 1px;
+      left: 9px;
+      margin: 0;
+      top: 17px;
+      width: 1px;
+      overflow: hidden;
+      clip: rect(1px, 1px, 1px, 1px);
+      white-space: nowrap;
+    }
+
+    .icon {
+      align-items: center;
+      background-color: var(--vscode-settings-checkboxBackground, #313131);
+      background-size: 16px;
+      border: 1px solid var(--vscode-settings-checkboxBorder, #3c3c3c);
+      box-sizing: border-box;
+      color: var(--vscode-settings-checkboxForeground, #cccccc);
+      display: flex;
+      height: 18px;
+      justify-content: center;
+      left: 0;
+      margin-left: 0;
+      margin-right: 9px;
+      padding: 0;
+      pointer-events: none;
+      position: absolute;
+      top: 0;
+      width: 18px;
+    }
+
+    .icon.before-empty-label {
+      margin-right: 0;
+    }
+
+    .label {
+      cursor: pointer;
+      display: block;
+      min-height: 18px;
+      min-width: 18px;
+    }
+
+    .label-inner {
+      display: block;
+      opacity: 0.9;
+      padding-left: 27px;
+    }
+
+    .label-inner.empty {
+      padding-left: 0;
+    }
+
+    :host([disabled]) .label {
+      cursor: default;
+    }
+  `,
+    ];
+
+    const styles$t = [
+        defaultStyles,
+        baseStyles,
+        i$4 `
+    :host(:invalid) .icon,
+    :host([invalid]) .icon {
+      background-color: var(--vscode-inputValidation-errorBackground, #5a1d1d);
+      border-color: var(--vscode-inputValidation-errorBorder, #be1100);
+    }
+
+    .icon {
+      border-radius: 3px;
+    }
+
+    .indeterminate-icon {
+      background-color: currentColor;
+      position: absolute;
+      height: 1px;
+      width: 12px;
+    }
+
+    :host(:focus):host(:not([disabled])) .icon {
+      outline: 1px solid var(--vscode-focusBorder, #0078d4);
+      outline-offset: -1px;
+    }
+  `,
+    ];
+
+    var __decorate$w = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    /**
+     * Allows users to select one or more options from a set. When participating in a form, it supports
+     * the `:invalid` pseudo class. Otherwise the error styles can be applied through the `invalid`
+     * property.
+     *
+     * @tag vscode-checkbox
+     *
+     * @attr name - Name which is used as a variable name in the data of the form-container.
+     * @attr label - Attribute pair of the `label` property.
+     * @prop label - Label text. It is only applied if component's innerHTML doesn't contain any text.
+     *
+     * @fires {Event} change - Dispatched when checked state is changed. The event is bubbled, so it can be listened on a parent element like the `CheckboxGroup`.
+     * @fires {Event} invalid - Dispatched when the element is invalid and `checkValidity()` has been called or the form containing this element is submitted.
+     *
+     * [MDN Reference](https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/invalid_event)
+     *
+     * @cssprop [--vscode-font-family=sans-serif]
+     * @cssprop [--vscode-font-size=13px]
+     * @cssprop [--vscode-font-weight=normal]
+     * @cssprop [--vscode-foreground=#cccccc]
+     * @cssprop [--vscode-settings-checkboxBackground=#313131]
+     * @cssprop [--vscode-settings-checkboxBorder=#3c3c3c]
+     * @cssprop [--vscode-settings-checkboxForeground=#cccccc]
+     * @cssprop [--vscode-focusBorder=#0078d4]
+     * @cssprop [--vscode-inputValidation-errorBackground=#5a1d1d]
+     * @cssprop [--vscode-inputValidation-errorBorder=#be1100]
+     */
+    let VscodeCheckbox = class VscodeCheckbox extends LabelledCheckboxOrRadioMixin(FormButtonWidgetBase) {
+        set checked(newVal) {
+            this._checked = newVal;
+            this._manageRequired();
+            this.requestUpdate();
+        }
+        get checked() {
+            return this._checked;
+        }
+        set required(newVal) {
+            this._required = newVal;
+            this._manageRequired();
+            this.requestUpdate();
+        }
+        get required() {
+            return this._required;
+        }
+        get form() {
+            return this._internals.form;
+        }
+        get validity() {
+            return this._internals.validity;
+        }
+        get validationMessage() {
+            return this._internals.validationMessage;
+        }
+        get willValidate() {
+            return this._internals.willValidate;
+        }
+        /**
+         * Returns `true` if the element's value is valid; otherwise, it returns `false`.
+         * If the element's value is invalid, an invalid event is triggered on the element.
+         *
+         * [MDN Reference](https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/checkValidity)
+         */
+        checkValidity() {
+            return this._internals.checkValidity();
+        }
+        /**
+         * Returns `true` if the element's value is valid; otherwise, it returns `false`.
+         * If the element's value is invalid, an invalid event is triggered on the element, and the
+         * browser displays an error message to the user.
+         *
+         * [MDN Reference](https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/reportValidity)
+         */
+        reportValidity() {
+            return this._internals.reportValidity();
+        }
+        constructor() {
+            super();
+            /**
+             * Automatically focus on the element when the page loads.
+             *
+             * [MDN Reference](https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/autofocus)
+             */
+            this.autofocus = false;
+            this._checked = false;
+            /**
+             * The element's initial checked state, which will be restored when the containing form is reset.
+             */
+            this.defaultChecked = false;
+            this.invalid = false;
+            this.name = undefined;
+            /**
+             * Associate a value to the checkbox. According to the native checkbox [specification](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input/checkbox#value_2), If the component participates in a form:
+             *
+             * - If it is unchecked, the value will not be submitted.
+             * - If it is checked but the value is not set, `on` will be submitted.
+             * - If it is checked and value is set, the value will be submitted.
+             */
+            this.value = '';
+            this.disabled = false;
+            this.indeterminate = false;
+            this._required = false;
+            /** @internal */
+            this.type = 'checkbox';
+            this._handleClick = (ev) => {
+                ev.preventDefault();
+                if (this.disabled) {
+                    return;
+                }
+                this._toggleState();
+            };
+            this._handleKeyDown = (ev) => {
+                if (!this.disabled && (ev.key === 'Enter' || ev.key === ' ')) {
+                    ev.preventDefault();
+                    if (ev.key === ' ') {
+                        this._toggleState();
+                    }
+                    if (ev.key === 'Enter') {
+                        this._internals.form?.requestSubmit();
+                    }
+                }
+            };
+            this._internals = this.attachInternals();
+        }
+        connectedCallback() {
+            super.connectedCallback();
+            this.addEventListener('keydown', this._handleKeyDown);
+            this.updateComplete.then(() => {
+                this._manageRequired();
+                this._setActualFormValue();
+            });
+        }
+        disconnectedCallback() {
+            this.removeEventListener('keydown', this._handleKeyDown);
+        }
+        update(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        changedProperties) {
+            super.update(changedProperties);
+            if (changedProperties.has('checked')) {
+                this.ariaChecked = this.checked ? 'true' : 'false';
+            }
+        }
+        /** @internal */
+        formResetCallback() {
+            this.checked = this.defaultChecked;
+        }
+        /** @internal */
+        formStateRestoreCallback(state, _mode) {
+            if (state) {
+                this.checked = true;
+            }
+        }
+        // Sets the value of the control according to the native checkbox behavior.
+        // - If the checkbox is unchecked, the value will be null, so the control will
+        //   excluded from the form.
+        // - If the control is checked but the value is not set, the value will be "on".
+        // - If the control is checked and value is set, the value won't be changed.
+        _setActualFormValue() {
+            let actualValue = '';
+            if (this.checked) {
+                actualValue = !this.value ? 'on' : this.value;
+            }
+            else {
+                actualValue = null;
+            }
+            this._internals.setFormValue(actualValue);
+        }
+        _toggleState() {
+            this.checked = !this.checked;
+            this.indeterminate = false;
+            this._setActualFormValue();
+            this._manageRequired();
+            this.dispatchEvent(new Event('change', { bubbles: true }));
+            /** @deprecated */
+            this.dispatchEvent(new CustomEvent('vsc-change', {
+                detail: {
+                    checked: this.checked,
+                    label: this.label,
+                    value: this.value,
+                },
+                bubbles: true,
+                composed: true,
+            }));
+        }
+        _manageRequired() {
+            if (!this.checked && this.required) {
+                this._internals.setValidity({
+                    valueMissing: true,
+                }, 'Please check this box if you want to proceed.', this._inputEl ?? undefined);
+            }
+            else {
+                this._internals.setValidity({});
+            }
+        }
+        render() {
+            const iconClasses = e({
+                icon: true,
+                checked: this.checked,
+                indeterminate: this.indeterminate,
+            });
+            const labelInnerClasses = e({
+                'label-inner': true,
+            });
+            const icon = x `<svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="currentColor"
+      class="check-icon"
+    >
+      <path
+        fill-rule="evenodd"
+        clip-rule="evenodd"
+        d="M14.431 3.323l-8.47 10-.79-.036-3.35-4.77.818-.574 2.978 4.24 8.051-9.506.764.646z"
+      />
+    </svg>`;
+            const check = this.checked && !this.indeterminate ? icon : E;
+            const indeterminate = this.indeterminate
+                ? x `<span class="indeterminate-icon"></span>`
+                : E;
+            return x `
+      <div class="wrapper">
+        <input
+          ?autofocus=${this.autofocus}
+          id="input"
+          class="checkbox"
+          type="checkbox"
+          ?checked=${this.checked}
+          value=${this.value}
+        >
+        <div class=${iconClasses}>${indeterminate}${check}</div>
+        <label for="input" class="label" @click=${this._handleClick}>
+          <span class=${labelInnerClasses}>
+            ${this._renderLabelAttribute()}
+            <slot @slotchange=${this._handleSlotChange}></slot>
+          </span>
+        </label>
+      </div>
+    `;
+        }
+    };
+    VscodeCheckbox.styles = styles$t;
+    /** @internal */
+    VscodeCheckbox.formAssociated = true;
+    /** @internal */
+    VscodeCheckbox.shadowRootOptions = {
+        ...i$1.shadowRootOptions,
+        delegatesFocus: true,
+    };
+    __decorate$w([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeCheckbox.prototype, "autofocus", void 0);
+    __decorate$w([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeCheckbox.prototype, "checked", null);
+    __decorate$w([
+        n$1({ type: Boolean, reflect: true, attribute: 'default-checked' })
+    ], VscodeCheckbox.prototype, "defaultChecked", void 0);
+    __decorate$w([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeCheckbox.prototype, "invalid", void 0);
+    __decorate$w([
+        n$1({ reflect: true })
+    ], VscodeCheckbox.prototype, "name", void 0);
+    __decorate$w([
+        n$1()
+    ], VscodeCheckbox.prototype, "value", void 0);
+    __decorate$w([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeCheckbox.prototype, "disabled", void 0);
+    __decorate$w([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeCheckbox.prototype, "indeterminate", void 0);
+    __decorate$w([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeCheckbox.prototype, "required", null);
+    __decorate$w([
+        n$1()
+    ], VscodeCheckbox.prototype, "type", void 0);
+    __decorate$w([
+        e$3('#input')
+    ], VscodeCheckbox.prototype, "_inputEl", void 0);
+    VscodeCheckbox = __decorate$w([
+        customElement('vscode-checkbox')
+    ], VscodeCheckbox);
+
+    const styles$s = [
+        defaultStyles,
+        i$4 `
+    :host {
+      display: block;
+    }
+
+    .wrapper {
+      display: flex;
+      flex-wrap: wrap;
+    }
+
+    :host([variant='vertical']) .wrapper {
+      display: block;
+    }
+
+    ::slotted(vscode-checkbox) {
+      margin-right: 20px;
+    }
+
+    ::slotted(vscode-checkbox:last-child) {
+      margin-right: 0;
+    }
+
+    :host([variant='vertical']) ::slotted(vscode-checkbox) {
+      display: block;
+      margin-bottom: 15px;
+    }
+
+    :host([variant='vertical']) ::slotted(vscode-checkbox:last-child) {
+      margin-bottom: 0;
+    }
+  `,
+    ];
+
+    var __decorate$v = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    /**
+     * Arranges a group of checkboxes horizontally or vertically.
+     *
+     * @tag vscode-checkbox-group
+     */
+    let VscodeCheckboxGroup = class VscodeCheckboxGroup extends VscElement {
+        constructor() {
+            super(...arguments);
+            /** @internal */
+            this.role = 'group';
+            this.variant = 'horizontal';
+        }
+        render() {
+            return x `
+      <div class="wrapper">
+        <slot></slot>
+      </div>
+    `;
+        }
+    };
+    VscodeCheckboxGroup.styles = styles$s;
+    __decorate$v([
+        n$1({ reflect: true })
+    ], VscodeCheckboxGroup.prototype, "role", void 0);
+    __decorate$v([
+        n$1({ reflect: true })
+    ], VscodeCheckboxGroup.prototype, "variant", void 0);
+    VscodeCheckboxGroup = __decorate$v([
+        customElement('vscode-checkbox-group')
+    ], VscodeCheckboxGroup);
+
+    const styles$r = [
+        defaultStyles,
+        i$4 `
+    .collapsible {
+      background-color: var(--vscode-sideBar-background, #181818);
+    }
+
+    .collapsible-header {
+      align-items: center;
+      background-color: var(--vscode-sideBarSectionHeader-background, #181818);
+      cursor: pointer;
+      display: flex;
+      height: 22px;
+      line-height: 22px;
+      user-select: none;
+    }
+
+    .collapsible-header:focus {
+      opacity: 1;
+      outline-offset: -1px;
+      outline-style: solid;
+      outline-width: 1px;
+      outline-color: var(--vscode-focusBorder, #0078d4);
+    }
+
+    .title {
+      color: var(--vscode-sideBarTitle-foreground, #cccccc);
+      display: block;
+      font-family: var(--vscode-font-family, sans-serif);
+      font-size: 11px;
+      font-weight: 700;
+      margin: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .title .description {
+      font-weight: 400;
+      margin-left: 10px;
+      text-transform: none;
+      opacity: 0.6;
+    }
+
+    .header-icon {
+      color: var(--vscode-icon-foreground, #cccccc);
+      display: block;
+      flex-shrink: 0;
+      margin: 0 3px;
+    }
+
+    .collapsible.open .header-icon {
+      transform: rotate(90deg);
+    }
+
+    .header-slots {
+      align-items: center;
+      display: flex;
+      height: 22px;
+      margin-left: auto;
+      margin-right: 4px;
+    }
+
+    .actions {
+      display: none;
+    }
+
+    .collapsible.open .actions {
+      display: block;
+    }
+
+    .header-slots slot {
+      display: flex;
+      max-height: 22px;
+      overflow: hidden;
+    }
+
+    .header-slots slot::slotted(div) {
+      align-items: center;
+      display: flex;
+    }
+
+    .collapsible-body {
+      display: none;
+      overflow: hidden;
+    }
+
+    .collapsible.open .collapsible-body {
+      display: block;
+    }
+  `,
+    ];
+
+    var __decorate$u = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    /**
+     * Allows users to reveal or hide related content on a page.
+     *
+     * @tag vscode-collapsible
+     *
+     * @slot - Main content.
+     * @slot actions - You can place any action icon in this slot in the header, but it's also possible to use any HTML element in it. It's only visible when the component is open.
+     * @slot decorations - The elements placed in the decorations slot are always visible.
+     *
+     * @fires {VscCollapsibleToggleEvent} vsc-collapsible-toggle - Dispatched when the content visibility is changed.
+     *
+     * @cssprop [--vscode-sideBar-background=#181818] - Background color
+     * @cssprop [--vscode-focusBorder=#0078d4] - Focus border color
+     * @cssprop [--vscode-font-family=sans-serif] - Header font family
+     * @cssprop [--vscode-sideBarSectionHeader-background=#181818] - Header background
+     * @cssprop [--vscode-icon-foreground=#cccccc] - Arrow icon color
+     * @cssprop [--vscode-sideBarTitle-foreground=#cccccc] - Header font color
+     *
+     * @csspart body - Container for the toggleable content of the component. The container's overflow content is hidden by default. This CSS part can serve as an escape hatch to modify this behavior.
+     */
+    let VscodeCollapsible = class VscodeCollapsible extends VscElement {
+        constructor() {
+            super(...arguments);
+            /** Component heading text */
+            this.title = '';
+            /** Less prominent text than the title in the header */
+            this.description = '';
+            this.open = false;
+        }
+        _emitToggleEvent() {
+            this.dispatchEvent(new CustomEvent('vsc-collapsible-toggle', {
+                detail: { open: this.open },
+            }));
+        }
+        _onHeaderClick() {
+            this.open = !this.open;
+            this._emitToggleEvent();
+        }
+        _onHeaderKeyDown(event) {
+            if (event.key === 'Enter') {
+                this.open = !this.open;
+                this._emitToggleEvent();
+            }
+        }
+        render() {
+            const classes = e({ collapsible: true, open: this.open });
+            const icon = x `<svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="currentColor"
+      class="header-icon"
+    >
+      <path
+        fill-rule="evenodd"
+        clip-rule="evenodd"
+        d="M10.072 8.024L5.715 3.667l.618-.62L11 7.716v.618L6.333 13l-.618-.619 4.357-4.357z"
+      />
+    </svg>`;
+            const descriptionMarkup = this.description
+                ? x `<span class="description">${this.description}</span>`
+                : E;
+            return x `
+      <div class=${classes}>
+        <div
+          class="collapsible-header"
+          tabindex="0"
+          title=${this.title}
+          @click=${this._onHeaderClick}
+          @keydown=${this._onHeaderKeyDown}
+        >
+          ${icon}
+          <h3 class="title">${this.title}${descriptionMarkup}</h3>
+          <div class="header-slots">
+            <div class="actions"><slot name="actions"></slot></div>
+            <div class="decorations"><slot name="decorations"></slot></div>
+          </div>
+        </div>
+        <div class="collapsible-body" part="body">
+          <slot></slot>
+        </div>
+      </div>
+    `;
+        }
+    };
+    VscodeCollapsible.styles = styles$r;
+    __decorate$u([
+        n$1({ type: String })
+    ], VscodeCollapsible.prototype, "title", void 0);
+    __decorate$u([
+        n$1()
+    ], VscodeCollapsible.prototype, "description", void 0);
+    __decorate$u([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeCollapsible.prototype, "open", void 0);
+    VscodeCollapsible = __decorate$u([
+        customElement('vscode-collapsible')
+    ], VscodeCollapsible);
+
+    const styles$q = [
+        defaultStyles,
+        i$4 `
+    :host {
+      display: block;
+      font-family: var(--vscode-font-family, sans-serif);
+      font-size: var(--vscode-font-size, 13px);
+      font-weight: var(--vscode-font-weight, normal);
+      line-height: 1.4em;
+      outline: none;
+      position: relative;
+    }
+
+    .context-menu-item {
+      background-color: var(--vscode-menu-background, #1f1f1f);
+      color: var(--vscode-menu-foreground, #cccccc);
+      display: flex;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .ruler {
+      border-bottom: 1px solid var(--vscode-menu-separatorBackground, #454545);
+      display: block;
+      margin: 0 0 4px;
+      padding-top: 4px;
+      width: 100%;
+    }
+
+    .context-menu-item a {
+      align-items: center;
+      border-color: transparent;
+      border-radius: 3px;
+      border-style: solid;
+      border-width: 1px;
+      box-sizing: border-box;
+      color: var(--vscode-menu-foreground, #cccccc);
+      cursor: pointer;
+      display: flex;
+      flex: 1 1 auto;
+      height: 2em;
+      margin-left: 4px;
+      margin-right: 4px;
+      outline: none;
+      position: relative;
+      text-decoration: inherit;
+    }
+
+    :host([selected]) .context-menu-item a {
+      background-color: var(--vscode-menu-selectionBackground, #0078d4);
+      border-color: var(--vscode-menu-selectionBorder, transparent);
+      color: var(--vscode-menu-selectionForeground, #ffffff);
+    }
+
+    .label {
+      background: none;
+      display: flex;
+      flex: 1 1 auto;
+      font-size: 12px;
+      line-height: 1;
+      padding: 0 22px;
+      text-decoration: none;
+    }
+
+    .keybinding {
+      display: block;
+      flex: 2 1 auto;
+      line-height: 1;
+      padding: 0 22px;
+      text-align: right;
+    }
+  `,
+    ];
+
+    var __decorate$t = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    /**
+     * @tag vscode-context-menu-item
+     *
+     * Child component of [ContextMenu](/components/context-menu/).
+     *
+     * @cssprop [--vscode-font-family=sans-serif]
+     * @cssprop [--vscode-font-size=13px]
+     * @cssprop [--vscode-font-weight=normal]
+     * @cssprop [--vscode-menu-background=#1f1f1f]
+     * @cssprop [--vscode-menu-selectionBorder=transparent]
+     * @cssprop [--vscode-menu-foreground=#cccccc]
+     * @cssprop [--vscode-menu-selectionBackground=#0078d4]
+     * @cssprop [--vscode-menu-selectionForeground=#ffffff]
+     * @cssprop [--vscode-menu-separatorBackground=#454545]
+     */
+    let VscodeContextMenuItem = class VscodeContextMenuItem extends VscElement {
+        constructor() {
+            super(...arguments);
+            this.label = '';
+            this.keybinding = '';
+            this.value = '';
+            this.separator = false;
+            this.tabindex = 0;
+        }
+        onItemClick() {
+            /** @internal */
+            this.dispatchEvent(new CustomEvent('vsc-click', {
+                detail: {
+                    label: this.label,
+                    keybinding: this.keybinding,
+                    value: this.value || this.label,
+                    separator: this.separator,
+                    tabindex: this.tabindex,
+                },
+                bubbles: true,
+                composed: true,
+            }));
+        }
+        render() {
+            return x `
+      ${this.separator
+            ? x `
+            <div class="context-menu-item separator">
+              <span class="ruler"></span>
+            </div>
+          `
+            : x `
+            <div class="context-menu-item">
+              <a @click=${this.onItemClick}>
+                ${this.label
+                ? x `<span class="label">${this.label}</span>`
+                : E}
+                ${this.keybinding
+                ? x `<span class="keybinding">${this.keybinding}</span>`
+                : E}
+              </a>
+            </div>
+          `}
+    `;
+        }
+    };
+    VscodeContextMenuItem.styles = styles$q;
+    __decorate$t([
+        n$1({ type: String })
+    ], VscodeContextMenuItem.prototype, "label", void 0);
+    __decorate$t([
+        n$1({ type: String })
+    ], VscodeContextMenuItem.prototype, "keybinding", void 0);
+    __decorate$t([
+        n$1({ type: String })
+    ], VscodeContextMenuItem.prototype, "value", void 0);
+    __decorate$t([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeContextMenuItem.prototype, "separator", void 0);
+    __decorate$t([
+        n$1({ type: Number })
+    ], VscodeContextMenuItem.prototype, "tabindex", void 0);
+    VscodeContextMenuItem = __decorate$t([
+        customElement('vscode-context-menu-item')
+    ], VscodeContextMenuItem);
+
+    const styles$p = [
+        defaultStyles,
+        i$4 `
+    :host {
+      display: block;
+      font-family: var(--vscode-font-family, sans-serif);
+      font-size: var(--vscode-font-size, 13px);
+      font-weight: var(--vscode-font-weight, normal);
+      line-height: 1.4em;
+      position: relative;
+    }
+
+    .context-menu {
+      background-color: var(--vscode-menu-background, #1f1f1f);
+      border-color: var(--vscode-menu-border, #454545);
+      border-radius: 5px;
+      border-style: solid;
+      border-width: 1px;
+      box-shadow: 0 2px 8px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.36));
+      color: var(--vscode-menu-foreground, #cccccc);
+      padding: 4px 0;
+      white-space: nowrap;
+    }
+
+    .context-menu:focus {
+      outline: 0;
+    }
+  `,
+    ];
+
+    var __decorate$s = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    /**
+     * @tag vscode-context-menu
+     *
+     * @fires {VscMenuSelectEvent} vsc-menu-select - Emitted when a menu item is clicked
+     *
+     * @cssprop [--vscode-font-family=sans-serif]
+     * @cssprop [--vscode-font-size=13px]
+     * @cssprop [--vscode-font-weight=normal]
+     * @cssprop [--vscode-menu-background=#1f1f1f]
+     * @cssprop [--vscode-menu-border=#454545]
+     * @cssprop [--vscode-menu-foreground=#cccccc]
+     * @cssprop [--vscode-widget-shadow=rgba(0, 0, 0, 0.36)]
+     */
+    let VscodeContextMenu = class VscodeContextMenu extends VscElement {
+        set data(data) {
+            this._data = data;
+            const indexes = [];
+            data.forEach((v, i) => {
+                if (!v.separator) {
+                    indexes.push(i);
+                }
+            });
+            this._clickableItemIndexes = indexes;
+        }
+        get data() {
+            return this._data;
+        }
+        set show(show) {
+            this._show = show;
+            this._selectedClickableItemIndex = -1;
+            if (show) {
+                this.updateComplete.then(() => {
+                    if (this._wrapperEl) {
+                        this._wrapperEl.focus();
+                    }
+                    requestAnimationFrame(() => {
+                        document.addEventListener('click', this._onClickOutsideBound, {
+                            once: true,
+                        });
+                    });
+                });
+            }
+        }
+        get show() {
+            return this._show;
+        }
+        constructor() {
+            super();
+            /**
+             * By default, the menu closes when an item is clicked. This attribute prevents the menu from closing.
+             */
+            this.preventClose = false;
+            /** @internal */
+            this.tabIndex = 0;
+            /* connectedCallback(): void {
+              super.connectedCallback();
+              document.addEventListener('click', this._onClickOutsideBound);
+            }
+          
+            disconnectedCallback(): void {
+              super.disconnectedCallback();
+              document.removeEventListener('click', this._onClickOutsideBound);
+            } */
+            this._selectedClickableItemIndex = -1;
+            this._show = false;
+            this._data = [];
+            this._clickableItemIndexes = [];
+            this._onClickOutsideBound = this._onClickOutside.bind(this);
+            this.addEventListener('keydown', this._onKeyDown);
+        }
+        _onClickOutside(ev) {
+            if (!ev.composedPath().includes(this)) {
+                this.show = false;
+            }
+        }
+        _onKeyDown(ev) {
+            const { key } = ev;
+            if (key === 'ArrowUp' ||
+                key === 'ArrowDown' ||
+                key === 'Escape' ||
+                key === 'Enter') {
+                ev.preventDefault();
+            }
+            switch (key) {
+                case 'ArrowUp':
+                    this._handleArrowUp();
+                    break;
+                case 'ArrowDown':
+                    this._handleArrowDown();
+                    break;
+                case 'Escape':
+                    this._handleEscape();
+                    break;
+                case 'Enter':
+                    this._handleEnter();
+                    break;
+            }
+        }
+        _handleArrowUp() {
+            if (this._selectedClickableItemIndex === 0) {
+                this._selectedClickableItemIndex = this._clickableItemIndexes.length - 1;
+            }
+            else {
+                this._selectedClickableItemIndex -= 1;
+            }
+        }
+        _handleArrowDown() {
+            if (this._selectedClickableItemIndex + 1 <
+                this._clickableItemIndexes.length) {
+                this._selectedClickableItemIndex += 1;
+            }
+            else {
+                this._selectedClickableItemIndex = 0;
+            }
+        }
+        _handleEscape() {
+            this.show = false;
+            document.removeEventListener('click', this._onClickOutsideBound);
+        }
+        _dispatchSelectEvent(selectedOption) {
+            const { keybinding, label, value, separator, tabindex } = selectedOption;
+            this.dispatchEvent(new CustomEvent('vsc-context-menu-select', {
+                detail: {
+                    keybinding,
+                    label,
+                    separator,
+                    tabindex,
+                    value,
+                },
+            }));
+        }
+        _dispatchLegacySelectEvent(selectedOption) {
+            const { keybinding, label, value, separator, tabindex } = selectedOption;
+            const detail = {
+                keybinding,
+                label,
+                value,
+                separator,
+                tabindex,
+            };
+            /** @deprecated - Renamed to `vsc-context-menu-select` */
+            this.dispatchEvent(new CustomEvent('vsc-select', {
+                detail,
+                bubbles: true,
+                composed: true,
+            }));
+        }
+        _handleEnter() {
+            if (this._selectedClickableItemIndex === -1) {
+                return;
+            }
+            const realItemIndex = this._clickableItemIndexes[this._selectedClickableItemIndex];
+            const options = this._wrapperEl.querySelectorAll('vscode-context-menu-item');
+            const selectedOption = options[realItemIndex];
+            this._dispatchLegacySelectEvent(selectedOption);
+            this._dispatchSelectEvent(selectedOption);
+            if (!this.preventClose) {
+                this.show = false;
+                document.removeEventListener('click', this._onClickOutsideBound);
+            }
+        }
+        _onItemClick(event) {
+            const et = event.currentTarget;
+            this._dispatchLegacySelectEvent(et);
+            this._dispatchSelectEvent(et);
+            if (!this.preventClose) {
+                this.show = false;
+            }
+        }
+        _onItemMouseOver(event) {
+            const el = event.target;
+            const index = el.dataset.index ? +el.dataset.index : -1;
+            const found = this._clickableItemIndexes.findIndex((item) => item === index);
+            if (found !== -1) {
+                this._selectedClickableItemIndex = found;
+            }
+        }
+        _onItemMouseOut() {
+            this._selectedClickableItemIndex = -1;
+        }
+        render() {
+            if (!this._show) {
+                return x `${E}`;
+            }
+            const selectedIndex = this._clickableItemIndexes[this._selectedClickableItemIndex];
+            return x `
+      <div class="context-menu" tabindex="0">
+        ${this.data
+            ? this.data.map(({ label = '', keybinding = '', value = '', separator = false, tabindex = 0, }, index) => x `
+                <vscode-context-menu-item
+                  label=${label}
+                  keybinding=${keybinding}
+                  value=${value}
+                  ?separator=${separator}
+                  ?selected=${index === selectedIndex}
+                  tabindex=${tabindex}
+                  @vsc-click=${this._onItemClick}
+                  @mouseover=${this._onItemMouseOver}
+                  @mouseout=${this._onItemMouseOut}
+                  data-index=${index}
+                ></vscode-context-menu-item>
+              `)
+            : x `<slot></slot>`}
+      </div>
+    `;
+        }
+    };
+    VscodeContextMenu.styles = styles$p;
+    __decorate$s([
+        n$1({ type: Array, attribute: false })
+    ], VscodeContextMenu.prototype, "data", null);
+    __decorate$s([
+        n$1({ type: Boolean, reflect: true, attribute: 'prevent-close' })
+    ], VscodeContextMenu.prototype, "preventClose", void 0);
+    __decorate$s([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeContextMenu.prototype, "show", null);
+    __decorate$s([
+        n$1({ type: Number, reflect: true })
+    ], VscodeContextMenu.prototype, "tabIndex", void 0);
+    __decorate$s([
+        r$2()
+    ], VscodeContextMenu.prototype, "_selectedClickableItemIndex", void 0);
+    __decorate$s([
+        r$2()
+    ], VscodeContextMenu.prototype, "_show", void 0);
+    __decorate$s([
+        e$3('.context-menu')
+    ], VscodeContextMenu.prototype, "_wrapperEl", void 0);
+    VscodeContextMenu = __decorate$s([
+        customElement('vscode-context-menu')
+    ], VscodeContextMenu);
+
+    const styles$o = [
+        defaultStyles,
+        i$4 `
+    :host {
+      background-color: var(--vscode-foreground, #cccccc);
+      display: block;
+      height: 1px;
+      margin-bottom: 10px;
+      margin-top: 10px;
+      opacity: 0.4;
+    }
+  `,
+    ];
+
+    var __decorate$r = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    /**
+     * @tag vscode-divider
+     *
+     * @cssprop [--vscode-foreground=#cccccc]
+     */
+    let VscodeDivider = class VscodeDivider extends VscElement {
+        constructor() {
+            super(...arguments);
+            this.role = 'separator';
+        }
+        render() {
+            return x ``;
+        }
+    };
+    VscodeDivider.styles = styles$o;
+    __decorate$r([
+        n$1({ reflect: true })
+    ], VscodeDivider.prototype, "role", void 0);
+    VscodeDivider = __decorate$r([
+        customElement('vscode-divider')
+    ], VscodeDivider);
+
+    const styles$n = [
+        defaultStyles,
+        i$4 `
+    :host {
+      display: block;
+      max-width: 727px;
+    }
+  `,
+    ];
+
+    var __decorate$q = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    var FormGroupLayout;
+    (function (FormGroupLayout) {
+        FormGroupLayout["HORIZONTAL"] = "horizontal";
+        FormGroupLayout["VERTICAL"] = "vertical";
+    })(FormGroupLayout || (FormGroupLayout = {}));
+    const isTextInput = (el) => {
+        return ['vscode-textfield', 'vscode-textarea'].includes(el.tagName.toLocaleLowerCase());
+    };
+    const isSingleSelect = (el) => {
+        return el.tagName.toLocaleLowerCase() === 'vscode-single-select';
+    };
+    const isMultiSelect = (el) => {
+        return el.tagName.toLocaleLowerCase() === 'vscode-multi-select';
+    };
+    const isCheckbox = (el) => {
+        return el.tagName.toLocaleLowerCase() === 'vscode-checkbox';
+    };
+    const isRadio = (el) => {
+        return el.tagName.toLocaleLowerCase() === 'vscode-radio';
+    };
+    /**
+     * @tag vscode-form-container
+     */
+    let VscodeFormContainer = class VscodeFormContainer extends VscElement {
+        constructor() {
+            super(...arguments);
+            this.breakpoint = 490;
+            this._responsive = false;
+            this._firstUpdateComplete = false;
+            this._resizeObserverCallbackBound = this._resizeObserverCallback.bind(this);
+        }
+        set responsive(isResponsive) {
+            this._responsive = isResponsive;
+            if (this._firstUpdateComplete) {
+                if (isResponsive) {
+                    this._activateResponsiveLayout();
+                }
+                else {
+                    this._deactivateResizeObserver();
+                }
+            }
+        }
+        get responsive() {
+            return this._responsive;
+        }
+        /** @deprecated - Use the native `<form>` element instead. */
+        get data() {
+            return this._collectFormData();
+        }
+        _collectFormData() {
+            const query = [
+                'vscode-textfield',
+                'vscode-textarea',
+                'vscode-single-select',
+                'vscode-multi-select',
+                'vscode-checkbox',
+                'vscode-radio',
+            ].join(',');
+            const vscFormWidgets = this.querySelectorAll(query);
+            const data = {};
+            vscFormWidgets.forEach((widget) => {
+                if (!widget.hasAttribute('name')) {
+                    return;
+                }
+                const name = widget.getAttribute('name');
+                if (!name) {
+                    return;
+                }
+                if (isCheckbox(widget) && widget.checked) {
+                    data[name] = Array.isArray(data[name])
+                        ? [...data[name], widget.value]
+                        : [widget.value];
+                }
+                else if (isMultiSelect(widget)) {
+                    data[name] = widget.value;
+                }
+                else if (isCheckbox(widget) && !widget.checked) {
+                    data[name] = Array.isArray(data[name]) ? data[name] : [];
+                }
+                else if ((isRadio(widget) && widget.checked) ||
+                    isTextInput(widget) ||
+                    isSingleSelect(widget)) {
+                    data[name] = widget.value;
+                }
+                else if (isRadio(widget) && !widget.checked) {
+                    data[name] = data[name] ? data[name] : '';
+                }
+            });
+            return data;
+        }
+        _toggleCompactLayout(layout) {
+            this._assignedFormGroups.forEach((group) => {
+                if (!group.dataset.originalVariant) {
+                    group.dataset.originalVariant = group.variant;
+                }
+                const oVariant = group.dataset.originalVariant;
+                if (layout === FormGroupLayout.VERTICAL && oVariant === 'horizontal') {
+                    group.variant = 'vertical';
+                }
+                else {
+                    group.variant = oVariant;
+                }
+                const checkboxOrRadioGroup = group.querySelectorAll('vscode-checkbox-group, vscode-radio-group');
+                checkboxOrRadioGroup.forEach((widgetGroup) => {
+                    if (!widgetGroup.dataset.originalVariant) {
+                        widgetGroup.dataset.originalVariant = widgetGroup.variant;
+                    }
+                    const originalVariant = widgetGroup.dataset.originalVariant;
+                    if (layout === FormGroupLayout.HORIZONTAL &&
+                        originalVariant === FormGroupLayout.HORIZONTAL) {
+                        widgetGroup.variant = 'horizontal';
+                    }
+                    else {
+                        widgetGroup.variant = 'vertical';
+                    }
+                });
+            });
+        }
+        _resizeObserverCallback(entries) {
+            let wrapperWidth = 0;
+            for (const entry of entries) {
+                wrapperWidth = entry.contentRect.width;
+            }
+            const nextLayout = wrapperWidth < this.breakpoint
+                ? FormGroupLayout.VERTICAL
+                : FormGroupLayout.HORIZONTAL;
+            if (nextLayout !== this._currentFormGroupLayout) {
+                this._toggleCompactLayout(nextLayout);
+                this._currentFormGroupLayout = nextLayout;
+            }
+        }
+        _activateResponsiveLayout() {
+            this._resizeObserver = new ResizeObserver(this._resizeObserverCallbackBound);
+            this._resizeObserver.observe(this._wrapperElement);
+        }
+        _deactivateResizeObserver() {
+            this._resizeObserver?.disconnect();
+            this._resizeObserver = null;
+        }
+        firstUpdated() {
+            this._firstUpdateComplete = true;
+            if (this._responsive) {
+                this._activateResponsiveLayout();
+            }
+        }
+        render() {
+            return x `
+      <div class="wrapper">
+        <slot></slot>
+      </div>
+    `;
+        }
+    };
+    VscodeFormContainer.styles = styles$n;
+    __decorate$q([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeFormContainer.prototype, "responsive", null);
+    __decorate$q([
+        n$1({ type: Number })
+    ], VscodeFormContainer.prototype, "breakpoint", void 0);
+    __decorate$q([
+        n$1({ type: Object })
+    ], VscodeFormContainer.prototype, "data", null);
+    __decorate$q([
+        e$3('.wrapper')
+    ], VscodeFormContainer.prototype, "_wrapperElement", void 0);
+    __decorate$q([
+        o$1({ selector: 'vscode-form-group' })
+    ], VscodeFormContainer.prototype, "_assignedFormGroups", void 0);
+    VscodeFormContainer = __decorate$q([
+        customElement('vscode-form-container')
+    ], VscodeFormContainer);
+
+    const styles$m = [
+        defaultStyles,
+        i$4 `
+    :host {
+      --label-right-margin: 14px;
+      --label-width: 150px;
+
+      display: block;
+      margin: 15px 0;
+    }
+
+    :host([variant='settings-group']) {
+      margin: 0;
+      padding: 12px 14px 18px;
+      max-width: 727px;
+    }
+
+    .wrapper {
+      display: flex;
+      flex-wrap: wrap;
+    }
+
+    :host([variant='vertical']) .wrapper,
+    :host([variant='settings-group']) .wrapper {
+      display: block;
+    }
+
+    :host([variant='horizontal']) ::slotted(vscode-checkbox-group),
+    :host([variant='horizontal']) ::slotted(vscode-radio-group) {
+      width: calc(100% - calc(var(--label-width) + var(--label-right-margin)));
+    }
+
+    :host([variant='horizontal']) ::slotted(vscode-label) {
+      margin-right: var(--label-right-margin);
+      text-align: right;
+      width: var(--label-width);
+    }
+
+    :host([variant='settings-group']) ::slotted(vscode-label) {
+      height: 18px;
+      line-height: 18px;
+      margin-bottom: 4px;
+      margin-right: 0;
+      padding: 0;
+    }
+
+    ::slotted(vscode-form-helper) {
+      margin-left: calc(var(--label-width) + var(--label-right-margin));
+    }
+
+    :host([variant='vertical']) ::slotted(vscode-form-helper),
+    :host([variant='settings-group']) ::slotted(vscode-form-helper) {
+      display: block;
+      margin-left: 0;
+    }
+
+    :host([variant='settings-group']) ::slotted(vscode-form-helper) {
+      margin-bottom: 0;
+      margin-top: 0;
+    }
+
+    :host([variant='vertical']) ::slotted(vscode-label),
+    :host([variant='settings-group']) ::slotted(vscode-label) {
+      display: block;
+      margin-left: 0;
+      text-align: left;
+    }
+
+    :host([variant='settings-group']) ::slotted(vscode-inputbox),
+    :host([variant='settings-group']) ::slotted(vscode-textfield),
+    :host([variant='settings-group']) ::slotted(vscode-textarea),
+    :host([variant='settings-group']) ::slotted(vscode-single-select),
+    :host([variant='settings-group']) ::slotted(vscode-multi-select) {
+      margin-top: 9px;
+    }
+
+    ::slotted(vscode-button:first-child) {
+      margin-left: calc(var(--label-width) + var(--label-right-margin));
+    }
+
+    :host([variant='vertical']) ::slotted(vscode-button) {
+      margin-left: 0;
+    }
+
+    ::slotted(vscode-button) {
+      margin-right: 4px;
+    }
+  `,
+    ];
+
+    var __decorate$p = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    /**
+     * @tag vscode-form-group
+     *
+     * @cssprop [--label-width=150px] - The width of the label in horizontal mode
+     * @cssprop [--label-right-margin=14px] - The right margin of the label in horizontal mode
+     */
+    let VscodeFormGroup = class VscodeFormGroup extends VscElement {
+        constructor() {
+            super(...arguments);
+            this.variant = 'horizontal';
+        }
+        render() {
+            return x `
+      <div class="wrapper">
+        <slot></slot>
+      </div>
+    `;
+        }
+    };
+    VscodeFormGroup.styles = styles$m;
+    __decorate$p([
+        n$1({ reflect: true })
+    ], VscodeFormGroup.prototype, "variant", void 0);
+    VscodeFormGroup = __decorate$p([
+        customElement('vscode-form-group')
+    ], VscodeFormGroup);
+
+    const styles$l = [
+        defaultStyles,
+        i$4 `
+    :host {
+      display: block;
+      line-height: 1.4em;
+      margin-bottom: 4px;
+      margin-top: 4px;
+      max-width: 720px;
+      opacity: 0.9;
+    }
+
+    :host([vertical]) {
+      margin-left: 0;
+    }
+  `,
+    ];
+
+    var __decorate$o = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    const lightDOMStyles = new CSSStyleSheet();
+    lightDOMStyles.replaceSync(`
+  vscode-form-helper * {
+    margin: 0;
+  }
+
+  vscode-form-helper *:not(:last-child) {
+    margin-bottom: 8px;
+  }
+`);
+    /**
+     * Adds more detailed description to a [FromGroup](https://bendera.github.io/vscode-webview-elements/components/vscode-form-group/)
+     *
+     * @tag vscode-form-helper
+     *
+     * @cssprop --vsc-foreground-translucent - Default text color. 90% transparency version of `--vscode-foreground` by default.
+     */
+    let VscodeFormHelper = class VscodeFormHelper extends VscElement {
+        constructor() {
+            super();
+            this._injectLightDOMStyles();
+        }
+        _injectLightDOMStyles() {
+            const found = document.adoptedStyleSheets.find((s) => s === lightDOMStyles);
+            if (!found) {
+                document.adoptedStyleSheets.push(lightDOMStyles);
+            }
+        }
+        render() {
+            return x `<slot></slot>`;
+        }
+    };
+    VscodeFormHelper.styles = styles$l;
+    VscodeFormHelper = __decorate$o([
+        customElement('vscode-form-helper')
+    ], VscodeFormHelper);
+
+    let counter = 0;
+    const uniqueId = (prefix = '') => {
+        counter++;
+        return `${prefix}${counter}`;
+    };
+
+    const styles$k = [
+        defaultStyles,
+        i$4 `
+    :host {
+      display: block;
+    }
+
+    .wrapper {
+      display: flex;
+      flex-wrap: wrap;
+    }
+
+    :host([variant='vertical']) .wrapper {
+      display: block;
+    }
+
+    ::slotted(vscode-radio) {
+      margin-right: 20px;
+    }
+
+    ::slotted(vscode-radio:last-child) {
+      margin-right: 0;
+    }
+
+    :host([variant='vertical']) ::slotted(vscode-radio) {
+      display: block;
+      margin-bottom: 15px;
+    }
+
+    :host([variant='vertical']) ::slotted(vscode-radio:last-child) {
+      margin-bottom: 0;
+    }
+  `,
+    ];
+
+    var __decorate$n = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    /**
+     * @tag vscode-radio-group
+     *
+     * @fires {Event} change - Dispatched when a child radio button is changed.
+     */
+    let VscodeRadioGroup = class VscodeRadioGroup extends VscElement {
+        constructor() {
+            super(...arguments);
+            this.variant = 'horizontal';
+            /** @internal */
+            this.role = 'radiogroup';
+            this._focusedRadio = -1;
+            this._checkedRadio = -1;
+            this._firstContentLoaded = false;
+            this._onKeyDownBound = this._onKeyDown.bind(this);
+        }
+        connectedCallback() {
+            super.connectedCallback();
+            this.addEventListener('keydown', this._onKeyDownBound);
+        }
+        disconnectedCallback() {
+            super.disconnectedCallback();
+            this.removeEventListener('keydown', this._onKeyDownBound);
+        }
+        _uncheckPreviousChecked(prevChecked, prevFocused) {
+            if (prevChecked !== -1) {
+                this._radios[prevChecked].checked = false;
+            }
+            if (prevFocused !== -1) {
+                this._radios[prevFocused].tabIndex = -1;
+            }
+        }
+        _afterCheck() {
+            this._focusedRadio = this._checkedRadio;
+            this._radios[this._checkedRadio].checked = true;
+            this._radios[this._checkedRadio].tabIndex = 0;
+            this._radios[this._checkedRadio].focus();
+        }
+        _checkPrev() {
+            const prevChecked = this._radios.findIndex((r) => r.checked);
+            const prevFocused = this._radios.findIndex((r) => r.focused);
+            const startPos = prevFocused !== -1 ? prevFocused : prevChecked;
+            this._uncheckPreviousChecked(prevChecked, prevFocused);
+            if (startPos === -1) {
+                this._checkedRadio = this._radios.length - 1;
+            }
+            else if (startPos - 1 >= 0) {
+                this._checkedRadio = startPos - 1;
+            }
+            else {
+                this._checkedRadio = this._radios.length - 1;
+            }
+            this._afterCheck();
+        }
+        _checkNext() {
+            const prevChecked = this._radios.findIndex((r) => r.checked);
+            const prevFocused = this._radios.findIndex((r) => r.focused);
+            const startPos = prevFocused !== -1 ? prevFocused : prevChecked;
+            this._uncheckPreviousChecked(prevChecked, prevFocused);
+            if (startPos === -1) {
+                this._checkedRadio = 0;
+            }
+            else if (startPos + 1 < this._radios.length) {
+                this._checkedRadio = startPos + 1;
+            }
+            else {
+                this._checkedRadio = 0;
+            }
+            this._afterCheck();
+        }
+        _onKeyDown(ev) {
+            const { key } = ev;
+            const listenedKeys = ['ArrowLeft', 'ArrowUp', 'ArrowRight', 'ArrowDown'];
+            if (listenedKeys.includes(key)) {
+                ev.preventDefault();
+            }
+            if (key === 'ArrowRight' || key === 'ArrowDown') {
+                this._checkNext();
+            }
+            if (key === 'ArrowLeft' || key === 'ArrowUp') {
+                this._checkPrev();
+            }
+        }
+        _onChange(ev) {
+            const clickedIndex = this._radios.findIndex((r) => r === ev.target);
+            if (clickedIndex !== -1) {
+                if (this._focusedRadio !== -1) {
+                    this._radios[this._focusedRadio].tabIndex = -1;
+                }
+                if (this._checkedRadio !== -1 && this._checkedRadio !== clickedIndex) {
+                    this._radios[this._checkedRadio].checked = false;
+                }
+                this._focusedRadio = clickedIndex;
+                this._checkedRadio = clickedIndex;
+                this._radios[clickedIndex].tabIndex = 0;
+            }
+        }
+        _onSlotChange() {
+            if (!this._firstContentLoaded) {
+                const autoFocusedRadio = this._radios.findIndex((r) => r.autofocus);
+                if (autoFocusedRadio > -1) {
+                    this._focusedRadio = autoFocusedRadio;
+                }
+                this._firstContentLoaded = true;
+            }
+            this._radios.forEach((r, i) => {
+                // if _focusedRadio is not set, the first radio should be focusable
+                if (this._focusedRadio > -1) {
+                    r.tabIndex = i === this._focusedRadio ? 0 : -1;
+                }
+                else {
+                    r.tabIndex = i === 0 ? 0 : -1;
+                }
+            });
+        }
+        render() {
+            return x `
+      <div class="wrapper">
+        <slot
+          @slotchange=${this._onSlotChange}
+          @vsc-change=${this._onChange}
+        ></slot>
+      </div>
+    `;
+        }
+    };
+    VscodeRadioGroup.styles = styles$k;
+    __decorate$n([
+        n$1({ reflect: true })
+    ], VscodeRadioGroup.prototype, "variant", void 0);
+    __decorate$n([
+        n$1({ reflect: true })
+    ], VscodeRadioGroup.prototype, "role", void 0);
+    __decorate$n([
+        o$1({ selector: 'vscode-radio' })
+    ], VscodeRadioGroup.prototype, "_radios", void 0);
+    __decorate$n([
+        r$2()
+    ], VscodeRadioGroup.prototype, "_focusedRadio", void 0);
+    __decorate$n([
+        r$2()
+    ], VscodeRadioGroup.prototype, "_checkedRadio", void 0);
+    VscodeRadioGroup = __decorate$n([
+        customElement('vscode-radio-group')
+    ], VscodeRadioGroup);
+
+    const styles$j = [
+        defaultStyles,
+        i$4 `
+    :host {
+      display: inline-block;
+      height: 40px;
+      position: relative;
+      width: 320px;
+    }
+
+    :host([cols]) {
+      width: auto;
+    }
+
+    :host([rows]) {
+      height: auto;
+    }
+
+    .shadow {
+      box-shadow: var(--vscode-scrollbar-shadow, #000000) 0 6px 6px -6px inset;
+      display: none;
+      inset: 0 0 auto 0;
+      height: 6px;
+      pointer-events: none;
+      position: absolute;
+      width: 100%;
+    }
+
+    .shadow.visible {
+      display: block;
+    }
+
+    textarea {
+      background-color: var(--vscode-settings-textInputBackground, #313131);
+      border-color: var(--vscode-settings-textInputBorder, transparent);
+      border-radius: 2px;
+      border-style: solid;
+      border-width: 1px;
+      box-sizing: border-box;
+      color: var(--vscode-settings-textInputForeground, #cccccc);
+      display: block;
+      font-family: var(--vscode-font-family, sans-serif);
+      font-size: var(--vscode-font-size, 13px);
+      font-weight: var(--vscode-font-weight, normal);
+      height: 100%;
+      width: 100%;
+    }
+
+    :host([cols]) textarea {
+      width: auto;
+    }
+
+    :host([rows]) textarea {
+      height: auto;
+    }
+
+    :host([invalid]) textarea,
+    :host(:invalid) textarea {
+      background-color: var(--vscode-inputValidation-errorBackground, #5a1d1d);
+      border-color: var(--vscode-inputValidation-errorBorder, #be1100);
+    }
+
+    textarea.monospace {
+      background-color: var(--vscode-editor-background, #1f1f1f);
+      color: var(--vscode-editor-foreground, #cccccc);
+      font-family: var(--vscode-editor-font-family, monospace);
+      font-size: var(--vscode-editor-font-size, 14px);
+      font-weight: var(--vscode-editor-font-weight, normal);
+    }
+
+    .textarea.monospace::placeholder {
+      color: var(
+        --vscode-editor-inlineValuesForeground,
+        rgba(255, 255, 255, 0.5)
+      );
+    }
+
+    textarea.cursor-pointer {
+      cursor: pointer;
+    }
+
+    textarea:focus {
+      border-color: var(--vscode-focusBorder, #0078d4);
+      outline: none;
+    }
+
+    textarea::placeholder {
+      color: var(--vscode-input-placeholderForeground, #989898);
+      opacity: 1;
+    }
+
+    textarea::-webkit-scrollbar-track {
+      background-color: transparent;
+    }
+
+    textarea::-webkit-scrollbar {
+      width: 14px;
+    }
+
+    textarea::-webkit-scrollbar-thumb {
+      background-color: transparent;
+    }
+
+    textarea:hover::-webkit-scrollbar-thumb {
+      background-color: var(
+        --vscode-scrollbarSlider-background,
+        rgba(121, 121, 121, 0.4)
+      );
+    }
+
+    textarea::-webkit-scrollbar-thumb:hover {
+      background-color: var(
+        --vscode-scrollbarSlider-hoverBackground,
+        rgba(100, 100, 100, 0.7)
+      );
+    }
+
+    textarea::-webkit-scrollbar-thumb:active {
+      background-color: var(
+        --vscode-scrollbarSlider-activeBackground,
+        rgba(191, 191, 191, 0.4)
+      );
+    }
+
+    textarea::-webkit-scrollbar-corner {
+      background-color: transparent;
+    }
+
+    textarea::-webkit-resizer {
+      background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAcAAAAHCAYAAADEUlfTAAAAAXNSR0IB2cksfwAAAAlwSFlzAAALEwAACxMBAJqcGAAAACJJREFUeJxjYMAOZuIQZ5j5//9/rJJESczEKYGsG6cEXgAAsEEefMxkua4AAAAASUVORK5CYII=');
+      background-repeat: no-repeat;
+      background-position: right bottom;
+    }
+  `,
+    ];
+
+    var __decorate$m = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    /**
+     * Multi-line text input.
+     *
+     * When participating in a form, it supports the `:invalid` pseudo class. Otherwise the error styles
+     * can be applied through the `invalid` property.
+     *
+     * @tag vscode-textarea
+     *
+     * @fires {InputEvent} input
+     * @fires {Event} change
+     *
+     * @cssprop [--vscode-scrollbar-shadow=#000000]
+     * @cssprop [--vscode-settings-textInputBackground=#313131]
+     * @cssprop [--vscode-settings-textInputBorder=transparent]
+     * @cssprop [--vscode-settings-textInputForeground=#cccccc]
+     * @cssprop [--vscode-input-placeholderForeground=#989898]
+     * @cssprop [--vscode-font-family=sans-serif]
+     * @cssprop [--vscode-font-size=13px]
+     * @cssprop [--vscode-font-weight=normal]
+     * @cssprop [--vscode-editor-background=#1f1f1f]
+     * @cssprop [--vscode-editor-foreground=#cccccc]
+     * @cssprop [--vscode-editor-font-family=monospace]
+     * @cssprop [--vscode-editor-font-size=14px]
+     * @cssprop [--vscode-editor-font-weight=normal]
+     * @cssprop [--vscode-editor-inlineValuesForeground=rgba(255, 255, 255, 0.5)]
+     * @cssprop [--vscode-focusBorder=#0078d4]
+     * @cssprop [--vscode-scrollbarSlider-background=rgba(121, 121, 121, 0.4)]
+     * @cssprop [--vscode-scrollbarSlider-hoverBackground=rgba(100, 100, 100, 0.7)]
+     * @cssprop [--vscode-scrollbarSlider-activeBackground=rgba(191, 191, 191, 0.4)]
+     */
+    let VscodeTextarea = class VscodeTextarea extends VscElement {
+        set value(val) {
+            this._value = val;
+            this._internals.setFormValue(val);
+        }
+        get value() {
+            return this._value;
+        }
+        /**
+         * Getter for the inner textarea element if it needs to be accessed for some reason.
+         */
+        get wrappedElement() {
+            return this._textareaEl;
+        }
+        get form() {
+            return this._internals.form;
+        }
+        /** @internal */
+        get type() {
+            return 'textarea';
+        }
+        get validity() {
+            return this._internals.validity;
+        }
+        get validationMessage() {
+            return this._internals.validationMessage;
+        }
+        get willValidate() {
+            return this._internals.willValidate;
+        }
+        /**
+         * Lowercase alias to minLength
+         */
+        set minlength(val) {
+            this.minLength = val;
+        }
+        get minlength() {
+            return this.minLength;
+        }
+        /**
+         * Lowercase alias to maxLength
+         */
+        set maxlength(val) {
+            this.maxLength = val;
+        }
+        get maxlength() {
+            return this.maxLength;
+        }
+        // #endregion
+        constructor() {
+            super();
+            // #region properties, setters/getters
+            this.autocomplete = undefined;
+            this.autofocus = false;
+            this.defaultValue = '';
+            this.disabled = false;
+            this.invalid = false;
+            this.label = '';
+            this.maxLength = undefined;
+            this.minLength = undefined;
+            this.rows = undefined;
+            this.cols = undefined;
+            this.name = undefined;
+            this.placeholder = undefined;
+            this.readonly = false;
+            this.resize = 'none';
+            this.required = false;
+            this.spellcheck = false;
+            /**
+             * Use monospace fonts. The font family, weight, size, and color will be the same as set in the
+             * VSCode code editor.
+             */
+            this.monospace = false;
+            this._value = '';
+            this._textareaPointerCursor = false;
+            this._shadow = false;
+            this._internals = this.attachInternals();
+        }
+        connectedCallback() {
+            super.connectedCallback();
+            this.updateComplete.then(() => {
+                this._textareaEl.checkValidity();
+                this._setValidityFromInput();
+                this._internals.setFormValue(this._textareaEl.value);
+            });
+        }
+        updated(changedProperties) {
+            const validationRelatedProps = ['maxLength', 'minLength', 'required'];
+            for (const key of changedProperties.keys()) {
+                if (validationRelatedProps.includes(String(key))) {
+                    this.updateComplete.then(() => {
+                        this._setValidityFromInput();
+                    });
+                    break;
+                }
+            }
+        }
+        /** @internal */
+        formResetCallback() {
+            this.value = this.defaultValue;
+        }
+        /** @internal */
+        formStateRestoreCallback(state, _mode) {
+            this.updateComplete.then(() => {
+                this._value = state;
+            });
+        }
+        checkValidity() {
+            return this._internals.checkValidity();
+        }
+        reportValidity() {
+            return this._internals.reportValidity();
+        }
+        _setValidityFromInput() {
+            this._internals.setValidity(this._textareaEl.validity, this._textareaEl.validationMessage, this._textareaEl);
+        }
+        _dataChanged() {
+            this._value = this._textareaEl.value;
+            this._internals.setFormValue(this._textareaEl.value);
+        }
+        _handleChange(ev) {
+            this._dataChanged();
+            this._setValidityFromInput();
+            this.dispatchEvent(new Event('change'));
+            /** @deprecated */
+            this.dispatchEvent(new CustomEvent('vsc-change', {
+                detail: { data: this.value, originalEvent: ev },
+            }));
+        }
+        _handleInput(ev) {
+            this._dataChanged();
+            this._setValidityFromInput();
+            /** @deprecated */
+            this.dispatchEvent(new CustomEvent('vsc-input', {
+                detail: { data: ev.data, originalEvent: ev },
+            }));
+        }
+        _handleMouseMove(ev) {
+            if (this._textareaEl.clientHeight >= this._textareaEl.scrollHeight) {
+                this._textareaPointerCursor = false;
+                return;
+            }
+            const SCROLLBAR_WIDTH = 14;
+            const BORDER_WIDTH = 1;
+            const br = this._textareaEl.getBoundingClientRect();
+            const x = ev.clientX;
+            this._textareaPointerCursor =
+                x >= br.left + br.width - SCROLLBAR_WIDTH - BORDER_WIDTH * 2;
+        }
+        _handleScroll() {
+            this._shadow = this._textareaEl.scrollTop > 0;
+        }
+        render() {
+            return x `
+      <div
+        class=${e({
+            shadow: true,
+            visible: this._shadow,
+        })}
+      ></div>
+      <textarea
+        autocomplete=${o(this.autocomplete)}
+        ?autofocus=${this.autofocus}
+        ?disabled=${this.disabled}
+        aria-label=${this.label}
+        id="textarea"
+        class=${e({
+            monospace: this.monospace,
+            'cursor-pointer': this._textareaPointerCursor,
+        })}
+        maxlength=${o(this.maxLength)}
+        minlength=${o(this.minLength)}
+        rows=${o(this.rows)}
+        cols=${o(this.cols)}
+        name=${o(this.name)}
+        placeholder=${o(this.placeholder)}
+        ?readonly=${this.readonly}
+        .style=${stylePropertyMap({
+            resize: this.resize,
+        })}
+        ?required=${this.required}
+        spellcheck=${this.spellcheck}
+        @change=${this._handleChange}
+        @input=${this._handleInput}
+        @mousemove=${this._handleMouseMove}
+        @scroll=${this._handleScroll}
+        .value=${this._value}
+      ></textarea>
+    `;
+        }
+    };
+    VscodeTextarea.styles = styles$j;
+    /**
+     * @internal
+     */
+    VscodeTextarea.formAssociated = true;
+    /** @internal */
+    VscodeTextarea.shadowRootOptions = {
+        ...i$1.shadowRootOptions,
+        delegatesFocus: true,
+    };
+    __decorate$m([
+        n$1()
+    ], VscodeTextarea.prototype, "autocomplete", void 0);
+    __decorate$m([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeTextarea.prototype, "autofocus", void 0);
+    __decorate$m([
+        n$1({ attribute: 'default-value' })
+    ], VscodeTextarea.prototype, "defaultValue", void 0);
+    __decorate$m([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeTextarea.prototype, "disabled", void 0);
+    __decorate$m([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeTextarea.prototype, "invalid", void 0);
+    __decorate$m([
+        n$1({ attribute: false })
+    ], VscodeTextarea.prototype, "label", void 0);
+    __decorate$m([
+        n$1({ type: Number })
+    ], VscodeTextarea.prototype, "maxLength", void 0);
+    __decorate$m([
+        n$1({ type: Number })
+    ], VscodeTextarea.prototype, "minLength", void 0);
+    __decorate$m([
+        n$1({ type: Number })
+    ], VscodeTextarea.prototype, "rows", void 0);
+    __decorate$m([
+        n$1({ type: Number })
+    ], VscodeTextarea.prototype, "cols", void 0);
+    __decorate$m([
+        n$1()
+    ], VscodeTextarea.prototype, "name", void 0);
+    __decorate$m([
+        n$1()
+    ], VscodeTextarea.prototype, "placeholder", void 0);
+    __decorate$m([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeTextarea.prototype, "readonly", void 0);
+    __decorate$m([
+        n$1()
+    ], VscodeTextarea.prototype, "resize", void 0);
+    __decorate$m([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeTextarea.prototype, "required", void 0);
+    __decorate$m([
+        n$1({ type: Boolean })
+    ], VscodeTextarea.prototype, "spellcheck", void 0);
+    __decorate$m([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeTextarea.prototype, "monospace", void 0);
+    __decorate$m([
+        n$1()
+    ], VscodeTextarea.prototype, "value", null);
+    __decorate$m([
+        e$3('#textarea')
+    ], VscodeTextarea.prototype, "_textareaEl", void 0);
+    __decorate$m([
+        r$2()
+    ], VscodeTextarea.prototype, "_value", void 0);
+    __decorate$m([
+        r$2()
+    ], VscodeTextarea.prototype, "_textareaPointerCursor", void 0);
+    __decorate$m([
+        r$2()
+    ], VscodeTextarea.prototype, "_shadow", void 0);
+    VscodeTextarea = __decorate$m([
+        customElement('vscode-textarea')
+    ], VscodeTextarea);
+
+    const defaultFontStack = r$6(getDefaultFontStack());
+    const styles$i = [
+        defaultStyles,
+        i$4 `
+    :host {
+      align-items: center;
+      background-color: var(--vscode-settings-textInputBackground, #313131);
+      border-color: var(
+        --vscode-settings-textInputBorder,
+        var(--vscode-settings-textInputBackground, #3c3c3c)
+      );
+      border-radius: 2px;
+      border-style: solid;
+      border-width: 1px;
+      box-sizing: border-box;
+      color: var(--vscode-settings-textInputForeground, #cccccc);
+      display: inline-flex;
+      max-width: 100%;
+      position: relative;
+      width: 320px;
+    }
+
+    :host([focused]) {
+      border-color: var(--vscode-focusBorder, #0078d4);
+    }
+
+    :host([invalid]),
+    :host(:invalid) {
+      border-color: var(--vscode-inputValidation-errorBorder, #be1100);
+    }
+
+    :host([invalid]) input,
+    :host(:invalid) input {
+      background-color: var(--vscode-inputValidation-errorBackground, #5a1d1d);
+    }
+
+    ::slotted([slot='content-before']) {
+      display: block;
+      margin-left: 2px;
+    }
+
+    ::slotted([slot='content-after']) {
+      display: block;
+      margin-right: 2px;
+    }
+
+    slot[name='content-before'],
+    slot[name='content-after'] {
+      align-items: center;
+      display: flex;
+    }
+
+    input {
+      background-color: var(--vscode-settings-textInputBackground, #313131);
+      border: 0;
+      box-sizing: border-box;
+      color: var(--vscode-settings-textInputForeground, #cccccc);
+      display: block;
+      font-family: var(--vscode-font-family, ${defaultFontStack});
+      font-size: var(--vscode-font-size, 13px);
+      font-weight: var(--vscode-font-weight, 'normal');
+      line-height: 18px;
+      outline: none;
+      padding-bottom: 3px;
+      padding-left: 4px;
+      padding-right: 4px;
+      padding-top: 3px;
+      width: 100%;
+    }
+
+    input:read-only:not([type='file']) {
+      cursor: not-allowed;
+    }
+
+    input::placeholder {
+      color: var(--vscode-input-placeholderForeground, #989898);
+      opacity: 1;
+    }
+
+    input[type='file'] {
+      line-height: 24px;
+      padding-bottom: 0;
+      padding-left: 2px;
+      padding-top: 0;
+    }
+
+    input[type='file']::file-selector-button {
+      background-color: var(--vscode-button-background, #0078d4);
+      border: 0;
+      border-radius: 2px;
+      color: var(--vscode-button-foreground, #ffffff);
+      cursor: pointer;
+      font-family: var(--vscode-font-family, ${defaultFontStack});
+      font-size: var(--vscode-font-size, 13px);
+      font-weight: var(--vscode-font-weight, 'normal');
+      line-height: 20px;
+      padding: 0 14px;
+    }
+
+    input[type='file']::file-selector-button:hover {
+      background-color: var(--vscode-button-hoverBackground, #026ec1);
+    }
+  `,
+    ];
+
+    var __decorate$l = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    /**
+     * A simple inline textfield
+     *
+     * When participating in a form, it supports the `:invalid` pseudo class. Otherwise the error styles
+     * can be applied through the `invalid` property.
+     *
+     * @tag vscode-textfield
+     *
+     * @slot content-before - A slot before the editable area but inside of the component. It is used to place icons.
+     * @slot content-after - A slot after the editable area but inside of the component. It is used to place icons.
+     *
+     * @fires {InputEvent} input
+     * @fires {Event} change
+     *
+     * @cssprop [--vscode-settings-textInputBackground=#313131]
+     * @cssprop [--vscode-settings-textInputBorder=var(--vscode-settings-textInputBackground, #3c3c3c)]
+     * @cssprop [--vscode-settings-textInputForeground=#cccccc]
+     * @cssprop [--vscode-settings-textInputBackground=#313131]
+     * @cssprop [--vscode-focusBorder=#0078d4]
+     * @cssprop [--vscode-font-family=sans-serif] - A sans-serif font type depends on the host OS.
+     * @cssprop [--vscode-font-size=13px]
+     * @cssprop [--vscode-font-weight=normal]
+     * @cssprop [--vscode-inputValidation-errorBorder=#be1100]
+     * @cssprop [--vscode-inputValidation-errorBackground=#5a1d1d]
+     * @cssprop [--vscode-input-placeholderForeground=#989898]
+     * @cssprop [--vscode-button-background=#0078d4]
+     * @cssprop [--vscode-button-foreground=#ffffff]
+     * @cssprop [--vscode-button-hoverBackground=#026ec1]
+     */
+    let VscodeTextfield = class VscodeTextfield extends VscElement {
+        /**
+         * Same as the `type` of the native `<input>` element but only a subset of types are supported.
+         * The supported ones are: `color`,`date`,`datetime-local`,`email`,`file`,`month`,`number`,`password`,`search`,`tel`,`text`,`time`,`url`,`week`
+         */
+        set type(val) {
+            const validTypes = [
+                'color',
+                'date',
+                'datetime-local',
+                'email',
+                'file',
+                'month',
+                'number',
+                'password',
+                'search',
+                'tel',
+                'text',
+                'time',
+                'url',
+                'week',
+            ];
+            this._type = (validTypes.includes(val) ? val : 'text');
+        }
+        get type() {
+            return this._type;
+        }
+        set value(val) {
+            if (this.type !== 'file') {
+                this._value = val;
+                this._internals.setFormValue(val);
+            }
+            this.updateComplete.then(() => {
+                this._setValidityFromInput();
+            });
+        }
+        get value() {
+            return this._value;
+        }
+        /**
+         * Lowercase alias to minLength
+         */
+        set minlength(val) {
+            this.minLength = val;
+        }
+        get minlength() {
+            return this.minLength;
+        }
+        /**
+         * Lowercase alias to maxLength
+         */
+        set maxlength(val) {
+            this.maxLength = val;
+        }
+        get maxlength() {
+            return this.maxLength;
+        }
+        get form() {
+            return this._internals.form;
+        }
+        get validity() {
+            return this._internals.validity;
+        }
+        get validationMessage() {
+            return this._internals.validationMessage;
+        }
+        get willValidate() {
+            return this._internals.willValidate;
+        }
+        /**
+         * Check the component's validity state when built-in validation is used.
+         * Built-in validation is triggered when any validation-related attribute is set. Validation-related
+         * attributes are: `max, maxlength, min, minlength, pattern, required, step`.
+         * See this [the MDN reference](https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/checkValidity) for more details.
+         * @returns {boolean}
+         */
+        checkValidity() {
+            this._setValidityFromInput();
+            return this._internals.checkValidity();
+        }
+        reportValidity() {
+            this._setValidityFromInput();
+            return this._internals.reportValidity();
+        }
+        get wrappedElement() {
+            return this._inputEl;
+        }
+        constructor() {
+            super();
+            this.autocomplete = undefined;
+            this.autofocus = false;
+            this.defaultValue = '';
+            this.disabled = false;
+            this.focused = false;
+            /**
+             * Set error styles on the component. This is only intended to apply styles when custom error
+             * validation is implemented. To check whether the component is valid, use the checkValidity method.
+             */
+            this.invalid = false;
+            /**
+             * @internal
+             * Set `aria-label` for the inner input element. Should not be set,
+             * vscode-label will do it automatically.
+             */
+            this.label = '';
+            this.max = undefined;
+            this.maxLength = undefined;
+            this.min = undefined;
+            this.minLength = undefined;
+            this.multiple = false;
+            this.name = undefined;
+            /**
+             * Specifies a regular expression the form control's value should match.
+             * [MDN Reference](https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/pattern)
+             */
+            this.pattern = undefined;
+            this.placeholder = undefined;
+            this.readonly = false;
+            this.required = false;
+            this.step = undefined;
+            this._value = '';
+            this._type = 'text';
+            this._internals = this.attachInternals();
+        }
+        connectedCallback() {
+            super.connectedCallback();
+            this.updateComplete.then(() => {
+                this._inputEl.checkValidity();
+                this._setValidityFromInput();
+                this._internals.setFormValue(this._inputEl.value);
+            });
+        }
+        attributeChangedCallback(name, old, value) {
+            super.attributeChangedCallback(name, old, value);
+            const validationRelatedAttributes = [
+                'max',
+                'maxlength',
+                'min',
+                'minlength',
+                'pattern',
+                'required',
+                'step',
+            ];
+            if (validationRelatedAttributes.includes(name)) {
+                this.updateComplete.then(() => {
+                    this._setValidityFromInput();
+                });
+            }
+        }
+        /** @internal */
+        formResetCallback() {
+            this.value = this.defaultValue;
+            this.requestUpdate();
+        }
+        /** @internal */
+        formStateRestoreCallback(state, _mode) {
+            this.value = state;
+        }
+        _dataChanged() {
+            this._value = this._inputEl.value;
+            if (this.type === 'file' && this._inputEl.files) {
+                for (const f of this._inputEl.files) {
+                    this._internals.setFormValue(f);
+                }
+            }
+            else {
+                this._internals.setFormValue(this._inputEl.value);
+            }
+        }
+        _setValidityFromInput() {
+            if (this._inputEl) {
+                this._internals.setValidity(this._inputEl.validity, this._inputEl.validationMessage, this._inputEl);
+            }
+        }
+        _onInput(ev) {
+            this._dataChanged();
+            this._setValidityFromInput();
+            // native input event dispatched automatically
+            /** @deprecated */
+            this.dispatchEvent(new CustomEvent('vsc-input', { detail: { data: ev.data, originalEvent: ev } }));
+        }
+        _onChange(ev) {
+            this._dataChanged();
+            this._setValidityFromInput();
+            this.dispatchEvent(new Event('change'));
+            /** @deprecated */
+            this.dispatchEvent(new CustomEvent('vsc-change', {
+                detail: { data: this.value, originalEvent: ev },
+            }));
+        }
+        _onFocus() {
+            this.focused = true;
+        }
+        _onBlur() {
+            this.focused = false;
+        }
+        _onKeyDown(ev) {
+            if (ev.key === 'Enter' && this._internals.form) {
+                this._internals.form?.requestSubmit();
+            }
+        }
+        render() {
+            return x `
+      <slot name="content-before"></slot>
+      <input
+        id="input"
+        type=${this.type}
+        ?autofocus=${this.autofocus}
+        autocomplete=${o(this.autocomplete)}
+        aria-label=${this.label}
+        ?disabled=${this.disabled}
+        max=${o(this.max)}
+        maxlength=${o(this.maxLength)}
+        min=${o(this.min)}
+        minlength=${o(this.minLength)}
+        ?multiple=${this.multiple}
+        name=${o(this.name)}
+        pattern=${o(this.pattern)}
+        placeholder=${o(this.placeholder)}
+        ?readonly=${this.readonly}
+        ?required=${this.required}
+        step=${o(this.step)}
+        .value=${this._value}
+        @blur=${this._onBlur}
+        @change=${this._onChange}
+        @focus=${this._onFocus}
+        @input=${this._onInput}
+        @keydown=${this._onKeyDown}
+      >
+      <slot name="content-after"></slot>
+    `;
+        }
+    };
+    VscodeTextfield.styles = styles$i;
+    /** @internal */
+    VscodeTextfield.formAssociated = true;
+    /** @internal */
+    VscodeTextfield.shadowRootOptions = {
+        ...i$1.shadowRootOptions,
+        delegatesFocus: true,
+    };
+    __decorate$l([
+        n$1()
+    ], VscodeTextfield.prototype, "autocomplete", void 0);
+    __decorate$l([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeTextfield.prototype, "autofocus", void 0);
+    __decorate$l([
+        n$1({ attribute: 'default-value' })
+    ], VscodeTextfield.prototype, "defaultValue", void 0);
+    __decorate$l([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeTextfield.prototype, "disabled", void 0);
+    __decorate$l([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeTextfield.prototype, "focused", void 0);
+    __decorate$l([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeTextfield.prototype, "invalid", void 0);
+    __decorate$l([
+        n$1({ attribute: false })
+    ], VscodeTextfield.prototype, "label", void 0);
+    __decorate$l([
+        n$1({ type: Number })
+    ], VscodeTextfield.prototype, "max", void 0);
+    __decorate$l([
+        n$1({ type: Number })
+    ], VscodeTextfield.prototype, "maxLength", void 0);
+    __decorate$l([
+        n$1({ type: Number })
+    ], VscodeTextfield.prototype, "min", void 0);
+    __decorate$l([
+        n$1({ type: Number })
+    ], VscodeTextfield.prototype, "minLength", void 0);
+    __decorate$l([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeTextfield.prototype, "multiple", void 0);
+    __decorate$l([
+        n$1({ reflect: true })
+    ], VscodeTextfield.prototype, "name", void 0);
+    __decorate$l([
+        n$1()
+    ], VscodeTextfield.prototype, "pattern", void 0);
+    __decorate$l([
+        n$1()
+    ], VscodeTextfield.prototype, "placeholder", void 0);
+    __decorate$l([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeTextfield.prototype, "readonly", void 0);
+    __decorate$l([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeTextfield.prototype, "required", void 0);
+    __decorate$l([
+        n$1({ type: Number })
+    ], VscodeTextfield.prototype, "step", void 0);
+    __decorate$l([
+        n$1({ reflect: true })
+    ], VscodeTextfield.prototype, "type", null);
+    __decorate$l([
+        n$1()
+    ], VscodeTextfield.prototype, "value", null);
+    __decorate$l([
+        e$3('#input')
+    ], VscodeTextfield.prototype, "_inputEl", void 0);
+    __decorate$l([
+        r$2()
+    ], VscodeTextfield.prototype, "_value", void 0);
+    __decorate$l([
+        r$2()
+    ], VscodeTextfield.prototype, "_type", void 0);
+    VscodeTextfield = __decorate$l([
+        customElement('vscode-textfield')
+    ], VscodeTextfield);
+
+    const styles$h = [
+        defaultStyles,
+        i$4 `
+    :host {
+      color: var(--vscode-foreground, #cccccc);
+      font-family: var(--vscode-font-family, sans-serif);
+      font-size: var(--vscode-font-size, 13px);
+      font-weight: 600;
+      line-height: ${INPUT_LINE_HEIGHT_RATIO};
+      cursor: default;
+      display: block;
+      padding: 5px 0;
+    }
+
+    .wrapper {
+      display: block;
+    }
+
+    .wrapper.required:after {
+      content: ' *';
+    }
+
+    ::slotted(.normal) {
+      font-weight: normal;
+    }
+
+    ::slotted(.lightened) {
+      color: var(--vscode-foreground, #cccccc);
+      opacity: 0.9;
+    }
+  `,
+    ];
+
+    var __decorate$k = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    /**
+     * @tag vscode-label
+     *
+     * @cssprop [--vscode-font-family=sans-serif]
+     * @cssprop [--vscode-font-size=13px]
+     * @cssprop [--vscode-foreground=#cccccc]
+     */
+    let VscodeLabel = class VscodeLabel extends VscElement {
+        constructor() {
+            super(...arguments);
+            this.required = false;
+            this._id = '';
+            this._htmlFor = '';
+            this._connected = false;
+        }
+        set htmlFor(val) {
+            this._htmlFor = val;
+            this.setAttribute('for', val);
+            if (this._connected) {
+                this._connectWithTarget();
+            }
+        }
+        get htmlFor() {
+            return this._htmlFor;
+        }
+        set id(val) {
+            this._id = val;
+        }
+        get id() {
+            return this._id;
+        }
+        attributeChangedCallback(name, old, value) {
+            super.attributeChangedCallback(name, old, value);
+        }
+        connectedCallback() {
+            super.connectedCallback();
+            this._connected = true;
+            if (this._id === '') {
+                this._id = uniqueId('vscode-label-');
+                this.setAttribute('id', this._id);
+            }
+            this._connectWithTarget();
+        }
+        _getTarget() {
+            let target = null;
+            if (this._htmlFor) {
+                const root = this.getRootNode({ composed: false });
+                if (root) {
+                    target = root.querySelector(`#${this._htmlFor}`);
+                }
+            }
+            return target;
+        }
+        async _connectWithTarget() {
+            await this.updateComplete;
+            const target = this._getTarget();
+            if (target instanceof VscodeRadioGroup ||
+                target instanceof VscodeCheckboxGroup) {
+                target.setAttribute('aria-labelledby', this._id);
+            }
+            let label = '';
+            if (this.textContent) {
+                label = this.textContent.trim();
+            }
+            if (target instanceof VscodeTextfield || target instanceof VscodeTextarea) {
+                target.label = label;
+            }
+        }
+        _handleClick() {
+            const target = this._getTarget();
+            if (target && 'focus' in target) {
+                target.focus();
+            }
+        }
+        render() {
+            return x `
+      <label
+        class=${e({ wrapper: true, required: this.required })}
+        @click=${this._handleClick}
+        ><slot></slot
+      ></label>
+    `;
+        }
+    };
+    VscodeLabel.styles = styles$h;
+    __decorate$k([
+        n$1({ reflect: true, attribute: 'for' })
+    ], VscodeLabel.prototype, "htmlFor", null);
+    __decorate$k([
+        n$1()
+    ], VscodeLabel.prototype, "id", null);
+    __decorate$k([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeLabel.prototype, "required", void 0);
+    VscodeLabel = __decorate$k([
+        customElement('vscode-label')
+    ], VscodeLabel);
+
+    const chevronDownIcon = x `
+  <span class="icon">
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="currentColor"
+    >
+      <path
+        fill-rule="evenodd"
+        clip-rule="evenodd"
+        d="M7.976 10.072l4.357-4.357.62.618L8.284 11h-.618L3 6.333l.619-.618 4.357 4.357z"
+      />
+    </svg>
+  </span>
+`;
+
+    /**
+     * @license
+     * Copyright 2020 Google LLC
+     * SPDX-License-Identifier: BSD-3-Clause
+     */const {I:t}=Z,s=()=>document.createComment(""),r=(o,i,n)=>{const e=o._$AA.parentNode,l=void 0===i?o._$AB:i._$AA;if(void 0===n){const i=e.insertBefore(s(),l),c=e.insertBefore(s(),l);n=new t(i,c,o,o.options);}else {const t=n._$AB.nextSibling,i=n._$AM,c=i!==o;if(c){let t;n._$AQ?.(o),n._$AM=o,void 0!==n._$AP&&(t=o._$AU)!==i._$AU&&n._$AP(t);}if(t!==l||c){let o=n._$AA;for(;o!==t;){const t=o.nextSibling;e.insertBefore(o,l),o=t;}}}return n},v=(o,t,i=o)=>(o._$AI(t,i),o),u$1={},m=(o,t=u$1)=>o._$AH=t,p=o=>o._$AH,M=o=>{o._$AP?.(!1,!0);let t=o._$AA;const i=o._$AB.nextSibling;for(;t!==i;){const o=t.nextSibling;t.remove(),t=o;}};
+
+    /**
+     * @license
+     * Copyright 2017 Google LLC
+     * SPDX-License-Identifier: BSD-3-Clause
+     */
+    const u=(e,s,t)=>{const r=new Map;for(let l=s;l<=t;l++)r.set(e[l],l);return r},c=e$1(class extends i{constructor(e){if(super(e),e.type!==t$1.CHILD)throw Error("repeat() can only be used in text expressions")}dt(e,s,t){let r;void 0===t?t=s:void 0!==s&&(r=s);const l=[],o=[];let i=0;for(const s of e)l[i]=r?r(s,i):i,o[i]=t(s,i),i++;return {values:o,keys:l}}render(e,s,t){return this.dt(e,s,t).values}update(s,[t,r$1,c]){const d=p(s),{values:p$1,keys:a}=this.dt(t,r$1,c);if(!Array.isArray(d))return this.ut=a,p$1;const h=this.ut??=[],v$1=[];let m$1,y,x=0,j=d.length-1,k=0,w=p$1.length-1;for(;x<=j&&k<=w;)if(null===d[x])x++;else if(null===d[j])j--;else if(h[x]===a[k])v$1[k]=v(d[x],p$1[k]),x++,k++;else if(h[j]===a[w])v$1[w]=v(d[j],p$1[w]),j--,w--;else if(h[x]===a[w])v$1[w]=v(d[x],p$1[w]),r(s,v$1[w+1],d[x]),x++,w--;else if(h[j]===a[k])v$1[k]=v(d[j],p$1[k]),r(s,d[x],d[j]),j--,k++;else if(void 0===m$1&&(m$1=u(a,k,w),y=u(h,x,j)),m$1.has(h[x]))if(m$1.has(h[j])){const e=y.get(a[k]),t=void 0!==e?d[e]:null;if(null===t){const e=r(s,d[x]);v(e,p$1[k]),v$1[k]=e;}else v$1[k]=v(t,p$1[k]),r(s,d[x],t),d[e]=null;k++;}else M(d[j]),j--;else M(d[x]),x++;for(;k<=w;){const e=r(s,v$1[w+1]);v(e,p$1[k]),v$1[k++]=e;}for(;x<=j;){const e=d[x++];null!==e&&M(e);}return this.ut=a,m(s,v$1),T}});
+
+    var __decorate$j = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    /**
+     * @tag vscode-option
+     */
+    let VscodeOption = class VscodeOption extends VscElement {
+        constructor() {
+            super(...arguments);
+            this.description = '';
+            this.selected = false;
+            this.disabled = false;
+            this._initialized = false;
+            this._handleSlotChange = () => {
+                if (this._initialized) {
+                    /** @internal */
+                    this.dispatchEvent(new Event('vsc-option-state-change', { bubbles: true }));
+                }
+            };
+        }
+        connectedCallback() {
+            super.connectedCallback();
+            this.updateComplete.then(() => {
+                this._initialized = true;
+            });
+        }
+        willUpdate(changedProperties) {
+            if (this._initialized &&
+                (changedProperties.has('description') ||
+                    changedProperties.has('value') ||
+                    changedProperties.has('selected') ||
+                    changedProperties.has('disabled'))) {
+                /** @internal */
+                this.dispatchEvent(new Event('vsc-option-state-change', { bubbles: true }));
+            }
+        }
+        render() {
+            return x `<slot @slotchange=${this._handleSlotChange}></slot>`;
+        }
+    };
+    VscodeOption.styles = defaultStyles;
+    __decorate$j([
+        n$1({ type: String })
+    ], VscodeOption.prototype, "value", void 0);
+    __decorate$j([
+        n$1({ type: String })
+    ], VscodeOption.prototype, "description", void 0);
+    __decorate$j([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeOption.prototype, "selected", void 0);
+    __decorate$j([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeOption.prototype, "disabled", void 0);
+    VscodeOption = __decorate$j([
+        customElement('vscode-option')
+    ], VscodeOption);
+
+    const startsWithPerTermSearch = (subject, pattern) => {
+        const result = {
+            match: false,
+            ranges: [],
+        };
+        const lcSubject = subject.toLowerCase();
+        const lcPattern = pattern.toLowerCase();
+        const terms = lcSubject.split(' ');
+        let offset = 0;
+        terms.forEach((t, i) => {
+            if (i > 0) {
+                offset += terms[i - 1].length + 1;
+            }
+            if (result.match) {
+                return;
+            }
+            const foundIndex = t.indexOf(lcPattern);
+            const patternLength = lcPattern.length;
+            if (foundIndex === 0) {
+                result.match = true;
+                result.ranges.push([
+                    offset + foundIndex,
+                    Math.min(offset + foundIndex + patternLength, subject.length),
+                ]);
+            }
+        });
+        return result;
+    };
+    const startsWithSearch = (subject, pattern) => {
+        const result = {
+            match: false,
+            ranges: [],
+        };
+        const foundIndex = subject.toLowerCase().indexOf(pattern.toLowerCase());
+        if (foundIndex === 0) {
+            result.match = true;
+            result.ranges = [[0, pattern.length]];
+        }
+        return result;
+    };
+    const containsSearch = (subject, pattern) => {
+        const result = {
+            match: false,
+            ranges: [],
+        };
+        const foundIndex = subject.toLowerCase().indexOf(pattern.toLowerCase());
+        if (foundIndex > -1) {
+            result.match = true;
+            result.ranges = [[foundIndex, foundIndex + pattern.length]];
+        }
+        return result;
+    };
+    const fuzzySearch = (subject, pattern) => {
+        const result = {
+            match: false,
+            ranges: [],
+        };
+        let fromIndex = 0;
+        let foundIndex = 0;
+        const iMax = pattern.length - 1;
+        const lcSubject = subject.toLowerCase();
+        const lcPattern = pattern.toLowerCase();
+        for (let i = 0; i <= iMax; i++) {
+            foundIndex = lcSubject.indexOf(lcPattern[i], fromIndex);
+            if (foundIndex === -1) {
+                return {
+                    match: false,
+                    ranges: [],
+                };
+            }
+            result.match = true;
+            result.ranges.push([foundIndex, foundIndex + 1]);
+            fromIndex = foundIndex + 1;
+        }
+        return result;
+    };
+    const filterOptionsByPattern = (list, pattern, method) => {
+        const filtered = [];
+        list.forEach((op) => {
+            let result;
+            switch (method) {
+                case 'startsWithPerTerm':
+                    result = startsWithPerTermSearch(op.label, pattern);
+                    break;
+                case 'startsWith':
+                    result = startsWithSearch(op.label, pattern);
+                    break;
+                case 'contains':
+                    result = containsSearch(op.label, pattern);
+                    break;
+                default:
+                    result = fuzzySearch(op.label, pattern);
+            }
+            if (result.match) {
+                filtered.push({ ...op, ranges: result.ranges });
+            }
+        });
+        return filtered;
+    };
+    const preventSpaces = (text) => {
+        const res = [];
+        if (text === ' ') {
+            res.push(x `&nbsp;`);
+            return res;
+        }
+        if (text.indexOf(' ') === 0) {
+            res.push(x `&nbsp;`);
+        }
+        res.push(x `${text.trimStart().trimEnd()}`);
+        if (text.lastIndexOf(' ') === text.length - 1) {
+            res.push(x `&nbsp;`);
+        }
+        return res;
+    };
+    const highlightRanges = (text, ranges) => {
+        const res = [];
+        const rl = ranges.length;
+        if (rl < 1) {
+            return x `${text}`;
+        }
+        ranges.forEach((r, i) => {
+            const match = text.substring(r[0], r[1]);
+            if (i === 0 && r[0] !== 0) {
+                // text before the first range
+                res.push(...preventSpaces(text.substring(0, ranges[0][0])));
+            }
+            if (i > 0 && i < rl && r[0] - ranges[i - 1][1] !== 0) {
+                // text before the current range
+                res.push(...preventSpaces(text.substring(ranges[i - 1][1], r[0])));
+            }
+            res.push(x `<b>${preventSpaces(match)}</b>`);
+            if (i === rl - 1 && r[1] < text.length) {
+                // text after the last range
+                res.push(...preventSpaces(text.substring(r[1], text.length)));
+            }
+        });
+        return res;
+    };
+    function findNextSelectableOptionIndex(options, fromIndex) {
+        let result = 0;
+        if (fromIndex < 0 || !options[fromIndex] || !options[fromIndex + 1]) {
+            return result;
+        }
+        for (let i = fromIndex + 1; i < options.length; i++) {
+            if (!options[i].disabled) {
+                result = i;
+                break;
+            }
+        }
+        return result;
+    }
+    function findPrevSelectableOptionIndex(options, fromIndex) {
+        let result = 0;
+        if (fromIndex < 0 || !options[fromIndex] || !options[fromIndex - 1]) {
+            return result;
+        }
+        for (let i = fromIndex - 1; i >= 0; i--) {
+            if (!options[i].disabled) {
+                result = i;
+                break;
+            }
+        }
+        return result;
+    }
+
+    var __decorate$i = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    const VISIBLE_OPTS = 10;
+    const OPT_HEIGHT = 22;
+    /**
+     * @cssprop --dropdown-z-index - workaround for dropdown z-index issues
+     */
+    class VscodeSelectBase extends VscElement {
+        /**
+         * The element cannot be used and is not focusable.
+         */
+        set disabled(newState) {
+            this._disabled = newState;
+            this.ariaDisabled = newState ? 'true' : 'false';
+            if (newState === true) {
+                this._originalTabIndex = this.tabIndex;
+                this.tabIndex = -1;
+            }
+            else {
+                this.tabIndex = this._originalTabIndex ?? 0;
+                this._originalTabIndex = undefined;
+            }
+            this.requestUpdate();
+        }
+        get disabled() {
+            return this._disabled;
+        }
+        /**
+         * Search method in the filtered list within the combobox mode.
+         *
+         * - contains - The list item includes the searched pattern at any position.
+         * - fuzzy - The list item contains the letters of the search pattern in the same order, but at any position.
+         * - startsWith - The search pattern matches the beginning of the searched text.
+         * - startsWithPerTerm - The search pattern matches the beginning of any word in the searched text.
+         *
+         * @default 'fuzzy'
+         */
+        set filter(val) {
+            const validValues = [
+                'contains',
+                'fuzzy',
+                'startsWith',
+                'startsWithPerTerm',
+            ];
+            if (validValues.includes(val)) {
+                this._filter = val;
+            }
+            else {
+                this._filter = 'fuzzy';
+                console.warn(`[VSCode Webview Elements] Invalid filter: "${val}", fallback to default. Valid values are: "contains", "fuzzy", "startsWith", "startsWithPerm".`, this);
+            }
+        }
+        get filter() {
+            return this._filter;
+        }
+        /**
+         * @attr [options=[]]
+         * @type {Option[]}
+         */
+        set options(opts) {
+            this._options = opts.map((op, index) => ({ ...op, index }));
+        }
+        get options() {
+            return this._options.map(({ label, value, description, selected, disabled }) => ({
+                label,
+                value,
+                description,
+                selected,
+                disabled,
+            }));
+        }
+        constructor() {
+            super();
+            /** @internal */
+            this.ariaExpanded = 'false';
+            this.creatable = false;
+            /**
+             * Options can be filtered by typing into a text input field.
+             */
+            this.combobox = false;
+            /**
+             * Sets the invalid state manually.
+             */
+            this.invalid = false;
+            /**
+             * Its value is true when element is focused.
+             */
+            this.focused = false;
+            /**
+             * Toggle the dropdown visibility.
+             */
+            this.open = false;
+            /**
+             * Position of the options list when visible.
+             */
+            this.position = 'below';
+            /** @internal */
+            this.tabIndex = 0;
+            this._firstUpdateCompleted = false;
+            this._activeIndex = -1;
+            this._currentDescription = '';
+            this._filter = 'fuzzy';
+            this._filterPattern = '';
+            this._selectedIndex = -1;
+            this._selectedIndexes = [];
+            this._options = [];
+            this._value = '';
+            this._values = [];
+            this._listScrollTop = 0;
+            this._isPlaceholderOptionActive = false;
+            this._isBeingFiltered = false;
+            /** @internal */
+            this._multiple = false;
+            /**
+             * @internal
+             * Quick-searchable map for searching a value in the options list.
+             * Keys are the options values, values are the option indexes.
+             */
+            this._valueOptionIndexMap = {};
+            this._isHoverForbidden = false;
+            this._disabled = false;
+            this._originalTabIndex = undefined;
+            this._onClickOutside = (event) => {
+                const path = event.composedPath();
+                const found = path.findIndex((et) => et === this);
+                if (found === -1) {
+                    this._toggleDropdown(false);
+                    window.removeEventListener('click', this._onClickOutside);
+                }
+            };
+            this._onMouseMove = () => {
+                this._isHoverForbidden = false;
+                window.removeEventListener('mousemove', this._onMouseMove);
+            };
+            this._onComponentKeyDown = (event) => {
+                if ([' ', 'ArrowUp', 'ArrowDown', 'Escape'].includes(event.key)) {
+                    event.stopPropagation();
+                    event.preventDefault();
+                }
+                if (event.key === 'Enter') {
+                    this._onEnterKeyDown(event);
+                }
+                if (event.key === ' ') {
+                    this._onSpaceKeyDown();
+                }
+                if (event.key === 'Escape') {
+                    this._toggleDropdown(false);
+                }
+                if (event.key === 'ArrowUp') {
+                    this._onArrowUpKeyDown();
+                }
+                if (event.key === 'ArrowDown') {
+                    this._onArrowDownKeyDown();
+                }
+            };
+            this._onComponentFocus = () => {
+                this.focused = true;
+            };
+            this._onComponentBlur = () => {
+                this.focused = false;
+            };
+            this.addEventListener('vsc-option-state-change', (ev) => {
+                ev.stopPropagation();
+                this._setStateFromSlottedElements();
+                this.requestUpdate();
+            });
+        }
+        connectedCallback() {
+            super.connectedCallback();
+            this.addEventListener('keydown', this._onComponentKeyDown);
+            this.addEventListener('focus', this._onComponentFocus);
+            this.addEventListener('blur', this._onComponentBlur);
+        }
+        disconnectedCallback() {
+            super.disconnectedCallback();
+            this.removeEventListener('keydown', this._onComponentKeyDown);
+            this.removeEventListener('focus', this._onComponentFocus);
+            this.removeEventListener('blur', this._onComponentBlur);
+        }
+        firstUpdated(_changedProperties) {
+            this._firstUpdateCompleted = true;
+        }
+        willUpdate(changedProperties) {
+            if (changedProperties.has('required') && this._firstUpdateCompleted) {
+                this._manageRequired();
+            }
+        }
+        get _filteredOptions() {
+            if (!this.combobox || this._filterPattern === '') {
+                return this._options;
+            }
+            return filterOptionsByPattern(this._options, this._filterPattern, this._filter);
+        }
+        get _currentOptions() {
+            return this.combobox ? this._filteredOptions : this._options;
+        }
+        get _isSuggestedOptionVisible() {
+            if (!(this.combobox && this.creatable)) {
+                return false;
+            }
+            const filterPatternExistsAsOption = typeof this._valueOptionIndexMap[this._filterPattern] !== 'undefined';
+            const filtered = this._filterPattern.length > 0;
+            return !filterPatternExistsAsOption && filtered;
+        }
+        _manageRequired() { }
+        _setStateFromSlottedElements() {
+            const options = [];
+            let nextIndex = 0;
+            const optionElements = this._assignedOptions ?? [];
+            const selectedIndexes = [];
+            const values = [];
+            this._valueOptionIndexMap = {};
+            optionElements.forEach((el, i) => {
+                const { innerText, description, disabled } = el;
+                const value = typeof el.value === 'string' ? el.value : innerText.trim();
+                const selected = el.selected ?? false;
+                const op = {
+                    label: innerText.trim(),
+                    value,
+                    description,
+                    selected,
+                    index: nextIndex,
+                    disabled,
+                };
+                nextIndex = options.push(op);
+                if (selected && !this._multiple) {
+                    this._activeIndex = i;
+                }
+                if (selected) {
+                    selectedIndexes.push(options.length - 1);
+                    values.push(value);
+                }
+                this._valueOptionIndexMap[op.value] = op.index;
+            });
+            this._options = options;
+            if (selectedIndexes.length > 0) {
+                this._selectedIndex = selectedIndexes[0];
+                this._selectedIndexes = selectedIndexes;
+                this._value = values[0];
+                this._values = values;
+            }
+            if (!this._multiple && !this.combobox && selectedIndexes.length === 0) {
+                this._selectedIndex = this._options.length > 0 ? 0 : -1;
+            }
+        }
+        async _toggleDropdown(visible) {
+            this.open = visible;
+            this.ariaExpanded = String(visible);
+            if (visible && !this._multiple) {
+                this._activeIndex = this._selectedIndex;
+            }
+            if (visible && !this._multiple && !this.combobox) {
+                this._activeIndex = this._selectedIndex;
+                if (this._activeIndex > VISIBLE_OPTS - 1) {
+                    await this.updateComplete;
+                    this._listElement.scrollTop = Math.floor(this._activeIndex * OPT_HEIGHT);
+                }
+            }
+            if (visible) {
+                window.addEventListener('click', this._onClickOutside);
+            }
+            else {
+                window.removeEventListener('click', this._onClickOutside);
+            }
+        }
+        _createSuggestedOption() {
+            const nextSelectedIndex = this._options.length;
+            const op = document.createElement('vscode-option');
+            op.value = this._filterPattern;
+            B(this._filterPattern, op);
+            this.appendChild(op);
+            return nextSelectedIndex;
+        }
+        _dispatchChangeEvent() {
+            if (!this._multiple) {
+                /** @deprecated */
+                this.dispatchEvent(new CustomEvent('vsc-change', {
+                    detail: {
+                        selectedIndex: this._selectedIndex,
+                        value: this._value,
+                    },
+                }));
+            }
+            else {
+                /** @deprecated */
+                this.dispatchEvent(new CustomEvent('vsc-change', {
+                    detail: {
+                        selectedIndexes: this._selectedIndexes,
+                        value: this._values,
+                    },
+                }));
+            }
+            this.dispatchEvent(new Event('change'));
+            this.dispatchEvent(new Event('input'));
+        }
+        async _createAndSelectSuggestedOption() { }
+        _onFaceClick() {
+            this._toggleDropdown(!this.open);
+            if (this._multiple) {
+                this._activeIndex = 0;
+            }
+        }
+        _toggleComboboxDropdown() {
+            this._filterPattern = '';
+            this._toggleDropdown(!this.open);
+            if (this._multiple) {
+                this._activeIndex = -1;
+            }
+        }
+        _onComboboxButtonClick() {
+            this._toggleComboboxDropdown();
+        }
+        _onComboboxButtonKeyDown(ev) {
+            if (ev.key === 'Enter') {
+                this._toggleComboboxDropdown();
+            }
+        }
+        _onOptionMouseOver(ev) {
+            if (this._isHoverForbidden) {
+                return;
+            }
+            const el = ev.target;
+            if (!el.matches('.option')) {
+                return;
+            }
+            if (el.matches('.placeholder')) {
+                this._isPlaceholderOptionActive = true;
+                this._activeIndex = -1;
+            }
+            else {
+                this._isPlaceholderOptionActive = false;
+                this._activeIndex = Number(this.combobox ? el.dataset.filteredIndex : el.dataset.index);
+            }
+        }
+        _onPlaceholderOptionMouseOut() {
+            this._isPlaceholderOptionActive = false;
+        }
+        _onNoOptionsClick(ev) {
+            ev.stopPropagation();
+        }
+        _onEnterKeyDown(ev) {
+            this._isBeingFiltered = false;
+            const clickedOnAcceptButton = ev?.composedPath
+                ? ev
+                    .composedPath()
+                    .find((el) => el.matches
+                    ? el.matches('vscode-button.button-accept')
+                    : false)
+                : false;
+            if (clickedOnAcceptButton) {
+                return;
+            }
+            const list = this.combobox ? this._filteredOptions : this._options;
+            const showDropdownNext = !this.open;
+            this._toggleDropdown(showDropdownNext);
+            if (!this._multiple &&
+                !showDropdownNext &&
+                this._selectedIndex !== this._activeIndex) {
+                this._selectedIndex =
+                    this._activeIndex > -1 ? list[this._activeIndex].index : -1;
+                this._value =
+                    this._selectedIndex > -1
+                        ? this._options[this._selectedIndex].value
+                        : '';
+                this._dispatchChangeEvent();
+            }
+            if (this.combobox) {
+                if (this._isPlaceholderOptionActive) {
+                    this._createAndSelectSuggestedOption();
+                }
+                else {
+                    if (!this._multiple && !showDropdownNext) {
+                        this._selectedIndex =
+                            this._activeIndex > -1
+                                ? this._filteredOptions[this._activeIndex].index
+                                : -1;
+                    }
+                    if (!this._multiple && showDropdownNext) {
+                        this.updateComplete.then(() => {
+                            this._scrollActiveElementToTop();
+                        });
+                    }
+                }
+            }
+            if (this._multiple && showDropdownNext) {
+                this._activeIndex = 0;
+            }
+        }
+        _onSpaceKeyDown() {
+            if (!this.open) {
+                this._toggleDropdown(true);
+                return;
+            }
+            if (this.open && this._multiple && this._activeIndex > -1) {
+                const opts = this.combobox ? this._filteredOptions : this._options;
+                const selectedOption = opts[this._activeIndex];
+                const nextSelectedIndexes = [];
+                this._options[selectedOption.index].selected = !selectedOption.selected;
+                opts.forEach(({ index }) => {
+                    const { selected } = this._options[index];
+                    if (selected) {
+                        nextSelectedIndexes.push(index);
+                    }
+                });
+                this._selectedIndexes = nextSelectedIndexes;
+            }
+        }
+        _scrollActiveElementToTop() {
+            this._listElement.scrollTop = Math.floor(this._activeIndex * OPT_HEIGHT);
+        }
+        async _adjustOptionListScrollPos(direction, optionIndex) {
+            let numOpts = this.combobox
+                ? this._filteredOptions.length
+                : this._options.length;
+            const suggestedOptionVisible = this._isSuggestedOptionVisible;
+            if (suggestedOptionVisible) {
+                numOpts += 1;
+            }
+            if (numOpts <= VISIBLE_OPTS) {
+                return;
+            }
+            this._isHoverForbidden = true;
+            window.addEventListener('mousemove', this._onMouseMove);
+            const ulScrollTop = this._listElement.scrollTop;
+            const liPosY = optionIndex * OPT_HEIGHT;
+            const fullyVisible = liPosY >= ulScrollTop &&
+                liPosY <= ulScrollTop + VISIBLE_OPTS * OPT_HEIGHT - OPT_HEIGHT;
+            if (direction === 'down') {
+                if (!fullyVisible) {
+                    this._listElement.scrollTop =
+                        optionIndex * OPT_HEIGHT - (VISIBLE_OPTS - 1) * OPT_HEIGHT;
+                }
+            }
+            if (direction === 'up') {
+                if (!fullyVisible) {
+                    this._listElement.scrollTop = Math.floor(this._activeIndex * OPT_HEIGHT);
+                }
+            }
+        }
+        _onArrowUpKeyDown() {
+            if (this.open) {
+                if (this._activeIndex <= 0 && !(this.combobox && this.creatable)) {
+                    return;
+                }
+                if (this._isPlaceholderOptionActive) {
+                    const optionIndex = this._currentOptions.length - 1;
+                    this._activeIndex = optionIndex;
+                    this._isPlaceholderOptionActive = false;
+                }
+                else {
+                    const currentOptions = this.combobox
+                        ? this._filteredOptions
+                        : this._options;
+                    const prevSelectable = findPrevSelectableOptionIndex(currentOptions, this._activeIndex);
+                    if (prevSelectable > -1) {
+                        this._activeIndex = prevSelectable;
+                        this._adjustOptionListScrollPos('up', prevSelectable);
+                    }
+                }
+            }
+        }
+        _onArrowDownKeyDown() {
+            let numOpts = this.combobox
+                ? this._filteredOptions.length
+                : this._options.length;
+            const currentOptions = this.combobox
+                ? this._filteredOptions
+                : this._options;
+            const suggestedOptionVisible = this._isSuggestedOptionVisible;
+            if (suggestedOptionVisible) {
+                numOpts += 1;
+            }
+            if (this.open) {
+                if (this._isPlaceholderOptionActive && this._activeIndex === -1) {
+                    return;
+                }
+                if (suggestedOptionVisible && this._activeIndex === numOpts - 2) {
+                    this._isPlaceholderOptionActive = true;
+                    this._adjustOptionListScrollPos('down', numOpts - 1);
+                    this._activeIndex = -1;
+                }
+                else if (this._activeIndex < numOpts - 1) {
+                    const nextSelectable = findNextSelectableOptionIndex(currentOptions, this._activeIndex);
+                    if (nextSelectable > -1) {
+                        this._activeIndex = nextSelectable;
+                        this._adjustOptionListScrollPos('down', nextSelectable);
+                    }
+                }
+            }
+        }
+        _onSlotChange() {
+            this._setStateFromSlottedElements();
+            this.requestUpdate();
+        }
+        _onComboboxInputFocus(ev) {
+            ev.target.select();
+            this._isBeingFiltered = false;
+            this._filterPattern = '';
+        }
+        _onComboboxInputBlur() {
+            this._isBeingFiltered = false;
+        }
+        _onComboboxInputInput(ev) {
+            this._isBeingFiltered = true;
+            this._filterPattern = ev.target.value;
+            this._activeIndex = -1;
+            this._toggleDropdown(true);
+        }
+        _onComboboxInputClick() {
+            this._isBeingFiltered = this._filterPattern !== '';
+            this._toggleDropdown(true);
+        }
+        _onOptionClick(_ev) {
+            this._isBeingFiltered = false;
+            return;
+        }
+        _renderOptions() {
+            const list = this.combobox ? this._filteredOptions : this._options;
+            return x `
+      <ul
+        class="options"
+        @click=${this._onOptionClick}
+        @mouseover=${this._onOptionMouseOver}
+      >
+        ${c(list, (op) => op.index, (op, index) => {
+            const optionClasses = {
+                active: index === this._activeIndex && !op.disabled,
+                disabled: op.disabled,
+                option: true,
+                selected: op.selected,
+            };
+            const checkboxClasses = {
+                'checkbox-icon': true,
+                checked: op.selected,
+            };
+            const labelText = (op.ranges?.length ?? 0 > 0)
+                ? highlightRanges(op.label, op.ranges ?? [])
+                : op.label;
+            return x `
+              <li
+                class=${e(optionClasses)}
+                data-index=${op.index}
+                data-filtered-index=${index}
+              >
+                ${this._multiple
+                ? x `<span class=${e(checkboxClasses)}></span
+                      ><span class="option-label">${labelText}</span>`
+                : labelText}
+              </li>
+            `;
+        })}
+        ${this._renderPlaceholderOption(list.length < 1)}
+      </ul>
+    `;
+        }
+        _renderPlaceholderOption(isListEmpty) {
+            if (!this.combobox) {
+                return E;
+            }
+            if (this._valueOptionIndexMap[this._filterPattern]) {
+                return E;
+            }
+            if (this.creatable && this._filterPattern.length > 0) {
+                return x `<li
+        class=${e({
+                option: true,
+                placeholder: true,
+                active: this._isPlaceholderOptionActive,
+            })}
+        @mouseout=${this._onPlaceholderOptionMouseOut}
+      >
+        Add "${this._filterPattern}"
+      </li>`;
+            }
+            else {
+                return isListEmpty
+                    ? x `<li class="no-options" @click=${this._onNoOptionsClick}>
+            No options
+          </li>`
+                    : E;
+            }
+        }
+        _renderDescription() {
+            if (!this._options[this._activeIndex]) {
+                return E;
+            }
+            const { description } = this._options[this._activeIndex];
+            return description
+                ? x `<div class="description">${description}</div>`
+                : E;
+        }
+        _renderSelectFace() {
+            return x `${E}`;
+        }
+        _renderMultiSelectLabel() {
+            switch (this._selectedIndexes.length) {
+                case 0:
+                    return x `<span class="select-face-badge no-item"
+          >No items selected</span
+        >`;
+                case 1:
+                    return x `<span class="select-face-badge">1 item selected</span>`;
+                default:
+                    return x `<span class="select-face-badge"
+          >${this._selectedIndexes.length} items selected</span
+        >`;
+            }
+        }
+        _renderComboboxFace() {
+            let inputVal = '';
+            if (this._isBeingFiltered) {
+                inputVal = this._filterPattern;
+            }
+            else {
+                inputVal =
+                    this._selectedIndex > -1
+                        ? (this._options[this._selectedIndex]?.label ?? '')
+                        : '';
+            }
+            return x `
+      <div class="combobox-face face">
+        ${this._multiple ? this._renderMultiSelectLabel() : E}
+        <input
+          class="combobox-input"
+          spellcheck="false"
+          type="text"
+          autocomplete="off"
+          .value=${inputVal}
+          @focus=${this._onComboboxInputFocus}
+          @blur=${this._onComboboxInputBlur}
+          @input=${this._onComboboxInputInput}
+          @click=${this._onComboboxInputClick}
+        >
+        <button
+          class="combobox-button"
+          type="button"
+          @click=${this._onComboboxButtonClick}
+          @keydown=${this._onComboboxButtonKeyDown}
+        >
+          ${chevronDownIcon}
+        </button>
+      </div>
+    `;
+        }
+        _renderDropdownControls() {
+            return x `${E}`;
+        }
+        _renderDropdown() {
+            const classes = e({
+                dropdown: true,
+                multiple: this._multiple,
+            });
+            return x `
+      <div class=${classes}>
+        ${this.position === 'above' ? this._renderDescription() : E}
+        ${this._renderOptions()} ${this._renderDropdownControls()}
+        ${this.position === 'below' ? this._renderDescription() : E}
+      </div>
+    `;
+        }
+        render() {
+            return x `
+      <slot class="main-slot" @slotchange=${this._onSlotChange}></slot>
+      ${this.combobox ? this._renderComboboxFace() : this._renderSelectFace()}
+      ${this.open ? this._renderDropdown() : E}
+    `;
+        }
+    }
+    __decorate$i([
+        n$1({ type: String, reflect: true, attribute: 'aria-expanded' })
+    ], VscodeSelectBase.prototype, "ariaExpanded", void 0);
+    __decorate$i([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeSelectBase.prototype, "creatable", void 0);
+    __decorate$i([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeSelectBase.prototype, "combobox", void 0);
+    __decorate$i([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeSelectBase.prototype, "disabled", null);
+    __decorate$i([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeSelectBase.prototype, "invalid", void 0);
+    __decorate$i([
+        n$1()
+    ], VscodeSelectBase.prototype, "filter", null);
+    __decorate$i([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeSelectBase.prototype, "focused", void 0);
+    __decorate$i([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeSelectBase.prototype, "open", void 0);
+    __decorate$i([
+        n$1({ type: Array })
+    ], VscodeSelectBase.prototype, "options", null);
+    __decorate$i([
+        n$1({ reflect: true })
+    ], VscodeSelectBase.prototype, "position", void 0);
+    __decorate$i([
+        n$1({ type: Number, attribute: true, reflect: true })
+    ], VscodeSelectBase.prototype, "tabIndex", void 0);
+    __decorate$i([
+        o$1({
+            flatten: true,
+            selector: 'vscode-option',
+        })
+    ], VscodeSelectBase.prototype, "_assignedOptions", void 0);
+    __decorate$i([
+        r$2()
+    ], VscodeSelectBase.prototype, "_activeIndex", void 0);
+    __decorate$i([
+        r$2()
+    ], VscodeSelectBase.prototype, "_currentDescription", void 0);
+    __decorate$i([
+        r$2()
+    ], VscodeSelectBase.prototype, "_filter", void 0);
+    __decorate$i([
+        r$2()
+    ], VscodeSelectBase.prototype, "_filteredOptions", null);
+    __decorate$i([
+        r$2()
+    ], VscodeSelectBase.prototype, "_filterPattern", void 0);
+    __decorate$i([
+        r$2()
+    ], VscodeSelectBase.prototype, "_selectedIndex", void 0);
+    __decorate$i([
+        r$2()
+    ], VscodeSelectBase.prototype, "_selectedIndexes", void 0);
+    __decorate$i([
+        r$2()
+    ], VscodeSelectBase.prototype, "_options", void 0);
+    __decorate$i([
+        r$2()
+    ], VscodeSelectBase.prototype, "_value", void 0);
+    __decorate$i([
+        r$2()
+    ], VscodeSelectBase.prototype, "_values", void 0);
+    __decorate$i([
+        r$2()
+    ], VscodeSelectBase.prototype, "_listScrollTop", void 0);
+    __decorate$i([
+        r$2()
+    ], VscodeSelectBase.prototype, "_isPlaceholderOptionActive", void 0);
+    __decorate$i([
+        r$2()
+    ], VscodeSelectBase.prototype, "_isBeingFiltered", void 0);
+    __decorate$i([
+        e$3('.options')
+    ], VscodeSelectBase.prototype, "_listElement", void 0);
+
+    var styles$g = [
+        defaultStyles,
+        i$4 `
+    :host {
+      display: inline-block;
+      max-width: 100%;
+      outline: none;
+      position: relative;
+      width: 320px;
+    }
+
+    .main-slot {
+      display: none;
+    }
+
+    .select-face,
+    .combobox-face {
+      background-color: var(--vscode-settings-dropdownBackground, #313131);
+      border-color: var(--vscode-settings-dropdownBorder, #3c3c3c);
+      border-radius: 2px;
+      border-style: solid;
+      border-width: 1px;
+      box-sizing: border-box;
+      color: var(--vscode-settings-dropdownForeground, #cccccc);
+      font-family: var(--vscode-font-family, sans-serif);
+      font-size: var(--vscode-font-size, 13px);
+      font-weight: var(--vscode-font-weight, normal);
+      line-height: 18px;
+      position: relative;
+      user-select: none;
+      width: 100%;
+    }
+
+    :host([invalid]) .select-face,
+    :host(:invalid) .select-face,
+    :host([invalid]) .combobox-face,
+    :host(:invalid) .combobox-face {
+      background-color: var(--vscode-inputValidation-errorBackground, #5a1d1d);
+      border-color: var(--vscode-inputValidation-errorBorder, #be1100);
+    }
+
+    .select-face {
+      cursor: pointer;
+      display: block;
+      padding: 3px 4px;
+    }
+
+    .select-face .text {
+      display: block;
+      height: 18px;
+      overflow: hidden;
+    }
+
+    .select-face.multiselect {
+      padding: 0;
+    }
+
+    .select-face-badge {
+      background-color: var(--vscode-badge-background, #616161);
+      border-radius: 2px;
+      color: var(--vscode-badge-foreground, #f8f8f8);
+      display: inline-block;
+      flex-shrink: 0;
+      font-size: 11px;
+      line-height: 16px;
+      margin: 2px;
+      padding: 2px 3px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .select-face-badge.no-item {
+      background-color: transparent;
+      color: inherit;
+    }
+
+    .combobox-face {
+      display: flex;
+    }
+
+    :host(:focus) .select-face,
+    :host(:focus) .combobox-face,
+    :host([focused]) .select-face,
+    :host([focused]) .combobox-face {
+      border-color: var(--vscode-focusBorder, #0078d4);
+      outline: none;
+    }
+
+    .combobox-input {
+      background-color: transparent;
+      box-sizing: border-box;
+      border: 0;
+      color: var(--vscode-foreground, #cccccc);
+      display: block;
+      font-family: var(--vscode-font-family, sans-serif);
+      font-size: var(--vscode-font-size, 13px);
+      line-height: 16px;
+      padding: 4px;
+      width: 100%;
+    }
+
+    .combobox-input:focus {
+      outline: none;
+    }
+
+    .combobox-button {
+      align-items: center;
+      background-color: transparent;
+      border: 0;
+      border-radius: 2px;
+      box-sizing: content-box;
+      color: var(--vscode-foreground, #cccccc);
+      cursor: pointer;
+      display: flex;
+      flex-shrink: 0;
+      height: 16px;
+      justify-content: center;
+      margin: 1px 1px 0 0;
+      padding: 3px;
+      width: 22px;
+    }
+
+    .combobox-button:hover,
+    .combobox-button:focus-visible {
+      background-color: var(
+        --vscode-toolbar-hoverBackground,
+        rgba(90, 93, 94, 0.31)
+      );
+      outline-style: dashed;
+      outline-color: var(--vscode-toolbar-hoverOutline, transparent);
+    }
+
+    .combobox-button:focus-visible {
+      outline: none;
+    }
+
+    .icon {
+      color: var(--vscode-foreground, #cccccc);
+      display: block;
+      height: 14px;
+      pointer-events: none;
+      width: 14px;
+    }
+
+    .select-face .icon {
+      position: absolute;
+      right: 6px;
+      top: 5px;
+    }
+
+    .icon svg {
+      color: var(--vscode-foreground, #cccccc);
+      height: 100%;
+      width: 100%;
+    }
+
+    .dropdown {
+      background-color: var(--vscode-settings-dropdownBackground, #313131);
+      border-color: var(--vscode-settings-dropdownListBorder, #454545);
+      border-radius: 0 0 3px 3px;
+      border-style: solid;
+      border-width: 1px;
+      box-sizing: border-box;
+      left: 0;
+      padding-bottom: 2px;
+      position: absolute;
+      top: 100%;
+      width: 100%;
+      z-index: var(--dropdown-z-index, 2);
+    }
+
+    :host([position='above']) .dropdown {
+      border-radius: 3px 3px 0 0;
+      bottom: 26px;
+      padding-bottom: 0;
+      padding-top: 2px;
+      top: auto;
+    }
+
+    :host(:focus) .dropdown,
+    :host([focused]) .dropdown {
+      border-color: var(--vscode-focusBorder, #0078d4);
+    }
+
+    .options {
+      box-sizing: border-box;
+      cursor: pointer;
+      list-style: none;
+      margin: 0;
+      max-height: 222px;
+      overflow: auto;
+      padding: 1px;
+    }
+
+    .option {
+      align-items: center;
+      box-sizing: border-box;
+      color: var(--vscode-foreground, #cccccc);
+      cursor: pointer;
+      display: flex;
+      font-family: var(--vscode-font-family, sans-serif);
+      font-size: var(--vscode-font-size, 13px);
+      font-weight: var(--vscode-font-weight, normal);
+      height: 22px;
+      line-height: 18px;
+      min-height: calc(var(--vscode-font-size) * 1.3);
+      padding: 1px 3px;
+      user-select: none;
+      outline-color: transparent;
+      outline-offset: -1px;
+      outline-style: solid;
+      outline-width: 1px;
+    }
+
+    .option b {
+      color: var(--vscode-list-highlightForeground, #2aaaff);
+    }
+
+    .option.active b {
+      color: var(--vscode-list-focusHighlightForeground, #2aaaff);
+    }
+
+    .option:not(.disabled):hover {
+      background-color: var(--vscode-list-hoverBackground, #2a2d2e);
+      color: var(--vscode-list-hoverForeground, #ffffff);
+    }
+
+    :host-context(body[data-vscode-theme-kind='vscode-high-contrast'])
+      .option:hover,
+    :host-context(body[data-vscode-theme-kind='vscode-high-contrast-light'])
+      .option:hover {
+      outline-style: dotted;
+      outline-color: var(--vscode-list-focusOutline, #0078d4);
+      outline-width: 1px;
+    }
+
+    .option.disabled {
+      cursor: not-allowed;
+      opacity: 0.4;
+    }
+
+    .option.active,
+    .option.active:hover {
+      background-color: var(--vscode-list-activeSelectionBackground, #04395e);
+      color: var(--vscode-list-activeSelectionForeground, #ffffff);
+      outline-color: var(--vscode-list-activeSelectionBackground, #04395e);
+      outline-style: solid;
+      outline-width: 1px;
+    }
+
+    .no-options {
+      align-items: center;
+      border-color: transparent;
+      border-style: solid;
+      border-width: 1px;
+      color: var(--vscode-foreground, #cccccc);
+      cursor: default;
+      display: flex;
+      font-family: var(--vscode-font-family, sans-serif);
+      font-size: var(--vscode-font-size, 13px);
+      font-weight: var(--vscode-font-weight, normal);
+      line-height: 18px;
+      min-height: calc(var(--vscode-font-size) * 1.3);
+      opacity: 0.85;
+      padding: 1px 3px;
+      user-select: none;
+    }
+
+    .placeholder {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .placeholder span {
+      font-weight: bold;
+    }
+
+    .placeholder:not(.disabled):hover {
+      color: var(--vscode-list-activeSelectionForeground, #ffffff);
+    }
+
+    :host-context(body[data-vscode-theme-kind='vscode-high-contrast'])
+      .option.active,
+    :host-context(body[data-vscode-theme-kind='vscode-high-contrast-light'])
+      .option.active:hover {
+      outline-color: var(--vscode-list-focusOutline, #0078d4);
+      outline-style: dashed;
+    }
+
+    .option-label {
+      display: block;
+      pointer-events: none;
+      width: 100%;
+    }
+
+    .dropdown.multiple .option.selected {
+      background-color: var(--vscode-list-hoverBackground, #2a2d2e);
+      outline-color: var(--vscode-list-hoverBackground, #2a2d2e);
+    }
+
+    .dropdown.multiple .option.selected.active {
+      background-color: var(--vscode-list-activeSelectionBackground, #04395e);
+      color: var(--vscode-list-activeSelectionForeground, #ffffff);
+      outline-color: var(--vscode-list-activeSelectionBackground, #04395e);
+    }
+
+    .checkbox-icon {
+      background-color: var(--vscode-settings-checkboxBackground, #313131);
+      border: 1px solid currentColor;
+      border-radius: 2px;
+      box-sizing: border-box;
+      height: 14px;
+      margin-right: 5px;
+      overflow: hidden;
+      position: relative;
+      width: 14px;
+    }
+
+    .checkbox-icon.checked:before,
+    .checkbox-icon.checked:after {
+      content: '';
+      display: block;
+      height: 5px;
+      position: absolute;
+      transform: rotate(-45deg);
+      width: 10px;
+    }
+
+    .checkbox-icon.checked:before {
+      background-color: var(--vscode-foreground, #cccccc);
+      left: 1px;
+      top: 2.5px;
+    }
+
+    .checkbox-icon.checked:after {
+      background-color: var(--vscode-settings-checkboxBackground, #313131);
+      left: 1px;
+      top: -0.5px;
+    }
+
+    .dropdown-controls {
+      display: flex;
+      justify-content: flex-end;
+      padding: 4px;
+    }
+
+    .dropdown-controls :not(:last-child) {
+      margin-right: 4px;
+    }
+
+    .action-icon {
+      align-items: center;
+      background-color: transparent;
+      border: 0;
+      color: var(--vscode-foreground, #cccccc);
+      cursor: pointer;
+      display: flex;
+      height: 24px;
+      justify-content: center;
+      padding: 0;
+      width: 24px;
+    }
+
+    .action-icon:focus {
+      outline: none;
+    }
+
+    .action-icon:focus-visible {
+      outline: 1px solid var(--vscode-focusBorder, #0078d4);
+      outline-offset: -1px;
+    }
+
+    .description {
+      border-color: var(--vscode-settings-dropdownBorder, #3c3c3c);
+      border-style: solid;
+      border-width: 1px 0 0;
+      color: var(--vscode-foreground, #cccccc);
+      font-family: var(--vscode-font-family, sans-serif);
+      font-size: var(--vscode-font-size, 13px);
+      font-weight: var(--vscode-font-weight, normal);
+      line-height: 1.3;
+      padding: 6px 4px;
+      word-wrap: break-word;
+    }
+
+    :host([position='above']) .description {
+      border-width: 0 0 1px;
+    }
+  `,
+    ];
+
+    var __decorate$h = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    /**
+     * Allows to select multiple items from a list of options.
+     *
+     * When participating in a form, it supports the `:invalid` pseudo class. Otherwise the error styles
+     * can be applied through the `invalid` property.
+     *
+     * @tag vscode-multi-select
+     *
+     * @prop {boolean} invalid
+     * @attr {boolean} invalid
+     * @attr name - Name which is used as a variable name in the data of the form-container.
+     *
+     * @cssprop [--dropdown-z-index=2]
+     * @cssprop [--vscode-badge-background=#616161]
+     * @cssprop [--vscode-badge-foreground=#f8f8f8]
+     * @cssprop [--vscode-settings-dropdownBorder=#3c3c3c]
+     * @cssprop [--vscode-settings-checkboxBackground=#313131]
+     * @cssprop [--vscode-settings-dropdownBackground=#313131]
+     * @cssprop [--vscode-settings-dropdownForeground=#cccccc]
+     * @cssprop [--vscode-settings-dropdownListBorder=#454545]
+     * @cssprop [--vscode-focusBorder=#0078d4]
+     * @cssprop [--vscode-foreground=#cccccc]
+     * @cssprop [--vscode-font-family=sans-serif]
+     * @cssprop [--vscode-font-size=13px]
+     * @cssprop [--vscode-font-weight=normal]
+     * @cssprop [--vscode-inputValidation-errorBackground=#5a1d1d]
+     * @cssprop [--vscode-inputValidation-errorBorder=#be1100]
+     * @cssprop [--vscode-list-activeSelectionBackground=#04395e]
+     * @cssprop [--vscode-list-activeSelectionForeground=#ffffff]
+     * @cssprop [--vscode-list-focusOutline=#0078d4]
+     * @cssprop [--vscode-list-focusHighlightForeground=#2aaaff]
+     * @cssprop [--vscode-list-highlightForeground=#2aaaff]
+     * @cssprop [--vscode-list-hoverBackground=#2a2d2e]
+     * @cssprop [--vscode-list-hoverForeground=#ffffff]
+     */
+    let VscodeMultiSelect = class VscodeMultiSelect extends VscodeSelectBase {
+        set selectedIndexes(val) {
+            const newIndexes = [];
+            val.forEach((v) => {
+                if (typeof this._options[v] !== 'undefined') {
+                    if (!newIndexes.includes(v)) {
+                        this._options[v].selected = true;
+                        newIndexes.push(v);
+                    }
+                }
+            });
+            this._selectedIndexes = newIndexes;
+        }
+        get selectedIndexes() {
+            return this._selectedIndexes;
+        }
+        set value(val) {
+            const sanitizedVal = Array.isArray(val)
+                ? val.map((v) => String(v))
+                : [String(val)];
+            this._values = [];
+            this._selectedIndexes.forEach((i) => {
+                this._options[i].selected = false;
+            });
+            this._selectedIndexes = [];
+            sanitizedVal.forEach((v) => {
+                if (typeof this._valueOptionIndexMap[v] === 'number') {
+                    this._selectedIndexes.push(this._valueOptionIndexMap[v]);
+                    this._options[this._valueOptionIndexMap[v]].selected = true;
+                    this._values.push(v);
+                }
+            });
+            if (this._selectedIndexes.length > 0) {
+                this._requestedValueToSetLater = [];
+            }
+            else {
+                this._requestedValueToSetLater = Array.isArray(val) ? val : [val];
+            }
+            this._setFormValue();
+            this._manageRequired();
+        }
+        get value() {
+            return this._values;
+        }
+        get form() {
+            return this._internals.form;
+        }
+        /** @internal */
+        get type() {
+            return 'select-multiple';
+        }
+        get validity() {
+            return this._internals.validity;
+        }
+        get validationMessage() {
+            return this._internals.validationMessage;
+        }
+        get willValidate() {
+            return this._internals.willValidate;
+        }
+        checkValidity() {
+            return this._internals.checkValidity();
+        }
+        reportValidity() {
+            return this._internals.reportValidity();
+        }
+        constructor() {
+            super();
+            this.defaultValue = [];
+            this.required = false;
+            this.name = undefined;
+            this._requestedValueToSetLater = [];
+            this._onOptionClick = (ev) => {
+                const composedPath = ev.composedPath();
+                const optEl = composedPath.find((et) => {
+                    if ('matches' in et) {
+                        return et.matches('li.option');
+                    }
+                    return false;
+                });
+                if (!optEl) {
+                    return;
+                }
+                const isPlaceholderOption = optEl.classList.contains('placeholder');
+                if (isPlaceholderOption) {
+                    this._createAndSelectSuggestedOption();
+                    return;
+                }
+                const index = Number(optEl.dataset.index);
+                if (this._options[index]) {
+                    if (this._options[index].disabled) {
+                        return;
+                    }
+                    this._options[index].selected = !this._options[index].selected;
+                }
+                this._selectedIndexes = [];
+                this._values = [];
+                this._options.forEach((op) => {
+                    if (op.selected) {
+                        this._selectedIndexes.push(op.index);
+                        this._values.push(op.value);
+                    }
+                });
+                this._setFormValue();
+                this._manageRequired();
+                this._dispatchChangeEvent();
+            };
+            /** @internal */
+            this._multiple = true;
+            this._internals = this.attachInternals();
+        }
+        connectedCallback() {
+            super.connectedCallback();
+            this.updateComplete.then(() => {
+                this._setDefaultValue();
+                this._manageRequired();
+            });
+        }
+        /** @internal */
+        formResetCallback() {
+            this.updateComplete.then(() => {
+                this.value = this.defaultValue;
+            });
+        }
+        /** @internal */
+        formStateRestoreCallback(state, _mode) {
+            const entries = Array.from(state.entries()).map((e) => String(e[1]));
+            this.updateComplete.then(() => {
+                this.value = entries;
+            });
+        }
+        _setDefaultValue() {
+            if (Array.isArray(this.defaultValue) && this.defaultValue.length > 0) {
+                const val = this.defaultValue.map((v) => String(v));
+                this.value = val;
+            }
+        }
+        _manageRequired() {
+            const { value } = this;
+            if (value.length === 0 && this.required) {
+                this._internals.setValidity({
+                    valueMissing: true,
+                }, 'Please select an item in the list.', this._faceElement);
+            }
+            else {
+                this._internals.setValidity({});
+            }
+        }
+        _setFormValue() {
+            const fd = new FormData();
+            this._values.forEach((v) => {
+                fd.append(this.name ?? '', v);
+            });
+            this._internals.setFormValue(fd);
+        }
+        async _createAndSelectSuggestedOption() {
+            super._createAndSelectSuggestedOption();
+            const nextIndex = this._createSuggestedOption();
+            await this.updateComplete;
+            this.selectedIndexes = [...this.selectedIndexes, nextIndex];
+            this._dispatchChangeEvent();
+            const opCreateEvent = new CustomEvent('vsc-multi-select-create-option', { detail: { value: this._options[nextIndex]?.value ?? '' } });
+            this.dispatchEvent(opCreateEvent);
+            this._toggleDropdown(false);
+            this._isPlaceholderOptionActive = false;
+        }
+        _onSlotChange() {
+            super._onSlotChange();
+            if (this._requestedValueToSetLater.length > 0) {
+                this.options.forEach((o, i) => {
+                    if (this._requestedValueToSetLater.includes(o.value)) {
+                        this._selectedIndexes.push(i);
+                        this._values.push(o.value);
+                        this._options[i].selected = true;
+                        this._requestedValueToSetLater =
+                            this._requestedValueToSetLater.filter((v) => v !== o.value);
+                    }
+                });
+            }
+        }
+        _onMultiAcceptClick() {
+            this._toggleDropdown(false);
+        }
+        _onMultiDeselectAllClick() {
+            this._selectedIndexes = [];
+            this._values = [];
+            this._options = this._options.map((op) => ({ ...op, selected: false }));
+            this._manageRequired();
+            this._dispatchChangeEvent();
+        }
+        _onMultiSelectAllClick() {
+            this._selectedIndexes = [];
+            this._values = [];
+            this._options = this._options.map((op) => ({ ...op, selected: true }));
+            this._options.forEach((op, index) => {
+                this._selectedIndexes.push(index);
+                this._values.push(op.value);
+                this._dispatchChangeEvent();
+            });
+            this._setFormValue();
+            this._manageRequired();
+        }
+        _renderLabel() {
+            switch (this._selectedIndexes.length) {
+                case 0:
+                    return x `<span class="select-face-badge no-item"
+          >No items selected</span
+        >`;
+                case 1:
+                    return x `<span class="select-face-badge">1 item selected</span>`;
+                default:
+                    return x `<span class="select-face-badge"
+          >${this._selectedIndexes.length} items selected</span
+        >`;
+            }
+        }
+        _renderSelectFace() {
+            return x `
+      <div
+        class="select-face face multiselect"
+        @click=${this._onFaceClick}
+        tabindex=${this.tabIndex > -1 ? 0 : -1}
+      >
+        ${this._renderLabel()} ${chevronDownIcon}
+      </div>
+    `;
+        }
+        _renderDropdownControls() {
+            return this._filteredOptions.length > 0
+                ? x `
+          <div class="dropdown-controls">
+            <button
+              type="button"
+              @click=${this._onMultiSelectAllClick}
+              title="Select all"
+              class="action-icon"
+              id="select-all"
+            >
+              <vscode-icon name="checklist"></vscode-icon>
+            </button>
+            <button
+              type="button"
+              @click=${this._onMultiDeselectAllClick}
+              title="Deselect all"
+              class="action-icon"
+              id="select-none"
+            >
+              <vscode-icon name="clear-all"></vscode-icon>
+            </button>
+            <vscode-button
+              class="button-accept"
+              @click=${this._onMultiAcceptClick}
+              >OK</vscode-button
+            >
+          </div>
+        `
+                : x `${E}`;
+        }
+    };
+    VscodeMultiSelect.styles = styles$g;
+    /** @internal */
+    VscodeMultiSelect.shadowRootOptions = {
+        ...i$1.shadowRootOptions,
+        delegatesFocus: true,
+    };
+    VscodeMultiSelect.formAssociated = true;
+    __decorate$h([
+        n$1({ type: Array, attribute: 'default-value' })
+    ], VscodeMultiSelect.prototype, "defaultValue", void 0);
+    __decorate$h([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeMultiSelect.prototype, "required", void 0);
+    __decorate$h([
+        n$1({ reflect: true })
+    ], VscodeMultiSelect.prototype, "name", void 0);
+    __decorate$h([
+        n$1({ type: Array, attribute: false })
+    ], VscodeMultiSelect.prototype, "selectedIndexes", null);
+    __decorate$h([
+        n$1({ type: Array })
+    ], VscodeMultiSelect.prototype, "value", null);
+    __decorate$h([
+        e$3('.face')
+    ], VscodeMultiSelect.prototype, "_faceElement", void 0);
+    VscodeMultiSelect = __decorate$h([
+        customElement('vscode-multi-select')
+    ], VscodeMultiSelect);
+
+    const styles$f = [
+        defaultStyles,
+        i$4 `
+    :host {
+      align-items: center;
+      display: block;
+      height: 28px;
+      margin: 0;
+      outline: none;
+      width: 28px;
+    }
+
+    .progress {
+      height: 100%;
+      width: 100%;
+    }
+
+    .background {
+      fill: none;
+      stroke: transparent;
+      stroke-width: 2px;
+    }
+
+    .indeterminate-indicator-1 {
+      fill: none;
+      stroke: var(--vscode-progressBar-background, #0078d4);
+      stroke-width: 2px;
+      stroke-linecap: square;
+      transform-origin: 50% 50%;
+      transform: rotate(-90deg);
+      transition: all 0.2s ease-in-out;
+      animation: spin-infinite 2s linear infinite;
+    }
+
+    @keyframes spin-infinite {
+      0% {
+        stroke-dasharray: 0.01px 43.97px;
+        transform: rotate(0deg);
+      }
+      50% {
+        stroke-dasharray: 21.99px 21.99px;
+        transform: rotate(450deg);
+      }
+      100% {
+        stroke-dasharray: 0.01px 43.97px;
+        transform: rotate(1080deg);
+      }
+    }
+  `,
+    ];
+
+    var __decorate$g = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    /**
+     * @tag vscode-progress-ring
+     *
+     * @cssprop [--vscode-progressBar-background=#0078d4]
+     */
+    let VscodeProgressRing = class VscodeProgressRing extends VscElement {
+        constructor() {
+            super(...arguments);
+            this.ariaLabel = 'Loading';
+            this.ariaLive = 'assertive';
+            this.role = 'alert';
+        }
+        render() {
+            return x `<svg class="progress" part="progress" viewBox="0 0 16 16">
+      <circle
+        class="background"
+        part="background"
+        cx="8px"
+        cy="8px"
+        r="7px"
+      ></circle>
+      <circle
+        class="indeterminate-indicator-1"
+        part="indeterminate-indicator-1"
+        cx="8px"
+        cy="8px"
+        r="7px"
+      ></circle>
+    </svg>`;
+        }
+    };
+    VscodeProgressRing.styles = styles$f;
+    __decorate$g([
+        n$1({ reflect: true, attribute: 'aria-label' })
+    ], VscodeProgressRing.prototype, "ariaLabel", void 0);
+    __decorate$g([
+        n$1({ reflect: true, attribute: 'aria-live' })
+    ], VscodeProgressRing.prototype, "ariaLive", void 0);
+    __decorate$g([
+        n$1({ reflect: true })
+    ], VscodeProgressRing.prototype, "role", void 0);
+    VscodeProgressRing = __decorate$g([
+        customElement('vscode-progress-ring')
+    ], VscodeProgressRing);
+
+    const styles$e = [
+        defaultStyles,
+        baseStyles,
+        i$4 `
+    :host(:invalid) .icon,
+    :host([invalid]) .icon {
+      background-color: var(--vscode-inputValidation-errorBackground, #5a1d1d);
+      border-color: var(--vscode-inputValidation-errorBorder, #be1100);
+    }
+
+    .icon {
+      border-radius: 9px;
+    }
+
+    .icon.checked:before {
+      background-color: currentColor;
+      border-radius: 4px;
+      content: '';
+      height: 8px;
+      left: 50%;
+      margin: -4px 0 0 -4px;
+      position: absolute;
+      top: 50%;
+      width: 8px;
+    }
+
+    :host(:focus):host(:not([disabled])) .icon {
+      outline: 1px solid var(--vscode-focusBorder, #0078d4);
+      outline-offset: -1px;
+    }
+  `,
+    ];
+
+    var __decorate$f = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    /**
+     * When participating in a form, it supports the `:invalid` pseudo class. Otherwise the error styles
+     * can be applied through the `invalid` property.
+     *
+     * @tag vscode-radio
+     *
+     * @attr name - Name which is used as a variable name in the data of the form-container.
+     * @attr label - Attribute pair of the `label` property.
+     *
+     * @prop label - Label text. It is only applied if component's innerHTML doesn't contain any text.
+     *
+     * @fires {Event} change - Dispatched when checked state is changed.
+     * @fires {Event} invalid - Dispatched when the element is invalid and `checkValidity()` has been called or the form containing this element is submitted.
+     *
+     * [MDN Reference](https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/invalid_event)
+     *
+     * @cssprop [--vscode-font-family=sans-serif]
+     * @cssprop [--vscode-font-size=13px]
+     * @cssprop [--vscode-font-weight=normal]
+     * @cssprop [--vscode-settings-checkboxBackground=#313131]
+     * @cssprop [--vscode-settings-checkboxBorder=#3c3c3c]
+     * @cssprop [--vscode-settings-checkboxForeground=#cccccc]
+     * @cssprop [--vscode-focusBorder=#0078d4]
+     * @cssprop [--vscode-inputValidation-errorBackground=#5a1d1d]
+     * @cssprop [--vscode-inputValidation-errorBorder=#be1100]
+     */
+    let VscodeRadio = class VscodeRadio extends LabelledCheckboxOrRadioMixin(FormButtonWidgetBase) {
+        constructor() {
+            super();
+            this.autofocus = false;
+            this.checked = false;
+            this.defaultChecked = false;
+            this.invalid = false;
+            /**
+             * Name which is used as a variable name in the data of the form-container.
+             */
+            this.name = '';
+            this.value = '';
+            this.disabled = false;
+            this.required = false;
+            /** @internal */
+            this.role = 'radio';
+            /** @internal */
+            this.tabIndex = 0;
+            this._slottedText = '';
+            /** @internal */
+            this.type = 'radio';
+            this._handleClick = () => {
+                if (this.disabled) {
+                    return;
+                }
+                if (!this.checked) {
+                    this._checkButton();
+                    this._handleValueChange();
+                    this._dispatchCustomEvent();
+                    this.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            };
+            this._handleKeyDown = (ev) => {
+                if (!this.disabled && (ev.key === 'Enter' || ev.key === ' ')) {
+                    ev.preventDefault();
+                    if (ev.key === ' ' && !this.checked) {
+                        this.checked = true;
+                        this._handleValueChange();
+                        this._dispatchCustomEvent();
+                        this.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                    if (ev.key === 'Enter') {
+                        this._internals.form?.requestSubmit();
+                    }
+                }
+            };
+            this._internals = this.attachInternals();
+        }
+        connectedCallback() {
+            super.connectedCallback();
+            this.addEventListener('keydown', this._handleKeyDown);
+            this.addEventListener('click', this._handleClick);
+            this._handleValueChange();
+        }
+        disconnectedCallback() {
+            super.disconnectedCallback();
+            this.removeEventListener('keydown', this._handleKeyDown);
+            this.removeEventListener('click', this._handleClick);
+        }
+        update(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        changedProperties) {
+            super.update(changedProperties);
+            if (changedProperties.has('checked')) {
+                this._handleValueChange();
+            }
+            if (changedProperties.has('required')) {
+                this._handleValueChange();
+            }
+        }
+        get form() {
+            return this._internals.form;
+        }
+        get validity() {
+            return this._internals.validity;
+        }
+        get validationMessage() {
+            return this._internals.validationMessage;
+        }
+        get willValidate() {
+            return this._internals.willValidate;
+        }
+        checkValidity() {
+            return this._internals.checkValidity();
+        }
+        reportValidity() {
+            return this._internals.reportValidity();
+        }
+        /** @internal */
+        formResetCallback() {
+            const radios = this._getRadios();
+            radios.forEach((r) => {
+                r.checked = r.defaultChecked;
+            });
+            this.updateComplete.then(() => {
+                this._handleValueChange();
+            });
+        }
+        /** @internal */
+        formStateRestoreCallback(state, _mode) {
+            if (this.value === state && state !== '') {
+                this.checked = true;
+            }
+        }
+        _dispatchCustomEvent() {
+            /** @deprecated - Use the native `change` event instead. */
+            this.dispatchEvent(new CustomEvent('vsc-change', {
+                detail: {
+                    checked: this.checked,
+                    label: this.label,
+                    value: this.value,
+                },
+                bubbles: true,
+                composed: true,
+            }));
+        }
+        _getRadios() {
+            const root = this.getRootNode({ composed: true });
+            if (!root) {
+                return [];
+            }
+            const radios = root.querySelectorAll(`vscode-radio[name="${this.name}"]`);
+            return Array.from(radios);
+        }
+        _uncheckOthers(radios) {
+            radios.forEach((r) => {
+                if (r !== this) {
+                    r.checked = false;
+                }
+            });
+        }
+        _checkButton() {
+            const radios = this._getRadios();
+            this.checked = true;
+            radios.forEach((r) => {
+                if (r !== this) {
+                    r.checked = false;
+                }
+            });
+        }
+        /**
+         * @internal
+         */
+        setComponentValidity(isValid) {
+            if (isValid) {
+                this._internals.setValidity({});
+            }
+            else {
+                this._internals.setValidity({
+                    valueMissing: true,
+                }, 'Please select one of these options.', this._inputEl);
+            }
+        }
+        _setGroupValidity(radios, isValid) {
+            this.updateComplete.then(() => {
+                radios.forEach((r) => {
+                    r.setComponentValidity(isValid);
+                });
+            });
+        }
+        _setActualFormValue() {
+            let actualValue = '';
+            if (this.checked) {
+                actualValue = !this.value ? 'on' : this.value;
+            }
+            else {
+                actualValue = null;
+            }
+            this._internals.setFormValue(actualValue);
+        }
+        _handleValueChange() {
+            const radios = this._getRadios();
+            const anyRequired = radios.some((r) => {
+                return r.required;
+            });
+            this._setActualFormValue();
+            if (this.checked) {
+                this._uncheckOthers(radios);
+                this._setGroupValidity(radios, true);
+            }
+            else {
+                const anyChecked = !!radios.find((r) => r.checked);
+                const isInvalid = anyRequired && !anyChecked;
+                this._setGroupValidity(radios, !isInvalid);
+            }
+        }
+        render() {
+            const iconClasses = e({
+                icon: true,
+                checked: this.checked,
+            });
+            const labelInnerClasses = e({
+                'label-inner': true,
+                'is-slot-empty': this._slottedText === '',
+            });
+            return x `
+      <div class="wrapper">
+        <input
+          ?autofocus=${this.autofocus}
+          id="input"
+          class="radio"
+          type="checkbox"
+          ?checked=${this.checked}
+          value=${this.value}
+          tabindex=${this.tabIndex}
+        >
+        <div class=${iconClasses}></div>
+        <label for="input" class="label" @click=${this._handleClick}>
+          <span class=${labelInnerClasses}>
+            ${this._renderLabelAttribute()}
+            <slot @slotchange=${this._handleSlotChange}></slot>
+          </span>
+        </label>
+      </div>
+    `;
+        }
+    };
+    VscodeRadio.styles = styles$e;
+    /** @internal */
+    VscodeRadio.formAssociated = true;
+    /** @internal */
+    VscodeRadio.shadowRootOptions = {
+        ...i$1.shadowRootOptions,
+        delegatesFocus: true,
+    };
+    __decorate$f([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeRadio.prototype, "autofocus", void 0);
+    __decorate$f([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeRadio.prototype, "checked", void 0);
+    __decorate$f([
+        n$1({ type: Boolean, reflect: true, attribute: 'default-checked' })
+    ], VscodeRadio.prototype, "defaultChecked", void 0);
+    __decorate$f([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeRadio.prototype, "invalid", void 0);
+    __decorate$f([
+        n$1({ reflect: true })
+    ], VscodeRadio.prototype, "name", void 0);
+    __decorate$f([
+        n$1()
+    ], VscodeRadio.prototype, "value", void 0);
+    __decorate$f([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeRadio.prototype, "disabled", void 0);
+    __decorate$f([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeRadio.prototype, "required", void 0);
+    __decorate$f([
+        n$1({ reflect: true })
+    ], VscodeRadio.prototype, "role", void 0);
+    __decorate$f([
+        n$1({ type: Number, reflect: true })
+    ], VscodeRadio.prototype, "tabIndex", void 0);
+    __decorate$f([
+        r$2()
+    ], VscodeRadio.prototype, "_slottedText", void 0);
+    __decorate$f([
+        e$3('#input')
+    ], VscodeRadio.prototype, "_inputEl", void 0);
+    __decorate$f([
+        n$1()
+    ], VscodeRadio.prototype, "type", void 0);
+    VscodeRadio = __decorate$f([
+        customElement('vscode-radio')
+    ], VscodeRadio);
+
+    var __decorate$e = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    /**
+     * Allows to select an item from multiple options.
+     *
+     * When participating in a form, it supports the `:invalid` pseudo class. Otherwise the error styles
+     * can be applied through the `invalid` property.
+     *
+     * @tag vscode-single-select
+     *
+     * ## Types
+     *
+     * ```typescript
+     *interface Option {
+     *  label: string;
+     *  value: string;
+     *  description: string;
+     *  selected: boolean;
+     *  disabled: boolean;
+     *}
+     * ```
+     * @prop {boolean} invalid
+     * @attr {boolean} invalid
+     * @attr name - Name which is used as a variable name in the data of the form-container.
+     *
+     * @cssprop [--dropdown-z-index=2]
+     * @cssprop [--vscode-badge-background=#616161]
+     * @cssprop [--vscode-badge-foreground=#f8f8f8]
+     * @cssprop [--vscode-settings-dropdownBorder=#3c3c3c]
+     * @cssprop [--vscode-settings-checkboxBackground=#313131]
+     * @cssprop [--vscode-settings-dropdownBackground=#313131]
+     * @cssprop [--vscode-settings-dropdownForeground=#cccccc]
+     * @cssprop [--vscode-settings-dropdownListBorder=#454545]
+     * @cssprop [--vscode-focusBorder=#0078d4]
+     * @cssprop [--vscode-foreground=#cccccc]
+     * @cssprop [--vscode-font-family=sans-serif]
+     * @cssprop [--vscode-font-size=13px]
+     * @cssprop [--vscode-font-weight=normal]
+     * @cssprop [--vscode-inputValidation-errorBackground=#5a1d1d]
+     * @cssprop [--vscode-inputValidation-errorBorder=#be1100]
+     * @cssprop [--vscode-list-activeSelectionBackground=#04395e]
+     * @cssprop [--vscode-list-activeSelectionForeground=#ffffff]
+     * @cssprop [--vscode-list-focusOutline=#0078d4]
+     * @cssprop [--vscode-list-focusHighlightForeground=#2aaaff]
+     * @cssprop [--vscode-list-highlightForeground=#2aaaff]
+     * @cssprop [--vscode-list-hoverBackground=#2a2d2e]
+     * @cssprop [--vscode-list-hoverForeground=#ffffff]
+     */
+    let VscodeSingleSelect = class VscodeSingleSelect extends VscodeSelectBase {
+        set selectedIndex(val) {
+            this._selectedIndex = val;
+            if (this._options[val]) {
+                this._activeIndex = val;
+                this._value = this._options[val].value;
+                this._internals.setFormValue(this._value);
+                this._manageRequired();
+            }
+            else {
+                this._value = '';
+                this._internals.setFormValue('');
+                this._manageRequired();
+            }
+        }
+        get selectedIndex() {
+            return this._selectedIndex;
+        }
+        set value(val) {
+            if (this._options[this._selectedIndex]) {
+                this._options[this._selectedIndex].selected = false;
+            }
+            this._selectedIndex = this._options.findIndex((op) => op.value === val);
+            if (this._selectedIndex > -1) {
+                this._options[this._selectedIndex].selected = true;
+                this._value = val;
+                this._requestedValueToSetLater = '';
+            }
+            else {
+                this._value = '';
+                this._requestedValueToSetLater = val;
+            }
+            this._internals.setFormValue(this._value);
+            this._manageRequired();
+        }
+        get value() {
+            if (this._options[this._selectedIndex]) {
+                return this._options[this._selectedIndex]?.value ?? '';
+            }
+            return '';
+        }
+        get validity() {
+            return this._internals.validity;
+        }
+        get validationMessage() {
+            return this._internals.validationMessage;
+        }
+        get willValidate() {
+            return this._internals.willValidate;
+        }
+        checkValidity() {
+            return this._internals.checkValidity();
+        }
+        reportValidity() {
+            return this._internals.reportValidity();
+        }
+        updateInputValue() {
+            if (!this.combobox) {
+                return;
+            }
+            const input = this.renderRoot.querySelector('.combobox-input');
+            if (input) {
+                input.value = this._options[this._selectedIndex]
+                    ? this._options[this._selectedIndex].label
+                    : '';
+            }
+        }
+        constructor() {
+            super();
+            this.defaultValue = '';
+            /** @internal */
+            this.role = 'listbox';
+            this.name = undefined;
+            this.required = false;
+            /**
+             * This variable was introduced for cases where the value is set before the corresponding option
+             * exists. This can happen while a framework like Vue or React is rendering the component.
+             */
+            this._requestedValueToSetLater = '';
+            /** @internal */
+            this._multiple = false;
+            this._internals = this.attachInternals();
+        }
+        connectedCallback() {
+            super.connectedCallback();
+            this.updateComplete.then(() => {
+                this._manageRequired();
+            });
+        }
+        /** @internal */
+        formResetCallback() {
+            this.value = this.defaultValue;
+        }
+        /** @internal */
+        formStateRestoreCallback(state, _mode) {
+            this.updateComplete.then(() => {
+                this.value = state;
+            });
+        }
+        /** @internal */
+        get type() {
+            return 'select-one';
+        }
+        get form() {
+            return this._internals.form;
+        }
+        async _createAndSelectSuggestedOption() {
+            const nextIndex = this._createSuggestedOption();
+            await this.updateComplete;
+            this.selectedIndex = nextIndex;
+            this._dispatchChangeEvent();
+            const opCreateEvent = new CustomEvent('vsc-single-select-create-option', { detail: { value: this._options[nextIndex]?.value ?? '' } });
+            this.dispatchEvent(opCreateEvent);
+            this._toggleDropdown(false);
+            this._isPlaceholderOptionActive = false;
+        }
+        _onSlotChange() {
+            super._onSlotChange();
+            if (this._requestedValueToSetLater) {
+                // the value is set before the available options are appended
+                const foundIndex = this._options.findIndex((op) => op.value === this._requestedValueToSetLater);
+                if (foundIndex > 0) {
+                    this._selectedIndex = foundIndex;
+                    this._requestedValueToSetLater = '';
+                }
+            }
+            if (this._selectedIndex > -1 && this._options.length > 0) {
+                this._internals.setFormValue(this._options[this._selectedIndex].value);
+                this._manageRequired();
+            }
+            else {
+                this._internals.setFormValue(null);
+                this._manageRequired();
+            }
+        }
+        _onArrowUpKeyDown() {
+            super._onArrowUpKeyDown();
+            if (this.open || this._selectedIndex <= 0) {
+                return;
+            }
+            const options = this.combobox ? this._filteredOptions : this._options;
+            const prevIndex = findPrevSelectableOptionIndex(options, this._activeIndex);
+            this._filterPattern = '';
+            this._selectedIndex = prevIndex;
+            this._activeIndex = prevIndex;
+            this._value = prevIndex > -1 ? this._options[prevIndex].value : '';
+            this._internals.setFormValue(this._value);
+            this._manageRequired();
+            this._dispatchChangeEvent();
+        }
+        _onArrowDownKeyDown() {
+            super._onArrowDownKeyDown();
+            if (this.open || this._selectedIndex >= this._options.length - 1) {
+                return;
+            }
+            const options = this.combobox ? this._filteredOptions : this._options;
+            const nextIndex = findNextSelectableOptionIndex(options, this._activeIndex);
+            this._filterPattern = '';
+            this._selectedIndex = nextIndex;
+            this._activeIndex = nextIndex;
+            this._value = nextIndex > -1 ? this._options[nextIndex].value : '';
+            this._internals.setFormValue(this._value);
+            this._manageRequired();
+            this._dispatchChangeEvent();
+        }
+        _onEnterKeyDown(ev) {
+            super._onEnterKeyDown(ev);
+            this.updateInputValue();
+            this._internals.setFormValue(this._value);
+            this._manageRequired();
+        }
+        _onOptionClick(ev) {
+            super._onOptionClick(ev);
+            const composedPath = ev.composedPath();
+            const optEl = composedPath.find((et) => {
+                const el = et;
+                if ('matches' in el) {
+                    return el.matches('li.option');
+                }
+                return;
+            });
+            if (!optEl || optEl.matches('.disabled')) {
+                return;
+            }
+            const isPlaceholderOption = optEl.classList.contains('placeholder');
+            if (isPlaceholderOption) {
+                if (this.creatable) {
+                    this._createAndSelectSuggestedOption();
+                }
+            }
+            else {
+                this._selectedIndex = Number(optEl.dataset.index);
+                this._value = this._options[this._selectedIndex].value;
+                this._toggleDropdown(false);
+                this._internals.setFormValue(this._value);
+                this._manageRequired();
+                this._dispatchChangeEvent();
+            }
+        }
+        _manageRequired() {
+            const { value } = this;
+            if (value === '' && this.required) {
+                this._internals.setValidity({ valueMissing: true }, 'Please select an item in the list.', this._face);
+            }
+            else {
+                this._internals.setValidity({});
+            }
+        }
+        _renderSelectFace() {
+            const label = this._options[this._selectedIndex]?.label ?? '';
+            return x `
+      <div
+        class="select-face face"
+        @click=${this._onFaceClick}
+        tabindex=${this.tabIndex > -1 ? 0 : -1}
+      >
+        <span class="text">${label}</span> ${chevronDownIcon}
+      </div>
+    `;
+        }
+    };
+    VscodeSingleSelect.styles = styles$g;
+    /** @internal */
+    VscodeSingleSelect.shadowRootOptions = {
+        ...i$1.shadowRootOptions,
+        delegatesFocus: true,
+    };
+    /** @internal */
+    VscodeSingleSelect.formAssociated = true;
+    __decorate$e([
+        n$1({ attribute: 'default-value' })
+    ], VscodeSingleSelect.prototype, "defaultValue", void 0);
+    __decorate$e([
+        n$1({ type: String, attribute: true, reflect: true })
+    ], VscodeSingleSelect.prototype, "role", void 0);
+    __decorate$e([
+        n$1({ reflect: true })
+    ], VscodeSingleSelect.prototype, "name", void 0);
+    __decorate$e([
+        n$1({ type: Number, attribute: 'selected-index' })
+    ], VscodeSingleSelect.prototype, "selectedIndex", null);
+    __decorate$e([
+        n$1({ type: String })
+    ], VscodeSingleSelect.prototype, "value", null);
+    __decorate$e([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeSingleSelect.prototype, "required", void 0);
+    __decorate$e([
+        e$3('.face')
+    ], VscodeSingleSelect.prototype, "_face", void 0);
+    VscodeSingleSelect = __decorate$e([
+        customElement('vscode-single-select')
+    ], VscodeSingleSelect);
+
+    const styles$d = [
+        defaultStyles,
+        i$4 `
+    :host {
+      display: block;
+      position: relative;
+    }
+
+    .scrollable-container {
+      height: 100%;
+      overflow: auto;
+    }
+
+    .scrollable-container::-webkit-scrollbar {
+      cursor: default;
+      width: 0;
+    }
+
+    .scrollable-container {
+      scrollbar-width: none;
+    }
+
+    .shadow {
+      box-shadow: var(--vscode-scrollbar-shadow, #000000) 0 6px 6px -6px inset;
+      display: none;
+      height: 3px;
+      left: 0;
+      pointer-events: none;
+      position: absolute;
+      top: 0;
+      z-index: 1;
+      width: 100%;
+    }
+
+    .shadow.visible {
+      display: block;
+    }
+
+    .scrollbar-track {
+      height: 100%;
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 10px;
+      z-index: 100;
+    }
+
+    .scrollbar-track.hidden {
+      display: none;
+    }
+
+    .scrollbar-thumb {
+      background-color: transparent;
+      min-height: var(--min-thumb-height, 20px);
+      opacity: 0;
+      position: absolute;
+      right: 0;
+      width: 10px;
+    }
+
+    .scrollbar-thumb.visible {
+      background-color: var(
+        --vscode-scrollbarSlider-background,
+        rgba(121, 121, 121, 0.4)
+      );
+      opacity: 1;
+      transition: opacity 100ms;
+    }
+
+    .scrollbar-thumb.fade {
+      background-color: var(
+        --vscode-scrollbarSlider-background,
+        rgba(121, 121, 121, 0.4)
+      );
+      opacity: 0;
+      transition: opacity 800ms;
+    }
+
+    .scrollbar-thumb.visible:hover {
+      background-color: var(
+        --vscode-scrollbarSlider-hoverBackground,
+        rgba(100, 100, 100, 0.7)
+      );
+    }
+
+    .scrollbar-thumb.visible.active,
+    .scrollbar-thumb.visible.active:hover {
+      background-color: var(
+        --vscode-scrollbarSlider-activeBackground,
+        rgba(191, 191, 191, 0.4)
+      );
+    }
+
+    .prevent-interaction {
+      bottom: 0;
+      left: 0;
+      right: 0;
+      top: 0;
+      position: absolute;
+      z-index: 99;
+    }
+
+    .content {
+      overflow: hidden;
+    }
+  `,
+    ];
+
+    var __decorate$d = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    /**
+     * @tag vscode-scrollable
+     *
+     * @cssprop [--min-thumb-height=20px] - Scrollbar thumb minimum height
+     * @cssprop [--vscode-scrollbar-shadow=#000000]
+     * @cssprop [--vscode-scrollbarSlider-background=rgba(121, 121, 121, 0.4)]
+     * @cssprop [--vscode-scrollbarSlider-hoverBackground=rgba(100, 100, 100, 0.7)]
+     * @cssprop [--vscode-scrollbarSlider-activeBackground=rgba(191, 191, 191, 0.4)]
+     */
+    let VscodeScrollable = class VscodeScrollable extends VscElement {
+        constructor() {
+            super(...arguments);
+            this.shadow = true;
+            this.scrolled = false;
+            this._isDragging = false;
+            this._thumbHeight = 0;
+            this._thumbY = 0;
+            this._thumbVisible = false;
+            this._thumbFade = false;
+            this._thumbActive = false;
+            this._scrollThumbStartY = 0;
+            this._mouseStartY = 0;
+            this._scrollbarVisible = true;
+            this._scrollbarTrackZ = 0;
+            this._resizeObserverCallback = () => {
+                this._updateScrollbar();
+            };
+            this._onSlotChange = () => {
+                this._zIndexFix();
+            };
+            this._onScrollThumbMouseMoveBound = this._onScrollThumbMouseMove.bind(this);
+            this._onScrollThumbMouseUpBound = this._onScrollThumbMouseUp.bind(this);
+            this._onComponentMouseOverBound = this._onComponentMouseOver.bind(this);
+            this._onComponentMouseOutBound = this._onComponentMouseOut.bind(this);
+        }
+        set scrollPos(val) {
+            this._scrollableContainer.scrollTop = val;
+        }
+        get scrollPos() {
+            if (!this._scrollableContainer) {
+                return 0;
+            }
+            return this._scrollableContainer.scrollTop;
+        }
+        get scrollMax() {
+            if (!this._scrollableContainer) {
+                return 0;
+            }
+            return this._scrollableContainer.scrollHeight;
+        }
+        connectedCallback() {
+            super.connectedCallback();
+            this._hostResizeObserver = new ResizeObserver(this._resizeObserverCallback);
+            this._contentResizeObserver = new ResizeObserver(this._resizeObserverCallback);
+            this.requestUpdate();
+            this.updateComplete.then(() => {
+                this._scrollableContainer.addEventListener('scroll', this._onScrollableContainerScroll.bind(this));
+                this._hostResizeObserver.observe(this);
+                this._contentResizeObserver.observe(this._contentElement);
+            });
+            this.addEventListener('mouseover', this._onComponentMouseOverBound);
+            this.addEventListener('mouseout', this._onComponentMouseOutBound);
+        }
+        disconnectedCallback() {
+            super.disconnectedCallback();
+            this._hostResizeObserver.unobserve(this);
+            this._hostResizeObserver.disconnect();
+            this._contentResizeObserver.unobserve(this._contentElement);
+            this._contentResizeObserver.disconnect();
+            this.removeEventListener('mouseover', this._onComponentMouseOverBound);
+            this.removeEventListener('mouseout', this._onComponentMouseOutBound);
+        }
+        _updateScrollbar() {
+            const compCr = this.getBoundingClientRect();
+            const contentCr = this._contentElement.getBoundingClientRect();
+            if (compCr.height >= contentCr.height) {
+                this._scrollbarVisible = false;
+            }
+            else {
+                this._scrollbarVisible = true;
+                this._thumbHeight = compCr.height * (compCr.height / contentCr.height);
+            }
+            this.requestUpdate();
+        }
+        _zIndexFix() {
+            let highestZ = 0;
+            this._assignedElements.forEach((n) => {
+                if ('style' in n) {
+                    const computedZIndex = window.getComputedStyle(n).zIndex;
+                    const isNumber = /([0-9-])+/g.test(computedZIndex);
+                    if (isNumber) {
+                        highestZ =
+                            Number(computedZIndex) > highestZ
+                                ? Number(computedZIndex)
+                                : highestZ;
+                    }
+                }
+            });
+            this._scrollbarTrackZ = highestZ + 1;
+            this.requestUpdate();
+        }
+        _onScrollThumbMouseDown(event) {
+            const cmpCr = this.getBoundingClientRect();
+            const thCr = this._scrollThumbElement.getBoundingClientRect();
+            this._mouseStartY = event.screenY;
+            this._scrollThumbStartY = thCr.top - cmpCr.top;
+            this._isDragging = true;
+            this._thumbActive = true;
+            document.addEventListener('mousemove', this._onScrollThumbMouseMoveBound);
+            document.addEventListener('mouseup', this._onScrollThumbMouseUpBound);
+        }
+        _onScrollThumbMouseMove(event) {
+            const predictedPos = this._scrollThumbStartY + (event.screenY - this._mouseStartY);
+            let nextPos = 0;
+            const cmpH = this.getBoundingClientRect().height;
+            const thumbH = this._scrollThumbElement.getBoundingClientRect().height;
+            const contentH = this._contentElement.getBoundingClientRect().height;
+            if (predictedPos < 0) {
+                nextPos = 0;
+            }
+            else if (predictedPos > cmpH - thumbH) {
+                nextPos = cmpH - thumbH;
+            }
+            else {
+                nextPos = predictedPos;
+            }
+            this._thumbY = nextPos;
+            this._scrollableContainer.scrollTop =
+                (nextPos / (cmpH - thumbH)) * (contentH - cmpH);
+        }
+        _onScrollThumbMouseUp(event) {
+            this._isDragging = false;
+            this._thumbActive = false;
+            const cr = this.getBoundingClientRect();
+            const { x, y, width, height } = cr;
+            const { pageX, pageY } = event;
+            if (pageX > x + width || pageX < x || pageY > y + height || pageY < y) {
+                this._thumbFade = true;
+                this._thumbVisible = false;
+            }
+            document.removeEventListener('mousemove', this._onScrollThumbMouseMoveBound);
+            document.removeEventListener('mouseup', this._onScrollThumbMouseUpBound);
+        }
+        _onScrollableContainerScroll() {
+            const scrollTop = this._scrollableContainer.scrollTop;
+            this.scrolled = scrollTop > 0;
+            const cmpH = this.getBoundingClientRect().height;
+            const thumbH = this._scrollThumbElement.getBoundingClientRect().height;
+            const contentH = this._contentElement.getBoundingClientRect().height;
+            const overflown = contentH - cmpH;
+            const ratio = scrollTop / overflown;
+            this._thumbY = ratio * (cmpH - thumbH);
+        }
+        _onComponentMouseOver() {
+            this._thumbVisible = true;
+            this._thumbFade = false;
+        }
+        _onComponentMouseOut() {
+            if (!this._thumbActive) {
+                this._thumbVisible = false;
+                this._thumbFade = true;
+            }
+        }
+        render() {
+            return x `
+      <div
+        class="scrollable-container"
+        .style=${stylePropertyMap({
+            userSelect: this._isDragging ? 'none' : 'auto',
+        })}
+      >
+        <div
+          class=${e({ shadow: true, visible: this.scrolled })}
+          .style=${stylePropertyMap({
+            zIndex: String(this._scrollbarTrackZ),
+        })}
+        ></div>
+        ${this._isDragging
+            ? x `<div class="prevent-interaction"></div>`
+            : E}
+        <div
+          class=${e({
+            'scrollbar-track': true,
+            hidden: !this._scrollbarVisible,
+        })}
+        >
+          <div
+            class=${e({
+            'scrollbar-thumb': true,
+            visible: this._thumbVisible,
+            fade: this._thumbFade,
+            active: this._thumbActive,
+        })}
+            .style=${stylePropertyMap({
+            height: `${this._thumbHeight}px`,
+            top: `${this._thumbY}px`,
+        })}
+            @mousedown=${this._onScrollThumbMouseDown}
+          ></div>
+        </div>
+        <div class="content">
+          <slot @slotchange=${this._onSlotChange}></slot>
+        </div>
+      </div>
+    `;
+        }
+    };
+    VscodeScrollable.styles = styles$d;
+    __decorate$d([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeScrollable.prototype, "shadow", void 0);
+    __decorate$d([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeScrollable.prototype, "scrolled", void 0);
+    __decorate$d([
+        n$1({ type: Number, attribute: 'scroll-pos' })
+    ], VscodeScrollable.prototype, "scrollPos", null);
+    __decorate$d([
+        n$1({ type: Number, attribute: 'scroll-max' })
+    ], VscodeScrollable.prototype, "scrollMax", null);
+    __decorate$d([
+        r$2()
+    ], VscodeScrollable.prototype, "_isDragging", void 0);
+    __decorate$d([
+        r$2()
+    ], VscodeScrollable.prototype, "_thumbHeight", void 0);
+    __decorate$d([
+        r$2()
+    ], VscodeScrollable.prototype, "_thumbY", void 0);
+    __decorate$d([
+        r$2()
+    ], VscodeScrollable.prototype, "_thumbVisible", void 0);
+    __decorate$d([
+        r$2()
+    ], VscodeScrollable.prototype, "_thumbFade", void 0);
+    __decorate$d([
+        r$2()
+    ], VscodeScrollable.prototype, "_thumbActive", void 0);
+    __decorate$d([
+        e$3('.content')
+    ], VscodeScrollable.prototype, "_contentElement", void 0);
+    __decorate$d([
+        e$3('.scrollbar-thumb', true)
+    ], VscodeScrollable.prototype, "_scrollThumbElement", void 0);
+    __decorate$d([
+        e$3('.scrollable-container')
+    ], VscodeScrollable.prototype, "_scrollableContainer", void 0);
+    __decorate$d([
+        o$1()
+    ], VscodeScrollable.prototype, "_assignedElements", void 0);
+    VscodeScrollable = __decorate$d([
+        customElement('vscode-scrollable')
+    ], VscodeScrollable);
+
+    const styles$c = [
+        defaultStyles,
+        i$4 `
+    :host {
+      --separator-border: var(--vscode-editorWidget-border, #454545);
+
+      border: 1px solid var(--vscode-editorWidget-border, #454545);
+      display: block;
+      overflow: hidden;
+      position: relative;
+    }
+
+    ::slotted(*) {
+      height: 100%;
+      width: 100%;
+    }
+
+    ::slotted(vscode-split-layout) {
+      border: 0;
+    }
+
+    .wrapper {
+      display: flex;
+      height: 100%;
+      width: 100%;
+    }
+
+    .wrapper.horizontal {
+      flex-direction: column;
+    }
+
+    .start {
+      box-sizing: border-box;
+      flex: 1;
+      min-height: 0;
+      min-width: 0;
+    }
+
+    :host([split='vertical']) .start {
+      border-right: 1px solid var(--separator-border);
+    }
+
+    :host([split='horizontal']) .start {
+      border-bottom: 1px solid var(--separator-border);
+    }
+
+    .end {
+      flex: 1;
+      min-height: 0;
+      min-width: 0;
+    }
+
+    :host([split='vertical']) .start,
+    :host([split='vertical']) .end {
+      height: 100%;
+    }
+
+    :host([split='horizontal']) .start,
+    :host([split='horizontal']) .end {
+      width: 100%;
+    }
+
+    .handle-overlay {
+      display: none;
+      height: 100%;
+      left: 0;
+      position: absolute;
+      top: 0;
+      width: 100%;
+      z-index: 1;
+    }
+
+    .handle-overlay.active {
+      display: block;
+    }
+
+    .handle-overlay.split-vertical {
+      cursor: ew-resize;
+    }
+
+    .handle-overlay.split-horizontal {
+      cursor: ns-resize;
+    }
+
+    .handle {
+      background-color: transparent;
+      position: absolute;
+      z-index: 2;
+    }
+
+    .handle.hover {
+      transition: background-color 0.1s ease-out 0.3s;
+      background-color: var(--vscode-sash-hoverBorder, #0078d4);
+    }
+
+    .handle.hide {
+      background-color: transparent;
+      transition: background-color 0.1s ease-out;
+    }
+
+    .handle.split-vertical {
+      cursor: ew-resize;
+      height: 100%;
+    }
+
+    .handle.split-horizontal {
+      cursor: ns-resize;
+      width: 100%;
+    }
+  `,
+    ];
+
+    var __decorate$c = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    var VscodeSplitLayout_1;
+    const DEFAULT_INITIAL_POSITION = '50%';
+    const DEFAULT_HANDLE_SIZE = 4;
+    const parseValue = (raw) => {
+        if (!raw) {
+            return { value: 0, unit: 'pixel' };
+        }
+        let unit;
+        let rawVal;
+        if (raw.endsWith('%')) {
+            unit = 'percent';
+            rawVal = +raw.substring(0, raw.length - 1);
+        }
+        else if (raw.endsWith('px')) {
+            unit = 'pixel';
+            rawVal = +raw.substring(0, raw.length - 2);
+        }
+        else {
+            unit = 'pixel';
+            rawVal = +raw;
+        }
+        const value = isNaN(rawVal) ? 0 : rawVal;
+        return { unit, value };
+    };
+    // Returns a percentage between 0 and 100
+    const pxToPercent = (current, max) => {
+        return max === 0 ? 0 : Math.min(100, (current / max) * 100);
+    };
+    const percentToPx = (current, max) => {
+        return max * (current / 100);
+    };
+    /**
+     * @tag vscode-split-layout
+     *
+     * @prop {'start' | 'end' | 'none'} fixedPane
+     *
+     * @cssprop [--separator-border=#454545]
+     * @cssprop [--vscode-editorWidget-border=#454545]
+     * @cssprop [--vscode-sash-hoverBorder=#0078d4]
+     */
+    let VscodeSplitLayout = VscodeSplitLayout_1 = class VscodeSplitLayout extends VscElement {
+        /**
+         * Direction of the divider.
+         */
+        set split(newVal) {
+            if (this._split === newVal) {
+                return;
+            }
+            this._split = newVal;
+            this.resetHandlePosition();
+        }
+        get split() {
+            return this._split;
+        }
+        /**
+         * Set the handle position programmatically. The value must include a unit,
+         * either `%` or `px`. If no unit is specified, the value is interpreted as
+         * `px`.
+         */
+        set handlePosition(newVal) {
+            this._rawHandlePosition = newVal;
+            this._handlePositionPropChanged();
+        }
+        get handlePosition() {
+            return this._rawHandlePosition;
+        }
+        /**
+         * The size of the fixed pane will not change when the component is resized.
+         */
+        set fixedPane(newVal) {
+            this._fixedPane = newVal;
+            this._fixedPanePropChanged();
+        }
+        get fixedPane() {
+            return this._fixedPane;
+        }
+        constructor() {
+            super();
+            this._split = 'vertical';
+            /**
+             * Controls whether the handle position should reset to the value set in the
+             * `initialHandlePosition` when it is double-clicked.
+             */
+            this.resetOnDblClick = false;
+            /**
+             * Controls the draggable area size in pixels. it is intended to use the value
+             * of `workbench.sash.size`.
+             */
+            this.handleSize = 4;
+            /**
+             * The handler position will reset to this position when it is double-clicked,
+             * or the `resetHandlePosition()` is called.
+             */
+            this.initialHandlePosition = DEFAULT_INITIAL_POSITION;
+            this._fixedPane = 'none';
+            this._handlePosition = 0;
+            this._isDragActive = false;
+            this._hover = false;
+            this._hide = false;
+            this._boundRect = new DOMRect();
+            this._handleOffset = 0;
+            this._wrapperObserved = false;
+            this._fixedPaneSize = 0;
+            this._handleResize = (entries) => {
+                const rect = entries[0].contentRect;
+                const { width, height } = rect;
+                this._boundRect = rect;
+                const max = this.split === 'vertical' ? width : height;
+                if (this.fixedPane === 'start') {
+                    this._handlePosition = this._fixedPaneSize;
+                }
+                if (this.fixedPane === 'end') {
+                    this._handlePosition = max - this._fixedPaneSize;
+                }
+            };
+            this._handleMouseUp = (ev) => {
+                this._isDragActive = false;
+                if (ev.target !== this) {
+                    this._hover = false;
+                    this._hide = true;
+                }
+                window.removeEventListener('mouseup', this._handleMouseUp);
+                window.removeEventListener('mousemove', this._handleMouseMove);
+                const { width, height } = this._boundRect;
+                const max = this.split === 'vertical' ? width : height;
+                const positionInPercentage = pxToPercent(this._handlePosition, max);
+                this.dispatchEvent(new CustomEvent('vsc-split-layout-change', {
+                    detail: {
+                        position: this._handlePosition,
+                        positionInPercentage,
+                    },
+                    composed: true,
+                }));
+            };
+            this._handleMouseMove = (event) => {
+                const { clientX, clientY } = event;
+                const { left, top, height, width } = this._boundRect;
+                const vert = this.split === 'vertical';
+                const maxPos = vert ? width : height;
+                const mousePos = vert ? clientX - left : clientY - top;
+                this._handlePosition = Math.max(0, Math.min(mousePos - this._handleOffset + this.handleSize / 2, maxPos));
+                if (this.fixedPane === 'start') {
+                    this._fixedPaneSize = this._handlePosition;
+                }
+                if (this.fixedPane === 'end') {
+                    this._fixedPaneSize = maxPos - this._handlePosition;
+                }
+            };
+            this._resizeObserver = new ResizeObserver(this._handleResize);
+        }
+        /**
+         * Sets the handle position to the value specified in the `initialHandlePosition` property.
+         */
+        resetHandlePosition() {
+            if (!this._wrapperEl) {
+                this._handlePosition = 0;
+                return;
+            }
+            const { width, height } = this._wrapperEl.getBoundingClientRect();
+            const max = this.split === 'vertical' ? width : height;
+            const { value, unit } = parseValue(this.initialHandlePosition ?? DEFAULT_INITIAL_POSITION);
+            if (unit === 'percent') {
+                this._handlePosition = percentToPx(value, max);
+            }
+            else {
+                this._handlePosition = value;
+            }
+        }
+        connectedCallback() {
+            super.connectedCallback();
+        }
+        firstUpdated(_changedProperties) {
+            if (this.fixedPane !== 'none') {
+                this._resizeObserver.observe(this._wrapperEl);
+                this._wrapperObserved = true;
+            }
+            this._boundRect = this._wrapperEl.getBoundingClientRect();
+            const { value, unit } = this.handlePosition
+                ? parseValue(this.handlePosition)
+                : parseValue(this.initialHandlePosition);
+            this._setPosition(value, unit);
+            this._initFixedPane();
+        }
+        _handlePositionPropChanged() {
+            if (this.handlePosition && this._wrapperEl) {
+                this._boundRect = this._wrapperEl.getBoundingClientRect();
+                const { value, unit } = parseValue(this.handlePosition);
+                this._setPosition(value, unit);
+            }
+        }
+        _fixedPanePropChanged() {
+            if (!this._wrapperEl) {
+                return;
+            }
+            this._initFixedPane();
+        }
+        _initFixedPane() {
+            if (this.fixedPane === 'none') {
+                if (this._wrapperObserved) {
+                    this._resizeObserver.unobserve(this._wrapperEl);
+                    this._wrapperObserved = false;
+                }
+            }
+            else {
+                const { width, height } = this._boundRect;
+                const max = this.split === 'vertical' ? width : height;
+                this._fixedPaneSize =
+                    this.fixedPane === 'start'
+                        ? this._handlePosition
+                        : max - this._handlePosition;
+                if (!this._wrapperObserved) {
+                    this._resizeObserver.observe(this._wrapperEl);
+                    this._wrapperObserved = true;
+                }
+            }
+        }
+        _setPosition(value, unit) {
+            const { width, height } = this._boundRect;
+            const max = this.split === 'vertical' ? width : height;
+            this._handlePosition = unit === 'percent' ? percentToPx(value, max) : value;
+        }
+        _handleMouseOver() {
+            this._hover = true;
+            this._hide = false;
+        }
+        _handleMouseOut(event) {
+            if (event.buttons !== 1) {
+                this._hover = false;
+                this._hide = true;
+            }
+        }
+        _handleMouseDown(event) {
+            event.stopPropagation();
+            event.preventDefault();
+            this._boundRect = this._wrapperEl.getBoundingClientRect();
+            const { left, top } = this._boundRect;
+            const { left: handleLeft, top: handleTop } = this._handleEl.getBoundingClientRect();
+            const mouseXLocal = event.clientX - left;
+            const mouseYLocal = event.clientY - top;
+            if (this.split === 'vertical') {
+                this._handleOffset = mouseXLocal - (handleLeft - left);
+            }
+            if (this.split === 'horizontal') {
+                this._handleOffset = mouseYLocal - (handleTop - top);
+            }
+            this._isDragActive = true;
+            window.addEventListener('mouseup', this._handleMouseUp);
+            window.addEventListener('mousemove', this._handleMouseMove);
+        }
+        _handleDblClick() {
+            if (!this.resetOnDblClick) {
+                return;
+            }
+            this.resetHandlePosition();
+        }
+        _handleSlotChange() {
+            const nestedLayouts = [
+                ...this._nestedLayoutsAtStart,
+                ...this._nestedLayoutsAtEnd,
+            ];
+            nestedLayouts.forEach((e) => {
+                if (e instanceof VscodeSplitLayout_1) {
+                    e.resetHandlePosition();
+                }
+            });
+        }
+        render() {
+            const { width, height } = this._boundRect;
+            const maxPos = this.split === 'vertical' ? width : height;
+            const handlePosCss = this.fixedPane !== 'none'
+                ? `${this._handlePosition}px`
+                : `${pxToPercent(this._handlePosition, maxPos)}%`;
+            let startPaneSize = '';
+            if (this.fixedPane === 'start') {
+                startPaneSize = `0 0 ${this._fixedPaneSize}px`;
+            }
+            else {
+                startPaneSize = `1 1 ${pxToPercent(this._handlePosition, maxPos)}%`;
+            }
+            let endPaneSize = '';
+            if (this.fixedPane === 'end') {
+                endPaneSize = `0 0 ${this._fixedPaneSize}px`;
+            }
+            else {
+                endPaneSize = `1 1 ${pxToPercent(maxPos - this._handlePosition, maxPos)}%`;
+            }
+            const handleStylesPropObj = {
+                left: this.split === 'vertical' ? handlePosCss : '0',
+                top: this.split === 'vertical' ? '0' : handlePosCss,
+            };
+            const handleSize = this.handleSize ?? DEFAULT_HANDLE_SIZE;
+            if (this.split === 'vertical') {
+                handleStylesPropObj.marginLeft = `${0 - handleSize / 2}px`;
+                handleStylesPropObj.width = `${handleSize}px`;
+            }
+            if (this.split === 'horizontal') {
+                handleStylesPropObj.height = `${handleSize}px`;
+                handleStylesPropObj.marginTop = `${0 - handleSize / 2}px`;
+            }
+            const handleOverlayClasses = e({
+                'handle-overlay': true,
+                active: this._isDragActive,
+                'split-vertical': this.split === 'vertical',
+                'split-horizontal': this.split === 'horizontal',
+            });
+            const handleClasses = e({
+                handle: true,
+                hover: this._hover,
+                hide: this._hide,
+                'split-vertical': this.split === 'vertical',
+                'split-horizontal': this.split === 'horizontal',
+            });
+            const wrapperClasses = {
+                wrapper: true,
+                horizontal: this.split === 'horizontal',
+            };
+            return x `
+      <div class=${e(wrapperClasses)}>
+        <div class="start" .style=${stylePropertyMap({ flex: startPaneSize })}>
+          <slot name="start" @slotchange=${this._handleSlotChange}></slot>
+        </div>
+        <div class="end" .style=${stylePropertyMap({ flex: endPaneSize })}>
+          <slot name="end" @slotchange=${this._handleSlotChange}></slot>
+        </div>
+        <div class=${handleOverlayClasses}></div>
+        <div
+          class=${handleClasses}
+          .style=${stylePropertyMap(handleStylesPropObj)}
+          @mouseover=${this._handleMouseOver}
+          @mouseout=${this._handleMouseOut}
+          @mousedown=${this._handleMouseDown}
+          @dblclick=${this._handleDblClick}
+        ></div>
+      </div>
+    `;
+        }
+    };
+    VscodeSplitLayout.styles = styles$c;
+    __decorate$c([
+        n$1({ reflect: true })
+    ], VscodeSplitLayout.prototype, "split", null);
+    __decorate$c([
+        n$1({ type: Boolean, reflect: true, attribute: 'reset-on-dbl-click' })
+    ], VscodeSplitLayout.prototype, "resetOnDblClick", void 0);
+    __decorate$c([
+        n$1({ type: Number, reflect: true, attribute: 'handle-size' })
+    ], VscodeSplitLayout.prototype, "handleSize", void 0);
+    __decorate$c([
+        n$1({ reflect: true, attribute: 'initial-handle-position' })
+    ], VscodeSplitLayout.prototype, "initialHandlePosition", void 0);
+    __decorate$c([
+        n$1({ attribute: 'handle-position' })
+    ], VscodeSplitLayout.prototype, "handlePosition", null);
+    __decorate$c([
+        n$1({ attribute: 'fixed-pane' })
+    ], VscodeSplitLayout.prototype, "fixedPane", null);
+    __decorate$c([
+        r$2()
+    ], VscodeSplitLayout.prototype, "_handlePosition", void 0);
+    __decorate$c([
+        r$2()
+    ], VscodeSplitLayout.prototype, "_isDragActive", void 0);
+    __decorate$c([
+        r$2()
+    ], VscodeSplitLayout.prototype, "_hover", void 0);
+    __decorate$c([
+        r$2()
+    ], VscodeSplitLayout.prototype, "_hide", void 0);
+    __decorate$c([
+        e$3('.wrapper')
+    ], VscodeSplitLayout.prototype, "_wrapperEl", void 0);
+    __decorate$c([
+        e$3('.handle')
+    ], VscodeSplitLayout.prototype, "_handleEl", void 0);
+    __decorate$c([
+        o$1({ slot: 'start', selector: 'vscode-split-layout' })
+    ], VscodeSplitLayout.prototype, "_nestedLayoutsAtStart", void 0);
+    __decorate$c([
+        o$1({ slot: 'end', selector: 'vscode-split-layout' })
+    ], VscodeSplitLayout.prototype, "_nestedLayoutsAtEnd", void 0);
+    VscodeSplitLayout = VscodeSplitLayout_1 = __decorate$c([
+        customElement('vscode-split-layout')
+    ], VscodeSplitLayout);
+
+    const styles$b = [
+        defaultStyles,
+        i$4 `
+    :host {
+      border-bottom: 1px solid transparent;
+      cursor: pointer;
+      display: block;
+      margin-bottom: -1px;
+      overflow: hidden;
+      padding: 7px 8px;
+      text-overflow: ellipsis;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    :host([active]) {
+      border-bottom-color: var(--vscode-panelTitle-activeForeground);
+      color: var(--vscode-panelTitle-activeForeground);
+    }
+
+    :host([panel]) {
+      border-bottom: 0;
+      margin-bottom: 0;
+      padding: 0;
+    }
+
+    :host(:focus-visible) {
+      outline: none;
+    }
+
+    .wrapper {
+      align-items: center;
+      color: var(--vscode-foreground);
+      display: flex;
+      min-height: 20px;
+      overflow: inherit;
+      text-overflow: inherit;
+      position: relative;
+    }
+
+    .wrapper.panel {
+      color: var(--vscode-panelTitle-inactiveForeground);
+    }
+
+    .wrapper.panel.active,
+    .wrapper.panel:hover {
+      color: var(--vscode-panelTitle-activeForeground);
+    }
+
+    :host([panel]) .wrapper {
+      display: flex;
+      font-size: 11px;
+      height: 31px;
+      padding: 2px 10px;
+      text-transform: uppercase;
+    }
+
+    .main {
+      overflow: inherit;
+      text-overflow: inherit;
+    }
+
+    .active-indicator {
+      display: none;
+    }
+
+    .active-indicator.panel.active {
+      border-top: 1px solid var(--vscode-panelTitle-activeBorder);
+      bottom: 4px;
+      display: block;
+      left: 8px;
+      pointer-events: none;
+      position: absolute;
+      right: 8px;
+    }
+
+    :host(:focus-visible) .wrapper {
+      outline-color: var(--vscode-focusBorder);
+      outline-offset: 3px;
+      outline-style: solid;
+      outline-width: 1px;
+    }
+
+    :host(:focus-visible) .wrapper.panel {
+      outline-offset: -2px;
+    }
+
+    slot[name='content-before']::slotted(vscode-badge) {
+      margin-right: 8px;
+    }
+
+    slot[name='content-after']::slotted(vscode-badge) {
+      margin-left: 8px;
+    }
+  `,
+    ];
+
+    var __decorate$b = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    /**
+     * @tag vscode-tab-header
+     *
+     * @cssprop --vscode-foreground
+     * @cssprop --vscode-panelTitle-inactiveForeground
+     * @cssprop --vscode-panelTitle-activeForeground
+     * @cssprop --vscode-panelTitle-activeBorder
+     * @cssprop --vscode-focusBorder
+     * @cssprop --vscode-settings-headerForeground
+     */
+    let VscodeTabHeader = class VscodeTabHeader extends VscElement {
+        constructor() {
+            super(...arguments);
+            this.active = false;
+            /** @internal */
+            this.ariaControls = '';
+            /**
+             * Panel-like look
+             */
+            this.panel = false;
+            /** @internal */
+            this.role = 'tab';
+            /** @internal */
+            this.tabId = -1;
+        }
+        attributeChangedCallback(name, old, value) {
+            super.attributeChangedCallback(name, old, value);
+            if (name === 'active') {
+                const active = value !== null;
+                this.ariaSelected = active ? 'true' : 'false';
+                this.tabIndex = active ? 0 : -1;
+            }
+        }
+        render() {
+            return x `
+      <div
+        class=${e({
+            wrapper: true,
+            active: this.active,
+            panel: this.panel,
+        })}
+      >
+        <div class="before"><slot name="content-before"></slot></div>
+        <div class="main"><slot></slot></div>
+        <div class="after"><slot name="content-after"></slot></div>
+        <span
+          class=${e({
+            'active-indicator': true,
+            active: this.active,
+            panel: this.panel,
+        })}
+        ></span>
+      </div>
+    `;
+        }
+    };
+    VscodeTabHeader.styles = styles$b;
+    __decorate$b([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeTabHeader.prototype, "active", void 0);
+    __decorate$b([
+        n$1({ reflect: true, attribute: 'aria-controls' })
+    ], VscodeTabHeader.prototype, "ariaControls", void 0);
+    __decorate$b([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeTabHeader.prototype, "panel", void 0);
+    __decorate$b([
+        n$1({ reflect: true })
+    ], VscodeTabHeader.prototype, "role", void 0);
+    __decorate$b([
+        n$1({ type: Number, reflect: true, attribute: 'tab-id' })
+    ], VscodeTabHeader.prototype, "tabId", void 0);
+    VscodeTabHeader = __decorate$b([
+        customElement('vscode-tab-header')
+    ], VscodeTabHeader);
+
+    const styles$a = [
+        defaultStyles,
+        i$4 `
+    :host {
+      display: block;
+      overflow: hidden;
+    }
+
+    :host(:focus-visible) {
+      outline-color: var(--vscode-focusBorder);
+      outline-offset: 3px;
+      outline-style: solid;
+      outline-width: 1px;
+    }
+
+    :host([panel]) {
+      background-color: var(--vscode-panel-background);
+    }
+  `,
+    ];
+
+    var __decorate$a = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    /**
+     * @tag vscode-tab-panel
+     *
+     * @cssprop --vscode-panel--background
+     * @cssprop --vscode-focusBorder
+     */
+    let VscodeTabPanel = class VscodeTabPanel extends VscElement {
+        constructor() {
+            super(...arguments);
+            this.hidden = false;
+            /** @internal */
+            this.ariaLabelledby = '';
+            /**
+             * Panel-like look
+             */
+            this.panel = false;
+            /** @internal */
+            this.role = 'tabpanel';
+            /** @internal */
+            this.tabIndex = 0;
+        }
+        render() {
+            return x ` <slot></slot> `;
+        }
+    };
+    VscodeTabPanel.styles = styles$a;
+    __decorate$a([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeTabPanel.prototype, "hidden", void 0);
+    __decorate$a([
+        n$1({ reflect: true, attribute: 'aria-labelledby' })
+    ], VscodeTabPanel.prototype, "ariaLabelledby", void 0);
+    __decorate$a([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeTabPanel.prototype, "panel", void 0);
+    __decorate$a([
+        n$1({ reflect: true })
+    ], VscodeTabPanel.prototype, "role", void 0);
+    __decorate$a([
+        n$1({ type: Number, reflect: true })
+    ], VscodeTabPanel.prototype, "tabIndex", void 0);
+    VscodeTabPanel = __decorate$a([
+        customElement('vscode-tab-panel')
+    ], VscodeTabPanel);
+
+    const styles$9 = [
+        defaultStyles,
+        i$4 `
+    :host {
+      display: table;
+      table-layout: fixed;
+      width: 100%;
+    }
+
+    ::slotted(vscode-table-row:nth-child(even)) {
+      background-color: var(--vsc-row-even-background);
+    }
+
+    ::slotted(vscode-table-row:nth-child(odd)) {
+      background-color: var(--vsc-row-odd-background);
+    }
+  `,
+    ];
+
+    var __decorate$9 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    /**
+     * @tag vscode-table-body
+     *
+     * @cssprop --vscode-keybindingTable-rowsBackground
+     */
+    let VscodeTableBody = class VscodeTableBody extends VscElement {
+        constructor() {
+            super(...arguments);
+            /** @internal */
+            this.role = 'rowgroup';
+        }
+        render() {
+            return x ` <slot></slot> `;
+        }
+    };
+    VscodeTableBody.styles = styles$9;
+    __decorate$9([
+        n$1({ reflect: true })
+    ], VscodeTableBody.prototype, "role", void 0);
+    VscodeTableBody = __decorate$9([
+        customElement('vscode-table-body')
+    ], VscodeTableBody);
+
+    const styles$8 = [
+        defaultStyles,
+        i$4 `
+    :host {
+      border-bottom-color: var(--vscode-editorGroup-border);
+      border-bottom-style: solid;
+      border-bottom-width: var(--vsc-row-border-bottom-width);
+      box-sizing: border-box;
+      color: var(--vscode-foreground);
+      display: table-cell;
+      font-family: var(--vscode-font-family);
+      font-size: var(--vscode-font-size);
+      height: 24px;
+      overflow: hidden;
+      padding-left: 10px;
+      text-overflow: ellipsis;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    :host([compact]) {
+      display: block;
+      height: auto;
+      padding-bottom: 5px;
+      width: 100% !important;
+    }
+
+    :host([compact]:first-child) {
+      padding-top: 10px;
+    }
+
+    :host([compact]:last-child) {
+      padding-bottom: 10px;
+    }
+
+    .wrapper {
+      overflow: inherit;
+      text-overflow: inherit;
+      white-space: inherit;
+      width: 100%;
+    }
+
+    .column-label {
+      font-weight: bold;
+    }
+  `,
+    ];
+
+    var __decorate$8 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    /**
+     * @tag vscode-table-cell
+     *
+     * @cssprop --vscode-editorGroup-border
+     * @cssprop --vscode-foreground
+     * @cssprop --vscode-font-family
+     * @cssprop --vscode-font-size
+     */
+    let VscodeTableCell = class VscodeTableCell extends VscElement {
+        constructor() {
+            super(...arguments);
+            /** @internal */
+            this.role = 'cell';
+            /**
+             * Cell label in the compact view of the responsive mode. For internal use only.
+             */
+            this.columnLabel = '';
+            /**
+             * Enable compact view in the responsive mode. For internal use only.
+             */
+            this.compact = false;
+        }
+        render() {
+            const columnLabelElement = this.columnLabel
+                ? x `<div class="column-label" role="presentation">
+          ${this.columnLabel}
+        </div>`
+                : E;
+            return x `
+      <div class="wrapper">
+        ${columnLabelElement}
+        <slot></slot>
+      </div>
+    `;
+        }
+    };
+    VscodeTableCell.styles = styles$8;
+    __decorate$8([
+        n$1({ reflect: true })
+    ], VscodeTableCell.prototype, "role", void 0);
+    __decorate$8([
+        n$1({ attribute: 'column-label' })
+    ], VscodeTableCell.prototype, "columnLabel", void 0);
+    __decorate$8([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeTableCell.prototype, "compact", void 0);
+    VscodeTableCell = __decorate$8([
+        customElement('vscode-table-cell')
+    ], VscodeTableCell);
+
+    const styles$7 = [
+        defaultStyles,
+        i$4 `
+    :host {
+      background-color: var(--vscode-keybindingTable-headerBackground);
+      display: table;
+      table-layout: fixed;
+      width: 100%;
+    }
+  `,
+    ];
+
+    var __decorate$7 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    /**
+     * @tag vscode-table-header
+     *
+     * @cssprop --vscode-keybindingTable-headerBackground - Table header background
+     */
+    let VscodeTableHeader = class VscodeTableHeader extends VscElement {
+        constructor() {
+            super(...arguments);
+            /** @internal */
+            this.role = 'rowgroup';
+        }
+        render() {
+            return x ` <slot></slot> `;
+        }
+    };
+    VscodeTableHeader.styles = styles$7;
+    __decorate$7([
+        n$1({ reflect: true })
+    ], VscodeTableHeader.prototype, "role", void 0);
+    VscodeTableHeader = __decorate$7([
+        customElement('vscode-table-header')
+    ], VscodeTableHeader);
+
+    const styles$6 = [
+        defaultStyles,
+        i$4 `
+    :host {
+      box-sizing: border-box;
+      color: var(--vscode-foreground);
+      display: table-cell;
+      font-family: var(--vscode-font-family);
+      font-size: var(--vscode-font-size);
+      font-weight: bold;
+      line-height: 20px;
+      overflow: hidden;
+      padding-bottom: 5px;
+      padding-left: 10px;
+      padding-right: 0;
+      padding-top: 5px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .wrapper {
+      box-sizing: inherit;
+      overflow: inherit;
+      text-overflow: inherit;
+      white-space: inherit;
+      width: 100%;
+    }
+  `,
+    ];
+
+    var __decorate$6 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    /**
+     * @tag vscode-table-header-cell
+     *
+     * @cssprop --vscode-foreground
+     * @cssprop --vscode-font-family
+     * @cssprop --vscode-font-size
+     */
+    let VscodeTableHeaderCell = class VscodeTableHeaderCell extends VscElement {
+        constructor() {
+            super(...arguments);
+            /** @internal */
+            this.role = 'columnheader';
+        }
+        render() {
+            return x `
+      <div class="wrapper">
+        <slot></slot>
+      </div>
+    `;
+        }
+    };
+    VscodeTableHeaderCell.styles = styles$6;
+    __decorate$6([
+        n$1({ reflect: true })
+    ], VscodeTableHeaderCell.prototype, "role", void 0);
+    VscodeTableHeaderCell = __decorate$6([
+        customElement('vscode-table-header-cell')
+    ], VscodeTableHeaderCell);
+
+    const styles$5 = [
+        defaultStyles,
+        i$4 `
+    :host {
+      border-top-color: var(--vscode-editorGroup-border);
+      border-top-style: solid;
+      border-top-width: var(--vsc-row-border-top-width);
+      display: var(--vsc-row-display);
+      width: 100%;
+    }
+  `,
+    ];
+
+    var __decorate$5 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    /**
+     * @tag vscode-table-row
+     *
+     * @cssprop --vscode-editorGroup-border
+     */
+    let VscodeTableRow = class VscodeTableRow extends VscElement {
+        constructor() {
+            super(...arguments);
+            /** @internal */
+            this.role = 'row';
+        }
+        render() {
+            return x ` <slot></slot> `;
+        }
+    };
+    VscodeTableRow.styles = styles$5;
+    __decorate$5([
+        n$1({ reflect: true })
+    ], VscodeTableRow.prototype, "role", void 0);
+    VscodeTableRow = __decorate$5([
+        customElement('vscode-table-row')
+    ], VscodeTableRow);
+
+    const rawValueToPercentage = (raw, base) => {
+        if (typeof raw === 'number' && !Number.isNaN(raw)) {
+            return (raw / base) * 100;
+        }
+        else if (typeof raw === 'string' && /^[0-9.]+$/.test(raw)) {
+            const val = Number(raw);
+            return (val / base) * 100;
+        }
+        else if (typeof raw === 'string' && /^[0-9.]+%$/.test(raw)) {
+            return Number(raw.substring(0, raw.length - 1));
+        }
+        else if (typeof raw === 'string' && /^[0-9.]+px$/.test(raw)) {
+            const val = Number(raw.substring(0, raw.length - 2));
+            return (val / base) * 100;
+        }
+        else {
+            return null;
+        }
+    };
+
+    const styles$4 = [
+        defaultStyles,
+        i$4 `
+    :host {
+      display: block;
+      --vsc-row-even-background: transparent;
+      --vsc-row-odd-background: transparent;
+      --vsc-row-border-bottom-width: 0;
+      --vsc-row-border-top-width: 0;
+      --vsc-row-display: table-row;
+    }
+
+    :host([bordered]),
+    :host([bordered-rows]) {
+      --vsc-row-border-bottom-width: 1px;
+    }
+
+    :host([compact]) {
+      --vsc-row-display: block;
+    }
+
+    :host([bordered][compact]),
+    :host([bordered-rows][compact]) {
+      --vsc-row-border-bottom-width: 0;
+      --vsc-row-border-top-width: 1px;
+    }
+
+    :host([zebra]) {
+      --vsc-row-even-background: var(--vscode-keybindingTable-rowsBackground);
+    }
+
+    :host([zebra-odd]) {
+      --vsc-row-odd-background: var(--vscode-keybindingTable-rowsBackground);
+    }
+
+    ::slotted(vscode-table-row) {
+      width: 100%;
+    }
+
+    .wrapper {
+      height: 100%;
+      max-width: 100%;
+      overflow: hidden;
+      position: relative;
+      width: 100%;
+    }
+
+    .wrapper.select-disabled {
+      user-select: none;
+    }
+
+    .wrapper.resize-cursor {
+      cursor: ew-resize;
+    }
+
+    .wrapper.compact-view .header-slot-wrapper {
+      height: 0;
+      overflow: hidden;
+    }
+
+    .scrollable {
+      height: 100%;
+    }
+
+    .scrollable:before {
+      background-color: transparent;
+      content: '';
+      display: block;
+      height: 1px;
+      position: absolute;
+      width: 100%;
+    }
+
+    .wrapper:not(.compact-view) .scrollable:not([scrolled]):before {
+      background-color: var(--vscode-editorGroup-border);
+    }
+
+    .sash {
+      visibility: hidden;
+    }
+
+    :host([bordered-columns]) .sash,
+    :host([bordered]) .sash {
+      visibility: visible;
+    }
+
+    :host([resizable]) .wrapper:hover .sash {
+      visibility: visible;
+    }
+
+    .sash {
+      height: 100%;
+      position: absolute;
+      top: 0;
+      width: 1px;
+    }
+
+    .wrapper.compact-view .sash {
+      display: none;
+    }
+
+    .sash.resizable {
+      cursor: ew-resize;
+    }
+
+    .sash-visible {
+      background-color: var(--vscode-editorGroup-border);
+      height: 100%;
+      position: absolute;
+      top: 30px;
+      width: 1px;
+    }
+
+    .sash.hover .sash-visible {
+      background-color: var(--vscode-sash-hoverBorder);
+      transition: background-color 50ms linear 300ms;
+    }
+
+    .sash .sash-clickable {
+      background-color: transparent;
+      height: 100%;
+      left: -2px;
+      position: absolute;
+      width: 5px;
+    }
+  `,
+    ];
+
+    var __decorate$4 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    const COMPONENT_WIDTH_PERCENTAGE = 100;
+    /**
+     * @tag vscode-table
+     *
+     * @cssprop [--border=var(--vscode-editorGroup-border)]
+     * @cssprop [--foreground=var(--vscode-foreground)]
+     * @cssprop [--resize-hover-border=var(--vscode-sash-hoverBorder)]
+     * @cssprop [--tinted-row-background=var(--vscode-keybindingTable-rowsBackground)]
+     * @cssprop [--header-background=var(--vscode-keybindingTable-headerBackground)]
+     * @cssprop [--font-size=var(--vscode-font-size)]
+     * @cssprop [--font-family=var(--vscode-font-family)]
+     */
+    let VscodeTable = class VscodeTable extends VscElement {
+        constructor() {
+            super(...arguments);
+            /** @internal */
+            this.role = 'table';
+            this.resizable = false;
+            this.responsive = false;
+            /**
+             * Both rows and columns are separated by borders.
+             */
+            this.bordered = false;
+            /**
+             * Columns are separated by borders.
+             */
+            this.borderedColumns = false;
+            /**
+             * Rows are separated by borders.
+             */
+            this.borderedRows = false;
+            this.breakpoint = 300;
+            /**
+             * Minimum column width. Valid values are:
+             * - number
+             * - string-type number (ex.: "100")
+             * - px value (ex.: "100px")
+             * - percentage value (ex.: "50%")
+             * - percentage value (ex.: "50%")
+             * - "auto" keyword
+             */
+            this.minColumnWidth = '50px';
+            this.delayedResizing = false;
+            /**
+             * @internal
+             */
+            this.compact = false;
+            /**
+             * Zebra stripes, even rows are tinted.
+             */
+            this.zebra = false;
+            /**
+             * Zebra stripes, odd rows are tinted.
+             */
+            this.zebraOdd = false;
+            /**
+             * Sash positions in percentage
+             */
+            this._sashPositions = [];
+            this._isDragging = false;
+            /**
+             * Sash hover state flags, used in the render.
+             */
+            this._sashHovers = [];
+            this._columns = [];
+            this._activeSashElementIndex = -1;
+            this._activeSashCursorOffset = 0;
+            this._componentX = 0;
+            this._componentH = 0;
+            this._componentW = 0;
+            /**
+             * Cached querySelectorAll result. Updated when the header slot changes.
+             * It shouldn't be used directly, check the "_getHeaderCells" function.
+             */
+            this._headerCells = [];
+            /**
+             * Cached querySelectorAll result. Updated when the body slot changes.
+             * It shouldn't be used directly, check the "_getCellsOfFirstRow" function.
+             */
+            this._cellsOfFirstRow = [];
+            this._prevHeaderHeight = 0;
+            this._prevComponentHeight = 0;
+            this._componentResizeObserverCallback = () => {
+                this._memoizeComponentDimensions();
+                this._updateResizeHandlersSize();
+                if (this.responsive) {
+                    this._toggleCompactView();
+                }
+                this._resizeTableBody();
+            };
+            this._headerResizeObserverCallback = () => {
+                this._updateResizeHandlersSize();
+            };
+            this._bodyResizeObserverCallback = () => {
+                this._resizeTableBody();
+            };
+            this._onResizingMouseMove = (event) => {
+                event.stopPropagation();
+                this._updateActiveSashPosition(event.pageX);
+                if (!this.delayedResizing) {
+                    this._resizeColumns(true);
+                }
+                else {
+                    this._resizeColumns(false);
+                }
+            };
+            this._onResizingMouseUp = (event) => {
+                this._resizeColumns(true);
+                this._updateActiveSashPosition(event.pageX);
+                this._sashHovers[this._activeSashElementIndex] = false;
+                this._isDragging = false;
+                this._activeSashElementIndex = -1;
+                document.removeEventListener('mousemove', this._onResizingMouseMove);
+                document.removeEventListener('mouseup', this._onResizingMouseUp);
+            };
+        }
+        /**
+         * Initial column sizes in a JSON-encoded array.
+         * Accepted values are:
+         * - number
+         * - string-type number (ex.: "100")
+         * - px value (ex.: "100px")
+         * - percentage value (ex.: "50%")
+         * - percentage value (ex.: "50%")
+         * - "auto" keyword
+         */
+        set columns(val) {
+            this._columns = val;
+            if (this.isConnected) {
+                this._initDefaultColumnSizes();
+            }
+        }
+        get columns() {
+            return this._columns;
+        }
+        connectedCallback() {
+            super.connectedCallback();
+            this._memoizeComponentDimensions();
+            this._initDefaultColumnSizes();
+        }
+        disconnectedCallback() {
+            super.disconnectedCallback();
+            this._componentResizeObserver?.unobserve(this);
+            this._componentResizeObserver?.disconnect();
+            this._bodyResizeObserver?.disconnect();
+        }
+        _px2Percent(px) {
+            return (px / this._componentW) * 100;
+        }
+        _percent2Px(percent) {
+            return (this._componentW * percent) / 100;
+        }
+        _memoizeComponentDimensions() {
+            const cr = this.getBoundingClientRect();
+            this._componentH = cr.height;
+            this._componentW = cr.width;
+            this._componentX = cr.x;
+        }
+        _queryHeaderCells() {
+            const headers = this._assignedHeaderElements;
+            if (!(headers && headers[0])) {
+                return [];
+            }
+            return Array.from(headers[0].querySelectorAll('vscode-table-header-cell'));
+        }
+        /**
+         * Get cached header cells
+         */
+        _getHeaderCells() {
+            if (!this._headerCells.length) {
+                this._headerCells = this._queryHeaderCells();
+            }
+            return this._headerCells;
+        }
+        _queryCellsOfFirstRow() {
+            const assignedBodyElements = this._assignedBodyElements;
+            if (!(assignedBodyElements && assignedBodyElements[0])) {
+                return [];
+            }
+            return Array.from(assignedBodyElements[0].querySelectorAll('vscode-table-row:first-child vscode-table-cell'));
+        }
+        /**
+         * Get cached cells of first row
+         */
+        _getCellsOfFirstRow() {
+            if (!this._cellsOfFirstRow.length) {
+                this._cellsOfFirstRow = this._queryCellsOfFirstRow();
+            }
+            return this._cellsOfFirstRow;
+        }
+        _resizeTableBody() {
+            let headerHeight = 0;
+            let tbodyHeight = 0;
+            const tableHeight = this.getBoundingClientRect().height;
+            if (this._assignedHeaderElements && this._assignedHeaderElements.length) {
+                headerHeight =
+                    this._assignedHeaderElements[0].getBoundingClientRect().height;
+            }
+            if (this._assignedBodyElements && this._assignedBodyElements.length) {
+                tbodyHeight =
+                    this._assignedBodyElements[0].getBoundingClientRect().height;
+            }
+            const overflownContentHeight = tbodyHeight - headerHeight - tableHeight;
+            this._scrollableElement.style.height =
+                overflownContentHeight > 0 ? `${tableHeight - headerHeight}px` : 'auto';
+        }
+        _initResizeObserver() {
+            this._componentResizeObserver = new ResizeObserver(this._componentResizeObserverCallback);
+            this._componentResizeObserver.observe(this);
+            this._headerResizeObserver = new ResizeObserver(this._headerResizeObserverCallback);
+            this._headerResizeObserver.observe(this._headerElement);
+        }
+        _calcColWidthPercentages() {
+            const numCols = this._getHeaderCells().length;
+            let cols = this.columns.slice(0, numCols);
+            const numAutoCols = cols.filter((c) => c === 'auto').length + numCols - cols.length;
+            let availablePercent = 100;
+            cols = cols.map((col) => {
+                const percentage = rawValueToPercentage(col, this._componentW);
+                if (percentage === null) {
+                    return 'auto';
+                }
+                availablePercent -= percentage;
+                return percentage;
+            });
+            if (cols.length < numCols) {
+                for (let i = cols.length; i < numCols; i++) {
+                    cols.push('auto');
+                }
+            }
+            cols = cols.map((col) => {
+                if (col === 'auto') {
+                    return availablePercent / numAutoCols;
+                }
+                return col;
+            });
+            return cols;
+        }
+        _initHeaderCellSizes(colWidths) {
+            this._getHeaderCells().forEach((cell, index) => {
+                cell.style.width = `${colWidths[index]}%`;
+            });
+        }
+        _initBodyColumnSizes(colWidths) {
+            this._getCellsOfFirstRow().forEach((cell, index) => {
+                cell.style.width = `${colWidths[index]}%`;
+            });
+        }
+        _initSashes(colWidths) {
+            const l = colWidths.length;
+            let prevHandlerPos = 0;
+            this._sashPositions = [];
+            colWidths.forEach((collW, index) => {
+                if (index < l - 1) {
+                    const pos = prevHandlerPos + collW;
+                    this._sashPositions.push(pos);
+                    prevHandlerPos = pos;
+                }
+            });
+        }
+        _initDefaultColumnSizes() {
+            const colWidths = this._calcColWidthPercentages();
+            this._initHeaderCellSizes(colWidths);
+            this._initBodyColumnSizes(colWidths);
+            this._initSashes(colWidths);
+        }
+        _updateResizeHandlersSize() {
+            const headerCr = this._headerElement.getBoundingClientRect();
+            if (headerCr.height === this._prevHeaderHeight &&
+                this._componentH === this._prevComponentHeight) {
+                return;
+            }
+            this._prevHeaderHeight = headerCr.height;
+            this._prevComponentHeight = this._componentH;
+            const bodyHeight = this._componentH - headerCr.height;
+            this._sashVisibleElements.forEach((el) => {
+                el.style.height = `${bodyHeight}px`;
+                el.style.top = `${headerCr.height}px`;
+            });
+        }
+        _applyCompactViewColumnLabels() {
+            const headerCells = this._getHeaderCells();
+            const labels = headerCells.map((c) => c.innerText);
+            const rows = this.querySelectorAll('vscode-table-row');
+            rows.forEach((r) => {
+                const cells = r.querySelectorAll('vscode-table-cell');
+                cells.forEach((c, i) => {
+                    c.columnLabel = labels[i];
+                    c.compact = true;
+                });
+            });
+        }
+        _clearCompactViewColumnLabels() {
+            this.querySelectorAll('vscode-table-cell').forEach((c) => {
+                c.columnLabel = '';
+                c.compact = false;
+            });
+        }
+        _toggleCompactView() {
+            const cr = this.getBoundingClientRect();
+            const nextCompactView = cr.width < this.breakpoint;
+            if (this.compact !== nextCompactView) {
+                this.compact = nextCompactView;
+                if (nextCompactView) {
+                    this._applyCompactViewColumnLabels();
+                }
+                else {
+                    this._clearCompactViewColumnLabels();
+                }
+            }
+        }
+        _onDefaultSlotChange() {
+            this._assignedElements.forEach((el) => {
+                if (el.tagName.toLowerCase() === 'vscode-table-header') {
+                    el.slot = 'header';
+                    return;
+                }
+                if (el.tagName.toLowerCase() === 'vscode-table-body') {
+                    el.slot = 'body';
+                    return;
+                }
+            });
+        }
+        _onHeaderSlotChange() {
+            this._headerCells = this._queryHeaderCells();
+        }
+        _onBodySlotChange() {
+            this._initDefaultColumnSizes();
+            this._initResizeObserver();
+            this._updateResizeHandlersSize();
+            if (!this._bodyResizeObserver) {
+                const tbody = this._assignedBodyElements[0] ?? null;
+                if (tbody) {
+                    this._bodyResizeObserver = new ResizeObserver(this._bodyResizeObserverCallback);
+                    this._bodyResizeObserver.observe(tbody);
+                }
+            }
+        }
+        _onSashMouseOver(event) {
+            if (this._isDragging) {
+                return;
+            }
+            const target = event.currentTarget;
+            const index = Number(target.dataset.index);
+            this._sashHovers[index] = true;
+            this.requestUpdate();
+        }
+        _onSashMouseOut(event) {
+            event.stopPropagation();
+            if (this._isDragging) {
+                return;
+            }
+            const target = event.currentTarget;
+            const index = Number(target.dataset.index);
+            this._sashHovers[index] = false;
+            this.requestUpdate();
+        }
+        _onSashMouseDown(event) {
+            event.stopPropagation();
+            const { pageX, currentTarget } = event;
+            const el = currentTarget;
+            const index = Number(el.dataset.index);
+            const cr = el.getBoundingClientRect();
+            const elX = cr.x;
+            this._isDragging = true;
+            this._activeSashElementIndex = index;
+            this._sashHovers[this._activeSashElementIndex] = true;
+            this._activeSashCursorOffset = this._px2Percent(pageX - elX);
+            const headerCells = this._getHeaderCells();
+            this._headerCellsToResize = [];
+            this._headerCellsToResize.push(headerCells[index]);
+            if (headerCells[index + 1]) {
+                this._headerCellsToResize[1] = headerCells[index + 1];
+            }
+            const tbody = this._bodySlot.assignedElements()[0];
+            const cells = tbody.querySelectorAll('vscode-table-row:first-child > vscode-table-cell');
+            this._cellsToResize = [];
+            this._cellsToResize.push(cells[index]);
+            if (cells[index + 1]) {
+                this._cellsToResize.push(cells[index + 1]);
+            }
+            document.addEventListener('mousemove', this._onResizingMouseMove);
+            document.addEventListener('mouseup', this._onResizingMouseUp);
+        }
+        _updateActiveSashPosition(mouseX) {
+            const { prevSashPos, nextSashPos } = this._getSashPositions();
+            let minColumnWidth = rawValueToPercentage(this.minColumnWidth, this._componentW);
+            if (minColumnWidth === null) {
+                minColumnWidth = 0;
+            }
+            const minX = prevSashPos ? prevSashPos + minColumnWidth : minColumnWidth;
+            const maxX = nextSashPos
+                ? nextSashPos - minColumnWidth
+                : COMPONENT_WIDTH_PERCENTAGE - minColumnWidth;
+            let newX = this._px2Percent(mouseX - this._componentX - this._percent2Px(this._activeSashCursorOffset));
+            newX = Math.max(newX, minX);
+            newX = Math.min(newX, maxX);
+            this._sashPositions[this._activeSashElementIndex] = newX;
+            this.requestUpdate();
+        }
+        _getSashPositions() {
+            const sashPos = this._sashPositions[this._activeSashElementIndex];
+            const prevSashPos = this._sashPositions[this._activeSashElementIndex - 1] || 0;
+            const nextSashPos = this._sashPositions[this._activeSashElementIndex + 1] ||
+                COMPONENT_WIDTH_PERCENTAGE;
+            return {
+                sashPos,
+                prevSashPos,
+                nextSashPos,
+            };
+        }
+        _resizeColumns(resizeBodyCells = true) {
+            const { sashPos, prevSashPos, nextSashPos } = this._getSashPositions();
+            const prevColW = sashPos - prevSashPos;
+            const nextColW = nextSashPos - sashPos;
+            const prevColCss = `${prevColW}%`;
+            const nextColCss = `${nextColW}%`;
+            this._headerCellsToResize[0].style.width = prevColCss;
+            if (this._headerCellsToResize[1]) {
+                this._headerCellsToResize[1].style.width = nextColCss;
+            }
+            if (resizeBodyCells) {
+                this._cellsToResize[0].style.width = prevColCss;
+                if (this._cellsToResize[1]) {
+                    this._cellsToResize[1].style.width = nextColCss;
+                }
+            }
+        }
+        render() {
+            const sashes = this._sashPositions.map((val, index) => {
+                const classes = e({
+                    sash: true,
+                    hover: this._sashHovers[index],
+                    resizable: this.resizable,
+                });
+                const left = `${val}%`;
+                return this.resizable
+                    ? x `
+            <div
+              class=${classes}
+              data-index=${index}
+              .style=${stylePropertyMap({ left })}
+              @mousedown=${this._onSashMouseDown}
+              @mouseover=${this._onSashMouseOver}
+              @mouseout=${this._onSashMouseOut}
+            >
+              <div class="sash-visible"></div>
+              <div class="sash-clickable"></div>
+            </div>
+          `
+                    : x `<div
+            class=${classes}
+            data-index=${index}
+            .style=${stylePropertyMap({ left })}
+          >
+            <div class="sash-visible"></div>
+          </div>`;
+            });
+            const wrapperClasses = e({
+                wrapper: true,
+                'select-disabled': this._isDragging,
+                'resize-cursor': this._isDragging,
+                'compact-view': this.compact,
+            });
+            return x `
+      <div class=${wrapperClasses}>
+        <div class="header">
+          <slot name="caption"></slot>
+          <div class="header-slot-wrapper">
+            <slot name="header" @slotchange=${this._onHeaderSlotChange}></slot>
+          </div>
+        </div>
+        <vscode-scrollable class="scrollable">
+          <div>
+            <slot name="body" @slotchange=${this._onBodySlotChange}></slot>
+          </div>
+        </vscode-scrollable>
+        ${sashes}
+        <slot @slotchange=${this._onDefaultSlotChange}></slot>
+      </div>
+    `;
+        }
+    };
+    VscodeTable.styles = styles$4;
+    __decorate$4([
+        n$1({ reflect: true })
+    ], VscodeTable.prototype, "role", void 0);
+    __decorate$4([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeTable.prototype, "resizable", void 0);
+    __decorate$4([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeTable.prototype, "responsive", void 0);
+    __decorate$4([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeTable.prototype, "bordered", void 0);
+    __decorate$4([
+        n$1({ type: Boolean, reflect: true, attribute: 'bordered-columns' })
+    ], VscodeTable.prototype, "borderedColumns", void 0);
+    __decorate$4([
+        n$1({ type: Boolean, reflect: true, attribute: 'bordered-rows' })
+    ], VscodeTable.prototype, "borderedRows", void 0);
+    __decorate$4([
+        n$1({ type: Number })
+    ], VscodeTable.prototype, "breakpoint", void 0);
+    __decorate$4([
+        n$1({ type: Array })
+    ], VscodeTable.prototype, "columns", null);
+    __decorate$4([
+        n$1({ attribute: 'min-column-width' })
+    ], VscodeTable.prototype, "minColumnWidth", void 0);
+    __decorate$4([
+        n$1({ type: Boolean, reflect: true, attribute: 'delayed-resizing' })
+    ], VscodeTable.prototype, "delayedResizing", void 0);
+    __decorate$4([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeTable.prototype, "compact", void 0);
+    __decorate$4([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeTable.prototype, "zebra", void 0);
+    __decorate$4([
+        n$1({ type: Boolean, reflect: true, attribute: 'zebra-odd' })
+    ], VscodeTable.prototype, "zebraOdd", void 0);
+    __decorate$4([
+        e$3('slot[name="body"]')
+    ], VscodeTable.prototype, "_bodySlot", void 0);
+    __decorate$4([
+        e$3('.header')
+    ], VscodeTable.prototype, "_headerElement", void 0);
+    __decorate$4([
+        e$3('.scrollable')
+    ], VscodeTable.prototype, "_scrollableElement", void 0);
+    __decorate$4([
+        r$1('.sash-visible')
+    ], VscodeTable.prototype, "_sashVisibleElements", void 0);
+    __decorate$4([
+        o$1({
+            flatten: true,
+            selector: 'vscode-table-header, vscode-table-body',
+        })
+    ], VscodeTable.prototype, "_assignedElements", void 0);
+    __decorate$4([
+        o$1({
+            slot: 'header',
+            flatten: true,
+            selector: 'vscode-table-header',
+        })
+    ], VscodeTable.prototype, "_assignedHeaderElements", void 0);
+    __decorate$4([
+        o$1({
+            slot: 'body',
+            flatten: true,
+            selector: 'vscode-table-body',
+        })
+    ], VscodeTable.prototype, "_assignedBodyElements", void 0);
+    __decorate$4([
+        r$2()
+    ], VscodeTable.prototype, "_sashPositions", void 0);
+    __decorate$4([
+        r$2()
+    ], VscodeTable.prototype, "_isDragging", void 0);
+    VscodeTable = __decorate$4([
+        customElement('vscode-table')
+    ], VscodeTable);
+
+    const styles$3 = [
+        defaultStyles,
+        i$4 `
+    :host {
+      display: block;
+    }
+
+    .header {
+      align-items: center;
+      display: flex;
+      font-family: var(--vscode-font-family);
+      font-size: var(--vscode-font-size);
+      font-weight: var(--vscode-font-weight);
+      width: 100%;
+    }
+
+    .header {
+      border-bottom-color: var(--vscode-settings-headerBorder);
+      border-bottom-style: solid;
+      border-bottom-width: 1px;
+    }
+
+    .header.panel {
+      background-color: var(--vscode-panel-background);
+      border-bottom-width: 0;
+      box-sizing: border-box;
+      padding-left: 8px;
+      padding-right: 8px;
+    }
+
+    slot[name='addons'] {
+      display: block;
+      margin-left: auto;
+    }
+  `,
+    ];
+
+    var __decorate$3 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    /**
+     * @tag vscode-tabs
+     *
+     * @slot - Default slot. It is used for tab panels.
+     * @slot header - Slot for tab headers.
+     * @slot addons - Right aligned area in the header.
+     *
+     * @fires {VscTabSelectEvent} vsc-tabs-select - Dispatched when the active tab is changed
+     *
+     * @cssprop --vscode-font-family
+     * @cssprop --vscode-font-size
+     * @cssprop --vscode-font-weight
+     * @cssprop --vscode-settings-headerBorder
+     * @cssprop --vscode-panel-background
+     */
+    let VscodeTabs = class VscodeTabs extends VscElement {
+        constructor() {
+            super();
+            /**
+             * Panel-like look
+             */
+            this.panel = false;
+            /** @internal */
+            this.role = 'tablist';
+            this.selectedIndex = 0;
+            this._tabHeaders = [];
+            this._tabPanels = [];
+            this._componentId = '';
+            this._tabFocus = 0;
+            this._componentId = uniqueId();
+        }
+        attributeChangedCallback(name, old, value) {
+            super.attributeChangedCallback(name, old, value);
+            if (name === 'selected-index') {
+                this._setActiveTab();
+            }
+            if (name === 'panel') {
+                this._tabHeaders.forEach((h) => (h.panel = value !== null));
+                this._tabPanels.forEach((p) => (p.panel = value !== null));
+            }
+        }
+        _dispatchSelectEvent() {
+            /** @deprecated */
+            this.dispatchEvent(new CustomEvent('vsc-select', {
+                detail: {
+                    selectedIndex: this.selectedIndex,
+                },
+                composed: true,
+            }));
+            this.dispatchEvent(new CustomEvent('vsc-tabs-select', {
+                detail: {
+                    selectedIndex: this.selectedIndex,
+                },
+                composed: true,
+            }));
+        }
+        _setActiveTab() {
+            this._tabFocus = this.selectedIndex;
+            this._tabPanels.forEach((el, i) => {
+                el.hidden = i !== this.selectedIndex;
+            });
+            this._tabHeaders.forEach((el, i) => {
+                el.active = i === this.selectedIndex;
+            });
+        }
+        _focusPrevTab() {
+            if (this._tabFocus === 0) {
+                this._tabFocus = this._tabHeaders.length - 1;
+            }
+            else {
+                this._tabFocus -= 1;
+            }
+        }
+        _focusNextTab() {
+            if (this._tabFocus === this._tabHeaders.length - 1) {
+                this._tabFocus = 0;
+            }
+            else {
+                this._tabFocus += 1;
+            }
+        }
+        _onHeaderKeyDown(ev) {
+            if (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') {
+                ev.preventDefault();
+                this._tabHeaders[this._tabFocus].setAttribute('tabindex', '-1');
+                if (ev.key === 'ArrowLeft') {
+                    this._focusPrevTab();
+                }
+                else if (ev.key === 'ArrowRight') {
+                    this._focusNextTab();
+                }
+                this._tabHeaders[this._tabFocus].setAttribute('tabindex', '0');
+                this._tabHeaders[this._tabFocus].focus();
+            }
+            if (ev.key === 'Enter') {
+                ev.preventDefault();
+                this.selectedIndex = this._tabFocus;
+                this._dispatchSelectEvent();
+            }
+        }
+        _moveHeadersToHeaderSlot() {
+            const headers = this._mainSlotElements.filter((el) => el instanceof VscodeTabHeader);
+            if (headers.length > 0) {
+                headers.forEach((h) => h.setAttribute('slot', 'header'));
+            }
+        }
+        _onMainSlotChange() {
+            this._moveHeadersToHeaderSlot();
+            this._tabPanels = this._mainSlotElements.filter((el) => el instanceof VscodeTabPanel);
+            this._tabPanels.forEach((el, i) => {
+                el.ariaLabelledby = `t${this._componentId}-h${i}`;
+                el.id = `t${this._componentId}-p${i}`;
+                el.panel = this.panel;
+            });
+            this._setActiveTab();
+        }
+        _onHeaderSlotChange() {
+            this._tabHeaders = this._headerSlotElements.filter((el) => el instanceof VscodeTabHeader);
+            this._tabHeaders.forEach((el, i) => {
+                el.tabId = i;
+                el.id = `t${this._componentId}-h${i}`;
+                el.ariaControls = `t${this._componentId}-p${i}`;
+                el.panel = this.panel;
+                el.active = i === this.selectedIndex;
+            });
+        }
+        _onHeaderClick(event) {
+            const path = event.composedPath();
+            const headerEl = path.find((et) => et instanceof VscodeTabHeader);
+            if (headerEl) {
+                this.selectedIndex = headerEl.tabId;
+                this._setActiveTab();
+                this._dispatchSelectEvent();
+            }
+        }
+        render() {
+            return x `
+      <div
+        class=${e({ header: true, panel: this.panel })}
+        @click=${this._onHeaderClick}
+        @keydown=${this._onHeaderKeyDown}
+      >
+        <slot name="header" @slotchange=${this._onHeaderSlotChange}></slot>
+        <slot name="addons"></slot>
+      </div>
+      <slot @slotchange=${this._onMainSlotChange}></slot>
+    `;
+        }
+    };
+    VscodeTabs.styles = styles$3;
+    __decorate$3([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeTabs.prototype, "panel", void 0);
+    __decorate$3([
+        n$1({ reflect: true })
+    ], VscodeTabs.prototype, "role", void 0);
+    __decorate$3([
+        n$1({ type: Number, reflect: true, attribute: 'selected-index' })
+    ], VscodeTabs.prototype, "selectedIndex", void 0);
+    __decorate$3([
+        o$1({ slot: 'header' })
+    ], VscodeTabs.prototype, "_headerSlotElements", void 0);
+    __decorate$3([
+        o$1()
+    ], VscodeTabs.prototype, "_mainSlotElements", void 0);
+    VscodeTabs = __decorate$3([
+        customElement('vscode-tabs')
+    ], VscodeTabs);
+
+    const styles$2 = [
+        defaultStyles,
+        i$4 `
+    :host {
+      display: inline-flex;
+    }
+
+    button {
+      align-items: center;
+      background-color: transparent;
+      border: 0;
+      border-radius: 5px;
+      color: var(--vscode-foreground, #cccccc);
+      cursor: pointer;
+      display: flex;
+      outline-offset: -1px;
+      outline-width: 1px;
+      padding: 0;
+      user-select: none;
+    }
+
+    button:focus-visible {
+      outline-color: var(--vscode-focusBorder, #0078d4);
+      outline-style: solid;
+    }
+
+    button:hover {
+      background-color: var(
+        --vscode-toolbar-hoverBackground,
+        rgba(90, 93, 94, 0.31)
+      );
+      outline-style: dashed;
+      outline-color: var(--vscode-toolbar-hoverOutline, transparent);
+    }
+
+    button:active {
+      background-color: var(
+        --vscode-toolbar-activeBackground,
+        rgba(99, 102, 103, 0.31)
+      );
+    }
+
+    button.checked {
+      background-color: var(
+        --vscode-inputOption-activeBackground,
+        rgba(36, 137, 219, 0.51)
+      );
+      outline-color: var(--vscode-inputOption-activeBorder, #2488db);
+      outline-style: solid;
+      color: var(--vscode-inputOption-activeForeground, #ffffff);
+    }
+
+    button.checked vscode-icon {
+      color: var(--vscode-inputOption-activeForeground, #ffffff);
+    }
+
+    vscode-icon {
+      display: block;
+      padding: 3px;
+    }
+
+    slot:not(.empty) {
+      align-items: center;
+      display: flex;
+      height: 22px;
+      padding: 0 5px 0 2px;
+    }
+
+    slot.textOnly:not(.empty) {
+      padding: 0 5px;
+    }
+  `,
+    ];
+
+    var __decorate$2 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    /**
+     * Toolbar button
+     *
+     * @tag vscode-toolbar-button
+     */
+    let VscodeToolbarButton = class VscodeToolbarButton extends VscElement {
+        constructor() {
+            super(...arguments);
+            this.icon = '';
+            this.label = undefined;
+            this.toggleable = false;
+            this.checked = false;
+            this._isSlotEmpty = true;
+        }
+        _handleSlotChange() {
+            this._isSlotEmpty = !((this._assignedNodes?.length ?? 0) > 0);
+        }
+        _handleButtonClick() {
+            if (!this.toggleable) {
+                return;
+            }
+            this.checked = !this.checked;
+            this.dispatchEvent(new Event('change'));
+        }
+        render() {
+            const checked = this.checked ? 'true' : 'false';
+            return x `
+      <button
+        type="button"
+        aria-label=${o(this.label)}
+        role=${o(this.toggleable ? 'switch' : undefined)}
+        aria-checked=${o(this.toggleable ? checked : undefined)}
+        class=${e({ checked: this.toggleable && this.checked })}
+        @click=${this._handleButtonClick}
+      >
+        ${this.icon
+            ? x `<vscode-icon name=${this.icon}></vscode-icon>`
+            : E}
+        <slot
+          @slotchange=${this._handleSlotChange}
+          class=${e({ empty: this._isSlotEmpty, textOnly: !this.icon })}
+        ></slot>
+      </button>
+    `;
+        }
+    };
+    VscodeToolbarButton.styles = styles$2;
+    __decorate$2([
+        n$1({ reflect: true })
+    ], VscodeToolbarButton.prototype, "icon", void 0);
+    __decorate$2([
+        n$1()
+    ], VscodeToolbarButton.prototype, "label", void 0);
+    __decorate$2([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeToolbarButton.prototype, "toggleable", void 0);
+    __decorate$2([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeToolbarButton.prototype, "checked", void 0);
+    __decorate$2([
+        r$2()
+    ], VscodeToolbarButton.prototype, "_isSlotEmpty", void 0);
+    __decorate$2([
+        n()
+    ], VscodeToolbarButton.prototype, "_assignedNodes", void 0);
+    VscodeToolbarButton = __decorate$2([
+        customElement('vscode-toolbar-button')
+    ], VscodeToolbarButton);
+
+    const styles$1 = [
+        defaultStyles,
+        i$4 `
+    :host {
+      gap: 4px;
+      display: flex;
+      align-items: center;
+    }
+  `,
+    ];
+
+    var __decorate$1 = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    /**
+     * Simple container to arrange the toolar buttons
+     *
+     * @tag vscode-toolbar-container
+     */
+    let VscodeToolbarContainer = class VscodeToolbarContainer extends VscElement {
+        render() {
+            return x ` <slot></slot> `;
+        }
+    };
+    VscodeToolbarContainer.styles = styles$1;
+    VscodeToolbarContainer = __decorate$1([
+        customElement('vscode-toolbar-container')
+    ], VscodeToolbarContainer);
+
+    const styles = [
+        defaultStyles,
+        i$4 `
+    :host {
+      --hover-outline-color: transparent;
+      --hover-outline-style: solid;
+      --hover-outline-width: 0;
+      --selected-outline-color: transparent;
+      --selected-outline-style: solid;
+      --selected-outline-width: 0;
+
+      display: block;
+      outline: none;
+      user-select: none;
+    }
+
+    .wrapper {
+      height: 100%;
+    }
+
+    li {
+      list-style: none;
+    }
+
+    ul,
+    li {
+      margin: 0;
+      padding: 0;
+    }
+
+    ul {
+      position: relative;
+    }
+
+    :host([indent-guides]) ul ul:before {
+      content: '';
+      display: block;
+      height: 100%;
+      position: absolute;
+      bottom: 0;
+      left: var(--indent-guide-pos);
+      top: 0;
+      pointer-events: none;
+      width: 1px;
+      z-index: 1;
+    }
+
+    .contents {
+      align-items: center;
+      display: flex;
+      font-family: var(--vscode-font-family);
+      font-size: var(--vscode-font-size);
+      font-weight: var(--vscode-font-weight);
+      outline-offset: -1px;
+      padding-right: 12px;
+    }
+
+    .multi .contents {
+      align-items: flex-start;
+    }
+
+    .contents:hover {
+      cursor: pointer;
+    }
+
+    .arrow-container {
+      align-items: center;
+      display: flex;
+      height: 22px;
+      justify-content: center;
+      padding-left: 8px;
+      padding-right: 6px;
+      width: 16px;
+    }
+
+    .icon-arrow {
+      color: currentColor;
+      display: block;
+    }
+
+    .theme-icon {
+      display: block;
+      flex-shrink: 0;
+      margin-right: 6px;
+    }
+
+    .image-icon {
+      background-repeat: no-repeat;
+      background-position: 0 center;
+      background-size: 16px;
+      display: block;
+      flex-shrink: 0;
+      margin-right: 6px;
+      height: 22px;
+      width: 16px;
+    }
+
+    .multi .contents .theme-icon {
+      margin-top: 3px;
+    }
+
+    .text-content {
+      display: flex;
+      line-height: 22px;
+    }
+
+    .single .text-content {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      width: 100%;
+    }
+
+    .description {
+      font-size: 0.9em;
+      line-height: 22px;
+      margin-left: 0.5em;
+      opacity: 0.95;
+      white-space: pre;
+    }
+
+    .actions {
+      display: none;
+    }
+
+    .contents.selected > .actions,
+    .contents.focused > .actions,
+    .contents:hover > .actions {
+      display: flex;
+    }
+
+    .decorations {
+      align-items: center;
+      display: flex;
+      height: 22px;
+      margin-left: 5px;
+    }
+
+    .filled-circle {
+      margin-right: 3px;
+      opacity: 0.4;
+    }
+
+    .decoration-text {
+      font-size: 90%;
+      font-weight: 600;
+      margin-right: 3px;
+      opacity: 0.75;
+    }
+
+    .filled-circle,
+    .decoration-text {
+      color: var(--color, currentColor);
+    }
+
+    .contents:hover .filled-circle,
+    .contents:hover .decoration-text {
+      color: var(--hover-color, var(--color));
+    }
+
+    .contents.focused .filled-circle,
+    .contents.focused .decoration-text {
+      color: var(--focused-color, var(--color));
+    }
+
+    .contents.selected .filled-circle,
+    .contents.selected .decoration-text {
+      color: var(--selected-color, var(--color));
+    }
+
+    /* Theme colors */
+    :host(:focus) .wrapper.has-not-focused-item {
+      outline: 1px solid var(--vscode-focusBorder);
+    }
+
+    :host(:focus) .contents.selected,
+    :host(:focus) .contents.focused.selected {
+      color: var(--vscode-list-activeSelectionForeground);
+      background-color: var(--vscode-list-activeSelectionBackground);
+    }
+
+    :host(:focus) .contents.selected .icon-arrow,
+    :host(:focus) .contents.selected.focused .icon-arrow,
+    :host(:focus) .contents.selected .theme-icon,
+    :host(:focus) .contents.selected.focused .theme-icon,
+    :host(:focus) .contents.selected .action-icon,
+    :host(:focus) .contents.selected.focused .action-icon {
+      color: var(--vscode-list-activeSelectionIconForeground);
+    }
+
+    :host(:focus) .contents.focused {
+      color: var(--vscode-list-focusForeground);
+      background-color: var(--vscode-list-focusBackground);
+    }
+
+    :host(:focus) .contents.selected.focused {
+      outline-color: var(
+        --vscode-list-focusAndSelectionOutline,
+        var(--vscode-list-focusOutline)
+      );
+    }
+
+    .contents:hover {
+      background-color: var(--vscode-list-hoverBackground);
+      color: var(--vscode-list-hoverForeground);
+    }
+
+    .contents:hover,
+    .contents.selected:hover {
+      outline-color: var(--hover-outline-color);
+      outline-style: var(--hover-outline-style);
+      outline-width: var(--hover-outline-width);
+    }
+
+    .contents.selected,
+    .contents.selected.focused {
+      background-color: var(--vscode-list-inactiveSelectionBackground);
+      color: var(--vscode-list-inactiveSelectionForeground);
+    }
+
+    .contents.selected,
+    .contents.selected.focused {
+      outline-color: var(--selected-outline-color);
+      outline-style: var(--selected-outline-style);
+      outline-width: var(--selected-outline-width);
+    }
+
+    .contents.selected .theme-icon {
+      color: var(--vscode-list-inactiveSelectionIconForeground);
+    }
+
+    .contents.focused {
+      background-color: var(--vscode-list-inactiveFocusBackground);
+      outline: 1px dotted var(--vscode-list-inactiveFocusOutline);
+    }
+
+    :host(:focus) .contents.focused {
+      outline: 1px solid var(--vscode-list-focusOutline);
+    }
+
+    :host([indent-guides]) ul ul:before {
+      background-color: var(--vscode-tree-inactiveIndentGuidesStroke);
+    }
+
+    :host([indent-guides]) ul ul.has-active-item:before {
+      background-color: var(--vscode-tree-indentGuidesStroke);
+    }
+  `,
+    ];
+
+    var __decorate = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+    const ARROW_OUTER_WIDTH = 30;
+    const ARROW_ICON_WIDTH = 16;
+    const CONTENT_PADDING = 3;
+    const addPath = (tree, prevPath = []) => {
+        const nextTree = [];
+        tree.forEach((item, index) => {
+            const path = [...prevPath, index];
+            const nextItem = {
+                ...item,
+                path,
+            };
+            if (item.subItems) {
+                nextItem.subItems = addPath(item.subItems, path);
+            }
+            nextTree.push(nextItem);
+        });
+        return nextTree;
+    };
+    const isBranch = (item) => {
+        if (item.subItems &&
+            Array.isArray(item.subItems) &&
+            item?.subItems?.length > 0) {
+            return true;
+        }
+        return false;
+    };
+    /**
+     * @tag vscode-tree
+     *
+     * @fires vsc-select Dispatched when an item is selected.
+     * @fires {VscTreeSelectEvent} vsc-tree-select Dispatched when an item is selected.
+     * @fires vsc-run-action Dispatched when an action icon is clicked.
+     * @fires {VscTreeActionEvent} vsc-tree-action Dispatched when an action icon is clicked.
+     *
+     * @cssprop --vscode-focusBorder
+     * @cssprop --vscode-font-family
+     * @cssprop --vscode-font-size
+     * @cssprop --vscode-font-weight
+     * @cssprop --vscode-list-hoverForeground
+     * @cssprop --vscode-list-hoverBackground
+     * @cssprop --vscode-list-inactiveSelectionBackground
+     * @cssprop --vscode-list-inactiveSelectionForeground
+     * @cssprop --vscode-list-activeSelectionBackground
+     * @cssprop --vscode-list-activeSelectionForeground
+     * @cssprop --vscode-list-inactiveSelectionIconForeground
+     * @cssprop --vscode-list-inactiveFocusBackground
+     * @cssprop --vscode-list-inactiveFocusOutline
+     * @cssprop --vscode-list-focusOutline
+     * @cssprop --vscode-tree-inactiveIndentGuidesStroke
+     * @cssprop --vscode-tree-indentGuidesStroke
+     *
+     * @csspart text-content
+     * @csspart description
+     * @csspart counter-badge-decoration
+     * @csspart filled-circle-decoration
+     * @csspart caption-decoration
+     * @csspart decorations Container of decorations
+     */
+    let VscodeTree = class VscodeTree extends VscElement {
+        constructor() {
+            super(...arguments);
+            this.indent = 8;
+            this.arrows = false;
+            this.multiline = false;
+            this.tabindex = 0;
+            this.indentGuides = false;
+            this._data = [];
+            this._selectedItem = null;
+            this._focusedItem = null;
+            this._selectedBranch = null;
+            this._focusedBranch = null;
+            this._handleComponentKeyDownBound = this._handleComponentKeyDown.bind(this);
+        }
+        set data(val) {
+            const oldVal = this._data;
+            this._data = addPath(val);
+            this.requestUpdate('data', oldVal);
+        }
+        get data() {
+            return this._data;
+        }
+        /**
+         * Closes all opened tree items recursively.
+         */
+        closeAll() {
+            this._closeSubTreeRecursively(this.data);
+            this.requestUpdate();
+        }
+        /**
+         * Deselects all selected items.
+         */
+        deselectAll() {
+            this._deselectItemsRecursively(this.data);
+            this.requestUpdate();
+        }
+        /**
+         * Returns a reference to a TreeItem object by path.
+         * @param path
+         * @returns
+         */
+        getItemByPath(path) {
+            return this._getItemByPath(path);
+        }
+        connectedCallback() {
+            super.connectedCallback();
+            this.addEventListener('keydown', this._handleComponentKeyDownBound);
+        }
+        disconnectedCallback() {
+            super.disconnectedCallback();
+            this.removeEventListener('keydown', this._handleComponentKeyDownBound);
+        }
+        _getItemByPath(path) {
+            let current = this._data;
+            let item = null;
+            path.forEach((el, i) => {
+                if (i === path.length - 1) {
+                    item = current[el];
+                }
+                else {
+                    current = current[el].subItems;
+                }
+            });
+            return item;
+        }
+        _handleActionClick(ev) {
+            ev.stopPropagation();
+            const el = ev.target;
+            const itemPath = el.dataset.itemPath;
+            const actionIndex = el.dataset.index;
+            let item = null;
+            let actionId = '';
+            let value = '';
+            if (itemPath) {
+                const path = itemPath.split('/').map((p) => Number(p));
+                item = this._getItemByPath(path);
+                if (item?.actions) {
+                    const index = Number(actionIndex);
+                    if (item.actions[index]) {
+                        actionId = item.actions[index].actionId;
+                    }
+                }
+                if (item?.value) {
+                    value = item.value;
+                }
+            }
+            /** @deprecated Renamed to `vsc-tree-action` */
+            this.dispatchEvent(new CustomEvent('vsc-run-action', {
+                detail: {
+                    actionId,
+                    item,
+                    value,
+                },
+            }));
+            /**
+             * Dispatched when an action icon is clicked.
+             */
+            this.dispatchEvent(new CustomEvent('vsc-tree-action', {
+                detail: {
+                    actionId,
+                    item,
+                    value,
+                },
+            }));
+        }
+        _renderIconVariant(variant) {
+            const { type, value } = variant;
+            if (type === 'themeicon') {
+                return x `<vscode-icon name=${value} class="theme-icon"></vscode-icon>`;
+            }
+            else {
+                return x `<span
+        class="image-icon"
+        .style=${stylePropertyMap({ backgroundImage: `url(${value})` })}
+      ></span>`;
+            }
+        }
+        _renderIcon(item) {
+            const iconVariants = {
+                branch: {
+                    value: 'folder',
+                    type: 'themeicon',
+                },
+                open: {
+                    value: 'folder-opened',
+                    type: 'themeicon',
+                },
+                leaf: {
+                    value: 'file',
+                    type: 'themeicon',
+                },
+            };
+            if (item.iconUrls) {
+                if (item.iconUrls.branch) {
+                    iconVariants.branch = {
+                        value: item.iconUrls.branch,
+                        type: 'image',
+                    };
+                }
+                if (item.iconUrls.leaf) {
+                    iconVariants.leaf = {
+                        value: item.iconUrls.leaf,
+                        type: 'image',
+                    };
+                }
+                if (item.iconUrls.open) {
+                    iconVariants.open = {
+                        value: item.iconUrls.open,
+                        type: 'image',
+                    };
+                }
+            }
+            else if (typeof item.icons === 'object') {
+                if (item.icons.branch) {
+                    iconVariants.branch = {
+                        value: item.icons.branch,
+                        type: 'themeicon',
+                    };
+                }
+                if (item.icons.leaf) {
+                    iconVariants.leaf = {
+                        value: item.icons.leaf,
+                        type: 'themeicon',
+                    };
+                }
+                if (item.icons.open) {
+                    iconVariants.open = {
+                        value: item.icons.open,
+                        type: 'themeicon',
+                    };
+                }
+            }
+            else if (!item.icons) {
+                return x `${E}`;
+            }
+            if (isBranch(item)) {
+                if (item.open) {
+                    return this._renderIconVariant(iconVariants.open);
+                }
+                else {
+                    return this._renderIconVariant(iconVariants.branch);
+                }
+            }
+            else {
+                return this._renderIconVariant(iconVariants.leaf);
+            }
+        }
+        _renderArrow(item) {
+            if (!this.arrows || !isBranch(item)) {
+                return x `${E}`;
+            }
+            const { open = false } = item;
+            const arrowIconName = open ? 'chevron-down' : 'chevron-right';
+            return x `
+      <div class="arrow-container">
+        <vscode-icon name=${arrowIconName} class="icon-arrow"></vscode-icon>
+      </div>
+    `;
+        }
+        _renderActions(item) {
+            const actionButtons = [];
+            if (item.actions && Array.isArray(item.actions)) {
+                item.actions.forEach((action, index) => {
+                    if (action.icon) {
+                        const icon = x `<vscode-icon
+            name=${action.icon}
+            action-icon
+            title=${o(action.tooltip)}
+            data-item-path=${o(item.path?.join('/'))}
+            data-index=${index}
+            class="action-icon"
+            @click=${this._handleActionClick}
+          ></vscode-icon>`;
+                        actionButtons.push(icon);
+                    }
+                });
+            }
+            if (actionButtons.length > 0) {
+                return x `<div class="actions">${actionButtons}</div>`;
+            }
+            else {
+                return x `${E}`;
+            }
+        }
+        _renderDecorations(item) {
+            const decorations = [];
+            if (item.decorations && Array.isArray(item.decorations)) {
+                item.decorations.forEach((decoration) => {
+                    const { appearance = 'text', visibleWhen = 'always', content = '', color = '', focusedColor = '', hoverColor = '', selectedColor = '', } = decoration;
+                    const visibleWhenClass = `visible-when-${visibleWhen}`;
+                    const inlineStyles = {};
+                    if (color) {
+                        inlineStyles['--color'] = color;
+                    }
+                    if (focusedColor) {
+                        inlineStyles['--focused-color'] = focusedColor;
+                    }
+                    if (hoverColor) {
+                        inlineStyles['--hover-color'] = hoverColor;
+                    }
+                    if (selectedColor) {
+                        inlineStyles['--selected-color'] = selectedColor;
+                    }
+                    switch (appearance) {
+                        case 'counter-badge':
+                            decorations.push(x `<vscode-badge
+                variant="counter"
+                class=${['counter-badge', visibleWhenClass].join(' ')}
+                part="counter-badge-decoration"
+                >${content}</vscode-badge
+              >`);
+                            break;
+                        case 'filled-circle':
+                            decorations.push(x `<vscode-icon
+                name="circle-filled"
+                size="14"
+                class=${['filled-circle', visibleWhenClass].join(' ')}
+                part="filled-circle-decoration"
+                .style=${stylePropertyMap(inlineStyles)}
+              ></vscode-icon>`);
+                            break;
+                        case 'text':
+                            decorations.push(x `<div
+                class=${['decoration-text', visibleWhenClass].join(' ')}
+                part="caption-decoration"
+                .style=${stylePropertyMap(inlineStyles)}
+              >
+                ${content}
+              </div>`);
+                            break;
+                    }
+                });
+            }
+            if (decorations.length > 0) {
+                return x `<div class="decorations" part="decorations">
+        ${decorations}
+      </div>`;
+            }
+            else {
+                return x `${E}`;
+            }
+        }
+        _renderTreeItem(item, additionalOptions) {
+            const { open = false, label, description = '', tooltip, selected = false, focused = false, subItems = [], } = item;
+            const { path, itemType, hasFocusedItem = false, hasSelectedItem = false, } = additionalOptions;
+            const indentLevel = path.length - 1;
+            const contentsClasses = ['contents'];
+            const liClasses = open ? ['open'] : [];
+            const indentSize = indentLevel * this.indent;
+            const padLeft = this.arrows && itemType === 'leaf'
+                ? ARROW_OUTER_WIDTH + indentSize
+                : indentSize;
+            const arrowMarkup = this._renderArrow(item);
+            const iconMarkup = this._renderIcon(item);
+            const indentGuidePos = this.arrows
+                ? indentSize + ARROW_ICON_WIDTH
+                : indentSize + CONTENT_PADDING;
+            const subTreeMarkup = open && itemType === 'branch'
+                ? x `<ul
+            .style=${stylePropertyMap({
+                '--indent-guide-pos': `${indentGuidePos}px`,
+            })}
+            class=${e({
+                'has-active-item': hasFocusedItem || hasSelectedItem,
+            })}
+          >
+            ${this._renderTree(subItems, path)}
+          </ul>`
+                : E;
+            const descriptionMarkup = description
+                ? x `<span class="description" part="description">${description}</span>`
+                : E;
+            const actionsMarkup = this._renderActions(item);
+            const decorationsMarkup = this._renderDecorations(item);
+            liClasses.push(itemType);
+            if (selected) {
+                contentsClasses.push('selected');
+            }
+            if (focused) {
+                contentsClasses.push('focused');
+            }
+            return x `
+      <li data-path=${path.join('/')} class=${liClasses.join(' ')}>
+        <div
+          class=${contentsClasses.join(' ')}
+          .style=${stylePropertyMap({
+            paddingLeft: `${padLeft + CONTENT_PADDING}px`,
+        })}
+        >
+          ${arrowMarkup}${iconMarkup}<span
+            class="text-content"
+            part="text-content"
+            title=${o(tooltip)}
+            >${label}${descriptionMarkup}</span
+          >
+          ${actionsMarkup} ${decorationsMarkup}
+        </div>
+        ${subTreeMarkup}
+      </li>
+    `;
+        }
+        _renderTree(tree, oldPath = []) {
+            const ret = [];
+            if (!tree) {
+                return E;
+            }
+            tree.forEach((item, index) => {
+                const path = [...oldPath, index];
+                const itemType = isBranch(item) ? 'branch' : 'leaf';
+                const { selected = false, focused = false, hasFocusedItem = false, hasSelectedItem = false, } = item;
+                if (selected) {
+                    this._selectedItem = item;
+                }
+                if (focused) {
+                    this._focusedItem = item;
+                }
+                ret.push(this._renderTreeItem(item, {
+                    path,
+                    itemType,
+                    hasFocusedItem,
+                    hasSelectedItem,
+                }));
+            });
+            return ret;
+        }
+        _selectItem(item) {
+            if (this._selectedItem) {
+                this._selectedItem.selected = false;
+            }
+            if (this._focusedItem) {
+                this._focusedItem.focused = false;
+            }
+            this._selectedItem = item;
+            item.selected = true;
+            this._focusedItem = item;
+            item.focused = true;
+            if (this._selectedBranch) {
+                this._selectedBranch.hasSelectedItem = false;
+            }
+            let parentBranch = null;
+            if (item.path?.length && item.path.length > 1) {
+                parentBranch = this._getItemByPath(item.path.slice(0, -1));
+            }
+            if (isBranch(item)) {
+                this._selectedBranch = item;
+                item.hasSelectedItem = true;
+                item.open = !item.open;
+                if (!item.open) {
+                    if (parentBranch) {
+                        this._selectedBranch = parentBranch;
+                        parentBranch.hasSelectedItem = true;
+                    }
+                }
+                else {
+                    this._selectedBranch = item;
+                    item.hasSelectedItem = true;
+                }
+            }
+            else {
+                if (item.path?.length && item.path.length > 1) {
+                    const parentBranch = this._getItemByPath(item.path.slice(0, -1));
+                    if (parentBranch) {
+                        this._selectedBranch = parentBranch;
+                        parentBranch.hasSelectedItem = true;
+                    }
+                }
+                else {
+                    this._selectedBranch = item;
+                    item.hasSelectedItem = true;
+                }
+            }
+            this._emitSelectEvent(this._selectedItem, this._selectedItem.path.join('/'));
+            this.requestUpdate();
+        }
+        _focusItem(item) {
+            if (this._focusedItem) {
+                this._focusedItem.focused = false;
+            }
+            this._focusedItem = item;
+            item.focused = true;
+            const isBranch = !!item?.subItems?.length;
+            if (this._focusedBranch) {
+                this._focusedBranch.hasFocusedItem = false;
+            }
+            let parentBranch = null;
+            if (item.path?.length && item.path.length > 1) {
+                parentBranch = this._getItemByPath(item.path.slice(0, -1));
+            }
+            if (!isBranch) {
+                if (parentBranch) {
+                    this._focusedBranch = parentBranch;
+                    parentBranch.hasFocusedItem = true;
+                }
+            }
+            else {
+                if (item.open) {
+                    this._focusedBranch = item;
+                    item.hasFocusedItem = true;
+                }
+                else if (!item.open && parentBranch) {
+                    this._focusedBranch = parentBranch;
+                    parentBranch.hasFocusedItem = true;
+                }
+            }
+        }
+        _closeSubTreeRecursively(tree) {
+            tree.forEach((item) => {
+                item.open = false;
+                if (item.subItems && item.subItems.length > 0) {
+                    this._closeSubTreeRecursively(item.subItems);
+                }
+            });
+        }
+        _deselectItemsRecursively(tree) {
+            tree.forEach((item) => {
+                if (item.selected) {
+                    item.selected = false;
+                }
+                if (item.subItems && item.subItems.length > 0) {
+                    this._deselectItemsRecursively(item.subItems);
+                }
+            });
+        }
+        _emitSelectEvent(item, path) {
+            const { icons, label, open, value } = item;
+            const detail = {
+                icons,
+                itemType: isBranch(item) ? 'branch' : 'leaf',
+                label,
+                open: open || false,
+                value: value || label,
+                path,
+            };
+            /** @deprecated Renamed to `vsc-tree-select` */
+            this.dispatchEvent(new CustomEvent('vsc-select', {
+                bubbles: true,
+                composed: true,
+                detail,
+            }));
+            this.dispatchEvent(new CustomEvent('vsc-tree-select', {
+                detail,
+            }));
+        }
+        _focusPrevItem() {
+            if (!this._focusedItem) {
+                this._focusItem(this._data[0]);
+                return;
+            }
+            const { path } = this._focusedItem;
+            if (path && path?.length > 0) {
+                const currentItemIndex = path[path.length - 1];
+                const hasParent = path.length > 1;
+                if (currentItemIndex > 0) {
+                    const newPath = [...path];
+                    newPath[newPath.length - 1] = currentItemIndex - 1;
+                    const prevSibling = this._getItemByPath(newPath);
+                    let newFocusedItem = prevSibling;
+                    if (prevSibling?.open && prevSibling.subItems?.length) {
+                        const { subItems } = prevSibling;
+                        newFocusedItem = subItems[subItems.length - 1];
+                    }
+                    this._focusItem(newFocusedItem);
+                }
+                else {
+                    if (hasParent) {
+                        const newPath = [...path];
+                        newPath.pop();
+                        this._focusItem(this._getItemByPath(newPath));
+                    }
+                }
+            }
+            else {
+                this._focusItem(this._data[0]);
+            }
+        }
+        _focusNextItem() {
+            if (!this._focusedItem) {
+                this._focusItem(this._data[0]);
+                return;
+            }
+            const { path, open } = this._focusedItem;
+            if (open &&
+                Array.isArray(this._focusedItem.subItems) &&
+                this._focusedItem.subItems.length > 0) {
+                this._focusItem(this._focusedItem.subItems[0]);
+                return;
+            }
+            const nextPath = [...path];
+            nextPath[nextPath.length - 1] += 1;
+            let nextFocusedItem = this._getItemByPath(nextPath);
+            if (nextFocusedItem) {
+                this._focusItem(nextFocusedItem);
+            }
+            else {
+                nextPath.pop();
+                if (nextPath.length > 0) {
+                    nextPath[nextPath.length - 1] += 1;
+                    nextFocusedItem = this._getItemByPath(nextPath);
+                    if (nextFocusedItem) {
+                        this._focusItem(nextFocusedItem);
+                    }
+                }
+            }
+        }
+        _handleClick(event) {
+            const composedPath = event.composedPath();
+            const targetElement = composedPath.find((el) => el.tagName &&
+                el.tagName.toUpperCase() === 'LI');
+            if (targetElement) {
+                const pathStr = targetElement.dataset.path || '';
+                const path = pathStr.split('/').map((el) => Number(el));
+                const item = this._getItemByPath(path);
+                this._selectItem(item);
+            }
+            else {
+                if (this._focusedItem) {
+                    this._focusedItem.focused = false;
+                }
+                this._focusedItem = null;
+            }
+        }
+        _handleComponentKeyDown(ev) {
+            const keys = [
+                ' ',
+                'ArrowDown',
+                'ArrowUp',
+                'Enter',
+                'Escape',
+            ];
+            const key = ev.key;
+            if (keys.includes(ev.key)) {
+                ev.stopPropagation();
+                ev.preventDefault();
+            }
+            if (key === 'Escape') {
+                this._focusedItem = null;
+            }
+            if (key === 'ArrowUp') {
+                this._focusPrevItem();
+            }
+            if (key === 'ArrowDown') {
+                this._focusNextItem();
+            }
+            if (key === 'Enter' || key === ' ') {
+                if (this._focusedItem) {
+                    this._selectItem(this._focusedItem);
+                }
+            }
+        }
+        render() {
+            const classes = e({
+                multi: this.multiline,
+                single: !this.multiline,
+                wrapper: true,
+                'has-not-focused-item': !this._focusedItem,
+                'selection-none': !this._selectedItem,
+                'selection-single': this._selectedItem !== null,
+            });
+            return x `
+      <div @click=${this._handleClick} class=${classes}>
+        <ul>
+          ${this._renderTree(this._data)}
+        </ul>
+      </div>
+    `;
+        }
+    };
+    VscodeTree.styles = styles;
+    __decorate([
+        n$1({ type: Array, reflect: false })
+    ], VscodeTree.prototype, "data", null);
+    __decorate([
+        n$1({ type: Number })
+    ], VscodeTree.prototype, "indent", void 0);
+    __decorate([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeTree.prototype, "arrows", void 0);
+    __decorate([
+        n$1({ type: Boolean, reflect: true })
+    ], VscodeTree.prototype, "multiline", void 0);
+    __decorate([
+        n$1({ type: Number, reflect: true })
+    ], VscodeTree.prototype, "tabindex", void 0);
+    __decorate([
+        n$1({ type: Boolean, reflect: true, attribute: 'indent-guides' })
+    ], VscodeTree.prototype, "indentGuides", void 0);
+    __decorate([
+        r$2()
+    ], VscodeTree.prototype, "_selectedItem", void 0);
+    __decorate([
+        r$2()
+    ], VscodeTree.prototype, "_focusedItem", void 0);
+    __decorate([
+        r$2()
+    ], VscodeTree.prototype, "_selectedBranch", void 0);
+    __decorate([
+        r$2()
+    ], VscodeTree.prototype, "_focusedBranch", void 0);
+    VscodeTree = __decorate([
+        customElement('vscode-tree')
+    ], VscodeTree);
+
+    var _default = /*#__PURE__*/Object.freeze({
+        __proto__: null,
+        get VscodeBadge () { return VscodeBadge; },
+        get VscodeButton () { return VscodeButton; },
+        get VscodeButtonGroup () { return VscodeButtonGroup; },
+        get VscodeCheckbox () { return VscodeCheckbox; },
+        get VscodeCheckboxGroup () { return VscodeCheckboxGroup; },
+        get VscodeCollapsible () { return VscodeCollapsible; },
+        get VscodeContextMenu () { return VscodeContextMenu; },
+        get VscodeContextMenuItem () { return VscodeContextMenuItem; },
+        get VscodeDivider () { return VscodeDivider; },
+        get VscodeFormContainer () { return VscodeFormContainer; },
+        get VscodeFormGroup () { return VscodeFormGroup; },
+        get VscodeFormHelper () { return VscodeFormHelper; },
+        get VscodeIcon () { return VscodeIcon; },
+        get VscodeLabel () { return VscodeLabel; },
+        get VscodeMultiSelect () { return VscodeMultiSelect; },
+        get VscodeOption () { return VscodeOption; },
+        get VscodeProgressRing () { return VscodeProgressRing; },
+        get VscodeRadio () { return VscodeRadio; },
+        get VscodeRadioGroup () { return VscodeRadioGroup; },
+        get VscodeScrollable () { return VscodeScrollable; },
+        get VscodeSingleSelect () { return VscodeSingleSelect; },
+        get VscodeSplitLayout () { return VscodeSplitLayout; },
+        get VscodeTabHeader () { return VscodeTabHeader; },
+        get VscodeTabPanel () { return VscodeTabPanel; },
+        get VscodeTable () { return VscodeTable; },
+        get VscodeTableBody () { return VscodeTableBody; },
+        get VscodeTableCell () { return VscodeTableCell; },
+        get VscodeTableHeader () { return VscodeTableHeader; },
+        get VscodeTableHeaderCell () { return VscodeTableHeaderCell; },
+        get VscodeTableRow () { return VscodeTableRow; },
+        get VscodeTabs () { return VscodeTabs; },
+        get VscodeTextarea () { return VscodeTextarea; },
+        get VscodeTextfield () { return VscodeTextfield; },
+        get VscodeToolbarButton () { return VscodeToolbarButton; },
+        get VscodeToolbarContainer () { return VscodeToolbarContainer; },
+        get VscodeTree () { return VscodeTree; }
+    });
+
+    var _virtual_index = { _default };
+
+    return _virtual_index;
+
+})();
+
+
+	npmCompilation['1608514c9acd4a97df63533df1b9d0fd'] = {};
+npmCompilation['1608514c9acd4a97df63533df1b9d0fd']['VscodeElement'] = _['_default'];
+
+})(npmCompilation);
 if(!Object.hasOwn(window, "AvInstance")) {
 	Object.defineProperty(window, "AvInstance", {
 		get() {return Aventus.Instance;}

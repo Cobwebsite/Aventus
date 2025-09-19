@@ -480,8 +480,12 @@
 				"title": "Aventus : Disconnect from the store"
 			},
 			{
-				"command": "aventus.store.publish",
+				"command": "aventus.store.publish_package",
 				"title": "Aventus : Publish package to the store"
+			},
+			{
+				"command": "aventus.store.publish_template",
+				"title": "Aventus : Publish template to the store"
 			},
 			{
 				"command": "aventus.template.quick_edit",
@@ -590,6 +594,11 @@
 					"when": "resourceFilename =~ /^.*\\.php/",
 					"command": "aventus.php.export",
 					"group": "navigation@-50"
+				},
+				{
+					"when": "resourceFilename == template.avt.ts",
+					"command": "aventus.store.publish_template",
+					"group": "navigation@-49"
 				}
 			],
 			"editor/title": [
@@ -698,6 +707,10 @@
 				},
 				{
 					"command": "aventus.i18n.add",
+					"when": "false"
+				},
+				{
+					"command": "aventus.store.publish_template",
 					"when": "false"
 				}
 			]
@@ -822,6 +835,7 @@
 		"@rollup/plugin-virtual": "^3.0.1",
 		"@types/estree": "^1.0.0",
 		"@types/serve-index": "^1.9.1",
+		"archiver": "^7.0.1",
 		"chokidar": "^3.5.3",
 		"command-exists": "^1.2.9",
 		"commander": "^12.1.0",

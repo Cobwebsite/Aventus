@@ -300,6 +300,8 @@ export class TemplateScript {
 	public name: string;
 	public version: string;
 	public description: string;
+	public organization?: string;
+	public tags: string[] = [];
 	public lastModified: Date;
 	public allowQuick: boolean;
 
@@ -326,6 +328,8 @@ export class TemplateScript {
 		this.name = basicInfo.name;
 		this.description = basicInfo.description;
 		this.version = basicInfo.version;
+		this.organization = basicInfo.organization;
+		this.tags = basicInfo.tags ?? [];
 		this.allowQuick = basicInfo.allowQuick ?? false;
 		this.lastModified = statSync(this.config).mtime
 	}
@@ -504,7 +508,7 @@ export class TemplateScript {
 		})
 	}
 
-	protected prepareScript(): { name: string, version: string, description: string, allowQuick?: boolean } {
+	protected prepareScript(): { name: string, version: string, description: string, allowQuick?: boolean, organization?: string, tags?: string[] } {
 		const rootPath = join(serverFolder(), 'lib/templateScript/AventusTemplate.ts').replace(/\\/g, "\\\\");
 
 		const txt = `

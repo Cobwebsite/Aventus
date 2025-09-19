@@ -30,7 +30,9 @@ declare type TemplateInfo = {
     description?: string,
     version?: Version,
     /** Determine if the template can be use without right click */
-    allowQuick?: boolean
+    allowQuick?: boolean,
+    organization?: string,
+	tags?: string[]
 }
 
 declare type WriteCallback = (info: WriteInfo) => void | boolean;
@@ -75,5 +77,5 @@ declare abstract class AventusTemplate {
     protected exec(cmd: string, asAdmin?: boolean): Promise<void>;
     protected showProgress(txt: string): Promise<string>;
     protected hideProgress(uuid: string): Promise<void>;
-    protected runWithProgress(txt: string, cb: () => Promise<void>);
+    protected runWithProgress(txt: string, cb: () => Promise<void>): Promise<void>;
 }

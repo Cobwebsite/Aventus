@@ -3,9 +3,11 @@ import { hostname } from 'os';
 import { SettingsManager, HiddenSettings } from '../settings/Settings';
 import { Build } from '../project/Build';
 import { DependanceManager } from '../project/DependanceManager';
-import { join, normalize } from 'path';
+import { dirname, join, normalize } from 'path';
 import { AventusExtension } from '../definition';
-import { existsSync, readdirSync, readFileSync } from 'fs';
+import { createWriteStream, existsSync, readdirSync, readFileSync } from 'fs';
+import { TemplateScript } from '../files/Template';
+import archiver from 'archiver'
 
 type StoreSettings = HiddenSettings["store"];
 
@@ -108,6 +110,46 @@ export class Store {
 		}
 
 		const result = await this.postWithErrors<boolean>("/package/publish", form);
+		return result;
+	}
+
+	public static async publishTemplate(template: TemplateScript): Promise<boolean | QueryError> {
+		const form = new FormData();
+		form.append("name", template.name);
+		form.append("description", template.description);
+		form.append("version", template.description);
+		if (template.organization) {
+			form.append("organization", template.organization);
+		}
+		for (let tag of template.tags) {
+			form.append("tags[]", tag);
+		}
+
+		const dir = dirname(template.config);
+
+		const outputZipPath = join(dir, template.name + ".zip");
+		const output = createWriteStream(outputZipPath);
+		const archive = archiver("zip", { zlib: { level: 9 } });
+		output.on("close", () => {
+			console.log(`Archive créée : ${outputZipPath} (${archive.pointer()} bytes)`);
+		});
+
+		archive.on("error", (err) => {
+			throw err;
+		});
+
+		archive.pipe(output);
+
+		// Ajoute tout le contenu du répertoire (sans exclure quoi que ce soit)
+		archive.directory(dir, false);
+
+		// Finalise le zip
+		await archive.finalize();
+
+		const packageFile = new Blob([readFileSync(outputZipPath)], { type: "application/zip" });
+		form.append("template", packageFile, template.name + ".zip");
+
+		const result = await this.postWithErrors<boolean>("/template/publish", form);
 		return result;
 	}
 

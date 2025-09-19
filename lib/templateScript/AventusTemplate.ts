@@ -40,7 +40,9 @@ export type TemplateInfo = {
 	name: string,
 	description?: string,
 	version?: Version,
-	allowQuick?: boolean
+	allowQuick?: boolean,
+	organization?: string,
+	tags?: string[]
 }
 
 const trueLog = console.log;

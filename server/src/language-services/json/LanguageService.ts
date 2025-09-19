@@ -1,5 +1,5 @@
 import { join, normalize, sep } from "path";
-import { Diagnostic, getLanguageService, LanguageService } from "vscode-json-languageservice";
+import { ASTNode, Diagnostic, getLanguageService, LanguageService } from "vscode-json-languageservice";
 import { CompletionItem, CompletionList, DiagnosticSeverity, FormattingOptions, Hover, Position, Range, TextEdit } from 'vscode-languageserver';
 import { AventusErrorCode, AventusExtension } from "../../definition";
 import { AventusFile } from '../../files/AventusFile';
@@ -64,6 +64,28 @@ export class AventusJSONLanguageService {
         let document = file.documentUser;
         let jsonDoc = this.languageService.parseJSONDocument(document);
         let result = await this.languageService.doComplete(file.documentUser, position, jsonDoc);
+        const node = jsonDoc.getNodeFromOffset(document.offsetAt(position));
+
+        if (this.isKeyOfObject(node, "dependances")) {
+            if (!result) {
+                result = {
+                    isIncomplete: false,
+                    items: []
+                }
+            }
+            result?.items.push({
+                label: "Aventus@Main",
+            }, {
+                label: "Aventus@UI"
+            }, {
+                label: "Aventus@I18n"
+            }, {
+                label: "Aventus@Sharp"
+            }, {
+                label: "Aventus@Php"
+            });
+        }
+
         if (result) {
             return result;
         }
@@ -98,6 +120,27 @@ export class AventusJSONLanguageService {
             error.severity = DiagnosticSeverity.Error;
         }
         return errors;
+    }
+
+    private isKeyOfObject(node: ASTNode | undefined, objectName: string): boolean {
+        const p1 = node?.parent;
+        if (p1?.type == "property" && p1.keyNode == node) {
+            const pDep = node?.parent?.parent?.parent;
+            if (pDep?.type == "property" && pDep.keyNode.value == objectName) {
+                return true;
+            }
+        }
+        return false;
+    }
+    private isValueOfObject(node: ASTNode | undefined, objectName: string): boolean {
+        const p1 = node?.parent;
+        if (p1?.type == "property" && p1.valueNode == node) {
+            const pDep = node?.parent?.parent?.parent;
+            if (pDep?.type == "property" && pDep.keyNode.value == objectName) {
+                return true;
+            }
+        }
+        return false;
     }
 
     //#region config

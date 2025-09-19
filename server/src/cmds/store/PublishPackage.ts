@@ -3,8 +3,8 @@ import { SelectItem } from '../../IConnection';
 import { ProjectManager } from '../../project/ProjectManager';
 import { QueryError, Store } from '../../store/Store';
 
-export class StorePublish {
-	static cmd: string = "aventus.store.publish";
+export class StorePublishPackage {
+	static cmd: string = "aventus.store.publish_package";
 
 	public static async run() {
 		if (!Store.isConnected) {

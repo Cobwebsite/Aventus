@@ -34,9 +34,10 @@ import { AddI18nValue } from './i18n/AddI18nValue';
 import { PhpExport } from './php/Export';
 import { StoreConnect } from './store/Connect';
 import { StoreDisconnect } from './store/Disconnect';
-import { StorePublish } from './store/Publish';
+import { StorePublishPackage } from './store/PublishPackage';
 import { QuickTemplateEdit } from './file-system/QuickTemplateEdit';
 import { QuickTemplate } from './file-system/QuickTemplate';
+import { StorePublishTemplate } from './store/PublishTemplate';
 
 export const Commands = {
     allCommandes: {
@@ -75,7 +76,8 @@ export const Commands = {
         [AddI18nValue.cmd]: AddI18nValue,
         [StoreConnect.cmd]: StoreConnect,
         [StoreDisconnect.cmd]: StoreDisconnect,
-        [StorePublish.cmd]: StorePublish,
+        [StorePublishPackage.cmd]: StorePublishPackage,
+        [StorePublishTemplate.cmd]: StorePublishTemplate,
         [QuickTemplate.cmd]: QuickTemplate,
         [QuickTemplateEdit.cmd]: QuickTemplateEdit,
     },
