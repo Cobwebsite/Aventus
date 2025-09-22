@@ -28,6 +28,7 @@ import { StorybookBuild } from './storybook/StorybookBuild';
 import { ProjectImport } from './file-system/ImportProject';
 import { NpmBuild } from './npm/NpmBuild';
 import { PhpExport } from './php/Export';
+import { StorePublishTemplate } from './store/PublishTemplate';
 
 
 export const Commands = {
@@ -62,5 +63,6 @@ export const Commands = {
         [ReloadSettings.cmd]: ReloadSettings,
         [StorybookBuild.cmd]: StorybookBuild,
         [NpmBuild.cmd]: NpmBuild,
+        [StorePublishTemplate.cmd]: StorePublishTemplate
     },
 }

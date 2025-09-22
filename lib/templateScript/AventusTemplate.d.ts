@@ -32,7 +32,9 @@ declare type TemplateInfo = {
     /** Determine if the template can be use without right click */
     allowQuick?: boolean,
     organization?: string,
-	tags?: string[]
+	tags?: string[],
+    /** Determine if the template is a project or a template */
+    isProject?:boolean
 }
 
 declare type WriteCallback = (info: WriteInfo) => void | boolean;

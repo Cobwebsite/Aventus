@@ -803,6 +803,7 @@
 		"@storybook/test": "^8.1.11",
 		"@storybook/web-components": "^8.1.11",
 		"@storybook/web-components-vite": "^8.1.11",
+		"@types/archiver": "^6.0.3",
 		"@types/command-exists": "^1.2.0",
 		"@types/connect": "^3.4.35",
 		"@types/event-stream": "^4.0.0",

@@ -5,9 +5,10 @@ import { Build } from '../project/Build';
 import { DependanceManager } from '../project/DependanceManager';
 import { dirname, join, normalize } from 'path';
 import { AventusExtension } from '../definition';
-import { createWriteStream, existsSync, readdirSync, readFileSync } from 'fs';
+import { createWriteStream, existsSync, readdirSync, readFileSync, unlink, unlinkSync } from 'fs';
 import { TemplateScript } from '../files/Template';
-import archiver from 'archiver'
+import { create as createArchive } from 'archiver'
+import { GenericServer } from '../GenericServer';
 
 type StoreSettings = HiddenSettings["store"];
 
@@ -117,7 +118,8 @@ export class Store {
 		const form = new FormData();
 		form.append("name", template.name);
 		form.append("description", template.description);
-		form.append("version", template.description);
+		form.append("version", template.version);
+		form.append("is_project", template.isProject + '');
 		if (template.organization) {
 			form.append("organization", template.organization);
 		}
@@ -127,9 +129,9 @@ export class Store {
 
 		const dir = dirname(template.config);
 
-		const outputZipPath = join(dir, template.name + ".zip");
+		const outputZipPath = join(GenericServer.savePath, "temp", template.name + ".zip");
 		const output = createWriteStream(outputZipPath);
-		const archive = archiver("zip", { zlib: { level: 9 } });
+		const archive = createArchive("zip", { zlib: { level: 9 } });
 		output.on("close", () => {
 			console.log(`Archive créée : ${outputZipPath} (${archive.pointer()} bytes)`);
 		});
@@ -139,17 +141,14 @@ export class Store {
 		});
 
 		archive.pipe(output);
-
-		// Ajoute tout le contenu du répertoire (sans exclure quoi que ce soit)
 		archive.directory(dir, false);
-
-		// Finalise le zip
 		await archive.finalize();
 
 		const packageFile = new Blob([readFileSync(outputZipPath)], { type: "application/zip" });
-		form.append("template", packageFile, template.name + ".zip");
+		form.append("templateFile", packageFile, template.name + ".zip");
 
 		const result = await this.postWithErrors<boolean>("/template/publish", form);
+		unlinkSync(outputZipPath);
 		return result;
 	}
 
@@ -186,7 +185,7 @@ export class Store {
 			if (query.status == 403) {
 				if (uri != '/logout')
 					this.disconnect();
-				return new QueryError([{ code: 403, message: "Invalid token provided" }])
+				return new QueryError([{ code: 403, message: "You must connect to your account first" }])
 			}
 			const txt = await query.text();
 			let json: any = undefined;

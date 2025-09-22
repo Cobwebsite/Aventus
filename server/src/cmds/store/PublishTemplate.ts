@@ -18,7 +18,7 @@ export class StorePublishTemplate {
 		}
 
 		const path = uriToPath(uri);
-		if (existsSync(uri) && path.endsWith("template.avt.ts")) {
+		if (existsSync(path) && path.endsWith("template.avt.ts")) {
 			let template = TemplateScript.create(path, "");
 			const result = await Store.publishTemplate(template);
 			if (result instanceof QueryError) {
@@ -27,7 +27,7 @@ export class StorePublishTemplate {
 				}
 			}
 			else {
-				GenericServer.showInformationMessage("Package published");
+				GenericServer.showInformationMessage("Template published");
 			}
 		}
 
