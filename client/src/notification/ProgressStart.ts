@@ -7,12 +7,12 @@ export class ProgressStart {
 
 	public static action(uuid: string, text: string) {
 		window.withProgress({
-			location: ProgressLocation.Window,
+			location: ProgressLocation.Notification,
 			title: text,
 			cancellable: false
 		}, () => {
 			return new Promise<void>((resolve) => {
-				this.progress[uuid](resolve);
+				this.progress[uuid] = resolve;
 			})
 		})
 	}

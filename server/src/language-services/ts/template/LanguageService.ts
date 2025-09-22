@@ -3,11 +3,11 @@ import { Build } from '../../../project/Build';
 import { AventusFile } from '../../../files/AventusFile';
 import { existsSync } from 'fs';
 import { convertRange, getWordAtText, pathToUri, uriToPath } from '../../../tools';
-import { loadLibrary, NODE_MODULES, serverFolder } from '../libLoader';
+import { loadLibrary, loadTypescriptLib, NODE_MODULES, serverFolder } from '../libLoader';
 import { CodeAction, CodeLens, CompletionItem, CompletionList, Diagnostic, DiagnosticSeverity, DiagnosticTag, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver';
 import { AventusLanguageId } from '../../../definition';
 import { join } from 'path';
-import { AventusTsLanguageService, convertKind, generateIndent, isWhitespaceOnly } from '../LanguageService';
+import { convertKind, generateIndent, isWhitespaceOnly } from '../LanguageService';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 export class AventusTemplateLanguageService {
@@ -17,6 +17,7 @@ export class AventusTemplateLanguageService {
 	private filesNpm: string[] = [];
 
 	public constructor() {
+		loadTypescriptLib();
 		this.filesNeeded = [pathToUri(join(serverFolder(), 'lib/templateScript/AventusTemplate.d.ts'))]
 		let content = loadLibrary(join(serverFolder(), 'lib/templateScript/AventusTemplate.d.ts'))!;
 		this.filesLoaded[this.filesNeeded[0]] = {

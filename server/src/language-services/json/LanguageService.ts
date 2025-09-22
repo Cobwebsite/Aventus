@@ -5,7 +5,7 @@ import { AventusErrorCode, AventusExtension } from "../../definition";
 import { AventusFile } from '../../files/AventusFile';
 import { createErrorTs, escapeRegex, getFolder, uriToPath } from "../../tools";
 import { AventusConfig, AventusConfigBuild, AventusConfigBuildCompile, AventusConfigBuildDependance, AventusConfigBuildStories, AventusConfigStatic } from "./definition";
-import { AventusConfigSchema, AventusPhpSchema, AventusSharpSchema, AventusTemplateSchema } from "./schema";
+import { AventusConfigSchema, AventusPhpSchema, AventusSharpSchema } from "./schema";
 import { env } from 'process';
 import { GenericServer } from '../../GenericServer';
 import { SettingsManager } from '../../settings/Settings';
@@ -34,11 +34,6 @@ export class AventusJSONLanguageService {
                     fileMatch: ["**" + AventusExtension.Config],
                     uri: AventusConfigSchema.$schema ?? '',
                     schema: AventusConfigSchema
-                },
-                {
-                    fileMatch: ["**" + AventusExtension.Template],
-                    uri: AventusTemplateSchema.$schema ?? '',
-                    schema: AventusTemplateSchema
                 },
                 {
                     fileMatch: ["**" + AventusExtension.CsharpConfig],

@@ -35,7 +35,8 @@ export const AventusExtension = {
     Static: ".static.avt",
     Definition: ".def.avt",
     DefinitionNpm: ".defnpm.avt",
-    Template: "template.avt",
+    Template: "template.avt.ts",
+    ConfigTemplate: "!aventus.conf.avt",
     Package: ".package.avt",
     I18n: ".i18n.avt",
 } as const;

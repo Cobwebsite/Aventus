@@ -2,7 +2,8 @@ export class Template extends AventusTemplate {
     protected override meta(): TemplateInfo {
         return {
             name: "State.Basic State",
-            description: "Create a basic state"
+            description: "Create a basic state",
+            installationFolder: "Aventus/States"
         };
     }
     protected override async run(destination: string): Promise<void> {
@@ -14,9 +15,8 @@ export class Template extends AventusTemplate {
         name = name.charAt(0).toUpperCase() + name.slice(1);
         this.registerVar("name", name);
 
-        this.writeFile((config) => {
-            config.openFileOnEnd();
-        });
+        await this.writeFile();
+        this.openFile(name + ".state.avt");
     }
 
 }

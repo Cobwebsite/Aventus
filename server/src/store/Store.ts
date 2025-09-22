@@ -5,7 +5,7 @@ import { Build } from '../project/Build';
 import { DependanceManager } from '../project/DependanceManager';
 import { dirname, join, normalize } from 'path';
 import { AventusExtension } from '../definition';
-import { createWriteStream, existsSync, readdirSync, readFileSync, unlink, unlinkSync } from 'fs';
+import { createReadStream, createWriteStream, existsSync, readdirSync, readFileSync, rmSync, unlink, unlinkSync } from 'fs';
 import { TemplateScript } from '../files/Template';
 import { create as createArchive } from 'archiver'
 import { GenericServer } from '../GenericServer';
@@ -13,6 +13,7 @@ import { GenericServer } from '../GenericServer';
 type StoreSettings = HiddenSettings["store"];
 
 export class Store {
+	public static readonly url = "http://127.0.0.1:8000";
 	private static _settings: StoreSettings;
 	public static get settings(): StoreSettings {
 		if (!this._settings) {
@@ -119,7 +120,7 @@ export class Store {
 		form.append("name", template.name);
 		form.append("description", template.description);
 		form.append("version", template.version);
-		form.append("is_project", template.isProject + '');
+		form.append("is_project", template.isProject ? '1' : '0');
 		if (template.organization) {
 			form.append("organization", template.organization);
 		}
@@ -130,19 +131,7 @@ export class Store {
 		const dir = dirname(template.config);
 
 		const outputZipPath = join(GenericServer.savePath, "temp", template.name + ".zip");
-		const output = createWriteStream(outputZipPath);
-		const archive = createArchive("zip", { zlib: { level: 9 } });
-		output.on("close", () => {
-			console.log(`Archive créée : ${outputZipPath} (${archive.pointer()} bytes)`);
-		});
-
-		archive.on("error", (err) => {
-			throw err;
-		});
-
-		archive.pipe(output);
-		archive.directory(dir, false);
-		await archive.finalize();
+		await this.zip(dir, outputZipPath);
 
 		const packageFile = new Blob([readFileSync(outputZipPath)], { type: "application/zip" });
 		form.append("templateFile", packageFile, template.name + ".zip");
@@ -174,7 +163,7 @@ export class Store {
 				const bearer = this.token + "|" + machineId;
 				headers['Authorization'] = 'Bearer ' + bearer;
 			}
-			query = await fetch("http://127.0.0.1:8000/api/remote" + uri, {
+			query = await fetch(Store.url + "/api/remote" + uri, {
 				method: "POST",
 				body: body instanceof FormData ? body : JSON.stringify(body),
 				headers
@@ -208,6 +197,25 @@ export class Store {
 			return new QueryError([{ code: -500, message: e + "" }])
 		}
 	}
+
+	public static zip(dir: string, output: string) {
+		return new Promise<void>(async (resolve, reject) => {
+			const outputStream = createWriteStream(output);
+			const archive = createArchive("zip", { zlib: { level: 9 } });
+			outputStream.on("close", () => {
+				resolve();
+			});
+
+			archive.on("error", (err) => {
+				reject(err);
+			});
+
+			archive.pipe(outputStream);
+			archive.directory(dir, false);
+			await archive.finalize();
+		})
+	}
+
 }
 
 

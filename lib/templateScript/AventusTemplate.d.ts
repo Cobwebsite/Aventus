@@ -23,7 +23,6 @@ declare type WriteInfo = {
     rawContent: string;
     content: string;
     isDir: boolean;
-    openFileOnEnd: () => void;
 };
 declare type TemplateInfo = {
     name: string,
@@ -32,9 +31,11 @@ declare type TemplateInfo = {
     /** Determine if the template can be use without right click */
     allowQuick?: boolean,
     organization?: string,
-	tags?: string[],
+    tags?: string[],
     /** Determine if the template is a project or a template */
-    isProject?:boolean
+    isProject?: boolean,
+    /** Determine where to install the template */
+    installationFolder?: string
 }
 
 declare type WriteCallback = (info: WriteInfo) => void | boolean;
@@ -53,7 +54,6 @@ declare abstract class AventusTemplate {
     protected blocks: {
         [key: string]: BlockInfo;
     };
-    protected filesToOpen: string[];
     protected destination: string;
     protected workspacePath: string;
     protected templatePath: string;
@@ -80,4 +80,6 @@ declare abstract class AventusTemplate {
     protected showProgress(txt: string): Promise<string>;
     protected hideProgress(uuid: string): Promise<void>;
     protected runWithProgress(txt: string, cb: () => Promise<void>): Promise<void>;
+    protected openFile(name: string | string[]): void;
+    protected sleep(ms: number): Promise<void>;
 }

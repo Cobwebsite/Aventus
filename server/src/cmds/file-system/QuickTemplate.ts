@@ -46,11 +46,13 @@ export class QuickTemplate {
 			for (let quickName of quickNames) {
 				if (!existsSync(quickName)) {
 					let template = TemplateScript.create(templatePath, workspace);
-					items.push({
-						label: template.name,
-						detail: template.description,
-					});
-					templatePathes[template.name] = quickName;
+					if (template) {
+						items.push({
+							label: template.name,
+							detail: template.description,
+						});
+						templatePathes[template.name] = quickName;
+					}
 				}
 			}
 			const result = await GenericServer.Select(items, { title: "Select quick template" });
@@ -59,13 +61,10 @@ export class QuickTemplate {
 			templatePath = templatePathes[result.label]
 		}
 
-		if (!templatePath.endsWith(AventusExtension.Template) && !templatePath.endsWith(AventusExtension.Template + ".ts")) {
+		if (!templatePath.endsWith(AventusExtension.Template)) {
 			let testPath = join(templatePath, AventusExtension.Template)
-			if (!existsSync(testPath)) {
-				templatePath = join(templatePath, AventusExtension.Template + ".ts");
-			}
-			else {
-				templatePath = testPath;
+			if (existsSync(testPath)) {
+				templatePath = join(templatePath, AventusExtension.Template);
 			}
 		}
 		if (!existsSync(templatePath)) {
@@ -73,6 +72,8 @@ export class QuickTemplate {
 			return;
 		}
 		let template = TemplateScript.create(templatePath, workspace);
-		await template.init(workspace);
+		if(template) {
+			await template.init(workspace);
+		}
 	}
 }

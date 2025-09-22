@@ -6,7 +6,7 @@ import { AventusTemplateLanguageService } from './LanguageService';
 
 export class AventusTemplateFile extends AventusBaseFile {
 	
-	public languageService: AventusTemplateLanguageService
+	public languageService: AventusTemplateLanguageService;
 
 	public constructor(file: AventusFile) {
 		super(file);

@@ -292,7 +292,7 @@ export class FilesManager {
 
     protected async fileExists(document: TextDocument) {
         if (!this.files[document.uri]) {
-            if (document.uri.endsWith("template.avt.ts")) {
+            if (document.uri.endsWith(AventusExtension.Template)) {
                 await this.registerFile(document);
                 return true;
             }

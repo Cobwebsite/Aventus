@@ -1,6 +1,5 @@
-import { TemplateJSON, TemplateScript } from '../../files/Template';
+import { TemplateScript } from '../../files/Template';
 import { TemplatesByName } from '../../files/TemplateManager';
-import { BaseTemplate } from '../../files/Templates/BaseTemplate';
 import { GenericServer } from '../../GenericServer';
 import { SelectItem } from '../../IConnection';
 import { SettingsManager } from '../../settings/Settings';
@@ -13,7 +12,7 @@ export class QuickTemplateEdit {
 	public static async run() {
 		let quickNames = SettingsManager.getInstance().settings.quickCreations;
 		const items: (SelectItem & { folderPath: string })[] = [];
-		const readRecu = (info: TemplateJSON | TemplateScript | BaseTemplate | TemplatesByName) => {
+		const readRecu = (info: TemplateScript | TemplatesByName) => {
 			if (info instanceof TemplateScript) {
 				if (info.allowQuick) {
 					items.push({
@@ -23,9 +22,6 @@ export class QuickTemplateEdit {
 						folderPath: info.folderPath,
 					});
 				}
-			}
-			else if (info instanceof TemplateJSON || info instanceof BaseTemplate) {
-
 			}
 			else {
 				for (let key in info) {
@@ -38,7 +34,7 @@ export class QuickTemplateEdit {
 		readRecu(projects.templates);
 		let templates = await GenericServer.localTemplateManager?.readTemplates() ?? { nb: 0, templates: {} };
 		readRecu(templates.templates);
-		
+
 
 		if (items.length == 0) {
 			SettingsManager.getInstance().setSettings({ quickCreations: [] }, true)

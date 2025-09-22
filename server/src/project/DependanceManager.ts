@@ -13,6 +13,7 @@ import { GenericServer } from '../GenericServer';
 import { FilesManager } from '../files/FilesManager';
 import { AventusFile } from '../files/AventusFile';
 import { Extract } from 'unzipper'
+import { Store } from '../store/Store';
 
 type DependanceLoopPart = {
 	file: AventusPackageFile,
@@ -293,7 +294,7 @@ export class DependanceManager {
 			}
 			mkdirSync(uri, { recursive: true });
 			let downloadPath = join(uri, "temp.zip");
-			if (!await this.downloadFile(downloadPath, `http://127.0.0.1:8000/package/download/${name}/${version}`)) {
+			if (!await this.downloadFile(downloadPath, Store.url + `/package/download/${name}/${version}`)) {
 				return null;
 			}
 

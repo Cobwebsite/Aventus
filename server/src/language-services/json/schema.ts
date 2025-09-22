@@ -386,68 +386,6 @@ export const AventusConfigSchema: JSONSchema = {
     }
 };
 
-export const AventusTemplateSchema: JSONSchema = {
-    "$schema": "foo://aventus/template.json",
-    "title": "JSON Schema for Aventus Template",
-    "description": "JSON Schema for Aventus Template",
-    "type": "object",
-    "additionalProperties": false,
-    "properties": {
-        "name": { type: "string" },
-        "description": { type: "string" },
-        "version": {
-            type: "string",
-            pattern: "^[0-9]+\.[0-9]+\.[0-9]+$"
-        },
-        "variables": {
-            type: "object",
-            patternProperties: {
-                "^.*$": {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                        "question": { type: "string" },
-                        "type": { type: "string", enum: ["input", "select"] },
-                        "defaultValue": { oneOf: [{ type: "string" }, { type: "number" }, { type: "boolean" }] },
-                        "list": { type: "object" },
-                        "validation": {
-                            type: "array",
-                            items: {
-                                type: "object",
-                                additionalProperties: false,
-                                properties: {
-                                    "pattern": {
-                                        type: "string"
-                                    },
-                                    "errorMsg": {
-                                        type: "string"
-                                    }
-                                },
-                                required: ["pattern"]
-                            }
-                        }
-
-                    },
-                    "required": ["question", "type"]
-                }
-            },
-        },
-        "filesToOpen": {
-            type: "array",
-            items: { type: "string" },
-        },
-        "cmdsAfter": {
-            type: "array",
-            items: { type: "string" }
-        },
-        "cmdsAfterAdmin": {
-            type: "array",
-            items: { type: "string" }
-        }
-    },
-    "required": ["name", "description", "version", "variables"]
-}
-
 
 export const AventusSharpSchema: JSONSchema = {
     "$schema": "foo://aventus/sharp.json",

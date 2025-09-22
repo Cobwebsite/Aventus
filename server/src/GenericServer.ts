@@ -2,7 +2,6 @@ import { Color, CompletionItem, ExecuteCommandParams, FormattingOptions, Positio
 import { AvInitializeParams, IConnection, InputOptions, SelectItem, SelectOptions } from './IConnection';
 import { FilesManager } from './files/FilesManager';
 import { FilesWatcher } from './files/FilesWatcher';
-import { TemplateManager } from './language-services/json/TemplateManager';
 import { ProjectManager } from './project/ProjectManager';
 import { Settings, SettingsManager } from './settings/Settings';
 import { TextDocument } from 'vscode-languageserver-textdocument';
@@ -190,7 +189,6 @@ export class GenericServer {
 		const settings = SettingsManager.getInstance().settings;
 		if (!settings.onlyBuild) {
 			await FilesWatcher.getInstance().destroy();
-			TemplateManager.getInstance().destroy();
 			CSharpManager.getInstance().destroy();
 			PhpManager.getInstance().destroy();
 		}
@@ -280,10 +278,7 @@ export class GenericServer {
 		if (this.instance.isLoading) {
 			return false;
 		}
-		if (document.uri.endsWith(AventusExtension.Base) || document.uri.endsWith(AventusExtension.Config)) {
-			return true;
-		}
-		if (document.uri.endsWith("template.avt.ts")) {
+		if (document.uri.endsWith(AventusExtension.Base) || document.uri.endsWith(AventusExtension.Config) || document.uri.endsWith(AventusExtension.Template)) {
 			return true;
 		}
 		return false;
@@ -322,7 +317,6 @@ export class GenericServer {
 			this._template = new TemplateFileManager(this.workspaces);
 			this._localTemplate = new LocalTemplateManager(this._template);
 			this._localProject = new LocalProjectManager(this._template);
-			TemplateManager.getInstance();
 			CSharpManager.getInstance();
 			PhpManager.getInstance();
 		}

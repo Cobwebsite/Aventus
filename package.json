@@ -79,9 +79,9 @@
 				"configuration": "./syntaxes/ts-language-configuration.json",
 				"filenames": [
 					"aventus.conf.avt",
+					"!aventus.conf.avt",
 					"aventus.sharp.avt",
 					"aventus.php.avt",
-					"template.avt",
 					"template.avt.ts"
 				],
 				"icon": {
