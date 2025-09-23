@@ -10658,6 +10658,31 @@ Toast.ToastManager.Tag=`av-toast-manager`;
 __as1(_.Toast, 'ToastManager', Toast.ToastManager);
 if(!window.customElements.get('av-toast-manager')){window.customElements.define('av-toast-manager', Toast.ToastManager);Aventus.WebComponentInstance.registerDefinition(Toast.ToastManager);}
 
+let Process=class Process {
+    static handleErrors;
+    static configure(config) {
+        this.handleErrors = config.handleErrors;
+    }
+    static async execute(prom) {
+        const queryResult = await prom;
+        return await this.parseErrors(queryResult);
+    }
+    static async parseErrors(result) {
+        if (result.errors.length > 0) {
+            if (this.handleErrors) {
+                let msg = result.errors.map(p => p.message.replace(/\n/g, '<br/>')).join("<br/>");
+                this.handleErrors(msg, result.errors);
+            }
+            return undefined;
+        }
+        if (result instanceof Aventus.ResultWithError)
+            return result.result;
+        return undefined;
+    }
+}
+Process.Namespace=`Aventus`;
+__as1(_, 'Process', Process);
+
 
 for(let key in _) { Aventus[key] = _[key] }
 })(Aventus);

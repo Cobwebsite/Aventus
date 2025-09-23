@@ -13,7 +13,7 @@ import { GenericServer } from '../GenericServer';
 type StoreSettings = HiddenSettings["store"];
 
 export class Store {
-	public static readonly url = "http://127.0.0.1:8000";
+	public static readonly url = "https://store.aventusjs.com";
 	private static _settings: StoreSettings;
 	public static get settings(): StoreSettings {
 		if (!this._settings) {

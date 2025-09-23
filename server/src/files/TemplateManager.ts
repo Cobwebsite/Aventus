@@ -385,18 +385,19 @@ export class TemplateManager {
 		return null;
 	}
 
-	private async downloadTemplateFromStore() {
+	public async downloadTemplateFromStore(uri?: string) {
 		const regex = `^${Store.url.replace(/\//g, '\\/')}\\/template\\/download\\/(?<name>[^/]+)\\/(?<version>\\d+\\.\\d+\\.\\d+)$`
-		const r = new RegExp(regex);
-		const uri = await GenericServer.Input({
-			title: "Store url",
-			validations: [{
-				message: "The store url must be " + Store.url + "\/template\/download\/{name}\/{version}$",
-				regex: regex
-			}]
-		})
-		if (!uri) return;
-
+		if (!uri) {
+			const askUri = await GenericServer.Input({
+				title: "Store url",
+				validations: [{
+					message: "The store url must be " + Store.url + "\/template\/download\/{name}\/{version}$",
+					regex: regex
+				}]
+			})
+			if (!askUri) return;
+			uri = askUri;
+		}
 		const match = uri.match(new RegExp(regex));
 		if (!match) return;
 
@@ -434,6 +435,8 @@ export class TemplateManager {
 			if (!await this.extractZip(downloadPath, destPath)) {
 				return;
 			}
+
+			GenericServer.showInformationMessage("Template " + packageName + " installed");
 		}
 
 		rmSync(packageTempPath, { force: true, recursive: true });

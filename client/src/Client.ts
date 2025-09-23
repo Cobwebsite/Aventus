@@ -1,5 +1,5 @@
 import { join } from "path";
-import { ExtensionContext, Location, Position, Range, Uri, commands, workspace } from "vscode";
+import { Disposable, ExtensionContext, Location, Position, Range, Uri, commands, window, workspace } from "vscode";
 import { CancellationToken, LanguageClient, LanguageClientOptions, LocationLink, MessageSignature, Range as Range2, ServerOptions, TransportKind } from "vscode-languageclient/node";
 import { Commands } from "./cmds";
 import { AvenutsVsComponent } from "./component";
@@ -12,6 +12,7 @@ import { AutoLoader } from './manifest/AutoLoader';
 import { AventusI18nEditor } from './customEditors/AventusI18nEditor';
 import { GetKeyFromPosition } from './communication/i18n/GetKeyFromPosition';
 import { SettingsManager } from './Settings';
+import { ProtocolHandler } from './ProtocolHandler';
 
 export class Client {
     private _context: ExtensionContext | undefined = undefined;
@@ -33,6 +34,8 @@ export class Client {
         this.debugFile = new DebugFile();
         context.subscriptions.push(workspace.registerTextDocumentContentProvider(DebugFile.schema, this.debugFile));
         context.subscriptions.push(AventusI18nEditor.register(context));
+        context.subscriptions.push(new ProtocolHandler());
+
         AutoLoader.getInstance();
         this.components = new AvenutsVsComponent();
         this._context = context;

@@ -118,7 +118,7 @@ export class VsCodeConnection implements IConnection {
 					renameProvider: true,
 					colorProvider: {
 						documentSelector: [{ language: AventusLanguageId.SCSS }, { language: AventusLanguageId.WebComponent }]
-					}
+					},
 				}
 			};
 		})

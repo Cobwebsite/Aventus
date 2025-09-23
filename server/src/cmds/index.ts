@@ -38,6 +38,7 @@ import { StorePublishPackage } from './store/PublishPackage';
 import { QuickTemplateEdit } from './file-system/QuickTemplateEdit';
 import { QuickTemplate } from './file-system/QuickTemplate';
 import { StorePublishTemplate } from './store/PublishTemplate';
+import { StoreDownloadTemplate } from './store/DownloadTemplate';
 
 export const Commands = {
     allCommandes: {
@@ -78,6 +79,7 @@ export const Commands = {
         [StoreDisconnect.cmd]: StoreDisconnect,
         [StorePublishPackage.cmd]: StorePublishPackage,
         [StorePublishTemplate.cmd]: StorePublishTemplate,
+        [StoreDownloadTemplate.cmd]: StoreDownloadTemplate,
         [QuickTemplate.cmd]: QuickTemplate,
         [QuickTemplateEdit.cmd]: QuickTemplateEdit,
     },

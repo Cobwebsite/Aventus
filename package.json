@@ -488,6 +488,10 @@
 				"title": "Aventus : Publish template to the store"
 			},
 			{
+				"command": "aventus.store.download_template",
+				"title": "Aventus : Download template from the store"
+			},
+			{
 				"command": "aventus.template.quick_edit",
 				"title": "Aventus : Edit Quick Creation"
 			},
@@ -711,6 +715,10 @@
 				},
 				{
 					"command": "aventus.store.publish_template",
+					"when": "false"
+				},
+				{
+					"command": "aventus.store.download_template",
 					"when": "false"
 				}
 			]
