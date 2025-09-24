@@ -847,5 +847,5 @@ type ItemField<T extends Aventus.IData, U extends Aventus.IData> = {
 {}
 //#endregion html //
 //#region dependances //
-[]
+{}
 //#endregion dependances //

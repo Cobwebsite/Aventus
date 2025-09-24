@@ -318,11 +318,11 @@ export class DependanceManager {
 		}
 
 		if (!packageTempPath) return null;
-
-		let file = await FilesManager.getInstance().registerFilePackage(packageTempPath)
+		const packageUri = pathToUri(packageTempPath);
+		let file = await FilesManager.getInstance().registerFilePackage(packageUri)
 		const packageFile = this.loadPackage(file, build);
 		return {
-			uri: packageTempPath,
+			uri: packageUri,
 			file: packageFile
 		}
 	}
