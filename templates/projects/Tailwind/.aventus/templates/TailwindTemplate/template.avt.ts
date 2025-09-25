@@ -8,7 +8,7 @@ export class Template extends AventusTemplate {
         };
     }
     protected override async run(destination: string): Promise<void> {
-
+        // ask user the name of the component
         const name = await this.input({
             title: "Provide a name for your component",
             value: "",
@@ -18,14 +18,12 @@ export class Template extends AventusTemplate {
             }]
         });
         if(!name) return;
-
+        // register var ${{componentName}}
         this.registerVar("componentName", name);
-
-        await this.writeFile((info) => {
-            if(info.templatePath.endsWith(name + ".wcl.avt")) {
-                info.openFileOnEnd();
-            }
-        });
+        // write all files
+        await this.writeFile();
+        // open file in the editor
+        await this.openFile(name + "/" + name + ".wcl.avt");
     }
 
 }
