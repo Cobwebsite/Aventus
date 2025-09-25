@@ -643,6 +643,8 @@ export class AventusJSONLanguageService {
             organization: config.organization,
             description: config.description,
             readme: config.readme,
+            repository: config.repository,
+            documentation: config.documentation,
             disabled: false,
             hideWarnings: config.hideWarnings,
             src: [],

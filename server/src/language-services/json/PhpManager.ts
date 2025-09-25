@@ -24,7 +24,7 @@ export class PhpManager {
 	}
 
 	private async onNewFile(document: AventusFile) {
-		if (document.uri.endsWith(AventusExtension.PhpConfig)) {
+		if (document.uri.endsWith(AventusExtension.PhpConfig) && !document.uri.includes("/vendor/")) {
 			this.files[document.uri] = new PhpFile(document);
 		}
 	}

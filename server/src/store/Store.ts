@@ -14,6 +14,7 @@ type StoreSettings = HiddenSettings["store"];
 
 export class Store {
 	public static readonly url = "https://store.aventusjs.com";
+	// public static readonly url = "http://127.0.0.1:8000";
 	private static _settings: StoreSettings;
 	public static get settings(): StoreSettings {
 		if (!this._settings) {
@@ -61,6 +62,12 @@ export class Store {
 		form.append("version", build.buildConfig.version);
 		if (build.buildConfig.organization) {
 			form.append("organization", build.buildConfig.organization);
+		}
+		if (build.buildConfig.documentation) {
+			form.append("documentation", build.buildConfig.documentation);
+		}
+		if (build.buildConfig.repository) {
+			form.append("repository", build.buildConfig.repository);
 		}
 		for (let tag of build.buildConfig.tags) {
 			form.append("tags[]", tag);
@@ -123,6 +130,12 @@ export class Store {
 		form.append("is_project", template.isProject ? '1' : '0');
 		if (template.organization) {
 			form.append("organization", template.organization);
+		}
+		if (template.documentation) {
+			form.append("documentation", template.documentation);
+		}
+		if (template.repository) {
+			form.append("repository", template.repository);
 		}
 		for (let tag of template.tags) {
 			form.append("tags[]", tag);

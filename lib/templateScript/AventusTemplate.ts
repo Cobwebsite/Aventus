@@ -44,6 +44,8 @@ export type TemplateInfo = {
 	tags?: string[],
 	isProject?: boolean,
 	installationFolder?: string
+	documentation?: string,
+	repository?: string,
 }
 
 const trueLog = console.log;

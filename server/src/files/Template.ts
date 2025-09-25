@@ -36,21 +36,36 @@ export interface TemplateConfig {
 	"cmdsAfterAdmin"?: string[],
 }
 
+export type TemplateScriptConfig = {
+	name: string,
+	version: string,
+	description: string,
+	allowQuick?: boolean,
+	organization?: string,
+	tags?: string[],
+	isProject?: boolean,
+	installationFolder?: string,
+	documentation?: string,
+	repository?: string,
+}
+
 export class TemplateScript {
 	public config: string;
 	public folderPath: string;
 	public workspacePath: string;
 
-	public name: string;
-	public version: string;
-	public description: string;
+	public name: string = "";
+	public version: string = "1.0.0";
+	public description: string = "";
 	public organization?: string;
 	public tags: string[] = [];
 	public lastModified: Date;
-	public allowQuick: boolean;
-	public isProject: boolean;
+	public allowQuick: boolean = false;
+	public isProject: boolean = false;
 	public containsError: boolean = false;
-	public installationFolder?: string
+	public installationFolder?: string;
+	public documentation?: string;
+	public repository?: string;
 
 	private static memory: { [key: string]: TemplateScript } = {}
 	public static create(config: string, workspacePath: string): TemplateScript | undefined {
@@ -78,14 +93,19 @@ export class TemplateScript {
 		this.folderPath = folderPath;
 		this.workspacePath = workspacePath;
 		const basicInfo = this.prepareScript();
-		this.name = basicInfo.name;
-		this.description = basicInfo.description;
-		this.version = basicInfo.version;
-		this.organization = basicInfo.organization;
-		this.tags = basicInfo.tags ?? [];
-		this.allowQuick = basicInfo.allowQuick ?? false;
-		this.installationFolder = basicInfo.installationFolder;
-		this.isProject = basicInfo.isProject ?? false;
+		for (let key in basicInfo) {
+			if (basicInfo[key]) {
+				this[key] = basicInfo[key];
+			}
+		}
+		// this.name = basicInfo.name;
+		// this.description = basicInfo.description;
+		// this.version = basicInfo.version;
+		// this.organization = basicInfo.organization;
+		// this.tags = basicInfo.tags ?? [];
+		// this.allowQuick = basicInfo.allowQuick ?? false;
+		// this.installationFolder = basicInfo.installationFolder;
+		// this.isProject = basicInfo.isProject ?? false;
 		this.lastModified = statSync(this.config).mtime
 	}
 
@@ -120,7 +140,7 @@ export class TemplateScript {
 					const data = JSON.stringify({ cmd, result: result ?? 'NULL' }) + "\n";
 					child.stdin.write(data);
 				}
-				child.stdin.on('error', function () {});
+				child.stdin.on('error', function () { });
 
 				child.stdout.on("data", async (data) => {
 					const txt = data.toString().trim();
@@ -264,16 +284,7 @@ export class TemplateScript {
 		})
 	}
 
-	protected prepareScript(): {
-		name: string,
-		version: string,
-		description: string,
-		allowQuick?: boolean,
-		organization?: string,
-		tags?: string[],
-		isProject?: boolean,
-		installationFolder?: string
-	} {
+	protected prepareScript(): TemplateScriptConfig {
 		const rootPath = join(serverFolder(), 'lib/templateScript/AventusTemplate.ts').replace(/\\/g, "\\\\");
 
 		const txt = `

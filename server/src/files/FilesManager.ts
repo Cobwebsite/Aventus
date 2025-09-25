@@ -47,7 +47,8 @@ export class FilesManager {
             if (extension) {
                 let currentPath = uriToPath(uri);
                 let textDoc = TextDocument.create(uri, extension, 0, readFileSync(currentPath, 'utf8'));
-                this.registerFile(textDoc);
+                await this.registerFile(textDoc);
+                this.onSave(textDoc);
             }
         }
     }
@@ -67,9 +68,9 @@ export class FilesManager {
             return;
         }
         if (!this.files[uri]) {
-
             let textDoc = TextDocument.create(uri, extension, 0, content);
-            this.registerFile(textDoc);
+            await this.registerFile(textDoc);
+            this.onSave(textDoc);
         }
         else {
             let newVersion = this.files[uri].versionUser + 1;
@@ -294,6 +295,7 @@ export class FilesManager {
         if (!this.files[document.uri]) {
             if (document.uri.endsWith(AventusExtension.Template)) {
                 await this.registerFile(document);
+                this.onSave(document);
                 return true;
             }
             return false;

@@ -21,6 +21,14 @@ export const AventusConfigSchema: JSONSchema = {
             type: "string",
             description: "Description of the package",
         },
+        "documentation": {
+            type: "string",
+            description: "Documentation link for the package",
+        },
+        "repository": {
+            type: "string",
+            description: "Repository link for the package",
+        },
         "tags": {
             type: "array",
             description: "Tags for the package",
@@ -82,6 +90,14 @@ export const AventusConfigSchema: JSONSchema = {
                         items: {
                             type: "string"
                         }
+                    },
+                    "documentation": {
+                        type: "string",
+                        description: "Documentation link for the package",
+                    },
+                    "repository": {
+                        type: "string",
+                        description: "Repository link for the package",
                     },
                     "organization": {
                         type: "string",

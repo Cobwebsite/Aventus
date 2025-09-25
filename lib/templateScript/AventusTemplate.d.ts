@@ -35,7 +35,11 @@ declare type TemplateInfo = {
     /** Determine if the template is a project or a template */
     isProject?: boolean,
     /** Determine where to install the template */
-    installationFolder?: string
+    installationFolder?: string,
+    /** Documentation link for the package */
+	documentation?: string,
+    /** Repository link for the package */
+	repository?: string,
 }
 
 declare type WriteCallback = (info: WriteInfo) => void | boolean;
