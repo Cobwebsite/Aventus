@@ -5108,94 +5108,6 @@ let ResizeObserver=class ResizeObserver {
 ResizeObserver.Namespace=`Aventus`;
 __as1(_, 'ResizeObserver', ResizeObserver);
 
-let Animation=class Animation {
-    /**
-     * Default FPS for all Animation if not set inside options
-     */
-    static FPS_DEFAULT = 60;
-    options;
-    nextFrame = 0;
-    fpsInterval;
-    continueAnimation = false;
-    frame_id = 0;
-    constructor(options) {
-        if (!options.animate) {
-            options.animate = () => { };
-        }
-        if (!options.stopped) {
-            options.stopped = () => { };
-        }
-        if (!options.fps) {
-            options.fps = Animation.FPS_DEFAULT;
-        }
-        this.options = options;
-        this.fpsInterval = 1000 / options.fps;
-    }
-    animate() {
-        let now = window.performance.now();
-        let elapsed = now - this.nextFrame;
-        if (elapsed <= this.fpsInterval) {
-            this.frame_id = requestAnimationFrame(() => this.animate());
-            return;
-        }
-        this.nextFrame = now - (elapsed % this.fpsInterval);
-        setTimeout(() => {
-            this.options.animate();
-        }, 0);
-        if (this.continueAnimation) {
-            this.frame_id = requestAnimationFrame(() => this.animate());
-        }
-        else {
-            this.options.stopped();
-        }
-    }
-    /**
-     * Start the of animation
-     */
-    start() {
-        if (this.continueAnimation == false) {
-            this.continueAnimation = true;
-            this.nextFrame = window.performance.now();
-            this.animate();
-        }
-    }
-    /**
-     * Stop the animation
-     */
-    stop() {
-        this.continueAnimation = false;
-    }
-    /**
-     * Stop the animation
-     */
-    immediateStop() {
-        cancelAnimationFrame(this.frame_id);
-        this.continueAnimation = false;
-        this.options.stopped();
-    }
-    /**
-     * Get the FPS
-     */
-    getFPS() {
-        return this.options.fps;
-    }
-    /**
-     * Set the FPS
-     */
-    setFPS(fps) {
-        this.options.fps = fps;
-        this.fpsInterval = 1000 / this.options.fps;
-    }
-    /**
-     * Get the animation status (true if animation is running)
-     */
-    isStarted() {
-        return this.continueAnimation;
-    }
-}
-Animation.Namespace=`Aventus`;
-__as1(_, 'Animation', Animation);
-
 let DragAndDrop=class DragAndDrop {
     /**
      * Default offset before drag element
@@ -5351,7 +5263,11 @@ let DragAndDrop=class DragAndDrop {
             }
         }
         this.draggableElement = draggableElement;
-        return this.options.onStart(e);
+        const result = this.options.onStart(e);
+        if (result !== false) {
+            document.body.style.userSelect = 'none';
+        }
+        return result;
     }
     onDrag(e) {
         if (!this.isEnable) {
@@ -5381,6 +5297,7 @@ let DragAndDrop=class DragAndDrop {
         if (!this.isEnable) {
             return;
         }
+        document.body.style.userSelect = '';
         let targets = this.options.useMouseFinalPosition ? this.getMatchingTargetsWithMousePosition({
             x: e.clientX,
             y: e.clientY
@@ -5758,6 +5675,94 @@ let DragAndDrop=class DragAndDrop {
 }
 DragAndDrop.Namespace=`Aventus`;
 __as1(_, 'DragAndDrop', DragAndDrop);
+
+let Animation=class Animation {
+    /**
+     * Default FPS for all Animation if not set inside options
+     */
+    static FPS_DEFAULT = 60;
+    options;
+    nextFrame = 0;
+    fpsInterval;
+    continueAnimation = false;
+    frame_id = 0;
+    constructor(options) {
+        if (!options.animate) {
+            options.animate = () => { };
+        }
+        if (!options.stopped) {
+            options.stopped = () => { };
+        }
+        if (!options.fps) {
+            options.fps = Animation.FPS_DEFAULT;
+        }
+        this.options = options;
+        this.fpsInterval = 1000 / options.fps;
+    }
+    animate() {
+        let now = window.performance.now();
+        let elapsed = now - this.nextFrame;
+        if (elapsed <= this.fpsInterval) {
+            this.frame_id = requestAnimationFrame(() => this.animate());
+            return;
+        }
+        this.nextFrame = now - (elapsed % this.fpsInterval);
+        setTimeout(() => {
+            this.options.animate();
+        }, 0);
+        if (this.continueAnimation) {
+            this.frame_id = requestAnimationFrame(() => this.animate());
+        }
+        else {
+            this.options.stopped();
+        }
+    }
+    /**
+     * Start the of animation
+     */
+    start() {
+        if (this.continueAnimation == false) {
+            this.continueAnimation = true;
+            this.nextFrame = window.performance.now();
+            this.animate();
+        }
+    }
+    /**
+     * Stop the animation
+     */
+    stop() {
+        this.continueAnimation = false;
+    }
+    /**
+     * Stop the animation
+     */
+    immediateStop() {
+        cancelAnimationFrame(this.frame_id);
+        this.continueAnimation = false;
+        this.options.stopped();
+    }
+    /**
+     * Get the FPS
+     */
+    getFPS() {
+        return this.options.fps;
+    }
+    /**
+     * Set the FPS
+     */
+    setFPS(fps) {
+        this.options.fps = fps;
+        this.fpsInterval = 1000 / this.options.fps;
+    }
+    /**
+     * Get the animation status (true if animation is running)
+     */
+    isStarted() {
+        return this.continueAnimation;
+    }
+}
+Animation.Namespace=`Aventus`;
+__as1(_, 'Animation', Animation);
 
 let HttpError=class HttpError extends GenericError {
 }
@@ -6614,163 +6619,6 @@ if(!window.customElements.get('av-row')){window.customElements.define('av-row', 
     SpecialTouch[SpecialTouch["Enter"] = 17] = "Enter";
 })(Lib.SpecialTouch || (Lib.SpecialTouch = {}));
 __as1(_.Lib, 'SpecialTouch', Lib.SpecialTouch);
-
-Layout.GridCol = class GridCol extends Aventus.WebComponent {
-    get 'column'() { return this.getStringAttr('column') }
-    set 'column'(val) { this.setStringAttr('column', val) }get 'row'() { return this.getStringAttr('row') }
-    set 'row'(val) { this.setStringAttr('row', val) }get 'c_start'() { return this.getNumberAttr('c_start') }
-    set 'c_start'(val) { this.setNumberAttr('c_start', val) }get 'c_end'() { return this.getNumberAttr('c_end') }
-    set 'c_end'(val) { this.setNumberAttr('c_end', val) }    static __style = ``;
-    __getStatic() {
-        return GridCol;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(GridCol.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<slot></slot>` }
-    });
-}
-    getClassName() {
-        return "GridCol";
-    }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('column')){ this['column'] = undefined; }if(!this.hasAttribute('row')){ this['row'] = undefined; }if(!this.hasAttribute('c_start')){ this['c_start'] = undefined; }if(!this.hasAttribute('c_end')){ this['c_end'] = undefined; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('column');this.__upgradeProperty('row');this.__upgradeProperty('c_start');this.__upgradeProperty('c_end'); }
-}
-Layout.GridCol.Namespace=`Aventus.Layout`;
-Layout.GridCol.Tag=`av-grid-col`;
-__as1(_.Layout, 'GridCol', Layout.GridCol);
-if(!window.customElements.get('av-grid-col')){window.customElements.define('av-grid-col', Layout.GridCol);Aventus.WebComponentInstance.registerDefinition(Layout.GridCol);}
-
-Layout.Grid = class Grid extends Aventus.WebComponent {
-    static get observedAttributes() {return ["cols"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
-    get 'cols'() { return this.getNumberProp('cols') }
-    set 'cols'(val) { this.setNumberAttr('cols', val) }    static __style = `:host{display:grid}:host([cols=j]){grid-template-columns:repeat(1, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(2, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(3, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(4, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(5, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(6, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(7, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(8, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(9, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(10, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(11, minmax(0, 1fr))}:host([cols=j]){grid-template-columns:repeat(12, minmax(0, 1fr))}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_xs="0"]){margin-right:0%}::slotted(av-grid-col[size_xs="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_xs="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_xs="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_xs="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_xs="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_xs="3"]){margin-right:25%}::slotted(av-grid-col[size_xs="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_xs="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_xs="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_xs="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_xs="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_xs="6"]){margin-right:50%}::slotted(av-grid-col[size_xs="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_xs="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_xs="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_xs="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_xs="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_xs="9"]){margin-right:75%}::slotted(av-grid-col[size_xs="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_xs="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_xs="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_xs="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_xs="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xs="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_xs="12"]){margin-right:100%}::slotted(av-grid-col[size_xs="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_sm="0"]){margin-right:0%}::slotted(av-grid-col[size_sm="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_sm="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_sm="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_sm="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_sm="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_sm="3"]){margin-right:25%}::slotted(av-grid-col[size_sm="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_sm="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_sm="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_sm="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_sm="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_sm="6"]){margin-right:50%}::slotted(av-grid-col[size_sm="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_sm="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_sm="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_sm="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_sm="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_sm="9"]){margin-right:75%}::slotted(av-grid-col[size_sm="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_sm="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_sm="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_sm="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_sm="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_sm="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_sm="12"]){margin-right:100%}::slotted(av-grid-col[size_sm="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_md="0"]){margin-right:0%}::slotted(av-grid-col[size_md="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_md="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_md="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_md="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_md="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_md="3"]){margin-right:25%}::slotted(av-grid-col[size_md="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_md="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_md="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_md="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_md="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_md="6"]){margin-right:50%}::slotted(av-grid-col[size_md="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_md="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_md="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_md="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_md="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_md="9"]){margin-right:75%}::slotted(av-grid-col[size_md="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_md="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_md="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_md="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_md="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_md="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_md="12"]){margin-right:100%}::slotted(av-grid-col[size_md="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_lg="0"]){margin-right:0%}::slotted(av-grid-col[size_lg="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_lg="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_lg="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_lg="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_lg="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_lg="3"]){margin-right:25%}::slotted(av-grid-col[size_lg="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_lg="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_lg="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_lg="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_lg="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_lg="6"]){margin-right:50%}::slotted(av-grid-col[size_lg="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_lg="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_lg="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_lg="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_lg="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_lg="9"]){margin-right:75%}::slotted(av-grid-col[size_lg="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_lg="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_lg="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_lg="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_lg="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_lg="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_lg="12"]){margin-right:100%}::slotted(av-grid-col[size_lg="12"]){width:100%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="0"]){margin-left:0%}::slotted(av-grid-col[offset_right_xl="0"]){margin-right:0%}::slotted(av-grid-col[size_xl="0"]){width:0%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="1"]){margin-left:8.3333333333%}::slotted(av-grid-col[offset_right_xl="1"]){margin-right:8.3333333333%}::slotted(av-grid-col[size_xl="1"]){width:8.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="2"]){margin-left:16.6666666667%}::slotted(av-grid-col[offset_right_xl="2"]){margin-right:16.6666666667%}::slotted(av-grid-col[size_xl="2"]){width:16.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="3"]){margin-left:25%}::slotted(av-grid-col[offset_right_xl="3"]){margin-right:25%}::slotted(av-grid-col[size_xl="3"]){width:25%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="4"]){margin-left:33.3333333333%}::slotted(av-grid-col[offset_right_xl="4"]){margin-right:33.3333333333%}::slotted(av-grid-col[size_xl="4"]){width:33.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="5"]){margin-left:41.6666666667%}::slotted(av-grid-col[offset_right_xl="5"]){margin-right:41.6666666667%}::slotted(av-grid-col[size_xl="5"]){width:41.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="6"]){margin-left:50%}::slotted(av-grid-col[offset_right_xl="6"]){margin-right:50%}::slotted(av-grid-col[size_xl="6"]){width:50%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="7"]){margin-left:58.3333333333%}::slotted(av-grid-col[offset_right_xl="7"]){margin-right:58.3333333333%}::slotted(av-grid-col[size_xl="7"]){width:58.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="8"]){margin-left:66.6666666667%}::slotted(av-grid-col[offset_right_xl="8"]){margin-right:66.6666666667%}::slotted(av-grid-col[size_xl="8"]){width:66.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="9"]){margin-left:75%}::slotted(av-grid-col[offset_right_xl="9"]){margin-right:75%}::slotted(av-grid-col[size_xl="9"]){width:75%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="10"]){margin-left:83.3333333333%}::slotted(av-grid-col[offset_right_xl="10"]){margin-right:83.3333333333%}::slotted(av-grid-col[size_xl="10"]){width:83.3333333333%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="11"]){margin-left:91.6666666667%}::slotted(av-grid-col[offset_right_xl="11"]){margin-right:91.6666666667%}::slotted(av-grid-col[size_xl="11"]){width:91.6666666667%}}@media screen and (max-width: 100px){::slotted(av-grid-col[offset_xl="12"]){margin-left:100%}::slotted(av-grid-col[offset_right_xl="12"]){margin-right:100%}::slotted(av-grid-col[size_xl="12"]){width:100%}}`;
-    __getStatic() {
-        return Grid;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(Grid.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<slot></slot>` }
-    });
-}
-    getClassName() {
-        return "Grid";
-    }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('cols')){ this['cols'] = 12; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('cols'); }
-}
-Layout.Grid.Namespace=`Aventus.Layout`;
-Layout.Grid.Tag=`av-grid`;
-__as1(_.Layout, 'Grid', Layout.Grid);
-if(!window.customElements.get('av-grid')){window.customElements.define('av-grid', Layout.Grid);Aventus.WebComponentInstance.registerDefinition(Layout.Grid);}
-
-Layout.DynamicRow = class DynamicRow extends Aventus.WebComponent {
-    get 'max_width'() { return this.getStringAttr('max_width') }
-    set 'max_width'(val) { this.setStringAttr('max_width', val) }    sizes = { "xs": 300, "sm": 540, "md": 720, "lg": 960, "xl": 1140 };
-    static __style = `:host{display:flex;flex-wrap:wrap;flex-direction:row;width:100%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="0"]){margin-left:0%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="0"]){margin-right:0%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="0"]){width:0%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="1"]){margin-left:8.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="1"]){margin-right:8.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="1"]){width:8.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="2"]){margin-left:16.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="2"]){margin-right:16.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="2"]){width:16.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="3"]){margin-left:25%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="3"]){margin-right:25%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="3"]){width:25%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="4"]){margin-left:33.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="4"]){margin-right:33.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="4"]){width:33.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="5"]){margin-left:41.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="5"]){margin-right:41.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="5"]){width:41.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="6"]){margin-left:50%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="6"]){margin-right:50%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="6"]){width:50%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="7"]){margin-left:58.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="7"]){margin-right:58.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="7"]){width:58.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="8"]){margin-left:66.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="8"]){margin-right:66.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="8"]){width:66.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="9"]){margin-left:75%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="9"]){margin-right:75%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="9"]){width:75%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="10"]){margin-left:83.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="10"]){margin-right:83.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="10"]){width:83.3333333333%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="11"]){margin-left:91.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="11"]){margin-right:91.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="11"]){width:91.6666666667%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_xs="12"]){margin-left:100%}:host([max_width=""]) ::slotted(av-dynamic-col[offset_right_xs="12"]){margin-right:100%}:host([max_width=""]) ::slotted(av-dynamic-col[size_xs="12"]){width:100%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="0"]){margin-left:0%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="0"]){margin-right:0%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="0"]){width:0%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="1"]){margin-left:8.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="1"]){margin-right:8.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="1"]){width:8.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="2"]){margin-left:16.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="2"]){margin-right:16.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="2"]){width:16.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="3"]){margin-left:25%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="3"]){margin-right:25%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="3"]){width:25%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="4"]){margin-left:33.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="4"]){margin-right:33.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="4"]){width:33.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="5"]){margin-left:41.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="5"]){margin-right:41.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="5"]){width:41.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="6"]){margin-left:50%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="6"]){margin-right:50%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="6"]){width:50%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="7"]){margin-left:58.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="7"]){margin-right:58.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="7"]){width:58.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="8"]){margin-left:66.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="8"]){margin-right:66.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="8"]){width:66.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="9"]){margin-left:75%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="9"]){margin-right:75%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="9"]){width:75%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="10"]){margin-left:83.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="10"]){margin-right:83.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="10"]){width:83.3333333333%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="11"]){margin-left:91.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="11"]){margin-right:91.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="11"]){width:91.6666666667%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_xs="12"]){margin-left:100%}:host([max_width~=xs]) ::slotted(av-dynamic-col[offset_right_xs="12"]){margin-right:100%}:host([max_width~=xs]) ::slotted(av-dynamic-col[size_xs="12"]){width:100%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="0"]){margin-left:0%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="0"]){margin-right:0%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="0"]){width:0%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="1"]){margin-left:8.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="1"]){margin-right:8.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="1"]){width:8.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="2"]){margin-left:16.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="2"]){margin-right:16.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="2"]){width:16.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="3"]){margin-left:25%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="3"]){margin-right:25%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="3"]){width:25%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="4"]){margin-left:33.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="4"]){margin-right:33.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="4"]){width:33.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="5"]){margin-left:41.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="5"]){margin-right:41.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="5"]){width:41.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="6"]){margin-left:50%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="6"]){margin-right:50%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="6"]){width:50%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="7"]){margin-left:58.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="7"]){margin-right:58.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="7"]){width:58.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="8"]){margin-left:66.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="8"]){margin-right:66.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="8"]){width:66.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="9"]){margin-left:75%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="9"]){margin-right:75%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="9"]){width:75%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="10"]){margin-left:83.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="10"]){margin-right:83.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="10"]){width:83.3333333333%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="11"]){margin-left:91.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="11"]){margin-right:91.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="11"]){width:91.6666666667%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_sm="12"]){margin-left:100%}:host([max_width~=sm]) ::slotted(av-dynamic-col[offset_right_sm="12"]){margin-right:100%}:host([max_width~=sm]) ::slotted(av-dynamic-col[size_sm="12"]){width:100%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="0"]){margin-left:0%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="0"]){margin-right:0%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="0"]){width:0%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="1"]){margin-left:8.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="1"]){margin-right:8.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="1"]){width:8.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="2"]){margin-left:16.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="2"]){margin-right:16.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="2"]){width:16.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="3"]){margin-left:25%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="3"]){margin-right:25%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="3"]){width:25%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="4"]){margin-left:33.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="4"]){margin-right:33.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="4"]){width:33.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="5"]){margin-left:41.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="5"]){margin-right:41.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="5"]){width:41.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="6"]){margin-left:50%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="6"]){margin-right:50%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="6"]){width:50%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="7"]){margin-left:58.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="7"]){margin-right:58.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="7"]){width:58.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="8"]){margin-left:66.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="8"]){margin-right:66.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="8"]){width:66.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="9"]){margin-left:75%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="9"]){margin-right:75%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="9"]){width:75%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="10"]){margin-left:83.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="10"]){margin-right:83.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="10"]){width:83.3333333333%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="11"]){margin-left:91.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="11"]){margin-right:91.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="11"]){width:91.6666666667%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_md="12"]){margin-left:100%}:host([max_width~=md]) ::slotted(av-dynamic-col[offset_right_md="12"]){margin-right:100%}:host([max_width~=md]) ::slotted(av-dynamic-col[size_md="12"]){width:100%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="0"]){margin-left:0%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="0"]){margin-right:0%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="0"]){width:0%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="1"]){margin-left:8.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="1"]){margin-right:8.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="1"]){width:8.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="2"]){margin-left:16.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="2"]){margin-right:16.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="2"]){width:16.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="3"]){margin-left:25%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="3"]){margin-right:25%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="3"]){width:25%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="4"]){margin-left:33.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="4"]){margin-right:33.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="4"]){width:33.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="5"]){margin-left:41.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="5"]){margin-right:41.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="5"]){width:41.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="6"]){margin-left:50%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="6"]){margin-right:50%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="6"]){width:50%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="7"]){margin-left:58.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="7"]){margin-right:58.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="7"]){width:58.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="8"]){margin-left:66.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="8"]){margin-right:66.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="8"]){width:66.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="9"]){margin-left:75%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="9"]){margin-right:75%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="9"]){width:75%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="10"]){margin-left:83.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="10"]){margin-right:83.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="10"]){width:83.3333333333%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="11"]){margin-left:91.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="11"]){margin-right:91.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="11"]){width:91.6666666667%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_lg="12"]){margin-left:100%}:host([max_width~=lg]) ::slotted(av-dynamic-col[offset_right_lg="12"]){margin-right:100%}:host([max_width~=lg]) ::slotted(av-dynamic-col[size_lg="12"]){width:100%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="0"]){margin-left:0%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="0"]){margin-right:0%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="0"]){width:0%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="1"]){margin-left:8.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="1"]){margin-right:8.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="1"]){width:8.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="2"]){margin-left:16.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="2"]){margin-right:16.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="2"]){width:16.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="3"]){margin-left:25%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="3"]){margin-right:25%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="3"]){width:25%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="4"]){margin-left:33.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="4"]){margin-right:33.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="4"]){width:33.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="5"]){margin-left:41.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="5"]){margin-right:41.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="5"]){width:41.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="6"]){margin-left:50%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="6"]){margin-right:50%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="6"]){width:50%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="7"]){margin-left:58.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="7"]){margin-right:58.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="7"]){width:58.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="8"]){margin-left:66.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="8"]){margin-right:66.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="8"]){width:66.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="9"]){margin-left:75%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="9"]){margin-right:75%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="9"]){width:75%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="10"]){margin-left:83.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="10"]){margin-right:83.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="10"]){width:83.3333333333%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="11"]){margin-left:91.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="11"]){margin-right:91.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="11"]){width:91.6666666667%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_xl="12"]){margin-left:100%}:host([max_width~=xl]) ::slotted(av-dynamic-col[offset_right_xl="12"]){margin-right:100%}:host([max_width~=xl]) ::slotted(av-dynamic-col[size_xl="12"]){width:100%}`;
-    __getStatic() {
-        return DynamicRow;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(DynamicRow.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<slot></slot>` }
-    });
-}
-    getClassName() {
-        return "DynamicRow";
-    }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('max_width')){ this['max_width'] = undefined; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('max_width'); }
-    calculateWidth() {
-        let size = this.offsetWidth;
-        let labels = [];
-        for (let key in this.sizes) {
-            let value = this.sizes[key];
-            if (size > value) {
-                labels.push(key);
-            }
-            else {
-                break;
-            }
-        }
-        this.max_width = labels.join(" ");
-    }
-    postCreation() {
-        this.calculateWidth();
-        new Aventus.ResizeObserver(entries => {
-            this.calculateWidth();
-        }).observe(this);
-    }
-}
-Layout.DynamicRow.Namespace=`Aventus.Layout`;
-Layout.DynamicRow.Tag=`av-dynamic-row`;
-__as1(_.Layout, 'DynamicRow', Layout.DynamicRow);
-if(!window.customElements.get('av-dynamic-row')){window.customElements.define('av-dynamic-row', Layout.DynamicRow);Aventus.WebComponentInstance.registerDefinition(Layout.DynamicRow);}
-
-Layout.DynamicCol = class DynamicCol extends Aventus.WebComponent {
-    get 'size'() { return this.getNumberAttr('size') }
-    set 'size'(val) { this.setNumberAttr('size', val) }get 'size_xs'() { return this.getNumberAttr('size_xs') }
-    set 'size_xs'(val) { this.setNumberAttr('size_xs', val) }get 'size_sm'() { return this.getNumberAttr('size_sm') }
-    set 'size_sm'(val) { this.setNumberAttr('size_sm', val) }get 'size_md'() { return this.getNumberAttr('size_md') }
-    set 'size_md'(val) { this.setNumberAttr('size_md', val) }get 'size_lg'() { return this.getNumberAttr('size_lg') }
-    set 'size_lg'(val) { this.setNumberAttr('size_lg', val) }get 'size_xl'() { return this.getNumberAttr('size_xl') }
-    set 'size_xl'(val) { this.setNumberAttr('size_xl', val) }get 'offset'() { return this.getNumberAttr('offset') }
-    set 'offset'(val) { this.setNumberAttr('offset', val) }get 'offset_xs'() { return this.getNumberAttr('offset_xs') }
-    set 'offset_xs'(val) { this.setNumberAttr('offset_xs', val) }get 'offset_sm'() { return this.getNumberAttr('offset_sm') }
-    set 'offset_sm'(val) { this.setNumberAttr('offset_sm', val) }get 'offset_md'() { return this.getNumberAttr('offset_md') }
-    set 'offset_md'(val) { this.setNumberAttr('offset_md', val) }get 'offset_lg'() { return this.getNumberAttr('offset_lg') }
-    set 'offset_lg'(val) { this.setNumberAttr('offset_lg', val) }get 'offset_xl'() { return this.getNumberAttr('offset_xl') }
-    set 'offset_xl'(val) { this.setNumberAttr('offset_xl', val) }get 'offset_right'() { return this.getNumberAttr('offset_right') }
-    set 'offset_right'(val) { this.setNumberAttr('offset_right', val) }get 'offset_right_xs'() { return this.getNumberAttr('offset_right_xs') }
-    set 'offset_right_xs'(val) { this.setNumberAttr('offset_right_xs', val) }get 'offset_right_sm'() { return this.getNumberAttr('offset_right_sm') }
-    set 'offset_right_sm'(val) { this.setNumberAttr('offset_right_sm', val) }get 'offset_right_md'() { return this.getNumberAttr('offset_right_md') }
-    set 'offset_right_md'(val) { this.setNumberAttr('offset_right_md', val) }get 'offset_right_lg'() { return this.getNumberAttr('offset_right_lg') }
-    set 'offset_right_lg'(val) { this.setNumberAttr('offset_right_lg', val) }get 'offset_right_xl'() { return this.getNumberAttr('offset_right_xl') }
-    set 'offset_right_xl'(val) { this.setNumberAttr('offset_right_xl', val) }get 'nobreak'() { return this.getBoolAttr('nobreak') }
-    set 'nobreak'(val) { this.setBoolAttr('nobreak', val) }get 'center'() { return this.getBoolAttr('center') }
-    set 'center'(val) { this.setBoolAttr('center', val) }    static __style = `:host{display:flex;flex-direction:column;padding:0 10px;width:100%;margin-left:0;margin-right:0}:host([nobreak]){white-space:nowrap;text-overflow:ellipsis;overflow:hidden}:host([center]){text-align:center}:host([size="0"]){width:0%;display:flex}:host([offset="0"]){margin-left:0%}:host([offset-right="0"]){margin-right:0%}:host([size="1"]){width:8.3333333333%;display:flex}:host([offset="1"]){margin-left:8.3333333333%}:host([offset-right="1"]){margin-right:8.3333333333%}:host([size="2"]){width:16.6666666667%;display:flex}:host([offset="2"]){margin-left:16.6666666667%}:host([offset-right="2"]){margin-right:16.6666666667%}:host([size="3"]){width:25%;display:flex}:host([offset="3"]){margin-left:25%}:host([offset-right="3"]){margin-right:25%}:host([size="4"]){width:33.3333333333%;display:flex}:host([offset="4"]){margin-left:33.3333333333%}:host([offset-right="4"]){margin-right:33.3333333333%}:host([size="5"]){width:41.6666666667%;display:flex}:host([offset="5"]){margin-left:41.6666666667%}:host([offset-right="5"]){margin-right:41.6666666667%}:host([size="6"]){width:50%;display:flex}:host([offset="6"]){margin-left:50%}:host([offset-right="6"]){margin-right:50%}:host([size="7"]){width:58.3333333333%;display:flex}:host([offset="7"]){margin-left:58.3333333333%}:host([offset-right="7"]){margin-right:58.3333333333%}:host([size="8"]){width:66.6666666667%;display:flex}:host([offset="8"]){margin-left:66.6666666667%}:host([offset-right="8"]){margin-right:66.6666666667%}:host([size="9"]){width:75%;display:flex}:host([offset="9"]){margin-left:75%}:host([offset-right="9"]){margin-right:75%}:host([size="10"]){width:83.3333333333%;display:flex}:host([offset="10"]){margin-left:83.3333333333%}:host([offset-right="10"]){margin-right:83.3333333333%}:host([size="11"]){width:91.6666666667%;display:flex}:host([offset="11"]){margin-left:91.6666666667%}:host([offset-right="11"]){margin-right:91.6666666667%}:host([size="12"]){width:100%;display:flex}:host([offset="12"]){margin-left:100%}:host([offset-right="12"]){margin-right:100%}`;
-    __getStatic() {
-        return DynamicCol;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(DynamicCol.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<slot></slot>` }
-    });
-}
-    getClassName() {
-        return "DynamicCol";
-    }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('size')){ this['size'] = undefined; }if(!this.hasAttribute('size_xs')){ this['size_xs'] = undefined; }if(!this.hasAttribute('size_sm')){ this['size_sm'] = undefined; }if(!this.hasAttribute('size_md')){ this['size_md'] = undefined; }if(!this.hasAttribute('size_lg')){ this['size_lg'] = undefined; }if(!this.hasAttribute('size_xl')){ this['size_xl'] = undefined; }if(!this.hasAttribute('offset')){ this['offset'] = undefined; }if(!this.hasAttribute('offset_xs')){ this['offset_xs'] = undefined; }if(!this.hasAttribute('offset_sm')){ this['offset_sm'] = undefined; }if(!this.hasAttribute('offset_md')){ this['offset_md'] = undefined; }if(!this.hasAttribute('offset_lg')){ this['offset_lg'] = undefined; }if(!this.hasAttribute('offset_xl')){ this['offset_xl'] = undefined; }if(!this.hasAttribute('offset_right')){ this['offset_right'] = undefined; }if(!this.hasAttribute('offset_right_xs')){ this['offset_right_xs'] = undefined; }if(!this.hasAttribute('offset_right_sm')){ this['offset_right_sm'] = undefined; }if(!this.hasAttribute('offset_right_md')){ this['offset_right_md'] = undefined; }if(!this.hasAttribute('offset_right_lg')){ this['offset_right_lg'] = undefined; }if(!this.hasAttribute('offset_right_xl')){ this['offset_right_xl'] = undefined; }if(!this.hasAttribute('nobreak')) { this.attributeChangedCallback('nobreak', false, false); }if(!this.hasAttribute('center')) { this.attributeChangedCallback('center', false, false); } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('size');this.__upgradeProperty('size_xs');this.__upgradeProperty('size_sm');this.__upgradeProperty('size_md');this.__upgradeProperty('size_lg');this.__upgradeProperty('size_xl');this.__upgradeProperty('offset');this.__upgradeProperty('offset_xs');this.__upgradeProperty('offset_sm');this.__upgradeProperty('offset_md');this.__upgradeProperty('offset_lg');this.__upgradeProperty('offset_xl');this.__upgradeProperty('offset_right');this.__upgradeProperty('offset_right_xs');this.__upgradeProperty('offset_right_sm');this.__upgradeProperty('offset_right_md');this.__upgradeProperty('offset_right_lg');this.__upgradeProperty('offset_right_xl');this.__upgradeProperty('nobreak');this.__upgradeProperty('center'); }
-    __listBoolProps() { return ["nobreak","center"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
-}
-Layout.DynamicCol.Namespace=`Aventus.Layout`;
-Layout.DynamicCol.Tag=`av-dynamic-col`;
-__as1(_.Layout, 'DynamicCol', Layout.DynamicCol);
-if(!window.customElements.get('av-dynamic-col')){window.customElements.define('av-dynamic-col', Layout.DynamicCol);Aventus.WebComponentInstance.registerDefinition(Layout.DynamicCol);}
 
 const Collapse = class Collapse extends Aventus.WebComponent {
     get 'open'() { return this.getBoolAttr('open') }
@@ -8663,17 +8511,34 @@ Lib.ShortcutManager.Namespace=`Aventus.Lib`;
 __as1(_.Lib, 'ShortcutManager', Lib.ShortcutManager);
 
 Layout.GridHelper = class GridHelper extends Aventus.WebComponent {
-    static get observedAttributes() {return ["nb_col", "nb_row", "col_width", "row_height"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    static get observedAttributes() {return ["unit", "nb_col", "nb_row", "col_width", "row_height", "ruler_size", "step", "step_big", "magnetic"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'show_rulers'() { return this.getBoolAttr('show_rulers') }
-    set 'show_rulers'(val) { this.setBoolAttr('show_rulers', val) }get 'visible'() { return this.getBoolAttr('visible') }
-    set 'visible'(val) { this.setBoolAttr('visible', val) }    get 'nb_col'() { return this.getNumberProp('nb_col') }
+    set 'show_rulers'(val) { this.setBoolAttr('show_rulers', val) }get 'show_grid'() { return this.getBoolAttr('show_grid') }
+    set 'show_grid'(val) { this.setBoolAttr('show_grid', val) }get 'show_ruler'() { return this.getBoolAttr('show_ruler') }
+    set 'show_ruler'(val) { this.setBoolAttr('show_ruler', val) }get 'show_guides'() { return this.getBoolAttr('show_guides') }
+    set 'show_guides'(val) { this.setBoolAttr('show_guides', val) }get 'lock'() { return this.getBoolAttr('lock') }
+    set 'lock'(val) { this.setBoolAttr('lock', val) }get 'visible'() { return this.getBoolAttr('visible') }
+    set 'visible'(val) { this.setBoolAttr('visible', val) }    get 'unit'() { return this.getStringProp('unit') }
+    set 'unit'(val) { this.setStringAttr('unit', val) }get 'nb_col'() { return this.getNumberProp('nb_col') }
     set 'nb_col'(val) { this.setNumberAttr('nb_col', val) }get 'nb_row'() { return this.getNumberProp('nb_row') }
     set 'nb_row'(val) { this.setNumberAttr('nb_row', val) }get 'col_width'() { return this.getNumberProp('col_width') }
     set 'col_width'(val) { this.setNumberAttr('col_width', val) }get 'row_height'() { return this.getNumberProp('row_height') }
-    set 'row_height'(val) { this.setNumberAttr('row_height', val) }    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("nb_row", ((target) => {
+    set 'row_height'(val) { this.setNumberAttr('row_height', val) }get 'ruler_size'() { return this.getNumberProp('ruler_size') }
+    set 'ruler_size'(val) { this.setNumberAttr('ruler_size', val) }get 'step'() { return this.getNumberProp('step') }
+    set 'step'(val) { this.setNumberAttr('step', val) }get 'step_big'() { return this.getNumberProp('step_big') }
+    set 'step_big'(val) { this.setNumberAttr('step_big', val) }get 'magnetic'() { return this.getNumberProp('magnetic') }
+    set 'magnetic'(val) { this.setNumberAttr('magnetic', val) }    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("unit", ((target) => {
+    target.rulerLeftEl.style.setProperty("--ruler-size", target.ruler_size + target.unit);
+    target.rulerTopEl.style.setProperty("--ruler-size", target.ruler_size + target.unit);
+    target.lockEl.style.setProperty("--ruler-size", target.ruler_size + target.unit);
+}));this.__addPropertyActions("nb_row", ((target) => {
 }));this.__addPropertyActions("row_height", ((target) => {
+}));this.__addPropertyActions("ruler_size", ((target) => {
+    target.rulerLeftEl.style.setProperty("--ruler-size", target.ruler_size + target.unit);
+    target.rulerTopEl.style.setProperty("--ruler-size", target.ruler_size + target.unit);
+    target.lockEl.style.setProperty("--ruler-size", target.ruler_size + target.unit);
 })); }
-    static __style = `:host{display:none;inset:0;pointer-events:none;position:fixed;z-index:9999}:host .guide-x{background-color:#c7c7c7;cursor:ns-resize;height:2px;left:0;pointer-events:all;position:absolute;top:50px;width:100%}:host .guide-y{background-color:#c7c7c7;cursor:ew-resize;height:100%;left:50px;pointer-events:all;position:absolute;top:0px;width:2px}:host .grid{inset:0;position:absolute}:host .grid .cols,:host .grid .rows{display:flex;inset:0;position:absolute}:host .grid .rows{flex-direction:column}:host .grid .col{flex-shrink:0;height:100%;position:relative;width:var(--local-col-width)}:host .grid .col::after{background-color:#e78181;content:"";height:100%;position:absolute;right:-1px;top:0;width:2px}:host .grid .col:last-child::after{display:none}:host .grid .row{flex-shrink:0;height:var(--local-row-height);position:relative;width:100%}:host .grid .row::after{background-color:#e78181;bottom:-1px;content:"";height:2px;left:0;position:absolute;width:100%}:host .grid .row:last-child::after{display:none}:host .ruler-top{background-color:#fff;height:20px;position:absolute;top:0;width:100%;z-index:3}:host .ruler-top::after{bottom:0;box-shadow:5px 0 5px #818181;content:"";height:100%;left:20px;pointer-events:none;position:absolute;width:calc(100% - 20px)}:host .ruler-left{background-color:#fff;box-shadow:0px 5px 5px #818181;height:calc(100% - 20px);position:absolute;top:20px;width:20px;z-index:2}:host([visible]){display:block}`;
+    static __style = `:host{--ruler-color: white;display:none;font-family:Arial,Helvetica,sans-serif;inset:0;pointer-events:none;position:fixed;user-select:none;z-index:9999}:host .grid{inset:0;position:absolute}:host .grid .cols,:host .grid .rows{display:flex;inset:0;position:absolute}:host .grid .rows{flex-direction:column}:host .grid .col{flex-shrink:0;height:100%;position:relative;width:var(--local-col-width)}:host .grid .col::after{background-color:#e78181;content:"";height:100%;position:absolute;right:-1px;top:0;width:2px}:host .grid .col:last-child::after{display:none}:host .grid .row{flex-shrink:0;height:var(--local-row-height);position:relative;width:100%}:host .grid .row::after{background-color:#e78181;bottom:-1px;content:"";height:2px;left:0;position:absolute;width:100%}:host .grid .row:last-child::after{display:none}:host .ruler-top{background-color:var(--ruler-color);height:var(--ruler-size);pointer-events:all;position:absolute;top:0;width:100%;z-index:3}:host .ruler-top::after{bottom:0;box-shadow:5px 0 5px #818181;content:"";height:100%;left:var(--ruler-size);pointer-events:none;position:absolute;width:calc(100% - var(--ruler-size))}:host .ruler-top .ruler-content{display:flex;flex-direction:row;height:100%;overflow:hidden;padding-left:var(--ruler-size)}:host .ruler-top .ruler-content .step{display:flex;flex-direction:column;flex-shrink:0;justify-content:space-between;text-align:left;width:var(--step-width)}:host .ruler-top .ruler-content .step span{align-items:center;display:flex;flex-grow:1;font-size:10px;transform:translateX(-50%);width:min-content}:host .ruler-top .ruler-content .step::after{background-color:#3d3d3d;content:"";display:inline-block;flex-shrink:0;height:3px;transform:translateX(-50%);width:2px}:host .ruler-top .ruler-content .step.big::after{background-color:#000;height:8px}:host .ruler-left{height:100%;pointer-events:all;position:absolute;top:0;width:var(--ruler-size);z-index:4}:host .ruler-left::after{box-shadow:0px 5px 5px #818181;content:"";height:calc(100% - var(--ruler-size));left:0;pointer-events:none;position:absolute;top:var(--ruler-size);width:100%}:host .ruler-left .ruler-content{display:flex;flex-direction:column;height:100%;overflow:hidden;padding-top:var(--ruler-size);position:relative;width:100%}:host .ruler-left .ruler-content::before{background-color:var(--ruler-color);content:"";inset:0;position:absolute;top:var(--ruler-size);z-index:2}:host .ruler-left .ruler-content .step{display:flex;flex-direction:row;flex-shrink:0;height:var(--step-height);justify-content:space-between;position:relative;text-align:left;z-index:3}:host .ruler-left .ruler-content .step span{display:flex;flex-grow:1;font-size:10px;height:min-content;justify-content:center;transform:translateY(-50%)}:host .ruler-left .ruler-content .step::after{background-color:#3d3d3d;content:"";display:inline-block;flex-shrink:0;height:2px;transform:translateY(-50%);width:3px}:host .ruler-left .ruler-content .step.big::after{background-color:#000;width:8px}:host .lock{align-items:center;cursor:pointer;display:flex;height:var(--ruler-size);justify-content:center;left:0;pointer-events:all;position:absolute;top:0;width:var(--ruler-size);z-index:5}:host .lock svg{aspect-ratio:1;display:inline-block;width:50%}:host .lock .close{display:none}:host([visible]){display:block}:host(:not([show_grid])) .grid{display:none}:host(:not([show_ruler])) .ruler-top{display:none}:host(:not([show_ruler])) .ruler-left{display:none}:host(:not([show_guides])) .guides{display:none}:host([lock]){--ruler-color: #eeeeee}:host([lock]) .ruler-top,:host([lock]) .ruler-left{cursor:not-allowed}:host([lock]) .guides av-grid-guide-helper{pointer-events:none}:host([lock]) .lock .open{display:none}:host([lock]) .lock .close{display:inline-block}`;
     __getStatic() {
         return GridHelper;
     }
@@ -8684,37 +8549,124 @@ Layout.GridHelper = class GridHelper extends Aventus.WebComponent {
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="ruler-top"></div><div class="ruler-left"></div><div class="grid" _id="gridhelper_0">    <div class="cols" _id="gridhelper_1"></div>    <div class="rows" _id="gridhelper_2"></div></div><div class="guides">    <div class="guide guide-x"></div>    <div class="guide guide-y"></div></div>` }
+        blocks: { 'default':`<div class="lock" _id="gridhelper_0">    <svg class="close" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">        <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>    </svg>    <svg class="open" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">        <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>        <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>    </svg></div><div class="ruler-top" _id="gridhelper_1">    <div class="ruler-content" _id="gridhelper_2"></div></div><div class="ruler-left" _id="gridhelper_3">    <div class="ruler-content" _id="gridhelper_4"></div></div><div class="grid" _id="gridhelper_5">    <div class="cols" _id="gridhelper_6"></div>    <div class="rows" _id="gridhelper_7"></div></div><div class="guides" _id="gridhelper_8"></div>` }
     });
 }
     __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
   "elements": [
     {
-      "name": "gridEl",
+      "name": "lockEl",
       "ids": [
         "gridhelper_0"
       ]
     },
     {
-      "name": "colsEl",
+      "name": "rulerTopEl",
       "ids": [
         "gridhelper_1"
       ]
     },
     {
-      "name": "rowsEl",
+      "name": "rulerTopContentEl",
       "ids": [
         "gridhelper_2"
       ]
+    },
+    {
+      "name": "rulerLeftEl",
+      "ids": [
+        "gridhelper_3"
+      ]
+    },
+    {
+      "name": "rulerLeftContentEl",
+      "ids": [
+        "gridhelper_4"
+      ]
+    },
+    {
+      "name": "gridEl",
+      "ids": [
+        "gridhelper_5"
+      ]
+    },
+    {
+      "name": "colsEl",
+      "ids": [
+        "gridhelper_6"
+      ]
+    },
+    {
+      "name": "rowsEl",
+      "ids": [
+        "gridhelper_7"
+      ]
+    },
+    {
+      "name": "guidesEl",
+      "ids": [
+        "gridhelper_8"
+      ]
+    }
+  ],
+  "pressEvents": [
+    {
+      "id": "gridhelper_0",
+      "onPress": (e, pressInstance, c) => { c.comp.toggleLock(e, pressInstance); }
     }
   ]
 }); }
     getClassName() {
         return "GridHelper";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('show_rulers')) { this.attributeChangedCallback('show_rulers', false, false); }if(!this.hasAttribute('visible')) {this.setAttribute('visible' ,'true'); }if(!this.hasAttribute('nb_col')){ this['nb_col'] = 0; }if(!this.hasAttribute('nb_row')){ this['nb_row'] = 0; }if(!this.hasAttribute('col_width')){ this['col_width'] = 200; }if(!this.hasAttribute('row_height')){ this['row_height'] = 200; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('show_rulers');this.__upgradeProperty('visible');this.__upgradeProperty('nb_col');this.__upgradeProperty('nb_row');this.__upgradeProperty('col_width');this.__upgradeProperty('row_height'); }
-    __listBoolProps() { return ["show_rulers","visible"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('show_rulers')) { this.attributeChangedCallback('show_rulers', false, false); }if(!this.hasAttribute('show_grid')) {this.setAttribute('show_grid' ,'true'); }if(!this.hasAttribute('show_ruler')) {this.setAttribute('show_ruler' ,'true'); }if(!this.hasAttribute('show_guides')) {this.setAttribute('show_guides' ,'true'); }if(!this.hasAttribute('lock')) {this.setAttribute('lock' ,'true'); }if(!this.hasAttribute('visible')) {this.setAttribute('visible' ,'true'); }if(!this.hasAttribute('unit')){ this['unit'] = 'px'; }if(!this.hasAttribute('nb_col')){ this['nb_col'] = 0; }if(!this.hasAttribute('nb_row')){ this['nb_row'] = 0; }if(!this.hasAttribute('col_width')){ this['col_width'] = undefined; }if(!this.hasAttribute('row_height')){ this['row_height'] = undefined; }if(!this.hasAttribute('ruler_size')){ this['ruler_size'] = 25; }if(!this.hasAttribute('step')){ this['step'] = 20; }if(!this.hasAttribute('step_big')){ this['step_big'] = undefined; }if(!this.hasAttribute('magnetic')){ this['magnetic'] = 0; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('show_rulers');this.__upgradeProperty('show_grid');this.__upgradeProperty('show_ruler');this.__upgradeProperty('show_guides');this.__upgradeProperty('lock');this.__upgradeProperty('visible');this.__upgradeProperty('unit');this.__upgradeProperty('nb_col');this.__upgradeProperty('nb_row');this.__upgradeProperty('col_width');this.__upgradeProperty('row_height');this.__upgradeProperty('ruler_size');this.__upgradeProperty('step');this.__upgradeProperty('step_big');this.__upgradeProperty('magnetic'); }
+    __listBoolProps() { return ["show_rulers","show_grid","show_ruler","show_guides","lock","visible"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    inPx(nb) {
+        if (this.unit == 'px') {
+            return nb;
+        }
+        if (this.unit == 'rem') {
+            return nb * 16;
+        }
+        if (this.unit == 'mm') {
+            return nb * 3.7795275591;
+        }
+        if (this.unit == 'cm') {
+            return nb * 37.795275591;
+        }
+        if (this.unit == 'in') {
+            return nb * 96;
+        }
+        if (this.unit == 'pt') {
+            return nb * 1.33333333;
+        }
+        throw 'unit not supported';
+    }
+    fromPx(nbPx) {
+        if (this.unit == 'px') {
+            return nbPx;
+        }
+        if (this.unit == 'rem') {
+            return Math.round(nbPx / 16 * 100) / 100;
+        }
+        if (this.unit == 'mm') {
+            return Math.round(nbPx * 0.2645833333 * 100) / 100;
+        }
+        if (this.unit == 'cm') {
+            return Math.round(nbPx * 0.02645833333 * 100) / 100;
+        }
+        if (this.unit == 'in') {
+            return Math.round(nbPx / 96 * 100) / 100;
+        }
+        if (this.unit == 'pt') {
+            return Math.round(nbPx * 0.75 * 100) / 100;
+        }
+        throw 'unit not supported';
+    }
+    toggleLock() {
+        this.lock = !this.lock;
+    }
     draw() {
         let nbCol = 0;
         if (this.nb_col) {
@@ -8722,9 +8674,12 @@ Layout.GridHelper = class GridHelper extends Aventus.WebComponent {
             nbCol = this.nb_col;
         }
         else {
-            let width = this.col_width == 0 ? 16 : this.col_width;
-            this.gridEl.style.setProperty('--local-col-width', width + 'px');
-            nbCol = Math.ceil(this.offsetWidth / width);
+            let width = this.col_width;
+            if (width == 0) {
+                width = this.fromPx(16);
+            }
+            this.gridEl.style.setProperty('--local-col-width', width + this.unit);
+            nbCol = Math.ceil(this.offsetWidth / this.inPx(width));
         }
         if (this.colsEl.children.length != nbCol) {
             this.colsEl.innerHTML = '';
@@ -8740,9 +8695,12 @@ Layout.GridHelper = class GridHelper extends Aventus.WebComponent {
             nbRow = this.nb_row;
         }
         else {
-            let height = this.row_height == 0 ? 16 : this.row_height;
-            this.gridEl.style.setProperty('--local-row-height', height + 'px');
-            nbRow = Math.ceil(this.offsetHeight / height);
+            let height = this.row_height;
+            if (height == 0) {
+                height = this.fromPx(16);
+            }
+            this.gridEl.style.setProperty('--local-row-height', height + this.unit);
+            nbRow = Math.ceil(this.offsetHeight / this.inPx(height));
         }
         if (this.rowsEl.children.length != nbRow) {
             this.rowsEl.innerHTML = '';
@@ -8752,6 +8710,166 @@ Layout.GridHelper = class GridHelper extends Aventus.WebComponent {
                 this.rowsEl.appendChild(row);
             }
         }
+    }
+    drawRulerTop() {
+        const step = this.step;
+        const bigStep = this.step_big == 0 ? this.step : this.step_big;
+        const rulerSize = this.ruler_size;
+        this.rulerTopEl.style.setProperty("--step-width", step + this.unit);
+        const nb = Math.ceil(this.offsetWidth / this.inPx(step));
+        const createStep = (nb, isBig, w) => {
+            const d = document.createElement('div');
+            d.classList.add("step");
+            if (w) {
+                d.style.width = w + this.unit;
+            }
+            if (isBig) {
+                d.classList.add("big");
+            }
+            const s = document.createElement("span");
+            if (isBig)
+                s.innerHTML = nb + '';
+            d.appendChild(s);
+            this.rulerTopContentEl.appendChild(d);
+        };
+        let i = 0;
+        while (step * i - rulerSize < 0) {
+            i++;
+        }
+        createStep(rulerSize, true, step * i - rulerSize);
+        for (; i < nb; i++) {
+            if (i * step <= rulerSize)
+                continue;
+            const isBig = (step * i) % bigStep == 0;
+            createStep(i * step, isBig);
+        }
+    }
+    drawRulerLeft() {
+        const step = this.step;
+        const bigStep = this.step_big == 0 ? this.step : this.step_big;
+        const rulerSize = this.ruler_size;
+        this.rulerLeftEl.style.setProperty("--step-height", step + this.unit);
+        const nb = Math.ceil(this.offsetHeight / this.inPx(step));
+        const createStep = (nb, isBig, h) => {
+            const d = document.createElement('div');
+            d.classList.add("step");
+            if (h) {
+                d.style.height = h + this.unit;
+            }
+            if (isBig) {
+                d.classList.add("big");
+            }
+            const s = document.createElement("span");
+            if (isBig)
+                s.innerHTML = nb + '';
+            d.appendChild(s);
+            this.rulerLeftContentEl.appendChild(d);
+        };
+        let i = 0;
+        while (step * i - rulerSize < 0) {
+            i++;
+        }
+        createStep(rulerSize, true, step * i - rulerSize);
+        for (; i < nb; i++) {
+            if (i * step <= rulerSize)
+                continue;
+            const isBig = (step * i) % bigStep == 0;
+            createStep(i * step, isBig);
+        }
+    }
+    addDragLeft() {
+        let el = undefined;
+        new Aventus.PressManager({
+            element: this.rulerLeftContentEl,
+            onDblPress: () => {
+                const nbtxt = prompt("Top Position");
+                if (nbtxt) {
+                    const nb = Number(nbtxt);
+                    if (!isNaN(nb)) {
+                        this.createGuideFromTop(nb);
+                    }
+                }
+            }
+        });
+        new Aventus.DragAndDrop({
+            element: this.rulerLeftContentEl,
+            applyDrag: false,
+            onStart: (e) => {
+                if (this.lock)
+                    return false;
+                el = new _.Layout.GridGuideHelper();
+                el.direction = 'y';
+                el.container = this;
+                this.guidesEl.appendChild(el);
+                el.onStart();
+                return true;
+            },
+            onMove: (e) => {
+                if (el) {
+                    el.onMoveY(e);
+                }
+            },
+            onStop: () => {
+                if (el) {
+                    el.onStop();
+                }
+            }
+        });
+    }
+    addDragTop() {
+        let el = undefined;
+        new Aventus.PressManager({
+            element: this.rulerTopContentEl,
+            onDblPress: () => {
+                const nbtxt = prompt("Left Position");
+                if (nbtxt) {
+                    const nb = Number(nbtxt);
+                    if (!isNaN(nb)) {
+                        this.createGuideFromLeft(nb);
+                    }
+                }
+            }
+        });
+        new Aventus.DragAndDrop({
+            element: this.rulerTopContentEl,
+            applyDrag: false,
+            onStart: (e) => {
+                if (this.lock)
+                    return false;
+                el = new _.Layout.GridGuideHelper();
+                el.container = this;
+                el.direction = 'x';
+                this.guidesEl.appendChild(el);
+                el.onStart();
+                return true;
+            },
+            onMove: (e) => {
+                if (el) {
+                    el.onMoveX(e);
+                }
+            },
+            onStop: () => {
+                if (el) {
+                    el.onStop();
+                }
+            }
+        });
+    }
+    createGuideFromLeft(left) {
+        const el = new _.Layout.GridGuideHelper();
+        el.direction = 'y';
+        el.container = this;
+        el.style.left = left + this.unit;
+        this.guidesEl.appendChild(el);
+        this.save();
+    }
+    createGuideFromTop(top) {
+        const el = new _.Layout.GridGuideHelper();
+        el.direction = 'x';
+        el.container = this;
+        el.style.top = top + this.unit;
+        this.guidesEl.appendChild(el);
+        this.save();
     }
     addShortCut() {
         let isKActive = false;
@@ -8780,18 +8898,63 @@ Layout.GridHelper = class GridHelper extends Aventus.WebComponent {
             });
         };
         commande('v', () => { this.visible = !this.visible; });
+        commande('g', () => { this.show_grid = !this.show_grid; });
+        commande('r', () => { this.show_ruler = !this.show_ruler; });
+        commande('j', () => { this.show_guides = !this.show_guides; });
+        commande('l', () => { this.lock = !this.lock; });
     }
     addResize() {
         new Aventus.ResizeObserver({
             callback: () => {
                 this.draw();
+                this.drawRulerTop();
+                this.drawRulerLeft();
             },
             fps: 30
         }).observe(this);
     }
+    save() {
+        const data = { x: [], y: [] };
+        for (let child of this.guidesEl.children) {
+            if (child instanceof _.Layout.GridGuideHelper) {
+                if (child.direction == 'x') {
+                    data.x.push(child.offsetTop);
+                }
+                else {
+                    data.y.push(child.offsetLeft);
+                }
+            }
+        }
+        const id = this.id != '' ? this.id : 'grid-helper';
+        localStorage.setItem(id, JSON.stringify(data));
+    }
+    reload() {
+        const id = this.id != '' ? this.id : 'grid-helper';
+        const items = localStorage.getItem(id);
+        if (items) {
+            const data = JSON.parse(items);
+            for (let g of data.x) {
+                const el = new _.Layout.GridGuideHelper();
+                el.direction = 'x';
+                el.style.top = g + this.unit;
+                el.container = this;
+                this.guidesEl.appendChild(el);
+            }
+            for (let g of data.y) {
+                const el = new _.Layout.GridGuideHelper();
+                el.direction = 'y';
+                el.style.left = g + this.unit;
+                el.container = this;
+                this.guidesEl.appendChild(el);
+            }
+        }
+    }
     postCreation() {
+        this.reload();
         this.addResize();
         this.addShortCut();
+        this.addDragLeft();
+        this.addDragTop();
         this.draw();
     }
 }
@@ -8799,6 +8962,128 @@ Layout.GridHelper.Namespace=`Aventus.Layout`;
 Layout.GridHelper.Tag=`av-grid-helper`;
 __as1(_.Layout, 'GridHelper', Layout.GridHelper);
 if(!window.customElements.get('av-grid-helper')){window.customElements.define('av-grid-helper', Layout.GridHelper);Aventus.WebComponentInstance.registerDefinition(Layout.GridHelper);}
+
+Layout.GridGuideHelper = class GridGuideHelper extends Aventus.WebComponent {
+    get 'direction'() { return this.getStringAttr('direction') }
+    set 'direction'(val) { this.setStringAttr('direction', val) }get 'moving'() { return this.getBoolAttr('moving') }
+    set 'moving'(val) { this.setBoolAttr('moving', val) }    container;
+    static __style = `:host{background-color:#c7c7c7;left:0;pointer-events:all;position:absolute;top:0;font-family:inherit}:host .position{background-color:#c7c7c7;border-radius:5px;padding:5px 15px;position:absolute;display:none;font-size:11px}:host(:hover){background-color:red}:host([direction=x]){cursor:ns-resize;height:2px;width:100%;transform:translateY(-50%)}:host([direction=x]) .position{bottom:10px}:host([direction=y]){cursor:ew-resize;height:100%;width:2px;transform:translateX(-50%)}:host([direction=y]) .position{left:10px}:host([moving]) .position{display:flex}`;
+    constructor() {
+        super();
+        this.onStart = this.onStart.bind(this);
+        this.onMoveX = this.onMoveX.bind(this);
+        this.onMoveY = this.onMoveY.bind(this);
+        this.onStop = this.onStop.bind(this);
+    }
+    __getStatic() {
+        return GridGuideHelper;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(GridGuideHelper.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<div class="position" _id="gridguidehelper_0"><slot></slot></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "elements": [
+    {
+      "name": "positionEl",
+      "ids": [
+        "gridguidehelper_0"
+      ]
+    }
+  ]
+}); }
+    getClassName() {
+        return "GridGuideHelper";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('direction')){ this['direction'] = "x"; }if(!this.hasAttribute('moving')) { this.attributeChangedCallback('moving', false, false); } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('direction');this.__upgradeProperty('moving'); }
+    __listBoolProps() { return ["moving"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    displayValue(v) {
+        this.innerHTML = this.container.fromPx(v) + this.container.unit;
+    }
+    onStart() {
+        this.moving = true;
+    }
+    applyMagnetic(valuePx) {
+        const m = this.container.inPx(this.container.magnetic);
+        if (m == 0)
+            return valuePx;
+        const step = this.container.inPx(this.container.step);
+        const div = Math.round(valuePx / step) * step;
+        return Math.abs(div - valuePx) < m ? div : valuePx;
+    }
+    onMoveX(e) {
+        const valuePx = this.applyMagnetic(e.pageY);
+        this.style.top = valuePx + 'px';
+        this.positionEl.style.left = e.pageX + 10 + 'px';
+        this.displayValue(valuePx);
+    }
+    onMoveY(e) {
+        const valuePx = this.applyMagnetic(e.pageX);
+        this.style.left = valuePx + 'px';
+        this.positionEl.style.top = e.pageY - 20 + 'px';
+        this.displayValue(valuePx);
+    }
+    onStop() {
+        this.moving = false;
+        this.container.save();
+    }
+    postCreation() {
+        if (!this.container)
+            this.container = this.findParentByType(_.Layout.GridHelper);
+        if (this.direction == "x") {
+            new Aventus.DragAndDrop({
+                element: this,
+                offsetDrag: 0,
+                applyDrag: false,
+                onStart: () => {
+                    this.onStart();
+                },
+                onMove: (e) => {
+                    this.onMoveX(e);
+                },
+                onStop: () => {
+                    this.onStop();
+                }
+            });
+        }
+        else {
+            new Aventus.DragAndDrop({
+                element: this,
+                offsetDrag: 0,
+                applyDrag: false,
+                onStart: () => {
+                    this.onStart();
+                },
+                onMove: (e) => {
+                    this.onMoveY(e);
+                },
+                onStop: () => {
+                    this.onStop();
+                }
+            });
+        }
+        new Aventus.PressManager({
+            element: this,
+            onDblPress: () => {
+                const helper = this.findParentByType(_.Layout.GridHelper);
+                this.remove();
+                helper?.save();
+            }
+        });
+    }
+}
+Layout.GridGuideHelper.Namespace=`Aventus.Layout`;
+Layout.GridGuideHelper.Tag=`av-grid-guide-helper`;
+__as1(_.Layout, 'GridGuideHelper', Layout.GridGuideHelper);
+if(!window.customElements.get('av-grid-guide-helper')){window.customElements.define('av-grid-guide-helper', Layout.GridGuideHelper);Aventus.WebComponentInstance.registerDefinition(Layout.GridGuideHelper);}
 
 let TouchRecord=class TouchRecord {
     _activeTouchID;

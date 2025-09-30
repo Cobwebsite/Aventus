@@ -1,6 +1,6 @@
 import { cpSync, createReadStream, createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, unlinkSync, writeFileSync } from 'fs';
 import { GenericServer } from '../GenericServer';
-import { join, normalize, sep } from 'path';
+import { dirname, join, normalize, sep } from 'path';
 import { SelectItem } from '../IConnection';
 import { TemplateScript } from './Template';
 import { SettingsManager } from '../settings/Settings';
@@ -333,6 +333,80 @@ export class TemplateManager {
 		}
 
 		this.reloadTemplates();
+	}
+
+	public async selectProjectToUninstall() {
+		const projectsTree = this.getGeneralProjects();
+		const templates: TemplateScript[] = [];
+		const quickPicks: SelectItem[] = [];
+
+		const parse = (tree: TemplatesByName) => {
+			for (let key in tree) {
+				const el = tree[key];
+				if (el instanceof TemplateScript) {
+					templates.push(el);
+					quickPicks.push({
+						label: el.name,
+						detail: el.config
+					})
+				}
+				else {
+					parse(el);
+				}
+			}
+		}
+		parse(projectsTree);
+
+		const result = await GenericServer.SelectMultiple(quickPicks, { title: "Select projects to remove" })
+		if (!result) return;
+
+		for (let item of result) {
+			if (item.detail) {
+				let folderPath = dirname(item.detail);
+				rmSync(folderPath, { recursive: true, force: true })
+			}
+		}
+
+		if (result.length > 0) {
+			GenericServer.showInformationMessage("Projects deleted");
+		}
+	}
+
+	public async selectTemplateToUninstall() {
+		const templatesTree = this.getGeneralTemplates();
+		const templates: TemplateScript[] = [];
+		const quickPicks: SelectItem[] = [];
+
+		const parse = (tree: TemplatesByName) => {
+			for (let key in tree) {
+				const el = tree[key];
+				if (el instanceof TemplateScript) {
+					templates.push(el);
+					quickPicks.push({
+						label: el.name,
+						detail: el.config
+					})
+				}
+				else {
+					parse(el);
+				}
+			}
+		}
+		parse(templatesTree);
+
+		const result = await GenericServer.SelectMultiple(quickPicks, { title: "Select templates to remove" })
+		if (!result) return;
+
+		for (let item of result) {
+			if (item.detail) {
+				let folderPath = dirname(item.detail);
+				rmSync(folderPath, { recursive: true, force: true })
+			}
+		}
+
+		if (result.length > 0) {
+			GenericServer.showInformationMessage("Templates deleted");
+		}
 	}
 
 

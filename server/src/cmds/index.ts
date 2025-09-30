@@ -39,6 +39,8 @@ import { QuickTemplateEdit } from './file-system/QuickTemplateEdit';
 import { QuickTemplate } from './file-system/QuickTemplate';
 import { StorePublishTemplate } from './store/PublishTemplate';
 import { StoreDownloadTemplate } from './store/DownloadTemplate';
+import { UninstallProject } from './file-system/UninstallProject';
+import { UninstallTemplate } from './file-system/UninstallTemplate';
 
 export const Commands = {
     allCommandes: {
@@ -82,6 +84,8 @@ export const Commands = {
         [StoreDownloadTemplate.cmd]: StoreDownloadTemplate,
         [QuickTemplate.cmd]: QuickTemplate,
         [QuickTemplateEdit.cmd]: QuickTemplateEdit,
+        [UninstallProject.cmd]: UninstallProject,
+        [UninstallTemplate.cmd]: UninstallTemplate,
     },
     execute: function (params: ExecuteCommandParams) {
         let cmd = this.allCommandes[params.command];

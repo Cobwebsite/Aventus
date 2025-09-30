@@ -420,8 +420,16 @@
 				"title": "Aventus : Import Projects"
 			},
 			{
+				"command": "aventus.template.uninstall_project",
+				"title": "Aventus : Uninstall Projects"
+			},
+			{
 				"command": "aventus.template.import",
 				"title": "Aventus : Import Templates"
+			},
+			{
+				"command": "aventus.template.uninstall",
+				"title": "Aventus : Uninstall Templates"
 			},
 			{
 				"command": "aventus.getNamespace",

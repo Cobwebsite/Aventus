@@ -1,6 +1,7 @@
 import { RouterStateManager } from "../../../lib/RouterStateManager.lib.avt";
 
 namespace Navigation {
+    @Deprecated()
     export class RouterLink extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
         //#region static

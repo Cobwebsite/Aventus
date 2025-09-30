@@ -2,9 +2,6 @@ namespace Layout {
     export interface ColOptions {
         use_container?: boolean;
     }
-    @Debugger({
-        writeCompiled: true
-    })
     export class Col extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
         //#region static

@@ -1,6 +1,11 @@
 # Change Log
 
-## 1.3.9 (2025-03-29)
+## 1.4.0 (2025-09-30)
+
+### !!! IMPORTANT !!!
+You must clear the storage folder (command : *Aventus : Open Storage*) then reopen your vscode. Then you can import projects and templates with *Aventus : Import Templates* and *Aventus : Import Projects*
+
+For the configuration files and template files, you can check the documentation on [https://aventusjs.com](https://aventusjs.com)
 
 ### Bug Fixes
  - Fix drag&drop to get right position for svg and htmlelement
@@ -14,8 +19,18 @@
  - Change Callback to have a list of params instead of an array
  - Add global press event on PressManager
  - Add Watch function on Watcher
- - Beta : replace template.avt by template.avt.ts to create custom script logic for templating
- - Add tag &lt;a href&gt; inside RouterLink
+ - Replace template.avt by template.avt.ts to create custom script logic for templating
+ - Add store management
+ - Change dependences configuration
+ - Add ctrl + click for html class
+ - Add quick templates
+ - Add basic templates
+ - Add i18n support
+ - Add basic abstract UI for :
+	- Form
+	- Modal
+	- Toast
+
 
 ## 1.3.8 (2025-01-26)
 

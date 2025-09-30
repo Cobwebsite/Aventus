@@ -1,0 +1,114 @@
+import { DragAndDrop, NormalizedEvent, PressManager } from "Aventus@Main:Aventus.package.avt";
+import { GridHelper } from "../GridHelper/GridHelper.wcl.avt";
+
+namespace Layout {
+    export class GridGuideHelper extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+        //#region static
+
+        //#endregion
+
+
+        //#region props
+        @Attribute()
+        public direction: "y" | "x" = "x";
+        @Attribute()
+        public moving!: boolean;
+        //#endregion
+
+
+        //#region variables
+        @ViewElement()
+        protected positionEl!: HTMLDivElement;
+
+        public container!: GridHelper;
+        //#endregion
+
+
+        //#region constructor
+
+        //#endregion
+
+
+        //#region methods
+        public displayValue(v: number) {
+			this.innerHTML = this.container.fromPx(v) + this.container.unit;
+        }
+        @BindThis()
+        public onStart() {
+            this.moving = true;
+        }
+        protected applyMagnetic(valuePx: number) {
+            const m = this.container.inPx(this.container.magnetic);
+			if(m == 0) return valuePx;
+            const step = this.container.inPx(this.container.step);
+            const div = Math.round(valuePx / step) * step;
+            return Math.abs(div - valuePx) < m ? div : valuePx;
+        }
+        @BindThis()
+        public onMoveX(e: NormalizedEvent) {
+            const valuePx = this.applyMagnetic(e.pageY);
+            this.style.top = valuePx + 'px';
+            this.positionEl.style.left = e.pageX + 10 + 'px';
+            this.displayValue(valuePx);
+        }
+        @BindThis()
+        public onMoveY(e: NormalizedEvent) {
+            const valuePx = this.applyMagnetic(e.pageX);
+            this.style.left = valuePx + 'px';
+            this.positionEl.style.top = e.pageY - 20 + 'px';
+            this.displayValue(valuePx);
+        }
+        @BindThis()
+        public onStop() {
+            this.moving = false;
+            this.container.save();
+        }
+        protected override postCreation(): void {
+            if(!this.container)
+                this.container = this.findParentByType(GridHelper)!;
+            if(this.direction == "x") {
+                new DragAndDrop({
+                    element: this,
+                    offsetDrag: 0,
+                    applyDrag: false,
+                    onStart: () => {
+                        this.onStart();
+                    },
+                    onMove: (e) => {
+                        this.onMoveX(e);
+                    },
+                    onStop: () => {
+                        this.onStop();
+                    }
+                });
+            }
+            else {
+                new DragAndDrop({
+                    element: this,
+                    offsetDrag: 0,
+                    applyDrag: false,
+                    onStart: () => {
+                        this.onStart();
+                    },
+                    onMove: (e) => {
+                        this.onMoveY(e);
+                    },
+                    onStop: () => {
+                        this.onStop();
+                    }
+                });
+            }
+            new PressManager({
+                element: this,
+                onDblPress: () => {
+                    const helper = this.findParentByType(GridHelper);
+                    this.remove();
+                    helper?.save();
+                }
+            });
+        }
+        //#endregion
+
+    }
+}

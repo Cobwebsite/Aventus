@@ -3506,7 +3506,11 @@ let DragAndDrop=class DragAndDrop {
             }
         }
         this.draggableElement = draggableElement;
-        return this.options.onStart(e);
+        const result = this.options.onStart(e);
+        if (result !== false) {
+            document.body.style.userSelect = 'none';
+        }
+        return result;
     }
     onDrag(e) {
         if (!this.isEnable) {
@@ -3536,6 +3540,7 @@ let DragAndDrop=class DragAndDrop {
         if (!this.isEnable) {
             return;
         }
+        document.body.style.userSelect = '';
         let targets = this.options.useMouseFinalPosition ? this.getMatchingTargetsWithMousePosition({
             x: e.clientX,
             y: e.clientY
