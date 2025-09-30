@@ -2,10 +2,12 @@
 
 ## 1.4.0 (2025-09-30)
 
-### !!! IMPORTANT !!!
+### !!! IMPORTANT : Can break your app !!!
 You must clear the storage folder (command : *Aventus : Open Storage*) then reopen your vscode. Then you can import projects and templates with *Aventus : Import Templates* and *Aventus : Import Projects*
 
 For the configuration files and template files, you can check the documentation on [https://aventusjs.com](https://aventusjs.com)
+
+Callbacks now using a list of params instead of an array.
 
 ### Bug Fixes
  - Fix drag&drop to get right position for svg and htmlelement
