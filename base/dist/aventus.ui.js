@@ -7563,126 +7563,6 @@ Form.FormElement = class FormElement extends Aventus.WebComponent {
 Form.FormElement.Namespace=`Aventus.Form`;
 __as1(_.Form, 'FormElement', Form.FormElement);
 
-Form.Input = class Input extends Form.FormElement {
-    static get observedAttributes() {return ["type", "placeholder", "label", "value"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
-    get 'type'() { return this.getStringProp('type') }
-    set 'type'(val) { this.setStringAttr('type', val) }get 'placeholder'() { return this.getStringProp('placeholder') }
-    set 'placeholder'(val) { this.setStringAttr('placeholder', val) }get 'label'() { return this.getStringProp('label') }
-    set 'label'(val) { this.setStringAttr('label', val) }get 'value'() { return this.getStringProp('value') }
-    set 'value'(val) { this.setStringAttr('value', val) }    focusValue = "";
-    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("value", ((target) => {
-    target.inputEl.value = target.value ?? "";
-})); }
-    static __style = `:host{display:flex;flex-direction:column;gap:var(--space-2);width:100%}:host .label{color:var(--color-text);font-size:var(--text-sm);font-weight:500;display:none}:host .wrapper{align-items:center;background-color:var(--color-bg-muted);border:var(--border-width) solid var(--border-color);border-radius:var(--border-radius-md);box-shadow:var(--shadow-xs);display:flex;padding:0 var(--space-3);position:relative;transition:border-color var(--transition-fast),box-shadow var(--transition-fast)}:host .wrapper .input{background:rgba(0,0,0,0);border:none;color:var(--color-text);flex:1;font-family:var(--font-sans);font-size:var(--text-base);outline:none;padding:var(--space-2) 0}:host .wrapper .before,:host .wrapper .after{align-items:center;color:var(--color-text-muted);display:flex}:host .wrapper .before{margin-right:var(--space-2)}:host .wrapper .after{margin-left:var(--space-2)}:host .wrapper:focus-within{border-color:var(--color-primary);box-shadow:0 0 0 1px var(--color-primary)}:host .errors{color:var(--color-error);display:none;font-size:var(--text-sm);margin-top:var(--space-1)}:host([label]:not([label=""])) .label{display:flex}:host([has_errors]) .wrapper{border-color:var(--color-error)}:host([has_errors]) .wrapper:focus-within{box-shadow:0 0 0 1px var(--color-error)}:host([has_errors]) .errors{display:block}`;
-    __getStatic() {
-        return Input;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(Input.__style);
-        return arrStyle;
-    }
-    __getHtml() {super.__getHtml();
-    this.__getStatic().__template.setHTML({
-        slots: { 'before':`<slot name="before"></slot>`,'after':`<slot name="after"></slot>` }, 
-        blocks: { 'default':`<label for="input" class="label" _id="input_0"></label><div class="wrapper">    <div class="before">        <slot name="before"></slot>    </div>    <input id="input" class="input" _id="input_1" />    <div class="after">        <slot name="after"></slot>    </div></div><div class="errors">    <template _id="input_2"></template></div>` }
-    });
-}
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
-  "elements": [
-    {
-      "name": "inputEl",
-      "ids": [
-        "input_1"
-      ]
-    }
-  ],
-  "content": {
-    "input_0°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__c3d0451e83f327f9ac50560c1fff4e87method1())}`,
-      "once": true
-    },
-    "input_1°type": {
-      "fct": (c) => `${c.print(c.comp.__c3d0451e83f327f9ac50560c1fff4e87method2())}`,
-      "once": true
-    },
-    "input_1°placeholder": {
-      "fct": (c) => `${c.print(c.comp.__c3d0451e83f327f9ac50560c1fff4e87method3())}`,
-      "once": true
-    }
-  },
-  "events": [
-    {
-      "eventName": "focus",
-      "id": "input_1",
-      "fct": (e, c) => c.comp.onFocus(e)
-    },
-    {
-      "eventName": "blur",
-      "id": "input_1",
-      "fct": (e, c) => c.comp.onBlur(e)
-    },
-    {
-      "eventName": "input",
-      "id": "input_1",
-      "fct": (e, c) => c.comp.onInput(e)
-    }
-  ]
-});const templ0 = new Aventus.Template(this);templ0.setTemplate(`        <div _id="input_3"></div>    `);templ0.setActions({
-  "content": {
-    "input_3°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__c3d0451e83f327f9ac50560c1fff4e87method4(c.data.error))}`,
-      "once": true
-    }
-  }
-});this.__getStatic().__template.addLoop({
-                    anchorId: 'input_2',
-                    template: templ0,
-                simple:{data: "this.errors",item:"error"}}); }
-    getClassName() {
-        return "Input";
-    }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('type')){ this['type'] = "text"; }if(!this.hasAttribute('placeholder')){ this['placeholder'] = undefined; }if(!this.hasAttribute('label')){ this['label'] = undefined; }if(!this.hasAttribute('value')){ this['value'] = ""; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('type');this.__upgradeProperty('placeholder');this.__upgradeProperty('label');this.__upgradeProperty('value'); }
-    async validation() {
-        const result = [];
-        if (this.type == "email") {
-            if (this.value && this.value.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,4}\b/) == null) {
-                result.push("L'email n'est pas valide");
-            }
-        }
-        return result;
-    }
-    onFocus() {
-        this.clearErrors();
-        this.focusValue = this.inputEl.value;
-    }
-    onBlur() {
-        if (this.inputEl.value == this.focusValue) {
-            this.validate();
-        }
-    }
-    onInput() {
-        this.triggerChange(this.inputEl.value);
-    }
-    __c3d0451e83f327f9ac50560c1fff4e87method1() {
-        return this.label;
-    }
-    __c3d0451e83f327f9ac50560c1fff4e87method2() {
-        return this.type;
-    }
-    __c3d0451e83f327f9ac50560c1fff4e87method3() {
-        return this.placeholder;
-    }
-    __c3d0451e83f327f9ac50560c1fff4e87method4(error) {
-        return error;
-    }
-}
-Form.Input.Namespace=`Aventus.Form`;
-Form.Input.Tag=`av-input`;
-__as1(_.Form, 'Input', Form.Input);
-if(!window.customElements.get('av-input')){window.customElements.define('av-input', Form.Input);Aventus.WebComponentInstance.registerDefinition(Form.Input);}
-
 Form.ButtonElement = class ButtonElement extends Aventus.WebComponent {
     static get observedAttributes() {return ["type"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'type'() { return this.getStringProp('type') }
