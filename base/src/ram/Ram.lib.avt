@@ -1,9 +1,12 @@
 import { RamError, RamErrorCode, ResultRamWithError, VoidRamWithError } from "./Error.lib.avt";
-import type { IData } from "../data/IData.data.avt";
 import { type ResultWithError, VoidWithError } from "../tools/Error.lib.avt";
 import { Json, type JsonFromOptions } from "../tools/Json.lib.avt";
 import { ActionGuard } from "../tools/Mutex.lib.avt";
 
+@Storybook({
+    prefix: "Ram"
+})
+export interface IRamData { }
 @Storybook({
     prefix: "Ram"
 })
@@ -28,7 +31,7 @@ export interface IRamAction<T> {
 @Storybook({
     prefix: "Ram"
 })
-export type RamItem<T extends IData> = T & IRamAction<T>;
+export type RamItem<T extends IRamData> = T & IRamAction<T>;
 @Storybook({
     prefix: "Ram"
 })
@@ -40,7 +43,7 @@ interface RamSubscribers<T> {
 @Storybook({
     prefix: "Ram"
 })
-export abstract class GenericRam<Index, T extends IData, U extends T = T> implements IRam {
+export abstract class GenericRam<Index, T extends IRamData, U extends T = T> implements IRam {
     /**
      * The current namespace
      */
@@ -121,7 +124,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Add function update, onUpdate, offUpdate, delete, onDelete, offDelete
      */
-    protected addRamAction<B extends (new (...args: any[]) => IData) & { className?: string; }>(Base: B) {
+    protected addRamAction<B extends (new (...args: any[]) => IRamData) & { className?: string; }>(Base: B) {
         let that = this;
         return class ActionClass extends Base implements IRamAction<T> {
             public static override get className(): string {
@@ -939,6 +942,6 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
 @Storybook({
     prefix: "Ram"
 })
-export abstract class Ram<T extends IData, U extends T = T> extends GenericRam<number, T, U> {
+export abstract class Ram<T extends IRamData, U extends T = T> extends GenericRam<number, T, U> {
 
 }

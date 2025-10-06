@@ -20,7 +20,7 @@ export class StorePublishTemplate {
 
 		const path = uriToPath(uri);
 		if (existsSync(path) && path.endsWith(AventusExtension.Template)) {
-			let template = TemplateScript.create(path, "");
+			let template = TemplateScript.create(path);
 			if (template) {
 				const result = await Store.publishTemplate(template);
 				if (result instanceof QueryError) {

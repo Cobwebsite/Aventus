@@ -52,7 +52,6 @@ export type TemplateScriptConfig = {
 export class TemplateScript {
 	public config: string;
 	public folderPath: string;
-	public workspacePath: string;
 
 	public name: string = "";
 	public version: string = "1.0.0";
@@ -68,19 +67,19 @@ export class TemplateScript {
 	public repository?: string;
 
 	private static memory: { [key: string]: TemplateScript } = {}
-	public static create(config: string, workspacePath: string): TemplateScript | undefined {
+	public static create(config: string): TemplateScript | undefined {
 		let folderPath = dirname(config);
 		if (this.memory[config]) {
 			let lastModified = statSync(config).mtime
 			if (lastModified.getTime() > this.memory[config].lastModified.getTime()) {
-				const temp = new TemplateScript(config, folderPath, workspacePath);
+				const temp = new TemplateScript(config, folderPath);
 				if (!temp.containsError) {
 					this.memory[config] = temp;
 				}
 			}
 		}
 		else {
-			const temp = new TemplateScript(config, folderPath, workspacePath);
+			const temp = new TemplateScript(config, folderPath);
 			if (!temp.containsError) {
 				this.memory[config] = temp;
 			}
@@ -88,10 +87,9 @@ export class TemplateScript {
 		return this.memory[config];
 	}
 
-	private constructor(config: string, folderPath: string, workspacePath: string) {
+	private constructor(config: string, folderPath: string) {
 		this.config = config;
 		this.folderPath = folderPath;
-		this.workspacePath = workspacePath;
 		const basicInfo = this.prepareScript();
 		for (let key in basicInfo) {
 			if (basicInfo[key]) {
@@ -109,7 +107,7 @@ export class TemplateScript {
 		this.lastModified = statSync(this.config).mtime
 	}
 
-	public init(path: string) {
+	public init(path: string, workspacePath: string) {
 		return new Promise<void>((resolve) => {
 			try {
 				const rootPath = join(serverFolder(), 'lib/templateScript/AventusTemplate.ts').replace(/\\/g, "\\\\");
@@ -123,7 +121,7 @@ export class TemplateScript {
 					});
 
 					const t = new Template();
-					await t._run(\`${this.folderPath.replace(/\\/g, "\\\\")}\`, \`${path.replace(/\\/g, "\\\\")}\`, \`${this.workspacePath.replace(/\\/g, "\\\\")}\`)`;
+					await t._run(\`${this.folderPath.replace(/\\/g, "\\\\")}\`, \`${path.replace(/\\/g, "\\\\")}\`, \`${workspacePath.replace(/\\/g, "\\\\")}\`)`;
 				let tempPath = join(GenericServer.savePath, "temp");
 				if (!existsSync(tempPath)) {
 					mkdirSync(tempPath);
@@ -274,7 +272,6 @@ export class TemplateScript {
 				});
 
 				child.on("close", (code) => {
-					console.log(`Processus enfant terminé avec le code ${code}`);
 					unlinkSync(scriptPath);
 					resolve();
 				});

@@ -90,6 +90,15 @@ export class TemplateManager {
 			}
 		}
 	}
+	public findWorkspace(currentFolder: string) {
+		for (let workspace of this.workspaces) {
+			if (currentFolder.startsWith(workspace)) {
+				return workspace;
+			}
+		}
+		GenericServer.showErrorMessage("Can't load the workspace");
+		return "";
+	}
 
 	public async createProject(path: string) {
 		if (this.loadedProjectsLength == 0) {
@@ -101,7 +110,7 @@ export class TemplateManager {
 		}
 		const templateResult = await this.query(this.loadedProjects);
 		if (templateResult) {
-			await templateResult.init(path)
+			await templateResult.init(path, this.findWorkspace(path))
 		}
 	}
 
@@ -111,14 +120,8 @@ export class TemplateManager {
 			let configPathScript = join(currentFolder, AventusExtension.Template);
 			if (existsSync(configPathScript)) {
 				try {
-					let workspacePath = "";
-					for (let workspace of this.workspaces) {
-						if (currentFolder.startsWith(workspace)) {
-							workspacePath = workspace;
-							break;
-						}
-					}
-					let template = TemplateScript.create(configPathScript, workspacePath);
+
+					let template = TemplateScript.create(configPathScript);
 					if (template) {
 						setValueToObject(template.name, templates, template);
 						nb++;
@@ -189,9 +192,6 @@ export class TemplateManager {
 			let projectsFolder = GenericServer.extensionPath + sep + "templates" + sep + "projects";
 			let folders = readdirSync(projectsFolder);
 			let quickPicks: Map<SelectItem, string> = new Map<SelectItem, string>();
-			const wks = GenericServer.templateManager?.workspaces ?? [];
-			if (wks.length == 0) return;
-			let workspace = wks[0];
 			const scripts: { [name: string]: TemplateScript } = {};
 			for (let folder of folders) {
 				let folderPath = projectsFolder + sep + folder;
@@ -199,7 +199,7 @@ export class TemplateManager {
 					let confPath = folderPath + sep + AventusExtension.Template;
 					if (existsSync(confPath)) {
 						try {
-							const template = TemplateScript.create(confPath, workspace);
+							const template = TemplateScript.create(confPath);
 							if (template) {
 								scripts[folderPath] = template;
 								let quickPick: SelectItem = {
@@ -282,7 +282,7 @@ export class TemplateManager {
 					let confPath = folderPath + sep + AventusExtension.Template;
 					if (existsSync(confPath)) {
 						try {
-							const template = TemplateScript.create(confPath, workspace);
+							const template = TemplateScript.create(confPath);
 							if (template) {
 								scripts[folderPath] = template;
 								let quickPick: SelectItem = {
@@ -492,7 +492,7 @@ export class TemplateManager {
 
 		if (existsSync(join(packageTempPath, AventusExtension.Template))) {
 
-			const temp = TemplateScript.create(join(packageTempPath, AventusExtension.Template), "");
+			const temp = TemplateScript.create(join(packageTempPath, AventusExtension.Template));
 			if (!temp) {
 				GenericServer.showErrorMessage("The template contains error");
 				return;

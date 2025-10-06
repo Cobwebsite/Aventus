@@ -11,7 +11,7 @@ export class LocalTemplateManager {
 		let loadedTemplates = this.readTemplates()
 		const templateResult = await this.templateManager.query(loadedTemplates.templates);
 		if (templateResult) {
-			await templateResult.init(path);
+			await templateResult.init(path, this.templateManager.findWorkspace(path));
 		}
 	}
 

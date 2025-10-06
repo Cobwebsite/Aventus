@@ -140,6 +140,13 @@ export class Store {
 		for (let tag of template.tags) {
 			form.append("tags[]", tag);
 		}
+		const rootPath = template.folderPath;
+		const files = readdirSync(rootPath);
+		const readmeFile = files.find(f => f.toLowerCase() === "readme.md");
+		if (readmeFile) {
+			const packageFile = new Blob([readFileSync(join(rootPath, readmeFile))], { type: "text/plain" });
+			form.append("readMe", packageFile, "README.md");
+		}
 
 		const dir = dirname(template.config);
 
