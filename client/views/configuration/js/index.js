@@ -314,33 +314,6 @@ let ElementExtension=class ElementExtension {
 ElementExtension.Namespace=`Aventus`;
 __as1(_, 'ElementExtension', ElementExtension);
 
-let Instance=class Instance {
-    static elements = new Map();
-    static get(type) {
-        let result = this.elements.get(type);
-        if (!result) {
-            let cst = type.prototype['constructor'];
-            result = new cst();
-            this.elements.set(type, result);
-        }
-        return result;
-    }
-    static set(el) {
-        let cst = el.constructor;
-        if (this.elements.get(cst)) {
-            return false;
-        }
-        this.elements.set(cst, el);
-        return true;
-    }
-    static destroy(el) {
-        let cst = el.constructor;
-        return this.elements.delete(cst);
-    }
-}
-Instance.Namespace=`Aventus`;
-__as1(_, 'Instance', Instance);
-
 let Style=class Style {
     static instance;
     static noAnimation;
@@ -3842,6 +3815,33 @@ let Template=class Template {
 }
 Template.Namespace=`Aventus`;
 __as1(_, 'Template', Template);
+
+let Instance=class Instance {
+    static elements = new Map();
+    static get(type) {
+        let result = this.elements.get(type);
+        if (!result) {
+            let cst = type.prototype['constructor'];
+            result = new cst();
+            this.elements.set(type, result);
+        }
+        return result;
+    }
+    static set(el) {
+        let cst = el.constructor;
+        if (this.elements.get(cst)) {
+            return false;
+        }
+        this.elements.set(cst, el);
+        return true;
+    }
+    static destroy(el) {
+        let cst = el.constructor;
+        return this.elements.delete(cst);
+    }
+}
+Instance.Namespace=`Aventus`;
+__as1(_, 'Instance', Instance);
 
 let WebComponent=class WebComponent extends HTMLElement {
     /**

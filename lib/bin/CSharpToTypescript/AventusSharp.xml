@@ -1264,12 +1264,13 @@
             <param name="propPath"></param>
             <param name="result"></param>
         </member>
-        <member name="M:AventusSharp.Routes.Request.RouterBody.GetData(System.Type,System.String)">
+        <member name="M:AventusSharp.Routes.Request.RouterBody.GetData(System.Type,System.String,System.Boolean)">
             <summary>
             Transform data into object T. Add path to tell where to find data to cast
             </summary>
             <param name="type">Type needed</param>
             <param name="propPath">Path where to find data</param>
+            <param name="isOptional">Determine if data is required</param>
             <returns></returns>
         </member>
         <member name="F:AventusSharp.Routes.Request.HttpFile.stream">
@@ -2141,12 +2142,13 @@
             Determine if the typescript must start listening this event when the connection open
             </summary>
         </member>
-        <member name="M:AventusSharp.WebSocket.Request.WebSocketRouterBody.GetData(System.Type,System.String)">
+        <member name="M:AventusSharp.WebSocket.Request.WebSocketRouterBody.GetData(System.Type,System.String,System.Boolean)">
             <summary>
             Transform data into object T. Add path to tell where to find data to cast
             </summary>
             <param name="type">Type needed</param>
             <param name="propPath">Path where to find data</param>
+            <param name="isOptional">Determine if data is required</param>
             <returns></returns>
         </member>
         <member name="F:AventusSharp.WebSocket.WebSocketConfig.transformPattern">

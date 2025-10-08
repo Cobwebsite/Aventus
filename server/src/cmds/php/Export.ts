@@ -67,7 +67,7 @@ export class PhpExport {
 		try {
 			let execPath = join(GenericServer.extensionPath, "lib", "bin", "PhpToTypescript", "PhpToTypescript.phar")
 			let phpProj = uriToPath(uri);
-			let result = execSync("php " + execPath + " " + phpProj).toString();
+			let result = execSync("php " + execPath + " " + phpProj+ " 2>&1", { encoding: 'utf8' }).toString();
 			if (result.indexOf("Error : ") == -1) {
 				Compiling.send(phpProjName, 'success');
 			}

@@ -513,7 +513,7 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
             return result.result ?? new Map();
         }
         return new Map();
-    };
+    }
     /**
      * Get all elements inside the Ram
      */
@@ -529,7 +529,7 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
             }
             return action;
         });
-    };
+    }
 
 
     /**
