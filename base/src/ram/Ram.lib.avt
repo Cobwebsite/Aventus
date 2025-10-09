@@ -11,6 +11,7 @@ export interface IRamData { }
     prefix: "Ram"
 })
 export interface IRam { }
+
 @Storybook({
     prefix: "Ram"
 })
