@@ -28,6 +28,28 @@ if(!Object.hasOwn(window, "AvInstance")) {
 		}
 	})();
 }
+var Aventus;
+(Aventus||(Aventus = {}));
+(function (Aventus) {
+const __as1 = (o, k, c) => { if (o[k] !== undefined) for (let w in o[k]) { c[w] = o[k][w] } o[k] = c; }
+const moduleName = `Aventus`;
+const _ = {};
+
+
+let _n;
+var HttpMethod;
+(function (HttpMethod) {
+    HttpMethod["GET"] = "GET";
+    HttpMethod["POST"] = "POST";
+    HttpMethod["DELETE"] = "DELETE";
+    HttpMethod["PUT"] = "PUT";
+    HttpMethod["OPTION"] = "OPTION";
+})(HttpMethod || (HttpMethod = {}));
+__as1(_, 'HttpMethod', HttpMethod);
+
+
+for(let key in _) { Aventus[key] = _[key] }
+})(Aventus);
 
 if(!Object.hasOwn(window, "AvInstance")) {
 	Object.defineProperty(window, "AvInstance", {
@@ -596,33 +618,6 @@ let ResourceLoader=class ResourceLoader {
 }
 ResourceLoader.Namespace=`Aventus`;
 __as1(_, 'ResourceLoader', ResourceLoader);
-
-let Instance=class Instance {
-    static elements = new Map();
-    static get(type) {
-        let result = this.elements.get(type);
-        if (!result) {
-            let cst = type.prototype['constructor'];
-            result = new cst();
-            this.elements.set(type, result);
-        }
-        return result;
-    }
-    static set(el) {
-        let cst = el.constructor;
-        if (this.elements.get(cst)) {
-            return false;
-        }
-        this.elements.set(cst, el);
-        return true;
-    }
-    static destroy(el) {
-        let cst = el.constructor;
-        return this.elements.delete(cst);
-    }
-}
-Instance.Namespace=`Aventus`;
-__as1(_, 'Instance', Instance);
 
 let DragElementXYType= [SVGGElement, SVGRectElement, SVGEllipseElement, SVGTextElement];
 __as1(_, 'DragElementXYType', DragElementXYType);
@@ -2540,9 +2535,11 @@ let HttpRequest=class HttpRequest {
     }
     request;
     url;
-    constructor(url, method = HttpMethod.GET, body) {
+    methodSpoofing = false;
+    constructor(url, method = HttpMethod.GET, body, methodSpoofing = false) {
         this.url = url;
         this.request = {};
+        this.methodSpoofing = methodSpoofing;
         this.setMethod(method);
         this.prepareBody(body);
     }
@@ -2557,6 +2554,12 @@ let HttpRequest=class HttpRequest {
     }
     setMethod(method) {
         this.request.method = method;
+    }
+    /**
+     * Replace method Put/Delete by _method:"put" inside a form
+     */
+    enableMethodSpoofing() {
+        this.methodSpoofing = true;
     }
     objectToFormData(obj, formData, parentKey) {
         formData = formData || new FormData();
@@ -2637,6 +2640,20 @@ let HttpRequest=class HttpRequest {
             else {
                 this.request.body = JSON.stringify(data, this.jsonReplacer);
                 this.setHeader("Content-Type", "Application/json");
+            }
+        }
+        if (this.methodSpoofing) {
+            if (this.request.method?.toLowerCase() == Aventus.HttpMethod.PUT) {
+                if (this.request.body instanceof FormData) {
+                    this.request.body.append("_method", Aventus.HttpMethod.PUT);
+                    this.request.method = Aventus.HttpMethod.POST;
+                }
+            }
+            else if (this.request.method?.toLowerCase() == Aventus.HttpMethod.DELETE) {
+                if (this.request.body instanceof FormData) {
+                    this.request.body.append("_method", Aventus.HttpMethod.DELETE);
+                    this.request.method = Aventus.HttpMethod.POST;
+                }
             }
         }
     }
@@ -3514,6 +3531,9 @@ let DragAndDrop=class DragAndDrop {
         const result = this.options.onStart(e);
         if (result !== false) {
             document.body.style.userSelect = 'none';
+            if (window.getSelection) {
+                window.getSelection()?.removeAllRanges();
+            }
         }
         return result;
     }
@@ -3923,6 +3943,33 @@ let DragAndDrop=class DragAndDrop {
 }
 DragAndDrop.Namespace=`Aventus`;
 __as1(_, 'DragAndDrop', DragAndDrop);
+
+let Instance=class Instance {
+    static elements = new Map();
+    static get(type) {
+        let result = this.elements.get(type);
+        if (!result) {
+            let cst = type.prototype['constructor'];
+            result = new cst();
+            this.elements.set(type, result);
+        }
+        return result;
+    }
+    static set(el) {
+        let cst = el.constructor;
+        if (this.elements.get(cst)) {
+            return false;
+        }
+        this.elements.set(cst, el);
+        return true;
+    }
+    static destroy(el) {
+        let cst = el.constructor;
+        return this.elements.delete(cst);
+    }
+}
+Instance.Namespace=`Aventus`;
+__as1(_, 'Instance', Instance);
 
 let ResizeObserver=class ResizeObserver {
     callback;

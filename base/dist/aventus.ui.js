@@ -6121,9 +6121,11 @@ let HttpRequest=class HttpRequest {
     }
     request;
     url;
-    constructor(url, method = HttpMethod.GET, body) {
+    methodSpoofing = false;
+    constructor(url, method = HttpMethod.GET, body, methodSpoofing = false) {
         this.url = url;
         this.request = {};
+        this.methodSpoofing = methodSpoofing;
         this.setMethod(method);
         this.prepareBody(body);
     }
@@ -6138,6 +6140,12 @@ let HttpRequest=class HttpRequest {
     }
     setMethod(method) {
         this.request.method = method;
+    }
+    /**
+     * Replace method Put/Delete by _method:"put" inside a form
+     */
+    enableMethodSpoofing() {
+        this.methodSpoofing = true;
     }
     objectToFormData(obj, formData, parentKey) {
         formData = formData || new FormData();
@@ -6218,6 +6226,20 @@ let HttpRequest=class HttpRequest {
             else {
                 this.request.body = JSON.stringify(data, this.jsonReplacer);
                 this.setHeader("Content-Type", "Application/json");
+            }
+        }
+        if (this.methodSpoofing) {
+            if (this.request.method?.toLowerCase() == Aventus.HttpMethod.PUT) {
+                if (this.request.body instanceof FormData) {
+                    this.request.body.append("_method", Aventus.HttpMethod.PUT);
+                    this.request.method = Aventus.HttpMethod.POST;
+                }
+            }
+            else if (this.request.method?.toLowerCase() == Aventus.HttpMethod.DELETE) {
+                if (this.request.body instanceof FormData) {
+                    this.request.body.append("_method", Aventus.HttpMethod.DELETE);
+                    this.request.method = Aventus.HttpMethod.POST;
+                }
             }
         }
     }

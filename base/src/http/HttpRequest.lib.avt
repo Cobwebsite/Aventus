@@ -17,15 +17,18 @@ export type HttpRequestOptions = {
 export class HttpRequest {
     private static options?: HttpRequestOptions;
 
+
     public static configure(options: HttpRequestOptions) {
         this.options = options;
     }
 
     private request: RequestInit;
     private url: string;
-    public constructor(url: string, method: HttpMethod = HttpMethod.GET, body?: { [key: string | number]: any; } | FormData) {
+    private methodSpoofing: boolean = false;
+    public constructor(url: string, method: HttpMethod = HttpMethod.GET, body?: { [key: string | number]: any; } | FormData, methodSpoofing: boolean = false) {
         this.url = url;
         this.request = {};
+        this.methodSpoofing = methodSpoofing;
         this.setMethod(method);
         this.prepareBody(body);
     }
@@ -44,6 +47,12 @@ export class HttpRequest {
     }
     public setMethod(method: HttpMethod) {
         this.request.method = method;
+    }
+    /**
+     * Replace method Put/Delete by _method:"put" inside a form
+     */
+    public enableMethodSpoofing() {
+        this.methodSpoofing = true;
     }
 
     private objectToFormData(obj: { [key: string | number]: any; }, formData?: FormData, parentKey?: string): FormData {
@@ -134,6 +143,21 @@ export class HttpRequest {
                 this.setHeader("Content-Type", "Application/json");
             }
         }
+
+        if(this.methodSpoofing) {
+            if(this.request.method?.toLowerCase() == Aventus.HttpMethod.PUT) {
+                if(this.request.body instanceof FormData) {
+                    this.request.body.append("_method", Aventus.HttpMethod.PUT);
+                    this.request.method = Aventus.HttpMethod.POST;
+                }
+            }
+            else if(this.request.method?.toLowerCase() == Aventus.HttpMethod.DELETE) {
+                if(this.request.body instanceof FormData) {
+                    this.request.body.append("_method", Aventus.HttpMethod.DELETE);
+                    this.request.method = Aventus.HttpMethod.POST;
+                }
+            }
+        }
     }
 
     public setHeader(name: string, value: string) {
@@ -150,7 +174,7 @@ export class HttpRequest {
     protected async _query(router?: HttpRouter): Promise<ResultWithError<Response>> {
         let result = new ResultWithError<Response>();
         try {
-            const isFull = this.url.match("https?://")
+            const isFull = this.url.match("https?://");
             if(!this.url.startsWith("/") && !isFull) {
                 this.url = "/" + this.url;
             }
