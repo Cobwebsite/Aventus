@@ -91,7 +91,6 @@ namespace Toast {
 
         public async add<T extends ToastOptions>(toast: ToastElement<T> | T): Promise<boolean> {
             await this.mutex.waitOne()
-            console.log("inside");
             let realToast: ToastElement<T>;
             if(toast instanceof ToastElement) {
                 realToast = toast;
@@ -206,7 +205,6 @@ namespace Toast {
                     let totHeight = 0;
                     for(let notif of this.activeToasts[position]) {
                         await notif.waitTransition();
-                        console.log(notif.offsetHeight);
                         totHeight += notif.offsetHeight + this.gap;
                     }
                     if(totHeight + height < this.heightLimit) {
@@ -224,7 +222,6 @@ namespace Toast {
                         this.waitingToasts[position].push(toast);
                     }
                 }
-                console.log("outside");
                 this.mutex.release();
                 return;
             });

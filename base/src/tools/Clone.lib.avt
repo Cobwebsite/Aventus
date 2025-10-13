@@ -1,5 +1,5 @@
 import { Converter } from "./Converter.lib.avt";
 
 export function clone<X>(item: X) {
-    return Converter.transform<X>(JSON.parse(JSON.stringify(this)));
+    return Converter.transform<X>(JSON.parse(JSON.stringify(item)));
 }

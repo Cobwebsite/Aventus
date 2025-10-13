@@ -1097,6 +1097,9 @@ let Watcher=class Watcher {
                 for (let key in reservedName) {
                     delete data[key];
                 }
+                for (let key in data) {
+                    clearReservedNames(data[key]);
+                }
             }
         };
         const setProxyPath = (newProxy, newPath) => {
@@ -10668,7 +10671,6 @@ Toast.ToastManager = class ToastManager extends Aventus.WebComponent {
     __listBoolProps() { return ["not_main"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     async add(toast) {
         await this.mutex.waitOne();
-        console.log("inside");
         let realToast;
         if (toast instanceof _.Toast.ToastElement) {
             realToast = toast;
@@ -10778,7 +10780,6 @@ Toast.ToastManager = class ToastManager extends Aventus.WebComponent {
                 let totHeight = 0;
                 for (let notif of this.activeToasts[position]) {
                     await notif.waitTransition();
-                    console.log(notif.offsetHeight);
                     totHeight += notif.offsetHeight + this.gap;
                 }
                 if (totHeight + height < this.heightLimit) {
@@ -10795,7 +10796,6 @@ Toast.ToastManager = class ToastManager extends Aventus.WebComponent {
                     this.waitingToasts[position].push(toast);
                 }
             }
-            console.log("outside");
             this.mutex.release();
             return;
         });
