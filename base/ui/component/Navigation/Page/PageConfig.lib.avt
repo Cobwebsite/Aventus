@@ -1,8 +1,12 @@
 namespace Navigation.Page {
     export interface PageConfig {
+        /** Define the page title for browser tab */
         title?: string,
+        /** Define the page description for browser tab */
         description?: string;
+        /** Define the page keywords for browser tab */
         keywords?: string[];
+        /** Define if the page should be destroyed when the page will be hidden */
         destroy?: boolean;
     }
 }

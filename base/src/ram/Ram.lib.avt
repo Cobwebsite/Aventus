@@ -2,6 +2,8 @@ import { RamError, RamErrorCode, ResultRamWithError, VoidRamWithError } from "./
 import { type ResultWithError, VoidWithError } from "../tools/Error.lib.avt";
 import { Json, type JsonFromOptions } from "../tools/Json.lib.avt";
 import { ActionGuard } from "../tools/Mutex.lib.avt";
+import { Converter } from "../tools/Converter.lib.avt";
+import { Instance } from "../lib/Instance.lib.avt";
 
 @Storybook({
     prefix: "Ram"
@@ -41,10 +43,72 @@ interface RamSubscribers<T> {
     updated: ((item: T) => void)[];
     deleted: ((item: T) => void)[];
 }
+
+export class RamManager {
+
+    private static _allInit: boolean = true;
+    public static get allInit(): boolean { return this._allInit; };
+
+    public static readonly info: Map<new () => any, GenericRam<any, any>> = new Map([]);
+    private static readonly rams: (Function & { constructor: any; })[] = [];
+
+    public static registerRAM(ram: Function & { constructor: any; }) {
+        this._allInit = false;
+        if(!this.rams.includes(ram)) {
+            this.rams.push(ram);
+        }
+    }
+
+    public static check() {
+        if(this._allInit) {
+            this._allInit = true;
+            for(let ramCst of this.rams) {
+                const ram = Instance.get<GenericRam<any, any>>(ramCst);
+                for(let type of ram.ramForTypes()) {
+                    this.info.set(type, ram);
+                }
+            }
+            for(let ramCst of this.rams) {
+                const ram = Instance.get<GenericRam<any, any>>(ramCst);
+                const mapping: { [key: string]: { ram: GenericRam<any, any>, asArray: boolean; }; } = {};
+                for(let type of ram.ramForTypes()) {
+                    if('$schema' in type) {
+                        const schema = type.$schema as { [prop: string]: string; };
+                        for(let key in schema) {
+                            if(mapping[key]) continue;
+
+                            let schemaType = schema[key];
+                            let asArray = false;
+                            if(schemaType.endsWith("[]")) {
+                                asArray = true;
+                                schemaType = schemaType.slice(0, -2);
+                            }
+                            const schemaInfo = Converter.info.get(schemaType);
+                            if(schemaInfo) {
+                                const ramLink = this.info.get(schemaInfo);
+                                if(ramLink) {
+                                    mapping[key] = {
+                                        ram: ramLink,
+                                        asArray
+                                    };
+                                }
+                            }
+                        }
+                    }
+                }
+                ram.ramMapping = mapping;
+            }
+        }
+    }
+}
+
 @Storybook({
     prefix: "Ram"
 })
 export abstract class GenericRam<Index, T extends IRamData, U extends T = T> implements IRam {
+
+    public static readonly info: Map<IRam, new () => any> = new Map([]);
+
     /**
      * The current namespace
      */
@@ -69,10 +133,15 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
 
     protected actionGuard: ActionGuard = new ActionGuard();
 
+    @InternalProtected()
+    public ramMapping: { [key: string]: { ram: GenericRam<any, any>, asArray: boolean; }; } = {};
+
     protected constructor() {
         if(this.constructor == GenericRam) {
             throw "can't instanciate an abstract class";
         }
+
+        RamManager.check();
     }
 
     //#region index key
@@ -228,7 +297,17 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
         };
     }
 
+    /**
+     * Define the right type base of the json received
+     */
     protected abstract getTypeForData(objJson: KeysObject<T> | T): new () => U;
+    /**
+     * Define all the types you ram is capable of
+     */
+    @InternalProtected()
+    public ramForTypes(): (new () => U)[] {
+        return [this.getTypeForData({})];
+    }
     /**
      * Transform the object into the object stored inside Ram
      */
@@ -237,6 +316,61 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
         let item = new T();
         this.mergeObject(item, objJson);
         return item;
+    }
+
+
+    protected linkFct: Map<GenericRam<any, any>, {
+        onCreated: (item: any) => void;
+        onUpdated: (item: any) => void;
+        onDeleted: (item: any) => void;
+    }> = new Map();
+
+    private linkInfo: { [key: string | number]: { [id: string | number]: U[]; }; } = {};
+    private linkRamItem(item: U) {
+        for(let key in this.ramMapping) {
+            this.linkRamItemByKey(item, key);
+        }
+    }
+    private linkRamItemByKey(item: U, key: string) {
+        const mapping = this.ramMapping[key];
+        if(key in item) {
+            if(mapping.asArray) {
+                if(Array.isArray(item[key])) {
+
+                }
+                else {
+                    console.error(key + " in type " + item + " must be an array");
+                }
+            }
+            else {
+                const id = mapping.ram.getId(item[key]);
+
+                if(!this.linkFct.has(mapping.ram)) {
+                    const fcts = {
+                        onCreated: (item) => {
+                            
+                        },
+                        onUpdated: (item) => {
+
+                        },
+                        onDeleted: (item) => {
+
+                        },
+                    };
+                    this.linkFct.set(mapping.ram, fcts);
+                    mapping.ram.onCreated(fcts.onCreated);
+                    mapping.ram.onUpdated(fcts.onUpdated);
+                    mapping.ram.onDeleted(fcts.onDeleted);
+                }
+
+                if(!this.linkInfo[key])
+                    this.linkInfo[key] = {};
+                if(!this.linkInfo[key][id])
+                    this.linkInfo[key][id] = [];
+                this.linkInfo[key][id].push(item);
+
+            }
+        }
     }
 
     /**
@@ -251,8 +385,10 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
                 if(this.records.has(id)) {
                     let uniqueRecord = this.records.get(id)!;
                     await this.beforeRecordSet(uniqueRecord);
+                    // this.unlinkRamItem(uniqueRecord);
                     this.mergeObject(uniqueRecord, item);
                     await this.afterRecordSet(uniqueRecord);
+                    // this.linkRamItem(uniqueRecord);
                     resultTemp = 'updated';
                 }
                 else {
@@ -260,6 +396,7 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
                     await this.beforeRecordSet(realObject);
                     this.records.set(id, realObject);
                     await this.afterRecordSet(realObject);
+                    // this.linkRamItem(uniqueRecord);
                     resultTemp = 'created';
                 }
                 result.result = this.records.get(id);
