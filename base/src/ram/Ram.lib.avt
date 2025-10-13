@@ -12,7 +12,17 @@ export interface IRamData { }
 @Storybook({
     prefix: "Ram"
 })
-export interface IRam { }
+export interface IRam {
+    ramForTypes(): (new () => any)[];
+    ramMapping: { [key: string]: { ram: IRam, asArray: boolean; }; };
+    onCreated(cb: (item: any) => void);
+    offCreated(cb: (item: any) => void);
+    onUpdated(cb: (item: any) => void);
+    offUpdated(cb: (item: any) => void);
+    onDeleted(cb: (item: any) => void);
+    offDeleted(cb: (item: any) => void);
+    getId(item: any): any;
+}
 
 @Storybook({
     prefix: "Ram"
@@ -49,7 +59,7 @@ export class RamManager {
     private static _allInit: boolean = true;
     public static get allInit(): boolean { return this._allInit; };
 
-    public static readonly info: Map<new () => any, GenericRam<any, any>> = new Map([]);
+    public static readonly info: Map<new () => any, IRam> = new Map([]);
     private static readonly rams: (Function & { constructor: any; })[] = [];
 
     public static registerRAM(ram: Function & { constructor: any; }) {
@@ -63,14 +73,14 @@ export class RamManager {
         if(this._allInit) {
             this._allInit = true;
             for(let ramCst of this.rams) {
-                const ram = Instance.get<GenericRam<any, any>>(ramCst);
+                const ram = Instance.get<IRam>(ramCst);
                 for(let type of ram.ramForTypes()) {
                     this.info.set(type, ram);
                 }
             }
             for(let ramCst of this.rams) {
-                const ram = Instance.get<GenericRam<any, any>>(ramCst);
-                const mapping: { [key: string]: { ram: GenericRam<any, any>, asArray: boolean; }; } = {};
+                const ram = Instance.get<IRam>(ramCst);
+                const mapping: { [key: string]: { ram: IRam, asArray: boolean; }; } = {};
                 for(let type of ram.ramForTypes()) {
                     if('$schema' in type) {
                         const schema = type.$schema as { [prop: string]: string; };
@@ -134,7 +144,7 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
     protected actionGuard: ActionGuard = new ActionGuard();
 
     @InternalProtected()
-    public ramMapping: { [key: string]: { ram: GenericRam<any, any>, asArray: boolean; }; } = {};
+    public ramMapping: { [key: string]: { ram: IRam, asArray: boolean; }; } = {};
 
     protected constructor() {
         if(this.constructor == GenericRam) {
@@ -319,7 +329,7 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
     }
 
 
-    protected linkFct: Map<GenericRam<any, any>, {
+    protected linkFct: Map<IRam, {
         onCreated: (item: any) => void;
         onUpdated: (item: any) => void;
         onDeleted: (item: any) => void;
@@ -348,7 +358,7 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
                 if(!this.linkFct.has(mapping.ram)) {
                     const fcts = {
                         onCreated: (item) => {
-                            
+
                         },
                         onUpdated: (item) => {
 
@@ -388,7 +398,7 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
                     // this.unlinkRamItem(uniqueRecord);
                     this.mergeObject(uniqueRecord, item);
                     await this.afterRecordSet(uniqueRecord);
-                    // this.linkRamItem(uniqueRecord);
+                    this.linkRamItem(uniqueRecord);
                     resultTemp = 'updated';
                 }
                 else {
@@ -396,7 +406,7 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
                     await this.beforeRecordSet(realObject);
                     this.records.set(id, realObject);
                     await this.afterRecordSet(realObject);
-                    // this.linkRamItem(uniqueRecord);
+                    this.linkRamItem(realObject);
                     resultTemp = 'created';
                 }
                 result.result = this.records.get(id);
