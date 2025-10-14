@@ -8,6 +8,7 @@ example/**
 node_modules
 !node_modules/typescript
 !node_modules/@types/node
+!node_modules/@rollup/rollup-win32-x64-msvc
 # !node_modules/@types
 server/**
 !server/out

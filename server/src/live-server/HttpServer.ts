@@ -11,7 +11,7 @@ import { INJECTED_CODE } from './injectedCode';
 import { WebSocket, WebSocketServer } from 'ws';
 import { ServerStart } from '../notification/httpServer/ServerStart';
 import { ServerStop } from '../notification/httpServer/ServerStop';
-import * as open from 'open'
+import open, {Options} from 'open'
 import { LiveServerSettings, SettingsManager } from '../settings/Settings';
 import { GenericServer } from '../GenericServer';
 
@@ -70,7 +70,7 @@ export class HttpServer {
 				}
 				ServerStart.send(host, this.port);
 				if (this.config.launch_browser) {
-					let config: open.Options = {};
+					let config: Options = {};
 					if (this.config.browser) {
 						config = { app: { name: this.config.browser } }
 					}

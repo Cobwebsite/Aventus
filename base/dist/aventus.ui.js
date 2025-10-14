@@ -1097,9 +1097,6 @@ let Watcher=class Watcher {
                 for (let key in reservedName) {
                     delete data[key];
                 }
-                for (let key in data) {
-                    clearReservedNames(data[key]);
-                }
             }
         };
         const setProxyPath = (newProxy, newPath) => {
@@ -6232,13 +6229,13 @@ let HttpRequest=class HttpRequest {
             }
         }
         if (this.methodSpoofing) {
-            if (this.request.method?.toUpperCase() == Aventus.HttpMethod.PUT) {
+            if (this.request.method?.toLowerCase() == Aventus.HttpMethod.PUT) {
                 if (this.request.body instanceof FormData) {
                     this.request.body.append("_method", Aventus.HttpMethod.PUT);
                     this.request.method = Aventus.HttpMethod.POST;
                 }
             }
-            else if (this.request.method?.toUpperCase() == Aventus.HttpMethod.DELETE) {
+            else if (this.request.method?.toLowerCase() == Aventus.HttpMethod.DELETE) {
                 if (this.request.body instanceof FormData) {
                     this.request.body.append("_method", Aventus.HttpMethod.DELETE);
                     this.request.method = Aventus.HttpMethod.POST;
