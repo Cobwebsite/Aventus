@@ -1097,6 +1097,9 @@ let Watcher=class Watcher {
                 for (let key in reservedName) {
                     delete data[key];
                 }
+                for (let key in data) {
+                    clearReservedNames(data[key]);
+                }
             }
         };
         const setProxyPath = (newProxy, newPath) => {
@@ -6229,13 +6232,13 @@ let HttpRequest=class HttpRequest {
             }
         }
         if (this.methodSpoofing) {
-            if (this.request.method?.toLowerCase() == Aventus.HttpMethod.PUT) {
+            if (this.request.method?.toUpperCase() == Aventus.HttpMethod.PUT) {
                 if (this.request.body instanceof FormData) {
                     this.request.body.append("_method", Aventus.HttpMethod.PUT);
                     this.request.method = Aventus.HttpMethod.POST;
                 }
             }
-            else if (this.request.method?.toLowerCase() == Aventus.HttpMethod.DELETE) {
+            else if (this.request.method?.toUpperCase() == Aventus.HttpMethod.DELETE) {
                 if (this.request.body instanceof FormData) {
                     this.request.body.append("_method", Aventus.HttpMethod.DELETE);
                     this.request.method = Aventus.HttpMethod.POST;
@@ -7370,48 +7373,6 @@ Form.Validators.Email=class Email extends _.Form.Validator {
 }
 Form.Validators.Email.Namespace=`Aventus.Form.Validators`;
 __as1(_.Form.Validators, 'Email', Form.Validators.Email);
-
-Form.Button = class Button extends Aventus.WebComponent {
-    static get observedAttributes() {return ["icon"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
-    get 'round'() { return this.getBoolAttr('round') }
-    set 'round'(val) { this.setBoolAttr('round', val) }get 'loading'() { return this.getBoolAttr('loading') }
-    set 'loading'(val) { this.setBoolAttr('loading', val) }get 'disabled'() { return this.getBoolAttr('disabled') }
-    set 'disabled'(val) { this.setBoolAttr('disabled', val) }get 'outline'() { return this.getBoolAttr('outline') }
-    set 'outline'(val) { this.setBoolAttr('outline', val) }get 'ghost'() { return this.getBoolAttr('ghost') }
-    set 'ghost'(val) { this.setBoolAttr('ghost', val) }get 'color'() { return this.getStringAttr('color') }
-    set 'color'(val) { this.setStringAttr('color', val) }get 'size'() { return this.getStringAttr('size') }
-    set 'size'(val) { this.setStringAttr('size', val) }    get 'icon'() { return this.getStringProp('icon') }
-    set 'icon'(val) { this.setStringAttr('icon', val) }    internals;
-    static __style = `:host{--_button-border-radius: var(--button-border-radius, var(--border-radius-md));--_button-font-size: var(--button-font-size, var(--text-base));--_button-padding: var(--button-padding, var(--space-2) var(--space-4));--_button-background-color: var(--button-background-color, var(--color-primary));--_button-background-color-hover: var(--button-background-color-hover, var(--color-primary-hover));--_button-color: var(--button-color, var(--color-text-inverse));--_button-color-hover: var(--button-color-hover, var(--_button-color));--_button-border: var(--button-border, none)}:host([color=secondary]){--_button-background-color: var(--button-background-color, var(--color-surface));--_button-border: var(--button-border, var(--border-width) solid var(--color-border));--_button-color: var(--button-color, var(--color-text))}:host([color=secondary]:hover){--_button-background-color-hover: var(--button-background-color-hover, var(--color-bg-muted))}:host([color=danger]){--_button-background-color: var(--button-background-color, var(--color-error));--_button-color: var(--button-color, var(--color-text-inverse))}:host([color=danger]:hover){--_button-background-color-hover: var(--button-background-color-hover, #dc2626)}:host([color=neutral]){--_button-background-color: var(--button-background-color, #6b7280);--_button-color: var(--button-color, white)}:host([color=neutral]:hover){--_button-background-color-hover: var(--button-background-color-hover, #4b5563)}:host{align-items:center;background-color:var(--_button-background-color);border:var(--_button-border);border-radius:var(--_button-border-radius);color:var(--_button-color);cursor:pointer;display:inline-flex;font-family:inherit;font-size:var(--_button-font-size);font-weight:500;gap:var(--space-2);justify-content:center;line-height:1;padding:var(--_button-padding);text-decoration:none;transition:all var(--transition-fast);user-select:none}:host(:hover){background-color:var(--_button-background-color-hover);color:var(--_button-color-hover)}:host(:active){transform:scale(0.98)}:host([disabled]){cursor:not-allowed;opacity:.5;pointer-events:none}:host([round]){border-radius:9999px}:host([outline]:not(:hover)){--_button-color: var(--button-color, var(--color-text));--_button-border: var(--button-border, var(--border-width) solid var(--color-border));--_button-background-color: var(--button-background-color, transparent)}:host([outline]:hover){--_button-border: var(--button-border, var(--border-width) solid var(--_button-background-color));--_button-color: var(--button-color, var(--_button-background-color));--_button-background-color-hover: var(--button-background-color-hover, transparent)}:host([ghost]){--_button-background-color: var(--button-background-color, transparent);--_button-color: var(--button-color, var(--color-text))}:host([ghost]:hover){--_button-background-color-hover: var(--button-background-color-hover, var(--color-bg-muted))}:host([size=sm]){--_button-padding: var(--button-padding, var(--space-1) var(--space-3));--_button-font-size: var(--button-font-size, var(--text-sm))}:host([size=lg]){--_button-padding: var(--button-padding, var(--space-3) var(--space-5));--_button-font-size: var(--button-font-size, var(--text-lg))}:host([icon_only]){height:2.5rem;justify-content:center;padding:var(--space-2);width:2.5rem}`;
-    constructor() {
-        super();
-        this.internals = this.attachInternals();
-    }
-    __getStatic() {
-        return Button;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(Button.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<slot></slot>` }
-    });
-}
-    getClassName() {
-        return "Button";
-    }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('round')) { this.attributeChangedCallback('round', false, false); }if(!this.hasAttribute('loading')) { this.attributeChangedCallback('loading', false, false); }if(!this.hasAttribute('disabled')) { this.attributeChangedCallback('disabled', false, false); }if(!this.hasAttribute('outline')) { this.attributeChangedCallback('outline', false, false); }if(!this.hasAttribute('ghost')) { this.attributeChangedCallback('ghost', false, false); }if(!this.hasAttribute('color')){ this['color'] = undefined; }if(!this.hasAttribute('size')){ this['size'] = undefined; }if(!this.hasAttribute('icon')){ this['icon'] = undefined; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('round');this.__upgradeProperty('loading');this.__upgradeProperty('disabled');this.__upgradeProperty('outline');this.__upgradeProperty('ghost');this.__upgradeProperty('color');this.__upgradeProperty('size');this.__upgradeProperty('icon'); }
-    __listBoolProps() { return ["round","loading","disabled","outline","ghost"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
-}
-Form.Button.Namespace=`Aventus.Form`;
-Form.Button.Tag=`av-button`;
-__as1(_.Form, 'Button', Form.Button);
-if(!window.customElements.get('av-button')){window.customElements.define('av-button', Form.Button);Aventus.WebComponentInstance.registerDefinition(Form.Button);}
 
 Form.FormElement = class FormElement extends Aventus.WebComponent {
     static get observedAttributes() {return ["disabled"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}

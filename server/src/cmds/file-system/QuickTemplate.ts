@@ -5,6 +5,7 @@ import { SettingsManager } from '../../settings/Settings';
 import { SelectItem } from '../../IConnection';
 import { AventusExtension } from '../../definition';
 import { join } from 'path';
+import { TemplatesByName } from '../../files/TemplateManager';
 
 export class QuickTemplate {
 	static cmd: string = "aventus.template.quick";
@@ -43,17 +44,55 @@ export class QuickTemplate {
 		else {
 			const items: SelectItem[] = [];
 			const templatePathes: { [key: string]: string } = {}
-			for (let quickName of quickNames) {
-				if (!existsSync(quickName)) {
-					let template = TemplateScript.create(templatePath);
-					if (template) {
-						items.push({
-							label: template.name,
-							detail: template.description,
-						});
-						templatePathes[template.name] = quickName;
+
+			const templatesByUri: { [uri: string]: TemplateScript } = {};
+			const readRecu = (info: TemplateScript | TemplatesByName) => {
+				if (info instanceof TemplateScript) {
+					if (info.allowQuick) {
+						templatesByUri[info.folderPath] = info
 					}
 				}
+				else {
+					for (let key in info) {
+						readRecu(info[key]);
+					}
+				}
+			}
+
+			let projects = await GenericServer.templateManager?.getGeneralProjects() ?? { nb: 0, templates: {} };
+			readRecu(projects.templates);
+
+			for (let quickName of quickNames) {
+				if (templatesByUri[quickName]) {
+					const template = templatesByUri[quickName];
+					items.push({
+						label: template.name,
+						detail: template.description,
+					});
+					templatePathes[template.name] = quickName;
+				}
+				else {
+
+					if (!quickName.endsWith(AventusExtension.Template)) {
+						quickName = join(quickName, AventusExtension.Template)
+					}
+					if (existsSync(quickName)) {
+						// check local first
+						let template = TemplateScript.create(quickName);
+						if (template) {
+							items.push({
+								label: template.name,
+								detail: template.description,
+							});
+							templatePathes[template.name] = quickName;
+						}
+					}
+				}
+
+			}
+			if (items.length == 0) {
+				GenericServer.showErrorMessage("No template/project set as quick creation. Try to edit quick creation first");
+				return
 			}
 			const result = await GenericServer.Select(items, { title: "Select quick template" });
 			if (!result) return;
@@ -71,8 +110,8 @@ export class QuickTemplate {
 			GenericServer.showErrorMessage("The file doesn't exist : " + templatePath);
 			return;
 		}
-		let template = TemplateScript.create(templatePath,);
-		if(template) {
+		let template = TemplateScript.create(templatePath);
+		if (template) {
 			await template.init(workspace, workspace);
 		}
 	}

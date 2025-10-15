@@ -2646,13 +2646,13 @@ let HttpRequest=class HttpRequest {
             }
         }
         if (this.methodSpoofing) {
-            if (this.request.method?.toLowerCase() == Aventus.HttpMethod.PUT) {
+            if (this.request.method?.toUpperCase() == Aventus.HttpMethod.PUT) {
                 if (this.request.body instanceof FormData) {
                     this.request.body.append("_method", Aventus.HttpMethod.PUT);
                     this.request.method = Aventus.HttpMethod.POST;
                 }
             }
-            else if (this.request.method?.toLowerCase() == Aventus.HttpMethod.DELETE) {
+            else if (this.request.method?.toUpperCase() == Aventus.HttpMethod.DELETE) {
                 if (this.request.body instanceof FormData) {
                     this.request.body.append("_method", Aventus.HttpMethod.DELETE);
                     this.request.method = Aventus.HttpMethod.POST;
@@ -3974,63 +3974,6 @@ let Instance=class Instance {
 Instance.Namespace=`Aventus`;
 __as1(_, 'Instance', Instance);
 
-let RamManager=class RamManager {
-    static _allInit = true;
-    static get allInit() { return this._allInit; }
-    ;
-    static info = new Map([]);
-    static rams = [];
-    static registerRAM(ram) {
-        this._allInit = false;
-        if (!this.rams.includes(ram)) {
-            this.rams.push(ram);
-        }
-    }
-    static check() {
-        if (this._allInit) {
-            this._allInit = true;
-            for (let ramCst of this.rams) {
-                const ram = Instance.get(ramCst);
-                for (let type of ram.ramForTypes()) {
-                    this.info.set(type, ram);
-                }
-            }
-            for (let ramCst of this.rams) {
-                const ram = Instance.get(ramCst);
-                const mapping = {};
-                for (let type of ram.ramForTypes()) {
-                    if ('$schema' in type) {
-                        const schema = type.$schema;
-                        for (let key in schema) {
-                            if (mapping[key])
-                                continue;
-                            let schemaType = schema[key];
-                            let asArray = false;
-                            if (schemaType.endsWith("[]")) {
-                                asArray = true;
-                                schemaType = schemaType.slice(0, -2);
-                            }
-                            const schemaInfo = Converter.info.get(schemaType);
-                            if (schemaInfo) {
-                                const ramLink = this.info.get(schemaInfo);
-                                if (ramLink) {
-                                    mapping[key] = {
-                                        ram: ramLink,
-                                        asArray
-                                    };
-                                }
-                            }
-                        }
-                    }
-                }
-                ram.ramMapping = mapping;
-            }
-        }
-    }
-}
-RamManager.Namespace=`Aventus`;
-__as1(_, 'RamManager', RamManager);
-
 let ResizeObserver=class ResizeObserver {
     callback;
     targets;
@@ -4281,7 +4224,7 @@ let GenericRam=class GenericRam {
         if (this.constructor == GenericRam) {
             throw "can't instanciate an abstract class";
         }
-        RamManager.check();
+        // RamManager.check();
         this.getIdWithError = this.getIdWithError.bind(this);
         this.getId = this.getId.bind(this);
         this.save = this.save.bind(this);
@@ -4469,47 +4412,31 @@ let GenericRam=class GenericRam {
         this.mergeObject(item, objJson);
         return item;
     }
-    linkFct = new Map();
-    linkInfo = {};
-    linkRamItem(item) {
-        for (let key in this.ramMapping) {
-            this.linkRamItemByKey(item, key);
-        }
-    }
-    linkRamItemByKey(item, key) {
-        const mapping = this.ramMapping[key];
-        if (key in item) {
-            if (mapping.asArray) {
-                if (Array.isArray(item[key])) {
-                }
-                else {
-                    console.error(key + " in type " + item + " must be an array");
-                }
-            }
-            else {
-                const id = mapping.ram.getId(item[key]);
-                if (!this.linkFct.has(mapping.ram)) {
-                    const fcts = {
-                        onCreated: (item) => {
-                        },
-                        onUpdated: (item) => {
-                        },
-                        onDeleted: (item) => {
-                        },
-                    };
-                    this.linkFct.set(mapping.ram, fcts);
-                    mapping.ram.onCreated(fcts.onCreated);
-                    mapping.ram.onUpdated(fcts.onUpdated);
-                    mapping.ram.onDeleted(fcts.onDeleted);
-                }
-                if (!this.linkInfo[key])
-                    this.linkInfo[key] = {};
-                if (!this.linkInfo[key][id])
-                    this.linkInfo[key][id] = [];
-                this.linkInfo[key][id].push(item);
-            }
-        }
-    }
+    //     onCreated: (item: any) => void;
+    //     onUpdated: (item: any) => void;
+    //     onDeleted: (item: any) => void;
+    // }> = new Map();
+    // private linkInfo: { [key: string | number]: { [id: string | number]: U[]; }; } = {};
+    // private linkRamItem(item: U) {
+    //     for(let key in this.ramMapping) {
+    //         this.linkRamItemByKey(item, key);
+    // private linkRamItemByKey(item: U, key: string) {
+    //     if(key in item) {
+    //         if(mapping.asArray) {
+    //             if(Array.isArray(item[key])) {
+    //                 console.error(key + " in type " + item + " must be an array");
+    //             const id = mapping.ram.getId(item[key]);
+    //             if(!this.linkFct.has(mapping.ram)) {
+    //                     onCreated: (item) => {
+    //                     onUpdated: (item) => {
+    //                     onDeleted: (item) => {
+    //                 this.linkFct.set(mapping.ram, fcts);
+    //                 mapping.ram.onCreated(fcts.onCreated);
+    //                 mapping.ram.onUpdated(fcts.onUpdated);
+    //                 mapping.ram.onDeleted(fcts.onDeleted);
+    //             if(!this.linkInfo[key])
+    //             if(!this.linkInfo[key][id])
+    //             this.linkInfo[key][id].push(item);
     /**
      * Add element inside Ram or update it. The instance inside the ram is unique and ll never be replaced
      */
@@ -4525,7 +4452,7 @@ let GenericRam=class GenericRam {
                     // this.unlinkRamItem(uniqueRecord);
                     this.mergeObject(uniqueRecord, item);
                     await this.afterRecordSet(uniqueRecord);
-                    this.linkRamItem(uniqueRecord);
+                    // this.linkRamItem(uniqueRecord);
                     resultTemp = 'updated';
                 }
                 else {
@@ -4533,7 +4460,7 @@ let GenericRam=class GenericRam {
                     await this.beforeRecordSet(realObject);
                     this.records.set(id, realObject);
                     await this.afterRecordSet(realObject);
-                    this.linkRamItem(realObject);
+                    // this.linkRamItem(realObject);
                     resultTemp = 'created';
                 }
                 result.result = this.records.get(id);

@@ -460,60 +460,74 @@ export class TemplateManager {
 	}
 
 	public async downloadTemplateFromStore(uri?: string) {
-		const regex = `^${Store.url.replace(/\//g, '\\/')}\\/template\\/download\\/(?<name>[^/]+)\\/(?<version>\\d+\\.\\d+\\.\\d+)$`
-		if (!uri) {
-			const askUri = await GenericServer.Input({
-				title: "Store url",
-				validations: [{
-					message: "The store url must be " + Store.url + "\/template\/download\/{name}\/{version}$",
-					regex: regex
-				}]
-			})
-			if (!askUri) return;
-			uri = askUri;
-		}
-		const match = uri.match(new RegExp(regex));
-		if (!match) return;
-
-		const packageName = match[1];
-		const packageVersion = match[2];
-
-		const packageTempPath = join(GenericServer.savePath, "temp", "packageTemp");
-		if (!existsSync(packageTempPath)) {
-			mkdirSync(packageTempPath, { recursive: true })
-		}
-		let downloadPath = join(packageTempPath, "temp.zip");
-		if (!await this.downloadFile(downloadPath, uri)) {
-			return;
-		}
-		if (!await this.extractZip(downloadPath, packageTempPath)) {
-			return;
-		}
-
-		if (existsSync(join(packageTempPath, AventusExtension.Template))) {
-
-			const temp = TemplateScript.create(join(packageTempPath, AventusExtension.Template));
-			if (!temp) {
-				GenericServer.showErrorMessage("The template contains error");
+		try {
+			const regex = `^${Store.url.replace(/\//g, '\\/')}\\/template\\/download\\/(?<name>[^/]+)\\/(?<version>\\d+\\.\\d+\\.\\d+)$`
+			if (!uri) {
+				const askUri = await GenericServer.Input({
+					title: "Store url",
+					validations: [{
+						message: "The store url must be " + Store.url + "\/template\/download\/{name}\/{version}$",
+						regex: regex
+					}]
+				})
+				if (!askUri) return;
+				uri = askUri;
+			}
+			const match = uri.match(new RegExp(regex));
+			if (!match) {
+				GenericServer.showErrorMessage("The uri provided is wrong");
 				return;
 			}
 
-			const writeBasePath = temp.isProject ? this.projectPath[0] : this.templatePath[0];
+			const packageName = match[1];
+			const packageVersion = match[2];
 
-			let folderName = temp.installationFolder ?? packageName;
-			folderName = folderName.replace(/\//g, sep).replace(/\\/, sep);
-			if (!folderName.startsWith(sep)) {
-				folderName = sep + folderName;
+			const packageTempPath = join(GenericServer.savePath, "temp", "packageTemp");
+			if (!existsSync(packageTempPath)) {
+				mkdirSync(packageTempPath, { recursive: true })
 			}
-			let destPath = writeBasePath + folderName;
-			if (!await this.extractZip(downloadPath, destPath)) {
+			let downloadPath = join(packageTempPath, "temp.zip");
+			if (!await this.downloadFile(downloadPath, uri)) {
+				GenericServer.showErrorMessage("Error downloading package");
+				return;
+			}
+			if (!await this.extractZip(downloadPath, packageTempPath)) {
+				GenericServer.showErrorMessage("Error extracting package to analyze");
 				return;
 			}
 
-			GenericServer.showInformationMessage("Template " + packageName + " installed");
-		}
+			if (existsSync(join(packageTempPath, AventusExtension.Template))) {
 
-		rmSync(packageTempPath, { force: true, recursive: true });
+				const temp = TemplateScript.create(join(packageTempPath, AventusExtension.Template));
+				if (!temp) {
+					GenericServer.showErrorMessage("The template contains error");
+					return;
+				}
+
+				const writeBasePath = temp.isProject ? this.projectPath[0] : this.templatePath[0];
+
+				let folderName = temp.installationFolder ?? packageName;
+				folderName = folderName.replace(/\//g, sep).replace(/\\/, sep);
+				if (!folderName.startsWith(sep)) {
+					folderName = sep + folderName;
+				}
+				let destPath = writeBasePath + folderName;
+				if (!await this.extractZip(downloadPath, destPath)) {
+					GenericServer.showErrorMessage("Error extracting package");
+					return;
+				}
+
+				GenericServer.showInformationMessage("Template " + packageName + " installed");
+			}
+			else {
+				GenericServer.showErrorMessage(AventusExtension.Template + " not found");
+			}
+
+			rmSync(packageTempPath, { force: true, recursive: true });
+		} catch (e) {
+			GenericServer.showErrorMessage("Error unknown");
+			console.error(e)
+		}
 	}
 
 

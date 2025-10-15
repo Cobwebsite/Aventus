@@ -1006,6 +1006,9 @@ let Watcher=class Watcher {
                 for (let key in reservedName) {
                     delete data[key];
                 }
+                for (let key in data) {
+                    clearReservedNames(data[key]);
+                }
             }
         };
         const setProxyPath = (newProxy, newPath) => {

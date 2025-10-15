@@ -231,7 +231,12 @@ export class Store {
 			});
 
 			archive.pipe(outputStream);
-			archive.directory(dir, false);
+			archive.directory(dir, false, (entry) => {
+				if (entry.name.startsWith(".git/") || entry.name === ".git") {
+					return false;
+				}
+				return entry;
+			});
 			await archive.finalize();
 		})
 	}
