@@ -75,9 +75,13 @@ namespace Form {
     export type FormValidate = (field: string, value: unknown) => FormValidateResult;
 
     export type FormHandlerConfig<T> = {
+        /** Define global validation rules for your forms */
         validate?: FormValidate,
+        /** Define if the form element must be validated on input change */
         validateOnChange?: boolean,
+        /** Define how to handle error in form when name isn't linked to an input */
         handleValidateNoInputError?: (errors: { [K in keyof T]?: string[]; }) => Asyncable<void>,
+        /** Define how to handle error after submitting the form when name isn't linked to an input */
         handleExecuteNoInputError?: (errors: Aventus.GenericError[]) => Asyncable<void>;
     };
 

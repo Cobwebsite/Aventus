@@ -47,16 +47,16 @@ namespace Layout {
         }
         @BindThis()
         public onMoveX(e: NormalizedEvent) {
-            const valuePx = this.applyMagnetic(e.pageY);
+            const valuePx = this.applyMagnetic(e.pageY - this.container.getBoundingClientRect().y);
             this.style.top = valuePx + 'px';
-            this.positionEl.style.left = e.pageX + 10 + 'px';
+            this.positionEl.style.left = e.pageX - this.container.getBoundingClientRect().x + 10 + 'px';
             this.displayValue(valuePx);
         }
         @BindThis()
         public onMoveY(e: NormalizedEvent) {
-            const valuePx = this.applyMagnetic(e.pageX);
+            const valuePx = this.applyMagnetic(e.pageX - this.container.getBoundingClientRect().x);
             this.style.left = valuePx + 'px';
-            this.positionEl.style.top = e.pageY - 20 + 'px';
+            this.positionEl.style.top = e.pageY - this.container.getBoundingClientRect().y - 20 + 'px';
             this.displayValue(valuePx);
         }
         @BindThis()
