@@ -11,16 +11,12 @@ namespace Layout.Tabs {
         //#region props
 		@Attribute()
         public selected!: boolean;
-		@InternalProtected()
-        public tabHeader?: TabHeader<this>;
         //#endregion
 
 
         //#region variables
-		public get headerContent(): HTMLElement[] {
-            let elements = this.getElementsInSlot("header");
-            return elements;
-        }
+        @InternalProtected()
+        public tabHeader?: TabHeader<this>;
         //#endregion
 
 
