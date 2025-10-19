@@ -109,7 +109,9 @@ if ('WebSocket' in window) {
 					}
 				}
 			}
-			catch (e) { console.log(e); }
+			catch (e) {
+				window.location.reload(true);
+			}
 		}
 		socket.onerror = function () {
 			window.close();

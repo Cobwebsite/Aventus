@@ -232,6 +232,7 @@ export class TemplateManager {
 						cpSync(path, destPath, { force: true, recursive: true })
 					}
 				}
+				GenericServer.showInformationMessage("Projects installed");
 			}
 		}
 		else if (sourceResult.label == "Git") {
@@ -274,7 +275,6 @@ export class TemplateManager {
 			const scripts: { [name: string]: TemplateScript } = {};
 			const wks = GenericServer.templateManager?.workspaces ?? [];
 			if (wks.length == 0) return;
-			let workspace = wks[0];
 
 			for (let folder of folders) {
 				let folderPath = projectsFolder + sep + folder;
@@ -318,6 +318,7 @@ export class TemplateManager {
 						cpSync(path, destPath, { force: true, recursive: true })
 					}
 				}
+				GenericServer.showInformationMessage("Templates installed");
 			}
 		}
 		else if (sourceResult.label == "Git") {

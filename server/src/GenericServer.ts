@@ -17,7 +17,10 @@ import { Build } from './project/Build';
 import { Communication } from './communication';
 import { PhpManager } from './language-services/json/PhpManager';
 import { LocalProjectManager } from './files/LocalProject';
-
+import { version } from '../../package.json'
+import { existsSync, readdirSync } from 'fs';
+import { execSync } from 'child_process';
+import { updatesScripts } from './updates';
 
 
 export class GenericServer {
@@ -179,6 +182,7 @@ export class GenericServer {
 		this.isIDE = params.isIDE;
 		this._savePath = params.savePath;
 		this._extensionPath = params.extensionPath;
+		this.runUpdate();
 	}
 	protected async onInitialized() {
 		await this.loadSettings();
@@ -337,6 +341,52 @@ export class GenericServer {
 		if (this.isDebug) {
 			console.log("start server done");
 		}
+	}
+
+	protected runUpdate() {
+		setTimeout(() => {
+
+			const currentVersion = version;
+			const oldVersion = SettingsManager.getInstance().hiddenSettings.version;
+			if (currentVersion == oldVersion) return;
+			if (!/([0-9]+)\.([0-9]+)\.([0-9]+)/g.test(currentVersion)) return;
+			if (!/([0-9]+)\.([0-9]+)\.([0-9]+)/g.test(oldVersion)) return;
+
+
+			const compareVersions = (v1: string, v2: string) => {
+				const parts1 = v1.split('.').map(Number);
+				const parts2 = v2.split('.').map(Number);
+
+				const len = Math.max(parts1.length, parts2.length);
+				for (let i = 0; i < len; i++) {
+					const a = parts1[i] || 0;
+					const b = parts2[i] || 0;
+					if (a > b) return 1;
+					if (a < b) return -1;
+				}
+				return 0;
+			}
+
+			const updates = updatesScripts
+			for (let v in updates) {
+				if (!/([0-9]+)\.([0-9]+)\.([0-9]+)/g.test(v)) continue;
+
+				// if file version is bigger than old version
+				if (compareVersions(v, oldVersion) == 1) {
+					// if file version is egal or lower than current version
+					if (compareVersions(v, currentVersion) != 1) {
+						try {
+							updates[v]();
+						} catch (e) {
+							console.error(e);
+						}
+					}
+				}
+			}
+
+			SettingsManager.getInstance().setHiddenSettings({ version: currentVersion });
+		}, 5000)
+
 	}
 
 }

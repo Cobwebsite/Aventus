@@ -12,7 +12,8 @@
 		"noImplicitAny": false,
 		"noImplicitReturns": true,
 		"composite": false,
-		"skipLibCheck": true
+		"skipLibCheck": true,
+		"resolveJsonModule": true,
 	},
 	"include": ["src"],
 	"exclude": ["../node_modules", ".vscode-test"]

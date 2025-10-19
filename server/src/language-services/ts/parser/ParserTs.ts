@@ -82,7 +82,28 @@ export class ParserTs {
             this.currentParsingDoc.errors.push(error);
         }
     }
-    public static getBaseInfo(name: string): BaseInfo | null {
+    public static getBaseInfo(name: string, fromUri?: string): BaseInfo | null {
+        let currentDoc: ParserTs;
+        if (!fromUri) {
+            if (!ParserTs.currentParsingDoc) {
+                return null;
+            }
+            currentDoc = ParserTs.currentParsingDoc;
+        }
+        else {
+            currentDoc = this.parsedDoc[fromUri]?.result;
+        }
+        if (!currentDoc) return null;
+        if (currentDoc.internalObjects[name]) {
+            let temp = currentDoc.getBaseInfo(name);
+            if (temp) {
+                return temp;
+            }
+        }
+        if (currentDoc.importsLocal[name]?.info) {
+            return currentDoc.importsLocal[name].info;
+        }
+
         for (let uri in this.parsedDoc) {
             let temp = this.parsedDoc[uri].result.getBaseInfo(name);
             if (temp) {

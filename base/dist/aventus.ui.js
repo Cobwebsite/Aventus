@@ -1439,11 +1439,13 @@ let Watcher=class Watcher {
                                     el = replaceByAlias(target, el, target.length + '', receiver, false, out);
                                     target.push(el);
                                     const dones = [];
+                                    const dones2 = [];
                                     if (out.otherRoot) {
                                         dones.push(out.otherRoot);
+                                        dones2.push(out.otherRoot);
                                     }
                                     trigger('CREATED', target, receiver, receiver[index], "[" + (index) + "]", dones);
-                                    trigger('UPDATED', target, receiver, target.length, "length", dones);
+                                    trigger('UPDATED', target, receiver, target.length, "length", dones2);
                                     return index;
                                 };
                             }
@@ -1515,13 +1517,16 @@ let Watcher=class Watcher {
                                 result = (key, value) => {
                                     const out = {};
                                     let dones = [];
+                                    let dones2 = [];
                                     key = Watcher.extract(key);
                                     value = replaceByAlias(target, value, key + '', receiver, false, out);
-                                    if (out.otherRoot)
+                                    if (out.otherRoot) {
                                         dones.push(out.otherRoot);
+                                        dones2.push(out.otherRoot);
+                                    }
                                     let result = target.set(key, value);
                                     trigger('CREATED', target, receiver, receiver.get(key), key + '', dones);
-                                    trigger('UPDATED', target, receiver, target.size, "size", dones);
+                                    trigger('UPDATED', target, receiver, target.size, "size", dones2);
                                     return result;
                                 };
                             }
@@ -7002,6 +7007,9 @@ Navigation.Page = class Page extends Aventus.WebComponent {
     isAllowed(state, pattern, router) {
         return true;
     }
+    loadData(state) {
+        return true;
+    }
 }
 Navigation.Page.Namespace=`Aventus.Navigation`;
 __as1(_.Navigation, 'Page', Navigation.Page);
@@ -10318,6 +10326,14 @@ Navigation.Router = class Router extends Aventus.WebComponent {
                             return;
                         }
                         this.navigate(canResult, { replace: true });
+                        return;
+                    }
+                    const loadDataResult = await element.loadData(currentState);
+                    if (loadDataResult !== true) {
+                        if (loadDataResult === false) {
+                            return;
+                        }
+                        this.navigate(loadDataResult, { replace: true });
                         return;
                     }
                     if (isNew)

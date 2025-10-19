@@ -62,6 +62,15 @@ namespace Navigation {
         public isAllowed(state: State, pattern: string, router: Router): Aventus.Asyncable<boolean | State | string> {
             return true;
         }
+        /**
+         * Add function to load data
+         * Return true if evrything is ok
+         * False will prevent showing
+         * string or state will redirect to the page
+         */
+        public loadData(state: Aventus.State): Aventus.Asyncable<boolean | State | string> {
+            return true;
+        }
         //#endregion
 
     }

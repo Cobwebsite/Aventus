@@ -788,7 +788,7 @@ export class AventusWebcomponentCompiler {
                     control = "date";
                 }
                 else {
-                    let info = ParserTs.getBaseInfo(type.value);
+                    let info = ParserTs.getBaseInfo(type.value, this.document.uri);
                     if (info && info instanceof AliasInfo) {
                         findType(info.type);
                     }
@@ -2179,7 +2179,7 @@ this.clearWatchHistory = () => {
                 return type;
             }
             else {
-                let info = ParserTs.getBaseInfo(type.value);
+                let info = ParserTs.getBaseInfo(type.value, currentDoc.uri);
                 if (info && info instanceof AliasInfo) {
                     return this._validateTypeForProp(currentDoc, field, info.type);
                 }
@@ -2217,12 +2217,12 @@ this.clearWatchHistory = () => {
         else if (type.kind == "typeOperator" && type.value == "keyof") {
             return type;
         }
-        this.result.diagnostics.push(createErrorTsPos(currentDoc, "can't use the the type " + type.kind + "(" + type.value + ")" + " as attribute / property", field.nameStart, field.nameEnd, AventusErrorCode.WrongTypeDefinition));
+        this.result.diagnostics.push(createErrorTsPos(currentDoc, "Can't use the the type " + type.kind + "(" + type.value + ")" + " as attribute / property", field.nameStart, field.nameEnd, AventusErrorCode.WrongTypeDefinition));
         return null;
     }
     private validateTypeForProp(currentDoc: TextDocument, field: PropertyInfo): TypeInfo | null {
         if (field.name.toLowerCase() != field.name) {
-            this.result.diagnostics.push(createErrorTsPos(this.document, "an attribute must be in lower case", field.nameStart, field.nameEnd, AventusErrorCode.AttributeLower));
+            this.result.diagnostics.push(createErrorTsPos(this.document, "An attribute must be in lower case", field.nameStart, field.nameEnd, AventusErrorCode.AttributeLower));
         }
         let type = this._validateTypeForProp(currentDoc, field, field.type);
         if (type) {

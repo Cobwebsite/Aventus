@@ -41,9 +41,10 @@ export interface IConnection {
 }
 
 export interface InputOptions {
-	title: string,
+	title?: string,
 	value?: string,
 	password?: boolean,
+	placeHolder?: string,
 	validations?: { regex: string, message: string }[]
 }
 

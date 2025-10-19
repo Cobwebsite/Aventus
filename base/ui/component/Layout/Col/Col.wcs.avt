@@ -1,3 +1,6 @@
+@use 'sass:list';
+@use 'sass:math';
+
 :host {
 	--_col-padding: var(--col-padding, 8px);
 	--_col-gap: var(--col-gap, 0px);
@@ -20,10 +23,10 @@ $labels: xs, sm, md, lg, xl;
 	$size: 0;
 
 	@if $i !=0 {
-		$nbCol: 12 / $i;
+		$nbCol: math.div(12, $i);
 
 		@if $nbCol !=1 {
-			$size: "calc(" + (calc(100 / 12) * $i)+ "% - (var(--_col-gap, 0px) * " +($nbCol - 1)+" / " + $nbCol +"))";
+			$size: "calc(" + (calc(100 / 12) * $i) + "% - (var(--_col-gap, 0px) * " + ($nbCol - 1) + " / " + $nbCol + "))";
 		}
 
 		@else {
@@ -44,19 +47,19 @@ $labels: xs, sm, md, lg, xl;
 	}
 }
 
-@for $i from 1 through length($sizes) {
-	$sizeMax: nth($sizes, $i);
-	$label: nth($labels, $i);
+@for $i from 1 through list.length($sizes) {
+	$sizeMax: list.nth($sizes, $i);
+	$label: list.nth($labels, $i);
 
 	@container row (min-width: #{$sizeMax+'px'}) {
 		@for $i from 0 through 12 {
 			$size: 0;
 
 			@if $i !=0 {
-				$nbCol: 12 / $i;
+				$nbCol: math.div(12, $i);
 
 				@if $nbCol !=1 {
-					$size: "calc(" + (calc(100 / 12) * $i)+ "% - (var(--_col-gap, 0px) * " +($nbCol - 1)+" / " + $nbCol +"))";
+					$size: "calc(" + (calc(100 / 12) * $i) + "% - (var(--_col-gap, 0px) * " + ($nbCol - 1) + " / " + $nbCol + "))";
 				}
 
 				@else {
@@ -89,10 +92,10 @@ $labels: xs, sm, md, lg, xl;
 			$size: 0;
 
 			@if $i !=0 {
-				$nbCol: 12 / $i;
+				$nbCol: math.div(12, $i);
 
 				@if $nbCol !=1 {
-					$size: "calc(" + (calc(100 / 12) * $i)+ "% - (var(--_col-gap, 0px) * " +($nbCol - 1)+" / " + $nbCol +"))";
+					$size: "calc(" + (calc(100 / 12) * $i) + "% - (var(--_col-gap, 0px) * " + ($nbCol - 1) + " / " + $nbCol + "))";
 				}
 
 				@else {

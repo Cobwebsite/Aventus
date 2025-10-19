@@ -42,6 +42,7 @@ export interface SettingsHtml {
 }
 
 export interface HiddenSettings {
+	version: string
 	store: {
 		token: string,
 		username?: string
@@ -78,6 +79,7 @@ function getDefaultSettings(): Settings {
 }
 
 const defaultHiddenSettings: HiddenSettings = {
+	version: "1.3.7",
 	store: {
 		token: "",
 		username: ""

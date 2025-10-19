@@ -1,7 +1,8 @@
 declare type Version = `${number}.${number}.${number}`;
 declare interface InputOptions {
-    title: string;
+    title?: string;
     value?: string;
+    placeHolder?: string,
     validations?: {
         regex: string;
         message: string;
@@ -42,9 +43,9 @@ declare type TemplateInfo = {
     /** Determine where to install the template */
     installationFolder?: string,
     /** Documentation link for the package */
-	documentation?: string,
+    documentation?: string,
     /** Repository link for the package */
-	repository?: string,
+    repository?: string,
 }
 
 declare type WriteCallback = (info: WriteInfo) => void | boolean;

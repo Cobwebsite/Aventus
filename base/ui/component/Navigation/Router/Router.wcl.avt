@@ -115,6 +115,14 @@ namespace Navigation {
                             this.navigate(canResult, { replace: true });
                             return;
                         }
+                        const loadDataResult = await element.loadData(currentState);
+                        if(loadDataResult !== true) {
+                            if(loadDataResult === false) {
+                                return;
+                            }
+                            this.navigate(loadDataResult, { replace: true });
+                            return;
+                        }
 
                         if(isNew)
                             this.contentEl.appendChild(element);

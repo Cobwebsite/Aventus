@@ -3,7 +3,7 @@
 ## 1.4.0 (2025-09-30)
 
 ### !!! IMPORTANT : Can break your app !!!
-You must clear the storage folder (command : *Aventus : Open Storage*) then reopen your vscode. Then you can import projects and templates with *Aventus : Import Templates* and *Aventus : Import Projects*
+Your storage folder (command : *Aventus : Open Storage*) will be cleared during update. You can reimport projects and templates with *Aventus : Import Templates* and *Aventus : Import Projects* or from the store [https://store.aventusjs.com](https://store.aventusjs.com)
 
 For the configuration files and template files, you can check the documentation on [https://aventusjs.com](https://aventusjs.com)
 

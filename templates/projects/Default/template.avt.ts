@@ -13,11 +13,15 @@ export class Template extends AventusTemplate {
     }
     protected override async run(destination: string): Promise<void> {
 
+        let defaultValue = destination.split(sep).pop();
+        if(defaultValue) {
+            defaultValue = defaultValue.replace(/ /g, "_").replace(/-/g, "_").replace(/\$/g, "_").replace(/\./g, "_")
+        }
         const name = await this.input({
             title: "Provide a name for your project",
-            value: destination.split(sep).pop(),
+            value: defaultValue,
             validations: [{
-                message: "Provide a valid name",
+                message: "Provide a valid name. Must match : ^[a-zA-Z0-9_]+$",
                 regex: "^[a-zA-Z0-9_]+$"
             }]
         });
@@ -25,15 +29,17 @@ export class Template extends AventusTemplate {
 
         this.registerVar("name", name);
 
-        const prefix = await this.input({
-            title: "Provide a component prefix",
-            value: "av",
+        let prefix = await this.input({
+            placeHolder: "Provide a component prefix : (default is av)",
             validations: [{
                 message: "Provide a valid prefix",
-                regex: "^[a-z]{2,}$"
+                regex: "^(?:[a-z]{2,})?$"
             }]
         });
-        if(!prefix) return;
+        if(prefix == null) return;
+        if(!prefix) {
+            prefix = "av";
+        }
 
         this.registerVar("componentPrefix", prefix);
 

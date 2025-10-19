@@ -28,28 +28,6 @@ if(!Object.hasOwn(window, "AvInstance")) {
 		}
 	})();
 }
-var Aventus;
-(Aventus||(Aventus = {}));
-(function (Aventus) {
-const __as1 = (o, k, c) => { if (o[k] !== undefined) for (let w in o[k]) { c[w] = o[k][w] } o[k] = c; }
-const moduleName = `Aventus`;
-const _ = {};
-
-
-let _n;
-var HttpMethod;
-(function (HttpMethod) {
-    HttpMethod["GET"] = "GET";
-    HttpMethod["POST"] = "POST";
-    HttpMethod["DELETE"] = "DELETE";
-    HttpMethod["PUT"] = "PUT";
-    HttpMethod["OPTION"] = "OPTION";
-})(HttpMethod || (HttpMethod = {}));
-__as1(_, 'HttpMethod', HttpMethod);
-
-
-for(let key in _) { Aventus[key] = _[key] }
-})(Aventus);
 
 if(!Object.hasOwn(window, "AvInstance")) {
 	Object.defineProperty(window, "AvInstance", {
@@ -1983,11 +1961,13 @@ let Watcher=class Watcher {
                                     el = replaceByAlias(target, el, target.length + '', receiver, false, out);
                                     target.push(el);
                                     const dones = [];
+                                    const dones2 = [];
                                     if (out.otherRoot) {
                                         dones.push(out.otherRoot);
+                                        dones2.push(out.otherRoot);
                                     }
                                     trigger('CREATED', target, receiver, receiver[index], "[" + (index) + "]", dones);
-                                    trigger('UPDATED', target, receiver, target.length, "length", dones);
+                                    trigger('UPDATED', target, receiver, target.length, "length", dones2);
                                     return index;
                                 };
                             }
@@ -2059,13 +2039,16 @@ let Watcher=class Watcher {
                                 result = (key, value) => {
                                     const out = {};
                                     let dones = [];
+                                    let dones2 = [];
                                     key = Watcher.extract(key);
                                     value = replaceByAlias(target, value, key + '', receiver, false, out);
-                                    if (out.otherRoot)
+                                    if (out.otherRoot) {
                                         dones.push(out.otherRoot);
+                                        dones2.push(out.otherRoot);
+                                    }
                                     let result = target.set(key, value);
                                     trigger('CREATED', target, receiver, receiver.get(key), key + '', dones);
-                                    trigger('UPDATED', target, receiver, target.size, "size", dones);
+                                    trigger('UPDATED', target, receiver, target.size, "size", dones2);
                                     return result;
                                 };
                             }
