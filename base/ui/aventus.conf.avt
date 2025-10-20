@@ -5,6 +5,7 @@
         {
             "hideWarnings": true,
             "name": "UI",
+            "version": "1.0.0",
             "src": [
                 "./component/",
                 "./lib/",
@@ -13,7 +14,11 @@
             "compile": [
                 {
                     "package": "../../lib/Aventus@UI.package.avt",
-                    "output": "../dist/aventus.ui.js"
+                    "output": "../dist/aventus.ui.js",
+                    "outputNpm": {
+                        "path": "../../../npmPackage/AventusUI_npm",
+                        "npmName": "@aventusjs/ui"
+                    }
                 }
             ],
             "namespaceStrategy": "followFolders",

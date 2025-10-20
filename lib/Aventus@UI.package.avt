@@ -1,4 +1,5 @@
 // Aventus@UI:1.0.0
+// npm:@aventusjs/ui
 //#region js def //
 declare global {
 

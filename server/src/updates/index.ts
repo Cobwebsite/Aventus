@@ -1,5 +1,5 @@
-import { run as run1_3_8 } from './1.3.8'
+import { run as run1_4_0 } from './1.4.0'
 
 export const updatesScripts = {
-	'1.3.8' : run1_3_8
+	'1.4.0' : run1_4_0
 }

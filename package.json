@@ -2,7 +2,7 @@
 	"name": "aventus",
 	"displayName": "Aventus",
 	"description": "This extension allows compilation of Aventus Framework",
-	"version": "1.3.8",
+	"version": "1.4.0",
 	"license": "MIT",
 	"icon": "icons/logo_fox.png",
 	"author": {
