@@ -9,14 +9,15 @@ import { EditFile } from './EditFile';
 import { ServerStart } from './httpServer/ServerStart';
 import { ServerStop } from './httpServer/ServerStop';
 import { InitStep } from './InitStep';
-import { LoadingStart } from './LoadingStart';
-import { LoadingStop } from './LoadingStop';
 import { OpenFile } from "./OpenFile";
 import { OpenPreview } from "./OpenPreview";
 import { Popup } from './Popup';
+import { ProgressStart } from './ProgressStart';
+import { ProgressStop } from './ProgressStop';
 import { RegisterBuild } from "./RegisterBuild";
 import { RegisterData } from "./RegisterData";
 import { RegisterStatic } from "./RegisterStatic";
+import { SetSettings } from './SetSettings';
 import { Compiling } from './sharp/Compiling';
 import { UnregisterBuild } from "./UnregisterBuild";
 import { UnregisterData } from "./UnregisterData";
@@ -45,8 +46,9 @@ export const Notifications = {
         [AskSelect.cmd]: AskSelect,
         [AskSelectMultiple.cmd]: AskSelectMultiple,
         [Popup.cmd]: Popup,
-        [LoadingStart.cmd]: LoadingStart,
-        [LoadingStop.cmd]: LoadingStop,
         [DebugFileAdd.cmd]: DebugFileAdd,
+        [ProgressStart.cmd]: ProgressStart,
+        [ProgressStop.cmd]: ProgressStop,
+        [SetSettings.cmd]: SetSettings,
     },
 }

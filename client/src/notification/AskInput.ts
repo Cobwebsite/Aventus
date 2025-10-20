@@ -2,8 +2,10 @@ import { window } from 'vscode';
 import { ReceiveInput } from '../cmds/ReceiveInput';
 
 export interface AskInputOptions {
-	title: string,
+	title?: string,
 	value?: string,
+	password?: boolean,
+	placeHolder?: string,
 	validations?: { regex: string, message: string }[]
 }
 
@@ -13,8 +15,8 @@ export class AskInput {
 	public static async action(uuid: string, options: AskInputOptions) {
 
 		let validations: ((value: string) => string | null)[] = [];
-		if(options.validations) {
-			const addValidation = (val:{ regex: string, message: string }) => {
+		if (options.validations) {
+			const addValidation = (val: { regex: string, message: string }) => {
 				validations.push((value: string) => {
 					if (!value.match(new RegExp(val.regex))) {
 						return val.message;
@@ -28,8 +30,10 @@ export class AskInput {
 		}
 
 		const name = await window.showInputBox({
-			title:options.title,
+			title: options.title,
 			value: options.value,
+			password: options.password,
+			placeHolder: options.placeHolder,
 			validateInput: async (value: string) => {
 				for (let validation of validations) {
 					let tempResult = validation(value);

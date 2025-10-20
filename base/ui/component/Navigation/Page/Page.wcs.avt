@@ -1,7 +1,7 @@
 :host {
-	display: none;
+	display: block;
 }
 
-:host([visible]) {
-	display: block;
+:host(:not([visible])) {
+	display: none;
 }

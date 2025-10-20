@@ -1,4 +1,4 @@
-import { CodeAction, CodeLens, CompletionItem, CompletionList, Definition, Diagnostic, DiagnosticSeverity, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from "vscode-languageserver";
+import { CodeAction, CodeLens, CompletionItem, CompletionList, Diagnostic, DiagnosticSeverity, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from "vscode-languageserver";
 import { AventusFile, InternalAventusFile } from '../files/AventusFile';
 import { Build } from "../project/Build";
 import { TextDocument } from 'vscode-languageserver-textdocument';
@@ -125,7 +125,7 @@ export abstract class AventusBaseFile {
     protected abstract onCompletion(document: AventusFile, position: Position): Promise<CompletionList>;
     protected abstract onCompletionResolve(document: AventusFile, item: CompletionItem): Promise<CompletionItem>;
     protected abstract onHover(document: AventusFile, position: Position): Promise<Hover | null>;
-    protected abstract onDefinition(document: AventusFile, position: Position): Promise<Definition | null>;
+    protected abstract onDefinition(document: AventusFile, position: Position): Promise<Location[] | null>;
     protected abstract onFormatting(document: AventusFile, range: Range, options: FormattingOptions): Promise<TextEdit[]>;
     protected abstract onCodeAction(document: AventusFile, range: Range): Promise<CodeAction[]>;
     protected abstract onReferences(document: AventusFile, position: Position): Promise<Location[]>;

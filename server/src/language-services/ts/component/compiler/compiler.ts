@@ -11,7 +11,7 @@ import { transpile } from "typescript";
 import { AventusTsLanguageService, CompileTsResult, getSectionStart } from "../../LanguageService";
 import { EOL } from "os";
 import { HTMLDoc } from "../../../html/helper/definition";
-import { SCSSDoc } from "../../../scss/helper/CSSNode";
+import { SCSSDoc } from "../../../scss/helper/CSSCustomNode";
 import { AventusFile } from '../../../../files/AventusFile';
 import { ParserTs } from '../../parser/ParserTs';
 import { ClassInfo } from '../../parser/ClassInfo';
@@ -105,7 +105,8 @@ export class AventusWebcomponentCompiler {
         result: [],
         htmlDoc: {},
         scssDoc: {},
-        debug: ''
+        debug: '',
+        needRebuild: false
     }
     private componentResult: CompileTsResult = {
         hotReload: "",
@@ -349,6 +350,30 @@ export class AventusWebcomponentCompiler {
         }
         this.getClassName(info);
         if (this.htmlParsed) {
+            // ensure Id
+            let normalId = this.className.toLowerCase();
+            let loadedIds: string[] = [];
+            let replaceId: string | null = null;
+            let temp = this.classInfo?.parentClass
+            while (temp) {
+                let parentId = temp.name.toLowerCase();
+                loadedIds.push(parentId);
+                if (replaceId == null && loadedIds.includes(normalId)) {
+                    // il faut un remplacement
+                    replaceId = normalId + '1';
+                }
+                if (replaceId && loadedIds.includes(replaceId)) {
+                    let i = 1;
+                    while (loadedIds.includes(replaceId)) {
+                        i++;
+                        replaceId = normalId + i;
+                    }
+                }
+                temp = temp.parentClass;
+            }
+            if (replaceId) {
+                this.htmlParsed.replaceId(replaceId);
+            }
             this.htmlParsedResult = this.htmlParsed.getParsedInfo(this.className);
         }
     }
@@ -469,6 +494,10 @@ export class AventusWebcomponentCompiler {
                         if (temp instanceof AventusWebComponentLogicalFile) {
                             fileByTag[interestPoint.name] = temp;
                         }
+                        else if (this.build.htmlLanguageService.getInternalTagUri(interestPoint.name)) {
+                            this.result.needRebuild = true;
+                            fileByTag[interestPoint.name] = null;
+                        }
                         else {
                             fileByTag[interestPoint.name] = null;
                         }
@@ -565,7 +594,8 @@ export class AventusWebcomponentCompiler {
             this.writeFileNpmReplaceVar("namespaceEnd", '');
         }
         if (this.classInfo?.isExported) {
-            this.writeFileReplaceVar("exported", "_." + this.fullName + "=" + this.fullName + ";");
+            const exported = `__as1(_${this.classInfo.namespace != '' ? '.' + this.classInfo.namespace : ''}, '${this.classInfo.name}', ${this.fullName});`
+            this.writeFileReplaceVar("exported", exported);
             this.writeFileHotReloadReplaceVar("exported", "_." + this.fullName + "=" + this.fullName + ";");
         }
         else {
@@ -637,11 +667,38 @@ export class AventusWebcomponentCompiler {
     }
     private writeFileConstructor() {
         if (this.classInfo) {
-            const classInfo = this.classInfo;
+            let methodsTxt = "";
+            let methodsTxtHotReload = "";
+            let methodsTxtNpm = "";
 
-            this.writeFileReplaceVar("constructor", this.classInfo.constructorContent);
-            this.writeFileHotReloadReplaceVar("constructor", this.classInfo.constructorContentHotReload);
-            this.writeFileNpmReplaceVar("constructor", this.classInfo.constructorContentNpm);
+            let fullClassFct = `class MyCompilationClassAventus {${this.classInfo.constructorContent}}`;
+            let fctCompiled = transpile(fullClassFct, AventusTsLanguageService.getCompilerOptionsCompile());
+            let matchContent = /\{((\s|\S)*)\}/gm.exec(fctCompiled);
+            if (matchContent) {
+                methodsTxt = matchContent[1].trim();
+            }
+
+            if (HttpServer.isRunning) {
+                let fullClassFctHotReload = `class MyCompilationClassAventus {${this.classInfo.constructorContentHotReload}}`;
+                let fctCompiledHotReload = transpile(fullClassFctHotReload, AventusTsLanguageService.getCompilerOptionsCompile());
+                let matchContentHotReload = /\{((\s|\S)*)\}/gm.exec(fctCompiledHotReload);
+                if (matchContentHotReload) {
+                    methodsTxtHotReload = matchContentHotReload[1].trim();
+                }
+            }
+
+            if (this.templateNpm) {
+                let fullClassFctNpm = `class MyCompilationClassAventus {${this.classInfo.constructorContentNpm}}`;
+                let fctCompiledNpm = transpile(fullClassFctNpm, AventusTsLanguageService.getCompilerOptionsCompile());
+                let matchContentNpm = /\{((\s|\S)*)\}/gm.exec(fctCompiledNpm);
+                if (matchContentNpm) {
+                    methodsTxtNpm = matchContentNpm[1].trim();
+                }
+            }
+
+            this.writeFileReplaceVar("constructor", methodsTxt);
+            this.writeFileHotReloadReplaceVar("constructor", methodsTxtHotReload);
+            this.writeFileNpmReplaceVar("constructor", methodsTxtNpm);
 
         }
     }
@@ -731,7 +788,7 @@ export class AventusWebcomponentCompiler {
                     control = "date";
                 }
                 else {
-                    let info = ParserTs.getBaseInfo(type.value);
+                    let info = ParserTs.getBaseInfo(type.value, this.document.uri);
                     if (info && info instanceof AliasInfo) {
                         findType(info.type);
                     }
@@ -1557,6 +1614,9 @@ export class AventusWebcomponentCompiler {
                         temp.eventNames[0] = cbName;
                     }
                 }
+                else if (this.build.htmlLanguageService.getInternalTagUri(binding.tagName)) {
+                    this.result.needRebuild = true;
+                }
             }
             resultBindings.push(temp);
         }
@@ -1583,6 +1643,9 @@ export class AventusWebcomponentCompiler {
                             temp.eventName = cbName;
                             temp.fct = `@_@(c, ...args) => c.comp.${event.fct}.apply(c.comp, ...args)@_@`;
                         }
+                    }
+                    else if (this.build.htmlLanguageService.getInternalTagUri(event.tagName)) {
+                        this.result.needRebuild = true;
                     }
                 }
                 resultEvents.push(temp);
@@ -2116,7 +2179,7 @@ this.clearWatchHistory = () => {
                 return type;
             }
             else {
-                let info = ParserTs.getBaseInfo(type.value);
+                let info = ParserTs.getBaseInfo(type.value, currentDoc.uri);
                 if (info && info instanceof AliasInfo) {
                     return this._validateTypeForProp(currentDoc, field, info.type);
                 }
@@ -2151,12 +2214,15 @@ this.clearWatchHistory = () => {
                 }
             }
         }
-        this.result.diagnostics.push(createErrorTsPos(currentDoc, "can't use the the type " + type.kind + "(" + type.value + ")" + " as attribute / property", field.nameStart, field.nameEnd, AventusErrorCode.WrongTypeDefinition));
+        else if (type.kind == "typeOperator" && type.value == "keyof") {
+            return type;
+        }
+        this.result.diagnostics.push(createErrorTsPos(currentDoc, "Can't use the the type " + type.kind + "(" + type.value + ")" + " as attribute / property", field.nameStart, field.nameEnd, AventusErrorCode.WrongTypeDefinition));
         return null;
     }
     private validateTypeForProp(currentDoc: TextDocument, field: PropertyInfo): TypeInfo | null {
         if (field.name.toLowerCase() != field.name) {
-            this.result.diagnostics.push(createErrorTsPos(this.document, "an attribute must be in lower case", field.nameStart, field.nameEnd, AventusErrorCode.AttributeLower));
+            this.result.diagnostics.push(createErrorTsPos(this.document, "An attribute must be in lower case", field.nameStart, field.nameEnd, AventusErrorCode.AttributeLower));
         }
         let type = this._validateTypeForProp(currentDoc, field, field.type);
         if (type) {

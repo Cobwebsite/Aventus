@@ -1,0 +1,66 @@
+import type { Asyncable } from "Aventus@Main:Aventus.package.avt";
+import type { Tab } from "../Tab/Tab.wcl.avt";
+import type { Tabs } from "../Tabs/Tabs.wcl.avt";
+
+namespace Layout.Tabs {
+    export abstract class TabHeader<T extends Tab> extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+        //#region static
+
+        //#endregion
+
+
+        //#region props
+        @Attribute()
+        public active!: boolean;
+        //#endregion
+
+
+        //#region variables
+        private _tab!: T;
+        public get tab(): T {
+            return this._tab;
+        }
+
+        protected tabs!: Tabs<T, this>;
+        //#endregion
+
+
+        //#region constructor
+
+        //#endregion
+
+
+        //#region methods
+        public async init(tab: T, tabs: Tabs<T, this>) {
+            this.tabs = tabs;
+            this._tab = tab;
+            tab.tabHeader = this;
+            await this.render();
+        }
+
+        public abstract render(): Asyncable<void>;
+
+        public onPress() {
+            if(!this.active) {
+                this.tabs.setActive(this);
+            }
+        }
+
+        protected addPress() {
+            new Aventus.PressManager({
+                element: this,
+                onPress: () => {
+                    this.onPress();
+                }
+            });
+        }
+
+        protected override postCreation(): void {
+            super.postCreation();
+            this.addPress();
+        }
+        //#endregion
+
+    }
+}

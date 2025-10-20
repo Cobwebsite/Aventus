@@ -1,6 +1,6 @@
 import { existsSync, lstatSync, readdirSync, readFileSync } from 'fs';
 import { Hover } from 'vscode-languageclient';
-import { CodeAction, CodeLens, CompletionItem, CompletionList, Definition, FormattingOptions, Location, Position, Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver';
+import { CodeAction, CodeLens, CompletionItem, CompletionList, FormattingOptions, Location, Position, Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AventusExtension, AventusLanguageId } from '../definition';
 import { escapeRegex, getLanguageIdByUri, pathToUri, Timer, uriToPath } from '../tools';
@@ -47,7 +47,8 @@ export class FilesManager {
             if (extension) {
                 let currentPath = uriToPath(uri);
                 let textDoc = TextDocument.create(uri, extension, 0, readFileSync(currentPath, 'utf8'));
-                this.registerFile(textDoc);
+                await this.registerFile(textDoc);
+                this.onSave(textDoc);
             }
         }
     }
@@ -67,9 +68,9 @@ export class FilesManager {
             return;
         }
         if (!this.files[uri]) {
-
             let textDoc = TextDocument.create(uri, extension, 0, content);
-            this.registerFile(textDoc);
+            await this.registerFile(textDoc);
+            this.onSave(textDoc);
         }
         else {
             let newVersion = this.files[uri].versionUser + 1;
@@ -169,7 +170,7 @@ export class FilesManager {
                     }
                 }
                 for (let build of config.build) {
-                    if (!builds || builds.includes(build.name)) {
+                    if (!builds || builds.includes(build.name ?? "")) {
                         for (let src of build.srcPath) {
                             await readDir(src);
                         }
@@ -292,8 +293,9 @@ export class FilesManager {
 
     protected async fileExists(document: TextDocument) {
         if (!this.files[document.uri]) {
-            if (document.uri.endsWith("template.avt.ts")) {
+            if (document.uri.endsWith(AventusExtension.Template)) {
                 await this.registerFile(document);
+                this.onSave(document);
                 return true;
             }
             return false;
@@ -370,7 +372,7 @@ export class FilesManager {
         return this.files[document.uri].getHover(position);
     }
 
-    public async onDefinition(document: TextDocument, position: Position): Promise<Definition | null> {
+    public async onDefinition(document: TextDocument, position: Position): Promise<Location[] | null> {
         if (!await this.fileExists(document)) {
             return null;
         }

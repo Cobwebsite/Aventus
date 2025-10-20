@@ -1,0 +1,49 @@
+:host {
+	background-color: #c7c7c7;
+	left: 0;
+	pointer-events: all;
+	position: absolute;
+	top: 0;
+	font-family: inherit;
+
+	.position {
+		background-color: #c7c7c7;
+		border-radius: 5px;
+		padding: 5px 15px;
+		position: absolute;
+		display: none;
+		font-size: 11px;
+	}
+}
+
+:host(:hover) {
+	background-color: red;
+}
+
+:host([direction="x"]) {
+	cursor: ns-resize;
+	height: 2px;
+	width: 100%;
+	transform: translateY(-50%);
+
+	.position {
+		bottom: 10px;
+	}
+}
+
+:host([direction="y"]) {
+	cursor: ew-resize;
+	height: 100%;
+	width: 2px;
+	transform: translateX(-50%);
+
+	.position {
+		left: 10px;
+	}
+}
+
+:host([moving]) {
+	.position {
+		display: flex;
+	}
+}

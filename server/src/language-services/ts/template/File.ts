@@ -1,4 +1,4 @@
-import { Diagnostic, Position, CompletionList, CompletionItem, Hover, Definition, Range, FormattingOptions, TextEdit, CodeAction, Location, CodeLens, WorkspaceEdit } from 'vscode-languageserver';
+import { Diagnostic, Position, CompletionList, CompletionItem, Hover, Range, FormattingOptions, TextEdit, CodeAction, Location, CodeLens, WorkspaceEdit } from 'vscode-languageserver';
 import { AventusFile } from '../../../files/AventusFile';
 import { Build } from '../../../project/Build';
 import { AventusBaseFile } from '../../BaseFile';
@@ -6,7 +6,7 @@ import { AventusTemplateLanguageService } from './LanguageService';
 
 export class AventusTemplateFile extends AventusBaseFile {
 	
-	public languageService: AventusTemplateLanguageService
+	public languageService: AventusTemplateLanguageService;
 
 	public constructor(file: AventusFile) {
 		super(file);
@@ -32,7 +32,7 @@ export class AventusTemplateFile extends AventusBaseFile {
 	protected onHover(document: AventusFile, position: Position): Promise<Hover | null> {
 		return this.languageService.doHover(document, position);
 	}
-	protected onDefinition(document: AventusFile, position: Position): Promise<Definition | null> {
+	protected onDefinition(document: AventusFile, position: Position): Promise<Location[] | null> {
 		return this.languageService.findDefinition(document, position);
 	}
 	protected onFormatting(document: AventusFile, range: Range, options: FormattingOptions): Promise<TextEdit[]> {

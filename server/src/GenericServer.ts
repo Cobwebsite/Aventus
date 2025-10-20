@@ -2,9 +2,8 @@ import { Color, CompletionItem, ExecuteCommandParams, FormattingOptions, Positio
 import { AvInitializeParams, IConnection, InputOptions, SelectItem, SelectOptions } from './IConnection';
 import { FilesManager } from './files/FilesManager';
 import { FilesWatcher } from './files/FilesWatcher';
-import { TemplateManager } from './language-services/json/TemplateManager';
 import { ProjectManager } from './project/ProjectManager';
-import { SettingsManager } from './settings/Settings';
+import { Settings, SettingsManager } from './settings/Settings';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AventusExtension } from './definition';
 import { ColorPicker } from './color-picker/ColorPicker';
@@ -16,7 +15,12 @@ import { TemplateFileManager as TemplateFileTsManager } from './language-service
 import { CSharpManager } from './language-services/json/CSharpManager';
 import { Build } from './project/Build';
 import { Communication } from './communication';
-
+import { PhpManager } from './language-services/json/PhpManager';
+import { LocalProjectManager } from './files/LocalProject';
+import { version } from '../../package.json'
+import { existsSync, readdirSync } from 'fs';
+import { execSync } from 'child_process';
+import { updatesScripts } from './updates';
 
 
 export class GenericServer {
@@ -62,6 +66,9 @@ export class GenericServer {
 	public static Popup(text: string, ...choices: string[]) {
 		return this.instance.connection.Popup(text, ...choices);
 	}
+	public static setSettings(settings: Partial<Settings>, global: boolean) {
+		return this.instance.connection.setSettings(settings, global);
+	}
 	public static get savePath(): string {
 		return this.instance._savePath;
 	}
@@ -77,6 +84,9 @@ export class GenericServer {
 	public static get localTemplateManager() {
 		return this.instance._localTemplate;
 	}
+	public static get localProjectManager() {
+		return this.instance._localProject;
+	}
 	public static refreshSettings() {
 		return this.instance.loadSettings();
 	}
@@ -84,6 +94,7 @@ export class GenericServer {
 
 	protected connection: IConnection;
 	protected isLoading: boolean = true;
+	protected isDown: boolean = false;
 	protected workspaces: string[] = [];
 	protected isDebug = false;
 	private isIDE = false;
@@ -92,6 +103,7 @@ export class GenericServer {
 	private _extensionPath: string = "";
 	private _template: TemplateFileManager | undefined;
 	private _localTemplate: LocalTemplateManager | undefined;
+	private _localProject: LocalProjectManager | undefined;
 
 	public constructor(connection: IConnection) {
 		this.connection = connection;
@@ -170,17 +182,19 @@ export class GenericServer {
 		this.isIDE = params.isIDE;
 		this._savePath = params.savePath;
 		this._extensionPath = params.extensionPath;
+		this.runUpdate();
 	}
 	protected async onInitialized() {
 		await this.loadSettings();
 		await this.startServer();
 	}
 	protected async onShutdown() {
+		this.isDown = true;
 		const settings = SettingsManager.getInstance().settings;
 		if (!settings.onlyBuild) {
 			await FilesWatcher.getInstance().destroy();
-			TemplateManager.getInstance().destroy();
 			CSharpManager.getInstance().destroy();
+			PhpManager.getInstance().destroy();
 		}
 		ProjectManager.getInstance().destroyAll();
 		await FilesManager.getInstance().onShutdown();
@@ -260,17 +274,15 @@ export class GenericServer {
 
 
 	public isAllowed(document?: TextDocument): document is TextDocument {
-		if(!document) return false;
+		if (!document) return false;
 		return GenericServer.isAllowed(document);
 	}
 	public static isAllowed(document: TextDocument) {
+		if (this.instance.isDown) return false;
 		if (this.instance.isLoading) {
 			return false;
 		}
-		if (document.uri.endsWith(AventusExtension.Base) || document.uri.endsWith(AventusExtension.Config)) {
-			return true;
-		}
-		if (document.uri.endsWith("template.avt.ts")) {
+		if (document.uri.endsWith(AventusExtension.Base) || document.uri.endsWith(AventusExtension.Config) || document.uri.endsWith(AventusExtension.Template)) {
 			return true;
 		}
 		return false;
@@ -292,7 +304,7 @@ export class GenericServer {
 		if (!result) {
 			result = {};
 		}
-		SettingsManager.getInstance().setSettings(result);
+		SettingsManager.getInstance().initSettings(result);
 		this.isDebug = SettingsManager.getInstance().settings.debug;
 
 		let resultHtml = await this.connection.getSettingsHtml();
@@ -306,10 +318,11 @@ export class GenericServer {
 		// define the config for startServer
 		const settings = SettingsManager.getInstance().settings;
 		if (!settings.onlyBuild) {
-			this._template = new TemplateFileManager();
+			this._template = new TemplateFileManager(this.workspaces);
 			this._localTemplate = new LocalTemplateManager(this._template);
-			TemplateManager.getInstance();
+			this._localProject = new LocalProjectManager(this._template);
 			CSharpManager.getInstance();
+			PhpManager.getInstance();
 		}
 
 		ProjectManager.getInstance();
@@ -328,6 +341,52 @@ export class GenericServer {
 		if (this.isDebug) {
 			console.log("start server done");
 		}
+	}
+
+	protected runUpdate() {
+		setTimeout(() => {
+
+			const currentVersion = version;
+			const oldVersion = SettingsManager.getInstance().hiddenSettings.version;
+			if (currentVersion == oldVersion) return;
+			if (!/([0-9]+)\.([0-9]+)\.([0-9]+)/g.test(currentVersion)) return;
+			if (!/([0-9]+)\.([0-9]+)\.([0-9]+)/g.test(oldVersion)) return;
+
+
+			const compareVersions = (v1: string, v2: string) => {
+				const parts1 = v1.split('.').map(Number);
+				const parts2 = v2.split('.').map(Number);
+
+				const len = Math.max(parts1.length, parts2.length);
+				for (let i = 0; i < len; i++) {
+					const a = parts1[i] || 0;
+					const b = parts2[i] || 0;
+					if (a > b) return 1;
+					if (a < b) return -1;
+				}
+				return 0;
+			}
+
+			const updates = updatesScripts
+			for (let v in updates) {
+				if (!/([0-9]+)\.([0-9]+)\.([0-9]+)/g.test(v)) continue;
+
+				// if file version is bigger than old version
+				if (compareVersions(v, oldVersion) == 1) {
+					// if file version is egal or lower than current version
+					if (compareVersions(v, currentVersion) != 1) {
+						try {
+							updates[v]();
+						} catch (e) {
+							console.error(e);
+						}
+					}
+				}
+			}
+
+			SettingsManager.getInstance().setHiddenSettings({ version: currentVersion });
+		}, 5000)
+
 	}
 
 }

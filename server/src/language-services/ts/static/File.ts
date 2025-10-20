@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from 'fs';
-import { Position, CompletionList, CompletionItem, Hover, Definition, Range, FormattingOptions, TextEdit, CodeAction, Diagnostic, Location, CodeLens, WorkspaceEdit } from "vscode-languageserver";
+import { Position, CompletionList, CompletionItem, Hover, Range, FormattingOptions, TextEdit, CodeAction, Diagnostic, Location, CodeLens, WorkspaceEdit } from "vscode-languageserver";
 import { AventusExtension } from "../../../definition";
 import { AventusFile } from '../../../files/AventusFile';
 import { AventusTsFile } from "../File";
@@ -75,7 +75,7 @@ export class AventusStaticFile extends AventusTsFile {
     protected async onHover(document: AventusFile, position: Position): Promise<Hover | null> {
         return null;
     }
-    protected async onDefinition(document: AventusFile, position: Position): Promise<Definition | null> {
+    protected async onDefinition(document: AventusFile, position: Position): Promise<Location[] | null> {
         return null;
     }
     protected async onFormatting(document: AventusFile, range: Range, options: FormattingOptions): Promise<TextEdit[]> {

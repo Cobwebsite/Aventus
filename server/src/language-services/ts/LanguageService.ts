@@ -1,7 +1,7 @@
 import { EOL } from 'os';
 import { join, normalize, sep } from 'path';
 import { CodeFixAction, CompilerOptions, CompletionInfo, createLanguageService, Diagnostic as DiagnosticTs, displayPartsToString, Extension, flattenDiagnosticMessageText, FormatCodeSettings, GetCompletionsAtPositionOptions, IndentStyle, JsxEmit, LanguageService, LanguageServiceHost, ModuleDetectionKind, ModuleResolutionKind, RenameInfo, ResolvedModule, ResolvedModuleFull, resolveModuleName, ScriptKind, ScriptTarget, SemicolonPreference, transpile, WithMetadata, UserPreferences, getTokenAtPosition, createSourceFile, isTypeReferenceNode, SourceFile, TypeFormatFlags, ResolvedProjectReference, SyntaxKind } from 'typescript';
-import { CodeAction, CodeLens, CompletionItem, CompletionItemKind, CompletionList, Definition, Diagnostic, DiagnosticSeverity, DiagnosticTag, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver';
+import { CodeAction, CodeLens, CompletionItem, CompletionItemKind, CompletionList, Diagnostic, DiagnosticSeverity, DiagnosticTag, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver';
 import { AventusExtension, AventusLanguageId } from '../../definition';
 import { AventusFile } from '../../files/AventusFile';
 import { Build } from '../../project/Build';
@@ -546,7 +546,7 @@ export class AventusTsLanguageService {
         return undefined;
     }
 
-    public async findDefinition(file: AventusFile, position: Position): Promise<Definition | null> {
+    public async findDefinition(file: AventusFile, position: Position): Promise<Location[] | null> {
         let result: Location[] = [];
         try {
             const offset = file.documentInternal.offsetAt(position);
@@ -616,7 +616,7 @@ export class AventusTsLanguageService {
                             else if (txt.startsWith("this.t(")) {
                                 const key = type.value;
                                 const fileTemp = this.build.tsFiles[file.uri];
-                                if(fileTemp instanceof AventusWebComponentLogicalFile) {
+                                if (fileTemp instanceof AventusWebComponentLogicalFile) {
                                     if (fileTemp.I18nFile?.parsed && fileTemp.I18nFile?.parsed[key]) {
                                         const fileI18n = fileTemp.I18nFile;
                                         const parsed = fileTemp.I18nFile.parsed[key];
@@ -1102,6 +1102,7 @@ export class AventusTsLanguageService {
             let additionContentNpm = "";
             // prepare content
             let txt = element.compiledContent;
+            let txtDoc = element.compiledContentDoc;
             let txtHotReload = element.compiledContentHotReload;
             let moduleName = file.build.module;
             if (element instanceof ClassInfo && !element.isInterface) {
@@ -1131,6 +1132,7 @@ export class AventusTsLanguageService {
             }
             else if (element instanceof VariableInfo) {
                 txt = element.type + " " + element.compiledContent;
+                txtDoc = element.type + " " + element.compiledContentDoc;
                 txtHotReload = element.type + " " + element.compiledContentHotReload;
             }
 
@@ -1146,7 +1148,9 @@ export class AventusTsLanguageService {
                 result.hotReload = transpile(txtHotReload, compilerOptionsCompile);
             }
 
-            let rawDoc = this.compileDocTs(txt, element);
+            txtDoc = this.removeComments(txtDoc);
+            txtDoc = this.replaceFirstExport(txtDoc);
+            let rawDoc = this.compileDocTs(txtDoc, element);
             let doc = DefinitionCorrector.correct(rawDoc, element);
 
             let buildNpm = this.compileTsToNpm(element, file);
@@ -1203,7 +1207,9 @@ export class AventusTsLanguageService {
 
                 }
                 if (element.isExported) {
-                    finalCompiled += "_." + element.fullName + "=" + element.fullName + ";";
+
+                    finalCompiled += `__as1(_${element.namespace != '' ? '.' + element.namespace : ''}, '${element.name}', ${element.fullName});`
+                    // finalCompiled += "_." + element.fullName + "=" + element.fullName + ";";
                     finalCompiled += EOL;
                 }
 

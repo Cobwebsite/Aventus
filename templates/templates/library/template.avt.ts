@@ -2,7 +2,8 @@ export class Template extends AventusTemplate {
     protected override meta(): TemplateInfo {
 		return {
 			name: "Library.Default Class Library",
-			description: "Create a basic library class"
+			description: "Create a basic library class",
+            installationFolder: "Aventus/Libraries"
 		}
 	}
     protected override async run(destination: string): Promise<void> {
@@ -16,9 +17,8 @@ export class Template extends AventusTemplate {
         name = name.charAt(0).toUpperCase() + name.slice(1);
         this.registerVar("className", name);
         
-		this.writeFile((config) => {
-			config.openFileOnEnd();
-		});
+		await this.writeFile();
+        this.openFile(name + ".lib.avt");
     }
 
 }

@@ -1,0 +1,79 @@
+/* Import de la police Inter (ou via bundle local) */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+:root {
+	background-color: var(--color-bg);
+	color: var(--color-text);
+	font-family: var(--font-sans);
+	font-size: 16px;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	line-height: var(--line-height-normal);
+}
+
+/* RESET typographique léger */
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+body {
+	background-color: var(--color-bg);
+	color: var(--color-text);
+	font-size: var(--text-base);
+	font-weight: 400;
+	margin: 0;
+	padding: 0;
+}
+
+/* Par défaut, tous les titres sont sans empattement et cohérents */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	color: var(--color-text);
+	font-family: inherit;
+	font-weight: 600;
+	margin: 0 0 var(--space-2) 0;
+}
+
+p {
+	font-size: var(--text-base);
+	margin: 0 0 var(--space-3) 0;
+}
+
+/* Inputs, textarea, button par défaut */
+input,
+textarea,
+button,
+select {
+	background-color: transparent;
+	border: none;
+	box-shadow: none;
+	color: inherit;
+	font-family: inherit;
+	font-size: inherit;
+	outline: none;
+}
+
+button {
+	cursor: pointer;
+	font-weight: 500;
+	transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+/* Images responsive */
+img {
+	display: block;
+	max-width: 100%;
+}
+
+/* Form field spacing */
+fieldset {
+	border: none;
+	margin: 0;
+	padding: 0;
+}

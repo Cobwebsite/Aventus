@@ -1,4 +1,4 @@
-import { Diagnostic, Position, CompletionList, CompletionItem, Hover, Definition, Range, FormattingOptions, TextEdit, CodeAction, Location, CodeLens, WorkspaceEdit } from 'vscode-languageserver';
+import { Diagnostic, Position, CompletionList, CompletionItem, Hover, Range, FormattingOptions, TextEdit, CodeAction, Location, CodeLens, WorkspaceEdit } from 'vscode-languageserver';
 import { AventusFile } from '../../files/AventusFile';
 import { Build } from '../../project/Build';
 import { AventusGlobalBaseFile } from '../GlobalBaseFile';
@@ -156,7 +156,7 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 	protected async onHover(document: AventusFile, position: Position): Promise<Hover | null> {
 		return this.project.globalSCSSLanguageService.doHover(document, position);
 	}
-	protected async onDefinition(document: AventusFile, position: Position): Promise<Definition | null> {
+	protected async onDefinition(document: AventusFile, position: Position): Promise<Location[] | null> {
 		return this.project.globalSCSSLanguageService.findDefinition(document, position);
 	}
 	protected async onFormatting(document: AventusFile, range: Range, options: FormattingOptions): Promise<TextEdit[]> {

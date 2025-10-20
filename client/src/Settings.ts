@@ -1,4 +1,6 @@
-import { workspace } from 'vscode'
+import { ConfigurationTarget, ExtensionMode, workspace, WorkspaceConfiguration } from 'vscode'
+import { Singleton } from './Singleton'
+import { join } from 'path'
 
 export type LiveServerSettings = {
 	host: string,
@@ -32,7 +34,7 @@ export interface Settings {
 	statics?: string[],
 	errorByBuild?: boolean,
 	defaultHideWarnings: boolean,
-	deeplApiKey: string
+	deeplApiKey: string,
 }
 export interface SettingsHtml {
 	customData: string[]
@@ -60,7 +62,7 @@ const defaultSettings: Settings = {
 	useStats: false,
 	useDefaultTemplate: true,
 	defaultHideWarnings: false,
-	deeplApiKey: ""
+	deeplApiKey: "",
 }
 function getDefaultSettings(): Settings {
 	return JSON.parse(JSON.stringify(defaultSettings));
@@ -94,6 +96,7 @@ export class SettingsManager {
 	}
 
 	private constructor() {
+		this.applyDefault();
 		this.reload();
 
 		workspace.onDidChangeConfiguration(() => {
@@ -102,17 +105,62 @@ export class SettingsManager {
 
 	}
 
+	private async applyDefault() {
+		if (!Singleton.client.context) return;
+		if (Singleton.client.context.extensionMode != ExtensionMode.Production) return;
+		const settingsEmmet = workspace.getConfiguration("emmet") as WorkspaceConfiguration & { extensionsPath?: string[] }
+		if (!settingsEmmet.extensionsPath) {
+			settingsEmmet.extensionsPath = [];
+		}
+		let emmetPath = join(Singleton.client.context.extensionPath, "lib", "emmet", "aventus.json");
+		let found = false;
+		let needSave = false;
+		for (let i = 0; i < settingsEmmet.extensionsPath.length; i++) {
+			const path = settingsEmmet.extensionsPath[i];
+			if (path == emmetPath) {
+				found = true;
+				break;
+			}
+			if (path.endsWith("aventus.json")) {
+				settingsEmmet.extensionsPath.splice(i, 1);
+				i--;
+				needSave = true;
+			}
+		}
+		if (!found) {
+			settingsEmmet.extensionsPath.push(emmetPath);
+			needSave = true;
+		}
+		if (needSave) {
+			try {
+				await settingsEmmet.update("extensionsPath", settingsEmmet.extensionsPath, ConfigurationTarget.Global, undefined);
+			} catch (e) {
+				// console.log(e);
+			}
+		}
+	}
+
 	private reload() {
 		const settings = workspace.getConfiguration("aventus") as Partial<Settings>
-		this.setSettings(settings);
+		this.initSettings(settings);
 
 		const settingsHtml = workspace.getConfiguration("html") as Partial<SettingsHtml>
 		this.setSettingsHtml(settingsHtml);
 	}
 
 
-
-	private setSettings(newSettings: Partial<Settings>) {
+	public async setSettings(newSettings: Partial<Settings>, global: boolean) {
+		const config = workspace.getConfiguration("aventus");
+		try {
+			for (let key in newSettings) {
+				const result = await config.update(key, newSettings[key], global ? ConfigurationTarget.Global : ConfigurationTarget.Workspace);
+				console.log("in");
+			}
+		} catch (e) {
+			console.log(e)
+		}
+	}
+	private initSettings(newSettings: Partial<Settings>) {
 		this._settings = this.mergeDeep(getDefaultSettings(), newSettings);
 		let cbs = [...this.cbOnSettingsChange];
 		for (let cb of cbs) {

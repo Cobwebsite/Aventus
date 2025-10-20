@@ -1,7 +1,7 @@
 // import { CompilerOptions, CompletionInfo, Diagnostic as DiagnosticTs, FormatCodeSettings, GetCompletionsAtPositionOptions, IndentStyle, JsxEmit, LanguageService, LanguageServiceHost, ModuleDetectionKind, ModuleResolutionKind, ScriptKind, ScriptTarget, SemicolonPreference, WithMetadata, createLanguageService, displayPartsToString, flattenDiagnosticMessageText } from 'typescript';
 // import { AventusTsFile } from '../ts/File';
 // import { AventusFile } from '../../files/AventusFile';
-// import { CompletionItem, CompletionItemKind, CompletionList, Definition, Diagnostic, DiagnosticSeverity, DiagnosticTag, FormattingOptions, Hover, Location, Position, Range, TextEdit } from 'vscode-languageserver';
+// import { CompletionItem, CompletionItemKind, CompletionList, Diagnostic, DiagnosticSeverity, DiagnosticTag, FormattingOptions, Hover, Location, Position, Range, TextEdit } from 'vscode-languageserver';
 // import { convertRange, getWordAtText } from '../../tools';
 // import { AventusLanguageId } from '../../definition';
 
@@ -222,7 +222,7 @@
 //         return null;
 //     }
 
-// 	public async findDefinition(file: AventusFile, position: Position): Promise<Definition | null> {
+// 	public async findDefinition(file: AventusFile, position: Position): Promise<Location[] | null> {
 //         try {
 
 //             let definition = this.languageService.getDefinitionAtPosition(file.uri, file.documentInternal.offsetAt(position));

@@ -1,0 +1,103 @@
+import type { Asyncable } from "Aventus@Main:Aventus.package.avt";
+import type { ButtonElement } from "../../Form/ButtonElement/ButtonElement.wcl.avt";
+import { FormHandler } from "../../Form/Form/FormHandler.lib.avt";
+import type { Constructor, FormHandlerConfig, FormSchema, IForm, SubmitFunction, WithError } from "../../Form/Form/FormType.lib.avt";
+import type { FormElement } from "../../Form/FormElement/FormElement.wcl.avt";
+import { Page } from "../Page/Page.wcl.avt";
+
+namespace Navigation {
+    export type PageFormConfig = {
+        submitWithEnter?: boolean;
+        autoLoading?: boolean;
+    };
+
+
+    export abstract class PageForm<T, U> extends Page implements Aventus.DefaultComponent, IForm {
+
+        //#region static
+
+        //#endregion
+
+
+        //#region props
+
+        //#endregion
+
+
+        //#region variables
+        private _form: FormHandler<T>;
+        public get form(): FormHandler<T> { return this._form; }
+
+        protected elements: FormElement<any>[] = [];
+        protected btns: ButtonElement[] = [];
+        //#endregion
+
+
+        //#region constructor
+        public constructor() {
+            super();
+            this._form = new FormHandler(this.formSchema(), this.formConfig());
+        }
+        //#endregion
+
+
+        //#region methods
+
+        protected abstract formSchema(): FormSchema<T>;
+        protected formConfig(): FormHandlerConfig<T> {
+            return {};
+        }
+        protected pageConfig(): PageFormConfig {
+            return {
+                submitWithEnter: true,
+                autoLoading: true
+            };
+        }
+
+        protected abstract defineSubmit(submit: (fct: SubmitFunction<T, U>) => Promise<WithError<U> | null>): Promise<WithError<U> | null>;
+        public async submit() {
+            this.setLoading(true);
+            const result = await this.defineSubmit((fct) => this.form.submit(fct));
+            this.setLoading(false);
+            return result;
+        }
+
+        protected setLoading(isLoading: boolean) {
+            const autoLoading = this.pageConfig().autoLoading;
+            if(autoLoading) {
+                for(let btn of this.btns) {
+                    if("loading" in btn) {
+                        btn.loading = isLoading;
+                    }
+                }
+            }
+        }
+
+        @BindThis()
+        protected checkEnter(e: KeyboardEvent) {
+            if(e.key == "Enter") {
+                this.submit();
+            }
+        }
+        public registerElement(element: FormElement<any>): PageForm<T, U> {
+            const submitWithEnter = this.pageConfig().submitWithEnter;
+            if(this.elements.length > 0) {
+                if(submitWithEnter)
+                    this.elements[this.elements.length - 1].removeEventListener("keyup", this.checkEnter);
+            }
+            this.elements.push(element);
+            if(submitWithEnter)
+                element.addEventListener("keyup", this.checkEnter);
+            return this;
+        }
+        public registerSubmit(element: ButtonElement): PageForm<T, U> {
+            this.btns.push(element);
+            return this;
+        }
+        public async requestSubmit(): Promise<void> {
+            await this.submit();
+        }
+        //#endregion
+
+    }
+}

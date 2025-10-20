@@ -1,172 +1,69 @@
-Object.defineProperty(window, "AvInstance", {
-	get() {return Aventus.Instance;}
-});
+if(!Object.hasOwn(window, "AvInstance")) {
+	Object.defineProperty(window, "AvInstance", {
+		get() {return Aventus.Instance;}
+	});
 
-(() => {
-	Map.prototype._defaultHas = Map.prototype.has;
-	Map.prototype._defaultSet = Map.prototype.set;
-	Map.prototype._defaultGet = Map.prototype.get;
-	Map.prototype.has = function(key) {
-		if(Aventus.Watcher?.is(key)) {
-			return Map.prototype._defaultHas.call(this,key.getTarget())
+	(() => {
+		Map.prototype._defaultHas = Map.prototype.has;
+		Map.prototype._defaultSet = Map.prototype.set;
+		Map.prototype._defaultGet = Map.prototype.get;
+		Map.prototype.has = function(key) {
+			if(Aventus.Watcher?.is(key)) {
+				return Map.prototype._defaultHas.call(this,key.getTarget())
+			}
+			return Map.prototype._defaultHas.call(this,key);
 		}
-		return Map.prototype._defaultHas.call(this,key);
-	}
 
-	Map.prototype.set = function(key, value) {
-		if(Aventus.Watcher?.is(key)) {
-			return Map.prototype._defaultSet.call(this, key.getTarget(), value)
+		Map.prototype.set = function(key, value) {
+			if(Aventus.Watcher?.is(key)) {
+				return Map.prototype._defaultSet.call(this, key.getTarget(), value)
+			}
+			return Map.prototype._defaultSet.call(this, key, value);
 		}
-		return Map.prototype._defaultSet.call(this, key, value);
-	}
-	Map.prototype.get = function(key) {
-		if(Aventus.Watcher?.is(key)) {
-			return Map.prototype._defaultGet.call(this, key.getTarget())
+		Map.prototype.get = function(key) {
+			if(Aventus.Watcher?.is(key)) {
+				return Map.prototype._defaultGet.call(this, key.getTarget())
+			}
+			return Map.prototype._defaultGet.call(this, key);
 		}
-		return Map.prototype._defaultGet.call(this, key);
-	}
-})();
-
-var Aventus;
-(Aventus||(Aventus = {}));
-(function (Aventus) {
-const moduleName = `Aventus`;
-const _ = {};
-
-
-let _n;
-let Style=class Style {
-    static instance;
-    static noAnimation;
-    static defaultStyleSheets = {
-        "@default": `:host{display:inline-block;box-sizing:border-box}:host *{box-sizing:border-box}`,
-    };
-    static store(name, content) {
-        this.getInstance().store(name, content);
-    }
-    static get(name) {
-        return this.getInstance().get(name);
-    }
-    static getAsString(name) {
-        return this.getInstance().getAsString(name);
-    }
-    static sheetToString(stylesheet) {
-        return this.getInstance().sheetToString(stylesheet);
-    }
-    static load(name, url) {
-        return this.getInstance().load(name, url);
-    }
-    static appendToHead(name) {
-        if (!document.head.querySelector(`style[data-name="${name}"]`)) {
-            const styleNode = document.createElement('style');
-            styleNode.setAttribute(`data-name`, name);
-            styleNode.innerHTML = Aventus.Style.getAsString(name);
-            document.getElementsByTagName('head')[0].appendChild(styleNode);
-        }
-    }
-    static refreshHead(name) {
-        const styleNode = document.head.querySelector(`style[data-name="${name}"]`);
-        if (styleNode) {
-            styleNode.innerHTML = Aventus.Style.getAsString(name);
-        }
-    }
-    static getInstance() {
-        if (!this.instance) {
-            this.instance = new Style();
-        }
-        return this.instance;
-    }
-    constructor() {
-        for (let name in Style.defaultStyleSheets) {
-            this.store(name, Style.defaultStyleSheets[name]);
-        }
-        Style.noAnimation = new CSSStyleSheet();
-        Style.noAnimation.replaceSync(`:host{-webkit-transition: none !important;-moz-transition: none !important;-ms-transition: none !important;-o-transition: none !important;transition: none !important;}:host *{-webkit-transition: none !important;-moz-transition: none !important;-ms-transition: none !important;-o-transition: none !important;transition: none !important;}`);
-    }
-    stylesheets = new Map();
-    async load(name, url) {
-        try {
-            let style = this.stylesheets.get(name);
-            if (!style || style.cssRules.length == 0) {
-                let txt = await (await fetch(url)).text();
-                this.store(name, txt);
-            }
-        }
-        catch (e) {
-        }
-    }
-    store(name, content) {
-        let style = this.stylesheets.get(name);
-        if (!style) {
-            const sheet = new CSSStyleSheet();
-            sheet.replaceSync(content);
-            this.stylesheets.set(name, sheet);
-            return sheet;
-        }
-        else {
-            style.replaceSync(content);
-            Style.refreshHead(name);
-            return style;
-        }
-    }
-    get(name) {
-        let style = this.stylesheets.get(name);
-        if (!style) {
-            style = this.store(name, "");
-        }
-        return style;
-    }
-    getAsString(name) {
-        return this.sheetToString(this.get(name));
-    }
-    sheetToString(stylesheet) {
-        return stylesheet.cssRules
-            ? Array.from(stylesheet.cssRules)
-                .map(rule => rule.cssText || '')
-                .join('\n')
-            : '';
-    }
+	})();
 }
-Style.Namespace=`Aventus`;
-_.Style=Style;
 
+if(!Object.hasOwn(window, "AvInstance")) {
+	Object.defineProperty(window, "AvInstance", {
+		get() {return Aventus.Instance;}
+	});
 
-for(let key in _) { Aventus[key] = _[key] }
-})(Aventus);
-
-Object.defineProperty(window, "AvInstance", {
-	get() {return Aventus.Instance;}
-});
-
-(() => {
-	Map.prototype._defaultHas = Map.prototype.has;
-	Map.prototype._defaultSet = Map.prototype.set;
-	Map.prototype._defaultGet = Map.prototype.get;
-	Map.prototype.has = function(key) {
-		if(Aventus.Watcher?.is(key)) {
-			return Map.prototype._defaultHas.call(this,key.getTarget())
+	(() => {
+		Map.prototype._defaultHas = Map.prototype.has;
+		Map.prototype._defaultSet = Map.prototype.set;
+		Map.prototype._defaultGet = Map.prototype.get;
+		Map.prototype.has = function(key) {
+			if(Aventus.Watcher?.is(key)) {
+				return Map.prototype._defaultHas.call(this,key.getTarget())
+			}
+			return Map.prototype._defaultHas.call(this,key);
 		}
-		return Map.prototype._defaultHas.call(this,key);
-	}
 
-	Map.prototype.set = function(key, value) {
-		if(Aventus.Watcher?.is(key)) {
-			return Map.prototype._defaultSet.call(this, key.getTarget(), value)
+		Map.prototype.set = function(key, value) {
+			if(Aventus.Watcher?.is(key)) {
+				return Map.prototype._defaultSet.call(this, key.getTarget(), value)
+			}
+			return Map.prototype._defaultSet.call(this, key, value);
 		}
-		return Map.prototype._defaultSet.call(this, key, value);
-	}
-	Map.prototype.get = function(key) {
-		if(Aventus.Watcher?.is(key)) {
-			return Map.prototype._defaultGet.call(this, key.getTarget())
+		Map.prototype.get = function(key) {
+			if(Aventus.Watcher?.is(key)) {
+				return Map.prototype._defaultGet.call(this, key.getTarget())
+			}
+			return Map.prototype._defaultGet.call(this, key);
 		}
-		return Map.prototype._defaultGet.call(this, key);
-	}
-})();
-
+	})();
+}
  
 var Aventus;
 (Aventus||(Aventus = {}));
 (function (Aventus) {
+const __as1 = (o, k, c) => { if (o[k] !== undefined) for (let w in o[k]) { c[w] = o[k][w] } o[k] = c; }
 const moduleName = `Aventus`;
 const _ = {};
 
@@ -197,14 +94,14 @@ let Style=class Style {
         if (!document.head.querySelector(`style[data-name="${name}"]`)) {
             const styleNode = document.createElement('style');
             styleNode.setAttribute(`data-name`, name);
-            styleNode.innerHTML = Aventus.Style.getAsString(name);
+            styleNode.innerHTML = Style.getAsString(name);
             document.getElementsByTagName('head')[0].appendChild(styleNode);
         }
     }
     static refreshHead(name) {
         const styleNode = document.head.querySelector(`style[data-name="${name}"]`);
         if (styleNode) {
-            styleNode.innerHTML = Aventus.Style.getAsString(name);
+            styleNode.innerHTML = Style.getAsString(name);
         }
     }
     static getInstance() {
@@ -265,23 +162,36 @@ let Style=class Style {
     }
 }
 Style.Namespace=`Aventus`;
-_.Style=Style;
+__as1(_, 'Style', Style);
 
 let uuidv4=function uuidv4() {
     let uid = '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c => (Number(c) ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> Number(c) / 4).toString(16));
     return uid;
 }
-_.uuidv4=uuidv4;
+__as1(_, 'uuidv4', uuidv4);
 
 let sleep=function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
-_.sleep=sleep;
+__as1(_, 'sleep', sleep);
+
+let isSubclassOf=function isSubclassOf(subClass, superClass) {
+    if (typeof subClass !== 'function' || typeof superClass !== 'function')
+        return false;
+    let proto = subClass.prototype;
+    while (proto) {
+        if (proto === superClass.prototype)
+            return true;
+        proto = Object.getPrototypeOf(proto);
+    }
+    return false;
+}
+__as1(_, 'isSubclassOf', isSubclassOf);
 
 let isClass=function isClass(v) {
     return typeof v === 'function' && /^\s*class\s+/.test(v.toString());
 }
-_.isClass=isClass;
+__as1(_, 'isClass', isClass);
 
 let setValueToObject=function setValueToObject(path, obj, value) {
     path = path.replace(/\[(.*?)\]/g, '.$1');
@@ -308,7 +218,7 @@ let setValueToObject=function setValueToObject(path, obj, value) {
         obj[splitted[splitted.length - 1]] = value;
     }
 }
-_.setValueToObject=setValueToObject;
+__as1(_, 'setValueToObject', setValueToObject);
 
 let Mutex=class Mutex {
     /**
@@ -388,6 +298,7 @@ let Mutex=class Mutex {
             result = cb.apply(null, []);
         }
         catch (e) {
+            console.error(e);
         }
         await this.release();
         return result;
@@ -405,6 +316,7 @@ let Mutex=class Mutex {
             result = await cb.apply(null, []);
         }
         catch (e) {
+            console.error(e);
         }
         await this.release();
         return result;
@@ -422,6 +334,7 @@ let Mutex=class Mutex {
                 result = cb.apply(null, []);
             }
             catch (e) {
+                console.error(e);
             }
             await this.releaseOnlyLast();
         }
@@ -440,6 +353,7 @@ let Mutex=class Mutex {
                 result = await cb.apply(null, []);
             }
             catch (e) {
+                console.error(e);
             }
             await this.releaseOnlyLast();
         }
@@ -447,7 +361,7 @@ let Mutex=class Mutex {
     }
 }
 Mutex.Namespace=`Aventus`;
-_.Mutex=Mutex;
+__as1(_, 'Mutex', Mutex);
 
 let ActionGuard=class ActionGuard {
     /**
@@ -456,33 +370,15 @@ let ActionGuard=class ActionGuard {
      * @private
      */
     runningAction = new Map();
-    /**
-     * Executes an action uniquely based on the specified keys.
-     * @template T
-     * @param {any[]} keys The keys associated with the action.
-     * @param {() => Promise<T>} action The action to execute.
-     * @returns {Promise<T>} A promise that resolves with the result of the action.
-     * @example
-     *
-     *
-     * const actionGuard = new Aventus.ActionGuard();
-     *
-     *
-     * const keys = ["key1", "key2"];
-     *
-     *
-     * const action = async () => {
-     *
-     *     await new Promise(resolve => setTimeout(resolve, 1000));
-     *     return "Action executed";
-     * };
-     *
-     *
-     * await actionGuard.run(keys, action)
-     *
-     */
     run(keys, action) {
         return new Promise(async (resolve) => {
+            if (typeof keys == 'function') {
+                action = keys;
+                keys = [];
+            }
+            if (!action) {
+                throw "No action inside the Mutex.run";
+            }
             let actions = undefined;
             let runningKeys = Array.from(this.runningAction.keys());
             for (let runningKey of runningKeys) {
@@ -521,7 +417,7 @@ let ActionGuard=class ActionGuard {
     }
 }
 ActionGuard.Namespace=`Aventus`;
-_.ActionGuard=ActionGuard;
+__as1(_, 'ActionGuard', ActionGuard);
 
 var RamErrorCode;
 (function (RamErrorCode) {
@@ -529,7 +425,7 @@ var RamErrorCode;
     RamErrorCode[RamErrorCode["noId"] = 1] = "noId";
     RamErrorCode[RamErrorCode["noItemInsideRam"] = 2] = "noItemInsideRam";
 })(RamErrorCode || (RamErrorCode = {}));
-_.RamErrorCode=RamErrorCode;
+__as1(_, 'RamErrorCode', RamErrorCode);
 
 let ResourceLoader=class ResourceLoader {
     static headerLoaded = {};
@@ -699,52 +595,13 @@ let ResourceLoader=class ResourceLoader {
     }
 }
 ResourceLoader.Namespace=`Aventus`;
-_.ResourceLoader=ResourceLoader;
-
-let Async=function Async(el) {
-    return new Promise((resolve) => {
-        if (el instanceof Promise) {
-            el.then(resolve);
-        }
-        else {
-            resolve(el);
-        }
-    });
-}
-_.Async=Async;
-
-let Instance=class Instance {
-    static elements = new Map();
-    static get(type) {
-        let result = this.elements.get(type);
-        if (!result) {
-            let cst = type.prototype['constructor'];
-            result = new cst();
-            this.elements.set(type, result);
-        }
-        return result;
-    }
-    static set(el) {
-        let cst = el.constructor;
-        if (this.elements.get(cst)) {
-            return false;
-        }
-        this.elements.set(cst, el);
-        return true;
-    }
-    static destroy(el) {
-        let cst = el.constructor;
-        return this.elements.delete(cst);
-    }
-}
-Instance.Namespace=`Aventus`;
-_.Instance=Instance;
+__as1(_, 'ResourceLoader', ResourceLoader);
 
 let DragElementXYType= [SVGGElement, SVGRectElement, SVGEllipseElement, SVGTextElement];
-_.DragElementXYType=DragElementXYType;
+__as1(_, 'DragElementXYType', DragElementXYType);
 
 let DragElementLeftTopType= [HTMLElement, SVGSVGElement];
-_.DragElementLeftTopType=DragElementLeftTopType;
+__as1(_, 'DragElementLeftTopType', DragElementLeftTopType);
 
 let NormalizedEvent=class NormalizedEvent {
     _event;
@@ -823,7 +680,7 @@ let NormalizedEvent=class NormalizedEvent {
     }
 }
 NormalizedEvent.Namespace=`Aventus`;
-_.NormalizedEvent=NormalizedEvent;
+__as1(_, 'NormalizedEvent', NormalizedEvent);
 
 let Callback=class Callback {
     callbacks = new Map();
@@ -860,7 +717,7 @@ let Callback=class Callback {
     }
 }
 Callback.Namespace=`Aventus`;
-_.Callback=Callback;
+__as1(_, 'Callback', Callback);
 
 let CallbackGroup=class CallbackGroup {
     callbacks = {};
@@ -908,7 +765,7 @@ let CallbackGroup=class CallbackGroup {
     }
 }
 CallbackGroup.Namespace=`Aventus`;
-_.CallbackGroup=CallbackGroup;
+__as1(_, 'CallbackGroup', CallbackGroup);
 
 let compareObject=function compareObject(obj1, obj2) {
     if (Array.isArray(obj1)) {
@@ -993,7 +850,7 @@ let compareObject=function compareObject(obj1, obj2) {
         return obj1 === obj2;
     }
 }
-_.compareObject=compareObject;
+__as1(_, 'compareObject', compareObject);
 
 let getValueFromObject=function getValueFromObject(path, obj) {
     if (path === undefined) {
@@ -1023,7 +880,7 @@ let getValueFromObject=function getValueFromObject(path, obj) {
     }
     return val(splitted[splitted.length - 1]);
 }
-_.getValueFromObject=getValueFromObject;
+__as1(_, 'getValueFromObject', getValueFromObject);
 
 var WatchAction;
 (function (WatchAction) {
@@ -1031,7 +888,19 @@ var WatchAction;
     WatchAction[WatchAction["UPDATED"] = 1] = "UPDATED";
     WatchAction[WatchAction["DELETED"] = 2] = "DELETED";
 })(WatchAction || (WatchAction = {}));
-_.WatchAction=WatchAction;
+__as1(_, 'WatchAction', WatchAction);
+
+let Async=function Async(el) {
+    return new Promise((resolve) => {
+        if (el instanceof Promise) {
+            el.then(resolve);
+        }
+        else {
+            resolve(el);
+        }
+    });
+}
+__as1(_, 'Async', Async);
 
 var HttpMethod;
 (function (HttpMethod) {
@@ -1041,13 +910,13 @@ var HttpMethod;
     HttpMethod["PUT"] = "PUT";
     HttpMethod["OPTION"] = "OPTION";
 })(HttpMethod || (HttpMethod = {}));
-_.HttpMethod=HttpMethod;
+__as1(_, 'HttpMethod', HttpMethod);
 
 var HttpErrorCode;
 (function (HttpErrorCode) {
     HttpErrorCode[HttpErrorCode["unknow"] = 0] = "unknow";
 })(HttpErrorCode || (HttpErrorCode = {}));
-_.HttpErrorCode=HttpErrorCode;
+__as1(_, 'HttpErrorCode', HttpErrorCode);
 
 let DateConverter=class DateConverter {
     static __converter = new DateConverter();
@@ -1058,7 +927,7 @@ let DateConverter=class DateConverter {
         this.__converter = value;
     }
     isStringDate(txt) {
-        return /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3})Z$/.exec(txt) !== null;
+        return /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3,6})Z$/.exec(txt) !== null;
     }
     fromString(txt) {
         return new Date(txt);
@@ -1071,7 +940,7 @@ let DateConverter=class DateConverter {
     }
 }
 DateConverter.Namespace=`Aventus`;
-_.DateConverter=DateConverter;
+__as1(_, 'DateConverter', DateConverter);
 
 let Json=class Json {
     /**
@@ -1160,7 +1029,7 @@ let Json=class Json {
     }
 }
 Json.Namespace=`Aventus`;
-_.Json=Json;
+__as1(_, 'Json', Json);
 
 let ConverterTransform=class ConverterTransform {
     transform(data) {
@@ -1220,6 +1089,9 @@ let ConverterTransform=class ConverterTransform {
                             }
                             else if (obj[key] instanceof Map) {
                                 let map = new Map();
+                                if ("$type" in value && value['$type'] == "Aventus.Map") {
+                                    value = value.values;
+                                }
                                 for (const keyValue of value) {
                                     map.set(this.transformLoop(keyValue[0]), this.transformLoop(keyValue[1]));
                                 }
@@ -1290,7 +1162,7 @@ let ConverterTransform=class ConverterTransform {
     }
 }
 ConverterTransform.Namespace=`Aventus`;
-_.ConverterTransform=ConverterTransform;
+__as1(_, 'ConverterTransform', ConverterTransform);
 
 let Converter=class Converter {
     /**
@@ -1360,7 +1232,12 @@ let Converter=class Converter {
     }
 }
 Converter.Namespace=`Aventus`;
-_.Converter=Converter;
+__as1(_, 'Converter', Converter);
+
+let clone=function clone(item) {
+    return Converter.transform(JSON.parse(JSON.stringify(item)));
+}
+__as1(_, 'clone', clone);
 
 let Data=class Data {
     /**
@@ -1410,7 +1287,7 @@ let Data=class Data {
     }
 }
 Data.Namespace=`Aventus`;
-_.Data=Data;
+__as1(_, 'Data', Data);
 
 let GenericError=class GenericError {
     /**
@@ -1423,7 +1300,6 @@ let GenericError=class GenericError {
     message;
     /**
      * Additional details related to the error.
-     * @type {any[]}
      */
     details = [];
     /**
@@ -1437,7 +1313,7 @@ let GenericError=class GenericError {
     }
 }
 GenericError.Namespace=`Aventus`;
-_.GenericError=GenericError;
+__as1(_, 'GenericError', GenericError);
 
 let VoidWithError=class VoidWithError {
     /**
@@ -1488,12 +1364,32 @@ let VoidWithError=class VoidWithError {
     }
 }
 VoidWithError.Namespace=`Aventus`;
-_.VoidWithError=VoidWithError;
+__as1(_, 'VoidWithError', VoidWithError);
+
+let ResultWithError=class ResultWithError extends VoidWithError {
+    /**
+      * The result value of the action.
+      * @type {U | undefined}
+      */
+    result;
+    /**
+     * Converts the current instance to a ResultWithError object.
+     * @returns {ResultWithError<U>} A new instance of ResultWithError with the same error list and result value.
+     */
+    toGeneric() {
+        const result = new ResultWithError();
+        result.errors = this.errors;
+        result.result = this.result;
+        return result;
+    }
+}
+ResultWithError.Namespace=`Aventus`;
+__as1(_, 'ResultWithError', ResultWithError);
 
 let HttpError=class HttpError extends GenericError {
 }
 HttpError.Namespace=`Aventus`;
-_.HttpError=HttpError;
+__as1(_, 'HttpError', HttpError);
 
 let Signal=class Signal {
     __subscribes = [];
@@ -1536,7 +1432,7 @@ let Signal=class Signal {
     }
 }
 Signal.Namespace=`Aventus`;
-_.Signal=Signal;
+__as1(_, 'Signal', Signal);
 
 let Effect=class Effect {
     callbacks = [];
@@ -1651,7 +1547,7 @@ let Effect=class Effect {
     }
 }
 Effect.Namespace=`Aventus`;
-_.Effect=Effect;
+__as1(_, 'Effect', Effect);
 
 let Computed=class Computed extends Effect {
     _value;
@@ -1691,7 +1587,7 @@ let Computed=class Computed extends Effect {
     }
 }
 Computed.Namespace=`Aventus`;
-_.Computed=Computed;
+__as1(_, 'Computed', Computed);
 
 let Watcher=class Watcher {
     constructor() { }
@@ -1722,6 +1618,9 @@ let Watcher=class Watcher {
             if (data instanceof Object && !data.__isProxy) {
                 for (let key in reservedName) {
                     delete data[key];
+                }
+                for (let key in data) {
+                    clearReservedNames(data[key]);
                 }
             }
         };
@@ -2062,11 +1961,13 @@ let Watcher=class Watcher {
                                     el = replaceByAlias(target, el, target.length + '', receiver, false, out);
                                     target.push(el);
                                     const dones = [];
+                                    const dones2 = [];
                                     if (out.otherRoot) {
                                         dones.push(out.otherRoot);
+                                        dones2.push(out.otherRoot);
                                     }
                                     trigger('CREATED', target, receiver, receiver[index], "[" + (index) + "]", dones);
-                                    trigger('UPDATED', target, receiver, target.length, "length", dones);
+                                    trigger('UPDATED', target, receiver, target.length, "length", dones2);
                                     return index;
                                 };
                             }
@@ -2138,13 +2039,16 @@ let Watcher=class Watcher {
                                 result = (key, value) => {
                                     const out = {};
                                     let dones = [];
+                                    let dones2 = [];
                                     key = Watcher.extract(key);
                                     value = replaceByAlias(target, value, key + '', receiver, false, out);
-                                    if (out.otherRoot)
+                                    if (out.otherRoot) {
                                         dones.push(out.otherRoot);
+                                        dones2.push(out.otherRoot);
+                                    }
                                     let result = target.set(key, value);
                                     trigger('CREATED', target, receiver, receiver.get(key), key + '', dones);
-                                    trigger('UPDATED', target, receiver, target.size, "size", dones);
+                                    trigger('UPDATED', target, receiver, target.size, "size", dones2);
                                     return result;
                                 };
                             }
@@ -2530,7 +2434,7 @@ let Watcher=class Watcher {
     }
 }
 Watcher.Namespace=`Aventus`;
-_.Watcher=Watcher;
+__as1(_, 'Watcher', Watcher);
 
 let ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
     init() {
@@ -2548,7 +2452,7 @@ let ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
     run() { }
 }
 ComputedNoRecomputed.Namespace=`Aventus`;
-_.ComputedNoRecomputed=ComputedNoRecomputed;
+__as1(_, 'ComputedNoRecomputed', ComputedNoRecomputed);
 
 let EffectNoRecomputed=class EffectNoRecomputed extends Effect {
     init() {
@@ -2564,27 +2468,7 @@ let EffectNoRecomputed=class EffectNoRecomputed extends Effect {
     }
 }
 EffectNoRecomputed.Namespace=`Aventus`;
-_.EffectNoRecomputed=EffectNoRecomputed;
-
-let ResultWithError=class ResultWithError extends VoidWithError {
-    /**
-      * The result value of the action.
-      * @type {U | undefined}
-      */
-    result;
-    /**
-     * Converts the current instance to a ResultWithError object.
-     * @returns {ResultWithError<U>} A new instance of ResultWithError with the same error list and result value.
-     */
-    toGeneric() {
-        const result = new ResultWithError();
-        result.errors = this.errors;
-        result.result = this.result;
-        return result;
-    }
-}
-ResultWithError.Namespace=`Aventus`;
-_.ResultWithError=ResultWithError;
+__as1(_, 'EffectNoRecomputed', EffectNoRecomputed);
 
 let HttpRouter=class HttpRouter {
     options;
@@ -2616,7 +2500,7 @@ let HttpRouter=class HttpRouter {
     }
 }
 HttpRouter.Namespace=`Aventus`;
-_.HttpRouter=HttpRouter;
+__as1(_, 'HttpRouter', HttpRouter);
 
 let HttpRoute=class HttpRoute {
     router;
@@ -2628,14 +2512,20 @@ let HttpRoute=class HttpRoute {
     }
 }
 HttpRoute.Namespace=`Aventus`;
-_.HttpRoute=HttpRoute;
+__as1(_, 'HttpRoute', HttpRoute);
 
 let HttpRequest=class HttpRequest {
+    static options;
+    static configure(options) {
+        this.options = options;
+    }
     request;
     url;
-    constructor(url, method = HttpMethod.GET, body) {
+    methodSpoofing = false;
+    constructor(url, method = HttpMethod.GET, body, methodSpoofing = false) {
         this.url = url;
         this.request = {};
+        this.methodSpoofing = methodSpoofing;
         this.setMethod(method);
         this.prepareBody(body);
     }
@@ -2650,6 +2540,12 @@ let HttpRequest=class HttpRequest {
     }
     setMethod(method) {
         this.request.method = method;
+    }
+    /**
+     * Replace method Put/Delete by _method:"put" inside a form
+     */
+    enableMethodSpoofing() {
+        this.methodSpoofing = true;
     }
     objectToFormData(obj, formData, parentKey) {
         formData = formData || new FormData();
@@ -2732,6 +2628,20 @@ let HttpRequest=class HttpRequest {
                 this.setHeader("Content-Type", "Application/json");
             }
         }
+        if (this.methodSpoofing) {
+            if (this.request.method?.toUpperCase() == Aventus.HttpMethod.PUT) {
+                if (this.request.body instanceof FormData) {
+                    this.request.body.append("_method", Aventus.HttpMethod.PUT);
+                    this.request.method = Aventus.HttpMethod.POST;
+                }
+            }
+            else if (this.request.method?.toUpperCase() == Aventus.HttpMethod.DELETE) {
+                if (this.request.body instanceof FormData) {
+                    this.request.body.append("_method", Aventus.HttpMethod.DELETE);
+                    this.request.method = Aventus.HttpMethod.POST;
+                }
+            }
+        }
     }
     setHeader(name, value) {
         if (!this.request.headers) {
@@ -2739,14 +2649,32 @@ let HttpRequest=class HttpRequest {
         }
         this.request.headers.push([name, value]);
     }
-    async query(router) {
+    setCredentials(credentials) {
+        this.request.credentials = credentials;
+    }
+    async _query(router) {
         let result = new ResultWithError();
         try {
-            const fullUrl = router ? router.options.url + this.url : this.url;
+            const isFull = this.url.match("https?://");
+            if (!this.url.startsWith("/") && !isFull) {
+                this.url = "/" + this.url;
+            }
+            if (HttpRequest.options?.beforeSend) {
+                const beforeSendResult = await HttpRequest.options.beforeSend(this);
+                result.errors = beforeSendResult.errors;
+            }
+            const fullUrl = isFull ? this.url : router ? router.options.url + this.url : this.url;
             result.result = await fetch(fullUrl, this.request);
         }
         catch (e) {
             result.errors.push(new HttpError(HttpErrorCode.unknow, e));
+        }
+        return result;
+    }
+    async query(router) {
+        let result = await this._query(router);
+        if (HttpRequest.options?.responseMiddleware) {
+            result = await HttpRequest.options.responseMiddleware(result, this);
         }
         return result;
     }
@@ -2841,7 +2769,7 @@ let HttpRequest=class HttpRequest {
     }
 }
 HttpRequest.Namespace=`Aventus`;
-_.HttpRequest=HttpRequest;
+__as1(_, 'HttpRequest', HttpRequest);
 
 let StorableRoute=class StorableRoute extends HttpRoute {
     async GetAll() {
@@ -2868,7 +2796,7 @@ let StorableRoute=class StorableRoute extends HttpRoute {
     }
 }
 StorableRoute.Namespace=`Aventus`;
-_.StorableRoute=StorableRoute;
+__as1(_, 'StorableRoute', StorableRoute);
 
 let Animation=class Animation {
     /**
@@ -2956,7 +2884,7 @@ let Animation=class Animation {
     }
 }
 Animation.Namespace=`Aventus`;
-_.Animation=Animation;
+__as1(_, 'Animation', Animation);
 
 let PressManager=class PressManager {
     static globalConfig = {
@@ -2964,7 +2892,7 @@ let PressManager=class PressManager {
         delayLongPress: 700,
         offsetDrag: 20
     };
-    static setGlobalConfig(options) {
+    static configure(options) {
         this.globalConfig = options;
     }
     static create(options) {
@@ -2988,6 +2916,7 @@ let PressManager=class PressManager {
     delayLongPress;
     nbPress = 0;
     offsetDrag;
+    dragDirection;
     state = {
         oneActionTriggered: null,
     };
@@ -3017,6 +2946,7 @@ let PressManager=class PressManager {
             throw 'You must provide an element';
         }
         this.offsetDrag = PressManager.globalConfig.offsetDrag !== undefined ? PressManager.globalConfig.offsetDrag : 20;
+        this.dragDirection = 'XY';
         this.delayLongPress = PressManager.globalConfig.delayLongPress ?? 700;
         this.delayDblPress = PressManager.globalConfig.delayDblPress ?? 150;
         this.element = options.element;
@@ -3075,6 +3005,9 @@ let PressManager=class PressManager {
         }
         if (options.offsetDrag !== undefined) {
             this.offsetDrag = options.offsetDrag;
+        }
+        if (options.dragDirection !== undefined) {
+            this.dragDirection = options.dragDirection;
         }
         if (options.onDblPress !== undefined) {
             this.useDblPress = true;
@@ -3319,7 +3252,13 @@ let PressManager=class PressManager {
         if (!state.oneActionTriggered) {
             let xDist = e.pageX - this.startPosition.x;
             let yDist = e.pageY - this.startPosition.y;
-            let distance = Math.sqrt(xDist * xDist + yDist * yDist);
+            let distance = 0;
+            if (this.dragDirection == 'XY')
+                distance = Math.sqrt(xDist * xDist + yDist * yDist);
+            else if (this.dragDirection == 'X')
+                distance = Math.abs(xDist);
+            else
+                distance = Math.abs(yDist);
             if (distance > this.offsetDrag && this.downEventSaved) {
                 if (this.options.onDragStart) {
                     if (this.options.onDragStart(this.downEventSaved, this) !== false) {
@@ -3405,17 +3344,20 @@ let PressManager=class PressManager {
     destroy() {
         if (this.element) {
             this.element.removeEventListener("pointerdown", this.functionsBinded.downAction);
+            this.element.removeEventListener("touchstart", this.functionsBinded.downActionDelay);
             this.element.removeEventListener("trigger_pointer_pressstart", this.functionsBinded.childPressStart);
             this.element.removeEventListener("trigger_pointer_pressend", this.functionsBinded.childPressEnd);
             this.element.removeEventListener("trigger_pointer_pressmove", this.functionsBinded.childPressMove);
             document.removeEventListener("pointerup", this.functionsBinded.upAction);
             document.removeEventListener("pointercancel", this.functionsBinded.upAction);
+            document.removeEventListener("touchend", this.functionsBinded.upAction);
+            document.removeEventListener("touchcancel", this.functionsBinded.upAction);
             document.removeEventListener("pointermove", this.functionsBinded.moveAction);
         }
     }
 }
 PressManager.Namespace=`Aventus`;
-_.PressManager=PressManager;
+__as1(_, 'PressManager', PressManager);
 
 let DragAndDrop=class DragAndDrop {
     /**
@@ -3441,6 +3383,7 @@ let DragAndDrop=class DragAndDrop {
             onDrag: this.onDrag.bind(this),
             onDragEnd: this.onDragEnd.bind(this),
             offsetDrag: this.options.offsetDrag,
+            dragDirection: this.options.dragDirection,
             stopPropagation: this.options.stopPropagation
         });
     }
@@ -3450,6 +3393,7 @@ let DragAndDrop=class DragAndDrop {
             element: element,
             elementTrigger: element,
             offsetDrag: DragAndDrop.defaultOffsetDrag,
+            dragDirection: 'XY',
             shadow: {
                 enable: false,
                 container: document.body,
@@ -3491,6 +3435,7 @@ let DragAndDrop=class DragAndDrop {
         }
         this.defaultMerge(options, "applyDrag");
         this.defaultMerge(options, "offsetDrag");
+        this.defaultMerge(options, "dragDirection");
         this.defaultMerge(options, "strict");
         this.defaultMerge(options, "targets");
         this.defaultMerge(options, "usePercent");
@@ -3569,7 +3514,14 @@ let DragAndDrop=class DragAndDrop {
             }
         }
         this.draggableElement = draggableElement;
-        return this.options.onStart(e);
+        const result = this.options.onStart(e);
+        if (result !== false) {
+            document.body.style.userSelect = 'none';
+            if (window.getSelection) {
+                window.getSelection()?.removeAllRanges();
+            }
+        }
+        return result;
     }
     onDrag(e) {
         if (!this.isEnable) {
@@ -3599,6 +3551,7 @@ let DragAndDrop=class DragAndDrop {
         if (!this.isEnable) {
             return;
         }
+        document.body.style.userSelect = '';
         let targets = this.options.useMouseFinalPosition ? this.getMatchingTargetsWithMousePosition({
             x: e.clientX,
             y: e.clientY
@@ -3975,7 +3928,34 @@ let DragAndDrop=class DragAndDrop {
     }
 }
 DragAndDrop.Namespace=`Aventus`;
-_.DragAndDrop=DragAndDrop;
+__as1(_, 'DragAndDrop', DragAndDrop);
+
+let Instance=class Instance {
+    static elements = new Map();
+    static get(type) {
+        let result = this.elements.get(type);
+        if (!result) {
+            let cst = type.prototype['constructor'];
+            result = new cst();
+            this.elements.set(type, result);
+        }
+        return result;
+    }
+    static set(el) {
+        let cst = el.constructor;
+        if (this.elements.get(cst)) {
+            return false;
+        }
+        this.elements.set(cst, el);
+        return true;
+    }
+    static destroy(el) {
+        let cst = el.constructor;
+        return this.elements.delete(cst);
+    }
+}
+Instance.Namespace=`Aventus`;
+__as1(_, 'Instance', Instance);
 
 let ResizeObserver=class ResizeObserver {
     callback;
@@ -4039,8 +4019,10 @@ let ResizeObserver=class ResizeObserver {
         if (!target["sourceIndex"]) {
             target["sourceIndex"] = Math.random().toString(36);
             this.targets.push(target);
-            ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]] = [];
             ResizeObserver.getUniqueInstance().observe(target);
+        }
+        if (!ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]]) {
+            ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]] = [];
         }
         if (ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]].indexOf(this) == -1) {
             ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]].push(this);
@@ -4103,7 +4085,7 @@ let ResizeObserver=class ResizeObserver {
     }
 }
 ResizeObserver.Namespace=`Aventus`;
-_.ResizeObserver=ResizeObserver;
+__as1(_, 'ResizeObserver', ResizeObserver);
 
 let Uri=class Uri {
     static prepare(uri) {
@@ -4181,24 +4163,25 @@ let Uri=class Uri {
     }
 }
 Uri.Namespace=`Aventus`;
-_.Uri=Uri;
+__as1(_, 'Uri', Uri);
 
 let RamError=class RamError extends GenericError {
 }
 RamError.Namespace=`Aventus`;
-_.RamError=RamError;
+__as1(_, 'RamError', RamError);
 
 let ResultRamWithError=class ResultRamWithError extends ResultWithError {
 }
 ResultRamWithError.Namespace=`Aventus`;
-_.ResultRamWithError=ResultRamWithError;
+__as1(_, 'ResultRamWithError', ResultRamWithError);
 
 let VoidRamWithError=class VoidRamWithError extends VoidWithError {
 }
 VoidRamWithError.Namespace=`Aventus`;
-_.VoidRamWithError=VoidRamWithError;
+__as1(_, 'VoidRamWithError', VoidRamWithError);
 
 let GenericRam=class GenericRam {
+    static info = new Map([]);
     /**
      * The current namespace
      */
@@ -4219,10 +4202,46 @@ let GenericRam=class GenericRam {
      */
     records = new Map();
     actionGuard = new ActionGuard();
+    ramMapping = {};
     constructor() {
         if (this.constructor == GenericRam) {
             throw "can't instanciate an abstract class";
         }
+        // RamManager.check();
+        this.getIdWithError = this.getIdWithError.bind(this);
+        this.getId = this.getId.bind(this);
+        this.save = this.save.bind(this);
+        this.saveWithError = this.saveWithError.bind(this);
+        this.onCreated = this.onCreated.bind(this);
+        this.offCreated = this.offCreated.bind(this);
+        this.onUpdated = this.onUpdated.bind(this);
+        this.offUpdated = this.offUpdated.bind(this);
+        this.onDeleted = this.onDeleted.bind(this);
+        this.offDeleted = this.offDeleted.bind(this);
+        this.get = this.get.bind(this);
+        this.getWithError = this.getWithError.bind(this);
+        this.getById = this.getById.bind(this);
+        this.getByIdWithError = this.getByIdWithError.bind(this);
+        this.getByIds = this.getByIds.bind(this);
+        this.getByIdsWithError = this.getByIdsWithError.bind(this);
+        this.getAll = this.getAll.bind(this);
+        this.getAllWithError = this.getAllWithError.bind(this);
+        this.getList = this.getList.bind(this);
+        this.getListWithError = this.getListWithError.bind(this);
+        this.createList = this.createList.bind(this);
+        this.createListWithError = this.createListWithError.bind(this);
+        this.create = this.create.bind(this);
+        this.createWithError = this.createWithError.bind(this);
+        this.updateList = this.updateList.bind(this);
+        this.updateListWithError = this.updateListWithError.bind(this);
+        this.update = this.update.bind(this);
+        this.updateWithError = this.updateWithError.bind(this);
+        this.deleteList = this.deleteList.bind(this);
+        this.deleteListWithError = this.deleteListWithError.bind(this);
+        this.delete = this.delete.bind(this);
+        this.deleteWithError = this.deleteWithError.bind(this);
+        this.deleteById = this.deleteById.bind(this);
+        this.deleteByIdWithError = this.deleteByIdWithError.bind(this);
     }
     /**
      * Get item id
@@ -4362,6 +4381,12 @@ let GenericRam=class GenericRam {
         };
     }
     /**
+     * Define all the types you ram is capable of
+     */
+    ramForTypes() {
+        return [this.getTypeForData({})];
+    }
+    /**
      * Transform the object into the object stored inside Ram
      */
     getObjectForRam(objJson) {
@@ -4370,6 +4395,31 @@ let GenericRam=class GenericRam {
         this.mergeObject(item, objJson);
         return item;
     }
+    //     onCreated: (item: any) => void;
+    //     onUpdated: (item: any) => void;
+    //     onDeleted: (item: any) => void;
+    // }> = new Map();
+    // private linkInfo: { [key: string | number]: { [id: string | number]: U[]; }; } = {};
+    // private linkRamItem(item: U) {
+    //     for(let key in this.ramMapping) {
+    //         this.linkRamItemByKey(item, key);
+    // private linkRamItemByKey(item: U, key: string) {
+    //     if(key in item) {
+    //         if(mapping.asArray) {
+    //             if(Array.isArray(item[key])) {
+    //                 console.error(key + " in type " + item + " must be an array");
+    //             const id = mapping.ram.getId(item[key]);
+    //             if(!this.linkFct.has(mapping.ram)) {
+    //                     onCreated: (item) => {
+    //                     onUpdated: (item) => {
+    //                     onDeleted: (item) => {
+    //                 this.linkFct.set(mapping.ram, fcts);
+    //                 mapping.ram.onCreated(fcts.onCreated);
+    //                 mapping.ram.onUpdated(fcts.onUpdated);
+    //                 mapping.ram.onDeleted(fcts.onDeleted);
+    //             if(!this.linkInfo[key])
+    //             if(!this.linkInfo[key][id])
+    //             this.linkInfo[key][id].push(item);
     /**
      * Add element inside Ram or update it. The instance inside the ram is unique and ll never be replaced
      */
@@ -4382,8 +4432,10 @@ let GenericRam=class GenericRam {
                 if (this.records.has(id)) {
                     let uniqueRecord = this.records.get(id);
                     await this.beforeRecordSet(uniqueRecord);
+                    // this.unlinkRamItem(uniqueRecord);
                     this.mergeObject(uniqueRecord, item);
                     await this.afterRecordSet(uniqueRecord);
+                    // this.linkRamItem(uniqueRecord);
                     resultTemp = 'updated';
                 }
                 else {
@@ -4391,6 +4443,7 @@ let GenericRam=class GenericRam {
                     await this.beforeRecordSet(realObject);
                     this.records.set(id, realObject);
                     await this.afterRecordSet(realObject);
+                    // this.linkRamItem(realObject);
                     resultTemp = 'created';
                 }
                 result.result = this.records.get(id);
@@ -4624,7 +4677,6 @@ let GenericRam=class GenericRam {
         }
         return new Map();
     }
-    ;
     /**
      * Get all elements inside the Ram
      */
@@ -4640,7 +4692,6 @@ let GenericRam=class GenericRam {
             return action;
         });
     }
-    ;
     /**
      * Trigger before getting all items inside Ram
      */
@@ -4846,7 +4897,7 @@ let GenericRam=class GenericRam {
                 let key = resultTemp.result;
                 if (this.records.has(key)) {
                     if (this.records.get(key) == item) {
-                        console.warn("You are updateing the same item. You should clone the object first to avoid weird effect");
+                        console.warn("You are updating the same item. You should clone the object first to avoid weird effect");
                     }
                     await this.beforeUpdateItem(item, fromList, action);
                     if (!action.success) {
@@ -4974,7 +5025,7 @@ let GenericRam=class GenericRam {
             return await this._delete(item, false);
         }
         let result = new ResultRamWithError();
-        result.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't update the item " + id + " because it wasn't found inside ram"));
+        result.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't delete the item " + id + " because it wasn't found inside ram"));
         return result;
     }
     async _delete(item, fromList) {
@@ -5036,12 +5087,12 @@ let GenericRam=class GenericRam {
     async afterDeleteList(result) { }
 }
 GenericRam.Namespace=`Aventus`;
-_.GenericRam=GenericRam;
+__as1(_, 'GenericRam', GenericRam);
 
 let Ram=class Ram extends GenericRam {
 }
 Ram.Namespace=`Aventus`;
-_.Ram=Ram;
+__as1(_, 'Ram', Ram);
 
 let StateManager=class StateManager {
     subscribers = {};
@@ -5351,7 +5402,7 @@ let StateManager=class StateManager {
     }
 }
 StateManager.Namespace=`Aventus`;
-_.StateManager=StateManager;
+__as1(_, 'StateManager', StateManager);
 
 let State=class State {
     /**
@@ -5376,7 +5427,7 @@ let State=class State {
     }
 }
 State.Namespace=`Aventus`;
-_.State=State;
+__as1(_, 'State', State);
 
 let EmptyState=class EmptyState extends State {
     localName;
@@ -5392,7 +5443,7 @@ let EmptyState=class EmptyState extends State {
     }
 }
 EmptyState.Namespace=`Aventus`;
-_.EmptyState=EmptyState;
+__as1(_, 'EmptyState', EmptyState);
 
 let TemplateInstance=class TemplateInstance {
     context;
@@ -6089,7 +6140,7 @@ let TemplateInstance=class TemplateInstance {
     }
 }
 TemplateInstance.Namespace=`Aventus`;
-_.TemplateInstance=TemplateInstance;
+__as1(_, 'TemplateInstance', TemplateInstance);
 
 let TemplateContext=class TemplateContext {
     data = {};
@@ -6295,7 +6346,7 @@ let TemplateContext=class TemplateContext {
     }
 }
 TemplateContext.Namespace=`Aventus`;
-_.TemplateContext=TemplateContext;
+__as1(_, 'TemplateContext', TemplateContext);
 
 let Template=class Template {
     static validatePath(path, pathToCheck) {
@@ -6433,7 +6484,7 @@ let Template=class Template {
     }
 }
 Template.Namespace=`Aventus`;
-_.Template=Template;
+__as1(_, 'Template', Template);
 
 let WebComponent=class WebComponent extends HTMLElement {
     /**
@@ -7136,8 +7187,20 @@ let WebComponent=class WebComponent extends HTMLElement {
     /**
      * Find list of parents by tagname
      */
-    findParents(tagname, untilNode) {
-        return ElementExtension.findParents(this, tagname, untilNode);
+    findParentsByTag(tagname, untilNode) {
+        return ElementExtension.findParentsByTag(this, tagname, untilNode);
+    }
+    /**
+     * Find list of parents by custom check
+     */
+    findParents(tagname, check, untilNode) {
+        return ElementExtension.findParents(this, check, untilNode);
+    }
+    /**
+     * Find list of parents by custom check
+     */
+    findParent(tagname, check, untilNode) {
+        return ElementExtension.findParent(this, check, untilNode);
     }
     /**
      * Check if element contains a child
@@ -7165,7 +7228,7 @@ let WebComponent=class WebComponent extends HTMLElement {
     }
 }
 WebComponent.Namespace=`Aventus`;
-_.WebComponent=WebComponent;
+__as1(_, 'WebComponent', WebComponent);
 
 let WebComponentInstance=class WebComponentInstance {
     static __allDefinitions = [];
@@ -7238,25 +7301,14 @@ let WebComponentInstance=class WebComponentInstance {
     }
 }
 WebComponentInstance.Namespace=`Aventus`;
-_.WebComponentInstance=WebComponentInstance;
+__as1(_, 'WebComponentInstance', WebComponentInstance);
 
 let ElementExtension=class ElementExtension {
     /**
-     * Find a parent by tagname if exist Static.findParentByTag(this, "av-img")
+     * Find a parent by custom check
      */
-    static findParentByTag(element, tagname, untilNode) {
+    static findParent(element, check, untilNode) {
         let el = element;
-        if (Array.isArray(tagname)) {
-            for (let i = 0; i < tagname.length; i++) {
-                tagname[i] = tagname[i].toLowerCase();
-            }
-        }
-        else {
-            tagname = [tagname.toLowerCase()];
-        }
-        let checkFunc = (el) => {
-            return tagname.indexOf((el.nodeName || el.tagName).toLowerCase()) != -1;
-        };
         if (el) {
             if (el instanceof ShadowRoot) {
                 el = el.host;
@@ -7266,7 +7318,7 @@ let ElementExtension=class ElementExtension {
             }
         }
         while (el) {
-            if (checkFunc(el)) {
+            if (check(el)) {
                 return el;
             }
             if (el instanceof ShadowRoot) {
@@ -7282,97 +7334,11 @@ let ElementExtension=class ElementExtension {
         return null;
     }
     /**
-     * Find a parent by class name if exist Static.findParentByClass(this, "my-class-img") = querySelector('.my-class-img')
+     * Find a list of parent by custom check
      */
-    static findParentByClass(element, classname, untilNode) {
-        let el = element;
-        if (!Array.isArray(classname)) {
-            classname = [classname];
-        }
-        if (el) {
-            if (el instanceof ShadowRoot) {
-                el = el.host;
-            }
-            else {
-                el = el.parentNode;
-            }
-        }
-        while (el) {
-            for (let classnameTemp of classname) {
-                if (el['classList'] && el['classList'].contains(classnameTemp)) {
-                    return el;
-                }
-            }
-            if (el instanceof ShadowRoot) {
-                el = el.host;
-            }
-            else {
-                el = el.parentNode;
-            }
-            if (el == untilNode) {
-                break;
-            }
-        }
-        return null;
-    }
-    /**
-     * Find a parent by type if exist Static.findParentyType(this, Aventus.Img)
-     */
-    static findParentByType(element, type, untilNode) {
-        let el = element;
-        let checkFunc = (el) => {
-            return false;
-        };
-        if (typeof type == "function" && type['prototype']['constructor']) {
-            checkFunc = (el) => {
-                if (el instanceof type) {
-                    return true;
-                }
-                return false;
-            };
-        }
-        else {
-            console.error("you must provide a class inside this function");
-            return null;
-        }
-        if (el) {
-            if (el instanceof ShadowRoot) {
-                el = el.host;
-            }
-            else {
-                el = el.parentNode;
-            }
-        }
-        while (el) {
-            if (checkFunc(el)) {
-                return el;
-            }
-            if (el instanceof ShadowRoot) {
-                el = el.host;
-            }
-            else {
-                el = el.parentNode;
-            }
-            if (el == untilNode) {
-                break;
-            }
-        }
-        return null;
-    }
-    /**
-     * Find list of parents by tagname
-     */
-    static findParents(element, tagname, untilNode) {
-        let el = element;
-        if (Array.isArray(tagname)) {
-            for (let i = 0; i < tagname.length; i++) {
-                tagname[i] = tagname[i].toLowerCase();
-            }
-        }
-        else {
-            tagname = [tagname.toLowerCase()];
-        }
+    static findParents(element, check, untilNode) {
         let result = [];
+        let el = element;
         if (el) {
             if (el instanceof ShadowRoot) {
                 el = el.host;
@@ -7382,7 +7348,7 @@ let ElementExtension=class ElementExtension {
             }
         }
         while (el) {
-            if (tagname.indexOf((el.nodeName || el['tagName']).toLowerCase()) != -1) {
+            if (check(el)) {
                 result.push(el);
             }
             if (el instanceof ShadowRoot) {
@@ -7396,6 +7362,83 @@ let ElementExtension=class ElementExtension {
             }
         }
         return result;
+    }
+    /**
+     * Find a parent by tagname if exist Static.findParentByTag(this, "av-img")
+     */
+    static findParentByTag(element, tagname, untilNode) {
+        if (Array.isArray(tagname)) {
+            for (let i = 0; i < tagname.length; i++) {
+                tagname[i] = tagname[i].toLowerCase();
+            }
+        }
+        else {
+            tagname = [tagname.toLowerCase()];
+        }
+        const checkFunc = (el) => {
+            return tagname.indexOf((el.nodeName || el.tagName).toLowerCase()) != -1;
+        };
+        return this.findParent(element, checkFunc, untilNode);
+    }
+    /**
+     * Find a parent by class name if exist Static.findParentByClass(this, "my-class-img") = querySelector('.my-class-img')
+     */
+    static findParentByClass(element, classname, untilNode) {
+        if (!Array.isArray(classname)) {
+            classname = [classname];
+        }
+        const check = (el) => {
+            for (let classnameTemp of classname) {
+                if (el['classList'] && el['classList'].contains(classnameTemp)) {
+                    return true;
+                }
+            }
+            return false;
+        };
+        return this.findParent(element, check, untilNode);
+    }
+    static findParentByType(element, types, untilNode) {
+        if (!Array.isArray(types)) {
+            types = [types];
+        }
+        let isValid = true;
+        for (let type of types) {
+            if (typeof type == "function" && type['prototype']['constructor'])
+                continue;
+            isValid = false;
+        }
+        if (isValid) {
+            let checkFunc = (el) => {
+                for (let type of types) {
+                    const t = type;
+                    if (el instanceof t) {
+                        return true;
+                    }
+                }
+                return false;
+            };
+            return this.findParent(element, checkFunc, untilNode);
+        }
+        console.error("you must provide a class inside this function");
+        return null;
+    }
+    /**
+     * Find list of parents by tagname
+     */
+    static findParentsByTag(element, tagname, untilNode) {
+        let el = element;
+        if (Array.isArray(tagname)) {
+            for (let i = 0; i < tagname.length; i++) {
+                tagname[i] = tagname[i].toLowerCase();
+            }
+        }
+        else {
+            tagname = [tagname.toLowerCase()];
+        }
+        let check = (el) => {
+            return tagname.indexOf((el.nodeName || el['tagName']).toLowerCase()) != -1;
+        };
+        return this.findParents(element, check, untilNode);
     }
     /**
      * Check if element contains a child
@@ -7535,7 +7578,7 @@ let ElementExtension=class ElementExtension {
     }
 }
 ElementExtension.Namespace=`Aventus`;
-_.ElementExtension=ElementExtension;
+__as1(_, 'ElementExtension', ElementExtension);
 
 
 for(let key in _) { Aventus[key] = _[key] }

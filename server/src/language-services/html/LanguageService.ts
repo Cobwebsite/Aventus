@@ -1,5 +1,5 @@
 import { getLanguageService, IAttributeData, IHTMLDataProvider, InsertTextFormat, InsertTextMode, ITagData, IValueData, LanguageService, newHTMLDataProvider, TokenType } from "vscode-html-languageservice";
-import { CompletionItem, CompletionItemKind, CompletionList, Definition, Diagnostic, FormattingOptions, Hover, Location, Position, Range, TextEdit } from "vscode-languageserver";
+import { CompletionItem, CompletionItemKind, CompletionList, Diagnostic, FormattingOptions, Hover, Location, Position, Range, TextEdit } from "vscode-languageserver";
 import { AventusLanguageId } from "../../definition";
 import { AventusFile } from '../../files/AventusFile';
 import { Build } from "../../project/Build";
@@ -32,8 +32,10 @@ export class AventusHTMLLanguageService {
     private internalDocumentationReverse: { [className: string]: AventusWebComponentLogicalFile } = {};
     private internalTagUri: { [tag: string]: { uri: string, fullname: string } } = {};
     private _allowRebuildDefinition: boolean = true;
+    private build: Build;
 
     public constructor(build: Build) {
+        this.build = build;
         this.languageService = this.getHTMLLanguageService();
 
         SettingsManager.getInstance().onSettingsChangeHtml(() => {
@@ -335,32 +337,34 @@ export class AventusHTMLLanguageService {
     public async format(document: TextDocument, range: Range, formatParams: FormattingOptions): Promise<TextEdit[]> {
         return this.languageService.format(document, range, formatParams);
     }
-    public async onDefinition(file: AventusHTMLFile, position: Position): Promise<Definition | null> {
+    public async onDefinition(file: AventusHTMLFile, position: Position): Promise<Location[] | null> {
         this.currentFile = file;
         let info = this.getLinkToLogic(file, position);
         if ((info instanceof MethodInfo || info instanceof PropertyInfo)) {
             let tsFile = file.build.tsFiles[info._class.fileUri]
             this.currentFile = undefined;
-            return {
+            return [{
                 uri: tsFile.file.uri,
                 range: {
                     start: tsFile.file.documentUser.positionAt(info.nameStart),
                     end: tsFile.file.documentUser.positionAt(info.nameEnd)
                 }
-            }
+            }]
         }
         else if (info instanceof ClassInfo) {
             this.currentFile = undefined;
-            return {
+            return [{
                 uri: info.document.uri,
                 range: {
                     start: info.document.positionAt(info.nameStart),
                     end: info.document.positionAt(info.nameEnd)
                 }
-            }
+            }]
         }
-        this.currentFile = undefined;
-        return null;
+        else {
+            this.currentFile = undefined;
+            return this.build.htmlLanguageService.getLinkToStyle(file, position)
+        }
     }
     //#endregion
 

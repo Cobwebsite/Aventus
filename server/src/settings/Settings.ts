@@ -1,3 +1,6 @@
+import { join } from 'path'
+import { GenericServer } from '../GenericServer'
+import { existsSync, readFileSync, writeFileSync } from 'fs'
 
 export type LiveServerSettings = {
 	host: string,
@@ -31,10 +34,19 @@ export interface Settings {
 	statics?: string[],
 	errorByBuild?: boolean,
 	defaultHideWarnings: boolean,
-	deeplApiKey: string
+	deeplApiKey: string,
+	quickCreations: string[],
 }
 export interface SettingsHtml {
 	customData: string[]
+}
+
+export interface HiddenSettings {
+	version: string
+	store: {
+		token: string,
+		username?: string
+	}
 }
 
 const defaultSettings: Settings = {
@@ -59,12 +71,23 @@ const defaultSettings: Settings = {
 	useStats: false,
 	useDefaultTemplate: true,
 	defaultHideWarnings: false,
-	deeplApiKey: ""
+	deeplApiKey: "",
+	quickCreations: []
 }
 function getDefaultSettings(): Settings {
 	return JSON.parse(JSON.stringify(defaultSettings));
 }
 
+const defaultHiddenSettings: HiddenSettings = {
+	version: "1.3.7",
+	store: {
+		token: "",
+		username: ""
+	}
+}
+function getDefaultHiddenSettings(): HiddenSettings {
+	return JSON.parse(JSON.stringify(defaultHiddenSettings));
+}
 
 const defaultSettingsHtml: SettingsHtml = {
 	customData: []
@@ -77,12 +100,18 @@ export class SettingsManager {
 
 	private _settings: Settings = getDefaultSettings();
 	private _settingsHtml: SettingsHtml = getDefaultSettingsHtml();
+	private _hiddenSettings: HiddenSettings = getDefaultHiddenSettings();
+
+	// GenericServer.savePath
 
 	public get settings() {
 		return this._settings;
 	}
 	public get settingsHtml() {
 		return this._settingsHtml;
+	}
+	public get hiddenSettings() {
+		return this._hiddenSettings;
 	}
 
 	public static getInstance(): SettingsManager {
@@ -92,14 +121,32 @@ export class SettingsManager {
 		return this.instance;
 	}
 
-	private constructor() { }
+	private constructor() {
+		const path = join(GenericServer.savePath, "config.json");
+		if (existsSync(path)) {
+			let settings = {};
+			try {
+				settings = JSON.parse(readFileSync(path, 'utf8'));
+			} catch { }
 
-	public setSettings(newSettings: Partial<Settings>) {
+			this._hiddenSettings = { ...this._hiddenSettings, ...settings }
+		}
+	}
+
+	public initSettings(newSettings: Partial<Settings>) {
 		this._settings = this.mergeDeep(getDefaultSettings(), newSettings);
 		let cbs = [...this.cbOnSettingsChange];
 		for (let cb of cbs) {
 			cb();
 		}
+	}
+	public setSettings(newSettings: Partial<Settings>, global: boolean) {
+		GenericServer.setSettings(newSettings, global)
+	}
+	public setHiddenSettings(newSettings: Partial<HiddenSettings>) {
+		this._hiddenSettings = { ...this._hiddenSettings, ...newSettings };
+		const path = join(GenericServer.savePath, "config.json");
+		writeFileSync(path, JSON.stringify(this._hiddenSettings, null, 4));
 	}
 
 	private cbOnSettingsChange: (() => void)[] = []

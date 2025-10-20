@@ -1,0 +1,453 @@
+import { DragAndDrop, PressManager } from "Aventus@Main:Aventus.package.avt";
+import { ShortcutManager, SpecialTouch } from "../../../lib/ShortcutManager.lib.avt";
+import { GridGuideHelper } from "../GridGuideHelper/GridGuideHelper.wcl.avt";
+
+namespace Layout {
+    export class GridHelper extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+        //#region static
+
+        //#endregion
+
+
+        //#region props
+        @Property((target: GridHelper) => {
+            target.rulerLeftEl.style.setProperty("--ruler-size", target.ruler_size + target.unit);
+            target.rulerTopEl.style.setProperty("--ruler-size", target.ruler_size + target.unit);
+            target.lockEl.style.setProperty("--ruler-size", target.ruler_size + target.unit);
+        })
+        public unit: 'px' | 'rem' | 'cm' | 'mm' | 'in' = 'px';
+        @Property()
+        public nb_col: number = 0;
+
+        @Property((target: GridHelper) => {
+
+        })
+        public nb_row: number = 0;
+
+        @Property()
+        public col_width!: number;
+        @Property((target: GridHelper) => {
+
+        })
+        public row_height!: number;
+
+        @Attribute()
+        public show_rulers!: boolean;
+
+        @Attribute()
+        public show_grid: boolean = true;
+        @Attribute()
+        public show_ruler: boolean = true;
+        @Attribute()
+        public show_guides: boolean = true;
+        @Attribute()
+        public lock: boolean = true;
+        @Attribute()
+        public visible: boolean = true;
+
+        @Property((target: GridHelper) => {
+            target.rulerLeftEl.style.setProperty("--ruler-size", target.ruler_size + target.unit);
+            target.rulerTopEl.style.setProperty("--ruler-size", target.ruler_size + target.unit);
+            target.lockEl.style.setProperty("--ruler-size", target.ruler_size + target.unit);
+        })
+        public ruler_size: number = 25;
+
+        @Property()
+        public step: number = 20;
+        @Property()
+        public step_big!: number;
+        @Property()
+        public magnetic: number = 0;
+
+        //#endregion
+
+
+        //#region variables
+        @ViewElement()
+        protected gridEl!: HTMLDivElement;
+        @ViewElement()
+        protected colsEl!: HTMLDivElement;
+        @ViewElement()
+        protected rowsEl!: HTMLDivElement;
+        @ViewElement()
+        protected rulerTopEl!: HTMLDivElement;
+        @ViewElement()
+        protected rulerLeftEl!: HTMLDivElement;
+        @ViewElement()
+        protected rulerTopContentEl!: HTMLDivElement;
+        @ViewElement()
+        protected rulerLeftContentEl!: HTMLDivElement;
+        @ViewElement()
+        protected guidesEl!: HTMLDivElement;
+        @ViewElement()
+        protected lockEl!: HTMLDivElement;
+        //#endregion
+
+
+        //#region constructor
+
+        //#endregion
+
+
+        //#region methods
+
+        public inPx(nb: number) {
+            if(this.unit == 'px') {
+                return nb;
+            }
+            if(this.unit == 'rem') {
+                return nb * 16;
+            }
+            if(this.unit == 'mm') {
+                return nb * 3.7795275591;
+            }
+            if(this.unit == 'cm') {
+                return nb * 37.795275591;
+            }
+            if(this.unit == 'in') {
+                return nb * 96;
+            }
+            if(this.unit == 'pt') {
+                return nb * 1.33333333;
+            }
+
+            throw 'unit not supported';
+        }
+        public fromPx(nbPx: number) {
+            if(this.unit == 'px') {
+                return nbPx;
+            }
+            if(this.unit == 'rem') {
+                return Math.round(nbPx / 16 * 100) / 100;
+            }
+            if(this.unit == 'mm') {
+                return Math.round(nbPx * 0.2645833333 * 100) / 100;
+            }
+            if(this.unit == 'cm') {
+                return Math.round(nbPx * 0.02645833333 * 100) / 100;
+            }
+            if(this.unit == 'in') {
+                return Math.round(nbPx / 96 * 100) / 100;
+            }
+            if(this.unit == 'pt') {
+                return Math.round(nbPx * 0.75 * 100) / 100;
+            }
+            throw 'unit not supported';
+        }
+        /**
+         * 
+         */
+        protected toggleLock() {
+            this.lock = !this.lock;
+        }
+
+        protected draw() {
+            let nbCol = 0;
+            if(this.nb_col) {
+                this.gridEl.style.setProperty('--local-col-width', `calc(100% / ${this.nb_col})`);
+                nbCol = this.nb_col;
+            }
+            else {
+                let width = this.col_width;
+                if(width == 0) {
+                    width = this.fromPx(16);
+                }
+                this.gridEl.style.setProperty('--local-col-width', width + this.unit);
+                nbCol = Math.ceil(this.offsetWidth / this.inPx(width));
+            }
+            if(this.colsEl.children.length != nbCol) {
+                this.colsEl.innerHTML = '';
+                for(let i = 0; i < nbCol; i++) {
+                    const col = document.createElement("DIV");
+                    col.classList.add('col');
+                    this.colsEl.appendChild(col);
+                }
+            }
+
+            let nbRow = 0;
+            if(this.nb_row) {
+                this.gridEl.style.setProperty('--local-row-height', `calc(100% / ${this.nb_row})`);
+                nbRow = this.nb_row;
+            }
+            else {
+                let height = this.row_height;
+                if(height == 0) {
+                    height = this.fromPx(16);
+                }
+                this.gridEl.style.setProperty('--local-row-height', height + this.unit);
+                nbRow = Math.ceil(this.offsetHeight / this.inPx(height));
+            }
+            if(this.rowsEl.children.length != nbRow) {
+                this.rowsEl.innerHTML = '';
+                for(let i = 0; i < nbRow; i++) {
+                    const row = document.createElement("DIV");
+                    row.classList.add('row');
+                    this.rowsEl.appendChild(row);
+                }
+            }
+        }
+
+        protected drawRulerTop() {
+            const step = this.step;
+            const bigStep = this.step_big == 0 ? this.step : this.step_big;
+            const rulerSize = this.ruler_size;
+            this.rulerTopEl.style.setProperty("--step-width", step + this.unit);
+            const nb = Math.ceil(this.offsetWidth / this.inPx(step));
+
+            const createStep = (nb: number, isBig: boolean, w?: number) => {
+                const d = document.createElement('div');
+                d.classList.add("step");
+                if(w) {
+                    d.style.width = w + this.unit;
+                }
+                if(isBig) {
+                    d.classList.add("big");
+                }
+                const s = document.createElement("span");
+                if(isBig)
+                    s.innerHTML = nb + '';
+                d.appendChild(s);
+                this.rulerTopContentEl.appendChild(d);
+            };
+            let i = 0;
+            while(step * i - rulerSize < 0) {
+                i++;
+            }
+            createStep(rulerSize, true, step * i - rulerSize);
+            for(; i < nb; i++) {
+                if(i * step <= rulerSize) continue;
+                const isBig = (step * i) % bigStep == 0;
+                createStep(i * step, isBig,);
+            }
+        }
+
+        protected drawRulerLeft() {
+            const step = this.step;
+            const bigStep = this.step_big == 0 ? this.step : this.step_big;
+            const rulerSize = this.ruler_size;
+            this.rulerLeftEl.style.setProperty("--step-height", step + this.unit);
+            const nb = Math.ceil(this.offsetHeight / this.inPx(step));
+
+            const createStep = (nb: number, isBig: boolean, h?: number) => {
+                const d = document.createElement('div');
+                d.classList.add("step");
+                if(h) {
+                    d.style.height = h + this.unit;
+                }
+                if(isBig) {
+                    d.classList.add("big");
+                }
+                const s = document.createElement("span");
+                if(isBig)
+                    s.innerHTML = nb + '';
+                d.appendChild(s);
+                this.rulerLeftContentEl.appendChild(d);
+            };
+
+            let i = 0;
+            while(step * i - rulerSize < 0) {
+                i++;
+            }
+            createStep(rulerSize, true, step * i - rulerSize);
+            for(; i < nb; i++) {
+                if(i * step <= rulerSize) continue;
+                const isBig = (step * i) % bigStep == 0;
+                createStep(i * step, isBig,);
+            }
+        }
+
+        protected addDragLeft() {
+            let el: GridGuideHelper | undefined = undefined;
+            new PressManager({
+                element: this.rulerLeftContentEl,
+                onDblPress: () => {
+                    const nbtxt = prompt("Top Position");
+                    if(nbtxt) {
+                        const nb = Number(nbtxt);
+                        if(!isNaN(nb)) {
+                            this.createGuideFromTop(nb);
+                        }
+                    }
+                }
+
+            });
+            new DragAndDrop({
+                element: this.rulerLeftContentEl,
+                applyDrag: false,
+                onStart: (e) => {
+                    if(this.lock) return false;
+                    el = new GridGuideHelper();
+                    el.direction = 'y';
+                    el.container = this;
+                    this.guidesEl.appendChild(el);
+                    el.onStart();
+                    return true;
+                },
+                onMove: (e) => {
+                    if(el) {
+                        el.onMoveY(e);
+                    }
+                },
+                onStop: () => {
+                    if(el) {
+                        el.onStop();
+                    }
+                }
+            });
+        }
+
+        protected addDragTop() {
+            let el: GridGuideHelper | undefined = undefined;
+
+            new PressManager({
+                element: this.rulerTopContentEl,
+                onDblPress: () => {
+                    const nbtxt = prompt("Left Position");
+                    if(nbtxt) {
+                        const nb = Number(nbtxt);
+                        if(!isNaN(nb)) {
+                            this.createGuideFromLeft(nb);
+                        }
+                    }
+                }
+
+            });
+            new DragAndDrop({
+                element: this.rulerTopContentEl,
+                applyDrag: false,
+                onStart: (e) => {
+                    if(this.lock) return false;
+                    el = new GridGuideHelper();
+                    el.container = this;
+                    el.direction = 'x';
+                    this.guidesEl.appendChild(el);
+                    el.onStart();
+                    return true;
+                },
+                onMove: (e) => {
+                    if(el) {
+                        el.onMoveX(e);
+                    }
+                },
+                onStop: () => {
+                    if(el) {
+                        el.onStop();
+                    }
+                }
+            });
+        }
+
+        public createGuideFromLeft(left: number) {
+            const el = new GridGuideHelper();
+            el.direction = 'y';
+            el.container = this;
+            el.style.left = left + this.unit;
+            this.guidesEl.appendChild(el);
+            this.save();
+        }
+        public createGuideFromTop(top: number) {
+            const el = new GridGuideHelper();
+            el.direction = 'x';
+            el.container = this;
+            el.style.top = top + this.unit;
+            this.guidesEl.appendChild(el);
+            this.save();
+        }
+
+        protected addShortCut() {
+            let isKActive = false;
+            let timeout: number = 0;
+            ShortcutManager.subscribe([SpecialTouch.Control, 'k'], () => {
+                isKActive = true;
+                clearTimeout(timeout);
+                timeout = setTimeout(() => {
+                    isKActive = false;
+                }, 1000);
+            });
+
+            const commande = (letter: string, cb: () => void | Promise<void>) => {
+                ShortcutManager.subscribe([letter], () => {
+                    if(!isKActive) return false;
+                    isKActive = false;
+                    cb();
+                    return;
+                });
+                ShortcutManager.subscribe([SpecialTouch.Control, letter], () => {
+                    if(!isKActive) return false;
+                    isKActive = false;
+                    cb();
+                    return;
+                });
+            };
+
+            commande('v', () => { this.visible = !this.visible; });
+            commande('g', () => { this.show_grid = !this.show_grid; });
+            commande('r', () => { this.show_ruler = !this.show_ruler; });
+            commande('j', () => { this.show_guides = !this.show_guides; });
+            commande('l', () => { this.lock = !this.lock; });
+
+        }
+
+        protected addResize() {
+            new Aventus.ResizeObserver({
+                callback: () => {
+                    this.draw();
+                    this.drawRulerTop();
+                    this.drawRulerLeft();
+                },
+                fps: 30
+            }).observe(this);
+        }
+
+        public save() {
+            const data: { x: number[], y: number[]; } = { x: [], y: [] };
+            for(let child of this.guidesEl.children) {
+                if(child instanceof GridGuideHelper) {
+                    if(child.direction == 'x') {
+                        data.x.push(child.offsetTop);
+                    }
+                    else {
+                        data.y.push(child.offsetLeft);
+                    }
+                }
+            }
+
+            const id = this.id != '' ? this.id : 'grid-helper';
+            localStorage.setItem(id, JSON.stringify(data));
+        }
+        public reload() {
+            const id = this.id != '' ? this.id : 'grid-helper';
+            const items = localStorage.getItem(id);
+            if(items) {
+                const data: { x: number[], y: number[]; } = JSON.parse(items);
+                for(let g of data.x) {
+                    const el = new GridGuideHelper();
+                    el.direction = 'x';
+                    el.style.top = g + this.unit;
+                    el.container = this;
+                    this.guidesEl.appendChild(el);
+                }
+                for(let g of data.y) {
+                    const el = new GridGuideHelper();
+                    el.direction = 'y';
+                    el.style.left = g + this.unit;
+                    el.container = this;
+                    this.guidesEl.appendChild(el);
+                }
+            }
+        }
+
+
+        protected override postCreation(): void {
+            this.reload();
+            this.addResize();
+            this.addShortCut();
+            this.addDragLeft();
+            this.addDragTop();
+            this.draw();
+        }
+        //#endregion
+
+    }
+}

@@ -5,31 +5,31 @@
 	"build": [
 		{
 			"name": "Main",
+			"disabled": true,
 			"src": [
 				"./src/components/*",
 				"./src/data/*",
 				"./src/libs/*",
 				"./src/ram/*"
 			],
-			"compile": [{
-					"output": "../../client/view/i18n/index.js"
-			}],
-			"dependances": [
+			"compile": [
 				{
-					"uri": "@AventusUI"
-				},
-				{
-					"uri": "@local:VscodeView@Main",
-					"include": "full"
+					"output": "../../client/views/i18n/index.js"
 				}
-			]
+			],
+			"dependances": {
+				"Aventus@UI": {},
+				"VscodeView@Main": {
+					"isLocal": true
+				}
+			}
 		}
 	],
 	"static": [
 		{
 			"name": "Main",
 			"input": "./src/static/*",
-			"output": "../../client/view/i18n/"
+			"output": "../../client/views/i18n/"
 		}
 	]
 }

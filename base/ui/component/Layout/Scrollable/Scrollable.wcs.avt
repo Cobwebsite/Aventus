@@ -20,7 +20,7 @@
 	height: 100%;
 	min-height: inherit;
 	min-width: inherit;
-	overflow: hidden;
+	overflow: clip;
 	position: relative;
 	-webkit-user-drag: none;
 	-khtml-user-drag: none;
@@ -53,7 +53,7 @@
 				height: 100%;
 				min-height: inherit;
 				min-width: inherit;
-				overflow: hidden;
+				overflow: clip;
 				position: relative;
 				width: 100%;
 

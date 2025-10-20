@@ -5,7 +5,7 @@
     </div>
     <div class="actions">
         <slot name="actions">
-            <vscode-button @press="close" @element="closeBtn">Fermer</vscode-button>
+            <vscode-button @press="close" @element="closeBtn">Close</vscode-button>
         </slot>
     </div>
 </div>

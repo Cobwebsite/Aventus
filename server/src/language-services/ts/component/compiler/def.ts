@@ -1,6 +1,6 @@
 import { Diagnostic } from 'vscode-languageserver';
 import { HTMLDoc } from '../../../html/helper/definition';
-import { SCSSDoc } from '../../../scss/helper/CSSNode';
+import { SCSSDoc } from '../../../scss/helper/CSSCustomNode';
 import { CompileTsResult } from '../../LanguageService';
 import { ClassInfo } from '../../parser/ClassInfo';
 import { PropertyInfo } from '../../parser/PropertyInfo';
@@ -16,6 +16,7 @@ export interface CompileComponentResult {
 	scssDoc: SCSSDoc
 	result: CompileTsResult[],
 	debug: string,
+	needRebuild: boolean
 }
 
 export type FieldType = 'Attribute' | 'Property' | 'Signal' | 'Watch' | 'ViewElement' | 'Simple';

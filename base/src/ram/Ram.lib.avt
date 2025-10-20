@@ -1,13 +1,29 @@
 import { RamError, RamErrorCode, ResultRamWithError, VoidRamWithError } from "./Error.lib.avt";
-import type { IData } from "../data/IData.data.avt";
 import { type ResultWithError, VoidWithError } from "../tools/Error.lib.avt";
 import { Json, type JsonFromOptions } from "../tools/Json.lib.avt";
 import { ActionGuard } from "../tools/Mutex.lib.avt";
+import { Converter } from "../tools/Converter.lib.avt";
+import { Instance } from "../lib/Instance.lib.avt";
 
 @Storybook({
     prefix: "Ram"
 })
-export interface IRam { }
+export interface IRamData { }
+@Storybook({
+    prefix: "Ram"
+})
+export interface IRam {
+    // ramForTypes(): (new () => any)[];
+    // ramMapping: { [key: string]: { ram: IRam, asArray: boolean; }; };
+    // onCreated(cb: (item: any) => void);
+    // offCreated(cb: (item: any) => void);
+    // onUpdated(cb: (item: any) => void);
+    // offUpdated(cb: (item: any) => void);
+    // onDeleted(cb: (item: any) => void);
+    // offDeleted(cb: (item: any) => void);
+    // getId(item: any): any;
+}
+
 @Storybook({
     prefix: "Ram"
 })
@@ -28,7 +44,7 @@ export interface IRamAction<T> {
 @Storybook({
     prefix: "Ram"
 })
-export type RamItem<T extends IData> = T & IRamAction<T>;
+export type RamItem<T extends IRamData> = T & IRamAction<T>;
 @Storybook({
     prefix: "Ram"
 })
@@ -37,10 +53,72 @@ interface RamSubscribers<T> {
     updated: ((item: T) => void)[];
     deleted: ((item: T) => void)[];
 }
+
+// export class RamManager {
+
+//     private static _allInit: boolean = true;
+//     public static get allInit(): boolean { return this._allInit; };
+
+//     public static readonly info: Map<new () => any, IRam> = new Map([]);
+//     private static readonly rams: (Function & { constructor: any; })[] = [];
+
+//     public static registerRAM(ram: Function & { constructor: any; }) {
+//         this._allInit = false;
+//         if(!this.rams.includes(ram)) {
+//             this.rams.push(ram);
+//         }
+//     }
+
+//     public static check() {
+//         if(this._allInit) {
+//             this._allInit = true;
+//             for(let ramCst of this.rams) {
+//                 const ram = Instance.get<IRam>(ramCst);
+//                 for(let type of ram.ramForTypes()) {
+//                     this.info.set(type, ram);
+//                 }
+//             }
+//             for(let ramCst of this.rams) {
+//                 const ram = Instance.get<IRam>(ramCst);
+//                 const mapping: { [key: string]: { ram: IRam, asArray: boolean; }; } = {};
+//                 for(let type of ram.ramForTypes()) {
+//                     if('$schema' in type) {
+//                         const schema = type.$schema as { [prop: string]: string; };
+//                         for(let key in schema) {
+//                             if(mapping[key]) continue;
+
+//                             let schemaType = schema[key];
+//                             let asArray = false;
+//                             if(schemaType.endsWith("[]")) {
+//                                 asArray = true;
+//                                 schemaType = schemaType.slice(0, -2);
+//                             }
+//                             const schemaInfo = Converter.info.get(schemaType);
+//                             if(schemaInfo) {
+//                                 const ramLink = this.info.get(schemaInfo);
+//                                 if(ramLink) {
+//                                     mapping[key] = {
+//                                         ram: ramLink,
+//                                         asArray
+//                                     };
+//                                 }
+//                             }
+//                         }
+//                     }
+//                 }
+//                 ram.ramMapping = mapping;
+//             }
+//         }
+//     }
+// }
+
 @Storybook({
     prefix: "Ram"
 })
-export abstract class GenericRam<Index, T extends IData, U extends T = T> implements IRam {
+export abstract class GenericRam<Index, T extends IRamData, U extends T = T> implements IRam {
+
+    public static readonly info: Map<IRam, new () => any> = new Map([]);
+
     /**
      * The current namespace
      */
@@ -65,10 +143,15 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
 
     protected actionGuard: ActionGuard = new ActionGuard();
 
+    @InternalProtected()
+    public ramMapping: { [key: string]: { ram: IRam, asArray: boolean; }; } = {};
+
     protected constructor() {
         if(this.constructor == GenericRam) {
             throw "can't instanciate an abstract class";
         }
+
+        // RamManager.check();
     }
 
     //#region index key
@@ -81,6 +164,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Get item id
      */
+    @BindThis()
     public getIdWithError(item: KeysObject<T> | T): ResultRamWithError<Index> {
         let action: ResultRamWithError<Index> = new ResultRamWithError();
         let idTemp = item[this.defineIndexKey()];
@@ -95,6 +179,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Get item id
      */
+    @BindThis()
     public getId(item: KeysObject<T> | T): Index {
         let result = this.getIdWithError(item);
         if(result.success) {
@@ -119,7 +204,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Add function update, onUpdate, offUpdate, delete, onDelete, offDelete
      */
-    protected addRamAction<B extends (new (...args: any[]) => IData) & { className?: string; }>(Base: B) {
+    protected addRamAction<B extends (new (...args: any[]) => IRamData) & { className?: string; }>(Base: B) {
         let that = this;
         return class ActionClass extends Base implements IRamAction<T> {
             public static override get className(): string {
@@ -222,7 +307,17 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
         };
     }
 
+    /**
+     * Define the right type base of the json received
+     */
     protected abstract getTypeForData(objJson: KeysObject<T> | T): new () => U;
+    /**
+     * Define all the types you ram is capable of
+     */
+    @InternalProtected()
+    public ramForTypes(): (new () => U)[] {
+        return [this.getTypeForData({})];
+    }
     /**
      * Transform the object into the object stored inside Ram
      */
@@ -232,6 +327,61 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
         this.mergeObject(item, objJson);
         return item;
     }
+
+
+    // protected linkFct: Map<IRam, {
+    //     onCreated: (item: any) => void;
+    //     onUpdated: (item: any) => void;
+    //     onDeleted: (item: any) => void;
+    // }> = new Map();
+
+    // private linkInfo: { [key: string | number]: { [id: string | number]: U[]; }; } = {};
+    // private linkRamItem(item: U) {
+    //     for(let key in this.ramMapping) {
+    //         this.linkRamItemByKey(item, key);
+    //     }
+    // }
+    // private linkRamItemByKey(item: U, key: string) {
+    //     const mapping = this.ramMapping[key];
+    //     if(key in item) {
+    //         if(mapping.asArray) {
+    //             if(Array.isArray(item[key])) {
+
+    //             }
+    //             else {
+    //                 console.error(key + " in type " + item + " must be an array");
+    //             }
+    //         }
+    //         else {
+    //             const id = mapping.ram.getId(item[key]);
+
+    //             if(!this.linkFct.has(mapping.ram)) {
+    //                 const fcts = {
+    //                     onCreated: (item) => {
+
+    //                     },
+    //                     onUpdated: (item) => {
+
+    //                     },
+    //                     onDeleted: (item) => {
+
+    //                     },
+    //                 };
+    //                 this.linkFct.set(mapping.ram, fcts);
+    //                 mapping.ram.onCreated(fcts.onCreated);
+    //                 mapping.ram.onUpdated(fcts.onUpdated);
+    //                 mapping.ram.onDeleted(fcts.onDeleted);
+    //             }
+
+    //             if(!this.linkInfo[key])
+    //                 this.linkInfo[key] = {};
+    //             if(!this.linkInfo[key][id])
+    //                 this.linkInfo[key][id] = [];
+    //             this.linkInfo[key][id].push(item);
+
+    //         }
+    //     }
+    // }
 
     /**
      * Add element inside Ram or update it. The instance inside the ram is unique and ll never be replaced
@@ -245,8 +395,10 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
                 if(this.records.has(id)) {
                     let uniqueRecord = this.records.get(id)!;
                     await this.beforeRecordSet(uniqueRecord);
+                    // this.unlinkRamItem(uniqueRecord);
                     this.mergeObject(uniqueRecord, item);
                     await this.afterRecordSet(uniqueRecord);
+                    // this.linkRamItem(uniqueRecord);
                     resultTemp = 'updated';
                 }
                 else {
@@ -254,6 +406,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
                     await this.beforeRecordSet(realObject);
                     this.records.set(id, realObject);
                     await this.afterRecordSet(realObject);
+                    // this.linkRamItem(realObject);
                     resultTemp = 'created';
                 }
                 result.result = this.records.get(id);
@@ -288,6 +441,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Create or update the item
      */
+    @BindThis()
     public async save(item: T, ...args: any[]): Promise<RamItem<U> | undefined> {
         let action = await this.saveWithError(item, ...args);
         if(action.success) {
@@ -298,6 +452,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Create or update the item
      */
+    @BindThis()
     public async saveWithError(item: T, ...args: any[]): Promise<ResultRamWithError<RamItem<U>>> {
         let action: ResultRamWithError<RamItem<U>> = new ResultRamWithError();
         let resultTemp = await this.getIdWithError(item);
@@ -317,10 +472,10 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     //#endregion
 
     //#region records operation
-    protected async beforeRecordSet(item: Aventus.RamItem<T>): Promise<void> { }
-    protected async afterRecordSet(item: Aventus.RamItem<T>): Promise<void> { }
-    protected async beforeRecordDelete(item: Aventus.RamItem<T>): Promise<void> { }
-    protected async afterRecordDelete(item: Aventus.RamItem<T>): Promise<void> { }
+    protected async beforeRecordSet(item: RamItem<T>): Promise<void> { }
+    protected async afterRecordSet(item: RamItem<T>): Promise<void> { }
+    protected async beforeRecordDelete(item: RamItem<T>): Promise<void> { }
+    protected async afterRecordDelete(item: RamItem<T>): Promise<void> { }
     //#endregion
 
     //#region listener
@@ -351,36 +506,42 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
     * Add a callback that ll be triggered when a new item is stored
     */
+    @BindThis()
     public onCreated(cb: (item: RamItem<U>) => void) {
         this.subscribe('created', cb);
     }
     /**
      * Remove a created callback
      */
+    @BindThis()
     public offCreated(cb: (item: RamItem<U>) => void) {
         this.unsubscribe('created', cb);
     }
     /**
      * Add a callback that ll be triggered when an item is updated
      */
+    @BindThis()
     public onUpdated(cb: (item: RamItem<U>) => void) {
         this.subscribe('updated', cb);
     }
     /**
      * Remove an updated callback
      */
+    @BindThis()
     public offUpdated(cb: (item: RamItem<U>) => void) {
         this.unsubscribe('updated', cb);
     }
     /**
      * Add a callback that ll be triggered when an item is deleted
      */
+    @BindThis()
     public onDeleted(cb: (item: RamItem<U>) => void) {
         this.subscribe('deleted', cb);
     }
     /**
      * Remove an deleted callback
      */
+    @BindThis()
     public offDeleted(cb: (item: RamItem<U>) => void) {
         this.unsubscribe('deleted', cb);
     }
@@ -391,18 +552,21 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Get an item by id if exist (alias for getById)
      */
+    @BindThis()
     public async get(id: Index): Promise<RamItem<U> | undefined> {
         return await this.getById(id);
     };
     /**
      * Get an item by id if exist (alias for getById)
      */
+    @BindThis()
     public async getWithError(id: Index): Promise<ResultRamWithError<RamItem<U>>> {
         return await this.getByIdWithError(id);
     };
     /**
      * Get an item by id if exist
      */
+    @BindThis()
     public async getById(id: Index): Promise<RamItem<U> | undefined> {
         let action = await this.getByIdWithError(id);
         if(action.success) {
@@ -414,6 +578,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Get an item by id if exist
      */
+    @BindThis()
     public async getByIdWithError(id: Index): Promise<ResultRamWithError<RamItem<U>>> {
         return this.actionGuard.run(['getByIdWithError', id], async () => {
             let action: ResultRamWithError<RamItem<U>> = new ResultRamWithError();
@@ -442,6 +607,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Get multiple items by ids
      */
+    @BindThis()
     public async getByIds(ids: Index[]): Promise<RamItem<U>[]> {
         let result = await this.getByIdsWithError(ids);
         if(result.success) {
@@ -452,6 +618,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Get multiple items by ids
      */
+    @BindThis()
     public async getByIdsWithError(ids: Index[]): Promise<ResultRamWithError<RamItem<U>[]>> {
         return this.actionGuard.run(['getByIdsWithError', ids], async () => {
             let action: ResultRamWithError<RamItem<U>[]> = new ResultRamWithError();
@@ -487,16 +654,18 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Get all elements inside the Ram
      */
+    @BindThis()
     public async getAll(): Promise<Map<Index, RamItem<U>>> {
         let result = await this.getAllWithError();
         if(result.success) {
             return result.result ?? new Map();
         }
         return new Map();
-    };
+    }
     /**
      * Get all elements inside the Ram
      */
+    @BindThis()
     public async getAllWithError(): Promise<ResultRamWithError<Map<Index, RamItem<U>>>> {
         return this.actionGuard.run(['getAllWithError'], async () => {
             let action: ResultRamWithError<Map<Index, RamItem<U>>> = new ResultRamWithError();
@@ -508,7 +677,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
             }
             return action;
         });
-    };
+    }
 
 
     /**
@@ -522,6 +691,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Get all elements inside the Ram 
      */
+    @BindThis()
     public async getList(): Promise<RamItem<U>[]> {
         let data = await this.getAll();
         return Array.from(data.values());
@@ -529,6 +699,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Get all elements inside the Ram 
      */
+    @BindThis()
     public async getListWithError(): Promise<ResultRamWithError<RamItem<U>[]>> {
         let action: ResultRamWithError<RamItem<U>[]> = new ResultRamWithError();
         action.result = [];
@@ -552,6 +723,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Create a list of items inside ram
      */
+    @BindThis()
     public async createList(list: T[]): Promise<RamItem<U>[]> {
         let result = await this.createListWithError(list);
         return result.result ?? [];
@@ -559,6 +731,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Create a list of items inside ram
      */
+    @BindThis()
     public async createListWithError(list: T[]): Promise<ResultRamWithError<RamItem<U>[]>> {
         list = this.removeWatch(list);
         let action: ResultRamWithError<RamItem<U>[]> = new ResultRamWithError();
@@ -588,6 +761,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Create an item inside ram
      */
+    @BindThis()
     public async create(item: T, ...args: any[]): Promise<RamItem<U> | undefined> {
         let action = await this.createWithError(item, args);
         if(action.success) {
@@ -598,6 +772,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Create an item inside ram
      */
+    @BindThis()
     public async createWithError(item: T, ...args: any[]): Promise<ResultRamWithError<RamItem<U>>> {
         return await this._create(item, false);
     }
@@ -656,6 +831,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Update a list of items inside ram
      */
+    @BindThis()
     public async updateList(list: T[]): Promise<RamItem<U>[]> {
         let result = await this.updateListWithError(list);
         return result.result ?? [];
@@ -663,6 +839,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Update a list of items inside ram
      */
+    @BindThis()
     public async updateListWithError(list: T[]): Promise<ResultRamWithError<RamItem<U>[]>> {
         list = this.removeWatch(list);
         let action: ResultRamWithError<RamItem<U>[]> = new ResultRamWithError();
@@ -691,6 +868,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Update an item inside ram
      */
+    @BindThis()
     public async update(item: T, ...args: any[]): Promise<RamItem<U> | undefined> {
         let action = await this.updateWithError(item, args);
         if(action.success) {
@@ -701,6 +879,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Update an item inside ram
      */
+    @BindThis()
     public async updateWithError(item: T, ...args: any[]): Promise<ResultRamWithError<RamItem<U>>> {
         return await this._update(item, false);
     }
@@ -713,7 +892,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
                 let key = resultTemp.result;
                 if(this.records.has(key)) {
                     if(this.records.get(key) == item) {
-                        console.warn("You are updateing the same item. You should clone the object first to avoid weird effect");
+                        console.warn("You are updating the same item. You should clone the object first to avoid weird effect");
                     }
                     await this.beforeUpdateItem(item, fromList, action);
                     if(!action.success) {
@@ -773,6 +952,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Delete a list of items inside ram
      */
+    @BindThis()
     public async deleteList(list: T[]): Promise<RamItem<U>[]> {
         let result = await this.deleteListWithError(list);
         return result.result ?? [];
@@ -780,6 +960,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Delete a list of items inside ram
      */
+    @BindThis()
     public async deleteListWithError(list: T[]): Promise<ResultRamWithError<RamItem<U>[]>> {
         list = this.removeWatch(list);
         let action: ResultRamWithError<RamItem<U>[]> = new ResultRamWithError();
@@ -806,6 +987,7 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
      * Delete an item inside ram
      */
+    @BindThis()
     public async delete(item: T, ...args: any[]): Promise<RamItem<U> | undefined> {
         let action = await this.deleteWithError(item, args);
         if(action.success) {
@@ -816,12 +998,14 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
     * Delete an item inside ram
     */
+    @BindThis()
     public async deleteWithError(item: T, ...args: any[]): Promise<ResultRamWithError<RamItem<U>>> {
         return await this._delete(item, false);
     };
     /**
      * Delete an item by id inside ram
      */
+    @BindThis()
     public async deleteById(id: Index): Promise<RamItem<U> | undefined> {
         let action = await this.deleteByIdWithError(id);
         if(action.success) {
@@ -832,13 +1016,14 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
     /**
     * Delete an item by id inside ram
     */
+    @BindThis()
     public async deleteByIdWithError(id: Index): Promise<ResultRamWithError<RamItem<U>>> {
         let item = this.records.get(id);
         if(item) {
             return await this._delete(item, false);
         }
         let result: ResultRamWithError<RamItem<U>> = new ResultRamWithError();
-        result.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't update the item " + id + " because it wasn't found inside ram"));
+        result.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't delete the item " + id + " because it wasn't found inside ram"));
         return result;
     }
     private async _delete(item: T, fromList: boolean): Promise<ResultRamWithError<RamItem<U>>> {
@@ -905,6 +1090,6 @@ export abstract class GenericRam<Index, T extends IData, U extends T = T> implem
 @Storybook({
     prefix: "Ram"
 })
-export abstract class Ram<T extends IData, U extends T = T> extends GenericRam<number, T, U> {
+export abstract class Ram<T extends IRamData, U extends T = T> extends GenericRam<number, T, U> {
 
 }

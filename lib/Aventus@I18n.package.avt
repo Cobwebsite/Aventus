@@ -1,0 +1,61 @@
+// Aventus@I18n:1.0.0
+// npm:@aventusjs/i18n
+//#region js def //
+declare global {
+
+namespace Aventus{
+@Dependances([{ type: WebComponent, strong: true }])
+class I18nClass {
+
+    private currentLocale;
+    protected langMutex: Aventus.ActionGuard;
+    private watcher;
+    protected get locale(): any;
+    protected set locale(value: any);
+    protected files: string[];
+    protected waitingFiles: string[];
+    protected __translations: {
+        [lang: string]: {};
+    };
+    setLocale(lang: string): Promise<void>;
+    getLocale(): string;
+    private merge;
+    private registerFileTimeout;
+    registerFile(file: string): void;
+    protected loadFileDelay(): Promise<void>;
+    hasKey(key: string): boolean;
+    @BindThis()
+	t(key: string, params?: {
+        [key: string]: string;
+    }): string;
+}
+
+const I18n: I18nClass;
+
+	}
+
+    function t(key: keyof Aventus.AventusI18n, params: { [key: string]: string; } = {}): string;
+    declare namespace Aventus {
+        interface WebComponent extends HTMLElement {
+            t: (key: keyof Aventus.AventusI18n, params: { [key: string]: string; } = {}) => string;
+        }
+        interface AventusI18n {};
+    }
+
+}
+//#endregion js def //
+//#region js src //
+{"namespace":"Aventus","available":[{"code":"(() => {\r\n    if(!Object.hasOwn(window, \"t\")) {\r\n\r\n        Object.defineProperty(window, \"t\", {\r\n            get() {return Aventus.I18n.t;}\r\n        });\r\n\r\n        Aventus.WebComponent.prototype.t = function(key, params = {}) {\r\n            const i18n = Aventus.I18n;\r\n            const localeKey = this.$type.replace(/\\./g, '°') + \"°\" + key;\r\n            if(i18n.hasKey(localeKey)) {\r\n                return i18n.t(localeKey, params);\r\n            }\r\n            return i18n.t(key, params);\r\n        }\r\n\t}\r\n\r\n})();\r\n\r\n","dependances":[],"fullName":"!staticClass_0b3f4490a9fdc9f8a16a5a5008491950","required":true,"noNamespace":"before","type":0,"isExported":false,"convertibleName":""},{"code":"let I18nClass=class I18nClass {\n    constructor() { this.t = this.t.bind(this); }\n    currentLocale = \"en-GB\";\n    langMutex = new Aventus.ActionGuard();\n    watcher = Aventus.Watcher.get({\n        locale: {}\n    });\n    get locale() {\n        return this.watcher['locale'];\n    }\n    set locale(value) {\n        this.watcher['locale'] = value;\n    }\n    files = [];\n    waitingFiles = [];\n    __translations = {};\n    async setLocale(lang) {\n        this.currentLocale = lang;\n        if (!this.__translations[lang]) {\n            await this.langMutex.run([\"\"], async () => {\n                const proms = [];\n                for (let file of this.files) {\n                    let uri = file.replace(/\\$locale/g, lang);\n                    proms.push(Aventus.ResourceLoader.load(uri));\n                }\n                const results = await Promise.all(proms);\n                let items = {};\n                for (let result of results) {\n                    try {\n                        this.merge(items, JSON.parse(result));\n                    }\n                    catch (e) {\n                        console.error(e);\n                    }\n                }\n                this.__translations[lang] = items;\n            });\n        }\n        this.locale = this.__translations[lang];\n    }\n    getLocale() {\n        return this.currentLocale;\n    }\n    merge(from, to) {\n        for (let key in to) {\n            let val = to[key];\n            if (typeof val == 'object') {\n                let temp = {};\n                this.merge(temp, val);\n                from[key] = temp;\n            }\n            else {\n                from[key] = val;\n            }\n        }\n    }\n    registerFileTimeout = 0;\n    registerFile(file) {\n        if (this.files.includes(file))\n            return;\n        this.waitingFiles.push(file);\n        clearTimeout(this.registerFileTimeout);\n        this.registerFileTimeout = setTimeout(() => {\n            this.loadFileDelay();\n        }, 200);\n    }\n    async loadFileDelay() {\n        await this.langMutex.run([\"\"], async () => {\n            const lang = this.currentLocale;\n            const proms = [];\n            for (let file of this.waitingFiles) {\n                let uri = file.replace(/\\$locale/g, lang).toLowerCase();\n                proms.push(Aventus.ResourceLoader.load(uri));\n            }\n            const results = await Promise.all(proms);\n            let items = this.locale;\n            for (let result of results) {\n                try {\n                    this.merge(items, JSON.parse(result));\n                }\n                catch (e) {\n                    console.error(e);\n                }\n            }\n            for (let file of this.waitingFiles) {\n                this.files.push(file);\n            }\n            this.__translations[lang] = items;\n            this.waitingFiles = [];\n        });\n    }\n    hasKey(key) {\n        return this.locale[key] !== undefined;\n    }\n    t(key, params = {}) {\n        let translation = this.locale[key];\n        if (translation === undefined) {\n            translation = key;\n        }\n        for (let key in params) {\n            let regex = new RegExp(\"\\\\{ *\" + key + \" *\\\\}\", \"g\");\n            translation = translation.replace(regex, params[key]);\n        }\n        return translation;\n    }\n}\nI18nClass.Namespace=`Aventus`;\r\n__as1(_, 'I18nClass', I18nClass);\r\n","dependances":[{"fullName":"Dependances","isStrong":false},{"fullName":"Aventus.WebComponent","isStrong":false},{"fullName":"Aventus.ActionGuard","isStrong":false},{"fullName":"Aventus.Watcher","isStrong":false},{"fullName":"Promise","isStrong":false},{"fullName":"Aventus.ResourceLoader","isStrong":false},{"fullName":"BindThis","isStrong":false}],"fullName":"Aventus.I18nClass","required":false,"type":1,"isExported":true,"convertibleName":""},{"code":"let I18n= Aventus.Instance.get(I18nClass);\n__as1(_, 'I18n', I18n);\r\n","dependances":[{"fullName":"Aventus.I18nClass","isStrong":true},{"fullName":"Aventus.Instance","isStrong":true}],"fullName":"Aventus.I18n","required":false,"type":5,"isExported":true,"convertibleName":""}],"existing":[]}
+//#endregion js src //
+//#region css def //
+{}
+//#endregion css def //
+//#region css //
+{}
+//#endregion css //
+//#region html //
+{}
+//#endregion html //
+//#region dependances //
+{}
+//#endregion dependances //

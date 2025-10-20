@@ -165,7 +165,11 @@ export class Project {
             
             for (let build of this.config.build) {
                 if (this.buildsAllowed) {
-                    if (!this.buildsAllowed.includes(build.name)) {
+                    if (!this.buildsAllowed.includes(build.name ?? "")) {
+                        let b = this.builds.find(p => p.buildConfig.name == build.name);
+                        if(b) {
+                            b.build();
+                        }
                         continue;
                     }
                 }

@@ -86,6 +86,7 @@ export class TranslationPage extends Aventus.WebComponent implements Aventus.Def
 
     @BindThis()
     protected async triggerChange() {
+        debugger
         this.guard.run(['triggerChange'], async () => {
             // Loading.show();
             try {

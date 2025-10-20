@@ -1,5 +1,5 @@
 import { normalize, sep } from "path";
-import { CodeAction, CompletionItem, CompletionList, Definition, Diagnostic, FormattingOptions, Hover, Location, Position, Range, TextEdit, CodeLens, WorkspaceEdit } from "vscode-languageserver";
+import { CodeAction, CompletionItem, CompletionList, Diagnostic, FormattingOptions, Hover, Location, Position, Range, TextEdit, CodeLens, WorkspaceEdit } from "vscode-languageserver";
 import { AventusExtension, AventusLanguageId } from "../../definition";
 import { AventusFile } from '../../files/AventusFile';
 import { FilesManager } from '../../files/FilesManager';
@@ -15,7 +15,7 @@ import { Exception, compileString } from 'sass';
 import { existsSync, lstatSync, readFileSync } from 'fs';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { GenericServer } from '../../GenericServer';
-import { CustomCssProperty } from './helper/CSSNode';
+import { CustomCssProperty } from './helper/CSSCustomNode';
 
 export class AventusWebSCSSFile extends AventusBaseFile {
     public compiledVersion = -1;
@@ -205,7 +205,7 @@ export class AventusWebSCSSFile extends AventusBaseFile {
     protected async onHover(document: AventusFile, position: Position): Promise<Hover | null> {
         return this.build.scssLanguageService.doHover(document, position);
     }
-    protected async onDefinition(document: AventusFile, position: Position): Promise<Definition | null> {
+    protected async onDefinition(document: AventusFile, position: Position): Promise<Location[] | null> {
         return this.build.scssLanguageService.findDefinition(document, position);
     }
     protected async onFormatting(document: AventusFile, range: Range, options: FormattingOptions): Promise<TextEdit[]> {

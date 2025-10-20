@@ -1,7 +1,14 @@
+import type { UriParamsValue } from "Aventus@Main:Aventus.package.avt";
 import { RouterStateManager } from "../../../lib/RouterStateManager.lib.avt";
+import type { Constructor } from "../../Form/Form/FormType.lib.avt";
+import { Default404 } from "../Default404/Default404.wcl.avt";
 import { Page } from "../Page/Page.wcl.avt";
 
 namespace Navigation {
+    export type RouterOptions = {
+        page404?: Constructor<Page>;
+        destroyPage?: boolean;
+    };
     export type RouteAsyncOption = {
         route: string,
         scriptUrl: string,
@@ -10,7 +17,13 @@ namespace Navigation {
     export abstract class Router extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
         //#region static
+        protected static page404: Constructor<Page> = Default404;
+        protected static destroyPage: boolean = false;
 
+        public static configure(options: RouterOptions): void {
+            if(options.page404 !== undefined) this.page404 = options.page404;
+            if(options.destroyPage !== undefined) this.destroyPage = options.destroyPage;
+        }
         //#endregion
 
 
@@ -29,6 +42,7 @@ namespace Navigation {
         protected activeState?: Aventus.State;
         protected oneStateActive: boolean = false;
         protected showPageMutex: Aventus.Mutex = new Aventus.Mutex();
+        protected isReplace: boolean = false;
         //#endregion
 
 
@@ -80,7 +94,8 @@ namespace Navigation {
                 active: (currentState) => {
                     this.oneStateActive = true;
                     this.showPageMutex.safeRunLastAsync(async () => {
-                        if(!element) {
+                        let isNew = false;
+                        if(!element || !element.parentElement) {
                             let options = allRoutes[path];
                             if(options.scriptUrl != "") {
                                 await Aventus.ResourceLoader.loadInHead(options.scriptUrl);
@@ -88,11 +103,39 @@ namespace Navigation {
 
                             let cst = options.render();
                             element = new cst;
-                            element.currentRouter = this;
-                            this.contentEl.appendChild(element);
+                            element.router = this;
+                            isNew = true;
                         }
+
+                        const canResult = await element.isAllowed(currentState, path, this);
+                        if(canResult !== true) {
+                            if(canResult === false) {
+                                return;
+                            }
+                            this.navigate(canResult, { replace: true });
+                            return;
+                        }
+                        const loadDataResult = await element.loadData(currentState);
+                        if(loadDataResult !== true) {
+                            if(loadDataResult === false) {
+                                return;
+                            }
+                            this.navigate(loadDataResult, { replace: true });
+                            return;
+                        }
+
+                        if(isNew)
+                            this.contentEl.appendChild(element);
+
                         if(this.oldPage && this.oldPage != element) {
                             await this.oldPage.hide();
+                            const { destroy } = await this.oldPage.configure();
+                            if(destroy === undefined && this.shouldDestroyFrame(this.oldPage)) {
+                                this.oldPage.remove();
+                            }
+                            else if(destroy === true) {
+                                this.oldPage.remove();
+                            }
                         }
 
                         let oldPage = this.oldPage;
@@ -102,31 +145,32 @@ namespace Navigation {
                         this.activeState = currentState;
                         await element.show(currentState);
 
-                        let title = element.pageTitle();
+                        const { title, description, keywords } = await element.configure();
                         if(title !== undefined)
                             document.title = title;
-
-                        let keywords = element.pageKeywords();
                         if(keywords !== undefined) {
                             let meta = document.querySelector('meta[name="keywords"]');
                             if(!meta) {
                                 meta = document.createElement('meta');
                             }
-                            meta.setAttribute("content", keywords.join(", "))
+                            meta.setAttribute("content", keywords.join(", "));
                         }
-
-                        let description = element.pageDescription();
                         if(description !== undefined) {
                             let meta = document.querySelector('meta[name="description"]');
                             if(!meta) {
                                 meta = document.createElement('meta');
                             }
-                            meta.setAttribute("content", description)
+                            meta.setAttribute("content", description);
                         }
-                        
+
+
                         if(this.bindToUrl() && window.location.pathname != currentState.name) {
                             let newUrl = window.location.origin + currentState.name;
-                            window.history.pushState({}, title ?? "", newUrl);
+                            if(this.isReplace) {
+                                window.history.replaceState({}, title ?? "", newUrl);
+                            } else {
+                                window.history.pushState({}, title ?? "", newUrl);
+                            }
                         }
                         this.onNewPage(oldUrl, oldPage, path, element);
                     });
@@ -140,15 +184,26 @@ namespace Navigation {
         protected page404?: Page;
         protected async validError404() {
             if(!this.oneStateActive) {
-                let Page404 = this.error404(this.stateManager.getState());
+                let Page404 = this.error404(this.stateManager.getState()) ?? Router.page404;
                 if(Page404) {
-                    if(!this.page404) {
+                    if(!this.page404 || !this.page404.parentElement) {
                         this.page404 = new Page404();
-                        this.page404.currentRouter = this;
+                        this.page404.router = this;
                         this.contentEl.appendChild(this.page404);
                     }
                     if(this.oldPage && this.oldPage != this.page404) {
                         await this.oldPage.hide();
+                    }
+                    if(this.bindToUrl()) {
+                        const currentState = this.stateManager.getState();
+                        if(currentState && window.location.pathname != currentState.name) {
+                            let newUrl = window.location.origin + currentState.name;
+                            if(this.isReplace) {
+                                window.history.replaceState({}, "Not found", newUrl);
+                            } else {
+                                window.history.pushState({}, "Not found", newUrl);
+                            }
+                        }
                     }
                     this.activeState = undefined;
                     this.oldPage = this.page404;
@@ -163,7 +218,7 @@ namespace Navigation {
         protected onNewPage(oldUrl: string, oldPage: Page | undefined, newUrl: string, newPage: Page) {
 
         }
-        public getSlugs() {
+        public getSlugs(): UriParamsValue | null {
             return this.stateManager.getStateSlugs(this.activePath);
         }
 
@@ -171,8 +226,15 @@ namespace Navigation {
             return true;
         }
 
-        public navigate(state: Aventus.State | string): Promise<boolean> {
-            return this.stateManager.setState(state)
+        public async navigate(state: Aventus.State | string, options?: { replace: boolean; }): Promise<boolean> {
+            if(options?.replace) {
+                this.isReplace = true;
+            }
+            const result = await this.stateManager.setState(state);
+            if(options?.replace) {
+                this.isReplace = false;
+            }
+            return result;
         }
 
 
@@ -182,6 +244,13 @@ namespace Navigation {
 
         protected defaultUrl(): string | undefined {
             return "/";
+        }
+
+        /**
+         * Determine if the pash should be destroyed when hiding
+         */
+        protected shouldDestroyFrame(page: Page): boolean {
+            return Router.destroyPage;
         }
 
         protected override postCreation(): void {

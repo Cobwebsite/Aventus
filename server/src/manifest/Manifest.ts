@@ -1,7 +1,7 @@
 import { AventusFile } from '../files/AventusFile';
 import { SlotsInfo } from '../language-services/html/File';
 import { AventusConfigBuildCompileOutputNpmManifest } from '../language-services/json/definition';
-import { CustomCssProperty } from '../language-services/scss/helper/CSSNode';
+import { CustomCssProperty } from '../language-services/scss/helper/CSSCustomNode';
 import { AventusWebComponentLogicalFile } from '../language-services/ts/component/File';
 import { AventusTsFile } from '../language-services/ts/File';
 import { ClassInfo } from '../language-services/ts/parser/ClassInfo';
@@ -13,6 +13,7 @@ import { PropertyInfo } from '../language-services/ts/parser/PropertyInfo';
 import { TypeInfo } from '../language-services/ts/parser/TypeInfo';
 import { Build } from '../project/Build';
 import { CustomElements } from './CustomElements';
+import { EmmetCustomData } from './EmmetCustomData';
 import { HtmlCustomData } from './HtmlCustomData';
 import { WebTypes } from './WebTypes';
 
@@ -32,6 +33,7 @@ export class Manifest {
 
 	private customElements: CustomElements;
 	private htmlCustomData: HtmlCustomData;
+	private emmetCustomData: EmmetCustomData;
 	private webTypes: WebTypes;
 	public configFile: AventusFile;
 	public manifestConfig: AventusConfigBuildCompileOutputNpmManifest;
@@ -40,6 +42,7 @@ export class Manifest {
 		this.build = build;
 		this.customElements = new CustomElements(this);
 		this.htmlCustomData = new HtmlCustomData(this);
+		this.emmetCustomData = new EmmetCustomData(this);
 		this.webTypes = new WebTypes(this);
 		this.manifestConfig = manifest;
 		this.configFile = this.build.project.getConfigFile();
@@ -139,8 +142,9 @@ export class Manifest {
 
 			const info: ManifestInfo = { fullName, class: _class, attributes, props, propsStatic, methods, methodsStatic, slots, cssProperties }
 
-			this.customElements.register(file, info)
-			this.htmlCustomData.register(file, info)
+			this.customElements.register(file, info);
+			this.htmlCustomData.register(file, info);
+			this.emmetCustomData.register(file, info);
 			this.webTypes.register(file, info);
 		}
 	}
@@ -148,6 +152,7 @@ export class Manifest {
 	public write(dir: string) {
 		this.customElements.write(dir);
 		this.htmlCustomData.write(dir)
+		this.emmetCustomData.write(dir)
 	}
 
 	public getTypeTxt(typeInfo: TypeInfo) {

@@ -1,6 +1,6 @@
 import { existsSync, unlinkSync, writeFileSync } from 'fs';
 import { EOL } from 'os';
-import { Position, CompletionList, CompletionItem, Hover, Definition, Range, FormattingOptions, TextEdit, CodeAction, Diagnostic, Location, CodeLens, WorkspaceEdit } from "vscode-languageserver";
+import { Position, CompletionList, CompletionItem, Hover, Range, FormattingOptions, TextEdit, CodeAction, Diagnostic, Location, CodeLens, WorkspaceEdit } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { AventusErrorCode, AventusExtension, AventusLanguageId } from "../../../definition";
 import { AventusFile, InternalAventusFile } from '../../../files/AventusFile';
@@ -100,7 +100,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
     private _space: string = "";
     private writeHtml: boolean = false;
     private writeTs: boolean = false;
-
+    private needRebuild: boolean = false;
     public htmlDiagnostics: Diagnostic[] = [];
 
     constructor(file: AventusFile, build: Build) {
@@ -115,27 +115,30 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
     private waitingFct: { [version: string]: (() => void)[] } = {};
     private mergedVersion = '-1_-1_-1_-1';
     private isCompiling = false;
+    
     public runWebCompiler() {
         return new Promise<void>((resolve) => {
             let version = AventusWebcomponentCompiler.getVersion(this, this.build);
-            let mergedVersion = version.ts + '_' + version.scss + '_' + version.html+'_'+version.i18n;
-            let force = this.build.insideRebuildAll;
+            let mergedVersion = version.ts + '_' + version.scss + '_' + version.html + '_' + version.i18n;
+            let force = this.build.insideRebuildAll || this.needRebuild;
             if (mergedVersion == this.mergedVersion && !force) {
                 resolve();
             }
             else {
                 if (!this.isCompiling) {
                     this.isCompiling = true;
+                    this.needRebuild = false;
                     this.recreateFileContent();
                     let compiler = new AventusWebcomponentCompiler(this, this.build);
                     this._compilationResult = compiler.compile();
                     this.build.scssLanguageService.addInternalDefinition(this.file.uri, this._compilationResult.scssDoc);
                     this.build.htmlLanguageService.addInternalDefinition(this.file.uri, this._compilationResult.htmlDoc, this);
+                    this.needRebuild = this._compilationResult.needRebuild;
                     this.isCompiling = false;
                     this.mergedVersion = mergedVersion;
                     this.storyBookInfo.argsTypes = compiler.storyArgTypes;
                     this.storyBookInfo.args = compiler.storyArgs;
-                    if(this.I18nFile) {
+                    if (this.I18nFile) {
                         this.I18nFile.transformForExport();
                     }
                     if (this.waitingFct[mergedVersion]) {
@@ -648,6 +651,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         if (this.fileParsed) {
             this.diagnostics = this.diagnostics.concat(this.fileParsed.errors)
         }
+        this.diagnostics = this.diagnostics.concat(this.getDeprecated())
         return this.diagnostics;
     }
     protected transformDiagnosticForView() {
@@ -736,7 +740,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         this.writeHtml = quickParse.writeHtml;
         this.writeTs = quickParse.writeTs;
         if (quickParse.tagName)
-            this.build.htmlLanguageService.addInternalTagUri(quickParse.tagName, this.file.uri, this._componentClassName);
+            this.build.htmlLanguageService.addInternalTagUri(quickParse.tagName, this.file.uri, this._fullname);
         let space = "";
         for (let i = 0; i < quickParse.whiteSpaceBefore + 4; i++) {
             space += " ";
@@ -932,7 +936,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         return this.tsLanguageService.doHover(document, position);
     }
 
-    public async doDefinition(htmlPosition: Position): Promise<Definition | null> {
+    public async doDefinition(htmlPosition: Position): Promise<Location[] | null> {
         const html = this.HTMLFile;
         if (!html) {
             return null;
@@ -952,7 +956,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         }
         return null;
     }
-    protected onDefinition(document: AventusFile, position: Position): Promise<Definition | null> {
+    protected onDefinition(document: AventusFile, position: Position): Promise<Location[] | null> {
         return this.tsLanguageService.findDefinition(document, position);
     }
 

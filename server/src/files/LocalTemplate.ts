@@ -11,11 +11,11 @@ export class LocalTemplateManager {
 		let loadedTemplates = this.readTemplates()
 		const templateResult = await this.templateManager.query(loadedTemplates.templates);
 		if (templateResult) {
-			await templateResult.init(path);
+			await templateResult.init(path, this.templateManager.findWorkspace(path));
 		}
 	}
 
-	private readTemplates() {
+	public readTemplates() {
 		let globalTemplate = this.templateManager.getGeneralTemplates();
 		let globalTemplateLength = this.templateManager.getGeneralTemplatesLength();
 		let uri = GenericServer.getWorkspaceUri()

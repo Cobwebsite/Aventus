@@ -21,11 +21,11 @@ export class AventusDependancesView {
     private setHtmlForWebview(context: ExtensionContext, webview: Webview, uri: string): void {
         // Local path to script and css for the webview
 
-        let viewUrl = webview.asWebviewUri(Uri.joinPath(context.extensionUri, 'client', 'view')).toString();
+        let viewUrl = webview.asWebviewUri(Uri.joinPath(context.extensionUri, 'client', 'views', 'configuration')).toString();
 
         // Use a nonce to whitelist which scripts can be run
         const nonce = getNonce();
-        let realPath = normalize(Uri.joinPath(context.extensionUri, 'client', 'view', 'index.html').path.slice(1));
+        let realPath = normalize(Uri.joinPath(context.extensionUri, 'client', 'views', 'configuration', 'index.html').path.slice(1));
         let txt = readFileSync(realPath, 'utf8');
         txt = txt.replace(/~/g, viewUrl);
         txt = txt.replace(/\$nonce/g, nonce);

@@ -14,7 +14,7 @@ export class CreateCSSVariable {
 		if (!uri) {
 			return;
 		}
-		if (!position) {
+		if (typeof position !== 'number') {
 			return;
 		}
 

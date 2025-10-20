@@ -1,14 +1,17 @@
+import { sep } from "path";
+
 export class Template extends AventusTemplate {
     protected override meta(): TemplateInfo {
         return {
             name: "Component.Basic",
             description: "Create a basic webcomponent",
-            version: "1.0.0"
+            version: "1.0.0",
+            installationFolder: "Aventus/Components"
         };
     }
 
     protected override async run(destination: string): Promise<void> {
-		let name = await this.input({
+        let name = await this.input({
             title: "Provide a name for your Component",
         });
         if(!name) return;
@@ -30,11 +33,16 @@ export class Template extends AventusTemplate {
             if(isSingle) {
                 return config.relativePath.endsWith(".wc.avt");
             }
-            if(config.relativePath.endsWith(".wcl.avt")) {
-                config.openFileOnEnd();
-            }
             return !config.relativePath.endsWith(".wc.avt");
         });
+
+        if(isSingle) {
+            this.openFile(name + ".wc.avt");
+        }
+        else {
+            this.openFile(name + sep + name + ".wcl.avt");
+        }
+
     }
 
 }

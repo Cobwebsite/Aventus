@@ -1,8 +1,8 @@
-import { createReadStream, createWriteStream, existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'fs';
+import { createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmdirSync, rmSync, unlinkSync, writeFileSync } from 'fs';
 import { AventusConfigBuild, AventusConfigBuildDependance, IncludeType } from '../language-services/json/definition';
 import * as md5 from 'md5';
 import { join, normalize } from 'path';
-import { AVENTUS_DEF_BASE_PATH, AVENTUS_DEF_I18N_PATH, AVENTUS_DEF_SHARP_PATH, AVENTUS_DEF_UI_PATH } from '../language-services/ts/libLoader';
+import { AVENTUS_DEF_BASE_PATH, AVENTUS_DEF_I18N_PATH, AVENTUS_DEF_PHP_PATH, AVENTUS_DEF_SHARP_PATH, AVENTUS_DEF_UI_PATH } from '../language-services/ts/libLoader';
 import { pathToUri } from '../tools';
 import { AventusExtension, AventusLanguageId } from '../definition';
 import { AventusPackageFile } from '../language-services/ts/package/File';
@@ -12,6 +12,8 @@ import { get as gets } from 'https';
 import { GenericServer } from '../GenericServer';
 import { FilesManager } from '../files/FilesManager';
 import { AventusFile } from '../files/AventusFile';
+import { Extract } from 'unzipper'
+import { Store } from '../store/Store';
 
 type DependanceLoopPart = {
 	file: AventusPackageFile,
@@ -46,23 +48,18 @@ export class DependanceManager {
 	}
 
 	private predefinedPaths = {
-		"@Aventus": AVENTUS_DEF_BASE_PATH(),
 		"Aventus@Main": AVENTUS_DEF_BASE_PATH(),
-
-		"@AventusUI": AVENTUS_DEF_UI_PATH(),
 		"Aventus@UI": AVENTUS_DEF_UI_PATH(),
-
-		"@AventusSharp": AVENTUS_DEF_SHARP_PATH(),
 		"Aventus@Sharp": AVENTUS_DEF_SHARP_PATH(),
-
+		"Aventus@Php": AVENTUS_DEF_PHP_PATH(),
 		"Aventus@I18n": AVENTUS_DEF_I18N_PATH(),
-		"@AventusI18n": AVENTUS_DEF_I18N_PATH()
 	}
 	private predefinedNpm = {
-		[AVENTUS_DEF_BASE_PATH()]: "@aventusjs/main",
-		[AVENTUS_DEF_UI_PATH()]: "@aventusjs/ui",
-		[AVENTUS_DEF_SHARP_PATH()]: "@aventussharp/main",
-		[AVENTUS_DEF_I18N_PATH()]: "@aventussharp/i18n",
+		"Aventus@Main": "@aventusjs/main",
+		"Aventus@UI": "@aventusjs/ui",
+		"Aventus@I18n": "@aventusjs/i18n",
+		"Aventus@Sharp": "@aventussharp/main",
+		"Aventus@Php": "@aventusphp/main",
 	}
 	private loadedPackages: { [name: string]: { [version: string]: AventusPackageFile } } = {};
 	public async loadDependancesFromBuild(config: AventusConfigBuild, build: Build): Promise<{ files: AventusPackageFile[], dependanceNeedUris: string[], dependanceFullUris: string[], dependanceUris: string[] }> {
@@ -74,17 +71,18 @@ export class DependanceManager {
 		};
 		let loopResult: DependanceLoop = {};
 		let includeNames: { [name: string]: IncludeType } = {};
-		for (let dep of config.dependances) {
-			let tempDep = await this.loadDependance(dep, config, build, loopResult);
+		for (let name in config.dependances) {
+			const dep = config.dependances[name];
+			let tempDep = await this.loadDependance(name, dep, config, build, loopResult);
 			if (tempDep) {
-				includeNames[tempDep.name] = dep.include;
+				includeNames[tempDep.name] = dep.include ?? "need";
 			}
 			includeNames = { ...includeNames, ...dep.subDependancesInclude };
 		}
 
 		if (!loopResult["Aventus@Main"]) {
-			await this.loadDependance({
-				uri: "Aventus@Main",
+			await this.loadDependance("Aventus@Main", {
+				uri: "",
 				npm: "",
 				version: "x.x.x",
 				include: 'need',
@@ -92,8 +90,8 @@ export class DependanceManager {
 			}, config, build, loopResult)
 		}
 		if (build.buildConfig.i18n !== undefined && !loopResult["Aventus@I18n"]) {
-			await this.loadDependance({
-				uri: "Aventus@I18n",
+			await this.loadDependance("Aventus@I18n", {
+				uri: "",
 				npm: "",
 				version: "x.x.x",
 				include: 'need',
@@ -150,63 +148,63 @@ export class DependanceManager {
 		return orderedName.length;
 	}
 	// TODO manage error during process
-	private async loadDependance(dep: AventusConfigBuildDependance, config: AventusConfigBuild, build: Build, result: DependanceLoop) {
+	private async loadDependance(name: string, dep: AventusConfigBuildDependance, config: AventusConfigBuild, build: Build, result: DependanceLoop) {
 		let packageFile: AventusPackageFile | undefined;
 		let finalUri: string | undefined;
-		if (dep.uri.match("^(@|&)") || dep.uri.match("^(Aventus@)")) {
-			let regexTemp: RegExpExecArray | null;
-			if (this.predefinedPaths[dep.uri]) {
-				dep.uri = this.predefinedPaths[dep.uri];
+		if (this.predefinedPaths[name]) {
+			dep.uri = this.predefinedPaths[name] as string;
+			let uri = pathToUri(dep.uri);
+			packageFile = await this.loadByUri(build, uri);
+			finalUri = uri;
+		}
+		else if (dep.uri) {
+			if (dep.uri.startsWith("http")) {
+				GenericServer.showErrorMessage("http package isn't supported right now. Plz use the store");
+				// if (!dep.version) {
+
+				// }
+				// let http = await this.loadHttp(dep.uri, dep.version, build);
+				// if (http) {
+				// 	packageFile = http.file;
+				// 	finalUri = http.uri;
+				// }
+			}
+			else {
 				let uri = pathToUri(dep.uri);
 				packageFile = await this.loadByUri(build, uri);
 				finalUri = uri;
 			}
-
-			else if ((regexTemp = /@local:(\S+)/g.exec(dep.uri))) {
-				let local = await this.loadLocal(regexTemp[1], build);
-				packageFile = local.file;
-				finalUri = local.uri;
-			}
-			else if ((regexTemp = /&:(\S+)/g.exec(dep.uri))) {
-				let localName = config.module + "@" + regexTemp[1] + AventusExtension.Package;
-				let local = await this.loadLocal(localName, build);
-				packageFile = local.file;
-				finalUri = local.uri;
-			}
-			else if ((regexTemp = /@npm:(\S+)/g.exec(dep.uri))) {
-				let npmName = regexTemp[1];
-			}
+		}
+		else if (dep.isLocal) {
+			let local = await this.loadLocal(name, build);
+			packageFile = local.file;
+			finalUri = local.uri;
 		}
 		else {
-			if (dep.uri.startsWith("http")) {
-				let http = await this.loadHttp(dep.uri, dep.version, build);
-				if (http) {
-					packageFile = http.file;
-					finalUri = http.uri;
+			if (dep.version) {
+				let storeInfo = await this.loadStore(name, dep.version, build);
+				if (!storeInfo) {
+					GenericServer.showErrorMessage("Can't load " + name + " from the store");
+				}
+				else {
+					packageFile = storeInfo.file;
+					finalUri = storeInfo.uri;
 				}
 			}
 			else {
-				// path
-				let pathToImport = dep.uri;
-				if (dep.uri.startsWith(".")) {
-					pathToImport = build.project.getConfigFile().folderPath + '/' + dep.uri;
-				}
-				pathToImport = normalize(pathToImport);
-				let uri = pathToUri(pathToImport);
-				packageFile = await this.loadByUri(build, uri);
-				finalUri = uri;
+				GenericServer.showErrorMessage("You need to define a version to load a package via the store");
 			}
 		}
 
 
 		if (finalUri && packageFile) {
-			const version = this.parseVersion(dep.version);
+			const version = dep.version ? this.parseVersion(dep.version) : { major: -1, minor: -1, patch: -1 };
 
 			if (dep.npm) {
 				packageFile.npmUri = dep.npm;
 			}
-			else if (this.predefinedNpm[dep.uri]) {
-				packageFile.npmUri = this.predefinedNpm[dep.uri];
+			else if (this.predefinedNpm[name]) {
+				packageFile.npmUri = this.predefinedNpm[name];
 			}
 			else {
 				let npmInfo = /\/\/ npm:(.*)$/m.exec(packageFile.file.contentUser);
@@ -223,9 +221,10 @@ export class DependanceManager {
 					dependances: [],
 				}
 
-				for (let dep of file.dependances) {
+				for (let name in file.dependances) {
+					const dep = file.dependances[name];
 					// include if root package need include
-					let resultDep = await this.loadDependance(dep, config, build, result);
+					let resultDep = await this.loadDependance(name, dep, config, build, result);
 					if (resultDep) {
 						if (!result[file.name].dependances.includes(resultDep.name)) {
 							result[file.name].dependances.push(resultDep.name);
@@ -278,121 +277,194 @@ export class DependanceManager {
 		}
 	}
 
-	private async loadHttp(uri: string, version: string, build: Build) {
-		try {
-			let Md5 = md5(uri);
-			let uriMd5 = join(this.path, "http", Md5);
-			let infoFile = join(uriMd5, "info.json");
-			let md5Exist = existsSync(uriMd5);
-			const { major, minor, patch } = this.parseVersion(version);
-			if (!md5Exist || !existsSync(infoFile)) {
-				if (uri.endsWith(AventusExtension.Package)) {
-					if (!md5Exist) {
-						mkdirSync(uriMd5, { recursive: true });
-					}
-					let downloadPath = join(uriMd5, "temp.package.avt");
-					if (!await this.downloadFile(downloadPath, uri)) {
-						return null;
-					}
-					let firstLine = await this.readFirstLine(downloadPath);
-					let regexInfo = /\/\/ (\S+):([0-9]+)\.([0-9]+)\.([0-9]+)/g.exec(firstLine);
-					if (regexInfo) {
-						let name = regexInfo[1];
-						let v1 = Number(regexInfo[2]);
-						let v2 = Number(regexInfo[3]);
-						let v3 = Number(regexInfo[4]);
-
-						let info = {
-							name: name,
-							versions: {
-								[v1]: {
-									[v2]: {
-										[v3]: {
-											uri: uri,
-											localUri: name + "#" + v1 + "." + v2 + "." + v3 + AventusExtension.Package
-										}
-									}
-								}
-							}
-						}
-
-						writeFileSync(infoFile, JSON.stringify(info, null, 4));
-						renameSync(downloadPath, join(uriMd5, name + "#" + v1 + "." + v2 + "." + v3 + AventusExtension.Package));
-					}
-				}
-				else {
-					if (!await this.downloadFile(infoFile, uri)) {
-						return null;
-					}
-				}
+	private async loadStore(name: string, version: string, build: Build) {
+		let uri = join(this.path, "store", name, version);
+		let uriExist = existsSync(uri);
+		const { major, minor, patch } = this.parseVersion(version);
+		let packageTempPath: string | null = null;
+		if (uriExist) {
+			packageTempPath = this.findPackage(uri);
+			if (!packageTempPath) {
+				uriExist = false
 			}
-
-			let info = JSON.parse(readFileSync(infoFile, 'utf8'));
-
-			let loopVersion = (v: number, obj: any) => {
-				if (v == -1) {
-					let max = Math.max.apply(null, Object.keys(obj) as any);
-					return {
-						obj: obj[max + ""],
-						v: max
-					}
-				}
-				return {
-					obj: obj[v + ""],
-					v: v
-				}
-
+		}
+		if (!uriExist) {
+			if (existsSync(uri)) {
+				rmSync(uri, { force: true, recursive: true });
 			}
-			let findVersion = () => {
-				let majorInfo = loopVersion(major, info.versions);
-				if (majorInfo.obj !== undefined) {
-					let minorInfo = loopVersion(minor, majorInfo.obj);
-					if (minorInfo.obj !== undefined) {
-						let patchInfo = loopVersion(patch, minorInfo.obj);
-						if (patchInfo.obj !== undefined) {
-							return {
-								info: patchInfo.obj as { uri: string, localUri?: string },
-								number: majorInfo.v + "." + minorInfo.v + "." + patchInfo.v
-							}
-						}
-					}
-				}
+			mkdirSync(uri, { recursive: true });
+			let downloadPath = join(uri, "temp.zip");
+			if (!await this.downloadFile(downloadPath, Store.url + `/package/download/${name}/${version}`)) {
 				return null;
 			}
 
-			let versionToUse = findVersion();
-			if (versionToUse) {
-				if (versionToUse.info.localUri && existsSync(join(uriMd5, versionToUse.info.localUri))) {
-					let packageUri = pathToUri(join(uriMd5, versionToUse.info.localUri));
-					let file = await FilesManager.getInstance().registerFilePackage(packageUri)
-					const packageFile = this.loadPackage(file, build);
-					return {
-						uri: packageUri,
-						file: packageFile
-					}
-				}
-				else {
-					let localUri = info.name + "#" + versionToUse.number + AventusExtension.Package;
-					let packageUri = pathToUri(join(uriMd5, localUri));
-					if (!await this.downloadFile(join(uriMd5, localUri), versionToUse.info.uri)) {
-						return null;
-					}
-					versionToUse.info.localUri = localUri;
-					let file = await FilesManager.getInstance().registerFilePackage(packageUri)
-					writeFileSync(infoFile, JSON.stringify(info, null, 4));
-					const packageFile = this.loadPackage(file, build);
-					return {
-						uri: packageUri,
-						file: packageFile
-					}
-				}
+			if (!await this.extractZip(downloadPath, uri)) {
+				return null;
 			}
-		}
-		catch (e) {
+			rmSync(downloadPath, { force: true });
+
+			packageTempPath = this.findPackage(uri);
+			if (!packageTempPath) return;
+
+			let firstLine = await this.readFirstLine(packageTempPath);
+			let regexInfo = /\/\/ (\S+):([0-9]+)\.([0-9]+)\.([0-9]+)/g.exec(firstLine);
+			if (!regexInfo) return null;
+			let packageName = regexInfo[1];
+			let v1 = Number(regexInfo[2]);
+			let v2 = Number(regexInfo[3]);
+			let v3 = Number(regexInfo[4]);
+			let packageVersion = v1 + '.' + v2 + '.' + v3;
 
 		}
-		return null;
+
+		if (!packageTempPath) return null;
+		const packageUri = pathToUri(packageTempPath);
+		let file = await FilesManager.getInstance().registerFilePackage(packageUri)
+		const packageFile = this.loadPackage(file, build);
+		return {
+			uri: packageUri,
+			file: packageFile
+		}
 	}
+	private extractZip(zipPath: string, outputDir: string) {
+		return new Promise<boolean>((resolve) => {
+			createReadStream(zipPath)
+				.pipe(Extract({ path: outputDir }))
+				.on("close", () => resolve(true))
+				.on("error", (err) => {
+					console.error("Extract error ", err)
+					resolve(false)
+				});
+		})
+	}
+	private findPackage(path: string): string | null {
+		let result: string | null = null;
+		const elements = readdirSync(path);
+		for (let element of elements) {
+			if (element.endsWith(AventusExtension.Package)) {
+				result = join(path, element);
+				break;
+			}
+		}
+		return result;
+	}
+	// private async loadHttp(uri: string, version: string, build: Build) {
+	// 	try {
+	// 		let Md5 = md5(uri);
+	// 		let uriMd5 = join(this.path, "http", Md5);
+	// 		let infoFile = join(uriMd5, "info.json");
+	// 		let md5Exist = existsSync(uriMd5);
+	// 		let packagePath: string | null = null;
+	// 		// const { major, minor, patch } = this.parseVersion(version);
+	// 		if (!md5Exist || !existsSync(infoFile)) {
+	// 			if (uri.endsWith(AventusExtension.Package)) {
+	// 				if (!md5Exist) {
+	// 					mkdirSync(uriMd5, { recursive: true });
+	// 				}
+	// 				let downloadPath = join(uriMd5, "temp.package.avt");
+	// 				if (!await this.downloadFile(downloadPath, uri)) {
+	// 					return null;
+	// 				}
+	// 				let firstLine = await this.readFirstLine(downloadPath);
+	// 				let regexInfo = /\/\/ (\S+):([0-9]+)\.([0-9]+)\.([0-9]+)/g.exec(firstLine);
+	// 				if (regexInfo) {
+	// 					let name = regexInfo[1];
+	// 					let v1 = Number(regexInfo[2]);
+	// 					let v2 = Number(regexInfo[3]);
+	// 					let v3 = Number(regexInfo[4]);
+
+	// 					let info = {
+	// 						name: name,
+	// 						versions: {
+	// 							[v1]: {
+	// 								[v2]: {
+	// 									[v3]: {
+	// 										uri: uri,
+	// 										localUri: name + "#" + v1 + "." + v2 + "." + v3 + AventusExtension.Package
+	// 									}
+	// 								}
+	// 							}
+	// 						}
+	// 					}
+
+	// 					writeFileSync(infoFile, JSON.stringify(info, null, 4));
+	// 					renameSync(downloadPath, join(uriMd5, name + "#" + v1 + "." + v2 + "." + v3 + AventusExtension.Package));
+	// 					packagePath = name + "#" + v1 + "." + v2 + "." + v3 + AventusExtension.Package;
+	// 				}
+	// 			}
+	// 			else {
+	// 				if (!await this.downloadFile(infoFile, uri)) {
+	// 					return null;
+	// 				}
+	// 			}
+	// 		}
+
+	// 		let info = JSON.parse(readFileSync(infoFile, 'utf8'));
+
+	// 		let loopVersion = (v: number, obj: any) => {
+	// 			if (v == -1) {
+	// 				let max = Math.max.apply(null, Object.keys(obj) as any);
+	// 				return {
+	// 					obj: obj[max + ""],
+	// 					v: max
+	// 				}
+	// 			}
+	// 			return {
+	// 				obj: obj[v + ""],
+	// 				v: v
+	// 			}
+
+	// 		}
+	// 		// let findVersion = () => {
+	// 		// 	let majorInfo = loopVersion(major, info.versions);
+	// 		// 	if (majorInfo.obj !== undefined) {
+	// 		// 		let minorInfo = loopVersion(minor, majorInfo.obj);
+	// 		// 		if (minorInfo.obj !== undefined) {
+	// 		// 			let patchInfo = loopVersion(patch, minorInfo.obj);
+	// 		// 			if (patchInfo.obj !== undefined) {
+	// 		// 				return {
+	// 		// 					info: patchInfo.obj as { uri: string, localUri?: string },
+	// 		// 					number: majorInfo.v + "." + minorInfo.v + "." + patchInfo.v
+	// 		// 				}
+	// 		// 			}
+	// 		// 		}
+	// 		// 	}
+	// 		// 	return null;
+	// 		// }
+
+	// 		// let versionToUse = findVersion();
+	// 		if (versionToUse) {
+	// 			if (versionToUse.info.localUri && existsSync(join(uriMd5, versionToUse.info.localUri))) {
+	// 				let packageUri = pathToUri(join(uriMd5, versionToUse.info.localUri));
+	// 				let file = await FilesManager.getInstance().registerFilePackage(packageUri)
+	// 				const packageFile = this.loadPackage(file, build);
+	// 				return {
+	// 					uri: packageUri,
+	// 					file: packageFile
+	// 				}
+	// 			}
+	// 			else {
+	// 				let localUri = info.name + "#" + versionToUse.number + AventusExtension.Package;
+	// 				let packageUri = pathToUri(join(uriMd5, localUri));
+	// 				if (!await this.downloadFile(join(uriMd5, localUri), versionToUse.info.uri)) {
+	// 					return null;
+	// 				}
+	// 				versionToUse.info.localUri = localUri;
+	// 				let file = await FilesManager.getInstance().registerFilePackage(packageUri)
+	// 				writeFileSync(infoFile, JSON.stringify(info, null, 4));
+	// 				const packageFile = this.loadPackage(file, build);
+	// 				return {
+	// 					uri: packageUri,
+	// 					file: packageFile
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+	// 	catch (e) {
+
+	// 	}
+	// 	return null;
+	// }
 
 	private loadPackage(file: AventusFile, build: Build): AventusPackageFile | undefined {
 		return new AventusPackageFile(file, build);

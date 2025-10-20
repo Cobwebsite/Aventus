@@ -7,6 +7,8 @@ import { BaseInfo } from './BaseInfo';
 import { NoCompileDecorator } from './decorators/NoCompileDecorator';
 import { DocumentationInfo } from './DocumentationInfo';
 import { BindThisDecorator } from './decorators/BindThisDecorator';
+import { DependancesDecorator } from './decorators/DependancesDecorator';
+import { DeprecatedDecorator } from './decorators/DeprecatedDecorator';
 
 export class MethodInfo {
     public fullStart: number = 0;
@@ -27,6 +29,8 @@ export class MethodInfo {
     public isPrivate: boolean = false;
     public isProtected: boolean = false;
     public isBindThis: boolean = false;
+    public deprecated: boolean = false;
+    public deprecatedMsg: string = "";
     public readonly node: MethodDeclaration;
     public get compiledContent(): string {
         let txt = BaseInfo.getContent(this.content, this.start, this.end, this._class.dependancesLocations, this._class.compileTransformations);
@@ -58,10 +62,14 @@ export class MethodInfo {
             this.documentation = docTemp;
         }
         this.loadAccessibilityModifier(method);
+        let deprecated: DeprecatedDecorator | null = null;
         for (let decorator of this.decorators) {
             if (NoCompileDecorator.is(decorator)) {
                 this.mustBeCompiled = false;
-                break;
+            }
+            else if ((deprecated = DeprecatedDecorator.is(decorator))) {
+                this.deprecated = true;
+                this.deprecatedMsg = deprecated.msg;
             }
         }
     }

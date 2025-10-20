@@ -1,4 +1,4 @@
-import { CancellationToken, CustomTextEditorProvider, Disposable, ExtensionContext, Range, TextDocument, Uri, Webview, WebviewPanel, window, workspace, WorkspaceEdit } from 'vscode';
+import { CancellationToken, ConfigurationTarget, CustomTextEditorProvider, Disposable, ExtensionContext, Range, TextDocument, Uri, Webview, WebviewPanel, window, workspace, WorkspaceEdit } from 'vscode';
 import { getNonce } from '../tool';
 import { normalize } from 'path';
 import { readFileSync } from 'fs';
@@ -118,6 +118,16 @@ export class AventusI18nEditor implements CustomTextEditorProvider {
 			}
 		})
 
+		comm.addRouteWithResponse<{
+			key: string
+		}, boolean>({
+			channel: "setApiKey",
+			callback: async (data, params, uid) => {
+				await workspace.getConfiguration('aventus').update('deeplApiKey', data.key, ConfigurationTarget.Global);
+				return true;
+			}
+		})
+
 		workspace.onDidChangeTextDocument(async (e) => {
 			if (e.document.uri.toString() === document.uri.toString()) {
 				comm.send({
@@ -196,11 +206,11 @@ export class AventusI18nEditor implements CustomTextEditorProvider {
 	private setHtmlForWebview(context: ExtensionContext, webview: Webview): void {
 		// Local path to script and css for the webview
 
-		let viewUrl = webview.asWebviewUri(Uri.joinPath(context.extensionUri, 'client', 'view', 'i18n')).toString();
+		let viewUrl = webview.asWebviewUri(Uri.joinPath(context.extensionUri, 'client', 'views', 'i18n')).toString();
 
 		// Use a nonce to whitelist which scripts can be run
 		const nonce = getNonce();
-		let realPath = normalize(Uri.joinPath(context.extensionUri, 'client', 'view', 'i18n', 'index.html').path.slice(1));
+		let realPath = normalize(Uri.joinPath(context.extensionUri, 'client', 'views', 'i18n', 'index.html').path.slice(1));
 		let txt = readFileSync(realPath, 'utf8');
 		txt = txt.replace(/~/g, viewUrl);
 		txt = txt.replace(/\$nonce/g, nonce);

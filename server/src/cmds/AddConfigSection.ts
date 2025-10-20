@@ -21,32 +21,60 @@ export class AddConfigSection {
 						label: file
 					})
 				}
-				let result = await GenericServer.Select(items, {
-					placeHolder: 'Project to compile'
-				})
-				if (!result) {
-					return;
+				if (items.length > 1) {
+					let result = await GenericServer.Select(items, {
+						placeHolder: 'Select a project to add section'
+					})
+					if (!result) {
+						return;
+					}
+					uri = result.label;
 				}
-				uri = result.label;
+				else {
+					uri = items[0].label;
+				}
 			}
-			
-			const name = await GenericServer.Input({
-				title: "Provide a name for your config section",
-			});
-			if (!name) {
-				return;
-			}
+
+			let sectionItems: SelectItem[] = [{ label: "Build" }, { label: "Static" }];
+			const sectionType = await GenericServer.Select(sectionItems, { title: "Section type" });
+
+			if (!sectionType) return;
 			let jsonContent = readFileSync(uriToPath(uri), 'utf8');
 			let config: AventusConfig = JSON.parse(jsonContent);
-			let nameFile: string = name.replace(/ /g, "-");
 
-			let newBuild: any = {
-				"name": name,
-				"inputPath": [],
-				"outputFile": "./dist/" + nameFile + ".js",
+			if (sectionType.label == "Build") {
+				const name = await GenericServer.Input({
+					title: "Provide a name for your build section",
+				});
+				if (!name) return;
+
+				let nameFile: string = name.replace(/ /g, "-");
+
+				let newBuild: any = {
+					"name": name,
+					"src": [],
+					"compile": {
+						"output": "./dist/" + nameFile + ".js",
+					}
+				}
+
+				config.build.push(newBuild);
+
 			}
+			else if (sectionType.label == "Static") {
+				const name = await GenericServer.Input({
+					title: "Provide a name for your static section",
+				});
+				if (!name) return;
 
-			config.build.push(newBuild);
+				let newBuild: any = {
+					"name": name,
+					"input": "",
+					"output": ""
+				}
+
+				config.static.push(newBuild);
+			}
 			writeFileSync(uriToPath(uri), JSON.stringify(config, null, 4))
 			OpenFile.send(uri);
 		} catch (e) {

@@ -1,0 +1,109 @@
+import type { Asyncable } from "Aventus@Main:Aventus.package.avt";
+import type { ButtonElement } from "../ButtonElement/ButtonElement.wcl.avt";
+import type { FormElement } from "../FormElement/FormElement.wcl.avt";
+import type { FormHandler } from "./FormHandler.lib.avt";
+import type { Validator } from "./Validator.lib.avt";
+
+namespace Form {
+    export interface IForm {
+        registerElement(element: FormElement<any>): IForm;
+        registerSubmit(element: ButtonElement): IForm;
+        requestSubmit(): Aventus.Asyncable<void>;
+    }
+    export interface IFormElement<T = any> {
+        errors: string[];
+        value: T | undefined;
+        onChange: Aventus.Callback<(value: T) => void>;
+        formPart?: InternalFormPart<T>;
+    }
+    export type InternalForm<T> = { [K in keyof T]?: InternalFormPart<T[K]> };
+
+    export interface InternalFormPart<T = any> {
+        /**
+         * The value of the form part, which can be of type T or an object with get and set methods.
+         */
+        value: { get: () => T; set: (value: T | undefined) => void; },
+        /**
+         * A validation function for the form part.
+         */
+        validate?: FormPartValidate<T>;
+        /**
+         * Indicates whether validation should be performed on value change.
+         */
+        validateOnChange?: boolean,
+
+        onValueChange: Aventus.Callback<() => void>,
+        onValidation: Aventus.Callback<(errors: string[]) => Promise<string[]>, Promise<string[]>>,
+        register: (element: IFormElement) => void;
+        unregister: (element: IFormElement) => void;
+        test: () => Promise<boolean>;
+        handler: FormHandler<any>;
+    };
+    export type FormSchema<T> = { [K in keyof T]: FormPart<T[K]> | FormPartValidateList<T[K]> };
+
+    export type FormPartValidateList<T> = FormPartValidate<T> | Constructor<Validator<T>> | Validator<T> | (
+        Constructor<Validator<T>> |
+        Validator<T>
+    )[];
+
+    export interface FormPart<T = any> {
+        /**
+         * A validation function for the form part.
+         */
+        validate?: FormPartValidateList<T>;
+
+        /**
+         * Indicates whether validation should be performed on value change.
+         */
+        validateOnChange?: boolean,
+    };
+
+
+    /**
+    * Represents the result of form validation.
+    * It can be a string, a boolean, undefined, or a promise of these types.
+    */
+
+    export type FormValidateResult = Aventus.Asyncable<string | string[] | boolean | undefined>;
+    /**
+     * Represents a validation function for a value of type T.
+     * The function takes a value of type T or undefined and returns a FormValidateResult.
+     */
+
+    export type FormPartValidate<T> = (value: T | undefined, name: string, globalValidation: () => Promise<void>) => FormValidateResult;
+
+    export type FormValidate = (field: string, value: unknown) => FormValidateResult;
+
+    export type FormHandlerConfig<T> = {
+        /** Define global validation rules for your forms */
+        validate?: FormValidate,
+        /** Define if the form element must be validated on input change */
+        validateOnChange?: boolean,
+        /** Define how to handle error in form when name isn't linked to an input */
+        handleValidateNoInputError?: (errors: { [K in keyof T]?: string[]; }) => Asyncable<void>,
+        /** Define how to handle error after submitting the form when name isn't linked to an input */
+        handleExecuteNoInputError?: (errors: Aventus.GenericError[]) => Asyncable<void>;
+    };
+
+    @Storybook({
+        export: 'protected'
+    })
+    export type WithError<X> = [X] extends [void] ? Aventus.VoidWithError : Aventus.ResultWithError<X>;
+
+    export type ExtractError<X> = [X] extends [Aventus.ResultWithError<infer Y>] ? Y : [X] extends [Aventus.VoidWithError] ? void : X;
+
+    export type Constructor<T, AllowAbstract extends boolean = false> = AllowAbstract extends false ? new (...args: any[]) => T : abstract new (...args: any[]) => T;
+
+    export type SubmitFunction<T, X> = Aventus.Asyncable<WithError<X>> | ((body: T) => Aventus.Asyncable<WithError<X>>);
+
+    export function isSubclassOf(subClass: Function, superClass: Function): boolean {
+        if(typeof subClass !== 'function' || typeof superClass !== 'function') return false;
+
+        let proto = subClass.prototype;
+        while(proto) {
+            if(proto === superClass.prototype) return true;
+            proto = Object.getPrototypeOf(proto);
+        }
+        return false;
+    }
+}

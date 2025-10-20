@@ -1,16 +1,19 @@
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'fs';
+import { cpSync, createReadStream, createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, unlinkSync, writeFileSync } from 'fs';
 import { GenericServer } from '../GenericServer';
-import { join, normalize, sep } from 'path';
+import { dirname, join, normalize, sep } from 'path';
 import { SelectItem } from '../IConnection';
-import { TemplateJSON, TemplateScript } from './Template';
+import { TemplateScript } from './Template';
 import { SettingsManager } from '../settings/Settings';
-import { pathToUri, setValueToObject } from '../tools';
-import { BaseTemplate } from './Templates/BaseTemplate';
-import { BaseTemplateList } from './Templates';
+import { pathToUri, setValueToObject, uriToPath } from '../tools';
 import { execSync, spawn } from 'child_process';
+import { AventusExtension } from '../definition';
+import { get } from 'http';
+import { get as gets } from 'https';
+import { Extract } from 'unzipper'
+import { Store } from '../store/Store';
 
 
-export type TemplatesByName = { [name: string]: TemplateJSON | TemplateScript | BaseTemplate | TemplatesByName }
+export type TemplatesByName = { [name: string]: TemplateScript | TemplatesByName }
 
 export class TemplateManager {
 	private templatePath: string[] = [];
@@ -20,6 +23,7 @@ export class TemplateManager {
 	private loadedProjects: TemplatesByName = {};
 	private loadedProjectsLength: number = 0;
 	private loadedTemplatesLength: number = 0;
+	public workspaces: string[] = [];
 	// private templatesByName: {[]}
 
 	public getGeneralTemplates() {
@@ -28,13 +32,20 @@ export class TemplateManager {
 	public getGeneralTemplatesLength() {
 		return this.loadedTemplatesLength;
 	}
+	public getGeneralProjects() {
+		return this.loadedProjects;
+	}
+	public getGeneralProjectsLength() {
+		return this.loadedProjectsLength;
+	}
 
-	public constructor() {
+	public constructor(workspaces: string[]) {
+		this.workspaces = workspaces.map(p => uriToPath(p).replace(/\//g, sep));
 		this.loadTemplates();
 		SettingsManager.getInstance().onSettingsChange(() => {
 			this.loadTemplates();
 		})
-		this.validateEmptyFolder();
+		// this.validateEmptyFolder();
 	}
 
 	public loadTemplates() {
@@ -59,8 +70,7 @@ export class TemplateManager {
 	}
 
 	private reloadTemplates() {
-		const baseTemplateTemp = this.readBaseTemplates();
-		const templateTemp = this.readTemplates(this.templatePath, baseTemplateTemp.templates, baseTemplateTemp.nb);
+		const templateTemp = this.readTemplates(this.templatePath);
 		this.loadedTemplates = templateTemp.templates;
 		this.loadedTemplatesLength = templateTemp.nb;
 	}
@@ -80,6 +90,15 @@ export class TemplateManager {
 			}
 		}
 	}
+	public findWorkspace(currentFolder: string) {
+		for (let workspace of this.workspaces) {
+			if (currentFolder.startsWith(workspace)) {
+				return workspace;
+			}
+		}
+		GenericServer.showErrorMessage("Can't load the workspace");
+		return "";
+	}
 
 	public async createProject(path: string) {
 		if (this.loadedProjectsLength == 0) {
@@ -91,46 +110,22 @@ export class TemplateManager {
 		}
 		const templateResult = await this.query(this.loadedProjects);
 		if (templateResult) {
-			await templateResult.init(path)
+			await templateResult.init(path, this.findWorkspace(path))
 		}
 	}
 
-	public readBaseTemplates() {
-		const templates: TemplatesByName = {};
-		if (SettingsManager.getInstance().settings.useDefaultTemplate) {
-			for (let key in BaseTemplateList) {
-				let template = new BaseTemplateList[key]();
-				setValueToObject(template.name(), templates, template);
-			}
-		}
-		return {
-			templates,
-			nb: Object.keys(BaseTemplateList).length
-		};
-	}
 	public readTemplates(pathToRead: string[], templates: TemplatesByName = {}, nb: number = 0) {
 
 		const readRecu = (currentFolder: string) => {
-			let configPath = join(currentFolder, "template.avt");
-			if (existsSync(configPath)) {
-				try {
-					let config = JSON.parse(readFileSync(configPath, 'utf-8'));
-
-					let template = new TemplateJSON(config, currentFolder);
-					setValueToObject(template.config.name, templates, template);
-					nb++;
-				} catch {
-					GenericServer.showErrorMessage("Error when parsing file " + configPath);
-				}
-				return;
-			}
-			let configPathScript = join(currentFolder, "template.avt.ts");
+			let configPathScript = join(currentFolder, AventusExtension.Template);
 			if (existsSync(configPathScript)) {
 				try {
 
-					let template = TemplateScript.create(configPathScript, currentFolder);
-					setValueToObject(template.name, templates, template);
-					nb++;
+					let template = TemplateScript.create(configPathScript);
+					if (template) {
+						setValueToObject(template.name, templates, template);
+						nb++;
+					}
 
 				} catch (e) {
 					console.error(e);
@@ -170,6 +165,7 @@ export class TemplateManager {
 			}]
 		})
 	}
+
 	private async askTemplate() {
 		// let result = await window.showInformationMessage('Do you want to install project templates (recommended)', 'Yes', 'No');
 		// if (result == 'Yes') {
@@ -181,58 +177,79 @@ export class TemplateManager {
 			GenericServer.showErrorMessage("No project path registered");
 			return;
 		}
-		let projectsFolder = GenericServer.extensionPath + sep + "templates" + sep + "projects";
-		let folders = readdirSync(projectsFolder);
-		let quickPicks: Map<SelectItem, string> = new Map<SelectItem, string>();
-		for (let folder of folders) {
-			let folderPath = projectsFolder + sep + folder;
-			if (statSync(folderPath).isDirectory()) {
-				let confPath = folderPath + sep + 'template.avt';
-				if (existsSync(confPath)) {
-					try {
-						let config = JSON.parse(readFileSync(confPath, 'utf-8'));
-						let quickPick: SelectItem = {
-							label: config.name,
-							detail: config.description ?? "",
-							picked: picked,
+
+		const sourceResult = await GenericServer.Select([
+			{ label: "Local" },
+			// { label: "Store" },
+			{ label: "Git" },
+		], { title: "Source" });
+
+		if (!sourceResult) {
+			return
+		}
+
+		if (sourceResult.label == "Local") {
+			let projectsFolder = GenericServer.extensionPath + sep + "templates" + sep + "projects";
+			let folders = readdirSync(projectsFolder);
+			let quickPicks: Map<SelectItem, string> = new Map<SelectItem, string>();
+			const scripts: { [name: string]: TemplateScript } = {};
+			for (let folder of folders) {
+				let folderPath = projectsFolder + sep + folder;
+				if (statSync(folderPath).isDirectory()) {
+					let confPath = folderPath + sep + AventusExtension.Template;
+					if (existsSync(confPath)) {
+						try {
+							const template = TemplateScript.create(confPath);
+							if (template) {
+								scripts[folderPath] = template;
+								let quickPick: SelectItem = {
+									label: template.name,
+									detail: template.description ?? "",
+									picked: picked,
+								}
+								quickPicks.set(quickPick, folderPath);
+							}
+						} catch { }
+					}
+				}
+			}
+			let result = await GenericServer.SelectMultiple(Array.from(quickPicks.keys()), {
+				title: "Select projects to import",
+			});
+			if (result) {
+				for (let item of result) {
+					let path = this.getSelectItem(quickPicks, item);
+					if (path) {
+						let folderName = scripts[path].installationFolder ?? path.split(sep).pop()!;
+						folderName = folderName.replace(/\//g, sep).replace(/\\/, sep);
+						if (!folderName.startsWith(sep)) {
+							folderName = sep + folderName;
 						}
-						quickPicks.set(quickPick, folderPath);
-					} catch { }
-				}
-			}
-		}
-		quickPicks.set({
-			label: "Git",
-			detail: "Provide an http(s) url ending with .git",
-		}, "@Git")
-
-		let result = await GenericServer.SelectMultiple(Array.from(quickPicks.keys()), {
-			title: "Select projects to import",
-		});
-		if (result) {
-			for (let item of result) {
-				let path = this.getSelectItem(quickPicks, item);
-
-				if (path == "@Git") {
-					const uri = await this.getGitURL();
-					if (uri) {
-						execSync("git clone " + uri, {
-							cwd: this.projectPath[0]
-						})
+						let destPath = this.projectPath[0] + folderName;
+						if (existsSync(destPath)) {
+							rmSync(destPath, { recursive: true, force: true })
+						}
+						cpSync(path, destPath, { force: true, recursive: true })
 					}
 				}
-				else if (path) {
-					let folderName = path.split(sep).pop();
-					let destPath = this.projectPath[0] + sep + folderName;
-					if (existsSync(destPath)) {
-						rmSync(destPath, { recursive: true, force: true })
-					}
-					cpSync(path, destPath, { force: true, recursive: true })
-				}
+				GenericServer.showInformationMessage("Projects installed");
 			}
-
-			this.reloadProjects();
 		}
+		else if (sourceResult.label == "Git") {
+			const uri = await this.getGitURL();
+			if (uri) {
+				execSync("git clone " + uri, {
+					cwd: this.projectPath[0]
+				})
+			}
+		}
+		else if (sourceResult.label == "Store") {
+			await this.downloadTemplateFromStore();
+		}
+
+		this.reloadProjects();
+
+
 	}
 
 	public async selectTemplateToImport() {
@@ -241,52 +258,159 @@ export class TemplateManager {
 			return;
 		}
 
-		let quickPicks: SelectItem[] = [];
-		quickPicks.push({
-			label: "Git",
-			detail: "Provide an http url ending with .git",
-		});
-		let result = await GenericServer.Select(quickPicks, {
-			title: "Select templates to import",
-		});
-		if (result) {
-			if (result.label == "Git") {
-				const uri = await this.getGitURL();
-				if (uri) {
-					execSync("git clone " + uri, {
-						cwd: this.templatePath[0]
+		const sourceResult = await GenericServer.Select([
+			{ label: "Local" },
+			// { label: "Store" },
+			{ label: "Git" },
+		], { title: "Source" });
+
+		if (!sourceResult) {
+			return
+		}
+
+		if (sourceResult.label == "Local") {
+			let projectsFolder = GenericServer.extensionPath + sep + "templates" + sep + "templates";
+			let folders = readdirSync(projectsFolder);
+			let quickPicks: Map<SelectItem, string> = new Map<SelectItem, string>();
+			const scripts: { [name: string]: TemplateScript } = {};
+			const wks = GenericServer.templateManager?.workspaces ?? [];
+			if (wks.length == 0) return;
+
+			for (let folder of folders) {
+				let folderPath = projectsFolder + sep + folder;
+				if (statSync(folderPath).isDirectory()) {
+					let confPath = folderPath + sep + AventusExtension.Template;
+					if (existsSync(confPath)) {
+						try {
+							const template = TemplateScript.create(confPath);
+							if (template) {
+								scripts[folderPath] = template;
+								let quickPick: SelectItem = {
+									label: template.name,
+									detail: template.description ?? "",
+									picked: false,
+								}
+								quickPicks.set(quickPick, folderPath);
+							}
+						} catch { }
+					}
+				}
+			}
+
+			let result = await GenericServer.SelectMultiple(Array.from(quickPicks.keys()), {
+				title: "Select templates to import",
+			});
+
+			if (result) {
+				for (let item of result) {
+					let path = this.getSelectItem(quickPicks, item);
+
+					if (path) {
+						let folderName = scripts[path].installationFolder ?? path.split(sep).pop()!;
+						folderName = folderName.replace(/\//g, sep).replace(/\\/, sep);
+						if (!folderName.startsWith(sep)) {
+							folderName = sep + folderName;
+						}
+						let destPath = this.templatePath[0] + folderName;
+						if (existsSync(destPath)) {
+							rmSync(destPath, { recursive: true, force: true })
+						}
+						cpSync(path, destPath, { force: true, recursive: true })
+					}
+				}
+				GenericServer.showInformationMessage("Templates installed");
+				this.reloadTemplates();
+			}
+		}
+		else if (sourceResult.label == "Git") {
+			const uri = await this.getGitURL();
+			if (uri) {
+				execSync("git clone " + uri, {
+					cwd: this.templatePath[0]
+				})
+			}
+			this.reloadTemplates();
+		}
+		else if (sourceResult.label == "Store") {
+			await this.downloadTemplateFromStore();
+		}
+
+	}
+
+	public async selectProjectToUninstall() {
+		const projectsTree = this.getGeneralProjects();
+		const templates: TemplateScript[] = [];
+		const quickPicks: SelectItem[] = [];
+
+		const parse = (tree: TemplatesByName) => {
+			for (let key in tree) {
+				const el = tree[key];
+				if (el instanceof TemplateScript) {
+					templates.push(el);
+					quickPicks.push({
+						label: el.name,
+						detail: el.config
 					})
-					this.reloadTemplates();
+				}
+				else {
+					parse(el);
 				}
 			}
 		}
-	}
+		parse(projectsTree);
 
-	public validateEmptyFolder() {
-		let projectsFolder = GenericServer.extensionPath + sep + "projects";
+		const result = await GenericServer.SelectMultiple(quickPicks, { title: "Select projects to remove" })
+		if (!result) return;
 
-		const checkOrCreate = (path: string | string[]) => {
-			try {
-				if (Array.isArray(path)) {
-					path = path.join(sep);
-				}
-				if (!existsSync(path)) {
-					mkdirSync(path)
-				}
-			} catch (e) { }
+		for (let item of result) {
+			if (item.detail) {
+				let folderPath = dirname(item.detail);
+				rmSync(folderPath, { recursive: true, force: true })
+			}
 		}
 
-		checkOrCreate([projectsFolder, "Default"]);
-		checkOrCreate([projectsFolder, "Default", "src"]);
-		checkOrCreate([projectsFolder, "Default", "src", "components"]);
-		checkOrCreate([projectsFolder, "Default", "src", "data"]);
-		checkOrCreate([projectsFolder, "Default", "src", "lib"]);
-		checkOrCreate([projectsFolder, "Default", "src", "ram"]);
-		checkOrCreate([projectsFolder, "Default", "src", "states"]);
-		checkOrCreate([projectsFolder, "Default", "src", "static"]);
+		if (result.length > 0) {
+			this.reloadProjects();
+			GenericServer.showInformationMessage("Projects deleted");
+		}
+	}
 
-		checkOrCreate([projectsFolder, "Empty"]);
-		checkOrCreate([projectsFolder, "Empty", "src"]);
+	public async selectTemplateToUninstall() {
+		const templatesTree = this.getGeneralTemplates();
+		const templates: TemplateScript[] = [];
+		const quickPicks: SelectItem[] = [];
+
+		const parse = (tree: TemplatesByName) => {
+			for (let key in tree) {
+				const el = tree[key];
+				if (el instanceof TemplateScript) {
+					templates.push(el);
+					quickPicks.push({
+						label: el.name,
+						detail: el.config
+					})
+				}
+				else {
+					parse(el);
+				}
+			}
+		}
+		parse(templatesTree);
+
+		const result = await GenericServer.SelectMultiple(quickPicks, { title: "Select templates to remove" })
+		if (!result) return;
+
+		for (let item of result) {
+			if (item.detail) {
+				let folderPath = dirname(item.detail);
+				rmSync(folderPath, { recursive: true, force: true })
+			}
+		}
+
+		if (result.length > 0) {
+			this.reloadTemplates();
+			GenericServer.showInformationMessage("Templates deleted");
+		}
 	}
 
 
@@ -299,34 +423,19 @@ export class TemplateManager {
 		return null;
 	}
 
-	public async query(templates: TemplatesByName): Promise<TemplateJSON | TemplateScript | BaseTemplate | null> {
+	public async query(templates: TemplatesByName): Promise<TemplateScript | null> {
 		let quickPicksTemplateByName: Map<SelectItem, TemplatesByName> = new Map();
-		let quickPicksTemplate: Map<SelectItem, TemplateJSON | TemplateScript> = new Map();
-		let quickPicksBaseTemplate: Map<SelectItem, BaseTemplate> = new Map();
+		let quickPicksTemplate: Map<SelectItem, TemplateScript> = new Map();
 		const quickPicks: SelectItem[] = [];
 		for (let name in templates) {
 			const current = templates[name];
 			let quickPick: SelectItem;
-			if (current instanceof TemplateJSON) {
-				quickPick = {
-					label: name,
-					detail: current.config.description ?? "",
-				}
-				quickPicksTemplate.set(quickPick, current);
-			}
-			else if (current instanceof TemplateScript) {
+			if (current instanceof TemplateScript) {
 				quickPick = {
 					label: name,
 					detail: current.description ?? "",
 				}
 				quickPicksTemplate.set(quickPick, current);
-			}
-			else if (current instanceof BaseTemplate) {
-				quickPick = {
-					label: name,
-					detail: current.definition(),
-				}
-				quickPicksBaseTemplate.set(quickPick, current);
 			}
 			else {
 				quickPick = {
@@ -346,16 +455,128 @@ export class TemplateManager {
 				return resultPick
 			}
 
-			let resultPick2 = this.getSelectItem(quickPicksBaseTemplate, resultFormat);
-			if (resultPick2) {
-				return resultPick2;
-			}
-
 			let resultPick3 = this.getSelectItem(quickPicksTemplateByName, resultFormat);
 			if (resultPick3) {
 				return this.query(resultPick3);
 			}
 		}
 		return null;
+	}
+
+	public async downloadTemplateFromStore(uri?: string) {
+		try {
+			const regex = `^${Store.url.replace(/\//g, '\\/')}\\/template\\/download\\/(?<name>[^/]+)\\/(?<version>\\d+\\.\\d+\\.\\d+)$`
+			if (!uri) {
+				const askUri = await GenericServer.Input({
+					title: "Store url",
+					validations: [{
+						message: "The store url must be " + Store.url + "\/template\/download\/{name}\/{version}$",
+						regex: regex
+					}]
+				})
+				if (!askUri) return;
+				uri = askUri;
+			}
+			const match = uri.match(new RegExp(regex));
+			if (!match) {
+				GenericServer.showErrorMessage("The uri provided is wrong");
+				return;
+			}
+
+			const packageName = match[1];
+			const packageVersion = match[2];
+
+			const packageTempPath = join(GenericServer.savePath, "temp", "packageTemp");
+			if (!existsSync(packageTempPath)) {
+				mkdirSync(packageTempPath, { recursive: true })
+			}
+			let downloadPath = join(packageTempPath, "temp.zip");
+			if (!await this.downloadFile(downloadPath, uri)) {
+				GenericServer.showErrorMessage("Error downloading package");
+				return;
+			}
+			if (!await this.extractZip(downloadPath, packageTempPath)) {
+				GenericServer.showErrorMessage("Error extracting package to analyze");
+				return;
+			}
+
+			if (existsSync(join(packageTempPath, AventusExtension.Template))) {
+
+				const temp = TemplateScript.create(join(packageTempPath, AventusExtension.Template));
+				if (!temp) {
+					GenericServer.showErrorMessage("The template contains error");
+					return;
+				}
+
+				const writeBasePath = temp.isProject ? this.projectPath[0] : this.templatePath[0];
+
+				let folderName = temp.installationFolder ?? packageName;
+				folderName = folderName.replace(/\//g, sep).replace(/\\/, sep);
+				if (!folderName.startsWith(sep)) {
+					folderName = sep + folderName;
+				}
+				let destPath = writeBasePath + folderName;
+				if (!await this.extractZip(downloadPath, destPath)) {
+					GenericServer.showErrorMessage("Error extracting package");
+					return;
+				}
+
+				if(temp.isProject) {
+					this.reloadProjects();
+				}
+				else {
+					this.reloadTemplates();
+				}
+				GenericServer.showInformationMessage("Template " + packageName + " installed");
+			}
+			else {
+				GenericServer.showErrorMessage(AventusExtension.Template + " not found");
+			}
+
+			rmSync(packageTempPath, { force: true, recursive: true });
+		} catch (e) {
+			GenericServer.showErrorMessage("Error unknown");
+			console.error(e)
+		}
+	}
+
+
+	private downloadFile(fileUri: string, httpUri: string): Promise<boolean> {
+		return new Promise<boolean>((resolve) => {
+			const file = createWriteStream(fileUri);
+			try {
+				let fct = httpUri.startsWith("https") ? gets : get
+				fct(httpUri, function (response) {
+					response.pipe(file);
+
+					// after download completed close filestream
+					file.on("finish", () => {
+						file.close();
+						resolve(true);
+					});
+					file.on("error", () => {
+						file.close();
+						unlinkSync(fileUri);
+						resolve(false);
+					})
+				});
+			} catch (e) {
+				file.close();
+				unlinkSync(fileUri);
+				resolve(false);
+			}
+
+		})
+	}
+	private extractZip(zipPath: string, outputDir: string) {
+		return new Promise<boolean>((resolve) => {
+			createReadStream(zipPath)
+				.pipe(Extract({ path: outputDir }))
+				.on("close", () => resolve(true))
+				.on("error", (err) => {
+					console.error("Extract error ", err)
+					resolve(false)
+				});
+		})
 	}
 }

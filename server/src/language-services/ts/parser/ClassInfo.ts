@@ -66,7 +66,8 @@ export class ClassInfo extends BaseInfo {
 		}
 		let txt = this.constructorBody.getText();
 		txt = BaseInfo.getContentHotReload(txt, this.constructorBody.getStart(), this.constructorBody.getEnd(), this.dependancesLocations, this.compileTransformations);
-		return txt;
+		const _params = (this.constructorBody.parent as ConstructorDeclaration).parameters.map(p => p.getText()).join(", ");
+		return `constructor(${_params}) ` + txt;
 	}
 
 	public get constructorContentNpm(): string {
@@ -82,7 +83,8 @@ export class ClassInfo extends BaseInfo {
 		}
 		let txt = this.constructorBody.getText();
 		txt = BaseInfo.getContentNpm(txt, this.constructorBody.getStart(), this.constructorBody.getEnd(), this.dependancesLocations, this.compileTransformations);
-		return txt;
+		const _params = (this.constructorBody.parent as ConstructorDeclaration).parameters.map(p => p.getText()).join(", ");
+		return `constructor(${_params}) ` + txt;
 	}
 
 	private node: ClassDeclaration | InterfaceDeclaration;
@@ -222,9 +224,10 @@ export class ClassInfo extends BaseInfo {
 
 		this.loadConvertible();
 
-		this.loadDependancesDecorator();
+		this.loadDecorators();
 
 		this.addConstructor();
+		
 	}
 	private getClassInheritance(node: HeritageClause) {
 		if (node.token == SyntaxKind.ExtendsKeyword) {

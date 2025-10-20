@@ -1,0 +1,40 @@
+import { Page } from "../Page/Page.wcl.avt";
+import type { PageConfig } from "../Page/PageConfig.lib.avt";
+
+namespace Navigation {
+    export class Default404 extends Page implements Aventus.DefaultComponent {
+
+        //#region static
+
+        //#endregion
+
+
+        //#region props
+
+        //#endregion
+
+
+        //#region variables
+
+        //#endregion
+
+
+        //#region constructor
+
+        //#endregion
+
+
+        //#region methods
+        /**
+         * @inheritdoc
+         */
+        public override configure(): Aventus.Asyncable<PageConfig> {
+            return {
+                destroy: true
+            };
+        }
+
+        //#endregion
+
+    }
+}

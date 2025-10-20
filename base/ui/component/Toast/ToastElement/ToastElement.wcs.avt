@@ -1,0 +1,45 @@
+:host {
+	position: absolute;
+}
+
+:host(:not([is_active])) {
+	opacity: 0;
+	visibility: hidden;
+}
+
+
+/* #region position */
+:host([position="bottom left"]) {
+	bottom: var(--_toast-space-bottom);
+	left: 0px;
+}
+
+:host([position="top left"]) {
+	left: var(--_toast-space-left);
+	top: var(--_toast-space-top);
+}
+
+:host([position="bottom right"]) {
+	bottom: var(--_toast-space-bottom);
+	right: var(--_toast-space-right);
+}
+
+:host([position="top right"]) {
+	right: var(--_toast-space-right);
+	top: var(--_toast-space-top);
+}
+
+
+:host([position="top"]) {
+	left: 50%;
+	top: var(--_toast-space-top);
+	transform: translateX(-50%);
+}
+
+:host([position="bottom"]) {
+	bottom: var(--_toast-space-bottom);
+	left: 50%;
+	transform: translateX(-50%);
+}
+
+/* #endregion */

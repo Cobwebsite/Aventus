@@ -39,6 +39,7 @@ import { Statistics } from '../notification/Statistics';
 import { Manifest } from '../manifest/Manifest';
 import { OverrideViewDecorator } from '../language-services/ts/parser/decorators/OverrideViewDecorator';
 import { AventusI18nExported, AventusI18nFile } from '../language-services/i18n/File';
+import { Store } from '../store/Store';
 
 export type BuildErrors = { file: string, title: string }[]
 
@@ -88,7 +89,7 @@ export class Build {
     public noNamespaceUri: { [uri: string]: boolean } = {};
     public htmlFiles: { [uri: string]: AventusHTMLFile } = {}
     public wcFiles: { [uri: string]: AventusWebComponentSingleFile } = {};
-    public i18nComponentsFiles: { [uri: string]: AventusI18nFile } = {}
+    public i18nComponentsFiles: { [uri: string]: AventusI18nFile } = {};
 
     public namespaces: string[] = [];
 
@@ -117,7 +118,7 @@ export class Build {
     public readonly npmBuilder: NpmBuilder;
 
     /**
-     * ModuleName@BuildName
+     * ModuleName@BuildName or ModuleName
      */
     public get fullname() {
         return this.buildConfig.fullname;
@@ -224,7 +225,7 @@ export class Build {
     public async rebuildAll(isInit: boolean = false) {
         this.allowBuild = false;
         this.insideRebuildAll = true;
-        
+
         this.scssLanguageService.allowRebuildDefinition(false);
         this.htmlLanguageService.allowRebuildDefinition(false);
         // validate
@@ -246,11 +247,11 @@ export class Build {
                 await this.htmlFiles[uri].init();
                 await this.htmlFiles[uri].validate();
             }
-            
+
             for (let uri in this.tsFiles) {
                 await this.tsFiles[uri].validate();
             }
-            
+
         }
         else {
             for (let uri in this.tsLanguageService.i18nFiles) {
@@ -288,6 +289,14 @@ export class Build {
         for (let uri in this.tsFiles) {
             await this.tsFiles[uri].triggerSave();
         }
+        // if (isInit) {
+        //     for (let uri in this.tsFiles) {
+        //         // twice to
+        //         if (this.tsFiles[uri] instanceof AventusWebComponentLogicalFile) {
+        //             await this.tsFiles[uri].rebuildDuringInit();
+        //         }
+        //     }
+        // }
         this.allowBuild = true;
         this.npmBuilder.rebuildInfo();
         if (this.initDone) {
@@ -445,6 +454,7 @@ export class Build {
             }
 
             finalTxt += "(function (" + splittedNames[0] + ") {" + EOL;
+            finalTxt += `const __as1 = (o, k, c) => { if (o[k] !== undefined) for (let w in o[k]) { c[w] = o[k][w] } o[k] = c; }` + EOL;
             finalTxt += "const moduleName = `" + baseName + "`;" + EOL;
             finalTxt += "const _ = {};" + EOL;
             finalTxt += stylesheets.join(EOL) + EOL;
@@ -583,7 +593,7 @@ export class Build {
         finaltxt += JSON.stringify(result.htmlDoc) + EOL;
         finaltxt += "//#endregion html //" + EOL;
         finaltxt += "//#region dependances //" + EOL;
-        finaltxt += JSON.stringify(this.buildConfig.dependances) + EOL;
+        finaltxt += JSON.stringify(this.buildConfig.rawDependances) + EOL;
         finaltxt += "//#endregion dependances //" + EOL;
 
         for (let outputPackage of outputsPackage) {
@@ -797,27 +807,50 @@ export class Build {
                 }
             }
 
-            let packageJson = {
+            let description = "Aventus build for " + "@" + this.buildConfig.module;
+            let displayName = this.buildConfig.module;
+            if (this.buildConfig.name) {
+                description += "/" + this.buildConfig.name
+                displayName += " " + this.buildConfig.name
+            }
+
+            let packageJson: { [key: string]: any } = {
                 name: outputNpm.npmName == '' ? ("@" + this.buildConfig.module + "/" + this.buildConfig.name).toLowerCase() : outputNpm.npmName,
-                displayName: this.buildConfig.module + " " + this.buildConfig.name,
-                description: "Aventus build for " + "@" + this.buildConfig.module + "/" + this.buildConfig.name,
+                displayName,
+                description,
                 version: this.buildConfig.version,
-                author: {
-                    name: "Cobwebsite",
-                    email: "info@cobwebsite.ch",
-                    url: "https://cobwesbite.ch"
-                },
                 type: "module",
                 main: "index.js",
                 types: "index.d.ts",
                 dependencies
+            }
+            if (this.buildConfig.organization) {
+                packageJson.author = {
+                    name: this.buildConfig.organization,
+                };
+            }
+            else if (Store.isConnected) {
+                packageJson.author = {
+                    name: Store.settings.username,
+                };
             }
 
             for (let outputPackage of outputNpm.path) {
                 if (!existsSync(outputPackage)) {
                     mkdirSync(outputPackage, { recursive: true });
                 }
-                this.writeFile(join(outputPackage, "package.json"), JSON.stringify(packageJson, null, 2));
+                const packageJsonPath = join(outputPackage, "package.json");
+                let oldPackage: any = {};
+                if (existsSync(packageJsonPath)) {
+                    try {
+                        oldPackage = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
+                    } catch { }
+                }
+                const finalPackage = { ...packageJson, ...oldPackage };
+                finalPackage.name = packageJson.name;
+                finalPackage.displayName = packageJson.displayName;
+                finalPackage.version = packageJson.version;
+                this.writeFile(packageJsonPath, JSON.stringify(finalPackage, null, 2));
             }
         }
 
@@ -901,7 +934,7 @@ export class Build {
                 else if (output.mode == "basedOnAttribute") {
 
                 }
-                else if(output.mode == "include") {
+                else if (output.mode == "include") {
 
                 }
 
@@ -1086,6 +1119,7 @@ export class Build {
                 }
 
                 if (info.compiled != "") {
+                    if (info.classScript.endsWith("ConfigurationFrame")) debugger
                     result.code.push(replaceNotImportAliases(info.compiled, this.project.getConfig()))
                     let exportName = namespaceWithDot + info.classScript;
                     if (!renderInJsByFullname[exportName]) {
@@ -1280,6 +1314,7 @@ export class Build {
          */
         const loadAndOrderInfo = (info: { fullName: string; isStrong: boolean }, isLocal: boolean, indexByUri: { [uri: string]: number }, alreadyLooked: { [name: string]: (() => void)[] }, alreadyLookedStrong: { [name: string]: boolean }): { [uri: string]: number } | Promise<{ [uri: string]: string }> => {
             const fullName = info.fullName.replace("$namespace$", '');
+
             let uri = "";
             let infoExternal: null | {
                 content: AventusPackageTsFileExport | "noCode";
@@ -1323,7 +1358,7 @@ export class Build {
                 alreadyLookedStrong[fullName] = true;
             }
             const promises: Promise<{ [uri: string]: string }>[] = [];
-            const calculate: () => void = () => {
+            const calculate: () => string | undefined = () => {
                 if (isLocal) {
                     if (!localClassByFullName[fullName]) {
                         if (indexByUri[uri] === undefined) {
@@ -1432,8 +1467,15 @@ export class Build {
                             cb()
                         }
                         alreadyLooked[fullName] = [];
+                        indexByUri[uri] = result.toCompile.length
                     }
-                    indexByUri[uri] = result.toCompile.length
+                    else {
+                        indexByUri[uri] = result.toCompile.length
+                        if (insertIndex == loadedInfoInternal.length) {
+                            return "@end_" + loadedInfoInternal[loadedInfoInternal.length - 1];
+                        }
+                        return loadedInfoInternal[insertIndex];
+                    }
                     return;
                 }
                 else {
@@ -1499,10 +1541,16 @@ export class Build {
                         }
                         alreadyLooked[fullName] = [];
                     }
+                    else {
+                        if (insertIndex == loadedInfoExternal[uri].length) {
+                            return "@end_" + loadedInfoExternal[uri][loadedInfoExternal[uri].length - 1];
+                        }
+                        return loadedInfoExternal[uri][insertIndex];
+                    }
                     return;
                 }
             }
-            calculate();
+            const oldName = calculate();
             if (info.isStrong) {
                 delete alreadyLookedStrong[fullName];
             }
@@ -1514,9 +1562,27 @@ export class Build {
                 return indexByUri;
             }
             else {
+
                 const prom = new Promise<{ [uri: string]: string }>(async (resolve) => {
                     const asyncResults = await Promise.all(promises);
                     let insertIndex = indexByUri[uri] ?? 0;
+                    if (oldName) {
+                        let indexOf = -1;
+                        let realName = oldName.replace("@end_", "");
+                        if (isLocal) {
+                            indexOf = loadedInfoInternal.indexOf(realName);
+                        }
+                        else {
+                            indexOf = loadedInfoExternal[uri].indexOf(realName);
+                        }
+
+                        if (indexOf != -1) {
+                            if (oldName.startsWith("@end_")) {
+                                indexOf++;
+                            }
+                            insertIndex = indexOf;
+                        }
+                    }
                     for (const result of asyncResults) {
                         if (result[uri]) {
                             let fullnameTemp = result[uri];
@@ -1708,8 +1774,8 @@ export class Build {
                     else if (output.mode == "basedOnAttribute") {
 
                     }
-                    else if(output.mode == "include") {
-                    
+                    else if (output.mode == "include") {
+
                     }
 
                 }
@@ -1798,7 +1864,7 @@ export class Build {
      * Load all aventus file needed for this build
      */
     private async loadFiles() {
-        Statistics.startSendBuildTime(this.buildConfig.name);
+        Statistics.startSendBuildTime(this.buildConfig.fullname);
         this.allowBuild = false;
         let dependancesInfo = await DependanceManager.getInstance().loadDependancesFromBuild(this.buildConfig, this);
         this.dependanceFullUris = dependancesInfo.dependanceFullUris;
@@ -1826,7 +1892,7 @@ export class Build {
         this.allowBuild = true;
         this._filesLoaded = true;
         await this.rebuildAll(true);
-        Statistics.sendBuildTime(this.buildConfig.name)
+        Statistics.sendBuildTime(this.buildConfig.fullname)
     }
     /**
      * Register one file inside this build

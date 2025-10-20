@@ -27,7 +27,7 @@ export class CreateProperty {
 		if (!uri) {
 			return;
 		}
-		if (!position) {
+		if (typeof position !== 'number') {
 			return;
 		}
 		const name = await GenericServer.Input({

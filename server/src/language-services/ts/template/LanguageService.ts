@@ -3,11 +3,11 @@ import { Build } from '../../../project/Build';
 import { AventusFile } from '../../../files/AventusFile';
 import { existsSync } from 'fs';
 import { convertRange, getWordAtText, pathToUri, uriToPath } from '../../../tools';
-import { loadLibrary, NODE_MODULES, serverFolder } from '../libLoader';
-import { CodeAction, CodeLens, CompletionItem, CompletionList, Definition, Diagnostic, DiagnosticSeverity, DiagnosticTag, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver';
+import { loadLibrary, loadTypescriptLib, NODE_MODULES, serverFolder } from '../libLoader';
+import { CodeAction, CodeLens, CompletionItem, CompletionList, Diagnostic, DiagnosticSeverity, DiagnosticTag, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver';
 import { AventusLanguageId } from '../../../definition';
 import { join } from 'path';
-import { AventusTsLanguageService, convertKind, generateIndent, isWhitespaceOnly } from '../LanguageService';
+import { convertKind, generateIndent, isWhitespaceOnly } from '../LanguageService';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 
 export class AventusTemplateLanguageService {
@@ -17,6 +17,7 @@ export class AventusTemplateLanguageService {
 	private filesNpm: string[] = [];
 
 	public constructor() {
+		loadTypescriptLib();
 		this.filesNeeded = [pathToUri(join(serverFolder(), 'lib/templateScript/AventusTemplate.d.ts'))]
 		let content = loadLibrary(join(serverFolder(), 'lib/templateScript/AventusTemplate.d.ts'))!;
 		this.filesLoaded[this.filesNeeded[0]] = {
@@ -301,7 +302,7 @@ export class AventusTemplateLanguageService {
 		}
 		return null;
 	}
-	public async findDefinition(file: AventusFile, position: Position): Promise<Definition | null> {
+	public async findDefinition(file: AventusFile, position: Position): Promise<Location[] | null> {
 		try {
 
 			let definition = this.languageService.getDefinitionAtPosition(file.uri, file.documentInternal.offsetAt(position));
@@ -311,10 +312,10 @@ export class AventusTemplateLanguageService {
 				let content = loadLibrary(d.fileName);
 				if (content) {
 					const doc = TextDocument.create(d.fileName, "typescript", 1, content)
-					return {
+					return [{
 						uri: d.fileName,
 						range: convertRange(doc, d.textSpan)
-					}
+					}]
 				}
 			}
 		} catch (e) {

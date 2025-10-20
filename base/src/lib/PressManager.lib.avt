@@ -95,6 +95,8 @@ export interface PressManagerOptions {
      * The minimum distance in pixels required to trigger a drag event.
      */
     offsetDrag?: number,
+    /** Set the drag direction to watch */
+    dragDirection?: 'X' | 'Y' | 'XY';
     /**
      * The delay in milliseconds to detect a double press.
      */
@@ -136,7 +138,7 @@ export class PressManager {
         delayLongPress: 700,
         offsetDrag: 20
     };
-    public static setGlobalConfig(options: Partial<PressManagerOptions>) {
+    public static configure(options: Partial<PressManagerOptions>) {
         this.globalConfig = options;
     }
     public static create(options: PressManagerOptions & { element: Element; }): PressManager;
@@ -164,6 +166,7 @@ export class PressManager {
     protected delayLongPress: number;
     protected nbPress: number = 0;
     protected offsetDrag: number;
+    protected dragDirection: 'X' | 'Y' | 'XY';
 
     protected state: PressManagerState = {
         oneActionTriggered: null,
@@ -204,6 +207,7 @@ export class PressManager {
             throw 'You must provide an element';
         }
         this.offsetDrag = PressManager.globalConfig.offsetDrag !== undefined ? PressManager.globalConfig.offsetDrag : 20;
+        this.dragDirection = 'XY';
         this.delayLongPress = PressManager.globalConfig.delayLongPress ?? 700;
         this.delayDblPress = PressManager.globalConfig.delayDblPress ?? 150;
         this.element = options.element;
@@ -264,6 +268,9 @@ export class PressManager {
         }
         if(options.offsetDrag !== undefined) {
             this.offsetDrag = options.offsetDrag;
+        }
+        if(options.dragDirection !== undefined) {
+            this.dragDirection = options.dragDirection;
         }
 
         if(options.onDblPress !== undefined) {
@@ -522,7 +529,14 @@ export class PressManager {
         if(!state.oneActionTriggered) {
             let xDist = e.pageX - this.startPosition.x;
             let yDist = e.pageY - this.startPosition.y;
-            let distance = Math.sqrt(xDist * xDist + yDist * yDist);
+            let distance = 0;
+            if(this.dragDirection == 'XY')
+                distance = Math.sqrt(xDist * xDist + yDist * yDist);
+            else if(this.dragDirection == 'X')
+                distance = Math.abs(xDist);
+            else
+                distance = Math.abs(yDist);
+
             if(distance > this.offsetDrag && this.downEventSaved) {
                 if(this.options.onDragStart) {
                     if(this.options.onDragStart(this.downEventSaved, this) !== false) {
@@ -619,11 +633,14 @@ export class PressManager {
     public destroy() {
         if(this.element) {
             this.element.removeEventListener("pointerdown", this.functionsBinded.downAction);
+            this.element.removeEventListener("touchstart", this.functionsBinded.downActionDelay);
             this.element.removeEventListener("trigger_pointer_pressstart", this.functionsBinded.childPressStart);
             this.element.removeEventListener("trigger_pointer_pressend", this.functionsBinded.childPressEnd);
             this.element.removeEventListener("trigger_pointer_pressmove", this.functionsBinded.childPressMove);
             document.removeEventListener("pointerup", this.functionsBinded.upAction);
             document.removeEventListener("pointercancel", this.functionsBinded.upAction);
+            document.removeEventListener("touchend", this.functionsBinded.upAction);
+            document.removeEventListener("touchcancel", this.functionsBinded.upAction);
             document.removeEventListener("pointermove", this.functionsBinded.moveAction);
         }
     }

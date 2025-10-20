@@ -1,4 +1,4 @@
-import { CodeAction, CodeLens, Color, ColorInformation, ColorPresentation, CompletionItem, CompletionList, Definition, ExecuteCommandParams, FormattingOptions, Hover, Location, Position, PublishDiagnosticsParams, Range, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver';
+import { CodeAction, CodeLens, Color, ColorInformation, ColorPresentation, CompletionItem, CompletionList, ExecuteCommandParams, FormattingOptions, Hover, Location, Position, PublishDiagnosticsParams, Range, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import type { Settings, SettingsHtml } from './settings/Settings';
 
@@ -16,11 +16,12 @@ export interface IConnection {
 	onShutdown(cb: () => Promise<void>);
 	getSettings(): Promise<Partial<Settings>>;
 	getSettingsHtml(): Promise<Partial<SettingsHtml>>;
+	setSettings(settings: Partial<Settings>, global: boolean): Promise<void>
 
 	onCompletion(cb: (document: TextDocument | undefined, position: Position) => Promise<CompletionList | null>);
 	onCompletionResolve(cb: (document: TextDocument | undefined, completionItem: CompletionItem) => Promise<CompletionItem>);
 	onHover(cb: (document: TextDocument | undefined, position: Position) => Promise<Hover | null>);
-	onDefinition(cb: (document: TextDocument | undefined, position: Position) => Promise<Definition | null>);
+	onDefinition(cb: (document: TextDocument | undefined, position: Position) => Promise<Location[] | null>);
 	onDocumentFormatting(cb: (document: TextDocument | undefined, options: FormattingOptions) => Promise<TextEdit[] | null>);
 	onCodeAction(cb: (document: TextDocument | undefined, range: Range) => Promise<CodeAction[] | null>);
 	onCodeLens(cb: (document: TextDocument | undefined) => Promise<CodeLens[] | null>);
@@ -40,8 +41,10 @@ export interface IConnection {
 }
 
 export interface InputOptions {
-	title: string,
+	title?: string,
 	value?: string,
+	password?: boolean,
+	placeHolder?: string,
 	validations?: { regex: string, message: string }[]
 }
 

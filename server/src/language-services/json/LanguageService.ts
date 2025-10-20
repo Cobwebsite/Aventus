@@ -1,11 +1,11 @@
 import { join, normalize, sep } from "path";
-import { Diagnostic, getLanguageService, LanguageService } from "vscode-json-languageservice";
+import { ASTNode, Diagnostic, getLanguageService, LanguageService } from "vscode-json-languageservice";
 import { CompletionItem, CompletionList, DiagnosticSeverity, FormattingOptions, Hover, Position, Range, TextEdit } from 'vscode-languageserver';
 import { AventusErrorCode, AventusExtension } from "../../definition";
 import { AventusFile } from '../../files/AventusFile';
 import { createErrorTs, escapeRegex, getFolder, uriToPath } from "../../tools";
 import { AventusConfig, AventusConfigBuild, AventusConfigBuildCompile, AventusConfigBuildDependance, AventusConfigBuildStories, AventusConfigStatic } from "./definition";
-import { AventusConfigSchema, AventusSharpSchema, AventusTemplateSchema } from "./schema";
+import { AventusConfigSchema, AventusPhpSchema, AventusSharpSchema } from "./schema";
 import { env } from 'process';
 import { GenericServer } from '../../GenericServer';
 import { SettingsManager } from '../../settings/Settings';
@@ -36,14 +36,14 @@ export class AventusJSONLanguageService {
                     schema: AventusConfigSchema
                 },
                 {
-                    fileMatch: ["**" + AventusExtension.Template],
-                    uri: AventusTemplateSchema.$schema ?? '',
-                    schema: AventusTemplateSchema
-                },
-                {
                     fileMatch: ["**" + AventusExtension.CsharpConfig],
                     uri: AventusSharpSchema.$schema ?? '',
                     schema: AventusSharpSchema
+                },
+                {
+                    fileMatch: ["**" + AventusExtension.PhpConfig],
+                    uri: AventusPhpSchema.$schema ?? '',
+                    schema: AventusPhpSchema
                 }
             ]
         });
@@ -59,6 +59,28 @@ export class AventusJSONLanguageService {
         let document = file.documentUser;
         let jsonDoc = this.languageService.parseJSONDocument(document);
         let result = await this.languageService.doComplete(file.documentUser, position, jsonDoc);
+        const node = jsonDoc.getNodeFromOffset(document.offsetAt(position));
+
+        if (this.isKeyOfObject(node, "dependances")) {
+            if (!result) {
+                result = {
+                    isIncomplete: false,
+                    items: []
+                }
+            }
+            result?.items.push({
+                label: "Aventus@Main",
+            }, {
+                label: "Aventus@UI"
+            }, {
+                label: "Aventus@I18n"
+            }, {
+                label: "Aventus@Sharp"
+            }, {
+                label: "Aventus@Php"
+            });
+        }
+
         if (result) {
             return result;
         }
@@ -93,6 +115,27 @@ export class AventusJSONLanguageService {
             error.severity = DiagnosticSeverity.Error;
         }
         return errors;
+    }
+
+    private isKeyOfObject(node: ASTNode | undefined, objectName: string): boolean {
+        const p1 = node?.parent;
+        if (p1?.type == "property" && p1.keyNode == node) {
+            const pDep = node?.parent?.parent?.parent;
+            if (pDep?.type == "property" && pDep.keyNode.value == objectName) {
+                return true;
+            }
+        }
+        return false;
+    }
+    private isValueOfObject(node: ASTNode | undefined, objectName: string): boolean {
+        const p1 = node?.parent;
+        if (p1?.type == "property" && p1.valueNode == node) {
+            const pDep = node?.parent?.parent?.parent;
+            if (pDep?.type == "property" && pDep.keyNode.value == objectName) {
+                return true;
+            }
+        }
+        return false;
     }
 
     //#region config
@@ -143,6 +186,7 @@ export class AventusJSONLanguageService {
         return config;
     }
     private replaceEnvVar(txt: string, baseDir: string): string {
+        if (!txt) return txt;
         if (txt.startsWith("@")) return txt;
         if (txt.startsWith("Aventus@")) return txt;
 
@@ -172,7 +216,12 @@ export class AventusJSONLanguageService {
             ...this.defaultConfigBuildValue(config),
             ...build
         }
-        build.fullname = build.module + "@" + build.name;
+        if (build.name) {
+            build.fullname = build.module + "@" + build.name;
+        }
+        else {
+            build.fullname = build.module;
+        }
 
         const replaceEnvVar = (txt: string): string => {
             return this.replaceEnvVar(txt, baseDir);
@@ -428,18 +477,28 @@ export class AventusJSONLanguageService {
         }
 
         // dependances
-        let mergeDependances: AventusConfigBuildDependance[] = [];
-        for (let dependance of build.dependances) {
-            mergeDependances.push({
+        let mergeDependances: { [name: string]: AventusConfigBuildDependance } = {};
+        build.rawDependances = JSON.parse(JSON.stringify(build.dependances));
+        for (let name in build.dependances) {
+            let dependance = build.dependances[name];
+            if (typeof dependance == "string") {
+                dependance = {
+                    version: dependance
+                }
+            }
+            mergeDependances[name] = {
                 ...this.defaultConfigBuildDependanceValue(dependance),
                 ...dependance
-            })
-            const lastDep = mergeDependances[mergeDependances.length - 1];
-            if (!lastDep.subDependancesInclude["*"]) {
-                lastDep.subDependancesInclude["*"] = dependance.include;
             }
-
-            lastDep.uri = replaceEnvVar(lastDep.uri);
+            const lastDep = mergeDependances[name];
+            if (!lastDep.subDependancesInclude) {
+                lastDep.subDependancesInclude = {};
+            }
+            if (!lastDep.subDependancesInclude["*"]) {
+                lastDep.subDependancesInclude["*"] = dependance.include ?? 'need';
+            }
+            if (lastDep.uri)
+                lastDep.uri = replaceEnvVar(lastDep.uri);
         }
         build.dependances = mergeDependances;
 
@@ -563,7 +622,8 @@ export class AventusJSONLanguageService {
             hideWarnings: SettingsManager.getInstance().settings.defaultHideWarnings,
             version: '1.0.0',
             componentPrefix: '',
-            dependances: [],
+            tags: [],
+            dependances: {},
             build: [],
             static: [],
             avoidParsingInsideTags: [],
@@ -578,7 +638,13 @@ export class AventusJSONLanguageService {
         return {
             fullname: '',
             name: '',
+            tags: config.tags,
             version: config.version,
+            organization: config.organization,
+            description: config.description,
+            readme: config.readme,
+            repository: config.repository,
+            documentation: config.documentation,
             disabled: false,
             hideWarnings: config.hideWarnings,
             src: [],
@@ -594,7 +660,8 @@ export class AventusJSONLanguageService {
             namespaceRules: { ...config.namespaceRules },
             namespaceRulesRegex: { ...config.namespaceRulesRegex },
             namespaceRoot: config.namespaceRoot,
-            dependances: [...config.dependances],
+            dependances: { ...config.dependances },
+            rawDependances: {},
             avoidParsingInsideTags: [...config.avoidParsingInsideTags],
             nodeModulesDir: ''
         }
@@ -609,13 +676,7 @@ export class AventusJSONLanguageService {
     }
 
     private defaultConfigBuildDependanceValue(dependance: AventusConfigBuildDependance): AventusConfigBuildDependance {
-        return {
-            include: 'need',
-            subDependancesInclude: {},
-            version: 'x.x.x',
-            uri: '',
-            npm: ''
-        }
+        return {}
     }
     //#endregion
 

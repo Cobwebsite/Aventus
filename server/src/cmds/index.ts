@@ -31,6 +31,16 @@ import { StorybookBuild } from './storybook/Build';
 import { ImportProject } from './file-system/ImportProject';
 import { NpmBuild } from './npm/Build';
 import { AddI18nValue } from './i18n/AddI18nValue';
+import { PhpExport } from './php/Export';
+import { StoreConnect } from './store/Connect';
+import { StoreDisconnect } from './store/Disconnect';
+import { StorePublishPackage } from './store/PublishPackage';
+import { QuickTemplateEdit } from './file-system/QuickTemplateEdit';
+import { QuickTemplate } from './file-system/QuickTemplate';
+import { StorePublishTemplate } from './store/PublishTemplate';
+import { StoreDownloadTemplate } from './store/DownloadTemplate';
+import { UninstallProject } from './file-system/UninstallProject';
+import { UninstallTemplate } from './file-system/UninstallTemplate';
 
 export const Commands = {
     allCommandes: {
@@ -62,10 +72,20 @@ export const Commands = {
         [ImportTemplate.cmd]: ImportTemplate,
         [ImportProject.cmd]: ImportProject,
         [SharpExport.cmd]: SharpExport,
+        [PhpExport.cmd]: PhpExport,
         [ReloadSettings.cmd]: ReloadSettings,
         [StorybookBuild.cmd]: StorybookBuild,
         [NpmBuild.cmd]: NpmBuild,
-        [AddI18nValue.cmd]: AddI18nValue
+        [AddI18nValue.cmd]: AddI18nValue,
+        [StoreConnect.cmd]: StoreConnect,
+        [StoreDisconnect.cmd]: StoreDisconnect,
+        [StorePublishPackage.cmd]: StorePublishPackage,
+        [StorePublishTemplate.cmd]: StorePublishTemplate,
+        [StoreDownloadTemplate.cmd]: StoreDownloadTemplate,
+        [QuickTemplate.cmd]: QuickTemplate,
+        [QuickTemplateEdit.cmd]: QuickTemplateEdit,
+        [UninstallProject.cmd]: UninstallProject,
+        [UninstallTemplate.cmd]: UninstallTemplate,
     },
     execute: function (params: ExecuteCommandParams) {
         let cmd = this.allCommandes[params.command];

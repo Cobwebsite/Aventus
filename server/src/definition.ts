@@ -22,6 +22,7 @@ export const AventusExtension = {
     Base: ".avt",
     Config: "aventus.conf.avt",
     CsharpConfig: "aventus.sharp.avt",
+    PhpConfig: "aventus.php.avt",
     ComponentLogic: ".wcl.avt",
     ComponentView: ".wcv.avt",
     ComponentStyle: ".wcs.avt",
@@ -34,7 +35,8 @@ export const AventusExtension = {
     Static: ".static.avt",
     Definition: ".def.avt",
     DefinitionNpm: ".defnpm.avt",
-    Template: "template.avt",
+    Template: "template.avt.ts",
+    ConfigTemplate: "!aventus.conf.avt",
     Package: ".package.avt",
     I18n: ".i18n.avt",
 } as const;

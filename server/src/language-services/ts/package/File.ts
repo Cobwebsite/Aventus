@@ -1,9 +1,9 @@
-import { Diagnostic, Position, CompletionList, CompletionItem, Hover, Definition, Range, FormattingOptions, TextEdit, CodeAction, Location, CodeLens, WorkspaceEdit } from 'vscode-languageserver';
+import { Diagnostic, Position, CompletionList, CompletionItem, Hover, Range, FormattingOptions, TextEdit, CodeAction, Location, CodeLens, WorkspaceEdit } from 'vscode-languageserver';
 import { AventusFile, InternalAventusFile } from '../../../files/AventusFile';
 import { Build } from '../../../project/Build';
 import { AventusBaseFile } from '../../BaseFile';
 import { HTMLDoc } from '../../html/helper/definition';
-import { SCSSDoc } from '../../scss/helper/CSSNode';
+import { SCSSDoc } from '../../scss/helper/CSSCustomNode';
 import { AventusTsFile } from '../File';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AventusExtension, AventusLanguageId } from '../../../definition';
@@ -84,11 +84,16 @@ export class AventusPackageFile extends AventusBaseFile {
 	}
 
 
-	public dependances: AventusConfigBuildDependance[] = [];
+	public dependances: { [name: string]: AventusConfigBuildDependance } = {};
 
 	public constructor(file: AventusFile, build: Build) {
 		super(file, build);
 		this.prepareFile();
+	}
+
+	public async refreshDeprecated(sendRevalidate: boolean) {
+		if (this.tsDef)
+			await this.tsDef.refreshDeprecated(sendRevalidate);
 	}
 
 	public loadWebComponents() {
@@ -238,7 +243,7 @@ export class AventusPackageFile extends AventusBaseFile {
 		}
 		return null;
 	}
-	protected async onDefinition(document: AventusFile, position: Position): Promise<Definition | null> {
+	protected async onDefinition(document: AventusFile, position: Position): Promise<Location[] | null> {
 		if (this.tsFile) {
 			// let currentOffset = document.documentUser.offsetAt(position);
 			// let newPosition = this.tsFile.documentUser.positionAt(currentOffset - this.tsDefStart)
@@ -401,7 +406,7 @@ export class AventusPackageFileTs extends AventusTsFile {
 	protected async onHover(document: AventusFile, position: Position): Promise<Hover | null> {
 		return null;
 	}
-	protected async onDefinition(document: AventusFile, position: Position): Promise<Definition | null> {
+	protected async onDefinition(document: AventusFile, position: Position): Promise<Location[] | null> {
 		return this.tsLanguageService.findDefinition(document, position);
 	}
 	protected async onFormatting(document: AventusFile, range: Range, options: FormattingOptions): Promise<TextEdit[]> {
@@ -457,7 +462,7 @@ export class AventusPackageNamespaceFileTs extends AventusTsFile {
 		this.packageFile = packageFile;
 	}
 
-	public async goToDefinition(range: Range): Promise<Definition | null> {
+	public async goToDefinition(range: Range): Promise<Location[] | null> {
 		let offsetStart = this.file.documentInternal.offsetAt(range.start);
 		let offsetEnd = this.file.documentInternal.offsetAt(range.end);
 		let length = offsetEnd - offsetStart;
@@ -469,13 +474,13 @@ export class AventusPackageNamespaceFileTs extends AventusTsFile {
 				let realEnd = realStart + length;
 				let rangeStart = this.packageFile.file.documentInternal.positionAt(realStart);
 				let rangeEnd = this.packageFile.file.documentInternal.positionAt(realEnd);
-				return {
+				return [{
 					uri: this.packageFile.file.uri,
 					range: {
 						start: rangeStart,
 						end: rangeEnd
 					}
-				}
+				}]
 			}
 		}
 
@@ -500,7 +505,7 @@ export class AventusPackageNamespaceFileTs extends AventusTsFile {
 	protected async onHover(document: AventusFile, position: Position): Promise<Hover | null> {
 		return null;
 	}
-	protected async onDefinition(document: AventusFile, position: Position): Promise<Definition | null> {
+	protected async onDefinition(document: AventusFile, position: Position): Promise<Location[] | null> {
 		return null;
 	}
 	protected async onFormatting(document: AventusFile, range: Range, options: FormattingOptions): Promise<TextEdit[]> {
