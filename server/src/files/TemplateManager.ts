@@ -180,7 +180,7 @@ export class TemplateManager {
 
 		const sourceResult = await GenericServer.Select([
 			{ label: "Local" },
-			{ label: "Store" },
+			// { label: "Store" },
 			{ label: "Git" },
 		], { title: "Source" });
 
@@ -260,7 +260,7 @@ export class TemplateManager {
 
 		const sourceResult = await GenericServer.Select([
 			{ label: "Local" },
-			{ label: "Store" },
+			// { label: "Store" },
 			{ label: "Git" },
 		], { title: "Source" });
 
@@ -319,6 +319,7 @@ export class TemplateManager {
 					}
 				}
 				GenericServer.showInformationMessage("Templates installed");
+				this.reloadTemplates();
 			}
 		}
 		else if (sourceResult.label == "Git") {
@@ -328,12 +329,12 @@ export class TemplateManager {
 					cwd: this.templatePath[0]
 				})
 			}
+			this.reloadTemplates();
 		}
 		else if (sourceResult.label == "Store") {
 			await this.downloadTemplateFromStore();
 		}
 
-		this.reloadTemplates();
 	}
 
 	public async selectProjectToUninstall() {
@@ -369,6 +370,7 @@ export class TemplateManager {
 		}
 
 		if (result.length > 0) {
+			this.reloadProjects();
 			GenericServer.showInformationMessage("Projects deleted");
 		}
 	}
@@ -406,6 +408,7 @@ export class TemplateManager {
 		}
 
 		if (result.length > 0) {
+			this.reloadTemplates();
 			GenericServer.showInformationMessage("Templates deleted");
 		}
 	}
@@ -518,6 +521,12 @@ export class TemplateManager {
 					return;
 				}
 
+				if(temp.isProject) {
+					this.reloadProjects();
+				}
+				else {
+					this.reloadTemplates();
+				}
 				GenericServer.showInformationMessage("Template " + packageName + " installed");
 			}
 			else {

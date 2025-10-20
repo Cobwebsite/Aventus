@@ -304,7 +304,7 @@ namespace Layout {
             }
             let containerSize = direction == 'y' ? container.offsetHeight : container.offsetWidth;
             if(this.contentWrapperSize[direction] != 0) {
-                let scrollPosition = this.position[direction] / this.contentWrapperSize[direction] * containerSize;
+                let scrollPosition = this.div(this.position[direction], this.contentWrapperSize[direction]) * containerSize;
                 scroller.style.transform = `translate${direction.toUpperCase()}(${scrollPosition}px)`;
                 this.contentWrapper!.style.transform = `translate3d(${-1 * this.x}px, ${-1 * this.y}px, 0)`;
             }
@@ -549,7 +549,7 @@ namespace Layout {
             else {
                 newScale = Math.max(this.min_zoom, newZoom);
             }
-            let scaleDiff = newScale / oldScale;
+            let scaleDiff = this.div(newScale, oldScale);
             const matrix = this.createMatrix()
                 .translate(this.x, this.y)
                 .translate(mousePositionRelativeToTarget.x, mousePositionRelativeToTarget.y)
@@ -580,7 +580,7 @@ namespace Layout {
                 const newDistance = this.getDistance(touches[0], touches[1]);
                 const prevDistance = this.previousDistance;
 
-                let scaleDiff = prevDistance ? newDistance / prevDistance : 1;
+                let scaleDiff = prevDistance ? this.div(newDistance, prevDistance) : 1;
                 const panX = prevMidpoint.x - newMidpoint.x;
                 const panY = prevMidpoint.y - newMidpoint.y;
 
@@ -592,7 +592,7 @@ namespace Layout {
                 else {
                     newScale = Math.max(this.min_zoom, oldScale * scaleDiff);
                 }
-                scaleDiff = newScale / oldScale;
+                scaleDiff = this.div(newScale, oldScale);
 
                 const matrix = this.createMatrix()
                     .translate(panX, panY)
@@ -876,9 +876,9 @@ namespace Layout {
 
             if(this.zoom < 1) {
                 // scale the container for zoom
-                this.contentZoom.style.width = this.mainContainer.offsetWidth / this.zoom + 'px';
-                this.contentZoom.style.height = this.mainContainer.offsetHeight / this.zoom + 'px';
-                this.contentZoom.style.maxHeight = this.mainContainer.offsetHeight / this.zoom + 'px';
+                this.contentZoom.style.width = this.div(this.mainContainer.offsetWidth, this.zoom) + 'px';
+                this.contentZoom.style.height = this.div(this.mainContainer.offsetHeight, this.zoom) + 'px';
+                this.contentZoom.style.maxHeight = this.div(this.mainContainer.offsetHeight, this.zoom) + 'px';
                 if(currentOffsetHeight != this.display.y || currentOffsetWidth != this.display.x)
                     hasChanged = true;
 
@@ -886,8 +886,8 @@ namespace Layout {
                 this.display.x = currentOffsetWidth;
             }
             else {
-                const newX = currentOffsetWidth / this.zoom;
-                const newY = currentOffsetHeight / this.zoom;
+                const newX = this.div(currentOffsetWidth, this.zoom);
+                const newY = this.div(currentOffsetHeight, this.zoom);
                 if(newY != this.display.y || newX != this.display.x)
                     hasChanged = true;
 
@@ -939,7 +939,7 @@ namespace Layout {
         }
 
         private calculateSizeScroller(direction: 'x' | 'y') {
-            const scrollerSize = ((this.display[direction] - this.margin[direction]) / this.contentWrapperSize[direction] * 100);
+            const scrollerSize = (this.div((this.display[direction] - this.margin[direction]), this.contentWrapperSize[direction]) * 100);
             if(direction == "y") {
                 this.scroller[direction]().style.height = scrollerSize + '%';
             }
@@ -974,8 +974,8 @@ namespace Layout {
             }
             else if(this.loadedOnce) {
                 this.savedPercent = {
-                    x: this.position.x / this.contentWrapperSize.x,
-                    y: this.position.y / this.contentWrapperSize.y
+                    x: this.div(this.position.x, this.contentWrapperSize.x),
+                    y: this.div(this.position.y, this.contentWrapperSize.y)
                 };
             }
             if(!this.calculateRealSize() && !force) {
@@ -1034,6 +1034,10 @@ namespace Layout {
             }
             this.observer.observe(this.contentWrapper);
             this.observer.observe(this);
+        }
+        private div(nb1: number, nb2: number) {
+            if(!nb2) return nb1;
+            return nb1 / nb2;
         }
         protected override postCreation(): void {
             this.dimensionRefreshed();
