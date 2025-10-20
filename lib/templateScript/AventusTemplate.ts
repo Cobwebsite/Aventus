@@ -385,6 +385,15 @@ export abstract class AventusTemplate {
 		}
 	}
 
+	protected showErrorMessage(msg: string): void {
+		return this.runCommand("showErrorMessage", msg);
+	}
+	protected showWarningMessage(msg: string): void {
+		return this.runCommand("showWarningMessage", msg);
+	}
+	protected showInformationMessage(msg: string): void {
+		return this.runCommand("showErrorMessage", msg);
+	}
 	protected async showProgress(txt: string): Promise<string> {
 		return await this.runCommandWithAnswer("progressStart", txt);
 	}

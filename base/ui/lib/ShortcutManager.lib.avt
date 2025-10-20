@@ -27,14 +27,14 @@ namespace Lib {
     }
 
     export class ShortcutManager {
-        private static memory: { [key: string]: (() => void | false | Promise<void>)[]; } = {};
+        private static memory: { [key: string]: (() => void | false | Promise<void> | Promise<false>)[]; } = {};
         private static autoPrevents: string[] = [];
         private static isInit: boolean = false;
         private static arrayKeys: string[] = [];
 
-        private static options: Map<() => void | false | Promise<void>, ShortcutManagerOptions> = new Map();
+        private static options: Map<() => void | false | Promise<void> | Promise<false>, ShortcutManagerOptions> = new Map();
 
-        private static replacingMemory: { [key: string]: (() => void | false | Promise<void>)[][]; } = {};
+        private static replacingMemory: { [key: string]: (() => void | false | Promise<void> | Promise<false>)[][]; } = {};
 
         private static isTxt(touch: string) {
             return touch.match(/[a-zA-Z0-9_\+\-]/g);
@@ -58,7 +58,7 @@ namespace Lib {
             allTouches.sort();
             return allTouches.join("+");
         }
-        public static subscribe(combinaison: (SpecialTouch | string)[] | (SpecialTouch | string), cb: () => void | false | Promise<void>, options?: ShortcutManagerOptions) {
+        public static subscribe(combinaison: (SpecialTouch | string)[] | (SpecialTouch | string), cb: () => void | false | Promise<void> | Promise<false>, options?: ShortcutManagerOptions) {
             if(!Array.isArray(combinaison)) {
                 combinaison = [combinaison];
             }
@@ -85,7 +85,7 @@ namespace Lib {
                 ShortcutManager.init();
             }
         }
-        public static unsubscribe(combinaison: (SpecialTouch | string)[] | (SpecialTouch | string), cb: () => void | false | Promise<void>) {
+        public static unsubscribe(combinaison: (SpecialTouch | string)[] | (SpecialTouch | string), cb: () => void | false | Promise<void> | Promise<false>) {
             if(!Array.isArray(combinaison)) {
                 combinaison = [combinaison];
             }
@@ -120,7 +120,7 @@ namespace Lib {
                 }
             }
         }
-        private static onKeyDown(e: KeyboardEvent) {
+        private static async onKeyDown(e: KeyboardEvent) {
             if(e.ctrlKey) {
                 let txt = SpecialTouch[SpecialTouch.Control];
                 if(!this.arrayKeys.includes(txt)) {
@@ -161,7 +161,7 @@ namespace Lib {
 
                 this.arrayKeys = [];
                 for(let cb of ShortcutManager.memory[key]) {
-                    const result = cb();
+                    const result = await cb();
                     if(result === false) {
                         preventDefault = result;
                     }
@@ -181,7 +181,7 @@ namespace Lib {
             }
         }
 
-        public static init() {
+        public static init(): void {
             if(ShortcutManager.isInit) return;
 
             ShortcutManager.isInit = true;
@@ -206,6 +206,15 @@ namespace Lib {
             });
             document.body.addEventListener("keydown", this.onKeyDown);
             document.body.addEventListener("keyup", this.onKeyUp);
+        }
+        public static setAutoPrevents(combinaisons: (SpecialTouch | string)[][]): void {
+            if(!ShortcutManager.isInit) {
+                this.init();
+            }
+            ShortcutManager.autoPrevents = [];
+            for(let combinaison of combinaisons) {
+                ShortcutManager.autoPrevents.push(this.getText(combinaison));
+            }
         }
         private static uninit() {
             document.body.removeEventListener("keydown", this.onKeyDown);

@@ -243,6 +243,15 @@ export class TemplateScript {
 								}
 								answer(payload.cmd, "done");
 							}
+							else if (payload.cmd == "showErrorMessage") {
+								GenericServer.showErrorMessage(payload.config as string);
+							}
+							else if (payload.cmd == "showWarningMessage") {
+								GenericServer.showWarningMessage(payload.config as string);
+							}
+							else if (payload.cmd == "showInformationMessage") {
+								GenericServer.showInformationMessage(payload.config as string);
+							}
 							else if (payload.cmd == "progressStart") {
 								let txt = payload.config as string;
 								let uuid = ProgressStart.send(txt);

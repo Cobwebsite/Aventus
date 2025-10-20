@@ -110,7 +110,9 @@ if ('WebSocket' in window) {
 				}
 			}
 			catch (e) {
-				window.location.reload(true);
+				setTimeout(() => {
+					window.location.reload(true);
+				}, 1000)
 			}
 		}
 		socket.onerror = function () {

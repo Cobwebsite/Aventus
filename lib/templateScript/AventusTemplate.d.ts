@@ -99,6 +99,12 @@ declare abstract class AventusTemplate {
     protected removeIndent(text: string): string;
     /** Exec a command. For example: "npm i" */
     protected exec(cmd: string, asAdmin?: boolean): Promise<void>;
+    /** Show an error message inside the IDE */
+    protected showErrorMessage(msg: string): void;
+    /** Show a warning message inside the IDE */
+    protected showWarningMessage(msg: string): void;
+    /** Show an information message inside the IDE */
+    protected showInformationMessage(msg: string): void;
     /** Show a progress bar inside the IDE */
     protected showProgress(txt: string): Promise<string>;
     /** Hide the progress bar inside the IDE */

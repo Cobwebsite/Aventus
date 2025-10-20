@@ -8292,7 +8292,7 @@ Lib.ShortcutManager=class ShortcutManager {
             }
         }
     }
-    static onKeyDown(e) {
+    static async onKeyDown(e) {
         if (e.ctrlKey) {
             let txt = Lib.SpecialTouch[Lib.SpecialTouch.Control];
             if (!this.arrayKeys.includes(txt)) {
@@ -8329,7 +8329,7 @@ Lib.ShortcutManager=class ShortcutManager {
             }
             this.arrayKeys = [];
             for (let cb of Lib.ShortcutManager.memory[key]) {
-                const result = cb();
+                const result = await cb();
                 if (result === false) {
                     preventDefault = result;
                 }
@@ -8373,6 +8373,15 @@ Lib.ShortcutManager=class ShortcutManager {
         });
         document.body.addEventListener("keydown", this.onKeyDown);
         document.body.addEventListener("keyup", this.onKeyUp);
+    }
+    static setAutoPrevents(combinaisons) {
+        if (!Lib.ShortcutManager.isInit) {
+            this.init();
+        }
+        Lib.ShortcutManager.autoPrevents = [];
+        for (let combinaison of combinaisons) {
+            Lib.ShortcutManager.autoPrevents.push(this.getText(combinaison));
+        }
     }
     static uninit() {
         document.body.removeEventListener("keydown", this.onKeyDown);

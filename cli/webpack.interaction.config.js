@@ -29,4 +29,7 @@ module.exports = withDefaults({
 
 	},
 	plugins: optionalPlugins,
+	externals: {
+		"@aws-sdk/client-s3": "",
+	}
 });
