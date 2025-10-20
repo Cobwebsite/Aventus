@@ -1,4 +1,5 @@
 import { sep } from 'path';
+import { OutputChannel, window } from 'vscode';
 
 export function pathToUri(path: string): string {
     if (path.startsWith("file://")) {
@@ -15,4 +16,19 @@ export function uriToPath(uri: string): string {
         return decodeURIComponent(uri.replace("file://", ""));
     }
     return decodeURIComponent(uri.replace("file:///", ""));
+}
+export function getNonce() {
+    let text = '';
+    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    for (let i = 0; i < 32; i++) {
+        text += possible.charAt(Math.floor(Math.random() * possible.length));
+    }
+    return text;
+}
+
+let channel: OutputChannel | undefined = undefined
+export function log(message: string) {
+    if (!channel)
+        channel = window.createOutputChannel("Aventus Client");
+    channel.appendLine(message)
 }

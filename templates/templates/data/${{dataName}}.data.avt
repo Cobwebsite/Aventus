@@ -1,0 +1,5 @@
+#{{namespace}}
+	export class ${{className}} extends Aventus.Data implements Aventus.IData {
+		public id: number = 0;
+	}
+#{{namespace/}}

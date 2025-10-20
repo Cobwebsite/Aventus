@@ -143,7 +143,7 @@ export class Storie {
 			else {
 				template = this.replaceVariable(template, "live", ``);
 			}
-			template = this.replaceVariable(template, "blocks", `import { Canvas, Controls, Title } from '@storybook/blocks'`);
+			template = this.replaceVariable(template, "blocks", `import { Canvas, Controls, Title } from '@storybook/addon-docs/blocks'`);
 			let typeUpper = storieContent.kind[0].toUpperCase() + storieContent.kind.slice(1);
 			template = this.replaceVariable(template, "render", `import { Story${typeUpper}Render } from '@aventusjs/storybook-render/AventusStorybook'`);
 
@@ -223,10 +223,16 @@ export class Storie {
 			mkdirSync(this.buildConfig.stories.output, { recursive: true });
 		}
 		const path = this.buildConfig.stories.output;
+		let name = "@" + this.buildConfig.module;
+		let displayName = this.buildConfig.module;
+		if (this.buildConfig.name) {
+			name += "/" + this.buildConfig.name;
+			displayName += " " + this.buildConfig.name;
+		}
 		const currentVars: { [name: string]: string } = {
-			"name": ("@" + this.buildConfig.module + "/" + this.buildConfig.name + "_storybook").toLowerCase(),
-			"displayName": this.buildConfig.module + " " + this.buildConfig.name + "_storybook",
-			"description": "Aventus storybook for " + "@" + this.buildConfig.module + "/" + this.buildConfig.name,
+			"name": (name + "_storybook").toLowerCase(),
+			"displayName": displayName + "_storybook",
+			"description": "Aventus storybook for " + name,
 			"version": this.buildConfig.version,
 		};
 		if (readdirSync(this.buildConfig.stories.output).length == 0) {

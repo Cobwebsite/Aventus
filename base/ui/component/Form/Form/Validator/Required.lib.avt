@@ -1,0 +1,28 @@
+import { Validator } from "../Validator.lib.avt";
+
+namespace Form.Validators {
+    export class Required extends Validator<any> {
+        public static msg: string = "Le champs {name} est requis";
+
+        private _msg: string;
+        public constructor(msg?: string) {
+            super();
+            this._msg = msg ?? Required.msg;
+        }
+        /**
+         * @inheritdoc
+         */
+        public override validate(value: any | undefined, name: string, globalValidation: () => Promise<void>): string | boolean {
+            const txt = this._msg.replace(/\{ *name *\}/g, name);
+            if(value === undefined || value === null) {
+                return txt;
+            }
+            if(typeof value == 'string' && value.trim() == "") {
+                return txt;
+            }
+
+            return true;
+        }
+
+    }
+}

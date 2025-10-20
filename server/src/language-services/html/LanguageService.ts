@@ -1,5 +1,5 @@
-import { getLanguageService, IAttributeData, InsertTextFormat, InsertTextMode, ITagData, IValueData, LanguageService, TokenType } from "vscode-html-languageservice";
-import { CompletionItem, CompletionItemKind, CompletionList, Definition, Diagnostic, FormattingOptions, Hover, Location, Position, Range, TextEdit } from "vscode-languageserver";
+import { getLanguageService, IAttributeData, IHTMLDataProvider, InsertTextFormat, InsertTextMode, ITagData, IValueData, LanguageService, newHTMLDataProvider, TokenType } from "vscode-html-languageservice";
+import { CompletionItem, CompletionItemKind, CompletionList, Diagnostic, FormattingOptions, Hover, Location, Position, Range, TextEdit } from "vscode-languageserver";
 import { AventusLanguageId } from "../../definition";
 import { AventusFile } from '../../files/AventusFile';
 import { Build } from "../../project/Build";
@@ -12,7 +12,12 @@ import { MethodInfo } from '../ts/parser/MethodInfo';
 import { PropertyInfo } from '../ts/parser/PropertyInfo';
 import { ClassInfo } from '../ts/parser/ClassInfo';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { convertRange, getWordAtText } from '../../tools';
+import { convertRange, getWordAtText, uriToPath } from '../../tools';
+import { TagInfo } from './parser/TagInfo';
+import { SettingsManager } from '../../settings/Settings';
+import { GenericServer } from '../../GenericServer';
+import { normalize } from 'path';
+import { existsSync, readFileSync } from 'fs';
 
 
 export class AventusHTMLLanguageService {
@@ -26,9 +31,16 @@ export class AventusHTMLLanguageService {
     private internalDocumentation: { [key: string]: HTMLDoc } = {};
     private internalDocumentationReverse: { [className: string]: AventusWebComponentLogicalFile } = {};
     private internalTagUri: { [tag: string]: { uri: string, fullname: string } } = {};
+    private _allowRebuildDefinition: boolean = true;
+    private build: Build;
 
     public constructor(build: Build) {
+        this.build = build;
         this.languageService = this.getHTMLLanguageService();
+
+        SettingsManager.getInstance().onSettingsChangeHtml(() => {
+            this.languageService.setDataProviders(true, [this.defaultProvider(), ...this.loadOthersProviders()])
+        })
     }
 
     public getInternalDocumentation(): HTMLDoc {
@@ -64,18 +76,49 @@ export class AventusHTMLLanguageService {
         return getLanguageService({
             useDefaultDataProvider: true,
             customDataProviders: [
-                {
-                    getId: this.getId.bind(this),
-                    isApplicable(languageId) {
-                        return languageId == AventusLanguageId.HTML;
-                    },
-                    provideTags: this.provideTags.bind(this),
-                    provideAttributes: this.provideAttributes.bind(this),
-                    provideValues: this.provideValues.bind(this)
-                }
+                this.defaultProvider(),
+                ...this.loadOthersProviders()
             ],
         });
     }
+
+    protected defaultProvider(): IHTMLDataProvider {
+        return {
+            getId: this.getId.bind(this),
+            isApplicable(languageId) {
+                return languageId == AventusLanguageId.HTML;
+            },
+            provideTags: this.provideTags.bind(this),
+            provideAttributes: this.provideAttributes.bind(this),
+            provideValues: this.provideValues.bind(this)
+        }
+    }
+    protected loadOthersProviders() {
+        const settings = SettingsManager.getInstance().settingsHtml;
+        const providers: IHTMLDataProvider[] = []
+        for (let uri of settings.customData) {
+            let realPath = normalize(uriToPath(GenericServer.getWorkspaceUri() + "/" + uri));
+            if (existsSync(realPath)) {
+                let rawData: any;
+                try {
+                    const source = readFileSync(realPath, 'utf8');
+                    rawData = JSON.parse(source);
+                    let provider = newHTMLDataProvider(uri, {
+                        version: rawData.version || 1,
+                        tags: rawData.tags || [],
+                        globalAttributes: rawData.globalAttributes || [],
+                        valueSets: rawData.valueSets || []
+                    });
+                    providers.push(provider);
+                } catch (err) {
+                }
+            }
+
+        }
+        return providers;
+    }
+
+
     public getId(): string {
         return this.id + "";
     }
@@ -83,31 +126,81 @@ export class AventusHTMLLanguageService {
         return this.customTagsData;
     }
     public provideAttributes(tag: string): IAttributeData[] {
-        let result: IAttributeData[] = [...defaultAttrs];
-        if (this.documentationInfo[tag]) {
-            let attrs = this.documentationInfo[tag].attributes;
-            for (let attrName in attrs) {
-                let current = attrs[attrName];
-                if (this.isAutoComplete) {
-                    result.push({
-                        name: "!!" + current.name,
-                        description: JSON.stringify({
-                            description: current.description,
-                            type: current.type,
+        let result: IAttributeData[] = [];
+        if (tag == "block") {
+            const attr: IAttributeData = {
+                name: "name",
+                values: []
+            }
+            const info = this.currentFile?.slotsInfo ?? {};
+            for (let name in info) {
+                attr.values?.push({
+                    name: name,
+                    description: info[name].doc,
+                })
+            }
+            result.push(attr);
+        }
+        else {
+            result = [...defaultAttrs];
+            if (this.documentationInfo[tag]) {
+                let attrs = this.documentationInfo[tag].attributes;
+                for (let attrName in attrs) {
+                    let current = attrs[attrName];
+                    if (this.isAutoComplete) {
+                        result.push({
+                            name: "!!" + current.name,
+                            description: JSON.stringify({
+                                description: current.description,
+                                type: current.type,
+                            })
                         })
-                    })
-                }
-                else {
-                    result.push({
-                        name: current.name,
-                        description: current.description
-                    })
+                    }
+                    else {
+                        result.push({
+                            name: current.name,
+                            description: current.description
+                        })
+                    }
                 }
             }
         }
         return result;
     }
     public provideValues(tag: string, attribute: string): IValueData[] {
+        if (tag == "block") {
+            if (attribute == "name") {
+                const result: IValueData[] = [];
+                const info = this.currentFile?.slotsInfo ?? {};
+                for (let name in info) {
+                    result.push({
+                        name: name,
+                        description: info[name].doc,
+                    })
+                }
+                return result;
+            }
+        }
+        if (attribute == "slot") {
+            // load slot from parent tag
+            if (this.currentFile && this.currentFileOffset) {
+                let tagInfo = this.getTag(this.currentFile, this.currentFileOffset);
+                if (tagInfo?.parent) {
+                    let file = this.currentFile.build.getWebComponentDefinition(tagInfo.parent.tagName);
+                    if (file?.class) {
+                        const slotsInfo = this.currentFile.build.getSlotsInfo(file?.class);
+                        const result: IValueData[] = [];
+                        for (let name in slotsInfo) {
+                            result.push({
+                                name: name,
+                                description: slotsInfo[name].doc,
+                            })
+                        }
+                        return result;
+                    }
+                }
+            }
+        }
         if (this.documentationInfo[tag] && this.documentationInfo[tag].attributes[attribute]) {
             return this.documentationInfo[tag].attributes[attribute].values;
         }
@@ -117,10 +210,14 @@ export class AventusHTMLLanguageService {
     //#endregion
 
     //#region language service function
+    private currentFile: AventusHTMLFile | undefined = undefined;
+    private currentFileOffset: number | undefined = undefined;
     public async doValidation(file: AventusFile): Promise<Diagnostic[]> {
         return [];
     }
     public async doComplete(htmlFile: AventusHTMLFile, position: Position): Promise<CompletionList> {
+        this.currentFile = htmlFile;
+        this.currentFileOffset = htmlFile.file.documentUser.offsetAt(position);
         let docHTML = this.languageService.parseHTMLDocument(htmlFile.file.documentUser);
         if (docHTML) {
             this.isAutoComplete = true;
@@ -141,6 +238,9 @@ export class AventusHTMLLanguageService {
                             if (customInfo.description == "") {
                                 delete temp.documentation;
                             }
+                            else {
+                                temp.documentation = customInfo.description;
+                            }
 
                             if (customInfo.type == 'boolean') {
                                 temp.textEdit.newText = temp.textEdit.newText.split("=")[0];
@@ -156,8 +256,12 @@ export class AventusHTMLLanguageService {
                 }
             }
             result.items = result.items.concat(this.doCustomComplete(htmlFile, position));
+            this.currentFile = undefined;
+            this.currentFileOffset = undefined;
             return result;
         }
+        this.currentFile = undefined;
+        this.currentFileOffset = undefined;
         return { isIncomplete: false, items: [] };
     }
 
@@ -193,13 +297,29 @@ export class AventusHTMLLanguageService {
         return result;
     }
 
+    private getTag(file: AventusHTMLFile, offset: number): TagInfo | null {
+        if (!file.fileParsed) return null;
+        for (let tag of file.fileParsed.tags) {
+            if (offset < tag.start) {
+                break;
+            }
+
+            if (offset >= tag.openTagStart && offset <= tag.openTagEnd) {
+                return tag;
+            }
+        }
+        return null;
+    }
+
     public async doHover(file: AventusHTMLFile, position: Position): Promise<Hover | null> {
+        this.currentFile = file;
         let info = this.getLinkToLogic(file, position);
         if (info) {
+            this.currentFile = undefined;
             return {
                 contents: {
                     kind: 'markdown',
-                    value: info.documentation?.fullDefinitions.join("\n") ?? '',
+                    value: info.documentation?.definitions.join("\n") ?? '',
                 }
             };
 
@@ -207,38 +327,44 @@ export class AventusHTMLLanguageService {
         else {
             let docHTML = this.languageService.parseHTMLDocument(file.file.documentUser);
             if (docHTML) {
+                this.currentFile = undefined;
                 return this.languageService.doHover(file.file.documentUser, position, docHTML)
             }
         }
+        this.currentFile = undefined;
         return null;
     }
     public async format(document: TextDocument, range: Range, formatParams: FormattingOptions): Promise<TextEdit[]> {
         return this.languageService.format(document, range, formatParams);
     }
-    public async onDefinition(file: AventusHTMLFile, position: Position): Promise<Definition | null> {
+    public async onDefinition(file: AventusHTMLFile, position: Position): Promise<Location[] | null> {
+        this.currentFile = file;
         let info = this.getLinkToLogic(file, position);
-        let tsFile = file.tsFile;
-        if ((info instanceof MethodInfo || info instanceof PropertyInfo) && tsFile) {
-            return {
+        if ((info instanceof MethodInfo || info instanceof PropertyInfo)) {
+            let tsFile = file.build.tsFiles[info._class.fileUri]
+            this.currentFile = undefined;
+            return [{
                 uri: tsFile.file.uri,
                 range: {
                     start: tsFile.file.documentUser.positionAt(info.nameStart),
                     end: tsFile.file.documentUser.positionAt(info.nameEnd)
                 }
-            }
+            }]
         }
         else if (info instanceof ClassInfo) {
-            return {
+            this.currentFile = undefined;
+            return [{
                 uri: info.document.uri,
                 range: {
                     start: info.document.positionAt(info.nameStart),
                     end: info.document.positionAt(info.nameEnd)
                 }
-            }
+            }]
         }
-
-
-        return null;
+        else {
+            this.currentFile = undefined;
+            return this.build.htmlLanguageService.getLinkToStyle(file, position)
+        }
     }
     //#endregion
 
@@ -251,6 +377,17 @@ export class AventusHTMLLanguageService {
             for (let point of file.fileParsed.interestPoints) {
                 if (offset >= point.start && offset <= point.end) {
                     let element: MethodInfo | PropertyInfo | null = null;
+                    if (point.type == "event") {
+                        // find tag
+                        let tag = this.getTag(file, offset);
+                        if (tag) {
+                            let classInfo = file.build.getWebComponentDefinition(tag.tagName);
+                            if (classInfo) {
+                                let _event = classInfo.class.getEvent(point.name);
+                                if (_event) return _event;
+                            }
+                        }
+                    }
                     if (point.type == "method") {
                         element = classInfo.methods[point.name];
                     }
@@ -276,6 +413,7 @@ export class AventusHTMLLanguageService {
                             }
                         }
                     }
+
                     return element;
                 }
                 else if (point.end >= offset) {
@@ -308,7 +446,12 @@ export class AventusHTMLLanguageService {
     }
 
     //#region custom definition
+    public allowRebuildDefinition(value: boolean) {
+        this._allowRebuildDefinition = value;
+        this.rebuildDefinition();
+    }
     public rebuildDefinition() {
+        if (!this._allowRebuildDefinition) return
         this.documentationInfo = {};
         for (let uri in this.extenalDocumentation) {
             let doc = this.extenalDocumentation[uri];
@@ -394,7 +537,7 @@ export class AventusHTMLLanguageService {
         return this.internalTagUri[tag];
     }
     public addInternalTagUri(tag: string, uri: string, fullname: string) {
-        this.internalTagUri[tag] = {uri, fullname};
+        this.internalTagUri[tag] = { uri, fullname };
     }
     public removeInternalTagUri(uri: string) {
         for (let tag in this.internalTagUri) {

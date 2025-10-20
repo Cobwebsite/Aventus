@@ -16,7 +16,7 @@ export class ImportViewElement {
 		if (file) {
 			let oldEnd = file.documentUser.positionAt(file.contentUser.length);
 			let builds = FilesManager.getInstance().getBuild(file.documentUser);
-			if (builds.length > 0) {
+			if (builds && builds.length > 0) {
 				let fileTs = builds[0].tsFiles[uri]
 				if (fileTs instanceof AventusWebComponentLogicalFile) {
 					let info = fileTs.getMissingVariablesInfo();

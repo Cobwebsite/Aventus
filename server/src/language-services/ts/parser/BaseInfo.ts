@@ -18,6 +18,7 @@ import { Storie } from '../../../project/storybook/Stories';
 import { AventusExtension } from '../../../definition';
 import { CompileTsResult } from '../LanguageService';
 import { ImportInfo } from './ImportInfo';
+import { DeprecatedDecorator } from './decorators/DeprecatedDecorator';
 
 
 export enum InfoType {
@@ -40,6 +41,7 @@ export type SupportedRootNodes = ClassDeclaration | EnumDeclaration | InterfaceD
 
 export type DependanceInfo = {
     replacement: string | null,
+    docReplacement: string | null,
     hotReloadReplacement: string | null,
     npmReplacement: string | null,
     typeRemplacement: string | null,
@@ -108,13 +110,15 @@ export abstract class BaseInfo {
     public storyType: 'all' | 'none' | 'public' | 'protected' = 'none';
 
     // public dependancesFullName: string[] = [];
-    public dependances: DependanceType[] = []
+    public dependances: { [name: string]: DependanceType } = {};
     public compiled: string = "";
     public documentation?: DocumentationInfo;
     public isExported: boolean = false;
     public isInternalExported: boolean = false;
     private _parserInfo: ParserTs;
     public content: string = "";
+    public deprecated: boolean = false;
+    public deprecatedMsg: string = "";
     public compileTransformations: { [key: string]: { newText: string, start: number, end: number } } = {};
     public get compiledContent(): string {
         return BaseInfo.getContent(this.content, this.start, this.end, this.dependancesLocations, this.compileTransformations);
@@ -125,12 +129,14 @@ export abstract class BaseInfo {
     public get compiledContentNpm(): string {
         return BaseInfo.getContentNpm(this.content, this.start, this.end, this.dependancesLocations, this.compileTransformations);
     }
+    public get compiledContentDoc(): string {
+        return BaseInfo.getContentDoc(this.content, this.start, this.end, this.dependancesLocations, this.compileTransformations);
+    }
     public get fileUri() {
         return this.document.uri;
     }
     public debug: boolean = false;
     public document: TextDocument;
-    private dependanceNameLoaded: string[] = [];
     private dependancePrevented: string[] = [];
     public dependancesLocations: {
         [name: string]: DependanceInfo
@@ -161,7 +167,7 @@ export abstract class BaseInfo {
             this.fullName = [...namespaces, this.name].join(".");
             this.content = node.getText();
 
-            if (!parserInfo.isLib) {
+            if (!parserInfo.isExternal) {
                 BaseInfo.infoByShortName[this.name] = this;
             }
 
@@ -171,7 +177,7 @@ export abstract class BaseInfo {
             }
 
             if (autoLoadDepDecorator) {
-                this.loadDependancesDecorator();
+                this.loadDecorators();
             }
             if (node.kind != SyntaxKind.VariableDeclaration) {
                 this.isExported = BaseInfo.isExported(node);
@@ -191,13 +197,18 @@ export abstract class BaseInfo {
 
     }
 
-    protected loadDependancesDecorator() {
+    protected loadDecorators() {
         for (let decorator of this.decorators) {
             let temp = DependancesDecorator.is(decorator);
             if (temp) {
                 for (let dependance of temp.dependances) {
                     this.addDependanceName(dependance.type, dependance.strong, 0, 0);
                 }
+            }
+            let temp2 = DeprecatedDecorator.is(decorator);
+            if (temp2) {
+                this.deprecated = true;
+                this.deprecatedMsg = temp2.msg;
             }
         }
     }
@@ -319,7 +330,7 @@ export abstract class BaseInfo {
     private loadDependanceContext: undefined | 'Decorator' = undefined;
     private maybeDependances: { [name: string]: { uri: string, name: string, compiled: boolean } } = {}
     protected loadOnlyDependancesRecu(node: Node, depth: number = 0, isStrongDependance: boolean = false) {
-        if (this.parserInfo.isLib) {
+        if (this.parserInfo.isExternal) {
             return
         }
         if (node.kind == SyntaxKind.Decorator) {
@@ -345,7 +356,7 @@ export abstract class BaseInfo {
      * @param isStrongDependance 
      */
     protected addDependance(type: TypeNode, isStrongDependance: boolean): void {
-        if (this.parserInfo.isLib) {
+        if (this.parserInfo.isExternal) {
             return
         }
         // TODO : add scope declaration variable
@@ -379,7 +390,7 @@ export abstract class BaseInfo {
      * @param isStrongDependance 
      */
     protected addDependanceWaitName(type: TypeNode, isStrongDependance: boolean, cb: (names: string[], namesNpm: string[]) => void): void {
-        if (this.parserInfo.isLib) {
+        if (this.parserInfo.isExternal) {
             cb([type.getText()], [type.getText()])
             return
         }
@@ -552,7 +563,7 @@ export abstract class BaseInfo {
             }
             else {
                 // if not imported on the top on the file we need to import it
-                const importInfo = ImportInfo.ManualLocalImport(this, dependance.fullName, dependance.uri);
+                const importInfo = ImportInfo.manualLocalImport(this, dependance.fullName, dependance.uri);
 
                 const fullNameOther = dependance.fullName;
                 let namespace1: string[] = this.fullName.split(".");
@@ -599,7 +610,7 @@ export abstract class BaseInfo {
         }
     }
     protected addDependanceName(name: string, isStrongDependance: boolean, start: number, end: number, onNameTemp?: ((name?: string, nameNpm?: string) => void)): void {
-        if (this.parserInfo.isLib) {
+        if (this.parserInfo.isExternal) {
             return
         }
         let onName: (name?: string, nameNpm?: string) => void
@@ -632,7 +643,8 @@ export abstract class BaseInfo {
             if (!this.parserInfo.internalObjects[name] &&
                 !this.parserInfo.importsLocal[name] &&
                 !this.parserInfo.waitingImports[name] &&
-                !this.parserInfo.npmImports[name]
+                !this.parserInfo.npmImports[name] &&
+                !this.parserInfo.packages[name]
             ) {
                 onName();
                 return
@@ -645,6 +657,7 @@ export abstract class BaseInfo {
                     locations: {},
                     typeRemplacement: null,
                     replacement: null,
+                    docReplacement: null,
                     hotReloadReplacement: null,
                     npmReplacement: null
                 }
@@ -675,7 +688,7 @@ export abstract class BaseInfo {
             onName();
             return
         }
-        if (this.dependanceNameLoaded.includes(name)) {
+        if (this.dependances[name]) {
             onName();
             // there is a dependance but not loaded bc of context => check if can be loaded
             if (this.loadDependanceContext === undefined && this.maybeDependances[name]) {
@@ -691,15 +704,14 @@ export abstract class BaseInfo {
             }
             return
         }
-        this.dependanceNameLoaded.push(name);
 
         if (name.includes(".")) {
             // lib name => impossible to be a local name
-            this.dependances.push({
+            this.dependances[name] = {
                 fullName: name,
                 uri: "@external",
                 isStrong: isStrongDependance,
-            });
+            };
 
             let classExternal = this.build.externalPackageInformation.getNpmUri(name);
             const npmReplacement = this.getNpmReplacementName(name);
@@ -776,11 +788,11 @@ export abstract class BaseInfo {
             if (fullName == this.fullName) {
                 isStrongDependance = false;
             }
-            this.dependances.push({
+            this.dependances[name] = {
                 fullName: "$namespace$" + fullName,
                 uri: '@local',
                 isStrong: isStrongDependance,
-            });
+            };
             if (this.debug) {
                 console.log("add dependance " + name + " : same file");
             }
@@ -797,6 +809,7 @@ export abstract class BaseInfo {
 
                 this.dependancesLocations[name].typeRemplacement = replacement;
                 this.dependancesLocations[name].replacement = fullName;
+                this.dependancesLocations[name].docReplacement = fullName;
                 // no need to use getNpmReplacementName because local content can't change name
                 this.dependancesLocations[name].npmReplacement = name;
                 this.dependancesLocations[name].hotReloadReplacement = hotReloadName;
@@ -812,28 +825,36 @@ export abstract class BaseInfo {
             // it's an imported class
             let fullName = importInfo.fullName
             let hotReloadName = [this.build.module, ...this.build.namespaces, fullName].join(".");
-            this.dependances.push({
+            this.dependances[name] = {
                 fullName: "$namespace$" + fullName,
                 uri: importInfo.fileUri,
                 isStrong: isStrongDependance,
-            });
+            };
             if (this.debug) {
                 console.log("add dependance " + name + " : imported file");
             }
             const npmReplacement = this.getNpmReplacementName([this.build.module, fullName].join("."))
             if (this.dependancesLocations[name]) {
-                let replacement = fullName;
+                let typeRemplacement = fullName;
                 if (this.isExported != importInfo.isExported) {
                     if (!this.isExported) {
-                        replacement = ['globalThis', this.build.module, fullName].join(".");
+                        typeRemplacement = ['globalThis', this.build.module, fullName].join(".");
                     }
                     else {
-                        replacement = ['___' + this.build.module, fullName].join(".");
+                        typeRemplacement = ['___' + this.build.module, fullName].join(".");
                     }
                 }
 
-                this.dependancesLocations[name].typeRemplacement = replacement;
-                this.dependancesLocations[name].replacement = fullName;
+                let remplacement = fullName;
+                const splittedLocalFullName = this.fullName.split(".");
+                splittedLocalFullName.slice(0, 1);
+                const replacementStart = fullName.split('.')[0];
+                if (splittedLocalFullName.includes(replacementStart)) {
+                    remplacement = '_.' + remplacement;
+                }
+                this.dependancesLocations[name].typeRemplacement = typeRemplacement;
+                this.dependancesLocations[name].replacement = remplacement;
+                this.dependancesLocations[name].docReplacement = fullName;
                 this.dependancesLocations[name].npmReplacement = npmReplacement;
                 this.dependancesLocations[name].hotReloadReplacement = hotReloadName;
 
@@ -863,16 +884,17 @@ export abstract class BaseInfo {
 
                     this.dependancesLocations[name].typeRemplacement = replacement;
                     this.dependancesLocations[name].replacement = fullName;
+                    this.dependancesLocations[name].docReplacement = fullName;
                     this.dependancesLocations[name].npmReplacement = npmReplacement;
                     this.dependancesLocations[name].hotReloadReplacement = hotReloadName;
 
                     registerLocal(fullName, info.willBeCompiled, npmReplacement)
                 }
-                this.dependances.push({
+                this.dependances[name] = {
                     fullName: "$namespace$" + fullName,
                     uri: info.fileUri,
                     isStrong: isStrongDependance
-                });
+                };
                 onName(fullName, npmReplacement);
             })
             return;
@@ -880,15 +902,16 @@ export abstract class BaseInfo {
         else if (this.parserInfo.packages[name]) {
             let fullName = this.parserInfo.packages[name].fullname;
             let classExternal = this.build.externalPackageInformation.getNpmUri(fullName);
-            this.dependances.push({
+            this.dependances[name] = {
                 fullName: fullName,
                 uri: "@external",
                 isStrong: isStrongDependance,
-            });
+            };
             const npmReplacement = this.getNpmReplacementName(fullName);
             if (this.dependancesLocations[name]) {
                 this.dependancesLocations[name].typeRemplacement = fullName;
                 this.dependancesLocations[name].replacement = fullName;
+                this.dependancesLocations[name].docReplacement = fullName;
                 this.dependancesLocations[name].npmReplacement = npmReplacement;
                 this.dependancesLocations[name].hotReloadReplacement = fullName;
             }
@@ -906,11 +929,11 @@ export abstract class BaseInfo {
         }
 
         if (this.parserInfo.npmImports[name]) {
-            this.dependances.push({
+            this.dependances[name] = {
                 fullName: name,
                 uri: "@npm",
                 isStrong: isStrongDependance,
-            });
+            };
             if (this.debug) {
                 console.log("add dependance " + name + " : npm");
             }
@@ -918,6 +941,7 @@ export abstract class BaseInfo {
             const npmReplacement = this.getNpmReplacementName(md5uri + "." + name);
             if (this.dependancesLocations[name]) {
                 this.dependancesLocations[name].replacement = "npmCompilation['" + md5uri + "']." + name;
+                this.dependancesLocations[name].docReplacement = "npmCompilation['" + md5uri + "']." + name;
                 if (npmReplacement != name) {
                     this.dependancesLocations[name].npmReplacement = npmReplacement;
                 }
@@ -945,11 +969,11 @@ export abstract class BaseInfo {
             return;
         }
         // should be a lib dependances outside the module
-        this.dependances.push({
+        this.dependances[name] = {
             fullName: name,
             uri: "@external",
             isStrong: isStrongDependance,
-        });
+        };
         if (this.debug) {
             console.log("add dependance " + name + " : external");
         }
@@ -988,6 +1012,15 @@ export abstract class BaseInfo {
     ) {
         return this._getContent(txt, start, end, dependancesLocations, compileTransformations, 3);
     }
+    public static getContentDoc(
+        txt: string,
+        start: number,
+        end: number,
+        dependancesLocations: { [name: string]: DependanceInfo },
+        compileTransformations: { [key: string]: { newText: string, start: number, end: number } }
+    ) {
+        return this._getContent(txt, start, end, dependancesLocations, compileTransformations, 4);
+    }
     private static _getContent(
         txt: string,
         start: number,
@@ -1008,6 +1041,9 @@ export abstract class BaseInfo {
             else if (typeContent == 3) {
                 replacement = dependancesLocations[depName].npmReplacement;
             }
+            else if (typeContent == 4) {
+                replacement = dependancesLocations[depName].docReplacement;
+            }
             let typeRemplacement = dependancesLocations[depName].typeRemplacement;
             if (replacement) {
                 for (let locationKey in dependancesLocations[depName].locations) {
@@ -1020,7 +1056,7 @@ export abstract class BaseInfo {
                                 end: location.end - start,
                             })
                         }
-                        else if(location.isNpm && location.isType) {
+                        else if (location.isNpm && location.isType) {
                             // TODO check to set a value for a node_module type imported for the package
                             continue;
                         }
@@ -1057,7 +1093,7 @@ export abstract class BaseInfo {
     }
 
     public loadStorieContent() {
-        if (this.build.buildConfig.stories && !this._parserInfo.isLib) {
+        if (this.build.buildConfig.stories && !this._parserInfo.isExternal) {
             for (let decorator of this.decorators) {
                 const decoratorTemp = StorybookDecorator.is(decorator);
                 if (decoratorTemp) {

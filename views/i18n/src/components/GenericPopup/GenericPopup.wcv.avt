@@ -1,0 +1,11 @@
+<div class="popup">
+    <div class="title">{{ this.popup_title }}</div>
+    <div class="content">
+        <slot></slot>
+    </div>
+    <div class="actions">
+        <slot name="actions">
+            <vscode-button @press="close" @element="closeBtn">Close</vscode-button>
+        </slot>
+    </div>
+</div>

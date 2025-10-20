@@ -1,0 +1,18 @@
+<div class="header">
+	<div class="left">
+		<div class="title">Translate all</div>
+		<div class="sub-title">Source lang : {{ this.fallback }}</div>
+	</div>
+	<div class="right">
+		<av-loading :visible="this.is_running"></av-loading>
+	</div>
+</div>
+<div class="list">
+	<div class="item head">
+		<div class="source">Source ({{ this.fallback }})</div>
+		<div class="result">Result</div>
+	</div>
+	<av-scrollable class="scroll" floating_scroll auto_hide mouse_drag @element="scrollEl">
+		
+	</av-scrollable>
+</div>

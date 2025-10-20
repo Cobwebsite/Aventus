@@ -1,0 +1,84 @@
+import { RouterStateManager } from "../../../lib/RouterStateManager.lib.avt";
+
+namespace Navigation {
+    export class Link extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+        //#region static
+
+        //#endregion
+
+
+        //#region props
+        @Attribute()
+        public to?: string;
+
+        /**
+         * If set define when active class is added otherwhise class active is added when to define is active
+         */
+        @Attribute()
+        public active_pattern?: string;
+        //#endregion
+
+
+        //#region variables
+
+        //#endregion
+
+
+        //#region constructor
+
+        //#endregion
+
+
+        //#region methods
+        public onActiveChange: Aventus.Callback<(isActive: boolean) => void> = new Aventus.Callback();
+        protected addClickEvent() {
+            new Aventus.PressManager({
+                element: this,
+                onPress: () => {
+                    if(this.to === undefined) return false;
+
+                    let to = this.to;
+                    if(this.to.startsWith(".")) {
+                        to = Aventus.Instance.get(RouterStateManager).getState()?.name ?? "";
+                        if(!to.endsWith("/")) {
+                            to += "/";
+                        }
+                        to += this.to;
+                        to = Aventus.Uri.normalize(to);
+                    }
+                    Aventus.State.activate(to, Aventus.Instance.get(RouterStateManager));
+                    return true;
+                }
+            });
+        }
+        protected registerActivetoListener() {
+
+            let activeto = this.to;
+            if(this.active_pattern) {
+                activeto = this.active_pattern;
+            }
+            if(activeto === undefined) return;
+
+            Aventus.Instance.get(RouterStateManager).subscribe(activeto, {
+                active: () => {
+                    this.classList.add("active");
+                    this.onActiveChange.trigger(true);
+                },
+                inactive: () => {
+                    this.classList.remove("active");
+                    this.onActiveChange.trigger(false);
+                }
+            });
+        }
+        protected prevent(e: Event) {
+            e.preventDefault();
+        }
+        protected override postCreation(): void {
+            this.registerActivetoListener();
+            this.addClickEvent();
+        }
+        //#endregion
+
+    }
+}

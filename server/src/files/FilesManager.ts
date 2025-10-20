@@ -1,6 +1,6 @@
 import { existsSync, lstatSync, readdirSync, readFileSync } from 'fs';
 import { Hover } from 'vscode-languageclient';
-import { CodeAction, CodeLens, CompletionItem, CompletionList, Definition, FormattingOptions, Location, Position, Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver';
+import { CodeAction, CodeLens, CompletionItem, CompletionList, FormattingOptions, Location, Position, Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AventusExtension, AventusLanguageId } from '../definition';
 import { escapeRegex, getLanguageIdByUri, pathToUri, Timer, uriToPath } from '../tools';
@@ -44,9 +44,12 @@ export class FilesManager {
     public async onCreatedUri(uri: string) {
         if (!this.files[uri]) {
             let extension = getLanguageIdByUri(uri);
-            let currentPath = uriToPath(uri);
-            let textDoc = TextDocument.create(uri, extension, 0, readFileSync(currentPath, 'utf8'));
-            this.registerFile(textDoc);
+            if (extension) {
+                let currentPath = uriToPath(uri);
+                let textDoc = TextDocument.create(uri, extension, 0, readFileSync(currentPath, 'utf8'));
+                await this.registerFile(textDoc);
+                this.onSave(textDoc);
+            }
         }
     }
     public async onUpdatedUri(uri: string) {
@@ -65,9 +68,9 @@ export class FilesManager {
             return;
         }
         if (!this.files[uri]) {
-
             let textDoc = TextDocument.create(uri, extension, 0, content);
-            this.registerFile(textDoc);
+            await this.registerFile(textDoc);
+            this.onSave(textDoc);
         }
         else {
             let newVersion = this.files[uri].versionUser + 1;
@@ -81,8 +84,13 @@ export class FilesManager {
         if (this.files[uri]) {
             if (SettingsManager.getInstance().settings.errorByBuild) {
                 const builds = this.files[uri].getBuild();
-                for (let build of builds) {
-                    GenericServer.sendDiagnostics({ uri: uri, diagnostics: [] }, build)
+                if (builds === null) {
+                    GenericServer.sendDiagnostics({ uri: uri, diagnostics: [] })
+                }
+                else {
+                    for (let build of builds) {
+                        GenericServer.sendDiagnostics({ uri: uri, diagnostics: [] }, build)
+                    }
                 }
             }
             else {
@@ -162,13 +170,13 @@ export class FilesManager {
                     }
                 }
                 for (let build of config.build) {
-                    if (!builds || builds.includes(build.name)) {
+                    if (!builds || builds.includes(build.name ?? "")) {
                         for (let src of build.srcPath) {
                             await readDir(src);
                         }
                     }
                 }
-                
+
                 Statistics.startSendLoadFile();
                 project.loadFiles();
                 Statistics.sendLoadFile();
@@ -283,6 +291,18 @@ export class FilesManager {
         }
     }
 
+    protected async fileExists(document: TextDocument) {
+        if (!this.files[document.uri]) {
+            if (document.uri.endsWith(AventusExtension.Template)) {
+                await this.registerFile(document);
+                this.onSave(document);
+                return true;
+            }
+            return false;
+        }
+        return true;
+    }
+
     /**
      * Register a file from outside of the project - used only for package
      * @param uri 
@@ -333,64 +353,64 @@ export class FilesManager {
     }
 
     public async onCompletion(document: TextDocument, position: Position): Promise<CompletionList> {
-        if (!this.files[document.uri]) {
+        if (!await this.fileExists(document)) {
             return { isIncomplete: false, items: [] }
         }
         return this.files[document.uri].getCompletion(position);
     }
     public async onCompletionResolve(document: TextDocument, item: CompletionItem): Promise<CompletionItem> {
-        if (!this.files[document.uri]) {
+        if (!await this.fileExists(document)) {
             return item;
         }
         return this.files[document.uri].getCompletionResolve(item);
     }
 
     public async onHover(document: TextDocument, position: Position): Promise<Hover | null> {
-        if (!this.files[document.uri]) {
+        if (!await this.fileExists(document)) {
             return null;
         }
         return this.files[document.uri].getHover(position);
     }
 
-    public async onDefinition(document: TextDocument, position: Position): Promise<Definition | null> {
-        if (!this.files[document.uri]) {
+    public async onDefinition(document: TextDocument, position: Position): Promise<Location[] | null> {
+        if (!await this.fileExists(document)) {
             return null;
         }
         return this.files[document.uri].getDefinition(position);
     }
     public async onFormatting(document: TextDocument, options: FormattingOptions): Promise<TextEdit[]> {
-        if (!this.files[document.uri]) {
+        if (!await this.fileExists(document)) {
             return [];
         }
         return this.files[document.uri].getFormatting(options);
     }
     public async onCodeAction(document: TextDocument, range: Range): Promise<CodeAction[]> {
-        if (!this.files[document.uri]) {
+        if (!await this.fileExists(document)) {
             return [];
         }
         return this.files[document.uri].getCodeAction(range);
     }
     public async onReferences(document: TextDocument, position: Position): Promise<Location[] | null> {
-        if (!this.files[document.uri]) {
+        if (!await this.fileExists(document)) {
             return [];
         }
         return this.files[document.uri].getReferences(position);
     }
     public async onCodeLens(document: TextDocument): Promise<CodeLens[]> {
-        if (!this.files[document.uri]) {
+        if (!await this.fileExists(document)) {
             return [];
         }
         return this.files[document.uri].getCodeLens();
     }
 
     public async onRename(document: TextDocument, position: Position, newName: string): Promise<WorkspaceEdit | null> {
-        if (!this.files[document.uri]) {
+        if (!await this.fileExists(document)) {
             return null
         }
         return this.files[document.uri].getRename(position, newName)
     }
 
-    public getBuild(document: TextDocument): Build[] {
+    public getBuild(document: TextDocument): Build[] | null {
         if (!this.files[document.uri]) {
             return [];
         }

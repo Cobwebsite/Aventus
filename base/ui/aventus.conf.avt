@@ -5,23 +5,36 @@
         {
             "hideWarnings": true,
             "name": "UI",
+            "version": "1.0.1",
             "src": [
                 "./component/",
                 "./lib/",
                 "./test/"
             ],
-            "compile": [{
-                "package": "../../lib/Aventus@UI.package.avt",
-                "output": "../dist/aventus.ui.js"
-            }],
+            "compile": [
+                {
+                    "package": "../../lib/Aventus@UI.package.avt",
+                    "output": "../dist/aventus.ui.js",
+                    "outputNpm": {
+                        "path": "../../../npmPackage/AventusUI_npm",
+                        "npmName": "@aventusjs/ui"
+                    }
+                }
+            ],
             "namespaceStrategy": "followFolders",
-            "namespaceRoot": "./component/"
+            "namespaceRoot": "./component/",
+            "stories": {
+                "output": "../../../Storybook/AventusUI_storybook",
+                "workspace": "../../../Storybook/AventusUI_storybook",
+                "format": "protected",
+                "live": false
+            }
         }
     ],
     "static": [
         {
             "name": "static",
-            "input": "./static/",
+            "input": "./static/*",
             "output": "../dist/"
         }
     ]

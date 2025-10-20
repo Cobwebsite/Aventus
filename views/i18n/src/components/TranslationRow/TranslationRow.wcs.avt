@@ -1,0 +1,35 @@
+:host {
+	align-items: stretch;
+	border-left: 1px solid var(--vscode-widget-border);
+	border-right: 1px solid var(--vscode-widget-border);
+	display: flex;
+	gap: 0px;
+
+	.col {
+		border-right: 1px solid var(--vscode-widget-border);
+		padding: 10px 20px;
+	}
+
+	.inputs {
+		display: flex;
+		gap: 0px;
+	}
+
+	.key {
+		flex-shrink: 0;
+		position: relative;
+		width: var(--_translation-page-key-width);
+		min-width: 100px;
+	}
+}
+
+:host(:nth-child(odd)) {
+	background-color: rgba(87, 87, 87, 0.2);
+	background-color: var(--vscode-editorWidget-background);
+}
+
+:host(:nth-last-child(1)) {
+	border-bottom: 1px solid var(--vscode-widget-border);
+	border-bottom-left-radius: 5px;
+	border-bottom-right-radius: 5px;
+}

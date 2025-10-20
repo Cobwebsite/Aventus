@@ -26,6 +26,10 @@ import { ReloadSettings } from './ReloadSettings';
 import { CreateCSSVariable } from './webcomponent/CreateCSSVariable';
 import { StorybookBuild } from './storybook/StorybookBuild';
 import { ProjectImport } from './file-system/ImportProject';
+import { NpmBuild } from './npm/NpmBuild';
+import { PhpExport } from './php/Export';
+import { StorePublishTemplate } from './store/PublishTemplate';
+import { StoreDownloadTemplate } from './store/DownloadTemplate';
 
 
 export const Commands = {
@@ -56,7 +60,11 @@ export const Commands = {
         [MergeComponent.cmd]: MergeComponent,
         [SplitComponent.cmd]: SplitComponent,
         [SharpExport.cmd]: SharpExport,
+        [PhpExport.cmd]: PhpExport,
         [ReloadSettings.cmd]: ReloadSettings,
-        [StorybookBuild.cmd]: StorybookBuild
+        [StorybookBuild.cmd]: StorybookBuild,
+        [NpmBuild.cmd]: NpmBuild,
+        [StorePublishTemplate.cmd]: StorePublishTemplate,
+        [StoreDownloadTemplate.cmd]: StoreDownloadTemplate
     },
 }

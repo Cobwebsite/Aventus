@@ -1,5 +1,39 @@
 # Change Log
 
+## 1.4.0 (2025-09-30)
+
+### !!! IMPORTANT : Can break your app !!!
+Your storage folder (command : *Aventus : Open Storage*) will be cleared during update. You can reimport projects and templates with *Aventus : Import Templates* and *Aventus : Import Projects* or from the store [https://store.aventusjs.com](https://store.aventusjs.com)
+
+For the configuration files and template files, you can check the documentation on [https://aventusjs.com](https://aventusjs.com)
+
+Callbacks now using a list of params instead of an array.
+
+### Bug Fixes
+ - Fix drag&drop to get right position for svg and htmlelement
+ - Fix import methods if no "region methods" found
+
+### Features
+ - Add custom-elemments.json generation
+ - Add html-custom-data.json generation
+ - Add web-types.json generation
+ - Auto detect new html-custom-data.json inside your project and ask to add it into your vscode settings
+ - Change Callback to have a list of params instead of an array
+ - Add global press event on PressManager
+ - Add Watch function on Watcher
+ - Replace template.avt by template.avt.ts to create custom script logic for templating
+ - Add store management
+ - Change dependences configuration
+ - Add ctrl + click for html class
+ - Add quick templates
+ - Add basic templates
+ - Add i18n support
+ - Add basic abstract UI for :
+	- Form
+	- Modal
+	- Toast
+
+
 ## 1.3.8 (2025-01-26)
 
 ### Bug Fixes

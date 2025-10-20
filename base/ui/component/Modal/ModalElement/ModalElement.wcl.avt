@@ -1,0 +1,134 @@
+import { PressManager } from "Aventus@Main:Aventus.package.avt";
+import { ShortcutManager, SpecialTouch } from "../../../lib/ShortcutManager.lib.avt";
+
+namespace Modal {
+    export interface ModalOptions<T = any> {
+        closeWithEsc?: boolean;
+        closeWithClick?: boolean;
+        rejectValue?: T | null;
+    }
+    export type ExtractTypeModal<X extends ModalElement<U, Y>, U = any, Y extends ModalOptions = any> = X extends ModalElement<infer U, Y> ? U : never;
+
+    export abstract class ModalElement<T, U extends ModalOptions<T> = ModalOptions<T>> extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+        //#region static
+        private static defaultCloseWithEsc: boolean = true;
+        private static defaultCloseWithClick: boolean = true;
+        private static defaultRejectValue: any = null;
+
+        public static configure(options: Partial<ModalOptions<any>>) {
+            if(options.closeWithClick !== undefined) this.defaultCloseWithClick = options.closeWithClick;
+            if(options.closeWithEsc !== undefined) this.defaultCloseWithEsc = options.closeWithEsc;
+            if(!Object.hasOwn(options, "rejectValue")) {
+                this.defaultRejectValue = options.rejectValue;
+            }
+        }
+
+        protected static _show<T extends ModalElement<U, X>, U = ExtractTypeModal<T>, X extends ModalOptions<U> = ModalOptions<U>>(modal: T, element?: Element): Promise<U | null> {
+            return new Promise<U | null>((resolve) => {
+                modal.init((response) => {
+                    resolve(response);
+                });
+                if(!element) {
+                    element = document.body;
+                }
+                element.appendChild(modal);
+            });
+        }
+        //#endregion
+
+
+        //#region props
+
+        //#endregion
+
+
+        //#region variables
+        protected cb?: (response: T | null) => void;
+
+        @Watch((target: ModalElement<T, U>, action: Aventus.WatchAction, path: string, value: any) => {
+            target.onOptionsChanged();
+        })
+        protected options: U;
+
+        @ViewElement()
+        protected modalEl!: HTMLDivElement;
+
+        protected pressManagerClickClose?: PressManager;
+        protected pressManagerPrevent?: PressManager;
+        //#endregion
+
+
+        //#region constructor
+        public constructor() {
+            super();
+            this.options = this.configure();
+            if(this.options.closeWithClick === undefined) this.options.closeWithClick = ModalElement.defaultCloseWithClick;
+            if(this.options.closeWithEsc === undefined) this.options.closeWithEsc = ModalElement.defaultCloseWithEsc;
+            if(!Object.hasOwn(this.options, "rejectValue")) {
+                this.options.rejectValue = ModalElement.defaultRejectValue;
+            }
+        }
+        //#endregion
+
+
+        //#region methods
+        public abstract configure(): U;
+        protected onOptionsChanged() { }
+
+        /**
+         * Define the callback
+         */
+        private init(cb: (response: T | null) => void) {
+            this.cb = cb;
+            if(this.options.closeWithEsc) {
+                ShortcutManager.subscribe(SpecialTouch.Escape, this.reject, { replaceTemp: true });
+            }
+            if(this.options.closeWithClick) {
+                this.pressManagerClickClose = new PressManager({
+                    element: this,
+                    onPress: () => {
+                        this.reject();
+                    }
+                });
+                this.pressManagerPrevent = new PressManager({
+                    element: this.modalEl,
+                    onPress: () => { }
+                });
+            }
+        }
+
+        public show(element?: Element): Promise<T | null> {
+            return ModalElement._show(this as any, element);
+        }
+        @BindThis()
+        protected close() {
+            ShortcutManager.unsubscribe(SpecialTouch.Escape, this.reject);
+            this.pressManagerClickClose?.destroy();
+            this.pressManagerPrevent?.destroy();
+            this.remove();
+        }
+
+        @BindThis()
+        protected reject(no_close?: boolean) {
+            if(this.cb) {
+                this.cb(this.options.rejectValue ?? null);
+            }
+            if(no_close !== true) {
+                this.close();
+            }
+        }
+
+        @BindThis()
+        protected resolve(response: T, no_close?: boolean) {
+            if(this.cb) {
+                this.cb(response);
+            }
+            if(no_close !== true) {
+                this.close();
+            }
+        }
+        //#endregion
+
+    }
+}

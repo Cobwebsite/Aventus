@@ -1,5 +1,5 @@
-import { Diagnostic } from "vscode-languageserver";
-import { AventusErrorCode } from "../../definition";
+import { Diagnostic, Range } from "vscode-languageserver";
+import { AventusErrorCode, AventusExtension } from "../../definition";
 import { AventusFile } from '../../files/AventusFile';
 import { Build } from "../../project/Build";
 import { createErrorTsPos } from '../../tools';
@@ -24,6 +24,9 @@ export abstract class AventusTsFile extends AventusBaseFile {
     public get version(): number {
         return this.file.versionUser;
     }
+    public get versionInternal(): number {
+        return this.file.versionInternal;
+    }
 
     public abstract get extension(): string;
     public fileParsed: ParserTs | null = null;
@@ -31,6 +34,9 @@ export abstract class AventusTsFile extends AventusBaseFile {
     public get contentForLanguageService() { return this._contentForLanguageService }
     protected _contentForLanguageService: string = '';
     protected buildNamespace: string = "";
+
+    public deprecated: { [uri: string]: { range: Range, msg: string }[] } = {}
+    public deprecatedUris: string[] = [];
 
     public constructor(file: AventusFile, build: Build) {
         super(file, build);
@@ -40,12 +46,86 @@ export abstract class AventusTsFile extends AventusBaseFile {
         }
     }
 
-    protected refreshFileParsed(isLib: boolean = false): void {
-        this.fileParsed = ParserTs.parse(this.file, isLib, this.build);
+    protected refreshFileParsed(isExternal: boolean = false): void {
+        this.fileParsed = ParserTs.parse(this.file, isExternal, this.build);
         this._contentForLanguageService = this.file.documentInternal.getText();
-        if (!isLib) {
+        this.refreshDeprecated(true);
+        if (!isExternal) {
             this.replaceNamespace();
         }
+    }
+
+    public async refreshDeprecated(sendRevalidate: boolean) {
+        // if (!this.fileParsed) return;
+        // if (this.fileParsed.deprecated.length > 0) {
+        //     let deprecatedUris: string[] = this.deprecatedUris;
+        //     let emptyUri = [...deprecatedUris];
+        //     for (let deprecatedUri of deprecatedUris) {
+        //         if (this.build.tsFiles[deprecatedUri]) {
+        //             this.build.tsFiles[deprecatedUri].deprecated[this.file.uri] = [];
+        //         }
+        //     }
+
+        //     for (let deprecated of this.fileParsed.deprecated) {
+        //         let refs = await this.tsLanguageService.onReferences(this.file, this.file.documentInternal.positionAt((deprecated.start + deprecated.end) / 2))
+        //         for (let ref of refs) {
+        //             if (ref.uri.endsWith(AventusExtension.Package)) continue;
+        //             if (this.build.tsFiles[ref.uri]) {
+        //                 if (!deprecatedUris.includes(ref.uri)) {
+        //                     this.build.tsFiles[ref.uri].deprecated[this.file.uri] = [];
+        //                     deprecatedUris.push(ref.uri);
+        //                 }
+        //                 this.build.tsFiles[ref.uri].deprecated[this.file.uri].push({
+        //                     msg: deprecated.msg,
+        //                     range: ref.range
+        //                 })
+        //                 let index = emptyUri.indexOf(ref.uri);
+        //                 if (index != -1) {
+        //                     emptyUri.splice(index, 1);
+        //                 }
+        //             }
+        //         }
+        //     }
+
+        //     if (sendRevalidate && !this.build.insideRebuildAll) {
+        //         for (let uri of emptyUri) {
+        //             if (this.build.tsFiles[uri]) {
+        //                 this.build.tsFiles[uri].file.validate(true);
+        //             }
+        //         }
+        //         for (let deprecatedUri of deprecatedUris) {
+        //             if (this.build.tsFiles[deprecatedUri]) {
+        //                 this.build.tsFiles[deprecatedUri].file.validate(true);
+        //             }
+        //         }
+        //     }
+        // }
+
+        // if (Object.keys(this.deprecated).length > 0) {
+        //     for (let uri in this.deprecated) {
+        //         if (this.build.tsFiles[uri]) {
+        //             this.build.tsFiles[uri].refreshDeprecated(false);
+        //             continue;
+        //         }
+        //         let _package = this.build.externalPackageInformation.getByUri(uri)
+        //         if (_package) {
+        //             _package.refreshDeprecated(false);
+        //         }
+        //     }
+        // }
+    }
+
+    protected getDeprecated(): Diagnostic[] {
+        const result: Diagnostic[] = [];
+        for (let uri in this.deprecated) {
+            for (let deprecated of this.deprecated[uri]) {
+                result.push({
+                    message: deprecated.msg,
+                    range: deprecated.range
+                })
+            }
+        }
+        return result;
     }
 
     protected replaceNamespace() {

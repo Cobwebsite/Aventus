@@ -1,0 +1,9 @@
+<div class="key">
+    <span>Key</span>
+    <av-resize is_key></av-resize>
+</div>
+<div class="inputs">
+for(let locale of this.locales) {
+    <av-translation-col-header :locale="locale">{{ locale }}</av-translation-col-header>
+}
+</div>

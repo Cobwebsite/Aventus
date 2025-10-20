@@ -14,12 +14,15 @@ export const AventusLanguageId = {
     HTML: "Aventus HTML",
     SCSS: "Aventus SCSS",
     WebComponent: "Aventus WebComponent",
-    Package: "Aventus Ts"
+    Package: "Aventus Ts",
+    I18n: "Aventus I18n"
+
 }
 export const AventusExtension = {
     Base: ".avt",
     Config: "aventus.conf.avt",
     CsharpConfig: "aventus.sharp.avt",
+    PhpConfig: "aventus.php.avt",
     ComponentLogic: ".wcl.avt",
     ComponentView: ".wcv.avt",
     ComponentStyle: ".wcs.avt",
@@ -32,8 +35,10 @@ export const AventusExtension = {
     Static: ".static.avt",
     Definition: ".def.avt",
     DefinitionNpm: ".defnpm.avt",
-    Template: "template.avt",
-    Package: ".package.avt"
+    Template: "template.avt.ts",
+    ConfigTemplate: "!aventus.conf.avt",
+    Package: ".package.avt",
+    I18n: ".i18n.avt",
 } as const;
 
 export enum AventusErrorCode {

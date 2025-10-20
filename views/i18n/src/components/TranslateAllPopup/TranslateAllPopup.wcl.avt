@@ -1,0 +1,74 @@
+import { Translator, type I18nParsed } from "../../libs/I18n.lib.avt";
+import { GenericPopup } from "../GenericPopup/GenericPopup.wcl.avt";
+import { TranslationPage } from "../TranslationPage/TranslationPage.wcl.avt";
+
+export class TranslateAllPopup extends GenericPopup implements Aventus.DefaultComponent {
+
+    //#region static
+
+    //#endregion
+
+
+    //#region props
+    @Property()
+    public is_running!: boolean;
+    //#endregion
+
+
+    //#region variables
+    public parsed: I18nParsed = {};
+    public locales: string[] = [];
+    @Watch()
+    public fallback: string = "";
+
+    @ViewElement()
+    protected scrollEl!: Aventus.Layout.Scrollable;
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+
+    //#region methods
+    public async run() {
+        this.closeBtn['disabled'] = true;
+        this.is_running = true;
+
+        await Aventus.sleep(5000);
+        for(let key in this.parsed) {
+            for(let locale of this.locales) {
+                if(!this.parsed[key][locale] || this.parsed[key][locale] == TranslationPage.KeyUndefined) {
+                    if(locale == this.fallback) {
+                        this.parsed[key][locale] = key;
+                        this.addTranslation(key, locale, key);
+                    }
+                    else {
+                        const result = await Translator.translate(key, this.fallback, locale);
+                        if(result) {
+                            this.parsed[key][locale] = result;
+                            this.addTranslation(key, locale, result);
+                        }
+                    }
+                }
+            }
+        }
+
+
+        this.closeBtn['disabled'] = false;
+        this.is_running = false;
+    }
+
+    protected addTranslation(key: string, locale: string, result: string) {
+        const el = document.createElement("div");
+        el.classList.add("item");
+        el.innerHTML = `<div class="source">${key}</div><div class="result"><span>${result}</span><span>${locale}</span></div>`;
+        this.scrollEl.prepend(el);
+    }
+    protected override postCreation(): void {
+        super.postCreation();
+    }
+    //#endregion
+
+}

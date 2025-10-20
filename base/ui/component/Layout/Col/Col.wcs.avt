@@ -1,0 +1,125 @@
+@use 'sass:list';
+@use 'sass:math';
+
+:host {
+	--_col-padding: var(--col-padding, 8px);
+	--_col-gap: var(--col-gap, 0px);
+}
+
+:host {
+	display: flex;
+	padding: var(--internal-col-padding);
+}
+
+:host([center]) {
+	justify-content: center;
+}
+
+$sizes: 300, 540, 720, 960, 1140;
+$labels: xs, sm, md, lg, xl;
+
+
+@for $i from 0 through 12 {
+	$size: 0;
+
+	@if $i !=0 {
+		$nbCol: math.div(12, $i);
+
+		@if $nbCol !=1 {
+			$size: "calc(" + (calc(100 / 12) * $i) + "% - (var(--_col-gap, 0px) * " + ($nbCol - 1) + " / " + $nbCol + "))";
+		}
+
+		@else {
+			$size: calc(100 / 12) * $i + "%";
+		}
+	}
+
+	:host([size="#{$i}"]) {
+		width: #{$size};
+	}
+
+	:host([offset="#{$i}"]) {
+		margin-left: #{$size};
+	}
+
+	:host([offset_right="#{$i}"]) {
+		margin-right: #{$size};
+	}
+}
+
+@for $i from 1 through list.length($sizes) {
+	$sizeMax: list.nth($sizes, $i);
+	$label: list.nth($labels, $i);
+
+	@container row (min-width: #{$sizeMax+'px'}) {
+		@for $i from 0 through 12 {
+			$size: 0;
+
+			@if $i !=0 {
+				$nbCol: math.div(12, $i);
+
+				@if $nbCol !=1 {
+					$size: "calc(" + (calc(100 / 12) * $i) + "% - (var(--_col-gap, 0px) * " + ($nbCol - 1) + " / " + $nbCol + "))";
+				}
+
+				@else {
+					$size: calc(100 / 12) * $i + "%";
+				}
+			}
+
+			:host([use_container][size_#{$label}="#{$i}"]) {
+				width: #{$size};
+			}
+
+			:host([use_container][offset_#{$label}="#{$i}"]) {
+				margin-left: #{$size};
+			}
+
+			:host([use_container][offset_right_#{$label}="#{$i}"]) {
+				margin-right: #{$size};
+			}
+
+			@if $i ==0 {
+				:host([use_container][size_#{$label}="#{$i}"]) {
+					display: none;
+				}
+			}
+		}
+	}
+
+	@media screen and (min-width: #{$sizeMax+'px'}) {
+		@for $i from 0 through 12 {
+			$size: 0;
+
+			@if $i !=0 {
+				$nbCol: math.div(12, $i);
+
+				@if $nbCol !=1 {
+					$size: "calc(" + (calc(100 / 12) * $i) + "% - (var(--_col-gap, 0px) * " + ($nbCol - 1) + " / " + $nbCol + "))";
+				}
+
+				@else {
+					$size: calc(100 / 12) * $i + "%";
+				}
+			}
+
+			:host(:not([use_container])[size_#{$label}="#{$i}"]) {
+				width: #{$size};
+			}
+
+			:host(:not([use_container])[offset_#{$label}="#{$i}"]) {
+				margin-left: #{$size};
+			}
+
+			:host(:not([use_container])[offset_right_#{$label}="#{$i}"]) {
+				margin-right: #{$size};
+			}
+
+			@if $i ==0 {
+				:host(:not([use_container])[size_#{$label}="#{$i}"]) {
+					display: none;
+				}
+			}
+		}
+	}
+}

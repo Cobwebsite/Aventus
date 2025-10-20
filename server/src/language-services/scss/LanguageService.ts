@@ -2,9 +2,10 @@ import postcss from 'postcss';
 import * as postcssSorting from 'postcss-sorting';
 import * as postcssScss from 'postcss-scss';
 import { CompletionItem, CSSFormatConfiguration, getSCSSLanguageService, LanguageService } from "vscode-css-languageservice";
-import { CodeAction, CodeActionContext, CompletionList, Definition, Diagnostic, FormattingOptions, Hover, Location, Position, Range, TextEdit } from "vscode-languageserver";
+import { CodeAction, CodeActionContext, CompletionList, Diagnostic, FormattingOptions, Hover, Location, Position, Range, TextEdit } from "vscode-languageserver";
 import { Build } from '../../project/Build';
-import { getNodePath, SCSSDoc, Node, NodeType, CustomCssProperty, CustomCssPropertyType } from './helper/CSSNode';
+import { getNodePath, Node, NodeType } from './helper/CSSNode';
+import { SCSSDoc, CustomCssProperty, CustomCssPropertyType } from './helper/CSSCustomNode';
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { AventusFile } from '../../files/AventusFile';
 import { TagInfo } from '../html/parser/TagInfo';
@@ -18,6 +19,7 @@ export class AventusSCSSLanguageService {
     private externalDocumentation: { [key: string]: SCSSDoc } = {};
     private internalDocumentation: { [uri: string]: SCSSDoc } = {};
     private build: Build;
+    private _allowRebuildDefinition: boolean = true;
 
     public getInternalDocumentation(): SCSSDoc {
         let result: SCSSDoc = {};
@@ -112,18 +114,20 @@ export class AventusSCSSLanguageService {
         return this.languageService.doHover(file.documentUser, position, this.languageService.parseStylesheet(file.documentUser));
     }
 
-    public async findDefinition(file: AventusFile, position: Position): Promise<Definition | null> {
+    public async findDefinition(file: AventusFile, position: Position): Promise<Location[] | null> {
         let element = this.getElementAtPosition(file, position);
         if (element?.type == NodeType.Identifier) {
             let def = this.build.globalSCSSLanguageService.getDefinition(element.getText());
             if (def) {
-                return {
+                return [{
                     uri: def.uri,
                     range: def.range
-                }
+                }]
             }
         }
-        return this.languageService.findDefinition(file.documentUser, position, this.languageService.parseStylesheet(file.documentUser))
+        const location = this.languageService.findDefinition(file.documentUser, position, this.languageService.parseStylesheet(file.documentUser))
+        if (!location) return location;
+        return [location];
     }
     async format(file: AventusFile, range: Range, formatParams: FormattingOptions): Promise<TextEdit[]> {
         let formatConfig: CSSFormatConfiguration = {
@@ -174,7 +178,12 @@ export class AventusSCSSLanguageService {
 
 
     //#region custom definition
+    public allowRebuildDefinition(value: boolean) {
+        this._allowRebuildDefinition = value;
+        this.rebuildDefinition();
+    }
     private rebuildDefinition() {
+        if (!this._allowRebuildDefinition) return
         this.documentationInfo = {};
         for (let uri in this.externalDocumentation) {
             let doc = this.externalDocumentation[uri];
@@ -465,7 +474,7 @@ export class AventusSCSSLanguageService {
                                 if (comment?.default) {
                                     cssProperty.defaultValue = comment.default;
                                 }
-                                
+
                                 let finalNode: Node | null = expressionNode;
                                 let chainValues: string[] = [];
                                 let lastChain: string = '';
@@ -489,6 +498,9 @@ export class AventusSCSSLanguageService {
                                 }
                                 if (chainValues.length > 0) {
                                     cssProperty.chainValues = chainValues;
+                                    if (cssProperty.defaultValue == undefined) {
+                                        cssProperty.defaultValue = cssProperty.chainValues[cssProperty.chainValues.length - 1]
+                                    }
                                 }
 
                                 result[cssProperty.name] = cssProperty;

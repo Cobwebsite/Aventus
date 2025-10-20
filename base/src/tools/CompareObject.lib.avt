@@ -87,7 +87,7 @@ export function compareObject(obj1, obj2): boolean {
                 // avoid checking reserved name inside proxy
                 if(oneProxy && Watcher['__reservedName'][key]) {
                     continue;
-                } 
+                }
                 // obj2 has key ?
                 if(!(key in obj2)) {
                     return false;
@@ -204,4 +204,18 @@ export function setValueToObject(path: string, obj: any, value: any) {
 })
 export function isClass(v: any): boolean {
     return typeof v === 'function' && /^\s*class\s+/.test(v.toString());
+}
+
+@Storybook({
+    prefix: "Tools"
+})
+export function isSubclassOf(subClass: Function, superClass: Function): boolean {
+    if(typeof subClass !== 'function' || typeof superClass !== 'function') return false;
+
+    let proto = subClass.prototype;
+    while(proto) {
+        if(proto === superClass.prototype) return true;
+        proto = Object.getPrototypeOf(proto);
+    }
+    return false;
 }

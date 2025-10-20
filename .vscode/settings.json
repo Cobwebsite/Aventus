@@ -6,4 +6,7 @@
 		"rootFolder": "./base/dist/"
 	},
 	"terminal.integrated.defaultProfile.windows": "Command Prompt",
+	"aventus.preventCustomData": [
+		"./views/i18n/node_modules/@vscode-elements/elements/vscode.html-custom-data.json"
+	],
 }

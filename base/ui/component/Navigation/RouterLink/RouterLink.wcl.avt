@@ -1,6 +1,7 @@
 import { RouterStateManager } from "../../../lib/RouterStateManager.lib.avt";
 
 namespace Navigation {
+    @Deprecated()
     export class RouterLink extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
         //#region static
@@ -62,13 +63,16 @@ namespace Navigation {
             Aventus.Instance.get(RouterStateManager).subscribe(activeState, {
                 active: () => {
                     this.classList.add("active");
-                    this.onActiveChange.trigger([true]);
+                    this.onActiveChange.trigger(true);
                 },
                 inactive: () => {
                     this.classList.remove("active");
-                    this.onActiveChange.trigger([false]);
+                    this.onActiveChange.trigger(false);
                 }
             });
+        }
+        protected prevent(e: Event) {
+            e.preventDefault();
         }
         protected override postCreation(): void {
             this.registerActiveStateListener();

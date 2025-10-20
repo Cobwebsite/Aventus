@@ -1,0 +1,2 @@
+<slot></slot>
+<av-resize locale="{{ this.locale }}"></av-resize>

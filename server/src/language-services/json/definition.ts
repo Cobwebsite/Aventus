@@ -1,7 +1,13 @@
 export interface AventusConfigBuild {
 	fullname: string,
-	name: string,
+	description?: string,
+	tags: string[]
+	name?: string,
 	version: string,
+	readme?: string,
+	repository?: string,
+	documentation?: string,
+	organization?: string,
 	disabled: boolean,
 	hideWarnings: boolean,
 	src: string[],
@@ -18,8 +24,10 @@ export interface AventusConfigBuild {
 	namespaceRulesRegex: { [namespace: string]: RegExp },
 	namespaceRoot: string,
 	avoidParsingInsideTags: string[],
-	dependances: AventusConfigBuildDependance[],
-	nodeModulesDir: string
+	rawDependances: { [name: string]: AventusConfigBuildDependance },
+	dependances: { [name: string]: AventusConfigBuildDependance },
+	nodeModulesDir: string,
+	i18n?: AventusConfigBuildI18n
 }
 export type IncludeType = 'none' | 'need' | 'full';
 
@@ -31,22 +39,34 @@ export interface AventusConfigBuildCompile {
 	package: string[],
 	outputNpm: AventusConfigBuildCompileOutputNpm,
 	compressed?: boolean,
+	i18n: AventusConfigBuildCompileOutputI18n[]
 }
 
+export interface AventusConfigBuildCompileOutputNpmManifest {
+	srcBaseUrl?: string
+}
 export interface AventusConfigBuildCompileOutputNpm {
 	path: string[],
 	packageJson: boolean,
-	npmName: string
+	npmName: string,
+	manifest?: AventusConfigBuildCompileOutputNpmManifest,
+	live: boolean
+}
+export interface AventusConfigBuildCompileOutputI18n {
+	output: string,
+	mount: string,
+	mode: 'singleFile' | 'oneToOne' | 'groupComponent' | 'basedOnAttribute' | 'include'
 }
 
 export interface AventusConfigBuildDependance {
-	uri: string,
-	npm: string,
-	version: string,
-	include: IncludeType,
-	subDependancesInclude: { // define how to include children, you can specify each dependance here or add a star as name to define globaly
+	uri?: string,
+	npm?: string,
+	version?: string,
+	include?: IncludeType,
+	subDependancesInclude?: { // define how to include children, you can specify each dependance here or add a star as name to define globaly
 		[name: string]: IncludeType
-	}
+	},
+	isLocal?: boolean
 }
 export interface AventusConfigStatic {
 	name: string,
@@ -68,7 +88,13 @@ export interface AventusConfig {
 	componentPrefix: string,
 	hideWarnings: boolean,
 	module: string;
-	dependances: AventusConfigBuildDependance[],
+	description?: string,
+	tags: string[],
+	organization?: string,
+	readme?: string,
+	repository?: string,
+	documentation?: string,
+	dependances: { [name: string]: AventusConfigBuildDependance },
 	build: AventusConfigBuild[],
 	static: AventusConfigStatic[],
 	namespaceStrategy: 'manual' | 'followFolders' | 'followFoldersCamelCase' | 'rules'
@@ -79,6 +105,12 @@ export interface AventusConfig {
 	aliases: {
 		[alias: string]: string
 	}
+}
+
+export interface AventusConfigBuildI18n {
+	locales: string[],
+	fallback: string,
+	autoRegister?: boolean
 }
 
 export interface AventusSharp {
@@ -123,24 +155,67 @@ interface AventusSharpReplacerPart {
 	}
 }
 
-
 interface AventusSharpHttpRouter {
 	createRouter?: boolean,
-	autobindRoute?: AventusSharpHttpRouterAutoBind,
 	routerName?: string,
-	variableRoutesName?: string,
 	uri?: string,
 	host?: string,
 	parent?: string,
+	parentFile?: string,
 	namespace?: string
-}
-
-enum AventusSharpHttpRouterAutoBind {
-	none,
-	auto,
-	full,
 }
 
 interface AventusSharpWsEndPoint {
 	prefix?: string,
+}
+
+export interface AventusPhp {
+	output: string,
+	exportAsTs?: boolean,
+	useNamespace?: boolean,
+	exportEnumByDefault?: boolean,
+	exportStorableByDefault?: boolean,
+	exportHttpRouteByDefault?: boolean,
+	exportErrorsByDefault?: boolean,
+	exportWsEndPointByDefault?: boolean,
+	exportWsEventByDefault?: boolean,
+	exportWsRouteByDefault?: boolean,
+	replacer?: {
+		all?: AventusPhpReplacerPart
+		genericError?: AventusPhpReplacerPart
+		httpRouter?: AventusPhpReplacerPart
+		normalClass?: AventusPhpReplacerPart
+		storable?: AventusPhpReplacerPart
+		withError?: AventusPhpReplacerPart
+		httpRequest?: AventusPhpReplacerPart
+		httpResource?: AventusPhpReplacerPart
+	},
+	httpRouter?: AventusPhpHttpRouter,
+}
+
+interface AventusPhpReplacerPart {
+	type: {
+		[key: string]: {
+			result: string,
+			file?: string,
+			useTypeImport?: boolean,
+		}
+	}
+	result: {
+		[key: string]: {
+			result: string,
+			file?: string,
+			useTypeImport?: boolean,
+		}
+	}
+}
+
+interface AventusPhpHttpRouter {
+	createRouter?: boolean,
+	routerName?: string,
+	uri?: string,
+	host?: string,
+	parent?: string,
+	parentFile?: string,
+	namespace?: string
 }

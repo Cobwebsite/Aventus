@@ -3,15 +3,24 @@ base/**
 cli/**
 client/**
 !client/out
+!client/views
 example/**
 node_modules
 !node_modules/typescript
+!node_modules/@types/node
+!node_modules/@rollup/rollup-win32-x64-msvc
 # !node_modules/@types
 server/**
 !server/out
 .gitignore
+.github
 .vscodeignore
 jsconfig.json
 package-lock.json
 shared.webpack.config.js
 *.drawio
+scripts/**
+views
+docu.txt
+test-cli.cmd
+babel.config.js

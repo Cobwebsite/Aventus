@@ -40,22 +40,22 @@
             Attribute used to allow a null value for the Property
             </summary>
         </member>
-        <member name="T:AventusSharp.Data.IAventusFile">
+        <member name="T:AventusSharp.Data.CustomTableMembers.IAventusFile">
             <summary>
             Generic interface for File that you can upload and save into the database
             </summary>
         </member>
-        <member name="T:AventusSharp.Data.AventusFile">
+        <member name="T:AventusSharp.Data.CustomTableMembers._AventusFile">
             <summary>
             Class to handle file during process
             </summary>
         </member>
-        <member name="P:AventusSharp.Data.AventusFile.Uri">
+        <member name="P:AventusSharp.Data.CustomTableMembers._AventusFile.Uri">
             <summary>
             The current file Uri
             </summary>
         </member>
-        <member name="P:AventusSharp.Data.AventusFile.Upload">
+        <member name="P:AventusSharp.Data.CustomTableMembers._AventusFile.Upload">
             <summary>
             The file uploaded though a form
             </summary>
@@ -100,6 +100,16 @@
             Define the name of sql table based on the current type
             </summary>
         </member>
+        <member name="P:AventusSharp.Data.DataManagerConfig.AutoCreateModel">
+            <summary>
+            Define if Aventus have to create models
+            </summary>
+        </member>
+        <member name="F:AventusSharp.Data.DataManagerConfig.Migration">
+            <summary>
+            Define config for migration
+            </summary>
+        </member>
         <member name="F:AventusSharp.Data.DataManagerConfigLog.monitorDataDependances">
             <summary>
             Display dependances for all your models
@@ -140,6 +150,11 @@
             Print all errors from storable action in the console
             </summary>
         </member>
+        <member name="F:AventusSharp.Data.DataManagerConfigMigration.MultipleProviders">
+            <summary>
+            Define if migrations will be applied though multiple prodivers (for example : 2 databases)
+            </summary>
+        </member>
         <member name="M:AventusSharp.Data.DataMainManager.DataInit.GetTypeForGenericClass(System.Type)">
             <summary>
             Always the first generic parameter for an abstract class
@@ -168,6 +183,11 @@
         <member name="P:AventusSharp.Data.Manager.DataMemberInfo.Name">
             <summary>
             Interface for Name
+            </summary>
+        </member>
+        <member name="P:AventusSharp.Data.Manager.DataMemberInfo.IsNullable">
+            <summary>
+            Interface for IsNullable
             </summary>
         </member>
         <member name="M:AventusSharp.Data.Manager.DataMemberInfo.GetCustomAttribute``1">
@@ -376,12 +396,32 @@
             <inheritdoc />
             </summary>
         </member>
+        <member name="M:AventusSharp.Data.Manager.GenericDM`2.BulkCreateWithError``1(System.Collections.Generic.List{``0},System.Boolean)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.GenericDM`2.AventusSharp#Data#Manager#IGenericDM#BulkCreateWithError``1(System.Collections.Generic.List{``0},System.Boolean)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
         <member name="M:AventusSharp.Data.Manager.GenericDM`2.Create``1(System.Collections.Generic.List{``0})">
             <summary>
             <inheritdoc />
             </summary>
         </member>
         <member name="M:AventusSharp.Data.Manager.GenericDM`2.AventusSharp#Data#Manager#IGenericDM#Create``1(System.Collections.Generic.List{``0})">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.GenericDM`2.BulkCreate``1(System.Collections.Generic.List{``0},System.Boolean)">
+            <summary>
+            <inheritdoc />
+            </summary>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.GenericDM`2.AventusSharp#Data#Manager#IGenericDM#BulkCreate``1(System.Collections.Generic.List{``0},System.Boolean)">
             <summary>
             <inheritdoc />
             </summary>
@@ -485,6 +525,30 @@
             <summary>
             <inheritdoc />
             </summary>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.GenericDM`2.RunInsideTransaction``1(``0,System.Func{AventusSharp.Tools.ResultWithError{``0}})">
+            <summary>
+            Run a function inside a transaction that ll be commit if no error otherwise rollback
+            </summary>
+            <typeparam name="Y"></typeparam>
+            <param name="defaultValue"></param>
+            <param name="action"></param>
+            <returns></returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.GenericDM`2.RunInsideTransaction``1(System.Func{AventusSharp.Tools.ResultWithError{``0}})">
+            <summary>
+            Run a function inside a transaction that ll be commit if no error otherwise rollback
+            </summary>
+            <typeparam name="Y"></typeparam>
+            <param name="action"></param>
+            <returns></returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.GenericDM`2.RunInsideTransaction(System.Func{AventusSharp.Tools.VoidWithError})">
+            <summary>
+            Run a function inside a transaction that ll be commit if no error otherwise rollback
+            </summary>
+            <param name="action"></param>
+            <returns></returns>
         </member>
         <member name="T:AventusSharp.Data.Manager.IDeleteBuilder`1">
             <summary>
@@ -639,12 +703,26 @@
             <param name="func">The condition to apply to the query.</param>
             <returns>The current query builder instance for method chaining.</returns>
         </member>
+        <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.Fields">
+            <summary>
+            Specifies that all fields have to be included in the query results.
+            </summary>
+            <returns>The current query builder instance for method chaining.</returns>
+        </member>
         <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.Field``1(System.Linq.Expressions.Expression{System.Func{`0,``0}})">
             <summary>
             Specifies a field to be included in the query results.
             </summary>
             <typeparam name="U">The type of the field to include.</typeparam>
             <param name="memberExpression">The expression representing the field to include.</param>
+            <returns>The current query builder instance for method chaining.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.Ignore``1(System.Linq.Expressions.Expression{System.Func{`0,``0}})">
+            <summary>
+            Specifies a field to be excluded from the query results.
+            </summary>
+            <typeparam name="U">The type of the field to exclude.</typeparam>
+            <param name="memberExpression">The expression representing the field to exclude.</param>
             <returns>The current query builder instance for method chaining.</returns>
         </member>
         <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.Sort``1(System.Linq.Expressions.Expression{System.Func{`0,``0}},System.Nullable{AventusSharp.Data.Manager.DB.Sort})">
@@ -654,6 +732,14 @@
             <typeparam name="U">The type of the field to sort by.</typeparam>
             <param name="expression">The field to sort by.</param>
             <param name="sort">The sorting order (ascending or descending).</param>
+            <returns>The current query builder instance for method chaining.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.Group``1(System.Linq.Expressions.Expression{System.Func{`0,``0}})">
+            <summary>
+            Specifies grouping for the query based on the provided expression.
+            </summary>
+            <typeparam name="U">The type of the field to group by.</typeparam>
+            <param name="expression">The field to group by.</param>
             <returns>The current query builder instance for method chaining.</returns>
         </member>
         <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.Include(System.Linq.Expressions.Expression{System.Func{`0,AventusSharp.Data.IStorable}})">
@@ -769,6 +855,23 @@
             Create inside the DM a bunch of elements and return them
             </summary>
             <param name="values"></param>
+            <returns></returns>
+        </member>
+        <member name="M:AventusSharp.Data.Storable`1.BulkCreate(System.Collections.Generic.List{`0},System.Boolean)">
+            <summary>
+            Create inside the DM a bunch of elements and return them
+            If something went wrong an empty list will be returned
+            </summary>
+            <param name="values"></param>
+            <param name="withId"></param>
+            <returns></returns>
+        </member>
+        <member name="M:AventusSharp.Data.Storable`1.BulkCreateWithError(System.Collections.Generic.List{`0},System.Boolean)">
+            <summary>
+            Create inside the DM a bunch of elements and return them
+            </summary>
+            <param name="values"></param>
+            <param name="withId"></param>
             <returns></returns>
         </member>
         <member name="M:AventusSharp.Data.Storable`1.Create(`0)">
@@ -898,6 +1001,78 @@
             Delete the current element inside the DM
             If return Count == 0 it means no error and your item is stored
             </summary>
+            <returns></returns>
+        </member>
+        <member name="M:AventusSharp.Data.Storable`1.IsValid(AventusSharp.Data.StorableAction)">
+            <summary>
+            Apply the function ValidationRules to check if element is valid
+            </summary>
+            <param name="action">The type of action that you need to check</param>
+            <returns></returns>
+        </member>
+        <member name="M:AventusSharp.Data.Storable`1.ValidationRules(AventusSharp.Data.StorableAction)">
+            <summary>
+            Define custom rules you need to check for your object
+            </summary>
+            <param name="action"></param>
+            <returns></returns>
+        </member>
+        <member name="M:AventusSharp.Data.Storable`1.LoadDependances``1(System.Collections.Generic.List{`0},System.Func{`0,System.Int32},System.Action{`0,``0})">
+            <summary>
+            Allow to load the a real object from an id on the same element
+            </summary>
+            <typeparam name="Y"></typeparam>
+            <param name="from">Items to augment</param>
+            <param name="fct">The field with the int (Id of the element to load)</param>
+            <param name="set">Set to add the object to the item</param>
+            <returns></returns>
+        </member>
+        <member name="M:AventusSharp.Data.Storable`1.LoadDependances``1(AventusSharp.Tools.ResultWithError{System.Collections.Generic.List{`0}},System.Func{`0,System.Int32},System.Action{`0,``0})">
+            <summary>
+            Allow to load the a real object from an id on the same element
+            </summary>
+            <typeparam name="Y"></typeparam>
+            <param name="from">Items to augment</param>
+            <param name="fct">The field with the int (Id of the element to load)</param>
+            <param name="set">Set to add the object to the item</param>
+            <returns></returns>
+        </member>
+        <member name="M:AventusSharp.Data.Storable`1.LoadDependancesList``1(System.Collections.Generic.List{`0},System.Func{`0,System.Collections.Generic.List{System.Int32}},System.Action{`0,``0})">
+            <summary>
+            Allow to load the list of real object from a list of ids on the same element
+            </summary>
+            <typeparam name="Y"></typeparam>
+            <param name="from">Items to augment</param>
+            <param name="fct">The field with the List of int</param>
+            <param name="set">Set to add the object to the list</param>
+            <returns></returns>
+        </member>
+        <member name="M:AventusSharp.Data.Storable`1.LoadDependancesList``1(AventusSharp.Tools.ResultWithError{System.Collections.Generic.List{`0}},System.Func{`0,System.Collections.Generic.List{System.Int32}},System.Action{`0,``0})">
+            <summary>
+            Allow to load the list of real object from a list of ids on the same element
+            </summary>
+            <typeparam name="Y"></typeparam>
+            <param name="from">Items to augment</param>
+            <param name="fct">The field with the List of int</param>
+            <param name="set">Set to add the object to the list</param>
+            <returns></returns>
+        </member>
+        <member name="M:AventusSharp.Data.Storable`1.LoadReverseLink``1(System.Collections.Generic.List{`0},System.Linq.Expressions.Expression{System.Func{`0,System.Collections.Generic.List{``0}}})">
+            <summary>
+            Allow to load a member of type List marked ReverseLink
+            </summary>
+            <typeparam name="Y"></typeparam>
+            <param name="from">List of objects with the member</param>
+            <param name="expression">The member the need to be loaded</param>
+            <returns></returns>
+        </member>
+        <member name="M:AventusSharp.Data.Storable`1.LoadReverseLink``1(AventusSharp.Tools.ResultWithError{System.Collections.Generic.List{`0}},System.Linq.Expressions.Expression{System.Func{`0,System.Collections.Generic.List{``0}}})">
+            <summary>
+            Allow to load a member of type List marked ReverseLink
+            </summary>
+            <typeparam name="Y"></typeparam>
+            <param name="from">List of objects with the member</param>
+            <param name="expression">The member the need to be loaded</param>
             <returns></returns>
         </member>
         <member name="M:AventusSharp.Data.Storage.Default.DefaultDBStorage`1.CheckAutoCUDBeforeCreate``1(System.Collections.Generic.List{AventusSharp.Data.Storage.Default.TableMember.TableMemberInfoSql},``0)">
@@ -1089,12 +1264,13 @@
             <param name="propPath"></param>
             <param name="result"></param>
         </member>
-        <member name="M:AventusSharp.Routes.Request.RouterBody.GetData(System.Type,System.String)">
+        <member name="M:AventusSharp.Routes.Request.RouterBody.GetData(System.Type,System.String,System.Boolean)">
             <summary>
             Transform data into object T. Add path to tell where to find data to cast
             </summary>
             <param name="type">Type needed</param>
             <param name="propPath">Path where to find data</param>
+            <param name="isOptional">Determine if data is required</param>
             <returns></returns>
         </member>
         <member name="F:AventusSharp.Routes.Request.HttpFile.stream">
@@ -1131,6 +1307,12 @@
             <summary>
             Set to true to print route triggered
             </summary>
+        </member>
+        <member name="M:AventusSharp.Routes.StorableRouter`1.StorableName">
+            <summary>
+            Define the name of the object for the url
+            </summary>
+            <returns></returns>
         </member>
         <member name="T:AventusSharp.Scheduler.Event.JobEndInfo">
             <summary>
@@ -1960,12 +2142,13 @@
             Determine if the typescript must start listening this event when the connection open
             </summary>
         </member>
-        <member name="M:AventusSharp.WebSocket.Request.WebSocketRouterBody.GetData(System.Type,System.String)">
+        <member name="M:AventusSharp.WebSocket.Request.WebSocketRouterBody.GetData(System.Type,System.String,System.Boolean)">
             <summary>
             Transform data into object T. Add path to tell where to find data to cast
             </summary>
             <param name="type">Type needed</param>
             <param name="propPath">Path where to find data</param>
+            <param name="isOptional">Determine if data is required</param>
             <returns></returns>
         </member>
         <member name="F:AventusSharp.WebSocket.WebSocketConfig.transformPattern">

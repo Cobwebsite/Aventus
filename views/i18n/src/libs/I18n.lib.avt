@@ -1,0 +1,45 @@
+import { HttpMethod, HttpRequest, sleep } from "Aventus@Main:Aventus.package.avt";
+import { Alert } from "../components/Alert/Alert.wcl.avt";
+import { ApiKeyPopup } from "../components/ApiKeyPopup/ApiKeyPopup.wcl.avt";
+
+export type I18nParsed = { [key: string]: { [locale: string]: string; }; };
+
+export const DemoData: I18nParsed = {
+    "click me1": {
+        "en-GB": "click me",
+        "fr-CH": "presse moi"
+    },
+    "click me2": {
+        "en-GB": "ⵌⵌ",
+        "fr-CH": "presse moi"
+    }
+};
+
+
+
+export class Translator {
+    public static async translate(value: string, source: string, destination: string, askKey: boolean = true) {
+        const result = await VscodeView.Router.getInstance().sendWithResponse<{ error?: string, result?: string; }>({
+            channel: "translate",
+            body: {
+                value,
+                source,
+                destination
+            }
+        });
+        if(!result.result) return null;
+        if(askKey && result.result.error == "No api key") {
+            let popup = new ApiKeyPopup();
+            await ApiKeyPopup.show(popup);
+            if(popup.apiKeySet) {
+                return await this.translate(value, source, destination, false);
+            }
+            return null;
+        }
+        else if(result.result.error) {
+            await Alert.make("Error", result.result.error);
+            return null;
+        }
+        return result.result.result!;
+    }
+}

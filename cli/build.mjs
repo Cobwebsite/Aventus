@@ -15,6 +15,7 @@ execSync("npm run compile:server", {
 })
 
 tsconfig = tsconfig.replace("\"composite\": false", "\"composite\": true");
+tsconfig = tsconfig.replace("\"declaration\": false", "\"declaration\": true");
 writeFileSync(tsconfigPath, tsconfig);
 
 execSync("npm run _package:cli", {
@@ -22,4 +23,5 @@ execSync("npm run _package:cli", {
 })
 
 tsconfig = tsconfig.replace("\"composite\": true", "\"composite\": false");
+tsconfig = tsconfig.replace("\"declaration\": true", "\"declaration\": false");
 writeFileSync(tsconfigPath, tsconfig);

@@ -640,14 +640,14 @@ export class ParserHtml {
 					else if (scanner.getTokenType() == TokenType.Whitespace) {
 					}
 					else if (scanner.getTokenType() == TokenType.Unknown) {
-						debugger;
+						//debugger;
 					}
 					else if (scanner.getTokenType() == TokenType.Script) {
 						// ParserHtml.addError(scanner.getTokenOffset(), scanner.getTokenEnd(), "You can't use script inside")
-						debugger;
+						//debugger;
 					}
 					else if (scanner.getTokenType() == TokenType.Styles) {
-						debugger;
+						//debugger;
 					}
 				}
 			}
@@ -687,7 +687,14 @@ export class ParserHtml {
 		return result;
 	}
 
-
+	public replaceId(newIdBase: string) {
+		let finalTxt = "";
+		for (let tag of this.rootTags) {
+			tag.replaceId(newIdBase);
+			finalTxt += tag.render();
+		}
+		this.manageSlotAndBlock(finalTxt);
+	}
 	// TODO replace it with tag management
 	private manageSlotAndBlock(finalTxt: string) {
 		let body = finalTxt;

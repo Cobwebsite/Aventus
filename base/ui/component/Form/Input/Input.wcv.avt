@@ -1,5 +1,0 @@
-<input id="input" @element="inputEl" @blur="validate" @focus="clearErrors" @input="inputChange" />
-<label for="input">{{this.label}}</label>
-<div class="grid">
-	<div @element="errorEl" class="error"></div>
-</div>

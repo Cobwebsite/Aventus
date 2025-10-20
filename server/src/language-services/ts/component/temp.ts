@@ -1,4 +1,4 @@
-// import { Diagnostic, Position, CompletionList, CompletionItem, Hover, Definition, Range, FormattingOptions, TextEdit, CodeAction, Location, CodeLens, WorkspaceEdit } from 'vscode-languageserver';
+// import { Diagnostic, Position, CompletionList, CompletionItem, Hover, Range, FormattingOptions, TextEdit, CodeAction, Location, CodeLens, WorkspaceEdit } from 'vscode-languageserver';
 // import { AventusFile, InternalAventusFile } from '../../../files/AventusFile';
 // import { AventusTsFile } from '../File';
 // import { Build } from '../../../project/Build';
@@ -213,7 +213,7 @@
 // 		return await this.tsLanguageService.doHover(this.file, position);
 // 	}
 
-// 	public async doDefinitionMethod(html: AventusHTMLFile, position: Position): Promise<Definition | null> {
+// 	public async doDefinitionMethod(html: AventusHTMLFile, position: Position): Promise<Location[] | null> {
 // 		if (html.fileParsed && html.tsFile) {
 // 			let offsetFrom = html.file.document.offsetAt(position);
 // 			for (let i = 0; i < html.fileParsed.fcts.length; i++) {
@@ -221,7 +221,7 @@
 // 				if (offsetFrom >= fct.start + 2 && offsetFrom <= fct.end - 2) {
 // 					let offset = offsetFrom - fct.start - 2;
 // 					let positionOnFile = this.file.document.positionAt(this.methodsStart[i] + offset);
-// 					let resultTemp: Definition | null = await this.onDefinition(this.file, positionOnFile);
+// 					let resultTemp: Location[] | null = await this.onDefinition(this.file, positionOnFile);
 // 					if (resultTemp) {
 // 						if (!Array.isArray(resultTemp)) {
 // 							resultTemp.uri = this.fromFile.uri
@@ -245,7 +245,7 @@
 // 		}
 // 		return null;
 // 	}
-// 	protected async onDefinition(document: AventusFile, position: Position): Promise<Definition | null> {
+// 	protected async onDefinition(document: AventusFile, position: Position): Promise<Location[] | null> {
 // 		return await this.tsLanguageService.findDefinition(this.file, position);
 // 	}
 

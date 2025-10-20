@@ -1,7 +1,7 @@
 import { EOL } from 'os';
 import { join, normalize, sep } from 'path';
-import { CodeFixAction, CompilerOptions, CompletionInfo, createLanguageService, Diagnostic as DiagnosticTs, displayPartsToString, Extension, flattenDiagnosticMessageText, FormatCodeSettings, GetCompletionsAtPositionOptions, IndentStyle, JsxEmit, LanguageService, LanguageServiceHost, ModuleDetectionKind, ModuleResolutionKind, RenameInfo, ResolvedModule, ResolvedModuleFull, resolveModuleName, ScriptKind, ScriptTarget, SemicolonPreference, transpile, WithMetadata, UserPreferences, getTokenAtPosition, createSourceFile, isTypeReferenceNode, SourceFile, TypeFormatFlags, ResolvedProjectReference } from 'typescript';
-import { CodeAction, CodeLens, CompletionItem, CompletionItemKind, CompletionList, Definition, Diagnostic, DiagnosticSeverity, DiagnosticTag, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver';
+import { CodeFixAction, CompilerOptions, CompletionInfo, createLanguageService, Diagnostic as DiagnosticTs, displayPartsToString, Extension, flattenDiagnosticMessageText, FormatCodeSettings, GetCompletionsAtPositionOptions, IndentStyle, JsxEmit, LanguageService, LanguageServiceHost, ModuleDetectionKind, ModuleResolutionKind, RenameInfo, ResolvedModule, ResolvedModuleFull, resolveModuleName, ScriptKind, ScriptTarget, SemicolonPreference, transpile, WithMetadata, UserPreferences, getTokenAtPosition, createSourceFile, isTypeReferenceNode, SourceFile, TypeFormatFlags, ResolvedProjectReference, SyntaxKind } from 'typescript';
+import { CodeAction, CodeLens, CompletionItem, CompletionItemKind, CompletionList, Diagnostic, DiagnosticSeverity, DiagnosticTag, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver';
 import { AventusExtension, AventusLanguageId } from '../../definition';
 import { AventusFile } from '../../files/AventusFile';
 import { Build } from '../../project/Build';
@@ -24,6 +24,9 @@ import { HttpServer } from '../../live-server/HttpServer';
 import { AventusPackageNamespaceFileTs } from './package/File';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { SettingsManager } from '../../settings/Settings';
+import { SlotsInfo } from '../html/File';
+import { AventusI18nFile } from '../i18n/File';
+import { AventusWebComponentLogicalFile } from './component/File';
 
 
 
@@ -35,6 +38,7 @@ export class AventusTsLanguageService {
     private filesNpm: string[] = [];
     private filesNpmLoaded: boolean = false;
     private filesLoaded: { [uri: string]: AventusTsFile } = {}
+    public i18nFiles: { [uri: string]: AventusI18nFile } = {}
 
     public constructor(build: Build) {
         this.build = build;
@@ -65,7 +69,7 @@ export class AventusTsLanguageService {
         const host: LanguageServiceHost = {
             getCompilationSettings: () => compilerOptionsRead,
             getScriptFileNames: () => {
-                return [...this.filesNeeded, ...this.filesNpm]
+                return [...this.filesNeeded, ...this.filesNpm, ...Object.keys(this.i18nFiles)]
             },
             getScriptKind: (fileName) => {
                 return ScriptKind.TS;
@@ -73,6 +77,8 @@ export class AventusTsLanguageService {
             getScriptVersion: (fileName: string) => {
                 if (this.filesLoaded[fileName]) {
                     return String(this.filesLoaded[fileName].file.versionUser + 1);
+                } else if (this.i18nFiles[fileName]) {
+                    return String(this.i18nFiles[fileName].file.versionUser + 1);
                 }
                 return '1';
             },
@@ -80,6 +86,8 @@ export class AventusTsLanguageService {
                 let text: string | undefined = '';
                 if (this.filesLoaded[fileName]) {
                     text = this.filesLoaded[fileName].file.contentInternal;
+                } else if (this.i18nFiles[fileName]) {
+                    text = this.i18nFiles[fileName].file.contentInternal;
                 } else {
                     text = loadLibrary(fileName);
                 }
@@ -97,6 +105,8 @@ export class AventusTsLanguageService {
             readFile: (fileName: string, _encoding?: string | undefined): string | undefined => {
                 if (this.filesLoaded[fileName]) {
                     return this.filesLoaded[fileName].file.contentInternal;
+                } else if (this.i18nFiles[fileName]) {
+                    return this.i18nFiles[fileName].file.contentInternal;
                 } else {
                     return loadLibrary(fileName);
                 }
@@ -106,6 +116,8 @@ export class AventusTsLanguageService {
                     fileName = fileName.replace(AventusExtension.Base + ".ts", AventusExtension.Base);
                 }
                 if (this.filesLoaded[fileName]) {
+                    return true;
+                } else if (this.i18nFiles[fileName]) {
                     return true;
                 } else {
                     return !!loadLibrary(fileName);
@@ -126,14 +138,16 @@ export class AventusTsLanguageService {
         const host: LanguageServiceHost = {
             getCompilationSettings: () => compilerOptionsRead,
             getScriptFileNames: () => {
-                return [...this.filesNeeded, ...this.filesNpm]
+                return [...this.filesNeeded, ...this.filesNpm, ...Object.keys(this.i18nFiles)]
             },
             getScriptKind: (fileName) => {
                 return ScriptKind.TS;
             },
             getScriptVersion: (fileName: string) => {
                 if (this.filesLoaded[fileName]) {
-                    return String(this.filesLoaded[fileName].version + 1);
+                    return String(this.filesLoaded[fileName].versionInternal + 1);
+                } else if (this.i18nFiles[fileName]) {
+                    return String(this.i18nFiles[fileName].file.versionInternal + 1);
                 }
                 return '1';
             },
@@ -141,6 +155,8 @@ export class AventusTsLanguageService {
                 let text: string | undefined = '';
                 if (this.filesLoaded[fileName]) {
                     text = this.filesLoaded[fileName].contentForLanguageService;
+                } else if (this.i18nFiles[fileName]) {
+                    text = this.i18nFiles[fileName].file.contentInternal;
                 } else {
                     text = loadLibrary(fileName);
                 }
@@ -159,6 +175,8 @@ export class AventusTsLanguageService {
                 let result: string | undefined = undefined;
                 if (this.filesLoaded[fileName]) {
                     result = this.filesLoaded[fileName].contentForLanguageService;
+                } else if (this.i18nFiles[fileName]) {
+                    return this.i18nFiles[fileName].file.contentInternal;
                 } else {
                     result = loadLibrary(fileName);
                 }
@@ -171,6 +189,8 @@ export class AventusTsLanguageService {
                 }
                 if (this.filesLoaded[fileName]) {
                     result = true;
+                } else if (this.i18nFiles[fileName]) {
+                    return true;
                 } else {
                     result = !!loadLibrary(fileName);
                 }
@@ -526,40 +546,99 @@ export class AventusTsLanguageService {
         return undefined;
     }
 
-    public async findDefinition(file: AventusFile, position: Position): Promise<Definition | null> {
+    public async findDefinition(file: AventusFile, position: Position): Promise<Location[] | null> {
+        let result: Location[] = [];
         try {
-
-            let definition = this.languageService.getDefinitionAtPosition(file.uri, file.documentInternal.offsetAt(position));
+            const offset = file.documentInternal.offsetAt(position);
+            let definition = this.languageService.getDefinitionAtPosition(file.uri, offset);
             if (definition && definition.length > 0) {
-                let d = definition[0];
-                if (d.fileName.endsWith(".avt.ts")) {
-                    d.fileName = d.fileName.replace(".avt.ts", ".avt");
-                }
-                let realDoc = this.filesLoaded[d.fileName];
-                if (realDoc instanceof AventusPackageNamespaceFileTs) {
-                    return realDoc.goToDefinition(convertRange(realDoc.file.documentInternal, d.textSpan));
-                }
-                if (realDoc) {
-                    return {
-                        uri: realDoc.file.uri,
-                        range: convertRange(realDoc.file.documentInternal, d.textSpan)
-                    };
-                }
-                else {
-                    let content = loadLibrary(d.fileName);
-                    if (content) {
-                        const doc = TextDocument.create(d.fileName, "typescript", 1, content)
-                        return {
-                            uri: d.fileName,
-                            range: convertRange(doc, d.textSpan)
+                for (let d of definition) {
+                    if (d.fileName.endsWith(".avt.ts")) {
+                        d.fileName = d.fileName.replace(".avt.ts", ".avt");
+                    }
+                    let realDoc = this.filesLoaded[d.fileName];
+                    if (realDoc instanceof AventusPackageNamespaceFileTs) {
+                        let resultTemp = await realDoc.goToDefinition(convertRange(realDoc.file.documentInternal, d.textSpan));
+                        if (resultTemp && !Array.isArray(resultTemp)) {
+                            resultTemp = [resultTemp];
                         }
+                        if (resultTemp) {
+                            result = [...resultTemp];
+                        }
+                    }
+                    else if (realDoc) {
+                        result.push({
+                            uri: realDoc.file.uri,
+                            range: convertRange(realDoc.file.documentInternal, d.textSpan)
+                        })
+                    }
+                    else {
+                        let content = loadLibrary(d.fileName);
+                        if (content) {
+                            const doc = TextDocument.create(d.fileName, "typescript", 1, content)
+                            result.push({
+                                uri: d.fileName,
+                                range: convertRange(doc, d.textSpan)
+                            })
+                        }
+                    }
+                }
+                return result;
+            }
+            else if (definition && definition.length == 0) {
+                let program = this.languageService.getProgram();
+                if (program) {
+                    let srcFile = program.getSourceFile(file.uri);
+                    if (srcFile) {
+                        let typeChecker = program.getTypeChecker();
+
+                        let node = getTokenAtPosition(srcFile, offset);
+                        let type = typeChecker.getTypeAtLocation(node);
+                        if (type.isStringLiteral()) {
+                            const getGlobalDef = (key: string) => {
+                                for (let uri in this.i18nFiles) {
+                                    const file = this.i18nFiles[uri];
+                                    if (file.parsed && file.parsed[key]) {
+                                        const start = file.file.documentUser.positionAt(file.parsed[key].keyStart);
+                                        const end = file.file.documentUser.positionAt(file.parsed[key].keyEnd);
+                                        result.push({
+                                            uri: uri,
+                                            range: Range.create(start, end)
+                                        });
+                                    }
+                                }
+                            }
+                            const txt = node.parent.getText();
+                            if (txt.startsWith("t(")) {
+                                const key = type.value;
+                                getGlobalDef(key);
+                            }
+                            else if (txt.startsWith("this.t(")) {
+                                const key = type.value;
+                                const fileTemp = this.build.tsFiles[file.uri];
+                                if (fileTemp instanceof AventusWebComponentLogicalFile) {
+                                    if (fileTemp.I18nFile?.parsed && fileTemp.I18nFile?.parsed[key]) {
+                                        const fileI18n = fileTemp.I18nFile;
+                                        const parsed = fileTemp.I18nFile.parsed[key];
+                                        const start = fileI18n.file.documentUser.positionAt(parsed.keyStart);
+                                        const end = fileI18n.file.documentUser.positionAt(parsed.keyEnd);
+                                        result.push({
+                                            uri: fileTemp.I18nFile.file.uri,
+                                            range: Range.create(start, end)
+                                        });
+                                    }
+                                }
+                                getGlobalDef(key);
+                            }
+                        }
+
                     }
                 }
             }
         } catch (e) {
             this.printCatchError(e);
         }
-        return null;
+        return result;
     }
     public async format(file: AventusFile, range: Range, formatParams: FormattingOptions, semiColon: boolean = true): Promise<TextEdit[]> {
         try {
@@ -918,32 +997,40 @@ export class AventusTsLanguageService {
     private static prepareDataSchema(classInfo: ClassInfo, moduleName: string, npm?: boolean): string {
         let template: { [prop: string]: string } = {};
         const _loadType = (type: TypeInfo) => {
-            if (type.kind == "boolean") {
-                return 'boolean';
-            }
-            else if (type.kind == "number") {
-                return 'number';
-            }
-            else if (type.kind == "string") {
-                return "string";
-            }
-            else if (type.kind == "type") {
-                if (type.value.includes(".")) {
-                    return type.value;
+            const basic = () => {
+                if (type.kind == "boolean") {
+                    return 'boolean';
                 }
-                else {
-                    let importInfo = classInfo.parserInfo.importsLocal[type.value]?.info
-                    if (importInfo) {
-                        let name = npm ? importInfo.name : moduleName + '.' + importInfo.fullName
-                        return name;
+                else if (type.kind == "number") {
+                    return 'number';
+                }
+                else if (type.kind == "string") {
+                    return "string";
+                }
+                else if (type.kind == "type") {
+                    if (type.value.includes(".")) {
+                        return type.value;
                     }
-                    return type.value;
+                    else {
+                        let importInfo = classInfo.parserInfo.importsLocal[type.value]?.info
+                        if (importInfo) {
+                            let name = npm ? importInfo.name : moduleName + '.' + importInfo.fullName
+                            return name;
+                        }
+                        return type.value;
+                    }
                 }
+                else if (type.kind == "literal" || type.kind == "typeLiteral") {
+                    return 'literal'
+                }
+                return null;
             }
-            else if (type.kind == "literal" || type.kind == "typeLiteral") {
-                return 'literal'
+
+            let result = basic();
+            if (result && type.isArray) {
+                result += "[]";
             }
-            return null;
+            return result;
         }
         for (let propName in classInfo.properties) {
             let prop = classInfo.properties[propName];
@@ -990,7 +1077,7 @@ export class AventusTsLanguageService {
             hotReload: "",
             docVisible: "",
             docInvisible: "",
-            dependances: element.dependances,
+            dependances: Object.values(element.dependances),
             classScript: "",
             classDoc: "",
             debugTxt: "",
@@ -1009,13 +1096,13 @@ export class AventusTsLanguageService {
                 uri: file.file.uri,
                 src: ""
             },
-            story: {}
         }
         try {
             let additionContent = "";
             let additionContentNpm = "";
             // prepare content
             let txt = element.compiledContent;
+            let txtDoc = element.compiledContentDoc;
             let txtHotReload = element.compiledContentHotReload;
             let moduleName = file.build.module;
             if (element instanceof ClassInfo && !element.isInterface) {
@@ -1045,6 +1132,7 @@ export class AventusTsLanguageService {
             }
             else if (element instanceof VariableInfo) {
                 txt = element.type + " " + element.compiledContent;
+                txtDoc = element.type + " " + element.compiledContentDoc;
                 txtHotReload = element.type + " " + element.compiledContentHotReload;
             }
 
@@ -1060,7 +1148,9 @@ export class AventusTsLanguageService {
                 result.hotReload = transpile(txtHotReload, compilerOptionsCompile);
             }
 
-            let rawDoc = this.compileDocTs(txt, element);
+            txtDoc = this.removeComments(txtDoc);
+            txtDoc = this.replaceFirstExport(txtDoc);
+            let rawDoc = this.compileDocTs(txtDoc, element);
             let doc = DefinitionCorrector.correct(rawDoc, element);
 
             let buildNpm = this.compileTsToNpm(element, file);
@@ -1117,7 +1207,9 @@ export class AventusTsLanguageService {
 
                 }
                 if (element.isExported) {
-                    finalCompiled += "_." + element.fullName + "=" + element.fullName + ";";
+
+                    finalCompiled += `__as1(_${element.namespace != '' ? '.' + element.namespace : ''}, '${element.name}', ${element.fullName});`
+                    // finalCompiled += "_." + element.fullName + "=" + element.fullName + ";";
                     finalCompiled += EOL;
                 }
 
@@ -1232,7 +1324,7 @@ export class AventusTsLanguageService {
         return null;
     }
 
-    public static compileDocTs(txt: string, element: BaseInfo): string {
+    public static compileDocTs(txt: string, element?: BaseInfo): string {
         try {
             const host: LanguageServiceHost = {
                 getCompilationSettings: () => {
@@ -1277,7 +1369,7 @@ export class AventusTsLanguageService {
             };
             let ls: LanguageService = createLanguageService(host);
             let result = ls.getEmitOutput("temp.js", true, true).outputFiles[0].text.replace(/^declare /g, '');
-            if(element instanceof ClassInfo && !element.constructorBody && element.extraConstructorCode.length > 0) {
+            if (element instanceof ClassInfo && !element.constructorBody && element.extraConstructorCode.length > 0) {
                 result = result.replace(/^ *constructor\(.*\);$/gm, "");
             }
             return result;
@@ -1405,9 +1497,7 @@ export type CompileTsResultNpm = {
     uri: string,
     src: string
 }
-export type CompileTsResultStory = {
 
-}
 export type CompileTsResult = {
     compiled: string,
     hotReload: string,
@@ -1427,7 +1517,7 @@ export type CompileTsResult = {
     convertibleName: string,
     tagName?: string,
     npm: CompileTsResultNpm;
-    story: CompileTsResultStory
+    slots?: SlotsInfo
 }
 
 
@@ -1447,7 +1537,8 @@ const compilerOptionsRead: CompilerOptions = {
     noImplicitReturns: true,
     noUnusedLocals: true,
     strictNullChecks: true,
-    verbatimModuleSyntax: true
+    verbatimModuleSyntax: true,
+    baseUrl: "./",
 };
 const compilerOptionsCompile: CompilerOptions = {
     allowNonTsExtensions: true,
@@ -1464,7 +1555,8 @@ const compilerOptionsCompile: CompilerOptions = {
     strictPropertyInitialization: true,
     noImplicitReturns: true,
     strictNullChecks: true,
-    verbatimModuleSyntax: true
+    verbatimModuleSyntax: true,
+    baseUrl: "./",
 };
 const completionOptions: GetCompletionsAtPositionOptions = {
     includeExternalModuleExports: true,
@@ -1545,7 +1637,7 @@ const enum Kind {
     parameter = 'parameter',
     typeParameter = 'type parameter'
 }
-function convertKind(kind: string): CompletionItemKind {
+export function convertKind(kind: string): CompletionItemKind {
     switch (kind) {
         case Kind.primitiveType:
         case Kind.keyword:
@@ -1647,10 +1739,10 @@ export function simplifyPath(importPathTxt, currentPath) {
     finalPathToImport += importPath.join("/");
     return finalPathToImport;
 }
-function isWhitespaceOnly(str: string) {
+export function isWhitespaceOnly(str: string) {
     return /^\s*$/.test(str);
 }
-function generateIndent(level: number, options: FormattingOptions) {
+export function generateIndent(level: number, options: FormattingOptions) {
     if (options.insertSpaces) {
         return repeat(' ', level * options.tabSize);
     } else {

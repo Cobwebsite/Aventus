@@ -1,0 +1,39 @@
+:host {
+	align-items: center;
+	background-color: rgba(0, 0, 0, 0.3);
+	display: flex;
+	inset: 0;
+	justify-content: center;
+	position: fixed;
+	z-index: 999;
+
+	.popup {
+		background-color: var(--vscode-panel-background);
+		border: var(--vscode-panel-border);
+		border-radius: 4px;
+		box-shadow: var(--elevation-8);
+		max-width: min(800px, calc(100% - 100px));
+		min-width: 400px;
+		padding: 15px;
+
+		.title {
+			font-size: 24px;
+			font-weight: bold;
+			margin-bottom: 10px;
+		}
+
+		.content {
+			font-size: 16px;
+		}
+
+		.actions {
+			align-items: center;
+			display: flex;
+			font-size: 16px;
+			gap: 10px;
+			justify-content: flex-end;
+			margin-top: 10px;
+		}
+	}
+
+}

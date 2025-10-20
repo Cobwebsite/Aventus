@@ -1,0 +1,7 @@
+:host {
+	a {
+		color: inherit;
+		display: contents;
+		text-decoration: none;
+	}
+}

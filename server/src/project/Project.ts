@@ -165,7 +165,11 @@ export class Project {
             
             for (let build of this.config.build) {
                 if (this.buildsAllowed) {
-                    if (!this.buildsAllowed.includes(build.name)) {
+                    if (!this.buildsAllowed.includes(build.name ?? "")) {
+                        let b = this.builds.find(p => p.buildConfig.name == build.name);
+                        if(b) {
+                            b.build();
+                        }
                         continue;
                     }
                 }
@@ -220,6 +224,15 @@ export class Project {
         let result: string[] = [];
         for (let build of this.builds) {
             if (build.hasStories) {
+                result.push(build.fullname);
+            }
+        }
+        return result;
+    }
+    public getBuildsNameWithNpm(): string[] {
+        let result: string[] = [];
+        for (let build of this.builds) {
+            if (build.hasNpmOutput) {
                 result.push(build.fullname);
             }
         }

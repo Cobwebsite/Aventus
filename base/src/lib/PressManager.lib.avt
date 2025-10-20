@@ -1,3 +1,4 @@
+import { Callback } from "./Callback.lib.avt";
 
 @Storybook({
     prefix: "Lib/PressManager"
@@ -94,6 +95,8 @@ export interface PressManagerOptions {
      * The minimum distance in pixels required to trigger a drag event.
      */
     offsetDrag?: number,
+    /** Set the drag direction to watch */
+    dragDirection?: 'X' | 'Y' | 'XY';
     /**
      * The delay in milliseconds to detect a double press.
      */
@@ -135,7 +138,7 @@ export class PressManager {
         delayLongPress: 700,
         offsetDrag: 20
     };
-    public static setGlobalConfig(options: Partial<PressManagerOptions>) {
+    public static configure(options: Partial<PressManagerOptions>) {
         this.globalConfig = options;
     }
     public static create(options: PressManagerOptions & { element: Element; }): PressManager;
@@ -154,6 +157,7 @@ export class PressManager {
             return new PressManager(options);
         }
     }
+    public static onEvent: Callback<(e: NormalizedEvent, instance: PressManager) => void> = new Callback();
 
     protected options: PressManagerOptions;
     protected element: Element;
@@ -162,6 +166,7 @@ export class PressManager {
     protected delayLongPress: number;
     protected nbPress: number = 0;
     protected offsetDrag: number;
+    protected dragDirection: 'X' | 'Y' | 'XY';
 
     protected state: PressManagerState = {
         oneActionTriggered: null,
@@ -178,6 +183,7 @@ export class PressManager {
 
     protected functionsBinded: {
         downAction: (e: PointerEvent) => void,
+        downActionDelay: (e: PointerEvent) => void,
         upAction: (e: PointerEvent) => void,
         moveAction: (e: PointerEvent) => void,
         childPressStart: (e: InternalPointerEvent) => void,
@@ -185,6 +191,7 @@ export class PressManager {
         childPressMove: (e: InternalPointerEvent) => void,
     } = {
             downAction: (e: PointerEvent) => { },
+            downActionDelay: (e: PointerEvent) => { },
             upAction: (e: PointerEvent) => { },
             moveAction: (e: PointerEvent) => { },
             childPressStart: (e: InternalPointerEvent) => { },
@@ -200,6 +207,7 @@ export class PressManager {
             throw 'You must provide an element';
         }
         this.offsetDrag = PressManager.globalConfig.offsetDrag !== undefined ? PressManager.globalConfig.offsetDrag : 20;
+        this.dragDirection = 'XY';
         this.delayLongPress = PressManager.globalConfig.delayLongPress ?? 700;
         this.delayDblPress = PressManager.globalConfig.delayDblPress ?? 150;
         this.element = options.element;
@@ -261,6 +269,9 @@ export class PressManager {
         if(options.offsetDrag !== undefined) {
             this.offsetDrag = options.offsetDrag;
         }
+        if(options.dragDirection !== undefined) {
+            this.dragDirection = options.dragDirection;
+        }
 
         if(options.onDblPress !== undefined) {
             this.useDblPress = true;
@@ -290,6 +301,7 @@ export class PressManager {
     }
     protected bindAllFunction() {
         this.functionsBinded.downAction = this.downAction.bind(this);
+        this.functionsBinded.downActionDelay = this.downActionDelay.bind(this);
         this.functionsBinded.moveAction = this.moveAction.bind(this);
         this.functionsBinded.upAction = this.upAction.bind(this);
         this.functionsBinded.childPressStart = this.childPressStart.bind(this);
@@ -299,7 +311,7 @@ export class PressManager {
     protected init() {
         this.bindAllFunction();
         this.element.addEventListener("pointerdown", this.functionsBinded.downAction);
-        this.element.addEventListener("touchstart", this.functionsBinded.downAction);
+        this.element.addEventListener("touchstart", this.functionsBinded.downActionDelay);
         this.element.addEventListener("trigger_pointer_pressstart", this.functionsBinded.childPressStart);
         this.element.addEventListener("trigger_pointer_pressend", this.functionsBinded.childPressEnd);
         this.element.addEventListener("trigger_pointer_pressmove", this.functionsBinded.childPressMove);
@@ -356,6 +368,7 @@ export class PressManager {
     }
     protected genericDownAction(state: PressManagerState, e: NormalizedEvent) {
         this.downEventSaved = e;
+        this.startPosition = { x: e.pageX, y: e.pageY };
         if(this.options.onLongPress) {
             this.timeoutLongPress = setTimeout(() => {
                 if(!state.oneActionTriggered) {
@@ -369,7 +382,20 @@ export class PressManager {
             }, this.delayLongPress);
         }
     }
+    private pointerEventTriggered: boolean = false;
+    protected downActionDelay(ev: PointerEvent | TouchEvent) {
+        if(!this.pointerEventTriggered) {
+            this.downAction(ev);
+        }
+        else {
+            ev.stopImmediatePropagation();
+        }
+        setTimeout(() => {
+            this.pointerEventTriggered = false;
+        }, 0);
+    }
     protected downAction(ev: PointerEvent | TouchEvent) {
+        this.pointerEventTriggered = true;
         const isFirst = Object.values(this.pointersRecord).length == 0;
         if(!this.registerEvent(ev)) {
             if(this.stopPropagation()) {
@@ -382,6 +408,7 @@ export class PressManager {
         if(this.options.onEvent) {
             this.options.onEvent(e);
         }
+        PressManager.onEvent.trigger(e, this);
         // TODO edit this to implement the full logic to avoid cancelling parent
         if(e.button != undefined && !this.options.buttonAllowed?.includes(e.button)) {
             this.unregisterEvent(ev);
@@ -396,7 +423,6 @@ export class PressManager {
             this.state.oneActionTriggered = null;
             clearTimeout(this.timeoutDblPress);
         }
-        this.startPosition = { x: e.pageX, y: e.pageY };
 
         if(isFirst) {
             document.addEventListener("pointerup", this.functionsBinded.upAction);
@@ -477,6 +503,7 @@ export class PressManager {
         if(this.options.onEvent) {
             this.options.onEvent(e);
         }
+        PressManager.onEvent.trigger(e, this);
         if(this.stopPropagation()) {
             e.stopImmediatePropagation();
         }
@@ -502,7 +529,14 @@ export class PressManager {
         if(!state.oneActionTriggered) {
             let xDist = e.pageX - this.startPosition.x;
             let yDist = e.pageY - this.startPosition.y;
-            let distance = Math.sqrt(xDist * xDist + yDist * yDist);
+            let distance = 0;
+            if(this.dragDirection == 'XY')
+                distance = Math.sqrt(xDist * xDist + yDist * yDist);
+            else if(this.dragDirection == 'X')
+                distance = Math.abs(xDist);
+            else
+                distance = Math.abs(yDist);
+
             if(distance > this.offsetDrag && this.downEventSaved) {
                 if(this.options.onDragStart) {
                     if(this.options.onDragStart(this.downEventSaved, this) !== false) {
@@ -525,6 +559,7 @@ export class PressManager {
         if(this.options.onEvent) {
             this.options.onEvent(e);
         }
+        PressManager.onEvent.trigger(e, this);
         if(this.stopPropagation()) {
             e.stopImmediatePropagation();
         }
@@ -551,6 +586,14 @@ export class PressManager {
 
     }
     protected childPressEnd(e: InternalPointerEvent) {
+        this.unregisterEvent(e.detail.realEvent.event);
+        if(Object.values(this.pointersRecord).length == 0) {
+            document.removeEventListener("pointerup", this.functionsBinded.upAction);
+            document.removeEventListener("pointercancel", this.functionsBinded.upAction);
+            document.removeEventListener("touchend", this.functionsBinded.upAction);
+            document.removeEventListener("touchcancel", this.functionsBinded.upAction);
+            document.removeEventListener("pointermove", this.functionsBinded.moveAction);
+        }
         if(this.lastEmitEvent == e.detail.realEvent) return;
 
         this.genericUpAction(e.detail.state, e.detail.realEvent);
@@ -590,11 +633,14 @@ export class PressManager {
     public destroy() {
         if(this.element) {
             this.element.removeEventListener("pointerdown", this.functionsBinded.downAction);
+            this.element.removeEventListener("touchstart", this.functionsBinded.downActionDelay);
             this.element.removeEventListener("trigger_pointer_pressstart", this.functionsBinded.childPressStart);
             this.element.removeEventListener("trigger_pointer_pressend", this.functionsBinded.childPressEnd);
             this.element.removeEventListener("trigger_pointer_pressmove", this.functionsBinded.childPressMove);
             document.removeEventListener("pointerup", this.functionsBinded.upAction);
             document.removeEventListener("pointercancel", this.functionsBinded.upAction);
+            document.removeEventListener("touchend", this.functionsBinded.upAction);
+            document.removeEventListener("touchcancel", this.functionsBinded.upAction);
             document.removeEventListener("pointermove", this.functionsBinded.moveAction);
         }
     }

@@ -1,0 +1,26 @@
+{
+    "module": "Aventus",
+    "componentPrefix": "av",
+    "build": [
+        {
+            "name": "I18n",
+            "hideWarnings": true,
+            "version": "1.0.0",
+            "src": [
+                "./lib/"
+            ],
+            "compile": [
+                {
+                    "package": "../../lib/Aventus@I18n.package.avt",
+                    "outputNpm": {
+                        "path": "../../../npmPackage/AventusI18n_npm",
+                        "npmName": "@aventusjs/i18n"
+                    }
+                }
+            ],
+            "outsideModule": [
+                "./extension/"
+            ]
+        }
+    ]
+}

@@ -251,7 +251,6 @@ export class TypeInfo {
 			this.kind = 'mappedType';
 			let mappedType = node as MappedTypeNode;
 			if (mappedType.type && mappedType.typeParameter.constraint) {
-				mappedType.questionToken
 				this.mappedType = {
 					parameterName: mappedType.typeParameter.name.getText(),
 					parameterType: new TypeInfo(mappedType.typeParameter.constraint),

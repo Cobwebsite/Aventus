@@ -1,4 +1,4 @@
-import { CodeAction, CodeLens, CompletionItem, CompletionList, Definition, Diagnostic, DiagnosticSeverity, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from "vscode-languageserver";
+import { CodeAction, CodeLens, CompletionItem, CompletionList, Diagnostic, DiagnosticSeverity, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from "vscode-languageserver";
 import { AventusFile, InternalAventusFile } from '../files/AventusFile';
 import { Build } from "../project/Build";
 import { TextDocument } from 'vscode-languageserver-textdocument';
@@ -6,17 +6,19 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 
 export abstract class AventusBaseFile {
     protected _file: AventusFile;
-    protected _build: Build;
+    protected _build?: Build;
 
     public get file() {
         return this._file;
     }
-    public get build() {
-        return this._build;
+    public get build(): Build {
+        if (this._build)
+            return this._build
+        throw "No build found";
 
     }
 
-    public constructor(file: AventusFile, build: Build) {
+    public constructor(file: AventusFile, build?: Build) {
         this._file = file;
         this._build = build;
         this.addEvents();
@@ -101,15 +103,15 @@ export abstract class AventusBaseFile {
         return this._file.versionUser != document.version;
     }
     protected abstract onContentChange(): Promise<void>;
-    private oldResult:Diagnostic[] = [];
+    private oldResult: Diagnostic[] = [];
     private async _onValidate(): Promise<Diagnostic[]> {
-        let result = this._build.diagnostics.get(this) ?? [];
+        let result = this._build?.diagnostics.get(this) ?? [];
         result = [...result, ...await this.onValidate()];
-        if (this.build && this.build.hideWarnings) {
+        if (this._build && this.build.hideWarnings) {
             result = result.filter(p => p.severity != DiagnosticSeverity.Warning)
         }
         this.oldResult = result;
-        
+
         return result;
     }
     protected abstract onValidate(): Promise<Diagnostic[]>;
@@ -123,13 +125,13 @@ export abstract class AventusBaseFile {
     protected abstract onCompletion(document: AventusFile, position: Position): Promise<CompletionList>;
     protected abstract onCompletionResolve(document: AventusFile, item: CompletionItem): Promise<CompletionItem>;
     protected abstract onHover(document: AventusFile, position: Position): Promise<Hover | null>;
-    protected abstract onDefinition(document: AventusFile, position: Position): Promise<Definition | null>;
+    protected abstract onDefinition(document: AventusFile, position: Position): Promise<Location[] | null>;
     protected abstract onFormatting(document: AventusFile, range: Range, options: FormattingOptions): Promise<TextEdit[]>;
     protected abstract onCodeAction(document: AventusFile, range: Range): Promise<CodeAction[]>;
     protected abstract onReferences(document: AventusFile, position: Position): Promise<Location[]>;
     protected abstract onCodeLens(document: AventusFile): Promise<CodeLens[]>;
     protected abstract onRename(document: AventusFile, position: Position, newName: string): Promise<WorkspaceEdit | null>;
-    protected abstract onGetBuild(): Build[];
+    protected abstract onGetBuild(): Build[] | null;
 
 
 }

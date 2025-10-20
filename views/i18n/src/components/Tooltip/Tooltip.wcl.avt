@@ -1,0 +1,238 @@
+namespace Components {
+    @Storybook({
+        export: 'public',
+        group: 'Components/Popup'
+    })
+    export class Tooltip extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+        //#region static
+
+        //#endregion
+
+
+        //#region props
+        @Attribute()
+        public visible: boolean = false;
+        @Attribute()
+        public position: 'top' | 'left' | 'bottom' | 'right' = 'top';
+
+        @Attribute()
+        public use_absolute!: boolean;
+
+        @Attribute()
+        public delay: number = 700;
+
+        @Attribute()
+        public delay_touch: number = 700;
+
+        @Attribute()
+        public no_caret!: boolean;
+        //#endregion
+
+
+        //#region variables
+        protected parent: Node | null = null;
+        protected parentEv: HTMLElement | null = null;
+        private isDestroyed: boolean = false;
+        protected timeoutEnter: boolean = false;
+        protected timeout: number = 0;
+        protected pressManager?: Aventus.PressManager;
+        protected screenMargin: number = 10;
+        protected elementsMoved: Map<Node, HTMLElement> = new Map();
+        //#endregion
+
+
+        //#region constructor
+
+        //#endregion
+
+
+        //#region methods
+        protected calculatePosition() {
+            if(!this.parentEv || !this.use_absolute) return;
+
+            let rect = this.parentEv.getBoundingClientRect();
+            let center = {
+                x: rect.left + rect.width / 2,
+                y: rect.y + rect.height / 2
+            };
+
+            if(this.use_absolute) {
+                const diffMinX = center.x - this.offsetWidth / 2;
+                const diffMaxX = center.x + this.offsetWidth / 2;
+                const maxX = document.body.offsetWidth - this.screenMargin;
+                const minX = this.screenMargin;
+                if(diffMinX < minX) {
+                    center.x += minX - diffMinX;
+                    this.style.setProperty("--local-offset-carret-x", diffMinX - minX + 'px');
+                }
+                else if(diffMaxX > maxX) {
+                    center.x += maxX - diffMaxX;
+                    this.style.setProperty("--local-offset-carret-x", diffMaxX - maxX + 'px');
+                }
+
+                const diffMinY = center.y - this.offsetHeight / 2;
+                const diffMaxY = center.y + this.offsetHeight / 2;
+                const maxY = document.body.offsetHeight - this.screenMargin;
+                const minY = this.screenMargin;
+                if(diffMinY < minY) {
+                    center.y += minY - diffMinY;
+                    this.style.setProperty("--local-offset-carret-y", diffMinY - minY + 'px');
+                }
+                else if(diffMaxY > maxY) {
+                    center.y += maxY - diffMaxY;
+                    this.style.setProperty("--local-offset-carret-y", diffMaxY - maxY + 'px');
+                }
+            }
+
+            if(this.position == 'bottom') {
+                let bottom = rect.y + rect.height;
+                this.style.setProperty("--local-tooltip-from-y", bottom - 10 + 'px');
+                this.style.setProperty("--local-tooltip-from-x", center.x + 'px');
+                this.style.setProperty("--local-tooltip-to-x", center.x + 'px');
+                this.style.setProperty("--local-tooltip-to-y", bottom + 10 + 'px');
+            }
+            else if(this.position == 'top') {
+                let bottom = document.body.offsetHeight - rect.top;
+                this.style.setProperty("--local-tooltip-from-y", bottom - 10 + 'px');
+                this.style.setProperty("--local-tooltip-from-x", center.x + 'px');
+                this.style.setProperty("--local-tooltip-to-x", center.x + 'px');
+                this.style.setProperty("--local-tooltip-to-y", bottom + 10 + 'px');
+            }
+            else if(this.position == 'right') {
+                let left = rect.x + rect.width;
+                this.style.setProperty("--local-tooltip-from-y", center.y + 'px');
+                this.style.setProperty("--local-tooltip-from-x", left - 10 + 'px');
+                this.style.setProperty("--local-tooltip-to-x", left + 10 + 'px');
+                this.style.setProperty("--local-tooltip-to-y", center.y + 10 + 'px');
+            }
+            else if(this.position == 'left') {
+                let left = document.body.offsetWidth - rect.left;
+                this.style.setProperty("--local-tooltip-from-y", center.y + 'px');
+                this.style.setProperty("--local-tooltip-from-x", left - 10 + 'px');
+                this.style.setProperty("--local-tooltip-to-x", left + 10 + 'px');
+                this.style.setProperty("--local-tooltip-to-y", center.y + 'px');
+            }
+        }
+
+        protected moveNodesToThis() {
+            if(this.use_absolute) {
+                const elements = this.getNodesInSlot();
+                for(let element of elements) {
+                    this.elementsMoved.set(element, element.parentElement!);
+                    this.shadowRoot.appendChild(element);
+                }
+            }
+        }
+        protected removeNodesFromThis() {
+            if(this.use_absolute) {
+                for(const [node, parent] of this.elementsMoved) {
+                    // TODO solution simpliste voir si ça marche vrm
+                    parent.appendChild(node);
+                }
+            }
+        }
+
+        @BindThis()
+        protected onMouseEnter() {
+            this.moveNodesToThis();
+            this.calculatePosition();
+            let delay = this.delay == 0 ? 50 : this.delay;
+            if(this.use_absolute) {
+                document.body.appendChild(this);
+                this.timeoutEnter = false;
+                this.timeout = setTimeout(() => {
+                    this.timeoutEnter = true;
+                    this.visible = true;
+                }, delay);
+            }
+            else {
+                if(delay == 0) {
+                    this.visible = true;
+                }
+                else {
+                    this.timeoutEnter = false;
+                    this.timeout = setTimeout(() => {
+                        this.timeoutEnter = true;
+                        this.visible = true;
+                    }, delay);
+                }
+            }
+        }
+
+        @BindThis()
+        protected onMouseLeave() {
+            this.visible = false;
+            if(this.use_absolute) {
+                if(!this.timeoutEnter) {
+                    clearTimeout(this.timeout);
+                    this.onTransitionEnd();
+                }
+            }
+            else if(this.delay != 0) {
+                if(!this.timeoutEnter) {
+                    clearTimeout(this.timeout);
+                    this.onTransitionEnd();
+                }
+            }
+        }
+
+        @BindThis()
+        protected onTransitionEnd() {
+            if(!this.use_absolute || this.visible) return;
+
+            this.removeNodesFromThis();
+
+            if(this.parent && !this.isDestroyed)
+                this.parent?.appendChild(this);
+            else
+                this.remove();
+        }
+
+        protected onLongPress() {
+            this.calculatePosition();
+            if(this.use_absolute) {
+                document.body.appendChild(this);
+                this.timeoutEnter = false;
+                this.timeout = setTimeout(() => {
+                    this.timeoutEnter = true;
+                    this.visible = true;
+                }, 50);
+            }
+            else {
+                this.visible = true;
+            }
+        }
+
+
+        protected registerAction() {
+            if(!this.parentEv) return;
+
+
+            this.parentEv.addEventListener("mouseenter", this.onMouseEnter);
+            this.parentEv.addEventListener("mouseleave", this.onMouseLeave);
+            this.addEventListener("transitionend", this.onTransitionEnd);
+        }
+        protected override postCreation(): void {
+            let parentEv = this.parentNode;
+            if(parentEv instanceof ShadowRoot) {
+                parentEv = parentEv.host;
+            }
+            if(parentEv instanceof HTMLElement) {
+                this.parentEv = parentEv;
+            }
+            this.parent = this.parentNode;
+            this.registerAction();
+        }
+
+        protected override postDestruction(): void {
+            this.isDestroyed = true;
+            super.postDestruction();
+            if(!this.parentEv) return;
+            this.parentEv.removeEventListener("mouseenter", this.onMouseEnter);
+            this.parentEv.removeEventListener("mouseleave", this.onMouseLeave);
+        }
+        //#endregion
+
+    }
+}

@@ -1,6 +1,6 @@
 import { existsSync, unlinkSync, writeFileSync } from 'fs';
 import { EOL } from 'os';
-import { Position, CompletionList, CompletionItem, Hover, Definition, Range, FormattingOptions, TextEdit, CodeAction, Diagnostic, Location, CodeLens, WorkspaceEdit } from "vscode-languageserver";
+import { Position, CompletionList, CompletionItem, Hover, Range, FormattingOptions, TextEdit, CodeAction, Diagnostic, Location, CodeLens, WorkspaceEdit } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
 import { AventusErrorCode, AventusExtension, AventusLanguageId } from "../../../definition";
 import { AventusFile, InternalAventusFile } from '../../../files/AventusFile';
@@ -18,6 +18,8 @@ import { HTMLFormat } from '../../html/parser/definition';
 import { join } from 'path';
 import { InjectionRender } from '../../html/parser/TagInfo';
 import { InputType } from '@aventusjs/storybook';
+import { AventusWebSCSSFile } from '../../scss/File';
+import { AventusI18nFile } from '../../i18n/File';
 
 type ViewMethodInfo = {
     name: string
@@ -68,6 +70,18 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         }
         return this.build.htmlFiles[this.file.uri.replace(AventusExtension.ComponentLogic, AventusExtension.ComponentView)];
     }
+    public get SCSSFile(): AventusWebSCSSFile | undefined {
+        if (this.file.uri.endsWith(AventusExtension.Component)) {
+            return this.build.wcFiles[this.file.uri].style;
+        }
+        return this.build.scssFiles[this.file.uri.replace(AventusExtension.ComponentLogic, AventusExtension.ComponentStyle)];
+    }
+    public get I18nFile(): AventusI18nFile | undefined {
+        // if (this.file.uri.endsWith(AventusExtension.Component)) {
+        //     return this.build.wcFiles[this.file.uri].style;
+        // }
+        return this.build.i18nComponentsFiles[this.file.uri.replace(AventusExtension.ComponentLogic, AventusExtension.I18n)];
+    }
     private _fullname: string = "";
     public get fullName(): string {
         return this._fullname;
@@ -86,7 +100,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
     private _space: string = "";
     private writeHtml: boolean = false;
     private writeTs: boolean = false;
-
+    private needRebuild: boolean = false;
     public htmlDiagnostics: Diagnostic[] = [];
 
     constructor(file: AventusFile, build: Build) {
@@ -99,28 +113,34 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
 
 
     private waitingFct: { [version: string]: (() => void)[] } = {};
-    private mergedVersion = '-1_-1_-1';
+    private mergedVersion = '-1_-1_-1_-1';
     private isCompiling = false;
+    
     public runWebCompiler() {
         return new Promise<void>((resolve) => {
             let version = AventusWebcomponentCompiler.getVersion(this, this.build);
-            let mergedVersion = version.ts + '_' + version.scss + '_' + version.html;
-            let force = this.build.insideRebuildAll;
+            let mergedVersion = version.ts + '_' + version.scss + '_' + version.html + '_' + version.i18n;
+            let force = this.build.insideRebuildAll || this.needRebuild;
             if (mergedVersion == this.mergedVersion && !force) {
                 resolve();
             }
             else {
                 if (!this.isCompiling) {
                     this.isCompiling = true;
+                    this.needRebuild = false;
                     this.recreateFileContent();
                     let compiler = new AventusWebcomponentCompiler(this, this.build);
                     this._compilationResult = compiler.compile();
                     this.build.scssLanguageService.addInternalDefinition(this.file.uri, this._compilationResult.scssDoc);
                     this.build.htmlLanguageService.addInternalDefinition(this.file.uri, this._compilationResult.htmlDoc, this);
+                    this.needRebuild = this._compilationResult.needRebuild;
                     this.isCompiling = false;
                     this.mergedVersion = mergedVersion;
                     this.storyBookInfo.argsTypes = compiler.storyArgTypes;
                     this.storyBookInfo.args = compiler.storyArgs;
+                    if (this.I18nFile) {
+                        this.I18nFile.transformForExport();
+                    }
                     if (this.waitingFct[mergedVersion]) {
                         for (let fct of this.waitingFct[mergedVersion]) {
                             fct();
@@ -141,15 +161,18 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         })
     }
 
-    private lastFileVersionCreated: { html: number, js: number } = {
+    private lastFileVersionCreated: { html: number, js: number, i18n: number } = {
         html: -1,
-        js: -1
+        js: -1,
+        i18n: -1
     };
     private typeInfered: { [name: string]: string } = {};
     public recreateFileContent() {
         let htmlFile = this.HTMLFile;
         let htmlVersion = htmlFile?.file.versionUser ?? 0;
-        let v = this.file.documentUser.version + htmlVersion + 1 // use +1 to allow version to be bigger than 0 at start
+        let i18nFile = this.I18nFile;
+        let i18nVersion = i18nFile?.file.versionUser ?? 0;
+        let v = this.file.documentUser.version + htmlVersion + i18nVersion + 1 // use +1 to allow version to be bigger than 0 at start
         if (htmlFile) {
             let mustWrite = false;
             let tsIsDiff = false;
@@ -160,10 +183,14 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
             else if (this.lastFileVersionCreated.html != htmlVersion) {
                 mustWrite = true;
             }
+            else if (this.lastFileVersionCreated.i18n != i18nVersion) {
+                mustWrite = true;
+            }
             if (mustWrite) {
                 this.lastFileVersionCreated = {
                     html: htmlVersion,
-                    js: this.file.documentUser.version
+                    js: this.file.documentUser.version,
+                    i18n: i18nVersion
                 }
                 let newContent = "";
                 // write html fct inside js
@@ -176,6 +203,8 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                     newContent = oldContent.slice(0, this.componentEnd - startLine);
                     this.viewMethodsInfo = [];
                     let returnAddedLength = 0;
+
+                    let contentAfter = "";
 
                     const getParameters = (variables: string[]) => {
                         let parameters: string[] = [];
@@ -566,7 +595,22 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                         newContent += t + '}';
                     }
 
+                    const writeI18n = (i18n: AventusI18nFile) => {
+                        const methodTxt = `\n@NoCompile()\npublic override t(key: keyof ${this.componentClassName}__Generated | keyof Aventus.AventusI18n, params: { [key: string]: string; } = {}): string {
+        return super.t(key as keyof Aventus.AventusI18n, params);
+    }`
+                        newContent += methodTxt + "\n";
+                        const values = i18n.keys.map(p => `"${p.replace(/"/g, "\\\"")}": string`).join(",\r\n")
+                        contentAfter += `\ntype ${this.componentClassName}__Generated = {
+    ${values}
+}`;
+                    }
+                    if (this.build.buildConfig.i18n && i18nFile) {
+                        writeI18n(i18nFile);
+                    }
+
                     newContent += oldContent.slice(this.componentEnd - startLine);
+                    newContent += contentAfter;
                     if (this.file instanceof InternalAventusFile) {
                         this.file.setDocumentInternal(TextDocument.create(this.file.documentUser.uri, this.file.documentUser.languageId, v, newContent));
                     }
@@ -607,6 +651,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         if (this.fileParsed) {
             this.diagnostics = this.diagnostics.concat(this.fileParsed.errors)
         }
+        this.diagnostics = this.diagnostics.concat(this.getDeprecated())
         return this.diagnostics;
     }
     protected transformDiagnosticForView() {
@@ -695,7 +740,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         this.writeHtml = quickParse.writeHtml;
         this.writeTs = quickParse.writeTs;
         if (quickParse.tagName)
-            this.build.htmlLanguageService.addInternalTagUri(quickParse.tagName, this.file.uri, this._componentClassName);
+            this.build.htmlLanguageService.addInternalTagUri(quickParse.tagName, this.file.uri, this._fullname);
         let space = "";
         for (let i = 0; i < quickParse.whiteSpaceBefore + 4; i++) {
             space += " ";
@@ -891,7 +936,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         return this.tsLanguageService.doHover(document, position);
     }
 
-    public async doDefinition(htmlPosition: Position): Promise<Definition | null> {
+    public async doDefinition(htmlPosition: Position): Promise<Location[] | null> {
         const html = this.HTMLFile;
         if (!html) {
             return null;
@@ -911,7 +956,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         }
         return null;
     }
-    protected onDefinition(document: AventusFile, position: Position): Promise<Definition | null> {
+    protected onDefinition(document: AventusFile, position: Position): Promise<Location[] | null> {
         return this.tsLanguageService.findDefinition(document, position);
     }
 
@@ -1297,7 +1342,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         if (this.compilationResult) {
             position = this.compilationResult?.missingMethods.position;
             for (let name of this.compilationResult.missingMethods.elements) {
-                result += `/**${EOL} * ${EOL} */${EOL}protected ${name}(){${EOL}throw new Error("Method not implemented.");${EOL}}${EOL}`;
+                result += `/**${EOL} * ${EOL} */${EOL}protected ${name}(){${EOL} throw new Error("Method not implemented.");${EOL} }${EOL} `;
             }
         }
         if (result != "") {

@@ -11,7 +11,7 @@
 			],
 			"compile": [
 				{
-					"output": "../../client/view/js/index.js"
+					"output": "../../client/views/configuration/js/index.js"
 				}
 			]
 		}
@@ -20,7 +20,7 @@
 		{
 			"name": "Main",
 			"input": "./src/static/",
-			"output": "../../client/view/"
+			"output": "../../client/views/configuration"
 		}
 	]
 }

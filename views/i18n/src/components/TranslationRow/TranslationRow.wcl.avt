@@ -1,0 +1,130 @@
+import { Callback } from "Aventus@Main:Aventus.package.avt";
+import { Translator } from "../../libs/I18n.lib.avt";
+import { TranslationCol } from "../TranslationCol/TranslationCol.wcl.avt";
+import { TranslationPage } from "../TranslationPage/TranslationPage.wcl.avt";
+import { StringTools } from "../../libs/StringTools.lib.avt";
+
+export class TranslationRow extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+    //#region static
+
+    //#endregion
+
+
+    //#region props
+
+    //#endregion
+
+
+    //#region variables
+    @ViewElement()
+    protected inputsEl!: HTMLDivElement;
+
+    public parsedItem!: { [locale: string]: string; };
+
+
+    @Watch()
+    public key!: string;
+
+    @Watch()
+    public locales!: string[];
+
+    public hasChanged: boolean = false;
+
+    private cols: { [locale: string]: TranslationCol; } = {};
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+    //#region events
+    public change: Callback<() => void> = new Callback();
+    //#endregion
+
+
+    //#region methods
+    protected loadData() {
+        this.hasChanged = false;
+        for(let locale of this.locales) {
+            this.createCol(locale);
+        }
+    }
+    public updateData(data: { [locale: string]: string; }) {
+        this.parsedItem = data;
+        for(let locale of this.locales) {
+            if(this.cols[locale]) {
+                this.cols[locale].value = this.parsedItem[locale];
+                this.cols[locale].initialValue = this.parsedItem[locale];
+            }
+        }
+    }
+    protected createCol(locale: string) {
+        const col = new TranslationCol();
+        col.locale = locale;
+        col.value = this.parsedItem[locale];
+        col.initialValue = this.parsedItem[locale];
+        col.change.add((value) => {
+            debugger
+            this.parsedItem[locale] = value;
+
+            const hasChanged = value != col.initialValue;
+
+            if(this.hasChanged != hasChanged) {
+                this.hasChanged = hasChanged;
+            }
+            this.change.trigger();
+        });
+        col.classList.add("col");
+        this.cols[locale] = col;
+        this.inputsEl.appendChild(col);
+    }
+
+    public search(txt: string, onlyMissing: boolean) {
+        let isVisible = false;
+        if(txt == "") {
+            isVisible = true;
+        }
+        else if(StringTools.search(this.key, txt)) {
+            isVisible = true;
+        }
+        else {
+            for(let locale in this.parsedItem) {
+                const value = this.parsedItem[locale];
+                if(StringTools.search(value, txt)) {
+                    isVisible = true;
+                    break;
+                }
+            }
+        }
+
+        if(!isVisible) {
+            this.style.display = 'none';
+        }
+        else {
+            if(onlyMissing) {
+                isVisible = false;
+                for(let locale of this.locales) {
+                    const value = this.parsedItem[locale];
+                    if(value == TranslationPage.KeyUndefined || !value) {
+                        isVisible = true;
+                        break;
+                    }
+                }
+            }
+            if(isVisible) {
+                this.style.display = '';
+            }
+            else {
+                this.style.display = 'none';
+            }
+        }
+    }
+
+    protected override postCreation(): void {
+        this.loadData();
+    }
+    //#endregion
+
+}

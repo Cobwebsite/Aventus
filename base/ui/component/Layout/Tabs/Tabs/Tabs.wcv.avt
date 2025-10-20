@@ -1,0 +1,4 @@
+<div class="header" @element="headerEl"></div>
+<div class="body" @element="bodyEl">
+	<slot></slot>
+</div>

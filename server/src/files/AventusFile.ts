@@ -1,5 +1,5 @@
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { CodeAction, CodeLens, CompletionItem, CompletionList, Definition, Diagnostic, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from "vscode-languageserver";
+import { CodeAction, CodeLens, CompletionItem, CompletionList, Diagnostic, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from "vscode-languageserver";
 import { v4 as randomUUID } from 'uuid';
 import { getFolder, uriToPath } from '../tools';
 import { Build } from '../project/Build';
@@ -13,13 +13,13 @@ export type onContentChangeType = (document: AventusFile) => Promise<void>;
 export type onCompletionType = (document: AventusFile, position: Position) => Promise<CompletionList>;
 export type onCompletionResolveType = (document: AventusFile, item: CompletionItem) => Promise<CompletionItem>;
 export type onHoverType = (document: AventusFile, position: Position) => Promise<Hover | null>;
-export type onDefinitionType = (document: AventusFile, position: Position) => Promise<Definition | null>;
+export type onDefinitionType = (document: AventusFile, position: Position) => Promise<Location[] | null>;
 export type onFormattingType = (document: AventusFile, range: Range, options: FormattingOptions) => Promise<TextEdit[]>;
 export type onCodeActionType = (document: AventusFile, range: Range) => Promise<CodeAction[]>;
 export type onReferencesType = (document: AventusFile, position: Position) => Promise<Location[]>;
 export type onCodeLensType = (document: AventusFile) => Promise<CodeLens[]>;
 export type onRenameType = (document: AventusFile, position: Position, newName: string) => Promise<WorkspaceEdit | null>;
-export type onGetBuildType = () => Build[];
+export type onGetBuildType = () => Build[] | null;
 export type onGetFileApplyTextEditsType = () => TextDocument;
 
 export interface AventusFile {
@@ -37,7 +37,7 @@ export interface AventusFile {
     shortname: string;
     linkInternalAndUser: boolean;
 
-    getBuild(): Build[]
+    getBuild(): Build[] | null
     onGetBuild(cb: onGetBuildType): string;
     removeOnGetBuild(uuid: string): void;
 
@@ -152,16 +152,23 @@ export class InternalAventusFile implements AventusFile {
     //#region get build
     private onGetBuildCb: { [uuid: string]: onGetBuildType } = {};
 
-    public getBuild(): Build[] {
+    public getBuild(): Build[] | null {
         let result: Build[] = [];
+        let hasNull = false;
         for (let uuid in this.onGetBuildCb) {
             let builds = this.onGetBuildCb[uuid]();
-            for (let build of builds) {
-                if (result.indexOf(build) == -1) {
-                    result.push(build);
+            if (builds === null) {
+                hasNull = true;
+            }
+            else {
+                for (let build of builds) {
+                    if (result.indexOf(build) == -1) {
+                        result.push(build);
+                    }
                 }
             }
         }
+        if (result.length == 0 && hasNull) return null;
         return result;
     }
 
@@ -197,8 +204,13 @@ export class InternalAventusFile implements AventusFile {
         if (sendDiagnostics) {
             if (SettingsManager.getInstance().settings.errorByBuild) {
                 const builds = this.getBuild();
-                for (let build of builds) {
-                    GenericServer.sendDiagnostics({ uri: this.uri, diagnostics: Object.values(diagnostics) }, build);
+                if (builds == null) {
+                    GenericServer.sendDiagnostics({ uri: this.uri, diagnostics: Object.values(diagnostics) })
+                }
+                else {
+                    for (let build of builds) {
+                        GenericServer.sendDiagnostics({ uri: this.uri, diagnostics: Object.values(diagnostics) }, build);
+                    }
                 }
             }
             else {
@@ -522,8 +534,8 @@ export class InternalAventusFile implements AventusFile {
     //#region onDefinition
     private onDefinitionCb: { [uuid: string]: onDefinitionType } = {};
 
-    public async getDefinition(position: Position): Promise<Definition | null> {
-        let proms: Promise<Definition | null>[] = [];
+    public async getDefinition(position: Position): Promise<Location[] | null> {
+        let proms: Promise<Location[] | null>[] = [];
         for (let uuid in this.onDefinitionCb) {
             proms.push(this.onDefinitionCb[uuid](this, position));
         }

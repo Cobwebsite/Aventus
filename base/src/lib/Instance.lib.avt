@@ -1,10 +1,14 @@
 
+export type InstanceCst = { constructor: any; };
+export type InstanceCst2<X> = Function & { prototype: X; };
+
+
 @Storybook({
     prefix: "Lib/Instance"
 })
 export class Instance {
     private static elements: Map<{ prototype: any; }, any> = new Map();
-    public static get<X>(type: Function & { prototype: X; }): X {
+    public static get<X>(type: InstanceCst2<X>): X {
         let result = this.elements.get(type);
         if(!result) {
             let cst = type.prototype['constructor'] as any;
@@ -13,7 +17,7 @@ export class Instance {
         }
         return result;
     }
-    public static set<X extends { constructor: any; }>(el: X): boolean {
+    public static set<X extends InstanceCst>(el: X): boolean {
         let cst = el.constructor;
         if(this.elements.get(cst)) {
             return false;
@@ -22,7 +26,7 @@ export class Instance {
         return true;
     }
 
-    public static destroy<X extends { constructor: any; }>(el: X): boolean {
+    public static destroy<X extends InstanceCst>(el: X): boolean {
         let cst = el.constructor;
         return this.elements.delete(cst);
     }

@@ -1,0 +1,15 @@
+:host {
+	align-items: center;
+	height: 100%;
+	justify-content: center;
+	width: 100%;
+
+	h1 {
+		font-size: 48px;
+		text-align: center;
+	}
+}
+
+:host([visible]) {
+	display: flex;
+}

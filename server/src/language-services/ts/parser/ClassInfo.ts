@@ -9,6 +9,7 @@ import { TypeInfo } from './TypeInfo';
 import { StorybookDecorator } from './decorators/StorybookDecorator';
 import * as md5 from 'md5';
 import { EOL } from 'os';
+import { ListCallbacks } from '../component/compiler/def';
 
 
 export class ClassInfo extends BaseInfo {
@@ -30,7 +31,7 @@ export class ClassInfo extends BaseInfo {
 	public parameters: string[] = [];
 	private methodParameters: string[] = [];
 	public convertibleName: string = '';
-	public extendsType?: TypeInfo;
+	public extendsType?: TypeInfo; // only used for stories
 	public implementsType: TypeInfo[] = [];
 	public extraConstructorCode: string[] = [];
 
@@ -39,7 +40,10 @@ export class ClassInfo extends BaseInfo {
 			if (this.extraConstructorCode.length > 0) {
 				let _params = this.parentClass ? this.parentClass.constructorParams.map(c => c.getText()).join() : '';
 				let _paramsSuper = this.parentClass ? this.parentClass.constructorParams.map(c => c.name.getText()).join() : '';
-				return 'constructor(' + _params + ') { super(' + _paramsSuper + '); ' + EOL + this.extraConstructorCode.join(EOL) + ' }'
+				if (this.parentClass) {
+					return 'constructor(' + _params + ') { super(' + _paramsSuper + '); ' + EOL + this.extraConstructorCode.join(EOL) + ' }'
+				}
+				return 'constructor(' + _params + ') {' + this.extraConstructorCode.join(EOL) + ' }'
 			}
 			return "";
 		}
@@ -54,13 +58,16 @@ export class ClassInfo extends BaseInfo {
 			if (this.extraConstructorCode.length > 0) {
 				let _params = this.parentClass ? this.parentClass.constructorParams.map(c => c.getText()).join() : '';
 				let _paramsSuper = this.parentClass ? this.parentClass.constructorParams.map(c => c.name.getText()).join() : '';
-				return 'constructor(' + _params + ') { super(' + _paramsSuper + '); ' + EOL + this.extraConstructorCode.join(EOL) + ' }'
+				if (this.parentClass)
+					return 'constructor(' + _params + ') { super(' + _paramsSuper + '); ' + EOL + this.extraConstructorCode.join(EOL) + ' }'
+				return 'constructor(' + _params + ') {' + this.extraConstructorCode.join(EOL) + ' }'
 			}
 			return "";
 		}
 		let txt = this.constructorBody.getText();
 		txt = BaseInfo.getContentHotReload(txt, this.constructorBody.getStart(), this.constructorBody.getEnd(), this.dependancesLocations, this.compileTransformations);
-		return txt;
+		const _params = (this.constructorBody.parent as ConstructorDeclaration).parameters.map(p => p.getText()).join(", ");
+		return `constructor(${_params}) ` + txt;
 	}
 
 	public get constructorContentNpm(): string {
@@ -68,13 +75,16 @@ export class ClassInfo extends BaseInfo {
 			if (this.extraConstructorCode.length > 0) {
 				let _params = this.parentClass ? this.parentClass.constructorParams.map(c => c.getText()).join() : '';
 				let _paramsSuper = this.parentClass ? this.parentClass.constructorParams.map(c => c.name.getText()).join() : '';
-				return 'constructor(' + _params + ') { super(' + _paramsSuper + '); ' + EOL + this.extraConstructorCode.join(EOL) + ' }'
+				if (this.parentClass)
+					return 'constructor(' + _params + ') { super(' + _paramsSuper + '); ' + EOL + this.extraConstructorCode.join(EOL) + ' }'
+				return 'constructor(' + _params + ') {' + this.extraConstructorCode.join(EOL) + ' }'
 			}
 			return "";
 		}
 		let txt = this.constructorBody.getText();
 		txt = BaseInfo.getContentNpm(txt, this.constructorBody.getStart(), this.constructorBody.getEnd(), this.dependancesLocations, this.compileTransformations);
-		return txt;
+		const _params = (this.constructorBody.parent as ConstructorDeclaration).parameters.map(p => p.getText()).join(", ");
+		return `constructor(${_params}) ` + txt;
 	}
 
 	private node: ClassDeclaration | InterfaceDeclaration;
@@ -214,9 +224,10 @@ export class ClassInfo extends BaseInfo {
 
 		this.loadConvertible();
 
-		this.loadDependancesDecorator();
+		this.loadDecorators();
 
 		this.addConstructor();
+		
 	}
 	private getClassInheritance(node: HeritageClause) {
 		if (node.token == SyntaxKind.ExtendsKeyword) {
@@ -296,20 +307,27 @@ export class ClassInfo extends BaseInfo {
 				}
 			}
 			else {
-				let _params = '';
-				let _paramsSuper = '';
-				if (this.parentClass) {
-					// TODO add typing to get right type (care when came from different package)
-					_params = this.parentClass.constructorParams.map(c => c.getText()).join()
-					_paramsSuper = this.parentClass.constructorParams.map(c => c.name.getText()).join()
-				}
 				const bodyStart = this.node.getChildren().find(p => p.kind == SyntaxKind.OpenBraceToken)?.end ?? 0;
 				const key = bodyStart + "_" + bodyStart
-				this.compileTransformations[key] = {
-					start: bodyStart,
-					end: bodyStart,
-					newText: 'constructor(' + _params + ') { super(' + _paramsSuper + '); ' + EOL + this.extraConstructorCode.join(EOL) + ' }'
+				if (this.parentClass) {
+					// TODO add typing to get right type (care when came from different package)
+					let _params = this.parentClass.constructorParams.map(c => c.getText()).join()
+					let _paramsSuper = this.parentClass.constructorParams.map(c => c.name.getText()).join()
+					this.compileTransformations[key] = {
+						start: bodyStart,
+						end: bodyStart,
+						newText: 'constructor(' + _params + ') { super(' + _paramsSuper + '); ' + EOL + this.extraConstructorCode.join(EOL) + ' }'
+					}
 				}
+				else {
+					this.compileTransformations[key] = {
+						start: bodyStart,
+						end: bodyStart,
+						newText: 'constructor() { ' + this.extraConstructorCode.join(EOL) + ' }'
+					}
+				}
+
+
 			}
 		}
 	}
@@ -345,6 +363,16 @@ export class ClassInfo extends BaseInfo {
 		}
 		return false;
 	}
+	public getStaticFieldParentClass(name: string): ClassInfo | null {
+		let classToSearch: ClassInfo | null = this.parentClass;
+		while (classToSearch != null) {
+			if (classToSearch.propertiesStatic[name] != undefined) {
+				return classToSearch;
+			}
+			classToSearch = classToSearch.parentClass;
+		}
+		return null;
+	}
 	public hasField(name: string): boolean {
 		return this.getField(name) != null
 	}
@@ -355,6 +383,61 @@ export class ClassInfo extends BaseInfo {
 				return classToSearch.properties[name];
 			}
 			classToSearch = classToSearch.parentClass;
+		}
+		return null;
+	}
+	public getFieldParentClass(name: string): ClassInfo | null {
+		let classToSearch: ClassInfo | null = this.parentClass;
+		while (classToSearch != null) {
+			if (classToSearch.properties[name] != undefined) {
+				return classToSearch;
+			}
+			classToSearch = classToSearch.parentClass;
+		}
+		return null;
+	}
+	public getMethodParentClass(name: string): ClassInfo | null {
+		let classToSearch: ClassInfo | null = this.parentClass;
+		while (classToSearch != null) {
+			if (classToSearch.methods[name] != undefined) {
+				return classToSearch;
+			}
+			classToSearch = classToSearch.parentClass;
+		}
+		return null;
+	}
+	public getStaticMethodParentClass(name: string): ClassInfo | null {
+		let classToSearch: ClassInfo | null = this.parentClass;
+		while (classToSearch != null) {
+			if (classToSearch.methodsStatic[name] != undefined) {
+				return classToSearch;
+			}
+			classToSearch = classToSearch.parentClass;
+		}
+		return null;
+	}
+	public getEvent(name: string): PropertyInfo | null {
+		let eventsToLook: string[];
+		if (name.startsWith("@")) {
+			name = name.slice(1)
+		}
+		if (name.startsWith("on")) {
+			eventsToLook = [name];
+		}
+		else {
+			eventsToLook = [name, 'on' + name, 'on' + name.charAt(0).toUpperCase() + name.slice(1)];
+		}
+		for (let eventName of eventsToLook) {
+			let classToSearch: ClassInfo | null = this;
+			while (classToSearch != null) {
+				if (classToSearch.properties[eventName] != undefined) {
+					let type = classToSearch.properties[eventName].type.value;
+					if (ListCallbacks.includes(type)) {
+						return classToSearch.properties[eventName];
+					}
+				}
+				classToSearch = classToSearch.parentClass;
+			}
 		}
 		return null;
 	}

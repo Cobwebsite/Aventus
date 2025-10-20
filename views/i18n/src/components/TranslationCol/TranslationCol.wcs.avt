@@ -1,0 +1,43 @@
+:host {
+	--_translation-col-width: var(--translation-col-width, 200px);
+}
+
+:host {
+	align-items: center;
+	display: flex;
+	flex-shrink: 0;
+	gap: 10px;
+	margin: 0;
+	min-width: 200px;
+	position: relative;
+	width: var(--_translation-col-width);
+
+	vscode-icon {
+		background-color: transparent;
+		border-radius: 5px;
+		cursor: pointer;
+		display: none;
+		padding: 4px;
+		transition: background-color linear 0.2s;
+	}
+
+	vscode-icon:hover {
+		background-color: var(--vscode-button-secondaryBackground);
+	}
+
+	.resize {
+		background-color: red;
+		bottom: 0;
+		cursor: col-resize;
+		position: absolute;
+		right: -4px;
+		top: 0;
+		width: 8px;
+	}
+}
+
+:host([icon_btn]) {
+	vscode-icon {
+		display: inline-block;
+	}
+}

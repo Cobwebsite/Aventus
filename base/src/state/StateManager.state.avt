@@ -52,7 +52,7 @@ export interface IStateManager {
     setState(state: State | string): Promise<boolean>;
     getState(): State | undefined;
     isStateActive(statePattern: string): boolean;
-    getStateSlugs(statePattern: string);
+    getStateSlugs(statePattern: string): UriParamsValue | null;
 }
 @Storybook({
     prefix: "State"
@@ -367,7 +367,7 @@ export abstract class StateManager implements IStateManager {
                 }
                 stateToUse.onActivate();
             }
-            this.afterStateChanged.trigger([]);
+            this.afterStateChanged.trigger();
             return true;
         });
         return result ?? false;
@@ -386,7 +386,7 @@ export abstract class StateManager implements IStateManager {
     /**
      * Get slugs information for the current state, return null if state isn't active
      */
-    public getStateSlugs(statePattern: string) {
+    public getStateSlugs(statePattern: string): UriParamsValue | null {
         return Uri.getParams(statePattern, this.activeState?.name ?? '');
     }
     // 0 = error only / 1 = errors and warning / 2 = error, warning and logs (not implemented)

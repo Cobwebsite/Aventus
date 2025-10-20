@@ -1,8 +1,5 @@
-import * as open from 'open'
 import { GenericServer } from '../GenericServer';
-import { SelectItem } from '../IConnection';
 import { uriToPath } from '../tools';
-import { Template } from './Template';
 import { TemplateManager } from './TemplateManager';
 
 export class LocalTemplateManager {
@@ -14,11 +11,11 @@ export class LocalTemplateManager {
 		let loadedTemplates = this.readTemplates()
 		const templateResult = await this.templateManager.query(loadedTemplates.templates);
 		if (templateResult) {
-			await templateResult.init(path);
+			await templateResult.init(path, this.templateManager.findWorkspace(path));
 		}
 	}
 
-	private readTemplates() {
+	public readTemplates() {
 		let globalTemplate = this.templateManager.getGeneralTemplates();
 		let globalTemplateLength = this.templateManager.getGeneralTemplatesLength();
 		let uri = GenericServer.getWorkspaceUri()

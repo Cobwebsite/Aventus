@@ -34,6 +34,13 @@ export class TagInfo {
 
 	public parser: ParserHtml;
 
+	private _idBase?: string;
+	public get idBase(): string {
+		if (!this._idBase) {
+			this._idBase = this.componentClassName + "_";
+		}
+		return this._idBase;
+	}
 	public get componentClassName(): string {
 		return this.parser.htmlFile.tsFile?.componentClassName.toLowerCase() ?? "";
 	}
@@ -74,7 +81,7 @@ export class TagInfo {
 
 	public createId() {
 		if (!this.id) {
-			this.id = this.componentClassName + "_" + ParserHtml.idElement;
+			this.id = this.idBase + ParserHtml.idElement;
 			ParserHtml.idElement++;
 		}
 		return this.id;
@@ -229,6 +236,34 @@ export class TagInfo {
 			return '';
 		}
 		return this._render();
+	}
+	public replaceId(newIdBase: string) {
+		if (!newIdBase.endsWith("_")) {
+			newIdBase += "_"
+		}
+		this.id = this.id.replace(this.idBase, newIdBase);
+
+		const newChanges: {
+			[id_attr: string]: {
+				fct: string;
+				once: boolean;
+			}
+		} = {}
+		for (let key in this.changes) {
+			const newKey = key.replace(this.idBase, newIdBase);
+			newChanges[newKey] = this.changes[key];
+		}
+
+		if(this.ifInfo) {
+			this.ifInfo._id = this.ifInfo._id.replace(this.idBase, newIdBase);
+		}
+
+		this._idBase = newIdBase;
+		for (let child of this.children) {
+			if (child instanceof TagInfo) {
+				child.replaceId(newIdBase);
+			}
+		}
 	}
 
 
@@ -523,11 +558,18 @@ export class AttributeInfo {
 				end: this.valueEnd
 			})
 			ParserHtml.addInterestPoint({
+				name: this.name.slice(1),
+				start: this.nameStart,
+				end: this.nameEnd,
+				type: 'event'
+			})
+			ParserHtml.addInterestPoint({
 				name: value,
 				start: this.nameStart,
 				end: this.valueEnd,
 				type: 'method'
 			})
+
 		}
 		else {
 			let result = parseTxt(value, this.valueStart);
@@ -1100,7 +1142,7 @@ export class Binding implements InjectionRender {
 		if (fct.startsWith("@bind_")) {
 			this.event = fct.replace("@bind_", "");
 		}
-		else if(fct.startsWith("$") && fct.length > 0) {
+		else if (fct.startsWith("$") && fct.length > 0) {
 			this.event = fct.replace("$", "");
 		}
 		if (splitted.length > 1) {

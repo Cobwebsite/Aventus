@@ -1,0 +1,29 @@
+:host {
+	align-items: stretch;
+	border-bottom: 1px solid var(--vscode-widget-border);
+	border-left: 1px solid var(--vscode-widget-border);
+	border-right: 1px solid var(--vscode-widget-border);
+	display: flex;
+	font-weight: bold;
+	gap: 0px;
+	height: 39px;
+	text-align: center;
+	user-select: none;
+
+	.key {
+		align-items: center;
+		border-right: 1px solid var(--vscode-widget-border);
+		display: flex;
+		flex-shrink: 0;
+		justify-content: center;
+		min-width: 100px;
+		padding: 10px 20px;
+		position: relative;
+		width: var(--_translation-page-key-width);
+	}
+
+	.inputs {
+		display: flex;
+		gap: 0px;
+	}
+}

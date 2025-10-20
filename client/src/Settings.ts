@@ -1,0 +1,209 @@
+import { ConfigurationTarget, ExtensionMode, workspace, WorkspaceConfiguration } from 'vscode'
+import { Singleton } from './Singleton'
+import { join } from 'path'
+
+export type LiveServerSettings = {
+	host: string,
+	autoIncrementPort: boolean
+	port: number,
+	rootFolder: string,
+	indexFile: string,
+	delay: number,
+	launch_browser: boolean,
+	browser: string,
+	auto_close: boolean
+}
+
+export interface Settings {
+	liveserver: LiveServerSettings,
+	updateImportOnRename: boolean,
+	projectPath: string[],
+	templatePath: string[],
+	useDefaultTemplate: boolean,
+	readNodeModules: boolean,
+	readDirs: string[],
+	debug: boolean,
+	// settings cli
+	onlyBuild: boolean,
+	useStats: boolean,
+	/** The path of the aventus.conf.avt */
+	configPath?: string,
+	/** The builds to watch */
+	builds?: string[],
+	/** The statics to watch */
+	statics?: string[],
+	errorByBuild?: boolean,
+	defaultHideWarnings: boolean,
+	deeplApiKey: string,
+}
+export interface SettingsHtml {
+	customData: string[]
+}
+
+const defaultSettings: Settings = {
+	liveserver: {
+		host: "0.0.0.0",
+		autoIncrementPort: true,
+		port: 8080,
+		rootFolder: "./dist",
+		indexFile: "index.html",
+		delay: 200,
+		launch_browser: true,
+		browser: "",
+		auto_close: true,
+	},
+	updateImportOnRename: true,
+	readNodeModules: false,
+	templatePath: [],
+	projectPath: [],
+	readDirs: [],
+	onlyBuild: false,
+	debug: false,
+	useStats: false,
+	useDefaultTemplate: true,
+	defaultHideWarnings: false,
+	deeplApiKey: "",
+}
+function getDefaultSettings(): Settings {
+	return JSON.parse(JSON.stringify(defaultSettings));
+}
+
+
+const defaultSettingsHtml: SettingsHtml = {
+	customData: []
+}
+function getDefaultSettingsHtml(): SettingsHtml {
+	return JSON.parse(JSON.stringify(defaultSettingsHtml));
+}
+export class SettingsManager {
+	private static instance: SettingsManager;
+
+	private _settings: Settings = getDefaultSettings();
+	private _settingsHtml: SettingsHtml = getDefaultSettingsHtml();
+
+	public get settings() {
+		return this._settings;
+	}
+	public get settingsHtml() {
+		return this._settingsHtml;
+	}
+
+	public static getInstance(): SettingsManager {
+		if (!this.instance) {
+			this.instance = new SettingsManager();
+		}
+		return this.instance;
+	}
+
+	private constructor() {
+		this.applyDefault();
+		this.reload();
+
+		workspace.onDidChangeConfiguration(() => {
+			this.reload();
+		})
+
+	}
+
+	private async applyDefault() {
+		if (!Singleton.client.context) return;
+		if (Singleton.client.context.extensionMode != ExtensionMode.Production) return;
+		const settingsEmmet = workspace.getConfiguration("emmet") as WorkspaceConfiguration & { extensionsPath?: string[] }
+		if (!settingsEmmet.extensionsPath) {
+			settingsEmmet.extensionsPath = [];
+		}
+		let emmetPath = join(Singleton.client.context.extensionPath, "lib", "emmet", "aventus.json");
+		let found = false;
+		let needSave = false;
+		for (let i = 0; i < settingsEmmet.extensionsPath.length; i++) {
+			const path = settingsEmmet.extensionsPath[i];
+			if (path == emmetPath) {
+				found = true;
+				break;
+			}
+			if (path.endsWith("aventus.json")) {
+				settingsEmmet.extensionsPath.splice(i, 1);
+				i--;
+				needSave = true;
+			}
+		}
+		if (!found) {
+			settingsEmmet.extensionsPath.push(emmetPath);
+			needSave = true;
+		}
+		if (needSave) {
+			try {
+				await settingsEmmet.update("extensionsPath", settingsEmmet.extensionsPath, ConfigurationTarget.Global, undefined);
+			} catch (e) {
+				// console.log(e);
+			}
+		}
+	}
+
+	private reload() {
+		const settings = workspace.getConfiguration("aventus") as Partial<Settings>
+		this.initSettings(settings);
+
+		const settingsHtml = workspace.getConfiguration("html") as Partial<SettingsHtml>
+		this.setSettingsHtml(settingsHtml);
+	}
+
+
+	public async setSettings(newSettings: Partial<Settings>, global: boolean) {
+		const config = workspace.getConfiguration("aventus");
+		try {
+			for (let key in newSettings) {
+				const result = await config.update(key, newSettings[key], global ? ConfigurationTarget.Global : ConfigurationTarget.Workspace);
+				console.log("in");
+			}
+		} catch (e) {
+			console.log(e)
+		}
+	}
+	private initSettings(newSettings: Partial<Settings>) {
+		this._settings = this.mergeDeep(getDefaultSettings(), newSettings);
+		let cbs = [...this.cbOnSettingsChange];
+		for (let cb of cbs) {
+			cb();
+		}
+	}
+
+	private cbOnSettingsChange: (() => void)[] = []
+	public onSettingsChange(cb: () => void) {
+		this.cbOnSettingsChange.push(cb);
+	}
+
+
+	public setSettingsHtml(newSettings: Partial<SettingsHtml>) {
+		this._settingsHtml = this.mergeDeep(getDefaultSettingsHtml(), newSettings);
+		let cbs = [...this.cbOnSettingsChangeHtml];
+		for (let cb of cbs) {
+			cb();
+		}
+	}
+	private cbOnSettingsChangeHtml: (() => void)[] = []
+	public onSettingsChangeHtml(cb: () => void) {
+		this.cbOnSettingsChangeHtml.push(cb);
+	}
+
+	private isObject(item) {
+		return (item && typeof item === 'object' && !Array.isArray(item));
+	}
+	private mergeDeep(target, ...sources) {
+		if (!sources.length) return target;
+		const source = sources.shift();
+
+		if (this.isObject(target) && this.isObject(source)) {
+			for (const key in source) {
+				if (this.isObject(source[key])) {
+					if (!target[key]) Object.assign(target, { [key]: {} });
+					this.mergeDeep(target[key], source[key]);
+				} else {
+					Object.assign(target, { [key]: source[key] });
+				}
+			}
+		}
+
+		return this.mergeDeep(target, ...sources);
+	}
+}

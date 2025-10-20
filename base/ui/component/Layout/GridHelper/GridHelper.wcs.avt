@@ -1,0 +1,291 @@
+:host {
+	--ruler-color: white;
+	display: none;
+	font-family: Arial, Helvetica, sans-serif;
+	inset: 0;
+	pointer-events: none;
+	position: fixed;
+	user-select: none;
+	z-index: 9999;
+
+	.grid {
+		inset: 0;
+		position: absolute;
+
+		.cols,
+		.rows {
+			display: flex;
+			inset: 0;
+			position: absolute;
+		}
+
+		.rows {
+			flex-direction: column;
+		}
+
+		.col {
+			flex-shrink: 0;
+			height: 100%;
+			position: relative;
+			width: var(--local-col-width);
+
+			&::after {
+				background-color: #e78181;
+				content: "";
+				height: 100%;
+				position: absolute;
+				right: -1px;
+				top: 0;
+				width: 2px;
+			}
+		}
+
+		.col:last-child {
+			&::after {
+				display: none;
+			}
+		}
+
+		.row {
+			flex-shrink: 0;
+			height: var(--local-row-height);
+			position: relative;
+			width: 100%;
+
+			&::after {
+				background-color: #e78181;
+				bottom: -1px;
+				content: "";
+				height: 2px;
+				left: 0;
+				position: absolute;
+				width: 100%;
+			}
+		}
+
+		.row:last-child {
+			&::after {
+				display: none;
+			}
+		}
+	}
+
+	.ruler-top {
+		background-color: var(--ruler-color);
+		height: var(--ruler-size);
+		pointer-events: all;
+		position: absolute;
+		top: 0;
+		width: 100%;
+		z-index: 3;
+
+		&::after {
+			bottom: 0;
+			box-shadow: 5px 0 5px #818181;
+			content: "";
+			height: 100%;
+			left: var(--ruler-size);
+			pointer-events: none;
+			position: absolute;
+			width: calc(100% - var(--ruler-size));
+		}
+
+		.ruler-content {
+			display: flex;
+			flex-direction: row;
+			height: 100%;
+			overflow: hidden;
+			padding-left: var(--ruler-size);
+
+
+
+			.step {
+				display: flex;
+				flex-direction: column;
+				flex-shrink: 0;
+				justify-content: space-between;
+				text-align: left;
+				width: var(--step-width);
+
+				span {
+					align-items: center;
+					display: flex;
+					flex-grow: 1;
+					font-size: 10px;
+					transform: translateX(-50%);
+					width: min-content;
+				}
+
+			}
+
+			.step::after {
+				background-color: #3d3d3d;
+				content: "";
+				display: inline-block;
+				flex-shrink: 0;
+				height: 3px;
+				transform: translateX(-50%);
+				width: 2px;
+			}
+
+			.step.big::after {
+				background-color: black;
+				height: 8px;
+			}
+		}
+
+	}
+
+	.ruler-left {
+		height: 100%;
+		pointer-events: all;
+		position: absolute;
+		top: 0;
+		width: var(--ruler-size);
+		z-index: 4;
+
+		&::after {
+			box-shadow: 0px 5px 5px #818181;
+			content: "";
+			height: calc(100% - var(--ruler-size));
+			left: 0;
+			pointer-events: none;
+			position: absolute;
+			top: var(--ruler-size);
+			width: 100%;
+		}
+
+		.ruler-content {
+			display: flex;
+			flex-direction: column;
+			height: 100%;
+			overflow: hidden;
+			padding-top: var(--ruler-size);
+			position: relative;
+			width: 100%;
+
+			&::before {
+				background-color: var(--ruler-color);
+				content: "";
+				inset: 0;
+				position: absolute;
+				top: var(--ruler-size);
+				z-index: 2;
+			}
+
+
+
+			.step {
+				display: flex;
+				flex-direction: row;
+				flex-shrink: 0;
+				height: var(--step-height);
+				justify-content: space-between;
+				position: relative;
+				text-align: left;
+				z-index: 3;
+
+				span {
+					display: flex;
+					flex-grow: 1;
+					font-size: 10px;
+					height: min-content;
+					justify-content: center;
+					transform: translateY(-50%);
+				}
+
+			}
+
+			.step::after {
+				background-color: #3d3d3d;
+				content: "";
+				display: inline-block;
+				flex-shrink: 0;
+				height: 2px;
+				transform: translateY(-50%);
+				width: 3px;
+
+			}
+
+			.step.big::after {
+				background-color: black;
+				width: 8px;
+			}
+		}
+	}
+
+	.lock {
+		align-items: center;
+		cursor: pointer;
+		display: flex;
+		height: var(--ruler-size);
+		justify-content: center;
+		left: 0;
+		pointer-events: all;
+		position: absolute;
+		top: 0;
+		width: var(--ruler-size);
+		z-index: 5;
+
+		svg {
+			aspect-ratio: 1;
+			display: inline-block;
+			width: 50%;
+		}
+
+		.close {
+			display: none;
+		}
+	}
+}
+
+:host([visible]) {
+	display: block;
+}
+
+:host(:not([show_grid])) {
+	.grid {
+		display: none;
+	}
+}
+
+:host(:not([show_ruler])) {
+	.ruler-top {
+		display: none;
+	}
+
+	.ruler-left {
+		display: none;
+	}
+}
+
+:host(:not([show_guides])) {
+	.guides {
+		display: none;
+	}
+}
+
+:host([lock]) {
+	--ruler-color: #eeeeee;
+
+	.ruler-top,
+	.ruler-left {
+		cursor: not-allowed;
+	}
+
+	.guides {
+		av-grid-guide-helper {
+			pointer-events: none;
+		}
+	}
+
+	.lock {
+		.open {
+			display: none;
+		}
+
+		.close {
+			display: inline-block;
+		}
+	}
+}

@@ -1,0 +1,30 @@
+export class TranslationColHeader extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+    //#region static
+
+    //#endregion
+
+
+    //#region props
+
+    //#endregion
+
+
+    //#region variables
+    @Watch((target: TranslationColHeader) => {
+        target.style.setProperty("--translation-col-width", "var(--col-width-" + target.locale + ")");
+    })
+    public locale: string = "";
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+
+    //#region methods
+
+    //#endregion
+
+}

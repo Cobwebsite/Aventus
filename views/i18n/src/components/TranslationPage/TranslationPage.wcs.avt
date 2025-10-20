@@ -1,0 +1,85 @@
+:host {
+	--_translation-page-key-width: var(--translation-page-key-width, 300px);
+}
+
+:host {
+	display: none;
+	flex-direction: column;
+	height: 100%;
+	margin: 0;
+	margin-block: 0 !important;
+	width: 100%;
+
+	vscode-scrollable {
+		height: calc(100% - 190px);
+		margin: 0 20px;
+		width: calc(100% - 40px);
+	}
+
+	av-scrollable {
+		--scroller-width: 0;
+		height: min-content;
+		min-height: 0;
+	}
+
+	.header {
+		flex-shrink: 0;
+		height: 177px;
+		padding: 20px;
+		padding-bottom: 0;
+
+		.bar {
+			display: flex;
+			justify-content: space-between;
+			width: 100%;
+			gap: 20px;
+
+			.menu-actions {
+				display: flex;
+				flex-wrap: nowrap;
+				gap: 50px;
+
+				div {
+					display: flex;
+					margin: 15px 0;
+					white-space: nowrap;
+					height: 26px;
+
+					vscode-label {
+						margin-right: 14px;
+						text-align: right;
+						width: auto;
+					}
+					vscode-textfield {
+						width: auto;
+					}
+				}
+			}
+		}
+
+		.menu {
+			border: 1px solid var(--vscode-widget-border);
+			padding: 8px;
+
+			vscode-icon {
+				background-color: transparent;
+				cursor: pointer;
+				padding: 8px;
+				transition: background-color linear 0.2s;
+			}
+
+			vscode-icon:hover {
+				background-color: var(--vscode-button-secondaryBackground);
+			}
+		}
+	}
+
+	.content {
+		display: flex;
+		flex-direction: column;
+	}
+}
+
+:host([is_init]) {
+	display: flex;
+}

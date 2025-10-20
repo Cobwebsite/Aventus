@@ -1,0 +1,14 @@
+:host {
+	align-items: center;
+	display: flex;
+	inset: 0;
+	justify-content: center;
+	position: fixed;
+	z-index: 60;
+
+	.modal {
+		background-color: white;
+		padding: 1.5rem;
+		position: relative;
+	}
+}

@@ -10,5 +10,4 @@ server/out
 *package-lock.json
 *tsconfig.tsbuildinfo
 *.vsix
-lib/*.avt
-open_folder.ps1
+scripts/*

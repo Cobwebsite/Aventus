@@ -1,0 +1,81 @@
+import { GenericError, VoidWithError, type Asyncable } from "Aventus@Main:Aventus.package.avt";
+import type { Constructor, ExtractError, FormSchema, SubmitFunction, WithError } from "../../Form/Form/FormType.lib.avt";
+import { PageForm } from "../PageForm/PageForm.wcl.avt";
+
+namespace Navigation {
+    export type LastParameter<T extends any> = T extends (...args: any) => any ? Last<Parameters<T>> : never;
+    export type Result<C extends Constructor<Aventus.HttpRoute>, M extends keyof InstanceType<C>> = InstanceType<C>[M] extends (...args: any) => any ? ReturnType<InstanceType<C>[M]> : any;
+
+    type ToKey<T> = [T] extends [string]        // doit être un string literal
+        ? string extends T                        // exclure le type "string" générique
+        ? never
+        : T extends infer U
+        ? [U] extends [T]                     // check que T n'est pas une union
+        ? U
+        : never
+        : never
+        : never;
+    type FilterPrefix<T> = T extends `getPrefix` ? never : T;
+
+    type FirstKey<T> = ToKey<FilterPrefix<keyof T>>;
+
+    export type KeyResult<C extends Constructor<Aventus.HttpRoute>, M> = M extends undefined ? FirstKey<InstanceType<C>> : M;
+    export abstract class PageFormRoute<C extends Constructor<Aventus.HttpRoute>, M extends undefined | keyof InstanceType<C> = undefined, RM extends KeyResult<C, M> = KeyResult<C, M>> extends PageForm<LastParameter<InstanceType<C>[RM]>, ExtractError<Awaited<Result<C, RM>>>> implements Aventus.DefaultComponent {
+
+        //#region static
+
+        //#endregion
+
+
+        //#region props
+
+        //#endregion
+
+
+        //#region variables
+
+        //#endregion
+
+
+        //#region constructor
+
+        //#endregion
+
+
+        //#region methods
+        protected override async defineSubmit(submit: (fct: SubmitFunction<LastParameter<InstanceType<C>[RM]>, ExtractError<Awaited<Result<C, RM>>>>) => Promise<WithError<ExtractError<Awaited<Result<C, RM>>>> | null>): Promise<WithError<ExtractError<Awaited<Result<C, RM>>>> | null> {
+            await this.beforeSubmit();
+            const info = this.route();
+            let router: Aventus.HttpRoute;
+            let key = "";
+            if(Array.isArray(info)) {
+                router = new info[0];
+                key = info[1] as string;
+            }
+            else {
+                router = new info;
+                const fcts = Object.getOwnPropertyNames(info.prototype).filter(m => m !== "constructor");
+                if(fcts.length == 1) {
+                    key = fcts[0];
+                }
+                else {
+                    const result = new VoidWithError();
+                    result.errors.push(new GenericError(500, "More than one fonction is defined"));
+                    return result as any;
+                }
+            }
+            const result = await submit(router[key]) as Awaited<Result<C, RM> | null>;
+            this.onResult(result);
+            return result;
+        }
+
+        public abstract route(): M extends undefined ? C : [C, M];
+        public beforeSubmit(): Asyncable<void> { }
+        public abstract onResult(result: Awaited<Result<C, RM> | null>): Asyncable<void>;
+
+
+
+        //#endregion
+
+    }
+}

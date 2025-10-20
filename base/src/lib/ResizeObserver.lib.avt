@@ -79,8 +79,10 @@ export class ResizeObserver {
         if(!target["sourceIndex"]) {
             target["sourceIndex"] = Math.random().toString(36);
             this.targets.push(target);
-            ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]] = [];
             ResizeObserver.getUniqueInstance().observe(target);
+        }
+        if(!ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]]) {
+            ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]] = []
         }
 
         if(ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]].indexOf(this) == -1) {

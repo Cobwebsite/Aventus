@@ -57,6 +57,9 @@ export class Watcher {
                 for(let key in reservedName) {
                     delete data[key];
                 }
+                for(let key in data) {
+                    clearReservedNames(data[key]);
+                }
             }
         };
         const setProxyPath = (newProxy, newPath) => {
@@ -450,11 +453,13 @@ export class Watcher {
                                     el = replaceByAlias(target, el, target.length + '', receiver, false, out);
                                     target.push(el);
                                     const dones: any[] = [];
+                                    const dones2: any[] = [];
                                     if(out.otherRoot) {
                                         dones.push(out.otherRoot);
+                                        dones2.push(out.otherRoot);
                                     }
                                     trigger('CREATED', target, receiver, receiver[index], "[" + (index) + "]", dones);
-                                    trigger('UPDATED', target, receiver, target.length, "length", dones);
+                                    trigger('UPDATED', target, receiver, target.length, "length", dones2);
                                     return index;
                                 };
                             }
@@ -529,12 +534,16 @@ export class Watcher {
                                 result = (key, value) => {
                                     const out: { otherRoot?: any; } = {};
                                     let dones: any[] = [];
+                                    let dones2: any[] = [];
                                     key = Watcher.extract(key);
                                     value = replaceByAlias(target, value, key + '', receiver, false, out);
-                                    if(out.otherRoot) dones.push(out.otherRoot);
+                                    if(out.otherRoot) {
+                                        dones.push(out.otherRoot);
+                                        dones2.push(out.otherRoot);
+                                    }
                                     let result = target.set(key, value);
                                     trigger('CREATED', target, receiver, receiver.get(key), key + '', dones);
-                                    trigger('UPDATED', target, receiver, target.size, "size", dones);
+                                    trigger('UPDATED', target, receiver, target.size, "size", dones2);
                                     return result;
                                 };
                             }
@@ -928,6 +937,14 @@ export class Watcher {
         return comp;
     }
     /**
+     * Create an effect variable that will watch any changes inside the fct and trigger the cb on change
+     */
+    public static watch(fct: () => any, cb: () => any): Effect {
+        const comp = new Effect(fct);
+        comp.subscribe(cb);
+        return comp;
+    }
+    /**
      * Create a signal variable
      */
     public static signal<T>(item: T, onChange?: () => void): Signal<T> {
@@ -1028,7 +1045,7 @@ export class Effect {
         }
         else {
             cb = (action, changePath, value, dones) => {
-                let full = fullPath;
+                // if(changePath == path || changePath.startsWith(path + ".") || changePath.startsWith(path + "[")) {
                 if(changePath == path) {
                     this.onChange(action, changePath, value, dones);
                 }

@@ -1,4 +1,4 @@
-import { normalize, sep } from "path";
+import { dirname, normalize, sep } from "path";
 import { flattenDiagnosticMessageText } from 'typescript';
 import { Diagnostic, DiagnosticSeverity, Position, Range } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -6,7 +6,7 @@ import { AventusErrorCode, AventusExtension, AventusLanguageId } from "./definit
 import { SectionType } from './language-services/ts/LanguageService';
 import { AventusFile } from './files/AventusFile';
 import { AventusConfig } from './language-services/json/definition';
-import { existsSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import * as md5 from 'md5';
 import { Statistics } from './notification/Statistics';
 
@@ -14,10 +14,12 @@ export function pathToUri(path: string): string {
     if (path.startsWith("file://")) {
         return path;
     }
+    let uriTemp = path[0].toLowerCase() + path.substring(1);
+    uriTemp = normalizeUri(encodeURI(uriTemp.replace(/\\/g, '/')))
     if (sep === "/") {
-        return "file://" + normalizeUri(encodeURI(path.replace(/\\/g, '/')));
+        return "file://" + uriTemp;
     }
-    return "file:///" + normalizeUri(encodeURI(path.replace(/\\/g, '/')));
+    return "file:///" + uriTemp;
 }
 
 export function normalizeUri(path: string) {
@@ -123,6 +125,27 @@ export function createErrorHTMLPos(currentDoc: TextDocument, msg: string, start:
         range: Range.create(currentDoc.positionAt(start), currentDoc.positionAt(end)),
         severity: DiagnosticSeverity.Error,
         source: AventusLanguageId.HTML,
+        message: flattenDiagnosticMessageText(msg, '\n')
+    }
+}
+
+export function createErrorI18n(currentDoc: TextDocument, msg: string): Diagnostic {
+    return createErrorI18nPos(currentDoc, msg, 0, currentDoc.getText().length)
+}
+
+export function createErrorI18nPos(currentDoc: TextDocument, msg: string, start: number, end: number): Diagnostic {
+    return {
+        range: Range.create(currentDoc.positionAt(start), currentDoc.positionAt(end)),
+        severity: DiagnosticSeverity.Error,
+        source: AventusLanguageId.I18n,
+        message: flattenDiagnosticMessageText(msg, '\n')
+    }
+}
+export function createWarningI18nPos(currentDoc: TextDocument, msg: string, start: number, end: number): Diagnostic {
+    return {
+        range: Range.create(currentDoc.positionAt(start), currentDoc.positionAt(end)),
+        severity: DiagnosticSeverity.Warning,
+        source: AventusLanguageId.I18n,
         message: flattenDiagnosticMessageText(msg, '\n')
     }
 }
@@ -311,6 +334,10 @@ export function setValueToObject(path: string, obj: any, value: any) {
 const md5HashFile: { [path: string]: string } = {};
 export function writeFile(outputFile: string, txt: string, type: "build" | "static" | "storybook", name?: string) {
     let hash = md5(txt);
+    const folder = dirname(outputFile);
+    if (!existsSync(folder)) {
+        mkdirSync(folder, { recursive: true });
+    }
     let exist = existsSync(outputFile);
     if (!md5HashFile[outputFile] || md5HashFile[outputFile] != hash || !exist) {
         md5HashFile[outputFile] = hash;
@@ -330,6 +357,12 @@ export class Timer {
         const elapsed = t[1] / 1000000;
         delete this.timers[name];
         return t[0] * 1000 + Math.round(elapsed);
+    }
+    public static stopNano(name: string): number {
+        const NS_PER_SEC = 1e9;
+        const t = process.hrtime(this.timers[name])
+        delete this.timers[name];
+        return t[0] * NS_PER_SEC + t[1]
     }
 }
 // export class Debug {

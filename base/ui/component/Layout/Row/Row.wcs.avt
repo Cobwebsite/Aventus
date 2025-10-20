@@ -1,0 +1,13 @@
+:host {
+	--_col-gap: var(--col-gap, 0px);
+}
+
+:host {
+	container-name: row;
+	container-type: inline-size;
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: var(--_col-gap);
+	width: 100%;
+}

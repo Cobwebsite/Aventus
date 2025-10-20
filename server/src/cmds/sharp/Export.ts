@@ -3,7 +3,6 @@ import { GenericServer } from '../../GenericServer';
 import { join } from 'path';
 import { execSync } from 'child_process';
 import { uriToPath } from '../../tools';
-import { Loading } from '../../notification/Loading';
 import { FilesManager } from '../../files/FilesManager';
 import { SelectItem } from '../../IConnection';
 import { AventusExtension } from '../../definition';

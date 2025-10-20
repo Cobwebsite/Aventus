@@ -1,0 +1,63 @@
+export class Loading extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+    //#region static
+    private static _instance?: Loading;
+    private static _minTimeDisplay?: number;
+    private static _minTimeShow?: number;
+    private static _showTime?: number;
+    public static show(minTimeShow: number = 100, minTimeDisplay: number = 1000) {
+        this._minTimeDisplay = minTimeDisplay;
+        this._minTimeShow = minTimeShow;
+        if(!this._instance) {
+            this._instance = new Loading();
+            document.body.appendChild(this._instance);
+        }
+        if(this._minTimeDisplay) {
+            const d = new Date();
+            this._showTime = d.getTime();
+        }
+        this._instance.visible = true;
+    }
+    public static hide() {
+        if(this._minTimeDisplay && this._showTime && this._instance) {
+            const now = new Date();
+            const diff = now.getTime() - this._showTime;
+            if(diff > this._minTimeDisplay) {
+                this._instance.visible = false;
+            }
+            else {
+                const instance = this._instance;
+                const delay = this._minTimeDisplay - diff;
+                setTimeout(() => {
+                    instance.visible = false;
+                }, delay);
+            }
+        }
+
+
+
+    }
+    //#endregion
+
+
+    //#region props
+    @Attribute()
+    public visible!: boolean;
+    //#endregion
+
+
+    //#region variables
+
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+
+    //#region methods
+
+    //#endregion
+
+}
