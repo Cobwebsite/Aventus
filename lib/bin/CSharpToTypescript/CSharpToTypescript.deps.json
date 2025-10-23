@@ -8,7 +8,7 @@
     ".NETCoreApp,Version=v8.0": {
       "CSharpToTypescript/1.0.0": {
         "dependencies": {
-          "AventusSharp": "0.0.7",
+          "AventusSharp": "0.0.9",
           "Microsoft.Build.Locator": "1.5.5",
           "Microsoft.CodeAnalysis.Analyzers": "3.3.4",
           "Microsoft.CodeAnalysis.CSharp.Workspaces": "4.6.0",
@@ -969,7 +969,7 @@
           }
         }
       },
-      "AventusSharp/0.0.7": {
+      "AventusSharp/0.0.9": {
         "dependencies": {
           "CsvHelper": "33.1.0",
           "HttpMultipartParser": "8.3.0",
@@ -983,8 +983,8 @@
         },
         "runtime": {
           "AventusSharp.dll": {
-            "assemblyVersion": "0.0.7.0",
-            "fileVersion": "0.0.7.0"
+            "assemblyVersion": "0.0.9.0",
+            "fileVersion": "0.0.9.0"
           }
         }
       }
@@ -1626,7 +1626,7 @@
       "path": "zstdsharp.port/0.7.1",
       "hashPath": "zstdsharp.port.0.7.1.nupkg.sha512"
     },
-    "AventusSharp/0.0.7": {
+    "AventusSharp/0.0.9": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

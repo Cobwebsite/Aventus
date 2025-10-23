@@ -24,7 +24,9 @@ export interface IData {
 @Storybook({
     prefix: "Data"
 })
+// @Dependances([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
 export abstract class Data implements IData {
+    private static converter: Converter = new Converter();
     /**
      * The schema for the class
      */

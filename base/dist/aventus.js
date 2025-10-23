@@ -1239,7 +1239,9 @@ let clone=function clone(item) {
 }
 __as1(_, 'clone', clone);
 
-let Data=class Data {
+let Data=// @Dependances([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
+class Data {
+    static converter = new Converter();
     /**
      * The schema for the class
      */
@@ -1287,9 +1289,14 @@ let Data=class Data {
     }
 }
 Data.Namespace=`Aventus`;
+Data.$schema={"namespace":"string","$type":"string","className":"string"};
+Converter.register(Data.Fullname, Data);
 __as1(_, 'Data', Data);
 
-let GenericError=class GenericError {
+let GenericError=// @Dependances([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
+class GenericError {
+    static converter = new Converter();
+    static get Fullname() { return "Aventus.GenericError"; }
     /**
      * Code for the error
      */
@@ -1313,6 +1320,8 @@ let GenericError=class GenericError {
     }
 }
 GenericError.Namespace=`Aventus`;
+GenericError.$schema={"code":"Aventus.EnumValue","message":"string"};
+Converter.register(GenericError.Fullname, GenericError);
 __as1(_, 'GenericError', GenericError);
 
 let VoidWithError=class VoidWithError {
@@ -1389,6 +1398,8 @@ __as1(_, 'ResultWithError', ResultWithError);
 let HttpError=class HttpError extends GenericError {
 }
 HttpError.Namespace=`Aventus`;
+HttpError.$schema={...(GenericError?.$schema ?? {}), };
+Converter.register(HttpError.Fullname, HttpError);
 __as1(_, 'HttpError', HttpError);
 
 let Signal=class Signal {
@@ -4168,6 +4179,8 @@ __as1(_, 'Uri', Uri);
 let RamError=class RamError extends GenericError {
 }
 RamError.Namespace=`Aventus`;
+RamError.$schema={...(GenericError?.$schema ?? {}), };
+Converter.register(RamError.Fullname, RamError);
 __as1(_, 'RamError', RamError);
 
 let ResultRamWithError=class ResultRamWithError extends ResultWithError {

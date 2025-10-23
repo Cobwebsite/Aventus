@@ -1106,26 +1106,30 @@ export class AventusTsLanguageService {
             let txtHotReload = element.compiledContentHotReload;
             let moduleName = file.build.module;
             if (element instanceof ClassInfo && !element.isInterface) {
+                let prefix = "Aventus.";
+                if (element.build.isCoreBuild) {
+                    prefix = "";
+                }
                 let currentNamespaceWithDot = "";
                 if (element.namespace) {
                     currentNamespaceWithDot = "." + element.namespace
                 }
                 additionContent += element.fullName + ".Namespace=`" + moduleName + currentNamespaceWithDot + "`;" + EOL;
                 additionContentNpm += element.name + ".Namespace=`" + moduleName + currentNamespaceWithDot + "`;" + EOL;
-                if (element.implements.includes('Aventus.IData')) {
+                if (element.implements.includes(prefix + 'IData')) {
                     result.type = InfoType.classData;
                 }
                 if (element.convertibleName) {
                     additionContent += element.fullName + ".$schema=" + this.prepareDataSchema(element, moduleName) + ";" + EOL;
                     additionContentNpm += element.name + ".$schema=" + this.prepareDataSchema(element, moduleName) + ";" + EOL;
-                    additionContent += "Aventus.Converter.register(" + element.fullName + "." + element.convertibleName + ", " + element.fullName + ");" + EOL
-                    additionContentNpm += "Aventus.Converter.register(" + element.fullName + "." + element.convertibleName + ", " + element.fullName + ");" + EOL
+                    additionContent += prefix + "Converter.register(" + element.fullName + "." + element.convertibleName + ", " + element.fullName + ");" + EOL
+                    additionContentNpm += prefix + "Converter.register(" + element.fullName + "." + element.convertibleName + ", " + element.fullName + ");" + EOL
                 }
-                else if (element.implements.includes('Aventus.IData')) {
+                else if (element.implements.includes(prefix + 'IData')) {
                     additionContent += element.fullName + ".$schema=" + this.prepareDataSchema(element, moduleName) + ";" + EOL;
                     additionContentNpm += element.name + ".$schema=" + this.prepareDataSchema(element, moduleName) + ";" + EOL;
-                    additionContent += "Aventus.Converter.register(" + element.fullName + ".Fullname, " + element.fullName + ");" + EOL;
-                    additionContentNpm += "Aventus.Converter.register(" + element.fullName + ".Fullname, " + element.fullName + ");" + EOL;
+                    additionContent += prefix + "Converter.register(" + element.fullName + ".Fullname, " + element.fullName + ");" + EOL;
+                    additionContentNpm += prefix + "Converter.register(" + element.fullName + ".Fullname, " + element.fullName + ");" + EOL;
                 }
                 result.convertibleName = element.convertibleName;
 
@@ -1261,6 +1265,10 @@ export class AventusTsLanguageService {
             let txt = element.compiledContentNpm;
             let moduleName = file.build.module;
             if (element instanceof ClassInfo && !element.isInterface) {
+                let prefix = "Aventus.";
+                if (element.build.isCoreBuild) {
+                    prefix = "";
+                }
                 let currentNamespaceWithDot = "";
                 if (element.namespace) {
                     currentNamespaceWithDot = "." + element.namespace
@@ -1268,7 +1276,7 @@ export class AventusTsLanguageService {
                 additionContentNpm += element.name + ".Namespace=`" + moduleName + currentNamespaceWithDot + "`;" + EOL;
                 if (element.convertibleName) {
                     additionContentNpm += element.name + ".$schema=" + this.prepareDataSchema(element, moduleName, true) + ";" + EOL;
-                    const converterName = file.build.getNpmReplacementName("", "Aventus.Converter")
+                    const converterName = file.build.getNpmReplacementName("", prefix + "Converter")
                     additionContentNpm += converterName + ".register(" + element.name + "." + element.convertibleName + ", " + element.name + ");" + EOL
                     if (file.fileParsed) {
                         file.fileParsed.registerGeneratedImport({
@@ -1280,9 +1288,9 @@ export class AventusTsLanguageService {
                         });
                     }
                 }
-                else if (element.implements.includes('Aventus.IData')) {
+                else if (element.implements.includes(prefix + 'IData')) {
                     additionContentNpm += element.name + ".$schema=" + this.prepareDataSchema(element, moduleName, true) + ";" + EOL;
-                    const converterName = file.build.getNpmReplacementName("", "Aventus.Converter")
+                    const converterName = file.build.getNpmReplacementName("", prefix + "Converter")
                     additionContentNpm += converterName + ".register(" + element.name + ".Fullname, " + element.name + ");" + EOL;
                     if (file.fileParsed) {
                         file.fileParsed.registerGeneratedImport({

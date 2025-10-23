@@ -58,7 +58,11 @@ export class CreateWatch {
 			}
 			let cb = '';
 			if (needCb) {
-				cb = '(target: ' + componentName + ', action: Aventus.WatchAction, path: string, value: any) => {' + EOL + EOL + '}';
+				let prefix = 'Aventus.';
+				if (builds && builds.length > 0 && builds[0].isCoreBuild) {
+					prefix = ''
+				}
+				cb = '(target: ' + componentName + ', action: ' + prefix + 'WatchAction, path: string, value: any) => {' + EOL + EOL + '}';
 			}
 			let newTxt = '@Watch(' + cb + ')' + EOL + 'public ' + name + '?:' + type + ';' + EOL;
 			let begin = file.contentUser.slice(0, position);
