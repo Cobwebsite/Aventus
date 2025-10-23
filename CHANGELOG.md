@@ -1,5 +1,10 @@
 # Change Log
 
+## 1.4.1 (2025-10-23)
+
+### Features
+ - Add check nodejs version
+
 ## 1.4.0 (2025-09-30)
 
 ### !!! IMPORTANT : Can break your app !!!
