@@ -1,3 +1,4 @@
+import { Converter } from "./Converter.lib.avt";
 import type { Enum, EnumValue } from "./Enum.lib.avt";
 
 /**
@@ -7,7 +8,11 @@ import type { Enum, EnumValue } from "./Enum.lib.avt";
 @Storybook({
     prefix: "Error"
 })
+@Convertible()
+// @Dependances([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
 export class GenericError<T extends (number | Enum) = any> {
+    private static converter: Converter = new Converter();
+    public static get Fullname(): string { return "Aventus.GenericError"; }
     /**
      * Code for the error
      */

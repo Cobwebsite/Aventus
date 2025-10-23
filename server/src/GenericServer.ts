@@ -185,6 +185,7 @@ export class GenericServer {
 		this.runUpdate();
 	}
 	protected async onInitialized() {
+		if(!this.checkNodeJs()) return;
 		await this.loadSettings();
 		await this.startServer();
 	}
@@ -387,6 +388,29 @@ export class GenericServer {
 			SettingsManager.getInstance().setHiddenSettings({ version: currentVersion });
 		}, 5000)
 
+	}
+
+	protected checkNodeJs() {
+		const minVersion = '22.18.0';
+		const isVersionGreaterOrEqual = (current: string, minimum: string) => {
+			const cur = current.split('.').map(Number);
+			const min = minimum.split('.').map(Number);
+			for (let i = 0; i < 3; i++) {
+				if (cur[i] > min[i]) return true;
+				if (cur[i] < min[i]) return false;
+			}
+			return true;
+		}
+
+		const version = execSync("node -v").toString().trim();
+		const match = version.match(/^v?(\d+)\.(\d+)\.(\d+)$/);
+		const currentVersion = version.startsWith("v") ? version.slice(1) : version;
+
+		if (!match || !isVersionGreaterOrEqual(currentVersion, minVersion)) {
+			GenericServer.showErrorMessage("To use Aventus, you need at least the nodejs version : " + minVersion);
+			return false;
+		}
+		return true;
 	}
 
 }
