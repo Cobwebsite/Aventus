@@ -1,15 +1,15 @@
-import { cpSync, createReadStream, createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, unlinkSync, writeFileSync } from 'fs';
+import { cpSync, createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, unlinkSync, writeFileSync } from 'fs';
 import { GenericServer } from '../GenericServer';
 import { dirname, join, normalize, sep } from 'path';
 import { SelectItem } from '../IConnection';
 import { TemplateScript } from './Template';
 import { SettingsManager } from '../settings/Settings';
-import { pathToUri, setValueToObject, uriToPath } from '../tools';
-import { execSync, spawn } from 'child_process';
+import { setValueToObject, uriToPath } from '../tools';
+import { execSync } from 'child_process';
 import { AventusExtension } from '../definition';
 import { get } from 'http';
 import { get as gets } from 'https';
-import { Extract } from 'unzipper'
+import { Open } from 'unzipper'
 import { Store } from '../store/Store';
 
 
@@ -521,19 +521,19 @@ export class TemplateManager {
 					return;
 				}
 
-				if(temp.isProject) {
+				if (temp.isProject) {
 					this.reloadProjects();
 				}
 				else {
 					this.reloadTemplates();
 				}
 				GenericServer.showInformationMessage("Template " + packageName + " installed");
+				rmSync(packageTempPath, { force: true, recursive: true });
 			}
 			else {
 				GenericServer.showErrorMessage(AventusExtension.Template + " not found");
 			}
 
-			rmSync(packageTempPath, { force: true, recursive: true });
 		} catch (e) {
 			GenericServer.showErrorMessage("Error unknown");
 			console.error(e)
@@ -568,15 +568,14 @@ export class TemplateManager {
 
 		})
 	}
-	private extractZip(zipPath: string, outputDir: string) {
-		return new Promise<boolean>((resolve) => {
-			createReadStream(zipPath)
-				.pipe(Extract({ path: outputDir }))
-				.on("close", () => resolve(true))
-				.on("error", (err) => {
-					console.error("Extract error ", err)
-					resolve(false)
-				});
-		})
+	private async extractZip(zipPath: string, outputDir: string) {
+		try {
+			const directory = await Open.file(zipPath);
+			await directory.extract({ path: outputDir })
+			return true;
+		} catch (e) {
+			console.error("Extract error ", e)
+		}
+		return false;
 	}
 }
