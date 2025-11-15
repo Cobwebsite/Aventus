@@ -253,7 +253,8 @@ export class TagInfo {
 			const newKey = key.replace(this.idBase, newIdBase);
 			newChanges[newKey] = this.changes[key];
 		}
-
+		this.changes = newChanges;
+		
 		if(this.ifInfo) {
 			this.ifInfo._id = this.ifInfo._id.replace(this.idBase, newIdBase);
 		}
