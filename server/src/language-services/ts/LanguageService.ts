@@ -1,6 +1,6 @@
 import { EOL } from 'os';
 import { join, normalize, sep } from 'path';
-import { CodeFixAction, CompilerOptions, CompletionInfo, createLanguageService, Diagnostic as DiagnosticTs, displayPartsToString, Extension, flattenDiagnosticMessageText, FormatCodeSettings, GetCompletionsAtPositionOptions, IndentStyle, JsxEmit, LanguageService, LanguageServiceHost, ModuleDetectionKind, ModuleResolutionKind, RenameInfo, ResolvedModule, ResolvedModuleFull, resolveModuleName, ScriptKind, ScriptTarget, SemicolonPreference, transpile, WithMetadata, UserPreferences, getTokenAtPosition, createSourceFile, isTypeReferenceNode, SourceFile, TypeFormatFlags, ResolvedProjectReference, SyntaxKind } from 'typescript';
+import { CodeFixAction, CompilerOptions, CompletionInfo, createLanguageService, Diagnostic as DiagnosticTs, displayPartsToString, Extension, flattenDiagnosticMessageText, FormatCodeSettings, GetCompletionsAtPositionOptions, IndentStyle, JsxEmit, LanguageService, LanguageServiceHost, ModuleDetectionKind, ModuleResolutionKind, RenameInfo, ResolvedModule, ResolvedModuleFull, resolveModuleName, ScriptKind, ScriptTarget, SemicolonPreference, transpile, WithMetadata, UserPreferences, getTokenAtPosition, createSourceFile, isTypeReferenceNode, SourceFile, TypeFormatFlags, ResolvedProjectReference, SyntaxKind, Type } from 'typescript';
 import { CodeAction, CodeLens, CompletionItem, CompletionItemKind, CompletionList, Diagnostic, DiagnosticSeverity, DiagnosticTag, FormattingOptions, Hover, Location, Position, Range, TextEdit, WorkspaceEdit } from 'vscode-languageserver';
 import { AventusExtension, AventusLanguageId } from '../../definition';
 import { AventusFile } from '../../files/AventusFile';
@@ -508,6 +508,9 @@ export class AventusTsLanguageService {
 
     public getType(tsFile: AventusTsFile, offset: number): string | undefined {
         try {
+            if (tsFile.file.uri.endsWith("ComponentsPage.wcl.avt")) {
+                console.log("inside");
+            }
             let program = this.languageService.getProgram();
             if (!program) return undefined;
 
@@ -517,7 +520,35 @@ export class AventusTsLanguageService {
 
             let node = getTokenAtPosition(srcFile, offset);
             let type = typeChecker.getTypeAtLocation(node);
-            let typeName = typeChecker.typeToString(type, node, TypeFormatFlags.UseFullyQualifiedType);
+
+            const writeType = (type: Type): string => {
+                if (type.isUnion()) {
+                    const res: string[] = [];
+                    for (let t of type.types) {
+                        res.push(writeType(t));
+                    }
+                    return res.join(" | ");
+                }
+                else if (type.isIntersection()) {
+                    const res: string[] = [];
+                    for (let t of type.types) {
+                        res.push(writeType(t));
+                    }
+                    return res.join(" & ");
+                }
+                else if (type.isNumberLiteral()) {
+                    return type.value + '';
+                }
+                else if (type.isStringLiteral()) {
+                    return '"' + type.value + '"';
+                }
+                else if (type.isLiteral()) {
+                    return type.value + '';
+                }
+                return typeChecker.typeToString(type, node, TypeFormatFlags.UseFullyQualifiedType);
+            }
+
+            let typeName = writeType(type);
             if (typeName.includes(".")) {
                 //its an external type => we can return
                 return typeName;
