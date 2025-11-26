@@ -818,7 +818,7 @@
 		"@types/send": "^1.2.0",
 		"@types/vscode": "^1.105.0",
 		"@types/ws": "^8.18.1",
-		"@vscode/vsce": "^3.6.2",
+		"@vscode/vsce": "^3.7.0",
 		"concurrently": "^9.2.1",
 		"merge-options": "^3.0.4",
 		"node-notifier-cli": "^2.0.0",

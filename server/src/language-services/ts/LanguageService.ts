@@ -508,9 +508,6 @@ export class AventusTsLanguageService {
 
     public getType(tsFile: AventusTsFile, offset: number): string | undefined {
         try {
-            if (tsFile.file.uri.endsWith("ComponentsPage.wcl.avt")) {
-                console.log("inside");
-            }
             let program = this.languageService.getProgram();
             if (!program) return undefined;
 

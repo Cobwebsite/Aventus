@@ -1995,8 +1995,9 @@ export class Build {
     public getWebComponentTagDependance(tagName: string): CompileDependance | null {
         let result = this.htmlLanguageService.getInternalTagUri(tagName);
         if (result) {
+            const regex = new RegExp("^"+this.module+"\\.")
             return {
-                fullName: result.fullname,
+                fullName: result.fullname.replace(regex, "$namespace$"),
                 uri: result.uri,
                 isStrong: false
             }
