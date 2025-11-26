@@ -200,3 +200,19 @@
 		user-select: none;
 	}
 }
+
+:host([flex]) {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+
+	.scroll-main-container {
+		display: flex;
+		flex-direction: column;
+
+		.content-zoom {
+			display: flex;
+			flex-direction: column;
+		}
+	}
+}

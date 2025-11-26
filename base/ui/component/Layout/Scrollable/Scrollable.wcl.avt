@@ -83,6 +83,13 @@ namespace Layout {
 
         @Attribute()
         public pinch!: boolean;
+
+        /**
+         * Set the containers to display flex + flex direction column
+         * usefull to take the space remaining
+         */
+        @Attribute()
+        public flex!: boolean;
         //#endregion
 
 
