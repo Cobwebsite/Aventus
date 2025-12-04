@@ -1,7 +1,11 @@
 import { ColorInfo } from './ColorInfo';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Color, ColorInformation, ColorPresentation, Position, Range } from 'vscode-languageserver';
-import * as parseColor from 'parse-color';
+import { color as colorParser } from '@csstools/css-color-parser';
+import { parseComponentValue } from '@csstools/css-parser-algorithms';
+import { tokenize } from '@csstools/css-tokenizer';
+import { colorData_to_XYZ_D50, toPrecision, XYZ_D50_to_sRGB_Gamut } from './ColorData';
+
 
 interface Match {
 	color: Color;
@@ -18,13 +22,15 @@ export class ColorPicker {
 	private static colorTxtList: string[] = [];
 	private static parseColorString(color: string) {
 		try {
-			const p = parseColor(color);
-			if (!p) { throw new Error('invalid color string'); }
-			const r = p.rgba[0];
-			const g = p.rgba[1];
-			const b = p.rgba[2];
-			const a = p.rgba[3];
-
+			const colorData = colorParser(parseComponentValue(tokenize({ css: color })));
+			const srgb = XYZ_D50_to_sRGB_Gamut(colorData_to_XYZ_D50(colorData).channels);
+			const r = Math.min(255, Math.max(0, Math.round(toPrecision(srgb[0]) * 255)));
+			const g = Math.min(255, Math.max(0, Math.round(toPrecision(srgb[1]) * 255)));
+			const b = Math.min(255, Math.max(0, Math.round(toPrecision(srgb[2]) * 255)));
+			let a = 1;
+			if (typeof colorData.alpha === 'number') {
+				a = Math.min(1, Math.max(0, toPrecision(Number.isNaN(colorData.alpha) ? 0 : colorData.alpha)));
+			}
 			return Color.create(r / 255, g / 255, b / 255, a);
 
 
@@ -55,7 +61,7 @@ export class ColorPicker {
 
 	static getMatches(text: string): Match[] {
 		let result: Match[] = [];
-		const matches = text.matchAll(/(#(?:[\da-f]{3,4}){2}|#(?:[\da-f]{3})|rgb\((?:\d{1,3},\s*){2}\d{1,3}\)|rgba\((?:\d{1,3},\s*){3}\d*\.?\d+\)|hsl\(\d{1,3}(?:,\s*\d{1,3}%){2}\)|hsla\(\d{1,3}(?:,\s*\d{1,3}%){2},\s*\d*\.?\d+\))/gi);
+		const matches = text.matchAll(/(#(?:[\da-f]{3,4}){2}|#(?:[\da-f]{3})|rgb\((?:\d{1,3},\s*){2}\d{1,3}\)|rgba\((?:\d{1,3},\s*){3}\d*\.?\d+\)|hsl\(\d{1,3}(?:,\s*\d{1,3}%){2}\)|hsla\(\d{1,3}(?:,\s*\d{1,3}%){2},\s*\d*\.?\d+\|oklab\(\s*\d*\.?\d+\s*,\s*-?\d*\.?\d+\s*,\s*-?\d*\.?\d+\s*\)|oklch\(\s*\d*\.?\d+%?\s*(,| )\s*\d*\.?\d+\s*(,| )\s*\d*\.?\d+\s*\))/gi);
 		if (matches) {
 			for (let match of matches) {
 				const t = match[0];
@@ -69,6 +75,8 @@ export class ColorPicker {
 				else if (t.startsWith('rgb(')) { type = "rgb"; }
 				else if (t.startsWith('rgba(')) { type = "rgba"; }
 				else if (t.startsWith('#')) { type = "hex"; }
+				else if (t.startsWith('oklch(')) { type = "oklch"; }
+				else if (t.startsWith('oklab(')) { type = "oklab"; }
 
 				const range = Range.create(
 					this.getPos(text, match.index),
@@ -99,7 +107,7 @@ export class ColorPicker {
 			}
 			this.colorTxtList = colors;
 		}
-		let regex = new RegExp("(?<![\\w\\d.\"'&$-])("+ this.colorTxtList.join("|") +")(?![-\\w\\d])", "gi");
+		let regex = new RegExp("(?<![\\w\\d.\"'&$-])(" + this.colorTxtList.join("|") + ")(?![-\\w\\d])", "gi");
 		const matchesNamed = text.matchAll(regex);
 		if (matchesNamed) {
 			for (let match of matchesNamed) {
@@ -142,8 +150,6 @@ export class ColorPicker {
 	static onColorPresentations(document: TextDocument, range: Range, color: Color) {
 		let c = ColorInfo.fromRgb(color.red * 255, color.green * 255, color.blue * 255);
 		c.alpha = color.alpha;
-		let hex = c.toString('hex');
-		let hsl = c.toString('hsl');
 		let colString = document.getText(range);
 		let t = colString;
 

@@ -84,7 +84,7 @@ export class AventusPackageFile extends AventusBaseFile {
 	}
 
 
-	public dependances: { [name: string]: AventusConfigBuildDependance } = {};
+	public dependances: { [name: string]: AventusConfigBuildDependance | string } = {};
 
 	public constructor(file: AventusFile, build: Build) {
 		super(file, build);

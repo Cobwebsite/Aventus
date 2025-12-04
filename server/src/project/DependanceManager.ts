@@ -192,7 +192,7 @@ export class DependanceManager {
 				}
 			}
 			else {
-				GenericServer.showErrorMessage("You need to define a version to load a package via the store");
+				GenericServer.showErrorMessage("You need to define a version to load a package via the store (" + name + ")");
 			}
 		}
 
@@ -222,7 +222,12 @@ export class DependanceManager {
 				}
 
 				for (let name in file.dependances) {
-					const dep = file.dependances[name];
+					let dep = file.dependances[name];
+					if (typeof dep == 'string') {
+						dep = {
+							version: dep
+						}
+					}
 					// include if root package need include
 					let resultDep = await this.loadDependance(name, dep, config, build, result);
 					if (resultDep) {
