@@ -8221,7 +8221,7 @@ Lib.ShortcutManager=class ShortcutManager {
     static options = new Map();
     static replacingMemory = {};
     static isTxt(touch) {
-        return touch.match(/[a-zA-Z0-9_\+\-]/g);
+        return touch.match(/[a-zA-Z0-9_\+\-]/g) || touch == " ";
     }
     static getText(combinaison) {
         let allTouches = [];
