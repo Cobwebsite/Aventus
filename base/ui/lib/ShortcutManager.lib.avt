@@ -37,7 +37,7 @@ namespace Lib {
         private static replacingMemory: { [key: string]: (() => void | false | Promise<void> | Promise<false>)[][]; } = {};
 
         private static isTxt(touch: string) {
-            return touch.match(/[a-zA-Z0-9_\+\-]/g);
+            return touch.match(/[a-zA-Z0-9_\+\-]/g) || touch == " ";
         }
 
         private static getText(combinaison: (SpecialTouch | string)[]) {

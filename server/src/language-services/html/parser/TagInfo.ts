@@ -237,7 +237,7 @@ export class TagInfo {
 		}
 		return this._render();
 	}
-	public replaceId(newIdBase: string) {
+	public replaceId(newIdBase: string): void {
 		if (!newIdBase.endsWith("_")) {
 			newIdBase += "_"
 		}
