@@ -10,6 +10,7 @@ namespace Toast {
          * Use minus -1 to have an infinite timer
          */
         delay?: number;
+        hasTransition?: boolean;
     };
     export type ToastManagerOptions = {
         defaultToast: Constructor<ToastElement>,
@@ -17,6 +18,7 @@ namespace Toast {
         defaultPosition: ToastPosition,
         defaultDelay: number,
         heightLimitPercent: number,
+        gap: number;
     };
     export class ToastManager extends Aventus.WebComponent implements Aventus.DefaultComponent {
         private static defaultToast?: Constructor<ToastElement>;
@@ -25,6 +27,7 @@ namespace Toast {
         public static defaultPosition: ToastPosition = 'top right';
         @Internal()
         public static defaultDelay: number = 5000;
+        private static gap: number = 10;
         private static heightLimitPercent: number = 100;
         private static instance?: ToastManager;
         public static add<T extends ToastOptions>(toast: ToastElement<T> | T): Promise<boolean> {
@@ -83,14 +86,12 @@ namespace Toast {
         protected mutex: Mutex = new Mutex();
 
         @Attribute()
-        public gap: number = 10;
-        @Attribute()
         public not_main!: boolean;
 
 
 
         public async add<T extends ToastOptions>(toast: ToastElement<T> | T): Promise<boolean> {
-            await this.mutex.waitOne()
+            await this.mutex.waitOne();
             let realToast: ToastElement<T>;
             if(toast instanceof ToastElement) {
                 realToast = toast;
@@ -122,59 +123,9 @@ namespace Toast {
             return false;
         }
 
-        private _calculateBottom(toast: ToastElement, firstTime: boolean, position: 'bottom' | 'bottom left' | 'bottom right', from: number): Promise<boolean> {
-            return new Promise((resolve) => {
+        private _calculateBottom(toast: ToastElement, firstTime: boolean, position: 'bottom' | 'bottom left' | 'bottom right'): Promise<boolean> {
+            return new Promise(async (resolve) => {
 
-                let height = toast.offsetHeight;
-                let containerHeight = this.containerHeight;
-
-                const _remove = (result: boolean) => {
-                    let index = this.activeToasts[position].indexOf(toast);
-                    if(index > -1) {
-                        this.activeToasts[position].splice(index, 1);
-                    }
-                    if(this.waitingToasts[position].length > 0) {
-                        let nextNotif = this.waitingToasts[position].splice(0, 1)[0];
-                        this._calculateBottom(nextNotif, false, position, index);
-                    }
-                    else {
-                        let containerHeight = this.containerHeight;
-                        for(let i = 0; i < index; i++) {
-                            let notif = this.activeToasts[position][i];
-                            let bottom = containerHeight - (notif.offsetTop + notif.offsetHeight);
-                            notif.style.bottom = bottom - height - this.gap + 'px';
-                        }
-                    }
-                    resolve(result);
-                };
-
-                let length = this.activeToasts[position].length;
-                if(length == 0) {
-                    this.activeToasts[position].push(toast);
-                    toast.show(_remove);
-                }
-                else {
-                    let totHeight = 0;
-                    for(let t of this.activeToasts[position]) {
-                        totHeight += t.offsetHeight + this.gap;
-                    }
-                    if(totHeight + height < this.heightLimit) {
-                        for(let i = from; i < this.activeToasts[position].length; i++) {
-                            let t = this.activeToasts[position][i];
-                            let bottom = containerHeight - (t.offsetTop + t.offsetHeight);
-                            t.style.bottom = bottom + height + this.gap + 'px';
-                        }
-                        this.activeToasts[position].push(toast);
-                        toast.show(_remove);
-                    }
-                    else if(firstTime) {
-                        this.waitingToasts[position].push(toast);
-                    }
-                }
-            });
-        }
-        private _calculateTop(toast: ToastElement, firstTime: boolean, position: 'top' | 'top left' | 'top right', from: number): Promise<boolean> {
-            return new Promise<boolean>(async (resolve) => {
                 let height = toast.offsetHeight;
 
                 const _remove = (result: boolean) => {
@@ -184,13 +135,14 @@ namespace Toast {
                     }
                     if(this.waitingToasts[position].length > 0) {
                         let nextNotif = this.waitingToasts[position].splice(0, 1)[0];
-                        this._calculateTop(nextNotif, false, position, index);
+                        this._calculateBottom(nextNotif, false, position);
                     }
                     else {
-                        for(let i = 0; i < index; i++) {
+                        let bottom = 0;
+                        for(let i = 0; i < this.activeToasts[position].length; i++) {
                             let notif = this.activeToasts[position][i];
-                            let top = (notif.offsetTop - height - this.gap);
-                            notif.style.top = top + 'px';
+                            notif.style.bottom = bottom + 'px';
+                            bottom += notif.offsetHeight + ToastManager.gap;
                         }
                     }
                     resolve(result);
@@ -205,17 +157,16 @@ namespace Toast {
                     let totHeight = 0;
                     for(let notif of this.activeToasts[position]) {
                         await notif.waitTransition();
-                        totHeight += notif.offsetHeight + this.gap;
+                        totHeight += notif.offsetHeight + ToastManager.gap;
                     }
                     if(totHeight + height < this.heightLimit) {
-                        for(let i = from; i < this.activeToasts[position].length; i++) {
+                        this.activeToasts[position].splice(0, 0, toast);
+                        let bottom = 0;
+                        for(let i = 0; i < this.activeToasts[position].length; i++) {
                             let notif = this.activeToasts[position][i];
-                            await notif.waitTransition();
-                            let top = (notif.offsetTop + notif.offsetHeight);
-                            notif.style.top = top + this.gap + 'px';
+                            notif.style.bottom = bottom + 'px';
+                            bottom += notif.offsetHeight + ToastManager.gap;
                         }
-
-                        this.activeToasts[position].push(toast);
                         toast.show(_remove);
                     }
                     else if(firstTime) {
@@ -223,34 +174,86 @@ namespace Toast {
                     }
                 }
                 this.mutex.release();
-                return;
+            });
+        }
+        private _calculateTop(toast: ToastElement, firstTime: boolean, position: 'top' | 'top left' | 'top right'): Promise<boolean> {
+            return new Promise<boolean>(async (resolve) => {
+                let height = toast.offsetHeight;
+
+                const _remove = (result: boolean) => {
+                    let index = this.activeToasts[position].indexOf(toast);
+                    if(index > -1) {
+                        this.activeToasts[position].splice(index, 1);
+                    }
+                    if(this.waitingToasts[position].length > 0) {
+                        let nextNotif = this.waitingToasts[position].splice(0, 1)[0];
+                        this._calculateTop(nextNotif, false, position);
+                    }
+                    else {
+                        let top = 0;
+                        for(let i = 0; i < this.activeToasts[position].length; i++) {
+                            let notif = this.activeToasts[position][i];
+                            notif.style.top = top + 'px';
+                            top += notif.offsetHeight + ToastManager.gap;
+                        }
+                    }
+                    resolve(result);
+                };
+
+                let length = this.activeToasts[position].length;
+                if(length == 0) {
+                    this.activeToasts[position].push(toast);
+                    toast.show(_remove);
+                }
+                else {
+                    let totHeight = 0;
+                    for(let notif of this.activeToasts[position]) {
+                        await notif.waitTransition();
+                        totHeight += notif.offsetHeight + ToastManager.gap;
+                    }
+                    if(totHeight + height < this.heightLimit) {
+                        this.activeToasts[position].splice(0, 0, toast);
+                        let top = 0;
+                        for(let i = 0; i < this.activeToasts[position].length; i++) {
+                            let notif = this.activeToasts[position][i];
+                            notif.style.top = top + 'px';
+                            top += notif.offsetHeight + ToastManager.gap;
+                        }
+
+                        toast.show(_remove);
+                    }
+                    else if(firstTime) {
+                        this.waitingToasts[position].push(toast);
+                    }
+                }
+                this.mutex.release();
             });
         }
 
         private async _notifyBottomRight(toast: ToastElement, firstTime: boolean) {
-            return await this._calculateBottom(toast, firstTime, "bottom right", 0);
+            return await this._calculateBottom(toast, firstTime, "bottom right");
 
         }
 
         private async _notifyTopRight(toast: ToastElement, firstTime: boolean) {
-            return await this._calculateTop(toast, firstTime, "top right", 0);
+            return await this._calculateTop(toast, firstTime, "top right");
 
         }
 
         private async _notifyBottomLeft(toast: ToastElement, firstTime: boolean) {
-            return await this._calculateBottom(toast, firstTime, "bottom left", 0);
+            return await this._calculateBottom(toast, firstTime, "bottom left");
         }
 
         private async _notifyTopLeft(toast: ToastElement, firstTime: boolean) {
-            return await this._calculateTop(toast, firstTime, "top left", 0);
+            return await this._calculateTop(toast, firstTime, "top left");
         }
 
-        private async _notifyTop(toast: ToastElement, firstTime: boolean, from: number = 0) {
-            return await this._calculateTop(toast, firstTime, "top", 0);
+        private async _notifyTop(toast: ToastElement, firstTime: boolean) {
+            return await this._calculateTop(toast, firstTime, "top");
         }
 
-        private async _notifyBottom(toast: ToastElement, firstTime: boolean, from: number = 0) {
-            return await this._calculateBottom(toast, firstTime, "bottom", from);
+        private async _notifyBottom(toast: ToastElement, firstTime: boolean) {
+            return await this._calculateBottom(toast, firstTime, "bottom");
         }
 
         protected override postConnect(): void {

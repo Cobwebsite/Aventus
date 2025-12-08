@@ -1061,8 +1061,11 @@ export class AventusWebcomponentCompiler {
         }
 
         if (type.kind == "boolean") {
-            if (defaultValue !== null && defaultValue !== "false") {
+            if (defaultValue !== null && defaultValue === "true") {
                 result += "if(!this.hasAttribute('" + key + "')) {this.setAttribute('" + key + "' ,'true'); }" + EOL;
+            }
+            else if (defaultValue !== null && defaultValue !== "false") {
+                result += "if(!this.hasAttribute('" + key + "') && " + defaultValue + ") {this.setAttribute('" + key + "' ,'true'); }" + EOL;
             }
             else {
                 //If default set to false, we refresh the attribute to set it to false and not undefined

@@ -6,10 +6,13 @@
 }
 
 :host {
-	inset: 0;
-	overflow: hidden;
+	bottom: var(--_toast-space-bottom);
+	left: var(--_toast-space-left);
+	overflow: visible;
 	pointer-events: none;
 	position: fixed;
+	right: var(--_toast-space-right);
+	top: var(--_toast-space-top);
 	z-index: 50;
 
 	::slotted(*) {
