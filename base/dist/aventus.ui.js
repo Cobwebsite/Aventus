@@ -6757,7 +6757,7 @@ Layout.Col = class Col extends Aventus.WebComponent {
     getClassName() {
         return "Col";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('use_container')) {this.setAttribute('use_container' ,'true'); }if(!this.hasAttribute('size')){ this['size'] = undefined; }if(!this.hasAttribute('size_xs')){ this['size_xs'] = undefined; }if(!this.hasAttribute('size_sm')){ this['size_sm'] = undefined; }if(!this.hasAttribute('size_md')){ this['size_md'] = undefined; }if(!this.hasAttribute('size_lg')){ this['size_lg'] = undefined; }if(!this.hasAttribute('size_xl')){ this['size_xl'] = undefined; }if(!this.hasAttribute('offset')){ this['offset'] = undefined; }if(!this.hasAttribute('offset_xs')){ this['offset_xs'] = undefined; }if(!this.hasAttribute('offset_sm')){ this['offset_sm'] = undefined; }if(!this.hasAttribute('offset_md')){ this['offset_md'] = undefined; }if(!this.hasAttribute('offset_lg')){ this['offset_lg'] = undefined; }if(!this.hasAttribute('offset_xl')){ this['offset_xl'] = undefined; }if(!this.hasAttribute('offset_right')){ this['offset_right'] = undefined; }if(!this.hasAttribute('offset_right_xs')){ this['offset_right_xs'] = undefined; }if(!this.hasAttribute('offset_right_sm')){ this['offset_right_sm'] = undefined; }if(!this.hasAttribute('offset_right_md')){ this['offset_right_md'] = undefined; }if(!this.hasAttribute('offset_right_lg')){ this['offset_right_lg'] = undefined; }if(!this.hasAttribute('offset_right_xl')){ this['offset_right_xl'] = undefined; }if(!this.hasAttribute('center')) { this.attributeChangedCallback('center', false, false); } }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('use_container') && Layout.Col.use_container) {this.setAttribute('use_container' ,'true'); }if(!this.hasAttribute('size')){ this['size'] = undefined; }if(!this.hasAttribute('size_xs')){ this['size_xs'] = undefined; }if(!this.hasAttribute('size_sm')){ this['size_sm'] = undefined; }if(!this.hasAttribute('size_md')){ this['size_md'] = undefined; }if(!this.hasAttribute('size_lg')){ this['size_lg'] = undefined; }if(!this.hasAttribute('size_xl')){ this['size_xl'] = undefined; }if(!this.hasAttribute('offset')){ this['offset'] = undefined; }if(!this.hasAttribute('offset_xs')){ this['offset_xs'] = undefined; }if(!this.hasAttribute('offset_sm')){ this['offset_sm'] = undefined; }if(!this.hasAttribute('offset_md')){ this['offset_md'] = undefined; }if(!this.hasAttribute('offset_lg')){ this['offset_lg'] = undefined; }if(!this.hasAttribute('offset_xl')){ this['offset_xl'] = undefined; }if(!this.hasAttribute('offset_right')){ this['offset_right'] = undefined; }if(!this.hasAttribute('offset_right_xs')){ this['offset_right_xs'] = undefined; }if(!this.hasAttribute('offset_right_sm')){ this['offset_right_sm'] = undefined; }if(!this.hasAttribute('offset_right_md')){ this['offset_right_md'] = undefined; }if(!this.hasAttribute('offset_right_lg')){ this['offset_right_lg'] = undefined; }if(!this.hasAttribute('offset_right_xl')){ this['offset_right_xl'] = undefined; }if(!this.hasAttribute('center')) { this.attributeChangedCallback('center', false, false); } }
     __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('use_container');this.__upgradeProperty('size');this.__upgradeProperty('size_xs');this.__upgradeProperty('size_sm');this.__upgradeProperty('size_md');this.__upgradeProperty('size_lg');this.__upgradeProperty('size_xl');this.__upgradeProperty('offset');this.__upgradeProperty('offset_xs');this.__upgradeProperty('offset_sm');this.__upgradeProperty('offset_md');this.__upgradeProperty('offset_lg');this.__upgradeProperty('offset_xl');this.__upgradeProperty('offset_right');this.__upgradeProperty('offset_right_xs');this.__upgradeProperty('offset_right_sm');this.__upgradeProperty('offset_right_md');this.__upgradeProperty('offset_right_lg');this.__upgradeProperty('offset_right_xl');this.__upgradeProperty('center'); }
     __listBoolProps() { return ["use_container","center"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     static configure(options) {
@@ -10516,11 +10516,12 @@ Toast.ToastElement = class ToastElement extends Aventus.WebComponent {
     set 'is_active'(val) { this.setBoolAttr('is_active', val) }    showAsked = false;
     onHideCallback = () => { };
     timeout = 0;
-    isTransition = false;
+    hasTransition = false;
     waitTransitionCbs = [];
-    static __style = `:host{position:absolute}:host(:not([is_active])){opacity:0;visibility:hidden}:host([position="bottom left"]){bottom:var(--_toast-space-bottom);left:0px}:host([position="top left"]){left:var(--_toast-space-left);top:var(--_toast-space-top)}:host([position="bottom right"]){bottom:var(--_toast-space-bottom);right:var(--_toast-space-right)}:host([position="top right"]){right:var(--_toast-space-right);top:var(--_toast-space-top)}:host([position=top]){left:50%;top:var(--_toast-space-top);transform:translateX(-50%)}:host([position=bottom]){bottom:var(--_toast-space-bottom);left:50%;transform:translateX(-50%)}`;
+    static __style = `:host{position:absolute}:host(:not([is_active])){opacity:0;visibility:hidden}:host([position="bottom left"]){bottom:0px;left:0px}:host([position="top left"]){left:0;top:0}:host([position="bottom right"]){bottom:0;right:0}:host([position="top right"]){right:0;top:0}:host([position=top]){left:50%;top:0;transform:translateX(-50%)}:host([position=bottom]){bottom:0;left:50%;transform:translateX(-50%)}`;
     constructor() {
         super();
+        this.addTransition();
         if (this.constructor == ToastElement) {
             throw "can't instanciate an abstract class";
         }
@@ -10577,11 +10578,11 @@ Toast.ToastElement = class ToastElement extends Aventus.WebComponent {
         }
     }
     addTransition() {
-        this.addEventListener("transitionStart", (e) => {
-            this.isTransition = true;
+        this.addEventListener("transitionstart", (e) => {
+            this.hasTransition = true;
         });
-        this.addEventListener("transitionEnd", () => {
-            this.isTransition = false;
+        this.addEventListener("transitionend", () => {
+            this.hasTransition = false;
             let cbs = [...this.waitTransitionCbs];
             this.waitTransitionCbs = [];
             for (let cb of cbs) {
@@ -10590,7 +10591,7 @@ Toast.ToastElement = class ToastElement extends Aventus.WebComponent {
         });
     }
     waitTransition() {
-        if (this.isTransition) {
+        if (this.hasTransition) {
             return new Promise((resolve) => {
                 this.waitTransitionCbs.push(resolve);
             });
@@ -10613,12 +10614,12 @@ Toast.ToastElement.Namespace=`Aventus.Toast`;
 __as1(_.Toast, 'ToastElement', Toast.ToastElement);
 
 Toast.ToastManager = class ToastManager extends Aventus.WebComponent {
-    get 'gap'() { return this.getNumberAttr('gap') }
-    set 'gap'(val) { this.setNumberAttr('gap', val) }get 'not_main'() { return this.getBoolAttr('not_main') }
+    get 'not_main'() { return this.getBoolAttr('not_main') }
     set 'not_main'(val) { this.setBoolAttr('not_main', val) }    static defaultToast;
     static defaultToastManager;
     static defaultPosition = 'top right';
     static defaultDelay = 5000;
+    static gap = 10;
     static heightLimitPercent = 100;
     static instance;
     activeToasts = {
@@ -10644,7 +10645,7 @@ Toast.ToastManager = class ToastManager extends Aventus.WebComponent {
         return this.containerHeight * Toast.ToastManager.heightLimitPercent / 100;
     }
     mutex = new Aventus.Mutex();
-    static __style = `:host{--_toast-space-bottom: var(--toast-space-bottom, 20px);--_toast-space-top: var(--toast-space-top, 20px);--_toast-space-right: var(--toast-space-right, 10px);--_toast-space-left: var(--toast-space-left, 10px)}:host{inset:0;overflow:hidden;pointer-events:none;position:fixed;z-index:50}:host ::slotted(*){pointer-events:auto}`;
+    static __style = `:host{--_toast-space-bottom: var(--toast-space-bottom, 20px);--_toast-space-top: var(--toast-space-top, 20px);--_toast-space-right: var(--toast-space-right, 10px);--_toast-space-left: var(--toast-space-left, 10px)}:host{bottom:var(--_toast-space-bottom);left:var(--_toast-space-left);overflow:visible;pointer-events:none;position:fixed;right:var(--_toast-space-right);top:var(--_toast-space-top);z-index:50}:host ::slotted(*){pointer-events:auto}`;
     __getStatic() {
         return ToastManager;
     }
@@ -10662,8 +10663,8 @@ Toast.ToastManager = class ToastManager extends Aventus.WebComponent {
     getClassName() {
         return "ToastManager";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('gap')){ this['gap'] = 10; }if(!this.hasAttribute('not_main')) { this.attributeChangedCallback('not_main', false, false); } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('containerHeight');this.__correctGetter('heightLimit');this.__upgradeProperty('gap');this.__upgradeProperty('not_main'); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('not_main')) { this.attributeChangedCallback('not_main', false, false); } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('containerHeight');this.__correctGetter('heightLimit');this.__upgradeProperty('not_main'); }
     __listBoolProps() { return ["not_main"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     async add(toast) {
         await this.mutex.waitOne();
@@ -10698,55 +10699,7 @@ Toast.ToastManager = class ToastManager extends Aventus.WebComponent {
         }
         return false;
     }
-    _calculateBottom(toast, firstTime, position, from) {
-        return new Promise((resolve) => {
-            let height = toast.offsetHeight;
-            let containerHeight = this.containerHeight;
-            const _remove = (result) => {
-                let index = this.activeToasts[position].indexOf(toast);
-                if (index > -1) {
-                    this.activeToasts[position].splice(index, 1);
-                }
-                if (this.waitingToasts[position].length > 0) {
-                    let nextNotif = this.waitingToasts[position].splice(0, 1)[0];
-                    this._calculateBottom(nextNotif, false, position, index);
-                }
-                else {
-                    let containerHeight = this.containerHeight;
-                    for (let i = 0; i < index; i++) {
-                        let notif = this.activeToasts[position][i];
-                        let bottom = containerHeight - (notif.offsetTop + notif.offsetHeight);
-                        notif.style.bottom = bottom - height - this.gap + 'px';
-                    }
-                }
-                resolve(result);
-            };
-            let length = this.activeToasts[position].length;
-            if (length == 0) {
-                this.activeToasts[position].push(toast);
-                toast.show(_remove);
-            }
-            else {
-                let totHeight = 0;
-                for (let t of this.activeToasts[position]) {
-                    totHeight += t.offsetHeight + this.gap;
-                }
-                if (totHeight + height < this.heightLimit) {
-                    for (let i = from; i < this.activeToasts[position].length; i++) {
-                        let t = this.activeToasts[position][i];
-                        let bottom = containerHeight - (t.offsetTop + t.offsetHeight);
-                        t.style.bottom = bottom + height + this.gap + 'px';
-                    }
-                    this.activeToasts[position].push(toast);
-                    toast.show(_remove);
-                }
-                else if (firstTime) {
-                    this.waitingToasts[position].push(toast);
-                }
-            }
-        });
-    }
-    _calculateTop(toast, firstTime, position, from) {
+    _calculateBottom(toast, firstTime, position) {
         return new Promise(async (resolve) => {
             let height = toast.offsetHeight;
             const _remove = (result) => {
@@ -10756,13 +10709,14 @@ Toast.ToastManager = class ToastManager extends Aventus.WebComponent {
                 }
                 if (this.waitingToasts[position].length > 0) {
                     let nextNotif = this.waitingToasts[position].splice(0, 1)[0];
-                    this._calculateTop(nextNotif, false, position, index);
+                    this._calculateBottom(nextNotif, false, position);
                 }
                 else {
-                    for (let i = 0; i < index; i++) {
+                    let bottom = 0;
+                    for (let i = 0; i < this.activeToasts[position].length; i++) {
                         let notif = this.activeToasts[position][i];
-                        let top = (notif.offsetTop - height - this.gap);
-                        notif.style.top = top + 'px';
+                        notif.style.bottom = bottom + 'px';
+                        bottom += notif.offsetHeight + Toast.ToastManager.gap;
                     }
                 }
                 resolve(result);
@@ -10776,16 +10730,16 @@ Toast.ToastManager = class ToastManager extends Aventus.WebComponent {
                 let totHeight = 0;
                 for (let notif of this.activeToasts[position]) {
                     await notif.waitTransition();
-                    totHeight += notif.offsetHeight + this.gap;
+                    totHeight += notif.offsetHeight + Toast.ToastManager.gap;
                 }
                 if (totHeight + height < this.heightLimit) {
-                    for (let i = from; i < this.activeToasts[position].length; i++) {
+                    this.activeToasts[position].splice(0, 0, toast);
+                    let bottom = 0;
+                    for (let i = 0; i < this.activeToasts[position].length; i++) {
                         let notif = this.activeToasts[position][i];
-                        await notif.waitTransition();
-                        let top = (notif.offsetTop + notif.offsetHeight);
-                        notif.style.top = top + this.gap + 'px';
+                        notif.style.bottom = bottom + 'px';
+                        bottom += notif.offsetHeight + Toast.ToastManager.gap;
                     }
-                    this.activeToasts[position].push(toast);
                     toast.show(_remove);
                 }
                 else if (firstTime) {
@@ -10793,26 +10747,75 @@ Toast.ToastManager = class ToastManager extends Aventus.WebComponent {
                 }
             }
             this.mutex.release();
-            return;
+        });
+    }
+    _calculateTop(toast, firstTime, position) {
+        return new Promise(async (resolve) => {
+            let height = toast.offsetHeight;
+            const _remove = (result) => {
+                let index = this.activeToasts[position].indexOf(toast);
+                if (index > -1) {
+                    this.activeToasts[position].splice(index, 1);
+                }
+                if (this.waitingToasts[position].length > 0) {
+                    let nextNotif = this.waitingToasts[position].splice(0, 1)[0];
+                    this._calculateTop(nextNotif, false, position);
+                }
+                else {
+                    let top = 0;
+                    for (let i = 0; i < this.activeToasts[position].length; i++) {
+                        let notif = this.activeToasts[position][i];
+                        notif.style.top = top + 'px';
+                        top += notif.offsetHeight + Toast.ToastManager.gap;
+                    }
+                }
+                resolve(result);
+            };
+            let length = this.activeToasts[position].length;
+            if (length == 0) {
+                this.activeToasts[position].push(toast);
+                toast.show(_remove);
+            }
+            else {
+                let totHeight = 0;
+                for (let notif of this.activeToasts[position]) {
+                    await notif.waitTransition();
+                    totHeight += notif.offsetHeight + Toast.ToastManager.gap;
+                }
+                if (totHeight + height < this.heightLimit) {
+                    this.activeToasts[position].splice(0, 0, toast);
+                    let top = 0;
+                    for (let i = 0; i < this.activeToasts[position].length; i++) {
+                        let notif = this.activeToasts[position][i];
+                        notif.style.top = top + 'px';
+                        top += notif.offsetHeight + Toast.ToastManager.gap;
+                    }
+                    toast.show(_remove);
+                }
+                else if (firstTime) {
+                    this.waitingToasts[position].push(toast);
+                }
+            }
+            this.mutex.release();
         });
     }
     async _notifyBottomRight(toast, firstTime) {
-        return await this._calculateBottom(toast, firstTime, "bottom right", 0);
+        return await this._calculateBottom(toast, firstTime, "bottom right");
     }
     async _notifyTopRight(toast, firstTime) {
-        return await this._calculateTop(toast, firstTime, "top right", 0);
+        return await this._calculateTop(toast, firstTime, "top right");
     }
     async _notifyBottomLeft(toast, firstTime) {
-        return await this._calculateBottom(toast, firstTime, "bottom left", 0);
+        return await this._calculateBottom(toast, firstTime, "bottom left");
     }
     async _notifyTopLeft(toast, firstTime) {
-        return await this._calculateTop(toast, firstTime, "top left", 0);
+        return await this._calculateTop(toast, firstTime, "top left");
     }
-    async _notifyTop(toast, firstTime, from = 0) {
-        return await this._calculateTop(toast, firstTime, "top", 0);
+    async _notifyTop(toast, firstTime) {
+        return await this._calculateTop(toast, firstTime, "top");
     }
-    async _notifyBottom(toast, firstTime, from = 0) {
-        return await this._calculateBottom(toast, firstTime, "bottom", from);
+    async _notifyBottom(toast, firstTime) {
+        return await this._calculateBottom(toast, firstTime, "bottom");
     }
     postConnect() {
         super.postConnect();
