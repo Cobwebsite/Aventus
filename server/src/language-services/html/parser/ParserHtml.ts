@@ -350,14 +350,14 @@ export class ParserHtml {
 	public getBlocksInfoTxt() {
 		let blocks: string[] = [];
 		for (let name in this.blocksInfo) {
-			blocks.push("'" + name + "':`" + this.blocksInfo[name] + "`")
+			blocks.push("'" + name + "':`" + this.blocksInfo[name].replace(/`/g, '\\`') + "`")
 		}
 		return blocks.join(",");
 	}
 	public getSlotsInfoTxt() {
 		let slots: string[] = [];
 		for (let name in this.slotsInfo) {
-			slots.push("'" + name + "':`" + this.slotsInfo[name] + "`");
+			slots.push("'" + name + "':`" + this.slotsInfo[name].replace(/`/g, '\\`') + "`");
 		}
 		return slots.join(",");
 	}
