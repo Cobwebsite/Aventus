@@ -275,10 +275,38 @@ export class AventusJSONLanguageService {
                     compile.output = [compile.output];
                 }
                 for (let i = 0; i < compile.output.length; i++) {
-                    compile.output[i] = compile.output[i].trim();
-                    if (compile.output[i].length > 0) {
-                        compile.output[i] = replaceEnvVar(compile.output[i]);
+                    let item = compile.output[i];
+                    if (typeof item == 'string') {
+                        compile.output[i] = {
+                            '@default': {
+                                path: item,
+                            }
+                        }
+                        item = compile.output[i];
                     }
+                    let emptyFound = false;
+                    for (let lib in item) {
+                        if (lib == "@default") emptyFound = true;
+
+                        let item2 = item[lib];
+                        if (typeof item2 == 'string') {
+                            compile.output[i][lib] = {
+                                path: item2
+                            }
+                        }
+
+                        compile.output[i][lib].path = item[lib].path.trim();
+                        if (item[lib].path.length > 0) {
+                            compile.output[i][lib].path = replaceEnvVar(item[lib].path);
+                        }
+                    }
+
+                    if (!emptyFound) {
+                        compile.output[i]['@default'] = {
+                            path: './dist/script.js'
+                        }
+                    }
+
                 }
             }
 
@@ -364,7 +392,7 @@ export class AventusJSONLanguageService {
                 if (!compile.i18n) {
                     compile.i18n = []
                     for (let output of compile.output) {
-                        const splitted = output.split(sep);
+                        const splitted = output[''].path.split(sep);
                         splitted.pop();
                         const outputPath = splitted.join(sep);
                         const final = join(outputPath, "locales");

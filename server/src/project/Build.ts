@@ -500,20 +500,29 @@ export class Build {
      * Write the code inside the exported .js
      */
     private async writeBuildCode(localCode: {
-        code: string[], codeNoNamespaceBefore: string[], codeNoNamespaceAfter: string[], classesName: { [name: string]: { type: InfoType, isExported: boolean, convertibleName: string } }, stylesheets: { [name: string]: string }
-    }, libSrc: string, outputs: string[], compressed?: boolean): Promise<BuildErrors> {
+        code: string[],
+        codeNoNamespaceBefore: string[],
+        codeNoNamespaceAfter: string[],
+        classesName: {
+            [name: string]: {
+                type: InfoType,
+                isExported: boolean,
+                convertibleName: string
+            }
+        },
+        stylesheets: { [name: string]: string }
+    },
+        libSrc: { lib: string, code: string }[],
+        outputs: { [lib: string]: { path: string, compressed?: boolean } }[],
+        compressed?: boolean
+    ): Promise<BuildErrors> {
         let result: BuildErrors = []
         if (outputs && outputs.length > 0) {
-            let finalTxt = '';
-            let npmResult = await this.npmBuilder.compile();
-            result = [...result, ...npmResult.errors];
-            finalTxt += npmResult.result;
-            finalTxt += libSrc + EOL;
             let stylesheets: string[] = [];
             for (let name in localCode.stylesheets) {
                 stylesheets.push(`Aventus.Style.store("${name}", \`${localCode.stylesheets[name]}\`)`)
             }
-            finalTxt += this._buildStringModule(
+            let moduleTxt = this._buildStringModule(
                 this.buildConfig.module,
                 localCode.codeNoNamespaceBefore,
                 localCode.code,
@@ -521,30 +530,95 @@ export class Build {
                 localCode.codeNoNamespaceAfter,
                 stylesheets
             );
+            let npmResult = await this.npmBuilder.compile();
+            result = [...result, ...npmResult.errors];
 
-            for (let outputFile of outputs) {
-                let folderPath = getFolder(outputFile.replace(/\\/g, "/"));
-                if (!existsSync(folderPath)) {
-                    mkdirSync(folderPath, { recursive: true });
-                }
-                if (compressed) {
-                    try {
-
-                        const resultTemp = await minify({
-                            "file1.js": finalTxt
-                        }, {
-                            compress: false,
-                            format: {
-                                comments: false,
-                            }
-                        })
-                        finalTxt = resultTemp.code ?? '';
-                    } catch (e) {
-                        console.log(e);
+            for (let outputInfo of outputs) {
+                let outputFiles: { [path: string]: { code: string, compressed: boolean } } = {}
+                for (let lib in outputInfo) {
+                    let outputFile = outputInfo[lib].path;
+                    if (!outputFiles[outputFile]) {
+                        outputFiles[outputFile] = {
+                            code: '',
+                            compressed : ('compressed' in outputInfo[lib] ? outputInfo[lib].compressed : compressed) ?? false
+                        };
                     }
                 }
-                this.writeFile(outputFile, finalTxt);
+
+                if (outputInfo["@npm"]) {
+                    outputFiles[outputInfo["@npm"].path].code += npmResult.result;
+                }
+                else {
+                    outputFiles[outputInfo['@default'].path].code += npmResult.result;
+                }
+
+                for (let libInfo of libSrc) {
+                    if (outputInfo[libInfo.lib]) {
+                        outputFiles[outputInfo[libInfo.lib].path].code += libInfo.code + EOL;
+                    }
+                    else {
+                        outputFiles[outputInfo['@default'].path].code += libInfo.code + EOL;
+                    }
+                }
+
+                outputFiles[outputInfo['@default'].path].code += moduleTxt;
+
+                for (let outputPath in outputFiles) {
+                    let folderPath = getFolder(outputPath.replace(/\\/g, "/"));
+                    if (!existsSync(folderPath)) {
+                        mkdirSync(folderPath, { recursive: true });
+                    }
+                    let outputInfo = outputFiles[outputPath];
+
+                    if (outputInfo.compressed) {
+                        try {
+
+                            const resultTemp = await minify({
+                                "file1.js": outputInfo.code
+                            }, {
+                                compress: false,
+                                format: {
+                                    comments: false,
+                                }
+                            })
+                            outputInfo.code = resultTemp.code ?? '';
+                        } catch (e) {
+                            console.log(e);
+                        }
+                    }
+                    this.writeFile(outputPath, outputInfo.code);
+                }
             }
+
+            // let finalTxt = '';
+            // finalTxt += npmResult.result;
+            // finalTxt += libSrc + EOL;
+
+            // // finalTxt += 
+
+            // for (let outputFile of outputs) {
+            //     let folderPath = getFolder(outputFile.replace(/\\/g, "/"));
+            //     if (!existsSync(folderPath)) {
+            //         mkdirSync(folderPath, { recursive: true });
+            //     }
+            //     if (compressed) {
+            //         try {
+
+            //             const resultTemp = await minify({
+            //                 "file1.js": finalTxt
+            //             }, {
+            //                 compress: false,
+            //                 format: {
+            //                     comments: false,
+            //                 }
+            //             })
+            //             finalTxt = resultTemp.code ?? '';
+            //         } catch (e) {
+            //             console.log(e);
+            //         }
+            //     }
+            //     this.writeFile(outputFile, finalTxt);
+            // }
         }
 
         return result;
@@ -1260,8 +1334,8 @@ export class Build {
         return result;
     }
 
-    private async buildOrderCompilationInfo(compileConfig: AventusConfigBuildCompile): Promise<{ toCompile: CompileTsResult[], libSrc: string, errors: BuildErrors }> {
-        let result: { toCompile: CompileTsResult[], libSrc: string, errors: BuildErrors } = { toCompile: [], libSrc: '', errors: [] };
+    private async buildOrderCompilationInfo(compileConfig: AventusConfigBuildCompile): Promise<{ toCompile: CompileTsResult[], libSrc: { lib: string, code: string }[], errors: BuildErrors }> {
+        let result: { toCompile: CompileTsResult[], libSrc: { lib: string, code: string }[], errors: BuildErrors } = { toCompile: [], libSrc: [], errors: [] };
         let tags: { [tag: string]: string } = {};
         let errorsTxt: string[] = [];
         // map local information by fullname
@@ -1686,9 +1760,21 @@ export class Build {
         allProms = [];
 
         // build code for each lib
-        let libSrc: string[] = []
+        let libSrc: { lib: string, code: string }[] = []
         for (let libUri of this.dependanceUris) {
-            let libInfo: { namespace: string, code: string[], before: string[], after: string[], classesName: { [name: string]: { type: InfoType, isExported: boolean, convertibleName: string } } } = {
+            let libInfo: {
+                namespace: string,
+                code: string[],
+                before: string[],
+                after: string[],
+                classesName: {
+                    [name: string]: {
+                        type: InfoType,
+                        isExported: boolean,
+                        convertibleName: string
+                    }
+                }
+            } = {
                 namespace: this.externalPackageInformation.getNamespaceByUri(libUri),
                 before: [],
                 code: [],
@@ -1780,11 +1866,15 @@ export class Build {
 
                 }
             }
-            libSrc.push(codeModule);
 
+            const libName = this.externalPackageInformation.getNameByUri(libUri);
+            libSrc.push({
+                lib: libName,
+                code: codeModule
+            })
         }
 
-        result.libSrc = libSrc.join(EOL);
+        result.libSrc = libSrc;
 
 
         if (errorsTxt.length > 0) {
@@ -1995,7 +2085,7 @@ export class Build {
     public getWebComponentTagDependance(tagName: string): CompileDependance | null {
         let result = this.htmlLanguageService.getInternalTagUri(tagName);
         if (result) {
-            const regex = new RegExp("^"+this.module+"\\.")
+            const regex = new RegExp("^" + this.module + "\\.")
             return {
                 fullName: result.fullname.replace(regex, "$namespace$"),
                 uri: result.uri,
@@ -2303,6 +2393,9 @@ class ExternalPackageInformation {
     }
     public getNamespaceByUri(uri: string) {
         return this.files[uri].srcInfo.namespace;
+    }
+    public getNameByUri(uri: string) {
+        return this.files[uri].name;
     }
     public getInformationsRequired(uri: string) {
         return this.informationsRequired[uri];

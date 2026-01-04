@@ -181,13 +181,29 @@ export const AventusConfigSchema: JSONSchema = {
                                     description: "List of all pathes to import inside this build"
                                 },
                                 "output": {
-                                    type: ["string", "array"],
-                                    items: {
-                                        type: "string",
-                                        pattern: "^\\S+\\.js",
-                                    },
+                                    type: ["string", "array", "object"],
+                                    description: "The script file generated path",
                                     pattern: "^\\S+\\.js",
-                                    description: "The script file generated path"
+                                    items: {
+                                        type: ["string", "object"],
+                                        pattern: "^\\S+\\.js",
+                                        properties: {
+                                            "@default": { "$ref": "#/$defs/compileOutput" },
+                                            "@npm": { "$ref": "#/$defs/compileOutput" },
+                                        },
+                                        patternProperties: {
+                                            "^\\S+$": { "$ref": "#/$defs/compileOutput" },
+                                        },
+                                        required: ["@default"]
+                                    },
+                                    properties: {
+                                        "@default": { "$ref": "#/$defs/compileOutput" },
+                                        "@npm": { "$ref": "#/$defs/compileOutput" },
+                                    },
+                                    patternProperties: {
+                                        "^\\S+$": { "$ref": "#/$defs/compileOutput" },
+                                    },
+                                    required: ["@default"]
                                 },
                                 "outputNpm": {
                                     type: ["string", "array", "object"],
@@ -397,6 +413,20 @@ export const AventusConfigSchema: JSONSchema = {
                         }
                     },
                 }
+            }
+        },
+        "compileOutput": {
+            type: ["string", "object"],
+            pattern: "^\\S+\\.js",
+            additionalProperties: false,
+            properties: {
+                "path": {
+                    type: "string",
+                    pattern: "^\\S+\\.js",
+                },
+                "compressed": {
+                    type: "boolean"
+                },
             }
         }
     }

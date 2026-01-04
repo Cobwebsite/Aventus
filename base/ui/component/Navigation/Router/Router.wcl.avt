@@ -253,8 +253,7 @@ namespace Navigation {
             return Router.destroyPage;
         }
 
-        protected override postCreation(): void {
-            this.register();
+        protected setFirstUrl() {
             let oldUrl = window.localStorage.getItem("navigation_url");
             if(oldUrl !== null) {
                 Aventus.State.activate(oldUrl, this.stateManager);
@@ -269,6 +268,11 @@ namespace Navigation {
                     Aventus.State.activate(defaultUrl, this.stateManager);
                 }
             }
+        }
+
+        protected override postCreation(): void {
+            this.register();
+            this.setFirstUrl();
 
             if(this.bindToUrl()) {
                 window.onpopstate = (e) => {

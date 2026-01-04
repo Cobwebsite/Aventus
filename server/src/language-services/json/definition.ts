@@ -35,7 +35,7 @@ export type IncludeType = 'none' | 'need' | 'full';
 export interface AventusConfigBuildCompile {
 	input?: string[],
 	inputPathRegex: RegExp,
-	output: string[],
+	output: { [lib: string]: { path: string, compressed?: boolean } }[],
 	package: string[],
 	outputNpm: AventusConfigBuildCompileOutputNpm,
 	compressed?: boolean,
