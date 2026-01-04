@@ -10475,8 +10475,7 @@ Navigation.Router = class Router extends Aventus.WebComponent {
     shouldDestroyFrame(page) {
         return Navigation.Router.destroyPage;
     }
-    postCreation() {
-        this.register();
+    setFirstUrl() {
         let oldUrl = window.localStorage.getItem("navigation_url");
         if (oldUrl !== null) {
             Aventus.State.activate(oldUrl, this.stateManager);
@@ -10491,6 +10490,10 @@ Navigation.Router = class Router extends Aventus.WebComponent {
                 Aventus.State.activate(defaultUrl, this.stateManager);
             }
         }
+    }
+    postCreation() {
+        this.register();
+        this.setFirstUrl();
         if (this.bindToUrl()) {
             window.onpopstate = (e) => {
                 if (window.location.pathname != this.stateManager.getState()?.name) {
