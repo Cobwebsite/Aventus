@@ -1,4 +1,4 @@
-import { dirname, normalize, sep } from "path";
+import { dirname, join, normalize, sep } from "path";
 import { flattenDiagnosticMessageText } from 'typescript';
 import { Diagnostic, DiagnosticSeverity, Position, Range } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
@@ -6,9 +6,10 @@ import { AventusErrorCode, AventusExtension, AventusLanguageId } from "./definit
 import { SectionType } from './language-services/ts/LanguageService';
 import { AventusFile } from './files/AventusFile';
 import { AventusConfig } from './language-services/json/definition';
-import { existsSync, mkdirSync, writeFileSync } from 'fs';
+import { appendFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
 import * as md5 from 'md5';
 import { Statistics } from './notification/Statistics';
+import { GenericServer } from './GenericServer';
 
 export function pathToUri(path: string): string {
     if (path.startsWith("file://")) {
@@ -365,6 +366,7 @@ export class Timer {
         return t[0] * NS_PER_SEC + t[1]
     }
 }
+
 // export class Debug {
 //     private static timers: { [name: string]: [number, number] } = {}
 //     // private static timersCumulative: { [name: string]: number } = {}

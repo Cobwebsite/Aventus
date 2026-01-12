@@ -319,14 +319,15 @@ export class FilesManager {
         return await this.registerFile(document);
     }
     public async registerFile(document: TextDocument): Promise<AventusFile> {
-        if (GenericServer.isDebug()) {
-            console.log("registering " + document.uri);
-        }
+        GenericServer.debug("registering " + document.uri);
         if (!this.files[document.uri]) {
             await this.triggerOnNewFile(document);
         }
         else {
             await this.files[document.uri].triggerContentChange(document);
+        }
+        if (!GenericServer.isIDE) {
+            FilesWatcher.getInstance().watch(document.uri);
         }
         return this.files[document.uri];
     }
@@ -421,9 +422,7 @@ export class FilesManager {
     //#region event new file
     private onNewFileCb: { [uuid: string]: (document: AventusFile) => Promise<void> } = {};
     public async triggerOnNewFile(document: TextDocument): Promise<void> {
-        if (GenericServer.isDebug()) {
-            console.log("triggerOnNewFile " + document.uri);
-        }
+        GenericServer.debug("triggerOnNewFile " + document.uri);
         if (this.loadingInProgress && document.uri.endsWith(AventusExtension.Config)) {
             return;
         }
@@ -448,9 +447,7 @@ export class FilesManager {
 
     private onFileRemoveCb: { [uuid: string]: (uri: string) => Promise<void> } = {};
     public async triggerOnFileRemove(uri: string): Promise<void> {
-        if (GenericServer.isDebug()) {
-            console.log("triggerOnFileRemove " + uri);
-        }
+        GenericServer.debug("triggerOnFileRemove " + uri);
         let proms: Promise<void>[] = [];
         for (let uuid in this.onFileRemoveCb) {
             proms.push(this.onFileRemoveCb[uuid](uri));

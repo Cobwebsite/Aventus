@@ -22,7 +22,7 @@ export class CliConnection implements IConnection {
 		this._connection = new FakeConnection();
 		this.config = config;
 	}
-	
+
 	async open() {
 		this._connection.open();
 	}
@@ -43,6 +43,10 @@ export class CliConnection implements IConnection {
 	}
 	showInformationMessage(msg: string): void {
 		console.log("[info] : " + msg);
+	}
+	public async ask(msg: string): Promise<boolean> {
+		const res = await this.Select([{ label: "Yes" }, { label: "No" }], { title: msg });
+		return res?.label == "Yes"
 	}
 	public subscribeErrors(cb: (errors: CliErrorsBuild, build: string) => void) {
 		this.cbErrors.push(cb);
@@ -120,7 +124,7 @@ export class CliConnection implements IConnection {
 			builds: this.config.builds,
 			statics: this.config.statics,
 			configPath: this.config.configPath,
-			debug: this.config.debug,
+			logLevel: this.config.logLevel,
 			errorByBuild: this.config.errorByBuild,
 			useStats: this.config.useStats
 		};

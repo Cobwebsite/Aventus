@@ -19,7 +19,7 @@ export class ProjectManager {
         FilesManager.getInstance().onNewFile(this.onNewFile.bind(this));
     }
     private async onNewFile(file: AventusFile) {
-        if (file.documentUser.uri.endsWith(AventusExtension.Config)) {
+        if (file.documentUser.uri.endsWith("/" + AventusExtension.Config)) {
             // prevent create a project when on template
             let templateFileUri = file.documentUser.uri.replace(AventusExtension.Config, AventusExtension.Template);
             if (FilesManager.getInstance().getByUri(templateFileUri)) {

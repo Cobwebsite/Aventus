@@ -2,6 +2,14 @@ import { join } from 'path'
 import { GenericServer } from '../GenericServer'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
 
+
+export enum LogLevel {
+	Debug,
+	Information,
+	Warning,
+	Error,
+	None
+}
 export type LiveServerSettings = {
 	host: string,
 	autoIncrementPort: boolean
@@ -22,7 +30,7 @@ export interface Settings {
 	useDefaultTemplate: boolean,
 	readNodeModules: boolean,
 	readDirs: string[],
-	debug: boolean,
+	logLevel: LogLevel,
 	// settings cli
 	onlyBuild: boolean,
 	useStats: boolean,
@@ -67,7 +75,7 @@ const defaultSettings: Settings = {
 	projectPath: [],
 	readDirs: [],
 	onlyBuild: false,
-	debug: false,
+	logLevel: LogLevel.None,
 	useStats: false,
 	useDefaultTemplate: true,
 	defaultHideWarnings: false,
@@ -188,3 +196,4 @@ export class SettingsManager {
 		return this.mergeDeep(target, ...sources);
 	}
 }
+

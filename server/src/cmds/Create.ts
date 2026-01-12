@@ -2,6 +2,7 @@ import { uriToPath } from '../tools';
 import { ProjectManager } from '../project/ProjectManager';
 import { GenericServer } from '../GenericServer';
 import { normalize } from 'path';
+import { AventusExtension } from '../definition';
 
 
 export class Create {
@@ -44,7 +45,7 @@ export class Create {
 		let uris = ProjectManager.getInstance().getAllConfigFiles();
 		let norm = uri.replace(/\\/g, "/");
 		for (let uriTemp of uris) {
-			if (norm.startsWith(uriTemp.replace("/aventus.conf.avt", ""))) {
+			if (norm.startsWith(uriTemp.replace("/" + AventusExtension.Config, ""))) {
 				return true;
 			}
 		}

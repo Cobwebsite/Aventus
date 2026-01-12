@@ -1,4 +1,5 @@
 import { ArrayTypeNode, ConditionalTypeNode, ConstructorTypeNode, ExpressionWithTypeArguments, FunctionTypeNode, IndexSignatureDeclaration, IndexedAccessTypeNode, InferTypeNode, LiteralTypeNode, MappedTypeNode, ParenthesizedTypeNode, PropertySignature, SyntaxKind, TupleTypeNode, TypeLiteralNode, TypeNode, TypeOperatorNode, TypeQueryNode, TypeReferenceNode, UnionTypeNode } from 'typescript';
+import { GenericServer } from '../../../GenericServer';
 
 export type TypeInfoKind = 'notype' | "string" | 'number' | 'boolean' | 'null' | 'undefined' | 'any' | 'never' | 'object' | 'symbol' | 'void' | 'unknown' | 'type' | 'literal' | 'union' | 'mock' | 'function' | 'constructor' | 'typeLiteral' | 'tuple' | 'this' | 'typeOperator' | 'intersection' | 'conditional' | 'indexedAccess' | 'mappedType' | 'infer';
 
@@ -269,7 +270,7 @@ export class TypeInfo {
 				}
 			}
 			else {
-				console.log("you must add the new type : MappedType like " + node.getText())
+				GenericServer.error("you must add the new type : MappedType like " + node.getText())
 			}
 		}
 		else if (node.kind == SyntaxKind.IndexedAccessType) {

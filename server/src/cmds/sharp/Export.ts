@@ -59,7 +59,7 @@ export class SharpExport {
 			csProjName = aventusSharp.csProj;
 		}
 		catch (e) {
-			console.log(e);
+			GenericServer.error(e);
 		}
 		this.isCompiling = true;
 		Compiling.send(csProjName, 'compiling');
@@ -72,7 +72,7 @@ export class SharpExport {
 			}
 			else {
 				console.clear();
-				console.log(result);
+				GenericServer.error(result);
 				let uri = "csharp_errors";
 				DebugFileAdd.send(uri, result);
 

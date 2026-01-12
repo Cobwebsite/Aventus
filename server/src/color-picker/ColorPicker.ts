@@ -5,6 +5,7 @@ import { color as colorParser } from '@csstools/css-color-parser';
 import { parseComponentValue } from '@csstools/css-parser-algorithms';
 import { tokenize } from '@csstools/css-tokenizer';
 import { colorData_to_XYZ_D50, toPrecision, XYZ_D50_to_sRGB_Gamut } from './ColorData';
+import { GenericServer } from '../GenericServer';
 
 
 interface Match {
@@ -35,7 +36,7 @@ export class ColorPicker {
 
 
 		} catch (e) {
-			console.log(e);
+			GenericServer.error(e);
 			return null;
 		}
 

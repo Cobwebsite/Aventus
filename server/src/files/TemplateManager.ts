@@ -102,8 +102,8 @@ export class TemplateManager {
 
 	public async createProject(path: string) {
 		if (this.loadedProjectsLength == 0) {
-			let result = await GenericServer.Popup("You have no template for project! Do you want to load some?", 'Yes', 'No');
-			if (result == 'Yes') {
+			let result = await GenericServer.ask("You have no template for project! Do you want to load some?");
+			if (result) {
 				this.selectTemplateToImport();
 			}
 			return;
@@ -141,7 +141,7 @@ export class TemplateManager {
 						readRecu(folder);
 					}
 				} catch (e) {
-					console.log(e);
+					GenericServer.error(e);
 				}
 			}
 		}
@@ -167,10 +167,10 @@ export class TemplateManager {
 	}
 
 	private async askTemplate() {
-		// let result = await window.showInformationMessage('Do you want to install project templates (recommended)', 'Yes', 'No');
-		// if (result == 'Yes') {
-		this.selectProjectToImport(true);
-		// }
+		let result = await GenericServer.ask('Do you want to install project templates (recommended)?');
+		if (result) {
+			this.selectProjectToImport(true);
+		}
 	}
 	public async selectProjectToImport(picked: boolean) {
 		if (this.projectPath.length == 0) {
@@ -182,7 +182,7 @@ export class TemplateManager {
 			{ label: "Local" },
 			// { label: "Store" },
 			{ label: "Git" },
-		], { title: "Source" });
+		], { placeHolder: "Select a source from where to import projects" });
 
 		if (!sourceResult) {
 			return
@@ -262,7 +262,7 @@ export class TemplateManager {
 			{ label: "Local" },
 			// { label: "Store" },
 			{ label: "Git" },
-		], { title: "Source" });
+		], { placeHolder: "Select a source from where to import templates" });
 
 		if (!sourceResult) {
 			return

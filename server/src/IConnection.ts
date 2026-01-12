@@ -9,6 +9,7 @@ export interface IConnection {
 	showWarningMessage(msg: string): void;
 	showErrorMessage(msg: string): void;
 	showInformationMessage(msg: string): void;
+	ask(msg: string): Promise<boolean>;
 	sendDiagnostics(params: PublishDiagnosticsParams, build?: string): void;
 
 	onInitialize(cb: (params: AvInitializeParams) => void);
@@ -53,8 +54,9 @@ export interface InputOptions {
 export interface AvInitializeParams {
 	workspaceFolders?: WorkspaceFolder[] | null;
 	savePath?: string,
-	extensionPath: string,
+	extensionPath?: string,
 	isIDE: boolean,
+	logFile?: string
 }
 
 export interface SelectOptions {

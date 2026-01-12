@@ -165,7 +165,7 @@ export class Store {
 		const result = await this.postWithErrors<T>(uri, body, options);
 		if (result instanceof QueryError) {
 			for (let error of result.errors) {
-				console.log(error.message)
+				GenericServer.error(error.message)
 			}
 			return null;
 		}
@@ -201,7 +201,7 @@ export class Store {
 			try {
 				json = JSON.parse(txt);
 			} catch (e) {
-				console.log(txt);
+				GenericServer.error(txt);
 				throw e;
 			}
 

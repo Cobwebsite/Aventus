@@ -360,9 +360,7 @@ export class Build {
         if (!this.allowBuild) {
             return
         }
-        if (GenericServer.isDebug()) {
-            console.log("building " + this.buildConfig.fullname);
-        }
+        GenericServer.debug("building " + this.buildConfig.fullname);
         this.clearDiagnostics();
         let buildErrors: BuildErrors = []
 
@@ -540,7 +538,7 @@ export class Build {
                     if (!outputFiles[outputFile]) {
                         outputFiles[outputFile] = {
                             code: '',
-                            compressed : ('compressed' in outputInfo[lib] ? outputInfo[lib].compressed : compressed) ?? false
+                            compressed: ('compressed' in outputInfo[lib] ? outputInfo[lib].compressed : compressed) ?? false
                         };
                     }
                 }
@@ -583,7 +581,7 @@ export class Build {
                             })
                             outputInfo.code = resultTemp.code ?? '';
                         } catch (e) {
-                            console.log(e);
+                            GenericServer.error(e);
                         }
                     }
                     this.writeFile(outputPath, outputInfo.code);
@@ -614,7 +612,7 @@ export class Build {
             //             })
             //             finalTxt = resultTemp.code ?? '';
             //         } catch (e) {
-            //             console.log(e);
+            //             log(e);
             //         }
             //     }
             //     this.writeFile(outputFile, finalTxt);
@@ -1976,9 +1974,7 @@ export class Build {
             }
         }
 
-        if (GenericServer.isDebug()) {
-            console.log("loaded all files needed");
-        }
+        GenericServer.debug("loaded all files needed");
         this.allowBuild = true;
         this._filesLoaded = true;
         await this.rebuildAll(true);

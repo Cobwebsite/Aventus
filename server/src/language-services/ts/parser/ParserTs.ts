@@ -1,5 +1,3 @@
-import { existsSync, readFileSync } from "fs";
-import { normalize } from "path";
 import {
     Node,
     forEachChild,
@@ -23,9 +21,7 @@ import {
 } from "typescript";
 import { Diagnostic, DiagnosticSeverity, Range } from "vscode-languageserver";
 import { TextDocument } from "vscode-languageserver-textdocument";
-import { AventusExtension, AventusLanguageId } from '../../../definition';
-import { FilesManager } from '../../../files/FilesManager';
-import { getFolder, pathToUri, uriToPath } from '../../../tools';
+import { AventusLanguageId } from '../../../definition';
 import { AliasInfo } from './AliasInfo';
 import { BaseInfo } from "./BaseInfo";
 import { ClassInfo } from "./ClassInfo";
@@ -35,7 +31,7 @@ import { hasFlag } from "./tools";
 import { FunctionInfo } from './FunctionInfo';
 import { VariableInfo } from './VariableInfo';
 import { Build } from '../../../project/Build';
-import { AventusFile, InternalAventusFile } from '../../../files/AventusFile';
+import { AventusFile } from '../../../files/AventusFile';
 import { ImportInfo } from './ImportInfo';
 import { MethodInfo } from './MethodInfo';
 import { PropertyInfo } from './PropertyInfo';
@@ -352,7 +348,7 @@ export class ParserTs {
 
             }
             else {
-                //console.log("--- " + syntaxName[x.kind]);
+                //log("--- " + syntaxName[x.kind]);
             }
         })
     }

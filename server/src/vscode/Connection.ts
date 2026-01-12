@@ -79,6 +79,10 @@ export class VsCodeConnection implements IConnection {
 	public showInformationMessage(msg: string): void {
 		this._connection.window.showInformationMessage(msg);
 	}
+	public async ask(msg: string): Promise<boolean> {
+		const res = await this._connection.window.showInformationMessage(msg, { title: "Yes" }, { title: "No" });
+		return res?.title == "Yes"
+	}
 
 	public sendDiagnostics(params: PublishDiagnosticsParams, build?: string): void {
 		this._connection.sendDiagnostics(params)

@@ -1,3 +1,4 @@
+import { LogLevel } from '@server/settings/Settings';
 import { Interaction } from '../interaction/Interaction';
 import { CliErrorsBuild } from './Connection';
 import type { RealServer } from './RealServer';
@@ -7,7 +8,7 @@ export type ServerConfig = {
 	configPath?: string,
 	builds?: string[],
 	statics?: string[],
-	debug?: boolean,
+	logLevel?: LogLevel,
 	errorByBuild?: boolean,
 	useStats?: boolean
 }
