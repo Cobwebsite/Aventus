@@ -216,7 +216,7 @@ export class TemplateScript {
 								try {
 									execSync(config, params)
 								} catch (e) {
-									console.log(e);
+									GenericServer.error(e);
 									GenericServer.showErrorMessage("The command " + config + " failed");
 								}
 								answer(payload.cmd, "done");
@@ -232,13 +232,13 @@ export class TemplateScript {
 									}
 									execAdmin("cd " + cwd + " && " + config, (error, stdout, stderr) => {
 										if (error) {
-											console.log('error: ' + error);
-											console.log('stdout: ' + stdout);
-											console.log('stderr: ' + stderr);
+											GenericServer.error('error: ' + error);
+											GenericServer.error('stdout: ' + stdout);
+											GenericServer.error('stderr: ' + stderr);
 										}
 									})
 								} catch (e) {
-									console.log(e);
+									GenericServer.error(e);
 									GenericServer.showErrorMessage("The command " + config + " failed");
 								}
 								answer(payload.cmd, "done");
@@ -262,16 +262,16 @@ export class TemplateScript {
 								ProgressStop.send(uuid);
 							}
 							else if (payload.cmd == "log") {
-								console.log(payload.config)
+								GenericServer.debug(payload.config)
 							}
 							else if (payload.cmd == "error") {
 								console.error(payload.config)
 							}
 						}
 					} catch (e) {
-						console.log(e);
-						console.log("message " + txt);
-						console.log(messages);
+						GenericServer.error(e);
+						GenericServer.error("message " + txt);
+						GenericServer.error(messages);
 					}
 				});
 
@@ -322,9 +322,9 @@ export class TemplateScript {
 			const valuesTemp = JSON.parse(a.trim());
 			values = { ...values, ...valuesTemp };
 		} catch (e) {
-			console.log(e);
-			console.log(err);
-			console.log(a);
+			GenericServer.error(e);
+			GenericServer.error(err);
+			GenericServer.error(a);
 			this.containsError = true;
 		}
 		unlinkSync(scriptPath);

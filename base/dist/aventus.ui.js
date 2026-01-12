@@ -5143,6 +5143,50 @@ let VoidWithError=class VoidWithError {
         }
         return false;
     }
+    run(fct) {
+        if (this.success) {
+            let result = fct();
+            if (!Array.isArray(result)) {
+                result = result.errors;
+            }
+            if (result.length > 0) {
+                this.errors = [...this.errors, ...result];
+            }
+        }
+        return this;
+    }
+    async runAsync(fct) {
+        if (this.success) {
+            let result = await fct();
+            if (!Array.isArray(result)) {
+                result = result.errors;
+            }
+            if (result.length > 0) {
+                this.errors = [...this.errors, ...result];
+            }
+        }
+        return this;
+    }
+    extract(fct) {
+        if (this.success) {
+            let result = fct();
+            if (result.success && result.result) {
+                return result.result;
+            }
+            this.errors = [...this.errors, ...result.errors];
+        }
+        return undefined;
+    }
+    async extractAsync(fct) {
+        if (this.success) {
+            let result = await fct();
+            if (result.success && result.result) {
+                return result.result;
+            }
+            this.errors = [...this.errors, ...result.errors];
+        }
+        return undefined;
+    }
 }
 VoidWithError.Namespace=`Aventus`;
 __as1(_, 'VoidWithError', VoidWithError);
@@ -5162,6 +5206,36 @@ let ResultWithError=class ResultWithError extends VoidWithError {
         result.errors = this.errors;
         result.result = this.result;
         return result;
+    }
+    run(fct) {
+        if (this.success) {
+            let result = fct();
+            if (!Array.isArray(result)) {
+                result = result.errors;
+            }
+            if (result.length > 0) {
+                this.errors = [...this.errors, ...result];
+            }
+            if (result instanceof ResultWithError && result.success && result.result) {
+                this.result = result.result;
+            }
+        }
+        return this;
+    }
+    async runAsync(fct) {
+        if (this.success) {
+            let result = await fct();
+            if (!Array.isArray(result)) {
+                result = result.errors;
+            }
+            if (result.length > 0) {
+                this.errors = [...this.errors, ...result];
+            }
+            if (result instanceof ResultWithError && result.success && result.result) {
+                this.result = result.result;
+            }
+        }
+        return this;
     }
 }
 ResultWithError.Namespace=`Aventus`;

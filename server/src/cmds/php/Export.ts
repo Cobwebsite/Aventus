@@ -60,7 +60,7 @@ export class PhpExport {
 			}
 		}
 		catch (e) {
-			console.log(e);
+			GenericServer.error(e);
 		}
 		this.isCompiling = true;
 		Compiling.send(phpProjName, 'compiling');
@@ -73,7 +73,7 @@ export class PhpExport {
 			}
 			else {
 				console.clear();
-				console.log(result);
+				GenericServer.error(result);
 				let uri = "php_errors";
 				DebugFileAdd.send(uri, result);
 

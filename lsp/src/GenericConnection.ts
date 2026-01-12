@@ -1,19 +1,20 @@
 import { createConnection, ProposedFeatures, PublishDiagnosticsParams, _, _Connection, CompletionList, FormattingOptions, Hover, Position, TextEdit, InitializeParams, TextDocumentSyncKind, CodeActionKind, TextDocuments, CodeLens, Color, ColorInformation, ColorPresentation, ExecuteCommandParams, Range, WorkspaceEdit, Location } from 'vscode-languageserver/node';
-import { AvInitializeParams, IConnection, InputOptions, SelectItem, SelectOptions } from '../IConnection';
-import { Commands } from '../cmds';
+import { AvInitializeParams, IConnection, InputOptions, SelectItem, SelectOptions } from '@server/IConnection';
+import { Commands } from '@server/cmds';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { CodeAction, CompletionItem } from 'vscode-css-languageservice';
-import { GenericServer } from '../GenericServer';
-import { AskInput } from '../notification/AskInput';
-import { AskSelect } from '../notification/AskSelect';
-import { AskSelectMultiple } from '../notification/AskSelectMultiple';
-import { Popup } from '../notification/Popup';
-import { FilesManager } from '../files/FilesManager';
-import { AventusLanguageId } from '../definition';
-import { Settings, SettingsHtml } from '../settings/Settings';
-import { SetSettings } from '../notification/SetSettings';
+import { GenericServer } from '@server/GenericServer';
+import { AskInput } from '@server/notification/AskInput';
+import { AskSelect } from '@server/notification/AskSelect';
+import { AskSelectMultiple } from '@server/notification/AskSelectMultiple';
+import { Popup } from '@server/notification/Popup';
+import { FilesManager } from '@server/files/FilesManager';
+import { AventusLanguageId } from '@server/definition';
+import { Settings, SettingsHtml } from '@server/settings/Settings';
+import { SetSettings } from '@server/notification/SetSettings';
+import { dirname } from 'path';
 
-export class VsCodeConnection implements IConnection {
+export class GenericConnection implements IConnection {
 
 	private _connection: _Connection<_, _, _, _, _, _, _>;
 	private documents: TextDocuments<TextDocument> = new TextDocuments(TextDocument);
@@ -79,10 +80,6 @@ export class VsCodeConnection implements IConnection {
 	public showInformationMessage(msg: string): void {
 		this._connection.window.showInformationMessage(msg);
 	}
-	public async ask(msg: string): Promise<boolean> {
-		const res = await this._connection.window.showInformationMessage(msg, { title: "Yes" }, { title: "No" });
-		return res?.title == "Yes"
-	}
 
 	public sendDiagnostics(params: PublishDiagnosticsParams, build?: string): void {
 		this._connection.sendDiagnostics(params)
@@ -90,11 +87,16 @@ export class VsCodeConnection implements IConnection {
 	public onInitialize(cb: (params: AvInitializeParams) => void) {
 
 		this._connection.onInitialize((params: InitializeParams) => {
+			let extensionPath = dirname(__dirname);
+			if (__filename.endsWith("GenericConnection.js")) {
+				// dev
+				extensionPath = dirname(dirname(__dirname));
+			}
 			cb({
 				workspaceFolders: params.workspaceFolders ?? null,
 				savePath: params.initializationOptions.savePath,
-				extensionPath: params.initializationOptions.extensionPath,
-				isIDE: true,
+				extensionPath: extensionPath,
+				isIDE: false,
 			})
 			return {
 				capabilities: {

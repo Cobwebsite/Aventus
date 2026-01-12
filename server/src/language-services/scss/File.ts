@@ -140,7 +140,7 @@ export class AventusWebSCSSFile extends AventusBaseFile {
                         GenericServer.sendDiagnostics({ uri: this.file.uri, diagnostics: diagnostics }, this.build)
                     }
                     else {
-                        console.log(e);
+                        GenericServer.error(e);
                     }
                 }
             }

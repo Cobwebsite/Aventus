@@ -256,6 +256,24 @@
 					"type": "string",
 					"title": "Define the deepl api key to translate",
 					"default": ""
+				},
+				"aventus.logLevel": {
+					"type": "string",
+					"enum": [
+						0,
+						1,
+						2,
+						3,
+						4
+					],
+					"enumItemLabels": [
+						"Debug",
+						"Information",
+						"Warning",
+						"Error",
+						"None"
+					],
+					"default": 4
 				}
 			}
 		},
@@ -796,6 +814,7 @@
 		"dev:server": "rimraf server/out && tsc -b -w ./server/",
 		"dev:client": "rimraf client/out && tsc -b -w ./client/",
 		"dev:cli": "rimraf cli/out && tspc -b -w ./cli/",
+		"dev:lsp": "rimraf lsp/out && tspc -b -w ./lsp/",
 		"webpack": "npm run clean && webpack --mode production --config ./client/webpack.config.js && webpack --mode production --config ./server/webpack.config.js",
 		"clean": "rimraf client/out && rimraf server/out",
 		"package": "npx vsce package --allow-star-activation && npx node-notifier-cli notify -t \"Packaging done\" -m \"The aventus extension has been packaged\" -i \"./icons/icon.png\"",

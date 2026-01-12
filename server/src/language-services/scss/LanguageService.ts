@@ -10,6 +10,7 @@ import { TextDocument } from "vscode-languageserver-textdocument";
 import { AventusFile } from '../../files/AventusFile';
 import { TagInfo } from '../html/parser/TagInfo';
 import { AventusWebSCSSFile } from './File';
+import { GenericServer } from '../../GenericServer';
 
 export type SCSSParsedRule = Map<(tagInfo: TagInfo) => boolean, { start: number, end: number }>;
 
@@ -356,7 +357,7 @@ export class AventusSCSSLanguageService {
                             }
                             else {
                                 let txt = childNode.getText();
-                                console.log("css node to implement");
+                                GenericServer.warning("css node to implement");
                             }
                         }
                         if (parentCheck && position) {

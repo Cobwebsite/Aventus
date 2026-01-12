@@ -7,9 +7,10 @@ import { Build } from '../../../project/Build';
 import { ActionChange, ActionLoop, HtmlTemplateResult, InterestPoint } from './definition';
 import { AventusHTMLFile } from '../File';
 import { SCSSParsedRule } from '../../scss/LanguageService';
-import { createErrorHTMLPos, pathToUri, uriToPath } from '../../../tools';
+import { createErrorHTMLPos } from '../../../tools';
 import { Decorator, ForOfStatement, IfStatement, Node, ScriptTarget, SyntaxKind, createSourceFile, forEachChild } from 'typescript';
 import * as md5 from 'md5';
+import { GenericServer } from '../../../GenericServer';
 
 export class ParserHtml {
 	//#region static
@@ -652,7 +653,7 @@ export class ParserHtml {
 				}
 			}
 		} catch (e) {
-			console.log(e);
+			GenericServer.error(e);
 		}
 
 		let finalTxt = "";
