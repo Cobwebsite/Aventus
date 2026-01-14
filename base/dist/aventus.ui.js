@@ -4194,7 +4194,7 @@ let WebComponent=class WebComponent extends HTMLElement {
     }
     disconnectedCallback() {
         setTimeout(() => {
-            this.postDisonnect();
+            this.postDisconnect();
         });
     }
     __onReadyCb = [];
@@ -4581,7 +4581,7 @@ let WebComponent=class WebComponent extends HTMLElement {
     /**
     * Function triggered each time the component is removed from the DOM
     */
-    postDisonnect() { }
+    postDisconnect() { }
     /**
      * Find a parent by tagname if exist
      */
@@ -10900,7 +10900,7 @@ Toast.ToastManager = class ToastManager extends Aventus.WebComponent {
             Toast.ToastManager.instance = this;
         }
     }
-    postDisonnect() {
+    postDisconnect() {
         if (Toast.ToastManager.instance == this) {
             Toast.ToastManager.instance = undefined;
         }
