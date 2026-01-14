@@ -432,7 +432,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
 
     private disconnectedCallback() {
         setTimeout(() => {
-            this.postDisonnect();
+            this.postDisconnect();
         });
     }
 
@@ -842,7 +842,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
     /**
     * Function triggered each time the component is removed from the DOM
     */
-    protected postDisonnect(): void { }
+    protected postDisconnect(): void { }
 
     //#region tools
 

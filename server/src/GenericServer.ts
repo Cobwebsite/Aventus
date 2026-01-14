@@ -168,8 +168,9 @@ export class GenericServer {
 	}
 	protected bindEvent() {
 		this.connection.onInitialize((params: AvInitializeParams) => {
-			GenericServer.debug(`onInitialize`)
 			this.onInitialize(params);
+			// need to set values before writting log
+			GenericServer.debug(`onInitialize`)
 		})
 		this.connection.onInitialized(async () => {
 			GenericServer.debug(`onInitialized`)
@@ -238,7 +239,6 @@ export class GenericServer {
 	}
 
 	protected onInitialize(params: AvInitializeParams) {
-		GenericServer.debug(params)
 		if (params.workspaceFolders) {
 			for (let workspaceFolder of params.workspaceFolders) {
 				this.workspaces.push(workspaceFolder.uri);
@@ -259,6 +259,7 @@ export class GenericServer {
 			writeFileSync(this._logFile, "")
 		}
 		this.runUpdate();
+		GenericServer.debug(params)
 	}
 	protected async onInitialized() {
 		if (!this.checkNodeJs()) return;

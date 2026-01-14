@@ -75,7 +75,7 @@ const defaultSettings: Settings = {
 	projectPath: [],
 	readDirs: [],
 	onlyBuild: false,
-	logLevel: LogLevel.None,
+	logLevel: LogLevel.Error,
 	useStats: false,
 	useDefaultTemplate: true,
 	defaultHideWarnings: false,

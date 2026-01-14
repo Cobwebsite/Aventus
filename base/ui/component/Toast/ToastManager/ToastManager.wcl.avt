@@ -263,7 +263,7 @@ namespace Toast {
             }
         }
 
-        protected override postDisonnect(): void {
+        protected override postDisconnect(): void {
             if(ToastManager.instance == this) {
                 ToastManager.instance = undefined;
             }
