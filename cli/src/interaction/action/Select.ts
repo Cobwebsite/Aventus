@@ -117,7 +117,6 @@ export default createPrompt(
 		const searchTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
 		const items = useMemo(() => normalizeChoices(config.choices), [config.choices]);
-
 		const bounds = useMemo(() => {
 			const first = items.findIndex(isSelectable);
 			const last = items.findLastIndex(isSelectable);

@@ -41,14 +41,23 @@ export class TemplateManager {
 
 	public constructor(workspaces: string[]) {
 		this.workspaces = workspaces.map(p => uriToPath(p).replace(/\//g, sep));
-		this.loadTemplates();
-		SettingsManager.getInstance().onSettingsChange(() => {
-			this.loadTemplates();
-		})
+		
 		// this.validateEmptyFolder();
 	}
 
-	public loadTemplates() {
+	public async init() {
+		if(GenericServer.isIDE) {
+			this.loadTemplates(); // dont lock if is IDE
+		}
+		else {
+			await this.loadTemplates();
+		}
+		SettingsManager.getInstance().onSettingsChange(() => {
+			this.loadTemplates();
+		})
+	}
+
+	public async loadTemplates() {
 		let storagePath = GenericServer.savePath;
 		if (!existsSync(storagePath)) {
 			mkdirSync(storagePath);
@@ -59,10 +68,10 @@ export class TemplateManager {
 
 		this.projectPath = SettingsManager.getInstance().settings.projectPath;
 		let basicProject = normalize(storagePath + sep + "projects");
-		let needAsk = !existsSync(basicProject);
+		let needAsk = !existsSync(basicProject) || readdirSync(basicProject).length == 0;
 		this.prepareFolders(this.projectPath, basicProject);
 		if (needAsk) {
-			this.askTemplate();
+			await this.askTemplate();
 		}
 
 		this.reloadTemplates();
@@ -169,7 +178,7 @@ export class TemplateManager {
 	private async askTemplate() {
 		let result = await GenericServer.ask('Do you want to install project templates (recommended)?');
 		if (result) {
-			this.selectProjectToImport(true);
+			await this.selectProjectToImport(true);
 		}
 	}
 	public async selectProjectToImport(picked: boolean) {

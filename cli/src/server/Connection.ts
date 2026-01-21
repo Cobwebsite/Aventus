@@ -1,13 +1,13 @@
 import { CodeAction } from 'vscode-css-languageservice';
 import { Diagnostic, PublishDiagnosticsParams, Position, CompletionList, CompletionItem, Hover, FormattingOptions, TextEdit, Range, CodeLens, Location, WorkspaceEdit, ColorInformation, Color, ColorPresentation, ExecuteCommandParams, DiagnosticSeverity } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
-import { AvInitializeParams, IConnection, InputOptions, SelectItem, SelectOptions } from '../../../server/src/IConnection';
 import { Notifications } from './notification/index';
-import { pathToUri } from '@server/tools'
 import { dirname, join } from 'path';
 import { RealServer } from './RealServer';
-import { Settings, SettingsHtml } from '@server/settings/Settings';
 import { ServerConfig } from './Server';
+import { pathToUri } from '../tools';
+import type { AvInitializeParams, IConnection, InputOptions, SelectItem, SelectOptions } from '@server/IConnection';
+import type { Settings, SettingsHtml } from '@server/settings/Settings';
 
 export type CliErrors = { [build: string]: CliErrorsBuild };
 export type CliErrorsBuild = { [uri: string]: Diagnostic[] };
@@ -18,6 +18,7 @@ export class CliConnection implements IConnection {
 	public cbErrors: ((errors: CliErrorsBuild, build: string) => void)[] = [];
 	public _connection: FakeConnection;
 	protected config: ServerConfig;
+	public executeCommand: (params: ExecuteCommandParams) => Promise<void>
 	public constructor(config: ServerConfig) {
 		this._connection = new FakeConnection();
 		this.config = config;
@@ -65,6 +66,7 @@ export class CliConnection implements IConnection {
 		}
 	}
 	sendDiagnostics(params: PublishDiagnosticsParams, build?: string): void {
+
 		const checkError = (errorsByFile: { [uri: string]: Diagnostic[] }) => {
 			if (params.diagnostics && params.diagnostics.length > 0) {
 				errorsByFile[params.uri] = params.diagnostics;
@@ -97,6 +99,7 @@ export class CliConnection implements IConnection {
 		const params: AvInitializeParams = {
 			extensionPath: extensionPath,
 			isIDE: false,
+			noBuild: this.config.noBuild,
 			workspaceFolders: [{
 				name: "",
 				uri: pathToUri(process.cwd())
@@ -120,7 +123,11 @@ export class CliConnection implements IConnection {
 	}
 	async getSettings(): Promise<Partial<Settings>> {
 		return {
-			onlyBuild: this.config.onlyBuild,
+			watchFiles: this.config.watchFiles ?? false,
+			useCompilators: this.config.useCompilators ?? false,
+			useTemplates: this.config.useTemplates ?? false,
+			buildOnly: this.config.buildOnly ?? true,
+			loadFiles: this.config.loadFiles ?? false,
 			builds: this.config.builds,
 			statics: this.config.statics,
 			configPath: this.config.configPath,
@@ -160,13 +167,15 @@ export class CliConnection implements IConnection {
 	}
 	async onColorPresentation(cb: (document: TextDocument | undefined, range: Range, color: Color) => Promise<ColorPresentation[] | null>) {
 	}
-	onExecuteCommand(cb: (params: ExecuteCommandParams) => void): void {
+	onExecuteCommand(cb: (params: ExecuteCommandParams) => Promise<void>): void {
+		this.executeCommand = cb;
 	}
 	onDidChangeConfiguration(cb: () => void): void {
 	}
 
 
 	async Input(options: InputOptions): Promise<string | null> {
+		let fct: undefined | ((value: string) => Promise<string | true>) = undefined;
 		if (options.validations) {
 			let validations: ((value: string) => string | null)[] = [];
 			if (options.validations) {
@@ -182,7 +191,7 @@ export class CliConnection implements IConnection {
 					addValidation(validation);
 				}
 			}
-			let fct = async (value: string) => {
+			fct = async (value: string) => {
 				for (let validation of validations) {
 					let tempResult = validation(value);
 					if (tempResult !== null) {
@@ -191,11 +200,21 @@ export class CliConnection implements IConnection {
 				}
 				return true;
 			}
-			return await RealServer.interaction.input(options.title, options.value, fct);
 		}
-		else {
-			return await RealServer.interaction.input(options.title, options.value);
+		if (options.password) {
+			return await RealServer.interaction.password(options.title, fct);
 		}
+		let title = "";
+		if (options.title) {
+			title += options.title;
+		}
+		if (options.placeHolder) {
+			if (title != "") {
+				title += " - ";
+			}
+			title += options.placeHolder;
+		}
+		return await RealServer.interaction.input(title, options.value, fct);
 	}
 	async Select(items: SelectItem[], options: SelectOptions): Promise<SelectItem | null> {
 		let title = "";
@@ -280,7 +299,7 @@ export class CliConnection implements IConnection {
 		}
 	}
 	public async SelectFolder(text: string, path: string): Promise<string | null> {
-		return await RealServer.interaction.tree(text, path)
+		return await RealServer.interaction.tree(text, 'directory', path)
 	}
 }
 

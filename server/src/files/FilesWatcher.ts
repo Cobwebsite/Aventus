@@ -15,7 +15,7 @@ export class FilesWatcher {
     }
     private watcher?: FSWatcher;
     private constructor() {
-        if (!SettingsManager.getInstance().settings.onlyBuild) {
+        if (SettingsManager.getInstance().settings.watchFiles) {
             this.watcher = watch('\t', {
                 ignored: /(^|[\/\\])\../, // ignore dotfiles
                 persistent: true

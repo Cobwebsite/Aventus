@@ -14,7 +14,6 @@ export class Create {
 		}
 		let path = normalize(uriToPath(uri));
 
-
 		if (Create.checkIfProject(uri)) {
 			if (!GenericServer.isIDE) {
 				let resultTemp = await GenericServer.SelectFolder("Select where to create", path);

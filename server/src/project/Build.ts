@@ -311,6 +311,7 @@ export class Build {
         if (!this.initDone) {
             return;
         }
+        if(GenericServer.noBuild) return;
         let delay = GenericServer.delayBetweenBuild();
         if (delay == 0) {
             await this._build();
@@ -2334,7 +2335,7 @@ export class Build {
     }
 
     public writeFile(output: string, content: string) {
-        writeFile(output, content, "build", this.buildConfig.name);
+        writeFile(output, content, "build", this.buildConfig.fullname);
     }
 }
 

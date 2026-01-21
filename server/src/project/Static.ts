@@ -112,7 +112,7 @@ export class Static {
         }
     }
     public registerWatcher() {
-        if (SettingsManager.getInstance().settings.onlyBuild) return;
+        if (!SettingsManager.getInstance().settings.watchFiles) return;
 
         this.watcher = watch(this.staticConfig.inputPathFolder, {
             ignored: /^\./,

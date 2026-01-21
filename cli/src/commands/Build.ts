@@ -2,6 +2,8 @@ import { resolve, sep } from 'path';
 import { Server } from '../server/Server';
 import { Action, ActionOption, ArgOption } from './Action';
 import { DiagnosticSeverity } from 'vscode-css-languageservice';
+import { LogLevel } from '@server/settings/Settings';
+import { parseSize, uriToPath } from '../tools';
 
 type BuildOptions = {
 	builds?: string[] | false,
@@ -10,6 +12,7 @@ type BuildOptions = {
 	silent?: boolean,
 	'no-builds'?: boolean,
 	'no-statics'?: boolean,
+	json?: boolean
 }
 
 export class Build extends Action<BuildOptions> {
@@ -63,6 +66,12 @@ export class Build extends Action<BuildOptions> {
 			shortName: "s",
 			description: "No output",
 		})
+		addOption({
+			name: "json",
+			type: "boolean",
+			typeIsRequired: false,
+			description: "Result as json",
+		})
 	}
 	public async run(args: string[], options: BuildOptions) {
 		let configPath = args[0];
@@ -70,29 +79,32 @@ export class Build extends Action<BuildOptions> {
 			configPath = resolve(configPath);
 		}
 		await Server.load();
-		if(options.builds === false) {
+		if (options.builds === false) {
 			options.builds = [];
 		}
-		if(options.statics === false) {
+		if (options.statics === false) {
 			options.statics = [];
 		}
 		await Server.start({
-			onlyBuild: true,
 			configPath: configPath,
 			builds: options.builds,
 			statics: options.statics,
-			debug: options.verbose,
+			logLevel: options.verbose ? LogLevel.Debug : LogLevel.Error,
 			errorByBuild: true,
 			useStats: options.silent ? false : true
 		});
 
-		this.handleResult(options);
+		if (options.json) {
+			this.handleResultJson(options);
+		}
+		else {
+			this.handleResult(options);
+		}
 	}
 
 	private handleResult(options: BuildOptions) {
 		const statistics = Server.getStatistics();
 		const log = options.silent ? (msg?: string) => { } : console.log
-
 		log();
 		log("Loading all files : Done in " + statistics.loadFileTime + "ms");
 		log();
@@ -105,14 +117,7 @@ export class Build extends Action<BuildOptions> {
 		const filesByBuilds: { [build: string]: string[] } = {}
 		const filesByStatics: { [name: string]: string[] } = {}
 
-		const parseSize = (size: number) => {
-			const k = 1024
-			const dm = 2
-			const sizes = ['Bytes', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB']
-			const i = size == 0 ? 0 : Math.floor(Math.log(size) / Math.log(k))
-
-			return `${parseFloat((size / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
-		}
+		
 		for (let output in statistics.files) {
 			const file = statistics.files[output];
 			if (file.type == "build" && file.typeName) {
@@ -238,13 +243,134 @@ export class Build extends Action<BuildOptions> {
 			process.exit(1);
 		}
 	}
-}
 
+	private handleResultJson(options: BuildOptions) {
+		const statistics = Server.getStatistics();
+		const result: {
+			success: boolean,
+			builds: {
+				[name: string]: {
+					success: boolean,
+					diagnostics: {
+						[uri: string]: {
+							content: string,
+							type: 'error' | 'warning' | 'info' | 'hint',
+							start: string,
+							end: string
+						}[]
+					},
+					outputSize: {
+						[uri: string]: string
+					}
+				}
+			},
+			statics: {
+				[name: string]: {
+					outputSize: {
+						[uri: string]: string
+					}
+				}
+			}
+		} = {
+			success: true,
+			builds: {},
+			statics: {}
+		};
 
-function uriToPath(uri: string): string {
-    if (sep === "/") {
-        // linux system
-        return decodeURIComponent(uri.replace("file://", ""));
-    }
-    return decodeURIComponent(uri.replace("file:///", ""));
+		const errorsByBuild = Server.getErrors();
+		let hasGlobalFailed = false;
+
+		const checkBuild = (build: string) => {
+			if (result.builds[build]) return;
+			result.builds[build] = {
+				diagnostics: {},
+				outputSize: {},
+				success: true
+			}
+		}
+		const checkStatic = (name: string) => {
+			if (result.statics[name]) return;
+			result.statics[name] = {
+				outputSize: {},
+			}
+		}
+
+		const parseSize = (size: number) => {
+			const k = 1024
+			const dm = 2
+			const sizes = ['Bytes', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB']
+			const i = size == 0 ? 0 : Math.floor(Math.log(size) / Math.log(k))
+
+			return `${parseFloat((size / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
+		}
+		for (let output in statistics.files) {
+			const file = statistics.files[output];
+			if (file.type == "build" && file.typeName) {
+				let build = file.typeName;
+				let path = uriToPath(file.path).replace(/\\/g, '/');
+				checkBuild(build)
+				result.builds[build].outputSize[path] = parseSize(file.size)
+			}
+			else if (file.type == 'static' && file.typeName) {
+				let path = uriToPath(file.path).replace(/\\/g, '/');
+				checkStatic(file.typeName)
+				result.statics[file.typeName].outputSize[path] = parseSize(file.size)
+			}
+		}
+		
+		for (let build in statistics.builds) {
+			checkBuild(build)
+
+			const errors = errorsByBuild[build]
+
+			if (errors) {
+				for (let uri in errors) {
+					let path = uriToPath(uri).replace(/\\/g, '/');
+
+					const diags: {
+						content: string,
+						type: 'error' | 'warning' | 'info' | 'hint',
+						start: string,
+						end: string
+					}[] = [];
+
+					result.builds[build].diagnostics[path] = diags
+
+					for (let diagnostic of errors[uri]) {
+						let type: 'error' | 'warning' | 'info' | 'hint';
+
+						if (diagnostic.severity == DiagnosticSeverity.Error) {
+							result.builds[build].success = false;
+							result.success = false;
+							hasGlobalFailed = true;
+							type = 'error';
+						}
+						else if (diagnostic.severity == DiagnosticSeverity.Warning) {
+							type = 'warning';
+						}
+						else if (diagnostic.severity == DiagnosticSeverity.Information) {
+							type = 'info';
+						}
+						else if (diagnostic.severity == DiagnosticSeverity.Hint) {
+							type = 'hint';
+						}
+
+						diags.push({
+							content: diagnostic.message,
+							start: diagnostic.range.start.line + 1 + ":" + diagnostic.range.start.character,
+							end: diagnostic.range.end.line + 1 + ":" + diagnostic.range.end.character,
+							type: type
+						})
+					}
+				}
+			}
+
+		}
+
+		console.log(JSON.stringify(result, undefined, 4))
+
+		if (hasGlobalFailed) {
+			process.exit(1);
+		}
+	}
 }

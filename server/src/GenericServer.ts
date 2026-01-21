@@ -21,6 +21,7 @@ import { version } from '../../package.json'
 import { appendFileSync, existsSync, readdirSync, writeFileSync } from 'fs';
 import { execSync } from 'child_process';
 import { updatesScripts } from './updates';
+import { InitStep } from './notification/InitStep';
 
 
 export class GenericServer {
@@ -64,7 +65,7 @@ export class GenericServer {
 			GenericServer.debug("\t " + diag.message);
 		}
 
-		this.instance.connection.sendDiagnostics(params, build?.buildConfig.name);
+		this.instance.connection.sendDiagnostics(params, build?.buildConfig.fullname);
 	}
 	public static Input(options: InputOptions) {
 		return this.instance.connection.Input(options);
@@ -83,6 +84,9 @@ export class GenericServer {
 	}
 	public static setSettings(settings: Partial<Settings>, global: boolean) {
 		return this.instance.connection.setSettings(settings, global);
+	}
+	public static get noBuild(): boolean {
+		return this.instance._noBuild;
 	}
 	public static get savePath(): string {
 		return this.instance._savePath;
@@ -148,6 +152,8 @@ export class GenericServer {
 		return SettingsManager.getInstance().settings.logLevel
 	}
 	private isIDE = false;
+	private _noBuild = false;
+
 
 	private _savePath: string = "";
 	private _extensionPath: string = "";
@@ -157,13 +163,13 @@ export class GenericServer {
 	private _localProject: LocalProjectManager | undefined;
 
 	public constructor(connection: IConnection) {
+		GenericServer.instance = this;
 		this.connection = connection;
 		this.bindEvent();
 	}
 
 
 	public start() {
-		GenericServer.instance = this;
 		this.connection.open();
 	}
 	protected bindEvent() {
@@ -251,6 +257,7 @@ export class GenericServer {
 		if (!params.extensionPath) {
 			params.extensionPath = dirname(__dirname)
 		}
+		this._noBuild = params.noBuild ?? false;
 		this.isIDE = params.isIDE;
 		this._savePath = params.savePath;
 		this._extensionPath = params.extensionPath;
@@ -269,8 +276,10 @@ export class GenericServer {
 	protected async onShutdown() {
 		this.isDown = true;
 		const settings = SettingsManager.getInstance().settings;
-		if (!settings.onlyBuild) {
+		if (settings.watchFiles) {
 			await FilesWatcher.getInstance().destroy();
+		}
+		if (settings.useCompilators) {
 			CSharpManager.getInstance().destroy();
 			PhpManager.getInstance().destroy();
 		}
@@ -344,7 +353,7 @@ export class GenericServer {
 		return null;
 	}
 	protected async onExecuteCommand(params: ExecuteCommandParams) {
-		Commands.execute(params);
+		await Commands.execute(params);
 	}
 	protected async onDidChangeConfiguration() {
 		this.loadSettings();
@@ -394,25 +403,34 @@ export class GenericServer {
 	protected async startServer() {
 		// define the config for startServer
 		const settings = SettingsManager.getInstance().settings;
-		if (!settings.onlyBuild) {
+		if (settings.useTemplates) {
 			this._template = new TemplateFileManager(this.workspaces);
+			await this._template.init();
 			this._localTemplate = new LocalTemplateManager(this._template);
 			this._localProject = new LocalProjectManager(this._template);
+
+		}
+		if (settings.useCompilators) {
 			CSharpManager.getInstance();
 			PhpManager.getInstance();
 		}
 
 		ProjectManager.getInstance();
 		TemplateFileTsManager.getInstance();
-		if (settings.onlyBuild) {
-			if (settings.configPath) {
-				await FilesManager.getInstance().loadConfigFile(settings.configPath, settings.builds, settings.statics);
+		if (settings.loadFiles) {
+			if (settings.buildOnly) {
+				if (settings.configPath) {
+					await FilesManager.getInstance().loadConfigFile(settings.configPath, settings.builds, settings.statics);
+				}
+				else
+					await FilesManager.getInstance().loadConfigFileNotSet(this.workspaces, settings.builds, settings.statics);
 			}
-			else
-				await FilesManager.getInstance().loadConfigFileNotSet(this.workspaces, settings.builds, settings.statics);
+			else {
+				await FilesManager.getInstance().loadAllAventusFiles(this.workspaces);
+			}
 		}
 		else {
-			await FilesManager.getInstance().loadAllAventusFiles(this.workspaces);
+			InitStep.sendDone();
 		}
 		this.isLoading = false;
 		GenericServer.debug("start server done");

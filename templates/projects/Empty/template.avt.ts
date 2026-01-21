@@ -25,8 +25,8 @@ export class Template extends AventusTemplate {
 
         this.registerVar("name", name);
 
-               let prefix = await this.input({
-            placeHolder: "Provide a component prefix : (default is av)",
+        let prefix = await this.input({
+            title: "Provide a component prefix : (default is av)",
             validations: [{
                 message: "Provide a valid prefix",
                 regex: "^(?:[a-z]{2,})?$"
@@ -41,7 +41,7 @@ export class Template extends AventusTemplate {
 
 
         await this.writeFile();
-        this.openFile("aventus.conf.avt")
+        this.openFile("aventus.conf.avt");
     }
 
 }

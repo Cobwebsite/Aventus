@@ -32,8 +32,12 @@ export interface Settings {
 	readDirs: string[],
 	logLevel: LogLevel,
 	// settings cli
-	onlyBuild: boolean,
+	buildOnly: boolean,
+	loadFiles: boolean,
+	watchFiles: boolean,
 	useStats: boolean,
+	useTemplates: boolean,
+	useCompilators: boolean,
 	/** The path of the aventus.conf.avt */
 	configPath?: string,
 	/** The builds to watch */
@@ -74,9 +78,13 @@ const defaultSettings: Settings = {
 	templatePath: [],
 	projectPath: [],
 	readDirs: [],
-	onlyBuild: false,
+	watchFiles: true,
+	buildOnly: false,
+	loadFiles: true,
 	logLevel: LogLevel.Error,
 	useStats: false,
+	useTemplates: true,
+	useCompilators: true,
 	useDefaultTemplate: true,
 	defaultHideWarnings: false,
 	deeplApiKey: "",

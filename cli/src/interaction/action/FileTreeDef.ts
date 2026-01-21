@@ -1,8 +1,7 @@
-import type { Stats } from 'node:fs'
 import type { Theme } from '@inquirer/core'
 import type { PartialDeep } from '@inquirer/type'
-import fs from 'node:fs'
-import path from 'node:path'
+import { readdirSync, statSync, type Stats} from 'fs'
+import { join, sep } from 'path'
 import type { KeypressEvent } from '@inquirer/core'
 
 /**
@@ -21,7 +20,7 @@ export function isEscapeKey(key: KeypressEvent): boolean {
  * Add a trailing slash at the end of the given path if it doesn't already have one
  */
 export function ensureTrailingSlash(dir: string): string {
-	return dir.endsWith(path.sep) ? dir : `${dir}${path.sep}`
+	return dir.endsWith(sep) ? dir : `${dir}${sep}`
 }
 
 /**
@@ -45,9 +44,9 @@ export function getMaxLength(arr: string[]): number {
  * Get files of a directory
  */
 export function getDirFiles(dir: string): FileStats[] {
-	return fs.readdirSync(dir).map(filename => {
-		const filepath = path.join(dir, filename)
-		const fileStat = fs.statSync(filepath)
+	return readdirSync(dir).map(filename => {
+		const filepath = join(dir, filename)
+		const fileStat = statSync(filepath)
 
 		return Object.assign(fileStat, {
 			name: filename,

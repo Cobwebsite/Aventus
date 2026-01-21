@@ -3,10 +3,11 @@ import { Create } from '@server/cmds/Create';
 import { CliConnection, CliErrors, CliErrorsBuild, FakeConnection } from './Connection';
 import { pathToUri } from '@server/tools';
 import { FilesWatcher } from '../file-system/FileSystem'
-import type { Interaction } from '../interaction/Interaction';
 import { ServerConfig } from './Server';
 import { Statistics } from './notification/Statistics';
-import { StatisticsInfo } from '@server/notification/Statistics';
+import type { Interaction } from '../interaction/Interaction';
+import type { StatisticsInfo } from '@server/notification/Statistics';
+import type { InputOptions } from '@server/IConnection';
 
 export class RealServer {
 	private static _interaction: typeof Interaction;
@@ -18,20 +19,27 @@ export class RealServer {
 	private static get connection(): FakeConnection | null {
 		return this.cliConnection ? this.cliConnection._connection : null;
 	}
+
 	private static waitingStart: (() => void) | null = null;
 	public static start(config: ServerConfig) {
 		return new Promise<void>((resolve) => {
 			try {
 				if (!this.server) {
 					this.cliConnection = new CliConnection(config);
-					if (!config.onlyBuild)
+					if (config.watchFiles)
 						new FilesWatcher(process.cwd())
 					this.server = new GenericServer(this.cliConnection);
-					this.waitingStart = () => {
-						this.waitingStart = null;
+					if (config.noStart) {
 						resolve();
 					}
-					this.server.start();
+					else {
+						this.waitingStart = () => {
+							this.waitingStart = null;
+							resolve();
+						}
+						this.server.start();
+					}
+
 				}
 			} catch (e) {
 				console.log(e);
@@ -64,6 +72,12 @@ export class RealServer {
 	public static unsubscribeErrors(cb: (errors: CliErrorsBuild, build: string) => void) {
 		this.cliConnection?.unsubscribeErrors(cb);
 	}
+	public static async executeCommand(cmd: string, ...args: any[]) {
+		await this.cliConnection.executeCommand({
+			command: cmd,
+			arguments: args,
+		})
+	}
 
 	public static getErrors(): CliErrors {
 		return this.cliConnection?.errorsByBuildByFile ?? {};
@@ -71,6 +85,11 @@ export class RealServer {
 
 	public static getStatistics(): StatisticsInfo {
 		return Statistics.info;
+	}
+
+
+	static async Input(options: InputOptions): Promise<string | null> {
+		return this.cliConnection.Input(options);
 	}
 
 }

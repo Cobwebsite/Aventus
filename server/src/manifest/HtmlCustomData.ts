@@ -23,7 +23,7 @@ export class HtmlCustomData {
 	}
 
 	public write(dir: string) {
-		writeFile(join(dir, "vscode.html-custom-data.json"), JSON.stringify(this._package, null, 2), "build", this.manifest.build.buildConfig.name);
+		writeFile(join(dir, "vscode.html-custom-data.json"), JSON.stringify(this._package, null, 2), "build", this.manifest.build.buildConfig.fullname);
 	}
 
 	public register(file: AventusTsFile, info: ManifestInfo) {
