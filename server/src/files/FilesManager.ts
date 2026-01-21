@@ -497,5 +497,7 @@ export class FilesManager {
     public getByUri(uri: string): AventusFile | undefined {
         return this.files[uri];
     }
-
+    public getUris(): string[] {
+        return Object.keys(this.files);
+    }
 }

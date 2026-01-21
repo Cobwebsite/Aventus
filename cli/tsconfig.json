@@ -15,6 +15,7 @@
 		"noImplicitReturns": true,
 		"allowSyntheticDefaultImports": true,
 		"resolveJsonModule": true,
+		"skipLibCheck": true,
 		"paths": {
 			"@server/*": [
 				"../server/out/*"

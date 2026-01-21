@@ -565,7 +565,13 @@ export class InternalAventusFile implements AventusFile {
     //#region onFormatting
     private onFormattingCb: { [uuid: string]: onFormattingType } = {};
 
-    public async getFormatting(options: FormattingOptions): Promise<TextEdit[]> {
+    public async getFormatting(options?: FormattingOptions): Promise<TextEdit[]> {
+        if (!options) {
+            options = {
+                insertSpaces: true,
+                tabSize: 4
+            }
+        }
         let result: { [key: string]: TextEdit } = {};
         let proms: Promise<TextEdit[]>[] = [];
         let range = {

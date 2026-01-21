@@ -23,12 +23,18 @@ export class Dev extends Action<DevOptions> {
 
 	}
 	public async run(args: string[], options: DevOptions) {
-		await Interaction.load();
+		await Interaction.load({
+			clear: true,
+			printLogo: true
+		});
 		await Server.load();
 		console.clear();
 		await Interaction.init();
 		await Server.start({
-			onlyBuild: false
+			loadFiles: true,
+			watchFiles: true,
+			useCompilators: true,
+			useTemplates: true
 		});
 		let query = [{
 			value: "create",

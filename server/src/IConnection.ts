@@ -30,7 +30,7 @@ export interface IConnection {
 	onRenameRequest(cb: (document: TextDocument | undefined, position: Position, newName: string) => Promise<WorkspaceEdit | null>);
 	onDocumentColor(cb: (document: TextDocument | undefined) => Promise<ColorInformation[] | null>);
 	onColorPresentation(cb: (document: TextDocument | undefined, range: Range, color: Color) => Promise<ColorPresentation[] | null>);
-	onExecuteCommand(cb: (params: ExecuteCommandParams) => void): void;
+	onExecuteCommand(cb: (params: ExecuteCommandParams) => Promise<void>): void;
 	onDidChangeConfiguration(cb: () => void): void;
 	onRequest(cb: (method: string, params: any[] | object | undefined) => Promise<any>): void;
 
@@ -56,7 +56,8 @@ export interface AvInitializeParams {
 	savePath?: string,
 	extensionPath?: string,
 	isIDE: boolean,
-	logFile?: string
+	logFile?: string,
+	noBuild?: boolean
 }
 
 export interface SelectOptions {

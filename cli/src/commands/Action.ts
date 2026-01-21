@@ -21,15 +21,26 @@ export type ArgOption = {
 
 export abstract class Action<T extends { [name: string]: any }> {
 
+	private static actions: { [name: string]: Command } = {}
+
 	public abstract get name(): string;
 	public abstract get description(): string;
 
 	private argsNb: number = 0;
 
 	public register(program: Command) {
-		let cmd = program
-			.command(this.name)
-			.description(this.description);
+		let names = this.name.trim().split(" ");
+		let temp = "";
+		let cmd = program;
+		for (let nameTemp of names) {
+			temp += nameTemp;
+			if (!Action.actions[temp]) {
+				Action.actions[temp] = cmd.command(nameTemp);
+			}
+			cmd = Action.actions[temp];
+			temp += " ";
+		}
+		cmd = cmd.description(this.description);
 		cmd = this._registerArgs(cmd);
 		cmd = this._registerOptions(cmd);
 		cmd.action(async (...args: any[]) => {
@@ -74,7 +85,7 @@ export abstract class Action<T extends { [name: string]: any }> {
 	private _registerOptions(program: Command) {
 		this.registerOptions((option: ActionOption<T>) => {
 
-			let names:string[] = [];
+			let names: string[] = [];
 			if (option.shortName) {
 				if (!Array.isArray(option.shortName)) {
 					option.shortName = [option.shortName];
