@@ -82,6 +82,9 @@ export class AventusPackageFile extends AventusBaseFile {
 	public get fileParsed(): ParserTs | null {
 		return this.tsDef?.fileParsed || null;
 	}
+	public get definition(): string {
+		return this.tsFile!.contentUser
+	}
 
 
 	public dependances: { [name: string]: AventusConfigBuildDependance | string } = {};

@@ -62,6 +62,16 @@ export class DependanceManager {
 		"Aventus@Php": "@aventusphp/main",
 	}
 	private loadedPackages: { [name: string]: { [version: string]: AventusPackageFile } } = {};
+
+	public get packages(): AventusPackageFile[] {
+		const result: AventusPackageFile[] = [];
+		for (let name in this.loadedPackages) {
+			for (let version in this.loadedPackages[name]) {
+				result.push(this.loadedPackages[name][version]);
+			}
+		}
+		return result;
+	}
 	public async loadDependancesFromBuild(config: AventusConfigBuild, build: Build): Promise<{ files: AventusPackageFile[], dependanceNeedUris: string[], dependanceFullUris: string[], dependanceUris: string[] }> {
 		let result: { files: AventusPackageFile[], dependanceNeedUris: string[], dependanceFullUris: string[], dependanceUris: string[] } = {
 			files: [],
@@ -89,7 +99,7 @@ export class DependanceManager {
 				subDependancesInclude: { ['*']: 'need' }
 			}, config, build, loopResult)
 		}
-		if (build.buildConfig.i18n !== undefined && !loopResult["Aventus@I18n"]) {
+		if (build?.buildConfig.i18n !== undefined && !loopResult["Aventus@I18n"]) {
 			await this.loadDependance("Aventus@I18n", {
 				uri: "",
 				npm: "",
@@ -473,6 +483,8 @@ export class DependanceManager {
 
 	private loadPackage(file: AventusFile, build: Build): AventusPackageFile | undefined {
 		return new AventusPackageFile(file, build);
+
+		// avec cette partie, si on save la config tout part en couille
 		// const info = AventusPackageFile.getQuickInfo(file);
 		// if (!info) {
 		// 	return undefined;

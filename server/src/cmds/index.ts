@@ -42,6 +42,7 @@ import { StoreDownloadTemplate } from './store/DownloadTemplate';
 import { UninstallProject } from './file-system/UninstallProject';
 import { UninstallTemplate } from './file-system/UninstallTemplate';
 import { Format } from './Format';
+import { Dependance } from './ai/Dependance';
 
 export const Commands = {
     allCommandes: {
@@ -87,7 +88,8 @@ export const Commands = {
         [QuickTemplateEdit.cmd]: QuickTemplateEdit,
         [UninstallProject.cmd]: UninstallProject,
         [UninstallTemplate.cmd]: UninstallTemplate,
-        [Format.cmd]: Format
+        [Format.cmd]: Format,
+        [Dependance.cmd]: Dependance
     },
     execute: async function (params: ExecuteCommandParams) {
         let cmd = this.allCommandes[params.command];

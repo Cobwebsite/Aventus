@@ -41,10 +41,13 @@ namespace Form {
     };
     export type FormSchema<T> = { [K in keyof T]: FormPart<T[K]> | FormPartValidateList<T[K]> };
 
-    export type FormPartValidateList<T> = FormPartValidate<T> | Constructor<Validator<T>> | Validator<T> | (
-        Constructor<Validator<T>> |
+
+    // TODO understand why I should use Omit. it seems to work in ts but not in aventus
+    export type FormPartValidateList<T> = FormPartValidate<T> | Constructor<Omit<Validator<T>, 'getMsg'>> | Validator<T> | (
+        Constructor<Omit<Validator<T>, 'getMsg'>> |
         Validator<T>
     )[];
+
 
     export interface FormPart<T = any> {
         /**
@@ -83,6 +86,8 @@ namespace Form {
         handleValidateNoInputError?: (errors: { [K in keyof T]?: string[]; }) => Asyncable<void>,
         /** Define how to handle error after submitting the form when name isn't linked to an input */
         handleExecuteNoInputError?: (errors: Aventus.GenericError[]) => Asyncable<void>;
+        /** Define how to parse errors to set them to fields */
+        extractor?: (error: Aventus.GenericError) => { fieldName: string, messages: string[]; }[];
     };
 
     @Storybook({

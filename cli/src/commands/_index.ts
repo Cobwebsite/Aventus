@@ -13,6 +13,7 @@ import { ImportProject } from './ImportProject';
 import { UninstallProject } from './UninstallProject';
 import { UninstallTemplate } from './UninstallTemplate';
 import { LiveServer } from './LiveServer';
+import { Dependance } from './ai/Dependance';
 
 const actions: (new () => Action<any>)[] = [
 	Build,
@@ -27,7 +28,8 @@ const actions: (new () => Action<any>)[] = [
 	ImportProject,
 	UninstallProject,
 	UninstallTemplate,
-	LiveServer
+	LiveServer,
+	Dependance
 ]
 
 

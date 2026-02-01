@@ -2,7 +2,9 @@ import type { Constructor, FormValidateResult } from "./FormType.lib.avt";
 
 namespace Form {
     export abstract class Validator<T> {
-        public static async Test(validators: Constructor<Validator<any>> | Constructor<Validator<any>>[], value: any, name:string, globalValidation: () => Promise<void>) : Promise<string[] | undefined> {
+        public static msg: string | (() => string) = "There is an error";
+
+        public static async Test(validators: Constructor<Validator<any>> | Constructor<Validator<any>>[], value: any, name: string, globalValidation: () => Promise<void>): Promise<string[] | undefined> {
             if(!Array.isArray(validators)) {
                 validators = [validators];
             }
@@ -25,8 +27,23 @@ namespace Form {
             return result.length == 0 ? undefined : result;
         }
 
+        private _msg?: string | (() => string);
+        public constructor(msg?: string | (() => string)) {
+            this._msg = msg;
+        }
+
+        protected getMsg(replace?: { [field: string]: string; }): string {
+            let msg: string | (() => string) = this._msg ?? this.constructor['msg'];
+            if(typeof msg == 'function') msg = msg();
+            if(replace) {
+                for(let field in replace) {
+                    msg = msg.replace(new RegExp(`\\{ *${field} *\\}`, 'g'), replace[field]);
+                }
+            }
+            return msg;
+        }
 
         @BindThis()
-        public abstract validate(value: T | undefined, name:string, globalValidation: () => Promise<void>): FormValidateResult;
+        public abstract validate(value: T | undefined, name: string, globalValidation: () => Promise<void>): FormValidateResult;
     }
 }

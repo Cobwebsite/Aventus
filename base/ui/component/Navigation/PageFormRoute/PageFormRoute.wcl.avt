@@ -43,7 +43,7 @@ namespace Navigation {
 
 
         //#region methods
-        protected override async defineSubmit(submit: (fct: SubmitFunction<LastParameter<InstanceType<C>[RM]>, ExtractError<Awaited<Result<C, RM>>>>) => Promise<WithError<ExtractError<Awaited<Result<C, RM>>>> | null>): Promise<WithError<ExtractError<Awaited<Result<C, RM>>>> | null> {
+        public override async defineSubmit(submit: (fct: SubmitFunction<LastParameter<InstanceType<C>[RM]>, ExtractError<Awaited<Result<C, RM>>>>) => Promise<WithError<ExtractError<Awaited<Result<C, RM>>>> | null>): Promise<WithError<ExtractError<Awaited<Result<C, RM>>>> | null> {
             await this.beforeSubmit();
             const info = this.route();
             let router: Aventus.HttpRoute;

@@ -251,8 +251,15 @@ export class GenericServer {
 			}
 		}
 		if (!params.savePath) {
+			// todo store all inside app data => stop using savePath
 			let appData = process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + "/.local/share");
-			params.savePath = join(appData, "aventus");
+			let vscode = join(appData, "Code", "User", "globalStorage", "cobwebsite.aventus")
+			if(existsSync(vscode)) {
+				params.savePath= vscode;
+			}
+			else {
+				params.savePath = join(appData, "aventus");
+			}
 		}
 		if (!params.extensionPath) {
 			params.extensionPath = dirname(__dirname)

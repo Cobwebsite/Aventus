@@ -1,0 +1,63 @@
+import type { ButtonElement } from "../../Form/ButtonElement/ButtonElement.wcl.avt";
+import { FormHandler } from "../../Form/Form/FormHandler.lib.avt";
+import type { FormElement } from "../../Form/FormElement/FormElement.wcl.avt";
+import type { IPageForm } from "./PageForm.wcl.avt";
+
+namespace Navigation.PageForm {
+
+    export class PageFormCst<T, U> {
+
+        private _form: FormHandler<any>;
+        public get form(): FormHandler<any> { return this._form; }
+        private page: IPageForm<T, U>;
+
+        protected elements: FormElement<any>[] = [];
+        protected btns: ButtonElement[] = [];
+
+        public constructor(page: IPageForm<T, U>) {
+            this.page = page;
+            this._form = new FormHandler(page.formSchema(), page.formConfig());
+        }
+
+        public async submit() {
+            this.setLoading(true);
+            const result = await this.page.defineSubmit((fct) => this.form.submit(fct));
+            this.setLoading(false);
+            return result;
+        }
+
+        protected setLoading(isLoading: boolean) {
+            const autoLoading = this.page.pageConfig().autoLoading;
+            if(autoLoading) {
+                for(let btn of this.btns) {
+                    if("loading" in btn) {
+                        btn.loading = isLoading;
+                    }
+                }
+            }
+        }
+
+        @BindThis()
+        protected checkEnter(e: KeyboardEvent) {
+            if(e.key == "Enter") {
+                this.submit();
+            }
+        }
+        public registerElement(element: FormElement<any>): void {
+            const submitWithEnter = this.page.pageConfig().submitWithEnter;
+            if(this.elements.length > 0) {
+                if(submitWithEnter)
+                    this.elements[this.elements.length - 1].removeEventListener("keyup", this.checkEnter);
+            }
+            this.elements.push(element);
+            if(submitWithEnter)
+                element.addEventListener("keyup", this.checkEnter);
+        }
+        public registerSubmit(element: ButtonElement): void {
+            this.btns.push(element);
+        }
+        public async requestSubmit(): Promise<void> {
+            await this.submit();
+        }
+    }
+}

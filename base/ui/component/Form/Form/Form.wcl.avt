@@ -87,7 +87,17 @@ namespace Form {
             }
             if(this.form) {
                 if(this.request) {
-                    this.form.submit(this.request);
+                    for(let btn of this.btns) {
+                        if("loading" in btn) {
+                            btn.loading = true;
+                        }
+                    }
+                    await this.form.submit(this.request);
+                    for(let btn of this.btns) {
+                        if("loading" in btn) {
+                            btn.loading = false;
+                        }
+                    }
                 }
                 else if(await this.form.validate()) {
                     this.onSubmit.trigger();

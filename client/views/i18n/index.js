@@ -9,7 +9,7 @@ var npmCompilation;
      * Copyright 2019 Google LLC
      * SPDX-License-Identifier: BSD-3-Clause
      */
-    const t$4=globalThis,e$7=t$4.ShadowRoot&&(void 0===t$4.ShadyCSS||t$4.ShadyCSS.nativeShadow)&&"adoptedStyleSheets"in Document.prototype&&"replace"in CSSStyleSheet.prototype,s$3=Symbol(),o$6=new WeakMap;let n$4 = class n{constructor(t,e,o){if(this._$cssResult$=!0,o!==s$3)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=t,this.t=e;}get styleSheet(){let t=this.o;const s=this.t;if(e$7&&void 0===t){const e=void 0!==s&&1===s.length;e&&(t=o$6.get(s)),void 0===t&&((this.o=t=new CSSStyleSheet).replaceSync(this.cssText),e&&o$6.set(s,t));}return t}toString(){return this.cssText}};const r$6=t=>new n$4("string"==typeof t?t:t+"",void 0,s$3),i$4=(t,...e)=>{const o=1===t.length?t[0]:e.reduce(((e,s,o)=>e+(t=>{if(!0===t._$cssResult$)return t.cssText;if("number"==typeof t)return t;throw Error("Value passed to 'css' function must be a 'css' function result: "+t+". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.")})(s)+t[o+1]),t[0]);return new n$4(o,t,s$3)},S$1=(s,o)=>{if(e$7)s.adoptedStyleSheets=o.map((t=>t instanceof CSSStyleSheet?t:t.styleSheet));else for(const e of o){const o=document.createElement("style"),n=t$4.litNonce;void 0!==n&&o.setAttribute("nonce",n),o.textContent=e.cssText,s.appendChild(o);}},c$3=e$7?t=>t:t=>t instanceof CSSStyleSheet?(t=>{let e="";for(const s of t.cssRules)e+=s.cssText;return r$6(e)})(t):t;
+    const t$3=globalThis,e$7=t$3.ShadowRoot&&(void 0===t$3.ShadyCSS||t$3.ShadyCSS.nativeShadow)&&"adoptedStyleSheets"in Document.prototype&&"replace"in CSSStyleSheet.prototype,s$3=Symbol(),o$6=new WeakMap;let n$4 = class n{constructor(t,e,o){if(this._$cssResult$=!0,o!==s$3)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=t,this.t=e;}get styleSheet(){let t=this.o;const s=this.t;if(e$7&&void 0===t){const e=void 0!==s&&1===s.length;e&&(t=o$6.get(s)),void 0===t&&((this.o=t=new CSSStyleSheet).replaceSync(this.cssText),e&&o$6.set(s,t));}return t}toString(){return this.cssText}};const r$6=t=>new n$4("string"==typeof t?t:t+"",void 0,s$3),i$4=(t,...e)=>{const o=1===t.length?t[0]:e.reduce(((e,s,o)=>e+(t=>{if(!0===t._$cssResult$)return t.cssText;if("number"==typeof t)return t;throw Error("Value passed to 'css' function must be a 'css' function result: "+t+". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.")})(s)+t[o+1]),t[0]);return new n$4(o,t,s$3)},S$1=(s,o)=>{if(e$7)s.adoptedStyleSheets=o.map((t=>t instanceof CSSStyleSheet?t:t.styleSheet));else for(const e of o){const o=document.createElement("style"),n=t$3.litNonce;void 0!==n&&o.setAttribute("nonce",n),o.textContent=e.cssText,s.appendChild(o);}},c$3=e$7?t=>t:t=>t instanceof CSSStyleSheet?(t=>{let e="";for(const s of t.cssRules)e+=s.cssText;return r$6(e)})(t):t;
 
     /**
      * @license
@@ -22,20 +22,13 @@ var npmCompilation;
      * Copyright 2017 Google LLC
      * SPDX-License-Identifier: BSD-3-Clause
      */
-    const t$3=globalThis,i$2=t$3.trustedTypes,s$2=i$2?i$2.createPolicy("lit-html",{createHTML:t=>t}):void 0,e$5="$lit$",h=`lit$${Math.random().toFixed(9).slice(2)}$`,o$4="?"+h,n$2=`<${o$4}>`,r$4=document,l=()=>r$4.createComment(""),c$1=t=>null===t||"object"!=typeof t&&"function"!=typeof t,a=Array.isArray,u$2=t=>a(t)||"function"==typeof t?.[Symbol.iterator],d="[ \t\n\f\r]",f=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,v$1=/-->/g,_=/>/g,m$1=RegExp(`>|${d}(?:([^\\s"'>=/]+)(${d}*=${d}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`,"g"),p$1=/'/g,g=/"/g,$=/^(?:script|style|textarea|title)$/i,y=t=>(i,...s)=>({_$litType$:t,strings:i,values:s}),x=y(1),T=Symbol.for("lit-noChange"),E=Symbol.for("lit-nothing"),A=new WeakMap,C=r$4.createTreeWalker(r$4,129);function P(t,i){if(!a(t)||!t.hasOwnProperty("raw"))throw Error("invalid template strings array");return void 0!==s$2?s$2.createHTML(i):i}const V=(t,i)=>{const s=t.length-1,o=[];let r,l=2===i?"<svg>":3===i?"<math>":"",c=f;for(let i=0;i<s;i++){const s=t[i];let a,u,d=-1,y=0;for(;y<s.length&&(c.lastIndex=y,u=c.exec(s),null!==u);)y=c.lastIndex,c===f?"!--"===u[1]?c=v$1:void 0!==u[1]?c=_:void 0!==u[2]?($.test(u[2])&&(r=RegExp("</"+u[2],"g")),c=m$1):void 0!==u[3]&&(c=m$1):c===m$1?">"===u[0]?(c=r??f,d=-1):void 0===u[1]?d=-2:(d=c.lastIndex-u[2].length,a=u[1],c=void 0===u[3]?m$1:'"'===u[3]?g:p$1):c===g||c===p$1?c=m$1:c===v$1||c===_?c=f:(c=m$1,r=void 0);const x=c===m$1&&t[i+1].startsWith("/>")?" ":"";l+=c===f?s+n$2:d>=0?(o.push(a),s.slice(0,d)+e$5+s.slice(d)+h+x):s+h+(-2===d?i:x);}return [P(t,l+(t[s]||"<?>")+(2===i?"</svg>":3===i?"</math>":"")),o]};class N{constructor({strings:t,_$litType$:s},n){let r;this.parts=[];let c=0,a=0;const u=t.length-1,d=this.parts,[f,v]=V(t,s);if(this.el=N.createElement(f,n),C.currentNode=this.el.content,2===s||3===s){const t=this.el.content.firstChild;t.replaceWith(...t.childNodes);}for(;null!==(r=C.nextNode())&&d.length<u;){if(1===r.nodeType){if(r.hasAttributes())for(const t of r.getAttributeNames())if(t.endsWith(e$5)){const i=v[a++],s=r.getAttribute(t).split(h),e=/([.?@])?(.*)/.exec(i);d.push({type:1,index:c,name:e[2],strings:s,ctor:"."===e[1]?H:"?"===e[1]?I:"@"===e[1]?L:k}),r.removeAttribute(t);}else t.startsWith(h)&&(d.push({type:6,index:c}),r.removeAttribute(t));if($.test(r.tagName)){const t=r.textContent.split(h),s=t.length-1;if(s>0){r.textContent=i$2?i$2.emptyScript:"";for(let i=0;i<s;i++)r.append(t[i],l()),C.nextNode(),d.push({type:2,index:++c});r.append(t[s],l());}}}else if(8===r.nodeType)if(r.data===o$4)d.push({type:2,index:c});else {let t=-1;for(;-1!==(t=r.data.indexOf(h,t+1));)d.push({type:7,index:c}),t+=h.length-1;}c++;}}static createElement(t,i){const s=r$4.createElement("template");return s.innerHTML=t,s}}function S(t,i,s=t,e){if(i===T)return i;let h=void 0!==e?s._$Co?.[e]:s._$Cl;const o=c$1(i)?void 0:i._$litDirective$;return h?.constructor!==o&&(h?._$AO?.(!1),void 0===o?h=void 0:(h=new o(t),h._$AT(t,s,e)),void 0!==e?(s._$Co??=[])[e]=h:s._$Cl=h),void 0!==h&&(i=S(t,h._$AS(t,i.values),h,e)),i}let M$1 = class M{constructor(t,i){this._$AV=[],this._$AN=void 0,this._$AD=t,this._$AM=i;}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(t){const{el:{content:i},parts:s}=this._$AD,e=(t?.creationScope??r$4).importNode(i,!0);C.currentNode=e;let h=C.nextNode(),o=0,n=0,l=s[0];for(;void 0!==l;){if(o===l.index){let i;2===l.type?i=new R(h,h.nextSibling,this,t):1===l.type?i=new l.ctor(h,l.name,l.strings,this,t):6===l.type&&(i=new z(h,this,t)),this._$AV.push(i),l=s[++n];}o!==l?.index&&(h=C.nextNode(),o++);}return C.currentNode=r$4,e}p(t){let i=0;for(const s of this._$AV)void 0!==s&&(void 0!==s.strings?(s._$AI(t,s,i),i+=s.strings.length-2):s._$AI(t[i])),i++;}};class R{get _$AU(){return this._$AM?._$AU??this._$Cv}constructor(t,i,s,e){this.type=2,this._$AH=E,this._$AN=void 0,this._$AA=t,this._$AB=i,this._$AM=s,this.options=e,this._$Cv=e?.isConnected??!0;}get parentNode(){let t=this._$AA.parentNode;const i=this._$AM;return void 0!==i&&11===t?.nodeType&&(t=i.parentNode),t}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(t,i=this){t=S(this,t,i),c$1(t)?t===E||null==t||""===t?(this._$AH!==E&&this._$AR(),this._$AH=E):t!==this._$AH&&t!==T&&this._(t):void 0!==t._$litType$?this.$(t):void 0!==t.nodeType?this.T(t):u$2(t)?this.k(t):this._(t);}O(t){return this._$AA.parentNode.insertBefore(t,this._$AB)}T(t){this._$AH!==t&&(this._$AR(),this._$AH=this.O(t));}_(t){this._$AH!==E&&c$1(this._$AH)?this._$AA.nextSibling.data=t:this.T(r$4.createTextNode(t)),this._$AH=t;}$(t){const{values:i,_$litType$:s}=t,e="number"==typeof s?this._$AC(t):(void 0===s.el&&(s.el=N.createElement(P(s.h,s.h[0]),this.options)),s);if(this._$AH?._$AD===e)this._$AH.p(i);else {const t=new M$1(e,this),s=t.u(this.options);t.p(i),this.T(s),this._$AH=t;}}_$AC(t){let i=A.get(t.strings);return void 0===i&&A.set(t.strings,i=new N(t)),i}k(t){a(this._$AH)||(this._$AH=[],this._$AR());const i=this._$AH;let s,e=0;for(const h of t)e===i.length?i.push(s=new R(this.O(l()),this.O(l()),this,this.options)):s=i[e],s._$AI(h),e++;e<i.length&&(this._$AR(s&&s._$AB.nextSibling,e),i.length=e);}_$AR(t=this._$AA.nextSibling,i){for(this._$AP?.(!1,!0,i);t&&t!==this._$AB;){const i=t.nextSibling;t.remove(),t=i;}}setConnected(t){void 0===this._$AM&&(this._$Cv=t,this._$AP?.(t));}}class k{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(t,i,s,e,h){this.type=1,this._$AH=E,this._$AN=void 0,this.element=t,this.name=i,this._$AM=e,this.options=h,s.length>2||""!==s[0]||""!==s[1]?(this._$AH=Array(s.length-1).fill(new String),this.strings=s):this._$AH=E;}_$AI(t,i=this,s,e){const h=this.strings;let o=!1;if(void 0===h)t=S(this,t,i,0),o=!c$1(t)||t!==this._$AH&&t!==T,o&&(this._$AH=t);else {const e=t;let n,r;for(t=h[0],n=0;n<h.length-1;n++)r=S(this,e[s+n],i,n),r===T&&(r=this._$AH[n]),o||=!c$1(r)||r!==this._$AH[n],r===E?t=E:t!==E&&(t+=(r??"")+h[n+1]),this._$AH[n]=r;}o&&!e&&this.j(t);}j(t){t===E?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,t??"");}}class H extends k{constructor(){super(...arguments),this.type=3;}j(t){this.element[this.name]=t===E?void 0:t;}}class I extends k{constructor(){super(...arguments),this.type=4;}j(t){this.element.toggleAttribute(this.name,!!t&&t!==E);}}class L extends k{constructor(t,i,s,e,h){super(t,i,s,e,h),this.type=5;}_$AI(t,i=this){if((t=S(this,t,i,0)??E)===T)return;const s=this._$AH,e=t===E&&s!==E||t.capture!==s.capture||t.once!==s.once||t.passive!==s.passive,h=t!==E&&(s===E||e);e&&this.element.removeEventListener(this.name,this,s),h&&this.element.addEventListener(this.name,this,t),this._$AH=t;}handleEvent(t){"function"==typeof this._$AH?this._$AH.call(this.options?.host??this.element,t):this._$AH.handleEvent(t);}}class z{constructor(t,i,s){this.element=t,this.type=6,this._$AN=void 0,this._$AM=i,this.options=s;}get _$AU(){return this._$AM._$AU}_$AI(t){S(this,t);}}const Z={M:e$5,P:h,A:o$4,C:1,L:V,R:M$1,D:u$2,V:S,I:R,H:k,N:I,U:L,B:H,F:z},j=t$3.litHtmlPolyfillSupport;j?.(N,R),(t$3.litHtmlVersions??=[]).push("3.3.0");const B=(t,i,s)=>{const e=s?.renderBefore??i;let h=e._$litPart$;if(void 0===h){const t=s?.renderBefore??null;e._$litPart$=h=new R(i.insertBefore(l(),t),t,void 0,s??{});}return h._$AI(t),h};
+    const t$2=globalThis,i$2=t$2.trustedTypes,s$2=i$2?i$2.createPolicy("lit-html",{createHTML:t=>t}):void 0,e$5="$lit$",h=`lit$${Math.random().toFixed(9).slice(2)}$`,o$4="?"+h,n$2=`<${o$4}>`,r$4=document,l=()=>r$4.createComment(""),c$1=t=>null===t||"object"!=typeof t&&"function"!=typeof t,a=Array.isArray,u$2=t=>a(t)||"function"==typeof t?.[Symbol.iterator],d="[ \t\n\f\r]",f=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,v$1=/-->/g,_=/>/g,m$1=RegExp(`>|${d}(?:([^\\s"'>=/]+)(${d}*=${d}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`,"g"),p$1=/'/g,g=/"/g,$=/^(?:script|style|textarea|title)$/i,y=t=>(i,...s)=>({_$litType$:t,strings:i,values:s}),x=y(1),T=Symbol.for("lit-noChange"),E=Symbol.for("lit-nothing"),A=new WeakMap,C=r$4.createTreeWalker(r$4,129);function P(t,i){if(!a(t)||!t.hasOwnProperty("raw"))throw Error("invalid template strings array");return void 0!==s$2?s$2.createHTML(i):i}const V=(t,i)=>{const s=t.length-1,o=[];let r,l=2===i?"<svg>":3===i?"<math>":"",c=f;for(let i=0;i<s;i++){const s=t[i];let a,u,d=-1,y=0;for(;y<s.length&&(c.lastIndex=y,u=c.exec(s),null!==u);)y=c.lastIndex,c===f?"!--"===u[1]?c=v$1:void 0!==u[1]?c=_:void 0!==u[2]?($.test(u[2])&&(r=RegExp("</"+u[2],"g")),c=m$1):void 0!==u[3]&&(c=m$1):c===m$1?">"===u[0]?(c=r??f,d=-1):void 0===u[1]?d=-2:(d=c.lastIndex-u[2].length,a=u[1],c=void 0===u[3]?m$1:'"'===u[3]?g:p$1):c===g||c===p$1?c=m$1:c===v$1||c===_?c=f:(c=m$1,r=void 0);const x=c===m$1&&t[i+1].startsWith("/>")?" ":"";l+=c===f?s+n$2:d>=0?(o.push(a),s.slice(0,d)+e$5+s.slice(d)+h+x):s+h+(-2===d?i:x);}return [P(t,l+(t[s]||"<?>")+(2===i?"</svg>":3===i?"</math>":"")),o]};class N{constructor({strings:t,_$litType$:s},n){let r;this.parts=[];let c=0,a=0;const u=t.length-1,d=this.parts,[f,v]=V(t,s);if(this.el=N.createElement(f,n),C.currentNode=this.el.content,2===s||3===s){const t=this.el.content.firstChild;t.replaceWith(...t.childNodes);}for(;null!==(r=C.nextNode())&&d.length<u;){if(1===r.nodeType){if(r.hasAttributes())for(const t of r.getAttributeNames())if(t.endsWith(e$5)){const i=v[a++],s=r.getAttribute(t).split(h),e=/([.?@])?(.*)/.exec(i);d.push({type:1,index:c,name:e[2],strings:s,ctor:"."===e[1]?H:"?"===e[1]?I:"@"===e[1]?L:k}),r.removeAttribute(t);}else t.startsWith(h)&&(d.push({type:6,index:c}),r.removeAttribute(t));if($.test(r.tagName)){const t=r.textContent.split(h),s=t.length-1;if(s>0){r.textContent=i$2?i$2.emptyScript:"";for(let i=0;i<s;i++)r.append(t[i],l()),C.nextNode(),d.push({type:2,index:++c});r.append(t[s],l());}}}else if(8===r.nodeType)if(r.data===o$4)d.push({type:2,index:c});else {let t=-1;for(;-1!==(t=r.data.indexOf(h,t+1));)d.push({type:7,index:c}),t+=h.length-1;}c++;}}static createElement(t,i){const s=r$4.createElement("template");return s.innerHTML=t,s}}function S(t,i,s=t,e){if(i===T)return i;let h=void 0!==e?s._$Co?.[e]:s._$Cl;const o=c$1(i)?void 0:i._$litDirective$;return h?.constructor!==o&&(h?._$AO?.(!1),void 0===o?h=void 0:(h=new o(t),h._$AT(t,s,e)),void 0!==e?(s._$Co??=[])[e]=h:s._$Cl=h),void 0!==h&&(i=S(t,h._$AS(t,i.values),h,e)),i}let M$1 = class M{constructor(t,i){this._$AV=[],this._$AN=void 0,this._$AD=t,this._$AM=i;}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(t){const{el:{content:i},parts:s}=this._$AD,e=(t?.creationScope??r$4).importNode(i,!0);C.currentNode=e;let h=C.nextNode(),o=0,n=0,l=s[0];for(;void 0!==l;){if(o===l.index){let i;2===l.type?i=new R(h,h.nextSibling,this,t):1===l.type?i=new l.ctor(h,l.name,l.strings,this,t):6===l.type&&(i=new z(h,this,t)),this._$AV.push(i),l=s[++n];}o!==l?.index&&(h=C.nextNode(),o++);}return C.currentNode=r$4,e}p(t){let i=0;for(const s of this._$AV)void 0!==s&&(void 0!==s.strings?(s._$AI(t,s,i),i+=s.strings.length-2):s._$AI(t[i])),i++;}};class R{get _$AU(){return this._$AM?._$AU??this._$Cv}constructor(t,i,s,e){this.type=2,this._$AH=E,this._$AN=void 0,this._$AA=t,this._$AB=i,this._$AM=s,this.options=e,this._$Cv=e?.isConnected??!0;}get parentNode(){let t=this._$AA.parentNode;const i=this._$AM;return void 0!==i&&11===t?.nodeType&&(t=i.parentNode),t}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(t,i=this){t=S(this,t,i),c$1(t)?t===E||null==t||""===t?(this._$AH!==E&&this._$AR(),this._$AH=E):t!==this._$AH&&t!==T&&this._(t):void 0!==t._$litType$?this.$(t):void 0!==t.nodeType?this.T(t):u$2(t)?this.k(t):this._(t);}O(t){return this._$AA.parentNode.insertBefore(t,this._$AB)}T(t){this._$AH!==t&&(this._$AR(),this._$AH=this.O(t));}_(t){this._$AH!==E&&c$1(this._$AH)?this._$AA.nextSibling.data=t:this.T(r$4.createTextNode(t)),this._$AH=t;}$(t){const{values:i,_$litType$:s}=t,e="number"==typeof s?this._$AC(t):(void 0===s.el&&(s.el=N.createElement(P(s.h,s.h[0]),this.options)),s);if(this._$AH?._$AD===e)this._$AH.p(i);else {const t=new M$1(e,this),s=t.u(this.options);t.p(i),this.T(s),this._$AH=t;}}_$AC(t){let i=A.get(t.strings);return void 0===i&&A.set(t.strings,i=new N(t)),i}k(t){a(this._$AH)||(this._$AH=[],this._$AR());const i=this._$AH;let s,e=0;for(const h of t)e===i.length?i.push(s=new R(this.O(l()),this.O(l()),this,this.options)):s=i[e],s._$AI(h),e++;e<i.length&&(this._$AR(s&&s._$AB.nextSibling,e),i.length=e);}_$AR(t=this._$AA.nextSibling,i){for(this._$AP?.(!1,!0,i);t&&t!==this._$AB;){const i=t.nextSibling;t.remove(),t=i;}}setConnected(t){void 0===this._$AM&&(this._$Cv=t,this._$AP?.(t));}}class k{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(t,i,s,e,h){this.type=1,this._$AH=E,this._$AN=void 0,this.element=t,this.name=i,this._$AM=e,this.options=h,s.length>2||""!==s[0]||""!==s[1]?(this._$AH=Array(s.length-1).fill(new String),this.strings=s):this._$AH=E;}_$AI(t,i=this,s,e){const h=this.strings;let o=!1;if(void 0===h)t=S(this,t,i,0),o=!c$1(t)||t!==this._$AH&&t!==T,o&&(this._$AH=t);else {const e=t;let n,r;for(t=h[0],n=0;n<h.length-1;n++)r=S(this,e[s+n],i,n),r===T&&(r=this._$AH[n]),o||=!c$1(r)||r!==this._$AH[n],r===E?t=E:t!==E&&(t+=(r??"")+h[n+1]),this._$AH[n]=r;}o&&!e&&this.j(t);}j(t){t===E?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,t??"");}}class H extends k{constructor(){super(...arguments),this.type=3;}j(t){this.element[this.name]=t===E?void 0:t;}}class I extends k{constructor(){super(...arguments),this.type=4;}j(t){this.element.toggleAttribute(this.name,!!t&&t!==E);}}class L extends k{constructor(t,i,s,e,h){super(t,i,s,e,h),this.type=5;}_$AI(t,i=this){if((t=S(this,t,i,0)??E)===T)return;const s=this._$AH,e=t===E&&s!==E||t.capture!==s.capture||t.once!==s.once||t.passive!==s.passive,h=t!==E&&(s===E||e);e&&this.element.removeEventListener(this.name,this,s),h&&this.element.addEventListener(this.name,this,t),this._$AH=t;}handleEvent(t){"function"==typeof this._$AH?this._$AH.call(this.options?.host??this.element,t):this._$AH.handleEvent(t);}}class z{constructor(t,i,s){this.element=t,this.type=6,this._$AN=void 0,this._$AM=i,this.options=s;}get _$AU(){return this._$AM._$AU}_$AI(t){S(this,t);}}const Z={M:e$5,P:h,A:o$4,C:1,L:V,R:M$1,D:u$2,V:S,I:R,H:k,N:I,U:L,B:H,F:z},j=t$2.litHtmlPolyfillSupport;j?.(N,R),(t$2.litHtmlVersions??=[]).push("3.3.0");const B=(t,i,s)=>{const e=s?.renderBefore??i;let h=e._$litPart$;if(void 0===h){const t=s?.renderBefore??null;e._$litPart$=h=new R(i.insertBefore(l(),t),t,void 0,s??{});}return h._$AI(t),h};
 
     /**
      * @license
      * Copyright 2017 Google LLC
      * SPDX-License-Identifier: BSD-3-Clause
      */const s$1=globalThis;let i$1 = class i extends y$1{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0;}createRenderRoot(){const t=super.createRenderRoot();return this.renderOptions.renderBefore??=t.firstChild,t}update(t){const r=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(t),this._$Do=B(r,this.renderRoot,this.renderOptions);}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(!0);}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(!1);}render(){return T}};i$1._$litElement$=!0,i$1["finalized"]=!0,s$1.litElementHydrateSupport?.({LitElement:i$1});const o$3=s$1.litElementPolyfillSupport;o$3?.({LitElement:i$1});(s$1.litElementVersions??=[]).push("4.2.0");
-
-    /**
-     * @license
-     * Copyright 2017 Google LLC
-     * SPDX-License-Identifier: BSD-3-Clause
-     */
-    const t$2=t=>(e,o)=>{void 0!==o?o.addInitializer((()=>{customElements.define(t,e);})):customElements.define(t,e);};
 
     /**
      * @license
@@ -81,7 +74,7 @@ var npmCompilation;
      * SPDX-License-Identifier: BSD-3-Clause
      */function n(n){return (o,r)=>{const{slot:e}=n??{},s="slot"+(e?`[name=${e}]`:":not([name])");return e$4(o,r,{get(){const t=this.renderRoot?.querySelector(s);return t?.assignedNodes(n)??[]}})}}
 
-    const VERSION = '1.16.1';
+    const VERSION = '1.15.0';
     const CONFIG_KEY = '__vscodeElements_disableRegistryWarning__';
     class VscElement extends i$1 {
         /** VSCode Elements version */
@@ -155,7 +148,7 @@ var npmCompilation;
     }
 
     const defaultFontStack$2 = r$6(getDefaultFontStack());
-    const styles$x = [
+    const styles$w = [
         defaultStyles,
         i$4 `
     :host {
@@ -205,7 +198,7 @@ var npmCompilation;
   `,
     ];
 
-    var __decorate$C = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+    var __decorate$B = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
         var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
         if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
         else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -232,11 +225,11 @@ var npmCompilation;
             return x ` <slot></slot> `;
         }
     };
-    VscodeBadge.styles = styles$x;
-    __decorate$C([
+    VscodeBadge.styles = styles$w;
+    __decorate$B([
         n$1({ reflect: true })
     ], VscodeBadge.prototype, "variant", void 0);
-    VscodeBadge = __decorate$C([
+    VscodeBadge = __decorate$B([
         customElement('vscode-badge')
     ], VscodeBadge);
 
@@ -294,7 +287,7 @@ var npmCompilation;
      */
     const stylePropertyMap = e$1(StylePropertyMap);
 
-    const styles$w = [
+    const styles$v = [
         defaultStyles,
         i$4 `
     :host {
@@ -359,7 +352,7 @@ var npmCompilation;
   `,
     ];
 
-    var __decorate$B = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+    var __decorate$A = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
         var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
         if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
         else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -469,33 +462,33 @@ var npmCompilation;
     `;
         }
     };
-    VscodeIcon.styles = styles$w;
+    VscodeIcon.styles = styles$v;
     VscodeIcon.stylesheetHref = '';
     VscodeIcon.nonce = '';
-    __decorate$B([
+    __decorate$A([
         n$1()
     ], VscodeIcon.prototype, "label", void 0);
-    __decorate$B([
+    __decorate$A([
         n$1({ type: String })
     ], VscodeIcon.prototype, "name", void 0);
-    __decorate$B([
+    __decorate$A([
         n$1({ type: Number })
     ], VscodeIcon.prototype, "size", void 0);
-    __decorate$B([
+    __decorate$A([
         n$1({ type: Boolean, reflect: true })
     ], VscodeIcon.prototype, "spin", void 0);
-    __decorate$B([
+    __decorate$A([
         n$1({ type: Number, attribute: 'spin-duration' })
     ], VscodeIcon.prototype, "spinDuration", void 0);
-    __decorate$B([
+    __decorate$A([
         n$1({ type: Boolean, reflect: true, attribute: 'action-icon' })
     ], VscodeIcon.prototype, "actionIcon", void 0);
-    VscodeIcon = VscodeIcon_1 = __decorate$B([
+    VscodeIcon = VscodeIcon_1 = __decorate$A([
         customElement('vscode-icon')
     ], VscodeIcon);
 
     const defaultFontStack$1 = r$6(getDefaultFontStack());
-    const styles$v = [
+    const styles$u = [
         defaultStyles,
         i$4 `
     :host {
@@ -506,13 +499,13 @@ var npmCompilation;
       border-width: 1px;
       color: var(--vscode-button-foreground, #ffffff);
       cursor: pointer;
-      display: inline-flex;
+      display: inline-block;
       font-family: var(--vscode-font-family, ${defaultFontStack$1});
       font-size: var(--vscode-font-size, 13px);
       font-weight: var(--vscode-font-weight, normal);
       line-height: 22px;
       overflow: hidden;
-      padding: 0;
+      padding: 1px 13px;
       user-select: none;
       white-space: nowrap;
     }
@@ -582,10 +575,6 @@ var npmCompilation;
       margin-left: 0;
     }
 
-    ::slotted(*:last-child) {
-      margin-right: 0;
-    }
-
     ::slotted(vscode-icon) {
       color: inherit;
     }
@@ -597,15 +586,6 @@ var npmCompilation;
       justify-content: center;
       position: relative;
       width: 100%;
-      height: 100%;
-      padding: 1px 13px;
-    }
-
-    :host(:empty) .wrapper,
-    :host([icon-only]) .wrapper {
-      min-height: 24px;
-      min-width: 16px;
-      padding: 1px 5px;
     }
 
     slot {
@@ -614,60 +594,21 @@ var npmCompilation;
       height: 100%;
     }
 
-    .icon,
-    .icon-after {
+    .icon {
       color: inherit;
       display: block;
-    }
-
-    :host(:not(:empty)) .icon {
       margin-right: 3px;
     }
 
-    :host(:not(:empty)) .icon-after,
-    :host([icon]) .icon-after {
+    .icon-after {
+      color: inherit;
+      display: block;
       margin-left: 3px;
-    }
-
-    .divider {
-      display: var(--divider-display, none);
-      background-color: transparent;
-      padding: 4px 0;
-      box-sizing: border-box;
-    }
-
-    :host(:hover) .divider,
-    :host(:focus) .divider {
-      background-color: var(--vscode-button-hoverBackground, #026ec1);
-    }
-
-    :host([secondary]) .divider {
-      background-color: var(--vscode-button-secondaryBackground, #313131);
-    }
-
-    :host([secondary]:hover) .divider,
-    :host([secondary]:focus) .divider {
-      background-color: var(--vscode-button-secondaryHoverBackground, #3c3c3c);
-    }
-
-    .divider > div {
-      background-color: var(
-        --vscode-button-separator,
-        rgba(255, 255, 255, 0.4)
-      );
-      height: 100%;
-      width: 1px;
-      margin: 0;
-    }
-
-    :host([secondary]) .divider > div {
-      background-color: var(--vscode-button-secondaryForeground, #cccccc);
-      opacity: 0.4;
     }
   `,
     ];
 
-    var __decorate$A = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
+    var __decorate$z = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
         var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
         if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
         else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
@@ -726,7 +667,6 @@ var npmCompilation;
             this.iconAfterSpin = false;
             this.focused = false;
             this.name = undefined;
-            this.iconOnly = false;
             this.type = 'button';
             this.value = '';
             this._prevTabindex = 0;
@@ -829,7 +769,6 @@ var npmCompilation;
                 wrapper: true,
                 'has-icon-before': hasIcon,
                 'has-icon-after': hasIconAfter,
-                'icon-only': this.iconOnly,
             };
             const iconElem = hasIcon
                 ? x `<vscode-icon
@@ -853,131 +792,64 @@ var npmCompilation;
         <slot></slot>
         ${iconAfterElem}
       </span>
-      <div class="divider"><div></div></div>
     `;
         }
     };
-    VscodeButton.styles = styles$v;
+    VscodeButton.styles = styles$u;
     /** @internal */
     VscodeButton.formAssociated = true;
-    __decorate$A([
+    __decorate$z([
         n$1({ type: Boolean, reflect: true })
     ], VscodeButton.prototype, "autofocus", void 0);
-    __decorate$A([
+    __decorate$z([
         n$1({ type: Number, reflect: true })
     ], VscodeButton.prototype, "tabIndex", void 0);
-    __decorate$A([
+    __decorate$z([
         n$1({ type: Boolean, reflect: true })
     ], VscodeButton.prototype, "secondary", void 0);
-    __decorate$A([
+    __decorate$z([
         n$1({ reflect: true })
     ], VscodeButton.prototype, "role", void 0);
-    __decorate$A([
+    __decorate$z([
         n$1({ type: Boolean, reflect: true })
     ], VscodeButton.prototype, "disabled", void 0);
-    __decorate$A([
+    __decorate$z([
         n$1()
     ], VscodeButton.prototype, "icon", void 0);
-    __decorate$A([
+    __decorate$z([
         n$1({ type: Boolean, reflect: true, attribute: 'icon-spin' })
     ], VscodeButton.prototype, "iconSpin", void 0);
-    __decorate$A([
+    __decorate$z([
         n$1({ type: Number, reflect: true, attribute: 'icon-spin-duration' })
     ], VscodeButton.prototype, "iconSpinDuration", void 0);
-    __decorate$A([
+    __decorate$z([
         n$1({ attribute: 'icon-after' })
     ], VscodeButton.prototype, "iconAfter", void 0);
-    __decorate$A([
+    __decorate$z([
         n$1({ type: Boolean, reflect: true, attribute: 'icon-after-spin' })
     ], VscodeButton.prototype, "iconAfterSpin", void 0);
-    __decorate$A([
+    __decorate$z([
         n$1({
             type: Number,
             reflect: true,
             attribute: 'icon-after-spin-duration',
         })
     ], VscodeButton.prototype, "iconAfterSpinDuration", void 0);
-    __decorate$A([
+    __decorate$z([
         n$1({ type: Boolean, reflect: true })
     ], VscodeButton.prototype, "focused", void 0);
-    __decorate$A([
+    __decorate$z([
         n$1({ type: String, reflect: true })
     ], VscodeButton.prototype, "name", void 0);
-    __decorate$A([
-        n$1({ type: Boolean, reflect: true, attribute: 'icon-only' })
-    ], VscodeButton.prototype, "iconOnly", void 0);
-    __decorate$A([
+    __decorate$z([
         n$1({ reflect: true })
     ], VscodeButton.prototype, "type", void 0);
-    __decorate$A([
+    __decorate$z([
         n$1()
     ], VscodeButton.prototype, "value", void 0);
-    VscodeButton = __decorate$A([
+    VscodeButton = __decorate$z([
         customElement('vscode-button')
     ], VscodeButton);
-
-    const styles$u = [
-        defaultStyles,
-        i$4 `
-    :host {
-      display: inline-flex;
-      align-items: stretch;
-      padding: 0;
-      border: none;
-    }
-
-    ::slotted(vscode-button:not(:first-child)) {
-      border-top-left-radius: 0;
-      border-bottom-left-radius: 0;
-      border-left-width: 0;
-    }
-
-    ::slotted(vscode-button:not(:last-child)) {
-      --divider-display: block;
-
-      border-top-right-radius: 0;
-      border-bottom-right-radius: 0;
-      border-right-width: 0;
-    }
-
-    ::slotted(vscode-button:focus) {
-      z-index: 1;
-    }
-  `,
-    ];
-
-    var __decorate$z = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-    /**
-     * Shows a split button, including several components in a single button. Commonly used to show a button with a dropdown to the right.
-     *
-     * @tag vscode-button-group
-     *
-     * @cssprop [--vscode-button-background=#0078d4]
-     * @cssprop [--vscode-button-foreground=#ffffff]
-     * @cssprop [--vscode-button-border=var(--vscode-button-background, rgba(255, 255, 255, 0.07))]
-     * @cssprop [--vscode-button-hoverBackground=#026ec1]
-     * @cssprop [--vscode-font-family=sans-serif] - A sans-serif font type depends on the host OS.
-     * @cssprop [--vscode-font-size=13px]
-     * @cssprop [--vscode-font-weight=normal]
-     * @cssprop [--vscode-button-secondaryForeground=#cccccc]
-     * @cssprop [--vscode-button-secondaryBackground=#313131]
-     * @cssprop [--vscode-button-secondaryHoverBackground=#3c3c3c]
-     * @cssprop [--vscode-focusBorder=#0078d4]
-     */
-    let VscodeButtonGroup = class VscodeButtonGroup extends VscElement {
-        render() {
-            return x ` <slot></slot> `;
-        }
-    };
-    VscodeButtonGroup.styles = styles$u;
-    VscodeButtonGroup = __decorate$z([
-        t$2('vscode-button-group')
-    ], VscodeButtonGroup);
 
     var __decorate$y = (undefined && undefined.__decorate) || function (decorators, target, key, desc) {
         var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -6664,9 +6536,9 @@ var npmCompilation;
         defaultStyles,
         i$4 `
     :host {
-      --separator-border: var(--vscode-editorWidget-border, #454545);
+      --separator-border: var(--vscode-editorWidget-border, transparent);
 
-      border: 1px solid var(--vscode-editorWidget-border, #454545);
+      border: 1px solid var(--vscode-editorWidget-border);
       display: block;
       overflow: hidden;
       position: relative;
@@ -6752,7 +6624,7 @@ var npmCompilation;
 
     .handle.hover {
       transition: background-color 0.1s ease-out 0.3s;
-      background-color: var(--vscode-sash-hoverBorder, #0078d4);
+      background-color: var(--vscode-sash-hoverBorder);
     }
 
     .handle.hide {
@@ -6814,9 +6686,7 @@ var npmCompilation;
      *
      * @prop {'start' | 'end' | 'none'} fixedPane
      *
-     * @cssprop [--separator-border=#454545]
-     * @cssprop [--vscode-editorWidget-border=#454545]
-     * @cssprop [--vscode-sash-hoverBorder=#0078d4]
+     * @cssprop [--hover-border=var(--vscode-sash-hoverBorder)]
      */
     let VscodeSplitLayout = VscodeSplitLayout_1 = class VscodeSplitLayout extends VscElement {
         /**
@@ -9787,7 +9657,6 @@ var npmCompilation;
         __proto__: null,
         get VscodeBadge () { return VscodeBadge; },
         get VscodeButton () { return VscodeButton; },
-        get VscodeButtonGroup () { return VscodeButtonGroup; },
         get VscodeCheckbox () { return VscodeCheckbox; },
         get VscodeCheckboxGroup () { return VscodeCheckboxGroup; },
         get VscodeCollapsible () { return VscodeCollapsible; },
@@ -9878,6 +9747,36 @@ let sleep=function sleep(ms) {
 }
 __as1(_, 'sleep', sleep);
 
+let uuidv4=function uuidv4() {
+    let uid = '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c => (Number(c) ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> Number(c) / 4).toString(16));
+    return uid;
+}
+__as1(_, 'uuidv4', uuidv4);
+
+let DateConverter=class DateConverter {
+    static __converter = new DateConverter();
+    static get converter() {
+        return this.__converter;
+    }
+    static set converter(value) {
+        this.__converter = value;
+    }
+    isStringDate(txt) {
+        return /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3,6})Z$/.exec(txt) !== null;
+    }
+    fromString(txt) {
+        return new Date(txt);
+    }
+    toString(date) {
+        if (date.getFullYear() < 100) {
+            return "0001-01-01T00:00:00.000Z";
+        }
+        return date.toISOString();
+    }
+}
+DateConverter.Namespace=`Aventus`;
+__as1(_, 'DateConverter', DateConverter);
+
 let ActionGuard=class ActionGuard {
     /**
      * Map to store actions that are currently running.
@@ -9939,36 +9838,6 @@ __as1(_, 'DragElementXYType', DragElementXYType);
 
 let DragElementLeftTopType= [HTMLElement, SVGSVGElement];
 __as1(_, 'DragElementLeftTopType', DragElementLeftTopType);
-
-let uuidv4=function uuidv4() {
-    let uid = '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c => (Number(c) ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> Number(c) / 4).toString(16));
-    return uid;
-}
-__as1(_, 'uuidv4', uuidv4);
-
-let DateConverter=class DateConverter {
-    static __converter = new DateConverter();
-    static get converter() {
-        return this.__converter;
-    }
-    static set converter(value) {
-        this.__converter = value;
-    }
-    isStringDate(txt) {
-        return /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3,6})Z$/.exec(txt) !== null;
-    }
-    fromString(txt) {
-        return new Date(txt);
-    }
-    toString(date) {
-        if (date.getFullYear() < 100) {
-            return "0001-01-01T00:00:00.000Z";
-        }
-        return date.toISOString();
-    }
-}
-DateConverter.Namespace=`Aventus`;
-__as1(_, 'DateConverter', DateConverter);
 
 let ElementExtension=class ElementExtension {
     /**
@@ -10246,33 +10115,6 @@ let ElementExtension=class ElementExtension {
 }
 ElementExtension.Namespace=`Aventus`;
 __as1(_, 'ElementExtension', ElementExtension);
-
-let Instance=class Instance {
-    static elements = new Map();
-    static get(type) {
-        let result = this.elements.get(type);
-        if (!result) {
-            let cst = type.prototype['constructor'];
-            result = new cst();
-            this.elements.set(type, result);
-        }
-        return result;
-    }
-    static set(el) {
-        let cst = el.constructor;
-        if (this.elements.get(cst)) {
-            return false;
-        }
-        this.elements.set(cst, el);
-        return true;
-    }
-    static destroy(el) {
-        let cst = el.constructor;
-        return this.elements.delete(cst);
-    }
-}
-Instance.Namespace=`Aventus`;
-__as1(_, 'Instance', Instance);
 
 let Style=class Style {
     static instance;
@@ -10966,6 +10808,9 @@ let Watcher=class Watcher {
                 for (let key in reservedName) {
                     delete data[key];
                 }
+                for (let key in data) {
+                    clearReservedNames(data[key]);
+                }
             }
         };
         const setProxyPath = (newProxy, newPath) => {
@@ -11305,11 +11150,13 @@ let Watcher=class Watcher {
                                     el = replaceByAlias(target, el, target.length + '', receiver, false, out);
                                     target.push(el);
                                     const dones = [];
+                                    const dones2 = [];
                                     if (out.otherRoot) {
                                         dones.push(out.otherRoot);
+                                        dones2.push(out.otherRoot);
                                     }
                                     trigger('CREATED', target, receiver, receiver[index], "[" + (index) + "]", dones);
-                                    trigger('UPDATED', target, receiver, target.length, "length", dones);
+                                    trigger('UPDATED', target, receiver, target.length, "length", dones2);
                                     return index;
                                 };
                             }
@@ -11381,13 +11228,16 @@ let Watcher=class Watcher {
                                 result = (key, value) => {
                                     const out = {};
                                     let dones = [];
+                                    let dones2 = [];
                                     key = Watcher.extract(key);
                                     value = replaceByAlias(target, value, key + '', receiver, false, out);
-                                    if (out.otherRoot)
+                                    if (out.otherRoot) {
                                         dones.push(out.otherRoot);
+                                        dones2.push(out.otherRoot);
+                                    }
                                     let result = target.set(key, value);
                                     trigger('CREATED', target, receiver, receiver.get(key), key + '', dones);
-                                    trigger('UPDATED', target, receiver, target.size, "size", dones);
+                                    trigger('UPDATED', target, receiver, target.size, "size", dones2);
                                     return result;
                                 };
                             }
@@ -13776,6 +13626,33 @@ let Template=class Template {
 Template.Namespace=`Aventus`;
 __as1(_, 'Template', Template);
 
+let Instance=class Instance {
+    static elements = new Map();
+    static get(type) {
+        let result = this.elements.get(type);
+        if (!result) {
+            let cst = type.prototype['constructor'];
+            result = new cst();
+            this.elements.set(type, result);
+        }
+        return result;
+    }
+    static set(el) {
+        let cst = el.constructor;
+        if (this.elements.get(cst)) {
+            return false;
+        }
+        this.elements.set(cst, el);
+        return true;
+    }
+    static destroy(el) {
+        let cst = el.constructor;
+        return this.elements.delete(cst);
+    }
+}
+Instance.Namespace=`Aventus`;
+__as1(_, 'Instance', Instance);
+
 let WebComponent=class WebComponent extends HTMLElement {
     /**
      * Add attributes informations
@@ -14068,7 +13945,7 @@ let WebComponent=class WebComponent extends HTMLElement {
     }
     disconnectedCallback() {
         setTimeout(() => {
-            this.postDisonnect();
+            this.postDisconnect();
         });
     }
     __onReadyCb = [];
@@ -14455,7 +14332,7 @@ let WebComponent=class WebComponent extends HTMLElement {
     /**
     * Function triggered each time the component is removed from the DOM
     */
-    postDisonnect() { }
+    postDisconnect() { }
     /**
      * Find a parent by tagname if exist
      */
@@ -14592,445 +14469,6 @@ let WebComponentInstance=class WebComponentInstance {
 }
 WebComponentInstance.Namespace=`Aventus`;
 __as1(_, 'WebComponentInstance', WebComponentInstance);
-
-let Json=class Json {
-    /**
-     * Converts a JavaScript class instance to a JSON object.
-     * @template T - The type of the object to convert.
-     * @param {T} obj - The object to convert to JSON.
-     * @param {JsonToOptions} [options] - Options for JSON conversion.
-     * @returns {{ [key: string | number]: any; }} Returns the JSON representation of the object.
-     */
-    static classToJson(obj, options) {
-        const realOptions = {
-            isValidKey: options?.isValidKey ?? (() => true),
-            replaceKey: options?.replaceKey ?? ((key) => key),
-            transformValue: options?.transformValue ?? ((key, value) => value),
-            beforeEnd: options?.beforeEnd ?? ((res) => res)
-        };
-        return this.__classToJson(obj, realOptions);
-    }
-    static __classToJson(obj, options) {
-        let result = {};
-        let descriptors = Object.getOwnPropertyDescriptors(obj);
-        for (let key in descriptors) {
-            if (options.isValidKey(key))
-                result[options.replaceKey(key)] = options.transformValue(key, descriptors[key].value);
-        }
-        let cst = obj.constructor;
-        while (cst.prototype && cst != Object.prototype) {
-            let descriptorsClass = Object.getOwnPropertyDescriptors(cst.prototype);
-            for (let key in descriptorsClass) {
-                if (options.isValidKey(key)) {
-                    let descriptor = descriptorsClass[key];
-                    if (descriptor?.get) {
-                        result[options.replaceKey(key)] = options.transformValue(key, obj[key]);
-                    }
-                }
-            }
-            cst = Object.getPrototypeOf(cst);
-        }
-        result = options.beforeEnd(result);
-        return result;
-    }
-    /**
-    * Converts a JSON object to a JavaScript class instance.
-    * @template T - The type of the object to convert.
-    * @param {T} obj - The object to populate with JSON data.
-    * @param {*} data - The JSON data to populate the object with.
-    * @param {JsonFromOptions} [options] - Options for JSON deserialization.
-    * @returns {T} Returns the populated object.
-    */
-    static classFromJson(obj, data, options) {
-        let realOptions = {
-            transformValue: options?.transformValue ?? ((key, value) => value),
-            replaceUndefined: options?.replaceUndefined ?? false,
-            replaceUndefinedWithKey: options?.replaceUndefinedWithKey ?? false,
-        };
-        return this.__classFromJson(obj, data, realOptions);
-    }
-    static __classFromJson(obj, data, options) {
-        let props = Object.getOwnPropertyNames(obj);
-        for (let prop of props) {
-            let propUpperFirst = prop[0].toUpperCase() + prop.slice(1);
-            let value = data[prop] === undefined ? data[propUpperFirst] : data[prop];
-            if (value !== undefined || options.replaceUndefined || (options.replaceUndefinedWithKey && (Object.hasOwn(data, prop) || Object.hasOwn(data, propUpperFirst)))) {
-                let propInfo = Object.getOwnPropertyDescriptor(obj, prop);
-                if (propInfo?.writable) {
-                    obj[prop] = options.transformValue(prop, value);
-                }
-            }
-        }
-        let cstTemp = obj.constructor;
-        while (cstTemp.prototype && cstTemp != Object.prototype) {
-            props = Object.getOwnPropertyNames(cstTemp.prototype);
-            for (let prop of props) {
-                let propUpperFirst = prop[0].toUpperCase() + prop.slice(1);
-                let value = data[prop] === undefined ? data[propUpperFirst] : data[prop];
-                if (value !== undefined || options.replaceUndefined || (options.replaceUndefinedWithKey && (Object.hasOwn(data, prop) || Object.hasOwn(data, propUpperFirst)))) {
-                    let propInfo = Object.getOwnPropertyDescriptor(cstTemp.prototype, prop);
-                    if (propInfo?.set) {
-                        obj[prop] = options.transformValue(prop, value);
-                    }
-                }
-            }
-            cstTemp = Object.getPrototypeOf(cstTemp);
-        }
-        return obj;
-    }
-}
-Json.Namespace=`Aventus`;
-__as1(_, 'Json', Json);
-
-let Data=class Data {
-    /**
-     * The schema for the class
-     */
-    static $schema;
-    /**
-     * The current namespace
-     */
-    static Namespace = "";
-    /**
-     * Get the unique type for the data. Define it as the namespace + class name
-     */
-    static get Fullname() { return this.Namespace + "." + this.name; }
-    /**
-     * The current namespace
-     */
-    get namespace() {
-        return this.constructor['Namespace'];
-    }
-    /**
-     * Get the unique type for the data. Define it as the namespace + class name
-     */
-    get $type() {
-        return this.constructor['Fullname'];
-    }
-    /**
-     * Get the name of the class
-     */
-    get className() {
-        return this.constructor.name;
-    }
-    /**
-     * Get a JSON for the current object
-     */
-    toJSON() {
-        let toAvoid = ['className', 'namespace'];
-        return Json.classToJson(this, {
-            isValidKey: (key) => !toAvoid.includes(key)
-        });
-    }
-    /**
-     * Clone the object by transforming a parsed JSON string back into the original type
-     */
-    clone() {
-        return Converter.transform(JSON.parse(JSON.stringify(this)));
-    }
-}
-Data.Namespace=`Aventus`;
-__as1(_, 'Data', Data);
-
-let ConverterTransform=class ConverterTransform {
-    transform(data) {
-        return this.transformLoop(data);
-    }
-    createInstance(data) {
-        if (data.$type) {
-            let cst = Converter.info.get(data.$type);
-            if (cst) {
-                return new cst();
-            }
-        }
-        return undefined;
-    }
-    beforeTransformObject(obj) {
-    }
-    afterTransformObject(obj) {
-    }
-    transformLoop(data) {
-        if (data === null) {
-            return data;
-        }
-        if (Array.isArray(data)) {
-            let result = [];
-            for (let element of data) {
-                result.push(this.transformLoop(element));
-            }
-            return result;
-        }
-        if (data instanceof Date) {
-            return data;
-        }
-        if (typeof data === 'object' && !/^\s*class\s+/.test(data.toString())) {
-            let objTemp = this.createInstance(data);
-            if (objTemp) {
-                if (objTemp instanceof Map) {
-                    if (data.values) {
-                        for (const keyValue of data.values) {
-                            objTemp.set(this.transformLoop(keyValue[0]), this.transformLoop(keyValue[1]));
-                        }
-                    }
-                    return objTemp;
-                }
-                let obj = objTemp;
-                this.beforeTransformObject(obj);
-                if (obj.fromJSON) {
-                    obj = obj.fromJSON(data);
-                }
-                else {
-                    obj = Json.classFromJson(obj, data, {
-                        transformValue: (key, value) => {
-                            if (obj[key] instanceof Date) {
-                                return value ? new Date(value) : null;
-                            }
-                            else if (typeof value == 'string' && DateConverter.converter.isStringDate(value)) {
-                                return value ? DateConverter.converter.fromString(value) : null;
-                            }
-                            else if (obj[key] instanceof Map) {
-                                let map = new Map();
-                                if ("$type" in value && value['$type'] == "Aventus.Map") {
-                                    value = value.values;
-                                }
-                                for (const keyValue of value) {
-                                    map.set(this.transformLoop(keyValue[0]), this.transformLoop(keyValue[1]));
-                                }
-                                return map;
-                            }
-                            else if (obj instanceof Data) {
-                                let cst = obj.constructor;
-                                if (cst.$schema[key] == 'boolean') {
-                                    return value ? true : false;
-                                }
-                                else if (cst.$schema[key] == 'number') {
-                                    return isNaN(Number(value)) ? 0 : Number(value);
-                                }
-                                else if (cst.$schema[key] == 'number') {
-                                    return isNaN(Number(value)) ? 0 : Number(value);
-                                }
-                                else if (cst.$schema[key] == 'Date') {
-                                    return value ? new Date(value) : null;
-                                }
-                            }
-                            return this.transformLoop(value);
-                        }
-                    });
-                }
-                this.afterTransformObject(obj);
-                return obj;
-            }
-            let result = {};
-            for (let key in data) {
-                result[key] = this.transformLoop(data[key]);
-            }
-            return result;
-        }
-        if (typeof data == 'string' && /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3})Z$/.exec(data)) {
-            return new Date(data);
-        }
-        return data;
-    }
-    copyValuesClass(target, src, options) {
-        const realOptions = {
-            isValidKey: options?.isValidKey ?? (() => true),
-            replaceKey: options?.replaceKey ?? ((key) => key),
-            transformValue: options?.transformValue ?? ((key, value) => value),
-        };
-        this.__classCopyValues(target, src, realOptions);
-    }
-    __classCopyValues(target, src, options) {
-        let props = Object.getOwnPropertyNames(target);
-        for (let prop of props) {
-            let propInfo = Object.getOwnPropertyDescriptor(target, prop);
-            if (propInfo?.writable) {
-                if (options.isValidKey(prop))
-                    target[options.replaceKey(prop)] = options.transformValue(prop, src[prop]);
-            }
-        }
-        let cstTemp = target.constructor;
-        while (cstTemp.prototype && cstTemp != Object.prototype) {
-            props = Object.getOwnPropertyNames(cstTemp.prototype);
-            for (let prop of props) {
-                let propInfo = Object.getOwnPropertyDescriptor(cstTemp.prototype, prop);
-                if (propInfo?.set && propInfo.get) {
-                    if (options.isValidKey(prop))
-                        target[options.replaceKey(prop)] = options.transformValue(prop, src[prop]);
-                }
-            }
-            cstTemp = Object.getPrototypeOf(cstTemp);
-        }
-    }
-}
-ConverterTransform.Namespace=`Aventus`;
-__as1(_, 'ConverterTransform', ConverterTransform);
-
-let Converter=class Converter {
-    /**
-    * Map storing information about registered types.
-    */
-    static info = new Map([["Aventus.Map", Map]]);
-    /**
-    * Map storing schemas for registered types.
-    */
-    static schema = new Map();
-    /**
-     * Internal converter instance.
-     */
-    static __converter = new ConverterTransform();
-    /**
-     * Getter for the internal converter instance.
-     */
-    static get converterTransform() {
-        return this.__converter;
-    }
-    /**
-    * Sets the converter instance.
-    * @param converter The converter instance to set.
-    */
-    static setConverter(converter) {
-        this.__converter = converter;
-    }
-    /**
-    * Registers a unique string type for any class.
-    * @param $type The unique string type identifier.
-    * @param cst The constructor function for the class.
-    * @param schema Optional schema for the registered type.
-    */
-    static register($type, cst, schema) {
-        this.info.set($type, cst);
-        if (schema) {
-            this.schema.set($type, schema);
-        }
-    }
-    /**
-     * Transforms the provided data using the current converter instance.
-     * @template T
-     * @param {*} data The data to transform.
-     * @param {IConverterTransform} [converter] Optional converter instance to use for transformation.
-     * @returns {T} Returns the transformed data.
-     */
-    static transform(data, converter) {
-        if (!converter) {
-            converter = this.converterTransform;
-        }
-        return converter.transform(data);
-    }
-    /**
-     * Copies values from one class instance to another using the current converter instance.
-     * @template T
-     * @param {T} to The destination class instance to copy values into.
-     * @param {T} from The source class instance to copy values from.
-     * @param {ClassCopyOptions} [options] Optional options for the copy operation.
-     * @param {IConverterTransform} [converter] Optional converter instance to use for the copy operation.
-     * @returns {T} Returns the destination class instance with copied values.
-     */
-    static copyValuesClass(to, from, options, converter) {
-        if (!converter) {
-            converter = this.converterTransform;
-        }
-        return converter.copyValuesClass(to, from, options);
-    }
-}
-Converter.Namespace=`Aventus`;
-__as1(_, 'Converter', Converter);
-
-let GenericError=class GenericError {
-    /**
-     * Code for the error
-     */
-    code;
-    /**
-     * Description of the error
-     */
-    message;
-    /**
-     * Additional details related to the error.
-     */
-    details = [];
-    /**
-     * Creates a new instance of GenericError.
-     * @param {EnumValue<T>} code - The error code.
-     * @param {string} message - The error message.
-     */
-    constructor(code, message) {
-        this.code = code;
-        this.message = message + '';
-    }
-}
-GenericError.Namespace=`Aventus`;
-__as1(_, 'GenericError', GenericError);
-
-let VoidWithError=class VoidWithError {
-    /**
-     * Determine if the action is a success
-     */
-    get success() {
-        return this.errors.length == 0;
-    }
-    /**
-     * List of errors
-     */
-    errors = [];
-    /**
-     * Converts the current instance to a VoidWithError object.
-     * @returns {VoidWithError} A new instance of VoidWithError with the same error list.
-     */
-    toGeneric() {
-        const result = new VoidWithError();
-        result.errors = this.errors;
-        return result;
-    }
-    /**
-    * Checks if the error list contains a specific error code.
-    * @template U - The type of error, extending GenericError.
-    * @template T - The type of the error code, which extends either number or Enum.
-    * @param {EnumValue<T>} code - The error code to check for.
-    * @param {new (...args: any[]) => U} [type] - Optional constructor function of the error type.
-    * @returns {boolean} True if the error list contains the specified error code, otherwise false.
-    */
-    containsCode(code, type) {
-        if (type) {
-            for (let error of this.errors) {
-                if (error instanceof type) {
-                    if (error.code == code) {
-                        return true;
-                    }
-                }
-            }
-        }
-        else {
-            for (let error of this.errors) {
-                if (error.code == code) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-}
-VoidWithError.Namespace=`Aventus`;
-__as1(_, 'VoidWithError', VoidWithError);
-
-let ResultWithError=class ResultWithError extends VoidWithError {
-    /**
-      * The result value of the action.
-      * @type {U | undefined}
-      */
-    result;
-    /**
-     * Converts the current instance to a ResultWithError object.
-     * @returns {ResultWithError<U>} A new instance of ResultWithError with the same error list and result value.
-     */
-    toGeneric() {
-        const result = new ResultWithError();
-        result.errors = this.errors;
-        result.result = this.result;
-        return result;
-    }
-}
-ResultWithError.Namespace=`Aventus`;
-__as1(_, 'ResultWithError', ResultWithError);
 
 let ResizeObserver=class ResizeObserver {
     callback;
@@ -15408,6 +14846,9 @@ let DragAndDrop=class DragAndDrop {
         const result = this.options.onStart(e);
         if (result !== false) {
             document.body.style.userSelect = 'none';
+            if (window.getSelection) {
+                window.getSelection()?.removeAllRanges();
+            }
         }
         return result;
     }
@@ -15818,6 +15259,534 @@ let DragAndDrop=class DragAndDrop {
 DragAndDrop.Namespace=`Aventus`;
 __as1(_, 'DragAndDrop', DragAndDrop);
 
+let ConverterTransform=class ConverterTransform {
+    transform(data) {
+        return this.transformLoop(data);
+    }
+    createInstance(data) {
+        if (data.$type) {
+            let cst = Converter.info.get(data.$type);
+            if (cst) {
+                return new cst();
+            }
+        }
+        return undefined;
+    }
+    beforeTransformObject(obj) {
+    }
+    afterTransformObject(obj) {
+    }
+    transformLoop(data) {
+        if (data === null) {
+            return data;
+        }
+        if (Array.isArray(data)) {
+            let result = [];
+            for (let element of data) {
+                result.push(this.transformLoop(element));
+            }
+            return result;
+        }
+        if (data instanceof Date) {
+            return data;
+        }
+        if (typeof data === 'object' && !/^\s*class\s+/.test(data.toString())) {
+            let objTemp = this.createInstance(data);
+            if (objTemp) {
+                if (objTemp instanceof Map) {
+                    if (data.values) {
+                        for (const keyValue of data.values) {
+                            objTemp.set(this.transformLoop(keyValue[0]), this.transformLoop(keyValue[1]));
+                        }
+                    }
+                    return objTemp;
+                }
+                let obj = objTemp;
+                this.beforeTransformObject(obj);
+                if (obj.fromJSON) {
+                    obj = obj.fromJSON(data);
+                }
+                else {
+                    obj = Json.classFromJson(obj, data, {
+                        transformValue: (key, value) => {
+                            if (obj[key] instanceof Date) {
+                                return value ? new Date(value) : null;
+                            }
+                            else if (typeof value == 'string' && DateConverter.converter.isStringDate(value)) {
+                                return value ? DateConverter.converter.fromString(value) : null;
+                            }
+                            else if (obj[key] instanceof Map) {
+                                let map = new Map();
+                                if ("$type" in value && value['$type'] == "Aventus.Map") {
+                                    value = value.values;
+                                }
+                                for (const keyValue of value) {
+                                    map.set(this.transformLoop(keyValue[0]), this.transformLoop(keyValue[1]));
+                                }
+                                return map;
+                            }
+                            else if (obj instanceof Data) {
+                                let cst = obj.constructor;
+                                if (cst.$schema[key] == 'boolean') {
+                                    return value ? true : false;
+                                }
+                                else if (cst.$schema[key] == 'number') {
+                                    return isNaN(Number(value)) ? 0 : Number(value);
+                                }
+                                else if (cst.$schema[key] == 'number') {
+                                    return isNaN(Number(value)) ? 0 : Number(value);
+                                }
+                                else if (cst.$schema[key] == 'Date') {
+                                    return value ? new Date(value) : null;
+                                }
+                            }
+                            return this.transformLoop(value);
+                        }
+                    });
+                }
+                this.afterTransformObject(obj);
+                return obj;
+            }
+            let result = {};
+            for (let key in data) {
+                result[key] = this.transformLoop(data[key]);
+            }
+            return result;
+        }
+        if (typeof data == 'string' && /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d{3})Z$/.exec(data)) {
+            return new Date(data);
+        }
+        return data;
+    }
+    copyValuesClass(target, src, options) {
+        const realOptions = {
+            isValidKey: options?.isValidKey ?? (() => true),
+            replaceKey: options?.replaceKey ?? ((key) => key),
+            transformValue: options?.transformValue ?? ((key, value) => value),
+        };
+        this.__classCopyValues(target, src, realOptions);
+    }
+    __classCopyValues(target, src, options) {
+        let props = Object.getOwnPropertyNames(target);
+        for (let prop of props) {
+            let propInfo = Object.getOwnPropertyDescriptor(target, prop);
+            if (propInfo?.writable) {
+                if (options.isValidKey(prop))
+                    target[options.replaceKey(prop)] = options.transformValue(prop, src[prop]);
+            }
+        }
+        let cstTemp = target.constructor;
+        while (cstTemp.prototype && cstTemp != Object.prototype) {
+            props = Object.getOwnPropertyNames(cstTemp.prototype);
+            for (let prop of props) {
+                let propInfo = Object.getOwnPropertyDescriptor(cstTemp.prototype, prop);
+                if (propInfo?.set && propInfo.get) {
+                    if (options.isValidKey(prop))
+                        target[options.replaceKey(prop)] = options.transformValue(prop, src[prop]);
+                }
+            }
+            cstTemp = Object.getPrototypeOf(cstTemp);
+        }
+    }
+}
+ConverterTransform.Namespace=`Aventus`;
+__as1(_, 'ConverterTransform', ConverterTransform);
+
+let Json=class Json {
+    /**
+     * Converts a JavaScript class instance to a JSON object.
+     * @template T - The type of the object to convert.
+     * @param {T} obj - The object to convert to JSON.
+     * @param {JsonToOptions} [options] - Options for JSON conversion.
+     * @returns {{ [key: string | number]: any; }} Returns the JSON representation of the object.
+     */
+    static classToJson(obj, options) {
+        const realOptions = {
+            isValidKey: options?.isValidKey ?? (() => true),
+            replaceKey: options?.replaceKey ?? ((key) => key),
+            transformValue: options?.transformValue ?? ((key, value) => value),
+            beforeEnd: options?.beforeEnd ?? ((res) => res)
+        };
+        return this.__classToJson(obj, realOptions);
+    }
+    static __classToJson(obj, options) {
+        let result = {};
+        let descriptors = Object.getOwnPropertyDescriptors(obj);
+        for (let key in descriptors) {
+            if (options.isValidKey(key))
+                result[options.replaceKey(key)] = options.transformValue(key, descriptors[key].value);
+        }
+        let cst = obj.constructor;
+        while (cst.prototype && cst != Object.prototype) {
+            let descriptorsClass = Object.getOwnPropertyDescriptors(cst.prototype);
+            for (let key in descriptorsClass) {
+                if (options.isValidKey(key)) {
+                    let descriptor = descriptorsClass[key];
+                    if (descriptor?.get) {
+                        result[options.replaceKey(key)] = options.transformValue(key, obj[key]);
+                    }
+                }
+            }
+            cst = Object.getPrototypeOf(cst);
+        }
+        result = options.beforeEnd(result);
+        return result;
+    }
+    /**
+    * Converts a JSON object to a JavaScript class instance.
+    * @template T - The type of the object to convert.
+    * @param {T} obj - The object to populate with JSON data.
+    * @param {*} data - The JSON data to populate the object with.
+    * @param {JsonFromOptions} [options] - Options for JSON deserialization.
+    * @returns {T} Returns the populated object.
+    */
+    static classFromJson(obj, data, options) {
+        let realOptions = {
+            transformValue: options?.transformValue ?? ((key, value) => value),
+            replaceUndefined: options?.replaceUndefined ?? false,
+            replaceUndefinedWithKey: options?.replaceUndefinedWithKey ?? false,
+        };
+        return this.__classFromJson(obj, data, realOptions);
+    }
+    static __classFromJson(obj, data, options) {
+        let props = Object.getOwnPropertyNames(obj);
+        for (let prop of props) {
+            let propUpperFirst = prop[0].toUpperCase() + prop.slice(1);
+            let value = data[prop] === undefined ? data[propUpperFirst] : data[prop];
+            if (value !== undefined || options.replaceUndefined || (options.replaceUndefinedWithKey && (Object.hasOwn(data, prop) || Object.hasOwn(data, propUpperFirst)))) {
+                let propInfo = Object.getOwnPropertyDescriptor(obj, prop);
+                if (propInfo?.writable) {
+                    obj[prop] = options.transformValue(prop, value);
+                }
+            }
+        }
+        let cstTemp = obj.constructor;
+        while (cstTemp.prototype && cstTemp != Object.prototype) {
+            props = Object.getOwnPropertyNames(cstTemp.prototype);
+            for (let prop of props) {
+                let propUpperFirst = prop[0].toUpperCase() + prop.slice(1);
+                let value = data[prop] === undefined ? data[propUpperFirst] : data[prop];
+                if (value !== undefined || options.replaceUndefined || (options.replaceUndefinedWithKey && (Object.hasOwn(data, prop) || Object.hasOwn(data, propUpperFirst)))) {
+                    let propInfo = Object.getOwnPropertyDescriptor(cstTemp.prototype, prop);
+                    if (propInfo?.set) {
+                        obj[prop] = options.transformValue(prop, value);
+                    }
+                }
+            }
+            cstTemp = Object.getPrototypeOf(cstTemp);
+        }
+        return obj;
+    }
+}
+Json.Namespace=`Aventus`;
+__as1(_, 'Json', Json);
+
+let Converter=class Converter {
+    /**
+    * Map storing information about registered types.
+    */
+    static info = new Map([["Aventus.Map", Map]]);
+    /**
+    * Map storing schemas for registered types.
+    */
+    static schema = new Map();
+    /**
+     * Internal converter instance.
+     */
+    static __converter = new ConverterTransform();
+    /**
+     * Getter for the internal converter instance.
+     */
+    static get converterTransform() {
+        return this.__converter;
+    }
+    /**
+    * Sets the converter instance.
+    * @param converter The converter instance to set.
+    */
+    static setConverter(converter) {
+        this.__converter = converter;
+    }
+    /**
+    * Registers a unique string type for any class.
+    * @param $type The unique string type identifier.
+    * @param cst The constructor function for the class.
+    * @param schema Optional schema for the registered type.
+    */
+    static register($type, cst, schema) {
+        this.info.set($type, cst);
+        if (schema) {
+            this.schema.set($type, schema);
+        }
+    }
+    /**
+     * Transforms the provided data using the current converter instance.
+     * @template T
+     * @param {*} data The data to transform.
+     * @param {IConverterTransform} [converter] Optional converter instance to use for transformation.
+     * @returns {T} Returns the transformed data.
+     */
+    static transform(data, converter) {
+        if (!converter) {
+            converter = this.converterTransform;
+        }
+        return converter.transform(data);
+    }
+    /**
+     * Copies values from one class instance to another using the current converter instance.
+     * @template T
+     * @param {T} to The destination class instance to copy values into.
+     * @param {T} from The source class instance to copy values from.
+     * @param {ClassCopyOptions} [options] Optional options for the copy operation.
+     * @param {IConverterTransform} [converter] Optional converter instance to use for the copy operation.
+     * @returns {T} Returns the destination class instance with copied values.
+     */
+    static copyValuesClass(to, from, options, converter) {
+        if (!converter) {
+            converter = this.converterTransform;
+        }
+        return converter.copyValuesClass(to, from, options);
+    }
+}
+Converter.Namespace=`Aventus`;
+__as1(_, 'Converter', Converter);
+
+let Data=// @Dependances([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
+class Data {
+    static converter = new Converter();
+    /**
+     * The schema for the class
+     */
+    static $schema;
+    /**
+     * The current namespace
+     */
+    static Namespace = "";
+    /**
+     * Get the unique type for the data. Define it as the namespace + class name
+     */
+    static get Fullname() { return this.Namespace + "." + this.name; }
+    /**
+     * The current namespace
+     */
+    get namespace() {
+        return this.constructor['Namespace'];
+    }
+    /**
+     * Get the unique type for the data. Define it as the namespace + class name
+     */
+    get $type() {
+        return this.constructor['Fullname'];
+    }
+    /**
+     * Get the name of the class
+     */
+    get className() {
+        return this.constructor.name;
+    }
+    /**
+     * Get a JSON for the current object
+     */
+    toJSON() {
+        let toAvoid = ['className', 'namespace'];
+        return Json.classToJson(this, {
+            isValidKey: (key) => !toAvoid.includes(key)
+        });
+    }
+    /**
+     * Clone the object by transforming a parsed JSON string back into the original type
+     */
+    clone() {
+        return Converter.transform(JSON.parse(JSON.stringify(this)));
+    }
+}
+Data.Namespace=`Aventus`;
+Data.$schema={"namespace":"string","$type":"string","className":"string"};
+Converter.register(Data.Fullname, Data);
+__as1(_, 'Data', Data);
+
+let GenericError=// @Dependances([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
+class GenericError {
+    static converter = new Converter();
+    static get Fullname() { return "Aventus.GenericError"; }
+    /**
+     * Code for the error
+     */
+    code;
+    /**
+     * Description of the error
+     */
+    message;
+    /**
+     * Additional details related to the error.
+     */
+    details = [];
+    /**
+     * Creates a new instance of GenericError.
+     * @param {EnumValue<T>} code - The error code.
+     * @param {string} message - The error message.
+     */
+    constructor(code, message) {
+        this.code = code;
+        this.message = message + '';
+    }
+}
+GenericError.Namespace=`Aventus`;
+GenericError.$schema={"code":"Aventus.EnumValue","message":"string"};
+Converter.register(GenericError.Fullname, GenericError);
+__as1(_, 'GenericError', GenericError);
+
+let VoidWithError=class VoidWithError {
+    static get Fullname() { return "Aventus.VoidWithError"; }
+    /**
+     * Determine if the action is a success
+     */
+    get success() {
+        return this.errors.length == 0;
+    }
+    /**
+     * List of errors
+     */
+    errors = [];
+    /**
+     * Converts the current instance to a VoidWithError object.
+     * @returns {VoidWithError} A new instance of VoidWithError with the same error list.
+     */
+    toGeneric() {
+        const result = new VoidWithError();
+        result.errors = this.errors;
+        return result;
+    }
+    /**
+    * Checks if the error list contains a specific error code.
+    * @template U - The type of error, extending GenericError.
+    * @template T - The type of the error code, which extends either number or Enum.
+    * @param {EnumValue<T>} code - The error code to check for.
+    * @param {new (...args: any[]) => U} [type] - Optional constructor function of the error type.
+    * @returns {boolean} True if the error list contains the specified error code, otherwise false.
+    */
+    containsCode(code, type) {
+        if (type) {
+            for (let error of this.errors) {
+                if (error instanceof type) {
+                    if (error.code == code) {
+                        return true;
+                    }
+                }
+            }
+        }
+        else {
+            for (let error of this.errors) {
+                if (error.code == code) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    run(fct) {
+        if (this.success) {
+            let result = fct();
+            if (!Array.isArray(result)) {
+                result = result.errors;
+            }
+            if (result.length > 0) {
+                this.errors = [...this.errors, ...result];
+            }
+        }
+        return this;
+    }
+    async runAsync(fct) {
+        if (this.success) {
+            let result = await fct();
+            if (!Array.isArray(result)) {
+                result = result.errors;
+            }
+            if (result.length > 0) {
+                this.errors = [...this.errors, ...result];
+            }
+        }
+        return this;
+    }
+    extract(fct) {
+        if (this.success) {
+            let result = fct();
+            if (result.success && result.result) {
+                return result.result;
+            }
+            this.errors = [...this.errors, ...result.errors];
+        }
+        return undefined;
+    }
+    async extractAsync(fct) {
+        if (this.success) {
+            let result = await fct();
+            if (result.success && result.result) {
+                return result.result;
+            }
+            this.errors = [...this.errors, ...result.errors];
+        }
+        return undefined;
+    }
+}
+VoidWithError.Namespace=`Aventus`;
+VoidWithError.$schema={"success":"boolean","errors":"T[]"};
+Converter.register(VoidWithError.Fullname, VoidWithError);
+__as1(_, 'VoidWithError', VoidWithError);
+
+let ResultWithError=class ResultWithError extends VoidWithError {
+    static get Fullname() { return "Aventus.ResultWithError"; }
+    /**
+      * The result value of the action.
+      * @type {U | undefined}
+      */
+    result;
+    /**
+     * Converts the current instance to a ResultWithError object.
+     * @returns {ResultWithError<U>} A new instance of ResultWithError with the same error list and result value.
+     */
+    toGeneric() {
+        const result = new ResultWithError();
+        result.errors = this.errors;
+        result.result = this.result;
+        return result;
+    }
+    run(fct) {
+        if (this.success) {
+            let result = fct();
+            if (!Array.isArray(result)) {
+                result = result.errors;
+            }
+            if (result.length > 0) {
+                this.errors = [...this.errors, ...result];
+            }
+            if (result instanceof ResultWithError && result.success && result.result) {
+                this.result = result.result;
+            }
+        }
+        return this;
+    }
+    async runAsync(fct) {
+        if (this.success) {
+            let result = await fct();
+            if (!Array.isArray(result)) {
+                result = result.errors;
+            }
+            if (result.length > 0) {
+                this.errors = [...this.errors, ...result];
+            }
+            if (result instanceof ResultWithError && result.success && result.result) {
+                this.result = result.result;
+            }
+        }
+        return this;
+    }
+}
+ResultWithError.Namespace=`Aventus`;
+ResultWithError.$schema={...(VoidWithError?.$schema ?? {}), };
+Converter.register(ResultWithError.Fullname, ResultWithError);
+__as1(_, 'ResultWithError', ResultWithError);
+
 
 for(let key in _) { Aventus[key] = _[key] }
 })(Aventus);
@@ -15842,6 +15811,8 @@ __as1(_, 'ErrorCode', ErrorCode);
 let Error=class Error extends Aventus.GenericError {
 }
 Error.Namespace=`VscodeView`;
+Error.$schema={...(Aventus.GenericError?.$schema ?? {}), };
+Aventus.Converter.register(Error.Fullname, Error);
 __as1(_, 'Error', Error);
 
 let Router=class Router {
@@ -16189,7 +16160,8 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
     set 'disable'(val) { this.setBoolAttr('disable', val) }get 'no_user_select'() { return this.getBoolAttr('no_user_select') }
     set 'no_user_select'(val) { this.setBoolAttr('no_user_select', val) }get 'mouse_drag'() { return this.getBoolAttr('mouse_drag') }
     set 'mouse_drag'(val) { this.setBoolAttr('mouse_drag', val) }get 'pinch'() { return this.getBoolAttr('pinch') }
-    set 'pinch'(val) { this.setBoolAttr('pinch', val) }    get 'zoom'() { return this.getNumberProp('zoom') }
+    set 'pinch'(val) { this.setBoolAttr('pinch', val) }get 'flex'() { return this.getBoolAttr('flex') }
+    set 'flex'(val) { this.setBoolAttr('flex', val) }    get 'zoom'() { return this.getNumberProp('zoom') }
     set 'zoom'(val) { this.setNumberAttr('zoom', val) }    observer;
     display = { x: 0, y: 0 };
     max = {
@@ -16275,7 +16247,7 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
     __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("zoom", ((target) => {
     target.changeZoom();
 })); }
-    static __style = `:host{--internal-scrollbar-container-color: var(--scrollbar-container-color, transparent);--internal-scrollbar-color: var(--scrollbar-color, #757575);--internal-scrollbar-active-color: var(--scrollbar-active-color, #858585);--internal-scroller-width: var(--scroller-width, 6px);--internal-scroller-top: var(--scroller-top, 3px);--internal-scroller-bottom: var(--scroller-bottom, 3px);--internal-scroller-right: var(--scroller-right, 3px);--internal-scroller-left: var(--scroller-left, 3px);--_scrollbar-content-padding: var(--scrollbar-content-padding, 0);--_scrollbar-container-display: var(--scrollbar-container-display, inline-block)}:host{display:block;height:100%;min-height:inherit;min-width:inherit;overflow:clip;position:relative;-webkit-user-drag:none;-khtml-user-drag:none;-moz-user-drag:none;-o-user-drag:none;width:100%}:host .scroll-main-container{display:block;height:100%;min-height:inherit;min-width:inherit;position:relative;width:100%}:host .scroll-main-container .content-zoom{display:block;height:100%;min-height:inherit;min-width:inherit;position:relative;transform-origin:0 0;width:100%;z-index:4}:host .scroll-main-container .content-zoom .content-hidder{display:block;height:100%;min-height:inherit;min-width:inherit;overflow:clip;position:relative;width:100%}:host .scroll-main-container .content-zoom .content-hidder .content-wrapper{display:var(--_scrollbar-container-display);height:100%;min-height:inherit;min-width:inherit;padding:var(--_scrollbar-content-padding);position:relative;width:100%}:host .scroll-main-container .scroller-wrapper .container-scroller{display:none;overflow:hidden;position:absolute;transition:transform .2s linear;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller{background-color:var(--internal-scrollbar-container-color);border-radius:5px}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller .scroller{background-color:var(--internal-scrollbar-color);border-radius:5px;cursor:pointer;position:absolute;-webkit-tap-highlight-color:rgba(0,0,0,0);touch-action:none;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .scroller.active{background-color:var(--internal-scrollbar-active-color)}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical{height:calc(100% - var(--internal-scroller-bottom)*2 - var(--internal-scroller-width));padding-left:var(--internal-scroller-left);right:var(--internal-scroller-right);top:var(--internal-scroller-bottom);transform:0;width:calc(var(--internal-scroller-width) + var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical.hide{transform:translateX(calc(var(--internal-scroller-width) + var(--internal-scroller-left)))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller .scroller{width:calc(100% - var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal{bottom:var(--internal-scroller-bottom);height:calc(var(--internal-scroller-width) + var(--internal-scroller-top));left:var(--internal-scroller-right);padding-top:var(--internal-scroller-top);transform:0;width:calc(100% - var(--internal-scroller-right)*2 - var(--internal-scroller-width))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal.hide{transform:translateY(calc(var(--internal-scroller-width) + var(--internal-scroller-top)))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller .scroller{height:calc(100% - var(--internal-scroller-top))}:host([y_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{height:auto}:host([x_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{width:auto}:host([y_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.vertical{display:block}:host([x_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.horizontal{display:block}:host([no_user_select]) .content-wrapper *{user-select:none}:host([no_user_select]) ::slotted{user-select:none}`;
+    static __style = `:host{--internal-scrollbar-container-color: var(--scrollbar-container-color, transparent);--internal-scrollbar-color: var(--scrollbar-color, #757575);--internal-scrollbar-active-color: var(--scrollbar-active-color, #858585);--internal-scroller-width: var(--scroller-width, 6px);--internal-scroller-top: var(--scroller-top, 3px);--internal-scroller-bottom: var(--scroller-bottom, 3px);--internal-scroller-right: var(--scroller-right, 3px);--internal-scroller-left: var(--scroller-left, 3px);--_scrollbar-content-padding: var(--scrollbar-content-padding, 0);--_scrollbar-container-display: var(--scrollbar-container-display, inline-block)}:host{display:block;height:100%;min-height:inherit;min-width:inherit;overflow:clip;position:relative;-webkit-user-drag:none;-khtml-user-drag:none;-moz-user-drag:none;-o-user-drag:none;width:100%}:host .scroll-main-container{display:block;height:100%;min-height:inherit;min-width:inherit;position:relative;width:100%}:host .scroll-main-container .content-zoom{display:block;height:100%;min-height:inherit;min-width:inherit;position:relative;transform-origin:0 0;width:100%;z-index:4}:host .scroll-main-container .content-zoom .content-hidder{display:block;height:100%;min-height:inherit;min-width:inherit;overflow:clip;position:relative;width:100%}:host .scroll-main-container .content-zoom .content-hidder .content-wrapper{display:var(--_scrollbar-container-display);height:100%;min-height:inherit;min-width:inherit;padding:var(--_scrollbar-content-padding);position:relative;width:100%}:host .scroll-main-container .scroller-wrapper .container-scroller{display:none;overflow:hidden;position:absolute;transition:transform .2s linear;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller{background-color:var(--internal-scrollbar-container-color);border-radius:5px}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller .scroller{background-color:var(--internal-scrollbar-color);border-radius:5px;cursor:pointer;position:absolute;-webkit-tap-highlight-color:rgba(0,0,0,0);touch-action:none;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .scroller.active{background-color:var(--internal-scrollbar-active-color)}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical{height:calc(100% - var(--internal-scroller-bottom)*2 - var(--internal-scroller-width));padding-left:var(--internal-scroller-left);right:var(--internal-scroller-right);top:var(--internal-scroller-bottom);transform:0;width:calc(var(--internal-scroller-width) + var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical.hide{transform:translateX(calc(var(--internal-scroller-width) + var(--internal-scroller-left)))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller .scroller{width:calc(100% - var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal{bottom:var(--internal-scroller-bottom);height:calc(var(--internal-scroller-width) + var(--internal-scroller-top));left:var(--internal-scroller-right);padding-top:var(--internal-scroller-top);transform:0;width:calc(100% - var(--internal-scroller-right)*2 - var(--internal-scroller-width))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal.hide{transform:translateY(calc(var(--internal-scroller-width) + var(--internal-scroller-top)))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller .scroller{height:calc(100% - var(--internal-scroller-top))}:host([y_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{height:auto}:host([x_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{width:auto}:host([y_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.vertical{display:block}:host([x_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.horizontal{display:block}:host([no_user_select]) .content-wrapper *{user-select:none}:host([no_user_select]) ::slotted{user-select:none}:host([flex]){display:flex;flex-direction:column;min-height:0}:host([flex]) .scroll-main-container{display:flex;flex-direction:column}:host([flex]) .scroll-main-container .content-zoom{display:flex;flex-direction:column}`;
     constructor() {
         super();
         this.renderAnimation = this.createAnimation();
@@ -16357,9 +16329,9 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
     getClassName() {
         return "Scrollable";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('min_zoom')){ this['min_zoom'] = 1; }if(!this.hasAttribute('max_zoom')){ this['max_zoom'] = undefined; }if(!this.hasAttribute('y_scroll_visible')) { this.attributeChangedCallback('y_scroll_visible', false, false); }if(!this.hasAttribute('x_scroll_visible')) { this.attributeChangedCallback('x_scroll_visible', false, false); }if(!this.hasAttribute('floating_scroll')) { this.attributeChangedCallback('floating_scroll', false, false); }if(!this.hasAttribute('x_scroll')) { this.attributeChangedCallback('x_scroll', false, false); }if(!this.hasAttribute('y_scroll')) {this.setAttribute('y_scroll' ,'true'); }if(!this.hasAttribute('auto_hide')) { this.attributeChangedCallback('auto_hide', false, false); }if(!this.hasAttribute('break')){ this['break'] = 0.1; }if(!this.hasAttribute('disable')) { this.attributeChangedCallback('disable', false, false); }if(!this.hasAttribute('no_user_select')) { this.attributeChangedCallback('no_user_select', false, false); }if(!this.hasAttribute('mouse_drag')) { this.attributeChangedCallback('mouse_drag', false, false); }if(!this.hasAttribute('pinch')) { this.attributeChangedCallback('pinch', false, false); }if(!this.hasAttribute('zoom')){ this['zoom'] = 1; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('x');this.__correctGetter('y');this.__correctGetter('xMax');this.__correctGetter('yMax');this.__upgradeProperty('min_zoom');this.__upgradeProperty('max_zoom');this.__upgradeProperty('y_scroll_visible');this.__upgradeProperty('x_scroll_visible');this.__upgradeProperty('floating_scroll');this.__upgradeProperty('x_scroll');this.__upgradeProperty('y_scroll');this.__upgradeProperty('auto_hide');this.__upgradeProperty('break');this.__upgradeProperty('disable');this.__upgradeProperty('no_user_select');this.__upgradeProperty('mouse_drag');this.__upgradeProperty('pinch');this.__upgradeProperty('zoom'); }
-    __listBoolProps() { return ["y_scroll_visible","x_scroll_visible","floating_scroll","x_scroll","y_scroll","auto_hide","disable","no_user_select","mouse_drag","pinch"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('min_zoom')){ this['min_zoom'] = 1; }if(!this.hasAttribute('max_zoom')){ this['max_zoom'] = undefined; }if(!this.hasAttribute('y_scroll_visible')) { this.attributeChangedCallback('y_scroll_visible', false, false); }if(!this.hasAttribute('x_scroll_visible')) { this.attributeChangedCallback('x_scroll_visible', false, false); }if(!this.hasAttribute('floating_scroll')) { this.attributeChangedCallback('floating_scroll', false, false); }if(!this.hasAttribute('x_scroll')) { this.attributeChangedCallback('x_scroll', false, false); }if(!this.hasAttribute('y_scroll')) {this.setAttribute('y_scroll' ,'true'); }if(!this.hasAttribute('auto_hide')) { this.attributeChangedCallback('auto_hide', false, false); }if(!this.hasAttribute('break')){ this['break'] = 0.1; }if(!this.hasAttribute('disable')) { this.attributeChangedCallback('disable', false, false); }if(!this.hasAttribute('no_user_select')) { this.attributeChangedCallback('no_user_select', false, false); }if(!this.hasAttribute('mouse_drag')) { this.attributeChangedCallback('mouse_drag', false, false); }if(!this.hasAttribute('pinch')) { this.attributeChangedCallback('pinch', false, false); }if(!this.hasAttribute('flex')) { this.attributeChangedCallback('flex', false, false); }if(!this.hasAttribute('zoom')){ this['zoom'] = 1; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('x');this.__correctGetter('y');this.__correctGetter('xMax');this.__correctGetter('yMax');this.__upgradeProperty('min_zoom');this.__upgradeProperty('max_zoom');this.__upgradeProperty('y_scroll_visible');this.__upgradeProperty('x_scroll_visible');this.__upgradeProperty('floating_scroll');this.__upgradeProperty('x_scroll');this.__upgradeProperty('y_scroll');this.__upgradeProperty('auto_hide');this.__upgradeProperty('break');this.__upgradeProperty('disable');this.__upgradeProperty('no_user_select');this.__upgradeProperty('mouse_drag');this.__upgradeProperty('pinch');this.__upgradeProperty('flex');this.__upgradeProperty('zoom'); }
+    __listBoolProps() { return ["y_scroll_visible","x_scroll_visible","floating_scroll","x_scroll","y_scroll","auto_hide","disable","no_user_select","mouse_drag","pinch","flex"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     createAnimation() {
         return new Aventus.Animation({
             fps: 60,
@@ -16424,7 +16396,7 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
         }
         let containerSize = direction == 'y' ? container.offsetHeight : container.offsetWidth;
         if (this.contentWrapperSize[direction] != 0) {
-            let scrollPosition = this.position[direction] / this.contentWrapperSize[direction] * containerSize;
+            let scrollPosition = this.div(this.position[direction], this.contentWrapperSize[direction]) * containerSize;
             scroller.style.transform = `translate${direction.toUpperCase()}(${scrollPosition}px)`;
             this.contentWrapper.style.transform = `translate3d(${-1 * this.x}px, ${-1 * this.y}px, 0)`;
         }
@@ -16599,7 +16571,7 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
         else {
             newScale = Math.max(this.min_zoom, newZoom);
         }
-        let scaleDiff = newScale / oldScale;
+        let scaleDiff = this.div(newScale, oldScale);
         const matrix = this.createMatrix()
             .translate(this.x, this.y)
             .translate(mousePositionRelativeToTarget.x, mousePositionRelativeToTarget.y)
@@ -16624,7 +16596,7 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
             const originY = (positioningElRect.top + this.y - this.startTranslate.y) - prevMidpoint.y;
             const newDistance = this.getDistance(touches[0], touches[1]);
             const prevDistance = this.previousDistance;
-            let scaleDiff = prevDistance ? newDistance / prevDistance : 1;
+            let scaleDiff = prevDistance ? this.div(newDistance, prevDistance) : 1;
             const panX = prevMidpoint.x - newMidpoint.x;
             const panY = prevMidpoint.y - newMidpoint.y;
             let oldScale = this.zoom;
@@ -16635,7 +16607,7 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
             else {
                 newScale = Math.max(this.min_zoom, oldScale * scaleDiff);
             }
-            scaleDiff = newScale / oldScale;
+            scaleDiff = this.div(newScale, oldScale);
             const matrix = this.createMatrix()
                 .translate(panX, panY)
                 .translate(originX, originY)
@@ -16889,17 +16861,17 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
         this.contentWrapperSize.y = this.contentWrapper.offsetHeight;
         if (this.zoom < 1) {
             // scale the container for zoom
-            this.contentZoom.style.width = this.mainContainer.offsetWidth / this.zoom + 'px';
-            this.contentZoom.style.height = this.mainContainer.offsetHeight / this.zoom + 'px';
-            this.contentZoom.style.maxHeight = this.mainContainer.offsetHeight / this.zoom + 'px';
+            this.contentZoom.style.width = this.div(this.mainContainer.offsetWidth, this.zoom) + 'px';
+            this.contentZoom.style.height = this.div(this.mainContainer.offsetHeight, this.zoom) + 'px';
+            this.contentZoom.style.maxHeight = this.div(this.mainContainer.offsetHeight, this.zoom) + 'px';
             if (currentOffsetHeight != this.display.y || currentOffsetWidth != this.display.x)
                 hasChanged = true;
             this.display.y = currentOffsetHeight;
             this.display.x = currentOffsetWidth;
         }
         else {
-            const newX = currentOffsetWidth / this.zoom;
-            const newY = currentOffsetHeight / this.zoom;
+            const newX = this.div(currentOffsetWidth, this.zoom);
+            const newY = this.div(currentOffsetHeight, this.zoom);
             if (newY != this.display.y || newX != this.display.x)
                 hasChanged = true;
             this.display.y = newY;
@@ -16945,7 +16917,7 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
         }
     }
     calculateSizeScroller(direction) {
-        const scrollerSize = ((this.display[direction] - this.margin[direction]) / this.contentWrapperSize[direction] * 100);
+        const scrollerSize = (this.div((this.display[direction] - this.margin[direction]), this.contentWrapperSize[direction]) * 100);
         if (direction == "y") {
             this.scroller[direction]().style.height = scrollerSize + '%';
         }
@@ -16973,8 +16945,8 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
         }
         else if (this.loadedOnce) {
             this.savedPercent = {
-                x: this.position.x / this.contentWrapperSize.x,
-                y: this.position.y / this.contentWrapperSize.y
+                x: this.div(this.position.x, this.contentWrapperSize.x),
+                y: this.div(this.position.y, this.contentWrapperSize.y)
             };
         }
         if (!this.calculateRealSize() && !force) {
@@ -17030,6 +17002,11 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
         this.observer.observe(this.contentWrapper);
         this.observer.observe(this);
     }
+    div(nb1, nb2) {
+        if (!nb2)
+            return nb1;
+        return nb1 / nb2;
+    }
     postCreation() {
         this.dimensionRefreshed();
         this.addResizeObserver();
@@ -17067,65 +17044,6 @@ const _ = {};
 let Components = {};
 _.Components = AventusI18nView.Components ?? {};
 let _n;
-const TranslationRowHeader = class TranslationRowHeader extends Aventus.WebComponent {
-    get 'locales'() {
-						return this.__watch["locales"];
-					}
-					set 'locales'(val) {
-						this.__watch["locales"] = val;
-					}    __registerWatchesActions() {
-    this.__addWatchesActions("locales");    super.__registerWatchesActions();
-}
-    static __style = `:host{align-items:stretch;border-bottom:1px solid var(--vscode-widget-border);border-left:1px solid var(--vscode-widget-border);border-right:1px solid var(--vscode-widget-border);display:flex;font-weight:bold;gap:0px;height:39px;text-align:center;user-select:none}:host .key{align-items:center;border-right:1px solid var(--vscode-widget-border);display:flex;flex-shrink:0;justify-content:center;min-width:100px;padding:10px 20px;position:relative;width:var(--_translation-page-key-width)}:host .inputs{display:flex;gap:0px}`;
-    __getStatic() {
-        return TranslationRowHeader;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(TranslationRowHeader.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="key">    <span>Key</span>    <av-resize is_key></av-resize></div><div class="inputs"><template _id="translationrowheader_0"></template></div>` }
-    });
-}
-    __registerTemplateAction() { super.__registerTemplateAction();const templ0 = new Aventus.Template(this);templ0.setTemplate(`    <av-translation-col-header _id="translationrowheader_1"></av-translation-col-header>`);templ0.setActions({
-  "content": {
-    "translationrowheader_1°@HTML": {
-      "fct": (c) => `${c.print(c.comp.__189fa087d6daa05734acb2853341f755method2(c.data.locale))}`,
-      "once": true
-    }
-  },
-  "injection": [
-    {
-      "id": "translationrowheader_1",
-      "injectionName": "locale",
-      "inject": (c) => c.comp.__189fa087d6daa05734acb2853341f755method1(c.data.locale),
-      "once": true
-    }
-  ]
-});this.__getStatic().__template.addLoop({
-                    anchorId: 'translationrowheader_0',
-                    template: templ0,
-                simple:{data: "this.locales",item:"locale"}}); }
-    getClassName() {
-        return "TranslationRowHeader";
-    }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["locales"] = []; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('locales'); }
-    __189fa087d6daa05734acb2853341f755method2(locale) {
-        return locale;
-    }
-    __189fa087d6daa05734acb2853341f755method1(locale) {
-        return locale;
-    }
-}
-TranslationRowHeader.Namespace=`AventusI18nView`;
-TranslationRowHeader.Tag=`av-translation-row-header`;
-__as1(_, 'TranslationRowHeader', TranslationRowHeader);
-if(!window.customElements.get('av-translation-row-header')){window.customElements.define('av-translation-row-header', TranslationRowHeader);Aventus.WebComponentInstance.registerDefinition(TranslationRowHeader);}
-
 const TranslationColHeader = class TranslationColHeader extends Aventus.WebComponent {
     get 'locale'() {
 						return this.__watch["locale"];
@@ -17173,6 +17091,205 @@ TranslationColHeader.Namespace=`AventusI18nView`;
 TranslationColHeader.Tag=`av-translation-col-header`;
 __as1(_, 'TranslationColHeader', TranslationColHeader);
 if(!window.customElements.get('av-translation-col-header')){window.customElements.define('av-translation-col-header', TranslationColHeader);Aventus.WebComponentInstance.registerDefinition(TranslationColHeader);}
+
+let StringTools=class StringTools {
+    static removeAccents(value) {
+        return value
+            .replace(/[áàãâä]/gi, "a")
+            .replace(/[éè¨ê]/gi, "e")
+            .replace(/[íìïî]/gi, "i")
+            .replace(/[óòöôõ]/gi, "o")
+            .replace(/[úùüû]/gi, "u")
+            .replace(/[ç]/gi, "c")
+            .replace(/[ñ]/gi, "n")
+            .replace(/[^a-zA-Z0-9]/g, " ");
+    }
+    static contains(src, search) {
+        if (src === undefined)
+            return false;
+        const _src = this.removeAccents((src + '').toLowerCase());
+        const _search = this.removeAccents((search + '').toLowerCase());
+        return _src.includes(_search);
+    }
+    static search(src, search) {
+        const terms = search.split(" ");
+        for (let _term of terms) {
+            const term = _term.trim();
+            if (term) {
+                if (this.contains(src, term)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    static firstLetterUpper(txt) {
+        return txt.slice(0, 1).toUpperCase() + txt.slice(1);
+    }
+}
+StringTools.Namespace=`AventusI18nView`;
+__as1(_, 'StringTools', StringTools);
+
+const Textarea = class Textarea extends Aventus.WebComponent {
+    static get observedAttributes() {return ["error"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'error'() { return this.getBoolProp('error') }
+    set 'error'(val) { this.setBoolAttr('error', val) }    get 'value'() {
+						return this.__watch["value"];
+					}
+					set 'value'(val) {
+						this.__watch["value"] = val;
+					}    preventDrag;
+    change = new Aventus.Callback();
+    __registerWatchesActions() {
+    this.__addWatchesActions("value", ((target) => {
+    target.textarea.value = target.value;
+}));    super.__registerWatchesActions();
+}
+    static __style = `:host{width:100%}:host vscode-textarea{width:100%}`;
+    __getStatic() {
+        return Textarea;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Textarea.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<vscode-textarea resize="vertical" rows="1" _id="textarea_0"></vscode-textarea>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "elements": [
+    {
+      "name": "textarea",
+      "ids": [
+        "textarea_0"
+      ]
+    }
+  ],
+  "injection": [
+    {
+      "id": "textarea_0",
+      "injectionName": "invalid",
+      "inject": (c) => c.comp.__9affda56eddd377764c7a23adf1303f8method0(),
+      "once": true
+    }
+  ],
+  "events": [
+    {
+      "eventName": "change",
+      "id": "textarea_0",
+      "fct": (e, c) => c.comp.onChange(e)
+    }
+  ]
+}); }
+    getClassName() {
+        return "Textarea";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('error')) { this.attributeChangedCallback('error', false, false); } }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["value"] = "salut"; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('error');this.__correctGetter('value'); }
+    __listBoolProps() { return ["error"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    preventDragFct() {
+        this.preventDrag = new Aventus.DragAndDrop({
+            element: this,
+            applyDrag: false,
+            offsetDrag: 0,
+            onMove: () => {
+            }
+        });
+    }
+    onChange() {
+        debugger;
+        this.value = this.textarea.value;
+        this.change.trigger(this.value);
+    }
+    postCreation() {
+        super.postCreation();
+        this.preventDragFct();
+    }
+    __9affda56eddd377764c7a23adf1303f8method0() {
+        return this.error;
+    }
+}
+Textarea.Namespace=`AventusI18nView`;
+Textarea.Tag=`av-textarea`;
+__as1(_, 'Textarea', Textarea);
+if(!window.customElements.get('av-textarea')){window.customElements.define('av-textarea', Textarea);Aventus.WebComponentInstance.registerDefinition(Textarea);}
+
+let DemoData= {
+    "click me1": {
+        "en-GB": "click me",
+        "fr-CH": "presse moi"
+    },
+    "click me2": {
+        "en-GB": "ⵌⵌ",
+        "fr-CH": "presse moi"
+    }
+};
+__as1(_, 'DemoData', DemoData);
+
+const Loading = class Loading extends Aventus.WebComponent {
+    get 'visible'() { return this.getBoolAttr('visible') }
+    set 'visible'(val) { this.setBoolAttr('visible', val) }    static _instance;
+    static _minTimeDisplay;
+    static _minTimeShow;
+    static _showTime;
+    static __style = `:host{--_loading-dot-size: var(--loading-dot-size, 16px);--_loading-size: var(--loading-size, 84px)}:host{align-items:center;background-color:rgba(0,0,0,.3);display:none;inset:0;justify-content:center;position:fixed;z-index:999}@keyframes l4{to{transform:rotate(1turn)}}:host .loader{animation:l4 1s infinite steps(10);aspect-ratio:1;background:conic-gradient(rgba(0, 0, 0, 0) 10%, var(--vscode-input-foreground)) content-box;border-radius:50%;-webkit-mask:repeating-conic-gradient(rgba(0, 0, 0, 0) 0deg, #000 1deg 20deg, rgba(0, 0, 0, 0) 21deg 36deg),radial-gradient(farthest-side, rgba(0, 0, 0, 0) calc(100% - var(--_loading-dot-size) - 1px), #000 calc(100% - var(--_loading-dot-size)));-webkit-mask-composite:destination-in;mask-composite:intersect;padding:1px;width:var(--_loading-size)}:host([visible]){display:flex}`;
+    __getStatic() {
+        return Loading;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(Loading.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<div class="loader"></div>` }
+    });
+}
+    getClassName() {
+        return "Loading";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('visible')) { this.attributeChangedCallback('visible', false, false); } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('visible'); }
+    __listBoolProps() { return ["visible"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    static show(minTimeShow = 100, minTimeDisplay = 1000) {
+        this._minTimeDisplay = minTimeDisplay;
+        this._minTimeShow = minTimeShow;
+        if (!this._instance) {
+            this._instance = new Loading();
+            document.body.appendChild(this._instance);
+        }
+        if (this._minTimeDisplay) {
+            const d = new Date();
+            this._showTime = d.getTime();
+        }
+        this._instance.visible = true;
+    }
+    static hide() {
+        if (this._minTimeDisplay && this._showTime && this._instance) {
+            const now = new Date();
+            const diff = now.getTime() - this._showTime;
+            if (diff > this._minTimeDisplay) {
+                this._instance.visible = false;
+            }
+            else {
+                const instance = this._instance;
+                const delay = this._minTimeDisplay - diff;
+                setTimeout(() => {
+                    instance.visible = false;
+                }, delay);
+            }
+        }
+    }
+}
+Loading.Namespace=`AventusI18nView`;
+Loading.Tag=`av-loading`;
+__as1(_, 'Loading', Loading);
+if(!window.customElements.get('av-loading')){window.customElements.define('av-loading', Loading);Aventus.WebComponentInstance.registerDefinition(Loading);}
 
 Components.Tooltip = class Tooltip extends Aventus.WebComponent {
     get 'visible'() { return this.getBoolAttr('visible') }
@@ -17390,251 +17507,6 @@ Components.Tooltip.Namespace=`AventusI18nView.Components`;
 Components.Tooltip.Tag=`av-tooltip`;
 __as1(_.Components, 'Tooltip', Components.Tooltip);
 if(!window.customElements.get('av-tooltip')){window.customElements.define('av-tooltip', Components.Tooltip);Aventus.WebComponentInstance.registerDefinition(Components.Tooltip);}
-
-const Textarea = class Textarea extends Aventus.WebComponent {
-    static get observedAttributes() {return ["error"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
-    get 'error'() { return this.getBoolProp('error') }
-    set 'error'(val) { this.setBoolAttr('error', val) }    get 'value'() {
-						return this.__watch["value"];
-					}
-					set 'value'(val) {
-						this.__watch["value"] = val;
-					}    preventDrag;
-    change = new Aventus.Callback();
-    __registerWatchesActions() {
-    this.__addWatchesActions("value", ((target) => {
-    target.textarea.value = target.value;
-}));    super.__registerWatchesActions();
-}
-    static __style = `:host{width:100%}:host vscode-textarea{width:100%}`;
-    __getStatic() {
-        return Textarea;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(Textarea.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<vscode-textarea resize="vertical" rows="1" _id="textarea_0"></vscode-textarea>` }
-    });
-}
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
-  "elements": [
-    {
-      "name": "textarea",
-      "ids": [
-        "textarea_0"
-      ]
-    }
-  ],
-  "injection": [
-    {
-      "id": "textarea_0",
-      "injectionName": "invalid",
-      "inject": (c) => c.comp.__9affda56eddd377764c7a23adf1303f8method0(),
-      "once": true
-    }
-  ],
-  "events": [
-    {
-      "eventName": "change",
-      "id": "textarea_0",
-      "fct": (e, c) => c.comp.onChange(e)
-    }
-  ]
-}); }
-    getClassName() {
-        return "Textarea";
-    }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('error')) { this.attributeChangedCallback('error', false, false); } }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["value"] = "salut"; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('error');this.__correctGetter('value'); }
-    __listBoolProps() { return ["error"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
-    preventDragFct() {
-        this.preventDrag = new Aventus.DragAndDrop({
-            element: this,
-            applyDrag: false,
-            offsetDrag: 0,
-            onMove: () => {
-            }
-        });
-    }
-    onChange() {
-        debugger;
-        this.value = this.textarea.value;
-        this.change.trigger(this.value);
-    }
-    postCreation() {
-        super.postCreation();
-        this.preventDragFct();
-    }
-    __9affda56eddd377764c7a23adf1303f8method0() {
-        return this.error;
-    }
-}
-Textarea.Namespace=`AventusI18nView`;
-Textarea.Tag=`av-textarea`;
-__as1(_, 'Textarea', Textarea);
-if(!window.customElements.get('av-textarea')){window.customElements.define('av-textarea', Textarea);Aventus.WebComponentInstance.registerDefinition(Textarea);}
-
-let StringTools=class StringTools {
-    static removeAccents(value) {
-        return value
-            .replace(/[áàãâä]/gi, "a")
-            .replace(/[éè¨ê]/gi, "e")
-            .replace(/[íìïî]/gi, "i")
-            .replace(/[óòöôõ]/gi, "o")
-            .replace(/[úùüû]/gi, "u")
-            .replace(/[ç]/gi, "c")
-            .replace(/[ñ]/gi, "n")
-            .replace(/[^a-zA-Z0-9]/g, " ");
-    }
-    static contains(src, search) {
-        if (src === undefined)
-            return false;
-        const _src = this.removeAccents((src + '').toLowerCase());
-        const _search = this.removeAccents((search + '').toLowerCase());
-        return _src.includes(_search);
-    }
-    static search(src, search) {
-        const terms = search.split(" ");
-        for (let _term of terms) {
-            const term = _term.trim();
-            if (term) {
-                if (this.contains(src, term)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-    static firstLetterUpper(txt) {
-        return txt.slice(0, 1).toUpperCase() + txt.slice(1);
-    }
-}
-StringTools.Namespace=`AventusI18nView`;
-__as1(_, 'StringTools', StringTools);
-
-let DemoData= {
-    "click me1": {
-        "en-GB": "click me",
-        "fr-CH": "presse moi"
-    },
-    "click me2": {
-        "en-GB": "ⵌⵌ",
-        "fr-CH": "presse moi"
-    }
-};
-__as1(_, 'DemoData', DemoData);
-
-const Loading = class Loading extends Aventus.WebComponent {
-    get 'visible'() { return this.getBoolAttr('visible') }
-    set 'visible'(val) { this.setBoolAttr('visible', val) }    static _instance;
-    static _minTimeDisplay;
-    static _minTimeShow;
-    static _showTime;
-    static __style = `:host{--_loading-dot-size: var(--loading-dot-size, 16px);--_loading-size: var(--loading-size, 84px)}:host{align-items:center;background-color:rgba(0,0,0,.3);display:none;inset:0;justify-content:center;position:fixed;z-index:999}@keyframes l4{to{transform:rotate(1turn)}}:host .loader{animation:l4 1s infinite steps(10);aspect-ratio:1;background:conic-gradient(rgba(0, 0, 0, 0) 10%, var(--vscode-input-foreground)) content-box;border-radius:50%;-webkit-mask:repeating-conic-gradient(rgba(0, 0, 0, 0) 0deg, #000 1deg 20deg, rgba(0, 0, 0, 0) 21deg 36deg),radial-gradient(farthest-side, rgba(0, 0, 0, 0) calc(100% - var(--_loading-dot-size) - 1px), #000 calc(100% - var(--_loading-dot-size)));-webkit-mask-composite:destination-in;mask-composite:intersect;padding:1px;width:var(--_loading-size)}:host([visible]){display:flex}`;
-    __getStatic() {
-        return Loading;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(Loading.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<div class="loader"></div>` }
-    });
-}
-    getClassName() {
-        return "Loading";
-    }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('visible')) { this.attributeChangedCallback('visible', false, false); } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('visible'); }
-    __listBoolProps() { return ["visible"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
-    static show(minTimeShow = 100, minTimeDisplay = 1000) {
-        this._minTimeDisplay = minTimeDisplay;
-        this._minTimeShow = minTimeShow;
-        if (!this._instance) {
-            this._instance = new Loading();
-            document.body.appendChild(this._instance);
-        }
-        if (this._minTimeDisplay) {
-            const d = new Date();
-            this._showTime = d.getTime();
-        }
-        this._instance.visible = true;
-    }
-    static hide() {
-        if (this._minTimeDisplay && this._showTime && this._instance) {
-            const now = new Date();
-            const diff = now.getTime() - this._showTime;
-            if (diff > this._minTimeDisplay) {
-                this._instance.visible = false;
-            }
-            else {
-                const instance = this._instance;
-                const delay = this._minTimeDisplay - diff;
-                setTimeout(() => {
-                    instance.visible = false;
-                }, delay);
-            }
-        }
-    }
-}
-Loading.Namespace=`AventusI18nView`;
-Loading.Tag=`av-loading`;
-__as1(_, 'Loading', Loading);
-if(!window.customElements.get('av-loading')){window.customElements.define('av-loading', Loading);Aventus.WebComponentInstance.registerDefinition(Loading);}
-
-const IconTooltip = class IconTooltip extends Aventus.WebComponent {
-    static get observedAttributes() {return ["name"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
-    get 'notif'() { return this.getBoolAttr('notif') }
-    set 'notif'(val) { this.setBoolAttr('notif', val) }get 'active'() { return this.getBoolAttr('active') }
-    set 'active'(val) { this.setBoolAttr('active', val) }    get 'name'() { return this.getStringProp('name') }
-    set 'name'(val) { this.setStringAttr('name', val) }    static __style = `:host{border-radius:6px;cursor:pointer;height:32px;padding:8px;position:relative;transition:background-color .2s linear;width:32px}:host vscode-icon{height:100%;width:100%}:host .notif{background-color:var(--vscode-icon-foreground);border-radius:10px;display:none;height:10px;position:absolute;right:3px;top:3px;width:10px}:host([active])::after{border:1px solid var(--vscode-button-secondaryHoverBackground);border-radius:6px;content:"";height:100%;left:50%;pointer-events:none;position:absolute;top:50%;transform:translate(-50%, -50%);width:100%}:host(:hover){background-color:var(--vscode-button-secondaryHoverBackground)}:host([notif]) .notif{display:block}`;
-    __getStatic() {
-        return IconTooltip;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(IconTooltip.__style);
-        return arrStyle;
-    }
-    __getHtml() {
-    this.__getStatic().__template.setHTML({
-        slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<vscode-icon _id="icontooltip_0"></vscode-icon><av-tooltip use_absolute no_caret>    <slot></slot></av-tooltip><div class="notif"></div>` }
-    });
-}
-    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
-  "content": {
-    "icontooltip_0°name": {
-      "fct": (c) => `${c.print(c.comp.__6b93c63e12520a69df7261ff7f843c0fmethod0())}`,
-      "once": true
-    }
-  }
-}); }
-    getClassName() {
-        return "IconTooltip";
-    }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('notif')) { this.attributeChangedCallback('notif', false, false); }if(!this.hasAttribute('active')) { this.attributeChangedCallback('active', false, false); }if(!this.hasAttribute('name')){ this['name'] = "symbol-array"; } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('notif');this.__upgradeProperty('active');this.__upgradeProperty('name'); }
-    __listBoolProps() { return ["notif","active"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
-    postCreation() {
-        super.postCreation();
-    }
-    __6b93c63e12520a69df7261ff7f843c0fmethod0() {
-        return this.name;
-    }
-}
-IconTooltip.Namespace=`AventusI18nView`;
-IconTooltip.Tag=`av-icon-tooltip`;
-__as1(_, 'IconTooltip', IconTooltip);
-if(!window.customElements.get('av-icon-tooltip')){window.customElements.define('av-icon-tooltip', IconTooltip);Aventus.WebComponentInstance.registerDefinition(IconTooltip);}
 
 const GenericPopup = class GenericPopup extends Aventus.WebComponent {
     static get observedAttributes() {return ["popup_title"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
@@ -17970,6 +17842,52 @@ TranslateAllPopup.Tag=`av-translate-all-popup`;
 __as1(_, 'TranslateAllPopup', TranslateAllPopup);
 if(!window.customElements.get('av-translate-all-popup')){window.customElements.define('av-translate-all-popup', TranslateAllPopup);Aventus.WebComponentInstance.registerDefinition(TranslateAllPopup);}
 
+const IconTooltip = class IconTooltip extends Aventus.WebComponent {
+    static get observedAttributes() {return ["name"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
+    get 'notif'() { return this.getBoolAttr('notif') }
+    set 'notif'(val) { this.setBoolAttr('notif', val) }get 'active'() { return this.getBoolAttr('active') }
+    set 'active'(val) { this.setBoolAttr('active', val) }    get 'name'() { return this.getStringProp('name') }
+    set 'name'(val) { this.setStringAttr('name', val) }    static __style = `:host{border-radius:6px;cursor:pointer;height:32px;padding:8px;position:relative;transition:background-color .2s linear;width:32px}:host vscode-icon{height:100%;width:100%}:host .notif{background-color:var(--vscode-icon-foreground);border-radius:10px;display:none;height:10px;position:absolute;right:3px;top:3px;width:10px}:host([active])::after{border:1px solid var(--vscode-button-secondaryHoverBackground);border-radius:6px;content:"";height:100%;left:50%;pointer-events:none;position:absolute;top:50%;transform:translate(-50%, -50%);width:100%}:host(:hover){background-color:var(--vscode-button-secondaryHoverBackground)}:host([notif]) .notif{display:block}`;
+    __getStatic() {
+        return IconTooltip;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(IconTooltip.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<vscode-icon _id="icontooltip_0"></vscode-icon><av-tooltip use_absolute no_caret>    <slot></slot></av-tooltip><div class="notif"></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();this.__getStatic().__template.setActions({
+  "content": {
+    "icontooltip_0°name": {
+      "fct": (c) => `${c.print(c.comp.__6b93c63e12520a69df7261ff7f843c0fmethod0())}`,
+      "once": true
+    }
+  }
+}); }
+    getClassName() {
+        return "IconTooltip";
+    }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('notif')) { this.attributeChangedCallback('notif', false, false); }if(!this.hasAttribute('active')) { this.attributeChangedCallback('active', false, false); }if(!this.hasAttribute('name')){ this['name'] = "symbol-array"; } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('notif');this.__upgradeProperty('active');this.__upgradeProperty('name'); }
+    __listBoolProps() { return ["notif","active"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    postCreation() {
+        super.postCreation();
+    }
+    __6b93c63e12520a69df7261ff7f843c0fmethod0() {
+        return this.name;
+    }
+}
+IconTooltip.Namespace=`AventusI18nView`;
+IconTooltip.Tag=`av-icon-tooltip`;
+__as1(_, 'IconTooltip', IconTooltip);
+if(!window.customElements.get('av-icon-tooltip')){window.customElements.define('av-icon-tooltip', IconTooltip);Aventus.WebComponentInstance.registerDefinition(IconTooltip);}
+
 const TranslationCol = class TranslationCol extends Aventus.WebComponent {
     static get observedAttributes() {return ["error"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'icon_btn'() { return this.getBoolAttr('icon_btn') }
@@ -18231,6 +18149,65 @@ TranslationRow.Namespace=`AventusI18nView`;
 TranslationRow.Tag=`av-translation-row`;
 __as1(_, 'TranslationRow', TranslationRow);
 if(!window.customElements.get('av-translation-row')){window.customElements.define('av-translation-row', TranslationRow);Aventus.WebComponentInstance.registerDefinition(TranslationRow);}
+
+const TranslationRowHeader = class TranslationRowHeader extends Aventus.WebComponent {
+    get 'locales'() {
+						return this.__watch["locales"];
+					}
+					set 'locales'(val) {
+						this.__watch["locales"] = val;
+					}    __registerWatchesActions() {
+    this.__addWatchesActions("locales");    super.__registerWatchesActions();
+}
+    static __style = `:host{align-items:stretch;border-bottom:1px solid var(--vscode-widget-border);border-left:1px solid var(--vscode-widget-border);border-right:1px solid var(--vscode-widget-border);display:flex;font-weight:bold;gap:0px;height:39px;text-align:center;user-select:none}:host .key{align-items:center;border-right:1px solid var(--vscode-widget-border);display:flex;flex-shrink:0;justify-content:center;min-width:100px;padding:10px 20px;position:relative;width:var(--_translation-page-key-width)}:host .inputs{display:flex;gap:0px}`;
+    __getStatic() {
+        return TranslationRowHeader;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(TranslationRowHeader.__style);
+        return arrStyle;
+    }
+    __getHtml() {
+    this.__getStatic().__template.setHTML({
+        blocks: { 'default':`<div class="key">    <span>Key</span>    <av-resize is_key></av-resize></div><div class="inputs"><template _id="translationrowheader_0"></template></div>` }
+    });
+}
+    __registerTemplateAction() { super.__registerTemplateAction();const templ0 = new Aventus.Template(this);templ0.setTemplate(`    <av-translation-col-header _id="translationrowheader_1"></av-translation-col-header>`);templ0.setActions({
+  "content": {
+    "translationrowheader_1°@HTML": {
+      "fct": (c) => `${c.print(c.comp.__189fa087d6daa05734acb2853341f755method2(c.data.locale))}`,
+      "once": true
+    }
+  },
+  "injection": [
+    {
+      "id": "translationrowheader_1",
+      "injectionName": "locale",
+      "inject": (c) => c.comp.__189fa087d6daa05734acb2853341f755method1(c.data.locale),
+      "once": true
+    }
+  ]
+});this.__getStatic().__template.addLoop({
+                    anchorId: 'translationrowheader_0',
+                    template: templ0,
+                simple:{data: "this.locales",item:"locale"}}); }
+    getClassName() {
+        return "TranslationRowHeader";
+    }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["locales"] = []; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('locales'); }
+    __189fa087d6daa05734acb2853341f755method2(locale) {
+        return locale;
+    }
+    __189fa087d6daa05734acb2853341f755method1(locale) {
+        return locale;
+    }
+}
+TranslationRowHeader.Namespace=`AventusI18nView`;
+TranslationRowHeader.Tag=`av-translation-row-header`;
+__as1(_, 'TranslationRowHeader', TranslationRowHeader);
+if(!window.customElements.get('av-translation-row-header')){window.customElements.define('av-translation-row-header', TranslationRowHeader);Aventus.WebComponentInstance.registerDefinition(TranslationRowHeader);}
 
 const TranslationPage = class TranslationPage extends Aventus.WebComponent {
     static get observedAttributes() {return ["need_save", "has_empty"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
@@ -18529,6 +18506,7 @@ const TranslationPage = class TranslationPage extends Aventus.WebComponent {
             });
             if (result.result) {
                 this.locales = result.result.locales;
+                this.fallback = result.result.fallback;
                 this.searchTxt = result.result.filter ?? '';
                 this.parsed = result.result.content;
                 this.pageName = result.result.pageName;

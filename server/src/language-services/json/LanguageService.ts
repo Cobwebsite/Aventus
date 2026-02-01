@@ -9,6 +9,7 @@ import { AventusConfigSchema, AventusPhpSchema, AventusSharpSchema } from "./sch
 import { env } from 'process';
 import { GenericServer } from '../../GenericServer';
 import { SettingsManager } from '../../settings/Settings';
+import { TextDocument } from 'vscode-languageserver-textdocument';
 
 export class AventusJSONLanguageService {
     private static instance: AventusJSONLanguageService;
@@ -139,8 +140,8 @@ export class AventusJSONLanguageService {
     }
 
     //#region config
-    public async getConfig(file: AventusFile): Promise<AventusConfig | null> {
-        let document = file.documentUser;
+    public async getConfig(file: AventusFile | TextDocument): Promise<AventusConfig | null> {
+        let document = 'documentUser' in file ? file.documentUser : file;
         let jsonDoc = this.languageService.parseJSONDocument(document);
         let errors = await this.languageService.doValidation(document, jsonDoc, undefined, AventusConfigSchema);
         if (errors.length == 0) {

@@ -1325,6 +1325,7 @@ Converter.register(GenericError.Fullname, GenericError);
 __as1(_, 'GenericError', GenericError);
 
 let VoidWithError=class VoidWithError {
+    static get Fullname() { return "Aventus.VoidWithError"; }
     /**
      * Determine if the action is a success
      */
@@ -1417,9 +1418,12 @@ let VoidWithError=class VoidWithError {
     }
 }
 VoidWithError.Namespace=`Aventus`;
+VoidWithError.$schema={"success":"boolean","errors":"T[]"};
+Converter.register(VoidWithError.Fullname, VoidWithError);
 __as1(_, 'VoidWithError', VoidWithError);
 
 let ResultWithError=class ResultWithError extends VoidWithError {
+    static get Fullname() { return "Aventus.ResultWithError"; }
     /**
       * The result value of the action.
       * @type {U | undefined}
@@ -1467,6 +1471,8 @@ let ResultWithError=class ResultWithError extends VoidWithError {
     }
 }
 ResultWithError.Namespace=`Aventus`;
+ResultWithError.$schema={...(VoidWithError?.$schema ?? {}), };
+Converter.register(ResultWithError.Fullname, ResultWithError);
 __as1(_, 'ResultWithError', ResultWithError);
 
 let HttpError=class HttpError extends GenericError {
@@ -4260,11 +4266,15 @@ __as1(_, 'RamError', RamError);
 let VoidRamWithError=class VoidRamWithError extends VoidWithError {
 }
 VoidRamWithError.Namespace=`Aventus`;
+VoidRamWithError.$schema={...(VoidWithError?.$schema ?? {}), };
+Converter.register(VoidRamWithError.Fullname, VoidRamWithError);
 __as1(_, 'VoidRamWithError', VoidRamWithError);
 
 let ResultRamWithError=class ResultRamWithError extends ResultWithError {
 }
 ResultRamWithError.Namespace=`Aventus`;
+ResultRamWithError.$schema={...(ResultWithError?.$schema ?? {}), };
+Converter.register(ResultRamWithError.Fullname, ResultRamWithError);
 __as1(_, 'ResultRamWithError', ResultRamWithError);
 
 let GenericRam=class GenericRam {

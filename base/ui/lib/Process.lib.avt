@@ -8,6 +8,7 @@ export class Process {
     public static configure(config: ProcessConfig) {
         this.handleErrors = config.handleErrors;
     }
+
     public static async execute<X extends Aventus.ResultWithError<Y> | Aventus.VoidWithError, Y>(prom: Promise<X>): Promise<ExtractFromError<X, Y> | undefined> {
         const queryResult = await prom;
         return await this.parseErrors(queryResult);

@@ -20,7 +20,7 @@ writeFileSync(tsconfigPath, tsconfig);
 
 execSync("npm run _package:cli", {
 	cwd: root
-})
+}, { encoding: 'utf8' })
 
 tsconfig = tsconfig.replace("\"composite\": true", "\"composite\": false");
 tsconfig = tsconfig.replace("\"declaration\": true", "\"declaration\": false");
