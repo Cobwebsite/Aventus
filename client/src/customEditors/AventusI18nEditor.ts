@@ -94,7 +94,7 @@ export class AventusI18nEditor implements CustomTextEditorProvider {
 			}
 		})
 
-		comm.addRouteWithResponse<void, { content: AventusI18nFileSrcParsed, locales: string[], filter: string | undefined, pageName: string }>({
+		comm.addRouteWithResponse<void, { content: AventusI18nFileSrcParsed, locales: string[], fallback: string, filter: string | undefined, pageName: string }>({
 			channel: "init",
 			callback: async (data, params, uid) => {
 				await Singleton.client.waitInit();
@@ -106,12 +106,13 @@ export class AventusI18nEditor implements CustomTextEditorProvider {
 					content = JSON.parse(document.getText())
 				}
 				catch { }
-				const locales = await GetLocales.execute(docUri) ?? [];
+				const { locales, fallback } = await GetLocales.execute(docUri) ?? { fallback: "en-GB", locales: [] };
 				const splitted = docUri.split('/');
 				const pageName = splitted[splitted.length - 1].replace(/%40/g, "@");
 				return {
 					content,
 					filter,
+					fallback,
 					locales,
 					pageName
 				};
@@ -170,10 +171,14 @@ export class AventusI18nEditor implements CustomTextEditorProvider {
 			return { error: "No api key" }
 		}
 		const translator = new Translator(key);
-		const sourceCode = source.split('-')[0] as SourceLanguageCode;
-		const destinationCode = destination.split('-')[0] as TargetLanguageCode;
+		let sourceCode = source.split('-')[0];
+		let destinationCode = destination.split('-')[0];
 		try {
-			const result = await translator.translateText(value, sourceCode, destinationCode);
+			if (destinationCode == "en") {
+				destinationCode = "en-GB"
+			}
+
+			const result = await translator.translateText(value, sourceCode as SourceLanguageCode, destinationCode as TargetLanguageCode);
 			return {
 				result: result.text
 			}

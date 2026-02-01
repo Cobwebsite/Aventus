@@ -36,6 +36,7 @@ namespace Form {
         private _validateOnChange: boolean = false;
         private _handleValidateNoInputError?: (errors: { [K in keyof T]?: string[]; }) => Asyncable<void>;
         private _handleExecuteNoInputError?: (errors: Aventus.GenericError[]) => Asyncable<void>;
+        private _extractor: (error: Aventus.GenericError) => { fieldName: string, messages: string[]; }[];
 
         public defaultValues: T;
         public onItemChange: Aventus.Callback<(action: Aventus.WatchAction, path: string, value: any) => void> = new Aventus.Callback();
@@ -44,10 +45,12 @@ namespace Form {
         public constructor(schema: FormSchema<T>, config?: FormHandlerConfig<T>, defaultValues?: T) {
             this.writeValidationIntoConsole = this.writeValidationIntoConsole.bind(this);
             this.writeErrorIntoConsole = this.writeErrorIntoConsole.bind(this);
+            this.defaultExtractor = this.defaultExtractor.bind(this);
             this._globalValidation = config?.validate ?? FormHandler._globalConfig?.validate;
             this._validateOnChange = config?.validateOnChange ?? FormHandler._globalConfig?.validateOnChange ?? false;
             this._handleValidateNoInputError = config?.handleValidateNoInputError ?? FormHandler._globalConfig?.handleValidateNoInputError ?? this.writeValidationIntoConsole;
             this._handleExecuteNoInputError = config?.handleExecuteNoInputError ?? FormHandler._globalConfig?.handleExecuteNoInputError ?? this.writeErrorIntoConsole;
+            this._extractor = config?.extractor ?? FormHandler._globalConfig?.extractor ?? this.defaultExtractor;
             this.defaultValues = defaultValues ?? {} as T;
             this.onWatcherChanged = this.onWatcherChanged.bind(this);
             this.__watcher = Aventus.Watcher.get({
@@ -116,7 +119,7 @@ namespace Form {
             realPart.onValueChange = new Aventus.Callback();
             realPart.handler = this;
             if(part.validate) {
-                const isConstructor = (validate: FormPartValidate<T> | Constructor<Validator<any>>): validate is Constructor<Validator<any>> => {
+                const isConstructor = (validate: FormPartValidate<T> | Constructor<Omit<Validator<any>, 'getMsg'>>): validate is Constructor<Omit<Validator<any>, 'getMsg'>> => {
                     return isClass(validate);
                 };
                 let validate: FormPartValidate<any>;
@@ -327,59 +330,55 @@ namespace Form {
                     this._handleExecuteNoInputError(queryResult.errors);
                 }
             }
+            else {
+
+            }
             return queryResult;
         }
 
-        public parseErrors<X>(queryResult: WithError<X>): Aventus.GenericError[] {
-            let noPrintErrors: Aventus.GenericError[] = [];
-            const elements = this.elements;
-            for(let error of queryResult.errors) {
-                if(error.details) {
-                    if(Array.isArray(error.details)) {
-                        let found = false;
-                        for(let detail of error.details) {
-                            if(Object.hasOwn(detail, "Name")) {
-                                if(elements[detail.Name]) {
-                                    for(const element of elements[detail.Name]) {
-                                        element.errors.push(error.message);
-                                    }
-                                    found = true;
-                                    break;
-                                }
-                            }
-                        }
-                        if(found) {
-                            continue;
-                        }
-                    }
-                    else {
-                        let found = false;
-                        for(let key in error.details) {
-                            if(elements[key]) {
-                                if(Array.isArray(error.details[key])) {
-                                    for(const element of elements[key]) {
-                                        for(let detail of error.details[key]) {
-                                            element.errors.push(detail);
-                                        }
-                                    }
-                                    found = true;
-                                }
-                                else {
-                                    for(const element of elements[key]) {
-                                        element.errors.push(error.details[key]);
-                                    }
-                                    found = true;
-                                }
-                            }
-                        }
-                        if(found) {
-                            continue;
-                        }
+        private defaultExtractor(error: Aventus.GenericError): { fieldName: string, messages: string[]; }[] {
+            // v1
+            if(Array.isArray(error.details)) {
+                for(let detail of error.details) {
+                    if(Object.hasOwn(detail, "Name")) {
+                        return [{ fieldName: detail.Name, messages: [error.message] }];
                     }
                 }
-                noPrintErrors.push(error);
             }
-            return noPrintErrors;
+
+            // v2
+            const result: { fieldName: string, messages: string[]; }[] = [];
+            for(let key in error.details) {
+                result.push({
+                    fieldName: key,
+                    messages: error.details[key]
+                });
+            }
+            return result;
+        }
+        public parseErrors<X>(queryResult: WithError<X>): Aventus.GenericError[] {
+            const unappliedErrors: Aventus.GenericError[] = [];
+            const elements = this.elements;
+
+            for(const error of queryResult.errors) {
+                const extractions = this._extractor(error);
+                let applied = false;
+
+                for(const { fieldName, messages } of extractions) {
+                    const targetElements = elements[fieldName] as IFormElement<any>[] | undefined;
+                    if(targetElements) {
+                        for(let element of targetElements) {
+                            element.errors.push(...messages);
+                        }
+                        applied = true;
+                    }
+                }
+
+                if(!applied) {
+                    unappliedErrors.push(error);
+                }
+            }
+            return unappliedErrors;
         }
 
         public reset() {

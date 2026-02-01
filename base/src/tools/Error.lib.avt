@@ -45,7 +45,10 @@ export class GenericError<T extends (number | Enum) = any> {
 @Storybook({
     prefix: "Error"
 })
+@Convertible()
 export class VoidWithError<T extends GenericError = GenericError> {
+
+    public static get Fullname(): string { return "Aventus.VoidWithError"; }
 
     /**
      * Determine if the action is a success
@@ -154,8 +157,10 @@ export class VoidWithError<T extends GenericError = GenericError> {
 @Storybook({
     prefix: "Error"
 })
+@Convertible()
 export class ResultWithError<U, T extends GenericError = GenericError> extends VoidWithError<T> {
 
+    public static override get Fullname(): string { return "Aventus.ResultWithError"; }
     /**
       * The result value of the action.
       * @type {U | undefined}

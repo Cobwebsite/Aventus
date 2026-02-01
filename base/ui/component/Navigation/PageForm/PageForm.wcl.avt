@@ -4,15 +4,20 @@ import { FormHandler } from "../../Form/Form/FormHandler.lib.avt";
 import type { Constructor, FormHandlerConfig, FormSchema, IForm, SubmitFunction, WithError } from "../../Form/Form/FormType.lib.avt";
 import type { FormElement } from "../../Form/FormElement/FormElement.wcl.avt";
 import { Page } from "../Page/Page.wcl.avt";
+import { PageFormCst } from "./PageFormCst.lib.avt";
 
 namespace Navigation {
     export type PageFormConfig = {
         submitWithEnter?: boolean;
         autoLoading?: boolean;
     };
-
-
-    export abstract class PageForm<T, U> extends Page implements Aventus.DefaultComponent, IForm {
+    export interface IPageForm<T, U> {
+        formSchema(): FormSchema<T>;
+        formConfig(): FormHandlerConfig<T>;
+        defineSubmit(submit: (fct: SubmitFunction<T, U>) => Promise<WithError<U> | null>): Promise<WithError<U> | null>;
+		pageConfig(): PageFormConfig
+    }
+    export abstract class PageForm<T, U> extends Page implements Aventus.DefaultComponent, IPageForm<T, U> {
 
         //#region static
 
@@ -25,78 +30,55 @@ namespace Navigation {
 
 
         //#region variables
-        private _form: FormHandler<T>;
-        public get form(): FormHandler<T> { return this._form; }
-
-        protected elements: FormElement<any>[] = [];
-        protected btns: ButtonElement[] = [];
+        private _form: PageFormCst<T, U>;
+        public get form(): FormHandler<any> { return this._form.form; }
         //#endregion
 
 
         //#region constructor
         public constructor() {
             super();
-            this._form = new FormHandler(this.formSchema(), this.formConfig());
+            this._form = new PageFormCst(this);
         }
         //#endregion
 
 
-        //#region methods
+        //#region methods        
+        /**
+         * @inheritdoc
+        */
+        public registerElement(element: FormElement<any>): IForm {
+            this._form.registerElement(element);
+            return this;
+        }
+        /**
+         * @inheritdoc
+         */
+        public registerSubmit(element: ButtonElement): IForm {
+            this._form.registerSubmit(element);
+            return this;
+        }
+        /**
+         * @inheritdoc
+        */
+        public requestSubmit(): Aventus.Asyncable<void> {
+            return this._form.requestSubmit();
+        }
 
-        protected abstract formSchema(): FormSchema<T>;
-        protected formConfig(): FormHandlerConfig<T> {
+
+        public abstract formSchema(): FormSchema<T>;
+        public formConfig(): FormHandlerConfig<T> {
             return {};
         }
-        protected pageConfig(): PageFormConfig {
+        public pageConfig(): PageFormConfig {
             return {
                 submitWithEnter: true,
                 autoLoading: true
             };
         }
 
-        protected abstract defineSubmit(submit: (fct: SubmitFunction<T, U>) => Promise<WithError<U> | null>): Promise<WithError<U> | null>;
-        public async submit() {
-            this.setLoading(true);
-            const result = await this.defineSubmit((fct) => this.form.submit(fct));
-            this.setLoading(false);
-            return result;
-        }
+        public abstract defineSubmit(submit: (fct: SubmitFunction<T, U>) => Promise<WithError<U> | null>): Promise<WithError<U> | null>;
 
-        protected setLoading(isLoading: boolean) {
-            const autoLoading = this.pageConfig().autoLoading;
-            if(autoLoading) {
-                for(let btn of this.btns) {
-                    if("loading" in btn) {
-                        btn.loading = isLoading;
-                    }
-                }
-            }
-        }
-
-        @BindThis()
-        protected checkEnter(e: KeyboardEvent) {
-            if(e.key == "Enter") {
-                this.submit();
-            }
-        }
-        public registerElement(element: FormElement<any>): PageForm<T, U> {
-            const submitWithEnter = this.pageConfig().submitWithEnter;
-            if(this.elements.length > 0) {
-                if(submitWithEnter)
-                    this.elements[this.elements.length - 1].removeEventListener("keyup", this.checkEnter);
-            }
-            this.elements.push(element);
-            if(submitWithEnter)
-                element.addEventListener("keyup", this.checkEnter);
-            return this;
-        }
-        public registerSubmit(element: ButtonElement): PageForm<T, U> {
-            this.btns.push(element);
-            return this;
-        }
-        public async requestSubmit(): Promise<void> {
-            await this.submit();
-        }
         //#endregion
 
     }

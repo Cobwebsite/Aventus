@@ -86,7 +86,6 @@ export class TranslationPage extends Aventus.WebComponent implements Aventus.Def
 
     @BindThis()
     protected async triggerChange() {
-        debugger
         this.guard.run(['triggerChange'], async () => {
             // Loading.show();
             try {
@@ -194,12 +193,13 @@ export class TranslationPage extends Aventus.WebComponent implements Aventus.Def
     protected async init() {
         await this.guard.run(['init'], async () => {
             Loading.show();
-            const result = await VscodeView.Router.getInstance().sendWithResponse<{ content: I18nParsed, locales: string[], filter: string | undefined, pageName: string; }>({
+            const result = await VscodeView.Router.getInstance().sendWithResponse<{ content: I18nParsed, locales: string[], fallback: string, filter: string | undefined, pageName: string; }>({
                 channel: "init",
                 body: {}
             });
             if(result.result) {
                 this.locales = result.result.locales;
+                this.fallback = result.result.fallback;
                 this.searchTxt = result.result.filter ?? '';
                 this.parsed = result.result.content;
                 this.pageName = result.result.pageName;

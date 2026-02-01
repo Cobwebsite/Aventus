@@ -1,0 +1,35 @@
+// Avonis:1.0.0
+//#region js def //
+declare global {
+
+namespace Avonis{
+function extractFieldsError(error: Aventus.GenericError): {
+    fieldName: string;
+    messages: string[];
+}[];
+
+abstract class AventusResource {
+    static get Fullname(): string;
+}
+
+class AventusRequest {
+}
+
+	}
+}
+//#endregion js def //
+//#region js src //
+{"namespace":"Avonis","available":[{"code":"let extractFieldsError=function extractFieldsError(error) {\n    const result = [];\n    if (Array.isArray(error.details)) {\n        for (let detail of error.details) {\n            if (Object.hasOwn(detail, \"field\")) {\n                result.push({\n                    fieldName: detail.field,\n                    messages: [detail.message]\n                });\n            }\n        }\n    }\n    return result;\n}\n__as1(_, 'extractFieldsError', extractFieldsError);\r\n","dependances":[{"fullName":"Aventus.GenericError","isStrong":false}],"fullName":"Avonis.extractFieldsError","required":false,"type":4,"isExported":true,"convertibleName":""},{"code":"let AventusResource=class AventusResource {\n    static get Fullname() { return \"Avonis.AventusResource\"; }\n}\nAventusResource.Namespace=`Avonis`;\r\n__as1(_, 'AventusResource', AventusResource);\r\n","dependances":[],"fullName":"Avonis.AventusResource","required":false,"type":1,"isExported":true,"convertibleName":""},{"code":"let AventusRequest=class AventusRequest {\n}\nAventusRequest.Namespace=`Avonis`;\r\n__as1(_, 'AventusRequest', AventusRequest);\r\n","dependances":[],"fullName":"Avonis.AventusRequest","required":false,"type":1,"isExported":true,"convertibleName":""}],"existing":[]}
+//#endregion js src //
+//#region css def //
+{}
+//#endregion css def //
+//#region css //
+{}
+//#endregion css //
+//#region html //
+{}
+//#endregion html //
+//#region dependances //
+{}
+//#endregion dependances //

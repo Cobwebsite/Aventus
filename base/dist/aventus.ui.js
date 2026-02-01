@@ -5097,6 +5097,7 @@ Converter.register(GenericError.Fullname, GenericError);
 __as1(_, 'GenericError', GenericError);
 
 let VoidWithError=class VoidWithError {
+    static get Fullname() { return "Aventus.VoidWithError"; }
     /**
      * Determine if the action is a success
      */
@@ -5189,9 +5190,12 @@ let VoidWithError=class VoidWithError {
     }
 }
 VoidWithError.Namespace=`Aventus`;
+VoidWithError.$schema={"success":"boolean","errors":"T[]"};
+Converter.register(VoidWithError.Fullname, VoidWithError);
 __as1(_, 'VoidWithError', VoidWithError);
 
 let ResultWithError=class ResultWithError extends VoidWithError {
+    static get Fullname() { return "Aventus.ResultWithError"; }
     /**
       * The result value of the action.
       * @type {U | undefined}
@@ -5239,6 +5243,8 @@ let ResultWithError=class ResultWithError extends VoidWithError {
     }
 }
 ResultWithError.Namespace=`Aventus`;
+ResultWithError.$schema={...(VoidWithError?.$schema ?? {}), };
+Converter.register(ResultWithError.Fullname, ResultWithError);
 __as1(_, 'ResultWithError', ResultWithError);
 
 let ResourceLoader=class ResourceLoader {
@@ -6531,6 +6537,8 @@ Layout.Tabs = {};
 _.Layout.Tabs = Aventus.Layout?.Tabs ?? {};
 Form.Validators = {};
 _.Form.Validators = Aventus.Form?.Validators ?? {};
+Navigation.PageForm = {};
+_.Navigation.PageForm = Aventus.Navigation?.PageForm ?? {};
 let Modal = {};
 _.Modal = Aventus.Modal ?? {};
 let Toast = {};
@@ -7393,7 +7401,7 @@ Layout.Tabs.Tabs.Namespace=`Aventus.Layout.Tabs`;
 __as1(_.Layout.Tabs, 'Tabs', Layout.Tabs.Tabs);
 
 Form.Validator=class Validator {
-    constructor() { this.validate = this.validate.bind(this); }
+    static msg = "There is an error";
     static async Test(validators, value, name, globalValidation) {
         if (!Array.isArray(validators)) {
             validators = [validators];
@@ -7416,22 +7424,33 @@ Form.Validator=class Validator {
         }
         return result.length == 0 ? undefined : result;
     }
+    _msg;
+    constructor(msg) {
+        this._msg = msg;
+        this.validate = this.validate.bind(this);
+    }
+    getMsg(replace) {
+        let msg = this._msg ?? this.constructor['msg'];
+        if (typeof msg == 'function')
+            msg = msg();
+        if (replace) {
+            for (let field in replace) {
+                msg = msg.replace(new RegExp(`\\{ *${field} *\\}`, 'g'), replace[field]);
+            }
+        }
+        return msg;
+    }
 }
 Form.Validator.Namespace=`Aventus.Form`;
 __as1(_.Form, 'Validator', Form.Validator);
 
 Form.Validators.Required=class Required extends _.Form.Validator {
     static msg = "Le champs {name} est requis";
-    _msg;
-    constructor(msg) {
-        super();
-        this._msg = msg ?? Form.Validators.Required.msg;
-    }
     /**
      * @inheritdoc
      */
     validate(value, name, globalValidation) {
-        const txt = this._msg.replace(/\{ *name *\}/g, name);
+        const txt = this.getMsg({ name });
         if (value === undefined || value === null) {
             return txt;
         }
@@ -7445,12 +7464,7 @@ Form.Validators.Required.Namespace=`Aventus.Form.Validators`;
 __as1(_.Form.Validators, 'Required', Form.Validators.Required);
 
 Form.Validators.Email=class Email extends _.Form.Validator {
-    static msg = "Merci de saisir un email valide";
-    _msg;
-    constructor(msg) {
-        super();
-        this._msg = msg ?? Form.Validators.Email.msg;
-    }
+    static msg = "Please enter a valid email address";
     /**
      * @inheritdoc
      */
@@ -7459,13 +7473,121 @@ Form.Validators.Email=class Email extends _.Form.Validator {
             if (value.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}\b/) != null) {
                 return true;
             }
-            return this._msg.replace(/\{ *name *\}/g, name);
+            return this.getMsg({ name });
         }
         return true;
     }
 }
 Form.Validators.Email.Namespace=`Aventus.Form.Validators`;
 __as1(_.Form.Validators, 'Email', Form.Validators.Email);
+
+Navigation.PageForm = class PageForm extends Navigation.Page {
+    _form;
+    get form() { return this._form.form; }
+    static __style = ``;
+    constructor() {
+        super();
+        this._form = new _.Navigation.PageForm.PageFormCst(this);
+        if (this.constructor == PageForm) {
+            throw "can't instanciate an abstract class";
+        }
+    }
+    __getStatic() {
+        return PageForm;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(PageForm.__style);
+        return arrStyle;
+    }
+    __getHtml() {super.__getHtml();
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<slot></slot>` }
+    });
+}
+    getClassName() {
+        return "PageForm";
+    }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('form'); }
+    registerElement(element) {
+        this._form.registerElement(element);
+        return this;
+    }
+    registerSubmit(element) {
+        this._form.registerSubmit(element);
+        return this;
+    }
+    requestSubmit() {
+        return this._form.requestSubmit();
+    }
+    formConfig() {
+        return {};
+    }
+    pageConfig() {
+        return {
+            submitWithEnter: true,
+            autoLoading: true
+        };
+    }
+}
+Navigation.PageForm.Namespace=`Aventus.Navigation`;
+__as1(_.Navigation, 'PageForm', Navigation.PageForm);
+
+Navigation.PageFormRoute = class PageFormRoute extends Navigation.PageForm {
+    static __style = ``;
+    constructor() {
+        super();
+        if (this.constructor == PageFormRoute) {
+            throw "can't instanciate an abstract class";
+        }
+    }
+    __getStatic() {
+        return PageFormRoute;
+    }
+    __getStyle() {
+        let arrStyle = super.__getStyle();
+        arrStyle.push(PageFormRoute.__style);
+        return arrStyle;
+    }
+    __getHtml() {super.__getHtml();
+    this.__getStatic().__template.setHTML({
+        slots: { 'default':`<slot></slot>` }, 
+        blocks: { 'default':`<slot></slot>` }
+    });
+}
+    getClassName() {
+        return "PageFormRoute";
+    }
+    async defineSubmit(submit) {
+        await this.beforeSubmit();
+        const info = this.route();
+        let router;
+        let key = "";
+        if (Array.isArray(info)) {
+            router = new info[0];
+            key = info[1];
+        }
+        else {
+            router = new info;
+            const fcts = Object.getOwnPropertyNames(info.prototype).filter(m => m !== "constructor");
+            if (fcts.length == 1) {
+                key = fcts[0];
+            }
+            else {
+                const result = new Aventus.VoidWithError();
+                result.errors.push(new Aventus.GenericError(500, "More than one fonction is defined"));
+                return result;
+            }
+        }
+        const result = await submit(router[key]);
+        this.onResult(result);
+        return result;
+    }
+    beforeSubmit() { }
+}
+Navigation.PageFormRoute.Namespace=`Aventus.Navigation`;
+__as1(_.Navigation, 'PageFormRoute', Navigation.PageFormRoute);
 
 Form.FormElement = class FormElement extends Aventus.WebComponent {
     static get observedAttributes() {return ["disabled"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
@@ -7778,7 +7900,17 @@ Form.Form = class Form extends Aventus.WebComponent {
         }
         if (this.form) {
             if (this.request) {
-                this.form.submit(this.request);
+                for (let btn of this.btns) {
+                    if ("loading" in btn) {
+                        btn.loading = true;
+                    }
+                }
+                await this.form.submit(this.request);
+                for (let btn of this.btns) {
+                    if ("loading" in btn) {
+                        btn.loading = false;
+                    }
+                }
             }
             else if (await this.form.validate()) {
                 this.onSubmit.trigger();
@@ -7798,148 +7930,9 @@ Form.Form.Tag=`av-form`;
 __as1(_.Form, 'Form', Form.Form);
 if(!window.customElements.get('av-form')){window.customElements.define('av-form', Form.Form);Aventus.WebComponentInstance.registerDefinition(Form.Form);}
 
-Navigation.PageForm = class PageForm extends Navigation.Page {
-    _form;
-    get form() { return this._form; }
-    elements = [];
-    btns = [];
-    static __style = ``;
-    constructor() {
-        super();
-        this._form = new Form.FormHandler(this.formSchema(), this.formConfig());
-        if (this.constructor == PageForm) {
-            throw "can't instanciate an abstract class";
-        }
-        this.checkEnter = this.checkEnter.bind(this);
-    }
-    __getStatic() {
-        return PageForm;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(PageForm.__style);
-        return arrStyle;
-    }
-    __getHtml() {super.__getHtml();
-    this.__getStatic().__template.setHTML({
-        slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<slot></slot>` }
-    });
-}
-    getClassName() {
-        return "PageForm";
-    }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__correctGetter('form'); }
-    formConfig() {
-        return {};
-    }
-    pageConfig() {
-        return {
-            submitWithEnter: true,
-            autoLoading: true
-        };
-    }
-    async submit() {
-        this.setLoading(true);
-        const result = await this.defineSubmit((fct) => this.form.submit(fct));
-        this.setLoading(false);
-        return result;
-    }
-    setLoading(isLoading) {
-        const autoLoading = this.pageConfig().autoLoading;
-        if (autoLoading) {
-            for (let btn of this.btns) {
-                if ("loading" in btn) {
-                    btn.loading = isLoading;
-                }
-            }
-        }
-    }
-    checkEnter(e) {
-        if (e.key == "Enter") {
-            this.submit();
-        }
-    }
-    registerElement(element) {
-        const submitWithEnter = this.pageConfig().submitWithEnter;
-        if (this.elements.length > 0) {
-            if (submitWithEnter)
-                this.elements[this.elements.length - 1].removeEventListener("keyup", this.checkEnter);
-        }
-        this.elements.push(element);
-        if (submitWithEnter)
-            element.addEventListener("keyup", this.checkEnter);
-        return this;
-    }
-    registerSubmit(element) {
-        this.btns.push(element);
-        return this;
-    }
-    async requestSubmit() {
-        await this.submit();
-    }
-}
-Navigation.PageForm.Namespace=`Aventus.Navigation`;
-__as1(_.Navigation, 'PageForm', Navigation.PageForm);
-
-Navigation.PageFormRoute = class PageFormRoute extends Navigation.PageForm {
-    static __style = ``;
-    constructor() {
-        super();
-        if (this.constructor == PageFormRoute) {
-            throw "can't instanciate an abstract class";
-        }
-    }
-    __getStatic() {
-        return PageFormRoute;
-    }
-    __getStyle() {
-        let arrStyle = super.__getStyle();
-        arrStyle.push(PageFormRoute.__style);
-        return arrStyle;
-    }
-    __getHtml() {super.__getHtml();
-    this.__getStatic().__template.setHTML({
-        slots: { 'default':`<slot></slot>` }, 
-        blocks: { 'default':`<slot></slot>` }
-    });
-}
-    getClassName() {
-        return "PageFormRoute";
-    }
-    async defineSubmit(submit) {
-        await this.beforeSubmit();
-        const info = this.route();
-        let router;
-        let key = "";
-        if (Array.isArray(info)) {
-            router = new info[0];
-            key = info[1];
-        }
-        else {
-            router = new info;
-            const fcts = Object.getOwnPropertyNames(info.prototype).filter(m => m !== "constructor");
-            if (fcts.length == 1) {
-                key = fcts[0];
-            }
-            else {
-                const result = new Aventus.VoidWithError();
-                result.errors.push(new Aventus.GenericError(500, "More than one fonction is defined"));
-                return result;
-            }
-        }
-        const result = await submit(router[key]);
-        this.onResult(result);
-        return result;
-    }
-    beforeSubmit() { }
-}
-Navigation.PageFormRoute.Namespace=`Aventus.Navigation`;
-__as1(_.Navigation, 'PageFormRoute', Navigation.PageFormRoute);
-
 Form.FormHandler=class FormHandler {
     static _globalConfig;
-    static _IFormElements = [Form.Form, Navigation.PageForm];
+    static _IFormElements = [_.Form.Form, Navigation.PageForm];
     __watcher;
     get item() {
         return this.__watcher.item;
@@ -7958,15 +7951,18 @@ Form.FormHandler=class FormHandler {
     _validateOnChange = false;
     _handleValidateNoInputError;
     _handleExecuteNoInputError;
+    _extractor;
     defaultValues;
     onItemChange = new Aventus.Callback();
     constructor(schema, config, defaultValues) {
         this.writeValidationIntoConsole = this.writeValidationIntoConsole.bind(this);
         this.writeErrorIntoConsole = this.writeErrorIntoConsole.bind(this);
+        this.defaultExtractor = this.defaultExtractor.bind(this);
         this._globalValidation = config?.validate ?? Form.FormHandler._globalConfig?.validate;
         this._validateOnChange = config?.validateOnChange ?? Form.FormHandler._globalConfig?.validateOnChange ?? false;
         this._handleValidateNoInputError = config?.handleValidateNoInputError ?? Form.FormHandler._globalConfig?.handleValidateNoInputError ?? this.writeValidationIntoConsole;
         this._handleExecuteNoInputError = config?.handleExecuteNoInputError ?? Form.FormHandler._globalConfig?.handleExecuteNoInputError ?? this.writeErrorIntoConsole;
+        this._extractor = config?.extractor ?? Form.FormHandler._globalConfig?.extractor ?? this.defaultExtractor;
         this.defaultValues = defaultValues ?? {};
         this.onWatcherChanged = this.onWatcherChanged.bind(this);
         this.__watcher = Aventus.Watcher.get({
@@ -8227,58 +8223,47 @@ Form.FormHandler=class FormHandler {
                 this._handleExecuteNoInputError(queryResult.errors);
             }
         }
+        else {
+        }
         return queryResult;
     }
-    parseErrors(queryResult) {
-        let noPrintErrors = [];
-        const elements = this.elements;
-        for (let error of queryResult.errors) {
-            if (error.details) {
-                if (Array.isArray(error.details)) {
-                    let found = false;
-                    for (let detail of error.details) {
-                        if (Object.hasOwn(detail, "Name")) {
-                            if (elements[detail.Name]) {
-                                for (const element of elements[detail.Name]) {
-                                    element.errors.push(error.message);
-                                }
-                                found = true;
-                                break;
-                            }
-                        }
-                    }
-                    if (found) {
-                        continue;
-                    }
-                }
-                else {
-                    let found = false;
-                    for (let key in error.details) {
-                        if (elements[key]) {
-                            if (Array.isArray(error.details[key])) {
-                                for (const element of elements[key]) {
-                                    for (let detail of error.details[key]) {
-                                        element.errors.push(detail);
-                                    }
-                                }
-                                found = true;
-                            }
-                            else {
-                                for (const element of elements[key]) {
-                                    element.errors.push(error.details[key]);
-                                }
-                                found = true;
-                            }
-                        }
-                    }
-                    if (found) {
-                        continue;
-                    }
+    defaultExtractor(error) {
+        if (Array.isArray(error.details)) {
+            for (let detail of error.details) {
+                if (Object.hasOwn(detail, "Name")) {
+                    return [{ fieldName: detail.Name, messages: [error.message] }];
                 }
             }
-            noPrintErrors.push(error);
         }
-        return noPrintErrors;
+        const result = [];
+        for (let key in error.details) {
+            result.push({
+                fieldName: key,
+                messages: error.details[key]
+            });
+        }
+        return result;
+    }
+    parseErrors(queryResult) {
+        const unappliedErrors = [];
+        const elements = this.elements;
+        for (const error of queryResult.errors) {
+            const extractions = this._extractor(error);
+            let applied = false;
+            for (const { fieldName, messages } of extractions) {
+                const targetElements = elements[fieldName];
+                if (targetElements) {
+                    for (let element of targetElements) {
+                        element.errors.push(...messages);
+                    }
+                    applied = true;
+                }
+            }
+            if (!applied) {
+                unappliedErrors.push(error);
+            }
+        }
+        return unappliedErrors;
     }
     reset() {
         this.item = this.defaultValues;
@@ -8286,6 +8271,58 @@ Form.FormHandler=class FormHandler {
 }
 Form.FormHandler.Namespace=`Aventus.Form`;
 __as1(_.Form, 'FormHandler', Form.FormHandler);
+
+Navigation.PageForm.PageFormCst=class PageFormCst {
+    _form;
+    get form() { return this._form; }
+    page;
+    elements = [];
+    btns = [];
+    constructor(page) {
+        this.page = page;
+        this._form = new Form.FormHandler(page.formSchema(), page.formConfig());
+        this.checkEnter = this.checkEnter.bind(this);
+    }
+    async submit() {
+        this.setLoading(true);
+        const result = await this.page.defineSubmit((fct) => this.form.submit(fct));
+        this.setLoading(false);
+        return result;
+    }
+    setLoading(isLoading) {
+        const autoLoading = this.page.pageConfig().autoLoading;
+        if (autoLoading) {
+            for (let btn of this.btns) {
+                if ("loading" in btn) {
+                    btn.loading = isLoading;
+                }
+            }
+        }
+    }
+    checkEnter(e) {
+        if (e.key == "Enter") {
+            this.submit();
+        }
+    }
+    registerElement(element) {
+        const submitWithEnter = this.page.pageConfig().submitWithEnter;
+        if (this.elements.length > 0) {
+            if (submitWithEnter)
+                this.elements[this.elements.length - 1].removeEventListener("keyup", this.checkEnter);
+        }
+        this.elements.push(element);
+        if (submitWithEnter)
+            element.addEventListener("keyup", this.checkEnter);
+    }
+    registerSubmit(element) {
+        this.btns.push(element);
+    }
+    async requestSubmit() {
+        await this.submit();
+    }
+}
+Navigation.PageForm.PageFormCst.Namespace=`Aventus.Navigation.PageForm`;
+__as1(_.Navigation.PageForm, 'PageFormCst', Navigation.PageForm.PageFormCst);
 
 Lib.ShortcutManager=class ShortcutManager {
     static memory = {};

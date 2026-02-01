@@ -80,23 +80,35 @@ export class AventusHTMLFile extends AventusBaseFile {
             diagnostics = [...diagnostics, ...this.tsFile.htmlDiagnostics]
         }
         this.codeactions = [];
+        const addI18nImport = (diag: Diagnostic) => {
+            const start = this.file.documentUser.offsetAt(diag.range.start);
+            const content = this.file.contentUser.slice(start - 3, start - 1);
+            let allowComponent = content == ".t";
+            if (content != " t" && content != ".t" && content != "{t") {
+                return
+            }
+            const txt = this.file.documentUser.getText(diag.range).slice(1, -1);
+            let codeAction: HtmlCodeAction = {
+                title: "Add value into translation file",
+                command: {
+                    command: "aventus.i18n.add",
+                    title: "Add value into translation file",
+                    arguments: [this.file.uri, txt, allowComponent]
+                },
+                diagnostics: [diag],
+                range: {
+                    start,
+                    end: this.file.documentUser.offsetAt(diag.range.end),
+                }
+            }
+            this.codeactions.push(codeAction)
+        }
         for (let diag of diagnostics) {
             if (diag.message.endsWith("keyof AventusI18n'.")) {
-                const txt = this.file.documentUser.getText(diag.range).slice(1, -1);
-                let codeAction: HtmlCodeAction = {
-                    title: "Add value into translation file",
-                    command: {
-                        command: "aventus.i18n.add",
-                        title: "Add value into translation file",
-                        arguments: [this.file.uri, txt]
-                    },
-                    diagnostics: [diag],
-                    range: {
-                        start: this.file.documentUser.offsetAt(diag.range.start),
-                        end: this.file.documentUser.offsetAt(diag.range.end),
-                    }
-                }
-                this.codeactions.push(codeAction)
+                addI18nImport(diag);
+            }
+            else if (/Argument of type .*? is not assignable to parameter of type .*?\./.test(diag.message)) {
+                addI18nImport(diag);
             }
         }
         return diagnostics;
