@@ -39,7 +39,7 @@ class I18nClass {
     }): string;
 }
 
-const I18n: I18nClass;
+const I18n: Aventus.I18nClass;
 
 	}
 
