@@ -191,9 +191,6 @@ export abstract class BaseInfo {
             }
             BaseInfo.infoByFullName[this.fullName] = this;
         }
-
-
-
     }
 
     protected loadDecorators() {
@@ -790,7 +787,7 @@ export abstract class BaseInfo {
             };
             GenericServer.debug("add dependance " + name + " : same file");
             if (this.dependancesLocations[name]) {
-                let replacement = fullName;
+                let replacement = this.build.module + "." + fullName;
                 if (this.isExported != this.parserInfo.internalObjects[name].isExported) {
                     if (!this.isExported) {
                         replacement = ['globalThis', this.build.module, fullName].join(".");
@@ -802,7 +799,7 @@ export abstract class BaseInfo {
 
                 this.dependancesLocations[name].typeRemplacement = replacement;
                 this.dependancesLocations[name].replacement = fullName;
-                this.dependancesLocations[name].docReplacement = fullName;
+                this.dependancesLocations[name].docReplacement = this.build.module + "." + fullName;
                 // no need to use getNpmReplacementName because local content can't change name
                 this.dependancesLocations[name].npmReplacement = name;
                 this.dependancesLocations[name].hotReloadReplacement = hotReloadName;
@@ -826,7 +823,7 @@ export abstract class BaseInfo {
             GenericServer.debug("add dependance " + name + " : imported file");
             const npmReplacement = this.getNpmReplacementName([this.build.module, fullName].join("."))
             if (this.dependancesLocations[name]) {
-                let typeRemplacement = fullName;
+                let typeRemplacement = this.build.module + "." + fullName;
                 if (this.isExported != importInfo.isExported) {
                     if (!this.isExported) {
                         typeRemplacement = ['globalThis', this.build.module, fullName].join(".");
@@ -845,7 +842,7 @@ export abstract class BaseInfo {
                 }
                 this.dependancesLocations[name].typeRemplacement = typeRemplacement;
                 this.dependancesLocations[name].replacement = remplacement;
-                this.dependancesLocations[name].docReplacement = fullName;
+                this.dependancesLocations[name].docReplacement = this.build.module + "." + fullName;;
                 this.dependancesLocations[name].npmReplacement = npmReplacement;
                 this.dependancesLocations[name].hotReloadReplacement = hotReloadName;
 
@@ -861,7 +858,7 @@ export abstract class BaseInfo {
                 let hotReloadName = [this.build.module, ...this.build.namespaces, fullName].join(".");
                 const npmReplacement = this.getNpmReplacementName([this.build.module, fullName].join("."))
                 if (this.dependancesLocations[name]) {
-                    let replacement = fullName;
+                    let replacement = this.build.module + "." + fullName;
                     if (this.isExported != info.isExported) {
                         if (!this.isExported) {
                             replacement = ['globalThis', this.build.module, fullName].join(".");
@@ -873,7 +870,7 @@ export abstract class BaseInfo {
 
                     this.dependancesLocations[name].typeRemplacement = replacement;
                     this.dependancesLocations[name].replacement = fullName;
-                    this.dependancesLocations[name].docReplacement = fullName;
+                    this.dependancesLocations[name].docReplacement = this.build.module + "." + fullName;;
                     this.dependancesLocations[name].npmReplacement = npmReplacement;
                     this.dependancesLocations[name].hotReloadReplacement = hotReloadName;
 

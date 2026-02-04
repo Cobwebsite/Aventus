@@ -184,7 +184,7 @@ type UriParamsValue = {
     [paramName: string]: string | number;
 };
 
-type StateSlug = UriParamsValue;
+type StateSlug = Aventus.UriParamsValue;
 
 type UriParams = {
     name: string;
@@ -217,7 +217,7 @@ class ResourceLoader {
     /**
      * Load the resource inside the head tag
      */
-    static loadInHead(options: ResourceLoaderHeadOptions | string): Promise<boolean>;
+    static loadInHead(options: Aventus.ResourceLoaderHeadOptions | string): Promise<boolean>;
     private static loadTag;
     private static releaseAwaitFctHead;
     private static awaitFctHead;
@@ -226,7 +226,7 @@ class ResourceLoader {
     /**
      *
     */
-    static load(options: ResourceLoaderOptions | string): Promise<string>;
+    static load(options: Aventus.ResourceLoaderOptions | string): Promise<string>;
     private static releaseAwaitFct;
     private static awaitFct;
     private static fetching;
@@ -267,7 +267,7 @@ const DragElementLeftTopType: readonly [any, any];
     prefix: "Lib/PressManager"
 })
 interface PressManagerState {
-    oneActionTriggered: PressManager | null;
+    oneActionTriggered: Aventus.PressManager | null;
 }
 
 class NormalizedEvent {
@@ -292,9 +292,9 @@ class NormalizedEvent {
     prefix: "Lib/PressManager"
 })
 interface InternalCustomFunction {
-    src?: PressManager;
-    onDrag?: (e: NormalizedEvent, self: PressManager) => void;
-    onDragEnd?: (e: NormalizedEvent, self: PressManager) => void;
+    src?: Aventus.PressManager;
+    onDrag?: (e: Aventus.NormalizedEvent, self: Aventus.PressManager) => void;
+    onDragEnd?: (e: Aventus.NormalizedEvent, self: Aventus.PressManager) => void;
     offsetDrag?: number;
 }
 
@@ -303,9 +303,9 @@ interface InternalCustomFunction {
 })
 interface InternalPointerEvent extends Event {
     detail: {
-        state: PressManagerState;
-        customFcts: InternalCustomFunction;
-        realEvent: NormalizedEvent;
+        state: Aventus.PressManagerState;
+        customFcts: Aventus.InternalCustomFunction;
+        realEvent: Aventus.NormalizedEvent;
     };
 }
 
@@ -323,52 +323,52 @@ interface PressManagerOptions {
      * @param e - The NormalizedEvent associated with the press.
      * @param self - The instance of PressManager.
      */
-    onPress?: (e: NormalizedEvent, self: PressManager) => void | boolean;
+    onPress?: (e: Aventus.NormalizedEvent, self: Aventus.PressManager) => void | boolean;
     /**
      * Callback function triggered when a press starts.
      * @param e - The NormalizedEvent associated with the press start.
      * @param self - The instance of PressManager.
      */
-    onPressStart?: (e: NormalizedEvent, self: PressManager) => void;
+    onPressStart?: (e: Aventus.NormalizedEvent, self: Aventus.PressManager) => void;
     /**
      * Callback function triggered when a press ends.
      * @param e - The NormalizedEvent associated with the press end.
      * @param self - The instance of PressManager.
      */
-    onPressEnd?: (e: NormalizedEvent, self: PressManager) => void;
+    onPressEnd?: (e: Aventus.NormalizedEvent, self: Aventus.PressManager) => void;
     /**
      * Callback function triggered on a long press.
      * If false returns it means that no action has been triggered and this wont block others actions
      * @param e - The NormalizedEvent associated with the long press.
      * @param self - The instance of PressManager.
      */
-    onLongPress?: (e: NormalizedEvent, self: PressManager) => void | boolean;
+    onLongPress?: (e: Aventus.NormalizedEvent, self: Aventus.PressManager) => void | boolean;
     /**
      * Callback function triggered on a double press.
      * If false returns it means that no action has been triggered and this wont block others actions
      * @param e - The NormalizedEvent associated with the double press.
      * @param self - The instance of PressManager.
      */
-    onDblPress?: (e: NormalizedEvent, self: PressManager) => void | boolean;
+    onDblPress?: (e: Aventus.NormalizedEvent, self: Aventus.PressManager) => void | boolean;
     /**
     * Callback function triggered on a drag event.
     * @param e - The NormalizedEvent associated with the drag.
     * @param self - The instance of PressManager.
     */
-    onDrag?: (e: NormalizedEvent, self: PressManager) => void;
+    onDrag?: (e: Aventus.NormalizedEvent, self: Aventus.PressManager) => void;
     /**
     * Callback function triggered when a drag starts.
     * If false returns it means that no action has been triggered and this wont block others actions
     * @param e - The NormalizedEvent associated with the drag start.
     * @param self - The instance of PressManager.
     */
-    onDragStart?: (e: NormalizedEvent, self: PressManager) => void | boolean;
+    onDragStart?: (e: Aventus.NormalizedEvent, self: Aventus.PressManager) => void | boolean;
     /**
      * Callback function triggered when a drag ends.
      * @param e - The NormalizedEvent associated with the drag end.
      * @param self - The instance of PressManager.
      */
-    onDragEnd?: (e: NormalizedEvent, self: PressManager) => void;
+    onDragEnd?: (e: Aventus.NormalizedEvent, self: Aventus.PressManager) => void;
     /**
      * The minimum distance in pixels required to trigger a drag event.
      */
@@ -397,7 +397,7 @@ interface PressManagerOptions {
      * Callback function triggered on any event.
      * @param e - The NormalizedEvent associated with the event.
      */
-    onEvent?: (e: NormalizedEvent) => void;
+    onEvent?: (e: Aventus.NormalizedEvent) => void;
 }
 
 type DragElementLeftTop = InstanceType<typeof DragElementLeftTopType[number]>;
@@ -480,11 +480,11 @@ enum WatchAction {
     DELETED = 2
 }
 
-type WatcherFunction = (action: WatchAction, path: string, value: any) => void;
+type WatcherFunction = (action: Aventus.WatchAction, path: string, value: any) => void;
 
 type Asyncable<T> = T | Promise<T>;
 
-function Async<T>(el: Asyncable<T>): Promise<T>;
+function Async<T>(el: Aventus.Asyncable<T>): Promise<T>;
 
 enum HttpMethod {
     GET = "GET",
@@ -502,7 +502,7 @@ type Enum = {
     [key: string]: number | string;
 };
 
-type EnumValue<T extends (number | Enum)> = T extends Enum ? T[keyof T] : number;
+type EnumValue<T extends (number | Aventus.Enum)> = T extends Aventus.Enum ? T[keyof T] : number;
 
 class DateConverter {
     private static __converter;
@@ -562,7 +562,7 @@ interface Schema {
 })
 interface IConverterTransform {
     transform<T = any>(data: any): T;
-    copyValuesClass<T extends Object>(target: T, src: T, options?: ClassCopyOptions): void;
+    copyValuesClass<T extends Object>(target: T, src: T, options?: Aventus.ClassCopyOptions): void;
 }
 
 @Storybook({
@@ -576,7 +576,7 @@ class Json {
      * @param {JsonToOptions} [options] - Options for JSON conversion.
      * @returns {{ [key: string | number]: any; }} Returns the JSON representation of the object.
      */
-    static classToJson<T extends Object>(obj: T, options?: JsonToOptions): {
+    static classToJson<T extends Object>(obj: T, options?: Aventus.JsonToOptions): {
         [key: string | number]: any;
     };
     private static __classToJson;
@@ -588,14 +588,14 @@ class Json {
     * @param {JsonFromOptions} [options] - Options for JSON deserialization.
     * @returns {T} Returns the populated object.
     */
-    static classFromJson<T extends Object>(obj: T, data: any, options?: JsonFromOptions): T;
+    static classFromJson<T extends Object>(obj: T, data: any, options?: Aventus.JsonFromOptions): T;
     private static __classFromJson;
 }
 
 @Storybook({
     prefix: "Tools/Conveter"
 })
-class ConverterTransform implements IConverterTransform {
+class ConverterTransform implements Aventus.IConverterTransform {
     transform<T = any>(data: any): T;
     protected createInstance(data: any): (Object & {
         fromJSON?: (data: any) => any;
@@ -603,7 +603,7 @@ class ConverterTransform implements IConverterTransform {
     protected beforeTransformObject(obj: Object): void;
     protected afterTransformObject(obj: Object): void;
     private transformLoop;
-    copyValuesClass<T extends Object>(target: T, src: T, options?: ClassCopyOptions): void;
+    copyValuesClass<T extends Object>(target: T, src: T, options?: Aventus.ClassCopyOptions): void;
     private __classCopyValues;
 }
 
@@ -631,14 +631,14 @@ class Converter {
     * Sets the converter instance.
     * @param converter The converter instance to set.
     */
-    static setConverter(converter: IConverterTransform): void;
+    static setConverter(converter: Aventus.IConverterTransform): void;
     /**
     * Registers a unique string type for any class.
     * @param $type The unique string type identifier.
     * @param cst The constructor function for the class.
     * @param schema Optional schema for the registered type.
     */
-    static register($type: string, cst: new () => any, schema?: Schema): void;
+    static register($type: string, cst: new () => any, schema?: Aventus.Schema): void;
     /**
      * Transforms the provided data using the current converter instance.
      * @template T
@@ -646,7 +646,7 @@ class Converter {
      * @param {IConverterTransform} [converter] Optional converter instance to use for transformation.
      * @returns {T} Returns the transformed data.
      */
-    static transform<T = any>(data: any, converter?: IConverterTransform): T;
+    static transform<T = any>(data: any, converter?: Aventus.IConverterTransform): T;
     /**
      * Copies values from one class instance to another using the current converter instance.
      * @template T
@@ -656,7 +656,7 @@ class Converter {
      * @param {IConverterTransform} [converter] Optional converter instance to use for the copy operation.
      * @returns {T} Returns the destination class instance with copied values.
      */
-    static copyValuesClass<T extends Object>(to: T, from: T, options?: ClassCopyOptions, converter?: IConverterTransform): any;
+    static copyValuesClass<T extends Object>(to: T, from: T, options?: Aventus.ClassCopyOptions, converter?: Aventus.IConverterTransform): any;
 }
 
 function clone<X>(item: X): any;
@@ -664,7 +664,7 @@ function clone<X>(item: X): any;
 @Storybook({
     prefix: "Data"
 })
-abstract class Data implements IData {
+abstract class Data implements Aventus.IData {
     private static converter;
     /**
      * The schema for the class
@@ -708,13 +708,13 @@ abstract class Data implements IData {
 @Storybook({
     prefix: "Error"
 })
-class GenericError<T extends (number | Enum) = any> {
+class GenericError<T extends (number | Aventus.Enum) = any> {
     private static converter;
     static get Fullname(): string;
     /**
      * Code for the error
      */
-    code: EnumValue<T>;
+    code: Aventus.EnumValue<T>;
     /**
      * Description of the error
      */
@@ -730,14 +730,14 @@ class GenericError<T extends (number | Enum) = any> {
      * @param {EnumValue<T>} code - The error code.
      * @param {string} message - The error message.
      */
-    constructor(code: EnumValue<T>, message: string);
+    constructor(code: Aventus.EnumValue<T>, message: string);
 }
 
 @Convertible()
 @Storybook({
     prefix: "Error"
 })
-class VoidWithError<T extends GenericError = GenericError> {
+class VoidWithError<T extends Aventus.GenericError = Aventus.GenericError> {
     static get Fullname(): string;
     /**
      * Determine if the action is a success
@@ -760,18 +760,18 @@ class VoidWithError<T extends GenericError = GenericError> {
     * @param {new (...args: any[]) => U} [type] - Optional constructor function of the error type.
     * @returns {boolean} True if the error list contains the specified error code, otherwise false.
     */
-    containsCode<U extends GenericError<any>, T extends (number | Enum)>(code: EnumValue<T>, type?: new (...args: any[]) => U): boolean;
+    containsCode<U extends Aventus.GenericError<any>, T extends (number | Aventus.Enum)>(code: Aventus.EnumValue<T>, type?: new (...args: any[]) => U): boolean;
     run(fct: (() => T[]) | (() => VoidWithError<T>)): this;
     runAsync(fct: (() => Promise<T[]>) | (() => Promise<VoidWithError<T>>)): Promise<this>;
-    extract<X>(fct: (() => ResultWithError<X, T>)): X | undefined;
-    extractAsync<X>(fct: (() => Promise<ResultWithError<X, T>>)): Promise<X | undefined>;
+    extract<X>(fct: (() => Aventus.ResultWithError<X, T>)): X | undefined;
+    extractAsync<X>(fct: (() => Promise<Aventus.ResultWithError<X, T>>)): Promise<X | undefined>;
 }
 
 @Convertible()
 @Storybook({
     prefix: "Error"
 })
-class ResultWithError<U, T extends GenericError = GenericError> extends VoidWithError<T> {
+class ResultWithError<U, T extends Aventus.GenericError = Aventus.GenericError> extends Aventus.VoidWithError<T> {
     static get Fullname(): string;
     /**
       * The result value of the action.
@@ -783,41 +783,41 @@ class ResultWithError<U, T extends GenericError = GenericError> extends VoidWith
      * @returns {ResultWithError<U>} A new instance of ResultWithError with the same error list and result value.
      */
     toGeneric(): ResultWithError<U>;
-    run(fct: (() => T[]) | (() => VoidWithError<T>) | (() => ResultWithError<U, T>)): this;
-    runAsync(fct: (() => Promise<T[]>) | (() => Promise<VoidWithError<T>>) | (() => ResultWithError<U, T>)): Promise<this>;
+    run(fct: (() => T[]) | (() => Aventus.VoidWithError<T>) | (() => ResultWithError<U, T>)): this;
+    runAsync(fct: (() => Promise<T[]>) | (() => Promise<Aventus.VoidWithError<T>>) | (() => ResultWithError<U, T>)): Promise<this>;
 }
 
-type ExtractFromError<T, U = any> = T extends ResultWithError<infer U, any> ? U : T extends VoidWithError ? void : T;
+type ExtractFromError<T, U = any> = T extends Aventus.ResultWithError<infer U, any> ? U : T extends Aventus.VoidWithError ? void : T;
 
 @Storybook({
     prefix: "Http"
 })
-class HttpError extends GenericError<HttpErrorCode> {
+class HttpError extends Aventus.GenericError<Aventus.HttpErrorCode> {
 }
 
 type HttpRequestOptions = {
-    beforeSend?: (request: HttpRequest) => Asyncable<VoidWithError>;
-    responseMiddleware?: (response: ResultWithError<Response>, request: HttpRequest) => Asyncable<ResultWithError<Response>>;
+    beforeSend?: (request: Aventus.HttpRequest) => Aventus.Asyncable<Aventus.VoidWithError>;
+    responseMiddleware?: (response: Aventus.ResultWithError<Response>, request: Aventus.HttpRequest) => Aventus.Asyncable<Aventus.ResultWithError<Response>>;
 };
 
-type WatcherChange = (action: WatchAction, changePath: string, value: any, dones: any[]) => void;
+type WatcherChange = (action: Aventus.WatchAction, changePath: string, value: any, dones: any[]) => void;
 
 type EffectReceiver = {
-    subscribe: (fct: WatcherChange) => void;
-    unsubscribe: (fct: WatcherChange) => void;
+    subscribe: (fct: Aventus.WatcherChange) => void;
+    unsubscribe: (fct: Aventus.WatcherChange) => void;
     __path?: string;
 };
 
-class Signal<T> implements EffectReceiver {
-    protected __subscribes: WatcherChange[];
+class Signal<T> implements Aventus.EffectReceiver {
+    protected __subscribes: Aventus.WatcherChange[];
     private _value;
     @Internal()
 	private _onChange?;
     get value(): T;
     set value(item: T);
     constructor(item: T, onChange?: () => void);
-    subscribe(fct: WatcherChange): void;
-    unsubscribe(fct: WatcherChange): void;
+    subscribe(fct: Aventus.WatcherChange): void;
+    unsubscribe(fct: Aventus.WatcherChange): void;
     destroy(): void;
 }
 
@@ -827,18 +827,18 @@ class Signal<T> implements EffectReceiver {
 class Effect {
     @InternalProtected()
 	protected callbacks: {
-        receiver: EffectReceiver;
+        receiver: Aventus.EffectReceiver;
         path: string;
         registerPath?: string;
         fullPath: string;
-        cb: WatcherChange;
+        cb: Aventus.WatcherChange;
         version: number;
     }[];
     @InternalProtected()
 	protected isInit: boolean;
     @InternalProtected()
 	protected isDestroy: boolean;
-    protected __subscribes: WatcherChange[];
+    protected __subscribes: Aventus.WatcherChange[];
     protected __allowChanged: ___Aventus.WatcherAllowed[];
     @InternalProtected()
 	protected version: number;
@@ -848,20 +848,20 @@ class Effect {
     protected init(): void;
     protected run(): void;
     @InternalProtected()
-	protected register(receiver: EffectReceiver, path: string, version: number, fullPath: string): void;
+	protected register(receiver: Aventus.EffectReceiver, path: string, version: number, fullPath: string): void;
     canChange(fct: ___Aventus.WatcherAllowed): void;
-    protected checkCanChange(action: WatchAction, changePath: string, value: any, dones: any[]): boolean;
-    protected onChange(action: WatchAction, changePath: string, value: any, dones: any[]): void;
+    protected checkCanChange(action: Aventus.WatchAction, changePath: string, value: any, dones: any[]): boolean;
+    protected onChange(action: Aventus.WatchAction, changePath: string, value: any, dones: any[]): void;
     destroy(): void;
     protected clearCallbacks(): void;
-    subscribe(fct: WatcherChange): void;
-    unsubscribe(fct: WatcherChange): void;
+    subscribe(fct: Aventus.WatcherChange): void;
+    unsubscribe(fct: Aventus.WatcherChange): void;
 }
 
 @Storybook({
     prefix: "Lib/Watcher"
 })
-class Computed<T = any> extends Effect implements EffectReceiver {
+class Computed<T = any> extends Aventus.Effect implements Aventus.EffectReceiver {
     protected _value?: T;
     @Internal()
 	private __path;
@@ -870,7 +870,7 @@ class Computed<T = any> extends Effect implements EffectReceiver {
     constructor(fct: () => ___Aventus.IsNotVoid<T>);
     protected init(): void;
     protected computedValue(): void;
-    protected onChange(action: WatchAction, changePath: string, value: any, dones: any[]): void;
+    protected onChange(action: Aventus.WatchAction, changePath: string, value: any, dones: any[]): void;
 }
 
 @Storybook({
@@ -887,32 +887,32 @@ class Watcher {
     /**
      * Transform object into a watcher
      */
-    static get(obj: object, onDataChanged?: WatcherFunction): any;
+    static get(obj: object, onDataChanged?: Aventus.WatcherFunction): any;
     static is(obj: any): boolean;
     static extract<T>(obj: T, clearPath?: boolean): T;
     static trigger<T>(type: 'CREATED' | 'UPDATED' | 'DELETED', target: T): void;
     /**
      * Create a computed variable that will watch any changes
      */
-    static computed<T>(fct: () => ___Aventus.IsNotVoid<T>): Computed<T>;
+    static computed<T>(fct: () => ___Aventus.IsNotVoid<T>): Aventus.Computed<T>;
     /**
      * Create an effect variable that will watch any changes
      */
-    static effect(fct: () => void): Effect;
+    static effect(fct: () => void): Aventus.Effect;
     /**
      * Create an effect variable that will watch any changes inside the fct and trigger the cb on change
      */
-    static watch(fct: () => any, cb: () => any): Effect;
+    static watch(fct: () => any, cb: () => any): Aventus.Effect;
     /**
      * Create a signal variable
      */
-    static signal<T>(item: T, onChange?: () => void): Signal<T>;
+    static signal<T>(item: T, onChange?: () => void): Aventus.Signal<T>;
 }
 
 @Storybook({
     prefix: "Lib/Watcher"
 })
-class ComputedNoRecomputed<T = any> extends Computed<T> {
+class ComputedNoRecomputed<T = any> extends Aventus.Computed<T> {
     protected init(): void;
     protected computedValue(): void;
     protected run(): void;
@@ -921,7 +921,7 @@ class ComputedNoRecomputed<T = any> extends Computed<T> {
 @Storybook({
     prefix: "Lib/Watcher"
 })
-class EffectNoRecomputed extends Effect {
+class EffectNoRecomputed extends Aventus.Effect {
     protected init(): void;
     protected run(): void;
 }
@@ -931,48 +931,48 @@ class EffectNoRecomputed extends Effect {
 })
 class HttpRouter {
     @InternalProtected()
-	protected options: HttpRouterOptions;
+	protected options: Aventus.HttpRouterOptions;
     constructor();
     private defaultOptionsValue;
-    protected defineOptions(options: HttpRouterOptions): HttpRouterOptions;
-    get<T>(url: string): Promise<ResultWithError<T>>;
+    protected defineOptions(options: Aventus.HttpRouterOptions): Aventus.HttpRouterOptions;
+    get<T>(url: string): Promise<Aventus.ResultWithError<T>>;
     post<T>(url: string, data?: {
         [key: string | number]: any;
-    } | FormData): Promise<ResultWithError<T>>;
+    } | FormData): Promise<Aventus.ResultWithError<T>>;
     put<T>(url: string, data?: {
         [key: string | number]: any;
-    } | FormData): Promise<ResultWithError<T>>;
+    } | FormData): Promise<Aventus.ResultWithError<T>>;
     delete<T>(url: string, data?: {
         [key: string | number]: any;
-    } | FormData): Promise<ResultWithError<T>>;
+    } | FormData): Promise<Aventus.ResultWithError<T>>;
     option<T>(url: string, data?: {
         [key: string | number]: any;
-    } | FormData): Promise<ResultWithError<T>>;
+    } | FormData): Promise<Aventus.ResultWithError<T>>;
 }
 
-type RouterType = (abstract new (...args: any[]) => HttpRouter);
+type RouterType = (abstract new (...args: any[]) => Aventus.HttpRouter);
 
 @Storybook({
     prefix: "Http"
 })
 class HttpRoute {
-    protected router: HttpRouter;
-    constructor(router?: HttpRouter);
+    protected router: Aventus.HttpRouter;
+    constructor(router?: Aventus.HttpRouter);
     getPrefix(): string;
 }
 
-type RouteType = abstract new (...args: any[]) => HttpRoute;
+type RouteType = abstract new (...args: any[]) => Aventus.HttpRoute;
 
 @Storybook({
     prefix: "Http"
 })
 class HttpRequest {
     private static options?;
-    static configure(options: HttpRequestOptions): void;
+    static configure(options: Aventus.HttpRequestOptions): void;
     private request;
     private url;
     private methodSpoofing;
-    constructor(url: string, method?: HttpMethod, body?: {
+    constructor(url: string, method?: Aventus.HttpMethod, body?: {
         [key: string | number]: any;
     } | FormData, methodSpoofing?: boolean);
     setUrl(url: string): void;
@@ -980,7 +980,7 @@ class HttpRequest {
     setBody(body: {
         [key: string | number]: any;
     } | FormData): void;
-    setMethod(method: HttpMethod): void;
+    setMethod(method: Aventus.HttpMethod): void;
     /**
      * Replace method Put/Delete by _method:"put" inside a form
      */
@@ -990,18 +990,18 @@ class HttpRequest {
     private prepareBody;
     setHeader(name: string, value: string): void;
     setCredentials(credentials: RequestCredentials): void;
-    protected _query(router?: HttpRouter): Promise<ResultWithError<Response>>;
-    query(router?: HttpRouter): Promise<ResultWithError<Response>>;
-    queryVoid<T>(router?: HttpRouter): Promise<VoidWithError>;
-    queryJSON<T>(router?: HttpRouter): Promise<ResultWithError<T>>;
-    queryTxt(router?: HttpRouter): Promise<ResultWithError<string>>;
-    queryBlob(router?: HttpRouter): Promise<ResultWithError<Blob>>;
+    protected _query(router?: Aventus.HttpRouter): Promise<Aventus.ResultWithError<Response>>;
+    query(router?: Aventus.HttpRouter): Promise<Aventus.ResultWithError<Response>>;
+    queryVoid<T>(router?: Aventus.HttpRouter): Promise<Aventus.VoidWithError>;
+    queryJSON<T>(router?: Aventus.HttpRouter): Promise<Aventus.ResultWithError<T>>;
+    queryTxt(router?: Aventus.HttpRouter): Promise<Aventus.ResultWithError<string>>;
+    queryBlob(router?: Aventus.HttpRouter): Promise<Aventus.ResultWithError<Blob>>;
 }
 
 @Storybook({
     prefix: "Http"
 })
-abstract class StorableRoute<T extends IData> extends HttpRoute {
+abstract class StorableRoute<T extends Aventus.IData> extends Aventus.HttpRoute {
     GetAll(): unknown;
     Create(body: {
         item: T;
@@ -1027,7 +1027,7 @@ class Animation {
     private fpsInterval;
     private continueAnimation;
     private frame_id;
-    constructor(options: AnimationOptions);
+    constructor(options: Aventus.AnimationOptions);
     private animate;
     /**
      * Start the of animation
@@ -1055,7 +1055,7 @@ class Animation {
     isStarted(): boolean;
 }
 
-type DragElement = DragElementXY | DragElementLeftTop;
+type DragElement = Aventus.DragElementXY | Aventus.DragElementLeftTop;
 
 @Storybook({
     prefix: "Lib/DragAndDrop"
@@ -1064,8 +1064,8 @@ interface DragAndDropOptionsShadow {
     enable: boolean;
     container?: ___Aventus.ContainerElement;
     removeOnStop?: boolean;
-    transform?: (el: DragElement) => void;
-    delete?: (el: DragElement) => void;
+    transform?: (el: Aventus.DragElement) => void;
+    delete?: (el: Aventus.DragElement) => void;
 }
 
 @Storybook({
@@ -1073,11 +1073,11 @@ interface DragAndDropOptionsShadow {
 })
 interface DragAndDropOptions {
     applyDrag?: boolean;
-    element: DragElement;
+    element: Aventus.DragElement;
     elementTrigger?: HTMLElement | SVGElement;
     offsetDrag?: number;
     dragDirection?: 'X' | 'Y' | 'XY';
-    shadow?: DragAndDropOptionsShadow;
+    shadow?: Aventus.DragAndDropOptionsShadow;
     strict?: boolean;
     targets?: ___Aventus.TargetableElement[] | (() => ___Aventus.TargetableElement[]);
     usePercent?: boolean;
@@ -1088,12 +1088,12 @@ interface DragAndDropOptions {
     getZoom?: () => number;
     getOffsetX?: () => number;
     getOffsetY?: () => number;
-    onPointerDown?: (e: NormalizedEvent) => void;
-    onPointerUp?: (e: NormalizedEvent) => void;
-    onStart?: (e: NormalizedEvent) => void | boolean;
-    onMove?: (e: NormalizedEvent, position: ___Aventus.Coordinate) => void;
-    onStop?: (e: NormalizedEvent) => void;
-    onDrop?: (element: DragElement, targets: ___Aventus.TargetableElement[]) => void;
+    onPointerDown?: (e: Aventus.NormalizedEvent) => void;
+    onPointerUp?: (e: Aventus.NormalizedEvent) => void;
+    onStart?: (e: Aventus.NormalizedEvent) => void | boolean;
+    onMove?: (e: Aventus.NormalizedEvent, position: ___Aventus.Coordinate) => void;
+    onStop?: (e: Aventus.NormalizedEvent) => void;
+    onDrop?: (element: Aventus.DragElement, targets: ___Aventus.TargetableElement[]) => void;
     correctPosition?: (position: ___Aventus.Coordinate) => ___Aventus.Coordinate;
 }
 
@@ -1102,30 +1102,30 @@ interface DragAndDropOptions {
 })
 class PressManager {
     private static globalConfig;
-    static configure(options: Partial<PressManagerOptions>): void;
-    static create(options: PressManagerOptions & {
+    static configure(options: Partial<Aventus.PressManagerOptions>): void;
+    static create(options: Aventus.PressManagerOptions & {
         element: Element;
     }): PressManager;
-    static create(options: PressManagerOptions & {
+    static create(options: Aventus.PressManagerOptions & {
         element: Element[];
     }): PressManager[];
-    static onEvent: Callback<(e: NormalizedEvent, instance: PressManager) => void>;
-    protected options: PressManagerOptions;
+    static onEvent: Aventus.Callback<(e: Aventus.NormalizedEvent, instance: PressManager) => void>;
+    protected options: Aventus.PressManagerOptions;
     protected element: Element;
     protected delayDblPress: number;
     protected delayLongPress: number;
     protected nbPress: number;
     protected offsetDrag: number;
     protected dragDirection: 'X' | 'Y' | 'XY';
-    protected state: PressManagerState;
+    protected state: Aventus.PressManagerState;
     protected startPosition: {
         x: number;
         y: number;
     };
-    protected customFcts: InternalCustomFunction;
+    protected customFcts: Aventus.InternalCustomFunction;
     protected timeoutDblPress: number;
     protected timeoutLongPress: number;
-    protected downEventSaved?: NormalizedEvent;
+    protected downEventSaved?: Aventus.NormalizedEvent;
     protected useDblPress: boolean;
     protected stopPropagation: () => boolean;
     protected pointersRecord: {
@@ -1136,39 +1136,39 @@ class PressManager {
         downActionDelay: (e: PointerEvent) => void;
         upAction: (e: PointerEvent) => void;
         moveAction: (e: PointerEvent) => void;
-        childPressStart: (e: InternalPointerEvent) => void;
-        childPressEnd: (e: InternalPointerEvent) => void;
-        childPressMove: (e: InternalPointerEvent) => void;
+        childPressStart: (e: Aventus.InternalPointerEvent) => void;
+        childPressEnd: (e: Aventus.InternalPointerEvent) => void;
+        childPressMove: (e: Aventus.InternalPointerEvent) => void;
     };
     /**
      * @param {*} options - The options
      * @param {HTMLElement | HTMLElement[]} options.element - The element to manage
      */
-    constructor(options: PressManagerOptions);
+    constructor(options: Aventus.PressManagerOptions);
     /**
      * Get the current element focused by the PressManager
      */
     getElement(): Element;
-    protected checkDragConstraint(options: PressManagerOptions): void;
-    protected assignValueOption(options: PressManagerOptions): void;
+    protected checkDragConstraint(options: Aventus.PressManagerOptions): void;
+    protected assignValueOption(options: Aventus.PressManagerOptions): void;
     protected bindAllFunction(): void;
     protected init(): void;
     protected identifyEvent(touch: Touch | PointerEvent): number;
     protected registerEvent(ev: PointerEvent | TouchEvent): boolean;
     protected unregisterEvent(ev: PointerEvent | TouchEvent): boolean;
-    protected genericDownAction(state: PressManagerState, e: NormalizedEvent): void;
+    protected genericDownAction(state: Aventus.PressManagerState, e: Aventus.NormalizedEvent): void;
     private pointerEventTriggered;
     protected downActionDelay(ev: PointerEvent | TouchEvent): void;
     protected downAction(ev: PointerEvent | TouchEvent): void;
-    protected genericUpAction(state: PressManagerState, e: NormalizedEvent): void;
+    protected genericUpAction(state: Aventus.PressManagerState, e: Aventus.NormalizedEvent): void;
     protected upAction(ev: PointerEvent | TouchEvent): void;
-    protected genericMoveAction(state: PressManagerState, e: NormalizedEvent): void;
+    protected genericMoveAction(state: Aventus.PressManagerState, e: Aventus.NormalizedEvent): void;
     protected moveAction(ev: PointerEvent): void;
-    protected childPressStart(e: InternalPointerEvent): void;
-    protected childPressEnd(e: InternalPointerEvent): void;
-    protected childPressMove(e: InternalPointerEvent): void;
-    protected lastEmitEvent?: NormalizedEvent;
-    protected emitTriggerFunction(action: string, e: NormalizedEvent, el?: Element | null): void;
+    protected childPressStart(e: Aventus.InternalPointerEvent): void;
+    protected childPressEnd(e: Aventus.InternalPointerEvent): void;
+    protected childPressMove(e: Aventus.InternalPointerEvent): void;
+    protected lastEmitEvent?: Aventus.NormalizedEvent;
+    protected emitTriggerFunction(action: string, e: Aventus.NormalizedEvent, el?: Element | null): void;
     /**
      * Destroy the Press instance byremoving all events
      */
@@ -1189,7 +1189,7 @@ class DragAndDrop {
     private startElementPosition;
     private isEnable;
     private draggableElement;
-    constructor(options: DragAndDropOptions);
+    constructor(options: Aventus.DragAndDropOptions);
     private getDefaultOptions;
     private mergeProperties;
     private mergeFunctions;
@@ -1215,7 +1215,7 @@ class DragAndDrop {
     /**
      * Get element currently dragging
      */
-    getElementDrag(): DragElement;
+    getElementDrag(): Aventus.DragElement;
     /**
      * Set targets where to drop
      */
@@ -1243,9 +1243,9 @@ class DragAndDrop {
 })
 class Instance {
     private static elements;
-    static get<X>(type: InstanceCst2<X>): X;
-    static set<X extends InstanceCst>(el: X): boolean;
-    static destroy<X extends InstanceCst>(el: X): boolean;
+    static get<X>(type: Aventus.InstanceCst2<X>): X;
+    static set<X extends Aventus.InstanceCst>(el: X): boolean;
+    static destroy<X extends Aventus.InstanceCst>(el: X): boolean;
 }
 
 @Storybook({
@@ -1261,7 +1261,7 @@ class ResizeObserver {
     private static resizeObserverClassByObject;
     private static uniqueInstance;
     private static getUniqueInstance;
-    constructor(options: ResizeObserverOptions | CallableFunction);
+    constructor(options: Aventus.ResizeObserverOptions | CallableFunction);
     /**
      * Observe size changing for the element
      */
@@ -1281,58 +1281,58 @@ class ResizeObserver {
 
 type PreparedUri = {
     regex: RegExp;
-    params: UriParams[];
+    params: Aventus.UriParams[];
 };
 
 @Storybook({
     prefix: "Lib/Uri"
 })
 class Uri {
-    static prepare(uri: string): PreparedUri;
-    static getParams(from: string | PreparedUri, current: string): UriParamsValue | null;
-    static isActive(from: string | PreparedUri, current: string): boolean;
+    static prepare(uri: string): Aventus.PreparedUri;
+    static getParams(from: string | Aventus.PreparedUri, current: string): Aventus.UriParamsValue | null;
+    static isActive(from: string | Aventus.PreparedUri, current: string): boolean;
     static normalize(path: string): any;
 }
 
 @Storybook({
     prefix: "Ram"
 })
-class RamError extends GenericError<RamErrorCode> {
+class RamError extends Aventus.GenericError<Aventus.RamErrorCode> {
 }
 
 @Storybook({
     prefix: "Ram"
 })
-class VoidRamWithError extends VoidWithError<RamError> {
+class VoidRamWithError extends Aventus.VoidWithError<Aventus.RamError> {
 }
 
 @Storybook({
     prefix: "Ram"
 })
-class ResultRamWithError<T> extends ResultWithError<T, RamError> {
+class ResultRamWithError<T> extends Aventus.ResultWithError<T, Aventus.RamError> {
 }
 
 @Storybook({
     prefix: "Ram"
 })
 interface IRamAction<T> {
-    update(newData: KeysObject<T>): Promise<this | undefined>;
-    updateWithError(newData: KeysObject<T>): Promise<ResultRamWithError<this>>;
+    update(newData: Aventus.KeysObject<T>): Promise<this | undefined>;
+    updateWithError(newData: Aventus.KeysObject<T>): Promise<Aventus.ResultRamWithError<this>>;
     onUpdate(callback: (item: this) => void): void;
     offUpdate(callback: (item: this) => void): void;
     delete(): Promise<void>;
-    deleteWithError(): Promise<VoidRamWithError>;
+    deleteWithError(): Promise<Aventus.VoidRamWithError>;
     onDelete(callback: (item: this) => void): void;
     offDelete(callback: (item: this) => void): void;
 }
 
-type RamItem<T extends IRamData> = T & IRamAction<T>;
+type RamItem<T extends Aventus.IRamData> = T & Aventus.IRamAction<T>;
 
 @Storybook({
     prefix: "Ram"
 })
-abstract class GenericRam<Index, T extends IRamData, U extends T = T> implements IRam {
-    static readonly info: Map<IRam, new () => any>;
+abstract class GenericRam<Index, T extends Aventus.IRamData, U extends T = T> implements Aventus.IRam {
+    static readonly info: Map<Aventus.IRam, new () => any>;
     /**
      * The current namespace
      */
@@ -1342,16 +1342,16 @@ abstract class GenericRam<Index, T extends IRamData, U extends T = T> implements
      */
     static get Fullname(): string;
     private subscribers;
-    protected recordsSubscribers: Map<Index, ___Aventus.RamSubscribers<RamItem<U>>>;
+    protected recordsSubscribers: Map<Index, ___Aventus.RamSubscribers<Aventus.RamItem<U>>>;
     /**
      * List of stored item by index key
      */
-    protected records: Map<Index, RamItem<U>>;
-    protected actionGuard: ActionGuard;
+    protected records: Map<Index, Aventus.RamItem<U>>;
+    protected actionGuard: Aventus.ActionGuard;
     @InternalProtected()
 	protected ramMapping: {
         [key: string]: {
-            ram: IRam;
+            ram: Aventus.IRam;
             asArray: boolean;
         };
     };
@@ -1365,12 +1365,12 @@ abstract class GenericRam<Index, T extends IRamData, U extends T = T> implements
      * Get item id
      */
     @BindThis()
-	getIdWithError(item: KeysObject<T> | T): ResultRamWithError<Index>;
+	getIdWithError(item: Aventus.KeysObject<T> | T): Aventus.ResultRamWithError<Index>;
     /**
      * Get item id
      */
     @BindThis()
-	getId(item: KeysObject<T> | T): Index;
+	getId(item: Aventus.KeysObject<T> | T): Index;
     /**
      * Prevent adding Watch element
      */
@@ -1378,16 +1378,16 @@ abstract class GenericRam<Index, T extends IRamData, U extends T = T> implements
     /**
      * Add function update, onUpdate, offUpdate, delete, onDelete, offDelete
      */
-    protected addRamAction<B extends (new (...args: any[]) => IRamData) & {
+    protected addRamAction<B extends (new (...args: any[]) => Aventus.IRamData) & {
         className?: string;
     }>(Base: B): {
-        new (...args: any[]): IRamData;
+        new (...args: any[]): Aventus.IRamData;
         get className(): string;
     } & B;
     /**
      * Define the right type base of the json received
      */
-    protected abstract getTypeForData(objJson: KeysObject<T> | T): new () => U;
+    protected abstract getTypeForData(objJson: Aventus.KeysObject<T> | T): new () => U;
     /**
      * Define all the types you ram is capable of
      */
@@ -1396,263 +1396,263 @@ abstract class GenericRam<Index, T extends IRamData, U extends T = T> implements
     /**
      * Transform the object into the object stored inside Ram
      */
-    protected getObjectForRam(objJson: KeysObject<T> | T): RamItem<U>;
+    protected getObjectForRam(objJson: Aventus.KeysObject<T> | T): Aventus.RamItem<U>;
     /**
      * Add element inside Ram or update it. The instance inside the ram is unique and ll never be replaced
      */
-    protected addOrUpdateData(item: KeysObject<T>, result: ResultWithError<RamItem<T>>): Promise<'created' | 'updated' | null>;
+    protected addOrUpdateData(item: Aventus.KeysObject<T>, result: Aventus.ResultWithError<Aventus.RamItem<T>>): Promise<'created' | 'updated' | null>;
     /**
      * Merge object and create real instance of class
      */
-    protected mergeObject(item: T | undefined, objJson: KeysObject<T> | T, options?: JsonFromOptions): void;
+    protected mergeObject(item: T | undefined, objJson: Aventus.KeysObject<T> | T, options?: Aventus.JsonFromOptions): void;
     /**
      * Create or update the item
      */
     @BindThis()
-	save(item: T, ...args: any[]): Promise<RamItem<U> | undefined>;
+	save(item: T, ...args: any[]): Promise<Aventus.RamItem<U> | undefined>;
     /**
      * Create or update the item
      */
     @BindThis()
-	saveWithError(item: T, ...args: any[]): Promise<ResultRamWithError<RamItem<U>>>;
-    protected beforeRecordSet(item: RamItem<T>): Promise<void>;
-    protected afterRecordSet(item: RamItem<T>): Promise<void>;
-    protected beforeRecordDelete(item: RamItem<T>): Promise<void>;
-    protected afterRecordDelete(item: RamItem<T>): Promise<void>;
-    protected publish(type: 'created' | 'updated' | 'deleted', data: RamItem<U>): void;
+	saveWithError(item: T, ...args: any[]): Promise<Aventus.ResultRamWithError<Aventus.RamItem<U>>>;
+    protected beforeRecordSet(item: Aventus.RamItem<T>): Promise<void>;
+    protected afterRecordSet(item: Aventus.RamItem<T>): Promise<void>;
+    protected beforeRecordDelete(item: Aventus.RamItem<T>): Promise<void>;
+    protected afterRecordDelete(item: Aventus.RamItem<T>): Promise<void>;
+    protected publish(type: 'created' | 'updated' | 'deleted', data: Aventus.RamItem<U>): void;
     private subscribe;
     private unsubscribe;
     /**
     * Add a callback that ll be triggered when a new item is stored
     */
     @BindThis()
-	onCreated(cb: (item: RamItem<U>) => void): void;
+	onCreated(cb: (item: Aventus.RamItem<U>) => void): void;
     /**
      * Remove a created callback
      */
     @BindThis()
-	offCreated(cb: (item: RamItem<U>) => void): void;
+	offCreated(cb: (item: Aventus.RamItem<U>) => void): void;
     /**
      * Add a callback that ll be triggered when an item is updated
      */
     @BindThis()
-	onUpdated(cb: (item: RamItem<U>) => void): void;
+	onUpdated(cb: (item: Aventus.RamItem<U>) => void): void;
     /**
      * Remove an updated callback
      */
     @BindThis()
-	offUpdated(cb: (item: RamItem<U>) => void): void;
+	offUpdated(cb: (item: Aventus.RamItem<U>) => void): void;
     /**
      * Add a callback that ll be triggered when an item is deleted
      */
     @BindThis()
-	onDeleted(cb: (item: RamItem<U>) => void): void;
+	onDeleted(cb: (item: Aventus.RamItem<U>) => void): void;
     /**
      * Remove an deleted callback
      */
     @BindThis()
-	offDeleted(cb: (item: RamItem<U>) => void): void;
+	offDeleted(cb: (item: Aventus.RamItem<U>) => void): void;
     /**
      * Get an item by id if exist (alias for getById)
      */
     @BindThis()
-	get(id: Index): Promise<RamItem<U> | undefined>;
+	get(id: Index): Promise<Aventus.RamItem<U> | undefined>;
     /**
      * Get an item by id if exist (alias for getById)
      */
     @BindThis()
-	getWithError(id: Index): Promise<ResultRamWithError<RamItem<U>>>;
+	getWithError(id: Index): Promise<Aventus.ResultRamWithError<Aventus.RamItem<U>>>;
     /**
      * Get an item by id if exist
      */
     @BindThis()
-	getById(id: Index): Promise<RamItem<U> | undefined>;
+	getById(id: Index): Promise<Aventus.RamItem<U> | undefined>;
     /**
      * Get an item by id if exist
      */
     @BindThis()
-	getByIdWithError(id: Index): Promise<ResultRamWithError<RamItem<U>>>;
+	getByIdWithError(id: Index): Promise<Aventus.ResultRamWithError<Aventus.RamItem<U>>>;
     /**
      * Trigger before getting an item by id
      */
-    protected beforeGetById(id: Index, result: ResultRamWithError<RamItem<U>>): Promise<void>;
+    protected beforeGetById(id: Index, result: Aventus.ResultRamWithError<Aventus.RamItem<U>>): Promise<void>;
     /**
      * Trigger after getting an item by id
      */
-    protected afterGetById(result: ResultRamWithError<RamItem<U>>): Promise<void>;
+    protected afterGetById(result: Aventus.ResultRamWithError<Aventus.RamItem<U>>): Promise<void>;
     /**
      * Get multiple items by ids
      */
     @BindThis()
-	getByIds(ids: Index[]): Promise<RamItem<U>[]>;
+	getByIds(ids: Index[]): Promise<Aventus.RamItem<U>[]>;
     /**
      * Get multiple items by ids
      */
     @BindThis()
-	getByIdsWithError(ids: Index[]): Promise<ResultRamWithError<RamItem<U>[]>>;
+	getByIdsWithError(ids: Index[]): Promise<Aventus.ResultRamWithError<Aventus.RamItem<U>[]>>;
     /**
      * Trigger before getting a list of items by id
      */
-    protected beforeGetByIds(ids: Index[], result: ResultRamWithError<RamItem<U>[]>): Promise<void>;
+    protected beforeGetByIds(ids: Index[], result: Aventus.ResultRamWithError<Aventus.RamItem<U>[]>): Promise<void>;
     /**
      * Trigger after getting a list of items by id
      */
-    protected afterGetByIds(result: ResultRamWithError<RamItem<U>[]>): Promise<void>;
+    protected afterGetByIds(result: Aventus.ResultRamWithError<Aventus.RamItem<U>[]>): Promise<void>;
     /**
      * Get all elements inside the Ram
      */
     @BindThis()
-	getAll(): Promise<Map<Index, RamItem<U>>>;
+	getAll(): Promise<Map<Index, Aventus.RamItem<U>>>;
     /**
      * Get all elements inside the Ram
      */
     @BindThis()
-	getAllWithError(): Promise<ResultRamWithError<Map<Index, RamItem<U>>>>;
+	getAllWithError(): Promise<Aventus.ResultRamWithError<Map<Index, Aventus.RamItem<U>>>>;
     /**
      * Trigger before getting all items inside Ram
      */
-    protected beforeGetAll(result: ResultRamWithError<Map<Index, RamItem<U>>>): Promise<void>;
+    protected beforeGetAll(result: Aventus.ResultRamWithError<Map<Index, Aventus.RamItem<U>>>): Promise<void>;
     /**
      * Trigger after getting all items inside Ram
      */
-    protected afterGetAll(result: ResultRamWithError<Map<Index, RamItem<U>>>): Promise<void>;
+    protected afterGetAll(result: Aventus.ResultRamWithError<Map<Index, Aventus.RamItem<U>>>): Promise<void>;
     /**
      * Get all elements inside the Ram
      */
     @BindThis()
-	getList(): Promise<RamItem<U>[]>;
+	getList(): Promise<Aventus.RamItem<U>[]>;
     /**
      * Get all elements inside the Ram
      */
     @BindThis()
-	getListWithError(): Promise<ResultRamWithError<RamItem<U>[]>>;
+	getListWithError(): Promise<Aventus.ResultRamWithError<Aventus.RamItem<U>[]>>;
     /**
      * Create a list of items inside ram
      */
     @BindThis()
-	createList(list: T[]): Promise<RamItem<U>[]>;
+	createList(list: T[]): Promise<Aventus.RamItem<U>[]>;
     /**
      * Create a list of items inside ram
      */
     @BindThis()
-	createListWithError(list: T[]): Promise<ResultRamWithError<RamItem<U>[]>>;
+	createListWithError(list: T[]): Promise<Aventus.ResultRamWithError<Aventus.RamItem<U>[]>>;
     /**
      * Create an item inside ram
      */
     @BindThis()
-	create(item: T, ...args: any[]): Promise<RamItem<U> | undefined>;
+	create(item: T, ...args: any[]): Promise<Aventus.RamItem<U> | undefined>;
     /**
      * Create an item inside ram
      */
     @BindThis()
-	createWithError(item: T, ...args: any[]): Promise<ResultRamWithError<RamItem<U>>>;
+	createWithError(item: T, ...args: any[]): Promise<Aventus.ResultRamWithError<Aventus.RamItem<U>>>;
     private _create;
     /**
      * Trigger before creating a list of items
      */
-    protected beforeCreateList(list: T[], result: ResultRamWithError<RamItem<U>[]>): Promise<void>;
+    protected beforeCreateList(list: T[], result: Aventus.ResultRamWithError<Aventus.RamItem<U>[]>): Promise<void>;
     /**
      * Trigger before creating an item
      */
-    protected beforeCreateItem(item: T, fromList: boolean, result: ResultRamWithError<RamItem<U>>): Promise<void>;
+    protected beforeCreateItem(item: T, fromList: boolean, result: Aventus.ResultRamWithError<Aventus.RamItem<U>>): Promise<void>;
     /**
      * Trigger after creating an item
      */
-    protected afterCreateItem(result: ResultRamWithError<RamItem<U>>, fromList: boolean): Promise<void>;
+    protected afterCreateItem(result: Aventus.ResultRamWithError<Aventus.RamItem<U>>, fromList: boolean): Promise<void>;
     /**
      * Trigger after creating a list of items
      */
-    protected afterCreateList(result: ResultRamWithError<RamItem<U>[]>): Promise<void>;
+    protected afterCreateList(result: Aventus.ResultRamWithError<Aventus.RamItem<U>[]>): Promise<void>;
     /**
      * Update a list of items inside ram
      */
     @BindThis()
-	updateList(list: T[]): Promise<RamItem<U>[]>;
+	updateList(list: T[]): Promise<Aventus.RamItem<U>[]>;
     /**
      * Update a list of items inside ram
      */
     @BindThis()
-	updateListWithError(list: T[]): Promise<ResultRamWithError<RamItem<U>[]>>;
+	updateListWithError(list: T[]): Promise<Aventus.ResultRamWithError<Aventus.RamItem<U>[]>>;
     /**
      * Update an item inside ram
      */
     @BindThis()
-	update(item: T, ...args: any[]): Promise<RamItem<U> | undefined>;
+	update(item: T, ...args: any[]): Promise<Aventus.RamItem<U> | undefined>;
     /**
      * Update an item inside ram
      */
     @BindThis()
-	updateWithError(item: T, ...args: any[]): Promise<ResultRamWithError<RamItem<U>>>;
+	updateWithError(item: T, ...args: any[]): Promise<Aventus.ResultRamWithError<Aventus.RamItem<U>>>;
     private _update;
     /**
      * Trigger before updating a list of items
      */
-    protected beforeUpdateList(list: T[], result: ResultRamWithError<RamItem<U>[]>): Promise<void>;
+    protected beforeUpdateList(list: T[], result: Aventus.ResultRamWithError<Aventus.RamItem<U>[]>): Promise<void>;
     /**
     * Trigger before updating an item
     */
-    protected beforeUpdateItem(item: T, fromList: boolean, result: ResultRamWithError<RamItem<U>>): Promise<void>;
+    protected beforeUpdateItem(item: T, fromList: boolean, result: Aventus.ResultRamWithError<Aventus.RamItem<U>>): Promise<void>;
     /**
      * Trigger after updating an item
      */
-    protected afterUpdateItem(result: ResultRamWithError<RamItem<U>>, fromList: boolean): Promise<void>;
+    protected afterUpdateItem(result: Aventus.ResultRamWithError<Aventus.RamItem<U>>, fromList: boolean): Promise<void>;
     /**
      * Trigger after updating a list of items
      */
-    protected afterUpdateList(result: ResultRamWithError<RamItem<U>[]>): Promise<void>;
+    protected afterUpdateList(result: Aventus.ResultRamWithError<Aventus.RamItem<U>[]>): Promise<void>;
     /**
      * Delete a list of items inside ram
      */
     @BindThis()
-	deleteList(list: T[]): Promise<RamItem<U>[]>;
+	deleteList(list: T[]): Promise<Aventus.RamItem<U>[]>;
     /**
      * Delete a list of items inside ram
      */
     @BindThis()
-	deleteListWithError(list: T[]): Promise<ResultRamWithError<RamItem<U>[]>>;
+	deleteListWithError(list: T[]): Promise<Aventus.ResultRamWithError<Aventus.RamItem<U>[]>>;
     /**
      * Delete an item inside ram
      */
     @BindThis()
-	delete(item: T, ...args: any[]): Promise<RamItem<U> | undefined>;
+	delete(item: T, ...args: any[]): Promise<Aventus.RamItem<U> | undefined>;
     /**
     * Delete an item inside ram
     */
     @BindThis()
-	deleteWithError(item: T, ...args: any[]): Promise<ResultRamWithError<RamItem<U>>>;
+	deleteWithError(item: T, ...args: any[]): Promise<Aventus.ResultRamWithError<Aventus.RamItem<U>>>;
     /**
      * Delete an item by id inside ram
      */
     @BindThis()
-	deleteById(id: Index): Promise<RamItem<U> | undefined>;
+	deleteById(id: Index): Promise<Aventus.RamItem<U> | undefined>;
     /**
     * Delete an item by id inside ram
     */
     @BindThis()
-	deleteByIdWithError(id: Index): Promise<ResultRamWithError<RamItem<U>>>;
+	deleteByIdWithError(id: Index): Promise<Aventus.ResultRamWithError<Aventus.RamItem<U>>>;
     private _delete;
     /**
      * Trigger before deleting a list of items
      */
-    protected beforeDeleteList(list: T[], result: VoidWithError): Promise<void>;
+    protected beforeDeleteList(list: T[], result: Aventus.VoidWithError): Promise<void>;
     /**
      * Trigger before deleting an item
      */
-    protected beforeDeleteItem(item: T, fromList: boolean, result: VoidWithError): Promise<void>;
+    protected beforeDeleteItem(item: T, fromList: boolean, result: Aventus.VoidWithError): Promise<void>;
     /**
      * Trigger after deleting an item
      */
-    protected afterDeleteItem(result: ResultRamWithError<RamItem<U>>, fromList: boolean): Promise<void>;
+    protected afterDeleteItem(result: Aventus.ResultRamWithError<Aventus.RamItem<U>>, fromList: boolean): Promise<void>;
     /**
      * Trigger after deleting a list of items
      */
-    protected afterDeleteList(result: ResultRamWithError<RamItem<U>[]>): Promise<void>;
+    protected afterDeleteList(result: Aventus.ResultRamWithError<Aventus.RamItem<U>[]>): Promise<void>;
 }
 
 @Storybook({
     prefix: "Ram"
 })
-abstract class Ram<T extends IRamData, U extends T = T> extends GenericRam<number, T, U> {
+abstract class Ram<T extends Aventus.IRamData, U extends T = T> extends Aventus.GenericRam<number, T, U> {
 }
 
 @Storybook({
@@ -1668,49 +1668,49 @@ interface StateAction {
     prefix: "State"
 })
 interface IStateManager {
-    subscribe(statePatterns: string | string[], callbacks: StateAction): any;
-    unsubscribe(statePatterns: string | string[], callbacks: StateAction): any;
+    subscribe(statePatterns: string | string[], callbacks: Aventus.StateAction): any;
+    unsubscribe(statePatterns: string | string[], callbacks: Aventus.StateAction): any;
     onAfterStateChanged(cb: () => void): any;
     offAfterStateChanged(cb: () => void): any;
-    setState(state: State | string): Promise<boolean>;
-    getState(): State | undefined;
+    setState(state: Aventus.State | string): Promise<boolean>;
+    getState(): Aventus.State | undefined;
     isStateActive(statePattern: string): boolean;
-    getStateSlugs(statePattern: string): UriParamsValue | null;
+    getStateSlugs(statePattern: string): Aventus.UriParamsValue | null;
 }
 
 @Storybook({
     prefix: "State"
 })
-abstract class StateManager implements IStateManager {
+abstract class StateManager implements Aventus.IStateManager {
     protected subscribers: {
         [statePattern: string]: ___Aventus.Subscriber;
     };
     static canBeActivate(statePattern: string, stateName: string): boolean;
-    protected activeState?: State;
-    protected changeStateMutex: Mutex;
-    protected canChangeStateCbs: ((newState: State) => Promise<boolean>)[];
+    protected activeState?: Aventus.State;
+    protected changeStateMutex: Aventus.Mutex;
+    protected canChangeStateCbs: ((newState: Aventus.State) => Promise<boolean>)[];
     private afterStateChanged;
     /**
      * Subscribe actions for a state or a state list
      */
-    subscribe(statePatterns: string | string[], callbacks: StateAction, autoActiveState?: boolean): void;
+    subscribe(statePatterns: string | string[], callbacks: Aventus.StateAction, autoActiveState?: boolean): void;
     /**
      *
      */
-    activateAfterSubscribe(statePatterns: string | string[], callbacks: StateAction): void;
+    activateAfterSubscribe(statePatterns: string | string[], callbacks: Aventus.StateAction): void;
     /**
      * Unsubscribe actions for a state or a state list
      */
-    unsubscribe(statePatterns: string | string[], callbacks: StateAction): void;
+    unsubscribe(statePatterns: string | string[], callbacks: Aventus.StateAction): void;
     onAfterStateChanged(cb: () => void): void;
     offAfterStateChanged(cb: () => void): void;
-    protected assignDefaultState(stateName: string): State;
-    canChangeState(cb: (newState: State) => Promise<boolean>): void;
+    protected assignDefaultState(stateName: string): Aventus.State;
+    canChangeState(cb: (newState: Aventus.State) => Promise<boolean>): void;
     /**
      * Activate a current state
      */
-    setState(state: State | string): Promise<boolean>;
-    getState(): State | undefined;
+    setState(state: Aventus.State | string): Promise<boolean>;
+    getState(): Aventus.State | undefined;
     /**
      * Check if a state is in the subscribers and active, return true if it is, false otherwise
      */
@@ -1718,7 +1718,7 @@ abstract class StateManager implements IStateManager {
     /**
      * Get slugs information for the current state, return null if state isn't active
      */
-    getStateSlugs(statePattern: string): UriParamsValue | null;
+    getStateSlugs(statePattern: string): Aventus.UriParamsValue | null;
     protected logLevel(): number;
     protected _log(msg: string, type: "error" | "warning" | "info"): void;
 }
@@ -1728,26 +1728,26 @@ abstract class StateManager implements IStateManager {
 })
 interface IState {
     readonly name: string;
-    activate(manager: StateManager): Promise<boolean>;
+    activate(manager: Aventus.StateManager): Promise<boolean>;
     onActivate(): any;
-    onInactivate(nextState: State): any;
-    askChange(state: State, nextState: State): Promise<boolean>;
+    onInactivate(nextState: Aventus.State): any;
+    askChange(state: Aventus.State, nextState: Aventus.State): Promise<boolean>;
 }
 
 @Storybook({
     prefix: "State"
 })
-abstract class State implements IState {
+abstract class State implements Aventus.IState {
     /**
      * Activate a custom state inside a specific manager
      * It ll be a generic state with no information inside exept name
      */
-    static activate(stateName: string, manager: StateManager): Promise<boolean>;
+    static activate(stateName: string, manager: Aventus.StateManager): Promise<boolean>;
     abstract get name(): string;
     /**
      * Activate this state inside a specific manager
      */
-    activate(manager: StateManager): Promise<boolean>;
+    activate(manager: Aventus.StateManager): Promise<boolean>;
     onActivate(): void;
     onInactivate(nextState: State): void;
     askChange(state: State, nextState: State): Promise<boolean>;
@@ -1756,7 +1756,7 @@ abstract class State implements IState {
 @Storybook({
     prefix: "State"
 })
-class EmptyState extends State implements IState {
+class EmptyState extends Aventus.State implements Aventus.IState {
     private localName;
     constructor(stateName: string);
     /**
@@ -1785,7 +1785,7 @@ class TemplateInstance {
     private loops;
     private ifs;
     private isDestroyed;
-    constructor(component: WebComponent, content: DocumentFragment, actions: ___Aventus.Actions, loops: ___Aventus.Loop[], ifs: ___Aventus.If[], context?: TemplateContext);
+    constructor(component: Aventus.WebComponent, content: DocumentFragment, actions: ___Aventus.Actions, loops: ___Aventus.Loop[], ifs: ___Aventus.If[], context?: Aventus.TemplateContext);
     render(): void;
     destructor(): void;
     removeFromDOM(avoidTrigger?: boolean): void;
@@ -1817,12 +1817,12 @@ class TemplateContext {
     data: {
         [name: string]: any;
     };
-    comp: WebComponent;
+    comp: Aventus.WebComponent;
     private computeds;
     private watch;
     private registry?;
     private isDestroyed;
-    constructor(component: WebComponent, data?: {
+    constructor(component: Aventus.WebComponent, data?: {
         [key: string]: any;
     }, parentContext?: TemplateContext, registry?: ___Aventus.LoopRegistery);
     print(value: any): string;
@@ -1844,8 +1844,8 @@ class TemplateContext {
 })
 class Template {
     static validatePath(path: string, pathToCheck: string): boolean;
-    cst: typeof WebComponent;
-    constructor(component: typeof WebComponent);
+    cst: typeof Aventus.WebComponent;
+    constructor(component: typeof Aventus.WebComponent);
     private htmlParts;
     setHTML(data: ___Aventus.TemplateHTML): void;
     generateTemplate(): void;
@@ -1861,7 +1861,7 @@ class Template {
     addLoop(loop: ___Aventus.Loop): void;
     ifs: ___Aventus.If[];
     addIf(_if: ___Aventus.If): void;
-    createInstance(component: WebComponent): any;
+    createInstance(component: Aventus.WebComponent): any;
 }
 
 @Dependances([{
@@ -1871,7 +1871,7 @@ class Template {
 @Storybook({
     prefix: "Webcomponent"
 })
-abstract class WebComponent extends HTMLElement implements DefaultComponent {
+abstract class WebComponent extends HTMLElement implements Aventus.DefaultComponent {
     /**
      * Add attributes informations
      */
@@ -2092,14 +2092,14 @@ class WebComponentInstance {
     /**
      * Get all sub classes of type
      */
-    static getAllClassesOf<T>(type: typeof WebComponent): (new () => WebComponent)[];
+    static getAllClassesOf<T>(type: typeof Aventus.WebComponent): (new () => Aventus.WebComponent)[];
     /**
      * Get all registered definitions
      */
-    static getAllDefinitions(): (new () => WebComponent)[];
-    static addInstance(instance: WebComponent): void;
-    static removeInstance(instance: WebComponent): void;
-    static getAllInstances(type: new () => WebComponent): {};
+    static getAllDefinitions(): (new () => Aventus.WebComponent)[];
+    static addInstance(instance: Aventus.WebComponent): void;
+    static removeInstance(instance: Aventus.WebComponent): void;
+    static getAllInstances(type: new () => Aventus.WebComponent): {};
     static create<T>(type: string): T | null;
 }
 
@@ -2416,7 +2416,7 @@ type TargetableElement = HTMLElement | SVGElement;
 
 type ContainerElement = HTMLElement | SVGSVGElement;
 
-type AnyElement = TargetableElement | ContainerElement;
+type AnyElement = Aventus.TargetableElement | Aventus.ContainerElement;
 
 @Storybook({
     prefix: "Lib/Animation"
@@ -2450,24 +2450,24 @@ type Subscriber = {
     }[];
     isActive: boolean;
     callbacks: {
-        active: StateActivationFct[];
-        inactive: StateInactivationFct[];
-        askChange: StateAskChangeFct[];
+        active: Aventus.StateActivationFct[];
+        inactive: Aventus.StateInactivationFct[];
+        askChange: Aventus.StateAskChangeFct[];
     };
 };
 
 type Loop = {
     anchorId: string;
     template: globalThis.Aventus.Template;
-    func?: (c: globalThis.Aventus.TemplateContext) => LoopFct;
-    simple?: LoopSimple;
+    func?: (c: globalThis.Aventus.TemplateContext) => Aventus.LoopFct;
+    simple?: Aventus.LoopSimple;
 };
 
 type ActionEvent = {
     id: string;
     eventName: string;
     isCallback?: boolean;
-    fct: ActionEventListener & ActionEventCallback;
+    fct: Aventus.ActionEventListener & Aventus.ActionEventCallback;
 };
 
 type LoopRegistery = {
@@ -2488,13 +2488,13 @@ type Actions = {
         isArray?: boolean;
     }[];
     content?: {
-        [id_attr: string]: ActionChange;
+        [id_attr: string]: Aventus.ActionChange;
     };
-    injection?: ActionInjection[];
-    bindings?: ActionBindings[];
-    events?: ActionEvent[];
+    injection?: Aventus.ActionInjection[];
+    bindings?: Aventus.ActionBindings[];
+    events?: Aventus.ActionEvent[];
     pressEvents?: globalThis.Aventus.PressManagerOptions[];
-    contextEdits?: ContextEdit[];
+    contextEdits?: Aventus.ContextEdit[];
 };
 }//#endregion js def //
 //#region js src //

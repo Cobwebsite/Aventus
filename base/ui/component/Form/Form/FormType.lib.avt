@@ -43,8 +43,8 @@ namespace Form {
 
 
     // TODO understand why I should use Omit. it seems to work in ts but not in aventus
-    export type FormPartValidateList<T> = FormPartValidate<T> | Constructor<Omit<Validator<T>, 'getMsg'>> | Validator<T> | (
-        Constructor<Omit<Validator<T>, 'getMsg'>> |
+    export type FormPartValidateList<T> = FormPartValidate<T> | Constructor<Validator<T>> | Validator<T> | (
+        Constructor<Validator<T>> |
         Validator<T>
     )[];
 
@@ -77,17 +77,21 @@ namespace Form {
 
     export type FormValidate = (field: string, value: unknown) => FormValidateResult;
 
-    export type FormHandlerConfig<T> = {
+    export type FormHandlerConfig<T, R = any> = {
+        defaultValues?: T;
         /** Define global validation rules for your forms */
         validate?: FormValidate,
         /** Define if the form element must be validated on input change */
         validateOnChange?: boolean,
         /** Define how to handle error in form when name isn't linked to an input */
-        handleValidateNoInputError?: (errors: { [K in keyof T]?: string[]; }) => Asyncable<void>,
+        onValidateFallback?: (errors: { [K in keyof T]?: string[]; }) => Asyncable<void>,
         /** Define how to handle error after submitting the form when name isn't linked to an input */
-        handleExecuteNoInputError?: (errors: Aventus.GenericError[]) => Asyncable<void>;
+        onServerFallback?: (errors: Aventus.GenericError[]) => Asyncable<void>;
         /** Define how to parse errors to set them to fields */
         extractor?: (error: Aventus.GenericError) => { fieldName: string, messages: string[]; }[];
+        /** Define what to do when form is submit successfully  */
+        onSuccess?: (result: ExtractError<R>) => Asyncable<void>;
+        submit?: SubmitFunction<T, R>;
     };
 
     @Storybook({
@@ -111,4 +115,5 @@ namespace Form {
         }
         return false;
     }
+
 }

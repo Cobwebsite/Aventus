@@ -1,17 +1,19 @@
-import { GenericError, isClass, VoidWithError, type Asyncable } from "Aventus@Main:Aventus.package.avt";
-import { type Constructor, type FormHandlerConfig, type FormPart, type FormPartValidate, type FormSchema, type FormValidate, type FormValidateResult, type IForm, type IFormElement, type InternalForm, type InternalFormPart, type SubmitFunction, type WithError } from "./FormType.lib.avt";
+import { GenericError, HttpRoute, isClass, ResultWithError, VoidWithError, type Asyncable } from "Aventus@Main:Aventus.package.avt";
+import type { Constructor, ExtractError, FormHandlerConfig, FormPart, FormPartValidate, FormSchema, FormValidate, FormValidateResult, IForm, IFormElement, InternalForm, InternalFormPart, SubmitFunction, WithError } from "./FormType.lib.avt";
 import { Validator } from "./Validator.lib.avt";
 import { PageForm } from "../../Navigation/PageForm/PageForm.wcl.avt";
 import { Form } from "./Form.wcl.avt";
 
 namespace Form {
-    export class FormHandler<T> {
+
+    export class FormHandler<T, R = any> {
 
         @Internal()
         public static _globalConfig?: FormHandlerConfig<any>;
 
         @Internal()
         public static _IFormElements: Constructor<IForm, true>[] = [Form, PageForm];
+
 
         private __watcher: any;
 
@@ -34,24 +36,31 @@ namespace Form {
         }
         private _globalValidation?: FormValidate;
         private _validateOnChange: boolean = false;
-        private _handleValidateNoInputError?: (errors: { [K in keyof T]?: string[]; }) => Asyncable<void>;
-        private _handleExecuteNoInputError?: (errors: Aventus.GenericError[]) => Asyncable<void>;
+        private _onValidateFallback?: (errors: { [K in keyof T]?: string[]; }) => Asyncable<void>;
+        private _onServerFallback?: (errors: Aventus.GenericError[]) => Asyncable<void>;
         private _extractor: (error: Aventus.GenericError) => { fieldName: string, messages: string[]; }[];
+        private _onSuccess?: (result: ExtractError<R>) => Asyncable<void>;
+        private _submitFct?: SubmitFunction<T, R>;
+        public get hasSubmitFct(): boolean {
+            return this._submitFct != undefined;
+        }
 
         public defaultValues: T;
         public onItemChange: Aventus.Callback<(action: Aventus.WatchAction, path: string, value: any) => void> = new Aventus.Callback();
 
 
-        public constructor(schema: FormSchema<T>, config?: FormHandlerConfig<T>, defaultValues?: T) {
+        public constructor(schema: FormSchema<T>, config?: FormHandlerConfig<T, R>) {
             this.writeValidationIntoConsole = this.writeValidationIntoConsole.bind(this);
             this.writeErrorIntoConsole = this.writeErrorIntoConsole.bind(this);
             this.defaultExtractor = this.defaultExtractor.bind(this);
             this._globalValidation = config?.validate ?? FormHandler._globalConfig?.validate;
             this._validateOnChange = config?.validateOnChange ?? FormHandler._globalConfig?.validateOnChange ?? false;
-            this._handleValidateNoInputError = config?.handleValidateNoInputError ?? FormHandler._globalConfig?.handleValidateNoInputError ?? this.writeValidationIntoConsole;
-            this._handleExecuteNoInputError = config?.handleExecuteNoInputError ?? FormHandler._globalConfig?.handleExecuteNoInputError ?? this.writeErrorIntoConsole;
+            this._onValidateFallback = config?.onValidateFallback ?? FormHandler._globalConfig?.onValidateFallback ?? this.writeValidationIntoConsole;
+            this._onServerFallback = config?.onServerFallback ?? FormHandler._globalConfig?.onServerFallback ?? this.writeErrorIntoConsole;
             this._extractor = config?.extractor ?? FormHandler._globalConfig?.extractor ?? this.defaultExtractor;
-            this.defaultValues = defaultValues ?? {} as T;
+            this._onSuccess = config?.onSuccess ?? FormHandler._globalConfig?.onSuccess;
+            this._submitFct = config?.submit;
+            this.defaultValues = config?.defaultValues ?? {} as T;
             this.onWatcherChanged = this.onWatcherChanged.bind(this);
             this.__watcher = Aventus.Watcher.get({
                 form: {},
@@ -119,7 +128,7 @@ namespace Form {
             realPart.onValueChange = new Aventus.Callback();
             realPart.handler = this;
             if(part.validate) {
-                const isConstructor = (validate: FormPartValidate<T> | Constructor<Omit<Validator<any>, 'getMsg'>>): validate is Constructor<Omit<Validator<any>, 'getMsg'>> => {
+                const isConstructor = (validate: FormPartValidate<T> | Constructor<Validator<any>>): validate is Constructor<Validator<any>> => {
                     return isClass(validate);
                 };
                 let validate: FormPartValidate<any>;
@@ -299,21 +308,29 @@ namespace Form {
                 }
             }
 
-            if(triggerUnhandle && this._handleValidateNoInputError) {
-                this._handleValidateNoInputError(unhandle);
+            if(triggerUnhandle && this._onValidateFallback) {
+                this._onValidateFallback(unhandle);
             }
 
             return Object.keys(result).length == 0;
         }
 
-        public async submit<X>(query: SubmitFunction<T, X>): Promise<WithError<X> | null> {
+        public async submit<X>(query?: SubmitFunction<T, X>): Promise<WithError<X> | null> {
             const result = await this.validate();
             if(!result) {
                 return null;
             }
             return this.execute(query);
         }
-        public async execute<X>(query: SubmitFunction<T, X>): Promise<WithError<X>> {
+        public async execute<X>(query?: SubmitFunction<T, X>): Promise<WithError<X>> {
+            if(!query) {
+                query = this._submitFct as SubmitFunction<T, X> | undefined;
+            }
+            if(!query) {
+                const res = new VoidWithError();
+                res.errors.push(new GenericError(403, "No submit function defined"));
+                return res as WithError<X>;
+            }
             if(typeof query == "function") {
                 if(!this.item) {
                     const result = new VoidWithError();
@@ -326,12 +343,14 @@ namespace Form {
 
             if(queryResult.errors.length > 0) {
                 queryResult.errors = this.parseErrors(queryResult);
-                if(queryResult.errors.length > 0 && this._handleExecuteNoInputError) {
-                    this._handleExecuteNoInputError(queryResult.errors);
+                if(queryResult.errors.length > 0 && this._onServerFallback) {
+                    this._onServerFallback(queryResult.errors);
                 }
             }
             else {
-
+                let result = queryResult instanceof ResultWithError ? queryResult.result : undefined;
+                if(this._onSuccess)
+                    await this._onSuccess(result);
             }
             return queryResult;
         }
