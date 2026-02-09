@@ -1408,6 +1408,13 @@ export class AventusTsLanguageService {
             if (element instanceof ClassInfo && !element.constructorBody && element.extraConstructorCode.length > 0) {
                 result = result.replace(/^ *constructor\(.*\);$/gm, "");
             }
+            if (element instanceof ClassInfo && element.isWebcomponent) {
+                let file = element.build.tsFiles[element.fileUri]
+                if(file instanceof AventusWebComponentLogicalFile) {
+                    const regex = new RegExp("^ *private " + file.viewMethodName + "[0-9]+?;\n", "gm")
+                    result = result.replace(regex, "");
+                }
+            }
             return result;
         } catch (e) {
             this.printCatchError(e);
