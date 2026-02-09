@@ -323,7 +323,6 @@ class RouterLink extends Aventus.WebComponent implements Aventus.DefaultComponen
     protected registerActiveStateListener(): void;
     protected prevent(e: Event): void;
     protected postCreation(): void;
-    private __ad88894dc7dea62195d227cdd21fc210method0;
 }
 }
 
@@ -341,7 +340,6 @@ class Link extends Aventus.WebComponent implements Aventus.DefaultComponent {
     protected registerActivetoListener(): void;
     protected prevent(e: Event): void;
     protected postCreation(): void;
-    private __7e4c6c9fe944acd9b1174c61347fdcb6method0;
 }
 }
 

@@ -55,8 +55,11 @@
 			"type": "node",
 			"request": "launch",
 			"name": "Launch CLI Test",
-			"program": "${workspaceFolder}/cli/out/main.js",
-			"cwd": "C:/Users/maxim/Desktop/test3/",
+			"program": "${workspaceFolder}/cli/out/cli.js",
+			"args": [
+				"dependances", "help-llm"
+			],
+			"cwd": "D:/Spalio/Web",
 			"outFiles": [
 				"${workspaceFolder}/cli/out/**/*.js"
 			]

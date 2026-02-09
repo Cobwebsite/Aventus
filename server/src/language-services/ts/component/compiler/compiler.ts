@@ -275,12 +275,7 @@ export class AventusWebcomponentCompiler {
     }
     //#region load info from files
     private isComponentClassInfo(info: BaseInfo) {
-        if (info instanceof ClassInfo) {
-            if (info.implements.includes(this.AventusDefaultComponent) && !info.isInterface) {
-                return true;
-            }
-        }
-        return false;
+        return info instanceof ClassInfo && info.isWebcomponent;
     }
     private compileComponentClassInfo() {
         if (this.classInfo) {
