@@ -3,6 +3,9 @@ import { Router } from "../Router/Router.wcl.avt";
 import type { PageConfig } from "./PageConfig.lib.avt";
 
 namespace Navigation {
+    /**
+     * Abstract base class for all routable pages within an Aventus application. It provides core functionality for page lifecycle management, visibility control, data loading, and access control.
+     */
     export abstract class Page extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
         //#region static
@@ -11,6 +14,9 @@ namespace Navigation {
 
 
         //#region props
+        /**
+         * Controls the visibility of the page. Changes to this property trigger onShow() or onHide() methods.
+         */
         @Property((target: Page) => {
             if(target.visible) {
                 target.onShow();
@@ -21,7 +27,13 @@ namespace Navigation {
         })
         public visible!: boolean;
 
+        /**
+         * Reference to the parent Router component that manages this page.
+         */
         public router?: Router;
+        /**
+         * The Aventus.State object associated with the current route, providing access to route parameters and other state information.
+         */
         protected state?: Aventus.State;
         //#endregion
 
@@ -37,24 +49,39 @@ namespace Navigation {
 
 
         //#region methods
+        /**
+         * Abstract method that concrete page implementations must provide to return a PageConfig object, defining how the page should behave (e.g., whether it should be destroyed on hide).
+         */
         public abstract configure(): Aventus.Asyncable<PageConfig>;
 
+        /**
+         * Asynchronously makes the page visible, setting the state property and triggering onShow().
+         */
         public async show(state?: Aventus.State) {
             this.state = state;
             this.visible = true;
         }
+        /**
+         * Asynchronously makes the page hidden, clearing the state property and triggering onHide().
+         */
         public async hide() {
             this.visible = false;
             this.state = undefined;
         }
+        /**
+         * Lifecycle hook called when the page becomes visible. Subclasses can override this to implement custom logic.
+         */
         public onShow() {
 
         }
+        /**
+         * Lifecycle hook called when the page becomes hidden. Subclasses can override this to implement custom logic.
+         */
         public onHide() {
 
         }
         /**
-         * Add custom check
+         * Asynchronous method that can be overridden to implement custom access control logic.
          * Return true if evrything is ok
          * False will prevent showing
          * string or state will redirect to the page
@@ -63,7 +90,7 @@ namespace Navigation {
             return true;
         }
         /**
-         * Add function to load data
+         * Asynchronous method that can be overridden to load data required by the page.
          * Return true if evrything is ok
          * False will prevent showing
          * string or state will redirect to the page

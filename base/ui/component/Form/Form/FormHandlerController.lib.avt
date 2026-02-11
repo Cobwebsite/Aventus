@@ -19,12 +19,21 @@ namespace Form {
         submit?: T[M];
     };
 
+    /**
+     * Extends FormHandler to integrate with Aventus HttpRoute controllers for form submissions.
+     */
     export class FormHandlerController<T extends Aventus.HttpRoute, M extends MethodName<T> = MethodNameExist<T>> extends FormHandler<MethodBody<T, M>> {
 
         private _controller: new () => T;
+        /**
+         * The HttpRoute controller constructor.
+         */
         public get controller(): new () => T {
             return this._controller;
         }
+        /**
+         * Creates a FormHandlerController instance, inferring the submission method if only one exists.
+         */
         public static create<T extends Aventus.HttpRoute, M extends MethodName<T> = MethodNameExist<T>>(
             controller: new () => T,
             schema: FormSchema<MethodBody<T, M>>,
@@ -41,6 +50,9 @@ namespace Form {
             throw "There isn't exaclty one function inside your controller " + JSON.stringify(fcts);
         }
 
+        /**
+         * Creates a FormHandlerController instance with a explicitly named submission method.
+         */
         public static createWithName<T extends Aventus.HttpRoute, M extends MethodName<T>>(
             controller: new () => T,
             name: M,
@@ -54,6 +66,9 @@ namespace Form {
             return new FormHandlerController(controller, schema, config);
         }
 
+        /**
+         * Initializes a new FormHandlerController instance.
+         */
         private constructor(controller: new () => T, schema: FormSchema<MethodBody<T, M>>, config?: FormHandlerControllerConfig<T, M>) {
             super(schema, config as any);
             this._controller = controller;

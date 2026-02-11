@@ -1,6 +1,9 @@
 import { RouterStateManager } from "../../../lib/RouterStateManager.lib.avt";
 
 namespace Navigation {
+    /**
+     * Provides declarative navigation within an Aventus application. It functions similarly to an HTML tag but integrates with the application's router for client-side routing, applying an "active" class based on the current route.
+     */
     export class Link extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
         //#region static
@@ -9,11 +12,14 @@ namespace Navigation {
 
 
         //#region props
+        /**
+         * Specifies the internal route path to navigate to.
+         */
         @Attribute()
         public to?: string;
 
         /**
-         * If set define when active class is added otherwhise class active is added when to define is active
+         * If set, defines a custom pattern to determine when the link should be considered "active", overriding the default behavior of matching to.
          */
         @Attribute()
         public active_pattern?: string;
@@ -31,7 +37,13 @@ namespace Navigation {
 
 
         //#region methods
+        /**
+         * Callback triggered when the active state of the link changes.
+         */
         public onActiveChange: Aventus.Callback<(isActive: boolean) => void> = new Aventus.Callback();
+        /**
+         * Sets up a PressManager to handle click events on the link. When clicked, it normalizes the to path (handling relative paths) and uses Aventus.State.activate to navigate via the RouterStateManager.
+         */
         protected addClickEvent() {
             new Aventus.PressManager({
                 element: this,
@@ -52,6 +64,9 @@ namespace Navigation {
                 }
             });
         }
+        /**
+         * Subscribes to the RouterStateManager to listen for route changes. When the current route matches to (or active_pattern), it adds the "active" class to the component and triggers onActiveChange. When inactive, it removes the class.
+         */
         protected registerActivetoListener() {
 
             let activeto = this.to;
@@ -71,14 +86,19 @@ namespace Navigation {
                 }
             });
         }
+        /**
+         * Utility method to prevent the default behavior of an event.
+         */
         protected prevent(e: Event) {
             e.preventDefault();
         }
+        /**
+         * Lifecycle hook called after the component is created. Registers the active listener and adds the click event handler.
+         */
         protected override postCreation(): void {
             this.registerActivetoListener();
             this.addClickEvent();
         }
         //#endregion
-
     }
 }

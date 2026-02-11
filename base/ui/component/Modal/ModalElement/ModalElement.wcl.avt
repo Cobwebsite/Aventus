@@ -2,20 +2,50 @@ import { PressManager } from "Aventus@Main:Aventus.package.avt";
 import { ShortcutManager, SpecialTouch } from "../../../lib/ShortcutManager.lib.avt";
 
 namespace Modal {
+    /**
+     * Defines configuration options for a modal dialog.
+     */
     export interface ModalOptions<T = any> {
+        /**
+         * If true, the modal can be closed by pressing the Escape key.
+         */
         closeWithEsc?: boolean;
+        /**
+         * If true, the modal can be closed by clicking outside its content area.
+         */
         closeWithClick?: boolean;
+        /**
+         * The value with which the modal's promise will be rejected if closed without a specific resolution.
+         */
         rejectValue?: T | null;
     }
+    /**
+     * A utility type to extract the return type (U) from a ModalElement instance X.
+     */
     export type ExtractTypeModal<X extends ModalElement<U, Y>, U = any, Y extends ModalOptions = any> = X extends ModalElement<infer U, Y> ? U : never;
 
+    /**
+     * Abstract base class for creating various types of modal dialogs or pop-ups. It provides core functionality for showing, closing, and configuring modal behavior, including options for closing with the Escape key or outside clicks.
+     */
     export abstract class ModalElement<T, U extends ModalOptions<T> = ModalOptions<T>> extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
         //#region static
+        /**
+         * Global default for whether modals can be closed with the Escape key.
+         */
         private static defaultCloseWithEsc: boolean = true;
+        /**
+         * Global default for whether modals can be closed by clicking outside.
+         */
         private static defaultCloseWithClick: boolean = true;
+        /**
+         * Global default for the reject value when a modal is closed without specific resolution.
+         */
         private static defaultRejectValue: any = null;
 
+        /**
+         * Allows global configuration of modal options for all instances.
+         */
         public static configure(options: Partial<ModalOptions<any>>) {
             if(options.closeWithClick !== undefined) this.defaultCloseWithClick = options.closeWithClick;
             if(options.closeWithEsc !== undefined) this.defaultCloseWithEsc = options.closeWithEsc;
@@ -24,8 +54,11 @@ namespace Modal {
             }
         }
 
-        protected static _show<T extends ModalElement<U, X>, U = ExtractTypeModal<T>, X extends ModalOptions<U> = ModalOptions<U>>(modal: T, element?: Element): Promise<U | null> {
-            return new Promise<U | null>((resolve) => {
+        /**
+         * Factory method to create, initialize, and display a modal.
+         */
+        protected static _show<TModal extends ModalElement<TResult, TOptions>, TResult = ExtractTypeModal<TModal>, TOptions extends ModalOptions<TResult> = ModalOptions<TResult>>(modal: TModal, element?: Element): Promise<TResult | null> {
+            return new Promise<TResult | null>((resolve) => {
                 modal.init((response) => {
                     resolve(response);
                 });
@@ -44,22 +77,40 @@ namespace Modal {
 
 
         //#region variables
+        /**
+         * The callback function that is triggered when the modal is closed, resolving the Promise returned by show().
+         */
         protected cb?: (response: T | null) => void;
 
+        /**
+         * The configuration options for this specific modal instance. Changes to this property trigger onOptionsChanged().
+         */
         @Watch((target: ModalElement<T, U>, action: Aventus.WatchAction, path: string, value: any) => {
             target.onOptionsChanged();
         })
         protected options: U;
 
+        /**
+         * Reference to the internal modal content element within the component's template, used to prevent closing when clicking inside the modal.
+         */
         @ViewElement()
         protected modalEl!: HTMLDivElement;
 
+        /**
+         * Manages click events on the modal for closing behavior (outside click).
+         */
         protected pressManagerClickClose?: PressManager;
+        /**
+         * Manages click events on the modal content to prevent closing when clicking inside.
+         */
         protected pressManagerPrevent?: PressManager;
         //#endregion
 
 
         //#region constructor
+        /**
+         * Initializes a new instance of the ModalElement, applying default options which can be overridden by the instance-specific configure() method.
+         */
         public constructor() {
             super();
             this.options = this.configure();
@@ -73,11 +124,17 @@ namespace Modal {
 
 
         //#region methods
+        /**
+         * Abstract method to be implemented by subclasses to provide instance-specific modal options.
+         */
         public abstract configure(): U;
+        /**
+         * A placeholder method called when the options property changes. Subclasses can override this to react to option updates.
+         */
         protected onOptionsChanged() { }
 
         /**
-         * Define the callback
+         * Initializes the modal's callback and sets up event listeners for Escape key (using ShortcutManager) and click-to-close behavior (using PressManager).
          */
         private init(cb: (response: T | null) => void) {
             this.cb = cb;
@@ -98,9 +155,15 @@ namespace Modal {
             }
         }
 
+        /**
+         * Displays the modal, appending it to the specified element or document.body.
+         */
         public show(element?: Element): Promise<T | null> {
             return ModalElement._show(this as any, element);
         }
+        /**
+         * Cleans up event listeners and removes the modal from the DOM.
+         */
         @BindThis()
         protected close() {
             ShortcutManager.unsubscribe(SpecialTouch.Escape, this.reject);
@@ -109,6 +172,9 @@ namespace Modal {
             this.remove();
         }
 
+        /**
+         * Closes the modal and resolves its promise with the configured rejectValue.
+         */
         @BindThis()
         protected reject(no_close?: boolean) {
             if(this.cb) {
@@ -119,6 +185,9 @@ namespace Modal {
             }
         }
 
+        /**
+         * Closes the modal and resolves its promise with a specified response value.
+         */
         @BindThis()
         protected resolve(response: T, no_close?: boolean) {
             if(this.cb) {

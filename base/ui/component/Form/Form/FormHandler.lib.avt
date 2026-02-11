@@ -6,49 +6,109 @@ import { Form } from "./Form.wcl.avt";
 
 namespace Form {
 
+    /**
+     * Provides core logic for handling forms, including data management, validation, and submission.
+     */
     export class FormHandler<T, R = any> {
 
+        /**
+         * Global configuration settings for FormHandler instances.
+         */
         @Internal()
         public static _globalConfig?: FormHandlerConfig<any>;
 
+        /**
+         * List of constructors for elements that implement IForm.
+         */
         @Internal()
         public static _IFormElements: Constructor<IForm, true>[] = [Form, PageForm];
 
 
+        /**
+         * Internal watcher instance for tracking form data changes.
+         */
         private __watcher: any;
 
+        /**
+         * The data item associated with the form.
+         */
         public get item(): T {
             return this.__watcher.item;
         }
 
+        /**
+         * Sets the data item associated with the form.
+         */
         public set item(item: T) {
             this.__watcher.item = item;
         }
 
+        /**
+         * Provides access to the internal form parts for the schema.
+         */
         public get parts(): InternalForm<T> {
             return this.__watcher.form;
         }
 
+        /**
+         * Internal map of registered form elements by field name.
+         */
         private _elements: { [K in keyof T]?: IFormElement[]; } = {};
 
+        /**
+         * Provides access to the registered form elements.
+         */
         public get elements(): { [K in keyof T]?: IFormElement[]; } {
             return { ...this._elements };
         }
+        /**
+         * Global validation function for the form.
+         */
         private _globalValidation?: FormValidate;
+        /**
+         * Indicates if validation should occur on input change.
+         */
         private _validateOnChange: boolean = false;
+        /**
+         * Fallback handler for validation errors not linked to a specific input.
+         */
         private _onValidateFallback?: (errors: { [K in keyof T]?: string[]; }) => Asyncable<void>;
+        /**
+         * Fallback handler for server-side errors not linked to a specific input.
+         */
         private _onServerFallback?: (errors: Aventus.GenericError[]) => Asyncable<void>;
+        /**
+         * Function to extract field-specific error messages from a generic error.
+         */
         private _extractor: (error: Aventus.GenericError) => { fieldName: string, messages: string[]; }[];
+        /**
+         * Callback executed upon successful form submission.
+         */
         private _onSuccess?: (result: ExtractError<R>) => Asyncable<void>;
+        /**
+         * The internal function responsible for submitting the form.
+         */
         private _submitFct?: SubmitFunction<T, R>;
+        /**
+         * Checks if a submission function is defined for the form.
+         */
         public get hasSubmitFct(): boolean {
             return this._submitFct != undefined;
         }
 
+        /**
+         * The default values for the form fields.
+         */
         public defaultValues: T;
+        /**
+         * Callback triggered when an item's property changes.
+         */
         public onItemChange: Aventus.Callback<(action: Aventus.WatchAction, path: string, value: any) => void> = new Aventus.Callback();
 
 
+        /**
+         * Initializes a new FormHandler instance with a given schema and optional configuration.
+         */
         public constructor(schema: FormSchema<T>, config?: FormHandlerConfig<T, R>) {
             this.writeValidationIntoConsole = this.writeValidationIntoConsole.bind(this);
             this.writeErrorIntoConsole = this.writeErrorIntoConsole.bind(this);
@@ -71,6 +131,9 @@ namespace Form {
         }
 
 
+        /**
+         * Logs validation errors to the console.
+         */
         private writeValidationIntoConsole(errors: { [K in keyof T]?: string[]; }) {
             for(let name in errors) {
                 if(!errors[name]) continue;
@@ -79,11 +142,17 @@ namespace Form {
                 }
             }
         }
+        /**
+         * Logs generic errors to the console.
+         */
         private writeErrorIntoConsole(errors: Aventus.GenericError[]) {
             for(let error in errors) {
                 console.log(error);
             }
         }
+        /**
+         * Transforms the raw form schema into an internal representation.
+         */
         protected transformForm(form: FormSchema<T>): InternalForm<T> {
             const result = form as InternalForm<T>;
             const normalizePart = (part: FormSchema<T>[keyof T]) => {
@@ -120,6 +189,9 @@ namespace Form {
             }
             return result;
         }
+        /**
+         * Transforms a single form part within the internal form representation.
+         */
         protected transformFormPart(key: keyof T, part: FormPart | undefined) {
             if(!part) return;
 
@@ -206,7 +278,9 @@ namespace Form {
         }
 
 
-
+        /**
+         * Handles changes observed by the watcher, triggering value change and validation for relevant form parts.
+         */
         protected async onWatcherChanged(action: Aventus.WatchAction, path: string, value: any) {
             if(!this.parts) return;
             if(path == "item") {
@@ -294,6 +368,9 @@ namespace Form {
             }
         }
 
+        /**
+         * Validates the form or a specific field, and triggers fallback handlers for unhandled errors.
+         */
         public async validate(key: keyof T): Promise<boolean>;
         public async validate(): Promise<boolean>;
         public async validate(key?: keyof T): Promise<boolean> {
@@ -315,6 +392,9 @@ namespace Form {
             return Object.keys(result).length == 0;
         }
 
+        /**
+         * Handles form submission, including validation and execution of the submission function.
+         */
         public async submit<X>(query?: SubmitFunction<T, X>): Promise<WithError<X> | null> {
             const result = await this.validate();
             if(!result) {
@@ -322,6 +402,9 @@ namespace Form {
             }
             return this.execute(query);
         }
+        /**
+         * Executes the form's submission function after validation.
+         */
         public async execute<X>(query?: SubmitFunction<T, X>): Promise<WithError<X>> {
             if(!query) {
                 query = this._submitFct as SubmitFunction<T, X> | undefined;
@@ -355,6 +438,9 @@ namespace Form {
             return queryResult;
         }
 
+        /**
+         * Extracts field-specific error messages from a generic error object.
+         */
         private defaultExtractor(error: Aventus.GenericError): { fieldName: string, messages: string[]; }[] {
             // v1
             if(Array.isArray(error.details)) {
@@ -375,6 +461,9 @@ namespace Form {
             }
             return result;
         }
+        /**
+         * Parse errors and display them inside the FormElement if possible
+         */
         public parseErrors<X>(queryResult: WithError<X>): Aventus.GenericError[] {
             const unappliedErrors: Aventus.GenericError[] = [];
             const elements = this.elements;
@@ -400,6 +489,9 @@ namespace Form {
             return unappliedErrors;
         }
 
+        /**
+         * Reset form with default values
+         */
         public reset() {
             this.item = this.defaultValues;
         }

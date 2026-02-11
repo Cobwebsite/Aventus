@@ -13,16 +13,15 @@ export class DocumentationInfo {
 	public constructor(node: Node & { jsDoc?: JSDoc[] }) {
 		if (node.jsDoc) {
 			this.hasDoc = true
-
+			
 			for (let jsDoc of node.jsDoc) {
+				this.fullDefinitions.push(jsDoc.getText().replace(/\n(\t+|  +)+/g, "\n "));
 				if (typeof jsDoc.comment == 'string') {
-					this.fullDefinitions.push(jsDoc.getText());
 					this.definitions.push(jsDoc.comment);
 				}
 
 				if (jsDoc.tags) {
 					for (let tag of jsDoc.tags) {
-						this.fullDefinitions.push(tag.getText());
 						if (tag.kind == SyntaxKind.JSDocParameterTag) {
 							let docParam = tag as JSDocParameterTag;
 							if (typeof docParam.comment == 'string') {

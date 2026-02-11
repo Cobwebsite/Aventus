@@ -1,9 +1,18 @@
 import type { Constructor, FormValidateResult } from "./FormType.lib.avt";
 
 namespace Form {
+    /**
+     * Abstract base class for creating custom form validators.
+     */
     export abstract class Validator<T> {
+        /**
+         * The default error message for the validator.
+         */
         public static msg: string | (() => string) = "There is an error";
 
+        /**
+         * Statically tests a value against one or more validators.
+         */
         public static async Test(validators: Constructor<Validator<any>> | Constructor<Validator<any>>[], value: any, name: string, globalValidation: () => Promise<void>): Promise<string[] | undefined> {
             if(!Array.isArray(validators)) {
                 validators = [validators];
@@ -28,10 +37,16 @@ namespace Form {
         }
 
         private _msg?: string | (() => string);
+        /**
+         * Initializes a new Validator instance with an optional custom error message.
+         */
         public constructor(msg?: string | (() => string)) {
             this._msg = msg;
         }
 
+        /**
+         * Retrieves the error message for the validator, optionally replacing placeholders.
+         */
         protected getMsg(replace?: { [field: string]: string; }): string {
             let msg: string | (() => string) = this._msg ?? this.constructor['msg'];
             if(typeof msg == 'function') msg = msg();
@@ -43,6 +58,9 @@ namespace Form {
             return msg;
         }
 
+        /**
+         * Abstract method to be implemented by subclasses for custom validation logic.
+         */
         @BindThis()
         public abstract validate(value: T | undefined, name: string, globalValidation: () => Promise<void>): FormValidateResult;
     }

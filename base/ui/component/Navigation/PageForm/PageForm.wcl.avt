@@ -7,16 +7,37 @@ import { Page } from "../Page/Page.wcl.avt";
 import { PageFormCst } from "./PageFormCst.lib.avt";
 
 namespace Navigation {
+    /**
+     * Configuration options specific to a page form.
+     */
     export type PageFormConfig = {
         submitWithEnter?: boolean;
         autoLoading?: boolean;
     };
+    /**
+     * Defines the contract for components that want to behave as a PageForm.
+     */
     export interface IPageForm<T, U> {
+        /**
+         * Defines the data structure and validation rules for the form.
+         */
         formSchema(): FormSchema<T>;
+        /**
+         * Provides additional configuration for the FormHandler.
+         */
         formConfig(): FormHandlerConfig<T>;
+        /**
+         * Handles the actual form submission logic.
+         */
         defineSubmit(submit: (fct: SubmitFunction<T, U>) => Promise<WithError<U> | null>): Promise<WithError<U> | null>;
-		pageConfig(): PageFormConfig
+		/**
+         * Provides additional configuration for the PageForm itself.
+         */
+        pageConfig(): PageFormConfig
     }
+    /**
+     * Extends the Page component to integrate form functionality directly into a routable page. It provides a structured way to define form schemas, configure form behavior, and handle submissions within the context of a page.
+     */
     export abstract class PageForm<T, U> extends Page implements Aventus.DefaultComponent, IPageForm<T, U> {
 
         //#region static
@@ -30,12 +51,21 @@ namespace Navigation {
 
 
         //#region variables
+        /**
+         * Internal instance managing the FormHandler for the page.
+         */
         private _form: PageFormCst<T, U>;
+        /**
+         * Provides access to the underlying FormHandler instance.
+         */
         public get form(): FormHandler<any> { return this._form.form; }
         //#endregion
 
 
         //#region constructor
+        /**
+         * Initializes a new instance of the PageForm, linking it to its form handler.
+         */
         public constructor() {
             super();
             this._form = new PageFormCst(this);
@@ -46,6 +76,7 @@ namespace Navigation {
         //#region methods        
         /**
          * @inheritdoc
+         * Registers a FormElement with the page's form.
         */
         public registerElement(element: FormElement<any>): IForm {
             this._form.registerElement(element);
@@ -53,6 +84,7 @@ namespace Navigation {
         }
         /**
          * @inheritdoc
+         * Registers a ButtonElement as a submit button for the page's form.
          */
         public registerSubmit(element: ButtonElement): IForm {
             this._form.registerSubmit(element);
@@ -60,16 +92,26 @@ namespace Navigation {
         }
         /**
          * @inheritdoc
+         * Initiates the form submission process.
         */
         public requestSubmit(): Aventus.Asyncable<void> {
             return this._form.requestSubmit();
         }
 
 
+        /**
+         * Abstract method to be implemented by subclasses to define the data structure and validation rules for the form.
+         */
         public abstract formSchema(): FormSchema<T>;
+        /**
+         * Provides an optional way for subclasses to define additional configuration for the FormHandler.
+         */
         public formConfig(): FormHandlerConfig<T> {
             return {};
         }
+        /**
+         * Provides an optional way for subclasses to define additional configuration for the PageForm, such as submitWithEnter and autoLoading.
+         */
         public pageConfig(): PageFormConfig {
             return {
                 submitWithEnter: true,
@@ -77,6 +119,9 @@ namespace Navigation {
             };
         }
 
+        /**
+         * Abstract method to be implemented by subclasses to handle the actual form submission logic, taking a SubmitFunction as an argument.
+         */
         public abstract defineSubmit(submit: (fct: SubmitFunction<T, U>) => Promise<WithError<U> | null>): Promise<WithError<U> | null>;
 
         //#endregion

@@ -1,3 +1,6 @@
+/**
+ * Renders a circular progress indicator using SVG. It allows customization of the progress value and the thickness of the circle stroke.
+ */
 export class ProgressCircle extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
     //#region static
@@ -6,11 +9,17 @@ export class ProgressCircle extends Aventus.WebComponent implements Aventus.Defa
 
 
     //#region props
+    /**
+     * Represents the progress percentage (0-100). Changes to this property trigger the render() method.
+     */
     @Property((target: ProgressCircle) => {
         target.render();
     })
     public value: number = 40;
 
+    /**
+     * Defines the thickness of the progress circle's stroke. Changes to this property trigger the render() method.
+     */
     @Property((target: ProgressCircle) => {
         target.render();
     })
@@ -19,11 +28,23 @@ export class ProgressCircle extends Aventus.WebComponent implements Aventus.Defa
 
 
     //#region variables
+    /**
+     * Reference to the HTML element within the component's template where the SVG will be rendered.
+     */
     @ViewElement()
     protected containerEl!: HTMLDivElement;
 
+    /**
+     * Reference to the dynamically created SVG element.
+     */
     private svg?: SVGSVGElement;
+    /**
+     * Reference to the SVG circle element representing the background of the progress circle.
+     */
     private backCircle?: SVGCircleElement;
+    /**
+     * Reference to the SVG circle element representing the filled progress of the circle.
+     */
     private percentCircle?: SVGCircleElement;
     //#endregion
 
@@ -34,6 +55,9 @@ export class ProgressCircle extends Aventus.WebComponent implements Aventus.Defa
 
 
     //#region methods
+    /**
+     * Ensures the input value is within the valid range of 0 to 100.
+     */
     private getLimitedValue(input: number | undefined) {
         if(input === undefined) {
             return 0;
@@ -44,6 +68,9 @@ export class ProgressCircle extends Aventus.WebComponent implements Aventus.Defa
         }
     }
 
+    /**
+     * The core rendering logic for the progress circle. It calculates the necessary SVG attributes (radius, circumference, stroke-dashoffset) based on the component's dimensions, value, and stroke_width. It then creates or updates the SVG and its circle elements, appending them to containerEl.
+     */
     protected render() {
         let min = Math.min(this.offsetWidth, this.offsetHeight);
         if(min == 0) return;
@@ -93,6 +120,9 @@ export class ProgressCircle extends Aventus.WebComponent implements Aventus.Defa
             this.containerEl.appendChild(this.svg);
         }
     }
+    /**
+     * Lifecycle hook called after the component is created. It attaches a ResizeObserver to the component to re-render the progress circle whenever the component's size changes, ensuring responsiveness. Also performs an initial render.
+     */
     protected override postCreation(): void {
         new Aventus.ResizeObserver(() => {
             this.render();

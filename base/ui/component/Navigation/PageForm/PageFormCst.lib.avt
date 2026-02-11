@@ -5,20 +5,44 @@ import type { IPageForm } from "./PageForm.wcl.avt";
 
 namespace Navigation.PageForm {
 
+    /**
+     * Internal class for managing PageForm functionality, including form handler integration and submission.
+     */
     export class PageFormCst<T, U> {
 
+        /**
+         * The FormHandler instance for the page.
+         */
         private _form: FormHandler<any>;
+        /**
+         * Provides access to the FormHandler instance.
+         */
         public get form(): FormHandler<any> { return this._form; }
+        /**
+         * Reference to the parent IPageForm instance.
+         */
         private page: IPageForm<T, U>;
 
+        /**
+         * List of registered form elements.
+         */
         protected elements: FormElement<any>[] = [];
+        /**
+         * List of registered submit buttons.
+         */
         protected btns: ButtonElement[] = [];
 
+        /**
+         * Initializes a new PageFormCst instance.
+         */
         public constructor(page: IPageForm<T, U>) {
             this.page = page;
             this._form = new FormHandler(page.formSchema(), page.formConfig());
         }
 
+        /**
+         * Handles the form submission process, including loading states.
+         */
         public async submit() {
             this.setLoading(true);
             const result = await this.page.defineSubmit((fct) => this.form.submit(fct));
@@ -26,6 +50,9 @@ namespace Navigation.PageForm {
             return result;
         }
 
+        /**
+         * Sets the loading state for associated submit buttons.
+         */
         protected setLoading(isLoading: boolean) {
             const autoLoading = this.page.pageConfig().autoLoading;
             if(autoLoading) {
@@ -37,12 +64,18 @@ namespace Navigation.PageForm {
             }
         }
 
+        /**
+         * Handles Enter key press to trigger form submission.
+         */
         @BindThis()
         protected checkEnter(e: KeyboardEvent) {
             if(e.key == "Enter") {
                 this.submit();
             }
         }
+        /**
+         * Registers a form element with the PageFormCst.
+         */
         public registerElement(element: FormElement<any>): void {
             const submitWithEnter = this.page.pageConfig().submitWithEnter;
             if(this.elements.length > 0) {
@@ -53,9 +86,15 @@ namespace Navigation.PageForm {
             if(submitWithEnter)
                 element.addEventListener("keyup", this.checkEnter);
         }
+        /**
+         * Registers a submit button with the PageFormCst.
+         */
         public registerSubmit(element: ButtonElement): void {
             this.btns.push(element);
         }
+        /**
+         * Requests the form to be submitted.
+         */
         public async requestSubmit(): Promise<void> {
             await this.submit();
         }
