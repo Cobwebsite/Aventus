@@ -3,6 +3,9 @@ import type { Tab } from "../Tab/Tab.wcl.avt";
 import type { Tabs } from "../Tabs/Tabs.wcl.avt";
 
 namespace Layout.Tabs {
+    /**
+     * Abstract base class for the clickable header of an individual tab within a tabbed interface. It manages its active state, links to its corresponding Tab content, and handles user interaction to activate the tab.
+     */
     export abstract class TabHeader<T extends Tab> extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
         //#region static
@@ -11,17 +14,29 @@ namespace Layout.Tabs {
 
 
         //#region props
+        /**
+         * Indicates whether this tab header is currently active.
+         */
         @Attribute()
         public active!: boolean;
         //#endregion
 
 
         //#region variables
+        /**
+         * Internal reference to the associated Tab content component.
+         */
         private _tab!: T;
+        /**
+         * Gets the associated Tab instance.
+         */
         public get tab(): T {
             return this._tab;
         }
 
+        /**
+         * Reference to the parent Tabs component, enabling interaction with the tab group.
+         */
         protected tabs!: Tabs<T, this>;
         //#endregion
 
@@ -32,6 +47,9 @@ namespace Layout.Tabs {
 
 
         //#region methods
+        /**
+         * Initializes the TabHeader by linking it to a Tab component and its parent Tabs component, then triggers its render() method.
+         */
         public async init(tab: T, tabs: Tabs<T, this>) {
             this.tabs = tabs;
             this._tab = tab;
@@ -39,14 +57,23 @@ namespace Layout.Tabs {
             await this.render();
         }
 
+        /**
+         * Abstract method that concrete TabHeader implementations must provide to define how they visually render themselves.
+         */
         public abstract render(): Asyncable<void>;
 
+        /**
+         * Called when the tab header is pressed. If the tab is not already active, it calls setActive() on the parent Tabs component to activate this tab.
+         */
         public onPress() {
             if(!this.active) {
                 this.tabs.setActive(this);
             }
         }
 
+        /**
+         * Sets up a PressManager to listen for press events on the tab header, triggering the onPress() method.
+         */
         protected addPress() {
             new Aventus.PressManager({
                 element: this,
@@ -56,6 +83,9 @@ namespace Layout.Tabs {
             });
         }
 
+        /**
+         * Lifecycle hook called after the component is created. Overrides the base method to set up press event listeners.
+         */
         protected override postCreation(): void {
             super.postCreation();
             this.addPress();

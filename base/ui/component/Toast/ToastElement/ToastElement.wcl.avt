@@ -1,9 +1,15 @@
 import { ToastManager, type ToastOptions, type ToastPosition } from "../ToastManager/ToastManager.wcl.avt";
 
 namespace Toast {
+    /**
+     * Abstract base class for individual toast notifications. It provides core functionality for displaying, timing, and closing toasts, including animation handling and integration with a ToastManager.
+     */
     export abstract class ToastElement<T extends ToastOptions = ToastOptions> extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
         //#region static
+        /**
+         * A static factory method that delegates to ToastManager.add() to create and display a new toast notification.
+         */
         public static add(options: ToastOptions): Promise<boolean> {
             return ToastManager.add(options);
         }
@@ -11,29 +17,53 @@ namespace Toast {
 
 
         //#region props
+        /**
+         * Defines where the toast should appear on the screen.
+         */
         @Attribute()
         public position: ToastPosition = ToastManager.defaultPosition;
         /**
-         * Use minus -1 to have an infinite timer
+         * The duration (in milliseconds) before the toast automatically closes. Use -1 for an infinite timer.
          */
         @Attribute()
         public delay: number = ToastManager.defaultDelay;
 
+        /**
+         * Reflects whether the toast is currently active/visible.
+         */
         @Attribute()
         protected is_active: boolean = false;
         //#endregion
 
 
         //#region variables
+        /**
+         * A flag to indicate if show() was called before the component was ready.
+         */
         protected showAsked: boolean = false;
+        /**
+         * A callback function to be executed when the toast is hidden or closed.
+         */
         protected onHideCallback: (result: boolean) => void = () => { };
+        /**
+         * Stores the setTimeout ID for the auto-hide delay.
+         */
         public timeout: number = 0;
+        /**
+         * A flag indicating if a CSS transition is currently active on the element.
+         */
         private hasTransition: boolean = false;
+        /**
+         * An array of callbacks to execute after a CSS transition completes.
+         */
         private waitTransitionCbs: (() => void)[] = [];
         //#endregion
 
 
         //#region constructor
+        /**
+         * Initializes a new instance of the ToastElement and sets up transition event listeners.
+         */
         public constructor() {
             super();
             this.addTransition();
@@ -42,6 +72,9 @@ namespace Toast {
 
 
         //#region methods
+        /**
+         * Internal method to apply ToastOptions to the toast, then delegates to the abstract setOptions().
+         */
         @Internal()
         public _setOptions(options: T): Aventus.Asyncable<void> {
             if(options.position !== undefined) this.position = options.position;
@@ -49,8 +82,14 @@ namespace Toast {
             return this.setOptions(options);
         }
 
+        /**
+         * Abstract method to be implemented by subclasses to apply specific options to the toast's content or styling.
+         */
         public abstract setOptions(options: T): Aventus.Asyncable<void>;
 
+        /**
+         * Displays the toast notification. If the component is ready, it sets is_active to true and starts the auto-hide delay. Otherwise, it sets showAsked to true.
+         */
         public show(onHideCallback: (result: boolean) => void) {
             this.onHideCallback = onHideCallback;
             if(this.isReady) {
@@ -62,6 +101,9 @@ namespace Toast {
             }
         }
 
+        /**
+         * Initiates the auto-hide timer if delay is greater than 0.
+         */
         protected startDelay() {
             if(this.delay > 0) {
                 this.timeout = setTimeout(() => {
@@ -71,7 +113,7 @@ namespace Toast {
         }
 
         /**
-         * When the user click on the cross, close the notification
+         * Hides and removes the toast, triggering the onHideCallback. This method is typically called when the toast timer expires or the user interacts with it.
          */
         protected async close() {
             if(this.onHideCallback) {
@@ -81,6 +123,9 @@ namespace Toast {
             }
         }
 
+        /**
+         * Sets up event listeners for transitionstart and transitionend to manage the hasTransition flag and execute queued callbacks.
+         */
         protected addTransition() {
             this.addEventListener("transitionstart", (e) => {
                 this.hasTransition = true;
@@ -94,6 +139,9 @@ namespace Toast {
                 }
             });
         }
+        /**
+         * Returns a Promise that resolves when the current CSS transition on the element completes. If no transition is active, it resolves immediately.
+         */
         public waitTransition(): Promise<void> {
             if(this.hasTransition) {
                 return new Promise((resolve) => {
@@ -106,6 +154,9 @@ namespace Toast {
         }
 
 
+        /**
+         * Lifecycle hook called after the component is created. If showAsked is true, it activates the toast and starts the auto-hide delay.
+         */
         protected override postCreation(): void {
             if(this.showAsked) {
                 this.is_active = true;

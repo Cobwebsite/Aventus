@@ -1,4 +1,7 @@
 namespace Layout {
+    /**
+     * A fundamental building block for creating flexible and responsive layouts. It acts as a container for Col components, arranging them horizontally, and is configured to work with CSS Container Queries.
+     */
     export class Row extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
         //#region static
@@ -17,6 +20,9 @@ namespace Layout {
 
 
         //#region constructor
+        /**
+         * Initializes a new instance of the Row component. Sets CSS containerName to "row" and containerType to "inline-size" to enable CSS Container Queries for responsive child styling.
+         */
         public constructor() {
             super();
             this.style.containerName = "row";

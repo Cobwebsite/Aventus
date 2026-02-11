@@ -1,11 +1,18 @@
 import { Validator } from "../Validator.lib.avt";
 
 namespace Form.Validators {
+    /**
+     * Validator for checking if a string is a valid email address.
+     */
     export class Email extends Validator<string> {
+        /**
+         * The default error message for invalid email addresses.
+         */
         public static override msg: string | (() => string) = "Please enter a valid email address";
 
         /**
          * @inheritdoc
+         * Validates if the provided value is a valid email address.
          */
         public override validate(value: string | undefined, name: string, globalValidation: () => Promise<void>): boolean | string {
             if(typeof value == "string" && value) {

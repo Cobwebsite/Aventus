@@ -1071,7 +1071,8 @@ export abstract class BaseInfo {
             txt = txt.slice(0, transformation.start) + transformation.newText + txt.slice(transformation.end, txt.length);
             lastPos = transformation.start;
         }
-        return txt;
+
+        return txt.replace(/^\s*export\s+(class|interface|enum|type|abstract|function|async)/m, "$1");
     }
 
     public loadStorieContent() {

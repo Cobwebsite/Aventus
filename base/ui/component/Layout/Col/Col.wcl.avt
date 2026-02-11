@@ -1,11 +1,26 @@
 namespace Layout {
+    /**
+     * Defines configuration options for the Col component.
+     */
     export interface ColOptions {
+        /**
+         * Whether the column should act as a container.
+         */
         use_container?: boolean;
     }
+    /**
+     * A foundational element for creating responsive grid layouts. Its behavior (sizing, offsetting, centering) is driven by CSS rules applied based on its attributes.
+     */
     export class Col extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
         //#region static
+        /**
+         * Static property indicating the default use_container value for all Col instances.
+         */
         private static use_container: boolean = false;
+        /**
+         * Allows global configuration of Col components.
+         */
         public static configure(options: ColOptions): void {
             if(options.use_container !== undefined) this.use_container = options.use_container;
         }
@@ -13,54 +28,114 @@ namespace Layout {
 
 
         //#region props
+        /**
+         * Indicates if the column should act as a container. Can be configured globally or overridden per instance.
+         */
         @Attribute()
         public use_container: boolean = Col.use_container;
 
         //#region size
+        /**
+         * Defines the column's width.
+         */
         @Attribute()
         public size!: number;
+        /**
+         * Defines the column's width for extra small screens.
+         */
         @Attribute()
         public size_xs!: number;
+        /**
+         * Defines the column's width for small screens.
+         */
         @Attribute()
         public size_sm!: number;
+        /**
+         * Defines the column's width for medium screens.
+         */
         @Attribute()
         public size_md!: number;
+        /**
+         * Defines the column's width for large screens.
+         */
         @Attribute()
         public size_lg!: number;
+        /**
+         * Defines the column's width for extra large screens.
+         */
         @Attribute()
         public size_xl!: number;
         //#endregion
 
         //#region offset
+        /**
+         * Defines the column's left offset.
+         */
         @Attribute()
         public offset!: number;
+        /**
+         * Defines the column's left offset for extra small screens.
+         */
         @Attribute()
         public offset_xs!: number;
+        /**
+         * Defines the column's left offset for small screens.
+         */
         @Attribute()
         public offset_sm!: number;
+        /**
+         * Defines the column's left offset for medium screens.
+         */
         @Attribute()
         public offset_md!: number;
+        /**
+         * Defines the column's left offset for large screens.
+         */
         @Attribute()
         public offset_lg!: number;
+        /**
+         * Defines the column's left offset for extra large screens.
+         */
         @Attribute()
         public offset_xl!: number;
         //#endregion
 
         //#region offset-right
+        /**
+         * Defines the column's right offset.
+         */
         @Attribute()
         public offset_right!: number;
+        /**
+         * Defines the column's right offset for extra small screens.
+         */
         @Attribute()
         public offset_right_xs!: number;
+        /**
+         * Defines the column's right offset for small screens.
+         */
         @Attribute()
         public offset_right_sm!: number;
+        /**
+         * Defines the column's right offset for medium screens.
+         */
         @Attribute()
         public offset_right_md!: number;
+        /**
+         * Defines the column's right offset for large screens.
+         */
         @Attribute()
         public offset_right_lg!: number;
+        /**
+         * Defines the column's right offset for extra large screens.
+         */
         @Attribute()
         public offset_right_xl!: number;
         //#endregion
 
+        /**
+         * When true, centers the content within the column.
+         */
         @Attribute()
         public center!: boolean;
         //#endregion

@@ -1,4 +1,7 @@
 
+/**
+ * A sophisticated image display component that handles responsive sizing, different content modes (stretch, contains, cover), and asynchronous loading of both raster images and SVG files. It ensures images are displayed correctly within their container, even with dynamic resizing.
+ */
 export class Img extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
     //#region static
@@ -7,14 +10,23 @@ export class Img extends Aventus.WebComponent implements Aventus.DefaultComponen
 
 
     //#region props
+    /**
+     * If true, the image will be loaded and cached as a base64 string.
+     */
     @Attribute()
     public cache!: boolean;
 
+    /**
+     * The URL of the image to display. Changes to this property trigger onSrcChanged().
+     */
     @Property((target: Img) => {
         target.onSrcChanged();
     })
     public src?: string;
 
+    /**
+     * Determines how the image content should fit within its container. - 'stretch': Stretches the image to fill the container. - 'contains': Scales the image to fit within the container while preserving its aspect ratio. - 'cover': Scales the image to cover the entire container while preserving its aspect ratio.
+     */
     @Property((target: Img) => {
         if(target.src != "") {
             target.calculateSize();
@@ -26,14 +38,32 @@ export class Img extends Aventus.WebComponent implements Aventus.DefaultComponen
 
     //#region variables
 
+    /**
+     * Reference to the HTMLImageElement within the component's template, used for raster images.
+     */
     @ViewElement()
     protected imgEl!: HTMLImageElement;
+    /**
+     * Reference to the HTMLDivElement within the component's template, used for SVG content.
+     */
     @ViewElement()
     protected svgEl!: HTMLDivElement;
 
+    /**
+     * A flag to prevent redundant size calculations during calculateSize.
+     */
     private isCalculing?: boolean;
+    /**
+     * The maximum number of retry attempts for calculateSize if initial dimensions are zero.
+     */
     private maxCalculateSize: number = 10;
+    /**
+     * Stores the aspect ratio (width / height) of the image.
+     */
     private ratio: number = 1;
+    /**
+     * An instance of Aventus.ResizeObserver to detect changes in the component's dimensions.
+     */
     private resizeObserver?: Aventus.ResizeObserver;
     //#endregion
 
@@ -49,6 +79,9 @@ export class Img extends Aventus.WebComponent implements Aventus.DefaultComponen
 
 
     //#region methods
+    /**
+     * Calculates and applies the correct width, height, transform (for centering), and opacity styles to the image or SVG element based on the mode and available space. Includes retry logic if the element's dimensions are initially zero.
+     */
     private calculateSize(attempt = 0) {
         if(this.isCalculing || !this.imgEl || !this.svgEl) {
             return;
@@ -142,6 +175,9 @@ export class Img extends Aventus.WebComponent implements Aventus.DefaultComponen
         element.style.opacity = '1';
         this.isCalculing = false;
     }
+    /**
+     * Asynchronously loads the image or SVG content based on the src property. If an SVG, it fetches and injects the content. If cache is true, it loads raster images as base64. Calls calculateSize() after loading.
+     */
     private async onSrcChanged() {
         if(!this.src || !this.svgEl || !this.imgEl) {
             return;
@@ -165,11 +201,17 @@ export class Img extends Aventus.WebComponent implements Aventus.DefaultComponen
         }
     }
 
+    /**
+     * Lifecycle hook called before the component is destroyed. Disconnects the resizeObserver to prevent memory leaks.
+     */
     protected override postDestruction(): void {
         this.resizeObserver?.disconnect();
         this.resizeObserver = undefined;
     }
 
+    /**
+     * Lifecycle hook called after the component is created. Initializes and observes the component with Aventus.ResizeObserver to react to dimension changes and trigger calculateSize().
+     */
     protected override postCreation(): void {
         this.resizeObserver = new Aventus.ResizeObserver({
             fps: 10,

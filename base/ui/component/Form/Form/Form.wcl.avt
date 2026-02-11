@@ -6,9 +6,15 @@ import type { ButtonElement } from "../ButtonElement/ButtonElement.wcl.avt";
 import { FormHandlerController, type FormHandlerControllerConfig, type MethodBody, type MethodName, type MethodNameExist } from "./FormHandlerController.lib.avt";
 
 namespace Form {
+    /**
+     * Core web component for managing forms, including data handling, validation, and submission. It acts as an orchestrator for child form elements and can integrate with backend API routes.
+     */
     export class Form<T extends any = any, R = any> extends Aventus.WebComponent implements Aventus.DefaultComponent, IForm {
 
         //#region static
+        /**
+         * Factory method to create a FormHandlerController instance from an HttpRoute controller. This allows automatic form generation based on backend route definitions.
+         */
         public static createFromController<T extends Aventus.HttpRoute, M extends MethodName<T> = MethodNameExist<T>>(
             controller: new () => T,
             schema: FormSchema<MethodBody<T, M>>,
@@ -36,20 +42,35 @@ namespace Form {
             let form = FormHandlerController.create<T, M>(controller, schema as FormSchema<MethodBody<T, M>>, config);
             return form;
         }
+        /**
+         * Factory method to create a FormHandler instance directly from a FormSchema.
+         */
         public static create<T, R = any>(schema: FormSchema<T>, config?: FormHandlerConfig<T, R>): FormHandler<T, R> {
             let form = new FormHandler<T, R>(schema, config);
             return form;
         }
+        /**
+         * Sets a global default configuration for all FormHandler instances.
+         */
         public static configure(value: FormHandlerConfig<any>) {
             FormHandler._globalConfig = value;
         };
+        /**
+         * Gets the global default configuration for FormHandler instances.
+         */
         public static get defaultConfig(): FormHandlerConfig<any> | undefined {
             return FormHandler._globalConfig;
         };
 
+        /**
+         * Sets the list of constructors for IForm implementing elements.
+         */
         public static set formElements(value: Constructor<IForm, true>[]) {
             FormHandler._IFormElements = value;
         };
+        /**
+         * Gets the list of constructors for IForm implementing elements.
+         */
         public static get formElements(): Constructor<IForm, true>[] {
             return FormHandler._IFormElements;
         };
@@ -62,12 +83,24 @@ namespace Form {
 
 
         //#region variables
+        /**
+         * The injected FormHandler instance managing form data, validation, and submission logic.
+         */
         @Injectable()
         public form?: FormHandler<any, R>;
+        /**
+         * An injected function for custom submission handling.
+         */
         @Injectable()
         public request?: SubmitFunction<T, R>;
 
+        /**
+         * An array of FormElement instances currently registered with this form.
+         */
         protected elements: FormElement<any>[] = [];
+        /**
+         * An array of ButtonElement instances associated with this form, typically submit buttons.
+         */
         protected btns: ButtonElement[] = [];
         //#endregion
 
@@ -82,16 +115,25 @@ namespace Form {
         //#endregion
 
         //#region events
+        /**
+         * Callback triggered when the form is successfully submitted after validation, and no custom request function is provided.
+         */
         public onSubmit: Callback<() => void> = new Callback();
         //#endregion
 
         //#region methods
+        /**
+         * Handles keyboard events, specifically triggering form submission when the "Enter" key is pressed.
+         */
         @BindThis()
         protected checkEnter(e: KeyboardEvent) {
             if(e.key == "Enter") {
                 this.requestSubmit();
             }
         }
+        /**
+         * Registers a FormElement instance with this form. It ensures only the latest registered element has the 'keyup' event listener for "Enter" key.
+         */
         public registerElement(element: FormElement<any>): Form {
             if(this.elements.length > 0) {
                 this.elements[this.elements.length - 1].removeEventListener("keyup", this.checkEnter);
@@ -100,12 +142,17 @@ namespace Form {
             element.addEventListener("keyup", this.checkEnter);
             return this;
         }
+        /**
+         * Registers a ButtonElement instance as a submit button for this form.
+         */
         public registerSubmit(element: ButtonElement): Form {
             this.btns.push(element);
             return this;
         }
 
-
+        /**
+         * Asynchronously handles the form submission process. It finds the associated FormHandler if not already set, manages loading states of buttons, and either calls a custom submission function or triggers validation and the onSubmit callback.
+         */
         public async requestSubmit(): Promise<void> {
             if(!this.form) {
                 for(let element of this.elements) {

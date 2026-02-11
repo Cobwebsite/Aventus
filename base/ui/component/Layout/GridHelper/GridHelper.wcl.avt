@@ -3,6 +3,9 @@ import { ShortcutManager, SpecialTouch } from "../../../lib/ShortcutManager.lib.
 import { GridGuideHelper } from "../GridGuideHelper/GridGuideHelper.wcl.avt";
 
 namespace Layout {
+    /**
+     * Provides a comprehensive visual grid system and guide management for UI development. Features include configurable grid lines, rulers, draggable guides with magnetic snapping, and persistent storage for guide positions.
+     */
     export class GridHelper extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
         //#region static
@@ -11,41 +14,77 @@ namespace Layout {
 
 
         //#region props
+        /**
+         * The unit of measurement for grid and ruler calculations. Changes update CSS variables for ruler styling.
+         */
         @Property((target: GridHelper) => {
             target.rulerLeftEl.style.setProperty("--ruler-size", target.ruler_size + target.unit);
             target.rulerTopEl.style.setProperty("--ruler-size", target.ruler_size + target.unit);
             target.lockEl.style.setProperty("--ruler-size", target.ruler_size + target.unit);
         })
         public unit: 'px' | 'rem' | 'cm' | 'mm' | 'in' = 'px';
+        /**
+         * The number of columns in the grid. If 0, col_width is used.
+         */
         @Property()
         public nb_col: number = 0;
 
+        /**
+         * The number of rows in the grid. If 0, row_height is used.
+         */
         @Property((target: GridHelper) => {
 
         })
         public nb_row: number = 0;
 
+        /**
+         * The width of each column. Used if nb_col is 0.
+         */
         @Property()
         public col_width!: number;
+        /**
+         * The height of each row. Used if nb_row is 0.
+         */
         @Property((target: GridHelper) => {
 
         })
         public row_height!: number;
 
+        /**
+         * Whether to display the rulers.
+         */
         @Attribute()
         public show_rulers!: boolean;
 
+        /**
+         * Whether to display the grid lines.
+         */
         @Attribute()
         public show_grid: boolean = true;
+        /**
+         * Whether to display the rulers.
+         */
         @Attribute()
         public show_ruler: boolean = true;
+        /**
+         * Whether to display the draggable guides.
+         */
         @Attribute()
         public show_guides: boolean = true;
+        /**
+         * If true, guides cannot be dragged or created.
+         */
         @Attribute()
         public lock: boolean = true;
+        /**
+         * Overall visibility of the GridHelper component.
+         */
         @Attribute()
         public visible: boolean = true;
 
+        /**
+         * The size (thickness) of the rulers in the specified unit.
+         */
         @Property((target: GridHelper) => {
             target.rulerLeftEl.style.setProperty("--ruler-size", target.ruler_size + target.unit);
             target.rulerTopEl.style.setProperty("--ruler-size", target.ruler_size + target.unit);
@@ -53,10 +92,19 @@ namespace Layout {
         })
         public ruler_size: number = 25;
 
+        /**
+         * The base step size for grid lines and guide snapping in the specified unit.
+         */
         @Property()
         public step: number = 20;
+        /**
+         * A larger step size for major grid lines, if different from step.
+         */
         @Property()
         public step_big!: number;
+        /**
+         * The magnetic snap distance for guides in the specified unit.
+         */
         @Property()
         public magnetic: number = 0;
 
@@ -64,22 +112,49 @@ namespace Layout {
 
 
         //#region variables
+        /**
+         * Reference to the main grid container element.
+         */
         @ViewElement()
         protected gridEl!: HTMLDivElement;
+        /**
+         * Reference to the element containing column grid lines.
+         */
         @ViewElement()
         protected colsEl!: HTMLDivElement;
+        /**
+         * Reference to the element containing row grid lines.
+         */
         @ViewElement()
         protected rowsEl!: HTMLDivElement;
+        /**
+         * Reference to the top ruler element.
+         */
         @ViewElement()
         protected rulerTopEl!: HTMLDivElement;
+        /**
+         * Reference to the left ruler element.
+         */
         @ViewElement()
         protected rulerLeftEl!: HTMLDivElement;
+        /**
+         * Reference to the content area of the top ruler.
+         */
         @ViewElement()
         protected rulerTopContentEl!: HTMLDivElement;
+        /**
+         * Reference to the content area of the left ruler.
+         */
         @ViewElement()
         protected rulerLeftContentEl!: HTMLDivElement;
+        /**
+         * Reference to the element containing the draggable guides.
+         */
         @ViewElement()
         protected guidesEl!: HTMLDivElement;
+        /**
+         * Reference to the lock indicator element.
+         */
         @ViewElement()
         protected lockEl!: HTMLDivElement;
         //#endregion
@@ -92,6 +167,9 @@ namespace Layout {
 
         //#region methods
 
+        /**
+         * Converts a given number from the component's unit to pixels.
+         */
         public inPx(nb: number) {
             if(this.unit == 'px') {
                 return nb;
@@ -114,6 +192,9 @@ namespace Layout {
 
             throw 'unit not supported';
         }
+        /**
+         * Converts a given number from pixels to the component's unit.
+         */
         public fromPx(nbPx: number) {
             if(this.unit == 'px') {
                 return nbPx;
@@ -136,12 +217,15 @@ namespace Layout {
             throw 'unit not supported';
         }
         /**
-         * 
+         * Toggles the lock property, enabling or disabling guide interaction.
          */
         protected toggleLock() {
             this.lock = !this.lock;
         }
 
+        /**
+         * Renders the grid lines (columns and rows) based on configured nb_col, nb_row, col_width, and row_height.
+         */
         protected draw() {
             let nbCol = 0;
             if(this.nb_col) {
@@ -188,6 +272,9 @@ namespace Layout {
             }
         }
 
+        /**
+         * Renders the top ruler, including major and minor step markers, based on step, step_big, and ruler_size.
+         */
         protected drawRulerTop() {
             const step = this.step;
             const bigStep = this.step_big == 0 ? this.step : this.step_big;
@@ -222,6 +309,9 @@ namespace Layout {
             }
         }
 
+        /**
+         * Renders the left ruler, including major and minor step markers, based on step, step_big, and ruler_size.
+         */
         protected drawRulerLeft() {
             const step = this.step;
             const bigStep = this.step_big == 0 ? this.step : this.step_big;
@@ -257,6 +347,9 @@ namespace Layout {
             }
         }
 
+        /**
+         * Adds drag-and-drop functionality to the left ruler area for creating and moving horizontal GridGuideHelper instances. Also adds a double-press listener to prompt for a specific top position.
+         */
         protected addDragLeft() {
             let el: GridGuideHelper | undefined = undefined;
             new PressManager({
@@ -297,6 +390,9 @@ namespace Layout {
             });
         }
 
+        /**
+         * Adds drag-and-drop functionality to the top ruler area for creating and moving vertical GridGuideHelper instances. Also adds a double-press listener to prompt for a specific left position.
+         */
         protected addDragTop() {
             let el: GridGuideHelper | undefined = undefined;
 
@@ -338,6 +434,9 @@ namespace Layout {
             });
         }
 
+        /**
+         * Programmatically creates a vertical guide at a specified left position.
+         */
         public createGuideFromLeft(left: number) {
             const el = new GridGuideHelper();
             el.direction = 'y';
@@ -346,6 +445,9 @@ namespace Layout {
             this.guidesEl.appendChild(el);
             this.save();
         }
+        /**
+         * Programmatically creates a horizontal guide at a specified top position.
+         */
         public createGuideFromTop(top: number) {
             const el = new GridGuideHelper();
             el.direction = 'x';
@@ -355,6 +457,9 @@ namespace Layout {
             this.save();
         }
 
+        /**
+         * Sets up keyboard shortcuts (e.g., Ctrl+K followed by 'v' for visible, 'g' for grid, 'r' for ruler, 'j' for guides, 'l' for lock) to control the visibility and state of grid elements.
+         */
         protected addShortCut() {
             let isKActive = false;
             let timeout: number = 0;
@@ -389,6 +494,9 @@ namespace Layout {
 
         }
 
+        /**
+         * Attaches a ResizeObserver to the component to redraw the grid and rulers when the component's dimensions change.
+         */
         protected addResize() {
             new Aventus.ResizeObserver({
                 callback: () => {
@@ -400,6 +508,9 @@ namespace Layout {
             }).observe(this);
         }
 
+        /**
+         * Saves the positions of the currently active GridGuideHelper instances to localStorage for persistence.
+         */
         public save() {
             const data: { x: number[], y: number[]; } = { x: [], y: [] };
             for(let child of this.guidesEl.children) {
@@ -416,6 +527,9 @@ namespace Layout {
             const id = this.id != '' ? this.id : 'grid-helper';
             localStorage.setItem(id, JSON.stringify(data));
         }
+        /**
+         * Loads saved guide positions from localStorage and recreates GridGuideHelper instances.
+         */
         public reload() {
             const id = this.id != '' ? this.id : 'grid-helper';
             const items = localStorage.getItem(id);
@@ -439,6 +553,9 @@ namespace Layout {
         }
 
 
+        /**
+         * Lifecycle hook called after the component is created. Initializes the component by reloading saved guides, adding resize observers, keyboard shortcuts, and drag functionalities for rulers, and drawing the initial grid.
+         */
         protected override postCreation(): void {
             this.reload();
             this.addResize();

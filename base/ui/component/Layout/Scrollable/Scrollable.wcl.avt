@@ -2,15 +2,24 @@ import { NormalizedEvent, PressManager } from "Aventus@Main:Aventus.package.avt"
 import { TouchRecord, Tracker } from "./Touch.lib.avt";
 
 namespace Layout {
+    /**
+     * A highly customizable and interactive scroll container web component. It supports advanced features like zooming, pinch-to-zoom, custom scrollbars, auto-hide scrollbars, momentum scrolling, mouse-dragging for scrolling, and auto-scrolling.
+     */
     export class Scrollable extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
         //#region static
+        /**
+         * Locks scrolling for a Scrollable component that is a parent of the given element.
+         */
         public static lock(element: Aventus.WebComponent) {
             const container = element.findParentByType(Scrollable);
             if(container) {
                 container.disable = true;
             }
         }
+        /**
+         * Unlocks scrolling for a Scrollable component that is a parent of the given element.
+         */
         public static unlock(element: Aventus.WebComponent) {
             const container = element.findParentByType(Scrollable);
             if(container) {
@@ -22,71 +31,91 @@ namespace Layout {
 
         //#region props
         /**
-         * Set the zoom to apply for the container
+         * Sets the zoom level to apply to the container's content. Changes trigger a recalculation of dimensions and transformations.
          */
         @Property((target: Scrollable) => {
             target.changeZoom();
         })
         public zoom: number = 1;
+        /**
+         * The minimum allowed zoom level for the content.
+         */
         @Attribute()
         public min_zoom: number = 1;
+        /**
+         * The maximum allowed zoom level for the content.
+         */
         @Attribute()
         public max_zoom!: number;
 
+        /**
+         * Reflects whether the vertical scrollbar is currently visible.
+         */
         @Attribute()
         private y_scroll_visible!: boolean;
 
+        /**
+         * Reflects whether the horizontal scrollbar is currently visible.
+         */
         @Attribute()
         private x_scroll_visible!: boolean;
 
         /**
-         * Determine if scrollbar will be floating or not
+         * Determines if the custom scrollbars will be floating over the content or occupy space.
          */
         @Attribute()
         public floating_scroll!: boolean;
 
         /**
-         * Determine if x scroll is allowed
+         * Determines if horizontal scrolling is allowed.
          */
         @Attribute()
         public x_scroll!: boolean;
 
         /**
-         * Determine if x scroll is allowed
+         * Determines if vertical scrolling is allowed.
          */
         @Attribute()
         public y_scroll: boolean = true;
 
         /**
-         * If true, the scrollers will hide if they're not in use
+         * If true, the custom scrollers will hide when not in use and reappear on interaction.
          */
         @Attribute()
         public auto_hide!: boolean;
 
+        /**
+         * Controls the decay rate of momentum scrolling (value between 0 and 1).
+         */
         @Attribute()
         public break: number = 0.1;
 
         /**
-         * Disable user action
+         * If true, disables all user interaction (scrolling, zooming, dragging) with the component.
          */
         @Attribute()
         public disable!: boolean;
 
+        /**
+         * Internal property to prevent user text selection during drag interactions.
+         */
         @Attribute()
         private no_user_select!: boolean;
 
         /**
-         * Allow scroll by dragging with the mouse
+         * If true, allows scrolling by dragging with the mouse.
          */
         @Attribute()
         public mouse_drag!: boolean;
 
+        /**
+         * If true, enables pinch-to-zoom functionality for touch devices.
+         */
         @Attribute()
         public pinch!: boolean;
 
         /**
-         * Set the containers to display flex + flex direction column
-         * usefull to take the space remaining
+         * If true, sets the internal content containers to display: flex and flex-direction: column, useful for allowing content to take up remaining space.
          */
         @Attribute()
         public flex!: boolean;
@@ -95,51 +124,99 @@ namespace Layout {
 
         //#region variables
 
+        /**
+         * Reference to the internal DIV element that wraps the actual scrollable content.
+         */
         @ViewElement()
         private contentWrapper!: HTMLDivElement;
 
+        /**
+         * Reference to the internal DIV element that handles zooming transformations.
+         */
         @ViewElement()
         private contentZoom!: HTMLDivElement;
 
+        /**
+         * Reference to the main container element of the Scrollable component.
+         */
         @ViewElement()
         private mainContainer!: HTMLDivElement;
 
+        /**
+         * Reference to an internal DIV element used for adjusting content area based on scrollbar presence.
+         */
         @ViewElement()
         private contentHidder!: HTMLDivElement;
 
+        /**
+         * Reference to the container element for the vertical scrollbar.
+         */
         @ViewElement()
         private verticalScrollerContainer!: HTMLDivElement;
 
+        /**
+         * Reference to the draggable element representing the vertical scrollbar thumb.
+         */
         @ViewElement()
         private verticalScroller!: HTMLDivElement;
 
+        /**
+         * Reference to the container element for the horizontal scrollbar.
+         */
         @ViewElement()
         private horizontalScrollerContainer!: HTMLDivElement;
 
+        /**
+         * Reference to the draggable element representing the horizontal scrollbar thumb.
+         */
         @ViewElement()
         private horizontalScroller!: HTMLDivElement;
 
 
 
+        /**
+         * An instance of Aventus.ResizeObserver to detect size changes of the component and its content.
+         */
         private observer?: Aventus.ResizeObserver;
 
+        /**
+         * Stores the current visible dimensions (width, height) of the content area.
+         */
         private display: { x: number, y: number; } = { x: 0, y: 0 };
+        /**
+         * Stores the maximum scrollable distance (width, height) in pixels.
+         */
         private max: { x: number, y: number; } = {
             x: 0,
             y: 0
         };
+        /**
+         * Stores the calculated margin adjustments due to scrollbar presence.
+         */
         private margin: { x: number, y: number; } = {
             x: 0,
             y: 0
         };
+        /**
+         * Stores the current scroll position (x, y) in pixels.
+         */
         private position: { x: number, y: number; } = {
             x: 0,
             y: 0
         };
+        /**
+         * Stores the current momentum (velocity) for momentum scrolling.
+         */
         private momentum: { x: number, y: number; } = { x: 0, y: 0 };
 
+        /**
+         * Stores the actual dimensions (offsetWidth, offsetHeight) of the content wrapper.
+         */
         private contentWrapperSize: { x: number, y: number; } = { x: 0, y: 0 };
 
+        /**
+         * Utility object to access horizontal/vertical scroller elements.
+         */
         private scroller: {
             x: () => HTMLDivElement,
             y: () => HTMLDivElement,
@@ -158,6 +235,9 @@ namespace Layout {
                 }
             };
 
+        /**
+         * Utility object to access horizontal/vertical scroller container elements.
+         */
         private scrollerContainer: {
             x: () => HTMLDivElement,
             y: () => HTMLDivElement,
@@ -176,28 +256,70 @@ namespace Layout {
                 }
             };
 
+        /**
+         * Stores setTimeout IDs for auto-hiding scrollbars.
+         */
         private hideDelay: { x: number, y: number; } = { x: 0, y: 0 };
 
+        /**
+         * An instance of TouchRecord to track touch events for multi-touch and pinch gestures.
+         */
         private touchRecord: TouchRecord;
+        /**
+         * The number of active pointers (touches/mouse buttons).
+         */
         private pointerCount: number = 0;
+        /**
+         * Flag indicating if the component has been rendered at least once.
+         */
         private loadedOnce: boolean = false;
+        /**
+         * Stores the scroll position as a percentage during reloads or size changes.
+         */
         private savedPercent?: { x: number, y: number; };
+        /**
+         * Flag indicating if the user is currently dragging a custom scrollbar.
+         */
         private isDragScroller: boolean = false;
+        /**
+         * Cached SVG element used for DOMMatrix creation.
+         */
         private cachedSvg?: SVGSVGElement;
+        /**
+         * Stores the midpoint between two touch points for pinch gestures.
+         */
         private previousMidPoint?: { x: number, y: number; };
+        /**
+         * Stores the distance between two touch points for pinch gestures.
+         */
         private previousDistance?: number;
+        /**
+         * Stores the initial translation during a pinch gesture.
+         */
         private startTranslate: { x: number, y: number; } = { x: 0, y: 0 };
 
 
+        /**
+         * Getter for the current horizontal scroll position.
+         */
         public get x(): number {
             return this.position.x;
         }
+        /**
+         * Getter for the current vertical scroll position.
+         */
         public get y(): number {
             return this.position.y;
         }
+        /**
+         * Getter for the maximum horizontal scroll position.
+         */
         public get xMax(): number {
             return this.max.x;
         }
+        /**
+         * Getter for the maximum vertical scroll position.
+         */
         public get yMax(): number {
             return this.max.y;
         }
@@ -205,6 +327,9 @@ namespace Layout {
 
 
         //#region constructor
+        /**
+         * Initializes a new instance of the Scrollable component, binding event handlers and setting up the animation instance.
+         */
         public constructor() {
             super();
             this.renderAnimation = this.createAnimation();
@@ -222,9 +347,12 @@ namespace Layout {
         //#region events
 
         /**
-         * Callback trigger when the scroll change
+         * Callback triggered whenever the scroll position changes.
          */
         public onScrollChange: Aventus.Callback<(x: number, y: number) => void> = new Aventus.Callback();
+        /**
+         * Callback triggered whenever the zoom level changes.
+         */
         public onZoomChange: Aventus.Callback<(zoom: number) => void> = new Aventus.Callback();
 
         //#endregion
@@ -232,7 +360,13 @@ namespace Layout {
         //#region methods
 
         //#region render
+        /**
+         * The animation instance responsible for smooth momentum scrolling.
+         */
         private renderAnimation: Aventus.Animation;
+        /**
+         * Creates and configures the Aventus.Animation instance for momentum scrolling.
+         */
         private createAnimation(): Aventus.Animation {
             return new Aventus.Animation({
                 fps: 60,
@@ -258,6 +392,9 @@ namespace Layout {
             });
         }
 
+        /**
+         * Calculates the next scroll position and remaining momentum for a given direction.
+         */
         private nextPosition(direction: 'x' | 'y'): { momentum: number, position: number; } {
             const current = this.position[direction];
             const remain = this.momentum[direction];
@@ -291,6 +428,9 @@ namespace Layout {
         //#endregion
 
         //#region scroll action
+        /**
+         * Applies the calculated scroll position for a given direction, updates the scroller element's transform, manages auto-hide for scrollbars, and triggers the onScrollChange callback.
+         */
         private scrollDirection(direction: 'x' | 'y', value: number) {
             const max = this.max[direction];
 
@@ -318,13 +458,16 @@ namespace Layout {
             this.triggerScrollChange();
         }
         /**
-         * @param percent number between 0 - 100
+         * Scrolls the content to a specified percentage of the total scrollable distance.
          */
         private scrollDirectionPercent(direction: 'x' | 'y', percent: number) {
             const max = this.max[direction];
             this.scrollDirection(direction, max * percent / 100);
         }
 
+        /**
+         * Ensures that the scroll value remains within the valid bounds (0 to max[direction]).
+         */
         private correctScrollValue(value: number, direction: 'x' | 'y'): number {
             if(value < 0) {
                 value = 0;
@@ -335,56 +478,66 @@ namespace Layout {
             return value;
         }
 
+        /**
+         * Triggers the onScrollChange callback with the current x and y scroll positions.
+         */
         private triggerScrollChange() {
             this.onScrollChange.trigger(this.x, this.y);
         }
 
 
         /**
-         * Shortcut for functions scrollX and scrollY
+         * Scrolls the content to a specific absolute (x, y) pixel position.
          */
         public scrollToPosition(x: number, y: number) {
             this.scrollDirection('x', x);
             this.scrollDirection('y', y);
         }
         /**
-         * Scroll left - right
+         * Scrolls the content horizontally to a specific absolute pixel position.
          */
         public scrollX(x: number) {
             this.scrollDirection('x', x);
         }
         /**
-        * Scroll left - right
-        * @param x percent between 0 - 100
-        */
+         * Scrolls the content horizontally to a specific percentage of its total width.
+         */
         public scrollXPercent(x: number) {
             this.scrollDirectionPercent('x', x);
         }
         /**
-         * Scroll bottom - top
+         * Scrolls the content vertically to a specific absolute pixel position.
          */
         public scrollY(y: number) {
             this.scrollDirection('y', y);
         }
         /**
-        * Scroll bottom - top
-        * @param y percent between 0 - 100
-        */
+         * Scrolls the content vertically to a specific percentage of its total height.
+         */
         public scrollYPercent(y: number) {
             this.scrollDirectionPercent('y', y);
         }
+        /**
+         * Stores setInterval IDs for active auto-scrolling directions.
+         */
         private autoScrollInterval: { top: number, left: number, right: number, bottom: number; } = {
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
         };
+        /**
+         * Stores the calculated pixel speed for auto-scrolling in each direction.
+         */
         private autoScrollSpeed: { top: number, left: number, right: number, bottom: number; } = {
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
         };
+        /**
+         * Initiates auto-scrolling to the right.
+         */
         private startAutoScrollRight() {
             if(!this.autoScrollInterval.right) {
                 this.stopAutoScrollLeft();
@@ -401,7 +554,7 @@ namespace Layout {
             }
         }
         /**
-         * Define a speed percent to auto scroll right
+         * Starts auto-scrolling the content to the right with a specified speed percentage.
          */
         public autoScrollRight(percent: number = 50) {
             let slow = this.max.x * 1 / 100;
@@ -410,7 +563,7 @@ namespace Layout {
             this.startAutoScrollRight();
         }
         /**
-         * Stop auto scrolling right
+         * Stops any active auto-scrolling to the right.
          */
         public stopAutoScrollRight() {
             if(this.autoScrollInterval.right) {
@@ -419,6 +572,9 @@ namespace Layout {
             }
         }
 
+        /**
+         * Initiates auto-scrolling to the left.
+         */
         private startAutoScrollLeft() {
             if(!this.autoScrollInterval.left) {
                 this.stopAutoScrollRight();
@@ -435,7 +591,7 @@ namespace Layout {
             }
         }
         /**
-         * Define a speed percent to auto scroll left
+         * Starts auto-scrolling the content to the left with a specified speed percentage.
          */
         public autoScrollLeft(percent: number = 50) {
             let slow = this.max.x * 1 / 100;
@@ -444,7 +600,7 @@ namespace Layout {
             this.startAutoScrollLeft();
         }
         /**
-         * Stop auto scrolling left
+         * Stops any active auto-scrolling to the left.
          */
         public stopAutoScrollLeft() {
             if(this.autoScrollInterval.left) {
@@ -453,6 +609,9 @@ namespace Layout {
             }
         }
 
+        /**
+         * Initiates auto-scrolling upwards.
+         */
         private startAutoScrollTop() {
             if(!this.autoScrollInterval.top) {
                 this.stopAutoScrollBottom();
@@ -469,7 +628,7 @@ namespace Layout {
             }
         }
         /**
-         * Define a speed percent to auto scroll top
+         * Starts auto-scrolling the content upwards with a specified speed percentage.
          */
         public autoScrollTop(percent: number = 50) {
             let slow = this.max.y * 1 / 100;
@@ -478,7 +637,7 @@ namespace Layout {
             this.startAutoScrollTop();
         }
         /**
-         * Stop auto scrolling top
+         * Stops any active auto-scrolling upwards.
          */
         public stopAutoScrollTop() {
             if(this.autoScrollInterval.top) {
@@ -487,6 +646,9 @@ namespace Layout {
             }
         }
 
+        /**
+         * Initiates auto-scrolling downwards.
+         */
         private startAutoScrollBottom() {
             if(!this.autoScrollInterval.bottom) {
                 this.stopAutoScrollTop();
@@ -503,7 +665,7 @@ namespace Layout {
             }
         }
         /**
-         * Define a speed percent to auto scroll bottom
+         * Starts auto-scrolling the content downwards with a specified speed percentage.
          */
         public autoScrollBottom(percent: number = 50) {
             let slow = this.max.y * 1 / 100;
@@ -512,7 +674,7 @@ namespace Layout {
             this.startAutoScrollBottom();
         }
         /**
-         * Stop auto scrolling bottom
+         * Stops any active auto-scrolling downwards.
          */
         public stopAutoScrollBottom() {
             if(this.autoScrollInterval.bottom) {
@@ -521,25 +683,33 @@ namespace Layout {
             }
         }
 
-
+        /**
+         * Creates a new SVG DOMMatrix for transformations.
+         */
         private createMatrix(): DOMMatrix {
             if(!this.cachedSvg) {
                 this.cachedSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
             }
             return this.cachedSvg.createSVGMatrix();
         }
+        /**
+         * Calculates the midpoint between two touch trackers.
+         */
         private getMidPoint(a: Tracker, b: Tracker) {
             return {
                 x: (a.lastPosition.x + b.lastPosition.x) / 2,
                 y: (a.lastPosition.y + b.lastPosition.y) / 2,
             };
         }
+        /**
+         * Calculates the distance between two touch trackers.
+         */
         private getDistance(a: Tracker, b: Tracker) {
             return Math.sqrt((b.lastPosition.x - a.lastPosition.x) ** 2 + (b.lastPosition.y - a.lastPosition.y) ** 2);
         }
 
         /**
-         * Zoom on a specific point
+         * Zooms the content around a specific client coordinate.
          */
         public zoomOnPoint(clientX: number, clientY: number, newZoom: number) {
             let targetCoordinates = this.getBoundingClientRect();
@@ -574,6 +744,9 @@ namespace Layout {
             this.scrollDirection('y', newY);
         }
 
+        /**
+         * Handles the logic for pinch-to-zoom gestures.
+         */
         private pinchAction() {
             const touches = this.touchRecord.getTouches();
             if(touches.length == 2) {
@@ -626,7 +799,13 @@ namespace Layout {
         //#endregion
 
         //#region events
+        /**
+         * Manages press, drag, and touch events for the scrollable component.
+         */
         private pressManager!: PressManager;
+        /**
+         * Attaches primary event listeners for wheel, touch (via PressManager), and pointer events.
+         */
         private addAction() {
             this.addEventListener("wheel", this.onWheel, { passive: false });
             this.pressManager = new PressManager({
@@ -662,6 +841,9 @@ namespace Layout {
             this.addScrollDrag('x');
             this.addScrollDrag('y');
         }
+        /**
+         * Attaches event listeners to document.body for move-related touch/pointer events.
+         */
         private addActionMove() {
             // document.body.addEventListener("touchmove", this.onTouchMove);
             // document.body.addEventListener("trigger_pointer_pressmove", this.onTouchMovePointer);
@@ -673,6 +855,9 @@ namespace Layout {
                 // document.body.addEventListener("mouseup", this.onTouchEnd);
             }
         }
+        /**
+         * Removes event listeners from document.body for move-related touch/pointer events.
+         */
         private removeActionMove() {
             // document.body.removeEventListener("touchmove", this.onTouchMove);
             // document.body.removeEventListener("trigger_pointer_pressmove", this.onTouchMovePointer);
@@ -683,6 +868,9 @@ namespace Layout {
             // document.body.removeEventListener("mouseup", this.onTouchEnd);
         }
 
+        /**
+         * Adds drag-and-drop functionality to the custom scrollbar elements (horizontal or vertical).
+         */
         private addScrollDrag(direction: 'x' | 'y') {
             let scroller = this.scroller[direction]();
 
@@ -712,6 +900,9 @@ namespace Layout {
             });
         }
 
+        /**
+         * Determines whether a scroll event should stop propagation based on scroll boundaries.
+         */
         private shouldStopPropagation(e: Event, delta: { x: number, y: number; }) {
             if(!this.y_scroll && this.x_scroll) {
                 if(
@@ -730,6 +921,9 @@ namespace Layout {
                 }
             }
         }
+        /**
+         * Adds a delta value to the current momentum and starts the rendering animation.
+         */
         private addDelta(delta: { x: number, y: number; }) {
             if(this.disable) {
                 return;
@@ -738,6 +932,9 @@ namespace Layout {
             this.momentum.y += delta.y;
             this.renderAnimation?.start();
         }
+        /**
+         * Event handler for wheel events, managing scrolling and pinch-to-zoom (with Ctrl key).
+         */
         private onWheel(e: WheelEvent) {
             if(e.ctrlKey) {
                 e.preventDefault();
@@ -773,6 +970,9 @@ namespace Layout {
             this.addDelta(newValue);
         }
 
+        /**
+         * Handles the start of a touch or pointer event, initiating tracking.
+         */
         private onTouchStartPointer(e: NormalizedEvent) {
             const ev = e.event;
             if('TouchEvent' in window && ev instanceof TouchEvent) {
@@ -787,6 +987,9 @@ namespace Layout {
             }
             return false;
         }
+        /**
+         * General handler for touch/pointer/mouse start events, resetting momentum and tracking touches.
+         */
         private onTouchStart(e: TouchEvent | PointerEvent | MouseEvent) {
             if(this.isDragScroller) return;
             this.touchRecord.track(e);
@@ -806,6 +1009,9 @@ namespace Layout {
             }
         }
 
+        /**
+         * Handles move events for touch or pointer, updating touch tracking.
+         */
         private onTouchMovePointer(e: NormalizedEvent) {
             const ev = e.event;
             if('TouchEvent' in window && ev instanceof TouchEvent) {
@@ -817,6 +1023,9 @@ namespace Layout {
                 }
             }
         }
+        /**
+         * General handler for touch/pointer/mouse move events, processing pinch-to-zoom or scrolling.
+         */
         private onTouchMove(e: TouchEvent | PointerEvent | MouseEvent) {
             if(this.isDragScroller) return;
             this.touchRecord.update(e);
@@ -833,6 +1042,9 @@ namespace Layout {
                 this.addDelta(delta);
             }
         }
+        /**
+         * Handles end events for touch or pointer, releasing touch tracking.
+         */
         private onTouchEndPointer(e: NormalizedEvent) {
             const ev = e.event;
             if('TouchEvent' in window && ev instanceof TouchEvent) {
@@ -845,6 +1057,9 @@ namespace Layout {
 
             }
         }
+        /**
+         * General handler for touch/pointer/mouse end events, applying easing momentum and cleaning up.
+         */
         private onTouchEnd(e: TouchEvent | PointerEvent | MouseEvent) {
             if(this.isDragScroller) return;
             const delta = this.touchRecord.getEasingDistance(this.break);
@@ -866,6 +1081,9 @@ namespace Layout {
         //#endregion
 
         //#region position
+        /**
+         * Calculates the actual offsetWidth and offsetHeight of the content area, accounting for zoom, and determines if dimensions have changed.
+         */
         private calculateRealSize(): boolean {
             if(!this.contentZoom || !this.mainContainer || !this.contentWrapper) {
                 return false;
@@ -908,6 +1126,9 @@ namespace Layout {
             return hasChanged;
         }
 
+        /**
+         * Calculates and adjusts the position of the scrollbar containers based on direction.
+         */
         private calculatePositionScrollerContainer(direction: 'x' | 'y') {
             if(direction == 'y') {
                 this.calculatePositionScrollerContainerY();
@@ -916,6 +1137,9 @@ namespace Layout {
                 this.calculatePositionScrollerContainerX();
             }
         }
+        /**
+         * Calculates and adjusts the position of the vertical scrollbar container.
+         */
         private calculatePositionScrollerContainerY() {
             const leftMissing = this.mainContainer.offsetWidth - this.verticalScrollerContainer.offsetLeft;
             if(leftMissing > 0 && this.y_scroll_visible && !this.floating_scroll) {
@@ -931,6 +1155,9 @@ namespace Layout {
             }
         }
 
+        /**
+         * Calculates and adjusts the position of the horizontal scrollbar container.
+         */
         private calculatePositionScrollerContainerX() {
             const topMissing = this.mainContainer.offsetHeight - this.horizontalScrollerContainer.offsetTop;
             if(topMissing > 0 && this.x_scroll_visible && !this.floating_scroll) {
@@ -945,6 +1172,9 @@ namespace Layout {
             }
         }
 
+        /**
+         * Calculates and sets the size of the custom scrollbar thumb for a given direction.
+         */
         private calculateSizeScroller(direction: 'x' | 'y') {
             const scrollerSize = (this.div((this.display[direction] - this.margin[direction]), this.contentWrapperSize[direction]) * 100);
             if(direction == "y") {
@@ -962,13 +1192,16 @@ namespace Layout {
 
         //#endregion
 
+        /**
+         * Applies the zoom transformation to contentZoom and triggers a dimension refresh.
+         */
         private changeZoom() {
             this.contentZoom.style.transform = 'scale(' + this.zoom + ')';
             this.dimensionRefreshed(true);
         }
 
         /**
-         * Inform that the size has changed
+         * Recalculates and updates all scroll-related dimensions and positions. Manages scrollbar visibility and ensures correct layout after size changes.
          */
         private dimensionRefreshed(force: boolean = false) {
             if(this.contentWrapper.offsetHeight > 0 && this.contentWrapper.offsetWidth > 0) {
@@ -1020,6 +1253,9 @@ namespace Layout {
 
 
         }
+        /**
+         * Creates and returns an Aventus.ResizeObserver instance configured to call dimensionRefreshed() on resize events.
+         */
         private createResizeObserver() {
             let inProgress = false;
             return new Aventus.ResizeObserver({
@@ -1035,6 +1271,9 @@ namespace Layout {
             });
 
         }
+        /**
+         * Initializes and attaches the ResizeObserver to monitor the component and its contentWrapper for size changes.
+         */
         private addResizeObserver() {
             if(this.observer == undefined) {
                 this.observer = this.createResizeObserver();
@@ -1042,10 +1281,16 @@ namespace Layout {
             this.observer.observe(this.contentWrapper);
             this.observer.observe(this);
         }
+        /**
+         * Helper function for safe division, returning nb1 if nb2 is zero or falsy.
+         */
         private div(nb1: number, nb2: number) {
             if(!nb2) return nb1;
             return nb1 / nb2;
         }
+        /**
+         * Lifecycle hook called after the component is created. Initializes dimensions, sets up resize observers, and adds interaction actions.
+         */
         protected override postCreation(): void {
             this.dimensionRefreshed();
             this.addResizeObserver();

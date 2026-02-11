@@ -1,4 +1,10 @@
+/**
+ * Manages the state and history of routes within an Aventus application.
+ */
 export class RouterStateManager extends Aventus.StateManager {
+    /**
+     * Retrieves the singleton instance of the RouterStateManager.
+     */
     public static getInstance(): RouterStateManager {
         return Aventus.Instance.get(RouterStateManager);
     }

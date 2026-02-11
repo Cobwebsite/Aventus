@@ -3,6 +3,9 @@ import { Tab } from "../Tab/Tab.wcl.avt";
 import { TabHeader } from "../TabHeader/TabHeader.wcl.avt";
 
 namespace Layout.Tabs {
+    /**
+     * Abstract web component that serves as a container for a tabbed interface. It manages the loading, rendering, and activation of Tab content components and their corresponding TabHeader components.
+     */
     export abstract class Tabs<T extends Tab, U extends TabHeader<T>> extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
         //#region static
@@ -17,12 +20,24 @@ namespace Layout.Tabs {
 
         //#region variables
 
+        /**
+         * Reference to the HTML element where the TabHeader components will be rendered.
+         */
         @ViewElement()
         protected headerEl!: HTMLDivElement;
+        /**
+         * Reference to the HTML element where the Tab content components will be rendered.
+         */
         @ViewElement()
         protected bodyEl!: HTMLDivElement;
 
+        /**
+         * Stores a reference to the currently active TabHeader component.
+         */
         protected activeHeader?: TabHeader<T>;
+        /**
+         * An object that maps tab identifiers (from Tab.identifier()) to their corresponding Tab content components.
+         */
         protected tabs: { [label: string]: T; } = {};
         //#endregion
 
@@ -33,6 +48,9 @@ namespace Layout.Tabs {
 
 
         //#region methods
+        /**
+         * Asynchronously discovers child Tab components within its slot. For each Tab, it instantiates a TabHeader (defined by defineTabHeader()), initializes it, and appends it to headerEl. It also determines the initial active tab.
+         */
         protected async loadTabs() {
             // let elements = this.elements;
             let elements = this.getElementsInSlot();
@@ -61,6 +79,9 @@ namespace Layout.Tabs {
             }
         }
 
+        /**
+         * Sets a specific tab as active. It can accept a TabHeader instance, an index (number), or a tab identifier (string). It deactivates the previously active tab and activates the new one, managing their active and selected attributes and display styles.
+         */
         public setActive(tabHeader: TabHeader<T> | number | string) {
             if(typeof tabHeader == 'number') {
                 if(this.headerEl.children.length > tabHeader) {
@@ -90,9 +111,15 @@ namespace Layout.Tabs {
             this.activeHeader.tab.selected = true;
         }
 
+        /**
+         * Abstract method that concrete Tabs implementations must provide. It should return the constructor for the specific TabHeader component to be used.
+         */
         protected abstract defineTabHeader(): Constructor<U>;
 
-		protected override postCreation(): void {
+		/**
+         * Lifecycle hook called after the component is created. Overrides the base method to load the tabs when the component is instantiated.
+         */
+        protected override postCreation(): void {
             super.postCreation();
             this.loadTabs();
         }

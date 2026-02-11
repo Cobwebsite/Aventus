@@ -3,9 +3,18 @@ import type { Constructor, ExtractError, FormSchema, SubmitFunction, WithError }
 import { PageForm } from "../PageForm/PageForm.wcl.avt";
 
 namespace Navigation {
+    /**
+     * Infers the type of the last parameter of a given function type T.
+     */
     export type LastParameter<T extends any> = T extends (...args: any) => any ? Last<Parameters<T>> : never;
+    /**
+     * Infers the return type of a method M on an Aventus.HttpRoute controller C.
+     */
     export type Result<C extends Constructor<Aventus.HttpRoute>, M extends keyof InstanceType<C>> = InstanceType<C>[M] extends (...args: any) => any ? ReturnType<InstanceType<C>[M]> : any;
 
+    /**
+     * Utility type to extract a string literal type if T is a string literal and not a generic string.
+     */
     type ToKey<T> = [T] extends [string]        // doit être un string literal
         ? string extends T                        // exclure le type "string" générique
         ? never
@@ -15,11 +24,23 @@ namespace Navigation {
         : never
         : never
         : never;
+    /**
+     * Utility type to filter out specific prefixes from a type.
+     */
     type FilterPrefix<T> = T extends `getPrefix` ? never : T;
 
+    /**
+     * Utility type to get the first key after filtering a type.
+     */
     type FirstKey<T> = ToKey<FilterPrefix<keyof T>>;
 
+    /**
+     * Determines the key result for a given controller and method, defaulting to the first filtered key if no method is specified.
+     */
     export type KeyResult<C extends Constructor<Aventus.HttpRoute>, M> = M extends undefined ? FirstKey<InstanceType<C>> : M;
+    /**
+     * Extends PageForm to specifically handle form submissions that interact with Aventus backend HttpRoute controllers. It provides strong typing for form data and responses based on the associated API route method signatures.
+     */
     export abstract class PageFormRoute<C extends Constructor<Aventus.HttpRoute>, M extends undefined | keyof InstanceType<C> = undefined, RM extends KeyResult<C, M> = KeyResult<C, M>> extends PageForm<LastParameter<InstanceType<C>[RM]>, ExtractError<Awaited<Result<C, RM>>>> implements Aventus.DefaultComponent {
 
         //#region static
@@ -43,6 +64,9 @@ namespace Navigation {
 
 
         //#region methods
+        /**
+         * Overrides the defineSubmit method from PageForm. This method is responsible for executing the actual API call. It first calls beforeSubmit(), then determines the HttpRoute controller and method to call, executes the submission, and finally calls onResult() with the API response.
+         */
         public override async defineSubmit(submit: (fct: SubmitFunction<LastParameter<InstanceType<C>[RM]>, ExtractError<Awaited<Result<C, RM>>>>) => Promise<WithError<ExtractError<Awaited<Result<C, RM>>>> | null>): Promise<WithError<ExtractError<Awaited<Result<C, RM>>>> | null> {
             await this.beforeSubmit();
             const info = this.route();
@@ -69,8 +93,17 @@ namespace Navigation {
             return result;
         }
 
+        /**
+         * Abstract method to be implemented by subclasses to specify the HttpRoute controller (and optionally the method name) that this form will interact with.
+         */
         public abstract route(): M extends undefined ? C : [C, M];
+        /**
+         * An optional asynchronous lifecycle hook called before the form submission logic is executed, allowing for pre-submission actions.
+         */
         public beforeSubmit(): Asyncable<void> { }
+        /**
+         * Abstract method to be implemented by subclasses to handle the result of the API call, allowing for post-submission actions like displaying success/error messages or redirecting.
+         */
         public abstract onResult(result: Awaited<Result<C, RM> | null>): Asyncable<void>;
 
 
