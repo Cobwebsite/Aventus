@@ -26,16 +26,7 @@ export class Create {
 			await GenericServer.localTemplateManager?.createTemplate(path);
 		}
 		else {
-			const result = await GenericServer.Select([{
-				label: "Init",
-				detail: "Create a project"
-			}], {
-				placeHolder: 'What do you want to create?',
-			});
-			if (result) {
-				await GenericServer.localProjectManager?.createProject(path);
-				// await GenericServer.templateManager?.createProject(path);
-			}
+			await GenericServer.localProjectManager?.createGlobal(path);
 		}
 	}
 

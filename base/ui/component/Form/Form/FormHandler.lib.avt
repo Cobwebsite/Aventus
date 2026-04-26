@@ -1,7 +1,6 @@
 import { GenericError, HttpRoute, isClass, ResultWithError, VoidWithError, type Asyncable } from "Aventus@Main:Aventus.package.avt";
 import type { Constructor, ExtractError, FormHandlerConfig, FormPart, FormPartValidate, FormSchema, FormValidate, FormValidateResult, IForm, IFormElement, InternalForm, InternalFormPart, SubmitFunction, WithError } from "./FormType.lib.avt";
 import { Validator } from "./Validator.lib.avt";
-import { PageForm } from "../../Navigation/PageForm/PageForm.wcl.avt";
 import { Form } from "./Form.wcl.avt";
 
 namespace Form {
@@ -21,7 +20,7 @@ namespace Form {
          * List of constructors for elements that implement IForm.
          */
         @Internal()
-        public static _IFormElements: Constructor<IForm, true>[] = [Form, PageForm];
+        public static _IFormElements: Constructor<IForm, true>[] = [Form];
 
 
         /**

@@ -136,7 +136,7 @@ namespace Modal {
         /**
          * Initializes the modal's callback and sets up event listeners for Escape key (using ShortcutManager) and click-to-close behavior (using PressManager).
          */
-        private init(cb: (response: T | null) => void) {
+        protected init(cb: (response: T | null) => void) {
             this.cb = cb;
             if(this.options.closeWithEsc) {
                 ShortcutManager.subscribe(SpecialTouch.Escape, this.reject, { replaceTemp: true });

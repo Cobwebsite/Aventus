@@ -68,11 +68,8 @@ namespace Form {
                 }
             }
         }
-        /**
-         * Lifecycle hook called after the component is created. Registers the button with the parent form and sets up event listeners for submission.
-         */
-        protected override postCreation(): void {
-            super.postCreation();
+
+        protected registerSubmit() {
             this.handler = this.findParentByType(Form.formElements)?.registerSubmit(this);
             if(this.type == "submit") {
                 new PressManager({
@@ -87,6 +84,13 @@ namespace Form {
                     }
                 });
             }
+        }
+        /**
+         * Lifecycle hook called after the component is created. Registers the button with the parent form and sets up event listeners for submission.
+         */
+        protected override postCreation(): void {
+            super.postCreation();
+            this.registerSubmit();
         }
         //#endregion
 

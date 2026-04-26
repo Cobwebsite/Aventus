@@ -253,10 +253,13 @@ export const AventusConfigSchema: JSONSchema = {
                                         additionalProperties: false,
                                         properties: {
                                             "output": {
-                                                type: "string"
+                                                type: ["string", "array"],
+                                                items: {
+                                                    type: "string",
+                                                }
                                             },
                                             "mount": {
-                                                type: "string"
+                                                type: "string",
                                             },
                                             "mode": {
                                                 type: "string",

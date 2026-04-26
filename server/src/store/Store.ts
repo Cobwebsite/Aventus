@@ -128,6 +128,7 @@ export class Store {
 		form.append("description", template.description);
 		form.append("version", template.version);
 		form.append("is_project", template.isProject ? '1' : '0');
+		form.append("is_global", template.isGlobal ? '1' : '0');
 		if (template.organization) {
 			form.append("organization", template.organization);
 		}

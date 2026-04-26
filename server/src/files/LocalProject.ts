@@ -1,5 +1,6 @@
 import { GenericServer } from '../GenericServer';
 import { uriToPath } from '../tools';
+import { TemplateScript } from './Template';
 import { TemplateManager } from './TemplateManager';
 
 export class LocalProjectManager {
@@ -7,9 +8,23 @@ export class LocalProjectManager {
 	public constructor(templateManager: TemplateManager) {
 		this.templateManager = templateManager;
 	}
+
+	public async createGlobal(path: string) {
+		let loadedTemplates = await this.templateManager.readGlobal()
+		const templateResult = await this.templateManager.query(path, loadedTemplates.templates, [{
+			label: "Init",
+			detail: "Create a project"
+		}]);
+		if (templateResult instanceof TemplateScript) {
+			await templateResult.init(path, this.templateManager.findWorkspace(path));
+		}
+		else if (templateResult) {
+			await GenericServer.localProjectManager?.createProject(path);
+		}
+	}
 	public async createProject(path: string) {
-		let loadedTemplates = this.readProjects()
-		const templateResult = await this.templateManager.query(loadedTemplates.templates);
+		let loadedTemplates = await this.readProjects()
+		const templateResult = await this.templateManager.query(path, loadedTemplates.templates);
 		if (templateResult) {
 			await templateResult.init(path, this.templateManager.findWorkspace(path));
 		}
@@ -28,4 +43,5 @@ export class LocalProjectManager {
 			nb: globalProjectLength
 		};
 	}
+	
 }
