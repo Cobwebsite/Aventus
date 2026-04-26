@@ -3147,6 +3147,10 @@ let TemplateInstance=class TemplateInstance {
         if (event.isCallback) {
             for (let el of this._components[event.id]) {
                 let cb = getValueFromObject(event.eventName, el);
+                if (!cb && el.tagName.includes('-')) {
+                    customElements.upgrade(el);
+                    cb = getValueFromObject(event.eventName, el);
+                }
                 cb?.add((...args) => {
                     try {
                         return event.fct(this.context, args);
@@ -3294,6 +3298,7 @@ let TemplateInstance=class TemplateInstance {
         });
         this.firstRenderCb.push(() => {
             for (const el of this._components[injection.id]) {
+                customElements.upgrade(el);
                 el[injection.injectionName] = computed.value;
             }
         });
@@ -3329,6 +3334,7 @@ let TemplateInstance=class TemplateInstance {
         });
         this.firstRenderCb.push(() => {
             for (const el of this._components[binding.id]) {
+                customElements.upgrade(el);
                 el[binding.injectionName] = computed.value;
             }
         });
@@ -3337,6 +3343,10 @@ let TemplateInstance=class TemplateInstance {
                 for (var el of this._components[binding.id]) {
                     for (let fct of binding.eventNames) {
                         let cb = getValueFromObject(fct, el);
+                        if (!cb && el.tagName.includes('-')) {
+                            customElements.upgrade(el);
+                            cb = getValueFromObject(binding.injectionName, el);
+                        }
                         cb?.add((value) => {
                             let valueToSet = getValueFromObject(binding.injectionName, el);
                             isLocalChange = true;
@@ -3350,6 +3360,7 @@ let TemplateInstance=class TemplateInstance {
         else {
             this.firstRenderCb.push(() => {
                 for (var el of this._components[binding.id]) {
+                    customElements.upgrade(el);
                     for (let fct of binding.eventNames) {
                         el.addEventListener(fct, (e) => {
                             let valueToSet = getValueFromObject(binding.injectionName, e.target);

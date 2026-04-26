@@ -43,6 +43,7 @@ export type TemplateInfo = {
 	organization?: string,
 	tags?: string[],
 	isProject?: boolean,
+	isGlobal?: boolean,
 	installationFolder?: string
 	documentation?: string,
 	repository?: string,
@@ -83,9 +84,17 @@ export const AventusExtension = {
 
 export abstract class AventusTemplate {
 	private basicInfo() {
+		let hasIsAllow = false;
+		try {
+			hasIsAllow = this.isAllowed() != 'default';
+		}
+		catch {
+			hasIsAllow = true;
+		}
 		const defaultValues = {
 			description: "",
-			version: "1.0.0"
+			version: "1.0.0",
+			hasIsAllow
 		}
 		const values = { ...defaultValues, ...this.meta() };
 		return JSON.stringify(values);
@@ -93,6 +102,7 @@ export abstract class AventusTemplate {
 	protected abstract meta(): TemplateInfo;
 
 	protected variables: { [key: string]: string | null | undefined } = {}
+	protected ifs: { [key: string]: boolean } = {}
 	protected blocks: {
 		[key: string]: BlockInfo
 	} = {}
@@ -124,6 +134,16 @@ export abstract class AventusTemplate {
 				process.exit();
 			})
 		})
+	}
+
+	private _isAllowed(templatePath: string, destination: string, workspacePath: string): boolean | 'default' {
+		this.destination = destination;
+		this.templatePath = templatePath;
+		this.workspacePath = workspacePath;
+		return this.isAllowed();
+	}
+	protected isAllowed(): boolean | 'default' {
+		return 'default';
 	}
 
 	protected defaultBlocks() {
@@ -202,6 +222,9 @@ export abstract class AventusTemplate {
 	protected registerVar<T extends string>(name: T & (T extends ReservedVariables ? never : {}), value: string | null | undefined) {
 		this.variables[name] = value;
 	}
+	protected registerIf<T extends string>(name: T & (T extends ReservedVariables ? never : {}), value: boolean) {
+		this.ifs[name] = value;
+	}
 
 	protected registerBlock(name: string, block: Partial<BlockInfo>) {
 		const defaultBlock: BlockInfo = {
@@ -270,6 +293,7 @@ export abstract class AventusTemplate {
 						this.variables["namespace"] = await this.runCommandWithAnswer("getNamespace", exportPath);
 						let ctx = this.replaceVariables(rawCtx);
 						ctx = this.replaceBlocks(ctx);
+						ctx = this.replaceIfs(ctx);
 						const writeInfo: WriteInfo = {
 							content: ctx,
 							isDir: false,
@@ -337,7 +361,24 @@ export abstract class AventusTemplate {
 	}
 
 
-
+	protected replaceIfs(ctx: string) {
+		for (let ifName in this.ifs) {
+			const regex = new RegExp('#if\\{\\{' + ifName + '\\}\\}((\\s|\\S)*)#end\\{\\{' + ifName + '\\}\\}', 'gm');
+			if (this.ifs[ifName]) {
+				let m: RegExpExecArray | null;
+				while ((m = regex.exec(ctx)) !== null) {
+					if (m.index === regex.lastIndex) {
+						regex.lastIndex++;
+					}
+					ctx = ctx.replace(m[0], m[1]);
+				}
+			}
+			else {
+				ctx = ctx.replace(regex, "");
+			}
+		}
+		return ctx;
+	}
 	protected replaceBlocks(ctx: string) {
 		for (let blockName in this.blocks) {
 			const regex = new RegExp('#\\{\\{' + blockName + '\\}\\}((\\s|\\S)*)#\\{\\{' + blockName + '\\/\\}\\}', 'gm');

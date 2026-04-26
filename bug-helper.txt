@@ -1,0 +1,1 @@
+If something goes wrong on safari, you can check if the element is upgrading. sometimes it can help to upgrade manually before

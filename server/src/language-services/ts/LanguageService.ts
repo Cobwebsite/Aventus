@@ -76,7 +76,7 @@ export class AventusTsLanguageService {
             },
             getScriptVersion: (fileName: string) => {
                 if (this.filesLoaded[fileName]) {
-                    return String(this.filesLoaded[fileName].file.versionUser + 1);
+                    return String(this.filesLoaded[fileName].version + 1);
                 } else if (this.i18nFiles[fileName]) {
                     return String(this.i18nFiles[fileName].file.versionUser + 1);
                 }

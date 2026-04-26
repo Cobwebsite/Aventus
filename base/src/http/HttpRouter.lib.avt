@@ -8,6 +8,15 @@ import type { GenericError, ResultWithError } from "../tools/Error.lib.avt";
     prefix: "Http"
 })
 export class HttpRouter {
+
+    private static options?: HttpRouterOptions;
+
+
+    public static configure(options: HttpRouterOptions) {
+        this.options = options;
+    }
+
+
     @InternalProtected()
     public options: HttpRouterOptions;
 
@@ -16,7 +25,7 @@ export class HttpRouter {
     }
 
     private defaultOptionsValue(): HttpRouterOptions {
-        return {
+        return HttpRouter.options ?? {
             url: location.protocol + "//" + location.host
         };
     }

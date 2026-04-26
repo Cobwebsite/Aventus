@@ -30,6 +30,8 @@ export class QuickTemplateEdit {
 			}
 		}
 
+		let global = await GenericServer.templateManager?.readGlobal() ?? { nb: 0, templates: {} };
+		readRecu(global.templates);
 		let projects = await GenericServer.localProjectManager?.readProjects() ?? { nb: 0, templates: {} };
 		readRecu(projects.templates);
 		let templates = await GenericServer.localTemplateManager?.readTemplates() ?? { nb: 0, templates: {} };

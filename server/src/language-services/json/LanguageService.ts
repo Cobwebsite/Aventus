@@ -393,7 +393,7 @@ export class AventusJSONLanguageService {
                 if (!compile.i18n) {
                     compile.i18n = []
                     for (let output of compile.output) {
-                        const splitted = output[''].path.split(sep);
+                        const splitted = output['@default'].path.split(sep);
                         splitted.pop();
                         const outputPath = splitted.join(sep);
                         const final = join(outputPath, "locales");
@@ -403,7 +403,7 @@ export class AventusJSONLanguageService {
                             mount = mount.replace("/dist", "");
                         }
                         compile.i18n.push({
-                            output: final,
+                            output: [final],
                             mount: mount,
                             mode: 'singleFile',
                         });
@@ -413,23 +413,29 @@ export class AventusJSONLanguageService {
                 else {
                     if (!Array.isArray(compile.i18n)) {
                         compile.i18n = [{
-                            output: compile.i18n,
+                            output: [compile.i18n],
                             mount: '',
                             mode: 'singleFile'
                         }];
                     }
                     for (let i = 0; i < compile.i18n.length; i++) {
-                        if (compile.i18n[i].output.endsWith("/")) {
-                            compile.i18n[i].output = compile.i18n[i].output.slice(0, -1)
+                        if (!Array.isArray(compile.i18n[i].output)) {
+                            let outputStr = compile.i18n[i].output as unknown as string;
+                            compile.i18n[i].output = [outputStr]
                         }
-                        compile.i18n[i].output = compile.i18n[i].output.trim();
-                        if (compile.i18n[i].output.length > 0) {
-                            compile.i18n[i].output = replaceEnvVar(compile.i18n[i].output);
+                        for (let j = 0; j < compile.i18n[i].output.length; j++) {
+                            if (compile.i18n[i].output[j].endsWith("/")) {
+                                compile.i18n[i].output[j] = compile.i18n[i].output[j].slice(0, -1)
+                            }
+                            compile.i18n[i].output[j] = compile.i18n[i].output[j].trim();
+                            if (compile.i18n[i].output[j].length > 0) {
+                                compile.i18n[i].output[j] = replaceEnvVar(compile.i18n[i].output[j]);
+                            }
                         }
 
-                        if (!compile.i18n[i].mount) {
+                        if (!compile.i18n[i].mount && compile.i18n[i].output.length > 0) {
                             const root = normalize(uriToPath(GenericServer.getWorkspaceUri()));
-                            let mount = compile.i18n[i].output.replace(root, "").replace(/\\/g, "/");
+                            let mount = compile.i18n[i].output[0].replace(root, "").replace(/\\/g, "/");
                             if (mount.startsWith("/dist")) {
                                 mount = mount.replace("/dist", "");
                             }

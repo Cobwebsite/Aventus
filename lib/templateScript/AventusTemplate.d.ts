@@ -40,6 +40,8 @@ declare type TemplateInfo = {
     tags?: string[],
     /** Determine if the template is a project or a template */
     isProject?: boolean,
+    /** Determine if the template is global */
+    isGlobal?: boolean,
     /** Determine where to install the template */
     installationFolder?: string,
     /** Documentation link for the package */
@@ -64,9 +66,12 @@ declare abstract class AventusTemplate {
     protected blocks: {
         [key: string]: BlockInfo;
     };
+    protected ifs: { [key: string]: boolean };
     protected destination: string;
     protected workspacePath: string;
     protected templatePath: string;
+	private _isAllowed;
+    protected isAllowed(): boolean;
     private _run;
     private defaultBlocks(): void;
     protected abstract run(destination: string): Promise<void>;
@@ -85,6 +90,8 @@ declare abstract class AventusTemplate {
     protected registerVar<T extends string>(name: T & (T extends ReservedVariables ? never : {}), value: string | null | undefined): void;
     /** Register a block that you can use later as #{{block}} #{{block/}} */
     protected registerBlock(name: string, block: Partial<BlockInfo>): void;
+    /** Register a if that you can use later as #if{{block}} #end{{block}} */
+    protected registerIf<T extends string>(name: T & (T extends ReservedVariables ? never : {}), value: boolean): void;
     /** Prevent writing default files/folders */
     protected defaultWriteDeny(info: WriteInfo, denyDir?: string[], denyFile?: string[]): boolean
     /** Start writing process */
@@ -93,6 +100,8 @@ declare abstract class AventusTemplate {
     protected replaceVariables(ctx: string): string;
     /** Replace #{{block}} #{{block/}} inside the content */
     protected replaceBlocks(ctx: string): string;
+    /** Replace #if{{block}} #end{{block}} inside the content */
+    protected replaceIfs(ctx: string): void;
     /** Add \\t before each line */
     protected addIndent(text: string): string;
     /** Remove \\t before each line */

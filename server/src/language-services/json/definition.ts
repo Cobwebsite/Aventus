@@ -53,7 +53,7 @@ export interface AventusConfigBuildCompileOutputNpm {
 	live: boolean
 }
 export interface AventusConfigBuildCompileOutputI18n {
-	output: string,
+	output: string[],
 	mount: string,
 	mode: 'singleFile' | 'oneToOne' | 'groupComponent' | 'basedOnAttribute' | 'include'
 }
