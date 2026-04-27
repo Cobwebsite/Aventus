@@ -513,7 +513,8 @@ export const AventusSharpSchema: JSONSchema = {
                 host: { type: "string", default: "https://localhost:5000", pattern: "^http(s)?:\\/\\/[a-zA-Z0-9_-]*?(:[0-9]{3,4})?$", description: "Define the host that the router will use" },
                 parent: { type: "string", default: "Aventus.HttpRouter", description: "Define the parent type to use for your router" },
                 parentFile: { type: "string", default: "", description: "Define the parent file to use for your router" },
-                namespace: { type: "string", default: "Routes", description: "Define the namespace for your router" }
+                namespace: { type: "string", default: "Routes", description: "Define the namespace for your router" },
+                addFormData: {type: "boolean", default: true, description: "Add ` | FormData` to the route body"}
             }
         },
         "wsEndpoint": {
