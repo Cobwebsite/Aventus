@@ -789,7 +789,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
                 },
                 onChange() {
                     for(let fct of this.__subscribes) {
-                        fct(WatchAction.UPDATED, name, that[name]);
+                        fct(WatchAction.UPDATED, name, that[name], []);
                     }
                 },
                 __path: name

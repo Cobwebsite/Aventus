@@ -2,8 +2,8 @@
 	"compilerOptions": {
 		"target": "ESNext",
 		"lib": ["ES2023", "dom"],
-		"module": "commonjs",
-		"moduleResolution": "node",
+		"module": "ESNext",
+		"moduleResolution": "bundler",
 		"declaration": true,
 		"sourceMap": true,
 		"strict": true,

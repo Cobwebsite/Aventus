@@ -69,7 +69,11 @@ const _ = {};
 
 
 let _n;
-let Style=class Style {
+let DebuggerConfig="use strict";
+__as1(_, 'DebuggerConfig', DebuggerConfig);
+
+let Style="use strict";
+class Style {
     static instance;
     static noAnimation;
     static defaultStyleSheets = {
@@ -164,18 +168,53 @@ let Style=class Style {
 Style.Namespace=`Aventus`;
 __as1(_, 'Style', Style);
 
-let uuidv4=function uuidv4() {
+let ActionBindings="use strict";
+
+let ActionInjection="use strict";
+
+let ActionEventCallback="use strict";
+
+let ActionEventListener="use strict";
+
+let ContextEdit="use strict";
+
+let If="use strict";
+
+let LoopSimple="use strict";
+
+let LoopFct="use strict";
+
+let TemplateHTML="use strict";
+
+let DefaultComponent="use strict";
+__as1(_, 'DefaultComponent', DefaultComponent);
+
+let uuidv4="use strict";
+function uuidv4() {
     let uid = '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, c => (Number(c) ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> Number(c) / 4).toString(16));
     return uid;
 }
 __as1(_, 'uuidv4', uuidv4);
 
-let sleep=function sleep(ms) {
+let sleep="use strict";
+function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 __as1(_, 'sleep', sleep);
 
-let isSubclassOf=function isSubclassOf(subClass, superClass) {
+let StringLiteral="use strict";
+__as1(_, 'StringLiteral', StringLiteral);
+
+let Constructor="use strict";
+__as1(_, 'Constructor', Constructor);
+
+let OnlyConstructor="use strict";
+
+let AnyConstructor="use strict";
+__as1(_, 'AnyConstructor', AnyConstructor);
+
+let isSubclassOf="use strict";
+function isSubclassOf(subClass, superClass) {
     if (typeof subClass !== 'function' || typeof superClass !== 'function')
         return false;
     let proto = subClass.prototype;
@@ -188,12 +227,14 @@ let isSubclassOf=function isSubclassOf(subClass, superClass) {
 }
 __as1(_, 'isSubclassOf', isSubclassOf);
 
-let isClass=function isClass(v) {
+let isClass="use strict";
+function isClass(v) {
     return typeof v === 'function' && /^\s*class\s+/.test(v.toString());
 }
 __as1(_, 'isClass', isClass);
 
-let setValueToObject=function setValueToObject(path, obj, value) {
+let setValueToObject="use strict";
+function setValueToObject(path, obj, value) {
     path = path.replace(/\[(.*?)\]/g, '.$1');
     const val = (key) => {
         if (obj instanceof Map) {
@@ -220,7 +261,8 @@ let setValueToObject=function setValueToObject(path, obj, value) {
 }
 __as1(_, 'setValueToObject', setValueToObject);
 
-let Mutex=class Mutex {
+let Mutex="use strict";
+class Mutex {
     /**
      * Array to store functions waiting for the mutex to become available.
      * @type {((run: boolean) => void)[]}
@@ -363,7 +405,8 @@ let Mutex=class Mutex {
 Mutex.Namespace=`Aventus`;
 __as1(_, 'Mutex', Mutex);
 
-let ActionGuard=class ActionGuard {
+let ActionGuard="use strict";
+class ActionGuard {
     /**
      * Map to store actions that are currently running.
      * @type {Map<any[], ((res: any) => void)[]>}
@@ -419,6 +462,18 @@ let ActionGuard=class ActionGuard {
 ActionGuard.Namespace=`Aventus`;
 __as1(_, 'ActionGuard', ActionGuard);
 
+let RamSubscribers="use strict";
+
+let KeysObject="use strict";
+__as1(_, 'KeysObject', KeysObject);
+
+let IRam="use strict";
+__as1(_, 'IRam', IRam);
+
+let IRamData="use strict";
+__as1(_, 'IRamData', IRamData);
+
+"use strict";
 var RamErrorCode;
 (function (RamErrorCode) {
     RamErrorCode[RamErrorCode["unknow"] = 0] = "unknow";
@@ -427,7 +482,27 @@ var RamErrorCode;
 })(RamErrorCode || (RamErrorCode = {}));
 __as1(_, 'RamErrorCode', RamErrorCode);
 
-let ResourceLoader=class ResourceLoader {
+let UriParamsValue="use strict";
+__as1(_, 'UriParamsValue', UriParamsValue);
+
+let StateSlug="use strict";
+__as1(_, 'StateSlug', StateSlug);
+
+let StateAskChangeFct="use strict";
+
+let StateInactivationFct="use strict";
+
+let UriParams="use strict";
+__as1(_, 'UriParams', UriParams);
+
+let ResourceLoaderHeadOptions="use strict";
+__as1(_, 'ResourceLoaderHeadOptions', ResourceLoaderHeadOptions);
+
+let ResourceLoaderOptions="use strict";
+__as1(_, 'ResourceLoaderOptions', ResourceLoaderOptions);
+
+let ResourceLoader="use strict";
+class ResourceLoader {
     static headerLoaded = {};
     static headerWaiting = {};
     /**
@@ -597,13 +672,33 @@ let ResourceLoader=class ResourceLoader {
 ResourceLoader.Namespace=`Aventus`;
 __as1(_, 'ResourceLoader', ResourceLoader);
 
+let WindowResizeObserver="use strict";
+
+let ResizeObserverOptions="use strict";
+__as1(_, 'ResizeObserverOptions', ResizeObserverOptions);
+
+let Pointer="use strict";
+__as1(_, 'Pointer', Pointer);
+
+let InstanceCst="use strict";
+__as1(_, 'InstanceCst', InstanceCst);
+
+let InstanceCst2="use strict";
+__as1(_, 'InstanceCst2', InstanceCst2);
+
 let DragElementXYType= [SVGGElement, SVGRectElement, SVGEllipseElement, SVGTextElement];
 __as1(_, 'DragElementXYType', DragElementXYType);
 
 let DragElementLeftTopType= [HTMLElement, SVGSVGElement];
 __as1(_, 'DragElementLeftTopType', DragElementLeftTopType);
 
-let NormalizedEvent=class NormalizedEvent {
+let PressManagerState="use strict";
+__as1(_, 'PressManagerState', PressManagerState);
+
+let Coordinate="use strict";
+
+let NormalizedEvent="use strict";
+class NormalizedEvent {
     _event;
     get event() {
         return this._event;
@@ -682,7 +777,29 @@ let NormalizedEvent=class NormalizedEvent {
 NormalizedEvent.Namespace=`Aventus`;
 __as1(_, 'NormalizedEvent', NormalizedEvent);
 
-let Callback=class Callback {
+let InternalCustomFunction="use strict";
+__as1(_, 'InternalCustomFunction', InternalCustomFunction);
+
+let InternalPointerEvent="use strict";
+__as1(_, 'InternalPointerEvent', InternalPointerEvent);
+
+let PressManagerOptions="use strict";
+__as1(_, 'PressManagerOptions', PressManagerOptions);
+
+let TargetableElement="use strict";
+
+let DragElementLeftTop="use strict";
+__as1(_, 'DragElementLeftTop', DragElementLeftTop);
+
+let DragElementXY="use strict";
+__as1(_, 'DragElementXY', DragElementXY);
+
+let ContainerElement="use strict";
+
+let AnyElement="use strict";
+
+let Callback="use strict";
+class Callback {
     callbacks = new Map();
     /**
      * Clear all callbacks
@@ -719,7 +836,8 @@ let Callback=class Callback {
 Callback.Namespace=`Aventus`;
 __as1(_, 'Callback', Callback);
 
-let CallbackGroup=class CallbackGroup {
+let CallbackGroup="use strict";
+class CallbackGroup {
     callbacks = {};
     /**
      * Clear all callbacks
@@ -767,7 +885,19 @@ let CallbackGroup=class CallbackGroup {
 CallbackGroup.Namespace=`Aventus`;
 __as1(_, 'CallbackGroup', CallbackGroup);
 
-let compareObject=function compareObject(obj1, obj2) {
+let AnimationOptionsInternal="use strict";
+
+let AnimationOptions="use strict";
+__as1(_, 'AnimationOptions', AnimationOptions);
+
+let RouterOptions="use strict";
+__as1(_, 'RouterOptions', RouterOptions);
+
+let HttpRouterOptions="use strict";
+__as1(_, 'HttpRouterOptions', HttpRouterOptions);
+
+let compareObject="use strict";
+function compareObject(obj1, obj2) {
     if (Array.isArray(obj1)) {
         if (!Array.isArray(obj2)) {
             return false;
@@ -852,7 +982,10 @@ let compareObject=function compareObject(obj1, obj2) {
 }
 __as1(_, 'compareObject', compareObject);
 
-let getValueFromObject=function getValueFromObject(path, obj) {
+let IsNotVoid="use strict";
+
+let getValueFromObject="use strict";
+function getValueFromObject(path, obj) {
     if (path === undefined) {
         path = '';
     }
@@ -882,6 +1015,7 @@ let getValueFromObject=function getValueFromObject(path, obj) {
 }
 __as1(_, 'getValueFromObject', getValueFromObject);
 
+"use strict";
 var WatchAction;
 (function (WatchAction) {
     WatchAction[WatchAction["CREATED"] = 0] = "CREATED";
@@ -890,7 +1024,18 @@ var WatchAction;
 })(WatchAction || (WatchAction = {}));
 __as1(_, 'WatchAction', WatchAction);
 
-let Async=function Async(el) {
+let WatcherFunctionInternal="use strict";
+
+let WatcherFunction="use strict";
+__as1(_, 'WatcherFunction', WatcherFunction);
+
+let WatcherAllowed="use strict";
+
+let Asyncable="use strict";
+__as1(_, 'Asyncable', Asyncable);
+
+let Async="use strict";
+function Async(el) {
     return new Promise((resolve) => {
         if (el instanceof Promise) {
             el.then(resolve);
@@ -902,6 +1047,7 @@ let Async=function Async(el) {
 }
 __as1(_, 'Async', Async);
 
+"use strict";
 var HttpMethod;
 (function (HttpMethod) {
     HttpMethod["GET"] = "GET";
@@ -912,13 +1058,21 @@ var HttpMethod;
 })(HttpMethod || (HttpMethod = {}));
 __as1(_, 'HttpMethod', HttpMethod);
 
+"use strict";
 var HttpErrorCode;
 (function (HttpErrorCode) {
     HttpErrorCode[HttpErrorCode["unknow"] = 0] = "unknow";
 })(HttpErrorCode || (HttpErrorCode = {}));
 __as1(_, 'HttpErrorCode', HttpErrorCode);
 
-let DateConverter=class DateConverter {
+let Enum="use strict";
+__as1(_, 'Enum', Enum);
+
+let EnumValue="use strict";
+__as1(_, 'EnumValue', EnumValue);
+
+let DateConverter="use strict";
+class DateConverter {
     static __converter = new DateConverter();
     static get converter() {
         return this.__converter;
@@ -942,7 +1096,28 @@ let DateConverter=class DateConverter {
 DateConverter.Namespace=`Aventus`;
 __as1(_, 'DateConverter', DateConverter);
 
-let Json=class Json {
+let JsonFromOptions="use strict";
+__as1(_, 'JsonFromOptions', JsonFromOptions);
+
+let JsonToOptions="use strict";
+__as1(_, 'JsonToOptions', JsonToOptions);
+
+let ClassCopyOptions="use strict";
+__as1(_, 'ClassCopyOptions', ClassCopyOptions);
+
+let SchemaType="use strict";
+
+let IData="use strict";
+__as1(_, 'IData', IData);
+
+let Schema="use strict";
+__as1(_, 'Schema', Schema);
+
+let IConverterTransform="use strict";
+__as1(_, 'IConverterTransform', IConverterTransform);
+
+let Json="use strict";
+class Json {
     /**
      * Converts a JavaScript class instance to a JSON object.
      * @template T - The type of the object to convert.
@@ -1031,7 +1206,8 @@ let Json=class Json {
 Json.Namespace=`Aventus`;
 __as1(_, 'Json', Json);
 
-let ConverterTransform=class ConverterTransform {
+let ConverterTransform="use strict";
+class ConverterTransform {
     transform(data) {
         return this.transformLoop(data);
     }
@@ -1164,7 +1340,8 @@ let ConverterTransform=class ConverterTransform {
 ConverterTransform.Namespace=`Aventus`;
 __as1(_, 'ConverterTransform', ConverterTransform);
 
-let Converter=class Converter {
+let Converter="use strict";
+class Converter {
     /**
     * Map storing information about registered types.
     */
@@ -1234,12 +1411,14 @@ let Converter=class Converter {
 Converter.Namespace=`Aventus`;
 __as1(_, 'Converter', Converter);
 
-let clone=function clone(item) {
+let clone="use strict";
+function clone(item) {
     return Converter.transform(JSON.parse(JSON.stringify(item)));
 }
 __as1(_, 'clone', clone);
 
-let Data=// @Dependances([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
+let Data="use strict";
+// @Dependances([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
 class Data {
     static converter = new Converter();
     /**
@@ -1293,7 +1472,8 @@ Data.$schema={"namespace":"string","$type":"string","className":"string"};
 Converter.register(Data.Fullname, Data);
 __as1(_, 'Data', Data);
 
-let GenericError=// @Dependances([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
+let GenericError="use strict";
+// @Dependances([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
 class GenericError {
     static converter = new Converter();
     static get Fullname() { return "Aventus.GenericError"; }
@@ -1324,7 +1504,8 @@ GenericError.$schema={"code":"Aventus.EnumValue","message":"string"};
 Converter.register(GenericError.Fullname, GenericError);
 __as1(_, 'GenericError', GenericError);
 
-let VoidWithError=class VoidWithError {
+let VoidWithError="use strict";
+class VoidWithError {
     static get Fullname() { return "Aventus.VoidWithError"; }
     /**
      * Determine if the action is a success
@@ -1422,7 +1603,8 @@ VoidWithError.$schema={"success":"boolean","errors":"T[]"};
 Converter.register(VoidWithError.Fullname, VoidWithError);
 __as1(_, 'VoidWithError', VoidWithError);
 
-let ResultWithError=class ResultWithError extends VoidWithError {
+let ResultWithError="use strict";
+class ResultWithError extends VoidWithError {
     static get Fullname() { return "Aventus.ResultWithError"; }
     /**
       * The result value of the action.
@@ -1475,14 +1657,28 @@ ResultWithError.$schema={...(VoidWithError?.$schema ?? {}), };
 Converter.register(ResultWithError.Fullname, ResultWithError);
 __as1(_, 'ResultWithError', ResultWithError);
 
-let HttpError=class HttpError extends GenericError {
+let ExtractFromError="use strict";
+__as1(_, 'ExtractFromError', ExtractFromError);
+
+let HttpError="use strict";
+class HttpError extends GenericError {
 }
 HttpError.Namespace=`Aventus`;
 HttpError.$schema={...(GenericError?.$schema ?? {}), };
 Converter.register(HttpError.Fullname, HttpError);
 __as1(_, 'HttpError', HttpError);
 
-let Signal=class Signal {
+let HttpRequestOptions="use strict";
+__as1(_, 'HttpRequestOptions', HttpRequestOptions);
+
+let WatcherChange="use strict";
+__as1(_, 'WatcherChange', WatcherChange);
+
+let EffectReceiver="use strict";
+__as1(_, 'EffectReceiver', EffectReceiver);
+
+let Signal="use strict";
+class Signal {
     __subscribes = [];
     _value;
     _onChange;
@@ -1525,7 +1721,8 @@ let Signal=class Signal {
 Signal.Namespace=`Aventus`;
 __as1(_, 'Signal', Signal);
 
-let Effect=class Effect {
+let Effect="use strict";
+class Effect {
     callbacks = [];
     isInit = false;
     isDestroy = false;
@@ -1640,7 +1837,8 @@ let Effect=class Effect {
 Effect.Namespace=`Aventus`;
 __as1(_, 'Effect', Effect);
 
-let Computed=class Computed extends Effect {
+let Computed="use strict";
+class Computed extends Effect {
     _value;
     __path = "*";
     get value() {
@@ -1680,7 +1878,8 @@ let Computed=class Computed extends Effect {
 Computed.Namespace=`Aventus`;
 __as1(_, 'Computed', Computed);
 
-let Watcher=class Watcher {
+let Watcher="use strict";
+class Watcher {
     constructor() { }
     ;
     static __reservedName = {
@@ -2527,7 +2726,8 @@ let Watcher=class Watcher {
 Watcher.Namespace=`Aventus`;
 __as1(_, 'Watcher', Watcher);
 
-let ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
+let ComputedNoRecomputed="use strict";
+class ComputedNoRecomputed extends Computed {
     init() {
         this.isInit = true;
         Watcher._registering.push(this);
@@ -2545,7 +2745,8 @@ let ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
 ComputedNoRecomputed.Namespace=`Aventus`;
 __as1(_, 'ComputedNoRecomputed', ComputedNoRecomputed);
 
-let EffectNoRecomputed=class EffectNoRecomputed extends Effect {
+let EffectNoRecomputed="use strict";
+class EffectNoRecomputed extends Effect {
     init() {
         this.isInit = true;
         Watcher._registering.push(this);
@@ -2561,7 +2762,8 @@ let EffectNoRecomputed=class EffectNoRecomputed extends Effect {
 EffectNoRecomputed.Namespace=`Aventus`;
 __as1(_, 'EffectNoRecomputed', EffectNoRecomputed);
 
-let HttpRouter=class HttpRouter {
+let HttpRouter="use strict";
+class HttpRouter {
     static options;
     static configure(options) {
         this.options = options;
@@ -2597,7 +2799,11 @@ let HttpRouter=class HttpRouter {
 HttpRouter.Namespace=`Aventus`;
 __as1(_, 'HttpRouter', HttpRouter);
 
-let HttpRoute=class HttpRoute {
+let RouterType="use strict";
+__as1(_, 'RouterType', RouterType);
+
+let HttpRoute="use strict";
+class HttpRoute {
     router;
     constructor(router) {
         this.router = router ?? new HttpRouter();
@@ -2609,7 +2815,11 @@ let HttpRoute=class HttpRoute {
 HttpRoute.Namespace=`Aventus`;
 __as1(_, 'HttpRoute', HttpRoute);
 
-let HttpRequest=class HttpRequest {
+let RouteType="use strict";
+__as1(_, 'RouteType', RouteType);
+
+let HttpRequest="use strict";
+class HttpRequest {
     static options;
     static configure(options) {
         this.options = options;
@@ -2682,8 +2892,9 @@ let HttpRequest=class HttpRequest {
         return formData;
     }
     jsonReplacer(key, value) {
-        if (this[key] instanceof Date) {
-            return DateConverter.converter.toString(this[key]);
+        const t = this;
+        if (t[key] instanceof Date) {
+            return DateConverter.converter.toString(t[key]);
         }
         return value;
     }
@@ -2866,7 +3077,8 @@ let HttpRequest=class HttpRequest {
 HttpRequest.Namespace=`Aventus`;
 __as1(_, 'HttpRequest', HttpRequest);
 
-let StorableRoute=class StorableRoute extends HttpRoute {
+let StorableRoute="use strict";
+class StorableRoute extends HttpRoute {
     async GetAll() {
         const request = new HttpRequest(`/${this.StorableName()}`, HttpMethod.GET);
         return await request.queryJSON(this.router);
@@ -2893,7 +3105,8 @@ let StorableRoute=class StorableRoute extends HttpRoute {
 StorableRoute.Namespace=`Aventus`;
 __as1(_, 'StorableRoute', StorableRoute);
 
-let Animation=class Animation {
+let Animation="use strict";
+class Animation {
     /**
      * Default FPS for all Animation if not set inside options
      */
@@ -2981,7 +3194,19 @@ let Animation=class Animation {
 Animation.Namespace=`Aventus`;
 __as1(_, 'Animation', Animation);
 
-let PressManager=class PressManager {
+let DragElement="use strict";
+__as1(_, 'DragElement', DragElement);
+
+let DragAndDropOptionsShadow="use strict";
+__as1(_, 'DragAndDropOptionsShadow', DragAndDropOptionsShadow);
+
+let DragAndDropOptions="use strict";
+__as1(_, 'DragAndDropOptions', DragAndDropOptions);
+
+let DragAndDropOptionsInternal="use strict";
+
+let PressManager="use strict";
+class PressManager {
     static globalConfig = {
         delayDblPress: 250,
         delayLongPress: 700,
@@ -3454,7 +3679,8 @@ let PressManager=class PressManager {
 PressManager.Namespace=`Aventus`;
 __as1(_, 'PressManager', PressManager);
 
-let DragAndDrop=class DragAndDrop {
+let DragAndDrop="use strict";
+class DragAndDrop {
     /**
      * Default offset before drag element
      */
@@ -4025,7 +4251,8 @@ let DragAndDrop=class DragAndDrop {
 DragAndDrop.Namespace=`Aventus`;
 __as1(_, 'DragAndDrop', DragAndDrop);
 
-let Instance=class Instance {
+let Instance="use strict";
+class Instance {
     static elements = new Map();
     static get(type) {
         let result = this.elements.get(type);
@@ -4052,7 +4279,8 @@ let Instance=class Instance {
 Instance.Namespace=`Aventus`;
 __as1(_, 'Instance', Instance);
 
-let ResizeObserver=class ResizeObserver {
+let ResizeObserver="use strict";
+class ResizeObserver {
     callback;
     targets;
     fpsInterval = -1;
@@ -4182,7 +4410,11 @@ let ResizeObserver=class ResizeObserver {
 ResizeObserver.Namespace=`Aventus`;
 __as1(_, 'ResizeObserver', ResizeObserver);
 
-let Uri=class Uri {
+let PreparedUri="use strict";
+__as1(_, 'PreparedUri', PreparedUri);
+
+let Uri="use strict";
+class Uri {
     static prepare(uri) {
         let params = [];
         let i = 0;
@@ -4260,28 +4492,38 @@ let Uri=class Uri {
 Uri.Namespace=`Aventus`;
 __as1(_, 'Uri', Uri);
 
-let RamError=class RamError extends GenericError {
+let RamError="use strict";
+class RamError extends GenericError {
 }
 RamError.Namespace=`Aventus`;
 RamError.$schema={...(GenericError?.$schema ?? {}), };
 Converter.register(RamError.Fullname, RamError);
 __as1(_, 'RamError', RamError);
 
-let VoidRamWithError=class VoidRamWithError extends VoidWithError {
+let VoidRamWithError="use strict";
+class VoidRamWithError extends VoidWithError {
 }
 VoidRamWithError.Namespace=`Aventus`;
 VoidRamWithError.$schema={...(VoidWithError?.$schema ?? {}), };
 Converter.register(VoidRamWithError.Fullname, VoidRamWithError);
 __as1(_, 'VoidRamWithError', VoidRamWithError);
 
-let ResultRamWithError=class ResultRamWithError extends ResultWithError {
+let ResultRamWithError="use strict";
+class ResultRamWithError extends ResultWithError {
 }
 ResultRamWithError.Namespace=`Aventus`;
 ResultRamWithError.$schema={...(ResultWithError?.$schema ?? {}), };
 Converter.register(ResultRamWithError.Fullname, ResultRamWithError);
 __as1(_, 'ResultRamWithError', ResultRamWithError);
 
-let GenericRam=class GenericRam {
+let IRamAction="use strict";
+__as1(_, 'IRamAction', IRamAction);
+
+let RamItem="use strict";
+__as1(_, 'RamItem', RamItem);
+
+let GenericRam="use strict";
+class GenericRam {
     static info = new Map([]);
     /**
      * The current namespace
@@ -5190,12 +5432,24 @@ let GenericRam=class GenericRam {
 GenericRam.Namespace=`Aventus`;
 __as1(_, 'GenericRam', GenericRam);
 
-let Ram=class Ram extends GenericRam {
+let Ram="use strict";
+class Ram extends GenericRam {
 }
 Ram.Namespace=`Aventus`;
 __as1(_, 'Ram', Ram);
 
-let StateManager=class StateManager {
+let StateActivationFct="use strict";
+
+let Subscriber="use strict";
+
+let StateAction="use strict";
+__as1(_, 'StateAction', StateAction);
+
+let IStateManager="use strict";
+__as1(_, 'IStateManager', IStateManager);
+
+let StateManager="use strict";
+class StateManager {
     subscribers = {};
     static canBeActivate(statePattern, stateName) {
         let stateInfo = Uri.prepare(statePattern);
@@ -5505,7 +5759,11 @@ let StateManager=class StateManager {
 StateManager.Namespace=`Aventus`;
 __as1(_, 'StateManager', StateManager);
 
-let State=class State {
+let IState="use strict";
+__as1(_, 'IState', IState);
+
+let State="use strict";
+class State {
     /**
      * Activate a custom state inside a specific manager
      * It ll be a generic state with no information inside exept name
@@ -5530,7 +5788,8 @@ let State=class State {
 State.Namespace=`Aventus`;
 __as1(_, 'State', State);
 
-let EmptyState=class EmptyState extends State {
+let EmptyState="use strict";
+class EmptyState extends State {
     localName;
     constructor(stateName) {
         super();
@@ -5546,7 +5805,12 @@ let EmptyState=class EmptyState extends State {
 EmptyState.Namespace=`Aventus`;
 __as1(_, 'EmptyState', EmptyState);
 
-let TemplateInstance=class TemplateInstance {
+let Loop="use strict";
+
+let ActionEvent="use strict";
+
+let TemplateInstance="use strict";
+class TemplateInstance {
     context;
     content;
     actions;
@@ -6254,7 +6518,10 @@ let TemplateInstance=class TemplateInstance {
 TemplateInstance.Namespace=`Aventus`;
 __as1(_, 'TemplateInstance', TemplateInstance);
 
-let TemplateContext=class TemplateContext {
+let LoopRegistery="use strict";
+
+let TemplateContext="use strict";
+class TemplateContext {
     data = {};
     comp;
     computeds = [];
@@ -6460,7 +6727,12 @@ let TemplateContext=class TemplateContext {
 TemplateContext.Namespace=`Aventus`;
 __as1(_, 'TemplateContext', TemplateContext);
 
-let Template=class Template {
+let ActionChange="use strict";
+
+let Actions="use strict";
+
+let Template="use strict";
+class Template {
     static validatePath(path, pathToCheck) {
         if (pathToCheck.startsWith(path)) {
             return true;
@@ -6598,7 +6870,8 @@ let Template=class Template {
 Template.Namespace=`Aventus`;
 __as1(_, 'Template', Template);
 
-let WebComponent=class WebComponent extends HTMLElement {
+let WebComponent="use strict";
+class WebComponent extends HTMLElement {
     /**
      * Add attributes informations
      */
@@ -7231,7 +7504,7 @@ let WebComponent=class WebComponent extends HTMLElement {
                 },
                 onChange() {
                     for (let fct of this.__subscribes) {
-                        fct(WatchAction.UPDATED, name, that[name]);
+                        fct(WatchAction.UPDATED, name, that[name], []);
                     }
                 },
                 __path: name
@@ -7342,7 +7615,8 @@ let WebComponent=class WebComponent extends HTMLElement {
 WebComponent.Namespace=`Aventus`;
 __as1(_, 'WebComponent', WebComponent);
 
-let WebComponentInstance=class WebComponentInstance {
+let WebComponentInstance="use strict";
+class WebComponentInstance {
     static __allDefinitions = [];
     static __allInstances = [];
     /**
@@ -7415,7 +7689,8 @@ let WebComponentInstance=class WebComponentInstance {
 WebComponentInstance.Namespace=`Aventus`;
 __as1(_, 'WebComponentInstance', WebComponentInstance);
 
-let ElementExtension=class ElementExtension {
+let ElementExtension="use strict";
+class ElementExtension {
     /**
      * Find a parent by custom check
      */

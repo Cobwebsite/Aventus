@@ -37,18 +37,50 @@ const _ = {};
 
 
 let _n;
+let AnimationOptionsInternal="use strict";
+
+let AnimationOptions="use strict";
+__as1(_, 'AnimationOptions', AnimationOptions);
+
 let DragElementXYType= [SVGGElement, SVGRectElement, SVGEllipseElement, SVGTextElement];
 __as1(_, 'DragElementXYType', DragElementXYType);
 
 let DragElementLeftTopType= [HTMLElement, SVGSVGElement];
 __as1(_, 'DragElementLeftTopType', DragElementLeftTopType);
 
+let Coordinate="use strict";
+
+let TargetableElement="use strict";
+
+let ContainerElement="use strict";
+
+let AnyElement="use strict";
+
+let DragElementLeftTop="use strict";
+__as1(_, 'DragElementLeftTop', DragElementLeftTop);
+
+let DragElementXY="use strict";
+__as1(_, 'DragElementXY', DragElementXY);
+
+let ResourceLoaderOptions="use strict";
+__as1(_, 'ResourceLoaderOptions', ResourceLoaderOptions);
+
+let ResourceLoaderHeadOptions="use strict";
+__as1(_, 'ResourceLoaderHeadOptions', ResourceLoaderHeadOptions);
+
+let ResizeObserverOptions="use strict";
+__as1(_, 'ResizeObserverOptions', ResizeObserverOptions);
+
+let WindowResizeObserver="use strict";
+
+"use strict";
 var HttpErrorCode;
 (function (HttpErrorCode) {
     HttpErrorCode[HttpErrorCode["unknow"] = 0] = "unknow";
 })(HttpErrorCode || (HttpErrorCode = {}));
 __as1(_, 'HttpErrorCode', HttpErrorCode);
 
+"use strict";
 var HttpMethod;
 (function (HttpMethod) {
     HttpMethod["GET"] = "GET";
@@ -59,12 +91,20 @@ var HttpMethod;
 })(HttpMethod || (HttpMethod = {}));
 __as1(_, 'HttpMethod', HttpMethod);
 
-let isClass=function isClass(v) {
+let HttpRouterOptions="use strict";
+__as1(_, 'HttpRouterOptions', HttpRouterOptions);
+
+let isClass="use strict";
+function isClass(v) {
     return typeof v === 'function' && /^\s*class\s+/.test(v.toString());
 }
 __as1(_, 'isClass', isClass);
 
-let DateConverter=class DateConverter {
+let IData="use strict";
+__as1(_, 'IData', IData);
+
+let DateConverter="use strict";
+class DateConverter {
     static __converter = new DateConverter();
     static get converter() {
         return this.__converter;
@@ -88,7 +128,28 @@ let DateConverter=class DateConverter {
 DateConverter.Namespace=`Aventus`;
 __as1(_, 'DateConverter', DateConverter);
 
-let ElementExtension=class ElementExtension {
+let JsonFromOptions="use strict";
+__as1(_, 'JsonFromOptions', JsonFromOptions);
+
+let JsonToOptions="use strict";
+__as1(_, 'JsonToOptions', JsonToOptions);
+
+let ClassCopyOptions="use strict";
+__as1(_, 'ClassCopyOptions', ClassCopyOptions);
+
+let SchemaType="use strict";
+
+let Enum="use strict";
+__as1(_, 'Enum', Enum);
+
+let EnumValue="use strict";
+__as1(_, 'EnumValue', EnumValue);
+
+let Asyncable="use strict";
+__as1(_, 'Asyncable', Asyncable);
+
+let ElementExtension="use strict";
+class ElementExtension {
     /**
      * Find a parent by custom check
      */
@@ -365,7 +426,14 @@ let ElementExtension=class ElementExtension {
 ElementExtension.Namespace=`Aventus`;
 __as1(_, 'ElementExtension', ElementExtension);
 
-let Style=class Style {
+let InstanceCst="use strict";
+__as1(_, 'InstanceCst', InstanceCst);
+
+let InstanceCst2="use strict";
+__as1(_, 'InstanceCst2', InstanceCst2);
+
+let Style="use strict";
+class Style {
     static instance;
     static noAnimation;
     static defaultStyleSheets = {
@@ -460,7 +528,18 @@ let Style=class Style {
 Style.Namespace=`Aventus`;
 __as1(_, 'Style', Style);
 
-let setValueToObject=function setValueToObject(path, obj, value) {
+let ActionBindings="use strict";
+
+let ActionInjection="use strict";
+
+let ActionEventCallback="use strict";
+
+let ActionEventListener="use strict";
+
+let ContextEdit="use strict";
+
+let setValueToObject="use strict";
+function setValueToObject(path, obj, value) {
     path = path.replace(/\[(.*?)\]/g, '.$1');
     const val = (key) => {
         if (obj instanceof Map) {
@@ -487,7 +566,16 @@ let setValueToObject=function setValueToObject(path, obj, value) {
 }
 __as1(_, 'setValueToObject', setValueToObject);
 
-let Mutex=class Mutex {
+let If="use strict";
+
+let LoopSimple="use strict";
+
+let LoopFct="use strict";
+
+let TemplateHTML="use strict";
+
+let Mutex="use strict";
+class Mutex {
     /**
      * Array to store functions waiting for the mutex to become available.
      * @type {((run: boolean) => void)[]}
@@ -630,7 +718,58 @@ let Mutex=class Mutex {
 Mutex.Namespace=`Aventus`;
 __as1(_, 'Mutex', Mutex);
 
-let NormalizedEvent=class NormalizedEvent {
+let UriParams="use strict";
+__as1(_, 'UriParams', UriParams);
+
+let IState="use strict";
+__as1(_, 'IState', IState);
+
+let UriParamsValue="use strict";
+__as1(_, 'UriParamsValue', UriParamsValue);
+
+let PressManagerState="use strict";
+__as1(_, 'PressManagerState', PressManagerState);
+
+let Callback="use strict";
+class Callback {
+    callbacks = new Map();
+    /**
+     * Clear all callbacks
+     */
+    clear() {
+        this.callbacks.clear();
+    }
+    /**
+     * Add a callback
+     */
+    add(cb, scope = null) {
+        if (!this.callbacks.has(cb)) {
+            this.callbacks.set(cb, scope);
+        }
+    }
+    /**
+     * Remove a callback
+     */
+    remove(cb) {
+        this.callbacks.delete(cb);
+    }
+    /**
+     * Trigger all callbacks
+     */
+    trigger(...args) {
+        let result = [];
+        let cbs = [...this.callbacks];
+        for (let [cb, scope] of cbs) {
+            result.push(cb.apply(scope, args));
+        }
+        return result;
+    }
+}
+Callback.Namespace=`Aventus`;
+__as1(_, 'Callback', Callback);
+
+let NormalizedEvent="use strict";
+class NormalizedEvent {
     _event;
     get event() {
         return this._event;
@@ -709,44 +848,16 @@ let NormalizedEvent=class NormalizedEvent {
 NormalizedEvent.Namespace=`Aventus`;
 __as1(_, 'NormalizedEvent', NormalizedEvent);
 
-let Callback=class Callback {
-    callbacks = new Map();
-    /**
-     * Clear all callbacks
-     */
-    clear() {
-        this.callbacks.clear();
-    }
-    /**
-     * Add a callback
-     */
-    add(cb, scope = null) {
-        if (!this.callbacks.has(cb)) {
-            this.callbacks.set(cb, scope);
-        }
-    }
-    /**
-     * Remove a callback
-     */
-    remove(cb) {
-        this.callbacks.delete(cb);
-    }
-    /**
-     * Trigger all callbacks
-     */
-    trigger(...args) {
-        let result = [];
-        let cbs = [...this.callbacks];
-        for (let [cb, scope] of cbs) {
-            result.push(cb.apply(scope, args));
-        }
-        return result;
-    }
-}
-Callback.Namespace=`Aventus`;
-__as1(_, 'Callback', Callback);
+let InternalCustomFunction="use strict";
+__as1(_, 'InternalCustomFunction', InternalCustomFunction);
 
-let compareObject=function compareObject(obj1, obj2) {
+let InternalPointerEvent="use strict";
+__as1(_, 'InternalPointerEvent', InternalPointerEvent);
+
+let IsNotVoid="use strict";
+
+let compareObject="use strict";
+function compareObject(obj1, obj2) {
     if (Array.isArray(obj1)) {
         if (!Array.isArray(obj2)) {
             return false;
@@ -831,7 +942,8 @@ let compareObject=function compareObject(obj1, obj2) {
 }
 __as1(_, 'compareObject', compareObject);
 
-let getValueFromObject=function getValueFromObject(path, obj) {
+let getValueFromObject="use strict";
+function getValueFromObject(path, obj) {
     if (path === undefined) {
         path = '';
     }
@@ -861,6 +973,7 @@ let getValueFromObject=function getValueFromObject(path, obj) {
 }
 __as1(_, 'getValueFromObject', getValueFromObject);
 
+"use strict";
 var WatchAction;
 (function (WatchAction) {
     WatchAction[WatchAction["CREATED"] = 0] = "CREATED";
@@ -869,7 +982,10 @@ var WatchAction;
 })(WatchAction || (WatchAction = {}));
 __as1(_, 'WatchAction', WatchAction);
 
-let Effect=class Effect {
+let WatcherFunctionInternal="use strict";
+
+let Effect="use strict";
+class Effect {
     callbacks = [];
     isInit = false;
     isDestroy = false;
@@ -984,7 +1100,22 @@ let Effect=class Effect {
 Effect.Namespace=`Aventus`;
 __as1(_, 'Effect', Effect);
 
-let Signal=class Signal {
+let WatcherFunction="use strict";
+__as1(_, 'WatcherFunction', WatcherFunction);
+
+let WatcherAllowed="use strict";
+
+let WatcherChange="use strict";
+__as1(_, 'WatcherChange', WatcherChange);
+
+let DefaultComponent="use strict";
+__as1(_, 'DefaultComponent', DefaultComponent);
+
+let EffectReceiver="use strict";
+__as1(_, 'EffectReceiver', EffectReceiver);
+
+let Signal="use strict";
+class Signal {
     __subscribes = [];
     _value;
     _onChange;
@@ -1027,7 +1158,8 @@ let Signal=class Signal {
 Signal.Namespace=`Aventus`;
 __as1(_, 'Signal', Signal);
 
-let Computed=class Computed extends Effect {
+let Computed="use strict";
+class Computed extends Effect {
     _value;
     __path = "*";
     get value() {
@@ -1067,7 +1199,8 @@ let Computed=class Computed extends Effect {
 Computed.Namespace=`Aventus`;
 __as1(_, 'Computed', Computed);
 
-let Watcher=class Watcher {
+let Watcher="use strict";
+class Watcher {
     constructor() { }
     ;
     static __reservedName = {
@@ -1914,7 +2047,8 @@ let Watcher=class Watcher {
 Watcher.Namespace=`Aventus`;
 __as1(_, 'Watcher', Watcher);
 
-let ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
+let ComputedNoRecomputed="use strict";
+class ComputedNoRecomputed extends Computed {
     init() {
         this.isInit = true;
         Watcher._registering.push(this);
@@ -1932,7 +2066,11 @@ let ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
 ComputedNoRecomputed.Namespace=`Aventus`;
 __as1(_, 'ComputedNoRecomputed', ComputedNoRecomputed);
 
-let PressManager=class PressManager {
+let PressManagerOptions="use strict";
+__as1(_, 'PressManagerOptions', PressManagerOptions);
+
+let PressManager="use strict";
+class PressManager {
     static globalConfig = {
         delayDblPress: 250,
         delayLongPress: 700,
@@ -2405,7 +2543,71 @@ let PressManager=class PressManager {
 PressManager.Namespace=`Aventus`;
 __as1(_, 'PressManager', PressManager);
 
-let Uri=class Uri {
+let StateSlug="use strict";
+__as1(_, 'StateSlug', StateSlug);
+
+let State="use strict";
+class State {
+    /**
+     * Activate a custom state inside a specific manager
+     * It ll be a generic state with no information inside exept name
+     */
+    static async activate(stateName, manager) {
+        return await manager.setState(stateName);
+    }
+    /**
+     * Activate this state inside a specific manager
+     */
+    async activate(manager) {
+        return await manager.setState(this);
+    }
+    onActivate() {
+    }
+    onInactivate(nextState) {
+    }
+    async askChange(state, nextState) {
+        return true;
+    }
+}
+State.Namespace=`Aventus`;
+__as1(_, 'State', State);
+
+let EmptyState="use strict";
+class EmptyState extends State {
+    localName;
+    constructor(stateName) {
+        super();
+        this.localName = stateName;
+    }
+    /**
+     * @inheritdoc
+     */
+    get name() {
+        return this.localName;
+    }
+}
+EmptyState.Namespace=`Aventus`;
+__as1(_, 'EmptyState', EmptyState);
+
+let StateAskChangeFct="use strict";
+
+let StateInactivationFct="use strict";
+
+let StateActivationFct="use strict";
+
+let Subscriber="use strict";
+
+let StateAction="use strict";
+__as1(_, 'StateAction', StateAction);
+
+let IStateManager="use strict";
+__as1(_, 'IStateManager', IStateManager);
+
+let PreparedUri="use strict";
+__as1(_, 'PreparedUri', PreparedUri);
+
+let Uri="use strict";
+class Uri {
     static prepare(uri) {
         let params = [];
         let i = 0;
@@ -2483,48 +2685,8 @@ let Uri=class Uri {
 Uri.Namespace=`Aventus`;
 __as1(_, 'Uri', Uri);
 
-let State=class State {
-    /**
-     * Activate a custom state inside a specific manager
-     * It ll be a generic state with no information inside exept name
-     */
-    static async activate(stateName, manager) {
-        return await manager.setState(stateName);
-    }
-    /**
-     * Activate this state inside a specific manager
-     */
-    async activate(manager) {
-        return await manager.setState(this);
-    }
-    onActivate() {
-    }
-    onInactivate(nextState) {
-    }
-    async askChange(state, nextState) {
-        return true;
-    }
-}
-State.Namespace=`Aventus`;
-__as1(_, 'State', State);
-
-let EmptyState=class EmptyState extends State {
-    localName;
-    constructor(stateName) {
-        super();
-        this.localName = stateName;
-    }
-    /**
-     * @inheritdoc
-     */
-    get name() {
-        return this.localName;
-    }
-}
-EmptyState.Namespace=`Aventus`;
-__as1(_, 'EmptyState', EmptyState);
-
-let StateManager=class StateManager {
+let StateManager="use strict";
+class StateManager {
     subscribers = {};
     static canBeActivate(statePattern, stateName) {
         let stateInfo = Uri.prepare(statePattern);
@@ -2834,213 +2996,12 @@ let StateManager=class StateManager {
 StateManager.Namespace=`Aventus`;
 __as1(_, 'StateManager', StateManager);
 
-let TemplateContext=class TemplateContext {
-    data = {};
-    comp;
-    computeds = [];
-    watch;
-    registry;
-    isDestroyed = false;
-    constructor(component, data = {}, parentContext, registry) {
-        this.comp = component;
-        this.registry = registry;
-        this.watch = Watcher.get({});
-        let that = this;
-        for (let key in data) {
-            if (data[key].__isProxy) {
-                Object.defineProperty(this.data, key, {
-                    get() {
-                        return data[key];
-                    }
-                });
-            }
-            else {
-                this.watch[key] = data[key];
-                Object.defineProperty(this.data, key, {
-                    get() {
-                        return that.watch[key];
-                    }
-                });
-            }
-        }
-        if (parentContext) {
-            const descriptors = Object.getOwnPropertyDescriptors(parentContext.data);
-            for (let name in descriptors) {
-                Object.defineProperty(this.data, name, {
-                    get() {
-                        return parentContext.data[name];
-                    }
-                });
-            }
-        }
-    }
-    print(value) {
-        return value == null ? "" : value + "";
-    }
-    registerIndex() {
-        let name = "index";
-        let i = 0;
-        let fullName = name + i;
-        while (this.watch[fullName] !== undefined) {
-            i++;
-            fullName = name + i;
-        }
-        return fullName;
-    }
-    registerLoop(dataName, _indexValue, _indexName, indexName, itemName, onThis) {
-        this.watch[_indexName] = _indexValue;
-        let getItems;
-        let mustBeRecomputed = /if|switch|\?|\[.+?\]/g.test(dataName);
-        let _class = mustBeRecomputed ? Computed : ComputedNoRecomputed;
-        if (!onThis) {
-            getItems = new _class(() => {
-                return getValueFromObject(dataName, this.data);
-            });
-        }
-        else {
-            dataName = dataName.replace(/^this\./, '');
-            getItems = new _class(() => {
-                return getValueFromObject(dataName, this.comp);
-            });
-        }
-        let getIndex = new ComputedNoRecomputed(() => {
-            let items = getItems.value;
-            if (!items)
-                throw 'impossible';
-            let keys = Object.keys(items);
-            let index = keys[_getIndex.value];
-            if (/^[0-9]+$/g.test(index))
-                return Number(index);
-            return index;
-        });
-        let getItem = new ComputedNoRecomputed(() => {
-            let items = getItems.value;
-            if (!items)
-                throw 'impossible';
-            let keys = Object.keys(items);
-            let index = keys[_getIndex.value];
-            let element = items[index];
-            if (element === undefined && (Array.isArray(items) || !items)) {
-                if (this.registry) {
-                    let indexNb = Number(_getIndex.value);
-                    if (!isNaN(indexNb)) {
-                        this.registry.templates[indexNb].destructor();
-                        this.registry.templates.splice(indexNb, 1);
-                        for (let i = indexNb; i < this.registry.templates.length; i++) {
-                            this.registry.templates[i].context.decreaseIndex(_indexName);
-                        }
-                    }
-                }
-            }
-            return element;
-        });
-        let _getIndex = new ComputedNoRecomputed(() => {
-            return this.watch[_indexName];
-        });
-        this.computeds.push(getIndex);
-        this.computeds.push(getItem);
-        this.computeds.push(_getIndex);
-        if (itemName) {
-            Object.defineProperty(this.data, itemName, {
-                get() {
-                    return getItem.value;
-                }
-            });
-        }
-        if (indexName) {
-            Object.defineProperty(this.data, indexName, {
-                get() {
-                    return getIndex.value;
-                }
-            });
-        }
-    }
-    updateIndex(newIndex, _indexName) {
-        // let items: any[] | {};
-        // if(!dataName.startsWith("this.")) {
-        //     let comp = new Computed(() => {
-        //         return getValueFromObject(dataName, this.data);
-        //     });
-        //     fullName = dataName.replace(/^this\./, '');
-        //     items = getValueFromObject(fullName, this.comp);
-        // if(Array.isArray(items)) {
-        //     let regex = new RegExp("^(" + fullName.replace(/\./g, "\\.") + ")\\[(\\d+?)\\]");
-        //     for(let computed of computeds) {
-        //         for(let cb of computed.callbacks) {
-        //             cb.path = cb.path.replace(regex, "$1[" + newIndex + "]");
-        //     let oldKey = Object.keys(items)[this.watch[_indexName]]
-        //     let newKey = Object.keys(items)[newIndex]
-        //     let regex = new RegExp("^(" + fullName.replace(/\./g, "\\.") + "\\.)(" + oldKey + ")($|\\.)");
-        //     for (let computed of computeds) {
-        //         for (let cb of computed.callbacks) {
-        //             cb.path = cb.path.replace(regex, "$1" + newKey + "$3")
-        this.watch[_indexName] = newIndex;
-    }
-    increaseIndex(_indexName) {
-        this.updateIndex(this.watch[_indexName] + 1, _indexName);
-    }
-    decreaseIndex(_indexName) {
-        this.updateIndex(this.watch[_indexName] - 1, _indexName);
-    }
-    destructor() {
-        this.isDestroyed = true;
-        for (let computed of this.computeds) {
-            computed.destroy();
-        }
-        this.computeds = [];
-    }
-    registerWatch(name, value) {
-        let that = this;
-        that.watch[name] = value;
-        Object.defineProperty(that.data, name, {
-            get() {
-                return that.watch[name];
-            }
-        });
-    }
-    updateWatch(name, value, dones) {
-        if (Watcher.is(this.watch[name])) {
-            this.watch[name].__injectedDones(dones);
-        }
-        this.watch[name] = value;
-    }
-    normalizePath(path) {
-        path = path.replace(/^this\./, '');
-        const regex = /\[(.*?)\]/g;
-        let m;
-        while ((m = regex.exec(path)) !== null) {
-            if (m.index === regex.lastIndex) {
-                regex.lastIndex++;
-            }
-            let name = m[1];
-            let result = getValueFromObject(name, this.data);
-            if (result !== undefined) {
-                path = path.replace(m[0], `[${result}]`);
-            }
-        }
-        return path;
-    }
-    getValueFromItem(name) {
-        if (!name)
-            return undefined;
-        let result = getValueFromObject(name, this.data);
-        if (result !== undefined) {
-            return result;
-        }
-        result = getValueFromObject(name, this.comp);
-        if (result !== undefined) {
-            return result;
-        }
-        return undefined;
-    }
-    setValueToItem(name, value) {
-        setValueToObject(name, this.comp, value);
-    }
-}
-TemplateContext.Namespace=`Aventus`;
-__as1(_, 'TemplateContext', TemplateContext);
+let Loop="use strict";
 
-let TemplateInstance=class TemplateInstance {
+let ActionEvent="use strict";
+
+let TemplateInstance="use strict";
+class TemplateInstance {
     context;
     content;
     actions;
@@ -3748,7 +3709,221 @@ let TemplateInstance=class TemplateInstance {
 TemplateInstance.Namespace=`Aventus`;
 __as1(_, 'TemplateInstance', TemplateInstance);
 
-let Template=class Template {
+let LoopRegistery="use strict";
+
+let TemplateContext="use strict";
+class TemplateContext {
+    data = {};
+    comp;
+    computeds = [];
+    watch;
+    registry;
+    isDestroyed = false;
+    constructor(component, data = {}, parentContext, registry) {
+        this.comp = component;
+        this.registry = registry;
+        this.watch = Watcher.get({});
+        let that = this;
+        for (let key in data) {
+            if (data[key].__isProxy) {
+                Object.defineProperty(this.data, key, {
+                    get() {
+                        return data[key];
+                    }
+                });
+            }
+            else {
+                this.watch[key] = data[key];
+                Object.defineProperty(this.data, key, {
+                    get() {
+                        return that.watch[key];
+                    }
+                });
+            }
+        }
+        if (parentContext) {
+            const descriptors = Object.getOwnPropertyDescriptors(parentContext.data);
+            for (let name in descriptors) {
+                Object.defineProperty(this.data, name, {
+                    get() {
+                        return parentContext.data[name];
+                    }
+                });
+            }
+        }
+    }
+    print(value) {
+        return value == null ? "" : value + "";
+    }
+    registerIndex() {
+        let name = "index";
+        let i = 0;
+        let fullName = name + i;
+        while (this.watch[fullName] !== undefined) {
+            i++;
+            fullName = name + i;
+        }
+        return fullName;
+    }
+    registerLoop(dataName, _indexValue, _indexName, indexName, itemName, onThis) {
+        this.watch[_indexName] = _indexValue;
+        let getItems;
+        let mustBeRecomputed = /if|switch|\?|\[.+?\]/g.test(dataName);
+        let _class = mustBeRecomputed ? Computed : ComputedNoRecomputed;
+        if (!onThis) {
+            getItems = new _class(() => {
+                return getValueFromObject(dataName, this.data);
+            });
+        }
+        else {
+            dataName = dataName.replace(/^this\./, '');
+            getItems = new _class(() => {
+                return getValueFromObject(dataName, this.comp);
+            });
+        }
+        let getIndex = new ComputedNoRecomputed(() => {
+            let items = getItems.value;
+            if (!items)
+                throw 'impossible';
+            let keys = Object.keys(items);
+            let index = keys[_getIndex.value];
+            if (/^[0-9]+$/g.test(index))
+                return Number(index);
+            return index;
+        });
+        let getItem = new ComputedNoRecomputed(() => {
+            let items = getItems.value;
+            if (!items)
+                throw 'impossible';
+            let keys = Object.keys(items);
+            let index = keys[_getIndex.value];
+            let element = items[index];
+            if (element === undefined && (Array.isArray(items) || !items)) {
+                if (this.registry) {
+                    let indexNb = Number(_getIndex.value);
+                    if (!isNaN(indexNb)) {
+                        this.registry.templates[indexNb].destructor();
+                        this.registry.templates.splice(indexNb, 1);
+                        for (let i = indexNb; i < this.registry.templates.length; i++) {
+                            this.registry.templates[i].context.decreaseIndex(_indexName);
+                        }
+                    }
+                }
+            }
+            return element;
+        });
+        let _getIndex = new ComputedNoRecomputed(() => {
+            return this.watch[_indexName];
+        });
+        this.computeds.push(getIndex);
+        this.computeds.push(getItem);
+        this.computeds.push(_getIndex);
+        if (itemName) {
+            Object.defineProperty(this.data, itemName, {
+                get() {
+                    return getItem.value;
+                }
+            });
+        }
+        if (indexName) {
+            Object.defineProperty(this.data, indexName, {
+                get() {
+                    return getIndex.value;
+                }
+            });
+        }
+    }
+    updateIndex(newIndex, _indexName) {
+        // let items: any[] | {};
+        // if(!dataName.startsWith("this.")) {
+        //     let comp = new Computed(() => {
+        //         return getValueFromObject(dataName, this.data);
+        //     });
+        //     fullName = dataName.replace(/^this\./, '');
+        //     items = getValueFromObject(fullName, this.comp);
+        // if(Array.isArray(items)) {
+        //     let regex = new RegExp("^(" + fullName.replace(/\./g, "\\.") + ")\\[(\\d+?)\\]");
+        //     for(let computed of computeds) {
+        //         for(let cb of computed.callbacks) {
+        //             cb.path = cb.path.replace(regex, "$1[" + newIndex + "]");
+        //     let oldKey = Object.keys(items)[this.watch[_indexName]]
+        //     let newKey = Object.keys(items)[newIndex]
+        //     let regex = new RegExp("^(" + fullName.replace(/\./g, "\\.") + "\\.)(" + oldKey + ")($|\\.)");
+        //     for (let computed of computeds) {
+        //         for (let cb of computed.callbacks) {
+        //             cb.path = cb.path.replace(regex, "$1" + newKey + "$3")
+        this.watch[_indexName] = newIndex;
+    }
+    increaseIndex(_indexName) {
+        this.updateIndex(this.watch[_indexName] + 1, _indexName);
+    }
+    decreaseIndex(_indexName) {
+        this.updateIndex(this.watch[_indexName] - 1, _indexName);
+    }
+    destructor() {
+        this.isDestroyed = true;
+        for (let computed of this.computeds) {
+            computed.destroy();
+        }
+        this.computeds = [];
+    }
+    registerWatch(name, value) {
+        let that = this;
+        that.watch[name] = value;
+        Object.defineProperty(that.data, name, {
+            get() {
+                return that.watch[name];
+            }
+        });
+    }
+    updateWatch(name, value, dones) {
+        if (Watcher.is(this.watch[name])) {
+            this.watch[name].__injectedDones(dones);
+        }
+        this.watch[name] = value;
+    }
+    normalizePath(path) {
+        path = path.replace(/^this\./, '');
+        const regex = /\[(.*?)\]/g;
+        let m;
+        while ((m = regex.exec(path)) !== null) {
+            if (m.index === regex.lastIndex) {
+                regex.lastIndex++;
+            }
+            let name = m[1];
+            let result = getValueFromObject(name, this.data);
+            if (result !== undefined) {
+                path = path.replace(m[0], `[${result}]`);
+            }
+        }
+        return path;
+    }
+    getValueFromItem(name) {
+        if (!name)
+            return undefined;
+        let result = getValueFromObject(name, this.data);
+        if (result !== undefined) {
+            return result;
+        }
+        result = getValueFromObject(name, this.comp);
+        if (result !== undefined) {
+            return result;
+        }
+        return undefined;
+    }
+    setValueToItem(name, value) {
+        setValueToObject(name, this.comp, value);
+    }
+}
+TemplateContext.Namespace=`Aventus`;
+__as1(_, 'TemplateContext', TemplateContext);
+
+let ActionChange="use strict";
+
+let Actions="use strict";
+
+let Template="use strict";
+class Template {
     static validatePath(path, pathToCheck) {
         if (pathToCheck.startsWith(path)) {
             return true;
@@ -3886,7 +4061,8 @@ let Template=class Template {
 Template.Namespace=`Aventus`;
 __as1(_, 'Template', Template);
 
-let Instance=class Instance {
+let Instance="use strict";
+class Instance {
     static elements = new Map();
     static get(type) {
         let result = this.elements.get(type);
@@ -3913,7 +4089,8 @@ let Instance=class Instance {
 Instance.Namespace=`Aventus`;
 __as1(_, 'Instance', Instance);
 
-let WebComponent=class WebComponent extends HTMLElement {
+let WebComponent="use strict";
+class WebComponent extends HTMLElement {
     /**
      * Add attributes informations
      */
@@ -4657,7 +4834,8 @@ let WebComponent=class WebComponent extends HTMLElement {
 WebComponent.Namespace=`Aventus`;
 __as1(_, 'WebComponent', WebComponent);
 
-let WebComponentInstance=class WebComponentInstance {
+let WebComponentInstance="use strict";
+class WebComponentInstance {
     static __allDefinitions = [];
     static __allInstances = [];
     /**
@@ -4730,7 +4908,14 @@ let WebComponentInstance=class WebComponentInstance {
 WebComponentInstance.Namespace=`Aventus`;
 __as1(_, 'WebComponentInstance', WebComponentInstance);
 
-let ConverterTransform=class ConverterTransform {
+let Schema="use strict";
+__as1(_, 'Schema', Schema);
+
+let IConverterTransform="use strict";
+__as1(_, 'IConverterTransform', IConverterTransform);
+
+let ConverterTransform="use strict";
+class ConverterTransform {
     transform(data) {
         return this.transformLoop(data);
     }
@@ -4863,7 +5048,8 @@ let ConverterTransform=class ConverterTransform {
 ConverterTransform.Namespace=`Aventus`;
 __as1(_, 'ConverterTransform', ConverterTransform);
 
-let Json=class Json {
+let Json="use strict";
+class Json {
     /**
      * Converts a JavaScript class instance to a JSON object.
      * @template T - The type of the object to convert.
@@ -4952,7 +5138,8 @@ let Json=class Json {
 Json.Namespace=`Aventus`;
 __as1(_, 'Json', Json);
 
-let Converter=class Converter {
+let Converter="use strict";
+class Converter {
     /**
     * Map storing information about registered types.
     */
@@ -5022,7 +5209,8 @@ let Converter=class Converter {
 Converter.Namespace=`Aventus`;
 __as1(_, 'Converter', Converter);
 
-let Data=// @Dependances([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
+let Data="use strict";
+// @Dependances([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
 class Data {
     static converter = new Converter();
     /**
@@ -5076,7 +5264,8 @@ Data.$schema={"namespace":"string","$type":"string","className":"string"};
 Converter.register(Data.Fullname, Data);
 __as1(_, 'Data', Data);
 
-let GenericError=// @Dependances([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
+let GenericError="use strict";
+// @Dependances([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
 class GenericError {
     static converter = new Converter();
     static get Fullname() { return "Aventus.GenericError"; }
@@ -5107,7 +5296,8 @@ GenericError.$schema={"code":"Aventus.EnumValue","message":"string"};
 Converter.register(GenericError.Fullname, GenericError);
 __as1(_, 'GenericError', GenericError);
 
-let VoidWithError=class VoidWithError {
+let VoidWithError="use strict";
+class VoidWithError {
     static get Fullname() { return "Aventus.VoidWithError"; }
     /**
      * Determine if the action is a success
@@ -5205,7 +5395,8 @@ VoidWithError.$schema={"success":"boolean","errors":"T[]"};
 Converter.register(VoidWithError.Fullname, VoidWithError);
 __as1(_, 'VoidWithError', VoidWithError);
 
-let ResultWithError=class ResultWithError extends VoidWithError {
+let ResultWithError="use strict";
+class ResultWithError extends VoidWithError {
     static get Fullname() { return "Aventus.ResultWithError"; }
     /**
       * The result value of the action.
@@ -5258,14 +5449,22 @@ ResultWithError.$schema={...(VoidWithError?.$schema ?? {}), };
 Converter.register(ResultWithError.Fullname, ResultWithError);
 __as1(_, 'ResultWithError', ResultWithError);
 
-let HttpError=class HttpError extends GenericError {
+let ExtractFromError="use strict";
+__as1(_, 'ExtractFromError', ExtractFromError);
+
+let HttpRequestOptions="use strict";
+__as1(_, 'HttpRequestOptions', HttpRequestOptions);
+
+let HttpError="use strict";
+class HttpError extends GenericError {
 }
 HttpError.Namespace=`Aventus`;
 HttpError.$schema={...(GenericError?.$schema ?? {}), };
 Converter.register(HttpError.Fullname, HttpError);
 __as1(_, 'HttpError', HttpError);
 
-let HttpRequest=class HttpRequest {
+let HttpRequest="use strict";
+class HttpRequest {
     static options;
     static configure(options) {
         this.options = options;
@@ -5338,8 +5537,9 @@ let HttpRequest=class HttpRequest {
         return formData;
     }
     jsonReplacer(key, value) {
-        if (this[key] instanceof Date) {
-            return DateConverter.converter.toString(this[key]);
+        const t = this;
+        if (t[key] instanceof Date) {
+            return DateConverter.converter.toString(t[key]);
         }
         return value;
     }
@@ -5522,7 +5722,8 @@ let HttpRequest=class HttpRequest {
 HttpRequest.Namespace=`Aventus`;
 __as1(_, 'HttpRequest', HttpRequest);
 
-let HttpRouter=class HttpRouter {
+let HttpRouter="use strict";
+class HttpRouter {
     static options;
     static configure(options) {
         this.options = options;
@@ -5558,7 +5759,8 @@ let HttpRouter=class HttpRouter {
 HttpRouter.Namespace=`Aventus`;
 __as1(_, 'HttpRouter', HttpRouter);
 
-let HttpRoute=class HttpRoute {
+let HttpRoute="use strict";
+class HttpRoute {
     router;
     constructor(router) {
         this.router = router ?? new HttpRouter();
@@ -5570,7 +5772,8 @@ let HttpRoute=class HttpRoute {
 HttpRoute.Namespace=`Aventus`;
 __as1(_, 'HttpRoute', HttpRoute);
 
-let ResizeObserver=class ResizeObserver {
+let ResizeObserver="use strict";
+class ResizeObserver {
     callback;
     targets;
     fpsInterval = -1;
@@ -5700,7 +5903,8 @@ let ResizeObserver=class ResizeObserver {
 ResizeObserver.Namespace=`Aventus`;
 __as1(_, 'ResizeObserver', ResizeObserver);
 
-let ResourceLoader=class ResourceLoader {
+let ResourceLoader="use strict";
+class ResourceLoader {
     static headerLoaded = {};
     static headerWaiting = {};
     /**
@@ -5870,7 +6074,19 @@ let ResourceLoader=class ResourceLoader {
 ResourceLoader.Namespace=`Aventus`;
 __as1(_, 'ResourceLoader', ResourceLoader);
 
-let DragAndDrop=class DragAndDrop {
+let DragElement="use strict";
+__as1(_, 'DragElement', DragElement);
+
+let DragAndDropOptionsShadow="use strict";
+__as1(_, 'DragAndDropOptionsShadow', DragAndDropOptionsShadow);
+
+let DragAndDropOptions="use strict";
+__as1(_, 'DragAndDropOptions', DragAndDropOptions);
+
+let DragAndDropOptionsInternal="use strict";
+
+let DragAndDrop="use strict";
+class DragAndDrop {
     /**
      * Default offset before drag element
      */
@@ -6441,7 +6657,8 @@ let DragAndDrop=class DragAndDrop {
 DragAndDrop.Namespace=`Aventus`;
 __as1(_, 'DragAndDrop', DragAndDrop);
 
-let Animation=class Animation {
+let Animation="use strict";
+class Animation {
     /**
      * Default FPS for all Animation if not set inside options
      */
@@ -6540,8 +6757,14 @@ const __as1 = (o, k, c) => { if (o[k] !== undefined) for (let w in o[k]) { c[w] 
 const moduleName = `Aventus`;
 const _ = {};
 
+let Toast = {};
+_.Toast = Aventus.Toast ?? {};
 let Navigation = {};
 _.Navigation = Aventus.Navigation ?? {};
+Navigation.Page = {};
+_.Navigation.Page = Aventus.Navigation?.Page ?? {};
+let Modal = {};
+_.Modal = Aventus.Modal ?? {};
 let Layout = {};
 _.Layout = Aventus.Layout ?? {};
 let Lib = {};
@@ -6552,11 +6775,13 @@ Layout.Tabs = {};
 _.Layout.Tabs = Aventus.Layout?.Tabs ?? {};
 Form.Validators = {};
 _.Form.Validators = Aventus.Form?.Validators ?? {};
-let Modal = {};
-_.Modal = Aventus.Modal ?? {};
-let Toast = {};
-_.Toast = Aventus.Toast ?? {};
 let _n;
+let ProcessConfig="use strict";
+__as1(_, 'ProcessConfig', ProcessConfig);
+
+Toast.ToastPosition="use strict";
+__as1(_.Toast, 'ToastPosition', Toast.ToastPosition);
+
 const ProgressCircle = class ProgressCircle extends Aventus.WebComponent {
     static get observedAttributes() {return ["value", "stroke_width"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'value'() { return this.getNumberProp('value') }
@@ -6564,9 +6789,11 @@ const ProgressCircle = class ProgressCircle extends Aventus.WebComponent {
     set 'stroke_width'(val) { this.setNumberAttr('stroke_width', val) }    svg;
     backCircle;
     percentCircle;
-    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("value", ((target) => {
+    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("value", ("use strict";
+(target) => {
     target.render();
-}));this.__addPropertyActions("stroke_width", ((target) => {
+}));this.__addPropertyActions("stroke_width", ("use strict";
+(target) => {
     target.render();
 })); }
     static __style = `:host{--_progress-circle-back-circle-color: var(--progress-circle-back-circle-color, rgba(191, 219, 254, .5));--_progress-circle-percent-circle-color: var(--progress-circle-percent-circle-color, #3b82f6);--_progress-circle-transition: var(--progress-circle-transition, stroke 0.3s cubic-bezier(.4, 0, .2, 1), stroke-dashoffset 0.3s cubic-bezier(.4, 0, .2, 1))}:host{align-items:center;aspect-ratio:1/1;display:flex;flex-direction:column;justify-content:center;position:relative;width:60px}:host .container{align-items:center;display:flex;flex-direction:column;height:100%;justify-content:center;position:relative;width:100%}:host .container svg{height:100%;transform:rotate(-90deg);width:100%}:host .container svg .back-circle{fill:rgba(0,0,0,0);stroke:var(--_progress-circle-back-circle-color);transition:stroke linear .2s}:host .container svg .percent-circle{fill:rgba(0,0,0,0);stroke:var(--_progress-circle-percent-circle-color);transition:var(--_progress-circle-transition)}:host .content{display:flex;position:absolute}`;
@@ -6672,7 +6899,8 @@ Navigation.Page = class Page extends Aventus.WebComponent {
     get 'visible'() { return this.getBoolProp('visible') }
     set 'visible'(val) { this.setBoolAttr('visible', val) }    router;
     state;
-    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("visible", ((target) => {
+    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("visible", ("use strict";
+(target) => {
     if (target.visible) {
         target.onShow();
     }
@@ -6729,7 +6957,11 @@ Navigation.Page = class Page extends Aventus.WebComponent {
 Navigation.Page.Namespace=`Aventus.Navigation`;
 __as1(_.Navigation, 'Page', Navigation.Page);
 
-let RouterStateManager=class RouterStateManager extends Aventus.StateManager {
+Navigation.Page.PageConfig="use strict";
+__as1(_.Navigation.Page, 'PageConfig', Navigation.Page.PageConfig);
+
+let RouterStateManager="use strict";
+class RouterStateManager extends Aventus.StateManager {
     /**
      * Retrieves the singleton instance of the RouterStateManager.
      */
@@ -6925,7 +7157,14 @@ Navigation.Link.Tag=`av-link`;
 __as1(_.Navigation, 'Link', Navigation.Link);
 if(!window.customElements.get('av-link')){window.customElements.define('av-link', Navigation.Link);Aventus.WebComponentInstance.registerDefinition(Navigation.Link);}
 
-let Tracker=class Tracker {
+Navigation.RouteAsyncOption="use strict";
+__as1(_.Navigation, 'RouteAsyncOption', Navigation.RouteAsyncOption);
+
+Modal.ModalOptions="use strict";
+__as1(_.Modal, 'ModalOptions', Modal.ModalOptions);
+
+let Tracker="use strict";
+class Tracker {
     /**
      * Multiplier for velocity calculations based on device pixel ratio.
      */
@@ -7022,6 +7261,7 @@ Layout.Row.Tag=`av-row`;
 __as1(_.Layout, 'Row', Layout.Row);
 if(!window.customElements.get('av-row')){window.customElements.define('av-row', Layout.Row);Aventus.WebComponentInstance.registerDefinition(Layout.Row);}
 
+var SpecialTouch;
 (function (SpecialTouch) {
     SpecialTouch[SpecialTouch["Backspace"] = 0] = "Backspace";
     SpecialTouch[SpecialTouch["Insert"] = 1] = "Insert";
@@ -7043,6 +7283,9 @@ if(!window.customElements.get('av-row')){window.customElements.define('av-row', 
     SpecialTouch[SpecialTouch["Enter"] = 17] = "Enter";
 })(Lib.SpecialTouch || (Lib.SpecialTouch = {}));
 __as1(_.Lib, 'SpecialTouch', Lib.SpecialTouch);
+
+Lib.ShortcutManagerOptions="use strict";
+__as1(_.Lib, 'ShortcutManagerOptions', Lib.ShortcutManagerOptions);
 
 const Collapse = class Collapse extends Aventus.WebComponent {
     get 'open'() { return this.getBoolAttr('open') }
@@ -7096,6 +7339,9 @@ Collapse.Namespace=`Aventus`;
 Collapse.Tag=`av-collapse`;
 __as1(_, 'Collapse', Collapse);
 if(!window.customElements.get('av-collapse')){window.customElements.define('av-collapse', Collapse);Aventus.WebComponentInstance.registerDefinition(Collapse);}
+
+Layout.ColOptions="use strict";
+__as1(_.Layout, 'ColOptions', Layout.ColOptions);
 
 Layout.Col = class Col extends Aventus.WebComponent {
     get 'use_container'() { return this.getBoolAttr('use_container') }
@@ -7159,9 +7405,11 @@ const Img = class Img extends Aventus.WebComponent {
     maxCalculateSize = 10;
     ratio = 1;
     resizeObserver;
-    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("src", ((target) => {
+    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("src", ("use strict";
+(target) => {
     target.onSrcChanged();
-}));this.__addPropertyActions("mode", ((target) => {
+}));this.__addPropertyActions("mode", ("use strict";
+(target) => {
     if (target.src != "") {
         target.calculateSize();
     }
@@ -7330,7 +7578,8 @@ Img.Tag=`av-img`;
 __as1(_, 'Img', Img);
 if(!window.customElements.get('av-img')){window.customElements.define('av-img', Img);Aventus.WebComponentInstance.registerDefinition(Img);}
 
-Form.isSubclassOf=function isSubclassOf(subClass, superClass) {
+Form.isSubclassOf="use strict";
+function isSubclassOf(subClass, superClass) {
     if (typeof subClass !== 'function' || typeof superClass !== 'function')
         return false;
     let proto = subClass.prototype;
@@ -7342,6 +7591,36 @@ Form.isSubclassOf=function isSubclassOf(subClass, superClass) {
     return false;
 }
 __as1(_.Form, 'isSubclassOf', Form.isSubclassOf);
+
+Form.LastParameter="use strict";
+__as1(_.Form, 'LastParameter', Form.LastParameter);
+
+Form.IsUnion="use strict";
+__as1(_.Form, 'IsUnion', Form.IsUnion);
+
+Form.InternalFormPart="use strict";
+__as1(_.Form, 'InternalFormPart', Form.InternalFormPart);
+
+Form.FilterPrefix="use strict";
+__as1(_.Form, 'FilterPrefix', Form.FilterPrefix);
+
+Form.InternalForm="use strict";
+__as1(_.Form, 'InternalForm', Form.InternalForm);
+
+Form.WithError="use strict";
+__as1(_.Form, 'WithError', Form.WithError);
+
+Form.ExtractError="use strict";
+__as1(_.Form, 'ExtractError', Form.ExtractError);
+
+Form.Constructor="use strict";
+__as1(_.Form, 'Constructor', Form.Constructor);
+
+Toast.ToastManagerOptions="use strict";
+__as1(_.Toast, 'ToastManagerOptions', Toast.ToastManagerOptions);
+
+Navigation.RouterOptions="use strict";
+__as1(_.Navigation, 'RouterOptions', Navigation.RouterOptions);
 
 Layout.Tabs.Tabs = class Tabs extends Aventus.WebComponent {
     activeHeader;
@@ -7443,7 +7722,17 @@ Layout.Tabs.Tabs = class Tabs extends Aventus.WebComponent {
 Layout.Tabs.Tabs.Namespace=`Aventus.Layout.Tabs`;
 __as1(_.Layout.Tabs, 'Tabs', Layout.Tabs.Tabs);
 
-Form.Validator=class Validator {
+Form.FormValidateResult="use strict";
+__as1(_.Form, 'FormValidateResult', Form.FormValidateResult);
+
+Form.FormValidate="use strict";
+__as1(_.Form, 'FormValidate', Form.FormValidate);
+
+Form.FormPartValidate="use strict";
+__as1(_.Form, 'FormPartValidate', Form.FormPartValidate);
+
+Form.Validator="use strict";
+class Validator {
     /**
      * The default error message for the validator.
      */
@@ -7499,7 +7788,8 @@ Form.Validator=class Validator {
 Form.Validator.Namespace=`Aventus.Form`;
 __as1(_.Form, 'Validator', Form.Validator);
 
-Form.Validators.Required=class Required extends _.Form.Validator {
+Form.Validators.Required="use strict";
+class Required extends _.Form.Validator {
     /**
      * The default error message for a required field.
      */
@@ -7522,7 +7812,8 @@ Form.Validators.Required=class Required extends _.Form.Validator {
 Form.Validators.Required.Namespace=`Aventus.Form.Validators`;
 __as1(_.Form.Validators, 'Required', Form.Validators.Required);
 
-Form.Validators.Email=class Email extends _.Form.Validator {
+Form.Validators.Email="use strict";
+class Email extends _.Form.Validator {
     /**
      * The default error message for invalid email addresses.
      */
@@ -7543,6 +7834,42 @@ Form.Validators.Email=class Email extends _.Form.Validator {
 }
 Form.Validators.Email.Namespace=`Aventus.Form.Validators`;
 __as1(_.Form.Validators, 'Email', Form.Validators.Email);
+
+Form.FormPartValidateList="use strict";
+__as1(_.Form, 'FormPartValidateList', Form.FormPartValidateList);
+
+Form.SubmitFunction="use strict";
+__as1(_.Form, 'SubmitFunction', Form.SubmitFunction);
+
+Form.FormHandlerConfig="use strict";
+__as1(_.Form, 'FormHandlerConfig', Form.FormHandlerConfig);
+
+Form.FormPart="use strict";
+__as1(_.Form, 'FormPart', Form.FormPart);
+
+Form.FormSchema="use strict";
+__as1(_.Form, 'FormSchema', Form.FormSchema);
+
+Form.MethodName="use strict";
+__as1(_.Form, 'MethodName', Form.MethodName);
+
+Form.MethodResult="use strict";
+__as1(_.Form, 'MethodResult', Form.MethodResult);
+
+Form.MethodNameExist="use strict";
+__as1(_.Form, 'MethodNameExist', Form.MethodNameExist);
+
+Form.MethodBody="use strict";
+__as1(_.Form, 'MethodBody', Form.MethodBody);
+
+Form.MethodResultParsed="use strict";
+__as1(_.Form, 'MethodResultParsed', Form.MethodResultParsed);
+
+Form.FormHandlerControllerConfig="use strict";
+__as1(_.Form, 'FormHandlerControllerConfig', Form.FormHandlerControllerConfig);
+
+Form.IFormElement="use strict";
+__as1(_.Form, 'IFormElement', Form.IFormElement);
 
 Form.FormElement = class FormElement extends Aventus.WebComponent {
     static get observedAttributes() {return ["disabled"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
@@ -7573,9 +7900,11 @@ Form.FormElement = class FormElement extends Aventus.WebComponent {
     handler = undefined;
     onChange = new Aventus.Callback();
     __registerWatchesActions() {
-    this.__addWatchesActions("value", ((target) => {
+    this.__addWatchesActions("value", ("use strict";
+(target) => {
     target.onValueChange(target.value);
-}));this.__addWatchesActions("errors", ((target) => {
+}));this.__addWatchesActions("errors", ("use strict";
+(target) => {
     target.onErrorsChange();
 }));    super.__registerWatchesActions();
 }
@@ -7718,6 +8047,9 @@ Form.FormElement = class FormElement extends Aventus.WebComponent {
 }
 Form.FormElement.Namespace=`Aventus.Form`;
 __as1(_.Form, 'FormElement', Form.FormElement);
+
+Form.IForm="use strict";
+__as1(_.Form, 'IForm', Form.IForm);
 
 Form.ButtonElement = class ButtonElement extends Aventus.WebComponent {
     static get observedAttributes() {return ["type"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
@@ -7898,7 +8230,8 @@ Form.Form.Tag=`av-form`;
 __as1(_.Form, 'Form', Form.Form);
 if(!window.customElements.get('av-form')){window.customElements.define('av-form', Form.Form);Aventus.WebComponentInstance.registerDefinition(Form.Form);}
 
-Form.FormHandler=class FormHandler {
+Form.FormHandler="use strict";
+class FormHandler {
     /**
      * Global configuration settings for FormHandler instances.
      */
@@ -8345,7 +8678,8 @@ Form.FormHandler=class FormHandler {
 Form.FormHandler.Namespace=`Aventus.Form`;
 __as1(_.Form, 'FormHandler', Form.FormHandler);
 
-Form.FormHandlerController=class FormHandlerController extends _.Form.FormHandler {
+Form.FormHandlerController="use strict";
+class FormHandlerController extends _.Form.FormHandler {
     _controller;
     /**
      * The HttpRoute controller constructor.
@@ -8388,7 +8722,8 @@ Form.FormHandlerController=class FormHandlerController extends _.Form.FormHandle
 Form.FormHandlerController.Namespace=`Aventus.Form`;
 __as1(_.Form, 'FormHandlerController', Form.FormHandlerController);
 
-Lib.ShortcutManager=class ShortcutManager {
+Lib.ShortcutManager="use strict";
+class ShortcutManager {
     /**
      * Stores registered shortcut callbacks.
      */
@@ -8641,13 +8976,17 @@ Layout.GridHelper = class GridHelper extends Aventus.WebComponent {
     set 'ruler_size'(val) { this.setNumberAttr('ruler_size', val) }get 'step'() { return this.getNumberProp('step') }
     set 'step'(val) { this.setNumberAttr('step', val) }get 'step_big'() { return this.getNumberProp('step_big') }
     set 'step_big'(val) { this.setNumberAttr('step_big', val) }get 'magnetic'() { return this.getNumberProp('magnetic') }
-    set 'magnetic'(val) { this.setNumberAttr('magnetic', val) }    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("unit", ((target) => {
+    set 'magnetic'(val) { this.setNumberAttr('magnetic', val) }    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("unit", ("use strict";
+(target) => {
     target.rulerLeftEl.style.setProperty("--ruler-size", target.ruler_size + target.unit);
     target.rulerTopEl.style.setProperty("--ruler-size", target.ruler_size + target.unit);
     target.lockEl.style.setProperty("--ruler-size", target.ruler_size + target.unit);
-}));this.__addPropertyActions("nb_row", ((target) => {
-}));this.__addPropertyActions("row_height", ((target) => {
-}));this.__addPropertyActions("ruler_size", ((target) => {
+}));this.__addPropertyActions("nb_row", ("use strict";
+(target) => {
+}));this.__addPropertyActions("row_height", ("use strict";
+(target) => {
+}));this.__addPropertyActions("ruler_size", ("use strict";
+(target) => {
     target.rulerLeftEl.style.setProperty("--ruler-size", target.ruler_size + target.unit);
     target.rulerTopEl.style.setProperty("--ruler-size", target.ruler_size + target.unit);
     target.lockEl.style.setProperty("--ruler-size", target.ruler_size + target.unit);
@@ -9199,7 +9538,8 @@ Layout.GridGuideHelper.Tag=`av-grid-guide-helper`;
 __as1(_.Layout, 'GridGuideHelper', Layout.GridGuideHelper);
 if(!window.customElements.get('av-grid-guide-helper')){window.customElements.define('av-grid-guide-helper', Layout.GridGuideHelper);Aventus.WebComponentInstance.registerDefinition(Layout.GridGuideHelper);}
 
-let TouchRecord=class TouchRecord {
+let TouchRecord="use strict";
+class TouchRecord {
     /**
      * The identifier of the currently active touch/pointer.
      */
@@ -9489,7 +9829,8 @@ Layout.Scrollable = class Scrollable extends Aventus.WebComponent {
         bottom: 0,
     };
     pressManager;
-    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("zoom", ((target) => {
+    __registerPropertiesActions() { super.__registerPropertiesActions(); this.__addPropertyActions("zoom", ("use strict";
+(target) => {
     target.changeZoom();
 })); }
     static __style = `:host{--internal-scrollbar-container-color: var(--scrollbar-container-color, transparent);--internal-scrollbar-color: var(--scrollbar-color, #757575);--internal-scrollbar-active-color: var(--scrollbar-active-color, #858585);--internal-scroller-width: var(--scroller-width, 6px);--internal-scroller-top: var(--scroller-top, 3px);--internal-scroller-bottom: var(--scroller-bottom, 3px);--internal-scroller-right: var(--scroller-right, 3px);--internal-scroller-left: var(--scroller-left, 3px);--_scrollbar-content-padding: var(--scrollbar-content-padding, 0);--_scrollbar-container-display: var(--scrollbar-container-display, inline-block)}:host{display:block;height:100%;min-height:inherit;min-width:inherit;overflow:clip;position:relative;-webkit-user-drag:none;-khtml-user-drag:none;-moz-user-drag:none;-o-user-drag:none;width:100%}:host .scroll-main-container{display:block;height:100%;min-height:inherit;min-width:inherit;position:relative;width:100%}:host .scroll-main-container .content-zoom{display:block;height:100%;min-height:inherit;min-width:inherit;position:relative;transform-origin:0 0;width:100%;z-index:4}:host .scroll-main-container .content-zoom .content-hidder{display:block;height:100%;min-height:inherit;min-width:inherit;overflow:clip;position:relative;width:100%}:host .scroll-main-container .content-zoom .content-hidder .content-wrapper{display:var(--_scrollbar-container-display);height:100%;min-height:inherit;min-width:inherit;padding:var(--_scrollbar-content-padding);position:relative;width:100%}:host .scroll-main-container .scroller-wrapper .container-scroller{display:none;overflow:hidden;position:absolute;transition:transform .2s linear;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller{background-color:var(--internal-scrollbar-container-color);border-radius:5px}:host .scroll-main-container .scroller-wrapper .container-scroller .shadow-scroller .scroller{background-color:var(--internal-scrollbar-color);border-radius:5px;cursor:pointer;position:absolute;-webkit-tap-highlight-color:rgba(0,0,0,0);touch-action:none;z-index:5}:host .scroll-main-container .scroller-wrapper .container-scroller .scroller.active{background-color:var(--internal-scrollbar-active-color)}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical{height:calc(100% - var(--internal-scroller-bottom)*2 - var(--internal-scroller-width));padding-left:var(--internal-scroller-left);right:var(--internal-scroller-right);top:var(--internal-scroller-bottom);transform:0;width:calc(var(--internal-scroller-width) + var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical.hide{transform:translateX(calc(var(--internal-scroller-width) + var(--internal-scroller-left)))}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.vertical .shadow-scroller .scroller{width:calc(100% - var(--internal-scroller-left))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal{bottom:var(--internal-scroller-bottom);height:calc(var(--internal-scroller-width) + var(--internal-scroller-top));left:var(--internal-scroller-right);padding-top:var(--internal-scroller-top);transform:0;width:calc(100% - var(--internal-scroller-right)*2 - var(--internal-scroller-width))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal.hide{transform:translateY(calc(var(--internal-scroller-width) + var(--internal-scroller-top)))}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller{height:100%}:host .scroll-main-container .scroller-wrapper .container-scroller.horizontal .shadow-scroller .scroller{height:calc(100% - var(--internal-scroller-top))}:host([y_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{height:auto}:host([x_scroll]) .scroll-main-container .content-zoom .content-hidder .content-wrapper{width:auto}:host([y_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.vertical{display:block}:host([x_scroll_visible]) .scroll-main-container .scroller-wrapper .container-scroller.horizontal{display:block}:host([no_user_select]) .content-wrapper *{user-select:none}:host([no_user_select]) ::slotted{user-select:none}:host([flex]){display:flex;flex-direction:column;min-height:0}:host([flex]) .scroll-main-container{display:flex;flex-direction:column}:host([flex]) .scroll-main-container .content-zoom{display:flex;flex-direction:column}`;
@@ -10383,7 +10724,8 @@ Modal.ModalElement = class ModalElement extends Aventus.WebComponent {
     pressManagerClickClose;
     pressManagerPrevent;
     __registerWatchesActions() {
-    this.__addWatchesActions("options", ((target, action, path, value) => {
+    this.__addWatchesActions("options", ("use strict";
+(target, action, path, value) => {
     target.onOptionsChanged();
 }));    super.__registerWatchesActions();
 }
@@ -10501,6 +10843,9 @@ Modal.ModalElement = class ModalElement extends Aventus.WebComponent {
 }
 Modal.ModalElement.Namespace=`Aventus.Modal`;
 __as1(_.Modal, 'ModalElement', Modal.ModalElement);
+
+Modal.ExtractTypeModal="use strict";
+__as1(_.Modal, 'ExtractTypeModal', Modal.ExtractTypeModal);
 
 Navigation.Default404 = class Default404 extends Navigation.Page {
     static __style = `:host{align-items:center;height:100%;justify-content:center;width:100%}:host h1{font-size:48px;text-align:center}:host([visible]){display:flex}`;
@@ -10893,6 +11238,9 @@ Toast.ToastElement = class ToastElement extends Aventus.WebComponent {
 Toast.ToastElement.Namespace=`Aventus.Toast`;
 __as1(_.Toast, 'ToastElement', Toast.ToastElement);
 
+Toast.ToastOptions="use strict";
+__as1(_.Toast, 'ToastOptions', Toast.ToastOptions);
+
 Toast.ToastManager = class ToastManager extends Aventus.WebComponent {
     get 'not_main'() { return this.getBoolAttr('not_main') }
     set 'not_main'(val) { this.setBoolAttr('not_main', val) }    static defaultToast;
@@ -11127,7 +11475,8 @@ Toast.ToastManager.Tag=`av-toast-manager`;
 __as1(_.Toast, 'ToastManager', Toast.ToastManager);
 if(!window.customElements.get('av-toast-manager')){window.customElements.define('av-toast-manager', Toast.ToastManager);Aventus.WebComponentInstance.registerDefinition(Toast.ToastManager);}
 
-let Process=class Process {
+let Process="use strict";
+class Process {
     /**
      * Static handler for processing generic errors.
      */

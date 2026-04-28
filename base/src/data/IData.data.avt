@@ -44,13 +44,13 @@ export abstract class Data implements IData {
      * The current namespace
      */
     public get namespace(): string {
-        return this.constructor['Namespace'];
+        return (this.constructor as any)['Namespace'];
     }
     /**
      * Get the unique type for the data. Define it as the namespace + class name
      */
     public get $type(): string {
-        return this.constructor['Fullname'];
+        return (this.constructor as any)['Fullname'];
     }
     /**
      * Get the name of the class

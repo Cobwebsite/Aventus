@@ -1589,6 +1589,12 @@ const compilerOptionsRead: CompilerOptions = {
     strictNullChecks: true,
     verbatimModuleSyntax: true,
     baseUrl: "./",
+    // TODO delete
+    "useUnknownInCatchVariables": false,
+    suppressImplicitAnyIndexErrors: true,
+    "noImplicitAny": false,
+    "strictFunctionTypes": false
+
 };
 const compilerOptionsCompile: CompilerOptions = {
     allowNonTsExtensions: true,
@@ -1607,6 +1613,11 @@ const compilerOptionsCompile: CompilerOptions = {
     strictNullChecks: true,
     verbatimModuleSyntax: true,
     baseUrl: "./",
+    // TODO delete
+    "useUnknownInCatchVariables": false,
+    suppressImplicitAnyIndexErrors: true,
+    "noImplicitAny": false,
+    "strictFunctionTypes": false
 };
 const completionOptions: GetCompletionsAtPositionOptions = {
     includeExternalModuleExports: true,

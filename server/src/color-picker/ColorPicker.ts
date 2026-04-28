@@ -23,7 +23,14 @@ export class ColorPicker {
 	private static colorTxtList: string[] = [];
 	private static parseColorString(color: string) {
 		try {
-			const colorData = colorParser(parseComponentValue(tokenize({ css: color })));
+			const value = parseComponentValue(tokenize({ css: color }));
+			if(!value) {
+				return null;
+			}
+			const colorData = colorParser(value);
+			if(colorData === false) {
+				return null;
+			}
 			const srgb = XYZ_D50_to_sRGB_Gamut(colorData_to_XYZ_D50(colorData).channels);
 			const r = Math.min(255, Math.max(0, Math.round(toPrecision(srgb[0]) * 255)));
 			const g = Math.min(255, Math.max(0, Math.round(toPrecision(srgb[1]) * 255)));
