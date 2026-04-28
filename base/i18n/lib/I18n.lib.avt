@@ -10,7 +10,7 @@ export class I18nClass {
 
     public readonly onLocaleChange: Callback<(newLocale: string, oldLocale: string) => void> = new Callback();
 
-    private watcher: {} = Watcher.get({
+    private watcher: { [key: string]: any; } = Watcher.get({
         locale: {}
     });
     protected get locale(): any {
@@ -58,7 +58,7 @@ export class I18nClass {
         return this.currentLocale;
     }
 
-    private merge(from: {}, to: {}) {
+    private merge(from: { [key: string]: any; }, to: { [key: string]: any; }) {
         for(let key in to) {
             let val = to[key];
             if(typeof val == 'object') {

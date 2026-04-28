@@ -101,8 +101,9 @@ export class HttpRequest {
         return formData;
     }
     public jsonReplacer(key: string, value: any) {
-        if(this[key] instanceof Date) {
-            return DateConverter.converter.toString(this[key]);
+        const t = this as any;
+        if(t[key] instanceof Date) {
+            return DateConverter.converter.toString(t[key]);
         }
         return value;
     }

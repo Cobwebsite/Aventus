@@ -17,7 +17,6 @@ import { Build } from './project/Build';
 import { Communication } from './communication';
 import { PhpManager } from './language-services/json/PhpManager';
 import { LocalProjectManager } from './files/LocalProject';
-import { version } from '../../package.json'
 import { appendFileSync, existsSync, readdirSync, writeFileSync } from 'fs';
 import { execSync } from 'child_process';
 import { updatesScripts } from './updates';
@@ -446,7 +445,7 @@ export class GenericServer {
 	protected runUpdate() {
 		setTimeout(() => {
 
-			const currentVersion = version;
+			const currentVersion = __APP_VERSION__;
 			const oldVersion = SettingsManager.getInstance().hiddenSettings.version;
 			if (currentVersion == oldVersion) return;
 			if (!/([0-9]+)\.([0-9]+)\.([0-9]+)/g.test(currentVersion)) return;

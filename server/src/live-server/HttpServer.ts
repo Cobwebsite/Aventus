@@ -1,12 +1,12 @@
-import * as connect from 'connect';
-import * as send from 'send';
+import connect from 'connect';
+import send from 'send';
 import * as url from 'url';
 import { createServer, Server, ServerResponse } from 'http';
 import { createServer as testPortServer } from 'net';
 import { extname } from 'path';
 import { readFileSync } from 'fs';
 import { replace } from 'event-stream';
-import * as serveIndex from 'serve-index'
+import serveIndex from 'serve-index'
 import { INJECTED_CODE } from './injectedCode';
 import { WebSocket, WebSocketServer } from 'ws';
 import { ServerStart } from '../notification/httpServer/ServerStart';
