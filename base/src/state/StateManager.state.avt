@@ -10,15 +10,15 @@ export type StateSlug = UriParamsValue;
 @Storybook({
     prefix: "State"
 })
-type StateActivationFct = (state: State, slugs: StateSlug) => void;
+    type StateActivationFct = (state: State, slugs: StateSlug) => void;
 @Storybook({
     prefix: "State"
 })
-type StateInactivationFct = (state: State, nextState: State, slugs: StateSlug) => void;
+    type StateInactivationFct = (state: State, nextState: State, slugs: StateSlug) => void;
 @Storybook({
     prefix: "State"
 })
-type StateAskChangeFct = (state: State, nextState: State, slugs: StateSlug) => Promise<boolean>;
+    type StateAskChangeFct = (state: State, nextState: State, slugs: StateSlug) => Promise<boolean>;
 @Storybook({
     prefix: "State"
 })
@@ -30,25 +30,25 @@ export interface StateAction {
 @Storybook({
     prefix: "State"
 })
-type Subscriber = {
-    regex: RegExp,
-    params: { name: string, type: "number" | "string", position: number; }[],
-    isActive: boolean,
-    callbacks: {
-        active: StateActivationFct[],
-        inactive: StateInactivationFct[],
-        askChange: StateAskChangeFct[],
+    type Subscriber = {
+        regex: RegExp,
+        params: { name: string, type: "number" | "string", position: number; }[],
+        isActive: boolean,
+        callbacks: {
+            active: StateActivationFct[],
+            inactive: StateInactivationFct[],
+            askChange: StateAskChangeFct[],
+        };
     };
-};
 
 @Storybook({
     prefix: "State"
 })
 export interface IStateManager {
-    subscribe(statePatterns: string | string[], callbacks: StateAction);
-    unsubscribe(statePatterns: string | string[], callbacks: StateAction);
-    onAfterStateChanged(cb: () => void);
-    offAfterStateChanged(cb: () => void);
+    subscribe(statePatterns: string | string[], callbacks: StateAction): void;
+    unsubscribe(statePatterns: string | string[], callbacks: StateAction): void;
+    onAfterStateChanged(cb: () => void): void;
+    offAfterStateChanged(cb: () => void): void;
     setState(state: State | string): Promise<boolean>;
     getState(): State | undefined;
     isStateActive(statePattern: string): boolean;
@@ -74,7 +74,7 @@ export abstract class StateManager implements IStateManager {
     /**
      * Subscribe actions for a state or a state list
      */
-    public subscribe(statePatterns: string | string[], callbacks: StateAction, autoActiveState: boolean = true) {
+    public subscribe(statePatterns: string | string[], callbacks: StateAction, autoActiveState: boolean = true): void {
         if(!callbacks.active && !callbacks.inactive && !callbacks.askChange) {
             this._log(`Trying to subscribe to state : ${statePatterns} with no callbacks !`, "warning");
             return;
@@ -162,7 +162,7 @@ export abstract class StateManager implements IStateManager {
     /**
      * Unsubscribe actions for a state or a state list
      */
-    public unsubscribe(statePatterns: string | string[], callbacks: StateAction) {
+    public unsubscribe(statePatterns: string | string[], callbacks: StateAction): void {
         if(!callbacks.active && !callbacks.inactive && !callbacks.askChange) {
             this._log(`Trying to unsubscribe to state : ${statePatterns} with no callbacks !`, "warning");
             return;
@@ -218,10 +218,10 @@ export abstract class StateManager implements IStateManager {
         }
     }
 
-    public onAfterStateChanged(cb: () => void) {
+    public onAfterStateChanged(cb: () => void): void {
         this.afterStateChanged.add(cb);
     }
-    public offAfterStateChanged(cb: () => void) {
+    public offAfterStateChanged(cb: () => void): void {
         this.afterStateChanged.remove(cb);
     }
 

@@ -9,7 +9,7 @@ import { Watcher } from "../lib/Watcher.lib.avt";
 @Storybook({
     prefix: "Tools"
 })
-export function compareObject(obj1, obj2): boolean {
+export function compareObject(obj1: any, obj2: any): boolean {
     if(Array.isArray(obj1)) {
         // array
         if(!Array.isArray(obj2)) {
@@ -126,7 +126,7 @@ export function getValueFromObject(path: string, obj: any) {
         return obj;
     }
 
-    const val = (key) => {
+    const val = (key: string) => {
         if(obj instanceof Map) {
             return obj.get(key);
         }
@@ -166,7 +166,7 @@ export function setValueToObject(path: string, obj: any, value: any) {
     // Convert bracket notation to dot notation
     path = path.replace(/\[(.*?)\]/g, '.$1');
 
-    const val = (key) => {
+    const val = (key: string) => {
         if(obj instanceof Map) {
             return obj.get(key);
         }

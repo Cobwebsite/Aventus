@@ -161,8 +161,9 @@ export class TouchRecord {
 
         const vel = this.getVelocity();
 
-        Object.keys(vel).forEach(dir => {
+        Object.keys(vel).forEach((_dir) => {
             // ignore small velocity
+            const dir = _dir as 'x' | 'y'
             let v = Math.abs(vel[dir]) <= 10 ? 0 : vel[dir];
 
             while(v !== 0) {

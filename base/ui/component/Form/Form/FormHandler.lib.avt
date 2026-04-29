@@ -290,8 +290,9 @@ namespace Form {
             }
             else if(path.startsWith("item.")) {
                 let key = path.substring("item.".length);
-                if(this.parts[key]) {
-                    let formPart = this.parts[key] as InternalFormPart;
+                const parts = this.parts as any;
+                if(parts[key]) {
+                    let formPart = parts[key] as InternalFormPart;
                     formPart.onValueChange.trigger();
                     const validateOnChange = formPart.validateOnChange === undefined ? this._validateOnChange : formPart.validateOnChange;
                     if(validateOnChange) {
@@ -376,11 +377,12 @@ namespace Form {
             const result = await this._validate(key);
             const unhandle: { [K in keyof T]?: string[]; } = {};
             let triggerUnhandle = false;
+            const els = this._elements as any;
             for(let key in result) {
                 // si on ne trouve pas de formElement, on affiche un message
-                if(!this._elements[key] || this._elements[key].length == 0) {
+                if(!els[key] || els[key].length == 0) {
                     triggerUnhandle = true;
-                    unhandle[key] = result[key];
+                    unhandle[key as keyof T] = result[key];
                 }
             }
 
@@ -452,10 +454,12 @@ namespace Form {
 
             // v2
             const result: { fieldName: string, messages: string[]; }[] = [];
-            for(let key in error.details) {
+            const details = error.details;
+            for(let key in details) {
+                const messages = (details as any)[key]
                 result.push({
                     fieldName: key,
-                    messages: error.details[key]
+                    messages: messages
                 });
             }
             return result;
@@ -472,7 +476,7 @@ namespace Form {
                 let applied = false;
 
                 for(const { fieldName, messages } of extractions) {
-                    const targetElements = elements[fieldName] as IFormElement<any>[] | undefined;
+                    const targetElements = elements[fieldName as keyof typeof elements] as IFormElement<any>[] | undefined;
                     if(targetElements) {
                         for(let element of targetElements) {
                             element.errors.push(...messages);

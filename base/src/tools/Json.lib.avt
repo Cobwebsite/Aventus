@@ -16,7 +16,7 @@ export type JsonFromOptions = {
     transformValue?: (key: string, value: any) => any;
     replaceUndefined?: boolean;
     /** Define if you want to replace undefined if key:undefined */
-    replaceUndefinedWithKey?: boolean
+    replaceUndefinedWithKey?: boolean;
 };
 
 /**
@@ -60,7 +60,8 @@ export class Json {
                 if(options.isValidKey(key)) {
                     let descriptor = descriptorsClass[key];
                     if(descriptor?.get) {
-                        result[options.replaceKey(key)] = options.transformValue(key, obj[key]);
+                        const o = obj as any;
+                        result[options.replaceKey(key)] = options.transformValue(key, o[key]);
                     }
                 }
             }
@@ -95,7 +96,8 @@ export class Json {
             if(value !== undefined || options.replaceUndefined || (options.replaceUndefinedWithKey && (Object.hasOwn(data, prop) || Object.hasOwn(data, propUpperFirst)))) {
                 let propInfo = Object.getOwnPropertyDescriptor(obj, prop);
                 if(propInfo?.writable) {
-                    obj[prop] = options.transformValue(prop, value);
+                    const o = obj as any;
+                    o[prop] = options.transformValue(prop, value);
                 }
             }
         }
@@ -109,7 +111,8 @@ export class Json {
                 if(value !== undefined || options.replaceUndefined || (options.replaceUndefinedWithKey && (Object.hasOwn(data, prop) || Object.hasOwn(data, propUpperFirst)))) {
                     let propInfo = Object.getOwnPropertyDescriptor(cstTemp.prototype, prop);
                     if(propInfo?.set) {
-                        obj[prop] = options.transformValue(prop, value);
+                        const o = obj as any;
+                        o[prop] = options.transformValue(prop, value);
                     }
                 }
             }

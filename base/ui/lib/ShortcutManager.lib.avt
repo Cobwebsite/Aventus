@@ -184,7 +184,7 @@ namespace Lib {
             if(this.isTxt(e.key) && !this.arrayKeys.includes(e.key)) {
                 this.arrayKeys.push(e.key);
             }
-            else if(SpecialTouch[e.key] !== undefined && !this.arrayKeys.includes(e.key)) {
+            else if((SpecialTouch as any)[e.key] !== undefined && !this.arrayKeys.includes(e.key)) {
                 this.arrayKeys.push(e.key);
             }
 

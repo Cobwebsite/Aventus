@@ -44,7 +44,8 @@ namespace Form {
                 if(!config) {
                     config = {};
                 }
-                config.submit = new controller()[fcts[0]];
+                const ctrl = new controller() as any;
+                config.submit = ctrl[fcts[0]];
                 return new FormHandlerController(controller, schema, config);
             }
             throw "There isn't exaclty one function inside your controller " + JSON.stringify(fcts);

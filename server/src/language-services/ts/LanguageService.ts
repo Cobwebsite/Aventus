@@ -101,7 +101,7 @@ export class AventusTsLanguageService {
                 };
             },
             getCurrentDirectory: () => '',
-            getDefaultLibFileName: (_options: CompilerOptions) => 'es2022.full',
+            getDefaultLibFileName: (_options: CompilerOptions) => 'es2025.full',
             readFile: (fileName: string, _encoding?: string | undefined): string | undefined => {
                 if (this.filesLoaded[fileName]) {
                     return this.filesLoaded[fileName].file.contentInternal;
@@ -170,7 +170,7 @@ export class AventusTsLanguageService {
                 };
             },
             getCurrentDirectory: () => '',
-            getDefaultLibFileName: (_options: CompilerOptions) => 'es2022.full',
+            getDefaultLibFileName: (_options: CompilerOptions) => 'es2025.full',
             readFile: (fileName: string, _encoding?: string | undefined): string | undefined => {
                 let result: string | undefined = undefined;
                 if (this.filesLoaded[fileName]) {
@@ -1577,8 +1577,8 @@ const compilerOptionsRead: CompilerOptions = {
     importHelpers: false,
     allowJs: true,
     checkJs: false,
-    lib: ['lib.es2022.full.d.ts'],
-    target: ScriptTarget.ES2022,
+    lib: ['lib.es2025.full.d.ts'],
+    target: ScriptTarget.ES2025,
     moduleDetection: ModuleDetectionKind.Force,
     moduleResolution: ModuleResolutionKind.NodeNext,
     experimentalDecorators: true,
@@ -1590,10 +1590,6 @@ const compilerOptionsRead: CompilerOptions = {
     verbatimModuleSyntax: true,
     baseUrl: "./",
     // TODO delete
-    "useUnknownInCatchVariables": false,
-    suppressImplicitAnyIndexErrors: true,
-    "noImplicitAny": false,
-    "strictFunctionTypes": false
 
 };
 const compilerOptionsCompile: CompilerOptions = {
@@ -1602,8 +1598,8 @@ const compilerOptionsCompile: CompilerOptions = {
     importHelpers: false,
     allowJs: true,
     checkJs: false,
-    lib: ['lib.es2022.full.d.ts'],
-    target: ScriptTarget.ES2022,
+    lib: ['lib.es2025.full.d.ts'],
+    target: ScriptTarget.ES2025,
     moduleDetection: ModuleDetectionKind.Auto,
     moduleResolution: ModuleResolutionKind.NodeNext,
     experimentalDecorators: true,
@@ -1614,10 +1610,6 @@ const compilerOptionsCompile: CompilerOptions = {
     verbatimModuleSyntax: true,
     baseUrl: "./",
     // TODO delete
-    "useUnknownInCatchVariables": false,
-    suppressImplicitAnyIndexErrors: true,
-    "noImplicitAny": false,
-    "strictFunctionTypes": false
 };
 const completionOptions: GetCompletionsAtPositionOptions = {
     includeExternalModuleExports: true,

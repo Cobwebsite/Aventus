@@ -5,7 +5,7 @@ import { Callback } from "./Callback.lib.avt";
 })
 export interface Pointer {
     id: number;
-    constructor(nativePointer: Touch | PointerEvent);
+    constructor(nativePointer: Touch | PointerEvent): Pointer;
 }
 
 @Storybook({
@@ -182,21 +182,21 @@ export class PressManager {
     protected pointersRecord: { [id: number]: Event; } = {};
 
     protected functionsBinded: {
-        downAction: (e: PointerEvent) => void,
-        downActionDelay: (e: PointerEvent) => void,
-        upAction: (e: PointerEvent) => void,
-        moveAction: (e: PointerEvent) => void,
-        childPressStart: (e: InternalPointerEvent) => void,
-        childPressEnd: (e: InternalPointerEvent) => void,
-        childPressMove: (e: InternalPointerEvent) => void,
+        downAction: (e: Event) => void,
+        downActionDelay: (e: Event) => void,
+        upAction: (e: Event) => void,
+        moveAction: (e: Event) => void,
+        childPressStart: (e: Event) => void,
+        childPressEnd: (e: Event) => void,
+        childPressMove: (e: Event) => void,
     } = {
-            downAction: (e: PointerEvent) => { },
-            downActionDelay: (e: PointerEvent) => { },
-            upAction: (e: PointerEvent) => { },
-            moveAction: (e: PointerEvent) => { },
-            childPressStart: (e: InternalPointerEvent) => { },
-            childPressEnd: (e: InternalPointerEvent) => { },
-            childPressMove: (e: InternalPointerEvent) => { }
+            downAction: (e: Event) => { },
+            downActionDelay: (e: Event) => { },
+            upAction: (e: Event) => { },
+            moveAction: (e: Event) => { },
+            childPressStart: (e: Event) => { },
+            childPressEnd: (e: Event) => { },
+            childPressMove: (e: Event) => { }
         };
     /**
      * @param {*} options - The options
@@ -383,7 +383,8 @@ export class PressManager {
         }
     }
     private pointerEventTriggered: boolean = false;
-    protected downActionDelay(ev: PointerEvent | TouchEvent) {
+    protected downActionDelay(_ev: Event) {
+        const ev = _ev as PointerEvent | TouchEvent;
         if(!this.pointerEventTriggered) {
             this.downAction(ev);
         }
@@ -394,7 +395,8 @@ export class PressManager {
             this.pointerEventTriggered = false;
         }, 0);
     }
-    protected downAction(ev: PointerEvent | TouchEvent) {
+    protected downAction(_ev: Event) {
+        const ev = _ev as PointerEvent | TouchEvent;
         this.pointerEventTriggered = true;
         const isFirst = Object.values(this.pointersRecord).length == 0;
         if(!this.registerEvent(ev)) {
@@ -491,7 +493,8 @@ export class PressManager {
             }
         }
     }
-    protected upAction(ev: PointerEvent | TouchEvent) {
+    protected upAction(_ev: Event) {
+        const ev = _ev as PointerEvent | TouchEvent;
         if(!this.unregisterEvent(ev)) {
             if(this.stopPropagation()) {
                 ev.stopImmediatePropagation();
@@ -554,7 +557,8 @@ export class PressManager {
             }
         }
     }
-    protected moveAction(ev: PointerEvent) {
+    protected moveAction(_ev: Event) {
+        const ev = _ev as PointerEvent;
         const e = new NormalizedEvent(ev);
         if(this.options.onEvent) {
             this.options.onEvent(e);
@@ -576,7 +580,8 @@ export class PressManager {
     // #endregion
 
     // #region custom Event
-    protected childPressStart(e: InternalPointerEvent) {
+    protected childPressStart(_e: Event) {
+        const e = _e as InternalPointerEvent;
         if(this.lastEmitEvent == e.detail.realEvent) return;
 
         this.genericDownAction(e.detail.state, e.detail.realEvent);
@@ -585,7 +590,8 @@ export class PressManager {
         }
 
     }
-    protected childPressEnd(e: InternalPointerEvent) {
+    protected childPressEnd(_e: Event) {
+        const e = _e as InternalPointerEvent;
         this.unregisterEvent(e.detail.realEvent.event);
         if(Object.values(this.pointersRecord).length == 0) {
             document.removeEventListener("pointerup", this.functionsBinded.upAction);
@@ -601,7 +607,8 @@ export class PressManager {
             this.options.onPressEnd(e.detail.realEvent, this);
         }
     }
-    protected childPressMove(e: InternalPointerEvent) {
+    protected childPressMove(_e: Event) {
+        const e = _e as InternalPointerEvent;
         if(this.lastEmitEvent == e.detail.realEvent) return;
 
         this.genericMoveAction(e.detail.state, e.detail.realEvent);
