@@ -15,7 +15,7 @@
 			],
 			"preLaunchTask": {
 				"type": "npm",
-				"script": "watch"
+				"script": "watch",
 			}
 		},
 		{
@@ -24,9 +24,13 @@
 			"name": "Attach to Server",
 			"port": 6009,
 			"restart": true,
+			"sourceMaps": true,
 			"outFiles": [
 				"${workspaceRoot}/server/out/**/*.js"
-			]
+			],
+			"sourceMapPathOverrides": {
+				"webpack:///./src/*": "${workspaceRoot}/server/src/*"
+			}
 		},
 		{
 			"name": "Language Server E2E Test",
@@ -57,7 +61,8 @@
 			"name": "Launch CLI Test",
 			"program": "${workspaceFolder}/cli/out/cli.js",
 			"args": [
-				"dependances", "help-llm"
+				"dependances",
+				"help-llm"
 			],
 			"cwd": "D:/Spalio/Web",
 			"outFiles": [
