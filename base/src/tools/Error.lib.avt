@@ -30,11 +30,16 @@ export class GenericError<T extends (number | Enum) = any> {
     /**
      * Creates a new instance of GenericError.
      * @param {EnumValue<T>} code - The error code.
-     * @param {string} message - The error message.
+     * @param {string | Error | unknown} message - The error message.
      */
-    public constructor(code: EnumValue<T>, message: string) {
+    public constructor(code: EnumValue<T>, message: string | Error | unknown) {
         this.code = code;
-        this.message = message + '';
+        if(message instanceof Error) {
+            this.message = message.message;
+        }
+        else {
+            this.message = message + '';
+        }
     }
 }
 

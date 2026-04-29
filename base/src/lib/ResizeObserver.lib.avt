@@ -2,22 +2,22 @@
     prefix: "Lib/ResizeObserver"
 })
 export interface ResizeObserverOptions {
-    callback: CallableFunction;
+    callback: ResizeObserverCallback;
     fps?: number;
 }
 @Storybook({
     prefix: "Lib/ResizeObserver"
 })
-type WindowResizeObserver = globalThis.ResizeObserver;
+    type WindowResizeObserver = globalThis.ResizeObserver;
 @Storybook({
     prefix: "Lib/ResizeObserver"
 })
 export class ResizeObserver {
-    private callback: CallableFunction;
+    private callback: ResizeObserverCallback;
     private targets: Element[];
     private fpsInterval: number = -1;
     private nextFrame: number;
-    private entriesChangedEvent: {};
+    private entriesChangedEvent: { [key: string]: ResizeObserverEntry; };
     private willTrigger: boolean;
 
     private static resizeObserverClassByObject: {
@@ -30,7 +30,8 @@ export class ResizeObserver {
                 let allClasses: ResizeObserver[] = [];
                 for(let j = 0; j < entries.length; j++) {
                     let entry = entries[j];
-                    let index: string = entry.target['sourceIndex'];
+                    const target = entry.target as any;
+                    let index: string = target['sourceIndex'];
                     if(ResizeObserver.resizeObserverClassByObject[index]) {
                         for(let i = 0; i < ResizeObserver.resizeObserverClassByObject[index].length; i++) {
                             let classTemp = ResizeObserver.resizeObserverClassByObject[index][i];
@@ -49,7 +50,7 @@ export class ResizeObserver {
         return ResizeObserver.uniqueInstance;
     }
 
-    constructor(options: ResizeObserverOptions | CallableFunction) {
+    constructor(options: ResizeObserverOptions | ResizeObserverCallback) {
         let realOption: ResizeObserverOptions;
         if(options instanceof Function) {
             realOption = {
@@ -76,34 +77,36 @@ export class ResizeObserver {
      * Observe size changing for the element
      */
     public observe(target: Element) {
-        if(!target["sourceIndex"]) {
-            target["sourceIndex"] = Math.random().toString(36);
-            this.targets.push(target);
-            ResizeObserver.getUniqueInstance().observe(target);
+        const _target = target as Element & { sourceIndex: string; };
+        if(!_target["sourceIndex"]) {
+            _target["sourceIndex"] = Math.random().toString(36);
+            this.targets.push(_target);
+            ResizeObserver.getUniqueInstance().observe(_target);
         }
-        if(!ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]]) {
-            ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]] = []
+        if(!ResizeObserver.resizeObserverClassByObject[_target["sourceIndex"]]) {
+            ResizeObserver.resizeObserverClassByObject[_target["sourceIndex"]] = [];
         }
 
-        if(ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]].indexOf(this) == -1) {
-            ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]].push(this);
+        if(ResizeObserver.resizeObserverClassByObject[_target["sourceIndex"]].indexOf(this) == -1) {
+            ResizeObserver.resizeObserverClassByObject[_target["sourceIndex"]].push(this);
         }
     }
     /**
      * Stop observing size changing for the element
      */
     public unobserve(target: Element) {
+        const _target = target as Element & { sourceIndex: string; };
         for(let i = 0; this.targets.length; i++) {
             let tempTarget = this.targets[i];
-            if(tempTarget == target) {
-                let position = ResizeObserver.resizeObserverClassByObject[target['sourceIndex']].indexOf(this);
+            if(tempTarget == _target) {
+                let position = ResizeObserver.resizeObserverClassByObject[_target['sourceIndex']].indexOf(this);
                 if(position != -1) {
-                    ResizeObserver.resizeObserverClassByObject[target['sourceIndex']].splice(position, 1);
+                    ResizeObserver.resizeObserverClassByObject[_target['sourceIndex']].splice(position, 1);
                 }
-                if(ResizeObserver.resizeObserverClassByObject[target['sourceIndex']].length == 0) {
-                    delete ResizeObserver.resizeObserverClassByObject[target['sourceIndex']];
+                if(ResizeObserver.resizeObserverClassByObject[_target['sourceIndex']].length == 0) {
+                    delete ResizeObserver.resizeObserverClassByObject[_target['sourceIndex']];
                 }
-                ResizeObserver.getUniqueInstance().unobserve(target);
+                ResizeObserver.getUniqueInstance().unobserve(_target);
                 this.targets.splice(i, 1);
                 return;
             }
@@ -117,12 +120,13 @@ export class ResizeObserver {
             this.unobserve(this.targets[i]);
         }
     }
-    private entryChanged(entry) {
-        let index = entry.target.sourceIndex;
+    private entryChanged(entry: ResizeObserverEntry) {
+        const _target = entry.target as Element & { sourceIndex: string; };
+        let index = _target.sourceIndex;
         this.entriesChangedEvent[index] = entry;
     }
     private triggerCb() {
-        if (!this.willTrigger) {
+        if(!this.willTrigger) {
             this.willTrigger = true;
             this._triggerCb();
         }
@@ -130,7 +134,7 @@ export class ResizeObserver {
     private _triggerCb() {
         let now = window.performance.now();
         let elapsed = now - this.nextFrame;
-        if (this.fpsInterval != -1 && elapsed <= this.fpsInterval) {
+        if(this.fpsInterval != -1 && elapsed <= this.fpsInterval) {
             requestAnimationFrame(() => {
                 this._triggerCb();
             });
@@ -141,7 +145,7 @@ export class ResizeObserver {
         this.entriesChangedEvent = {};
         this.willTrigger = false;
         setTimeout(() => {
-            this.callback(changed);
-        }, 0)
+            this.callback(changed, ResizeObserver.uniqueInstance);
+        }, 0);
     }
 }

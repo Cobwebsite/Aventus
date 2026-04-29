@@ -7,7 +7,7 @@ export class Message {
     }
 
     public static send(data: any) {
-        window['vscode'].postMessage({
+        (window as any)['vscode'].postMessage({
             type: 'add'
         });
     }

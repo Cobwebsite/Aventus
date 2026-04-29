@@ -36,7 +36,7 @@ export class ConverterTransform implements IConverterTransform {
         return this.transformLoop(data);
     }
 
-    protected createInstance(data): (Object & { fromJSON?: (data: any) => any; }) | undefined {
+    protected createInstance(data: Record<string, any>): (Object & { fromJSON?: (data: any) => any; }) | undefined {
         if(data.$type) {
             let cst = Converter.info.get(data.$type);
             if(cst) {
@@ -80,7 +80,7 @@ export class ConverterTransform implements IConverterTransform {
                     }
                     return objTemp;
                 }
-                let obj = objTemp;
+                let obj = objTemp as Record<string, any>;
                 this.beforeTransformObject(obj);
                 if(obj.fromJSON) {
                     obj = obj.fromJSON(data);
@@ -128,7 +128,7 @@ export class ConverterTransform implements IConverterTransform {
                 return obj;
             }
 
-            let result = {};
+            let result: Record<string, any> = {};
             for(let key in data) {
                 result[key] = this.transformLoop(data[key]);
             }
@@ -157,8 +157,11 @@ export class ConverterTransform implements IConverterTransform {
         for(let prop of props) {
             let propInfo = Object.getOwnPropertyDescriptor(target, prop);
             if(propInfo?.writable) {
-                if(options.isValidKey(prop))
-                    target[options.replaceKey(prop)] = options.transformValue(prop, src[prop]);
+                if(options.isValidKey(prop)) {
+                    const _target = target as any;
+                    const _src = src as any;
+                    _target[options.replaceKey(prop)] = options.transformValue(prop, _src[prop]);
+                }
             }
         }
         // load custom getter / setter
@@ -168,8 +171,11 @@ export class ConverterTransform implements IConverterTransform {
             for(let prop of props) {
                 let propInfo = Object.getOwnPropertyDescriptor(cstTemp.prototype, prop);
                 if(propInfo?.set && propInfo.get) {
-                    if(options.isValidKey(prop))
-                        target[options.replaceKey(prop)] = options.transformValue(prop, src[prop]);
+                    if(options.isValidKey(prop)) {
+                        const _target = target as any;
+                        const _src = src as any;
+                        _target[options.replaceKey(prop)] = options.transformValue(prop, _src[prop]);
+                    }
                 }
             }
             cstTemp = Object.getPrototypeOf(cstTemp);

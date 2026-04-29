@@ -1,3 +1,4 @@
+import type { Asyncable } from "Aventus@Main:Aventus.package.avt";
 import type { StateManager } from "./StateManager.state.avt";
 
 @Storybook({
@@ -6,8 +7,8 @@ import type { StateManager } from "./StateManager.state.avt";
 export interface IState {
     readonly name: string;
     activate(manager: StateManager): Promise<boolean>;
-    onActivate();
-    onInactivate(nextState: State);
+    onActivate(): Asyncable<void>;
+    onInactivate(nextState: State): Asyncable<void>;
     askChange(state: State, nextState: State): Promise<boolean>;
 }
 @Storybook({
@@ -19,7 +20,7 @@ export abstract class State implements IState {
      * It ll be a generic state with no information inside exept name
      */
     public static async activate(stateName: string, manager: StateManager): Promise<boolean> {
-        return await manager.setState(stateName)
+        return await manager.setState(stateName);
     }
 
     public abstract get name(): string;
@@ -31,10 +32,10 @@ export abstract class State implements IState {
     }
 
 
-    public onActivate() {
+    public onActivate(): Asyncable<void> {
 
     }
-    public onInactivate(nextState: State) {
+    public onInactivate(nextState: State): Asyncable<void> {
 
     }
     public async askChange(state: State, nextState: State): Promise<boolean> {

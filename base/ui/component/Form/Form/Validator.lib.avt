@@ -48,7 +48,7 @@ namespace Form {
          * Retrieves the error message for the validator, optionally replacing placeholders.
          */
         protected getMsg(replace?: { [field: string]: string; }): string {
-            let msg: string | (() => string) = this._msg ?? this.constructor['msg'];
+            let msg: string | (() => string) = this._msg ?? (this.constructor as any)['msg'];
             if(typeof msg == 'function') msg = msg();
             if(replace) {
                 for(let field in replace) {

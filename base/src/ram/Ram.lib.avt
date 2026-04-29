@@ -240,7 +240,7 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
                 result.errors.push(new RamError(RamErrorCode.noItemInsideRam, "Can't find this item inside the ram"));
                 return result;
             }
-            public onUpdate(callback) {
+            public onUpdate(callback: (item: this) => void) {
                 let id = that.getId(this);
                 if(!that.recordsSubscribers.has(id)) {
                     that.recordsSubscribers.set(id, {
@@ -250,15 +250,15 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
                     });
                 }
                 let sub = that.recordsSubscribers.get(id);
-                if(sub && !sub.updated.includes(callback)) {
-                    sub.updated.push(callback);
+                if(sub && !sub.updated.includes(callback as any)) {
+                    sub.updated.push(callback as any);
                 }
             }
-            public offUpdate(callback) {
+            public offUpdate(callback: (item: this) => void) {
                 let id = that.getId(this);
                 let sub = that.recordsSubscribers.get(id);
                 if(sub) {
-                    let index = sub.updated.indexOf(callback);
+                    let index = sub.updated.indexOf(callback as any);
                     if(index != -1) {
                         sub.updated.splice(index, 1);
                     }
@@ -280,7 +280,7 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
                 result.errors = queryDelete.errors;
                 return result;
             }
-            public onDelete(callback) {
+            public onDelete(callback: (item: this) => void) {
                 let id = that.getId(this);
                 if(!that.recordsSubscribers.has(id)) {
                     that.recordsSubscribers.set(id, {
@@ -290,15 +290,15 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
                     });
                 }
                 let sub = that.recordsSubscribers.get(id);
-                if(sub && !sub.deleted.includes(callback)) {
-                    sub.deleted.push(callback);
+                if(sub && !sub.deleted.includes(callback as any)) {
+                    sub.deleted.push(callback as any);
                 }
             }
-            public offDelete(callback) {
+            public offDelete(callback: (item: this) => void) {
                 let id = that.getId(this);
                 let sub = that.recordsSubscribers.get(id);
                 if(sub) {
-                    let index = sub.deleted.indexOf(callback);
+                    let index = sub.deleted.indexOf(callback as any);
                     if(index != -1) {
                         sub.deleted.splice(index, 1);
                     }

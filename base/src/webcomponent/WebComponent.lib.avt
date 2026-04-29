@@ -140,7 +140,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
      * The current namespace
      */
     public get namespace(): string {
-        return this.constructor['Namespace'];
+        return (this.constructor as any)['Namespace'];
     }
     /**
      * Get the name of the component class
@@ -153,14 +153,14 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
      * The current tag
      */
     public get tag(): string {
-        return this.constructor['Tag'];
+        return (this.constructor as any)['Tag'];
     }
 
     /**
     * Get the unique type for the data. Define it as the namespace + class name
     */
     public get $type(): string {
-        return this.constructor['Fullname'];
+        return (this.constructor as any)['Fullname'];
     }
 
     @Internal()
@@ -306,7 +306,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
             }
         }
         for(let name in this.__watchFunctions) {
-            this.__watchFunctionsComputed[name] = Watcher.computed(this[name].bind(this));
+            this.__watchFunctionsComputed[name] = Watcher.computed((this as any)[name].bind(this));
             if(this.__watchFunctions[name].autoInit) {
                 this.__watchFunctionsComputed[name].value;
             }
@@ -337,7 +337,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
             }
         });
     }
-    private __defaultValuesSignal(s) { }
+    private __defaultValuesSignal(s: any) { }
 
     private __addPropertyActions(name: string, fct?: (target: HTMLElement) => void) {
         if(!this.__onChangeFct[name]) {
@@ -466,44 +466,46 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
         }
     }
     private __defaultValues() { }
-    private __defaultValuesWatch(w) { }
+    private __defaultValuesWatch(w: any) { }
     private __upgradeAttributes() { }
     private __listBoolProps(): string[] {
         return [];
     }
     private __upgradeProperty(prop: string) {
         let boolProps = this.__listBoolProps();
+        const t: any = this;
         if(boolProps.indexOf(prop) != -1) {
             if(this.hasAttribute(prop) && (this.getAttribute(prop) === "true" || this.getAttribute(prop) === "")) {
                 let value = this.getAttribute(prop);
-                delete this[prop];
-                this[prop] = value;
+                delete t[prop];
+                t[prop] = value;
             }
             else {
                 this.removeAttribute(prop);
-                delete this[prop];
-                this[prop] = false;
+                delete t[prop];
+                t[prop] = false;
             }
         }
         else {
             if(this.hasAttribute(prop)) {
                 let value = this.getAttribute(prop);
-                delete this[prop];
-                this[prop] = value;
+                delete t[prop];
+                t[prop] = value;
             }
             else if(Object.hasOwn(this, prop)) {
-                const value = this[prop];
-                delete this[prop];
-                this[prop] = value;
+                const value = t[prop];
+                delete t[prop];
+                t[prop] = value;
             }
         }
     }
 
     private __correctGetter(prop: string) {
         if(Object.hasOwn(this, prop)) {
-            const value = this[prop];
-            delete this[prop];
-            this[prop] = value;
+            const t: any = this;
+            const value = t[prop];
+            delete t[prop];
+            t[prop] = value;
         }
     }
 
@@ -772,7 +774,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
     private __propertyReceivers: { [name: string]: EffectReceiver & { onChange: () => void; }; } = {};
     private getReceiver(name: string): EffectReceiver {
         if(!this.__propertyReceivers[name]) {
-            let that = this;
+            let that: any = this;
             let result: EffectReceiver & { __subscribes: WatcherChange[]; onChange: () => void; } = {
                 __subscribes: [],
                 subscribe(fct: WatcherChange) {
@@ -800,7 +802,7 @@ export abstract class WebComponent extends HTMLElement implements DefaultCompone
     }
     //#endregion
 
-    private attributeChangedCallback(name, oldValue, newValue) {
+    private attributeChangedCallback(name: string, oldValue: any, newValue: any) {
         if(oldValue !== newValue || !this.isReady) {
             if(this.__propertyReceivers.hasOwnProperty(name)) {
                 this.__propertyReceivers[name].onChange();

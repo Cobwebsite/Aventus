@@ -43,7 +43,7 @@
 //                 };
 //             },
 //             getCurrentDirectory: () => '',
-//             getDefaultLibFileName: (_options: CompilerOptions) => 'es2022.full',
+//             getDefaultLibFileName: (_options: CompilerOptions) => 'es2025.full',
 //             readFile: (fileName: string, _encoding?: string | undefined): string | undefined => {
 //                 let result: string | undefined = undefined;
 //                 if (this.filesLoaded[fileName]) {
@@ -547,8 +547,8 @@
 //     importHelpers: false,
 //     allowJs: true,
 //     checkJs: false,
-//     lib: ['lib.es2022.full.d.ts'],
-//     target: ScriptTarget.ES2022,
+//     lib: ['lib.es2025.full.d.ts'],
+//     target: ScriptTarget.ES2025,
 //     moduleDetection: ModuleDetectionKind.Force,
 //     moduleResolution: ModuleResolutionKind.NodeNext,
 //     experimentalDecorators: true,
