@@ -463,7 +463,7 @@ export class TemplateScript {
 			for (let cb of cbs) {
 				cb(values)
 			}
-			return values;
+			resolve(values);
 		})
 
 	}
