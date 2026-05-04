@@ -82,6 +82,9 @@ export class AventusPackageFile extends AventusBaseFile {
 	public get fileParsed(): ParserTs | null {
 		return this.tsDef?.fileParsed || null;
 	}
+	public get definition(): string {
+		return this.tsFile!.contentUser
+	}
 
 
 	public dependances: { [name: string]: AventusConfigBuildDependance | string } = {};
@@ -328,7 +331,7 @@ export class AventusPackageFileTs extends AventusTsFile {
 			let splitted = this.file.uri.split("/");
 			let fileName = splitted[splitted.length - 1];
 			GenericServer.showErrorMessage("There is an error inside file :" + fileName);
-			console.log(e);
+			GenericServer.error(e);
 		}
 	}
 	protected loadFilePackage() {
@@ -379,7 +382,7 @@ export class AventusPackageFileTs extends AventusTsFile {
 			}
 		}
 		catch (e) {
-			console.log(e);
+			GenericServer.error(e);
 		}
 	}
 	protected deletePackageFile() {

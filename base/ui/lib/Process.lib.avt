@@ -1,17 +1,36 @@
 import type { ExtractFromError, GenericError } from "Aventus@Main:Aventus.package.avt";
 
+/**
+ * Configuration options for the Process utility class.
+ */
 export type ProcessConfig = {
     handleErrors: (msg: string, errors: GenericError[]) => void;
 };
+/**
+ * Utility class for executing asynchronous processes and handling errors.
+ */
 export class Process {
+    /**
+     * Static handler for processing generic errors.
+     */
     private static handleErrors?: (msg: string, errors: GenericError[]) => void;
+    /**
+     * Configures the Process utility with custom error handling.
+     */
     public static configure(config: ProcessConfig) {
         this.handleErrors = config.handleErrors;
     }
+
+    /**
+     * Executes an asynchronous promise and handles potential errors.
+     */
     public static async execute<X extends Aventus.ResultWithError<Y> | Aventus.VoidWithError, Y>(prom: Promise<X>): Promise<ExtractFromError<X, Y> | undefined> {
         const queryResult = await prom;
         return await this.parseErrors(queryResult);
     }
+    /**
+     * Parses and displays errors from a result object using the configured error handler.
+     */
     public static async parseErrors<X extends Aventus.ResultWithError<Y> | Aventus.VoidWithError, Y>(result: X): Promise<ExtractFromError<X> | undefined> {
         if(result.errors.length > 0) {
             if(this.handleErrors) {

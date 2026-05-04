@@ -162,12 +162,19 @@ export class Project {
         await this.onConfigSaveMutex.waitOne();
         await this.loadConfig();
         if (this.config) {
-            
+
+            for (let build of this.builds) {
+                build.destroy();
+            }
+            for (let _static of this.statics) {
+                _static.destroy();
+            }
+
             for (let build of this.config.build) {
                 if (this.buildsAllowed) {
                     if (!this.buildsAllowed.includes(build.name ?? "")) {
                         let b = this.builds.find(p => p.buildConfig.name == build.name);
-                        if(b) {
+                        if (b) {
                             b.build();
                         }
                         continue;

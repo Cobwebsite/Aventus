@@ -76,7 +76,7 @@ export class AventusTsLanguageService {
             },
             getScriptVersion: (fileName: string) => {
                 if (this.filesLoaded[fileName]) {
-                    return String(this.filesLoaded[fileName].file.versionUser + 1);
+                    return String(this.filesLoaded[fileName].version + 1);
                 } else if (this.i18nFiles[fileName]) {
                     return String(this.i18nFiles[fileName].file.versionUser + 1);
                 }
@@ -101,7 +101,7 @@ export class AventusTsLanguageService {
                 };
             },
             getCurrentDirectory: () => '',
-            getDefaultLibFileName: (_options: CompilerOptions) => 'es2022.full',
+            getDefaultLibFileName: (_options: CompilerOptions) => 'es2025.full',
             readFile: (fileName: string, _encoding?: string | undefined): string | undefined => {
                 if (this.filesLoaded[fileName]) {
                     return this.filesLoaded[fileName].file.contentInternal;
@@ -170,7 +170,7 @@ export class AventusTsLanguageService {
                 };
             },
             getCurrentDirectory: () => '',
-            getDefaultLibFileName: (_options: CompilerOptions) => 'es2022.full',
+            getDefaultLibFileName: (_options: CompilerOptions) => 'es2025.full',
             readFile: (fileName: string, _encoding?: string | undefined): string | undefined => {
                 let result: string | undefined = undefined;
                 if (this.filesLoaded[fileName]) {
@@ -1018,10 +1018,18 @@ export class AventusTsLanguageService {
         })
         return txt;
     }
-
-    private static replaceFirstExport(txt: string): string {
-        return txt.replace(/^\s*export\s+(class|interface|enum|type|abstract|function|async)/m, "$1");
+    private static removeEmptyComments(txt: string): string {
+        let regex = /\/\*. \*\//gm
+        txt = txt.replace(regex, (match, grp1, grp2) => {
+            if (grp2) {
+                return "";
+            }
+            return grp1;
+        })
+        return txt;
     }
+
+
     private static prepareDataSchema(classInfo: ClassInfo, moduleName: string, npm?: boolean): string {
         let template: { [prop: string]: string } = {};
         const _loadType = (type: TypeInfo) => {
@@ -1170,18 +1178,15 @@ export class AventusTsLanguageService {
 
 
             txt = this.removeComments(txt);
-            txt = this.replaceFirstExport(txt);
             const transpiled = transpile(txt, compilerOptionsCompile);
             result.compiled = transpiled + additionContent;
 
             if (HttpServer.isRunning) {
                 txtHotReload = this.removeComments(txtHotReload);
-                txtHotReload = this.replaceFirstExport(txtHotReload);
                 result.hotReload = transpile(txtHotReload, compilerOptionsCompile);
             }
 
-            txtDoc = this.removeComments(txtDoc);
-            txtDoc = this.replaceFirstExport(txtDoc);
+            txtDoc = this.removeEmptyComments(txtDoc);
             let rawDoc = this.compileDocTs(txtDoc, element);
             let doc = DefinitionCorrector.correct(rawDoc, element);
 
@@ -1336,7 +1341,6 @@ export class AventusTsLanguageService {
             }
 
             txt = this.removeComments(txt);
-            txt = this.replaceFirstExport(txt);
             const transpiled = transpile(txt, compilerOptionsCompile);
 
             const rawDoc = this.compileDocTs(txt, element);
@@ -1407,6 +1411,16 @@ export class AventusTsLanguageService {
             let result = ls.getEmitOutput("temp.js", true, true).outputFiles[0].text.replace(/^declare /g, '');
             if (element instanceof ClassInfo && !element.constructorBody && element.extraConstructorCode.length > 0) {
                 result = result.replace(/^ *constructor\(.*\);$/gm, "");
+            }
+            if (element instanceof ClassInfo && element.isWebcomponent) {
+                let file = element.build.tsFiles[element.fileUri]
+                if (file instanceof AventusWebComponentLogicalFile) {
+                    const regex = new RegExp("^ *private " + file.viewMethodName + "[0-9]+?;\n", "gm")
+                    result = result.replace(regex, "");
+                }
+            }
+            if (element?.documentation) {
+                result = element.documentation.fullDefinitions.join(EOL) + EOL + result
             }
             return result;
         } catch (e) {
@@ -1563,8 +1577,8 @@ const compilerOptionsRead: CompilerOptions = {
     importHelpers: false,
     allowJs: true,
     checkJs: false,
-    lib: ['lib.es2022.full.d.ts'],
-    target: ScriptTarget.ES2022,
+    lib: ['lib.es2025.full.d.ts'],
+    target: ScriptTarget.ES2025,
     moduleDetection: ModuleDetectionKind.Force,
     moduleResolution: ModuleResolutionKind.NodeNext,
     experimentalDecorators: true,
@@ -1575,6 +1589,7 @@ const compilerOptionsRead: CompilerOptions = {
     strictNullChecks: true,
     verbatimModuleSyntax: true,
     baseUrl: "./",
+    alwaysStrict: false,
 };
 const compilerOptionsCompile: CompilerOptions = {
     allowNonTsExtensions: true,
@@ -1582,8 +1597,8 @@ const compilerOptionsCompile: CompilerOptions = {
     importHelpers: false,
     allowJs: true,
     checkJs: false,
-    lib: ['lib.es2022.full.d.ts'],
-    target: ScriptTarget.ES2022,
+    lib: ['lib.es2025.full.d.ts'],
+    target: ScriptTarget.ES2025,
     moduleDetection: ModuleDetectionKind.Auto,
     moduleResolution: ModuleResolutionKind.NodeNext,
     experimentalDecorators: true,
@@ -1593,6 +1608,7 @@ const compilerOptionsCompile: CompilerOptions = {
     strictNullChecks: true,
     verbatimModuleSyntax: true,
     baseUrl: "./",
+    alwaysStrict: false,
 };
 const completionOptions: GetCompletionsAtPositionOptions = {
     includeExternalModuleExports: true,

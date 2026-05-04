@@ -34,6 +34,9 @@ export class ClassInfo extends BaseInfo {
 	public extendsType?: TypeInfo; // only used for stories
 	public implementsType: TypeInfo[] = [];
 	public extraConstructorCode: string[] = [];
+	public get isWebcomponent(): boolean {
+		return this.implements.includes("Aventus.DefaultComponent") && !this.isInterface
+	}
 
 	public get constructorContent(): string {
 		if (!this.constructorBody) {
@@ -227,7 +230,7 @@ export class ClassInfo extends BaseInfo {
 		this.loadDecorators();
 
 		this.addConstructor();
-		
+
 	}
 	private getClassInheritance(node: HeritageClause) {
 		if (node.token == SyntaxKind.ExtendsKeyword) {

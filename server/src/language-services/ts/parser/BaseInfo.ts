@@ -135,7 +135,6 @@ export abstract class BaseInfo {
     public get fileUri() {
         return this.document.uri;
     }
-    public debug: boolean = false;
     public document: TextDocument;
     private dependancePrevented: string[] = [];
     public dependancesLocations: {
@@ -192,9 +191,6 @@ export abstract class BaseInfo {
             }
             BaseInfo.infoByFullName[this.fullName] = this;
         }
-
-
-
     }
 
     protected loadDecorators() {
@@ -220,10 +216,8 @@ export abstract class BaseInfo {
     }
 
     private loadExpression(x: Node, depth2: number = 0, isStrongDependance: boolean = false) {
-        if (this.debug) {
-            console.log("***" + depth2 + ". " + x.getText());
-            console.log(SyntaxKind[x.kind]);
-        }
+        GenericServer.debug("***" + depth2 + ". " + x.getText());
+        GenericServer.debug(SyntaxKind[x.kind]);
         if (x.kind == SyntaxKind.ExpressionWithTypeArguments) {
             this.addDependance(x as ExpressionWithTypeArguments, isStrongDependance);
         }
@@ -624,9 +618,7 @@ export abstract class BaseInfo {
             onName();
             return
         }
-        if (this.debug) {
-            console.log("try add dependance " + name);
-        }
+        GenericServer.debug("try add dependance " + name);
 
         let match = /<.*>/g.exec(name);
         if (match) {
@@ -793,11 +785,9 @@ export abstract class BaseInfo {
                 uri: '@local',
                 isStrong: isStrongDependance,
             };
-            if (this.debug) {
-                console.log("add dependance " + name + " : same file");
-            }
+            GenericServer.debug("add dependance " + name + " : same file");
             if (this.dependancesLocations[name]) {
-                let replacement = fullName;
+                let replacement = this.build.module + "." + fullName;
                 if (this.isExported != this.parserInfo.internalObjects[name].isExported) {
                     if (!this.isExported) {
                         replacement = ['globalThis', this.build.module, fullName].join(".");
@@ -809,7 +799,7 @@ export abstract class BaseInfo {
 
                 this.dependancesLocations[name].typeRemplacement = replacement;
                 this.dependancesLocations[name].replacement = fullName;
-                this.dependancesLocations[name].docReplacement = fullName;
+                this.dependancesLocations[name].docReplacement = this.build.module + "." + fullName;
                 // no need to use getNpmReplacementName because local content can't change name
                 this.dependancesLocations[name].npmReplacement = name;
                 this.dependancesLocations[name].hotReloadReplacement = hotReloadName;
@@ -830,12 +820,10 @@ export abstract class BaseInfo {
                 uri: importInfo.fileUri,
                 isStrong: isStrongDependance,
             };
-            if (this.debug) {
-                console.log("add dependance " + name + " : imported file");
-            }
+            GenericServer.debug("add dependance " + name + " : imported file");
             const npmReplacement = this.getNpmReplacementName([this.build.module, fullName].join("."))
             if (this.dependancesLocations[name]) {
-                let typeRemplacement = fullName;
+                let typeRemplacement = this.build.module + "." + fullName;
                 if (this.isExported != importInfo.isExported) {
                     if (!this.isExported) {
                         typeRemplacement = ['globalThis', this.build.module, fullName].join(".");
@@ -854,7 +842,7 @@ export abstract class BaseInfo {
                 }
                 this.dependancesLocations[name].typeRemplacement = typeRemplacement;
                 this.dependancesLocations[name].replacement = remplacement;
-                this.dependancesLocations[name].docReplacement = fullName;
+                this.dependancesLocations[name].docReplacement = this.build.module + "." + fullName;;
                 this.dependancesLocations[name].npmReplacement = npmReplacement;
                 this.dependancesLocations[name].hotReloadReplacement = hotReloadName;
 
@@ -864,15 +852,13 @@ export abstract class BaseInfo {
             return
         }
         else if (this.parserInfo.waitingImports[name]) {
-            if (this.debug) {
-                console.log("add dependance " + name + " : but waiting import file");
-            }
+            GenericServer.debug("add dependance " + name + " : but waiting import file");
             this.parserInfo.waitingImports[name].push((info) => {
                 let fullName = info.fullName;
                 let hotReloadName = [this.build.module, ...this.build.namespaces, fullName].join(".");
                 const npmReplacement = this.getNpmReplacementName([this.build.module, fullName].join("."))
                 if (this.dependancesLocations[name]) {
-                    let replacement = fullName;
+                    let replacement = this.build.module + "." + fullName;
                     if (this.isExported != info.isExported) {
                         if (!this.isExported) {
                             replacement = ['globalThis', this.build.module, fullName].join(".");
@@ -884,7 +870,7 @@ export abstract class BaseInfo {
 
                     this.dependancesLocations[name].typeRemplacement = replacement;
                     this.dependancesLocations[name].replacement = fullName;
-                    this.dependancesLocations[name].docReplacement = fullName;
+                    this.dependancesLocations[name].docReplacement = this.build.module + "." + fullName;;
                     this.dependancesLocations[name].npmReplacement = npmReplacement;
                     this.dependancesLocations[name].hotReloadReplacement = hotReloadName;
 
@@ -934,9 +920,7 @@ export abstract class BaseInfo {
                 uri: "@npm",
                 isStrong: isStrongDependance,
             };
-            if (this.debug) {
-                console.log("add dependance " + name + " : npm");
-            }
+            GenericServer.debug("add dependance " + name + " : npm");
             let md5uri = md5(this.parserInfo.npmImports[name].uri);
             const npmReplacement = this.getNpmReplacementName(md5uri + "." + name);
             if (this.dependancesLocations[name]) {
@@ -974,9 +958,7 @@ export abstract class BaseInfo {
             uri: "@external",
             isStrong: isStrongDependance,
         };
-        if (this.debug) {
-            console.log("add dependance " + name + " : external");
-        }
+        GenericServer.debug("add dependance " + name + " : external");
         onName(name, name);
         return;
     }
@@ -1089,7 +1071,8 @@ export abstract class BaseInfo {
             txt = txt.slice(0, transformation.start) + transformation.newText + txt.slice(transformation.end, txt.length);
             lastPos = transformation.start;
         }
-        return txt;
+
+        return txt.replace(/^\s*export\s+(class|interface|enum|type|abstract|function|async)/m, "$1");
     }
 
     public loadStorieContent() {
@@ -1299,7 +1282,7 @@ export abstract class BaseInfo {
                         }
                     }
                     else {
-                        console.log("need implements property signature no type " + SyntaxKind[n.kind] + " " + from.fileUri);
+                        GenericServer.error("need implements property signature no type " + SyntaxKind[n.kind] + " " + from.fileUri);
                     }
                 }
                 else if (n.kind == SyntaxKind.IndexSignature) {
@@ -1327,7 +1310,7 @@ export abstract class BaseInfo {
                     }
                 }
                 else {
-                    console.log("need implements for " + SyntaxKind[n.kind] + " " + from.fileUri);
+                    GenericServer.error("need implements for " + SyntaxKind[n.kind] + " " + from.fileUri);
                 }
             })
 
@@ -1447,7 +1430,7 @@ export abstract class BaseInfo {
         }
 
         if (typeInfo.kind == "mock") {
-            console.log("mock type");
+            GenericServer.warning("mock type");
         }
 
         return undefined;

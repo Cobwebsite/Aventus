@@ -5,7 +5,19 @@
             get() {return Aventus.I18n.t;}
         });
 
+        Object.defineProperty(window, "tDyn", {
+            get() {return Aventus.I18n.t;}
+        });
+
         Aventus.WebComponent.prototype.t = function(key, params = {}) {
+            const i18n = Aventus.I18n;
+            const localeKey = this.$type.replace(/\./g, '°') + "°" + key;
+            if(i18n.hasKey(localeKey)) {
+                return i18n.t(localeKey, params);
+            }
+            return i18n.t(key, params);
+        }
+        Aventus.WebComponent.prototype.tDyn = function(key, params = {}) {
             const i18n = Aventus.I18n;
             const localeKey = this.$type.replace(/\./g, '°') + "°" + key;
             if(i18n.hasKey(localeKey)) {

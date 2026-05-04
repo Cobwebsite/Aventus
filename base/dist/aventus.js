@@ -973,7 +973,8 @@ let Json=class Json {
                 if (options.isValidKey(key)) {
                     let descriptor = descriptorsClass[key];
                     if (descriptor?.get) {
-                        result[options.replaceKey(key)] = options.transformValue(key, obj[key]);
+                        const o = obj;
+                        result[options.replaceKey(key)] = options.transformValue(key, o[key]);
                     }
                 }
             }
@@ -1006,7 +1007,8 @@ let Json=class Json {
             if (value !== undefined || options.replaceUndefined || (options.replaceUndefinedWithKey && (Object.hasOwn(data, prop) || Object.hasOwn(data, propUpperFirst)))) {
                 let propInfo = Object.getOwnPropertyDescriptor(obj, prop);
                 if (propInfo?.writable) {
-                    obj[prop] = options.transformValue(prop, value);
+                    const o = obj;
+                    o[prop] = options.transformValue(prop, value);
                 }
             }
         }
@@ -1019,7 +1021,8 @@ let Json=class Json {
                 if (value !== undefined || options.replaceUndefined || (options.replaceUndefinedWithKey && (Object.hasOwn(data, prop) || Object.hasOwn(data, propUpperFirst)))) {
                     let propInfo = Object.getOwnPropertyDescriptor(cstTemp.prototype, prop);
                     if (propInfo?.set) {
-                        obj[prop] = options.transformValue(prop, value);
+                        const o = obj;
+                        o[prop] = options.transformValue(prop, value);
                     }
                 }
             }
@@ -1143,8 +1146,11 @@ let ConverterTransform=class ConverterTransform {
         for (let prop of props) {
             let propInfo = Object.getOwnPropertyDescriptor(target, prop);
             if (propInfo?.writable) {
-                if (options.isValidKey(prop))
-                    target[options.replaceKey(prop)] = options.transformValue(prop, src[prop]);
+                if (options.isValidKey(prop)) {
+                    const _target = target;
+                    const _src = src;
+                    _target[options.replaceKey(prop)] = options.transformValue(prop, _src[prop]);
+                }
             }
         }
         let cstTemp = target.constructor;
@@ -1153,8 +1159,11 @@ let ConverterTransform=class ConverterTransform {
             for (let prop of props) {
                 let propInfo = Object.getOwnPropertyDescriptor(cstTemp.prototype, prop);
                 if (propInfo?.set && propInfo.get) {
-                    if (options.isValidKey(prop))
-                        target[options.replaceKey(prop)] = options.transformValue(prop, src[prop]);
+                    if (options.isValidKey(prop)) {
+                        const _target = target;
+                        const _src = src;
+                        _target[options.replaceKey(prop)] = options.transformValue(prop, _src[prop]);
+                    }
                 }
             }
             cstTemp = Object.getPrototypeOf(cstTemp);
@@ -1312,11 +1321,16 @@ class GenericError {
     /**
      * Creates a new instance of GenericError.
      * @param {EnumValue<T>} code - The error code.
-     * @param {string} message - The error message.
+     * @param {string | Error | unknown} message - The error message.
      */
     constructor(code, message) {
         this.code = code;
-        this.message = message + '';
+        if (message instanceof Error) {
+            this.message = message.message;
+        }
+        else {
+            this.message = message + '';
+        }
     }
 }
 GenericError.Namespace=`Aventus`;
@@ -1325,6 +1339,7 @@ Converter.register(GenericError.Fullname, GenericError);
 __as1(_, 'GenericError', GenericError);
 
 let VoidWithError=class VoidWithError {
+    static get Fullname() { return "Aventus.VoidWithError"; }
     /**
      * Determine if the action is a success
      */
@@ -1371,11 +1386,58 @@ let VoidWithError=class VoidWithError {
         }
         return false;
     }
+    run(fct) {
+        if (this.success) {
+            let result = fct();
+            if (!Array.isArray(result)) {
+                result = result.errors;
+            }
+            if (result.length > 0) {
+                this.errors = [...this.errors, ...result];
+            }
+        }
+        return this;
+    }
+    async runAsync(fct) {
+        if (this.success) {
+            let result = await fct();
+            if (!Array.isArray(result)) {
+                result = result.errors;
+            }
+            if (result.length > 0) {
+                this.errors = [...this.errors, ...result];
+            }
+        }
+        return this;
+    }
+    extract(fct) {
+        if (this.success) {
+            let result = fct();
+            if (result.success && result.result) {
+                return result.result;
+            }
+            this.errors = [...this.errors, ...result.errors];
+        }
+        return undefined;
+    }
+    async extractAsync(fct) {
+        if (this.success) {
+            let result = await fct();
+            if (result.success && result.result) {
+                return result.result;
+            }
+            this.errors = [...this.errors, ...result.errors];
+        }
+        return undefined;
+    }
 }
 VoidWithError.Namespace=`Aventus`;
+VoidWithError.$schema={"success":"boolean","errors":"T[]"};
+Converter.register(VoidWithError.Fullname, VoidWithError);
 __as1(_, 'VoidWithError', VoidWithError);
 
 let ResultWithError=class ResultWithError extends VoidWithError {
+    static get Fullname() { return "Aventus.ResultWithError"; }
     /**
       * The result value of the action.
       * @type {U | undefined}
@@ -1391,8 +1453,40 @@ let ResultWithError=class ResultWithError extends VoidWithError {
         result.result = this.result;
         return result;
     }
+    run(fct) {
+        if (this.success) {
+            let result = fct();
+            if (!Array.isArray(result)) {
+                result = result.errors;
+            }
+            if (result.length > 0) {
+                this.errors = [...this.errors, ...result];
+            }
+            if (result instanceof ResultWithError && result.success && result.result) {
+                this.result = result.result;
+            }
+        }
+        return this;
+    }
+    async runAsync(fct) {
+        if (this.success) {
+            let result = await fct();
+            if (!Array.isArray(result)) {
+                result = result.errors;
+            }
+            if (result.length > 0) {
+                this.errors = [...this.errors, ...result];
+            }
+            if (result instanceof ResultWithError && result.success && result.result) {
+                this.result = result.result;
+            }
+        }
+        return this;
+    }
 }
 ResultWithError.Namespace=`Aventus`;
+ResultWithError.$schema={...(VoidWithError?.$schema ?? {}), };
+Converter.register(ResultWithError.Fullname, ResultWithError);
 __as1(_, 'ResultWithError', ResultWithError);
 
 let HttpError=class HttpError extends GenericError {
@@ -1723,7 +1817,7 @@ let Watcher=class Watcher {
                         let newProp = splitted.pop();
                         let newReceiver = getValueFromObject(splitted.join("."), realProxy);
                         if (newReceiver.getTarget(false) == target)
-                            trigger(type, target, newReceiver, value, newProp, dones);
+                            trigger(type, target, newReceiver, value, newProp ?? '', dones);
                     });
                     internalAliases[fullInternalPath] = {
                         unbind: () => {
@@ -2482,12 +2576,16 @@ EffectNoRecomputed.Namespace=`Aventus`;
 __as1(_, 'EffectNoRecomputed', EffectNoRecomputed);
 
 let HttpRouter=class HttpRouter {
+    static options;
+    static configure(options) {
+        this.options = options;
+    }
     options;
     constructor() {
         this.options = this.defineOptions(this.defaultOptionsValue());
     }
     defaultOptionsValue() {
-        return {
+        return HttpRouter.options ?? {
             url: location.protocol + "//" + location.host
         };
     }
@@ -2598,8 +2696,9 @@ let HttpRequest=class HttpRequest {
         return formData;
     }
     jsonReplacer(key, value) {
-        if (this[key] instanceof Date) {
-            return DateConverter.converter.toString(this[key]);
+        const t = this;
+        if (t[key] instanceof Date) {
+            return DateConverter.converter.toString(t[key]);
         }
         return value;
     }
@@ -3130,7 +3229,8 @@ let PressManager=class PressManager {
         }
     }
     pointerEventTriggered = false;
-    downActionDelay(ev) {
+    downActionDelay(_ev) {
+        const ev = _ev;
         if (!this.pointerEventTriggered) {
             this.downAction(ev);
         }
@@ -3141,7 +3241,8 @@ let PressManager=class PressManager {
             this.pointerEventTriggered = false;
         }, 0);
     }
-    downAction(ev) {
+    downAction(_ev) {
+        const ev = _ev;
         this.pointerEventTriggered = true;
         const isFirst = Object.values(this.pointersRecord).length == 0;
         if (!this.registerEvent(ev)) {
@@ -3229,7 +3330,8 @@ let PressManager=class PressManager {
             }
         }
     }
-    upAction(ev) {
+    upAction(_ev) {
+        const ev = _ev;
         if (!this.unregisterEvent(ev)) {
             if (this.stopPropagation()) {
                 ev.stopImmediatePropagation();
@@ -3287,7 +3389,8 @@ let PressManager=class PressManager {
             }
         }
     }
-    moveAction(ev) {
+    moveAction(_ev) {
+        const ev = _ev;
         const e = new NormalizedEvent(ev);
         if (this.options.onEvent) {
             this.options.onEvent(e);
@@ -3302,7 +3405,8 @@ let PressManager=class PressManager {
         //     this.emitTriggerFunctionParent("pressmove", e);
         this.emitTriggerFunction("pressmove", e);
     }
-    childPressStart(e) {
+    childPressStart(_e) {
+        const e = _e;
         if (this.lastEmitEvent == e.detail.realEvent)
             return;
         this.genericDownAction(e.detail.state, e.detail.realEvent);
@@ -3310,7 +3414,8 @@ let PressManager=class PressManager {
             this.options.onPressStart(e.detail.realEvent, this);
         }
     }
-    childPressEnd(e) {
+    childPressEnd(_e) {
+        const e = _e;
         this.unregisterEvent(e.detail.realEvent.event);
         if (Object.values(this.pointersRecord).length == 0) {
             document.removeEventListener("pointerup", this.functionsBinded.upAction);
@@ -3326,7 +3431,8 @@ let PressManager=class PressManager {
             this.options.onPressEnd(e.detail.realEvent, this);
         }
     }
-    childPressMove(e) {
+    childPressMove(_e) {
+        const e = _e;
         if (this.lastEmitEvent == e.detail.realEvent)
             return;
         this.genericMoveAction(e.detail.state, e.detail.realEvent);
@@ -3487,7 +3593,8 @@ let DragAndDrop=class DragAndDrop {
     }
     defaultMerge(options, name) {
         if (options[name] !== void 0) {
-            this.options[name] = options[name];
+            const opts = this.options;
+            opts[name] = options[name];
         }
     }
     positionShadowRelativeToElement = { x: 0, y: 0 };
@@ -3983,7 +4090,8 @@ let ResizeObserver=class ResizeObserver {
                 let allClasses = [];
                 for (let j = 0; j < entries.length; j++) {
                     let entry = entries[j];
-                    let index = entry.target['sourceIndex'];
+                    const target = entry.target;
+                    let index = target['sourceIndex'];
                     if (ResizeObserver.resizeObserverClassByObject[index]) {
                         for (let i = 0; i < ResizeObserver.resizeObserverClassByObject[index].length; i++) {
                             let classTemp = ResizeObserver.resizeObserverClassByObject[index][i];
@@ -4027,33 +4135,35 @@ let ResizeObserver=class ResizeObserver {
      * Observe size changing for the element
      */
     observe(target) {
-        if (!target["sourceIndex"]) {
-            target["sourceIndex"] = Math.random().toString(36);
-            this.targets.push(target);
-            ResizeObserver.getUniqueInstance().observe(target);
+        const _target = target;
+        if (!_target["sourceIndex"]) {
+            _target["sourceIndex"] = Math.random().toString(36);
+            this.targets.push(_target);
+            ResizeObserver.getUniqueInstance().observe(_target);
         }
-        if (!ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]]) {
-            ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]] = [];
+        if (!ResizeObserver.resizeObserverClassByObject[_target["sourceIndex"]]) {
+            ResizeObserver.resizeObserverClassByObject[_target["sourceIndex"]] = [];
         }
-        if (ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]].indexOf(this) == -1) {
-            ResizeObserver.resizeObserverClassByObject[target["sourceIndex"]].push(this);
+        if (ResizeObserver.resizeObserverClassByObject[_target["sourceIndex"]].indexOf(this) == -1) {
+            ResizeObserver.resizeObserverClassByObject[_target["sourceIndex"]].push(this);
         }
     }
     /**
      * Stop observing size changing for the element
      */
     unobserve(target) {
+        const _target = target;
         for (let i = 0; this.targets.length; i++) {
             let tempTarget = this.targets[i];
-            if (tempTarget == target) {
-                let position = ResizeObserver.resizeObserverClassByObject[target['sourceIndex']].indexOf(this);
+            if (tempTarget == _target) {
+                let position = ResizeObserver.resizeObserverClassByObject[_target['sourceIndex']].indexOf(this);
                 if (position != -1) {
-                    ResizeObserver.resizeObserverClassByObject[target['sourceIndex']].splice(position, 1);
+                    ResizeObserver.resizeObserverClassByObject[_target['sourceIndex']].splice(position, 1);
                 }
-                if (ResizeObserver.resizeObserverClassByObject[target['sourceIndex']].length == 0) {
-                    delete ResizeObserver.resizeObserverClassByObject[target['sourceIndex']];
+                if (ResizeObserver.resizeObserverClassByObject[_target['sourceIndex']].length == 0) {
+                    delete ResizeObserver.resizeObserverClassByObject[_target['sourceIndex']];
                 }
-                ResizeObserver.getUniqueInstance().unobserve(target);
+                ResizeObserver.getUniqueInstance().unobserve(_target);
                 this.targets.splice(i, 1);
                 return;
             }
@@ -4068,7 +4178,8 @@ let ResizeObserver=class ResizeObserver {
         }
     }
     entryChanged(entry) {
-        let index = entry.target.sourceIndex;
+        const _target = entry.target;
+        let index = _target.sourceIndex;
         this.entriesChangedEvent[index] = entry;
     }
     triggerCb() {
@@ -4091,7 +4202,7 @@ let ResizeObserver=class ResizeObserver {
         this.entriesChangedEvent = {};
         this.willTrigger = false;
         setTimeout(() => {
-            this.callback(changed);
+            this.callback(changed, ResizeObserver.uniqueInstance);
         }, 0);
     }
 }
@@ -4183,15 +4294,19 @@ RamError.$schema={...(GenericError?.$schema ?? {}), };
 Converter.register(RamError.Fullname, RamError);
 __as1(_, 'RamError', RamError);
 
-let ResultRamWithError=class ResultRamWithError extends ResultWithError {
-}
-ResultRamWithError.Namespace=`Aventus`;
-__as1(_, 'ResultRamWithError', ResultRamWithError);
-
 let VoidRamWithError=class VoidRamWithError extends VoidWithError {
 }
 VoidRamWithError.Namespace=`Aventus`;
+VoidRamWithError.$schema={...(VoidWithError?.$schema ?? {}), };
+Converter.register(VoidRamWithError.Fullname, VoidRamWithError);
 __as1(_, 'VoidRamWithError', VoidRamWithError);
+
+let ResultRamWithError=class ResultRamWithError extends ResultWithError {
+}
+ResultRamWithError.Namespace=`Aventus`;
+ResultRamWithError.$schema={...(ResultWithError?.$schema ?? {}), };
+Converter.register(ResultRamWithError.Fullname, ResultRamWithError);
+__as1(_, 'ResultRamWithError', ResultRamWithError);
 
 let GenericRam=class GenericRam {
     static info = new Map([]);
@@ -5616,6 +5731,10 @@ let TemplateInstance=class TemplateInstance {
         if (event.isCallback) {
             for (let el of this._components[event.id]) {
                 let cb = getValueFromObject(event.eventName, el);
+                if (!cb && el.tagName.includes('-')) {
+                    customElements.upgrade(el);
+                    cb = getValueFromObject(event.eventName, el);
+                }
                 cb?.add((...args) => {
                     try {
                         return event.fct(this.context, args);
@@ -5645,11 +5764,12 @@ let TemplateInstance=class TemplateInstance {
             let clone = {};
             for (let temp in event) {
                 if (temp != 'id') {
-                    if (event[temp] instanceof Function) {
-                        clone[temp] = (e, pressInstance) => { event[temp](e, pressInstance, this.context); };
+                    const ev = event;
+                    if (ev[temp] instanceof Function) {
+                        clone[temp] = (e, pressInstance) => { ev[temp](e, pressInstance, this.context); };
                     }
                     else {
-                        clone[temp] = event[temp];
+                        clone[temp] = ev[temp];
                     }
                 }
             }
@@ -5763,6 +5883,7 @@ let TemplateInstance=class TemplateInstance {
         });
         this.firstRenderCb.push(() => {
             for (const el of this._components[injection.id]) {
+                customElements.upgrade(el);
                 el[injection.injectionName] = computed.value;
             }
         });
@@ -5798,6 +5919,7 @@ let TemplateInstance=class TemplateInstance {
         });
         this.firstRenderCb.push(() => {
             for (const el of this._components[binding.id]) {
+                customElements.upgrade(el);
                 el[binding.injectionName] = computed.value;
             }
         });
@@ -5806,6 +5928,10 @@ let TemplateInstance=class TemplateInstance {
                 for (var el of this._components[binding.id]) {
                     for (let fct of binding.eventNames) {
                         let cb = getValueFromObject(fct, el);
+                        if (!cb && el.tagName.includes('-')) {
+                            customElements.upgrade(el);
+                            cb = getValueFromObject(binding.injectionName, el);
+                        }
                         cb?.add((value) => {
                             let valueToSet = getValueFromObject(binding.injectionName, el);
                             isLocalChange = true;
@@ -5819,6 +5945,7 @@ let TemplateInstance=class TemplateInstance {
         else {
             this.firstRenderCb.push(() => {
                 for (var el of this._components[binding.id]) {
+                    customElements.upgrade(el);
                     for (let fct of binding.eventNames) {
                         el.addEventListener(fct, (e) => {
                             let valueToSet = getValueFromObject(binding.injectionName, e.target);
@@ -6791,7 +6918,7 @@ let WebComponent=class WebComponent extends HTMLElement {
     }
     disconnectedCallback() {
         setTimeout(() => {
-            this.postDisonnect();
+            this.postDisconnect();
         });
     }
     __onReadyCb = [];
@@ -6831,36 +6958,38 @@ let WebComponent=class WebComponent extends HTMLElement {
     }
     __upgradeProperty(prop) {
         let boolProps = this.__listBoolProps();
+        const t = this;
         if (boolProps.indexOf(prop) != -1) {
             if (this.hasAttribute(prop) && (this.getAttribute(prop) === "true" || this.getAttribute(prop) === "")) {
                 let value = this.getAttribute(prop);
-                delete this[prop];
-                this[prop] = value;
+                delete t[prop];
+                t[prop] = value;
             }
             else {
                 this.removeAttribute(prop);
-                delete this[prop];
-                this[prop] = false;
+                delete t[prop];
+                t[prop] = false;
             }
         }
         else {
             if (this.hasAttribute(prop)) {
                 let value = this.getAttribute(prop);
-                delete this[prop];
-                this[prop] = value;
+                delete t[prop];
+                t[prop] = value;
             }
             else if (Object.hasOwn(this, prop)) {
-                const value = this[prop];
-                delete this[prop];
-                this[prop] = value;
+                const value = t[prop];
+                delete t[prop];
+                t[prop] = value;
             }
         }
     }
     __correctGetter(prop) {
         if (Object.hasOwn(this, prop)) {
-            const value = this[prop];
-            delete this[prop];
-            this[prop] = value;
+            const t = this;
+            const value = t[prop];
+            delete t[prop];
+            t[prop] = value;
         }
     }
     __getStateManager(managerClass) {
@@ -7132,7 +7261,7 @@ let WebComponent=class WebComponent extends HTMLElement {
                 },
                 onChange() {
                     for (let fct of this.__subscribes) {
-                        fct(WatchAction.UPDATED, name, that[name]);
+                        fct(WatchAction.UPDATED, name, that[name], []);
                     }
                 },
                 __path: name
@@ -7178,7 +7307,7 @@ let WebComponent=class WebComponent extends HTMLElement {
     /**
     * Function triggered each time the component is removed from the DOM
     */
-    postDisonnect() { }
+    postDisconnect() { }
     /**
      * Find a parent by tagname if exist
      */
@@ -7389,7 +7518,10 @@ let ElementExtension=class ElementExtension {
             tagname = [tagname.toLowerCase()];
         }
         const checkFunc = (el) => {
-            return tagname.indexOf((el.nodeName || el.tagName).toLowerCase()) != -1;
+            if (el instanceof Element) {
+                return tagname.indexOf((el.nodeName || el.tagName).toLowerCase()) != -1;
+            }
+            return tagname.indexOf(el.nodeName.toLowerCase()) != -1;
         };
         return this.findParent(element, checkFunc, untilNode);
     }
@@ -7402,7 +7534,7 @@ let ElementExtension=class ElementExtension {
         }
         const check = (el) => {
             for (let classnameTemp of classname) {
-                if (el['classList'] && el['classList'].contains(classnameTemp)) {
+                if (el instanceof Element && el['classList'].contains(classnameTemp)) {
                     return true;
                 }
             }
@@ -7449,7 +7581,10 @@ let ElementExtension=class ElementExtension {
             tagname = [tagname.toLowerCase()];
         }
         let check = (el) => {
-            return tagname.indexOf((el.nodeName || el['tagName']).toLowerCase()) != -1;
+            if (el instanceof Element) {
+                return tagname.indexOf((el.nodeName || el.tagName).toLowerCase()) != -1;
+            }
+            return tagname.indexOf(el.nodeName.toLowerCase()) != -1;
         };
         return this.findParents(element, check, untilNode);
     }
@@ -7457,8 +7592,8 @@ let ElementExtension=class ElementExtension {
      * Check if element contains a child
      */
     static containsChild(element, child) {
-        var rootScope = element.getRootNode();
-        var elScope = child.getRootNode();
+        let rootScope = element.getRootNode();
+        let elScope = child.getRootNode();
         while (elScope != rootScope) {
             if (!elScope['host']) {
                 return false;
@@ -7556,7 +7691,7 @@ let ElementExtension=class ElementExtension {
      * Get deeper element inside dom at the position X and Y
      */
     static getElementAtPosition(x, y, startFrom) {
-        var _realTarget = (el, i = 0) => {
+        const _realTarget = (el, i = 0) => {
             if (i == 50) {
                 debugger;
             }

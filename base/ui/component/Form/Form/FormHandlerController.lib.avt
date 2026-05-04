@@ -1,0 +1,81 @@
+import type { Asyncable } from "Aventus@Main:Aventus.package.avt";
+import { FormHandler } from "./FormHandler.lib.avt";
+import type { ExtractError, FormHandlerConfig, FormSchema } from "./FormType.lib.avt";
+
+namespace Form {
+
+    export type IsUnion<T, U = T> = T extends U ? [U] extends [T] ? false : true : never;
+    export type FilterPrefix<T> = T extends `getPrefix` ? never : T;
+    export type LastParameter<T extends any> = T extends (...args: any) => any ? Last<Parameters<T>> : never;
+
+    export type MethodNameExist<Ctrl extends Aventus.HttpRoute> = IsUnion<MethodName<Ctrl>> extends true ? never : MethodName<Ctrl>;
+    export type MethodName<Ctrl extends Aventus.HttpRoute> = FilterPrefix<keyof Ctrl>;
+    export type MethodBody<Ctrl extends Aventus.HttpRoute, M extends MethodName<Ctrl> = MethodName<Ctrl>> = LastParameter<Ctrl[M]>;
+    export type MethodResult<Ctrl extends Aventus.HttpRoute, M extends MethodName<Ctrl> = MethodName<Ctrl>> = Ctrl[M] extends (...args: any) => any ? ReturnType<Ctrl[M]> : any;
+    export type MethodResultParsed<Ctrl extends Aventus.HttpRoute, M extends MethodName<Ctrl> = MethodName<Ctrl>> = ExtractError<Awaited<MethodResult<Ctrl, M>>>;
+
+    export type FormHandlerControllerConfig<T extends Aventus.HttpRoute, M extends MethodName<T> = MethodName<T>> = Omit<Omit<FormHandlerConfig<MethodBody<T, M>>, 'onSuccess'>, 'submit'> & {
+        onSuccess?: (result: MethodResultParsed<T, M>) => Asyncable<void>;
+        submit?: T[M];
+    };
+
+    /**
+     * Extends FormHandler to integrate with Aventus HttpRoute controllers for form submissions.
+     */
+    export class FormHandlerController<T extends Aventus.HttpRoute, M extends MethodName<T> = MethodNameExist<T>> extends FormHandler<MethodBody<T, M>> {
+
+        private _controller: new () => T;
+        /**
+         * The HttpRoute controller constructor.
+         */
+        public get controller(): new () => T {
+            return this._controller;
+        }
+        /**
+         * Creates a FormHandlerController instance, inferring the submission method if only one exists.
+         */
+        public static create<T extends Aventus.HttpRoute, M extends MethodName<T> = MethodNameExist<T>>(
+            controller: new () => T,
+            schema: FormSchema<MethodBody<T, M>>,
+            config?: FormHandlerControllerConfig<T, M>
+        ) {
+            const fcts = Object.getOwnPropertyNames(controller.prototype).filter(m => m !== "constructor");
+            if(fcts.length == 1) {
+                if(!config) {
+                    config = {};
+                }
+                const ctrl = new controller() as any;
+                config.submit = ctrl[fcts[0]];
+                return new FormHandlerController(controller, schema, config);
+            }
+            throw "There isn't exaclty one function inside your controller " + JSON.stringify(fcts);
+        }
+
+        /**
+         * Creates a FormHandlerController instance with a explicitly named submission method.
+         */
+        public static createWithName<T extends Aventus.HttpRoute, M extends MethodName<T>>(
+            controller: new () => T,
+            name: M,
+            schema: FormSchema<MethodBody<T, M>>,
+            config?: FormHandlerControllerConfig<T, M>
+        ) {
+            if(!config) {
+                config = {};
+            }
+            config.submit = new controller()[name];
+            return new FormHandlerController(controller, schema, config);
+        }
+
+        /**
+         * Initializes a new FormHandlerController instance.
+         */
+        private constructor(controller: new () => T, schema: FormSchema<MethodBody<T, M>>, config?: FormHandlerControllerConfig<T, M>) {
+            super(schema, config as any);
+            this._controller = controller;
+        }
+
+
+    }
+
+}

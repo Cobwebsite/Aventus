@@ -2,6 +2,14 @@ import { join } from 'path'
 import { GenericServer } from '../GenericServer'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
 
+
+export enum LogLevel {
+	Debug,
+	Information,
+	Warning,
+	Error,
+	None
+}
 export type LiveServerSettings = {
 	host: string,
 	autoIncrementPort: boolean
@@ -19,13 +27,18 @@ export interface Settings {
 	updateImportOnRename: boolean,
 	projectPath: string[],
 	templatePath: string[],
+	globalPath: string[],
 	useDefaultTemplate: boolean,
 	readNodeModules: boolean,
 	readDirs: string[],
-	debug: boolean,
+	logLevel: LogLevel,
 	// settings cli
-	onlyBuild: boolean,
+	buildOnly: boolean,
+	loadFiles: boolean,
+	watchFiles: boolean,
 	useStats: boolean,
+	useTemplates: boolean,
+	useCompilators: boolean,
 	/** The path of the aventus.conf.avt */
 	configPath?: string,
 	/** The builds to watch */
@@ -65,10 +78,15 @@ const defaultSettings: Settings = {
 	readNodeModules: false,
 	templatePath: [],
 	projectPath: [],
+	globalPath: [],
 	readDirs: [],
-	onlyBuild: false,
-	debug: false,
+	watchFiles: true,
+	buildOnly: false,
+	loadFiles: true,
+	logLevel: LogLevel.Error,
 	useStats: false,
+	useTemplates: true,
+	useCompilators: true,
 	useDefaultTemplate: true,
 	defaultHideWarnings: false,
 	deeplApiKey: "",
@@ -188,3 +206,4 @@ export class SettingsManager {
 		return this.mergeDeep(target, ...sources);
 	}
 }
+

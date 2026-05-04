@@ -61,7 +61,13 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         return AventusExtension.ComponentLogic;
     }
     public get version(): number {
-        return this.file.documentInternal.version;
+        let version = AventusWebcomponentCompiler.getVersion(this, this.build);
+        version.html = version.html == -1 ? 0 : version.html;
+        version.i18n = version.i18n == -1 ? 0 : version.i18n;
+        version.scss = version.scss == -1 ? 0 : version.scss;
+        version.ts = version.ts == -1 ? 0 : version.ts;
+        return version.html + version.i18n + version.scss + version.ts;
+        // return this.file.documentInternal.version;
     }
 
     public get HTMLFile(): AventusHTMLFile | undefined {
@@ -115,7 +121,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
     private waitingFct: { [version: string]: (() => void)[] } = {};
     private mergedVersion = '-1_-1_-1_-1';
     private isCompiling = false;
-    
+
     public runWebCompiler() {
         return new Promise<void>((resolve) => {
             let version = AventusWebcomponentCompiler.getVersion(this, this.build);
@@ -961,6 +967,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
     }
 
     public async doFormatting(range: Range, options: FormattingOptions): Promise<HTMLFormat[] | null> {
+        await this.runWebCompiler();
         const html = this.HTMLFile;
         if (!html) {
             return null;

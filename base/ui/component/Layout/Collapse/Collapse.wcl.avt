@@ -1,3 +1,6 @@
+/**
+ * Provides a simple web component to toggle the visibility of content, often with a collapsing/expanding animation driven by CSS.
+ */
 export class Collapse extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
     //#region static
@@ -6,8 +9,14 @@ export class Collapse extends Aventus.WebComponent implements Aventus.DefaultCom
 
 
     //#region props
+    /**
+     * Controls the collapsed/expanded state of the component. When true, the content is visible; when false, it's hidden.
+     */
     @Attribute()
     public open!: boolean;
+    /**
+     * When true, disables the collapsing/expanding animation.
+     */
     @Attribute()
     public no_animation!: boolean;
     //#endregion
@@ -26,7 +35,7 @@ export class Collapse extends Aventus.WebComponent implements Aventus.DefaultCom
     //#region methods
 
     /**
-     * 
+     * Dispatches a new event when a CSS transition ends, allowing parent components or external listeners to react.
      */
     protected transitionEnd(e: Event) {
         let cst = e.constructor as new (name: string, e: Event) => Event;
@@ -34,7 +43,7 @@ export class Collapse extends Aventus.WebComponent implements Aventus.DefaultCom
         this.dispatchEvent(new_e);
     }
     /**
-     * 
+     * Toggles the open property, switching the collapse component's state between open and closed.
      */
     protected toggleOpen() {
         this.open = !this.open;

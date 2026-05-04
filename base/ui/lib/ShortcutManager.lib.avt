@@ -1,4 +1,7 @@
 namespace Lib {
+    /**
+     * Enumerates special keys that can be used in keyboard shortcuts.
+     */
     export enum SpecialTouch {
         Backspace,
         Insert,
@@ -20,26 +23,55 @@ namespace Lib {
         Enter
     }
 
-
+    /**
+     * Configuration options for subscribing to keyboard shortcuts.
+     */
     export interface ShortcutManagerOptions {
         replaceTemp?: boolean,
         preventDefault?: boolean;
     }
 
+    /**
+     * Manages global keyboard shortcuts, allowing subscription and unsubscription for custom key combinations.
+     */
     export class ShortcutManager {
+        /**
+         * Stores registered shortcut callbacks.
+         */
         private static memory: { [key: string]: (() => void | false | Promise<void> | Promise<false>)[]; } = {};
+        /**
+         * List of shortcut key combinations that should automatically prevent default browser behavior.
+         */
         private static autoPrevents: string[] = [];
+        /**
+         * Indicates if the ShortcutManager has been initialized.
+         */
         private static isInit: boolean = false;
+        /**
+         * Currently pressed keys.
+         */
         private static arrayKeys: string[] = [];
 
+        /**
+         * Stores options for each registered shortcut callback.
+         */
         private static options: Map<() => void | false | Promise<void> | Promise<false>, ShortcutManagerOptions> = new Map();
 
+        /**
+         * Stores temporarily replaced shortcut callbacks.
+         */
         private static replacingMemory: { [key: string]: (() => void | false | Promise<void> | Promise<false>)[][]; } = {};
 
+        /**
+         * Checks if a given key is a printable character or a space.
+         */
         private static isTxt(touch: string) {
             return touch.match(/[a-zA-Z0-9_\+\-]/g) || touch == " ";
         }
 
+        /**
+         * Converts a key combination into a standardized string representation.
+         */
         private static getText(combinaison: (SpecialTouch | string)[]) {
             let allTouches: string[] = [];
             for(let touch of combinaison) {
@@ -58,6 +90,9 @@ namespace Lib {
             allTouches.sort();
             return allTouches.join("+");
         }
+        /**
+         * Subscribes a callback function to a specific keyboard shortcut combination.
+         */
         public static subscribe(combinaison: (SpecialTouch | string)[] | (SpecialTouch | string), cb: () => void | false | Promise<void> | Promise<false>, options?: ShortcutManagerOptions) {
             if(!Array.isArray(combinaison)) {
                 combinaison = [combinaison];
@@ -85,6 +120,9 @@ namespace Lib {
                 ShortcutManager.init();
             }
         }
+        /**
+         * Unsubscribes a callback function from a keyboard shortcut combination.
+         */
         public static unsubscribe(combinaison: (SpecialTouch | string)[] | (SpecialTouch | string), cb: () => void | false | Promise<void> | Promise<false>) {
             if(!Array.isArray(combinaison)) {
                 combinaison = [combinaison];
@@ -120,6 +158,9 @@ namespace Lib {
                 }
             }
         }
+        /**
+         * Handles keydown events, processing registered shortcuts and preventing default behavior.
+         */
         private static async onKeyDown(e: KeyboardEvent) {
             if(e.ctrlKey) {
                 let txt = SpecialTouch[SpecialTouch.Control];
@@ -143,7 +184,7 @@ namespace Lib {
             if(this.isTxt(e.key) && !this.arrayKeys.includes(e.key)) {
                 this.arrayKeys.push(e.key);
             }
-            else if(SpecialTouch[e.key] !== undefined && !this.arrayKeys.includes(e.key)) {
+            else if((SpecialTouch as any)[e.key] !== undefined && !this.arrayKeys.includes(e.key)) {
                 this.arrayKeys.push(e.key);
             }
 
@@ -174,6 +215,9 @@ namespace Lib {
                 e.preventDefault();
             }
         }
+        /**
+         * Handles keyup events, removing the released key from the currently pressed keys.
+         */
         private static onKeyUp(e: KeyboardEvent) {
             let index = this.arrayKeys.indexOf(e.key);
             if(index != -1) {
@@ -181,6 +225,9 @@ namespace Lib {
             }
         }
 
+        /**
+         * Initializes the ShortcutManager, setting up global event listeners.
+         */
         public static init(): void {
             if(ShortcutManager.isInit) return;
 
@@ -207,6 +254,9 @@ namespace Lib {
             document.body.addEventListener("keydown", this.onKeyDown);
             document.body.addEventListener("keyup", this.onKeyUp);
         }
+        /**
+         * Sets key combinations that should automatically prevent default browser behavior.
+         */
         public static setAutoPrevents(combinaisons: (SpecialTouch | string)[][]): void {
             if(!ShortcutManager.isInit) {
                 this.init();
@@ -216,6 +266,9 @@ namespace Lib {
                 ShortcutManager.autoPrevents.push(this.getText(combinaison));
             }
         }
+        /**
+         * Deinitializes the ShortcutManager, removing global event listeners.
+         */
         private static uninit() {
             document.body.removeEventListener("keydown", this.onKeyDown);
             document.body.removeEventListener("keyup", this.onKeyUp);

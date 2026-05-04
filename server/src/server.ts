@@ -3,6 +3,7 @@ import { VsCodeConnection } from './vscode/Connection';
 
 let i = 0;
 process.on('uncaughtException', function (error, origin) {
+    GenericServer.debug(error.stack);
     console.error(error.stack);
     i++;
     if (error.message) {

@@ -2,6 +2,7 @@ import { FSWatcher, watch } from 'chokidar';
 import { pathToUri, uriToPath } from '../tools';
 import { FilesManager } from './FilesManager';
 import { SettingsManager } from '../settings/Settings';
+import { GenericServer } from '../GenericServer';
 
 
 export class FilesWatcher {
@@ -14,7 +15,7 @@ export class FilesWatcher {
     }
     private watcher?: FSWatcher;
     private constructor() {
-        if (!SettingsManager.getInstance().settings.onlyBuild) {
+        if (SettingsManager.getInstance().settings.watchFiles) {
             this.watcher = watch('\t', {
                 ignored: /(^|[\/\\])\../, // ignore dotfiles
                 persistent: true
@@ -44,6 +45,7 @@ export class FilesWatcher {
     }
 
     public async onContentChange(path: string) {
+        GenericServer.debug("onContentChange : " + path)
         let uri = pathToUri(path);
         if (this.watcheUris.includes(uri)) {
             FilesManager.getInstance().onUpdatedUri(uri);

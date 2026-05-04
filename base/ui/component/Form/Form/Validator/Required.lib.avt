@@ -1,19 +1,21 @@
 import { Validator } from "../Validator.lib.avt";
 
 namespace Form.Validators {
+    /**
+     * Validator for checking if a field has a value.
+     */
     export class Required extends Validator<any> {
-        public static msg: string = "Le champs {name} est requis";
+        /**
+         * The default error message for a required field.
+         */
+        public static override msg: string | (() => string) = "Le champs {name} est requis";
 
-        private _msg: string;
-        public constructor(msg?: string) {
-            super();
-            this._msg = msg ?? Required.msg;
-        }
         /**
          * @inheritdoc
+         * Validates if the provided value is not undefined, null, or an empty string.
          */
         public override validate(value: any | undefined, name: string, globalValidation: () => Promise<void>): string | boolean {
-            const txt = this._msg.replace(/\{ *name *\}/g, name);
+            const txt = this.getMsg({ name });
             if(value === undefined || value === null) {
                 return txt;
             }

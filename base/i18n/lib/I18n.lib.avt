@@ -1,12 +1,16 @@
-import { ActionGuard, Instance, Watcher, WebComponent } from "Aventus@Main:Aventus.package.avt";
+import { ActionGuard, Callback, Instance, Watcher, WebComponent } from "Aventus@Main:Aventus.package.avt";
 
 
 @Dependances([{ type: WebComponent, strong: true }])
 export class I18nClass {
     private currentLocale: string = "en-GB";
+    private availableLocales: string[] = [];
+    private fallback: string = "en-GB";
     protected langMutex: ActionGuard = new ActionGuard();
 
-    private watcher: {} = Watcher.get({
+    public readonly onLocaleChange: Callback<(newLocale: string, oldLocale: string) => void> = new Callback();
+
+    private watcher: { [key: string]: any; } = Watcher.get({
         locale: {}
     });
     protected get locale(): any {
@@ -21,7 +25,12 @@ export class I18nClass {
     protected __translations: { [lang: string]: {}; } = {};
 
     public async setLocale(lang: string): Promise<void> {
+        if(!this.availableLocales.includes(lang)) {
+            throw `The locale ${lang} can't be found inside the locales : ${this.availableLocales.join(", ")}`;
+        }
+        let oldLocale = this.currentLocale;
         this.currentLocale = lang;
+        localStorage.setItem("AventusI18nLang", lang);
         if(!this.__translations[lang]) {
             await this.langMutex.run([""], async () => {
                 const proms: Promise<string>[] = [];
@@ -43,12 +52,13 @@ export class I18nClass {
             });
         }
         this.locale = this.__translations[lang];
+        this.onLocaleChange.trigger(oldLocale, lang);
     }
     public getLocale(): string {
         return this.currentLocale;
     }
 
-    private merge(from: {}, to: {}) {
+    private merge(from: { [key: string]: any; }, to: { [key: string]: any; }) {
         for(let key in to) {
             let val = to[key];
             if(typeof val == 'object') {
@@ -62,11 +72,54 @@ export class I18nClass {
         }
     }
 
+    public registerLocales(locales: string[]) {
+        for(let locale of locales) {
+            if(!this.availableLocales.includes(locale)) {
+                this.availableLocales.push(locale);
+            }
+        }
+    }
+    public registerFallback(fallback: string) {
+        if(!this.availableLocales.includes(fallback)) {
+            throw `The fallback ${fallback} can't be found inside the locales : ${this.availableLocales.join(", ")}`;
+        }
+
+        this.fallback = fallback;
+
+
+
+        // determine language
+        const userLang = localStorage.getItem("AventusI18nLang") ?? navigator.language;
+
+        if(this.availableLocales.includes(userLang)) {
+            this.currentLocale = userLang;
+            return;
+        }
+
+        let prefix = userLang.split("-")[0];
+        if(this.availableLocales.includes(prefix)) {
+            this.currentLocale = prefix;
+            return;
+        }
+
+        this.currentLocale = this.fallback;
+        this.onLocaleChange.trigger(this.currentLocale, this.currentLocale);
+    }
+
     private registerFileTimeout: number = 0;
-    public registerFile(file: string): void {
+    public registerFile(file: string, options?: { delay?: boolean, load?: boolean; }): void {
         if(this.files.includes(file)) return;
 
         this.waitingFiles.push(file);
+
+        options = options ?? {};
+
+        if(options.load === false) return;
+
+        if(options.delay === false) {
+            this.loadFileDelay();
+            return;
+        }
 
         clearTimeout(this.registerFileTimeout);
         this.registerFileTimeout = setTimeout(() => {
@@ -99,6 +152,10 @@ export class I18nClass {
         });
     }
 
+    public init(): Promise<void> {
+        return this.loadFileDelay();
+    }
+
 
     public hasKey(key: string): boolean {
         return this.locale[key] !== undefined;
@@ -111,7 +168,7 @@ export class I18nClass {
             translation = key;
         }
         for(let key in params) {
-            let regex = new RegExp("\\{ *" + key + " *\\}", "g");
+            let regex = new RegExp("(?<!\\\\)\\{ *" + key + " *\\}", "g");
             translation = translation.replace(regex, params[key]);
         }
         return translation;

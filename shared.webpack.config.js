@@ -10,8 +10,9 @@
 
 const path = require('path');
 const merge = require('merge-options');
-const { IgnorePlugin } = require('webpack');
+const { IgnorePlugin, DefinePlugin } = require('webpack');
 const TerserPlugin = require('terser-webpack-plugin');
+const pkg = require('./package.json');
 
 const optionalPlugins = [];
 if (process.platform !== "darwin") {
@@ -69,6 +70,9 @@ module.exports = function withDefaults(/**@type WebpackConfig*/extConfig) {
 		],
 		plugins: [
 			...optionalPlugins,
+			new DefinePlugin({
+				'__APP_VERSION__': JSON.stringify(pkg.version),
+			}),
 		],
 		optimization: {
 			minimizer: [new TerserPlugin({

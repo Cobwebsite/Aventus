@@ -16,7 +16,7 @@ export class QuickTemplate {
 		let quickNames = SettingsManager.getInstance().settings.quickCreations;
 
 		if (quickNames.length == 0) {
-			GenericServer.showErrorMessage("No template/project set as quick creation. Try to edit quick creation first");
+			GenericServer.showErrorMessage("No global template set as quick creation. Try to edit quick creation first");
 			return
 		}
 
@@ -59,8 +59,12 @@ export class QuickTemplate {
 				}
 			}
 
-			let projects = await GenericServer.templateManager?.getGeneralProjects() ?? { nb: 0, templates: {} };
+			let global = await GenericServer.templateManager?.getGeneralGlobal() ?? { nb: 0, templates: {} };
+			readRecu(global.templates);
+			let projects = await GenericServer.localProjectManager?.readProjects() ?? { nb: 0, templates: {} };
 			readRecu(projects.templates);
+			let templates = await GenericServer.localTemplateManager?.readTemplates() ?? { nb: 0, templates: {} };
+			readRecu(templates.templates);
 
 			for (let quickName of quickNames) {
 				if (templatesByUri[quickName]) {
@@ -91,7 +95,7 @@ export class QuickTemplate {
 
 			}
 			if (items.length == 0) {
-				GenericServer.showErrorMessage("No template/project set as quick creation. Try to edit quick creation first");
+				GenericServer.showErrorMessage("No global template set as quick creation. Try to edit quick creation first");
 				return
 			}
 			const result = await GenericServer.Select(items, { title: "Select quick template" });

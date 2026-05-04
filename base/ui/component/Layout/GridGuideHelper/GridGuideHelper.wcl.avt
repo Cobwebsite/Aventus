@@ -2,6 +2,9 @@ import { DragAndDrop, NormalizedEvent, PressManager } from "Aventus@Main:Aventus
 import { GridHelper } from "../GridHelper/GridHelper.wcl.avt";
 
 namespace Layout {
+    /**
+     * Utility component for providing visual guides (like rulers or snap lines) within a grid layout. It allows users to drag these guides and snap them to a predefined grid, aiding in precise UI alignment.
+     */
     export class GridGuideHelper extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
         //#region static
@@ -10,17 +13,29 @@ namespace Layout {
 
 
         //#region props
+        /**
+         * Specifies the orientation of the guide: "x" for vertical, "y" for horizontal.
+         */
         @Attribute()
         public direction: "y" | "x" = "x";
+        /**
+         * Indicates whether the guide is currently being dragged.
+         */
         @Attribute()
         public moving!: boolean;
         //#endregion
 
 
         //#region variables
+        /**
+         * Reference to the HTML element within the component's template, likely used to display the guide's current position.
+         */
         @ViewElement()
         protected positionEl!: HTMLDivElement;
 
+        /**
+         * Reference to the parent GridHelper component, which provides context for grid properties like step and magnetic snap.
+         */
         public container!: GridHelper;
         //#endregion
 
@@ -31,13 +46,22 @@ namespace Layout {
 
 
         //#region methods
+        /**
+         * Updates the inner HTML of the component to display the guide's current position, converted to the appropriate unit by the container.
+         */
         public displayValue(v: number) {
 			this.innerHTML = this.container.fromPx(v) + this.container.unit;
         }
+        /**
+         * Callback executed when dragging starts. Sets the moving attribute to true.
+         */
         @BindThis()
         public onStart() {
             this.moving = true;
         }
+        /**
+         * Calculates a new position for the guide, applying a "magnetic" snapping effect based on the GridHelper's magnetic and step properties.
+         */
         protected applyMagnetic(valuePx: number) {
             const m = this.container.inPx(this.container.magnetic);
 			if(m == 0) return valuePx;
@@ -45,6 +69,9 @@ namespace Layout {
             const div = Math.round(valuePx / step) * step;
             return Math.abs(div - valuePx) < m ? div : valuePx;
         }
+        /**
+         * Callback executed during horizontal dragging. Updates the guide's top style and positionEl's left style, applying magnetic snapping and displaying the new value.
+         */
         @BindThis()
         public onMoveX(e: NormalizedEvent) {
             const valuePx = this.applyMagnetic(e.pageY - this.container.getBoundingClientRect().y);
@@ -52,6 +79,9 @@ namespace Layout {
             this.positionEl.style.left = e.pageX - this.container.getBoundingClientRect().x + 10 + 'px';
             this.displayValue(valuePx);
         }
+        /**
+         * Callback executed during vertical dragging. Updates the guide's left style and positionEl's top style, applying magnetic snapping and displaying the new value.
+         */
         @BindThis()
         public onMoveY(e: NormalizedEvent) {
             const valuePx = this.applyMagnetic(e.pageX - this.container.getBoundingClientRect().x);
@@ -59,11 +89,17 @@ namespace Layout {
             this.positionEl.style.top = e.pageY - this.container.getBoundingClientRect().y - 20 + 'px';
             this.displayValue(valuePx);
         }
+        /**
+         * Callback executed when dragging stops. Sets moving to false and calls the save() method on the parent container.
+         */
         @BindThis()
         public onStop() {
             this.moving = false;
             this.container.save();
         }
+        /**
+         * Lifecycle hook called after the component is created. Initializes DragAndDrop functionality based on the direction and sets up a PressManager for double-press events to remove the guide. It also finds its parent GridHelper if not already set.
+         */
         protected override postCreation(): void {
             if(!this.container)
                 this.container = this.findParentByType(GridHelper)!;

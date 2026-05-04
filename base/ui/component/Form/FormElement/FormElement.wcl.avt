@@ -1,20 +1,30 @@
-import { PageForm } from "../../Navigation/PageForm/PageForm.wcl.avt";
 import { Form } from "../Form/Form.wcl.avt";
-import type { FormHandler } from "../Form/FormHandler.lib.avt";
 import type { IForm, IFormElement, InternalFormPart } from "../Form/FormType.lib.avt";
 
 namespace Form {
+    /**
+     * Abstract base class for all individual form input elements in the Aventus framework. It provides core functionality for value management, validation, error display, and integration with the parent Form component.
+     */
     @Storybook()
     export abstract class FormElement<T> extends Aventus.WebComponent implements Aventus.DefaultComponent, IFormElement<T> {
 
         //#region static
+        /**
+         * Indicates that this web component can be associated with a form.
+         */
         public static get formAssociated(): boolean { return true; }
         //#endregion
 
 
         //#region props
+        /**
+         * Reflects whether the element currently has validation errors.
+         */
         @Attribute()
         protected has_errors!: boolean;
+        /**
+         * Indicates whether the form element is disabled. This is a property that can be reflected from a disabled state of the form.
+         */
         @Property()
         public disabled!: boolean;
         //#endregion
@@ -22,7 +32,7 @@ namespace Form {
 
         //#region variables
         /**
-         * Value for the current form element
+         * The current value of the form element. Changes to this property trigger onValueChange().
          */
         @Watch((target: FormElement<T>) => {
             target.onValueChange(target.value);
@@ -30,15 +40,21 @@ namespace Form {
         public value: T | undefined;
 
         /**
-         * List of errors. You must display errors in child component
+         * List of error messages for the current form element. Changes to this property trigger onErrorsChange().
          */
         @Watch((target: FormElement<T>) => {
             target.onErrorsChange();
         })
         public errors: string[] = [];
 
+        /**
+         * Internal reference to the element's part within the overall form handler.
+         */
         private _form?: InternalFormPart<T>;
 
+        /**
+         * Gets or sets the element's part within the overall form handler. Setting this property will unlink and relink the form part.
+         */
         @Injectable()
         public get form(): InternalFormPart<T> | undefined {
             return this._form;
@@ -49,13 +65,25 @@ namespace Form {
             this.linkFormPart();
         }
 
+        /**
+         * Provides access to the form internals of the custom element, used for interacting with form validity state and setting form values.
+         */
         protected internals: ElementInternals;
+        /**
+         * Flag indicating if the element is ready to link its value and errors to the form.
+         */
         protected canLinkValueToForm: boolean = false;
+        /**
+         * Reference to the parent form handler, if available.
+         */
         protected handler?: IForm = undefined;
         //#endregion
 
 
         //#region constructor
+        /**
+         * Initializes a new instance of the FormElement.
+         */
         public constructor() {
             super();
             this.internals = this.attachInternals();
@@ -63,11 +91,17 @@ namespace Form {
         //#endregion
 
         //#region events
+        /**
+         * Callback triggered when the value of the form element changes.
+         */
         public onChange: Aventus.Callback<(value: T | undefined) => void> = new Aventus.Callback();
         //#endregion
 
 
         //#region methods
+        /**
+         * Refreshes the element's value and clears its errors based on the state of the associated form part.
+         */
         @BindThis()
         protected refreshValueFromForm() {
             if(this._form) {
@@ -76,6 +110,9 @@ namespace Form {
             }
         }
 
+        /**
+         * Unregisters the element from its associated form part and removes event listeners.
+         */
         protected unlinkFormPart() {
             if(this._form) {
                 this._form.unregister(this);
@@ -83,6 +120,9 @@ namespace Form {
                 this._form.onValidation.remove(this.onFormValidation);
             }
         }
+        /**
+         * Registers the element with its associated form part and adds event listeners.
+         */
         protected linkFormPart() {
             if(this._form) {
                 this._form.register(this);
@@ -95,6 +135,9 @@ namespace Form {
             }
         }
 
+        /**
+         * Handles validation results from the parent form, combining its own validation errors.
+         */
         @BindThis()
         public async onFormValidation(errors: string[]): Promise<string[]> {
             let _errors = await this.validation();
@@ -112,7 +155,9 @@ namespace Form {
             return this.errors;
         }
 
-
+        /**
+         * Triggers the element's custom validation or delegates to the form's validation if linked.
+         */
         public async validate(): Promise<boolean> {
             if(!this.form) {
                 this.errors = await this.validation();
@@ -122,19 +167,22 @@ namespace Form {
         }
 
         /**
-         * Define your customs validations rules
+         * Abstract method to be implemented by subclasses to define custom validation rules.
          */
         protected async validation(): Promise<string[]> {
             return [];
         }
 
         /**
-         * 
+         * Clears all current validation errors.
          */
         protected clearErrors() {
             this.errors = [];
         }
 
+        /**
+         * Updates the element's value, triggers the onChange callback, and updates the form's value if linked.
+         */
         protected triggerChange(value: T | undefined) {
             this.value = value;
             this.onChange.trigger(this.value);
@@ -143,13 +191,22 @@ namespace Form {
             }
         }
 
+        /**
+         * Called when the value property changes. Links the new value to the form.
+         */
         protected onValueChange(value: T | undefined) {
             this.linkValueToForm();
         }
+        /**
+         * Called when the errors property changes. Updates has_errors and links errors to the form.
+         */
         protected onErrorsChange() {
             this.has_errors = this.errors.length > 0;
             this.linkErrorToForm();
         }
+        /**
+         * Sets the form's validity based on the errors array using ElementInternals.
+         */
         protected linkErrorToForm() {
             if(!this.canLinkValueToForm) return;
             if(this.has_errors) {
@@ -161,6 +218,9 @@ namespace Form {
                 this.internals.setValidity({});
             }
         }
+        /**
+         * Sets the form's value based on the element's value using ElementInternals.
+         */
         protected linkValueToForm() {
             if(!this.canLinkValueToForm) return;
             if(this.value === undefined) {
@@ -171,6 +231,9 @@ namespace Form {
             }
         }
 
+        /**
+         * Lifecycle callback invoked when the component is associated with a form.
+         */
         protected formAssociatedCallback(form: HTMLFormElement) {
             this.canLinkValueToForm = true;
             this.linkValueToForm();
@@ -178,14 +241,23 @@ namespace Form {
             this.validate();
         }
 
+        /**
+         * Lifecycle callback invoked when the component's disabled state changes.
+         */
         protected formDisabledCallback(disabled: boolean) {
             this.disabled = disabled;
         }
 
+        /**
+         * Lifecycle hook called after the component is created. Registers the element with the parent Form component.
+         */
         protected override postCreation(): void {
             super.postCreation();
             let handler = this.findParentByType(Form.formElements)?.registerElement(this);
         }
+        /**
+         * Lifecycle hook called before the component is destroyed. Unlinks the element from the form.
+         */
         protected override postDestruction(): void {
             super.postDestruction();
             this.unlinkFormPart();

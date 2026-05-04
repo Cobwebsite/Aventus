@@ -110,7 +110,10 @@ let ElementExtension=class ElementExtension {
             tagname = [tagname.toLowerCase()];
         }
         const checkFunc = (el) => {
-            return tagname.indexOf((el.nodeName || el.tagName).toLowerCase()) != -1;
+            if (el instanceof Element) {
+                return tagname.indexOf((el.nodeName || el.tagName).toLowerCase()) != -1;
+            }
+            return tagname.indexOf(el.nodeName.toLowerCase()) != -1;
         };
         return this.findParent(element, checkFunc, untilNode);
     }
@@ -123,7 +126,7 @@ let ElementExtension=class ElementExtension {
         }
         const check = (el) => {
             for (let classnameTemp of classname) {
-                if (el['classList'] && el['classList'].contains(classnameTemp)) {
+                if (el instanceof Element && el['classList'].contains(classnameTemp)) {
                     return true;
                 }
             }
@@ -170,7 +173,10 @@ let ElementExtension=class ElementExtension {
             tagname = [tagname.toLowerCase()];
         }
         let check = (el) => {
-            return tagname.indexOf((el.nodeName || el['tagName']).toLowerCase()) != -1;
+            if (el instanceof Element) {
+                return tagname.indexOf((el.nodeName || el.tagName).toLowerCase()) != -1;
+            }
+            return tagname.indexOf(el.nodeName.toLowerCase()) != -1;
         };
         return this.findParents(element, check, untilNode);
     }
@@ -178,8 +184,8 @@ let ElementExtension=class ElementExtension {
      * Check if element contains a child
      */
     static containsChild(element, child) {
-        var rootScope = element.getRootNode();
-        var elScope = child.getRootNode();
+        let rootScope = element.getRootNode();
+        let elScope = child.getRootNode();
         while (elScope != rootScope) {
             if (!elScope['host']) {
                 return false;
@@ -277,7 +283,7 @@ let ElementExtension=class ElementExtension {
      * Get deeper element inside dom at the position X and Y
      */
     static getElementAtPosition(x, y, startFrom) {
-        var _realTarget = (el, i = 0) => {
+        const _realTarget = (el, i = 0) => {
             if (i == 50) {
                 debugger;
             }
@@ -1099,7 +1105,7 @@ let Watcher=class Watcher {
                         let newProp = splitted.pop();
                         let newReceiver = getValueFromObject(splitted.join("."), realProxy);
                         if (newReceiver.getTarget(false) == target)
-                            trigger(type, target, newReceiver, value, newProp, dones);
+                            trigger(type, target, newReceiver, value, newProp ?? '', dones);
                     });
                     internalAliases[fullInternalPath] = {
                         unbind: () => {
@@ -2114,7 +2120,8 @@ let PressManager=class PressManager {
         }
     }
     pointerEventTriggered = false;
-    downActionDelay(ev) {
+    downActionDelay(_ev) {
+        const ev = _ev;
         if (!this.pointerEventTriggered) {
             this.downAction(ev);
         }
@@ -2125,7 +2132,8 @@ let PressManager=class PressManager {
             this.pointerEventTriggered = false;
         }, 0);
     }
-    downAction(ev) {
+    downAction(_ev) {
+        const ev = _ev;
         this.pointerEventTriggered = true;
         const isFirst = Object.values(this.pointersRecord).length == 0;
         if (!this.registerEvent(ev)) {
@@ -2213,7 +2221,8 @@ let PressManager=class PressManager {
             }
         }
     }
-    upAction(ev) {
+    upAction(_ev) {
+        const ev = _ev;
         if (!this.unregisterEvent(ev)) {
             if (this.stopPropagation()) {
                 ev.stopImmediatePropagation();
@@ -2271,7 +2280,8 @@ let PressManager=class PressManager {
             }
         }
     }
-    moveAction(ev) {
+    moveAction(_ev) {
+        const ev = _ev;
         const e = new NormalizedEvent(ev);
         if (this.options.onEvent) {
             this.options.onEvent(e);
@@ -2286,7 +2296,8 @@ let PressManager=class PressManager {
         //     this.emitTriggerFunctionParent("pressmove", e);
         this.emitTriggerFunction("pressmove", e);
     }
-    childPressStart(e) {
+    childPressStart(_e) {
+        const e = _e;
         if (this.lastEmitEvent == e.detail.realEvent)
             return;
         this.genericDownAction(e.detail.state, e.detail.realEvent);
@@ -2294,7 +2305,8 @@ let PressManager=class PressManager {
             this.options.onPressStart(e.detail.realEvent, this);
         }
     }
-    childPressEnd(e) {
+    childPressEnd(_e) {
+        const e = _e;
         this.unregisterEvent(e.detail.realEvent.event);
         if (Object.values(this.pointersRecord).length == 0) {
             document.removeEventListener("pointerup", this.functionsBinded.upAction);
@@ -2310,7 +2322,8 @@ let PressManager=class PressManager {
             this.options.onPressEnd(e.detail.realEvent, this);
         }
     }
-    childPressMove(e) {
+    childPressMove(_e) {
+        const e = _e;
         if (this.lastEmitEvent == e.detail.realEvent)
             return;
         this.genericMoveAction(e.detail.state, e.detail.realEvent);
@@ -3147,6 +3160,10 @@ let TemplateInstance=class TemplateInstance {
         if (event.isCallback) {
             for (let el of this._components[event.id]) {
                 let cb = getValueFromObject(event.eventName, el);
+                if (!cb && el.tagName.includes('-')) {
+                    customElements.upgrade(el);
+                    cb = getValueFromObject(event.eventName, el);
+                }
                 cb?.add((...args) => {
                     try {
                         return event.fct(this.context, args);
@@ -3176,11 +3193,12 @@ let TemplateInstance=class TemplateInstance {
             let clone = {};
             for (let temp in event) {
                 if (temp != 'id') {
-                    if (event[temp] instanceof Function) {
-                        clone[temp] = (e, pressInstance) => { event[temp](e, pressInstance, this.context); };
+                    const ev = event;
+                    if (ev[temp] instanceof Function) {
+                        clone[temp] = (e, pressInstance) => { ev[temp](e, pressInstance, this.context); };
                     }
                     else {
-                        clone[temp] = event[temp];
+                        clone[temp] = ev[temp];
                     }
                 }
             }
@@ -3294,6 +3312,7 @@ let TemplateInstance=class TemplateInstance {
         });
         this.firstRenderCb.push(() => {
             for (const el of this._components[injection.id]) {
+                customElements.upgrade(el);
                 el[injection.injectionName] = computed.value;
             }
         });
@@ -3329,6 +3348,7 @@ let TemplateInstance=class TemplateInstance {
         });
         this.firstRenderCb.push(() => {
             for (const el of this._components[binding.id]) {
+                customElements.upgrade(el);
                 el[binding.injectionName] = computed.value;
             }
         });
@@ -3337,6 +3357,10 @@ let TemplateInstance=class TemplateInstance {
                 for (var el of this._components[binding.id]) {
                     for (let fct of binding.eventNames) {
                         let cb = getValueFromObject(fct, el);
+                        if (!cb && el.tagName.includes('-')) {
+                            customElements.upgrade(el);
+                            cb = getValueFromObject(binding.injectionName, el);
+                        }
                         cb?.add((value) => {
                             let valueToSet = getValueFromObject(binding.injectionName, el);
                             isLocalChange = true;
@@ -3350,6 +3374,7 @@ let TemplateInstance=class TemplateInstance {
         else {
             this.firstRenderCb.push(() => {
                 for (var el of this._components[binding.id]) {
+                    customElements.upgrade(el);
                     for (let fct of binding.eventNames) {
                         el.addEventListener(fct, (e) => {
                             let valueToSet = getValueFromObject(binding.injectionName, e.target);
@@ -4143,7 +4168,7 @@ let WebComponent=class WebComponent extends HTMLElement {
     }
     disconnectedCallback() {
         setTimeout(() => {
-            this.postDisonnect();
+            this.postDisconnect();
         });
     }
     __onReadyCb = [];
@@ -4183,36 +4208,38 @@ let WebComponent=class WebComponent extends HTMLElement {
     }
     __upgradeProperty(prop) {
         let boolProps = this.__listBoolProps();
+        const t = this;
         if (boolProps.indexOf(prop) != -1) {
             if (this.hasAttribute(prop) && (this.getAttribute(prop) === "true" || this.getAttribute(prop) === "")) {
                 let value = this.getAttribute(prop);
-                delete this[prop];
-                this[prop] = value;
+                delete t[prop];
+                t[prop] = value;
             }
             else {
                 this.removeAttribute(prop);
-                delete this[prop];
-                this[prop] = false;
+                delete t[prop];
+                t[prop] = false;
             }
         }
         else {
             if (this.hasAttribute(prop)) {
                 let value = this.getAttribute(prop);
-                delete this[prop];
-                this[prop] = value;
+                delete t[prop];
+                t[prop] = value;
             }
             else if (Object.hasOwn(this, prop)) {
-                const value = this[prop];
-                delete this[prop];
-                this[prop] = value;
+                const value = t[prop];
+                delete t[prop];
+                t[prop] = value;
             }
         }
     }
     __correctGetter(prop) {
         if (Object.hasOwn(this, prop)) {
-            const value = this[prop];
-            delete this[prop];
-            this[prop] = value;
+            const t = this;
+            const value = t[prop];
+            delete t[prop];
+            t[prop] = value;
         }
     }
     __getStateManager(managerClass) {
@@ -4484,7 +4511,7 @@ let WebComponent=class WebComponent extends HTMLElement {
                 },
                 onChange() {
                     for (let fct of this.__subscribes) {
-                        fct(WatchAction.UPDATED, name, that[name]);
+                        fct(WatchAction.UPDATED, name, that[name], []);
                     }
                 },
                 __path: name
@@ -4530,7 +4557,7 @@ let WebComponent=class WebComponent extends HTMLElement {
     /**
     * Function triggered each time the component is removed from the DOM
     */
-    postDisonnect() { }
+    postDisconnect() { }
     /**
      * Find a parent by tagname if exist
      */

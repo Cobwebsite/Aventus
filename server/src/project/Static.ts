@@ -11,6 +11,7 @@ import { SettingsManager } from '../settings/Settings';
 import { Statistics } from '../notification/Statistics';
 import { FilesManager } from '../files/FilesManager';
 import { TextDocument } from 'vscode-languageserver-textdocument';
+import { GenericServer } from '../GenericServer';
 
 export class Static {
     private staticConfig: AventusConfigStatic;
@@ -81,7 +82,7 @@ export class Static {
                         Statistics.sendFileSize(pathOut, undefined, "static", this.name);
                     }
                 } catch (e) {
-                    console.log(e);
+                    GenericServer.error(e);
                 }
             }
             let staticFiles = foundAll(this.staticConfig.inputPathFolder);
@@ -111,7 +112,7 @@ export class Static {
         }
     }
     public registerWatcher() {
-        if (SettingsManager.getInstance().settings.onlyBuild) return;
+        if (!SettingsManager.getInstance().settings.watchFiles) return;
 
         this.watcher = watch(this.staticConfig.inputPathFolder, {
             ignored: /^\./,

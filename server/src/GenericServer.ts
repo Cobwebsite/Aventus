@@ -3,12 +3,12 @@ import { AvInitializeParams, IConnection, InputOptions, SelectItem, SelectOption
 import { FilesManager } from './files/FilesManager';
 import { FilesWatcher } from './files/FilesWatcher';
 import { ProjectManager } from './project/ProjectManager';
-import { Settings, SettingsManager } from './settings/Settings';
+import { LogLevel, Settings, SettingsManager } from './settings/Settings';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AventusExtension } from './definition';
 import { ColorPicker } from './color-picker/ColorPicker';
 import { Commands } from './cmds';
-import { join } from 'path';
+import { dirname, join } from 'path';
 import { LocalTemplateManager } from './files/LocalTemplate';
 import { TemplateManager as TemplateFileManager } from './files/TemplateManager';
 import { TemplateFileManager as TemplateFileTsManager } from './language-services/ts/template/TemplateFileManager';
@@ -17,10 +17,10 @@ import { Build } from './project/Build';
 import { Communication } from './communication';
 import { PhpManager } from './language-services/json/PhpManager';
 import { LocalProjectManager } from './files/LocalProject';
-import { version } from '../../package.json'
-import { existsSync, readdirSync } from 'fs';
+import { appendFileSync, existsSync, readdirSync, writeFileSync } from 'fs';
 import { execSync } from 'child_process';
 import { updatesScripts } from './updates';
+import { InitStep } from './notification/InitStep';
 
 
 export class GenericServer {
@@ -29,27 +29,42 @@ export class GenericServer {
 	public static delayBetweenBuild() {
 		return this.instance.connection.delayBetweenBuild();
 	}
-	public static isDebug() {
-		return this.instance.isDebug;
+	public static logLevel() {
+		return this.instance.logLevel;
 	}
 	public static get isIDE() {
 		return this.instance.isIDE;
 	}
 
+
 	public static sendNotification(cmd: string, ...params: any) {
+		GenericServer.debug(`sendNotification ` + cmd);
 		this.instance.connection.sendNotification(cmd, params);
 	}
 	public static showErrorMessage(msg: string) {
+		GenericServer.debug(`showErrorMessage ` + msg);
 		this.instance.connection.showErrorMessage(msg);
 	}
 	public static showWarningMessage(msg: string) {
+		GenericServer.debug(`showWarningMessage ` + msg);
 		this.instance.connection.showWarningMessage(msg);
 	}
 	public static showInformationMessage(msg: string) {
+		GenericServer.debug(`showInformationMessage ` + msg);
 		this.instance.connection.showInformationMessage(msg);
 	}
+	public static async ask(msg: string): Promise<boolean> {
+		GenericServer.debug(`ask ` + msg);
+		return await this.instance.connection.ask(msg);
+	}
 	public static sendDiagnostics(params: PublishDiagnosticsParams, build?: Build) {
-		this.instance.connection.sendDiagnostics(params, build?.buildConfig.name);
+		GenericServer.debug(`sendDiagnostics`);
+		GenericServer.debug(params.uri);
+		for (let diag of params.diagnostics) {
+			GenericServer.debug("\t " + diag.message);
+		}
+
+		this.instance.connection.sendDiagnostics(params, build?.buildConfig.fullname);
 	}
 	public static Input(options: InputOptions) {
 		return this.instance.connection.Input(options);
@@ -68,6 +83,9 @@ export class GenericServer {
 	}
 	public static setSettings(settings: Partial<Settings>, global: boolean) {
 		return this.instance.connection.setSettings(settings, global);
+	}
+	public static get noBuild(): boolean {
+		return this.instance._noBuild;
 	}
 	public static get savePath(): string {
 		return this.instance._savePath;
@@ -91,80 +109,136 @@ export class GenericServer {
 		return this.instance.loadSettings();
 	}
 
+	public static debug(content: any) {
+		this.log(content, LogLevel.Debug);
+	}
+	public static information(content: any) {
+		this.log(content, LogLevel.Information);
+	}
+	public static warning(content: any) {
+		this.log(content, LogLevel.Warning);
+	}
+	public static error(message: any) {
+		this.writeLog(message);
+	}
+	public static log(message: any, level: LogLevel) {
+		if (level >= GenericServer.logLevel()) {
+			this.writeLog(message);
+		}
+	}
+
+
+	private static writeLog(message: any) {
+		console.log(message);
+		if (this.instance._logFile) {
+			if (typeof message == "object" || Array.isArray(message)) {
+				message = JSON.stringify(message, null, 4);
+			}
+			const logFile = join(this.instance._logFile);
+			appendFileSync(
+				logFile,
+				`[${new Date().toISOString()}] ${message}\n`
+			);
+		}
+	}
+
 
 	protected connection: IConnection;
 	protected isLoading: boolean = true;
 	protected isDown: boolean = false;
 	protected workspaces: string[] = [];
-	protected isDebug = false;
+	protected get logLevel(): LogLevel {
+		return SettingsManager.getInstance().settings.logLevel
+	}
 	private isIDE = false;
+	private _noBuild = false;
+
 
 	private _savePath: string = "";
 	private _extensionPath: string = "";
+	private _logFile?: string;
 	private _template: TemplateFileManager | undefined;
 	private _localTemplate: LocalTemplateManager | undefined;
 	private _localProject: LocalProjectManager | undefined;
 
 	public constructor(connection: IConnection) {
+		GenericServer.instance = this;
 		this.connection = connection;
 		this.bindEvent();
 	}
 
 
 	public start() {
-		GenericServer.instance = this;
 		this.connection.open();
 	}
 	protected bindEvent() {
 		this.connection.onInitialize((params: AvInitializeParams) => {
 			this.onInitialize(params);
+			// need to set values before writting log
+			GenericServer.debug(`onInitialize`)
 		})
 		this.connection.onInitialized(async () => {
+			GenericServer.debug(`onInitialized`)
 			await this.onInitialized();
 		})
 		this.connection.onShutdown(async () => {
+			GenericServer.debug(`onShutdown`)
 			await this.onShutdown();
 		})
 		this.connection.onCompletion(async (document, position) => {
+			GenericServer.debug(`onCompletion`)
 			return await this.onCompletion(document, position);
 		})
 		this.connection.onCompletionResolve(async (document, completionItem) => {
+			GenericServer.debug(`onCompletionResolve`)
 			return await this.onCompletionResolve(document, completionItem);
 		})
 		this.connection.onHover(async (document, position) => {
+			GenericServer.debug(`onHover`)
 			return await this.onHover(document, position);
 		})
 		this.connection.onDefinition(async (document, position) => {
+			GenericServer.debug(`onDefinition`)
 			return await this.onDefinition(document, position);
 		})
 		this.connection.onDocumentFormatting(async (document, options) => {
+			GenericServer.debug(`onDocumentFormatting`)
 			return await this.onDocumentFormatting(document, options);
 		})
 		this.connection.onCodeAction(async (document, range) => {
+			GenericServer.debug(`onCodeAction`)
 			return await this.onCodeAction(document, range);
 		})
 		this.connection.onCodeLens(async (document) => {
+			GenericServer.debug(`onCodeLens`)
 			return await this.onCodeLens(document);
 		})
 		this.connection.onReferences(async (document, position) => {
+			GenericServer.debug(`onReferences`)
 			return await this.onReferences(document, position);
 		})
 		this.connection.onRenameRequest(async (document, position, newName) => {
+			GenericServer.debug(`onRenameRequest`)
 			return await this.onRenameRequest(document, position, newName);
 		})
 		this.connection.onDocumentColor(async (document) => {
+			GenericServer.debug(`onDocumentColor`)
 			return await this.onDocumentColor(document);
 		})
 		this.connection.onColorPresentation(async (document, range, color) => {
+			GenericServer.debug(`onColorPresentation`)
 			return await this.onColorPresentation(document, range, color);
 		})
 		this.connection.onExecuteCommand(async (params) => {
+			GenericServer.debug(`onExecuteCommand`)
 			return await this.onExecuteCommand(params);
 		})
 		this.connection.onDidChangeConfiguration(async () => {
+			GenericServer.debug(`onDidChangeConfiguration`)
 			return await this.onDidChangeConfiguration();
 		})
 		this.connection.onRequest(async (method, params) => {
+			GenericServer.debug(`onRequest`)
 			return await Communication.execute(method, params);
 		})
 	}
@@ -176,24 +250,42 @@ export class GenericServer {
 			}
 		}
 		if (!params.savePath) {
+			// todo store all inside app data => stop using savePath
 			let appData = process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + "/.local/share");
-			params.savePath = join(appData, "aventus");
+			let vscode = join(appData, "Code", "User", "globalStorage", "cobwebsite.aventus")
+			if(existsSync(vscode)) {
+				params.savePath= vscode;
+			}
+			else {
+				params.savePath = join(appData, "aventus");
+			}
 		}
+		if (!params.extensionPath) {
+			params.extensionPath = dirname(__dirname)
+		}
+		this._noBuild = params.noBuild ?? false;
 		this.isIDE = params.isIDE;
 		this._savePath = params.savePath;
 		this._extensionPath = params.extensionPath;
+		this._logFile = params.logFile;
+		if (this._logFile) {
+			writeFileSync(this._logFile, "")
+		}
 		this.runUpdate();
+		GenericServer.debug(params)
 	}
 	protected async onInitialized() {
-		if(!this.checkNodeJs()) return;
+		if (!this.checkNodeJs()) return;
 		await this.loadSettings();
 		await this.startServer();
 	}
 	protected async onShutdown() {
 		this.isDown = true;
 		const settings = SettingsManager.getInstance().settings;
-		if (!settings.onlyBuild) {
+		if (settings.watchFiles) {
 			await FilesWatcher.getInstance().destroy();
+		}
+		if (settings.useCompilators) {
 			CSharpManager.getInstance().destroy();
 			PhpManager.getInstance().destroy();
 		}
@@ -267,7 +359,7 @@ export class GenericServer {
 		return null;
 	}
 	protected async onExecuteCommand(params: ExecuteCommandParams) {
-		Commands.execute(params);
+		await Commands.execute(params);
 	}
 	protected async onDidChangeConfiguration() {
 		this.loadSettings();
@@ -306,7 +398,6 @@ export class GenericServer {
 			result = {};
 		}
 		SettingsManager.getInstance().initSettings(result);
-		this.isDebug = SettingsManager.getInstance().settings.debug;
 
 		let resultHtml = await this.connection.getSettingsHtml();
 		if (!resultHtml) {
@@ -318,36 +409,43 @@ export class GenericServer {
 	protected async startServer() {
 		// define the config for startServer
 		const settings = SettingsManager.getInstance().settings;
-		if (!settings.onlyBuild) {
+		if (settings.useTemplates) {
 			this._template = new TemplateFileManager(this.workspaces);
+			await this._template.init();
 			this._localTemplate = new LocalTemplateManager(this._template);
 			this._localProject = new LocalProjectManager(this._template);
+
+		}
+		if (settings.useCompilators) {
 			CSharpManager.getInstance();
 			PhpManager.getInstance();
 		}
 
 		ProjectManager.getInstance();
 		TemplateFileTsManager.getInstance();
-		if (settings.onlyBuild) {
-			if (settings.configPath) {
-				await FilesManager.getInstance().loadConfigFile(settings.configPath, settings.builds, settings.statics);
+		if (settings.loadFiles) {
+			if (settings.buildOnly) {
+				if (settings.configPath) {
+					await FilesManager.getInstance().loadConfigFile(settings.configPath, settings.builds, settings.statics);
+				}
+				else
+					await FilesManager.getInstance().loadConfigFileNotSet(this.workspaces, settings.builds, settings.statics);
 			}
-			else
-				await FilesManager.getInstance().loadConfigFileNotSet(this.workspaces, settings.builds, settings.statics);
+			else {
+				await FilesManager.getInstance().loadAllAventusFiles(this.workspaces);
+			}
 		}
 		else {
-			await FilesManager.getInstance().loadAllAventusFiles(this.workspaces);
+			InitStep.sendDone();
 		}
 		this.isLoading = false;
-		if (this.isDebug) {
-			console.log("start server done");
-		}
+		GenericServer.debug("start server done");
 	}
 
 	protected runUpdate() {
 		setTimeout(() => {
 
-			const currentVersion = version;
+			const currentVersion = __APP_VERSION__;
 			const oldVersion = SettingsManager.getInstance().hiddenSettings.version;
 			if (currentVersion == oldVersion) return;
 			if (!/([0-9]+)\.([0-9]+)\.([0-9]+)/g.test(currentVersion)) return;
@@ -377,6 +475,7 @@ export class GenericServer {
 					// if file version is egal or lower than current version
 					if (compareVersions(v, currentVersion) != 1) {
 						try {
+							GenericServer.information("Running update for " + v + " (old version : " + oldVersion + ", current version : " + currentVersion + ")")
 							updates[v]();
 						} catch (e) {
 							console.error(e);

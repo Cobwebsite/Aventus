@@ -1,23 +1,25 @@
 import { Validator } from "../Validator.lib.avt";
 
 namespace Form.Validators {
+    /**
+     * Validator for checking if a string is a valid email address.
+     */
     export class Email extends Validator<string> {
-        public static msg: string = "Merci de saisir un email valide";
+        /**
+         * The default error message for invalid email addresses.
+         */
+        public static override msg: string | (() => string) = "Please enter a valid email address";
 
-        private _msg: string;
-        public constructor(msg?: string) {
-            super();
-            this._msg = msg ?? Email.msg;
-        }
         /**
          * @inheritdoc
+         * Validates if the provided value is a valid email address.
          */
         public override validate(value: string | undefined, name: string, globalValidation: () => Promise<void>): boolean | string {
             if(typeof value == "string" && value) {
                 if(value.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}\b/) != null) {
                     return true;
                 }
-                return this._msg.replace(/\{ *name *\}/g, name);
+                return this.getMsg({ name });
             }
             return true;
         }

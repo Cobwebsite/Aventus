@@ -61,7 +61,15 @@ export class DependanceManager {
 		"Aventus@Sharp": "@aventussharp/main",
 		"Aventus@Php": "@aventusphp/main",
 	}
-	private loadedPackages: { [name: string]: { [version: string]: AventusPackageFile } } = {};
+	private loadedPackages: { [name: string]: AventusPackageFile } = {};
+
+	public get packages(): AventusPackageFile[] {
+		const result: AventusPackageFile[] = [];
+		for (let name in this.loadedPackages) {
+			result.push(this.loadedPackages[name]);
+		}
+		return result;
+	}
 	public async loadDependancesFromBuild(config: AventusConfigBuild, build: Build): Promise<{ files: AventusPackageFile[], dependanceNeedUris: string[], dependanceFullUris: string[], dependanceUris: string[] }> {
 		let result: { files: AventusPackageFile[], dependanceNeedUris: string[], dependanceFullUris: string[], dependanceUris: string[] } = {
 			files: [],
@@ -89,7 +97,7 @@ export class DependanceManager {
 				subDependancesInclude: { ['*']: 'need' }
 			}, config, build, loopResult)
 		}
-		if (build.buildConfig.i18n !== undefined && !loopResult["Aventus@I18n"]) {
+		if (build?.buildConfig.i18n !== undefined && !loopResult["Aventus@I18n"]) {
 			await this.loadDependance("Aventus@I18n", {
 				uri: "",
 				npm: "",
@@ -472,19 +480,12 @@ export class DependanceManager {
 	// }
 
 	private loadPackage(file: AventusFile, build: Build): AventusPackageFile | undefined {
-		return new AventusPackageFile(file, build);
-		// const info = AventusPackageFile.getQuickInfo(file);
-		// if (!info) {
-		// 	return undefined;
-		// }
-		// const v = info.version.major + "." + info.version.minor + "." + info.version.patch;
-		// if (!this.loadedPackages[info.name]) {
-		// 	this.loadedPackages[info.name] = {};
-		// }
-		// if (!this.loadedPackages[info.name][v]) {
-		// 	this.loadedPackages[info.name][v] = new AventusPackageFile(file, build)
-		// }
-		// return this.loadedPackages[info.name][v]
+		const info = AventusPackageFile.getQuickInfo(file);
+		if (!info) {
+			return undefined;
+		}
+		this.loadedPackages[info.name] = new AventusPackageFile(file, build)
+		return this.loadedPackages[info.name];
 	}
 
 	private downloadFile(fileUri: string, httpUri: string): Promise<boolean> {

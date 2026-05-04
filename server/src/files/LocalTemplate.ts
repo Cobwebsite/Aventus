@@ -8,8 +8,10 @@ export class LocalTemplateManager {
 		this.templateManager = templateManager;
 	}
 	public async createTemplate(path: string) {
-		let loadedTemplates = this.readTemplates()
-		const templateResult = await this.templateManager.query(loadedTemplates.templates);
+		let loadedTemplates = await this.readTemplates();
+		let loadedGlobal = await this.templateManager.readGlobal();
+
+		const templateResult = await this.templateManager.query(path, { ...loadedGlobal.templates, ...loadedTemplates.templates });
 		if (templateResult) {
 			await templateResult.init(path, this.templateManager.findWorkspace(path));
 		}

@@ -30,11 +30,16 @@ export class GenericError<T extends (number | Enum) = any> {
     /**
      * Creates a new instance of GenericError.
      * @param {EnumValue<T>} code - The error code.
-     * @param {string} message - The error message.
+     * @param {string | Error | unknown} message - The error message.
      */
-    public constructor(code: EnumValue<T>, message: string) {
+    public constructor(code: EnumValue<T>, message: string | Error | unknown) {
         this.code = code;
-        this.message = message + '';
+        if(message instanceof Error) {
+            this.message = message.message;
+        }
+        else {
+            this.message = message + '';
+        }
     }
 }
 
@@ -45,7 +50,10 @@ export class GenericError<T extends (number | Enum) = any> {
 @Storybook({
     prefix: "Error"
 })
+@Convertible()
 export class VoidWithError<T extends GenericError = GenericError> {
+
+    public static get Fullname(): string { return "Aventus.VoidWithError"; }
 
     /**
      * Determine if the action is a success
@@ -95,6 +103,55 @@ export class VoidWithError<T extends GenericError = GenericError> {
         }
         return false;
     }
+
+
+    public run(fct: (() => T[]) | (() => VoidWithError<T>)): this {
+        if(this.success) {
+            let result = fct();
+            if(!Array.isArray(result)) {
+                result = result.errors;
+            }
+            if(result.length > 0) {
+                this.errors = [...this.errors, ...result];
+            }
+        }
+        return this;
+    }
+
+    public async runAsync(fct: (() => Promise<T[]>) | (() => Promise<VoidWithError<T>>)): Promise<this> {
+        if(this.success) {
+            let result = await fct();
+            if(!Array.isArray(result)) {
+                result = result.errors;
+            }
+            if(result.length > 0) {
+                this.errors = [...this.errors, ...result];
+            }
+        }
+        return this;
+    }
+
+    public extract<X>(fct: (() => ResultWithError<X, T>)): X | undefined {
+        if(this.success) {
+            let result = fct();
+            if(result.success && result.result) {
+                return result.result;
+            }
+            this.errors = [...this.errors, ...result.errors];
+        }
+        return undefined;
+    }
+
+    public async extractAsync<X>(fct: (() => Promise<ResultWithError<X, T>>)): Promise<X | undefined> {
+        if(this.success) {
+            let result = await fct();
+            if(result.success && result.result) {
+                return result.result;
+            }
+            this.errors = [...this.errors, ...result.errors];
+        }
+        return undefined;
+    }
 }
 
 /**
@@ -105,8 +162,10 @@ export class VoidWithError<T extends GenericError = GenericError> {
 @Storybook({
     prefix: "Error"
 })
+@Convertible()
 export class ResultWithError<U, T extends GenericError = GenericError> extends VoidWithError<T> {
 
+    public static override get Fullname(): string { return "Aventus.ResultWithError"; }
     /**
       * The result value of the action.
       * @type {U | undefined}
@@ -123,6 +182,39 @@ export class ResultWithError<U, T extends GenericError = GenericError> extends V
         result.result = this.result;
         return result;
     }
+
+    public override run(fct: (() => T[]) | (() => VoidWithError<T>) | (() => ResultWithError<U, T>)): this {
+        if(this.success) {
+            let result = fct();
+            if(!Array.isArray(result)) {
+                result = result.errors;
+            }
+            if(result.length > 0) {
+                this.errors = [...this.errors, ...result];
+            }
+            if(result instanceof ResultWithError && result.success && result.result) {
+                this.result = result.result;
+            }
+        }
+        return this;
+    }
+
+    public override async runAsync(fct: (() => Promise<T[]>) | (() => Promise<VoidWithError<T>>) | (() => ResultWithError<U, T>)): Promise<this> {
+        if(this.success) {
+            let result = await fct();
+            if(!Array.isArray(result)) {
+                result = result.errors;
+            }
+            if(result.length > 0) {
+                this.errors = [...this.errors, ...result];
+            }
+            if(result instanceof ResultWithError && result.success && result.result) {
+                this.result = result.result;
+            }
+        }
+        return this;
+    }
+
 }
 
 /**

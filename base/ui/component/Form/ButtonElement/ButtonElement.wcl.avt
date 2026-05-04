@@ -3,26 +3,44 @@ import { Form } from "../Form/Form.wcl.avt";
 import type { IForm } from "../Form/FormType.lib.avt";
 
 namespace Form {
+    /**
+     * Base class for form button elements, handling submission logic and integration with the Aventus form system.
+     */
     export abstract class ButtonElement extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
         //#region static
+        /**
+         * Indicates that this web component can be associated with a form.
+         */
         public static get formAssociated(): boolean { return true; }
         //#endregion
 
 
         //#region props
+        /**
+         * Defines the behavior of the button. - 'button': A generic button with no default behavior. - 'submit': Submits the form data. - 'reset': Resets the form to its initial state. - 'menu': A button that opens a menu.
+         */
         @Property()
         public type: 'button' | 'submit' | 'reset' | 'menu' = 'button';
         //#endregion
 
 
         //#region variables
+        /**
+         * Provides access to the form internals of the custom element.
+         */
         protected internals: ElementInternals;
+        /**
+         * Reference to the parent form handler, if available.
+         */
         protected handler?: IForm = undefined;
         //#endregion
 
 
         //#region constructor
+        /**
+         * Initializes a new instance of the ButtonElement.
+         */
         public constructor() {
             super();
             this.internals = this.attachInternals();
@@ -31,6 +49,9 @@ namespace Form {
 
 
         //#region methods
+        /**
+         * Triggers the form submission if the button type is 'submit'. Manages loading state and calls requestSubmit() on the associated form or handler.
+         */
         protected async triggerSubmit() {
             if(this.type == "submit") {
                 if("loading" in this) {
@@ -47,8 +68,8 @@ namespace Form {
                 }
             }
         }
-        protected override postCreation(): void {
-            super.postCreation();
+
+        protected registerSubmit() {
             this.handler = this.findParentByType(Form.formElements)?.registerSubmit(this);
             if(this.type == "submit") {
                 new PressManager({
@@ -63,6 +84,13 @@ namespace Form {
                     }
                 });
             }
+        }
+        /**
+         * Lifecycle hook called after the component is created. Registers the button with the parent form and sets up event listeners for submission.
+         */
+        protected override postCreation(): void {
+            super.postCreation();
+            this.registerSubmit();
         }
         //#endregion
 

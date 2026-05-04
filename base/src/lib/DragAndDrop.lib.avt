@@ -240,9 +240,10 @@ export class DragAndDrop {
         this.defaultMerge(options, "onDrop");
         this.defaultMerge(options, "correctPosition");
     }
-    private defaultMerge(options: DragAndDropOptions, name: string) {
+    private defaultMerge(options: DragAndDropOptions, name: keyof DragAndDropOptions) {
         if(options[name] !== void 0) {
-            this.options[name] = options[name];
+            const opts = this.options as any;
+            opts[name] = options[name] as any;
         }
     }
     // #endregion

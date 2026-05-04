@@ -18,11 +18,14 @@ export type TemplatesByName = { [name: string]: TemplateScript | TemplatesByName
 export class TemplateManager {
 	private templatePath: string[] = [];
 	private projectPath: string[] = [];
+	private globalPath: string[] = [];
 
 	private loadedTemplates: TemplatesByName = {};
 	private loadedProjects: TemplatesByName = {};
+	private loadedGlobal: TemplatesByName = {};
 	private loadedProjectsLength: number = 0;
 	private loadedTemplatesLength: number = 0;
+	private loadedGlobalLength: number = 0;
 	public workspaces: string[] = [];
 	// private templatesByName: {[]}
 
@@ -38,17 +41,32 @@ export class TemplateManager {
 	public getGeneralProjectsLength() {
 		return this.loadedProjectsLength;
 	}
+	public getGeneralGlobal() {
+		return this.loadedGlobal;
+	}
+	public getGeneralGlobalLength() {
+		return this.loadedGlobalLength;
+	}
 
 	public constructor(workspaces: string[]) {
 		this.workspaces = workspaces.map(p => uriToPath(p).replace(/\//g, sep));
-		this.loadTemplates();
-		SettingsManager.getInstance().onSettingsChange(() => {
-			this.loadTemplates();
-		})
+
 		// this.validateEmptyFolder();
 	}
 
-	public loadTemplates() {
+	public async init() {
+		if (GenericServer.isIDE) {
+			this.loadTemplates(); // dont lock if is IDE
+		}
+		else {
+			await this.loadTemplates();
+		}
+		SettingsManager.getInstance().onSettingsChange(() => {
+			this.loadTemplates();
+		})
+	}
+
+	public async loadTemplates() {
 		let storagePath = GenericServer.savePath;
 		if (!existsSync(storagePath)) {
 			mkdirSync(storagePath);
@@ -57,27 +75,39 @@ export class TemplateManager {
 		let basicTemplate = normalize(storagePath + sep + "templates");
 		this.prepareFolders(this.templatePath, basicTemplate);
 
+		this.globalPath = SettingsManager.getInstance().settings.globalPath;
+		let basicGlobal = normalize(storagePath + sep + "global");
+		this.prepareFolders(this.globalPath, basicGlobal);
+
 		this.projectPath = SettingsManager.getInstance().settings.projectPath;
 		let basicProject = normalize(storagePath + sep + "projects");
-		let needAsk = !existsSync(basicProject);
+		let needAsk = !existsSync(basicProject) || readdirSync(basicProject).length == 0;
 		this.prepareFolders(this.projectPath, basicProject);
 		if (needAsk) {
-			this.askTemplate();
+			await this.askTemplate();
 		}
 
-		this.reloadTemplates();
-		this.reloadProjects();
+		const promises: Promise<void>[] = []
+		promises.push(this.reloadTemplates());
+		promises.push(this.reloadProjects());
+		promises.push(this.reloadGlobal());
+		await Promise.all(promises);
 	}
 
-	private reloadTemplates() {
-		const templateTemp = this.readTemplates(this.templatePath);
+	private async reloadTemplates() {
+		const templateTemp = await this.readTemplates(this.templatePath);
 		this.loadedTemplates = templateTemp.templates;
 		this.loadedTemplatesLength = templateTemp.nb;
 	}
-	private reloadProjects() {
-		const projectsTemp = this.readTemplates(this.projectPath);
+	private async reloadProjects() {
+		const projectsTemp = await this.readTemplates(this.projectPath);
 		this.loadedProjects = projectsTemp.templates;
 		this.loadedProjectsLength = projectsTemp.nb;
+	}
+	private async reloadGlobal() {
+		const globalTemp = await this.readTemplates(this.globalPath);
+		this.loadedGlobal = globalTemp.templates;
+		this.loadedGlobalLength = globalTemp.nb;
 	}
 	private prepareFolders(variable: string[], _default: string) {
 		if (!variable.includes(_default)) {
@@ -100,32 +130,21 @@ export class TemplateManager {
 		return "";
 	}
 
-	public async createProject(path: string) {
-		if (this.loadedProjectsLength == 0) {
-			let result = await GenericServer.Popup("You have no template for project! Do you want to load some?", 'Yes', 'No');
-			if (result == 'Yes') {
-				this.selectTemplateToImport();
-			}
-			return;
-		}
-		const templateResult = await this.query(this.loadedProjects);
-		if (templateResult) {
-			await templateResult.init(path, this.findWorkspace(path))
-		}
-	}
 
-	public readTemplates(pathToRead: string[], templates: TemplatesByName = {}, nb: number = 0) {
-
+	public async readTemplates(pathToRead: string[], templates: TemplatesByName = {}, nb: number = 0) {
+		const promises: Promise<void>[] = []
 		const readRecu = (currentFolder: string) => {
 			let configPathScript = join(currentFolder, AventusExtension.Template);
 			if (existsSync(configPathScript)) {
 				try {
-
-					let template = TemplateScript.create(configPathScript);
-					if (template) {
-						setValueToObject(template.name, templates, template);
-						nb++;
-					}
+					promises.push(new Promise(async (resolve) => {
+						let template = await TemplateScript.createAsync(configPathScript);
+						if (template) {
+							setValueToObject(template.name, templates, template);
+							nb++;
+						}
+						resolve();
+					}))
 
 				} catch (e) {
 					console.error(e);
@@ -141,7 +160,7 @@ export class TemplateManager {
 						readRecu(folder);
 					}
 				} catch (e) {
-					console.log(e);
+					GenericServer.error(e);
 				}
 			}
 		}
@@ -150,6 +169,8 @@ export class TemplateManager {
 				readRecu(path);
 			}
 		}
+
+		await Promise.all(promises);
 
 		return {
 			templates,
@@ -167,10 +188,10 @@ export class TemplateManager {
 	}
 
 	private async askTemplate() {
-		// let result = await window.showInformationMessage('Do you want to install project templates (recommended)', 'Yes', 'No');
-		// if (result == 'Yes') {
-		this.selectProjectToImport(true);
-		// }
+		let result = await GenericServer.ask('Do you want to install project templates (recommended)?');
+		if (result) {
+			await this.selectProjectToImport(true);
+		}
 	}
 	public async selectProjectToImport(picked: boolean) {
 		if (this.projectPath.length == 0) {
@@ -182,7 +203,7 @@ export class TemplateManager {
 			{ label: "Local" },
 			// { label: "Store" },
 			{ label: "Git" },
-		], { title: "Source" });
+		], { placeHolder: "Select a source from where to import projects" });
 
 		if (!sourceResult) {
 			return
@@ -247,7 +268,7 @@ export class TemplateManager {
 			await this.downloadTemplateFromStore();
 		}
 
-		this.reloadProjects();
+		await this.reloadProjects();
 
 
 	}
@@ -262,7 +283,7 @@ export class TemplateManager {
 			{ label: "Local" },
 			// { label: "Store" },
 			{ label: "Git" },
-		], { title: "Source" });
+		], { placeHolder: "Select a source from where to import templates" });
 
 		if (!sourceResult) {
 			return
@@ -319,7 +340,7 @@ export class TemplateManager {
 					}
 				}
 				GenericServer.showInformationMessage("Templates installed");
-				this.reloadTemplates();
+				await this.reloadTemplates();
 			}
 		}
 		else if (sourceResult.label == "Git") {
@@ -329,13 +350,93 @@ export class TemplateManager {
 					cwd: this.templatePath[0]
 				})
 			}
-			this.reloadTemplates();
+			await this.reloadTemplates();
 		}
 		else if (sourceResult.label == "Store") {
 			await this.downloadTemplateFromStore();
 		}
 
 	}
+	public async selectGlobalToImport(picked: boolean) {
+		if (this.globalPath.length == 0) {
+			GenericServer.showErrorMessage("No global template path registered");
+			return;
+		}
+
+		const sourceResult = await GenericServer.Select([
+			{ label: "Local" },
+			// { label: "Store" },
+			{ label: "Git" },
+		], { placeHolder: "Select a source from where to import global templates" });
+
+		if (!sourceResult) {
+			return
+		}
+
+		if (sourceResult.label == "Local") {
+			let globalFolder = GenericServer.extensionPath + sep + "templates" + sep + "global";
+			let folders = readdirSync(globalFolder);
+			let quickPicks: Map<SelectItem, string> = new Map<SelectItem, string>();
+			const scripts: { [name: string]: TemplateScript } = {};
+			for (let folder of folders) {
+				let folderPath = globalFolder + sep + folder;
+				if (statSync(folderPath).isDirectory()) {
+					let confPath = folderPath + sep + AventusExtension.Template;
+					if (existsSync(confPath)) {
+						try {
+							const template = TemplateScript.create(confPath);
+							if (template) {
+								scripts[folderPath] = template;
+								let quickPick: SelectItem = {
+									label: template.name,
+									detail: template.description ?? "",
+									picked: picked,
+								}
+								quickPicks.set(quickPick, folderPath);
+							}
+						} catch { }
+					}
+				}
+			}
+			let result = await GenericServer.SelectMultiple(Array.from(quickPicks.keys()), {
+				title: "Select global templates to import",
+			});
+			if (result) {
+				for (let item of result) {
+					let path = this.getSelectItem(quickPicks, item);
+					if (path) {
+						let folderName = scripts[path].installationFolder ?? path.split(sep).pop()!;
+						folderName = folderName.replace(/\//g, sep).replace(/\\/, sep);
+						if (!folderName.startsWith(sep)) {
+							folderName = sep + folderName;
+						}
+						let destPath = this.globalPath[0] + folderName;
+						if (existsSync(destPath)) {
+							rmSync(destPath, { recursive: true, force: true })
+						}
+						cpSync(path, destPath, { force: true, recursive: true })
+					}
+				}
+				GenericServer.showInformationMessage("Global templates installed");
+			}
+		}
+		else if (sourceResult.label == "Git") {
+			const uri = await this.getGitURL();
+			if (uri) {
+				execSync("git clone " + uri, {
+					cwd: this.globalPath[0]
+				})
+			}
+		}
+		else if (sourceResult.label == "Store") {
+			await this.downloadTemplateFromStore();
+		}
+
+		await this.reloadGlobal();
+
+
+	}
+
 
 	public async selectProjectToUninstall() {
 		const projectsTree = this.getGeneralProjects();
@@ -370,7 +471,7 @@ export class TemplateManager {
 		}
 
 		if (result.length > 0) {
-			this.reloadProjects();
+			await this.reloadProjects();
 			GenericServer.showInformationMessage("Projects deleted");
 		}
 	}
@@ -408,11 +509,48 @@ export class TemplateManager {
 		}
 
 		if (result.length > 0) {
-			this.reloadTemplates();
+			await this.reloadTemplates();
 			GenericServer.showInformationMessage("Templates deleted");
 		}
 	}
 
+	public async selectGlobalToUninstall() {
+		const globalTree = this.getGeneralGlobal();
+		const templates: TemplateScript[] = [];
+		const quickPicks: SelectItem[] = [];
+
+		const parse = (tree: TemplatesByName) => {
+			for (let key in tree) {
+				const el = tree[key];
+				if (el instanceof TemplateScript) {
+					templates.push(el);
+					quickPicks.push({
+						label: el.name,
+						detail: el.config
+					})
+				}
+				else {
+					parse(el);
+				}
+			}
+		}
+		parse(globalTree);
+
+		const result = await GenericServer.SelectMultiple(quickPicks, { title: "Select global templates to remove" })
+		if (!result) return;
+
+		for (let item of result) {
+			if (item.detail) {
+				let folderPath = dirname(item.detail);
+				rmSync(folderPath, { recursive: true, force: true })
+			}
+		}
+
+		if (result.length > 0) {
+			await this.reloadGlobal();
+			GenericServer.showInformationMessage("Global templates deleted");
+		}
+	}
 
 	private getSelectItem<T>(map: Map<SelectItem, T>, item: SelectItem) {
 		for (let key of map.keys()) {
@@ -423,14 +561,23 @@ export class TemplateManager {
 		return null;
 	}
 
-	public async query(templates: TemplatesByName): Promise<TemplateScript | null> {
+	public async query(path: string, templates: TemplatesByName): Promise<TemplateScript | null>;
+	public async query(path: string, templates: TemplatesByName, quickPicks: SelectItem[]): Promise<TemplateScript | null | SelectItem>;
+	public async query(path: string, templates: TemplatesByName, quickPicks?: SelectItem[]): Promise<TemplateScript | null | SelectItem> {
+		let hasCustom = true;
+		if (!quickPicks) {
+			hasCustom = false;
+			quickPicks = [];
+		}
 		let quickPicksTemplateByName: Map<SelectItem, TemplatesByName> = new Map();
 		let quickPicksTemplate: Map<SelectItem, TemplateScript> = new Map();
-		const quickPicks: SelectItem[] = [];
 		for (let name in templates) {
 			const current = templates[name];
 			let quickPick: SelectItem;
 			if (current instanceof TemplateScript) {
+
+				if (!current.isAllowed(path, this.findWorkspace(path))) continue;
+
 				quickPick = {
 					label: name,
 					detail: current.description ?? "",
@@ -445,8 +592,9 @@ export class TemplateManager {
 			}
 			quickPicks.push(quickPick);
 		}
+		quickPicks.sort((a, b) => a.label.localeCompare(b.label));
 		const resultFormat = await GenericServer.Select(quickPicks, {
-			placeHolder: 'Choose a template',
+			placeHolder: 'What do you want to create?',
 		});
 
 		if (resultFormat) {
@@ -457,7 +605,11 @@ export class TemplateManager {
 
 			let resultPick3 = this.getSelectItem(quickPicksTemplateByName, resultFormat);
 			if (resultPick3) {
-				return this.query(resultPick3);
+				return this.query(path, resultPick3);
+			}
+
+			if (hasCustom) {
+				return resultFormat;
 			}
 		}
 		return null;
@@ -508,7 +660,7 @@ export class TemplateManager {
 					return;
 				}
 
-				const writeBasePath = temp.isProject ? this.projectPath[0] : this.templatePath[0];
+				const writeBasePath = temp.isGlobal ? this.globalPath[0] : temp.isProject ? this.projectPath[0] : this.templatePath[0];
 
 				let folderName = temp.installationFolder ?? packageName;
 				folderName = folderName.replace(/\//g, sep).replace(/\\/, sep);
@@ -521,11 +673,14 @@ export class TemplateManager {
 					return;
 				}
 
-				if (temp.isProject) {
-					this.reloadProjects();
+				if (temp.isGlobal) {
+					await this.reloadGlobal();
+				}
+				else if (temp.isProject) {
+					await this.reloadProjects();
 				}
 				else {
-					this.reloadTemplates();
+					await this.reloadTemplates();
 				}
 				GenericServer.showInformationMessage("Template " + packageName + " installed");
 				rmSync(packageTempPath, { force: true, recursive: true });
@@ -577,5 +732,19 @@ export class TemplateManager {
 			console.error("Extract error ", e)
 		}
 		return false;
+	}
+
+	public async readGlobal() {
+		let global = this.getGeneralGlobal();
+		let globalLength = this.getGeneralGlobalLength();
+		let uri = GenericServer.getWorkspaceUri()
+		if (uri) {
+			let aventusFolder = uriToPath(uri) + '/.aventus/global';
+			return await this.readTemplates([aventusFolder], global, globalLength);
+		}
+		return {
+			templates: global,
+			nb: globalLength
+		};
 	}
 }

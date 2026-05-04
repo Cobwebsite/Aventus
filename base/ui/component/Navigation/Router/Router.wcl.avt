@@ -1,25 +1,43 @@
-import type { UriParamsValue } from "Aventus@Main:Aventus.package.avt";
+import type { Asyncable, UriParamsValue } from "Aventus@Main:Aventus.package.avt";
 import { RouterStateManager } from "../../../lib/RouterStateManager.lib.avt";
 import type { Constructor } from "../../Form/Form/FormType.lib.avt";
 import { Default404 } from "../Default404/Default404.wcl.avt";
 import { Page } from "../Page/Page.wcl.avt";
 
 namespace Navigation {
+    /**
+     * Configuration options for the Router component.
+     */
     export type RouterOptions = {
         page404?: Constructor<Page>;
         destroyPage?: boolean;
     };
+    /**
+     * Options for defining an asynchronously loaded route.
+     */
     export type RouteAsyncOption = {
         route: string,
         scriptUrl: string,
         render: () => new () => Page;
     };
+    /**
+     * The central navigation mechanism for Aventus applications. It manages application states, loads pages dynamically, handles URL changes, and provides mechanisms for defining routes, showing 404 pages, and controlling page lifecycles.
+     */
     export abstract class Router extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
         //#region static
+        /**
+         * The default component to use for 404 (Not Found) pages.
+         */
         protected static page404: Constructor<Page> = Default404;
+        /**
+         * Global setting: if true, pages will be destroyed (removed from DOM) when hidden.
+         */
         protected static destroyPage: boolean = false;
 
+        /**
+         * Allows global configuration of router options.
+         */
         public static configure(options: RouterOptions): void {
             if(options.page404 !== undefined) this.page404 = options.page404;
             if(options.destroyPage !== undefined) this.destroyPage = options.destroyPage;
@@ -28,25 +46,53 @@ namespace Navigation {
 
 
         //#region props
-
+        @Attribute()
+        public initializing: boolean = true;
         //#endregion
 
 
         //#region variables
+        /**
+         * Stores a reference to the previously active Page component.
+         */
         protected oldPage?: Page;
+        /**
+         * Reference to the HTML element within the component's template where page content will be rendered.
+         */
         @ViewElement()
         public contentEl!: HTMLDivElement;
 
+        /**
+         * An object mapping route patterns to their corresponding RouteAsyncOption objects.
+         */
         protected allRoutes: { [key: string]: RouteAsyncOption; } = {};
+        /**
+         * The path of the currently active route.
+         */
         protected activePath: string = "";
+        /**
+         * The Aventus.State object for the currently active route.
+         */
         protected activeState?: Aventus.State;
+        /**
+         * A flag indicating if at least one route is currently active within this router.
+         */
         protected oneStateActive: boolean = false;
+        /**
+         * A mutex to prevent race conditions when multiple route changes occur rapidly.
+         */
         protected showPageMutex: Aventus.Mutex = new Aventus.Mutex();
+        /**
+         * Flag indicating if the current navigation should replace the history entry instead of pushing a new one.
+         */
         protected isReplace: boolean = false;
         //#endregion
 
 
         //#region constructor
+        /**
+         * Initializes a new instance of the Router, binding event handlers and registering the canChangeState callback with the stateManager.
+         */
         constructor() {
             super();
             this.validError404 = this.validError404.bind(this);
@@ -58,16 +104,25 @@ namespace Navigation {
 
         //#region methods
         /**
-         * Add all your routes inside this function (addRoute or addRouteAsync)
+         * Abstract method that subclasses must implement to define all application routes using addRoute or addRouteAsync.
          */
-        protected abstract defineRoutes(): void;
+        protected abstract defineRoutes(): Asyncable<void>;
+        /**
+         * Getter for the application's RouterStateManager instance.
+         */
         protected get stateManager(): Aventus.StateManager {
             return Aventus.Instance.get(RouterStateManager);
         }
 
+        /**
+         * Registers a route that loads its page component asynchronously.
+         */
         protected addRouteAsync<T extends Page>(options: RouteAsyncOption) {
             this.allRoutes[options.route] = options;
         }
+        /**
+         * Registers a route with a directly provided page component constructor.
+         */
         protected addRoute(route: string, elementCtr: new () => Page) {
             this.allRoutes[route] = {
                 route: route,
@@ -76,9 +131,12 @@ namespace Navigation {
             };
         }
 
-        protected register(): void {
+        /**
+         * Initializes the router by defining routes, subscribing to state changes for 404 handling, and initializing each defined route.
+         */
+        protected async register(): Promise<void> {
             try {
-                this.defineRoutes();
+                await this.defineRoutes();
                 this.stateManager.onAfterStateChanged(this.validError404);
                 for(let key in this.allRoutes) {
                     this.initRoute(key);
@@ -87,6 +145,9 @@ namespace Navigation {
                 console.error(e);
             }
         }
+        /**
+         * Configures how each individual route behaves when activated or deactivated. This includes dynamic loading of scripts, creating page instances, checking isAllowed and loadData lifecycle hooks, managing oldPage hiding/destruction, and updating document metadata (title, meta tags). It also handles updating the browser's history.
+         */
         protected initRoute(path: string) {
             let element: Page | undefined = undefined;
             let allRoutes = this.allRoutes;
@@ -181,7 +242,13 @@ namespace Navigation {
             });
         }
 
+        /**
+         * The instantiated 404 page component.
+         */
         protected page404?: Page;
+        /**
+         * Handles cases where no defined route matches the current state, displaying the 404 page. It instantiates and manages the lifecycle of the 404 page.
+         */
         protected async validError404() {
             if(!this.oneStateActive) {
                 let Page404 = this.error404(this.stateManager.getState()) ?? Router.page404;
@@ -212,20 +279,35 @@ namespace Navigation {
                 }
             }
         }
+        /**
+         * An overridable method to provide a custom 404 page component constructor based on the current state.
+         */
         protected error404(state?: Aventus.State): null | (new () => Page) {
             return null;
         }
+        /**
+         * Lifecycle hook called after a new page is successfully activated and displayed.
+         */
         protected onNewPage(oldUrl: string, oldPage: Page | undefined, newUrl: string, newPage: Page) {
 
         }
+        /**
+         * Retrieves URI parameters (slugs) for the currently active route.
+         */
         public getSlugs(): UriParamsValue | null {
             return this.stateManager.getStateSlugs(this.activePath);
         }
 
+        /**
+         * An overridable asynchronous method to control whether a state change is permitted. If this returns false, the navigation will be cancelled.
+         */
         protected async canChangeState(newState: Aventus.State): Promise<boolean> {
             return true;
         }
 
+        /**
+         * Programmatically navigates to a new state or URL.
+         */
         public async navigate(state: Aventus.State | string, options?: { replace: boolean; }): Promise<boolean> {
             if(options?.replace) {
                 this.isReplace = true;
@@ -238,21 +320,30 @@ namespace Navigation {
         }
 
 
+        /**
+         * Determines whether the router should bind to the browser's URL (i.e., use HTML5 History API).
+         */
         protected bindToUrl(): boolean {
             return true;
         }
 
+        /**
+         * Returns the default URL to navigate to if no specific URL is provided or matched.
+         */
         protected defaultUrl(): string | undefined {
             return "/";
         }
 
         /**
-         * Determine if the pash should be destroyed when hiding
+         * Determines if a page should be destroyed (removed from DOM) when hidden, based on global configuration (Router.destroyPage) or page-specific settings.
          */
         protected shouldDestroyFrame(page: Page): boolean {
             return Router.destroyPage;
         }
 
+        /**
+         * Sets the initial URL for the application. It checks for a saved navigation URL in localStorage, otherwise uses the current browser URL or a default URL.
+         */
         protected setFirstUrl() {
             let oldUrl = window.localStorage.getItem("navigation_url");
             if(oldUrl !== null) {
@@ -270,8 +361,8 @@ namespace Navigation {
             }
         }
 
-        protected override postCreation(): void {
-            this.register();
+        protected async init(): Promise<void> {
+            await this.register();
             this.setFirstUrl();
 
             if(this.bindToUrl()) {
@@ -281,6 +372,14 @@ namespace Navigation {
                     }
                 };
             }
+            this.initializing = false;
+        }
+
+        /**
+         * Lifecycle hook called after the component is created. Initializes the router by registering routes, setting the first URL, and setting up onpopstate for browser history navigation.
+         */
+        protected override postCreation(): void {
+            this.init();
         }
         //#endregion
 

@@ -2,6 +2,9 @@ import { Page } from "../Page/Page.wcl.avt";
 import type { PageConfig } from "../Page/PageConfig.lib.avt";
 
 namespace Navigation {
+    /**
+     * A specialized Page component intended to be displayed when a requested route or resource is not found (a "404 Not Found" error).
+     */
     export class Default404 extends Page implements Aventus.DefaultComponent {
 
         //#region static
@@ -27,6 +30,7 @@ namespace Navigation {
         //#region methods
         /**
          * @inheritdoc
+         * Overrides the configure method from the base Page class. It returns a PageConfig object with destroy: true, indicating that this page should be destroyed (unloaded) when navigated away from.
          */
         public override configure(): Aventus.Asyncable<PageConfig> {
             return {

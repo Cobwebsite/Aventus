@@ -44,6 +44,7 @@ export type TemplateScriptConfig = {
 	organization?: string,
 	tags?: string[],
 	isProject?: boolean,
+	isGlobal?: boolean,
 	installationFolder?: string,
 	documentation?: string,
 	repository?: string,
@@ -61,6 +62,8 @@ export class TemplateScript {
 	public lastModified: Date;
 	public allowQuick: boolean = false;
 	public isProject: boolean = false;
+	public isGlobal: boolean = false;
+	private hasIsAllow: boolean = false;
 	public containsError: boolean = false;
 	public installationFolder?: string;
 	public documentation?: string;
@@ -86,24 +89,51 @@ export class TemplateScript {
 		}
 		return this.memory[config];
 	}
+	public static async createAsync(config: string): Promise<TemplateScript | undefined> {
+		let folderPath = dirname(config);
+		if (this.memory[config]) {
+			let lastModified = statSync(config).mtime
+			if (lastModified.getTime() > this.memory[config].lastModified.getTime()) {
+				const temp = new TemplateScript(config, folderPath, true);
+				await temp.postConstructorAsync();
+				if (!temp.containsError) {
+					this.memory[config] = temp;
+				}
+			}
+		}
+		else {
+			const temp = new TemplateScript(config, folderPath, true);
+			await temp.postConstructorAsync();
+			if (!temp.containsError) {
+				this.memory[config] = temp;
+			}
+		}
+		return this.memory[config];
+	}
 
-	private constructor(config: string, folderPath: string) {
+	private constructor(config: string, folderPath: string, isAsync: boolean = false) {
 		this.config = config;
 		this.folderPath = folderPath;
+		this.lastModified = statSync(this.config).mtime
+		if (!isAsync)
+			this.postConstructor();
+	}
+
+	private postConstructor() {
 		const basicInfo = this.prepareScript();
 		for (let key in basicInfo) {
 			if (basicInfo[key]) {
 				this[key] = basicInfo[key];
 			}
 		}
-		// this.name = basicInfo.name;
-		// this.description = basicInfo.description;
-		// this.version = basicInfo.version;
-		// this.organization = basicInfo.organization;
-		// this.tags = basicInfo.tags ?? [];
-		// this.allowQuick = basicInfo.allowQuick ?? false;
-		// this.installationFolder = basicInfo.installationFolder;
-		// this.isProject = basicInfo.isProject ?? false;
+	}
+	private async postConstructorAsync() {
+		const basicInfo = await this.prepareScriptAsync();
+		for (let key in basicInfo) {
+			if (basicInfo[key]) {
+				this[key] = basicInfo[key];
+			}
+		}
 		this.lastModified = statSync(this.config).mtime
 	}
 
@@ -138,7 +168,9 @@ export class TemplateScript {
 					const data = JSON.stringify({ cmd, result: result ?? 'NULL' }) + "\n";
 					child.stdin.write(data);
 				}
-				child.stdin.on('error', function () { });
+				child.stdin.on('error', function (error) {
+					console.log(error)
+				});
 
 				child.stdout.on("data", async (data) => {
 					const txt = data.toString().trim();
@@ -216,7 +248,7 @@ export class TemplateScript {
 								try {
 									execSync(config, params)
 								} catch (e) {
-									console.log(e);
+									GenericServer.error(e);
 									GenericServer.showErrorMessage("The command " + config + " failed");
 								}
 								answer(payload.cmd, "done");
@@ -232,13 +264,13 @@ export class TemplateScript {
 									}
 									execAdmin("cd " + cwd + " && " + config, (error, stdout, stderr) => {
 										if (error) {
-											console.log('error: ' + error);
-											console.log('stdout: ' + stdout);
-											console.log('stderr: ' + stderr);
+											GenericServer.error('error: ' + error);
+											GenericServer.error('stdout: ' + stdout);
+											GenericServer.error('stderr: ' + stderr);
 										}
 									})
 								} catch (e) {
-									console.log(e);
+									GenericServer.error(e);
 									GenericServer.showErrorMessage("The command " + config + " failed");
 								}
 								answer(payload.cmd, "done");
@@ -262,16 +294,16 @@ export class TemplateScript {
 								ProgressStop.send(uuid);
 							}
 							else if (payload.cmd == "log") {
-								console.log(payload.config)
+								GenericServer.debug(payload.config)
 							}
 							else if (payload.cmd == "error") {
 								console.error(payload.config)
 							}
 						}
 					} catch (e) {
-						console.log(e);
-						console.log("message " + txt);
-						console.log(messages);
+						GenericServer.error(e);
+						GenericServer.error("message " + txt);
+						GenericServer.error(messages);
 					}
 				});
 
@@ -290,6 +322,52 @@ export class TemplateScript {
 		})
 	}
 
+	public isAllowed(path: string, workspacePath: string) {
+		if (!this.hasIsAllow) return true;
+
+		const rootPath = join(serverFolder(), 'lib/templateScript/AventusTemplate.ts').replace(/\\/g, "\\\\");
+
+		const txt = `
+					import { AventusTemplate, log } from 'file://${rootPath}';
+					import { Template } from 'file://${this.config.replace(/\\/g, "\\\\")}'
+					
+					process.on('uncaughtException', function(err) {
+						console.log('Caught exception: ' + err);
+					});
+
+					const t = new Template();
+					log(t._isAllowed(\`${this.folderPath.replace(/\\/g, "\\\\")}\`, \`${path.replace(/\\/g, "\\\\")}\`, \`${workspacePath.replace(/\\/g, "\\\\")}\`))`;
+
+		let tempPath = join(GenericServer.savePath, "temp");
+		if (!existsSync(tempPath)) {
+			mkdirSync(tempPath);
+		}
+		let scriptPath = join(tempPath, md5(this.config) + ".ts");
+		writeFileSync(scriptPath, txt);
+
+		var a: string = "";
+		var err: string = "";
+		let result = false;
+		try {
+			const sp = spawnSync(`node`, ["--no-warnings", scriptPath], {
+				cwd: this.folderPath,
+			});
+			err = sp.stderr.toString();
+			a = sp.stdout.toString().trim();
+			if (a !== "true" && a !== "false") {
+				throw "Result isn't a boolean"
+			}
+			result = a.trim() == "true";
+		} catch (e) {
+			GenericServer.error(e);
+			GenericServer.error(err);
+			GenericServer.error(a);
+			this.containsError = true;
+		}
+		unlinkSync(scriptPath);
+		return result;
+	}
+
 	protected prepareScript(): TemplateScriptConfig {
 		const rootPath = join(serverFolder(), 'lib/templateScript/AventusTemplate.ts').replace(/\\/g, "\\\\");
 
@@ -306,10 +384,11 @@ export class TemplateScript {
 		}
 		let scriptPath = join(tempPath, md5(this.config) + ".ts");
 		writeFileSync(scriptPath, txt);
-		let values: { name: string, version: string, description: string, allowQuick?: boolean } = {
+		let values: { name: string, version: string, description: string, allowQuick?: boolean, isAllow: boolean } = {
 			name: "",
 			version: "1.0.0",
-			description: ""
+			description: "",
+			isAllow: true,
 		}
 		var a: string = "";
 		var err: string = "";
@@ -322,13 +401,96 @@ export class TemplateScript {
 			const valuesTemp = JSON.parse(a.trim());
 			values = { ...values, ...valuesTemp };
 		} catch (e) {
-			console.log(e);
-			console.log(err);
-			console.log(a);
+			GenericServer.error(e);
+			GenericServer.error(err);
+			GenericServer.error(a);
 			this.containsError = true;
 		}
 		unlinkSync(scriptPath);
 		return values;
+	}
+
+	private static preparing: { [name: string]: ((result: TemplateScriptConfig) => void)[] } = {}
+	protected prepareScriptAsync(): Promise<TemplateScriptConfig> {
+		return new Promise<TemplateScriptConfig>(async (resolve) => {
+
+			const name = md5(this.config);
+			if (TemplateScript.preparing[name] !== undefined) {
+				TemplateScript.preparing[name].push((result) => {
+					resolve(result);
+				})
+				return;
+			}
+			TemplateScript.preparing[name] = [];
+			const rootPath = join(serverFolder(), 'lib/templateScript/AventusTemplate.ts').replace(/\\/g, "\\\\");
+
+			const txt = `
+					import { AventusTemplate, log } from 'file://${rootPath}';
+					import { Template } from 'file://${this.config.replace(/\\/g, "\\\\")}'
+					const t = new Template();
+					log(t.basicInfo())`;
+
+
+			let tempPath = join(GenericServer.savePath, "temp");
+			if (!existsSync(tempPath)) {
+				mkdirSync(tempPath);
+			}
+			let scriptPath = join(tempPath, name + ".ts");
+			writeFileSync(scriptPath, txt);
+			let values: { name: string, version: string, description: string, allowQuick?: boolean, isAllow: boolean } = {
+				name: "",
+				version: "1.0.0",
+				description: "",
+				isAllow: true,
+			}
+			var a: string = "";
+			var err: string = "";
+			try {
+				const result = await this.asyncRun(scriptPath);
+				err = result.stderr.toString();
+				a = result.stdout.toString();
+				const valuesTemp = JSON.parse(a.trim());
+				values = { ...values, ...valuesTemp };
+			} catch (e) {
+				GenericServer.error(e);
+				GenericServer.error(err);
+				GenericServer.error(a);
+				this.containsError = true;
+			}
+			unlinkSync(scriptPath);
+			const cbs = [...TemplateScript.preparing[name]];
+			TemplateScript.preparing[name] = [];
+			for (let cb of cbs) {
+				cb(values)
+			}
+			resolve(values);
+		})
+
+	}
+
+	protected asyncRun(scriptPath: string) {
+		return new Promise<{ stdout: string, stderr: string }>((resolve, reject) => {
+			const sp = spawn(`node`, ["--no-warnings", scriptPath], {
+				cwd: this.folderPath,
+			});
+
+			let stdout = "";
+			let stderr = "";
+
+			sp.stdout.on('data', (data) => stdout += data.toString());
+			sp.stderr.on('data', (data) => stderr += data.toString());
+
+			sp.on('close', (code) => {
+				if (code === 0) {
+					resolve({ stdout, stderr });
+				} else {
+					// On rejette si le code de sortie n'est pas 0
+					reject(new Error(`Process exited with code ${code}. Stderr: ${stderr}`));
+				}
+			});
+
+			sp.on('error', (err) => reject(err));
+		});
 	}
 
 

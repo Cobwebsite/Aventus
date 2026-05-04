@@ -1,13 +1,21 @@
+import { LogLevel } from '@server/settings/Settings';
 import { Interaction } from '../interaction/Interaction';
 import { CliErrorsBuild } from './Connection';
 import type { RealServer } from './RealServer';
+import type { InputOptions } from '@server/IConnection';
 
 export type ServerConfig = {
-	onlyBuild: boolean,
+	noBuild?: boolean,
+	noStart?: boolean,
+	watchFiles?: boolean,
+	useCompilators?: boolean,
+	useTemplates?: boolean,
+	buildOnly?: boolean,
+	loadFiles?: boolean,
 	configPath?: string,
 	builds?: string[],
 	statics?: string[],
-	debug?: boolean,
+	logLevel?: LogLevel,
 	errorByBuild?: boolean,
 	useStats?: boolean
 }
@@ -26,6 +34,9 @@ export class Server {
 	public static unsubscribeErrors(cb: (errors: CliErrorsBuild, build: string) => void) {
 		return this.realServer?.unsubscribeErrors(cb);
 	}
+	public static executeCommand(cmd: string, ...args: any[]) {
+		return this.realServer?.executeCommand(cmd, ...args);
+	}
 	public static getErrors() {
 		return this.realServer?.getErrors();
 	}
@@ -38,5 +49,9 @@ export class Server {
 
 	public static getStatistics() {
 		return this.realServer?.getStatistics();
+	}
+
+	public static async Input(options: InputOptions): Promise<string | null> {
+		return this.realServer?.Input(options);
 	}
 }

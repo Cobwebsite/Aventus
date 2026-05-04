@@ -1,15 +1,39 @@
+/**
+ * Tracks touch or pointer events to calculate movement, delta, and velocity.
+ */
 export class Tracker {
+    /**
+     * Multiplier for velocity calculations based on device pixel ratio.
+     */
     private readonly velocityMultiplier: number = window.devicePixelRatio;
 
+    /**
+     * Timestamp of the last update.
+     */
     public updateTime: number = Date.now();
+    /**
+     * Change in position since the last update.
+     */
     public delta: { x: number, y: number; } = { x: 0, y: 0 };
+    /**
+     * Current velocity of the tracker.
+     */
     public velocity: { x: number, y: number; } = { x: 0, y: 0 };
+    /**
+     * Last recorded position.
+     */
     public lastPosition: { x: number, y: number; } = { x: 0, y: 0 };
 
+    /**
+     * Initializes a new Tracker instance.
+     */
     constructor(touch: Touch | PointerEvent | MouseEvent) {
         this.lastPosition = this.getPosition(touch);
     }
 
+    /**
+     * Updates the tracker's position, delta, and velocity.
+     */
     public update(touch: Touch | PointerEvent | MouseEvent) {
         const {
             velocity,
@@ -36,11 +60,17 @@ export class Tracker {
         this.lastPosition = position;
     }
 
+    /**
+     * Extracts pointer data from a given event.
+     */
     private getPointerData(evt: any) {
         // if is touch event, return last item in touchList
         // else return original event
         return evt.touches ? evt.touches[evt.touches.length - 1] : evt;
     }
+    /**
+     * Retrieves the client coordinates from a pointer event.
+     */
     private getPosition(evt: any) {
         const data = this.getPointerData(evt);
 
@@ -51,18 +81,36 @@ export class Tracker {
     }
 }
 
+/**
+ * Records and manages multiple touch/pointer events for gestures like pinch-to-zoom.
+ */
 export class TouchRecord {
+    /**
+     * The identifier of the currently active touch/pointer.
+     */
     private _activeTouchID?: number;
+    /**
+     * A map of active touch/pointer IDs to their respective Trackers.
+     */
     private _touchList: { [id: number]: Tracker; } = {};
 
+    /**
+     * Returns a primitive zero-value coordinate object.
+     */
     private get _primitiveValue(): { x: number, y: number; } {
         return { x: 0, y: 0 };
     }
 
+    /**
+     * Checks if there is an active touch/pointer event.
+     */
     public isActive(): boolean {
         return this._activeTouchID !== undefined;
     }
 
+    /**
+     * Retrieves the delta movement of the active tracker.
+     */
     public getDelta() {
         const tracker = this._getActiveTracker();
 
@@ -73,6 +121,9 @@ export class TouchRecord {
         return { ...tracker.delta };
     }
 
+    /**
+     * Retrieves the velocity of the active tracker.
+     */
     public getVelocity() {
         const tracker = this._getActiveTracker();
 
@@ -83,15 +134,23 @@ export class TouchRecord {
         return { ...tracker.velocity };
     }
 
+    /**
+     * Returns the number of active touch/pointer events.
+     */
     public getNbOfTouches() {
         return Object.values(this._touchList).length;
     }
+    /**
+     * Returns an array of active Tracker instances.
+     */
     public getTouches() {
         return Object.values(this._touchList);
     }
 
 
-
+    /**
+     * Calculates the easing distance based on current velocity and damping.
+     */
     public getEasingDistance(damping: number) {
         const deAcceleration = 1 - damping;
 
@@ -102,8 +161,9 @@ export class TouchRecord {
 
         const vel = this.getVelocity();
 
-        Object.keys(vel).forEach(dir => {
+        Object.keys(vel).forEach((_dir) => {
             // ignore small velocity
+            const dir = _dir as 'x' | 'y'
             let v = Math.abs(vel[dir]) <= 10 ? 0 : vel[dir];
 
             while(v !== 0) {
@@ -115,6 +175,9 @@ export class TouchRecord {
         return distance;
     }
 
+    /**
+     * Starts tracking new touch/pointer events.
+     */
     public track(evt: TouchEvent | PointerEvent | MouseEvent) {
         if('TouchEvent' in window && evt instanceof TouchEvent) {
             const {
@@ -132,6 +195,9 @@ export class TouchRecord {
         return this._touchList;
     }
 
+    /**
+     * Updates existing tracked touch/pointer events.
+     */
     public update(evt: TouchEvent | PointerEvent | MouseEvent) {
         if('TouchEvent' in window && evt instanceof TouchEvent) {
             const {
@@ -152,6 +218,9 @@ export class TouchRecord {
         return this._touchList;
     }
 
+    /**
+     * Releases tracking for ended touch/pointer events.
+     */
     public release(evt: TouchEvent | PointerEvent | MouseEvent) {
         if('TouchEvent' in window && evt instanceof TouchEvent) {
             Array.from(evt.changedTouches).forEach(touch => {
@@ -163,13 +232,18 @@ export class TouchRecord {
         }
     }
 
-
+    /**
+     * Retrieves a unique identifier for a touch or pointer event.
+     */
     private _getIdentifier(touch: Touch | PointerEvent | MouseEvent): number {
         if('Touch' in window && touch instanceof Touch) return touch.identifier;
         if(touch instanceof PointerEvent) return touch.pointerId;
         return (touch as MouseEvent).button;
     }
 
+    /**
+     * Adds a new touch/pointer event to the tracker list.
+     */
     private _add(touch: Touch | PointerEvent | MouseEvent) {
         if(this._has(touch)) {
             // reset tracker
@@ -181,6 +255,9 @@ export class TouchRecord {
         this._touchList[identifier] = tracker;
     }
 
+    /**
+     * Renews an existing touch/pointer event in the tracker list.
+     */
     private _renew(touch: Touch | PointerEvent | MouseEvent) {
         if(!this._has(touch)) {
             return;
@@ -191,6 +268,9 @@ export class TouchRecord {
         tracker.update(touch);
     }
 
+    /**
+     * Deletes a touch/pointer event from the tracker list.
+     */
     private _delete(touch: Touch | PointerEvent | MouseEvent) {
         const identifier = this._getIdentifier(touch);
         delete this._touchList[identifier];
@@ -199,11 +279,17 @@ export class TouchRecord {
         }
     }
 
+    /**
+     * Checks if a touch/pointer event is being tracked.
+     */
     private _has(touch: Touch | PointerEvent | MouseEvent): boolean {
         const identifier = this._getIdentifier(touch);
         return this._touchList.hasOwnProperty(identifier);
     }
 
+    /**
+     * Sets the identifier of the currently active touch/pointer event.
+     */
     private _setActiveID(touches: TouchList | PointerEvent | MouseEvent) {
         if(touches instanceof PointerEvent || touches instanceof MouseEvent) {
             this._activeTouchID = this._getIdentifier(touches);
@@ -213,6 +299,9 @@ export class TouchRecord {
         }
     }
 
+    /**
+     * Retrieves the currently active Tracker instance.
+     */
     private _getActiveTracker(): Tracker | undefined {
         const {
             _touchList,

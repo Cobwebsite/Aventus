@@ -14,14 +14,14 @@ import { TextEdit } from 'vscode-languageserver';
 export class AddI18nValue {
 	static cmd: string = "aventus.i18n.add";
 
-	public static async run(uri: string, value: string) {
+	public static async run(uri: string, value: string, allowComponent: boolean = true) {
 		try {
 			const builds = ProjectManager.getInstance().getMatchingBuildsByUri(uri);
 			if (builds.length > 0) {
 				const build = builds[0];
 				let uriComponent = uri.replace(AventusExtension.ComponentView, AventusExtension.I18n);
 				const items: SelectItem[] = []
-				if (build.i18nComponentsFiles[uriComponent]) {
+				if (allowComponent && build.i18nComponentsFiles[uriComponent]) {
 					const path = uriToPath(uriComponent)
 					items.push({
 						label: basename(path),

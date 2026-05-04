@@ -72,8 +72,11 @@ export class ElementExtension {
         } else {
             tagname = [tagname.toLowerCase()];
         }
-        const checkFunc = (el) => {
-            return tagname.indexOf((el.nodeName || el.tagName).toLowerCase()) != -1;
+        const checkFunc = (el: Node) => {
+            if(el instanceof Element) {
+                return tagname.indexOf((el.nodeName || el.tagName).toLowerCase()) != -1;
+            }
+            return tagname.indexOf(el.nodeName.toLowerCase()) != -1;
         };
         return this.findParent(element, checkFunc, untilNode);
 
@@ -87,7 +90,7 @@ export class ElementExtension {
         }
         const check = (el: Node) => {
             for(let classnameTemp of classname) {
-                if(el['classList'] && el['classList'].contains(classnameTemp)) {
+                if(el instanceof Element && el['classList'].contains(classnameTemp)) {
                     return true;
                 }
             }
@@ -110,7 +113,7 @@ export class ElementExtension {
             isValid = false;
         }
         if(isValid) {
-            let checkFunc = (el) => {
+            let checkFunc = (el: any) => {
                 for(let type of types) {
                     const t = type as Function;
                     if(el instanceof t) {
@@ -138,7 +141,10 @@ export class ElementExtension {
             tagname = [tagname.toLowerCase()];
         }
         let check = (el: Node) => {
-            return tagname.indexOf((el.nodeName || el['tagName']).toLowerCase()) != -1;
+            if(el instanceof Element) {
+                return tagname.indexOf((el.nodeName || el.tagName).toLowerCase()) != -1;
+            }
+            return tagname.indexOf(el.nodeName.toLowerCase()) != -1;
         };
         return this.findParents(element, check, untilNode);
     }
@@ -146,8 +152,8 @@ export class ElementExtension {
      * Check if element contains a child
      */
     public static containsChild(element: Element, child: Element): boolean {
-        var rootScope = element.getRootNode();
-        var elScope = child.getRootNode();
+        let rootScope = element.getRootNode();
+        let elScope: any = child.getRootNode();
         while(elScope != rootScope) {
             if(!elScope['host']) {
                 return false;
@@ -247,7 +253,7 @@ export class ElementExtension {
      * Get deeper element inside dom at the position X and Y
      */
     public static getElementAtPosition(x: number, y: number, startFrom?: Element) {
-        var _realTarget = (el: Element, i = 0) => {
+        const _realTarget = (el: Element, i = 0) => {
             if(i == 50) {
                 debugger;
             }

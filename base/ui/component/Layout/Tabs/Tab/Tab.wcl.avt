@@ -1,6 +1,9 @@
 import type { TabHeader } from "../TabHeader/TabHeader.wcl.avt";
 
 namespace Layout.Tabs {
+    /**
+     * Abstract base class for individual tab content panels within a tabbed interface. It manages its selected state and maintains a reference to its corresponding tab header.
+     */
     export abstract class Tab extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
         //#region static
@@ -9,12 +12,18 @@ namespace Layout.Tabs {
 
 
         //#region props
-		@Attribute()
+		/**
+         * Indicates whether this tab is currently active/selected.
+         */
+        @Attribute()
         public selected!: boolean;
         //#endregion
 
 
         //#region variables
+        /**
+         * Reference to the associated TabHeader component. Allows the tab content to interact with its header.
+         */
         @InternalProtected()
         public tabHeader?: TabHeader<this>;
         //#endregion
@@ -26,6 +35,9 @@ namespace Layout.Tabs {
 
 
         //#region methods
+        /**
+         * Abstract method that concrete tab implementations must provide. It should return a unique string identifier for the tab, used to link the tab content with its header.
+         */
         public abstract identifier(): string;
         //#endregion
 

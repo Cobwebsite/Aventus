@@ -5,19 +5,31 @@ import type { FormHandler } from "./FormHandler.lib.avt";
 import type { Validator } from "./Validator.lib.avt";
 
 namespace Form {
+    /**
+     * Defines the contract for classes that can act as a form handler.
+     */
     export interface IForm {
         registerElement(element: FormElement<any>): IForm;
         registerSubmit(element: ButtonElement): IForm;
         requestSubmit(): Aventus.Asyncable<void>;
     }
+    /**
+     * Defines the contract for individual form elements.
+     */
     export interface IFormElement<T = any> {
         errors: string[];
         value: T | undefined;
         onChange: Aventus.Callback<(value: T) => void>;
         formPart?: InternalFormPart<T>;
     }
+    /**
+     * Represents the internal structure of a form, mapping field names to their internal form parts.
+     */
     export type InternalForm<T> = { [K in keyof T]?: InternalFormPart<T[K]> };
 
+    /**
+     * Represents the internal structure of a single form field or part, including its value, validation rules, and associated elements.
+     */
     export interface InternalFormPart<T = any> {
         /**
          * The value of the form part, which can be of type T or an object with get and set methods.
@@ -39,13 +51,24 @@ namespace Form {
         test: () => Promise<boolean>;
         handler: FormHandler<any>;
     };
+    /**
+     * Defines the schema for an entire form, specifying the structure and validation for each field.
+     */
     export type FormSchema<T> = { [K in keyof T]: FormPart<T[K]> | FormPartValidateList<T[K]> };
 
+
+    /**
+     * Represents a list of validation functions or validators for a form part.
+     */
     export type FormPartValidateList<T> = FormPartValidate<T> | Constructor<Validator<T>> | Validator<T> | (
         Constructor<Validator<T>> |
         Validator<T>
     )[];
 
+
+    /**
+     * Defines the structure and behavior of a single part within a form schema.
+     */
     export interface FormPart<T = any> {
         /**
          * A validation function for the form part.
@@ -63,39 +86,66 @@ namespace Form {
     * Represents the result of form validation.
     * It can be a string, a boolean, undefined, or a promise of these types.
     */
-
     export type FormValidateResult = Aventus.Asyncable<string | string[] | boolean | undefined>;
+    
     /**
      * Represents a validation function for a value of type T.
      * The function takes a value of type T or undefined and returns a FormValidateResult.
      */
-
     export type FormPartValidate<T> = (value: T | undefined, name: string, globalValidation: () => Promise<void>) => FormValidateResult;
 
+    /**
+     * Represents a global validation function for a form field.
+     */
     export type FormValidate = (field: string, value: unknown) => FormValidateResult;
 
-    export type FormHandlerConfig<T> = {
-        /** Define global validation rules for your forms */
+    /**
+     * Configuration options for a FormHandler instance, including validation rules, error handling, and submission behavior.
+     */
+    export type FormHandlerConfig<T, R = any> = {
+        defaultValues?: T;
+        /** Define global validation rules for your forms. */
         validate?: FormValidate,
-        /** Define if the form element must be validated on input change */
+        /** Define if the form element must be validated on input change. */
         validateOnChange?: boolean,
-        /** Define how to handle error in form when name isn't linked to an input */
-        handleValidateNoInputError?: (errors: { [K in keyof T]?: string[]; }) => Asyncable<void>,
-        /** Define how to handle error after submitting the form when name isn't linked to an input */
-        handleExecuteNoInputError?: (errors: Aventus.GenericError[]) => Asyncable<void>;
+        /** Define how to handle error in form when name isn't linked to an input. */
+        onValidateFallback?: (errors: { [K in keyof T]?: string[]; }) => Asyncable<void>,
+        /** Define how to handle error after submitting the form when name isn't linked to an input. */
+        onServerFallback?: (errors: Aventus.GenericError[]) => Asyncable<void>;
+        /** Define how to parse errors to set them to fields. */
+        extractor?: (error: Aventus.GenericError) => { fieldName: string, messages: string[]; }[];
+        /** Define what to do when form is submitted successfully. */
+        onSuccess?: (result: ExtractError<R>) => Asyncable<void>;
+        /** Define the submit function to use. */
+        submit?: SubmitFunction<T, R>;
     };
 
+    /**
+     * Represents a type that can either be a successful result or an error.
+     */
     @Storybook({
         export: 'protected'
     })
     export type WithError<X> = [X] extends [void] ? Aventus.VoidWithError : Aventus.ResultWithError<X>;
 
+    /**
+     * Extracts the successful result type from a WithError type.
+     */
     export type ExtractError<X> = [X] extends [Aventus.ResultWithError<infer Y>] ? Y : [X] extends [Aventus.VoidWithError] ? void : X;
 
+    /**
+     * Represents a constructor type, with an option to allow abstract classes.
+     */
     export type Constructor<T, AllowAbstract extends boolean = false> = AllowAbstract extends false ? new (...args: any[]) => T : abstract new (...args: any[]) => T;
 
+    /**
+     * Represents a function that handles form submission, returning an asynchronous result with potential errors.
+     */
     export type SubmitFunction<T, X> = Aventus.Asyncable<WithError<X>> | ((body: T) => Aventus.Asyncable<WithError<X>>);
 
+    /**
+     * Checks if a given class is a subclass of another class.
+     */
     export function isSubclassOf(subClass: Function, superClass: Function): boolean {
         if(typeof subClass !== 'function' || typeof superClass !== 'function') return false;
 
@@ -106,4 +156,5 @@ namespace Form {
         }
         return false;
     }
+
 }

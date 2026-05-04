@@ -1,4 +1,4 @@
-import path from 'node:path'
+import {resolve} from 'path'
 import {
 	type Status as InquirerStatus,
 	createPrompt,
@@ -75,7 +75,7 @@ export default createPrompt<string | null, FileSelectorConfig>((config, done) =>
 	})
 
 	const [currentDir, setCurrentDir] = useState(
-		path.resolve(process.cwd(), config.basePath || '.')
+		resolve(process.cwd(), config.basePath || '.')
 	)
 
 	const items = useMemo(() => {
@@ -104,6 +104,8 @@ export default createPrompt<string | null, FileSelectorConfig>((config, done) =>
 
 	useKeypress((key, rl) => {
 		if (isEnterKey(key)) {
+			console.log(activeItem.isDisabled);
+			console.log(type);
 			if (
 				activeItem.isDisabled ||
 				(type === 'file' && activeItem.isDirectory()) ||
@@ -135,7 +137,7 @@ export default createPrompt<string | null, FileSelectorConfig>((config, done) =>
 				setActive(next)
 			}
 		} else if (isBackspaceKey(key)) {
-			setCurrentDir(path.resolve(currentDir, '..'))
+			setCurrentDir(resolve(currentDir, '..'))
 			setActive(bounds.first)
 		} else if (isEscapeKey(key) && allowCancel) {
 			setStatus('canceled')

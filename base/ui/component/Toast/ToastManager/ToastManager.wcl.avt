@@ -3,7 +3,13 @@ import type { Constructor } from "../../Form/Form/FormType.lib.avt";
 import { ToastElement } from "../ToastElement/ToastElement.wcl.avt";
 
 namespace Toast {
+    /**
+     * Defines the possible positions where a toast notification can appear on the screen.
+     */
     export type ToastPosition = 'bottom' | 'top' | 'bottom left' | 'top left' | 'bottom right' | 'top right';
+    /**
+     * Options for configuring an individual toast notification.
+     */
     export type ToastOptions = {
         position?: ToastPosition;
         /**
@@ -12,6 +18,9 @@ namespace Toast {
         delay?: number;
         hasTransition?: boolean;
     };
+    /**
+     * Configuration options for the ToastManager.
+     */
     export type ToastManagerOptions = {
         defaultToast: Constructor<ToastElement>,
         defaultToastManager: Constructor<ToastManager>,
@@ -20,16 +29,43 @@ namespace Toast {
         heightLimitPercent: number,
         gap: number;
     };
+    /**
+     * A web component that manages the display, positioning, and lifecycle of toast notifications. It provides functionality for adding new toasts, configuring default behaviors, and handling toast stacking and removal.
+     */
     export class ToastManager extends Aventus.WebComponent implements Aventus.DefaultComponent {
+        /**
+         * The default ToastElement constructor to use when adding toasts if not specified.
+         */
         private static defaultToast?: Constructor<ToastElement>;
+        /**
+         * The default ToastManager constructor used to create the singleton instance.
+         */
         private static defaultToastManager?: Constructor<ToastManager>;
+        /**
+         * The default position for new toasts if not specified in options.
+         */
         @Internal()
         public static defaultPosition: ToastPosition = 'top right';
+        /**
+         * The default delay (in milliseconds) for new toasts if not specified in options.
+         */
         @Internal()
         public static defaultDelay: number = 5000;
+        /**
+         * The spacing (in pixels) between multiple toasts in the same position stack.
+         */
         private static gap: number = 10;
+        /**
+         * The percentage of the container height available for toasts before queuing them.
+         */
         private static heightLimitPercent: number = 100;
+        /**
+         * The singleton instance of the ToastManager.
+         */
         private static instance?: ToastManager;
+        /**
+         * Adds a new toast notification to be displayed. If no ToastManager instance exists, it creates one and appends it to document.body.
+         */
         public static add<T extends ToastOptions>(toast: ToastElement<T> | T): Promise<boolean> {
             if(!this.instance) {
                 this.instance = this.defaultToastManager ? new this.defaultToastManager() : new ToastManager();
@@ -38,12 +74,20 @@ namespace Toast {
             return this.instance.add(toast);
         }
 
+        /**
+         * Configures the static default options for the ToastManager.
+         */
         public static configure(options: Partial<ToastManagerOptions>) {
+            const opts: any = options;
+            const t: any = this;
             for(let key in options) {
-                if(options[key] !== undefined) this[key] = options[key];
+                if(opts[key] !== undefined) t[key] = opts[key];
             }
         }
 
+        /**
+         * Stores currently active toast elements, categorized by their position.
+         */
         private activeToasts: {
             top: ToastElement[],
             'top left': ToastElement[],
@@ -60,6 +104,9 @@ namespace Toast {
                 'top right': [],
             };
 
+        /**
+         * Stores toast elements that are waiting to be displayed because of height limits.
+         */
         private waitingToasts: {
             top: ToastElement[],
             'top left': ToastElement[],
@@ -77,19 +124,33 @@ namespace Toast {
             };
 
 
+        /**
+         * Gets the current height of the ToastManager container element.
+         */
         public get containerHeight(): number {
             return this.offsetHeight;
         }
+        /**
+         * Calculates the maximum height available for toasts based on containerHeight and heightLimitPercent.
+         */
         public get heightLimit(): number {
             return this.containerHeight * ToastManager.heightLimitPercent / 100;
         }
+        /**
+         * A mutex to manage concurrent additions of toasts and prevent race conditions.
+         */
         protected mutex: Mutex = new Mutex();
 
+        /**
+         * If true, this ToastManager instance will not be set as the static singleton instance.
+         */
         @Attribute()
         public not_main!: boolean;
 
 
-
+        /**
+         * Adds a new toast notification to the manager. It handles instantiation, positioning, stacking, and queuing if height limits are exceeded.
+         */
         public async add<T extends ToastOptions>(toast: ToastElement<T> | T): Promise<boolean> {
             await this.mutex.waitOne();
             let realToast: ToastElement<T>;
@@ -123,6 +184,9 @@ namespace Toast {
             return false;
         }
 
+        /**
+         * Internal method to calculate positions and manage stacking for toasts positioned at the bottom (bottom, bottom left, bottom right).
+         */
         private _calculateBottom(toast: ToastElement, firstTime: boolean, position: 'bottom' | 'bottom left' | 'bottom right'): Promise<boolean> {
             return new Promise(async (resolve) => {
 
@@ -176,6 +240,9 @@ namespace Toast {
                 this.mutex.release();
             });
         }
+        /**
+         * Internal method to calculate positions and manage stacking for toasts positioned at the top (top, top left, top right).
+         */
         private _calculateTop(toast: ToastElement, firstTime: boolean, position: 'top' | 'top left' | 'top right'): Promise<boolean> {
             return new Promise<boolean>(async (resolve) => {
                 let height = toast.offsetHeight;
@@ -230,32 +297,53 @@ namespace Toast {
             });
         }
 
+        /**
+         * Helper method to add a toast to the 'bottom right' position, managing stacking.
+         */
         private async _notifyBottomRight(toast: ToastElement, firstTime: boolean) {
             return await this._calculateBottom(toast, firstTime, "bottom right");
 
         }
 
+        /**
+         * Helper method to add a toast to the 'top right' position, managing stacking.
+         */
         private async _notifyTopRight(toast: ToastElement, firstTime: boolean) {
             return await this._calculateTop(toast, firstTime, "top right");
 
         }
 
+        /**
+         * Helper method to add a toast to the 'bottom left' position, managing stacking.
+         */
         private async _notifyBottomLeft(toast: ToastElement, firstTime: boolean) {
             return await this._calculateBottom(toast, firstTime, "bottom left");
         }
 
+        /**
+         * Helper method to add a toast to the 'top left' position, managing stacking.
+         */
         private async _notifyTopLeft(toast: ToastElement, firstTime: boolean) {
             return await this._calculateTop(toast, firstTime, "top left");
         }
 
+        /**
+         * Helper method to add a toast to the 'top' position (centered), managing stacking.
+         */
         private async _notifyTop(toast: ToastElement, firstTime: boolean) {
             return await this._calculateTop(toast, firstTime, "top");
         }
 
+        /**
+         * Helper method to add a toast to the 'bottom' position (centered), managing stacking.
+         */
         private async _notifyBottom(toast: ToastElement, firstTime: boolean) {
             return await this._calculateBottom(toast, firstTime, "bottom");
         }
 
+        /**
+         * Lifecycle hook called when the component is connected to the DOM. Sets this instance as the static singleton ToastManager.instance if not_main is false.
+         */
         protected override postConnect(): void {
             super.postConnect();
             if(!ToastManager.instance && !this.not_main) {
@@ -263,7 +351,10 @@ namespace Toast {
             }
         }
 
-        protected override postDisonnect(): void {
+        /**
+         * Lifecycle hook called when the component is disconnected from the DOM. Clears the static singleton ToastManager.instance if it was this instance.
+         */
+        protected override postDisconnect(): void {
             if(ToastManager.instance == this) {
                 ToastManager.instance = undefined;
             }

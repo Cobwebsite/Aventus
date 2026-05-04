@@ -9,6 +9,7 @@ export interface IConnection {
 	showWarningMessage(msg: string): void;
 	showErrorMessage(msg: string): void;
 	showInformationMessage(msg: string): void;
+	ask(msg: string): Promise<boolean>;
 	sendDiagnostics(params: PublishDiagnosticsParams, build?: string): void;
 
 	onInitialize(cb: (params: AvInitializeParams) => void);
@@ -29,7 +30,7 @@ export interface IConnection {
 	onRenameRequest(cb: (document: TextDocument | undefined, position: Position, newName: string) => Promise<WorkspaceEdit | null>);
 	onDocumentColor(cb: (document: TextDocument | undefined) => Promise<ColorInformation[] | null>);
 	onColorPresentation(cb: (document: TextDocument | undefined, range: Range, color: Color) => Promise<ColorPresentation[] | null>);
-	onExecuteCommand(cb: (params: ExecuteCommandParams) => void): void;
+	onExecuteCommand(cb: (params: ExecuteCommandParams) => Promise<void>): void;
 	onDidChangeConfiguration(cb: () => void): void;
 	onRequest(cb: (method: string, params: any[] | object | undefined) => Promise<any>): void;
 
@@ -53,8 +54,10 @@ export interface InputOptions {
 export interface AvInitializeParams {
 	workspaceFolders?: WorkspaceFolder[] | null;
 	savePath?: string,
-	extensionPath: string,
+	extensionPath?: string,
 	isIDE: boolean,
+	logFile?: string,
+	noBuild?: boolean
 }
 
 export interface SelectOptions {

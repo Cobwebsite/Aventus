@@ -41,6 +41,8 @@ import { StorePublishTemplate } from './store/PublishTemplate';
 import { StoreDownloadTemplate } from './store/DownloadTemplate';
 import { UninstallProject } from './file-system/UninstallProject';
 import { UninstallTemplate } from './file-system/UninstallTemplate';
+import { Format } from './Format';
+import { Dependance } from './ai/Dependance';
 
 export const Commands = {
     allCommandes: {
@@ -86,12 +88,14 @@ export const Commands = {
         [QuickTemplateEdit.cmd]: QuickTemplateEdit,
         [UninstallProject.cmd]: UninstallProject,
         [UninstallTemplate.cmd]: UninstallTemplate,
+        [Format.cmd]: Format,
+        [Dependance.cmd]: Dependance
     },
-    execute: function (params: ExecuteCommandParams) {
+    execute: async function (params: ExecuteCommandParams) {
         let cmd = this.allCommandes[params.command];
         if (cmd) {
             let args = params.arguments ?? [];
-            (cmd.run as any).call(cmd, ...args);
+            await (cmd.run as any).call(cmd, ...args);
         }
     }
 }
