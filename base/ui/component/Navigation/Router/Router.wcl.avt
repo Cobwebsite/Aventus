@@ -1,4 +1,4 @@
-import type { UriParamsValue } from "Aventus@Main:Aventus.package.avt";
+import type { Asyncable, UriParamsValue } from "Aventus@Main:Aventus.package.avt";
 import { RouterStateManager } from "../../../lib/RouterStateManager.lib.avt";
 import type { Constructor } from "../../Form/Form/FormType.lib.avt";
 import { Default404 } from "../Default404/Default404.wcl.avt";
@@ -46,7 +46,8 @@ namespace Navigation {
 
 
         //#region props
-
+        @Attribute()
+        public initializing: boolean = true;
         //#endregion
 
 
@@ -105,7 +106,7 @@ namespace Navigation {
         /**
          * Abstract method that subclasses must implement to define all application routes using addRoute or addRouteAsync.
          */
-        protected abstract defineRoutes(): void;
+        protected abstract defineRoutes(): Asyncable<void>;
         /**
          * Getter for the application's RouterStateManager instance.
          */
@@ -133,9 +134,9 @@ namespace Navigation {
         /**
          * Initializes the router by defining routes, subscribing to state changes for 404 handling, and initializing each defined route.
          */
-        protected register(): void {
+        protected async register(): Promise<void> {
             try {
-                this.defineRoutes();
+                await this.defineRoutes();
                 this.stateManager.onAfterStateChanged(this.validError404);
                 for(let key in this.allRoutes) {
                     this.initRoute(key);
@@ -360,11 +361,8 @@ namespace Navigation {
             }
         }
 
-        /**
-         * Lifecycle hook called after the component is created. Initializes the router by registering routes, setting the first URL, and setting up onpopstate for browser history navigation.
-         */
-        protected override postCreation(): void {
-            this.register();
+        protected async init(): Promise<void> {
+            await this.register();
             this.setFirstUrl();
 
             if(this.bindToUrl()) {
@@ -374,6 +372,14 @@ namespace Navigation {
                     }
                 };
             }
+            this.initializing = false;
+        }
+
+        /**
+         * Lifecycle hook called after the component is created. Initializes the router by registering routes, setting the first URL, and setting up onpopstate for browser history navigation.
+         */
+        protected override postCreation(): void {
+            this.init();
         }
         //#endregion
 

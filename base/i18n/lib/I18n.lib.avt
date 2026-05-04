@@ -73,7 +73,11 @@ export class I18nClass {
     }
 
     public registerLocales(locales: string[]) {
-        this.availableLocales = locales;
+        for(let locale of locales) {
+            if(!this.availableLocales.includes(locale)) {
+                this.availableLocales.push(locale);
+            }
+        }
     }
     public registerFallback(fallback: string) {
         if(!this.availableLocales.includes(fallback)) {

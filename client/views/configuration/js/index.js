@@ -37,8 +37,7 @@ const _ = {};
 
 
 let _n;
-let ElementExtension="use strict";
-class ElementExtension {
+let ElementExtension=class ElementExtension {
     /**
      * Find a parent by custom check
      */
@@ -321,14 +320,7 @@ class ElementExtension {
 ElementExtension.Namespace=`Aventus`;
 __as1(_, 'ElementExtension', ElementExtension);
 
-let InstanceCst="use strict";
-__as1(_, 'InstanceCst', InstanceCst);
-
-let InstanceCst2="use strict";
-__as1(_, 'InstanceCst2', InstanceCst2);
-
-let Style="use strict";
-class Style {
+let Style=class Style {
     static instance;
     static noAnimation;
     static defaultStyleSheets = {
@@ -423,18 +415,7 @@ class Style {
 Style.Namespace=`Aventus`;
 __as1(_, 'Style', Style);
 
-let ActionBindings="use strict";
-
-let ActionInjection="use strict";
-
-let ActionEventCallback="use strict";
-
-let ActionEventListener="use strict";
-
-let ContextEdit="use strict";
-
-let setValueToObject="use strict";
-function setValueToObject(path, obj, value) {
+let setValueToObject=function setValueToObject(path, obj, value) {
     path = path.replace(/\[(.*?)\]/g, '.$1');
     const val = (key) => {
         if (obj instanceof Map) {
@@ -461,16 +442,7 @@ function setValueToObject(path, obj, value) {
 }
 __as1(_, 'setValueToObject', setValueToObject);
 
-let If="use strict";
-
-let LoopSimple="use strict";
-
-let LoopFct="use strict";
-
-let TemplateHTML="use strict";
-
-let Mutex="use strict";
-class Mutex {
+let Mutex=class Mutex {
     /**
      * Array to store functions waiting for the mutex to become available.
      * @type {((run: boolean) => void)[]}
@@ -613,58 +585,7 @@ class Mutex {
 Mutex.Namespace=`Aventus`;
 __as1(_, 'Mutex', Mutex);
 
-let UriParams="use strict";
-__as1(_, 'UriParams', UriParams);
-
-let Asyncable="use strict";
-__as1(_, 'Asyncable', Asyncable);
-
-let UriParamsValue="use strict";
-__as1(_, 'UriParamsValue', UriParamsValue);
-
-let PressManagerState="use strict";
-__as1(_, 'PressManagerState', PressManagerState);
-
-let Callback="use strict";
-class Callback {
-    callbacks = new Map();
-    /**
-     * Clear all callbacks
-     */
-    clear() {
-        this.callbacks.clear();
-    }
-    /**
-     * Add a callback
-     */
-    add(cb, scope = null) {
-        if (!this.callbacks.has(cb)) {
-            this.callbacks.set(cb, scope);
-        }
-    }
-    /**
-     * Remove a callback
-     */
-    remove(cb) {
-        this.callbacks.delete(cb);
-    }
-    /**
-     * Trigger all callbacks
-     */
-    trigger(...args) {
-        let result = [];
-        let cbs = [...this.callbacks];
-        for (let [cb, scope] of cbs) {
-            result.push(cb.apply(scope, args));
-        }
-        return result;
-    }
-}
-Callback.Namespace=`Aventus`;
-__as1(_, 'Callback', Callback);
-
-let NormalizedEvent="use strict";
-class NormalizedEvent {
+let NormalizedEvent=class NormalizedEvent {
     _event;
     get event() {
         return this._event;
@@ -743,16 +664,44 @@ class NormalizedEvent {
 NormalizedEvent.Namespace=`Aventus`;
 __as1(_, 'NormalizedEvent', NormalizedEvent);
 
-let InternalCustomFunction="use strict";
-__as1(_, 'InternalCustomFunction', InternalCustomFunction);
+let Callback=class Callback {
+    callbacks = new Map();
+    /**
+     * Clear all callbacks
+     */
+    clear() {
+        this.callbacks.clear();
+    }
+    /**
+     * Add a callback
+     */
+    add(cb, scope = null) {
+        if (!this.callbacks.has(cb)) {
+            this.callbacks.set(cb, scope);
+        }
+    }
+    /**
+     * Remove a callback
+     */
+    remove(cb) {
+        this.callbacks.delete(cb);
+    }
+    /**
+     * Trigger all callbacks
+     */
+    trigger(...args) {
+        let result = [];
+        let cbs = [...this.callbacks];
+        for (let [cb, scope] of cbs) {
+            result.push(cb.apply(scope, args));
+        }
+        return result;
+    }
+}
+Callback.Namespace=`Aventus`;
+__as1(_, 'Callback', Callback);
 
-let InternalPointerEvent="use strict";
-__as1(_, 'InternalPointerEvent', InternalPointerEvent);
-
-let IsNotVoid="use strict";
-
-let compareObject="use strict";
-function compareObject(obj1, obj2) {
+let compareObject=function compareObject(obj1, obj2) {
     if (Array.isArray(obj1)) {
         if (!Array.isArray(obj2)) {
             return false;
@@ -837,8 +786,7 @@ function compareObject(obj1, obj2) {
 }
 __as1(_, 'compareObject', compareObject);
 
-let getValueFromObject="use strict";
-function getValueFromObject(path, obj) {
+let getValueFromObject=function getValueFromObject(path, obj) {
     if (path === undefined) {
         path = '';
     }
@@ -868,7 +816,6 @@ function getValueFromObject(path, obj) {
 }
 __as1(_, 'getValueFromObject', getValueFromObject);
 
-"use strict";
 var WatchAction;
 (function (WatchAction) {
     WatchAction[WatchAction["CREATED"] = 0] = "CREATED";
@@ -877,10 +824,7 @@ var WatchAction;
 })(WatchAction || (WatchAction = {}));
 __as1(_, 'WatchAction', WatchAction);
 
-let WatcherFunctionInternal="use strict";
-
-let Effect="use strict";
-class Effect {
+let Effect=class Effect {
     callbacks = [];
     isInit = false;
     isDestroy = false;
@@ -995,22 +939,7 @@ class Effect {
 Effect.Namespace=`Aventus`;
 __as1(_, 'Effect', Effect);
 
-let WatcherFunction="use strict";
-__as1(_, 'WatcherFunction', WatcherFunction);
-
-let WatcherAllowed="use strict";
-
-let WatcherChange="use strict";
-__as1(_, 'WatcherChange', WatcherChange);
-
-let DefaultComponent="use strict";
-__as1(_, 'DefaultComponent', DefaultComponent);
-
-let EffectReceiver="use strict";
-__as1(_, 'EffectReceiver', EffectReceiver);
-
-let Signal="use strict";
-class Signal {
+let Signal=class Signal {
     __subscribes = [];
     _value;
     _onChange;
@@ -1053,8 +982,7 @@ class Signal {
 Signal.Namespace=`Aventus`;
 __as1(_, 'Signal', Signal);
 
-let Watcher="use strict";
-class Watcher {
+let Watcher=class Watcher {
     constructor() { }
     ;
     static __reservedName = {
@@ -1901,8 +1829,7 @@ class Watcher {
 Watcher.Namespace=`Aventus`;
 __as1(_, 'Watcher', Watcher);
 
-let Computed="use strict";
-class Computed extends Effect {
+let Computed=class Computed extends Effect {
     _value;
     __path = "*";
     get value() {
@@ -1942,8 +1869,7 @@ class Computed extends Effect {
 Computed.Namespace=`Aventus`;
 __as1(_, 'Computed', Computed);
 
-let ComputedNoRecomputed="use strict";
-class ComputedNoRecomputed extends Computed {
+let ComputedNoRecomputed=class ComputedNoRecomputed extends Computed {
     init() {
         this.isInit = true;
         Watcher._registering.push(this);
@@ -1961,11 +1887,7 @@ class ComputedNoRecomputed extends Computed {
 ComputedNoRecomputed.Namespace=`Aventus`;
 __as1(_, 'ComputedNoRecomputed', ComputedNoRecomputed);
 
-let PressManagerOptions="use strict";
-__as1(_, 'PressManagerOptions', PressManagerOptions);
-
-let PressManager="use strict";
-class PressManager {
+let PressManager=class PressManager {
     static globalConfig = {
         delayDblPress: 250,
         delayLongPress: 700,
@@ -2445,74 +2367,7 @@ class PressManager {
 PressManager.Namespace=`Aventus`;
 __as1(_, 'PressManager', PressManager);
 
-let StateSlug="use strict";
-__as1(_, 'StateSlug', StateSlug);
-
-let IState="use strict";
-__as1(_, 'IState', IState);
-
-let State="use strict";
-class State {
-    /**
-     * Activate a custom state inside a specific manager
-     * It ll be a generic state with no information inside exept name
-     */
-    static async activate(stateName, manager) {
-        return await manager.setState(stateName);
-    }
-    /**
-     * Activate this state inside a specific manager
-     */
-    async activate(manager) {
-        return await manager.setState(this);
-    }
-    onActivate() {
-    }
-    onInactivate(nextState) {
-    }
-    async askChange(state, nextState) {
-        return true;
-    }
-}
-State.Namespace=`Aventus`;
-__as1(_, 'State', State);
-
-let EmptyState="use strict";
-class EmptyState extends State {
-    localName;
-    constructor(stateName) {
-        super();
-        this.localName = stateName;
-    }
-    /**
-     * @inheritdoc
-     */
-    get name() {
-        return this.localName;
-    }
-}
-EmptyState.Namespace=`Aventus`;
-__as1(_, 'EmptyState', EmptyState);
-
-let StateAskChangeFct="use strict";
-
-let StateInactivationFct="use strict";
-
-let StateActivationFct="use strict";
-
-let Subscriber="use strict";
-
-let StateAction="use strict";
-__as1(_, 'StateAction', StateAction);
-
-let IStateManager="use strict";
-__as1(_, 'IStateManager', IStateManager);
-
-let PreparedUri="use strict";
-__as1(_, 'PreparedUri', PreparedUri);
-
-let Uri="use strict";
-class Uri {
+let Uri=class Uri {
     static prepare(uri) {
         let params = [];
         let i = 0;
@@ -2590,8 +2445,48 @@ class Uri {
 Uri.Namespace=`Aventus`;
 __as1(_, 'Uri', Uri);
 
-let StateManager="use strict";
-class StateManager {
+let State=class State {
+    /**
+     * Activate a custom state inside a specific manager
+     * It ll be a generic state with no information inside exept name
+     */
+    static async activate(stateName, manager) {
+        return await manager.setState(stateName);
+    }
+    /**
+     * Activate this state inside a specific manager
+     */
+    async activate(manager) {
+        return await manager.setState(this);
+    }
+    onActivate() {
+    }
+    onInactivate(nextState) {
+    }
+    async askChange(state, nextState) {
+        return true;
+    }
+}
+State.Namespace=`Aventus`;
+__as1(_, 'State', State);
+
+let EmptyState=class EmptyState extends State {
+    localName;
+    constructor(stateName) {
+        super();
+        this.localName = stateName;
+    }
+    /**
+     * @inheritdoc
+     */
+    get name() {
+        return this.localName;
+    }
+}
+EmptyState.Namespace=`Aventus`;
+__as1(_, 'EmptyState', EmptyState);
+
+let StateManager=class StateManager {
     subscribers = {};
     static canBeActivate(statePattern, stateName) {
         let stateInfo = Uri.prepare(statePattern);
@@ -2901,12 +2796,213 @@ class StateManager {
 StateManager.Namespace=`Aventus`;
 __as1(_, 'StateManager', StateManager);
 
-let Loop="use strict";
+let TemplateContext=class TemplateContext {
+    data = {};
+    comp;
+    computeds = [];
+    watch;
+    registry;
+    isDestroyed = false;
+    constructor(component, data = {}, parentContext, registry) {
+        this.comp = component;
+        this.registry = registry;
+        this.watch = Watcher.get({});
+        let that = this;
+        for (let key in data) {
+            if (data[key].__isProxy) {
+                Object.defineProperty(this.data, key, {
+                    get() {
+                        return data[key];
+                    }
+                });
+            }
+            else {
+                this.watch[key] = data[key];
+                Object.defineProperty(this.data, key, {
+                    get() {
+                        return that.watch[key];
+                    }
+                });
+            }
+        }
+        if (parentContext) {
+            const descriptors = Object.getOwnPropertyDescriptors(parentContext.data);
+            for (let name in descriptors) {
+                Object.defineProperty(this.data, name, {
+                    get() {
+                        return parentContext.data[name];
+                    }
+                });
+            }
+        }
+    }
+    print(value) {
+        return value == null ? "" : value + "";
+    }
+    registerIndex() {
+        let name = "index";
+        let i = 0;
+        let fullName = name + i;
+        while (this.watch[fullName] !== undefined) {
+            i++;
+            fullName = name + i;
+        }
+        return fullName;
+    }
+    registerLoop(dataName, _indexValue, _indexName, indexName, itemName, onThis) {
+        this.watch[_indexName] = _indexValue;
+        let getItems;
+        let mustBeRecomputed = /if|switch|\?|\[.+?\]/g.test(dataName);
+        let _class = mustBeRecomputed ? Computed : ComputedNoRecomputed;
+        if (!onThis) {
+            getItems = new _class(() => {
+                return getValueFromObject(dataName, this.data);
+            });
+        }
+        else {
+            dataName = dataName.replace(/^this\./, '');
+            getItems = new _class(() => {
+                return getValueFromObject(dataName, this.comp);
+            });
+        }
+        let getIndex = new ComputedNoRecomputed(() => {
+            let items = getItems.value;
+            if (!items)
+                throw 'impossible';
+            let keys = Object.keys(items);
+            let index = keys[_getIndex.value];
+            if (/^[0-9]+$/g.test(index))
+                return Number(index);
+            return index;
+        });
+        let getItem = new ComputedNoRecomputed(() => {
+            let items = getItems.value;
+            if (!items)
+                throw 'impossible';
+            let keys = Object.keys(items);
+            let index = keys[_getIndex.value];
+            let element = items[index];
+            if (element === undefined && (Array.isArray(items) || !items)) {
+                if (this.registry) {
+                    let indexNb = Number(_getIndex.value);
+                    if (!isNaN(indexNb)) {
+                        this.registry.templates[indexNb].destructor();
+                        this.registry.templates.splice(indexNb, 1);
+                        for (let i = indexNb; i < this.registry.templates.length; i++) {
+                            this.registry.templates[i].context.decreaseIndex(_indexName);
+                        }
+                    }
+                }
+            }
+            return element;
+        });
+        let _getIndex = new ComputedNoRecomputed(() => {
+            return this.watch[_indexName];
+        });
+        this.computeds.push(getIndex);
+        this.computeds.push(getItem);
+        this.computeds.push(_getIndex);
+        if (itemName) {
+            Object.defineProperty(this.data, itemName, {
+                get() {
+                    return getItem.value;
+                }
+            });
+        }
+        if (indexName) {
+            Object.defineProperty(this.data, indexName, {
+                get() {
+                    return getIndex.value;
+                }
+            });
+        }
+    }
+    updateIndex(newIndex, _indexName) {
+        // let items: any[] | {};
+        // if(!dataName.startsWith("this.")) {
+        //     let comp = new Computed(() => {
+        //         return getValueFromObject(dataName, this.data);
+        //     });
+        //     fullName = dataName.replace(/^this\./, '');
+        //     items = getValueFromObject(fullName, this.comp);
+        // if(Array.isArray(items)) {
+        //     let regex = new RegExp("^(" + fullName.replace(/\./g, "\\.") + ")\\[(\\d+?)\\]");
+        //     for(let computed of computeds) {
+        //         for(let cb of computed.callbacks) {
+        //             cb.path = cb.path.replace(regex, "$1[" + newIndex + "]");
+        //     let oldKey = Object.keys(items)[this.watch[_indexName]]
+        //     let newKey = Object.keys(items)[newIndex]
+        //     let regex = new RegExp("^(" + fullName.replace(/\./g, "\\.") + "\\.)(" + oldKey + ")($|\\.)");
+        //     for (let computed of computeds) {
+        //         for (let cb of computed.callbacks) {
+        //             cb.path = cb.path.replace(regex, "$1" + newKey + "$3")
+        this.watch[_indexName] = newIndex;
+    }
+    increaseIndex(_indexName) {
+        this.updateIndex(this.watch[_indexName] + 1, _indexName);
+    }
+    decreaseIndex(_indexName) {
+        this.updateIndex(this.watch[_indexName] - 1, _indexName);
+    }
+    destructor() {
+        this.isDestroyed = true;
+        for (let computed of this.computeds) {
+            computed.destroy();
+        }
+        this.computeds = [];
+    }
+    registerWatch(name, value) {
+        let that = this;
+        that.watch[name] = value;
+        Object.defineProperty(that.data, name, {
+            get() {
+                return that.watch[name];
+            }
+        });
+    }
+    updateWatch(name, value, dones) {
+        if (Watcher.is(this.watch[name])) {
+            this.watch[name].__injectedDones(dones);
+        }
+        this.watch[name] = value;
+    }
+    normalizePath(path) {
+        path = path.replace(/^this\./, '');
+        const regex = /\[(.*?)\]/g;
+        let m;
+        while ((m = regex.exec(path)) !== null) {
+            if (m.index === regex.lastIndex) {
+                regex.lastIndex++;
+            }
+            let name = m[1];
+            let result = getValueFromObject(name, this.data);
+            if (result !== undefined) {
+                path = path.replace(m[0], `[${result}]`);
+            }
+        }
+        return path;
+    }
+    getValueFromItem(name) {
+        if (!name)
+            return undefined;
+        let result = getValueFromObject(name, this.data);
+        if (result !== undefined) {
+            return result;
+        }
+        result = getValueFromObject(name, this.comp);
+        if (result !== undefined) {
+            return result;
+        }
+        return undefined;
+    }
+    setValueToItem(name, value) {
+        setValueToObject(name, this.comp, value);
+    }
+}
+TemplateContext.Namespace=`Aventus`;
+__as1(_, 'TemplateContext', TemplateContext);
 
-let ActionEvent="use strict";
-
-let TemplateInstance="use strict";
-class TemplateInstance {
+let TemplateInstance=class TemplateInstance {
     context;
     content;
     actions;
@@ -3615,221 +3711,7 @@ class TemplateInstance {
 TemplateInstance.Namespace=`Aventus`;
 __as1(_, 'TemplateInstance', TemplateInstance);
 
-let LoopRegistery="use strict";
-
-let TemplateContext="use strict";
-class TemplateContext {
-    data = {};
-    comp;
-    computeds = [];
-    watch;
-    registry;
-    isDestroyed = false;
-    constructor(component, data = {}, parentContext, registry) {
-        this.comp = component;
-        this.registry = registry;
-        this.watch = Watcher.get({});
-        let that = this;
-        for (let key in data) {
-            if (data[key].__isProxy) {
-                Object.defineProperty(this.data, key, {
-                    get() {
-                        return data[key];
-                    }
-                });
-            }
-            else {
-                this.watch[key] = data[key];
-                Object.defineProperty(this.data, key, {
-                    get() {
-                        return that.watch[key];
-                    }
-                });
-            }
-        }
-        if (parentContext) {
-            const descriptors = Object.getOwnPropertyDescriptors(parentContext.data);
-            for (let name in descriptors) {
-                Object.defineProperty(this.data, name, {
-                    get() {
-                        return parentContext.data[name];
-                    }
-                });
-            }
-        }
-    }
-    print(value) {
-        return value == null ? "" : value + "";
-    }
-    registerIndex() {
-        let name = "index";
-        let i = 0;
-        let fullName = name + i;
-        while (this.watch[fullName] !== undefined) {
-            i++;
-            fullName = name + i;
-        }
-        return fullName;
-    }
-    registerLoop(dataName, _indexValue, _indexName, indexName, itemName, onThis) {
-        this.watch[_indexName] = _indexValue;
-        let getItems;
-        let mustBeRecomputed = /if|switch|\?|\[.+?\]/g.test(dataName);
-        let _class = mustBeRecomputed ? Computed : ComputedNoRecomputed;
-        if (!onThis) {
-            getItems = new _class(() => {
-                return getValueFromObject(dataName, this.data);
-            });
-        }
-        else {
-            dataName = dataName.replace(/^this\./, '');
-            getItems = new _class(() => {
-                return getValueFromObject(dataName, this.comp);
-            });
-        }
-        let getIndex = new ComputedNoRecomputed(() => {
-            let items = getItems.value;
-            if (!items)
-                throw 'impossible';
-            let keys = Object.keys(items);
-            let index = keys[_getIndex.value];
-            if (/^[0-9]+$/g.test(index))
-                return Number(index);
-            return index;
-        });
-        let getItem = new ComputedNoRecomputed(() => {
-            let items = getItems.value;
-            if (!items)
-                throw 'impossible';
-            let keys = Object.keys(items);
-            let index = keys[_getIndex.value];
-            let element = items[index];
-            if (element === undefined && (Array.isArray(items) || !items)) {
-                if (this.registry) {
-                    let indexNb = Number(_getIndex.value);
-                    if (!isNaN(indexNb)) {
-                        this.registry.templates[indexNb].destructor();
-                        this.registry.templates.splice(indexNb, 1);
-                        for (let i = indexNb; i < this.registry.templates.length; i++) {
-                            this.registry.templates[i].context.decreaseIndex(_indexName);
-                        }
-                    }
-                }
-            }
-            return element;
-        });
-        let _getIndex = new ComputedNoRecomputed(() => {
-            return this.watch[_indexName];
-        });
-        this.computeds.push(getIndex);
-        this.computeds.push(getItem);
-        this.computeds.push(_getIndex);
-        if (itemName) {
-            Object.defineProperty(this.data, itemName, {
-                get() {
-                    return getItem.value;
-                }
-            });
-        }
-        if (indexName) {
-            Object.defineProperty(this.data, indexName, {
-                get() {
-                    return getIndex.value;
-                }
-            });
-        }
-    }
-    updateIndex(newIndex, _indexName) {
-        // let items: any[] | {};
-        // if(!dataName.startsWith("this.")) {
-        //     let comp = new Computed(() => {
-        //         return getValueFromObject(dataName, this.data);
-        //     });
-        //     fullName = dataName.replace(/^this\./, '');
-        //     items = getValueFromObject(fullName, this.comp);
-        // if(Array.isArray(items)) {
-        //     let regex = new RegExp("^(" + fullName.replace(/\./g, "\\.") + ")\\[(\\d+?)\\]");
-        //     for(let computed of computeds) {
-        //         for(let cb of computed.callbacks) {
-        //             cb.path = cb.path.replace(regex, "$1[" + newIndex + "]");
-        //     let oldKey = Object.keys(items)[this.watch[_indexName]]
-        //     let newKey = Object.keys(items)[newIndex]
-        //     let regex = new RegExp("^(" + fullName.replace(/\./g, "\\.") + "\\.)(" + oldKey + ")($|\\.)");
-        //     for (let computed of computeds) {
-        //         for (let cb of computed.callbacks) {
-        //             cb.path = cb.path.replace(regex, "$1" + newKey + "$3")
-        this.watch[_indexName] = newIndex;
-    }
-    increaseIndex(_indexName) {
-        this.updateIndex(this.watch[_indexName] + 1, _indexName);
-    }
-    decreaseIndex(_indexName) {
-        this.updateIndex(this.watch[_indexName] - 1, _indexName);
-    }
-    destructor() {
-        this.isDestroyed = true;
-        for (let computed of this.computeds) {
-            computed.destroy();
-        }
-        this.computeds = [];
-    }
-    registerWatch(name, value) {
-        let that = this;
-        that.watch[name] = value;
-        Object.defineProperty(that.data, name, {
-            get() {
-                return that.watch[name];
-            }
-        });
-    }
-    updateWatch(name, value, dones) {
-        if (Watcher.is(this.watch[name])) {
-            this.watch[name].__injectedDones(dones);
-        }
-        this.watch[name] = value;
-    }
-    normalizePath(path) {
-        path = path.replace(/^this\./, '');
-        const regex = /\[(.*?)\]/g;
-        let m;
-        while ((m = regex.exec(path)) !== null) {
-            if (m.index === regex.lastIndex) {
-                regex.lastIndex++;
-            }
-            let name = m[1];
-            let result = getValueFromObject(name, this.data);
-            if (result !== undefined) {
-                path = path.replace(m[0], `[${result}]`);
-            }
-        }
-        return path;
-    }
-    getValueFromItem(name) {
-        if (!name)
-            return undefined;
-        let result = getValueFromObject(name, this.data);
-        if (result !== undefined) {
-            return result;
-        }
-        result = getValueFromObject(name, this.comp);
-        if (result !== undefined) {
-            return result;
-        }
-        return undefined;
-    }
-    setValueToItem(name, value) {
-        setValueToObject(name, this.comp, value);
-    }
-}
-TemplateContext.Namespace=`Aventus`;
-__as1(_, 'TemplateContext', TemplateContext);
-
-let ActionChange="use strict";
-
-let Actions="use strict";
-
-let Template="use strict";
-class Template {
+let Template=class Template {
     static validatePath(path, pathToCheck) {
         if (pathToCheck.startsWith(path)) {
             return true;
@@ -3967,8 +3849,7 @@ class Template {
 Template.Namespace=`Aventus`;
 __as1(_, 'Template', Template);
 
-let Instance="use strict";
-class Instance {
+let Instance=class Instance {
     static elements = new Map();
     static get(type) {
         let result = this.elements.get(type);
@@ -3995,8 +3876,7 @@ class Instance {
 Instance.Namespace=`Aventus`;
 __as1(_, 'Instance', Instance);
 
-let WebComponent="use strict";
-class WebComponent extends HTMLElement {
+let WebComponent=class WebComponent extends HTMLElement {
     /**
      * Add attributes informations
      */
@@ -4742,8 +4622,7 @@ class WebComponent extends HTMLElement {
 WebComponent.Namespace=`Aventus`;
 __as1(_, 'WebComponent', WebComponent);
 
-let WebComponentInstance="use strict";
-class WebComponentInstance {
+let WebComponentInstance=class WebComponentInstance {
     static __allDefinitions = [];
     static __allInstances = [];
     /**
@@ -4829,8 +4708,7 @@ const _ = {};
 
 
 let _n;
-let Message="use strict";
-class Message {
+let Message=class Message {
     static init() {
         window.addEventListener('message', event => {
             const message = event.data;
@@ -4870,8 +4748,6 @@ Icon.Tag=`av-icon`;
 __as1(_, 'Icon', Icon);
 if(!window.customElements.get('av-icon')){window.customElements.define('av-icon', Icon);Aventus.WebComponentInstance.registerDefinition(Icon);}
 
-let Dependance="use strict";
-
 const GeneralInformation = class GeneralInformation extends Aventus.WebComponent {
     static __style = `:host>div{margin:16px 0}`;
     __getStatic() {
@@ -4904,8 +4780,7 @@ const Dependances = class Dependances extends Aventus.WebComponent {
 					set 'dependances'(val) {
 						this.__watch["dependances"] = val;
 					}    __registerWatchesActions() {
-    this.__addWatchesActions("dependances", ("use strict";
-(target) => {
+    this.__addWatchesActions("dependances", ((target) => {
     target.no_deps = target.dependances.length == 0;
 }));    super.__registerWatchesActions();
 }

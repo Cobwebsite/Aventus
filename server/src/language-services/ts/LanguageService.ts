@@ -1420,7 +1420,7 @@ export class AventusTsLanguageService {
                 }
             }
             if (element?.documentation) {
-                    result = element.documentation.fullDefinitions.join(EOL) + EOL + result
+                result = element.documentation.fullDefinitions.join(EOL) + EOL + result
             }
             return result;
         } catch (e) {
@@ -1589,8 +1589,7 @@ const compilerOptionsRead: CompilerOptions = {
     strictNullChecks: true,
     verbatimModuleSyntax: true,
     baseUrl: "./",
-    // TODO delete
-
+    alwaysStrict: false,
 };
 const compilerOptionsCompile: CompilerOptions = {
     allowNonTsExtensions: true,
@@ -1609,7 +1608,7 @@ const compilerOptionsCompile: CompilerOptions = {
     strictNullChecks: true,
     verbatimModuleSyntax: true,
     baseUrl: "./",
-    // TODO delete
+    alwaysStrict: false,
 };
 const completionOptions: GetCompletionsAtPositionOptions = {
     includeExternalModuleExports: true,
