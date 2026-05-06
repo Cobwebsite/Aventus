@@ -156,6 +156,7 @@ interface AventusSharpReplacerPart {
 }
 
 interface AventusSharpHttpRouter {
+	useCompiledDll?: boolean,
 	createRouter?: boolean,
 	routerName?: string,
 	uri?: string,

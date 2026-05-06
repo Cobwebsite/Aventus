@@ -507,6 +507,7 @@ export const AventusSharpSchema: JSONSchema = {
             type: "object",
             additionalProperties: false,
             properties: {
+                useCompiledDll: { type: "boolean", default: true, description: "Try to parse route by running the app. You must use `app.UseAventusExport()` to prevent real starting." },
                 createRouter: { type: "boolean", default: true, description: "Create a router that your route will use" },
                 routerName: { type: "string", default: "GeneratedRouter", description: "The name of the router to generate" },
                 uri: { type: "string", default: "", pattern: "^(?=\s*$)|^(\\/[a-zA-Z0-9_-]+?){1,}$", description: "Define the base uri for your router (ex: /api)" },
@@ -521,6 +522,7 @@ export const AventusSharpSchema: JSONSchema = {
             type: "object",
             additionalProperties: false,
             properties: {
+                useCompiledDll: { type: "boolean", default: true, description: "Try to parse route by running the app. You must use `app.UseAventusExport()` to prevent real starting." },
                 prefix: { type: "string", default: "Define a prefix for your websocket events" },
                 host: { type: "string", description: "The host to connect to the websocket" },
                 port: { type: "number", description: "The port to connect to the websocket" },

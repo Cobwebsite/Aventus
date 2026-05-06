@@ -654,6 +654,34 @@
             <param name="action"></param>
             <returns></returns>
         </member>
+        <member name="T:AventusSharp.Data.Manager.ICreateBuilder`1">
+            <summary>
+            Interface for building and executing create queries for a specific type.
+            </summary>
+            <typeparam name="T">The type of entity the update builder will work with.</typeparam>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.ICreateBuilder`1.Run(`0)">
+            <summary>
+            Executes the create operation and returns the items.
+            </summary>
+            <param name="item">The item to be updated.</param>
+            <returns>the <typeparamref name="T"/> object, or null if no items were created.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.ICreateBuilder`1.RunWithError(`0)">
+            <summary>
+            Executes the create operation and returns a result with error handling.
+            </summary>
+            <param name="item">The item to be created.</param>
+            <returns>A ResultWithError containing the created <typeparamref name="T"/> object.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.ICreateBuilder`1.RunBulkWithError(System.Collections.Generic.List{`0},System.Boolean)">
+            <summary>
+            Executes a bulk insert 
+            </summary>
+            <param name="items">The items to be created.</param>
+            <param name="withId">Set to true if you need insert Id</param>
+            <returns></returns>
+        </member>
         <member name="T:AventusSharp.Data.Manager.IDeleteBuilder`1">
             <summary>
             Interface for building and executing delete queries for a specific type.
@@ -797,6 +825,13 @@
         <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.RunWithError">
             <summary>
             Executes the query and returns a result with error handling.
+            </summary>
+            <returns>A ResultWithError containing a list of <typeparamref name="T"/>.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.RunStreamWithError(System.Func{`0,System.Threading.Tasks.Task{AventusSharp.Tools.VoidWithError}})">
+            <summary>
+            Executes the query and execut the action on each items
+            Use this if you have a lot of data
             </summary>
             <returns>A ResultWithError containing a list of <typeparamref name="T"/>.</returns>
         </member>
@@ -1675,6 +1710,11 @@
         <member name="F:AventusSharp.Routes.RouterConfig.transformPattern">
             <summary>
             Define the regex to match the route based on various info
+            </summary>
+        </member>
+        <member name="F:AventusSharp.Routes.RouterConfig.transformPath">
+            <summary>
+            Transform only the path. If you want full overriding the route, use transformPattern
             </summary>
         </member>
         <member name="P:AventusSharp.Routes.RouterConfig.JSONSettings">
