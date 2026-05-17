@@ -821,7 +821,7 @@
 		"compile:server": "rimraf server/out && tsc -b ./server/",
 		"dev:server": "rimraf server/tsconfig.tsbuildinfo && rimraf server/out && webpack --mode development --watch --config ./server/webpack.dev.config.js",
 		"dev:client": "rimraf client/out && webpack --mode development --watch --config ./client/webpack.dev.config.js",
-		"dev:cli": "rimraf server/tsconfig.tsbuildinfo && rimraf cli/out && tspc -b -w ./cli/",
+		"dev:cli": "rimraf cli/lib && rimraf cli/out && webpack --mode development --config ./cli/webpack.config.js && webpack --mode development --config ./cli/webpack.server.config.js && webpack --mode development --config ./cli/webpack.interaction.config.js && node ./cli/postBuild.mjs",
 		"dev:lsp": "rimraf lsp/out && tspc -b -w ./lsp/",
 		"webpack": "npm run clean && webpack --mode production --config ./client/webpack.config.js && webpack --mode production --config ./server/webpack.config.js",
 		"clean": "rimraf client/out && rimraf server/out",

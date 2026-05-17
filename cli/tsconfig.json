@@ -18,7 +18,7 @@
 		"skipLibCheck": true,
 		"paths": {
 			"@server/*": [
-				"../server/out/*"
+				"../server/src/*"
 			]
 		},
 		"plugins": [
@@ -33,7 +33,7 @@
 	"exclude": [
 		".vscode-test"
 	],
-	"references": [ // this is how we declare a dependency from
+	"references": [
 		{
 			"path": "../server/"
 		}

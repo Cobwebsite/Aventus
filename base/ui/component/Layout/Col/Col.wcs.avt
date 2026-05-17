@@ -3,7 +3,6 @@
 
 :host {
 	--_col-padding: var(--col-padding, 8px);
-	--_col-gap: var(--col-gap, 0px);
 }
 
 :host {
@@ -26,7 +25,7 @@ $labels: xs, sm, md, lg, xl;
 		$nbCol: math.div(12, $i);
 
 		@if $nbCol !=1 {
-			$size: "calc(" + (calc(100 / 12) * $i) + "% - (var(--_col-gap, 0px) * " + ($nbCol - 1) + " / " + $nbCol + "))";
+			$size: "calc(" + (calc(100 / 12) * $i) + "% - (var(--_col-gap-x, 0px) * " + ($nbCol - 1) + " / " + $nbCol + "))";
 		}
 
 		@else {
@@ -59,7 +58,7 @@ $labels: xs, sm, md, lg, xl;
 				$nbCol: math.div(12, $i);
 
 				@if $nbCol !=1 {
-					$size: "calc(" + (calc(100 / 12) * $i) + "% - (var(--_col-gap, 0px) * " + ($nbCol - 1) + " / " + $nbCol + "))";
+					$size: "calc(" + (calc(100 / 12) * $i) + "% - (var(--_col-gap-x, 0px) * " + ($nbCol - 1) + " / " + $nbCol + "))";
 				}
 
 				@else {
@@ -95,7 +94,7 @@ $labels: xs, sm, md, lg, xl;
 				$nbCol: math.div(12, $i);
 
 				@if $nbCol !=1 {
-					$size: "calc(" + (calc(100 / 12) * $i) + "% - (var(--_col-gap, 0px) * " + ($nbCol - 1) + " / " + $nbCol + "))";
+					$size: "calc(" + (calc(100 / 12) * $i) + "% - (var(--_col-gap-x, 0px) * " + ($nbCol - 1) + " / " + $nbCol + "))";
 				}
 
 				@else {

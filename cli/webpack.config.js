@@ -28,7 +28,9 @@ module.exports = withDefaults({
 		path: path.join(__dirname, 'out'),
 	},
 	resolve: {
-		
+		alias: {
+			"@server": path.resolve(__dirname, "../server/src")
+		}
 	},
 	plugins: optionalPlugins,
 	externals: {

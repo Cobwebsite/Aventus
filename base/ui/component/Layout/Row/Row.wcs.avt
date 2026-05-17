@@ -1,5 +1,7 @@
 :host {
 	--_col-gap: var(--col-gap, 0px);
+	--_col-gap-y: var(--col-gap-y, var(--_col-gap));
+	--_col-gap-x: var(--col-gap-x, var(--_col-gap));
 }
 
 :host {
@@ -8,6 +10,6 @@
 	display: flex;
 	flex-direction: row;
 	flex-wrap: wrap;
-	gap: var(--_col-gap);
+	gap: var(--_col-gap-y) var(--_col-gap-x);
 	width: 100%;
 }
