@@ -95,7 +95,7 @@ namespace Navigation {
          * False will prevent showing
          * string or state will redirect to the page
          */
-        public loadData(state: Aventus.State): Aventus.Asyncable<boolean | State | string> {
+        public loadData(state: State, path: string): Aventus.Asyncable<boolean | State | string> {
             return true;
         }
         //#endregion

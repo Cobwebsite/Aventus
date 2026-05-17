@@ -24,14 +24,18 @@ export class Process {
     /**
      * Executes an asynchronous promise and handles potential errors.
      */
-    public static async execute<X extends Aventus.ResultWithError<Y> | Aventus.VoidWithError, Y>(prom: Promise<X>): Promise<ExtractFromError<X, Y> | undefined> {
+    public static async execute<X extends Aventus.ResultWithError<Y>, Y>(prom: Promise<X>): Promise<ExtractFromError<X, Y> | undefined>;
+    public static async execute<X extends Aventus.VoidWithError>(prom: Promise<X>): Promise<boolean | undefined> ;
+    public static async execute<X extends Aventus.ResultWithError<Y> | Aventus.VoidWithError, Y>(prom: Promise<X>): Promise<ExtractFromError<X, Y> | boolean | undefined> {
         const queryResult = await prom;
         return await this.parseErrors(queryResult);
     }
     /**
      * Parses and displays errors from a result object using the configured error handler.
      */
-    public static async parseErrors<X extends Aventus.ResultWithError<Y> | Aventus.VoidWithError, Y>(result: X): Promise<ExtractFromError<X> | undefined> {
+    public static async parseErrors<X extends Aventus.ResultWithError<Y>, Y>(result: X): Promise<ExtractFromError<X> | undefined>;
+    public static async parseErrors<X extends Aventus.VoidWithError>(result: X): Promise<boolean | undefined>;
+    public static async parseErrors<X extends Aventus.ResultWithError<Y> | Aventus.VoidWithError, Y>(result: X): Promise<ExtractFromError<X> | boolean | undefined> {
         if(result.errors.length > 0) {
             if(this.handleErrors) {
                 let msg = result.errors.map(p => p.message.replace(/\n/g, '<br/>')).join("<br/>");
@@ -40,6 +44,7 @@ export class Process {
             return undefined;
         }
         if(result instanceof Aventus.ResultWithError) return result.result;
+        if(result instanceof Aventus.VoidWithError) return result.success;
         return undefined;
     }
 }

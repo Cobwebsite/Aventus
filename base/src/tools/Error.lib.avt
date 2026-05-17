@@ -228,4 +228,4 @@ export class ResultWithError<U, T extends GenericError = GenericError> extends V
 @Storybook({
     prefix: "Error"
 })
-export type ExtractFromError<T, U = any> = T extends ResultWithError<infer U, any> ? U : T extends VoidWithError ? void : T;
+export type ExtractFromError<T, U = any> = T extends ResultWithError<infer U, any> ? U : T extends VoidWithError ? boolean : T;
