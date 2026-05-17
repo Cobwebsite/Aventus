@@ -983,6 +983,13 @@ Signal.Namespace=`Aventus`;
 __as1(_, 'Signal', Signal);
 
 let Watcher=class Watcher {
+    static isNative(obj) {
+        if (obj instanceof Blob ||
+            obj instanceof Element ||
+            obj instanceof Window)
+            return true;
+        return false;
+    }
     constructor() { }
     ;
     static __reservedName = {
@@ -1087,7 +1094,7 @@ let Watcher=class Watcher {
                         }
                     }
                     if (apply) {
-                        let result = Reflect.set(target, prop, unbindElement, receiver);
+                        let result = this.isNative(target) ? Reflect.set(target, prop, unbindElement) : Reflect.set(target, prop, unbindElement, receiver);
                     }
                     element.__addAlias(proxyData.baseData, oldPath, (type, target, receiver2, value, prop2, dones) => {
                         let triggerPath;
@@ -1327,7 +1334,7 @@ let Watcher=class Watcher {
             },
             get(target, prop, receiver) {
                 if (typeof prop == 'symbol') {
-                    return Reflect.get(target, prop, receiver);
+                    return Watcher.isNative(target) ? Reflect.get(target, prop) : Reflect.get(target, prop, receiver);
                 }
                 if (reservedName[prop]) {
                     return target[prop];
@@ -1508,13 +1515,15 @@ let Watcher=class Watcher {
                 if (typeof (element) == 'object') {
                     return this.getProxyObject(target, element, prop);
                 }
-                return Reflect.get(target, prop, receiver);
+                return Watcher.isNative(target) ? Reflect.get(target, prop) : Reflect.get(target, prop, receiver);
             },
             set(target, prop, value, receiver) {
                 if (typeof prop == 'symbol') {
+                    if (Watcher.isNative(target))
+                        return Reflect.set(target, prop, value);
                     return Reflect.set(target, prop, value, receiver);
                 }
-                let oldValue = Reflect.get(target, prop, receiver);
+                let oldValue = Watcher.isNative(target) ? Reflect.get(target, prop) : Reflect.get(target, prop, receiver);
                 value = replaceByAlias(target, value, prop, receiver, true);
                 if (value instanceof Signal) {
                     value = value.value;
@@ -1535,7 +1544,7 @@ let Watcher=class Watcher {
                         triggerChange = true;
                     }
                 }
-                let result = Reflect.set(target, prop, value, receiver);
+                let result = Watcher.isNative(target) ? Reflect.set(target, prop, value) : Reflect.set(target, prop, value, receiver);
                 if (triggerChange) {
                     let index = this.avoidUpdate.indexOf(prop);
                     if (index == -1) {
