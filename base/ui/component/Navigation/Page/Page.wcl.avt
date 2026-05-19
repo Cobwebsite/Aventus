@@ -59,7 +59,10 @@ namespace Navigation {
          */
         public async show(state?: Aventus.State) {
             this.state = state;
-            this.visible = true;
+            if(!this.visible)
+                this.visible = true;
+            else
+                this.onShow();
         }
         /**
          * Asynchronously makes the page hidden, clearing the state property and triggering onHide().
