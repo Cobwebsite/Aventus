@@ -51,10 +51,15 @@ namespace Form {
         test: () => Promise<boolean>;
         handler: FormHandler<any>;
     };
+
+    export type OmitClass<T> = Exclude<
+        { [K in keyof T]: T[K] extends Function ? never : K }[keyof T],
+        "$type" | "className" | "namespace"
+    >;
     /**
      * Defines the schema for an entire form, specifying the structure and validation for each field.
      */
-    export type FormSchema<T> = { [K in keyof T]: FormPart<T[K]> | FormPartValidateList<T[K]> };
+    export type FormSchema<T> = { [K in OmitClass<T>]: FormPart<K> | FormPartValidateList<K> };
 
 
     /**
@@ -87,7 +92,7 @@ namespace Form {
     * It can be a string, a boolean, undefined, or a promise of these types.
     */
     export type FormValidateResult = Aventus.Asyncable<string | string[] | boolean | undefined>;
-    
+
     /**
      * Represents a validation function for a value of type T.
      * The function takes a value of type T or undefined and returns a FormValidateResult.

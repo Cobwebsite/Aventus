@@ -403,6 +403,11 @@ namespace Form {
             }
             return this.execute(query);
         }
+
+        protected transformToSend(item: T): T {
+            return item;
+        }
+
         /**
          * Executes the form's submission function after validation.
          */
@@ -421,7 +426,7 @@ namespace Form {
                     result.errors.push(new GenericError(404, "No item inside the form"));
                     return result as WithError<X>;
                 }
-                query = query(this.item);
+                query = query(this.transformToSend(this.item));
             }
             let queryResult = await query;
 
@@ -456,7 +461,7 @@ namespace Form {
             const result: { fieldName: string, messages: string[]; }[] = [];
             const details = error.details;
             for(let key in details) {
-                const messages = (details as any)[key]
+                const messages = (details as any)[key];
                 result.push({
                     fieldName: key,
                     messages: messages

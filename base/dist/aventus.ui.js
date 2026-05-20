@@ -43,6 +43,11 @@ __as1(_, 'DragElementXYType', DragElementXYType);
 let DragElementLeftTopType= [HTMLElement, SVGSVGElement];
 __as1(_, 'DragElementLeftTopType', DragElementLeftTopType);
 
+let isClass=function isClass(v) {
+    return typeof v === 'function' && /^\s*class\s+/.test(v.toString());
+}
+__as1(_, 'isClass', isClass);
+
 var HttpErrorCode;
 (function (HttpErrorCode) {
     HttpErrorCode[HttpErrorCode["unknow"] = 0] = "unknow";
@@ -58,11 +63,6 @@ var HttpMethod;
     HttpMethod["OPTION"] = "OPTION";
 })(HttpMethod || (HttpMethod = {}));
 __as1(_, 'HttpMethod', HttpMethod);
-
-let isClass=function isClass(v) {
-    return typeof v === 'function' && /^\s*class\s+/.test(v.toString());
-}
-__as1(_, 'isClass', isClass);
 
 let DateConverter=class DateConverter {
     static __converter = new DateConverter();
@@ -6754,7 +6754,10 @@ Navigation.Page = class Page extends Aventus.WebComponent {
     __listBoolProps() { return ["visible"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     async show(state) {
         this.state = state;
-        this.visible = true;
+        if (!this.visible)
+            this.visible = true;
+        else
+            this.onShow();
     }
     async hide() {
         this.visible = false;
@@ -7952,7 +7955,7 @@ Form.FormHandler=class FormHandler {
     /**
      * List of constructors for elements that implement IForm.
      */
-    static _IFormElements = [Form.Form];
+    static _IFormElements = [_.Form.Form];
     /**
      * Internal watcher instance for tracking form data changes.
      */
@@ -8305,6 +8308,9 @@ Form.FormHandler=class FormHandler {
         }
         return this.execute(query);
     }
+    transformToSend(item) {
+        return item;
+    }
     /**
      * Executes the form's submission function after validation.
      */
@@ -8323,7 +8329,7 @@ Form.FormHandler=class FormHandler {
                 result.errors.push(new Aventus.GenericError(404, "No item inside the form"));
                 return result;
             }
-            query = query(this.item);
+            query = query(this.transformToSend(this.item));
         }
         let queryResult = await query;
         if (queryResult.errors.length > 0) {
@@ -8397,6 +8403,7 @@ __as1(_.Form, 'FormHandler', Form.FormHandler);
 
 Form.FormHandlerController=class FormHandlerController extends _.Form.FormHandler {
     _controller;
+    _formKey;
     /**
      * The HttpRoute controller constructor.
      */
@@ -8416,7 +8423,7 @@ Form.FormHandlerController=class FormHandlerController extends _.Form.FormHandle
             config.submit = ctrl[fcts[0]];
             return new Form.FormHandlerController(controller, schema, config);
         }
-        throw "There isn't exaclty one function inside your controller " + JSON.stringify(fcts);
+        throw "There isn't exaclty one function inside your controller " + JSON.stringify(fcts) + ". You must use the function createWithName";
     }
     /**
      * Creates a FormHandlerController instance with a explicitly named submission method.
@@ -8429,11 +8436,44 @@ Form.FormHandlerController=class FormHandlerController extends _.Form.FormHandle
         return new Form.FormHandlerController(controller, schema, config);
     }
     /**
+     * Creates a FormHandlerController instance, inferring the submission method if only one exists.
+     */
+    static createSubForm(controller, formKey, schema, config) {
+        const fcts = Object.getOwnPropertyNames(controller.prototype).filter(m => m !== "constructor");
+        if (fcts.length == 1) {
+            if (!config) {
+                config = {};
+            }
+            const ctrl = new controller();
+            config.submit = ctrl[fcts[0]];
+            return new Form.FormHandlerController(controller, schema, config, formKey);
+        }
+        throw "There isn't exaclty one function inside your controller " + JSON.stringify(fcts) + ". You must use the function createWithName";
+    }
+    /**
+     * Creates a FormHandlerController instance with a explicitly named submission method.
+     */
+    static createSubFormWithName(controller, name, formKey, schema, config) {
+        if (!config) {
+            config = {};
+        }
+        config.submit = new controller()[name];
+        return new Form.FormHandlerController(controller, schema, config, formKey);
+    }
+    /**
      * Initializes a new FormHandlerController instance.
      */
-    constructor(controller, schema, config) {
+    constructor(controller, schema, config, formKey) {
         super(schema, config);
         this._controller = controller;
+        this._formKey = formKey;
+    }
+    transformToSend(item) {
+        if (this._formKey)
+            return {
+                [this._formKey]: item
+            };
+        return item;
     }
 }
 Form.FormHandlerController.Namespace=`Aventus.Form`;
