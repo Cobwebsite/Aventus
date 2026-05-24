@@ -961,6 +961,75 @@
             <param name="fields">The fields to include.</param>
             <returns>The current query builder instance for method chaining.</returns>
         </member>
+        <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.IncludeWithoutScope``1(System.Linq.Expressions.Expression{System.Func{`0,``0}},System.Collections.Generic.List{System.Linq.Expressions.Expression{System.Func{``0,System.Object}}})">
+            <summary>
+            Includes a related object in the query.
+            </summary>
+            <param name="memberExpression">The expression representing the related object to include.</param>
+            <param name="fields">The fields to include.</param>
+            <returns>The current query builder instance for method chaining.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.IncludeWithoutScope``1(System.Linq.Expressions.Expression{System.Func{`0,System.Collections.Generic.List{``0}}},System.Collections.Generic.List{System.Linq.Expressions.Expression{System.Func{``0,System.Object}}})">
+            <summary>
+            Includes a related object in the query.
+            </summary>
+            <param name="memberExpression">The expression representing the related object to include.</param>
+            <param name="fields">The fields to include.</param>
+            <returns>The current query builder instance for method chaining.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.IncludeWithoutScope(System.Linq.Expressions.LambdaExpression,System.Collections.Generic.List{System.Linq.Expressions.LambdaExpression})">
+            <summary>
+            Includes a related object in the query.
+            </summary>
+            <param name="memberExpression">The expression representing the related object to include.</param>
+            <param name="fields">The fields to include.</param>
+            <returns>The current query builder instance for method chaining.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.IncludeWithScope``1(System.Linq.Expressions.Expression{System.Func{`0,``0}},System.Collections.Generic.List{AventusSharp.Data.Attributes.Scope{``0}},System.Collections.Generic.List{System.Linq.Expressions.Expression{System.Func{``0,System.Object}}})">
+            <summary>
+            Includes a related object in the query.
+            </summary>
+            <param name="memberExpression">The expression representing the related object to include.</param>
+            <param name="scopes">The scopes to use.</param>
+            <param name="fields">The fields to include.</param>
+            <returns>The current query builder instance for method chaining.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.IncludeWithScope``1(System.Linq.Expressions.Expression{System.Func{`0,``0}},AventusSharp.Data.Attributes.Scope{``0},System.Collections.Generic.List{System.Linq.Expressions.Expression{System.Func{``0,System.Object}}})">
+            <summary>
+            Includes a related object in the query.
+            </summary>
+            <param name="memberExpression">The expression representing the related object to include.</param>
+            <param name="scope">The scope to use.</param>
+            <param name="fields">The fields to include.</param>
+            <returns>The current query builder instance for method chaining.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.IncludeWithScope``1(System.Linq.Expressions.Expression{System.Func{`0,System.Collections.Generic.List{``0}}},System.Collections.Generic.List{AventusSharp.Data.Attributes.Scope{``0}},System.Collections.Generic.List{System.Linq.Expressions.Expression{System.Func{``0,System.Object}}})">
+            <summary>
+            Includes a related object in the query.
+            </summary>
+            <param name="memberExpression">The expression representing the related object to include.</param>
+            <param name="scopes">The scopes to use.</param>
+            <param name="fields">The fields to include.</param>
+            <returns>The current query builder instance for method chaining.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.IncludeWithScope``1(System.Linq.Expressions.Expression{System.Func{`0,System.Collections.Generic.List{``0}}},AventusSharp.Data.Attributes.Scope{``0},System.Collections.Generic.List{System.Linq.Expressions.Expression{System.Func{``0,System.Object}}})">
+            <summary>
+            Includes a related object in the query.
+            </summary>
+            <param name="memberExpression">The expression representing the related object to include.</param>
+            <param name="scope">The scope to use.</param>
+            <param name="fields">The fields to include.</param>
+            <returns>The current query builder instance for method chaining.</returns>
+        </member>
+        <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.IncludeWithScope(System.Linq.Expressions.LambdaExpression,System.Collections.Generic.List{AventusSharp.Data.Attributes.IScope},System.Collections.Generic.List{System.Linq.Expressions.LambdaExpression})">
+            <summary>
+            Includes a related object in the query.
+            </summary>
+            <param name="memberExpression">The expression representing the related object to include.</param>
+            <param name="scopes">The scopes to use.</param>
+            <param name="fields">The fields to include.</param>
+            <returns>The current query builder instance for method chaining.</returns>
+        </member>
         <member name="M:AventusSharp.Data.Manager.IQueryBuilder`1.Limit(System.Nullable{System.Int32})">
             <summary>
             Limits the number of results returned by the query.
