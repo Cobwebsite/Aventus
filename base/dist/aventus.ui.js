@@ -43,11 +43,6 @@ __as1(_, 'DragElementXYType', DragElementXYType);
 let DragElementLeftTopType= [HTMLElement, SVGSVGElement];
 __as1(_, 'DragElementLeftTopType', DragElementLeftTopType);
 
-let isClass=function isClass(v) {
-    return typeof v === 'function' && /^\s*class\s+/.test(v.toString());
-}
-__as1(_, 'isClass', isClass);
-
 var HttpErrorCode;
 (function (HttpErrorCode) {
     HttpErrorCode[HttpErrorCode["unknow"] = 0] = "unknow";
@@ -63,6 +58,11 @@ var HttpMethod;
     HttpMethod["OPTION"] = "OPTION";
 })(HttpMethod || (HttpMethod = {}));
 __as1(_, 'HttpMethod', HttpMethod);
+
+let isClass=function isClass(v) {
+    return typeof v === 'function' && /^\s*class\s+/.test(v.toString());
+}
+__as1(_, 'isClass', isClass);
 
 let DateConverter=class DateConverter {
     static __converter = new DateConverter();
@@ -6712,7 +6712,7 @@ ProgressCircle.Tag=`av-progress-circle`;
 __as1(_, 'ProgressCircle', ProgressCircle);
 if(!window.customElements.get('av-progress-circle')){window.customElements.define('av-progress-circle', ProgressCircle);Aventus.WebComponentInstance.registerDefinition(ProgressCircle);}
 
-Navigation.Page = class Page extends Aventus.WebComponent {
+_n = Navigation.Page;Navigation.Page = class Page extends Aventus.WebComponent {
     static get observedAttributes() {return ["visible"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'visible'() { return this.getBoolProp('visible') }
     set 'visible'(val) { this.setBoolAttr('visible', val) }    router;
@@ -6773,10 +6773,14 @@ Navigation.Page = class Page extends Aventus.WebComponent {
     loadData(state, path) {
         return true;
     }
+    getSlugs(path) {
+        const slugs = this.router?.getSlugs();
+        return slugs;
+    }
 }
 Navigation.Page.Namespace=`Aventus.Navigation`;
 __as1(_.Navigation, 'Page', Navigation.Page);
-
+Object.assign(Navigation.Page, _n);
 let RouterStateManager=class RouterStateManager extends Aventus.StateManager {
     /**
      * Retrieves the singleton instance of the RouterStateManager.
@@ -7955,7 +7959,7 @@ Form.FormHandler=class FormHandler {
     /**
      * List of constructors for elements that implement IForm.
      */
-    static _IFormElements = [_.Form.Form];
+    static _IFormElements = [Form.Form];
     /**
      * Internal watcher instance for tracking form data changes.
      */
@@ -8102,8 +8106,9 @@ Form.FormHandler=class FormHandler {
             return part;
         };
         const createKey = (key) => {
-            form[key] = normalizePart(form[key]);
-            this.transformFormPart(key, form[key]);
+            const f = form;
+            f[key] = normalizePart(f[key]);
+            this.transformFormPart(key, f[key]);
         };
         for (let key in result) {
             createKey(key);

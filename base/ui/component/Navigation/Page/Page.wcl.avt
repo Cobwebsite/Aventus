@@ -1,4 +1,4 @@
-import type { State } from "Aventus@Main:Aventus.package.avt";
+import type { State, UriParamsValue } from "Aventus@Main:Aventus.package.avt";
 import { Router } from "../Router/Router.wcl.avt";
 import type { PageConfig } from "./PageConfig.lib.avt";
 
@@ -6,7 +6,7 @@ namespace Navigation {
     /**
      * Abstract base class for all routable pages within an Aventus application. It provides core functionality for page lifecycle management, visibility control, data loading, and access control.
      */
-    export abstract class Page extends Aventus.WebComponent implements Aventus.DefaultComponent {
+    export abstract class Page<Slug extends UriParamsValue = {}> extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
         //#region static
 
@@ -100,6 +100,13 @@ namespace Navigation {
          */
         public loadData(state: State, path: string): Aventus.Asyncable<boolean | State | string> {
             return true;
+        }
+
+        public getSlugs(): Partial<Slug> | undefined;
+        public getSlugs(path: string): Partial<Slug> | undefined;
+        public getSlugs(path?: string): Partial<Slug> | undefined {
+            const slugs = this.router?.getSlugs();
+            return slugs as Partial<Slug> | undefined;
         }
         //#endregion
 

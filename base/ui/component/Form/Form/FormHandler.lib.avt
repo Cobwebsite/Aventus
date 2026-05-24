@@ -1,5 +1,5 @@
 import { GenericError, HttpRoute, isClass, ResultWithError, VoidWithError, type Asyncable } from "Aventus@Main:Aventus.package.avt";
-import type { Constructor, ExtractError, FormHandlerConfig, FormPart, FormPartValidate, FormSchema, FormValidate, FormValidateResult, IForm, IFormElement, InternalForm, InternalFormPart, SubmitFunction, WithError } from "./FormType.lib.avt";
+import type { Constructor, ExtractError, FormHandlerConfig, FormPart, FormPartValidate, FormSchema, FormValidate, FormValidateResult, IForm, IFormElement, InternalForm, InternalFormPart, OmitClass, SubmitFunction, WithError } from "./FormType.lib.avt";
 import { Validator } from "./Validator.lib.avt";
 import { Form } from "./Form.wcl.avt";
 
@@ -153,8 +153,8 @@ namespace Form {
          * Transforms the raw form schema into an internal representation.
          */
         protected transformForm(form: FormSchema<T>): InternalForm<T> {
-            const result = form as InternalForm<T>;
-            const normalizePart = (part: FormSchema<T>[keyof T]) => {
+            const result = form as unknown as InternalForm<T>;
+            const normalizePart = (part: FormSchema<T>[any]) => {
                 let needTransform = true;
                 if(typeof part == 'object' && !Array.isArray(part)) {
                     const keys = Object.keys(part);
@@ -179,9 +179,10 @@ namespace Form {
                 }
                 return part as FormPart<T[keyof T]>;
             };
-            const createKey = (key: keyof T) => {
-                form[key] = normalizePart(form[key]);
-                this.transformFormPart(key, form[key]);
+            const createKey = (key: any) => {
+                const f = form as any;
+                f[key] = normalizePart(f[key]);
+                this.transformFormPart(key, f[key]);
             };
             for(let key in result) {
                 createKey(key);

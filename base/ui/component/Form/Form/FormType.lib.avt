@@ -59,7 +59,11 @@ namespace Form {
     /**
      * Defines the schema for an entire form, specifying the structure and validation for each field.
      */
-    export type FormSchema<T> = { [K in OmitClass<T>]: FormPart<K> | FormPartValidateList<K> };
+    export type FormSchema<T> = {
+        [K in OmitClass<T> as undefined extends T[K] ? never : K]: FormPart<K> | FormPartValidateList<K>
+    } & {
+        [K in OmitClass<T> as undefined extends T[K] ? K : never]?: FormPart<K> | FormPartValidateList<K>
+    };
 
 
     /**
