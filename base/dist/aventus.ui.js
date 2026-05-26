@@ -6712,7 +6712,7 @@ ProgressCircle.Tag=`av-progress-circle`;
 __as1(_, 'ProgressCircle', ProgressCircle);
 if(!window.customElements.get('av-progress-circle')){window.customElements.define('av-progress-circle', ProgressCircle);Aventus.WebComponentInstance.registerDefinition(ProgressCircle);}
 
-_n = Navigation.Page;Navigation.Page = class Page extends Aventus.WebComponent {
+Navigation.Page = class Page extends Aventus.WebComponent {
     static get observedAttributes() {return ["visible"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'visible'() { return this.getBoolProp('visible') }
     set 'visible'(val) { this.setBoolAttr('visible', val) }    router;
@@ -6780,7 +6780,7 @@ _n = Navigation.Page;Navigation.Page = class Page extends Aventus.WebComponent 
 }
 Navigation.Page.Namespace=`Aventus.Navigation`;
 __as1(_.Navigation, 'Page', Navigation.Page);
-Object.assign(Navigation.Page, _n);
+
 let RouterStateManager=class RouterStateManager extends Aventus.StateManager {
     /**
      * Retrieves the singleton instance of the RouterStateManager.

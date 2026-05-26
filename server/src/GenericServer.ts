@@ -18,9 +18,9 @@ import { Communication } from './communication';
 import { PhpManager } from './language-services/json/PhpManager';
 import { LocalProjectManager } from './files/LocalProject';
 import { appendFileSync, existsSync, readdirSync, writeFileSync } from 'fs';
-import { execSync } from 'child_process';
 import { updatesScripts } from './updates';
 import { InitStep } from './notification/InitStep';
+import { execAsync } from './tools';
 
 
 export class GenericServer {
@@ -253,8 +253,8 @@ export class GenericServer {
 			// todo store all inside app data => stop using savePath
 			let appData = process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + "/.local/share");
 			let vscode = join(appData, "Code", "User", "globalStorage", "cobwebsite.aventus")
-			if(existsSync(vscode)) {
-				params.savePath= vscode;
+			if (existsSync(vscode)) {
+				params.savePath = vscode;
 			}
 			else {
 				params.savePath = join(appData, "aventus");
@@ -275,7 +275,7 @@ export class GenericServer {
 		GenericServer.debug(params)
 	}
 	protected async onInitialized() {
-		if (!this.checkNodeJs()) return;
+		if (!await this.checkNodeJs()) return;
 		await this.loadSettings();
 		await this.startServer();
 	}
@@ -489,7 +489,7 @@ export class GenericServer {
 
 	}
 
-	protected checkNodeJs() {
+	protected async checkNodeJs() {
 		const minVersion = '22.18.0';
 		const isVersionGreaterOrEqual = (current: string, minimum: string) => {
 			const cur = current.split('.').map(Number);
@@ -501,7 +501,8 @@ export class GenericServer {
 			return true;
 		}
 
-		const version = execSync("node -v").toString().trim();
+		const { stdout } = await execAsync("node -v");
+		const version = stdout.toString().trim();
 		const match = version.match(/^v?(\d+)\.(\d+)\.(\d+)$/);
 		const currentVersion = version.startsWith("v") ? version.slice(1) : version;
 

@@ -1,9 +1,9 @@
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, rmdirSync, statSync, unlinkSync, writeFileSync } from 'fs';
-import { dirname, join, normalize, sep } from 'path';
+import { existsSync, mkdirSync, statSync, unlinkSync, writeFileSync } from 'fs';
+import { dirname, join } from 'path';
 import { pathToFileURL } from 'url';
 
-import { ExecSyncOptionsWithBufferEncoding, execSync, spawn, spawnSync } from 'child_process';
-import { pathToUri, uriToPath } from '../tools';
+import { ExecSyncOptionsWithBufferEncoding, spawn } from 'child_process';
+import { execAsync, pathToUri, uriToPath } from '../tools';
 import { ProjectManager } from '../project/ProjectManager';
 import { FilesManager } from './FilesManager';
 import { GenericServer } from '../GenericServer';
@@ -70,12 +70,14 @@ export class TemplateScript {
 	public repository?: string;
 
 	private static memory: { [key: string]: TemplateScript } = {}
-	public static create(config: string): TemplateScript | undefined {
+
+	public static async create(config: string): Promise<TemplateScript | undefined> {
 		let folderPath = dirname(config);
 		if (this.memory[config]) {
 			let lastModified = statSync(config).mtime
 			if (lastModified.getTime() > this.memory[config].lastModified.getTime()) {
 				const temp = new TemplateScript(config, folderPath);
+				await temp.postConstructor();
 				if (!temp.containsError) {
 					this.memory[config] = temp;
 				}
@@ -83,27 +85,7 @@ export class TemplateScript {
 		}
 		else {
 			const temp = new TemplateScript(config, folderPath);
-			if (!temp.containsError) {
-				this.memory[config] = temp;
-			}
-		}
-		return this.memory[config];
-	}
-	public static async createAsync(config: string): Promise<TemplateScript | undefined> {
-		let folderPath = dirname(config);
-		if (this.memory[config]) {
-			let lastModified = statSync(config).mtime
-			if (lastModified.getTime() > this.memory[config].lastModified.getTime()) {
-				const temp = new TemplateScript(config, folderPath, true);
-				await temp.postConstructorAsync();
-				if (!temp.containsError) {
-					this.memory[config] = temp;
-				}
-			}
-		}
-		else {
-			const temp = new TemplateScript(config, folderPath, true);
-			await temp.postConstructorAsync();
+			await temp.postConstructor();
 			if (!temp.containsError) {
 				this.memory[config] = temp;
 			}
@@ -111,24 +93,15 @@ export class TemplateScript {
 		return this.memory[config];
 	}
 
-	private constructor(config: string, folderPath: string, isAsync: boolean = false) {
+	private constructor(config: string, folderPath: string) {
 		this.config = config;
 		this.folderPath = folderPath;
 		this.lastModified = statSync(this.config).mtime
-		if (!isAsync)
-			this.postConstructor();
 	}
 
-	private postConstructor() {
-		const basicInfo = this.prepareScript();
-		for (let key in basicInfo) {
-			if (basicInfo[key]) {
-				this[key] = basicInfo[key];
-			}
-		}
-	}
-	private async postConstructorAsync() {
-		const basicInfo = await this.prepareScriptAsync();
+
+	private async postConstructor() {
+		const basicInfo = await this.prepareScript();
 		for (let key in basicInfo) {
 			if (basicInfo[key]) {
 				this[key] = basicInfo[key];
@@ -246,7 +219,7 @@ export class TemplateScript {
 								params.cwd = cwd;
 								let config = payload.config as string
 								try {
-									execSync(config, params)
+									await execAsync(config, params)
 								} catch (e) {
 									GenericServer.error(e);
 									GenericServer.showErrorMessage("The command " + config + " failed");
@@ -322,7 +295,7 @@ export class TemplateScript {
 		})
 	}
 
-	public isAllowed(path: string, workspacePath: string) {
+	public async isAllowed(path: string, workspacePath: string) {
 		if (!this.hasIsAllow) return true;
 
 		const rootPath = join(serverFolder(), 'lib/templateScript/AventusTemplate.ts').replace(/\\/g, "\\\\");
@@ -349,9 +322,8 @@ export class TemplateScript {
 		var err: string = "";
 		let result = false;
 		try {
-			const sp = spawnSync(`node`, ["--no-warnings", scriptPath], {
-				cwd: this.folderPath,
-			});
+			const sp = await execAsync(`node --no-warnings ${scriptPath}`, { cwd: this.folderPath })
+
 			err = sp.stderr.toString();
 			a = sp.stdout.toString().trim();
 			if (a !== "true" && a !== "false") {
@@ -368,50 +340,8 @@ export class TemplateScript {
 		return result;
 	}
 
-	protected prepareScript(): TemplateScriptConfig {
-		const rootPath = join(serverFolder(), 'lib/templateScript/AventusTemplate.ts').replace(/\\/g, "\\\\");
-
-		const txt = `
-					import { AventusTemplate, log } from 'file://${rootPath}';
-					import { Template } from 'file://${this.config.replace(/\\/g, "\\\\")}'
-					const t = new Template();
-					log(t.basicInfo())`;
-
-
-		let tempPath = join(GenericServer.savePath, "temp");
-		if (!existsSync(tempPath)) {
-			mkdirSync(tempPath);
-		}
-		let scriptPath = join(tempPath, md5(this.config) + ".ts");
-		writeFileSync(scriptPath, txt);
-		let values: { name: string, version: string, description: string, allowQuick?: boolean, isAllow: boolean } = {
-			name: "",
-			version: "1.0.0",
-			description: "",
-			isAllow: true,
-		}
-		var a: string = "";
-		var err: string = "";
-		try {
-			const sp = spawnSync(`node`, ["--no-warnings", scriptPath], {
-				cwd: this.folderPath,
-			});
-			err = sp.stderr.toString();
-			a = sp.stdout.toString();
-			const valuesTemp = JSON.parse(a.trim());
-			values = { ...values, ...valuesTemp };
-		} catch (e) {
-			GenericServer.error(e);
-			GenericServer.error(err);
-			GenericServer.error(a);
-			this.containsError = true;
-		}
-		unlinkSync(scriptPath);
-		return values;
-	}
-
 	private static preparing: { [name: string]: ((result: TemplateScriptConfig) => void)[] } = {}
-	protected prepareScriptAsync(): Promise<TemplateScriptConfig> {
+	protected prepareScript(): Promise<TemplateScriptConfig> {
 		return new Promise<TemplateScriptConfig>(async (resolve) => {
 
 			const name = md5(this.config);
@@ -446,7 +376,7 @@ export class TemplateScript {
 			var a: string = "";
 			var err: string = "";
 			try {
-				const result = await this.asyncRun(scriptPath);
+				const result = await execAsync(`node --no-warnings ${scriptPath}`, { cwd: this.folderPath });
 				err = result.stderr.toString();
 				a = result.stdout.toString();
 				const valuesTemp = JSON.parse(a.trim());
@@ -465,33 +395,5 @@ export class TemplateScript {
 			}
 			resolve(values);
 		})
-
 	}
-
-	protected asyncRun(scriptPath: string) {
-		return new Promise<{ stdout: string, stderr: string }>((resolve, reject) => {
-			const sp = spawn(`node`, ["--no-warnings", scriptPath], {
-				cwd: this.folderPath,
-			});
-
-			let stdout = "";
-			let stderr = "";
-
-			sp.stdout.on('data', (data) => stdout += data.toString());
-			sp.stderr.on('data', (data) => stderr += data.toString());
-
-			sp.on('close', (code) => {
-				if (code === 0) {
-					resolve({ stdout, stderr });
-				} else {
-					// On rejette si le code de sortie n'est pas 0
-					reject(new Error(`Process exited with code ${code}. Stderr: ${stderr}`));
-				}
-			});
-
-			sp.on('error', (err) => reject(err));
-		});
-	}
-
-
 }

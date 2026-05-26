@@ -82,7 +82,7 @@ export class QuickTemplate {
 					}
 					if (existsSync(quickName)) {
 						// check local first
-						let template = TemplateScript.create(quickName);
+						let template = await TemplateScript.create(quickName);
 						if (template) {
 							items.push({
 								label: template.name,
@@ -114,7 +114,7 @@ export class QuickTemplate {
 			GenericServer.showErrorMessage("The file doesn't exist : " + templatePath);
 			return;
 		}
-		let template = TemplateScript.create(templatePath);
+		let template = await TemplateScript.create(templatePath);
 		if (template) {
 			await template.init(workspace, workspace);
 		}
