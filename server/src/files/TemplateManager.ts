@@ -4,8 +4,7 @@ import { dirname, join, normalize, sep } from 'path';
 import { SelectItem } from '../IConnection';
 import { TemplateScript } from './Template';
 import { SettingsManager } from '../settings/Settings';
-import { setValueToObject, uriToPath } from '../tools';
-import { execSync } from 'child_process';
+import { execAsync, setValueToObject, uriToPath } from '../tools';
 import { AventusExtension } from '../definition';
 import { get } from 'http';
 import { get as gets } from 'https';
@@ -138,7 +137,7 @@ export class TemplateManager {
 			if (existsSync(configPathScript)) {
 				try {
 					promises.push(new Promise(async (resolve) => {
-						let template = await TemplateScript.createAsync(configPathScript);
+						let template = await TemplateScript.create(configPathScript);
 						if (template) {
 							setValueToObject(template.name, templates, template);
 							nb++;
@@ -220,7 +219,7 @@ export class TemplateManager {
 					let confPath = folderPath + sep + AventusExtension.Template;
 					if (existsSync(confPath)) {
 						try {
-							const template = TemplateScript.create(confPath);
+							const template = await TemplateScript.create(confPath);
 							if (template) {
 								scripts[folderPath] = template;
 								let quickPick: SelectItem = {
@@ -259,7 +258,7 @@ export class TemplateManager {
 		else if (sourceResult.label == "Git") {
 			const uri = await this.getGitURL();
 			if (uri) {
-				execSync("git clone " + uri, {
+				await execAsync("git clone " + uri, {
 					cwd: this.projectPath[0]
 				})
 			}
@@ -303,7 +302,7 @@ export class TemplateManager {
 					let confPath = folderPath + sep + AventusExtension.Template;
 					if (existsSync(confPath)) {
 						try {
-							const template = TemplateScript.create(confPath);
+							const template = await TemplateScript.create(confPath);
 							if (template) {
 								scripts[folderPath] = template;
 								let quickPick: SelectItem = {
@@ -346,7 +345,7 @@ export class TemplateManager {
 		else if (sourceResult.label == "Git") {
 			const uri = await this.getGitURL();
 			if (uri) {
-				execSync("git clone " + uri, {
+				await execAsync("git clone " + uri, {
 					cwd: this.templatePath[0]
 				})
 			}
@@ -384,7 +383,7 @@ export class TemplateManager {
 					let confPath = folderPath + sep + AventusExtension.Template;
 					if (existsSync(confPath)) {
 						try {
-							const template = TemplateScript.create(confPath);
+							const template = await TemplateScript.create(confPath);
 							if (template) {
 								scripts[folderPath] = template;
 								let quickPick: SelectItem = {
@@ -423,7 +422,7 @@ export class TemplateManager {
 		else if (sourceResult.label == "Git") {
 			const uri = await this.getGitURL();
 			if (uri) {
-				execSync("git clone " + uri, {
+				await execAsync("git clone " + uri, {
 					cwd: this.globalPath[0]
 				})
 			}
@@ -576,7 +575,7 @@ export class TemplateManager {
 			let quickPick: SelectItem;
 			if (current instanceof TemplateScript) {
 
-				if (!current.isAllowed(path, this.findWorkspace(path))) continue;
+				if (!await current.isAllowed(path, this.findWorkspace(path))) continue;
 
 				quickPick = {
 					label: name,
@@ -654,7 +653,7 @@ export class TemplateManager {
 
 			if (existsSync(join(packageTempPath, AventusExtension.Template))) {
 
-				const temp = TemplateScript.create(join(packageTempPath, AventusExtension.Template));
+				const temp = await TemplateScript.create(join(packageTempPath, AventusExtension.Template));
 				if (!temp) {
 					GenericServer.showErrorMessage("The template contains error");
 					return;

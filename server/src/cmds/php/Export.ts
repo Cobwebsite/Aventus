@@ -1,14 +1,16 @@
 import { sync as exist } from 'command-exists';
 import { GenericServer } from '../../GenericServer';
 import { join } from 'path';
-import { execSync } from 'child_process';
-import { uriToPath } from '../../tools';
+import { execAsync, uriToPath } from '../../tools';
 import { SelectItem } from '../../IConnection';
 import { AventusExtension } from '../../definition';
 import { existsSync, readFileSync } from 'fs';
 import { Compiling } from '../../notification/sharp/Compiling';
 import { DebugFileAdd } from '../../notification/DebugFileAdd';
 import { PhpManager } from '../../language-services/json/PhpManager';
+
+
+
 
 export class PhpExport {
 	static cmd: string = "aventus.php.export";
@@ -53,7 +55,7 @@ export class PhpExport {
 		let phpProjName = ''
 		try {
 			let pathComposer = uriToPath(uri.replace(AventusExtension.PhpConfig, "composer.json"));
-			if(existsSync(pathComposer)) {
+			if (existsSync(pathComposer)) {
 				let ctx = readFileSync(pathComposer, 'utf-8');
 				let composerJson = JSON.parse(ctx) as { name: string };
 				phpProjName = composerJson.name;
@@ -67,7 +69,8 @@ export class PhpExport {
 		try {
 			let execPath = join(GenericServer.extensionPath, "lib", "bin", "PhpToTypescript", "PhpToTypescript.phar")
 			let phpProj = uriToPath(uri);
-			let result = execSync("php " + execPath + " " + phpProj+ " 2>&1", { encoding: 'utf8' }).toString();
+			const { stdout } = await execAsync("php " + execPath + " " + phpProj + " 2>&1", { encoding: 'utf8' });
+			const result = stdout.toString();
 			if (result.indexOf("Error : ") == -1) {
 				Compiling.send(phpProjName, 'success');
 			}

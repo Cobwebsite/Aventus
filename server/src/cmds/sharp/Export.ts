@@ -1,8 +1,7 @@
 import { sync as exist } from 'command-exists';
 import { GenericServer } from '../../GenericServer';
 import { join } from 'path';
-import { execSync } from 'child_process';
-import { uriToPath } from '../../tools';
+import { execAsync, uriToPath } from '../../tools';
 import { FilesManager } from '../../files/FilesManager';
 import { SelectItem } from '../../IConnection';
 import { AventusExtension } from '../../definition';
@@ -11,6 +10,8 @@ import { AventusSharp } from '../../language-services/json/definition';
 import { Compiling } from '../../notification/sharp/Compiling';
 import { DebugFileAdd } from '../../notification/DebugFileAdd';
 import { CSharpManager } from '../../language-services/json/CSharpManager';
+
+
 
 export class SharpExport {
 	static cmd: string = "aventus.sharp.export";
@@ -66,7 +67,8 @@ export class SharpExport {
 		try {
 			let execPath = join(GenericServer.extensionPath, "lib", "bin", "CSharpToTypescript", "CSharpToTypescript.dll")
 			let csProj = uriToPath(uri);
-			let result = execSync("dotnet " + execPath + " " + csProj).toString();
+			const { stdout } = await execAsync("dotnet " + execPath + " " + csProj);
+			let result = stdout.toString()
 			if (result.indexOf("Error : ") == -1) {
 				Compiling.send(csProjName, 'success');
 			}
