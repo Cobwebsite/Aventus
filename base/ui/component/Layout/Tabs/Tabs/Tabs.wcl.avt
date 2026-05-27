@@ -57,8 +57,8 @@ namespace Layout.Tabs {
 
             let first: U | null = null;
             for(let element of elements) {
-                element.style.display = 'none';
                 if(element instanceof Tab) {
+                    element.style.display = 'none';
                     this.tabs[element.identifier()] = element as T;
 
                     let header = new (this.defineTabHeader())();
@@ -71,11 +71,83 @@ namespace Layout.Tabs {
                     else if(!first.tab.selected && element.selected) {
                         first = header;
                     }
+                    element.loaded = true;
                 }
             }
 
             if(first) {
                 this.setActive(first);
+            }
+            this.shadowRoot.querySelector<HTMLSlotElement>("slot")?.addEventListener("slotchange", this.reloadFromSlot);
+        }
+
+        @BindThis()
+        protected async reloadFromSlot() {
+            let elements = this.getElementsInSlot();
+            let actualTabs = Object.keys(this.tabs);
+            let first: U | null = null;
+            let orders: string[] = [];
+            for(let element of elements) {
+                if(element instanceof Tab) {
+                    element.style.display = 'none';
+                    const el = element as T;
+                    const identifier = element.identifier();
+                    const indexActual = actualTabs.indexOf(identifier);
+                    orders.push(identifier);
+                    if(indexActual == -1) {
+                        this.tabs[identifier] = el;
+                        let header = new (this.defineTabHeader())();
+                        this.headerEl.appendChild(header);
+                        await header.init(el, this);
+                        if(first == null) {
+                            first = header;
+                        }
+                    }
+                    else {
+                        actualTabs.splice(indexActual, 1);
+                        if(first == null) {
+                            first = this.tabs[identifier].tabHeader as U;
+                        }
+                    }
+                    element.loaded = true;
+                }
+            }
+
+            for(let missing of actualTabs) {
+                this.tabs[missing].tabHeader?.remove();
+                delete this.tabs[missing];
+            }
+
+            let hasSelected = false;
+            for(let identifier in this.tabs) {
+                if(this.tabs[identifier].selected) {
+                    if(!hasSelected) {
+                        hasSelected = true;
+                        first = this.tabs[identifier].tabHeader as U;
+                    }
+                    else {
+                        this.tabs[identifier].selected = false;
+                        this.tabs[identifier].tabHeader!.active = false;
+                        this.tabs[identifier].style.display = 'none';
+                        this.tabs[identifier].selected = false;
+                    }
+                }
+            }
+
+            if(first != null) {
+                this.setActive(first);
+            }
+
+            for(let i = 0, j = 0; i < orders.length; i++, j++) {
+                const shouldBe = this.tabs[orders[i]].tabHeader;
+                if(!shouldBe) continue;
+
+                while(j < this.headerEl.children.length && !(this.headerEl.children[j] instanceof TabHeader)) {
+                    j++;
+                }
+                if(shouldBe != this.headerEl.children[j]) {
+                    this.headerEl.appendChild(shouldBe);
+                }
             }
         }
 

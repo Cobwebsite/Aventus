@@ -17,6 +17,9 @@ namespace Layout.Tabs {
          */
         @Attribute()
         public selected!: boolean;
+
+        @Attribute()
+        public loaded!: boolean;
         //#endregion
 
 

@@ -7404,6 +7404,7 @@ Layout.Tabs.Tabs = class Tabs extends Aventus.WebComponent {
         if (this.constructor == Tabs) {
             throw "can't instanciate an abstract class";
         }
+        this.reloadFromSlot = this.reloadFromSlot.bind(this);
     }
     __getStatic() {
         return Tabs;
@@ -7443,8 +7444,8 @@ Layout.Tabs.Tabs = class Tabs extends Aventus.WebComponent {
         let elements = this.getElementsInSlot();
         let first = null;
         for (let element of elements) {
-            element.style.display = 'none';
             if (element instanceof _.Layout.Tabs.Tab) {
+                element.style.display = 'none';
                 this.tabs[element.identifier()] = element;
                 let header = new (this.defineTabHeader())();
                 this.headerEl.appendChild(header);
@@ -7455,10 +7456,76 @@ Layout.Tabs.Tabs = class Tabs extends Aventus.WebComponent {
                 else if (!first.tab.selected && element.selected) {
                     first = header;
                 }
+                element.loaded = true;
             }
         }
         if (first) {
             this.setActive(first);
+        }
+        this.shadowRoot.querySelector("slot")?.addEventListener("slotchange", this.reloadFromSlot);
+    }
+    async reloadFromSlot() {
+        let elements = this.getElementsInSlot();
+        let actualTabs = Object.keys(this.tabs);
+        let first = null;
+        let orders = [];
+        for (let element of elements) {
+            if (element instanceof _.Layout.Tabs.Tab) {
+                element.style.display = 'none';
+                const el = element;
+                const identifier = element.identifier();
+                const indexActual = actualTabs.indexOf(identifier);
+                orders.push(identifier);
+                if (indexActual == -1) {
+                    this.tabs[identifier] = el;
+                    let header = new (this.defineTabHeader())();
+                    this.headerEl.appendChild(header);
+                    await header.init(el, this);
+                    if (first == null) {
+                        first = header;
+                    }
+                }
+                else {
+                    actualTabs.splice(indexActual, 1);
+                    if (first == null) {
+                        first = this.tabs[identifier].tabHeader;
+                    }
+                }
+                element.loaded = true;
+            }
+        }
+        for (let missing of actualTabs) {
+            this.tabs[missing].tabHeader?.remove();
+            delete this.tabs[missing];
+        }
+        let hasSelected = false;
+        for (let identifier in this.tabs) {
+            if (this.tabs[identifier].selected) {
+                if (!hasSelected) {
+                    hasSelected = true;
+                    first = this.tabs[identifier].tabHeader;
+                }
+                else {
+                    this.tabs[identifier].selected = false;
+                    this.tabs[identifier].tabHeader.active = false;
+                    this.tabs[identifier].style.display = 'none';
+                    this.tabs[identifier].selected = false;
+                }
+            }
+        }
+        if (first != null) {
+            this.setActive(first);
+        }
+        for (let i = 0, j = 0; i < orders.length; i++, j++) {
+            const shouldBe = this.tabs[orders[i]].tabHeader;
+            if (!shouldBe)
+                continue;
+            while (j < this.headerEl.children.length && !(this.headerEl.children[j] instanceof _.Layout.Tabs.TabHeader)) {
+                j++;
+            }
+            if (shouldBe != this.headerEl.children[j]) {
+                this.headerEl.appendChild(shouldBe);
+            }
         }
     }
     setActive(tabHeader) {
@@ -10435,8 +10502,9 @@ __as1(_.Layout.Tabs, 'TabHeader', Layout.Tabs.TabHeader);
 
 Layout.Tabs.Tab = class Tab extends Aventus.WebComponent {
     get 'selected'() { return this.getBoolAttr('selected') }
-    set 'selected'(val) { this.setBoolAttr('selected', val) }    tabHeader;
-    static __style = ``;
+    set 'selected'(val) { this.setBoolAttr('selected', val) }get 'loaded'() { return this.getBoolAttr('loaded') }
+    set 'loaded'(val) { this.setBoolAttr('loaded', val) }    tabHeader;
+    static __style = `:host(:not([loaded])){display:none}`;
     constructor() {
         super();
         if (this.constructor == Tab) {
@@ -10460,9 +10528,9 @@ Layout.Tabs.Tab = class Tab extends Aventus.WebComponent {
     getClassName() {
         return "Tab";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('selected')) { this.attributeChangedCallback('selected', false, false); } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('selected'); }
-    __listBoolProps() { return ["selected"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('selected')) { this.attributeChangedCallback('selected', false, false); }if(!this.hasAttribute('loaded')) { this.attributeChangedCallback('loaded', false, false); } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('selected');this.__upgradeProperty('loaded'); }
+    __listBoolProps() { return ["selected","loaded"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
 }
 Layout.Tabs.Tab.Namespace=`Aventus.Layout.Tabs`;
 __as1(_.Layout.Tabs, 'Tab', Layout.Tabs.Tab);

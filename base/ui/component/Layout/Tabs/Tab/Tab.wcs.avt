@@ -1,3 +1,4 @@
-:host {
-	
+
+:host(:not([loaded])) {
+	display: none;
 }
