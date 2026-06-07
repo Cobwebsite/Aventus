@@ -1,0 +1,52 @@
+import { HttpResponse } from "./HttpResponse.lib.avt";
+
+export class HttpCache {
+
+    private static cache: Map<string, HttpResponse> = new Map();
+
+    public static async fetch(fullUrl: string, request: RequestInit): Promise<HttpResponse> {
+        const key = this.generateCacheKey(fullUrl, request);
+        if(key) {
+            const value = this.cache.get(key);
+            if(value) return value;
+        }
+
+        const result = await fetch(fullUrl, request);
+        const response = new HttpResponse(result);
+        if(key)
+            this.cache.set(key, response);
+        return response;
+    }
+
+	public static clear(fullUrl: string, request: RequestInit): void {
+        const key = this.generateCacheKey(fullUrl, request);
+        if(key) {
+            if(this.cache.has(key)) {
+				this.cache.delete(key)
+			}
+        }
+    }
+
+    private static generateCacheKey(fullUrl: string, request: RequestInit): string | undefined {
+        const method = request.method;
+        const body = request.body;
+        let bodyKey: string = "";
+        if(typeof body == 'string') {
+            bodyKey = this.hashStringToInt(body) + '';
+        }
+        else if(body instanceof FormData) {
+            // si file => no key
+        }
+
+        return fullUrl + "°" + method + "°" + bodyKey;
+    }
+
+    private static hashStringToInt(str: string): number {
+        let hash = 0x811c9dc5;
+        for(let i = 0; i < str.length; i++) {
+            hash ^= str.charCodeAt(i);
+            hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
+        }
+        return hash >>> 0;
+    }
+}

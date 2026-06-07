@@ -767,6 +767,16 @@ let CallbackGroup=class CallbackGroup {
 CallbackGroup.Namespace=`Aventus`;
 __as1(_, 'CallbackGroup', CallbackGroup);
 
+let Resource=class Resource {
+}
+Resource.Namespace=`Aventus`;
+__as1(_, 'Resource', Resource);
+
+let Request=class Request {
+}
+Request.Namespace=`Aventus`;
+__as1(_, 'Request', Request);
+
 let compareObject=function compareObject(obj1, obj2) {
     if (Array.isArray(obj1)) {
         if (!Array.isArray(obj2)) {
@@ -1248,6 +1258,56 @@ let clone=function clone(item) {
 }
 __as1(_, 'clone', clone);
 
+let HttpResponse=class HttpResponse {
+    get status() {
+        return this.response.status;
+    }
+    get statusText() {
+        return this.response.statusText;
+    }
+    get redirected() {
+        return this.response.redirected;
+    }
+    get ok() {
+        return this.response.ok;
+    }
+    get type() {
+        return this.response.type;
+    }
+    get url() {
+        return this.response.url;
+    }
+    get headers() {
+        return this.response.headers;
+    }
+    response;
+    constructor(response) {
+        this.response = response;
+    }
+    bodyUsed = false;
+    bodyContent;
+    async json() {
+        if (!this.bodyUsed) {
+            this.bodyContent = await this.response.json();
+        }
+        return Converter.transform(this.bodyContent);
+    }
+    async blob() {
+        if (!this.bodyUsed) {
+            this.bodyContent = await this.response.blob();
+        }
+        return this.bodyContent;
+    }
+    async text() {
+        if (!this.bodyUsed) {
+            this.bodyContent = await this.response.text();
+        }
+        return this.bodyContent;
+    }
+}
+HttpResponse.Namespace=`Aventus`;
+__as1(_, 'HttpResponse', HttpResponse);
+
 let Data=// @Dependances([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
 class Data {
     static converter = new Converter();
@@ -1301,6 +1361,52 @@ Data.Namespace=`Aventus`;
 Data.$schema={"namespace":"string","$type":"string","className":"string"};
 Converter.register(Data.Fullname, Data);
 __as1(_, 'Data', Data);
+
+let HttpCache=class HttpCache {
+    static cache = new Map();
+    static async fetch(fullUrl, request) {
+        const key = this.generateCacheKey(fullUrl, request);
+        if (key) {
+            const value = this.cache.get(key);
+            if (value)
+                return value;
+        }
+        const result = await fetch(fullUrl, request);
+        const response = new HttpResponse(result);
+        if (key)
+            this.cache.set(key, response);
+        return response;
+    }
+    static clear(fullUrl, request) {
+        const key = this.generateCacheKey(fullUrl, request);
+        if (key) {
+            if (this.cache.has(key)) {
+                this.cache.delete(key);
+            }
+        }
+    }
+    static generateCacheKey(fullUrl, request) {
+        const method = request.method;
+        const body = request.body;
+        let bodyKey = "";
+        if (typeof body == 'string') {
+            bodyKey = this.hashStringToInt(body) + '';
+        }
+        else if (body instanceof FormData) {
+        }
+        return fullUrl + "°" + method + "°" + bodyKey;
+    }
+    static hashStringToInt(str) {
+        let hash = 0x811c9dc5;
+        for (let i = 0; i < str.length; i++) {
+            hash ^= str.charCodeAt(i);
+            hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
+        }
+        return hash >>> 0;
+    }
+}
+HttpCache.Namespace=`Aventus`;
+__as1(_, 'HttpCache', HttpCache);
 
 let GenericError=// @Dependances([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
 class GenericError {
@@ -2640,10 +2746,12 @@ let HttpRequest=class HttpRequest {
     request;
     url;
     methodSpoofing = false;
-    constructor(url, method = HttpMethod.GET, body, methodSpoofing = false) {
+    useCache = false;
+    constructor(url, method = HttpMethod.GET, body, methodSpoofing = false, useCache = false) {
         this.url = url;
         this.request = {};
         this.methodSpoofing = methodSpoofing;
+        this.useCache = useCache;
         this.setMethod(method);
         this.prepareBody(body);
     }
@@ -2664,6 +2772,12 @@ let HttpRequest=class HttpRequest {
      */
     enableMethodSpoofing() {
         this.methodSpoofing = true;
+    }
+    enableCache() {
+        this.useCache = true;
+    }
+    disableCache() {
+        this.useCache = false;
     }
     objectToFormData(obj, formData, parentKey) {
         formData = formData || new FormData();
@@ -2783,7 +2897,13 @@ let HttpRequest=class HttpRequest {
                 result.errors = beforeSendResult.errors;
             }
             const fullUrl = isFull ? this.url : router ? router.options.url + this.url : this.url;
-            result.result = await fetch(fullUrl, this.request);
+            if (this.useCache) {
+                result.result = await HttpCache.fetch(fullUrl, this.request);
+            }
+            else {
+                let response = await fetch(fullUrl, this.request);
+                result.result = new HttpResponse(response);
+            }
         }
         catch (e) {
             result.errors.push(new HttpError(HttpErrorCode.unknow, e));
@@ -2809,7 +2929,7 @@ let HttpRequest=class HttpRequest {
                 return result;
             }
             if (resultTemp.result.status != 204) {
-                let tempResult = Converter.transform(await resultTemp.result.json());
+                let tempResult = await resultTemp.result.json();
                 if (tempResult instanceof VoidWithError) {
                     for (let error of tempResult.errors) {
                         result.errors.push(error);
@@ -2822,6 +2942,7 @@ let HttpRequest=class HttpRequest {
         return result;
     }
     async queryJSON(router) {
+        this.setHeader("Accept", "application/json");
         let resultTemp = await this.query(router);
         let result = new ResultWithError();
         if (!resultTemp.success) {
@@ -2832,7 +2953,7 @@ let HttpRequest=class HttpRequest {
             if (!resultTemp.result) {
                 return result;
             }
-            let tempResult = Converter.transform(await resultTemp.result.json());
+            let tempResult = await resultTemp.result.json();
             if (tempResult instanceof VoidWithError) {
                 for (let error of tempResult.errors) {
                     result.errors.push(error);
@@ -2851,6 +2972,7 @@ let HttpRequest=class HttpRequest {
         return result;
     }
     async queryTxt(router) {
+        this.setHeader("Accept", "text/plain");
         let resultTemp = await this.query(router);
         let result = new ResultWithError();
         if (!resultTemp.success) {
@@ -2869,6 +2991,7 @@ let HttpRequest=class HttpRequest {
         return result;
     }
     async queryBlob(router) {
+        this.setHeader("Accept", "application/octet-stream");
         let resultTemp = await this.query(router);
         let result = new ResultWithError();
         if (!resultTemp.success) {
@@ -2885,6 +3008,14 @@ let HttpRequest=class HttpRequest {
             result.errors.push(new HttpError(HttpErrorCode.unknow, e));
         }
         return result;
+    }
+    clearCache(router) {
+        const isFull = this.url.match("https?://");
+        if (!this.url.startsWith("/") && !isFull) {
+            this.url = "/" + this.url;
+        }
+        const fullUrl = isFull ? this.url : router ? router.options.url + this.url : this.url;
+        HttpCache.clear(fullUrl, this.request);
     }
 }
 HttpRequest.Namespace=`Aventus`;
@@ -4365,6 +4496,8 @@ let GenericRam=class GenericRam {
         this.getAllWithError = this.getAllWithError.bind(this);
         this.getList = this.getList.bind(this);
         this.getListWithError = this.getListWithError.bind(this);
+        this.getRecords = this.getRecords.bind(this);
+        this.getRecordsWithError = this.getRecordsWithError.bind(this);
         this.createList = this.createList.bind(this);
         this.createListWithError = this.createListWithError.bind(this);
         this.create = this.create.bind(this);
@@ -4426,31 +4559,11 @@ let GenericRam=class GenericRam {
             get className() {
                 return Base.className || Base.name;
             }
-            async update(newData = {}) {
-                let id = that.getId(this);
-                let oldData = that.records.get(id);
-                if (oldData) {
-                    that.mergeObject(oldData, newData, { replaceUndefinedWithKey: true });
-                    let result = await that.update(oldData);
-                    return result;
-                }
-                return undefined;
+            async update(newData) {
+                return (await that.update(newData));
             }
-            async updateWithError(newData = {}) {
-                const result = new ResultRamWithError();
-                let queryId = that.getIdWithError(this);
-                if (!queryId.success || !queryId.result) {
-                    result.errors = queryId.errors;
-                    return result;
-                }
-                let oldData = that.records.get(queryId.result);
-                if (oldData) {
-                    that.mergeObject(oldData, newData, { replaceUndefinedWithKey: true });
-                    let result = await that.updateWithError(oldData);
-                    return result;
-                }
-                result.errors.push(new RamError(RamErrorCode.noItemInsideRam, "Can't find this item inside the ram"));
-                return result;
+            async updateWithError(newData) {
+                return (await that.updateWithError(newData));
             }
             onUpdate(callback) {
                 let id = that.getId(this);
@@ -4527,8 +4640,8 @@ let GenericRam=class GenericRam {
      * Transform the object into the object stored inside Ram
      */
     getObjectForRam(objJson) {
-        let T = this.addRamAction(this.getTypeForData(objJson));
-        let item = new T();
+        let Item = this.addRamAction(this.getTypeForData(objJson));
+        let item = new Item();
         this.mergeObject(item, objJson);
         return item;
     }
@@ -4536,11 +4649,11 @@ let GenericRam=class GenericRam {
     //     onUpdated: (item: any) => void;
     //     onDeleted: (item: any) => void;
     // }> = new Map();
-    // private linkInfo: { [key: string | number]: { [id: string | number]: U[]; }; } = {};
-    // private linkRamItem(item: U) {
+    // private linkInfo: { [key: string | number]: { [id: string | number]: Request[]; }; } = {};
+    // private linkRamItem(item: Request) {
     //     for(let key in this.ramMapping) {
     //         this.linkRamItemByKey(item, key);
-    // private linkRamItemByKey(item: U, key: string) {
+    // private linkRamItemByKey(item: Request, key: string) {
     //     if(key in item) {
     //         if(mapping.asArray) {
     //             if(Array.isArray(item[key])) {
@@ -4560,39 +4673,39 @@ let GenericRam=class GenericRam {
     /**
      * Add element inside Ram or update it. The instance inside the ram is unique and ll never be replaced
      */
-    async addOrUpdateData(item, result) {
-        let resultTemp = null;
+    async addOrUpdateData(item) {
+        const resultTemp = new ResultWithError();
         try {
-            let idWithError = this.getIdWithError(item);
-            if (idWithError.success && idWithError.result !== undefined) {
-                let id = idWithError.result;
-                if (this.records.has(id)) {
-                    let uniqueRecord = this.records.get(id);
-                    await this.beforeRecordSet(uniqueRecord);
-                    // this.unlinkRamItem(uniqueRecord);
+            const id = resultTemp.extract(() => this.getIdWithError(item));
+            if (id === undefined)
+                return resultTemp;
+            if (this.records.has(id)) {
+                let uniqueRecord = this.records.get(id);
+                await resultTemp.runAsync(() => this.beforeRecordSet(uniqueRecord));
+                // this.unlinkRamItem(uniqueRecord);
+                if (resultTemp.success)
                     this.mergeObject(uniqueRecord, item);
-                    await this.afterRecordSet(uniqueRecord);
-                    // this.linkRamItem(uniqueRecord);
-                    resultTemp = 'updated';
-                }
-                else {
-                    let realObject = this.getObjectForRam(item);
-                    await this.beforeRecordSet(realObject);
-                    this.records.set(id, realObject);
-                    await this.afterRecordSet(realObject);
-                    // this.linkRamItem(realObject);
-                    resultTemp = 'created';
-                }
-                result.result = this.records.get(id);
+                await resultTemp.runAsync(() => this.afterRecordSet(uniqueRecord));
+                // this.linkRamItem(uniqueRecord);
+                resultTemp.result = {
+                    kind: 'updated',
+                    value: this.records.get(id)
+                };
             }
             else {
-                result.errors = [...result.errors, ...idWithError.errors];
-                resultTemp = null;
+                let realObject = this.getObjectForRam(item);
+                await resultTemp.runAsync(() => this.beforeRecordSet(realObject));
+                this.records.set(id, realObject);
+                await resultTemp.runAsync(() => this.afterRecordSet(realObject));
+                // this.linkRamItem(realObject);
+                resultTemp.result = {
+                    kind: 'created',
+                    value: this.records.get(id)
+                };
             }
         }
         catch (e) {
-            result.errors.push(new RamError(RamErrorCode.unknow, e));
-            resultTemp = null;
+            resultTemp.errors.push(new RamError(RamErrorCode.unknow, e));
         }
         return resultTemp;
     }
@@ -4625,24 +4738,29 @@ let GenericRam=class GenericRam {
      */
     async saveWithError(item, ...args) {
         let action = new ResultRamWithError();
-        let resultTemp = await this.getIdWithError(item);
-        if (resultTemp.success && resultTemp.result !== undefined) {
-            if (resultTemp.result) {
+        const id = action.extract(() => this.getIdWithError(item));
+        if (id !== undefined) {
+            if (id) {
                 return this.updateWithError(item, ...args);
             }
             else {
                 return this.createWithError(item, ...args);
             }
         }
-        else {
-            action.errors = resultTemp.errors;
-        }
         return action;
     }
-    async beforeRecordSet(item) { }
-    async afterRecordSet(item) { }
-    async beforeRecordDelete(item) { }
-    async afterRecordDelete(item) { }
+    async beforeRecordSet(item) {
+        return new VoidWithError();
+    }
+    async afterRecordSet(item) {
+        return new VoidWithError();
+    }
+    async beforeRecordDelete(item) {
+        return new VoidWithError();
+    }
+    async afterRecordDelete(item) {
+        return new VoidWithError();
+    }
     publish(type, data) {
         let callbacks = [...this.subscribers[type]];
         for (let callback of callbacks) {
@@ -4733,11 +4851,12 @@ let GenericRam=class GenericRam {
     async getByIdWithError(id) {
         return this.actionGuard.run(['getByIdWithError', id], async () => {
             let action = new ResultRamWithError();
-            await this.beforeGetById(id, action);
+            await action.runAsync(() => this.beforeGetById(id));
             if (action.success) {
                 if (this.records.has(id)) {
-                    action.result = this.records.get(id);
-                    await this.afterGetById(action);
+                    const item = this.records.get(id);
+                    action.result = item;
+                    await action.runAsync(() => this.afterGetById(item));
                 }
                 else {
                     action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't find the item " + id + " inside ram"));
@@ -4749,12 +4868,16 @@ let GenericRam=class GenericRam {
     /**
      * Trigger before getting an item by id
      */
-    async beforeGetById(id, result) { }
+    async beforeGetById(id) {
+        return new VoidWithError();
+    }
     ;
     /**
      * Trigger after getting an item by id
      */
-    async afterGetById(result) { }
+    async afterGetById(result) {
+        return new VoidWithError();
+    }
     ;
     /**
      * Get multiple items by ids
@@ -4772,22 +4895,22 @@ let GenericRam=class GenericRam {
      */
     async getByIdsWithError(ids) {
         return this.actionGuard.run(['getByIdsWithError', ids], async () => {
-            let action = new ResultRamWithError();
-            action.result = [];
-            await this.beforeGetByIds(ids, action);
+            const action = new ResultRamWithError();
+            await action.runAsync(() => this.beforeGetByIds(ids));
             if (action.success) {
-                action.result = [];
+                const result = [];
                 for (let id of ids) {
                     let rec = this.records.get(id);
                     if (rec) {
-                        action.result.push(rec);
+                        result.push(rec);
                     }
                     else {
                         action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't find the item " + id + " inside ram"));
                     }
                 }
                 if (action.success) {
-                    await this.afterGetByIds(action);
+                    action.result = result;
+                    await action.runAsync(() => this.afterGetByIds(result));
                 }
             }
             return action;
@@ -4797,12 +4920,16 @@ let GenericRam=class GenericRam {
     /**
      * Trigger before getting a list of items by id
      */
-    async beforeGetByIds(ids, result) { }
+    async beforeGetByIds(ids) {
+        return new VoidWithError();
+    }
     ;
     /**
      * Trigger after getting a list of items by id
      */
-    async afterGetByIds(result) { }
+    async afterGetByIds(result) {
+        return new VoidWithError();
+    }
     ;
     /**
      * Get all elements inside the Ram
@@ -4810,9 +4937,9 @@ let GenericRam=class GenericRam {
     async getAll() {
         let result = await this.getAllWithError();
         if (result.success) {
-            return result.result ?? new Map();
+            return result.result ?? [];
         }
-        return new Map();
+        return [];
     }
     /**
      * Get all elements inside the Ram
@@ -4820,11 +4947,11 @@ let GenericRam=class GenericRam {
     async getAllWithError() {
         return this.actionGuard.run(['getAllWithError'], async () => {
             let action = new ResultRamWithError();
-            action.result = new Map();
-            await this.beforeGetAll(action);
+            await action.runAsync(() => this.beforeGetAll());
             if (action.success) {
-                action.result = this.records;
-                await this.afterGetAll(action);
+                const result = Object.values(this.records);
+                action.result = result;
+                await action.runAsync(() => this.afterGetAll(result));
             }
             return action;
         });
@@ -4832,38 +4959,49 @@ let GenericRam=class GenericRam {
     /**
      * Trigger before getting all items inside Ram
      */
-    async beforeGetAll(result) { }
+    async beforeGetAll() {
+        return new VoidWithError();
+    }
     ;
     /**
      * Trigger after getting all items inside Ram
      */
-    async afterGetAll(result) { }
+    async afterGetAll(result) {
+        return new VoidWithError();
+    }
     ;
     /**
      * Get all elements inside the Ram
      */
     async getList() {
-        let data = await this.getAll();
-        return Array.from(data.values());
+        return await this.getAll();
     }
     ;
     /**
      * Get all elements inside the Ram
      */
     async getListWithError() {
-        let action = new ResultRamWithError();
-        action.result = [];
-        let result = await this.getAllWithError();
+        return await this.getAllWithError();
+    }
+    /**
+     * Get all elements inside the Ram
+     */
+    async getRecords() {
+        const result = await this.getRecordsWithError();
         if (result.success) {
-            if (result.result) {
-                action.result = Array.from(result.result.values());
-            }
-            else {
-                action.result = [];
-            }
+            return result.result ?? new Map();
         }
-        else {
-            action.errors = result.errors;
+        return new Map();
+    }
+    ;
+    /**
+     * Get all elements inside the Ram
+     */
+    async getRecordsWithError() {
+        let action = new ResultRamWithError();
+        action.runAsync(() => this.getAllWithError());
+        if (action.success) {
+            action.result = this.records;
         }
         return action;
     }
@@ -4879,28 +5017,30 @@ let GenericRam=class GenericRam {
      */
     async createListWithError(list) {
         list = this.removeWatch(list);
-        let action = new ResultRamWithError();
-        action.result = [];
-        await this.beforeCreateList(list, action);
-        if (action.success) {
-            if (action.result.length > 0) {
-                list = action.result;
-                action.result = [];
-            }
+        return this.actionGuard.run(['_createList'], async () => {
+            let action = new ResultRamWithError();
+            await action.runAsync(() => this.beforeCreateList(list));
             for (let item of list) {
-                let resultItem = await this._create(item, true);
-                if (resultItem.success && resultItem.result) {
-                    action.result.push(resultItem.result);
-                }
-                else {
-                    action.errors = [...action.errors, ...resultItem.errors];
+                await action.runAsync(() => this.beforeCreateItem(item, true));
+            }
+            const resources = await action.extractAsync(() => this.transformCreateRequestListToItem(list));
+            if (!resources)
+                return action;
+            const result = [];
+            for (let item of resources) {
+                const resultItem = await action.extractAsync(() => this.addOrUpdateData(item));
+                if (!resultItem)
+                    return action;
+                await action.runAsync(() => this.afterCreateItem(resultItem.value, true));
+                if (action.success) {
+                    result.push(resultItem.value);
+                    this.publish('created', resultItem.value);
                 }
             }
-            if (action.success) {
-                await this.afterCreateList(action);
-            }
-        }
-        return action;
+            action.result = result;
+            await action.runAsync(() => this.afterCreateList(result));
+            return action;
+        });
     }
     /**
      * Create an item inside ram
@@ -4916,33 +5056,22 @@ let GenericRam=class GenericRam {
      * Create an item inside ram
      */
     async createWithError(item, ...args) {
-        return await this._create(item, false);
-    }
-    async _create(item, fromList) {
         item = this.removeWatch(item);
         return this.actionGuard.run(['_create', item], async () => {
             let action = new ResultRamWithError();
-            await this.beforeCreateItem(item, fromList, action);
-            if (action.success) {
-                if (action.result) {
-                    item = action.result;
-                }
-                let resultTemp = this.getIdWithError(item);
-                if (resultTemp.success) {
-                    await this.addOrUpdateData(item, action);
-                    if (!action.success) {
-                        return action;
-                    }
-                    await this.afterCreateItem(action, fromList);
-                    if (!action.success) {
-                        action.result = undefined;
-                    }
-                    else if (action.result) {
-                        this.publish('created', action.result);
-                    }
-                }
-                else {
-                    action.errors = resultTemp.errors;
+            await action.runAsync(() => this.beforeCreateItem(item, false));
+            const resource = await action.extractAsync(() => this.transformCreateRequestToItem(item));
+            if (!resource)
+                return action;
+            const id = await action.extract(() => this.getIdWithError(resource));
+            if (id !== undefined) {
+                const resultTemp = await action.extractAsync(() => this.addOrUpdateData(resource));
+                if (!resultTemp)
+                    return action;
+                await action.runAsync(() => this.afterCreateItem(resultTemp.value, false));
+                if (action.success) {
+                    action.result = resultTemp.value;
+                    this.publish('created', resultTemp.value);
                 }
             }
             return action;
@@ -4951,25 +5080,29 @@ let GenericRam=class GenericRam {
     /**
      * Trigger before creating a list of items
      */
-    async beforeCreateList(list, result) {
+    async beforeCreateList(list) {
+        return new VoidWithError();
     }
     ;
     /**
      * Trigger before creating an item
      */
-    async beforeCreateItem(item, fromList, result) {
+    async beforeCreateItem(item, fromList) {
+        return new VoidWithError();
     }
     ;
     /**
      * Trigger after creating an item
      */
     async afterCreateItem(result, fromList) {
+        return new VoidWithError();
     }
     ;
     /**
      * Trigger after creating a list of items
      */
     async afterCreateList(result) {
+        return new VoidWithError();
     }
     ;
     /**
@@ -4985,28 +5118,30 @@ let GenericRam=class GenericRam {
      */
     async updateListWithError(list) {
         list = this.removeWatch(list);
-        let action = new ResultRamWithError();
-        action.result = [];
-        await this.beforeUpdateList(list, action);
-        if (action.success) {
-            if (action.result.length > 0) {
-                list = action.result;
-                action.result = [];
-            }
+        return this.actionGuard.run(['_updateList'], async () => {
+            let action = new ResultRamWithError();
+            await action.runAsync(() => this.beforeUpdateList(list));
             for (let item of list) {
-                let resultItem = await this._update(item, true);
-                if (resultItem.success && resultItem.result) {
-                    action.result.push(resultItem.result);
-                }
-                else {
-                    action.errors = [...action.errors, ...resultItem.errors];
+                await action.runAsync(() => this.beforeUpdateItem(item, true));
+            }
+            const resources = await action.extractAsync(() => this.transformUpdateRequestListToItem(list));
+            if (!resources)
+                return action;
+            const result = [];
+            for (let item of resources) {
+                const resultItem = await action.extractAsync(() => this.addOrUpdateData(item));
+                if (!resultItem)
+                    return action;
+                await action.runAsync(() => this.afterUpdateItem(resultItem.value, true));
+                if (action.success) {
+                    result.push(resultItem.value);
+                    this.publish('created', resultItem.value);
                 }
             }
-            if (action.success) {
-                await this.afterUpdateList(action);
-            }
-        }
-        return action;
+            action.result = result;
+            await action.runAsync(() => this.afterUpdateList(result));
+            return action;
+        });
     }
     ;
     /**
@@ -5023,71 +5158,62 @@ let GenericRam=class GenericRam {
      * Update an item inside ram
      */
     async updateWithError(item, ...args) {
-        return await this._update(item, false);
-    }
-    async _update(item, fromList) {
         item = this.removeWatch(item);
         return this.actionGuard.run(['_update', item], async () => {
             let action = new ResultRamWithError();
-            let resultTemp = await this.getIdWithError(item);
-            if (resultTemp.success && resultTemp.result !== undefined) {
-                let key = resultTemp.result;
-                if (this.records.has(key)) {
-                    if (this.records.get(key) == item) {
-                        console.warn("You are updating the same item. You should clone the object first to avoid weird effect");
-                    }
-                    await this.beforeUpdateItem(item, fromList, action);
-                    if (!action.success) {
-                        return action;
-                    }
-                    if (action.result) {
-                        item = action.result;
-                    }
-                    await this.addOrUpdateData(item, action);
-                    if (!action.success) {
-                        return action;
-                    }
-                    await this.afterUpdateItem(action, fromList);
-                    if (!action.success) {
-                        action.result = undefined;
-                    }
-                    else if (action.result) {
-                        this.publish('updated', action.result);
-                    }
+            const id = await action.extract(() => this.getIdWithError(item));
+            if (id === undefined)
+                return action;
+            if (this.records.has(id)) {
+                const currentEl = this.records.get(id);
+                if (currentEl == item) {
+                    console.warn("You are updating the same item. You should clone the object first to avoid weird effect");
                 }
-                else {
-                    action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't update the item " + key + " because it wasn't found inside ram"));
+                await action.runAsync(() => this.beforeUpdateItem(item, false));
+                const resource = await action.extractAsync(() => this.transformUpdateRequestToItem(item));
+                if (!resource)
+                    return action;
+                const resultTemp = await action.extractAsync(() => this.addOrUpdateData(resource));
+                if (!resultTemp)
+                    return action;
+                await action.runAsync(() => this.afterUpdateItem(resultTemp.value, false));
+                if (action.success) {
+                    action.result = resultTemp.value;
+                    this.publish('updated', resultTemp.value);
                 }
             }
             else {
-                action.errors = resultTemp.errors;
+                action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't update the item " + id + " because it wasn't found inside ram"));
             }
             return action;
         });
     }
-    ;
     /**
      * Trigger before updating a list of items
      */
-    async beforeUpdateList(list, result) {
+    async beforeUpdateList(list) {
+        return new VoidWithError();
     }
     ;
     /**
     * Trigger before updating an item
     */
-    async beforeUpdateItem(item, fromList, result) {
+    async beforeUpdateItem(item, fromList) {
+        return new VoidWithError();
     }
     ;
     /**
      * Trigger after updating an item
      */
     async afterUpdateItem(result, fromList) {
+        return new VoidWithError();
     }
     ;
     /**
      * Trigger after updating a list of items
      */
     async afterUpdateList(result) {
+        return new VoidWithError();
     }
     ;
     /**
@@ -5105,22 +5231,17 @@ let GenericRam=class GenericRam {
         list = this.removeWatch(list);
         let action = new ResultRamWithError();
         action.result = [];
-        let deleteResult = new VoidWithError();
-        await this.beforeDeleteList(list, deleteResult);
-        if (!deleteResult.success) {
-            action.errors = deleteResult.errors;
-        }
+        await action.runAsync(() => this.beforeDeleteList(list));
+        const result = [];
         for (let item of list) {
-            let resultItem = await this._delete(item, true);
-            if (resultItem.success && resultItem.result) {
-                action.result.push(resultItem.result);
-            }
-            else {
-                action.errors = [...action.errors, ...resultItem.errors];
-            }
+            const resultItem = await action.extractAsync(() => this._delete(item, true));
+            if (!resultItem)
+                return action;
+            result.push(resultItem);
         }
         if (action.success) {
-            await this.afterDeleteList(action);
+            action.result = result;
+            await action.runAsync(() => this.afterDeleteList(result));
         }
         return action;
     }
@@ -5169,36 +5290,24 @@ let GenericRam=class GenericRam {
         item = this.removeWatch(item);
         return this.actionGuard.run(['_delete', item], async () => {
             let action = new ResultRamWithError();
-            let resultTemp = await this.getIdWithError(item);
-            if (resultTemp.success && resultTemp.result) {
-                let key = resultTemp.result;
-                let oldItem = this.records.get(key);
-                if (oldItem) {
-                    let deleteResult = new VoidWithError();
-                    await this.beforeDeleteItem(oldItem, fromList, deleteResult);
-                    if (!deleteResult.success) {
-                        action.errors = deleteResult.errors;
-                        return action;
-                    }
-                    this.beforeRecordDelete(oldItem);
-                    this.records.delete(key);
-                    this.afterRecordDelete(oldItem);
+            const id = action.extract(() => this.getIdWithError(item));
+            if (id === undefined)
+                return action;
+            let oldItem = this.records.get(id);
+            if (oldItem) {
+                await action.runAsync(() => this.beforeDeleteItem(oldItem, fromList));
+                await action.runAsync(() => this.beforeRecordDelete(oldItem));
+                this.records.delete(id);
+                await action.runAsync(() => this.afterRecordDelete(oldItem));
+                await action.runAsync(() => this.afterDeleteItem(oldItem, fromList));
+                if (action.success) {
                     action.result = oldItem;
-                    await this.afterDeleteItem(action, fromList);
-                    if (!action.success) {
-                        action.result = undefined;
-                    }
-                    else {
-                        this.publish('deleted', action.result);
-                    }
-                    this.recordsSubscribers.delete(key);
+                    this.publish('deleted', oldItem);
                 }
-                else {
-                    action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't delete the item " + key + " because it wasn't found inside ram"));
-                }
+                this.recordsSubscribers.delete(id);
             }
             else {
-                action.errors = resultTemp.errors;
+                action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't delete the item " + id + " because it wasn't found inside ram"));
             }
             return action;
         });
@@ -5206,22 +5315,30 @@ let GenericRam=class GenericRam {
     /**
      * Trigger before deleting a list of items
      */
-    async beforeDeleteList(list, result) { }
+    async beforeDeleteList(list) {
+        return new VoidWithError();
+    }
     ;
     /**
      * Trigger before deleting an item
      */
-    async beforeDeleteItem(item, fromList, result) { }
+    async beforeDeleteItem(item, fromList) {
+        return new VoidWithError();
+    }
     ;
     /**
      * Trigger after deleting an item
      */
-    async afterDeleteItem(result, fromList) { }
+    async afterDeleteItem(result, fromList) {
+        return new VoidWithError();
+    }
     ;
     /**
      * Trigger after deleting a list of items
      */
-    async afterDeleteList(result) { }
+    async afterDeleteList(result) {
+        return new VoidWithError();
+    }
 }
 GenericRam.Namespace=`Aventus`;
 __as1(_, 'GenericRam', GenericRam);

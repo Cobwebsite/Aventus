@@ -5110,6 +5110,102 @@ Data.$schema={"namespace":"string","$type":"string","className":"string"};
 Converter.register(Data.Fullname, Data);
 __as1(_, 'Data', Data);
 
+let HttpResponse=class HttpResponse {
+    get status() {
+        return this.response.status;
+    }
+    get statusText() {
+        return this.response.statusText;
+    }
+    get redirected() {
+        return this.response.redirected;
+    }
+    get ok() {
+        return this.response.ok;
+    }
+    get type() {
+        return this.response.type;
+    }
+    get url() {
+        return this.response.url;
+    }
+    get headers() {
+        return this.response.headers;
+    }
+    response;
+    constructor(response) {
+        this.response = response;
+    }
+    bodyUsed = false;
+    bodyContent;
+    async json() {
+        if (!this.bodyUsed) {
+            this.bodyContent = await this.response.json();
+        }
+        return Converter.transform(this.bodyContent);
+    }
+    async blob() {
+        if (!this.bodyUsed) {
+            this.bodyContent = await this.response.blob();
+        }
+        return this.bodyContent;
+    }
+    async text() {
+        if (!this.bodyUsed) {
+            this.bodyContent = await this.response.text();
+        }
+        return this.bodyContent;
+    }
+}
+HttpResponse.Namespace=`Aventus`;
+__as1(_, 'HttpResponse', HttpResponse);
+
+let HttpCache=class HttpCache {
+    static cache = new Map();
+    static async fetch(fullUrl, request) {
+        const key = this.generateCacheKey(fullUrl, request);
+        if (key) {
+            const value = this.cache.get(key);
+            if (value)
+                return value;
+        }
+        const result = await fetch(fullUrl, request);
+        const response = new HttpResponse(result);
+        if (key)
+            this.cache.set(key, response);
+        return response;
+    }
+    static clear(fullUrl, request) {
+        const key = this.generateCacheKey(fullUrl, request);
+        if (key) {
+            if (this.cache.has(key)) {
+                this.cache.delete(key);
+            }
+        }
+    }
+    static generateCacheKey(fullUrl, request) {
+        const method = request.method;
+        const body = request.body;
+        let bodyKey = "";
+        if (typeof body == 'string') {
+            bodyKey = this.hashStringToInt(body) + '';
+        }
+        else if (body instanceof FormData) {
+        }
+        return fullUrl + "°" + method + "°" + bodyKey;
+    }
+    static hashStringToInt(str) {
+        let hash = 0x811c9dc5;
+        for (let i = 0; i < str.length; i++) {
+            hash ^= str.charCodeAt(i);
+            hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
+        }
+        return hash >>> 0;
+    }
+}
+HttpCache.Namespace=`Aventus`;
+__as1(_, 'HttpCache', HttpCache);
+
 let GenericError=// @Dependances([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
 class GenericError {
     static converter = new Converter();
@@ -5312,10 +5408,12 @@ let HttpRequest=class HttpRequest {
     request;
     url;
     methodSpoofing = false;
-    constructor(url, method = HttpMethod.GET, body, methodSpoofing = false) {
+    useCache = false;
+    constructor(url, method = HttpMethod.GET, body, methodSpoofing = false, useCache = false) {
         this.url = url;
         this.request = {};
         this.methodSpoofing = methodSpoofing;
+        this.useCache = useCache;
         this.setMethod(method);
         this.prepareBody(body);
     }
@@ -5336,6 +5434,12 @@ let HttpRequest=class HttpRequest {
      */
     enableMethodSpoofing() {
         this.methodSpoofing = true;
+    }
+    enableCache() {
+        this.useCache = true;
+    }
+    disableCache() {
+        this.useCache = false;
     }
     objectToFormData(obj, formData, parentKey) {
         formData = formData || new FormData();
@@ -5455,7 +5559,13 @@ let HttpRequest=class HttpRequest {
                 result.errors = beforeSendResult.errors;
             }
             const fullUrl = isFull ? this.url : router ? router.options.url + this.url : this.url;
-            result.result = await fetch(fullUrl, this.request);
+            if (this.useCache) {
+                result.result = await HttpCache.fetch(fullUrl, this.request);
+            }
+            else {
+                let response = await fetch(fullUrl, this.request);
+                result.result = new HttpResponse(response);
+            }
         }
         catch (e) {
             result.errors.push(new HttpError(HttpErrorCode.unknow, e));
@@ -5481,7 +5591,7 @@ let HttpRequest=class HttpRequest {
                 return result;
             }
             if (resultTemp.result.status != 204) {
-                let tempResult = Converter.transform(await resultTemp.result.json());
+                let tempResult = await resultTemp.result.json();
                 if (tempResult instanceof VoidWithError) {
                     for (let error of tempResult.errors) {
                         result.errors.push(error);
@@ -5494,6 +5604,7 @@ let HttpRequest=class HttpRequest {
         return result;
     }
     async queryJSON(router) {
+        this.setHeader("Accept", "application/json");
         let resultTemp = await this.query(router);
         let result = new ResultWithError();
         if (!resultTemp.success) {
@@ -5504,7 +5615,7 @@ let HttpRequest=class HttpRequest {
             if (!resultTemp.result) {
                 return result;
             }
-            let tempResult = Converter.transform(await resultTemp.result.json());
+            let tempResult = await resultTemp.result.json();
             if (tempResult instanceof VoidWithError) {
                 for (let error of tempResult.errors) {
                     result.errors.push(error);
@@ -5523,6 +5634,7 @@ let HttpRequest=class HttpRequest {
         return result;
     }
     async queryTxt(router) {
+        this.setHeader("Accept", "text/plain");
         let resultTemp = await this.query(router);
         let result = new ResultWithError();
         if (!resultTemp.success) {
@@ -5541,6 +5653,7 @@ let HttpRequest=class HttpRequest {
         return result;
     }
     async queryBlob(router) {
+        this.setHeader("Accept", "application/octet-stream");
         let resultTemp = await this.query(router);
         let result = new ResultWithError();
         if (!resultTemp.success) {
@@ -5557,6 +5670,14 @@ let HttpRequest=class HttpRequest {
             result.errors.push(new HttpError(HttpErrorCode.unknow, e));
         }
         return result;
+    }
+    clearCache(router) {
+        const isFull = this.url.match("https?://");
+        if (!this.url.startsWith("/") && !isFull) {
+            this.url = "/" + this.url;
+        }
+        const fullUrl = isFull ? this.url : router ? router.options.url + this.url : this.url;
+        HttpCache.clear(fullUrl, this.request);
     }
 }
 HttpRequest.Namespace=`Aventus`;
@@ -7099,7 +7220,9 @@ __as1(_.Lib, 'SpecialTouch', Lib.SpecialTouch);
 const Collapse = class Collapse extends Aventus.WebComponent {
     get 'open'() { return this.getBoolAttr('open') }
     set 'open'(val) { this.setBoolAttr('open', val) }get 'no_animation'() { return this.getBoolAttr('no_animation') }
-    set 'no_animation'(val) { this.setBoolAttr('no_animation', val) }    static __style = `:host{--_collapse-transition-duration: var(--collapse-transition-duration, 0.5s);--_collapse-transition-timing-function: var(--collapse-transition-timing-function, cubic-bezier(0.65, 0, 0.15, 1))}:host .title{cursor:pointer;-webkit-tap-highlight-color:rgba(0,0,0,0)}:host .collapse{display:grid;grid-template-rows:0fr;transition-duration:var(--_collapse-transition-duration);transition-timing-function:var(--_collapse-transition-timing-function);transition-property:grid-template-rows}:host .collapse .content{overflow:hidden}:host([open]) .collapse{grid-template-rows:1fr}:host([no_animation]) .collapse{transition:none}`;
+    set 'no_animation'(val) { this.setBoolAttr('no_animation', val) }get 'horizontal'() { return this.getBoolAttr('horizontal') }
+    set 'horizontal'(val) { this.setBoolAttr('horizontal', val) }get 'reverse'() { return this.getBoolAttr('reverse') }
+    set 'reverse'(val) { this.setBoolAttr('reverse', val) }    static __style = `:host{--_collapse-transition-duration: var(--collapse-transition-duration, 0.5s);--_collapse-transition-timing-function: var(--collapse-transition-timing-function, cubic-bezier(0.65, 0, 0.15, 1))}:host .title{cursor:pointer;-webkit-tap-highlight-color:rgba(0,0,0,0)}:host .collapse{display:grid;transition-duration:var(--_collapse-transition-duration);transition-timing-function:var(--_collapse-transition-timing-function);transition-property:grid-template-rows,grid-template-columns}:host .collapse .content{overflow:hidden}:host([no_animation]) .collapse{transition:none}:host(:not([horizontal])) .collapse{grid-template-rows:0fr}:host([open]:not([horizontal])) .collapse{grid-template-rows:1fr}:host([horizontal]) .collapse{grid-template-columns:0fr}:host([open][horizontal]) .collapse{grid-template-columns:1fr}:host([reverse]) .collapse{justify-content:end}`;
     __getStatic() {
         return Collapse;
     }
@@ -7132,9 +7255,9 @@ const Collapse = class Collapse extends Aventus.WebComponent {
     getClassName() {
         return "Collapse";
     }
-    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('open')) { this.attributeChangedCallback('open', false, false); }if(!this.hasAttribute('no_animation')) { this.attributeChangedCallback('no_animation', false, false); } }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('open');this.__upgradeProperty('no_animation'); }
-    __listBoolProps() { return ["open","no_animation"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
+    __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('open')) { this.attributeChangedCallback('open', false, false); }if(!this.hasAttribute('no_animation')) { this.attributeChangedCallback('no_animation', false, false); }if(!this.hasAttribute('horizontal')) { this.attributeChangedCallback('horizontal', false, false); }if(!this.hasAttribute('reverse')) { this.attributeChangedCallback('reverse', false, false); } }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('open');this.__upgradeProperty('no_animation');this.__upgradeProperty('horizontal');this.__upgradeProperty('reverse'); }
+    __listBoolProps() { return ["open","no_animation","horizontal","reverse"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
     transitionEnd(e) {
         let cst = e.constructor;
         const new_e = new cst(e.type, e);

@@ -1,0 +1,57 @@
+import { Converter } from "../tools/Converter.lib.avt";
+
+export class HttpResponse {
+
+    public get status(): number {
+        return this.response.status;
+    }
+    public get statusText(): string {
+        return this.response.statusText;
+    }
+    public get redirected(): boolean {
+        return this.response.redirected;
+    }
+    public get ok(): boolean {
+        return this.response.ok;
+    }
+    public get type(): ResponseType {
+        return this.response.type;
+    }
+    public get url(): string {
+        return this.response.url;
+    }
+
+    public get headers(): Headers {
+        return this.response.headers;
+    }
+
+    private response: Response;
+    public constructor(response: Response) {
+        this.response = response;
+    }
+
+    private bodyUsed: boolean = false;
+    private bodyContent: any;
+
+    public async json<T = any>(): Promise<T> {
+		if(!this.bodyUsed) {
+			this.bodyContent = await this.response.json();
+		}
+        return Converter.transform(this.bodyContent);
+    }
+
+    public async blob(): Promise<Blob> {
+		if(!this.bodyUsed) {
+			this.bodyContent = await this.response.blob();
+		}
+        return this.bodyContent;
+    }
+
+    public async text(): Promise<string> {
+		if(!this.bodyUsed) {
+			this.bodyContent = await this.response.text();
+		}
+        return this.bodyContent;
+    }
+
+}

@@ -5,10 +5,12 @@ import { HttpError, HttpErrorCode } from "./HttpError.lib.avt";
 import { Converter, DateConverter } from "../tools/Converter.lib.avt";
 import { Watcher } from "../lib/Watcher.lib.avt";
 import type { Asyncable } from "../lib/Promise.lib.avt";
+import { HttpResponse } from "./HttpResponse.lib.avt";
+import { HttpCache } from "./HttpCache.lib.avt";
 
 export type HttpRequestOptions = {
     beforeSend?: (request: HttpRequest) => Asyncable<VoidWithError>;
-    responseMiddleware?: (response: ResultWithError<Response>, request: HttpRequest) => Asyncable<ResultWithError<Response>>;
+    responseMiddleware?: (response: ResultWithError<HttpResponse>, request: HttpRequest) => Asyncable<ResultWithError<HttpResponse>>;
 };
 
 @Storybook({
@@ -25,10 +27,18 @@ export class HttpRequest {
     private request: RequestInit;
     private url: string;
     private methodSpoofing: boolean = false;
-    public constructor(url: string, method: HttpMethod = HttpMethod.GET, body?: { [key: string | number]: any; } | FormData, methodSpoofing: boolean = false) {
+    private useCache: boolean = false;
+    public constructor(
+        url: string,
+        method: HttpMethod = HttpMethod.GET,
+        body?: { [key: string | number]: any; } | FormData,
+        methodSpoofing: boolean = false,
+        useCache: boolean = false
+    ) {
         this.url = url;
         this.request = {};
         this.methodSpoofing = methodSpoofing;
+        this.useCache = useCache;
         this.setMethod(method);
         this.prepareBody(body);
     }
@@ -53,6 +63,13 @@ export class HttpRequest {
      */
     public enableMethodSpoofing() {
         this.methodSpoofing = true;
+    }
+
+    public enableCache() {
+        this.useCache = true;
+    }
+    public disableCache() {
+        this.useCache = false;
     }
 
     private objectToFormData(obj: { [key: string | number]: any; }, formData?: FormData, parentKey?: string): FormData {
@@ -172,8 +189,8 @@ export class HttpRequest {
         this.request.credentials = credentials;
     }
 
-    protected async _query(router?: HttpRouter): Promise<ResultWithError<Response>> {
-        let result = new ResultWithError<Response>();
+    protected async _query(router?: HttpRouter): Promise<ResultWithError<HttpResponse>> {
+        let result = new ResultWithError<HttpResponse>();
         try {
             const isFull = this.url.match("https?://");
             if(!this.url.startsWith("/") && !isFull) {
@@ -184,14 +201,20 @@ export class HttpRequest {
                 result.errors = beforeSendResult.errors;
             }
             const fullUrl = isFull ? this.url : router ? router.options.url + this.url : this.url;
-            result.result = await fetch(fullUrl, this.request);
+            if(this.useCache) {
+                result.result = await HttpCache.fetch(fullUrl, this.request);
+            }
+            else {
+                let response = await fetch(fullUrl, this.request);
+                result.result = new HttpResponse(response);
+            }
         } catch(e) {
             result.errors.push(new HttpError(HttpErrorCode.unknow, e));
         }
         return result;
     }
 
-    public async query(router?: HttpRouter): Promise<ResultWithError<Response>> {
+    public async query(router?: HttpRouter): Promise<ResultWithError<HttpResponse>> {
         let result = await this._query(router);
         if(HttpRequest.options?.responseMiddleware) {
             result = await HttpRequest.options.responseMiddleware(result, this);
@@ -212,7 +235,7 @@ export class HttpRequest {
             }
             // try to parse json if has result
             if(resultTemp.result.status != 204) {
-                let tempResult = Converter.transform(await resultTemp.result.json());
+                let tempResult = await resultTemp.result.json();
                 if(tempResult instanceof VoidWithError) {
                     for(let error of tempResult.errors) {
                         result.errors.push(error);
@@ -227,6 +250,7 @@ export class HttpRequest {
     }
 
     public async queryJSON<T>(router?: HttpRouter): Promise<ResultWithError<T>> {
+        this.setHeader("Accept", "application/json");
         let resultTemp = await this.query(router);
         let result = new ResultWithError<T>();
         if(!resultTemp.success) {
@@ -237,7 +261,7 @@ export class HttpRequest {
             if(!resultTemp.result) {
                 return result;
             }
-            let tempResult = Converter.transform(await resultTemp.result.json());
+            let tempResult = await resultTemp.result.json();
             if(tempResult instanceof VoidWithError) {
                 for(let error of tempResult.errors) {
                     result.errors.push(error);
@@ -256,6 +280,7 @@ export class HttpRequest {
     }
 
     public async queryTxt(router?: HttpRouter): Promise<ResultWithError<string>> {
+        this.setHeader("Accept", "text/plain");
         let resultTemp = await this.query(router);
         let result = new ResultWithError<string>();
         if(!resultTemp.success) {
@@ -274,6 +299,7 @@ export class HttpRequest {
     }
 
     public async queryBlob(router?: HttpRouter): Promise<ResultWithError<Blob>> {
+        this.setHeader("Accept", "application/octet-stream");
         let resultTemp = await this.query(router);
         let result = new ResultWithError<Blob>();
         if(!resultTemp.success) {
@@ -289,5 +315,14 @@ export class HttpRequest {
             result.errors.push(new HttpError(HttpErrorCode.unknow, e));
         }
         return result;
+    }
+
+    public clearCache(router?: HttpRouter): void {
+        const isFull = this.url.match("https?://");
+        if(!this.url.startsWith("/") && !isFull) {
+            this.url = "/" + this.url;
+        }
+        const fullUrl = isFull ? this.url : router ? router.options.url + this.url : this.url;
+        HttpCache.clear(fullUrl, this.request);
     }
 }

@@ -16,3 +16,9 @@ export type RouteType = abstract new (...args: any[]) => HttpRoute;
     prefix: "Http"
 })
 export type RouterType = (abstract new (...args: any[]) => HttpRouter);
+
+export abstract class Request { }
+
+export abstract class Resource {
+    
+}

@@ -515,7 +515,9 @@ export const AventusSharpSchema: JSONSchema = {
                 parent: { type: "string", default: "Aventus.HttpRouter", description: "Define the parent type to use for your router" },
                 parentFile: { type: "string", default: "", description: "Define the parent file to use for your router" },
                 namespace: { type: "string", default: "Routes", description: "Define the namespace for your router" },
-                addFormData: {type: "boolean", default: true, description: "Add ` | FormData` to the route body"}
+                addFormData: { type: "boolean", default: true, description: "Add ` | FormData` to the route body" },
+                cacheByDefault: { type: "boolean", default: false, description: "Add cache to the function generated" },
+                clearCacheFct: { type: "boolean", default: false, description: "Add function to clear cache to the function generated" },
             }
         },
         "wsEndpoint": {
