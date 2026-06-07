@@ -11,10 +11,9 @@
 
 	.collapse {
 		display: grid;
-		grid-template-rows: 0fr;
 		transition-duration: var(--_collapse-transition-duration);
 		transition-timing-function: var(--_collapse-transition-timing-function);
-		transition-property: grid-template-rows;
+		transition-property: grid-template-rows, grid-template-columns;
 
 		.content {
 			overflow: hidden;
@@ -22,14 +21,36 @@
 	}
 }
 
-:host([open]) {
+:host([no_animation]) {
+	.collapse {
+		transition: none;
+	}
+}
+
+:host(:not([horizontal])) {
+	.collapse {
+		grid-template-rows: 0fr;
+	}
+}
+:host([open]:not([horizontal])) {
 	.collapse {
 		grid-template-rows: 1fr;
 	}
 }
 
-:host([no_animation]) {
+:host([horizontal]) {
 	.collapse {
-		transition: none;
+		grid-template-columns: 0fr;
+	}
+}
+:host([open][horizontal]) {
+	.collapse {
+		grid-template-columns: 1fr;
+	}
+}
+
+:host([reverse]) {
+	.collapse {
+		justify-content: end;
 	}
 }

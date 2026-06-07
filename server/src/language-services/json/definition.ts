@@ -163,7 +163,10 @@ interface AventusSharpHttpRouter {
 	host?: string,
 	parent?: string,
 	parentFile?: string,
-	namespace?: string
+	namespace?: string,
+	cacheByDefault?: boolean,
+	clearCacheFct?: boolean,
+	addFormData?: boolean
 }
 
 interface AventusSharpWsEndPoint {

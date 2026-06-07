@@ -1,9 +1,8 @@
 import { RamError, RamErrorCode, ResultRamWithError, VoidRamWithError } from "./Error.lib.avt";
-import { type ResultWithError, VoidWithError } from "../tools/Error.lib.avt";
+import { ResultWithError, VoidWithError } from "../tools/Error.lib.avt";
 import { Json, type JsonFromOptions } from "../tools/Json.lib.avt";
 import { ActionGuard } from "../tools/Mutex.lib.avt";
-import { Converter } from "../tools/Converter.lib.avt";
-import { Instance } from "../lib/Instance.lib.avt";
+import type { Request as HttpRequest, Resource as HttpResource } from "../http/type.lib.avt";
 
 @Storybook({
     prefix: "Ram"
@@ -27,13 +26,13 @@ export interface IRam {
 @Storybook({
     prefix: "Ram"
 })
-export type KeysObject<T> = { [Key in keyof T]?: any; };
+export type KeysObject<Item> = { [Key in keyof Item]?: any; };
 @Storybook({
     prefix: "Ram"
 })
-export interface IRamAction<T> {
-    update(newData: KeysObject<T>): Promise<this | undefined>;
-    updateWithError(newData: KeysObject<T>): Promise<ResultRamWithError<this>>;
+export interface IRamAction<Resource, Request> {
+    update(newData: Request): Promise<this | undefined>;
+    updateWithError(newData: Request): Promise<ResultRamWithError<this>>;
     onUpdate(callback: (item: this) => void): void;
     offUpdate(callback: (item: this) => void): void;
     delete(): Promise<void>;
@@ -44,14 +43,14 @@ export interface IRamAction<T> {
 @Storybook({
     prefix: "Ram"
 })
-export type RamItem<T extends IRamData> = T & IRamAction<T>;
+export type RamItem<Resource extends IRamData, Request> = Resource & IRamAction<Resource, Request>;
 @Storybook({
     prefix: "Ram"
 })
-interface RamSubscribers<T> {
-    created: ((item: T) => void)[];
-    updated: ((item: T) => void)[];
-    deleted: ((item: T) => void)[];
+interface RamSubscribers<Item> {
+    created: ((item: Item) => void)[];
+    updated: ((item: Item) => void)[];
+    deleted: ((item: Item) => void)[];
 }
 
 // export class RamManager {
@@ -112,10 +111,17 @@ interface RamSubscribers<T> {
 //     }
 // }
 
+
 @Storybook({
     prefix: "Ram"
 })
-export abstract class GenericRam<Index, T extends IRamData, U extends T = T> implements IRam {
+export abstract class GenericRam<
+    Index,
+    Item extends IRamData,
+    Request extends HttpRequest | Item = KeysObject<Item>,
+    ResourceSimple extends HttpResource | Item = Item,
+    ResourceDetails extends ResourceSimple = ResourceSimple,
+> implements IRam {
 
     public static readonly info: Map<IRam, new () => any> = new Map([]);
 
@@ -130,16 +136,16 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
     public static get Fullname(): string { return this.Namespace + "." + this.name; }
 
 
-    private subscribers: RamSubscribers<RamItem<U>> = {
+    private subscribers: RamSubscribers<RamItem<ResourceDetails, Request>> = {
         created: [],
         updated: [],
         deleted: [],
     };
-    protected recordsSubscribers: Map<Index, RamSubscribers<RamItem<U>>> = new Map();
+    protected recordsSubscribers: Map<Index, RamSubscribers<RamItem<ResourceDetails, Request>>> = new Map();
     /**
      * List of stored item by index key
      */
-    protected records: Map<Index, RamItem<U>> = new Map();
+    protected records: Map<Index, RamItem<ResourceDetails, Request>> = new Map();
 
     protected actionGuard: ActionGuard = new ActionGuard();
 
@@ -159,13 +165,13 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
      * Define the field where the index key is location
      * Example : 'id';
      */
-    public abstract defineIndexKey(): keyof T;
+    public abstract defineIndexKey(): keyof ResourceDetails;
 
     /**
      * Get item id
      */
     @BindThis()
-    public getIdWithError(item: KeysObject<T> | T): ResultRamWithError<Index> {
+    public getIdWithError(item: KeysObject<ResourceDetails> | ResourceDetails): ResultRamWithError<Index> {
         let action: ResultRamWithError<Index> = new ResultRamWithError();
         let idTemp = item[this.defineIndexKey()];
         if(idTemp !== undefined) {
@@ -180,7 +186,7 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
      * Get item id
      */
     @BindThis()
-    public getId(item: KeysObject<T> | T): Index {
+    public getId(item: KeysObject<ResourceDetails> | ResourceDetails): Index {
         let result = this.getIdWithError(item);
         if(result.success) {
             return result.result as Index;
@@ -206,39 +212,18 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
      */
     protected addRamAction<B extends (new (...args: any[]) => IRamData) & { className?: string; }>(Base: B) {
         let that = this;
-        return class ActionClass extends Base implements IRamAction<T> {
+        return class ActionClass extends Base implements IRamAction<ResourceDetails, Request> {
             public static override get className(): string {
                 return Base.className || Base.name;
             }
             public get className(): string {
                 return Base.className || Base.name;
             }
-            public async update(newData: KeysObject<T> = {}): Promise<this | undefined> {
-                let id = that.getId(this);
-                let oldData = that.records.get(id);
-                if(oldData) {
-                    that.mergeObject(oldData, newData, { replaceUndefinedWithKey: true });
-                    let result = await that.update(oldData);
-                    return result as any as this;
-                }
-                return undefined;
+            public async update(newData: Request): Promise<this | undefined> {
+                return (await that.update(newData)) as this | undefined;
             }
-            public async updateWithError(newData: KeysObject<T> = {}): Promise<ResultRamWithError<RamItem<this>>> {
-                const result: ResultRamWithError<RamItem<this>> = new ResultRamWithError();
-                let queryId = that.getIdWithError(this);
-                if(!queryId.success || !queryId.result) {
-                    result.errors = queryId.errors;
-                    return result;
-                }
-                let oldData = that.records.get(queryId.result);
-                if(oldData) {
-                    that.mergeObject(oldData, newData, { replaceUndefinedWithKey: true });
-                    let result = await that.updateWithError(oldData);
-                    return result as any as ResultRamWithError<RamItem<this>>;
-                }
-
-                result.errors.push(new RamError(RamErrorCode.noItemInsideRam, "Can't find this item inside the ram"));
-                return result;
+            public async updateWithError(newData: Request): Promise<ResultRamWithError<RamItem<this, Request>>> {
+                return (await that.updateWithError(newData)) as unknown as ResultRamWithError<RamItem<this, Request>>;
             }
             public onUpdate(callback: (item: this) => void) {
                 let id = that.getId(this);
@@ -310,20 +295,20 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
     /**
      * Define the right type base of the json received
      */
-    protected abstract getTypeForData(objJson: KeysObject<T> | T): new () => U;
+    protected abstract getTypeForData(objJson: any): new () => ResourceDetails;
     /**
      * Define all the types you ram is capable of
      */
     @InternalProtected()
-    public ramForTypes(): (new () => U)[] {
+    public ramForTypes(): (new () => ResourceDetails)[] {
         return [this.getTypeForData({})];
     }
     /**
      * Transform the object into the object stored inside Ram
      */
-    protected getObjectForRam(objJson: KeysObject<T> | T): RamItem<U> {
-        let T = this.addRamAction(this.getTypeForData(objJson));
-        let item = new T();
+    protected getObjectForRam(objJson: any): RamItem<ResourceDetails, Request> {
+        let Item = this.addRamAction(this.getTypeForData(objJson));
+        let item = new Item();
         this.mergeObject(item, objJson);
         return item;
     }
@@ -335,13 +320,13 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
     //     onDeleted: (item: any) => void;
     // }> = new Map();
 
-    // private linkInfo: { [key: string | number]: { [id: string | number]: U[]; }; } = {};
-    // private linkRamItem(item: U) {
+    // private linkInfo: { [key: string | number]: { [id: string | number]: Request[]; }; } = {};
+    // private linkRamItem(item: Request) {
     //     for(let key in this.ramMapping) {
     //         this.linkRamItemByKey(item, key);
     //     }
     // }
-    // private linkRamItemByKey(item: U, key: string) {
+    // private linkRamItemByKey(item: Request, key: string) {
     //     const mapping = this.ramMapping[key];
     //     if(key in item) {
     //         if(mapping.asArray) {
@@ -386,39 +371,39 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
     /**
      * Add element inside Ram or update it. The instance inside the ram is unique and ll never be replaced
      */
-    protected async addOrUpdateData(item: KeysObject<T>, result: ResultWithError<RamItem<T>>): Promise<'created' | 'updated' | null> {
-        let resultTemp: 'created' | 'updated' | null = null;
+    protected async addOrUpdateData(item: ResourceDetails): Promise<ResultWithError<{ kind: 'created' | 'updated', value: RamItem<ResourceDetails, Request>; }>> {
+        const resultTemp: ResultWithError<{ kind: 'created' | 'updated', value: RamItem<ResourceDetails, Request>; }> = new ResultWithError();
         try {
-            let idWithError = this.getIdWithError(item);
-            if(idWithError.success && idWithError.result !== undefined) {
-                let id = idWithError.result;
-                if(this.records.has(id)) {
-                    let uniqueRecord = this.records.get(id)!;
-                    await this.beforeRecordSet(uniqueRecord);
-                    // this.unlinkRamItem(uniqueRecord);
+            const id = resultTemp.extract(() => this.getIdWithError(item));
+            if(id === undefined) return resultTemp;
+
+            if(this.records.has(id)) {
+                let uniqueRecord = this.records.get(id)!;
+                await resultTemp.runAsync(() => this.beforeRecordSet(uniqueRecord));
+                // this.unlinkRamItem(uniqueRecord);
+                if(resultTemp.success)
                     this.mergeObject(uniqueRecord, item);
-                    await this.afterRecordSet(uniqueRecord);
-                    // this.linkRamItem(uniqueRecord);
-                    resultTemp = 'updated';
-                }
-                else {
-                    let realObject = this.getObjectForRam(item);
-                    await this.beforeRecordSet(realObject);
-                    this.records.set(id, realObject);
-                    await this.afterRecordSet(realObject);
-                    // this.linkRamItem(realObject);
-                    resultTemp = 'created';
-                }
-                result.result = this.records.get(id);
+                await resultTemp.runAsync(() => this.afterRecordSet(uniqueRecord));
+                // this.linkRamItem(uniqueRecord);
+                resultTemp.result = {
+                    kind: 'updated',
+                    value: this.records.get(id)!
+                };
             }
             else {
-                result.errors = [...result.errors, ...idWithError.errors];
-                resultTemp = null;
+                let realObject = this.getObjectForRam(item);
+                await resultTemp.runAsync(() => this.beforeRecordSet(realObject));
+                this.records.set(id, realObject);
+                await resultTemp.runAsync(() => this.afterRecordSet(realObject));
+                // this.linkRamItem(realObject);
+                resultTemp.result = {
+                    kind: 'created',
+                    value: this.records.get(id)!
+                };
             }
         }
         catch(e) {
-            result.errors.push(new RamError(RamErrorCode.unknow, e));
-            resultTemp = null;
+            resultTemp.errors.push(new RamError(RamErrorCode.unknow, e));
         }
         return resultTemp;
     }
@@ -426,7 +411,7 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
     /**
      * Merge object and create real instance of class
      */
-    protected mergeObject(item: T | undefined, objJson: KeysObject<T> | T, options?: JsonFromOptions) {
+    protected mergeObject(item: ResourceDetails | undefined, objJson: KeysObject<ResourceDetails> | ResourceDetails, options?: JsonFromOptions) {
         if(!item) {
             return;
         }
@@ -442,7 +427,7 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
      * Create or update the item
      */
     @BindThis()
-    public async save(item: T, ...args: any[]): Promise<RamItem<U> | undefined> {
+    public async save(item: Request, ...args: any[]): Promise<RamItem<ResourceDetails, Request> | undefined> {
         let action = await this.saveWithError(item, ...args);
         if(action.success) {
             return action.result;
@@ -453,33 +438,38 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
      * Create or update the item
      */
     @BindThis()
-    public async saveWithError(item: T, ...args: any[]): Promise<ResultRamWithError<RamItem<U>>> {
-        let action: ResultRamWithError<RamItem<U>> = new ResultRamWithError();
-        let resultTemp = await this.getIdWithError(item);
-        if(resultTemp.success && resultTemp.result !== undefined) {
-            if(resultTemp.result) {
+    public async saveWithError(item: Request, ...args: any[]): Promise<ResultRamWithError<RamItem<ResourceDetails, Request>>> {
+        let action: ResultRamWithError<RamItem<ResourceDetails, Request>> = new ResultRamWithError();
+        const id = action.extract(() => this.getIdWithError(item));
+        if(id !== undefined) {
+            if(id) {
                 return this.updateWithError(item, ...args);
             }
             else {
                 return this.createWithError(item, ...args);
             }
         }
-        else {
-            action.errors = resultTemp.errors;
-        }
         return action;
     }
     //#endregion
 
     //#region records operation
-    protected async beforeRecordSet(item: RamItem<T>): Promise<void> { }
-    protected async afterRecordSet(item: RamItem<T>): Promise<void> { }
-    protected async beforeRecordDelete(item: RamItem<T>): Promise<void> { }
-    protected async afterRecordDelete(item: RamItem<T>): Promise<void> { }
+    protected async beforeRecordSet(item: RamItem<ResourceDetails, Request>): Promise<VoidWithError> {
+        return new VoidWithError();
+    }
+    protected async afterRecordSet(item: RamItem<ResourceDetails, Request>): Promise<VoidWithError> {
+        return new VoidWithError();
+    }
+    protected async beforeRecordDelete(item: RamItem<ResourceDetails, Request>): Promise<VoidWithError> {
+        return new VoidWithError();
+    }
+    protected async afterRecordDelete(item: RamItem<ResourceDetails, Request>): Promise<VoidWithError> {
+        return new VoidWithError();
+    }
     //#endregion
 
     //#region listener
-    protected publish(type: 'created' | 'updated' | 'deleted', data: RamItem<U>) {
+    protected publish(type: 'created' | 'updated' | 'deleted', data: RamItem<ResourceDetails, Request>) {
         let callbacks = [...this.subscribers[type]];
         for(let callback of callbacks) {
             callback(data);
@@ -492,12 +482,12 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
             }
         }
     }
-    private subscribe(type: 'created' | 'updated' | 'deleted', cb: (item: RamItem<U>) => void) {
+    private subscribe(type: 'created' | 'updated' | 'deleted', cb: (item: RamItem<ResourceDetails, Request>) => void) {
         if(!this.subscribers[type].includes(cb)) {
             this.subscribers[type].push(cb);
         }
     }
-    private unsubscribe(type: 'created' | 'updated' | 'deleted', cb: (item: RamItem<U>) => void) {
+    private unsubscribe(type: 'created' | 'updated' | 'deleted', cb: (item: RamItem<ResourceDetails, Request>) => void) {
         let index = this.subscribers[type].indexOf(cb);
         if(index != -1) {
             this.subscribers[type].splice(index, 1);
@@ -507,42 +497,42 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
     * Add a callback that ll be triggered when a new item is stored
     */
     @BindThis()
-    public onCreated(cb: (item: RamItem<U>) => void) {
+    public onCreated(cb: (item: RamItem<ResourceDetails, Request>) => void) {
         this.subscribe('created', cb);
     }
     /**
      * Remove a created callback
      */
     @BindThis()
-    public offCreated(cb: (item: RamItem<U>) => void) {
+    public offCreated(cb: (item: RamItem<ResourceDetails, Request>) => void) {
         this.unsubscribe('created', cb);
     }
     /**
      * Add a callback that ll be triggered when an item is updated
      */
     @BindThis()
-    public onUpdated(cb: (item: RamItem<U>) => void) {
+    public onUpdated(cb: (item: RamItem<ResourceDetails, Request>) => void) {
         this.subscribe('updated', cb);
     }
     /**
      * Remove an updated callback
      */
     @BindThis()
-    public offUpdated(cb: (item: RamItem<U>) => void) {
+    public offUpdated(cb: (item: RamItem<ResourceDetails, Request>) => void) {
         this.unsubscribe('updated', cb);
     }
     /**
      * Add a callback that ll be triggered when an item is deleted
      */
     @BindThis()
-    public onDeleted(cb: (item: RamItem<U>) => void) {
+    public onDeleted(cb: (item: RamItem<ResourceDetails, Request>) => void) {
         this.subscribe('deleted', cb);
     }
     /**
      * Remove an deleted callback
      */
     @BindThis()
-    public offDeleted(cb: (item: RamItem<U>) => void) {
+    public offDeleted(cb: (item: RamItem<ResourceDetails, Request>) => void) {
         this.unsubscribe('deleted', cb);
     }
 
@@ -553,21 +543,21 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
      * Get an item by id if exist (alias for getById)
      */
     @BindThis()
-    public async get(id: Index): Promise<RamItem<U> | undefined> {
+    public async get(id: Index): Promise<RamItem<ResourceDetails, Request> | undefined> {
         return await this.getById(id);
     };
     /**
      * Get an item by id if exist (alias for getById)
      */
     @BindThis()
-    public async getWithError(id: Index): Promise<ResultRamWithError<RamItem<U>>> {
+    public async getWithError(id: Index): Promise<ResultRamWithError<RamItem<ResourceDetails, Request>>> {
         return await this.getByIdWithError(id);
     };
     /**
      * Get an item by id if exist
      */
     @BindThis()
-    public async getById(id: Index): Promise<RamItem<U> | undefined> {
+    public async getById(id: Index): Promise<RamItem<ResourceDetails, Request> | undefined> {
         let action = await this.getByIdWithError(id);
         if(action.success) {
             return action.result;
@@ -579,14 +569,15 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
      * Get an item by id if exist
      */
     @BindThis()
-    public async getByIdWithError(id: Index): Promise<ResultRamWithError<RamItem<U>>> {
+    public async getByIdWithError(id: Index): Promise<ResultRamWithError<RamItem<ResourceDetails, Request>>> {
         return this.actionGuard.run(['getByIdWithError', id], async () => {
-            let action: ResultRamWithError<RamItem<U>> = new ResultRamWithError();
-            await this.beforeGetById(id, action);
+            let action: ResultRamWithError<RamItem<ResourceDetails, Request>> = new ResultRamWithError();
+            await action.runAsync(() => this.beforeGetById(id));
             if(action.success) {
                 if(this.records.has(id)) {
-                    action.result = this.records.get(id);
-                    await this.afterGetById(action);
+                    const item = this.records.get(id)!;
+                    action.result = item;
+                    await action.runAsync(() => this.afterGetById(item));
                 }
                 else {
                     action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't find the item " + id + " inside ram"));
@@ -598,17 +589,21 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
     /**
      * Trigger before getting an item by id
      */
-    protected async beforeGetById(id: Index, result: ResultRamWithError<RamItem<U>>): Promise<void> { };
+    protected async beforeGetById(id: Index): Promise<VoidWithError> {
+        return new VoidWithError();
+    };
     /**
      * Trigger after getting an item by id
      */
-    protected async afterGetById(result: ResultRamWithError<RamItem<U>>): Promise<void> { };
+    protected async afterGetById(result: RamItem<ResourceDetails, Request>): Promise<VoidWithError> {
+        return new VoidWithError();
+    };
 
     /**
      * Get multiple items by ids
      */
     @BindThis()
-    public async getByIds(ids: Index[]): Promise<RamItem<U>[]> {
+    public async getByIds(ids: Index[]): Promise<RamItem<ResourceDetails, Request>[]> {
         let result = await this.getByIdsWithError(ids);
         if(result.success) {
             return result.result ?? [];
@@ -619,24 +614,24 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
      * Get multiple items by ids
      */
     @BindThis()
-    public async getByIdsWithError(ids: Index[]): Promise<ResultRamWithError<RamItem<U>[]>> {
+    public async getByIdsWithError(ids: Index[]): Promise<ResultRamWithError<RamItem<ResourceDetails, Request>[]>> {
         return this.actionGuard.run(['getByIdsWithError', ids], async () => {
-            let action: ResultRamWithError<RamItem<U>[]> = new ResultRamWithError();
-            action.result = [];
-            await this.beforeGetByIds(ids, action);
+            const action: ResultRamWithError<RamItem<ResourceDetails, Request>[]> = new ResultRamWithError();
+            await action.runAsync(() => this.beforeGetByIds(ids));
             if(action.success) {
-                action.result = [];
+                const result: RamItem<ResourceDetails, Request>[] = [];
                 for(let id of ids) {
                     let rec = this.records.get(id);
                     if(rec) {
-                        action.result.push(rec);
+                        result.push(rec);
                     }
                     else {
                         action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't find the item " + id + " inside ram"));
                     }
                 }
                 if(action.success) {
-                    await this.afterGetByIds(action);
+                    action.result = result;
+                    await action.runAsync(() => this.afterGetByIds(result));
                 }
             }
             return action;
@@ -645,35 +640,39 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
     /**
      * Trigger before getting a list of items by id
      */
-    protected async beforeGetByIds(ids: Index[], result: ResultRamWithError<RamItem<U>[]>): Promise<void> { };
+    protected async beforeGetByIds(ids: Index[]): Promise<VoidWithError> {
+        return new VoidWithError();
+    };
     /**
      * Trigger after getting a list of items by id
      */
-    protected async afterGetByIds(result: ResultRamWithError<RamItem<U>[]>): Promise<void> { };
+    protected async afterGetByIds(result: RamItem<ResourceDetails, Request>[]): Promise<VoidWithError> {
+        return new VoidWithError();
+    };
 
     /**
      * Get all elements inside the Ram
      */
     @BindThis()
-    public async getAll(): Promise<Map<Index, RamItem<U>>> {
+    public async getAll(): Promise<RamItem<ResourceSimple, Request>[]> {
         let result = await this.getAllWithError();
         if(result.success) {
-            return result.result ?? new Map();
+            return result.result ?? [];
         }
-        return new Map();
+        return [];
     }
     /**
      * Get all elements inside the Ram
      */
     @BindThis()
-    public async getAllWithError(): Promise<ResultRamWithError<Map<Index, RamItem<U>>>> {
+    public async getAllWithError(): Promise<ResultRamWithError<RamItem<ResourceSimple, Request>[]>> {
         return this.actionGuard.run(['getAllWithError'], async () => {
-            let action: ResultRamWithError<Map<Index, RamItem<U>>> = new ResultRamWithError();
-            action.result = new Map();
-            await this.beforeGetAll(action);
+            let action: ResultRamWithError<RamItem<ResourceSimple, Request>[]> = new ResultRamWithError();
+            await action.runAsync(() => this.beforeGetAll());
             if(action.success) {
-                action.result = this.records;
-                await this.afterGetAll(action);
+                const result = Object.values(this.records);
+                action.result = result;
+                await action.runAsync(() => this.afterGetAll(result));
             }
             return action;
         });
@@ -683,37 +682,53 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
     /**
      * Trigger before getting all items inside Ram
      */
-    protected async beforeGetAll(result: ResultRamWithError<Map<Index, RamItem<U>>>): Promise<void> { };
+    protected async beforeGetAll(): Promise<VoidWithError> {
+        return new VoidWithError();
+    };
     /**
      * Trigger after getting all items inside Ram
      */
-    protected async afterGetAll(result: ResultRamWithError<Map<Index, RamItem<U>>>): Promise<void> { };
+    protected async afterGetAll(result: RamItem<ResourceSimple, Request>[]): Promise<VoidWithError> {
+        return new VoidWithError();
+    };
+
+
+
     /**
      * Get all elements inside the Ram 
      */
     @BindThis()
-    public async getList(): Promise<RamItem<U>[]> {
-        let data = await this.getAll();
-        return Array.from(data.values());
+    public async getList(): Promise<RamItem<ResourceSimple, Request>[]> {
+        return await this.getAll();
     };
     /**
      * Get all elements inside the Ram 
      */
     @BindThis()
-    public async getListWithError(): Promise<ResultRamWithError<RamItem<U>[]>> {
-        let action: ResultRamWithError<RamItem<U>[]> = new ResultRamWithError();
-        action.result = [];
-        let result = await this.getAllWithError();
+    public async getListWithError(): Promise<ResultRamWithError<RamItem<ResourceSimple, Request>[]>> {
+        return await this.getAllWithError();
+    }
+
+    /**
+     * Get all elements inside the Ram 
+     */
+    @BindThis()
+    public async getRecords(): Promise<Map<Index, RamItem<ResourceSimple, Request>>> {
+        const result = await this.getRecordsWithError();
         if(result.success) {
-            if(result.result) {
-                action.result = Array.from(result.result.values());
-            }
-            else {
-                action.result = [];
-            }
+            return result.result ?? new Map();
         }
-        else {
-            action.errors = result.errors;
+        return new Map();
+    };
+    /**
+     * Get all elements inside the Ram 
+     */
+    @BindThis()
+    public async getRecordsWithError(): Promise<ResultRamWithError<Map<Index, RamItem<ResourceSimple, Request>>>> {
+        let action: ResultRamWithError<Map<Index, RamItem<ResourceSimple, Request>>> = new ResultRamWithError();
+        action.runAsync(() => this.getAllWithError());
+        if(action.success) {
+            action.result = this.records;
         }
         return action;
     }
@@ -724,7 +739,7 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
      * Create a list of items inside ram
      */
     @BindThis()
-    public async createList(list: T[]): Promise<RamItem<U>[]> {
+    public async createList(list: Request[]): Promise<RamItem<ResourceDetails, Request>[]> {
         let result = await this.createListWithError(list);
         return result.result ?? [];
     }
@@ -732,37 +747,43 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
      * Create a list of items inside ram
      */
     @BindThis()
-    public async createListWithError(list: T[]): Promise<ResultRamWithError<RamItem<U>[]>> {
+    public async createListWithError(list: Request[]): Promise<ResultRamWithError<RamItem<ResourceDetails, Request>[]>> {
         list = this.removeWatch(list);
-        let action: ResultRamWithError<RamItem<U>[]> = new ResultRamWithError();
-        action.result = [];
-        await this.beforeCreateList(list, action);
-        if(action.success) {
-            if(action.result.length > 0) {
-                list = action.result;
-                action.result = [];
-            }
+        return this.actionGuard.run(['_createList'], async () => {
+            let action: ResultRamWithError<RamItem<ResourceDetails, Request>[]> = new ResultRamWithError();
+            await action.runAsync(() => this.beforeCreateList(list));
             for(let item of list) {
-                let resultItem = await this._create(item, true);
-                if(resultItem.success && resultItem.result) {
-                    action.result.push(resultItem.result);
-                }
-                else {
-                    action.errors = [...action.errors, ...resultItem.errors];
-                }
+                await action.runAsync(() => this.beforeCreateItem(item, true));
             }
-            if(action.success) {
-                await this.afterCreateList(action);
-            }
-        }
+            const resources = await action.extractAsync(() => this.transformCreateRequestListToItem(list));
+            if(!resources) return action;
 
-        return action;
+            const result: RamItem<ResourceDetails, Request>[] = [];
+            for(let item of resources) {
+                const resultItem = await action.extractAsync(() => this.addOrUpdateData(item));
+                if(!resultItem) return action;
+                await action.runAsync(() => this.afterCreateItem(resultItem.value, true));
+
+                if(action.success) {
+                    result.push(resultItem.value);
+                    this.publish('created', resultItem.value);
+                }
+            }
+
+            action.result = result;
+
+            await action.runAsync(() => this.afterCreateList(result));
+
+            return action;
+        });
     }
+
+
     /**
      * Create an item inside ram
      */
     @BindThis()
-    public async create(item: T, ...args: any[]): Promise<RamItem<U> | undefined> {
+    public async create(item: Request, ...args: any[]): Promise<RamItem<ResourceDetails, Request> | undefined> {
         let action = await this.createWithError(item, args);
         if(action.success) {
             return action.result;
@@ -773,56 +794,65 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
      * Create an item inside ram
      */
     @BindThis()
-    public async createWithError(item: T, ...args: any[]): Promise<ResultRamWithError<RamItem<U>>> {
-        return await this._create(item, false);
-    }
-    private async _create(item: T, fromList: boolean): Promise<ResultRamWithError<RamItem<U>>> {
+    public async createWithError(item: Request, ...args: any[]): Promise<ResultRamWithError<RamItem<ResourceDetails, Request>>> {
         item = this.removeWatch(item);
         return this.actionGuard.run(['_create', item], async () => {
-            let action: ResultRamWithError<RamItem<U>> = new ResultRamWithError();
-            await this.beforeCreateItem(item, fromList, action);
-            if(action.success) {
-                if(action.result) { item = action.result; }
-                let resultTemp = this.getIdWithError(item);
-                if(resultTemp.success) {
-                    await this.addOrUpdateData(item, action);
-                    if(!action.success) {
-                        return action;
-                    }
-                    await this.afterCreateItem(action, fromList);
-                    if(!action.success) {
-                        action.result = undefined;
-                    }
-                    else if(action.result) {
-                        this.publish('created', action.result);
-                    }
-                }
-                else {
-                    action.errors = resultTemp.errors;
+            let action: ResultRamWithError<RamItem<ResourceDetails, Request>> = new ResultRamWithError();
+            await action.runAsync(() => this.beforeCreateItem(item, false));
+            const resource = await action.extractAsync(() => this.transformCreateRequestToItem(item));
+            if(!resource) return action;
+
+            const id = await action.extract(() => this.getIdWithError(resource));
+            if(id !== undefined) {
+                const resultTemp = await action.extractAsync(() => this.addOrUpdateData(resource));
+                if(!resultTemp) return action;
+
+                await action.runAsync(() => this.afterCreateItem(resultTemp.value, false));
+
+                if(action.success) {
+                    action.result = resultTemp.value;
+                    this.publish('created', resultTemp.value);
                 }
             }
+
             return action;
         });
     }
+
+    /**
+     * Transform request to resource item
+     */
+    protected abstract transformCreateRequestToItem(item: Request): Promise<ResultWithError<ResourceDetails>>;
+
+    /**
+     * Transform request to resource item
+     */
+    protected abstract transformCreateRequestListToItem(list: Request[]): Promise<ResultWithError<ResourceDetails[]>>;
+
     /**
      * Trigger before creating a list of items
      */
-    protected async beforeCreateList(list: T[], result: ResultRamWithError<RamItem<U>[]>): Promise<void> {
+    protected async beforeCreateList(list: Request[]): Promise<VoidWithError> {
+        return new VoidWithError();
     };
     /**
      * Trigger before creating an item
      */
-    protected async beforeCreateItem(item: T, fromList: boolean, result: ResultRamWithError<RamItem<U>>): Promise<void> {
+    protected async beforeCreateItem(item: Request, fromList: boolean): Promise<VoidWithError> {
+        return new VoidWithError();
     };
+
     /**
      * Trigger after creating an item
      */
-    protected async afterCreateItem(result: ResultRamWithError<RamItem<U>>, fromList: boolean): Promise<void> {
+    protected async afterCreateItem(result: RamItem<ResourceDetails, Request>, fromList: boolean): Promise<VoidWithError> {
+        return new VoidWithError();
     };
     /**
      * Trigger after creating a list of items
      */
-    protected async afterCreateList(result: ResultRamWithError<RamItem<U>[]>): Promise<void> {
+    protected async afterCreateList(result: RamItem<ResourceDetails, Request>[]): Promise<VoidWithError> {
+        return new VoidWithError();
     };
 
     //#endregion
@@ -832,7 +862,7 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
      * Update a list of items inside ram
      */
     @BindThis()
-    public async updateList(list: T[]): Promise<RamItem<U>[]> {
+    public async updateList(list: Request[]): Promise<RamItem<ResourceDetails, Request>[]> {
         let result = await this.updateListWithError(list);
         return result.result ?? [];
     };
@@ -840,36 +870,43 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
      * Update a list of items inside ram
      */
     @BindThis()
-    public async updateListWithError(list: T[]): Promise<ResultRamWithError<RamItem<U>[]>> {
+    public async updateListWithError(list: Request[]): Promise<ResultRamWithError<RamItem<ResourceDetails, Request>[]>> {
         list = this.removeWatch(list);
-        let action: ResultRamWithError<RamItem<U>[]> = new ResultRamWithError();
-        action.result = [];
-        await this.beforeUpdateList(list, action);
-        if(action.success) {
-            if(action.result.length > 0) {
-                list = action.result;
-                action.result = [];
-            }
+        return this.actionGuard.run(['_updateList'], async () => {
+            let action: ResultRamWithError<RamItem<ResourceDetails, Request>[]> = new ResultRamWithError();
+            await action.runAsync(() => this.beforeUpdateList(list));
             for(let item of list) {
-                let resultItem = await this._update(item, true);
-                if(resultItem.success && resultItem.result) {
-                    action.result.push(resultItem.result);
-                }
-                else {
-                    action.errors = [...action.errors, ...resultItem.errors];
+                await action.runAsync(() => this.beforeUpdateItem(item, true));
+            }
+
+            const resources = await action.extractAsync(() => this.transformUpdateRequestListToItem(list));
+            if(!resources) return action;
+
+            const result: RamItem<ResourceDetails, Request>[] = [];
+            for(let item of resources) {
+                const resultItem = await action.extractAsync(() => this.addOrUpdateData(item));
+                if(!resultItem) return action;
+                await action.runAsync(() => this.afterUpdateItem(resultItem.value, true));
+
+                if(action.success) {
+                    result.push(resultItem.value);
+                    this.publish('created', resultItem.value);
                 }
             }
-            if(action.success) {
-                await this.afterUpdateList(action);
-            }
-        }
-        return action;
+
+            action.result = result;
+
+            await action.runAsync(() => this.afterUpdateList(result));
+
+            return action;
+        });
     };
+
     /**
      * Update an item inside ram
      */
     @BindThis()
-    public async update(item: T, ...args: any[]): Promise<RamItem<U> | undefined> {
+    public async update(item: Request, ...args: any[]): Promise<RamItem<ResourceDetails, Request> | undefined> {
         let action = await this.updateWithError(item, args);
         if(action.success) {
             return action.result;
@@ -880,69 +917,73 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
      * Update an item inside ram
      */
     @BindThis()
-    public async updateWithError(item: T, ...args: any[]): Promise<ResultRamWithError<RamItem<U>>> {
-        return await this._update(item, false);
-    }
-    private async _update(item: T, fromList: boolean): Promise<ResultRamWithError<RamItem<U>>> {
+    public async updateWithError(item: Request, ...args: any[]): Promise<ResultRamWithError<RamItem<ResourceDetails, Request>>> {
         item = this.removeWatch(item);
         return this.actionGuard.run(['_update', item], async () => {
-            let action: ResultRamWithError<RamItem<U>> = new ResultRamWithError();
-            let resultTemp = await this.getIdWithError(item);
-            if(resultTemp.success && resultTemp.result !== undefined) {
-                let key = resultTemp.result;
-                if(this.records.has(key)) {
-                    if(this.records.get(key) == item) {
-                        console.warn("You are updating the same item. You should clone the object first to avoid weird effect");
-                    }
-                    await this.beforeUpdateItem(item, fromList, action);
-                    if(!action.success) {
-                        return action;
-                    }
-                    if(action.result) {
-                        item = action.result;
-                    }
-                    await this.addOrUpdateData(item, action);
-                    if(!action.success) {
-                        return action;
-                    }
-                    await this.afterUpdateItem(action, fromList);
-                    if(!action.success) {
-                        action.result = undefined;
-                    }
-                    else if(action.result) {
-                        this.publish('updated', action.result);
-                    }
+            let action: ResultRamWithError<RamItem<ResourceDetails, Request>> = new ResultRamWithError();
+            const id = await action.extract(() => this.getIdWithError(item));
+            if(id === undefined) return action;
+
+            if(this.records.has(id)) {
+                const currentEl = this.records.get(id) as any;
+                if(currentEl == item) {
+                    console.warn("You are updating the same item. You should clone the object first to avoid weird effect");
                 }
-                else {
-                    action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't update the item " + key + " because it wasn't found inside ram"));
+                await action.runAsync(() => this.beforeUpdateItem(item, false));
+                const resource = await action.extractAsync(() => this.transformUpdateRequestToItem(item));
+                if(!resource) return action;
+                const resultTemp = await action.extractAsync(() => this.addOrUpdateData(resource));
+                if(!resultTemp) return action;
+
+                await action.runAsync(() => this.afterUpdateItem(resultTemp.value, false));
+
+                if(action.success) {
+                    action.result = resultTemp.value;
+                    this.publish('updated', resultTemp.value);
                 }
             }
             else {
-                action.errors = resultTemp.errors;
+                action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't update the item " + id + " because it wasn't found inside ram"));
             }
+
 
             return action;
         });
-    };
+    }
+
+    /**
+     * Transform request to resource item
+     */
+    protected abstract transformUpdateRequestToItem(item: Request): Promise<ResultWithError<ResourceDetails>>;
+
+    /**
+     * Transform request to resource item
+     */
+    protected abstract transformUpdateRequestListToItem(list: Request[]): Promise<ResultWithError<ResourceDetails[]>>;
+
     /**
      * Trigger before updating a list of items
      */
-    protected async beforeUpdateList(list: T[], result: ResultRamWithError<RamItem<U>[]>): Promise<void> {
+    protected async beforeUpdateList(list: Request[]): Promise<VoidWithError> {
+        return new VoidWithError();
     };
     /**
     * Trigger before updating an item
     */
-    protected async beforeUpdateItem(item: T, fromList: boolean, result: ResultRamWithError<RamItem<U>>): Promise<void> {
+    protected async beforeUpdateItem(item: Request, fromList: boolean): Promise<VoidWithError> {
+        return new VoidWithError();
     };
     /**
      * Trigger after updating an item
      */
-    protected async afterUpdateItem(result: ResultRamWithError<RamItem<U>>, fromList: boolean): Promise<void> {
+    protected async afterUpdateItem(result: RamItem<ResourceDetails, Request>, fromList: boolean): Promise<VoidWithError> {
+        return new VoidWithError();
     };
     /**
      * Trigger after updating a list of items
      */
-    protected async afterUpdateList(result: ResultRamWithError<RamItem<U>[]>): Promise<void> {
+    protected async afterUpdateList(result: RamItem<ResourceDetails, Request>[]): Promise<VoidWithError> {
+        return new VoidWithError();
     };
 
 
@@ -953,7 +994,7 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
      * Delete a list of items inside ram
      */
     @BindThis()
-    public async deleteList(list: T[]): Promise<RamItem<U>[]> {
+    public async deleteList(list: ResourceDetails[]): Promise<RamItem<ResourceDetails, Request>[]> {
         let result = await this.deleteListWithError(list);
         return result.result ?? [];
     };
@@ -961,26 +1002,21 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
      * Delete a list of items inside ram
      */
     @BindThis()
-    public async deleteListWithError(list: T[]): Promise<ResultRamWithError<RamItem<U>[]>> {
+    public async deleteListWithError(list: ResourceDetails[]): Promise<ResultRamWithError<RamItem<ResourceDetails, Request>[]>> {
         list = this.removeWatch(list);
-        let action: ResultRamWithError<RamItem<U>[]> = new ResultRamWithError();
+        let action: ResultRamWithError<RamItem<ResourceDetails, Request>[]> = new ResultRamWithError();
         action.result = [];
-        let deleteResult = new VoidWithError();
-        await this.beforeDeleteList(list, deleteResult);
-        if(!deleteResult.success) {
-            action.errors = deleteResult.errors;
-        }
+        await action.runAsync(() => this.beforeDeleteList(list));
+
+        const result: RamItem<ResourceDetails, Request>[] = [];
         for(let item of list) {
-            let resultItem = await this._delete(item, true);
-            if(resultItem.success && resultItem.result) {
-                action.result.push(resultItem.result);
-            }
-            else {
-                action.errors = [...action.errors, ...resultItem.errors];
-            }
+            const resultItem = await action.extractAsync(() => this._delete(item, true));
+            if(!resultItem) return action;
+            result.push(resultItem);
         }
         if(action.success) {
-            await this.afterDeleteList(action);
+            action.result = result;
+            await action.runAsync(() => this.afterDeleteList(result));
         }
         return action;
     };
@@ -988,7 +1024,7 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
      * Delete an item inside ram
      */
     @BindThis()
-    public async delete(item: T, ...args: any[]): Promise<RamItem<U> | undefined> {
+    public async delete(item: ResourceDetails, ...args: any[]): Promise<RamItem<ResourceDetails, Request> | undefined> {
         let action = await this.deleteWithError(item, args);
         if(action.success) {
             return action.result;
@@ -999,14 +1035,14 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
     * Delete an item inside ram
     */
     @BindThis()
-    public async deleteWithError(item: T, ...args: any[]): Promise<ResultRamWithError<RamItem<U>>> {
+    public async deleteWithError(item: ResourceDetails, ...args: any[]): Promise<ResultRamWithError<RamItem<ResourceDetails, Request>>> {
         return await this._delete(item, false);
     };
     /**
      * Delete an item by id inside ram
      */
     @BindThis()
-    public async deleteById(id: Index): Promise<RamItem<U> | undefined> {
+    public async deleteById(id: Index): Promise<RamItem<ResourceDetails, Request> | undefined> {
         let action = await this.deleteByIdWithError(id);
         if(action.success) {
             return action.result;
@@ -1017,69 +1053,66 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
     * Delete an item by id inside ram
     */
     @BindThis()
-    public async deleteByIdWithError(id: Index): Promise<ResultRamWithError<RamItem<U>>> {
+    public async deleteByIdWithError(id: Index): Promise<ResultRamWithError<RamItem<ResourceDetails, Request>>> {
         let item = this.records.get(id);
         if(item) {
             return await this._delete(item, false);
         }
-        let result: ResultRamWithError<RamItem<U>> = new ResultRamWithError();
+        let result: ResultRamWithError<RamItem<ResourceDetails, Request>> = new ResultRamWithError();
         result.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't delete the item " + id + " because it wasn't found inside ram"));
         return result;
     }
-    private async _delete(item: T, fromList: boolean): Promise<ResultRamWithError<RamItem<U>>> {
+    private async _delete(item: ResourceDetails, fromList: boolean): Promise<ResultRamWithError<RamItem<ResourceDetails, Request>>> {
         item = this.removeWatch(item);
         return this.actionGuard.run(['_delete', item], async () => {
-            let action: ResultRamWithError<RamItem<U>> = new ResultRamWithError();
-            let resultTemp = await this.getIdWithError(item);
-            if(resultTemp.success && resultTemp.result) {
-                let key = resultTemp.result;
-                let oldItem = this.records.get(key);
-                if(oldItem) {
-                    let deleteResult = new VoidWithError();
-                    await this.beforeDeleteItem(oldItem, fromList, deleteResult);
-                    if(!deleteResult.success) {
-                        action.errors = deleteResult.errors;
-                        return action;
-                    }
-                    this.beforeRecordDelete(oldItem);
-                    this.records.delete(key);
-                    this.afterRecordDelete(oldItem);
+            let action: ResultRamWithError<RamItem<ResourceDetails, Request>> = new ResultRamWithError();
+            const id = action.extract(() => this.getIdWithError(item));
+            if(id === undefined) return action;
+
+            let oldItem = this.records.get(id);
+            if(oldItem) {
+                await action.runAsync(() => this.beforeDeleteItem(oldItem, fromList));
+                await action.runAsync(() => this.beforeRecordDelete(oldItem));
+                this.records.delete(id);
+                await action.runAsync(() => this.afterRecordDelete(oldItem));
+                await action.runAsync(() => this.afterDeleteItem(oldItem, fromList));
+                if(action.success) {
                     action.result = oldItem;
-                    await this.afterDeleteItem(action, fromList);
-                    if(!action.success) {
-                        action.result = undefined;
-                    }
-                    else {
-                        this.publish('deleted', action.result);
-                    }
-                    this.recordsSubscribers.delete(key);
+                    this.publish('deleted', oldItem);
                 }
-                else {
-                    action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't delete the item " + key + " because it wasn't found inside ram"));
-                }
+                this.recordsSubscribers.delete(id);
             }
             else {
-                action.errors = resultTemp.errors;
+                action.errors.push(new RamError(RamErrorCode.noItemInsideRam, "can't delete the item " + id + " because it wasn't found inside ram"));
             }
+
             return action;
         });
     }
     /**
      * Trigger before deleting a list of items
      */
-    protected async beforeDeleteList(list: T[], result: VoidWithError): Promise<void> { };
+    protected async beforeDeleteList(list: ResourceDetails[]): Promise<VoidWithError> {
+        return new VoidWithError();
+    };
     /**
      * Trigger before deleting an item
      */
-    protected async beforeDeleteItem(item: T, fromList: boolean, result: VoidWithError): Promise<void> { };
+    protected async beforeDeleteItem(item: ResourceDetails, fromList: boolean): Promise<VoidWithError> {
+        return new VoidWithError();
+    };
     /**
      * Trigger after deleting an item
      */
-    protected async afterDeleteItem(result: ResultRamWithError<RamItem<U>>, fromList: boolean): Promise<void> { };
+    protected async afterDeleteItem(result: RamItem<ResourceDetails, Request>, fromList: boolean): Promise<VoidWithError> {
+        return new VoidWithError();
+    };
     /**
      * Trigger after deleting a list of items
      */
-    protected async afterDeleteList(result: ResultRamWithError<RamItem<U>[]>): Promise<void> { }
+    protected async afterDeleteList(result: RamItem<ResourceDetails, Request>[]): Promise<VoidWithError> {
+        return new VoidWithError();
+    }
     //#endregion
 
 }
@@ -1090,6 +1123,11 @@ export abstract class GenericRam<Index, T extends IRamData, U extends T = T> imp
 @Storybook({
     prefix: "Ram"
 })
-export abstract class Ram<T extends IRamData, U extends T = T> extends GenericRam<number, T, U> {
+export abstract class Ram<
+    Item extends IRamData,
+    Request extends HttpRequest | Item = Item,
+    ResourceSimple extends HttpResource | Item = Item,
+    ResourceDetails extends ResourceSimple = ResourceSimple,
+> extends GenericRam<number, Item, Request, ResourceSimple, ResourceDetails> {
 
 }

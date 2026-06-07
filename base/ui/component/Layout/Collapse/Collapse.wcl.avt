@@ -19,6 +19,12 @@ export class Collapse extends Aventus.WebComponent implements Aventus.DefaultCom
      */
     @Attribute()
     public no_animation!: boolean;
+
+    @Attribute()
+    public horizontal!: boolean;
+
+    @Attribute()
+    public reverse!: boolean;
     //#endregion
 
 
