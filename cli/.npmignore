@@ -1,8 +1,6 @@
 src/**/*
 tsconfig.json
-webpack.config.js
-webpack.interaction.config.js
-webpack.server.config.js
+rolldown.config.mjs
 av.cmd
 postBuild.mjs
 build.mjs

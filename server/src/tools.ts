@@ -7,10 +7,10 @@ import { SectionType } from './language-services/ts/LanguageService';
 import { AventusFile } from './files/AventusFile';
 import { AventusConfig } from './language-services/json/definition';
 import { existsSync, mkdirSync, stat, writeFileSync } from 'fs';
-import * as md5 from 'md5';
 import { Statistics } from './notification/Statistics';
 import { promisify } from 'util';
 import { exec } from 'child_process';
+import { createHash } from 'crypto';
 
 export const execAsync = promisify(exec);
 export const statAsync = promisify(stat);
@@ -351,6 +351,10 @@ export function writeFile(outputFile: string, txt: string, type: "build" | "stat
     }
 }
 
+export function md5(data: string): string {
+    return createHash('md5').update(data).digest('hex');
+}
+
 export class Timer {
     private static timers: { [name: string]: [number, number] } = {}
 
@@ -408,7 +412,7 @@ export class Debug {
     }
     public static getTimerCumluative(name: string, stop: boolean) {
         var result = this.timersCumulative[name] ?? 0;
-        if(stop) {
+        if (stop) {
             this.clearTimerCumluative(name);
         }
         return result;

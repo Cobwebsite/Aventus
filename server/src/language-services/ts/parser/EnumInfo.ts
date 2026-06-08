@@ -33,7 +33,7 @@ export class EnumInfo extends BaseInfo {
 			}
 			let value;
 			if (member.initializer) {
-				value = eval(member.initializer.getText());
+				value = (0, eval)(member.initializer.getText());
 				inferredValue = value + 1;
 			}
 			else {
