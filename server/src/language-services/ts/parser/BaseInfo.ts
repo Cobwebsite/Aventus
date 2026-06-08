@@ -5,7 +5,6 @@ import { BaseLibInfo } from './BaseLibInfo';
 import { TypeInfo } from './TypeInfo';
 import { DecoratorInfo } from './DecoratorInfo';
 import { DependancesDecorator } from './decorators/DependancesDecorator';
-import * as md5 from 'md5';
 import { GenericServer } from '../../../GenericServer';
 import { InternalDecorator } from './decorators/InternalDecorator';
 import { Build } from '../../../project/Build';
@@ -13,7 +12,7 @@ import { IStoryContentGeneric, IStoryContentParameter, IStoryContentTypeResult, 
 import { StorybookDecorator } from './decorators/StorybookDecorator';
 import { DocumentationInfo } from './DocumentationInfo';
 import { join, normalize } from 'path';
-import { pathToUri, simplifyUri, uriToPath } from '../../../tools';
+import { md5, pathToUri, simplifyUri, uriToPath } from '../../../tools';
 import { Storie } from '../../../project/storybook/Stories';
 import { AventusExtension } from '../../../definition';
 import { CompileTsResult } from '../LanguageService';

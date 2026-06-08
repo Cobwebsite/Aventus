@@ -1,5 +1,5 @@
 import postcss from 'postcss';
-import * as postcssSorting from 'postcss-sorting';
+import postcssSorting from 'postcss-sorting';
 import * as postcssScss from 'postcss-scss';
 import { CompletionItem, CSSFormatConfiguration, getSCSSLanguageService, LanguageService } from "vscode-css-languageservice";
 import { CodeAction, CodeActionContext, CompletionList, Diagnostic, FormattingOptions, Hover, Location, Position, Range, TextEdit } from "vscode-languageserver";

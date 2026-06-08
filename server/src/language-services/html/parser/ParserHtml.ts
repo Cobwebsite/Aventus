@@ -7,9 +7,8 @@ import { Build } from '../../../project/Build';
 import { ActionChange, ActionLoop, HtmlTemplateResult, InterestPoint } from './definition';
 import { AventusHTMLFile } from '../File';
 import { SCSSParsedRule } from '../../scss/LanguageService';
-import { createErrorHTMLPos } from '../../../tools';
+import { createErrorHTMLPos, md5 } from '../../../tools';
 import { Decorator, ForOfStatement, IfStatement, Node, ScriptTarget, SyntaxKind, createSourceFile, forEachChild } from 'typescript';
-import * as md5 from 'md5';
 import { GenericServer } from '../../../GenericServer';
 
 export class ParserHtml {

@@ -32,13 +32,11 @@ import { GenericServer } from '../GenericServer';
 import { NpmBuilder } from './BuildNpm';
 import { AventusWebComponentSingleFile } from '../language-services/ts/component/SingleFile';
 import { DebugFileAdd } from '../notification/DebugFileAdd';
-import { AliasInfo } from '../language-services/ts/parser/AliasInfo';
 import { Storie } from './storybook/Stories';
-import * as md5 from 'md5';
 import { Statistics } from '../notification/Statistics';
 import { Manifest } from '../manifest/Manifest';
 import { OverrideViewDecorator } from '../language-services/ts/parser/decorators/OverrideViewDecorator';
-import { AventusI18nExported, AventusI18nFile } from '../language-services/i18n/File';
+import { AventusI18nFile } from '../language-services/i18n/File';
 import { Store } from '../store/Store';
 
 export type BuildErrors = { file: string, title: string }[]
@@ -577,7 +575,7 @@ export class Build {
                             const resultTemp = await minify({
                                 "file1.js": outputInfo.code
                             }, {
-                                compress: false,
+                                compress: true,
                                 format: {
                                     comments: false,
                                 }
@@ -590,36 +588,6 @@ export class Build {
                     this.writeFile(outputPath, outputInfo.code);
                 }
             }
-
-            // let finalTxt = '';
-            // finalTxt += npmResult.result;
-            // finalTxt += libSrc + EOL;
-
-            // // finalTxt += 
-
-            // for (let outputFile of outputs) {
-            //     let folderPath = getFolder(outputFile.replace(/\\/g, "/"));
-            //     if (!existsSync(folderPath)) {
-            //         mkdirSync(folderPath, { recursive: true });
-            //     }
-            //     if (compressed) {
-            //         try {
-
-            //             const resultTemp = await minify({
-            //                 "file1.js": finalTxt
-            //             }, {
-            //                 compress: false,
-            //                 format: {
-            //                     comments: false,
-            //                 }
-            //             })
-            //             finalTxt = resultTemp.code ?? '';
-            //         } catch (e) {
-            //             log(e);
-            //         }
-            //     }
-            //     this.writeFile(outputFile, finalTxt);
-            // }
         }
 
         return result;

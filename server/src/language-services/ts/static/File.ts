@@ -5,6 +5,7 @@ import { AventusFile } from '../../../files/AventusFile';
 import { AventusTsFile } from "../File";
 import { InfoType } from '../parser/BaseInfo';
 import { createHash } from 'crypto';
+import { md5 } from '../../../tools';
 
 export class AventusStaticFile extends AventusTsFile {
 
@@ -36,7 +37,7 @@ export class AventusStaticFile extends AventusTsFile {
         else {
             docNpm = docVisible;
         }
-        let hash = createHash('md5').update(currentPath + this.file.contentUser).digest('hex');
+        let hash = md5(currentPath + this.file.contentUser);
         let pathFileTemp = this.file.path.replace(this.build.project.getConfigFile().path.replace(AventusExtension.Config, ""), "")
         pathFileTemp = pathFileTemp.replace(this.extension, ".js");
 

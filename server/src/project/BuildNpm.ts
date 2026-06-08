@@ -1,14 +1,11 @@
 import { EOL } from 'os';
-import { rollup } from 'rollup';
-import commonjs from '@rollup/plugin-commonjs';
-import virtual from '@rollup/plugin-virtual';
-import nodeResolve from '@rollup/plugin-node-resolve';
-import { minify } from 'terser';
-import * as md5 from 'md5';
 import { Build, BuildErrors } from './Build';
 import { Compiled } from '../notification/Compiled';
 import { DebugFileAdd } from '../notification/DebugFileAdd';
-
+import { md5 } from '../tools';
+import { build } from 'esbuild';
+import { dirname, join, resolve } from 'path';
+import { existsSync } from 'fs';
 
 // TODO : check what to do with the package exported and how imported it back
 export interface NpmBuilderInfo {
@@ -142,7 +139,7 @@ export class NpmBuilder {
 			if (this.lastInfoToCompile != toCompile.buildTxt) {
 				Compiled.part("Compiling node modules");
 				this.lastInfoToCompile = toCompile.buildTxt;
-				this.npmDepBuildTxt = await this.rollupBuild(this.lastInfoToCompile)
+				this.npmDepBuildTxt = await this.esbuildBuild(this.lastInfoToCompile)
 				Compiled.part("Compiling node modules done");
 			}
 
@@ -172,11 +169,11 @@ export class NpmBuilder {
 				finalTxt += `import * as ${info.all.internalAlias} from "${uri}";` + EOL
 				exportTxtArray.push(info.all.internalAlias)
 				for (let alias of info.all.externalAlias) {
-					exportTxt += `npmCompilation['${info.md5}']['${alias}'] = _['${info.all.internalAlias}'];` + EOL;
+					exportTxt += `npmCompilation['${info.md5}']['${alias}'] = _.default['${info.all.internalAlias}'];` + EOL;
 				}
 				for (let libName in info.part) {
 					for (let alias of info.part[libName].externalAlias) {
-						exportTxt += `npmCompilation['${info.md5}']['${alias}'] = _['${info.all.internalAlias}'];` + EOL;
+						exportTxt += `npmCompilation['${info.md5}']['${alias}'] = _.default['${info.all.internalAlias}'];` + EOL;
 					}
 				}
 			}
@@ -188,7 +185,7 @@ export class NpmBuilder {
 					parts.push(`${libName} as ${info.part[libName].internalAlias}`)
 					exportTxtArray.push(info.part[libName].internalAlias)
 					for (let alias of info.part[libName].externalAlias) {
-						exportTxt += `npmCompilation['${info.md5}']['${alias}'] = _['${info.part[libName].internalAlias}'];` + EOL;
+						exportTxt += `npmCompilation['${info.md5}']['${alias}'] = _.default['${info.part[libName].internalAlias}'];` + EOL;
 					}
 				}
 				finalTxt += `import {${Object.values(parts).join(", ")}} from "${uri}";` + EOL
@@ -202,89 +199,67 @@ export class NpmBuilder {
 			toExport: exportTxt
 		};
 	}
-	private async rollupBuild(txt: string): Promise<{ result: string, errors: BuildErrors }> {
-		let resultTxt = "{}";
-		let response: { result: string, errors: BuildErrors } = {
-			result: "",
-			errors: []
-		}
+
+	private async esbuildBuild(txt: string): Promise<{ result: string, errors: BuildErrors }> {
+		let response: { result: string, errors: BuildErrors } = { result: "", errors: [] };
+
 		try {
-			let res = await rollup({
-				input: "index.js",
-				onwarn: (message) => {
-
+			const baseDir = dirname(this.build.nodeModulesDir);
+			const allNodeModules = this.getPotentialNodeModulesPaths(baseDir);
+			const result = await build({
+				stdin: {
+					contents: txt,
+					resolveDir: baseDir,
+					sourcefile: 'index.js',
 				},
-				output: {
-					format: "iife",
-					name: "_",
-					inlineDynamicImports: true
-				},
-				plugins: [
-					commonjs({
-						// non-CommonJS modules will be ignored, but you can also
-						// specifically include/exclude files
-						include: [this.build.nodeModulesDir + "/**"],//[rootDir + "/node_modules/**"], // Default: undefined
-
-						// if true then uses of `global` won't be dealt with by this plugin
-						ignoreGlobal: true, // Default: false
-
-						// if false then skip sourceMap generation for CommonJS modules
-						sourceMap: false // Default: true
-					}),
-					virtual({
-						"index.js": txt,
-					}),
-
-					nodeResolve({
-						rootDir: this.build.nodeModulesDir
-					}),
-				]
-			})
-			let result = await res.generate({
+				bundle: true,
 				format: 'iife',
-				name: '_',
-				inlineDynamicImports: true
+				globalName: '_',
+				nodePaths: allNodeModules,
+				minify: true,
+				define: {
+					'process.env.NODE_ENV': '"production"'
+				},
+				legalComments: 'none',
+				write: false,
 			});
-			resultTxt = "";
-			for (let chunk of result.output) {
-				resultTxt += chunk['code'];
-			}
 
-			// resultTxt = resultTxt.replace(/export \{.*;/g, '');
-			resultTxt = resultTxt.replace(/process\.env\.NODE_ENV/g, '"production"');
-			// resultTxt = resultTxt.replace(/var _virtual_index/g, 'var _');
-			// resultTxt += EOL+'var _ = _virtual_index';
+			response.result = result.outputFiles?.[0].text || "";
+
+			console.log(response.result.length);
 		} catch (e) {
 			let uri = this.build.fullname + "_npmErrors";
-			DebugFileAdd.send(uri, (e + "").replace(/\0/g, ""));
+			const error = (e + "").replace(/\0/g, "");
+			DebugFileAdd.send(uri, error);
 			response.errors.push({
 				title: "Npm compilation errors",
 				file: uri
 			})
 		}
 
-		response.result = resultTxt;
-		return response
-
-		var code = {
-			"file1.js": resultTxt
-		}
-		try {
-			const resultTemp = await minify(code, {
-				compress: false,
-				format: {
-					comments: false,
-				}
-			})
-			response.result = resultTemp.code || '';
-		} catch (e) {
-			let uri = this.build.fullname + "_minifyErrors";
-			DebugFileAdd.send(uri, e + "");
-			response.errors.push({
-				title: "Npm minification errors",
-				file: uri
-			})
-		}
 		return response;
+	}
+
+	private getPotentialNodeModulesPaths(startDir: string): string[] {
+		const paths: string[] = [];
+		let currentDir = resolve(startDir);
+
+		while (true) {
+			const potentialPath = join(currentDir, 'node_modules');
+
+			// Optionnel : On vérifie si le dossier existe vraiment pour ne pas surcharger esbuild
+			if (existsSync(potentialPath)) {
+				paths.push(potentialPath);
+			}
+
+			const parentDir = dirname(currentDir);
+			// Si on est arrivé à la racine du disque (le dossier ne change plus), on s'arrête
+			if (parentDir === currentDir) {
+				break;
+			}
+			currentDir = parentDir;
+		}
+
+		return paths;
 	}
 }

@@ -29,9 +29,8 @@
 				"owner": "custom",
 				"background": {
 					"activeOnStart": true,
-					"beginsPattern": "watching files for updates...",
-					// C'est ici qu'on capture votre message "webpack 5.106.2 compiled"
-					"endsPattern": "compiled (successfully|with|in)"
+					"beginsPattern": "Waiting for changes...",
+					"endsPattern": "Rebuilt server"
 				},
 				// On réutilise les patterns de base pour les erreurs TS si ts-loader en envoie
 				"pattern": {
