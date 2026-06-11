@@ -1,0 +1,25 @@
+<!-- Header -->
+<div class="table-header" @mousedown="onMouseDown">
+    <!-- Lock Button -->
+    <button class="node-lock-btn" title="{{ this.locked ? 'Déverrouiller la table' : 'Verrouiller la table' }}"
+        @click="toggleLock">
+        {{ this.locked ? '🔒' : '🔓' }}
+    </button>
+
+    <!-- Color Bar -->
+    <div class="table-header-color-bar"></div>
+
+    <!-- Editable Table Name -->
+    <span class="table-title-span" @dblclick="startEditTable">
+        {{ this.table.name }}
+    </span>
+    <input @element="tableInputRef" @bind="this.editTableName" class="inline-edit-input" @blur="saveEditTable"
+        @keydown="keyDownEditTable" />
+</div>
+
+<!-- Fields -->
+<div class="table-fields" @mousedown="prevent">
+    for(let field of this.table.fields) { 
+        <av-table-field :field="field" :table="this"></av-table-field>
+    }
+</div>

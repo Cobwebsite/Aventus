@@ -1,0 +1,482 @@
+import { ShortcutManager, SpecialTouch } from "Aventus@UI:Aventus.Lib.package.avt";
+import { DEFAULT_SCHEMA } from "../../lib/DefaultSchema.lib.avt";
+import type { PositionSnapshot, Schema } from "../../lib/Definition.lib.avt";
+import type { Canvas } from "../Canvas/Canvas.wcl.avt";
+import type { TableField } from "../TableField/TableField.wcl.avt";
+import { sleep, WatchAction, Watcher } from "Aventus@Main:Aventus.package.avt";
+import { API } from "../../lib/API.lib.avt";
+
+export class Editor extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+    //#region static
+
+    //#endregion
+
+
+    //#region props
+
+    //#endregion
+
+
+    //#region variables
+    @ViewElement()
+    protected canvasEl!: Canvas;
+
+    /**
+    * @inheritdoc
+    */
+    @Watch((target: Editor, action: WatchAction) => {
+        if(action == WatchAction.UPDATED) {
+            target.triggerChange();
+        }
+    })
+    public schema?: Schema;
+    /**
+     * @inheritdoc
+     */
+    @Watch()
+    public scale: number = 1;
+    /**
+     * @inheritdoc
+     */
+    @Watch()
+    public panX: number = 0;
+    /**
+     * @inheritdoc
+     */
+    @Watch()
+    public panY: number = 0;
+    /**
+     * @inheritdoc
+     */
+    @Watch()
+    public historyStack: PositionSnapshot[] = [];
+    /**
+     * @inheritdoc
+     */
+    @Watch()
+    public redoStack: PositionSnapshot[] = [];
+    /**
+     * @inheritdoc
+     */
+    @Watch()
+    public tempHistoryState: PositionSnapshot | null = null;
+    /**
+     * @inheritdoc
+     */
+    @Watch()
+    public selectedTables: string[] = [];
+    /**
+     * @inheritdoc
+     */
+    @Watch()
+    public selectedAreas: string[] = [];
+    /**
+     * @inheritdoc
+     */
+    @Watch()
+    public searchActive: boolean = false;
+    /**
+     * @inheritdoc
+     */
+    @Watch()
+    public highlightedTableId: string | null = null;
+    /**
+     * @inheritdoc
+     */
+    @Watch()
+    public highlightedFieldId: string | null = null;
+
+    @Watch()
+    public loading: boolean = true;
+
+    @Watch()
+    public isDirty: boolean = false;
+
+    @Watch()
+    public hasNewContent: boolean = false;
+
+
+    /**
+    * @inheritdoc
+    */
+    public get allAreLocked(): boolean {
+        if(!this.schema) return false;
+        const tables = this.schema.tables || [];
+        const areas = this.schema.areas || [];
+        if(tables.length === 0 && areas.length === 0) return false;
+        return tables.every(t => t.locked) && areas.every(a => a.locked);
+    }
+    /**
+     * @inheritdoc
+     */
+    public get canUndo(): boolean {
+        return this.historyStack.length > 0;
+    }
+    /**
+     * @inheritdoc
+     */
+    public get canRedo(): boolean {
+        return this.redoStack.length > 0;
+    }
+
+    public fields: { [id: string]: TableField; } = {};
+
+    public timeout: number = 0;
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+
+    //#region methods
+
+    /**
+     * @inheritdoc
+     */
+    public async loadSchema(newSchema: Schema): Promise<void> {
+        this.loading = true;
+        this.hasNewContent = false;
+        await sleep(300);
+        newSchema.tables = newSchema.tables || [];
+        newSchema.relationships = newSchema.relationships || [];
+        newSchema.areas = newSchema.areas || [];
+
+        for(const table of newSchema.tables) {
+            if(table.locked === undefined) table.locked = false;
+        }
+        for(const area of newSchema.areas) {
+            if(area.locked === undefined) area.locked = false;
+        }
+
+        this.schema = newSchema;
+        this.historyStack = [];
+        this.redoStack = [];
+        this.tempHistoryState = null;
+        this.clearSelection();
+        this.canvasEl.needCreatePath = true;
+        this.canvasEl.createPathLoop = 0;
+        this.canvasEl.createPaths();
+    }
+    /**
+     * @inheritdoc
+     */
+    public exportSchema(): void {
+        if(!this.schema) return;
+
+        try {
+            API.save();
+        } catch { }
+        // const blob = new Blob([JSON.stringify(this.schema, null, 2)], { type: 'application/json' });
+        // const url = URL.createObjectURL(blob);
+        // const a = document.createElement('a');
+        // a.href = url;
+        // a.download = this.schema.name ? `${this.schema.name}.json` : 'schema.json';
+        // document.body.appendChild(a);
+        // a.click();
+        // document.body.removeChild(a);
+        // URL.revokeObjectURL(url);
+    }
+    public triggerChange(): void {
+        clearTimeout(this.timeout);
+        this.timeout = setTimeout(() => {
+            try {
+                const schema = Watcher.extract(this.schema)!;
+                API.triggerChange(schema);
+            } catch { }
+        }, 1000);
+    }
+    /**
+     * @inheritdoc
+     */
+    public toggleLockAll(): void {
+        const targetState = !this.allAreLocked;
+        if(this.schema) {
+            for(let table of this.schema.tables) table.locked = targetState;
+            for(let area of this.schema.areas) area.locked = targetState;
+        }
+    }
+    /**
+     * @inheritdoc
+     */
+    public clearSelection(): void {
+        this.selectedTables = [];
+        this.selectedAreas = [];
+    }
+    /**
+     * @inheritdoc
+     */
+    public selectTable(tableId: string, isShift: boolean): void {
+        const index = this.selectedTables.indexOf(tableId);
+        if(isShift) {
+            if(index > -1) {
+                this.selectedTables.splice(index, 1);
+            } else {
+                this.selectedTables.push(tableId);
+            }
+        } else {
+            if(!this.selectedTables.includes(tableId)) {
+                this.clearSelection();
+                this.selectedTables.push(tableId);
+            }
+        }
+    }
+    /**
+     * @inheritdoc
+     */
+    public selectArea(areaId: string, isShift: boolean): void {
+        const index = this.selectedAreas.indexOf(areaId);
+        if(isShift) {
+            if(index > -1) {
+                this.selectedAreas.splice(index, 1);
+            } else {
+                this.selectedAreas.push(areaId);
+            }
+        } else {
+            if(!this.selectedAreas.includes(areaId)) {
+                this.clearSelection();
+                this.selectedAreas.push(areaId);
+            }
+        }
+    }
+    /**
+     * @inheritdoc
+     */
+    public capturePositions(): PositionSnapshot {
+        if(!this.schema) return { tables: [], areas: [] };
+        return {
+            tables: this.schema.tables.map(t => ({ id: t.id, x: t.x, y: t.y })),
+            areas: this.schema.areas.map(a => ({ id: a.id, x: a.x, y: a.y, width: a.width, height: a.height }))
+        };
+    }
+    /**
+     * @inheritdoc
+     */
+    public restorePositions(snapshot: PositionSnapshot): void {
+        if(!snapshot || !this.schema) return;
+
+        for(let savedTable of snapshot.tables) {
+            const table = this.find(this.schema.tables, savedTable.id);
+            if(table) {
+                table.x = savedTable.x;
+                table.y = savedTable.y;
+            }
+        }
+
+        for(let savedArea of snapshot.areas) {
+            const area = this.find(this.schema.areas, savedArea.id);
+
+            if(area) {
+                area.x = savedArea.x;
+                area.y = savedArea.y;
+                area.width = savedArea.width;
+                area.height = savedArea.height;
+            }
+        }
+
+        this.canvasEl.updatePaths();
+    }
+    /**
+     * @inheritdoc
+     */
+    public arePositionsDifferent(state1: PositionSnapshot | null, state2: PositionSnapshot | null): boolean {
+        if(!state1 || !state2) return false;
+        if(state1.tables.length !== state2.tables.length) return true;
+        for(let i = 0; i < state1.tables.length; i++) {
+            const t1 = state1.tables[i];
+            const t2 = state2.tables.find(t => t.id === t1.id);
+            if(!t2) return true;
+            if(t1.x !== t2.x || t1.y !== t2.y) return true;
+        }
+        if(state1.areas.length !== state2.areas.length) return true;
+        for(let i = 0; i < state1.areas.length; i++) {
+            const a1 = state1.areas[i];
+            const a2 = state2.areas.find(a => a.id === a1.id);
+            if(!a2) return true;
+            if(a1.x !== a2.x || a1.y !== a2.y || a1.width !== a2.width || a1.height !== a2.height) return true;
+        }
+        return false;
+    }
+    /**
+     * @inheritdoc
+     */
+    public prepareHistoryState(): void {
+        this.tempHistoryState = this.capturePositions();
+    }
+    /**
+     * @inheritdoc
+     */
+    public commitHistoryState(): void {
+        if(!this.tempHistoryState) return;
+        const currentState = this.capturePositions();
+        if(this.arePositionsDifferent(this.tempHistoryState, currentState)) {
+            if(this.historyStack.length >= 50) {
+                this.historyStack.shift();
+            }
+            this.historyStack.push(this.tempHistoryState);
+            this.redoStack = [];
+        }
+        this.tempHistoryState = null;
+    }
+    /**
+     * @inheritdoc
+     */
+    @BindThis()
+    public undo(): void {
+        if(this.historyStack.length === 0) return;
+        this.redoStack.push(this.capturePositions());
+        const previousPositions = this.historyStack.pop();
+        if(previousPositions) {
+            this.restorePositions(previousPositions);
+        }
+    }
+    /**
+     * @inheritdoc
+     */
+    @BindThis()
+    public redo(): void {
+        if(this.redoStack.length === 0) return;
+        this.historyStack.push(this.capturePositions());
+        const nextPositions = this.redoStack.pop();
+        if(nextPositions) {
+            this.restorePositions(nextPositions);
+        }
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public zoomIn(): void {
+        this.canvasEl.changeScale('in', 1.2);
+    }
+    /**
+     * @inheritdoc
+     */
+    public zoomOut(): void {
+        this.canvasEl.changeScale('out', 1.2);
+    }
+
+    public zoomResetEmit(): void {
+        const rect = this.canvasEl.getBoundingClientRect();
+        this.centerView(rect.width, rect.height);
+        this.canvasEl.updatePaths();
+    }
+    /**
+     * @inheritdoc
+     */
+    public centerView(viewportWidth: number, viewportHeight: number): void {
+        if(!this.schema || this.schema.tables.length === 0) return;
+
+        let minX = Infinity, minY = Infinity;
+        let maxX = -Infinity, maxY = -Infinity;
+
+        for(let table of this.schema.tables) {
+            minX = Math.min(minX, table.x);
+            minY = Math.min(minY, table.y);
+            maxX = Math.max(maxX, table.x + 224);
+            maxY = Math.max(maxY, table.y + 180);
+        };
+
+        const contentWidth = maxX - minX;
+        const contentHeight = maxY - minY;
+
+        const scaleX = (viewportWidth * 0.8) / contentWidth;
+        const scaleY = (viewportHeight * 0.8) / contentHeight;
+        this.scale = Math.min(Math.min(scaleX, scaleY), 1.1);
+        this.scale = Math.max(this.scale, 0.4);
+
+        this.panX = (viewportWidth - contentWidth * this.scale) / 2 - minX * this.scale;
+        this.panY = (viewportHeight - contentHeight * this.scale) / 2 - minY * this.scale;
+    }
+    /**
+     * @inheritdoc
+     */
+    public focusOnElement(res: { type: 'table' | 'field'; id: string; tableId?: string; }): void {
+        const rect = this.canvasEl.getBoundingClientRect();
+        const viewportWidth: number = rect.width;
+        const viewportHeight: number = rect.height;
+        const tableId = res.type === 'table' ? res.id : res.tableId;
+        if(!tableId) return;
+        const table = this.schema?.tables.find(t => t.id === tableId);
+        if(!table) return;
+
+        this.scale = 1.0;
+        this.panX = viewportWidth / 2 - (table.x + 112) * this.scale;
+        this.panY = viewportHeight / 2 - (table.y + 90) * this.scale;
+
+        this.highlightedTableId = table.id;
+        setTimeout(() => {
+            if(this.highlightedTableId === table.id) {
+                this.highlightedTableId = null;
+            }
+        }, 1500);
+
+        if(res.type === 'field') {
+            this.highlightedFieldId = res.id;
+            setTimeout(() => {
+                if(this.highlightedFieldId === res.id) {
+                    this.highlightedFieldId = null;
+                }
+            }, 2000);
+        }
+    }
+
+    private find<T extends { id: string; }>(arr: T[], id: string): T | null {
+        for(let item of arr) {
+            if(item.id == id) {
+                return item;
+            }
+        }
+        return null;
+    }
+
+    protected bindShortcut() {
+        ShortcutManager.subscribe([SpecialTouch.Control, 'z'], this.undo);
+        ShortcutManager.subscribe([SpecialTouch.Control, 'y'], this.redo);
+        ShortcutManager.subscribe([SpecialTouch.Control, 'a'], () => {
+            if(!this.schema) return;
+            this.selectedAreas = this.schema.areas.map(p => p.id);
+            this.selectedTables = this.schema.tables.map(p => p.id);
+        });
+        ShortcutManager.subscribe([SpecialTouch.Control, 'f'], () => {
+            this.searchActive = true;
+        });
+        ShortcutManager.subscribe([SpecialTouch.Control, 's'], () => {
+            this.exportSchema();
+        });
+
+        this.addEventListener("contextmenu", (e) => {
+            e.preventDefault();
+        });
+    }
+
+    protected async loadFile() {
+        const schema = await API.loadSchema();
+        if(schema) {
+            this.loadSchema(schema);
+        }
+
+        VscodeView.Router.getInstance().addRoute<boolean>({
+            channel: "is_dirty",
+            callback: (data) => {
+                this.isDirty = data;
+            }
+        });
+
+        VscodeView.Router.getInstance().addRoute<Schema>({
+            channel: "update_content",
+            callback: (data) => {
+                this.hasNewContent = true;
+            }
+        });
+    }
+
+    protected override postCreation(): void {
+        this.bindShortcut();
+        this.loadFile();
+    }
+    //#endregion
+
+}

@@ -1,0 +1,357 @@
+import { sleep, Watcher } from "Aventus@Main:Aventus.package.avt";
+import type { Area, Table } from "../../lib/Definition.lib.avt";
+import { Editor } from "../Editor/Editor.wcl.avt";
+import type { TableField } from "../TableField/TableField.wcl.avt";
+
+interface TablePosition {
+    table: Table;
+    startX: number;
+    startY: number;
+}
+
+interface AreaPosition {
+    area: Area;
+    startX: number;
+    startY: number;
+}
+
+interface PathInfo {
+    el: SVGPathElement,
+    source: TableField,
+    target: TableField,
+}
+export class Canvas extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+    //#region static
+
+    //#endregion
+
+
+    //#region props
+
+    //#endregion
+
+
+    //#region variables
+    @Injectable()
+    public editor!: Editor;
+
+    @ViewElement()
+    protected canvasRef!: HTMLDivElement;
+    @ViewElement()
+    protected svgEl!: SVGSVGElement;
+
+    @Watch()
+    public relationshipPaths: PathInfo[] = [];
+
+    protected isPanning: boolean = false;
+    protected panStartX: number = 0;
+    protected panStartY: number = 0;
+
+    protected isDragging: boolean = false;
+    protected dragStartX: number = 0;
+    protected dragStartY: number = 0;
+    protected selectedTableInitialPositions: TablePosition[] = [];
+    protected selectedAreaInitialPositions: AreaPosition[] = [];
+
+
+    protected isResizingArea: boolean = false;
+    protected resizedArea: Area | null = null;
+    protected resizeStartX: number = 0;
+    protected resizeStartY: number = 0;
+    protected initialAreaW: number = 0;
+    protected initialAreaH: number = 0;
+
+    public needCreatePath: boolean = true;
+    public createPathLoop: number = 0;
+
+    public get areas(): Area[] {
+        return this.editor.schema?.areas ?? [];
+    }
+
+    public get tables(): Table[] {
+        return this.editor.schema?.tables ?? [];
+    }
+
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+
+    //#region methods
+    private find<T extends { id: string; }>(arr: T[] | undefined, id: string): T | null {
+        if(!arr) return null;
+        for(let item of arr) {
+            if(item.id == id) {
+                return item;
+            }
+        }
+        return null;
+    }
+
+    @BindThis()
+    protected onViewportMouseDown(e: MouseEvent) {
+        const target = e.target as HTMLElement;
+        // Ignore clicks on nodes, header controls, command palette etc.
+        if(target.closest('.table-node') ||
+            target.closest('.area-node') ||
+            target.closest('.app-header') ||
+            target.closest('.canvas-instructions') ||
+            target.closest('.modal-overlay') ||
+            target.closest('.btn-zoom-standalone')) {
+            return;
+        }
+
+        if(!e.shiftKey) {
+            this.editor.clearSelection();
+        }
+
+        this.isPanning = true;
+        this.panStartX = e.clientX - this.editor.panX;
+        this.panStartY = e.clientY - this.editor.panY;
+        this.style.cursor = 'grabbing';
+    }
+
+    @BindThis()
+    protected onWheel(e: WheelEvent) {
+        e.preventDefault();
+        this.changeScale(e.deltaY < 0 ? 'in' : 'out', 1.08, e);
+    }
+
+    public changeScale(direction: 'in' | 'out', zoomFactor: number, e?: { clientX: number, clientY: number; }) {
+        const rect = this.getBoundingClientRect();
+        const clientX = e?.clientX ?? document.body.offsetWidth / 2;
+        const clientY = e?.clientY ?? document.body.offsetHeight / 2;
+        const mouseX = clientX - rect.left;
+        const mouseY = clientY - rect.top;
+
+        const oldScale = this.editor.scale;
+
+        if(direction == 'in') {
+            this.editor.scale = Math.min(this.editor.scale * zoomFactor, 3.0);
+        } else {
+            this.editor.scale = Math.max(this.editor.scale / zoomFactor, 0.15);
+        }
+
+        this.editor.panX = mouseX - (mouseX - this.editor.panX) * (this.editor.scale / oldScale);
+        this.editor.panY = mouseY - (mouseY - this.editor.panY) * (this.editor.scale / oldScale);
+
+        this.updatePaths();
+    }
+
+
+    /**
+    * 
+    */
+    protected handleAreaDragStart(event: MouseEvent, area: Area) {
+        this.editor.prepareHistoryState();
+
+        const isShift = event.shiftKey;
+        this.editor.selectArea(area.id, isShift);
+
+        this.isDragging = true;
+        this.dragStartX = event.clientX;
+        this.dragStartY = event.clientY;
+
+        // Record initial positions
+        this.selectedTableInitialPositions = this.editor.selectedTables.map(tId => {
+            const t = this.find(this.editor.schema?.tables, tId);
+            if(!t) throw new Error(`Table with ID ${tId} not found`);
+            return { table: t, startX: t.x, startY: t.y };
+        });
+
+        this.selectedAreaInitialPositions = this.editor.selectedAreas.map(aId => {
+            const a = this.find(this.editor.schema?.areas, aId);
+            if(!a) throw new Error(`Area with ID ${aId} not found`);
+            return { area: a, startX: a.x, startY: a.y };
+        });
+    }
+    /**
+    * 
+    */
+    protected handleAreaResizeStart(event: MouseEvent, area: Area) {
+        this.editor.prepareHistoryState();
+
+        this.isResizingArea = true;
+        this.resizedArea = area;
+        this.resizeStartX = event.clientX;
+        this.resizeStartY = event.clientY;
+        this.initialAreaW = area.width;
+        this.initialAreaH = area.height;
+    }
+    /**
+    * 
+    */
+    protected handleTableDragStart(event: MouseEvent, table: Table) {
+        this.editor.prepareHistoryState();
+
+        const isShift = event.shiftKey;
+        this.editor.selectTable(table.id, isShift);
+
+        this.isDragging = true;
+        this.dragStartX = event.clientX;
+        this.dragStartY = event.clientY;
+
+        // Record initial positions
+        this.selectedTableInitialPositions = this.editor.selectedTables.map(tId => {
+            const t = this.find(this.editor.schema?.tables, tId);
+            if(!t) throw new Error(`Table with ID ${tId} not found`);
+            return { table: t, startX: t.x, startY: t.y };
+        });
+
+        this.selectedAreaInitialPositions = this.editor.selectedAreas.map(aId => {
+            const a = this.find(this.editor.schema?.areas, aId);
+            if(!a) throw new Error(`Area with ID ${aId} not found`);
+            return { area: a, startX: a.x, startY: a.y };
+        });
+    }
+
+    public createPaths() {
+        if(!this.editor.schema) return;
+        if(this.needCreatePath) {
+            this.needCreatePath = false;
+            for(let old of this.relationshipPaths) {
+                old.el.remove();
+            }
+            this.relationshipPaths = [];
+            for(let rel of this.editor.schema.relationships) {
+                const sourceFieldEl = this.editor.fields[rel.sourceFieldId];
+                const targetFieldEl = this.editor.fields[rel.targetFieldId];
+
+                if(!sourceFieldEl || !targetFieldEl) {
+                    this.needCreatePath = true;
+                    this.createPathLoop++;
+                    if(this.createPathLoop < 50) {
+                        setTimeout(() => {
+                            this.createPaths();
+                        }, 100);
+                    }
+                    return;
+                }
+
+                this.editor.zoomResetEmit();
+                this.editor.loading = false;
+
+                const el = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                el.setAttribute("marker-end", "url(#arrow)");
+                el.setAttribute("marker-start", "url(#dot)");
+                this.svgEl.appendChild(el);
+
+                this.relationshipPaths.push({
+                    el,
+                    source: sourceFieldEl,
+                    target: targetFieldEl
+                });
+            }
+            this.updatePaths();
+        }
+    }
+    /**
+    * 
+    */
+    public async updatePaths() {
+        if(!this.editor.schema) return;
+        this.createPaths();
+        await sleep(10);
+        const canvasRect = this.canvasRef.getBoundingClientRect();
+
+        for(let rel of this.relationshipPaths) {
+
+            const srcRect = rel.source.getBoundingClientRect();
+            const tgtRect = rel.target.getBoundingClientRect();
+
+            const srcY = (srcRect.top + srcRect.height / 2 - canvasRect.top) / this.editor.scale;
+            const tgtY = (tgtRect.top + tgtRect.height / 2 - canvasRect.top) / this.editor.scale;
+
+            const srcLeft = (srcRect.left - canvasRect.left) / this.editor.scale;
+            const srcRight = (srcRect.right - canvasRect.left) / this.editor.scale;
+            const tgtLeft = (tgtRect.left - canvasRect.left) / this.editor.scale;
+            const tgtRight = (tgtRect.right - canvasRect.left) / this.editor.scale;
+
+            const isSourceLeft = srcLeft < tgtLeft;
+            const x1 = isSourceLeft ? srcRight : srcLeft;
+            const y1 = srcY;
+            const x2 = isSourceLeft ? tgtLeft : tgtRight;
+            const y2 = tgtY;
+
+            const dx = Math.abs(x2 - x1);
+            const controlOffset = Math.max(50, dx * 0.45);
+            const cx1 = x1 + (isSourceLeft ? controlOffset : -controlOffset);
+            const cx2 = x2 + (isSourceLeft ? -controlOffset : controlOffset);
+
+            rel.el.setAttribute("d", `M ${x1} ${y1} C ${cx1} ${y1}, ${cx2} ${y2}, ${x2} ${y2}`);
+        }
+
+    }
+
+    @BindThis()
+    protected handleGlobalMouseMove(e: MouseEvent) {
+        if(this.isPanning) {
+            this.editor.panX = e.clientX - this.panStartX;
+            this.editor.panY = e.clientY - this.panStartY;
+        }
+        else if(this.isDragging) {
+            const dx = (e.clientX - this.dragStartX) / this.editor.scale;
+            const dy = (e.clientY - this.dragStartY) / this.editor.scale;
+
+            for(let item of this.selectedTableInitialPositions) {
+                if(item.table.locked) return;
+                // todo replace when watch will be correct
+                this.find(this.editor.schema?.tables, item.table.id)!.x = item.startX + dx;
+                this.find(this.editor.schema?.tables, item.table.id)!.y = item.startY + dy;
+            }
+
+
+            for(let item of this.selectedAreaInitialPositions) {
+                if(item.area.locked) return;
+                this.find(this.editor.schema?.areas, item.area.id)!.x = item.startX + dx;
+                this.find(this.editor.schema?.areas, item.area.id)!.y = item.startY + dy;
+            }
+
+            this.updatePaths();
+        }
+
+        else if(this.isResizingArea && this.resizedArea) {
+            if(this.resizedArea.locked) return;
+            const dx = (e.clientX - this.resizeStartX) / this.editor.scale;
+            const dy = (e.clientY - this.resizeStartY) / this.editor.scale;
+
+            this.resizedArea.width = Math.max(150, this.initialAreaW + dx);
+            this.resizedArea.height = Math.max(100, this.initialAreaH + dy);
+        }
+    }
+    @BindThis()
+    protected handleGlobalMouseUp() {
+        if(this.editor.tempHistoryState) {
+            this.editor.commitHistoryState();
+        }
+
+        this.isPanning = false;
+        this.isDragging = false;
+        this.isResizingArea = false;
+        this.resizedArea = null;
+        this.style.cursor = 'grab';
+    };
+
+    protected override postCreation(): void {
+        this.addEventListener("mousedown", this.onViewportMouseDown);
+        this.addEventListener("wheel", this.onWheel);
+
+        window.addEventListener('mousemove', this.handleGlobalMouseMove);
+        window.addEventListener('mouseup', this.handleGlobalMouseUp);
+
+        Watcher.effect(() => {
+            this.canvasRef.style.transform = `translate(${this.editor.panX}px, ${this.editor.panY}px) scale(${this.editor.scale})`;
+        });
+    }
+
+    protected override postDestruction(): void {
+        window.removeEventListener('mousemove', this.handleGlobalMouseMove);
+        window.removeEventListener('mouseup', this.handleGlobalMouseUp);
+    }
+    //#endregion
+
+}

@@ -13,6 +13,7 @@ import { AventusI18nEditor } from './customEditors/AventusI18nEditor';
 import { GetKeyFromPosition } from './communication/i18n/GetKeyFromPosition';
 import { SettingsManager } from './Settings';
 import { ProtocolHandler } from './ProtocolHandler';
+import { AventusDBEditor } from './customEditors/AventusDBEditor';
 
 export class Client {
     private _context: ExtensionContext | undefined = undefined;
@@ -34,6 +35,7 @@ export class Client {
         this.debugFile = new DebugFile();
         context.subscriptions.push(workspace.registerTextDocumentContentProvider(DebugFile.schema, this.debugFile));
         context.subscriptions.push(AventusI18nEditor.register(context));
+        context.subscriptions.push(AventusDBEditor.register(context));
         context.subscriptions.push(new ProtocolHandler());
 
         AutoLoader.getInstance();

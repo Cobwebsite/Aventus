@@ -1,0 +1,33 @@
+<div class="modal-overlay">
+    <div class="command-palette-box" @mousedown="stop">
+        <div class="command-palette-header">
+            <span class="search-icon">🔍</span>
+            <input id="search-palette" type="text" @element="searchInput" @bind="this.query" placeholder="Rechercher une table ou une colonne..."
+                autocomplete="off" @input="searchItems">
+        </div>
+
+        <div class="command-palette-results">
+            for(let res of this.filteredResults) {
+                <div class="command-result-item" active="{{ res.id == this.activeResultId }}" @click="selectResult" data-id="{{res.id}}" data-type="{{res.type}}">
+                    <div class="left-section">
+                    <span class="result-title">{{ res.name }}</span>
+                    <span class="result-subtext">{{ res.subtext }}</span>
+                    </div>
+                    <span class="result-type-badge {{res.type === 'table' ? 'badge-table' : 'badge-field'}}">
+                        {{ res.type }}
+                    </span>
+                </div>
+            }
+
+            if(this.filteredResults.length == 0) {
+                <div class="empty-state">
+                    Aucune table ou colonne trouvée
+                </div>
+            }
+        </div>
+
+        <div class="command-palette-footer">
+            <span>↑↓ pour naviguer</span> • <span>Entrée pour sélectionner</span> • <span>Échap pour fermer</span>
+        </div>
+    </div>
+</div>

@@ -543,6 +543,15 @@
 						"filenamePattern": "*.i18n.avt"
 					}
 				]
+			},
+			{
+				"viewType": "aventus.db",
+				"displayName": "Aventus DB",
+				"selector": [
+					{
+						"filenamePattern": "*.db.avt"
+					}
+				]
 			}
 		],
 		"menus": {

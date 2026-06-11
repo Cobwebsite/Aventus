@@ -1,0 +1,21 @@
+<div class="area-header-container" @mousedown="onMouseDown">
+    <div class="area-title-container">
+        <!-- Lock Button -->
+        <button class="node-lock-btn"
+            title="{{this.locked ? 'Déverrouiller la zone' : 'Verrouiller la zone'}}" @click="toggleLock">
+            {{ this.locked ? '🔒' : '🔓' }}
+        </button>
+
+        <!-- Editable Title -->
+        <span class="area-title-span" @dblclick="startEdit">
+            {{ this.area.name }}
+        </span>
+        <input @element="editInput" @bind="this.editName" class="inline-edit-input" @blur="saveEdit" @keydown="keyDownEdit" />
+    </div>
+
+    <!-- Color Picker -->
+    <input type="color" class="area-color-picker" @bind="this.area.color" title="Changer la couleur" />
+</div>
+
+<!-- Resizer -->
+<div class="area-resizer" @mousedown="onResizeMouseDown"></div>

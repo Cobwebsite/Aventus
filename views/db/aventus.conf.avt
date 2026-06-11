@@ -1,0 +1,39 @@
+{
+	"module": "dbEditor",
+	"componentPrefix": "av",
+	"hideWarnings": true,
+	"build": [
+		{
+			"name": "Main",
+			"src": [
+				"./src/components/*",
+				"./src/lib/*"
+			],
+			"dependances": {
+				"Aventus@UI": {},
+				"VscodeView@Main": {
+					"isLocal": true,
+					"include": "full"
+				}
+			},
+			"compile": [
+				{
+					"output": [
+						"../../client/views/db/index.js",
+						"./dist/index.js"
+					]
+				}
+			]
+		}
+	],
+	"static": [
+		{
+			"name": "Main",
+			"input": "./src/static",
+			"output": [
+				"../../client/views/db",
+				"./dist"
+			]
+		}
+	]
+}

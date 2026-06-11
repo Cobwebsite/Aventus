@@ -1,0 +1,145 @@
+import { Callback, Watcher } from "Aventus@Main:Aventus.package.avt";
+import type { Area } from "../../lib/Definition.lib.avt";
+import { Editor } from "../Editor/Editor.wcl.avt";
+import type { Canvas } from "../Canvas/Canvas.wcl.avt";
+
+export class AreaNode extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+    //#region static
+
+    //#endregion
+
+
+    //#region props
+    @Property()
+    public locked!: boolean;
+
+    @Property()
+    public selected!: boolean;
+
+    @Property()
+    public is_editing!: boolean;
+
+    //#endregion
+
+
+    //#region variables
+    @Injectable()
+    public area!: Area;
+
+    @Watch()
+    public editName: string = "";
+
+    @ViewElement()
+    protected editInput!: HTMLInputElement;
+
+    @Injectable()
+    public canvas!: Canvas;
+    
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+    //#region events
+    public dragStart: Callback<(event: MouseEvent, area: Area) => void> = new Callback();
+    public resizeStart: Callback<(event: MouseEvent, area: Area) => void> = new Callback();
+    //#endregion
+
+
+    //#region methods
+
+    /**
+     * 
+     */
+    protected toggleLock(e: MouseEvent) {
+        e.stopPropagation();
+        this.area.locked = !this.area.locked;
+    }
+    /**
+    * 
+    */
+    protected startEdit() {
+        if(this.area.locked) return;
+        this.editName = this.area.name;
+        this.is_editing = true;
+
+        this.editInput.focus();
+        this.editInput.select();
+    }
+    /**
+    * 
+    */
+    protected saveEdit() {
+        if(!this.is_editing) return;
+        const newName = this.editName.trim();
+        if(newName && newName !== this.area.name) {
+            this.area.name = newName;
+        }
+        this.is_editing = false;
+    }
+    /**
+    * 
+    */
+    protected keyDownEdit(e: KeyboardEvent) {
+        if(e.key == "Enter") {
+            this.saveEdit();
+        }
+        else if(e.key == "Escape") {
+            this.is_editing = false;
+        }
+    }
+    /**
+    * 
+    */
+    protected onResizeMouseDown(e: MouseEvent) {
+        e.stopPropagation();
+        this.resizeStart.trigger(e, this.area);
+    }
+
+    protected getRgbaColor(hex: string, opacity: number): string {
+        if(!hex) return '';
+        let cleanHex = hex.replace('#', '');
+        if(cleanHex.length === 3) {
+            cleanHex = cleanHex.split('').map(char => char + char).join('');
+        }
+        const r = parseInt(cleanHex.substring(0, 2), 16);
+        const g = parseInt(cleanHex.substring(2, 4), 16);
+        const b = parseInt(cleanHex.substring(4, 6), 16);
+        return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    };
+
+    protected onMouseDown(e: MouseEvent): void {
+        e.stopPropagation();
+        const target = e.target as HTMLElement;
+        if(target.classList.contains('area-title-container')) {
+            this.dragStart.trigger(e, this.area);
+            return;
+        }
+    };
+
+    protected override postCreation(): void {
+
+        Watcher.effect(() => {
+            this.locked = this.area.locked;
+        });
+
+        Watcher.effect(() => {
+            this.style.left = this.area.x + 'px';
+            this.style.top = this.area.y + 'px';
+            this.style.width = this.area.width + 'px';
+            this.style.height = this.area.height + 'px';
+            this.style.setProperty("--area-node-color", this.area.color || '#ef4444');
+            this.style.setProperty("--area-node-background-color", this.getRgbaColor(this.area.color || '#ef4444', 0.03));
+        });
+
+        Watcher.effect(() => {
+            this.selected = this.canvas.editor.selectedAreas.includes(this.area.id);
+        });
+    }
+
+    //#endregion
+
+}
