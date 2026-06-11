@@ -1,0 +1,119 @@
+import { Editor } from "../Editor/Editor.wcl.avt";
+
+export class Header extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+    //#region static
+
+    //#endregion
+
+
+    //#region props
+
+    //#endregion
+
+
+    //#region variables
+    // @ViewElement()
+    // protected fileInput!: HTMLInputElement;
+
+    @Injectable()
+    public editor!: Editor;
+
+    public get disableUndo(): boolean {
+        return !this.editor.canUndo;
+    }
+    public get disableRedo(): boolean {
+        return !this.editor.canRedo;
+    }
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+
+    //#region methods
+
+    // /**
+    //  * 
+    //  */
+    // protected triggerFileInput() {
+    //     this.fileInput.click();
+    // }
+    // /**
+    // * 
+    // */
+    // protected handleFileChange(e: Event) {
+    //     const target = e.target as HTMLInputElement;
+    //     if(target.files && target.files.length > 0) {
+    //         const file = target.files[0];
+    //         const reader = new FileReader();
+    //         reader.onload = (event) => {
+    //             try {
+    //                 const result = event.target?.result as string;
+    //                 const json = JSON.parse(result);
+    //                 this.editor.loadSchema(json);
+    //             } catch(err) {
+    //                 alert("Erreur de lecture du JSON : Le fichier ne semble pas valide.");
+    //                 console.error(err);
+    //             }
+    //         };
+    //         reader.readAsText(file);
+    //         // Reset file input value so same file can be imported again
+    //         target.value = '';
+    //     }
+    // }
+    /**
+    * 
+    */
+    protected exportSchema() {
+        this.editor.exportSchema();
+    }
+    /**
+    * 
+    */
+    protected toggleLockAll() {
+        this.editor.toggleLockAll();
+
+    }
+    /**
+    * 
+    */
+    protected undo() {
+        this.editor.undo();
+    }
+    /**
+    * 
+    */
+    protected redo() {
+        this.editor.redo();
+    }
+    /**
+    * 
+    */
+    protected triggerSearch() {
+        this.editor.searchActive = true;
+    }
+    /**
+    * 
+    */
+    protected zoomOut() {
+        this.editor.zoomOut();
+    }
+    /**
+    * 
+    */
+    protected zoomIn() {
+        this.editor.zoomIn();
+    }
+    /**
+    * 
+    */
+    protected zoomResetEmit() {
+		this.editor.zoomResetEmit();
+    }
+
+    //#endregion
+
+}

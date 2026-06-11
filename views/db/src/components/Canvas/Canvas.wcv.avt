@@ -1,0 +1,34 @@
+<div @element="canvasRef" class="canvas-inner">
+    <!-- SVG overlay for drawing relationships -->
+    <svg class="svg-overlay" @element="svgEl">
+        <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6"
+                orient="auto-start-reverse">
+                <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#8892b0" />
+            </marker>
+            <marker id="dot" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6">
+                <circle cx="5" cy="5" r="3" fill="#8892b0" />
+            </marker>
+        </defs>
+    </svg>
+
+    if(this.editor.schema) {
+        <div id="areas-container">
+            for(let area of this.areas) {
+                <av-area-node :area="area" @dragStart="handleAreaDragStart"  @resizeStart="handleAreaResizeStart" :canvas="this"></av-area-node>
+            }
+        </div>
+
+        <div id="tables-container">
+            for(let table of this.tables) {
+                <av-table-node :table="table" @dragStart="handleTableDragStart"  @relationshipChanged="updatePaths" :canvas="this"></av-table-node>
+            }
+        </div>
+    }
+</div>
+
+<!-- Bottom instructions -->
+<div class="canvas-instructions">
+    💡 Glissez-déposez le fond pour vous déplacer • Utilisez la molette pour zoomer • Glissez le haut d'une table pour
+    la déplacer • Étirez le coin inférieur droit des zones pour les redimensionner
+</div>

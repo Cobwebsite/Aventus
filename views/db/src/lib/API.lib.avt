@@ -1,0 +1,32 @@
+import type { Schema } from "./Definition.lib.avt";
+
+export class API {
+    public static async loadSchema(): Promise<Schema | undefined> {
+        const result = await VscodeView.Router.getInstance().sendWithResponse<Schema>({
+            channel: "getData",
+        });
+        if(result.result) {
+            return result.result;
+        }
+        else if(result.errors.length > 0) {
+            alert(result.errors[0].message);
+        }
+        return undefined;
+    }
+
+    public static async save(): Promise<void> {
+        await VscodeView.Router.getInstance().sendWithResponse<boolean>({
+            channel: "save"
+        });
+    }
+
+    public static async triggerChange(schema: Schema): Promise<void> {
+        await VscodeView.Router.getInstance().sendWithResponse<boolean>({
+            channel: "triggerChange",
+            body: schema,
+        });
+
+    }
+
+
+}

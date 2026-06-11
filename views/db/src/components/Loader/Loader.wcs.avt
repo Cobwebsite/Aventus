@@ -1,0 +1,42 @@
+/* HTML: <div class="loader"></div> */
+:host {
+	align-items: center;
+	background-color: var(--bg-main);
+	display: flex;
+	inset: 0;
+	justify-content: center;
+	position: absolute;
+	top: 64px;
+	z-index: 999;
+    opacity: 0;
+    visibility: hidden;
+    transition-property: visibility, opacity;
+    transition-duration: 0.3s;
+    transition-timing-function: ease-in-out;
+
+	.loader {
+		--b: 8px;
+		animation: l4 1s infinite steps(10);
+		aspect-ratio: 1;
+		background: conic-gradient(#0000 10%, var(--color-area)) content-box;
+		border-radius: 50%;
+		-webkit-mask:
+			repeating-conic-gradient(#0000 0deg, var(--bg-main) 1deg 20deg, #0000 21deg 36deg),
+			radial-gradient(farthest-side, #0000 calc(100% - var(--b) - 1px), var(--bg-main) calc(100% - var(--b)));
+		-webkit-mask-composite: destination-in;
+		mask-composite: intersect;
+		padding: 1px;
+		width: 50px;
+	}
+}
+
+:host([visible]) {
+    opacity: 1;
+    visibility: visible;
+}
+
+@keyframes l4 {
+	to {
+		transform: rotate(1turn);
+	}
+}

@@ -1,0 +1,136 @@
+import { Callback, Watcher } from "Aventus@Main:Aventus.package.avt";
+import type { Table } from "../../lib/Definition.lib.avt";
+import { Editor } from "../Editor/Editor.wcl.avt";
+import type { Canvas } from "../Canvas/Canvas.wcl.avt";
+
+export class TableNode extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+    //#region static
+
+    //#endregion
+
+
+    //#region props
+    @Property()
+    public locked!: boolean;
+
+    @Property()
+    public selected!: boolean;
+
+    @Property()
+    public is_editing!: boolean;
+    @Attribute()
+    public pulse!: boolean;
+
+    //#endregion
+
+
+    //#region variables
+    @Injectable()
+    public table!: Table;
+
+    @Watch()
+    protected editTableName: string = "";
+
+    @ViewElement()
+    protected tableInputRef!: HTMLInputElement;
+
+    @Injectable()
+    public canvas!: Canvas;
+
+    public get editor(): Editor {
+        return this.canvas.editor;
+    }
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+    //#region events
+    public dragStart: Callback<(event: MouseEvent, table: Table) => void> = new Callback();
+    //#endregion
+
+
+    //#region methods
+
+
+    /**
+     * 
+     */
+    protected prevent(e: MouseEvent) {
+        e.stopPropagation();
+        e.preventDefault();
+        this.editor.selectTable(this.table.id, e.shiftKey);
+    }
+
+    /**
+     * 
+     */
+    protected toggleLock(e: MouseEvent) {
+        e.stopPropagation();
+        this.table.locked = !this.table.locked;
+    }
+    /**
+    * 
+    */
+    protected startEditTable() {
+        if(this.table.locked) return;
+        this.editTableName = this.table.name;
+        this.is_editing = true;
+        this.tableInputRef.focus();
+        this.tableInputRef.select();
+    }
+    /**
+    * 
+    */
+    protected saveEditTable() {
+        if(!this.is_editing) return;
+        this.table.name = this.editTableName;
+        this.is_editing = false;
+    }
+    /**
+    * 
+    */
+    protected keyDownEditTable(e: KeyboardEvent) {
+        if(e.key == "Escape") {
+            this.is_editing = false;
+        }
+        else if(e.key == "Enter") {
+            this.saveEditTable();
+        }
+    }
+
+    @BindThis()
+    protected onMouseDown(e: MouseEvent) {
+        e.stopPropagation();
+        const target = e.target as HTMLElement;
+        if(target.closest('.node-lock-btn')) {
+            return;
+        }
+        this.dragStart.trigger(e, this.table);
+    };
+
+    protected override postCreation(): void {
+
+        Watcher.effect(() => {
+            this.selected = this.editor.selectedTables.includes(this.table.id);
+        });
+
+        Watcher.effect(() => {
+            this.style.left = this.table.x + 'px';
+            this.style.top = this.table.y + 'px';
+        });
+        Watcher.effect(() => {
+            this.locked = this.table.locked;
+        });
+
+        Watcher.effect(() => {
+            this.pulse = (this.editor.highlightedTableId == this.table.id);
+        });
+    }
+
+    //#endregion
+
+}

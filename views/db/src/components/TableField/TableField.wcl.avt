@@ -1,0 +1,91 @@
+import { Watcher } from "Aventus@Main:Aventus.package.avt";
+import type { Field } from "../../lib/Definition.lib.avt";
+import { TableNode } from "../TableNode/TableNode.wcl.avt";
+
+export class TableField extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+    //#region static
+
+    //#endregion
+
+
+    //#region props
+    @Property()
+    public is_editing!: boolean;
+
+    @Property()
+    public primary!: boolean;
+
+    @Attribute()
+    public pulse!: boolean;
+    //#endregion
+
+
+    //#region variables
+    @Injectable()
+    public field!: Field;
+
+    @Watch()
+    public editFieldName: string = "";
+
+    @ViewElement()
+    protected fieldInputRef!: HTMLInputElement;
+
+    @Injectable()
+    public table!: TableNode;
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+
+    //#region methods
+
+    /**
+     * 
+     */
+    protected startEdit() {
+        if(this.table.locked) return;
+        this.editFieldName = this.field.name;
+        this.is_editing = true;
+        this.fieldInputRef.focus();
+        this.fieldInputRef.select();
+    }
+    /**
+    * 
+    */
+    protected saveEdit() {
+        this.field.name = this.editFieldName;
+        this.is_editing = false;
+    }
+    /**
+    * 
+    */
+    protected keyDownEdit(e: KeyboardEvent) {
+        if(e.key == "esc") {
+            this.is_editing = false;
+        }
+        throw new Error("Method not implemented.");
+    }
+
+    protected getFieldTypeString(): string {
+        const type = this.field.type;
+        return (typeof type === 'object') ? (type.name || type.id) : type;
+    };
+
+    protected override postCreation(): void {
+        this.primary = this.field.primaryKey == true;
+        this.table.editor.fields[this.field.id] = this;
+
+        Watcher.effect(() => {
+            this.pulse = (this.table.editor.highlightedFieldId == this.field.id);
+        });
+    }
+    protected override postDestruction(): void {
+        delete this.table.editor.fields[this.field.id];
+    }
+    //#endregion
+
+}

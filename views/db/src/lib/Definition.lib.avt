@@ -1,0 +1,56 @@
+export interface FieldType {
+  id: string;
+  name: string;
+}
+
+export interface Field {
+  id: string;
+  name: string;
+  type: FieldType;
+  primaryKey?: boolean;
+}
+
+export interface Table {
+  id: string;
+  name: string;
+  schema: string;
+  x: number;
+  y: number;
+  color: string;
+  locked: boolean;
+  fields: Field[];
+}
+
+export interface Relationship {
+  id: string;
+  name: string;
+  sourceTableId: string;
+  targetTableId: string;
+  sourceFieldId: string;
+  targetFieldId: string;
+}
+
+export interface Area {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  color: string;
+  locked: boolean;
+}
+
+export interface Schema {
+  id: string;
+  name: string;
+  databaseType: string;
+  tables: Table[];
+  relationships: Relationship[];
+  areas: Area[];
+}
+
+export interface PositionSnapshot {
+  tables: Array<{ id: string; x: number; y: number }>;
+  areas: Array<{ id: string; x: number; y: number; width: number; height: number }>;
+}

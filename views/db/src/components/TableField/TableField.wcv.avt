@@ -1,0 +1,12 @@
+<div class="field-name-container">
+    <!-- Editable Field Name -->
+    <span class="field-name" @dblclick="startEdit">
+        {{ this.field.name }}
+    </span>
+    <input @element="fieldInputRef" @bind="this.editFieldName" class="inline-edit-input field-edit"
+        @blur="saveEdit" @keydown="keyDownEdit" />
+
+    <span class="field-pk-badge" title="Clé primaire">🔑</span>
+</div>
+
+<span class="field-type">{{ this.getFieldTypeString() }}</span>

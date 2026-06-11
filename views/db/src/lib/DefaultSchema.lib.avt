@@ -1,0 +1,96 @@
+import type { Schema } from "./Definition.lib.avt";
+
+export const DEFAULT_SCHEMA: Schema = {
+  "id": "7f7c5801-e9e9-4e4d-9474-546c0c9444b6",
+  "name": "E-Commerce",
+  "databaseType": "mysql",
+  "tables": [
+    {
+      "id": "Order",
+      "name": "Order",
+      "schema": "public",
+      "x": 420,
+      "y": 140,
+      "color": "#3b82f6",
+      "locked": false,
+      "fields": [
+        { "id": "Order.Id", "name": "Id", "type": { "id": "int", "name": "int" }, "primaryKey": true },
+        { "id": "Order.Price", "name": "Price", "type": { "id": "float", "name": "float" } },
+        { "id": "Order.CreatedDate", "name": "CreatedDate", "type": { "id": "datetime", "name": "datetime" } }
+      ]
+    },
+    {
+      "id": "OrderItem",
+      "name": "OrderItem",
+      "schema": "public",
+      "x": 700,
+      "y": 140,
+      "color": "#3b82f6",
+      "locked": false,
+      "fields": [
+        { "id": "OrderItem.Id", "name": "Id", "type": { "id": "int", "name": "int" }, "primaryKey": true },
+        { "id": "OrderItem.OrderId", "name": "OrderId", "type": { "id": "int", "name": "int" } },
+        { "id": "OrderItem.ProductId", "name": "ProductId", "type": { "id": "int", "name": "int" } },
+        { "id": "OrderItem.Quantity", "name": "Quantity", "type": { "id": "int", "name": "int" } }
+      ]
+    },
+    {
+      "id": "Product",
+      "name": "Product",
+      "schema": "public",
+      "x": 980,
+      "y": 140,
+      "color": "#10b981",
+      "locked": false,
+      "fields": [
+        { "id": "Product.Id", "name": "Id", "type": { "id": "int", "name": "int" }, "primaryKey": true },
+        { "id": "Product.Name", "name": "Name", "type": { "id": "varchar(255)", "name": "varchar(255)" } },
+        { "id": "Product.Price", "name": "Price", "type": { "id": "float", "name": "float" } }
+      ]
+    },
+    {
+      "id": "Bill",
+      "name": "Bill",
+      "schema": "public",
+      "x": 140,
+      "y": 140,
+      "color": "#ef4444",
+      "locked": false,
+      "fields": [
+        { "id": "Bill.Id", "name": "Id", "type": { "id": "int", "name": "int" }, "primaryKey": true },
+        { "id": "Bill.OrderId", "name": "OrderId", "type": { "id": "int", "name": "int" } },
+        { "id": "Bill.Amount", "name": "Amount", "type": { "id": "float", "name": "float" } }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "id": "rel1",
+      "name": "OrderItem_Order",
+      "sourceTableId": "OrderItem",
+      "targetTableId": "Order",
+      "sourceFieldId": "OrderItem.OrderId",
+      "targetFieldId": "Order.Id"
+    },
+    {
+      "id": "rel2",
+      "name": "OrderItem_Product",
+      "sourceTableId": "OrderItem",
+      "targetTableId": "Product",
+      "sourceFieldId": "OrderItem.ProductId",
+      "targetFieldId": "Product.Id"
+    },
+    {
+      "id": "rel3",
+      "name": "Bill_Order",
+      "sourceTableId": "Bill",
+      "targetTableId": "Order",
+      "sourceFieldId": "Bill.OrderId",
+      "targetFieldId": "Order.Id"
+    }
+  ],
+  "areas": [
+    { "id": "area-billing", "name": "Facturation", "x": 100, "y": 60, "width": 480, "height": 360, "color": "#ef4444", "locked": false },
+    { "id": "area-shop", "name": "Boutique", "x": 620, "y": 60, "width": 640, "height": 360, "color": "#10b981", "locked": false }
+  ]
+};

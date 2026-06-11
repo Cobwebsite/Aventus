@@ -84,7 +84,7 @@ export class AventusI18nEditor implements CustomTextEditorProvider {
 				await this.triggerChange(data, document);
 				return true;
 			}
-		})
+		});
 
 		comm.addRouteWithResponse<void, boolean>({
 			channel: "save",

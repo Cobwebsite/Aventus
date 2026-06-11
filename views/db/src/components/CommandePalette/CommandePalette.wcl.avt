@@ -1,0 +1,187 @@
+import { Watcher } from "Aventus@Main:Aventus.package.avt";
+import { Editor } from "../Editor/Editor.wcl.avt";
+import { ShortcutManager, SpecialTouch } from "Aventus@UI:Aventus.Lib.package.avt";
+
+interface SearchResult {
+    type: 'table' | 'field';
+    name: string;
+    id: string;
+    subtext: string;
+    tableId?: string;
+    tableName?: string;
+}
+
+export class CommandePalette extends Aventus.WebComponent implements Aventus.DefaultComponent {
+
+    //#region static
+
+    //#endregion
+
+
+    //#region props
+    @Property((target: CommandePalette) => {
+        if(target.active) {
+            target.onShow();
+        }
+        else {
+            target.onHide();
+        }
+    })
+    public active!: boolean;
+    //#endregion
+
+
+    //#region variables
+    @Injectable()
+    public editor!: Editor;
+    
+    @ViewElement()
+    protected searchInput!: HTMLInputElement;
+
+    @Watch()
+    protected query: string = "";
+
+    @Watch()
+    protected activeResultId: string = "";
+    @Watch()
+    protected filteredResults: SearchResult[] = [];
+    protected resultItemsRefs: (HTMLElement | null)[] = [];
+
+    //#endregion
+
+
+    //#region constructor
+
+    //#endregion
+
+
+    //#region methods
+    protected onShow() {
+        this.searchInput.focus();
+        ShortcutManager.subscribe(SpecialTouch.Escape, this.closePalette);
+        ShortcutManager.subscribe(SpecialTouch.Enter, this.selectCurrent);
+        ShortcutManager.subscribe(SpecialTouch.ArrowUp, this.arrowUp);
+        ShortcutManager.subscribe(SpecialTouch.ArrowDown, this.arrowDown);
+        this.searchItems();
+
+    }
+    protected onHide() {
+        ShortcutManager.unsubscribe(SpecialTouch.Escape, this.closePalette);
+        ShortcutManager.unsubscribe(SpecialTouch.Enter, this.selectCurrent);
+        ShortcutManager.unsubscribe(SpecialTouch.ArrowUp, this.arrowUp);
+        ShortcutManager.unsubscribe(SpecialTouch.ArrowDown, this.arrowDown);
+    }
+    /**
+     * 
+     */
+    @BindThis()
+    protected closePalette() {
+        this.editor.searchActive = false;
+        this.query = '';
+    }
+
+    protected stop(e: MouseEvent) {
+        e.stopPropagation();
+    }
+    /**
+    * 
+    */
+    protected searchItems() {
+        const filteredResults: SearchResult[] = [];
+        this.activeResultId = "";
+
+        if(!this.editor.schema) return;
+
+        const searchQuery = this.query.toLowerCase().trim();
+
+        for(let table of this.editor.schema.tables) {
+            if(!searchQuery || table.name.toLowerCase().includes(searchQuery)) {
+                filteredResults.push({
+                    type: 'table',
+                    name: table.name,
+                    id: table.id,
+                    subtext: `${table.fields.length} colonnes`
+                });
+            }
+
+            for(let field of table.fields) {
+                const fieldFullName = `${table.name}.${field.name}`;
+                if(searchQuery && (field.name.toLowerCase().includes(searchQuery) || fieldFullName.toLowerCase().includes(searchQuery))) {
+                    filteredResults.push({
+                        type: 'field',
+                        name: field.name,
+                        id: field.id,
+                        tableId: table.id,
+                        tableName: table.name,
+                        subtext: `dans ${table.name}`
+                    });
+                }
+            };
+        };
+
+        this.filteredResults = filteredResults.slice(0, 10);
+        if(filteredResults.length > 0) {
+            this.activeResultId = filteredResults[0].id;
+        }
+    }
+
+    @BindThis()
+    protected arrowUp() {
+        const resultsCount = this.filteredResults.length;
+        if(resultsCount === 0) return;
+        let index = this.filteredResults.findIndex(p => p.id == this.activeResultId);
+        index = (index - 1 + resultsCount) % resultsCount;
+        this.activeResultId = this.filteredResults[index].id;
+        this.scrollToActiveItem();
+    }
+
+    @BindThis()
+    protected arrowDown() {
+        const resultsCount = this.filteredResults.length;
+        if(resultsCount === 0) return;
+        let index = this.filteredResults.findIndex(p => p.id == this.activeResultId);
+        index = (index + 1) % resultsCount;
+        this.activeResultId = this.filteredResults[index].id;
+        this.scrollToActiveItem();
+    }
+
+    @BindThis()
+    protected selectCurrent() {
+        const resultsCount = this.filteredResults.length;
+        if(resultsCount === 0) return;
+        let index = this.filteredResults.findIndex(p => p.id == this.activeResultId);
+        if(index >= 0 && index < resultsCount) {
+            this.editor.focusOnElement(this.filteredResults[index]);
+            this.closePalette();
+        }
+    }
+
+    protected scrollToActiveItem(): void {
+        const index = this.filteredResults.findIndex(p => p.id == this.activeResultId);
+        const activeEl = this.resultItemsRefs[index];
+        if(activeEl) {
+            activeEl.scrollIntoView({ block: 'nearest' });
+        }
+    };
+    /**
+    * 
+    */
+    protected selectResult(e: Event) {
+        const el = e.currentTarget as HTMLElement;
+        const id = el.dataset.id as string;
+        const result = this.filteredResults.find(p => p.id == id);
+        if(result)
+            this.editor.focusOnElement(result);
+        this.closePalette();
+    }
+
+    protected override postCreation(): void {
+        this.addEventListener("mousedown", this.closePalette);
+        const editor = this.findParentByType(Editor)!;
+        Watcher.effect(() => {
+            this.active = editor.searchActive;
+        });
+    }
+    //#endregion
+
+}

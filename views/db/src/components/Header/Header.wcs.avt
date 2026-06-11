@@ -1,0 +1,161 @@
+:host {
+	align-items: center;
+	backdrop-filter: blur(12px);
+	background-color: rgba(22, 27, 34, 0.85);
+	border-bottom: 1px solid var(--border-color);
+	display: flex;
+	height: 64px;
+	justify-content: space-between;
+	padding: 0 24px;
+	user-select: none;
+	z-index: 10;
+
+	.logo-section {
+		align-items: center;
+		display: flex;
+		gap: 10px;
+
+		
+		.logo-title {
+			color: var(--text-primary);
+			font-family: 'Outfit', sans-serif;
+			font-size: 18px;
+			font-weight: 700;
+			letter-spacing: -0.5px;
+		}
+	}
+
+	.controls-section {
+		align-items: center;
+		display: flex;
+		gap: 16px;
+
+		.divider {
+			background-color: var(--border-color);
+			height: 24px;
+			width: 1px;
+		}
+
+		/* Bouton Import */
+		.btn-import {
+			align-items: center;
+			background-color: var(--bg-header);
+			border: 1px solid var(--border-color);
+			border-radius: 6px;
+			color: var(--text-primary);
+			cursor: pointer;
+			display: flex;
+			font-size: 13px;
+			font-weight: 500;
+			gap: 8px;
+			padding: 8px 16px;
+			transition: all 0.2s ease;
+
+			&:hover {
+				background-color: var(--border-color);
+				border-color: var(--text-secondary);
+			}
+
+			&.btn-save {
+				background-color: rgba(16, 185, 129, 0.15);
+				border-color: rgba(16, 185, 129, 0.3);
+				color: #10b981;
+
+				&:hover {
+					background-color: rgba(16, 185, 129, 0.3);
+					border-color: #10b981;
+					color: #fff;
+				}
+			}
+
+			&.btn-lock {
+				background-color: rgba(245, 158, 11, 0.1);
+				border-color: rgba(245, 158, 11, 0.25);
+				color: var(--color-pk);
+
+				&:hover {
+					background-color: rgba(245, 158, 11, 0.2);
+					border-color: var(--color-pk);
+				}
+
+				&.all-locked {
+					background-color: rgba(239, 68, 68, 0.15);
+					border-color: rgba(239, 68, 68, 0.3);
+					color: var(--color-area);
+
+					&:hover {
+						background-color: rgba(239, 68, 68, 0.25);
+						border-color: var(--color-area);
+					}
+				}
+			}
+		}
+
+		.file {
+			display: none;
+		}
+
+		/* Zoom Controls */
+		.zoom-controls {
+			align-items: center;
+			background-color: var(--bg-header);
+			border: 1px solid var(--border-color);
+			border-radius: 6px;
+			display: flex;
+			padding: 2px;
+
+			.btn-zoom {
+				align-items: center;
+				background: transparent;
+				border: none;
+				border-radius: 4px;
+				color: var(--text-secondary);
+				cursor: pointer;
+				display: flex;
+				height: 32px;
+				justify-content: center;
+				transition: all 0.2s;
+				width: 32px;
+
+				&:hover {
+					background-color: var(--border-color);
+					color: var(--text-primary);
+				}
+			}
+
+			.zoom-level {
+				color: var(--text-primary);
+				font-size: 12px;
+				font-weight: 600;
+				min-width: 48px;
+				padding: 0 8px;
+				text-align: center;
+			}
+		}
+
+		.btn-zoom-standalone {
+			align-items: center;
+			background-color: var(--bg-header);
+			border: 1px solid var(--border-color);
+			border-radius: 6px;
+			color: var(--text-secondary);
+			cursor: pointer;
+			display: flex;
+			height: 36px;
+			justify-content: center;
+			transition: all 0.2s;
+			width: 36px;
+
+			&:hover {
+				background-color: var(--border-color);
+				border-color: var(--text-secondary);
+				color: var(--text-primary);
+			}
+
+			&:disabled {
+				cursor: not-allowed;
+				opacity: 0.35;
+			}
+		}
+	}
+}
