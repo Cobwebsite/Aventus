@@ -1694,8 +1694,8 @@ let Effect=class Effect {
         }
         else {
             cb = (action, changePath, value, dones) => {
-                // if(changePath == path || changePath.startsWith(path + ".") || changePath.startsWith(path + "[")) {
-                if (changePath == path) {
+                if (changePath == path || changePath.startsWith(path + ".") || changePath.startsWith(path + "[")) {
+                    // if(changePath == path) {
                     this.onChange(action, changePath, value, dones);
                 }
             };

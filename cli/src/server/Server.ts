@@ -1,4 +1,4 @@
-import { LogLevel } from '@server/settings/Settings';
+import { LogLevel } from '@server/settings/LogLevel';
 import { Interaction } from '../interaction/Interaction';
 import { CliErrorsBuild } from './Connection';
 import type { RealServer } from './RealServer';

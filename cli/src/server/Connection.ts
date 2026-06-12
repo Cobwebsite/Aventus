@@ -1,5 +1,4 @@
-import { CodeAction } from 'vscode-css-languageservice';
-import { Diagnostic, PublishDiagnosticsParams, Position, CompletionList, CompletionItem, Hover, FormattingOptions, TextEdit, Range, CodeLens, Location, WorkspaceEdit, ColorInformation, Color, ColorPresentation, ExecuteCommandParams, DiagnosticSeverity } from 'vscode-languageserver';
+import { Diagnostic, PublishDiagnosticsParams, Position, CompletionList, CompletionItem, Hover, FormattingOptions, TextEdit, Range, CodeLens, Location, WorkspaceEdit, ColorInformation, Color, ColorPresentation, ExecuteCommandParams, DiagnosticSeverity, CodeAction } from 'vscode-languageserver';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Notifications } from './notification/index';
 import { dirname, join } from 'path';
@@ -91,9 +90,9 @@ export class CliConnection implements IConnection {
 	}
 	onInitialize(cb: (params: AvInitializeParams) => void) {
 		let extensionPath = dirname(__dirname);
-		if (__filename.endsWith("Connection.js")) {
+		if (__APP_DEBUG__) {
 			// dev
-			extensionPath = dirname(dirname(dirname(__dirname)));
+			extensionPath = dirname(dirname(__dirname));
 		}
 
 		const params: AvInitializeParams = {

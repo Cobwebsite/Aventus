@@ -58,13 +58,16 @@
 			"name": "Launch CLI Test",
 			"program": "${workspaceFolder}/cli/out/cli.js",
 			"args": [
-				"dependances",
-				"help-llm"
+				"check"
 			],
-			"cwd": "D:/Spalio/Web",
+			"cwd": "C:/Projets/Tableau/tableauApp/Front",
 			"outFiles": [
 				"${workspaceFolder}/cli/out/**/*.js"
-			]
+			],
+			"preLaunchTask": {
+				"type": "npm",
+				"script": "watch:cli",
+			}
 		}
 	],
 	"compounds": [

@@ -71,6 +71,7 @@ export function withDefaults(extConfig) {
 			transform: {
 				define: {
 					'__APP_VERSION__': `"${version}"`,
+					'__APP_DEBUG__': isProduction ? `false` : `true`
 				},
 			},
 			...config,

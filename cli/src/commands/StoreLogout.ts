@@ -1,7 +1,5 @@
 import { Action, ActionOption, ArgOption } from './Action';
 import { Server } from '../server/Server';
-import { resolve } from 'path';
-import { LogLevel } from '@server/settings/Settings';
 import { Interaction } from '../interaction/Interaction';
 
 type StoreLogoutOptions = {

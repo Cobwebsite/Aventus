@@ -836,7 +836,8 @@
 		"package:cli": "node ./cli/build.mjs",
 		"_package:cli": "rimraf cli/lib && rimraf cli/out && cross-env NODE_ENV=production rolldown -c ./cli/rolldown.config.mjs",
 		"test": "jest",
-		"watch": "concurrently \"npm run dev:server\" \"npm run dev:client\" -n \"server,client\""
+		"watch": "concurrently \"npm run dev:server\" \"npm run dev:client\" -n \"server,client\"",
+		"watch:cli": "concurrently \"npm run dev:server\" \"npm run dev:cli\" -n \"server,cli\""
 	},
 	"devDependencies": {
 		"@aventusjs/storybook": "^0.0.18",

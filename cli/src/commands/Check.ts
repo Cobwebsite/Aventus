@@ -1,9 +1,8 @@
 import { Action, ActionOption, ArgOption } from './Action';
 import { Server } from '../server/Server';
 import { resolve, sep } from 'path';
-import { LogLevel } from '@server/settings/Settings';
-import { DiagnosticSeverity } from 'vscode-css-languageservice';
-import { uriToPath } from '../tools';
+import { DiagnosticSeverity, uriToPath } from '../tools';
+import { LogLevel } from '@server/settings/LogLevel';
 
 type CheckOptions = {
 	builds?: string[] | false,
