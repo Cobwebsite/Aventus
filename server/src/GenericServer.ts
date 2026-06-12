@@ -3,7 +3,7 @@ import { AvInitializeParams, IConnection, InputOptions, SelectItem, SelectOption
 import { FilesManager } from './files/FilesManager';
 import { FilesWatcher } from './files/FilesWatcher';
 import { ProjectManager } from './project/ProjectManager';
-import { LogLevel, Settings, SettingsManager } from './settings/Settings';
+import { Settings, SettingsManager } from './settings/Settings';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AventusExtension } from './definition';
 import { ColorPicker } from './color-picker/ColorPicker';
@@ -21,6 +21,7 @@ import { appendFileSync, existsSync, readdirSync, writeFileSync } from 'fs';
 import { updatesScripts } from './updates';
 import { InitStep } from './notification/InitStep';
 import { execAsync } from './tools';
+import { LogLevel } from './settings/LogLevel';
 
 
 export class GenericServer {

@@ -1,15 +1,10 @@
 import { join } from 'path'
 import { GenericServer } from '../GenericServer'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
+import { LogLevel } from './LogLevel'
 
 
-export enum LogLevel {
-	Debug,
-	Information,
-	Warning,
-	Error,
-	None
-}
+
 export type LiveServerSettings = {
 	host: string,
 	autoIncrementPort: boolean

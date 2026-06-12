@@ -1,9 +1,9 @@
 import { resolve, sep } from 'path';
 import { Server } from '../server/Server';
 import { Action, ActionOption, ArgOption } from './Action';
-import { DiagnosticSeverity } from 'vscode-css-languageservice';
-import { LogLevel } from '@server/settings/Settings';
-import { parseSize, uriToPath } from '../tools';
+import { DiagnosticSeverity, parseSize, uriToPath } from '../tools';
+import { LogLevel } from '@server/settings/LogLevel';
+
 
 type BuildOptions = {
 	builds?: string[] | false,
@@ -117,7 +117,7 @@ export class Build extends Action<BuildOptions> {
 		const filesByBuilds: { [build: string]: string[] } = {}
 		const filesByStatics: { [name: string]: string[] } = {}
 
-		
+
 		for (let output in statistics.files) {
 			const file = statistics.files[output];
 			if (file.type == "build" && file.typeName) {
@@ -317,7 +317,7 @@ export class Build extends Action<BuildOptions> {
 				result.statics[file.typeName].outputSize[path] = parseSize(file.size)
 			}
 		}
-		
+
 		for (let build in statistics.builds) {
 			checkBuild(build)
 

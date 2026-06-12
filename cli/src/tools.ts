@@ -1,4 +1,5 @@
 import { sep } from 'path';
+import { DiagnosticSeverity as vsDiag } from 'vscode-languageserver';
 
 export function uriToPath(uri: string): string {
 	if (sep === "/") {
@@ -36,4 +37,11 @@ export function parseSize(size: number) {
 	const i = size == 0 ? 0 : Math.floor(Math.log(size) / Math.log(k))
 
 	return `${parseFloat((size / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
+}
+
+export const DiagnosticSeverity: Record<string, vsDiag> = {
+	"Error": vsDiag.Error,
+	"Warning": vsDiag.Warning,
+	"Information": vsDiag.Information,
+	"Hint": vsDiag.Hint
 }
