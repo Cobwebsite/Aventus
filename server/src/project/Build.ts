@@ -14,7 +14,7 @@ import { AventusSCSSLanguageService } from "../language-services/scss/LanguageSe
 import { AventusWebComponentLogicalFile } from "../language-services/ts/component/File";
 import { AventusTsFile } from "../language-services/ts/File";
 import { AventusTsFileSelector } from '../language-services/ts/FileSelector';
-import { AventusTsLanguageService, CompileDependance, CompileTsResult } from "../language-services/ts/LanguageService";
+import { AventusTsLanguageService, CompileDependency, CompileTsResult } from "../language-services/ts/LanguageService";
 import { ClassInfo } from '../language-services/ts/parser/ClassInfo';
 import { HttpServer } from '../live-server/HttpServer';
 import { Compiled } from '../notification/Compiled';
@@ -23,7 +23,7 @@ import { UnregisterBuild } from '../notification/UnregisterBuild';
 import { createErrorTsPos, getFolder, replaceNotImportAliases, simplifyUri, Timer, uriToPath, writeFile } from "../tools";
 import { Project } from "./Project";
 import { AventusGlobalSCSSLanguageService } from '../language-services/scss/GlobalLanguageService';
-import { DependanceManager } from './DependanceManager';
+import { DependencyManager } from './DependencyManager';
 import { AventusPackageFile, AventusPackageTsFileExport, AventusPackageTsFileExportNoCode } from '../language-services/ts/package/File';
 import { minify } from 'terser';
 import { InfoType } from '../language-services/ts/parser/BaseInfo';
@@ -62,7 +62,7 @@ export type LocalCodeResult = {
             names: string[],
             content: string[],
             imports: { [uri: string]: string[] },
-            forcedDependances: string[],
+            forcedDependencies: string[],
             sourceUri: string[]
         }
     },
@@ -93,10 +93,10 @@ export class Build {
 
     public externalPackageInformation: ExternalPackageInformation = new ExternalPackageInformation(this);
 
-    private dependanceNeedUris: string[] = [];
-    private dependanceFullUris: string[] = [];
+    private dependencyNeedUris: string[] = [];
+    private dependencyFullUris: string[] = [];
     // order uri file to parse inside build
-    public dependanceUris: string[] = [];
+    public dependencyUris: string[] = [];
     public diagnostics: Map<AventusBaseFile, Diagnostic[]> = new Map();
 
 
@@ -174,7 +174,7 @@ export class Build {
 
         this.stories = new Storie(this, buildConfig);
 
-        this._outputPathes = [join(DependanceManager.getInstance().getPath(), "@locals", buildConfig.fullname + AventusExtension.Package).replace(/\\/g, '/')];
+        this._outputPathes = [join(DependencyManager.getInstance().getPath(), "@locals", buildConfig.fullname + AventusExtension.Package).replace(/\\/g, '/')];
         for (let compile of buildConfig.compile) {
             for (let outputPackage of compile.package) {
                 this._outputPathes.push(outputPackage.replace(/\\/g, '/'));
@@ -622,6 +622,9 @@ export class Build {
             let npmName = outputNpm.npmName == '' ? ("@" + this.buildConfig.module + "/" + this.buildConfig.name).toLowerCase() : outputNpm.npmName;
             finaltxt += '// npm:' + npmName + EOL;
         }
+        if (this.buildConfig.description) {
+            finaltxt += '/* description:' + this.buildConfig.description + ' */' + EOL;
+        }
         finaltxt += "//#region js def //" + EOL + finaltxtJs;
         finaltxt += "//#endregion js def //" + EOL;
         finaltxt += "//#region js src //" + EOL + JSON.stringify(srcInfo) + EOL;
@@ -635,9 +638,9 @@ export class Build {
         finaltxt += "//#region html //" + EOL;
         finaltxt += JSON.stringify(result.htmlDoc) + EOL;
         finaltxt += "//#endregion html //" + EOL;
-        finaltxt += "//#region dependances //" + EOL;
-        finaltxt += JSON.stringify(this.buildConfig.rawDependances) + EOL;
-        finaltxt += "//#endregion dependances //" + EOL;
+        finaltxt += "//#region dependencies //" + EOL;
+        finaltxt += JSON.stringify(this.buildConfig.rawDependencies) + EOL;
+        finaltxt += "//#endregion dependencies //" + EOL;
 
         for (let outputPackage of outputsPackage) {
             if (outputPackage) {
@@ -648,7 +651,7 @@ export class Build {
             }
         }
 
-        let pathPackages = join(DependanceManager.getInstance().getPath(), "@locals");
+        let pathPackages = join(DependencyManager.getInstance().getPath(), "@locals");
         if (!existsSync(pathPackages)) {
             mkdirSync(pathPackages, { recursive: true });
         }
@@ -698,7 +701,7 @@ export class Build {
                 txt += EOL;
             }
             txt += result.npmsrc[path].content.join(EOL);
-            txt = AventusTsLanguageService.removeUnusedImport(txt, result.npmsrc[path].forcedDependances);
+            txt = AventusTsLanguageService.removeUnusedImport(txt, result.npmsrc[path].forcedDependencies);
 
             if (manifest) {
                 for (let uri of result.npmsrc[path].sourceUri) {
@@ -839,7 +842,7 @@ export class Build {
                 let file = this.externalPackageInformation.getByUri(uri);
                 if (!file) continue;
                 if (!file.npmUri) continue;
-                // avoid add self dependance
+                // avoid add self dependency
                 if (file.name == this.buildConfig.fullname) continue
 
                 if (realPackageJson.dependencies && realPackageJson.dependencies[file.npmUri]) {
@@ -1017,8 +1020,8 @@ export class Build {
             namespaceWithDot = namespace + '.'
         }
 
-        /** Prepare the right dependances for a class (local, external, npm and uri) */
-        const prepareDependances = (deps: { fullName: string; uri: string; isStrong: boolean }[], currentUri: string): { fullName: string; isStrong: boolean }[] => {
+        /** Prepare the right dependencies for a class (local, external, npm and uri) */
+        const prepareDependencies = (deps: { fullName: string; uri: string; isStrong: boolean }[], currentUri: string): { fullName: string; isStrong: boolean }[] => {
             let result: { fullName: string; isStrong: boolean }[] = [];
             for (let dep of deps) {
                 let depName = "";
@@ -1093,7 +1096,7 @@ export class Build {
                     if (!renderInJsByFullname[info.classScript]) {
                         renderInJsByFullname[info.classScript] = {
                             code: replaceNotImportAliases(info.compiled, this.project.getConfig()),
-                            dependances: prepareDependances(info.dependances, info.uri),
+                            dependencies: prepareDependencies(info.dependencies, info.uri),
                             fullName: info.classScript,
                             required: info.required,
                             noNamespace: noNamespace,
@@ -1109,13 +1112,13 @@ export class Build {
                     if (info.classScript != "" && !notRenderInJsByFullname[info.classScript] && !info.classScript.startsWith("!staticClass_")) {
                         notRenderInJsByFullname[info.classScript] = {
                             fullName: info.classScript,
-                            dependances: prepareDependances(info.dependances, info.uri),
+                            dependencies: prepareDependencies(info.dependencies, info.uri),
                         }
                     }
                     if (info.classDoc != "" && !notRenderInJsByFullname[info.classDoc] && !info.classDoc.startsWith("!staticClass_")) {
                         notRenderInJsByFullname[info.classDoc] = {
                             fullName: info.classScript,
-                            dependances: prepareDependances(info.dependances, info.uri),
+                            dependencies: prepareDependencies(info.dependencies, info.uri),
                         }
                     }
                 }
@@ -1141,7 +1144,7 @@ export class Build {
                             content: [],
                             imports: {},
                             names: [],
-                            forcedDependances: [],
+                            forcedDependencies: [],
                             sourceUri: []
                         }
                     }
@@ -1170,7 +1173,7 @@ export class Build {
                     if (!renderInJsByFullname[exportName]) {
                         renderInJsByFullname[exportName] = {
                             code: replaceNotImportAliases(info.compiled, this.project.getConfig()),
-                            dependances: prepareDependances(info.dependances, info.uri),
+                            dependencies: prepareDependencies(info.dependencies, info.uri),
                             fullName: exportName,
                             required: info.required,
                             type: info.type,
@@ -1186,14 +1189,14 @@ export class Build {
                         let exportName = namespaceWithDot + info.classScript;
                         notRenderInJsByFullname[info.classScript] = {
                             fullName: exportName,
-                            dependances: prepareDependances(info.dependances, info.uri),
+                            dependencies: prepareDependencies(info.dependencies, info.uri),
                         }
                     }
                     if (info.classDoc != "" && !notRenderInJsByFullname[info.classDoc] && !info.classDoc.startsWith("!staticClass_")) {
                         let exportName = namespaceWithDot + info.classDoc;
                         notRenderInJsByFullname[info.classDoc] = {
                             fullName: exportName,
-                            dependances: prepareDependances(info.dependances, info.uri),
+                            dependencies: prepareDependencies(info.dependencies, info.uri),
                         }
                     }
                 }
@@ -1210,7 +1213,19 @@ export class Build {
                             imports: {}
                         };
                     }
-                    const txt = info.isExported.external ? "export " + info.npm.defTs : info.npm.defTs;
+                    let txt = info.npm.defTs;
+                    if (info.isExported.external) {
+                        if (txt.startsWith("/**")) {
+                            const match = /\/\*\*(\s|\S)*?\*\/((\r)?(\n)?)*/.exec(txt);
+                            if (match) {
+                                txt = txt.replace(match[0], match[0] + "export ");
+
+                            }
+                        }
+                        else {
+                            txt = "export " + txt;
+                        }
+                    }
                     result.npm[info.npm.namespace].content.push(txt);
                     let importsNpm = this.tsFiles[info.npm.uri].fileParsed?.npmGeneratedImport;
                     if (importsNpm) {
@@ -1235,7 +1250,7 @@ export class Build {
                             content: [],
                             imports: {},
                             names: [],
-                            forcedDependances: [],
+                            forcedDependencies: [],
                             sourceUri: []
                         }
                         let fileParsed = this.tsFiles[info.npm.uri].fileParsed;
@@ -1247,7 +1262,7 @@ export class Build {
                                     let manualImports = fileParsed?.manualImportLocal ?? {};
                                     for (let infoImport of importsNpm[_packageUri]) {
                                         let importInfo = imports[infoImport.name] ?? manualImports[infoImport.nameAlias ?? infoImport.name];
-                                        if (!importInfo) continue; // it means its a local dependance (same file)
+                                        if (!importInfo) continue; // it means its a local dependency (same file)
                                         if (importInfo.isTypeImport) continue;
                                         let fileToImportUri = importInfo.info?.fileUri ?? '';
                                         let currentUri = info.npm.uri;
@@ -1259,7 +1274,7 @@ export class Build {
                                         const nameWithAlias = infoImport.alias ? infoImport.name + ' as ' + infoImport.alias : infoImport.name;
                                         result.npmsrc[info.npm.exportPath].imports[finalPath].push(nameWithAlias);
                                         if (infoImport.forced) {
-                                            result.npmsrc[info.npm.exportPath].forcedDependances.push(infoImport.alias ?? infoImport.name);
+                                            result.npmsrc[info.npm.exportPath].forcedDependencies.push(infoImport.alias ?? infoImport.name);
                                         }
                                     }
                                 }
@@ -1272,7 +1287,7 @@ export class Build {
                                             const nameWithAlias = infoImport.alias ? infoImport.name + ' as ' + infoImport.alias : infoImport.name;
                                             result.npmsrc[info.npm.exportPath].imports[_packageUri + "/index.js"].push(nameWithAlias);
                                             if (infoImport.forced) {
-                                                result.npmsrc[info.npm.exportPath].forcedDependances.push(infoImport.alias ?? infoImport.name);
+                                                result.npmsrc[info.npm.exportPath].forcedDependencies.push(infoImport.alias ?? infoImport.name);
                                             }
                                         }
                                     }
@@ -1355,7 +1370,7 @@ export class Build {
         let loadedInfoExternal: { [uri: string]: string[] } = {};
         let localUri = '@local';
         /**
-         * Load information for a class and the dependances needed
+         * Load information for a class and the dependencies needed
          */
         const loadAndOrderInfo = (info: { fullName: string; isStrong: boolean }, isLocal: boolean, indexByUri: { [uri: string]: number }, alreadyLooked: { [name: string]: (() => void)[] }, alreadyLookedStrong: { [name: string]: boolean }): { [uri: string]: number } | Promise<{ [uri: string]: string }> => {
             const fullName = info.fullName.replace("$namespace$", '');
@@ -1380,9 +1395,9 @@ export class Build {
             if (alreadyLooked[fullName] !== undefined) {
 
                 if (info.isStrong) {
-                    // loop on a strong dependance => infinite loop 
+                    // loop on a strong dependency => infinite loop 
                     if (alreadyLookedStrong[fullName] !== undefined) {
-                        errorsTxt.push('You have an infinite loop with your strong dependance [' + fullName + ']');
+                        errorsTxt.push('You have an infinite loop with your strong dependency [' + fullName + ']');
                         return indexByUri;
                     }
 
@@ -1422,31 +1437,31 @@ export class Build {
 
                     let infoInternal = localClassByFullName[fullName];
                     let insertIndex = 0;
-                    let dependances = [...infoInternal.dependances];
+                    let dependencies = [...infoInternal.dependencies];
                     if (fullName.includes(".")) {
                         const namespaceArr = fullName.split(".")
                         namespaceArr.pop();
                         const namespace = namespaceArr.join(".");
                         const containerClass = localClassByFullName[namespace];
                         if (containerClass && containerClass != infoInternal) {
-                            dependances.push({
+                            dependencies.push({
                                 fullName: containerClass.classScript,
                                 isStrong: true,
                                 uri: containerClass.uri
                             })
                         }
                     }
-                    for (let dependance of dependances) {
-                        if (dependance.uri == "@npm") {
+                    for (let dependency of dependencies) {
+                        if (dependency.uri == "@npm") {
                             continue;
                         }
 
                         let cloneBeforeLoop = { ...indexByUri };
                         // load info to force insert before
-                        if (dependance.uri == "@external") {
-                            const resultTemp = loadAndOrderInfo(dependance, false, indexByUri, alreadyLooked, {});
+                        if (dependency.uri == "@external") {
+                            const resultTemp = loadAndOrderInfo(dependency, false, indexByUri, alreadyLooked, {});
                             if (resultTemp instanceof Promise) {
-                                if (dependance.isStrong) {
+                                if (dependency.isStrong) {
                                     promises.push(resultTemp);
                                 }
                             }
@@ -1455,11 +1470,11 @@ export class Build {
                             }
                         }
                         else {
-                            if (dependance.isStrong) {
-                                let fullNameDep = dependance.fullName.replace("$namespace$", '');
+                            if (dependency.isStrong) {
+                                let fullNameDep = dependency.fullName.replace("$namespace$", '');
                                 if (fullNameDep != fullName) {
 
-                                    const resultTemp = loadAndOrderInfo(dependance, true, indexByUri, alreadyLooked, alreadyLookedStrong);
+                                    const resultTemp = loadAndOrderInfo(dependency, true, indexByUri, alreadyLooked, alreadyLookedStrong);
                                     if (resultTemp instanceof Promise) {
                                         promises.push(resultTemp);
                                     }
@@ -1474,7 +1489,7 @@ export class Build {
                             }
                             else {
                                 let oldLength = result.toCompile.length;
-                                const resultTemp = loadAndOrderInfo(dependance, true, indexByUri, alreadyLooked, {});
+                                const resultTemp = loadAndOrderInfo(dependency, true, indexByUri, alreadyLooked, {});
                                 if (!(resultTemp instanceof Promise)) {
                                     indexByUri = resultTemp
                                     if (indexByUri[uri] && indexByUri[uri] >= 0 && indexByUri[uri] > insertIndex) {
@@ -1528,8 +1543,8 @@ export class Build {
                         // it s an error
                         return;
                     }
-                    if (!this.dependanceUris.includes(uri)) {
-                        // don't need to load the lib because not include inside build (care change this if want to load dependance of depenande not included)
+                    if (!this.dependencyUris.includes(uri)) {
+                        // don't need to load the lib because not include inside build (care change this if want to load dependency of depenande not included)
                         return;
                     }
                     if (!loadedInfoExternal[uri]) {
@@ -1544,12 +1559,12 @@ export class Build {
                     let insertIndex = 0;
                     if (infoExternal.content != 'noCode') {
 
-                        for (let dependance of infoExternal.content.dependances) {
+                        for (let dependency of infoExternal.content.dependencies) {
                             let cloneBeforeLoop = { ...indexByUri };
-                            let strongDep = dependance.isStrong ? alreadyLookedStrong : {};
-                            const resultTemp = loadAndOrderInfo(dependance, false, indexByUri, alreadyLooked, strongDep);
+                            let strongDep = dependency.isStrong ? alreadyLookedStrong : {};
+                            const resultTemp = loadAndOrderInfo(dependency, false, indexByUri, alreadyLooked, strongDep);
                             if (resultTemp instanceof Promise) {
-                                if (dependance.isStrong) {
+                                if (dependency.isStrong) {
                                     promises.push(resultTemp);
                                 }
                             }
@@ -1694,7 +1709,7 @@ export class Build {
         await Promise.all(allProms);
         allProms = [];
         // add required code for lib
-        for (let libUri of this.dependanceNeedUris) {
+        for (let libUri of this.dependencyNeedUris) {
             let requiredInfos = this.externalPackageInformation.getInformationsRequired(libUri);
             if (!loadedInfoExternal[libUri]) {
                 loadedInfoExternal[libUri] = [];
@@ -1712,7 +1727,7 @@ export class Build {
         await Promise.all(allProms);
         allProms = [];
 
-        for (let libUri of this.dependanceFullUris) {
+        for (let libUri of this.dependencyFullUris) {
             if (!loadedInfoExternal[libUri]) {
                 loadedInfoExternal[libUri] = [];
             }
@@ -1733,7 +1748,7 @@ export class Build {
         // build code for each lib
         let libSrc: { lib: string, code: string }[] = []
         let needI18n = this.buildConfig.i18n && this.buildConfig.i18n.autoRegister !== false;
-        for (let libUri of this.dependanceUris) {
+        for (let libUri of this.dependencyUris) {
             let libInfo: {
                 namespace: string,
                 code: string[],
@@ -1914,10 +1929,10 @@ export class Build {
 
 
         if (errorsTxt.length > 0) {
-            let uri = this.buildConfig.fullname + "_dependanceErrors";
+            let uri = this.buildConfig.fullname + "_dependencyErrors";
             DebugFileAdd.send(uri, errorsTxt.join("\r\n"));
             result.errors.push({
-                title: "Dependances errors",
+                title: "Dependencies errors",
                 file: uri
             })
         }
@@ -1947,7 +1962,7 @@ export class Build {
             }
         }
 
-        for (let libUri of this.dependanceNeedUris) {
+        for (let libUri of this.dependencyNeedUris) {
             let infos = this.externalPackageInformation.getInformationsRequired(libUri);
             for (let info of infos) {
                 if (info.code) {
@@ -1956,7 +1971,7 @@ export class Build {
             }
         }
 
-        for (let libUri of this.dependanceFullUris) {
+        for (let libUri of this.dependencyFullUris) {
             let infos = this.externalPackageInformation.getFullInformations(libUri);
             for (let info of infos) {
                 if (info.code) {
@@ -1992,11 +2007,11 @@ export class Build {
     private async loadFiles() {
         Statistics.startSendBuildTime(this.buildConfig.fullname);
         this.allowBuild = false;
-        let dependancesInfo = await DependanceManager.getInstance().loadDependancesFromBuild(this.buildConfig, this);
-        this.dependanceFullUris = dependancesInfo.dependanceFullUris;
-        this.dependanceNeedUris = dependancesInfo.dependanceNeedUris;
-        this.dependanceUris = dependancesInfo.dependanceUris;
-        this.externalPackageInformation.init(dependancesInfo.files);
+        let dependenciesInfo = await DependencyManager.getInstance().loadDependenciesFromBuild(this.buildConfig, this);
+        this.dependencyFullUris = dependenciesInfo.dependencyFullUris;
+        this.dependencyNeedUris = dependenciesInfo.dependencyNeedUris;
+        this.dependencyUris = dependenciesInfo.dependencyUris;
+        this.externalPackageInformation.init(dependenciesInfo.files);
         let fileManager = FilesManager.getInstance();
         if (this.buildConfig.srcPathRegex) {
             let files: AventusFile[] = fileManager.getFilesMatching(this.buildConfig.srcPathRegex);
@@ -2116,7 +2131,7 @@ export class Build {
         }
         return;
     }
-    public getWebComponentTagDependance(tagName: string): CompileDependance | null {
+    public getWebComponentTagDependency(tagName: string): CompileDependency | null {
         let result = this.htmlLanguageService.getInternalTagUri(tagName);
         if (result) {
             const regex = new RegExp("^" + this.module + "\\.")
@@ -2410,7 +2425,7 @@ class ExternalPackageInformation {
         if (this.informations[fullName]) {
             let file = this.files[this.informations[fullName].uri];
             if (!file.npmUri && this.build.initDone) {
-                GenericServer.showErrorMessage("Can't find a npm package for " + file.name + ". You must define the npm field inside the dependances section of your aventus.conf.avt. Otherwise, you can disable storybook or remove npm export.");
+                GenericServer.showErrorMessage("Can't find a npm package for " + file.name + ". You must define the npm field inside the dependencies section of your aventus.conf.avt. Otherwise, you can disable storybook or remove npm export.");
             }
             const splitted = fullName.split(".");
             let name = splitted.pop() as string;

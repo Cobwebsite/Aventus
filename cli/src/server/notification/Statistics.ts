@@ -44,7 +44,7 @@ export class Statistics {
 
 	public static sizeFile = {
 		cmd: "aventus/statistics/fileSize",
-		action: (path: string, size: number, type: "build" | "static" | "storybook", typeName?: string) => {
+		action: (path: string, size: number, type: "build" | "static" | "storybook" | "manifest", typeName?: string) => {
 			this.info.files[path] = {
 				path: path,
 				size: size,

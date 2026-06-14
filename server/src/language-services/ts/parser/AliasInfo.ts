@@ -11,7 +11,7 @@ export class AliasInfo extends BaseInfo {
 		super(node, namespaces, parserInfo);
 		this.node = node;
 		this.type = new TypeInfo(this.node.type);
-		this.loadOnlyDependancesRecu(node);
+		this.loadOnlyDependenciesRecu(node);
 	}
 
 	protected defineStoryContent(): IStoryContentType {

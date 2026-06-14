@@ -1,0 +1,19 @@
+{
+  "html": {
+    "snippets": {
+      "av-progress-circle": "<av-progress-circle>${1}</av-progress-circle>",
+      "av-router-link": "<av-router-link>${1}</av-router-link>",
+      "av-link": "<av-link>${1}</av-link>",
+      "av-row": "<av-row>${1}</av-row>",
+      "av-collapse": "<av-collapse>${1}</av-collapse>",
+      "av-col": "<av-col>${1}</av-col>",
+      "av-img": "<av-img>${1}</av-img>",
+      "av-form": "<av-form>${1}</av-form>",
+      "av-grid-helper": "<av-grid-helper>${1}</av-grid-helper>",
+      "av-grid-guide-helper": "<av-grid-guide-helper>${1}</av-grid-guide-helper>",
+      "av-scrollable": "<av-scrollable>${1}</av-scrollable>",
+      "av-default-404": "<av-default-404>${1}</av-default-404>",
+      "av-toast-manager": "<av-toast-manager>${1}</av-toast-manager>"
+    }
+  }
+}

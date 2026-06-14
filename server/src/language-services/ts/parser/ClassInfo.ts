@@ -51,7 +51,7 @@ export class ClassInfo extends BaseInfo {
 			return "";
 		}
 		let txt = this.constructorBody.getText();
-		txt = BaseInfo.getContent(txt, this.constructorBody.getStart(), this.constructorBody.getEnd(), this.dependancesLocations, this.compileTransformations);
+		txt = BaseInfo.getContent(txt, this.constructorBody.getStart(), this.constructorBody.getEnd(), this.dependenciesLocations, this.compileTransformations);
 		const _params = (this.constructorBody.parent as ConstructorDeclaration).parameters.map(p => p.getText()).join(", ");
 		return `constructor(${_params}) ` + txt;
 	}
@@ -68,7 +68,7 @@ export class ClassInfo extends BaseInfo {
 			return "";
 		}
 		let txt = this.constructorBody.getText();
-		txt = BaseInfo.getContentHotReload(txt, this.constructorBody.getStart(), this.constructorBody.getEnd(), this.dependancesLocations, this.compileTransformations);
+		txt = BaseInfo.getContentHotReload(txt, this.constructorBody.getStart(), this.constructorBody.getEnd(), this.dependenciesLocations, this.compileTransformations);
 		const _params = (this.constructorBody.parent as ConstructorDeclaration).parameters.map(p => p.getText()).join(", ");
 		return `constructor(${_params}) ` + txt;
 	}
@@ -85,7 +85,7 @@ export class ClassInfo extends BaseInfo {
 			return "";
 		}
 		let txt = this.constructorBody.getText();
-		txt = BaseInfo.getContentNpm(txt, this.constructorBody.getStart(), this.constructorBody.getEnd(), this.dependancesLocations, this.compileTransformations);
+		txt = BaseInfo.getContentNpm(txt, this.constructorBody.getStart(), this.constructorBody.getEnd(), this.dependenciesLocations, this.compileTransformations);
 		const _params = (this.constructorBody.parent as ConstructorDeclaration).parameters.map(p => p.getText()).join(", ");
 		return `constructor(${_params}) ` + txt;
 	}
@@ -222,7 +222,7 @@ export class ClassInfo extends BaseInfo {
 					this.compileTransformations[key] = result.accessibilityModifierTransformation
 				}
 			}
-			this.loadOnlyDependancesRecu(x, 0, isStrong);
+			this.loadOnlyDependenciesRecu(x, 0, isStrong);
 		});
 
 		this.loadConvertible();
@@ -239,7 +239,7 @@ export class ClassInfo extends BaseInfo {
 					if (this.build.hasStories) {
 						this.extendsType = new TypeInfo(x as ExpressionWithTypeArguments);
 					}
-					this.addDependanceWaitName(x as ExpressionWithTypeArguments, true, (names, namesNpm) => {
+					this.addDependencyWaitName(x as ExpressionWithTypeArguments, true, (names, namesNpm) => {
 						if (names.length > 0) {
 							this.extends.push(names[0]);
 							if (this.extends.length == 1) {
@@ -261,7 +261,7 @@ export class ClassInfo extends BaseInfo {
 					});
 
 					forEachChild(x, y => {
-						this.loadOnlyDependancesRecu(y, 0, true);
+						this.loadOnlyDependenciesRecu(y, 0, true);
 					})
 				}
 			})
@@ -272,7 +272,7 @@ export class ClassInfo extends BaseInfo {
 					if (this.build.hasStories) {
 						this.implementsType.push(new TypeInfo(x as ExpressionWithTypeArguments));
 					}
-					this.addDependanceWaitName(x as ExpressionWithTypeArguments, true, (names) => {
+					this.addDependencyWaitName(x as ExpressionWithTypeArguments, true, (names) => {
 						if (names.length > 0) {
 							for (let name of names) {
 								this.implements.push(name);
@@ -349,7 +349,7 @@ export class ClassInfo extends BaseInfo {
 		}
 	}
 
-	protected addDependanceNameCustomCheck(name: string): boolean {
+	protected addDependencyNameCustomCheck(name: string): boolean {
 		if (this.parameters.includes(name) || this.methodParameters.includes(name)) {
 			return false;
 		}

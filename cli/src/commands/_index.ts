@@ -1,35 +1,48 @@
 import { Command } from 'commander';
-import { Action } from './Action';
+import { Action, ActionGroup } from './Action';
 import { Build } from './Build'
 import { Dev } from './Dev'
 import { Check } from './Check';
 import { Format } from './Format';
-import { StoreLogin } from './StoreLogin';
-import { StoreLogout } from './StoreLogout';
-import { StorePublish } from './StorePublish';
+import { StoreLogin } from './store/StoreLogin';
+import { StoreLogout } from './store/StoreLogout';
+import { StorePublish } from './store/StorePublish';
 import { Create } from './Create';
-import { ImportTemplate } from './ImportTemplate';
-import { ImportProject } from './ImportProject';
-import { UninstallProject } from './UninstallProject';
-import { UninstallTemplate } from './UninstallTemplate';
-import { LiveServer } from './LiveServer';
-import { Dependance } from './ai/Dependance';
+import { ImportTemplate } from './template/InstallTemplate';
+import { InstallProject } from './project/InstallProject';
 
-const actions: (new () => Action<any>)[] = [
-	Build,
+import { Serve } from './Serve';
+import { HelpLLM } from './dependencies/HelpLLM';
+import { UninstallProject } from './project/UninstallProject';
+import { UninstallTemplate } from './template/UninstallTemplate';
+import { Project } from './Project';
+import { Template } from './Template';
+import { Dependencies as Dependencies } from './Dependencies';
+import { Store } from './Store';
+
+const actions: ((new () => Action<any>) | (new () => ActionGroup))[] = [
 	Create,
 	Dev,
+	Serve,
+	Build,
 	Check,
 	Format,
+
+	Dependencies,
+	HelpLLM,
+
+	Project,
+	InstallProject,
+	UninstallProject,
+
+	Template,
+	ImportTemplate,
+	UninstallTemplate,
+
+	Store,
 	StoreLogin,
 	StoreLogout,
 	StorePublish,
-	ImportTemplate,
-	ImportProject,
-	UninstallProject,
-	UninstallTemplate,
-	LiveServer,
-	Dependance
 ]
 
 

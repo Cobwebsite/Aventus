@@ -20,11 +20,13 @@ namespace Toast {
         /**
          * Defines where the toast should appear on the screen.
          */
+        @StoryValue('top right')
         @Attribute()
         public position: ToastPosition = ToastManager.defaultPosition;
         /**
          * The duration (in milliseconds) before the toast automatically closes. Use -1 for an infinite timer.
          */
+        @StoryValue(5000)
         @Attribute()
         public delay: number = ToastManager.defaultDelay;
 

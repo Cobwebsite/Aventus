@@ -1,7 +1,7 @@
 import { ActionGuard, Callback, Instance, Watcher, WebComponent } from "Aventus@Main:Aventus.package.avt";
 
 
-@Dependances([{ type: WebComponent, strong: true }])
+@Dependencies([{ type: WebComponent, strong: true }])
 export class I18nClass {
     private currentLocale: string = "en-GB";
     private availableLocales: string[] = [];

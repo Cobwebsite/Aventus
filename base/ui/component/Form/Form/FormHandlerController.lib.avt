@@ -1,4 +1,4 @@
-import type { Asyncable } from "Aventus@Main:Aventus.package.avt";
+import type { Asyncable, Last } from "Aventus@Main:Aventus.package.avt";
 import { FormHandler } from "./FormHandler.lib.avt";
 import type { ExtractError, FormHandlerConfig, FormSchema } from "./FormType.lib.avt";
 

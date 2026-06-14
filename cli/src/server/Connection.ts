@@ -13,6 +13,8 @@ export type CliErrorsBuild = { [uri: string]: Diagnostic[] };
 
 export class CliConnection implements IConnection {
 
+	public notifications = Notifications;
+
 	public errorsByBuildByFile: CliErrors = {};
 	public cbErrors: ((errors: CliErrorsBuild, build: string) => void)[] = [];
 	public _connection: FakeConnection;
@@ -30,9 +32,9 @@ export class CliConnection implements IConnection {
 		return 0;
 	}
 	sendNotification(cmd: string, params: any[]): void {
-		if (Notifications.allNotifications[cmd]) {
-			let fct = Notifications.allNotifications[cmd].action as any;
-			fct.call(Notifications.allNotifications[cmd], ...params);
+		if (this.notifications.allNotifications[cmd]) {
+			let fct = this.notifications.allNotifications[cmd].action as any;
+			fct.call(this.notifications.allNotifications[cmd], ...params);
 		}
 	}
 	showErrorMessage(msg: string): void {

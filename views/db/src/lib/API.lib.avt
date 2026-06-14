@@ -1,15 +1,21 @@
+import { DEFAULT_SCHEMA } from "./DefaultSchema.lib.avt";
 import type { Schema } from "./Definition.lib.avt";
 
 export class API {
     public static async loadSchema(): Promise<Schema | undefined> {
-        const result = await VscodeView.Router.getInstance().sendWithResponse<Schema>({
-            channel: "getData",
-        });
-        if(result.result) {
-            return result.result;
+        if(VscodeView.Router.isVscode) {
+            const result = await VscodeView.Router.getInstance().sendWithResponse<Schema>({
+                channel: "getData",
+            });
+            if(result.result) {
+                return result.result;
+            }
+            else if(result.errors.length > 0) {
+                alert(result.errors[0].message);
+            }
         }
-        else if(result.errors.length > 0) {
-            alert(result.errors[0].message);
+        else {
+            return DEFAULT_SCHEMA;
         }
         return undefined;
     }

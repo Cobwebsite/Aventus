@@ -4,7 +4,7 @@ import { CompletionItem, CompletionList, DiagnosticSeverity, FormattingOptions, 
 import { AventusErrorCode, AventusExtension } from "../../definition";
 import { AventusFile } from '../../files/AventusFile';
 import { createErrorTs, escapeRegex, getFolder, uriToPath } from "../../tools";
-import { AventusConfig, AventusConfigBuild, AventusConfigBuildCompile, AventusConfigBuildDependance, AventusConfigBuildStories, AventusConfigStatic } from "./definition";
+import { AventusConfig, AventusConfigBuild, AventusConfigBuildCompile, AventusConfigBuildDependency as AventusConfigBuildDependencie, AventusConfigBuildStories, AventusConfigStatic } from "./definition";
 import { AventusConfigSchema, AventusPhpSchema, AventusSharpSchema } from "./schema";
 import { env } from 'process';
 import { GenericServer } from '../../GenericServer';
@@ -62,7 +62,7 @@ export class AventusJSONLanguageService {
         let result = await this.languageService.doComplete(file.documentUser, position, jsonDoc);
         const node = jsonDoc.getNodeFromOffset(document.offsetAt(position));
 
-        if (this.isKeyOfObject(node, "dependances")) {
+        if (this.isKeyOfObject(node, "dependencies")) {
             if (!result) {
                 result = {
                     isIncomplete: false,
@@ -511,31 +511,31 @@ export class AventusJSONLanguageService {
             build.nodeModulesDir = replaceEnvVar(build.nodeModulesDir);
         }
 
-        // dependances
-        let mergeDependances: { [name: string]: AventusConfigBuildDependance } = {};
-        build.rawDependances = JSON.parse(JSON.stringify(build.dependances));
-        for (let name in build.dependances) {
-            let dependance = build.dependances[name];
-            if (typeof dependance == "string") {
-                dependance = {
-                    version: dependance
+        // dependencies
+        let mergeDependencies: { [name: string]: AventusConfigBuildDependencie } = {};
+        build.rawDependencies = JSON.parse(JSON.stringify(build.dependencies));
+        for (let name in build.dependencies) {
+            let dependency = build.dependencies[name];
+            if (typeof dependency == "string") {
+                dependency = {
+                    version: dependency
                 }
             }
-            mergeDependances[name] = {
-                ...this.defaultConfigBuildDependanceValue(dependance),
-                ...dependance
+            mergeDependencies[name] = {
+                ...this.defaultConfigBuildDependencyValue(dependency),
+                ...dependency
             }
-            const lastDep = mergeDependances[name];
-            if (!lastDep.subDependancesInclude) {
-                lastDep.subDependancesInclude = {};
+            const lastDep = mergeDependencies[name];
+            if (!lastDep.subDependenciesInclude) {
+                lastDep.subDependenciesInclude = {};
             }
-            if (!lastDep.subDependancesInclude["*"]) {
-                lastDep.subDependancesInclude["*"] = dependance.include ?? 'need';
+            if (!lastDep.subDependenciesInclude["*"]) {
+                lastDep.subDependenciesInclude["*"] = dependency.include ?? 'need';
             }
             if (lastDep.uri)
                 lastDep.uri = replaceEnvVar(lastDep.uri);
         }
-        build.dependances = mergeDependances;
+        build.dependencies = mergeDependencies;
 
         // no namespace
         if (build.outsideModule) {
@@ -658,7 +658,7 @@ export class AventusJSONLanguageService {
             version: '1.0.0',
             componentPrefix: '',
             tags: [],
-            dependances: {},
+            dependencies: {},
             build: [],
             static: [],
             avoidParsingInsideTags: [],
@@ -695,8 +695,8 @@ export class AventusJSONLanguageService {
             namespaceRules: { ...config.namespaceRules },
             namespaceRulesRegex: { ...config.namespaceRulesRegex },
             namespaceRoot: config.namespaceRoot,
-            dependances: { ...config.dependances },
-            rawDependances: {},
+            dependencies: { ...config.dependencies },
+            rawDependencies: {},
             avoidParsingInsideTags: [...config.avoidParsingInsideTags],
             nodeModulesDir: ''
         }
@@ -710,7 +710,7 @@ export class AventusJSONLanguageService {
         }
     }
 
-    private defaultConfigBuildDependanceValue(dependance: AventusConfigBuildDependance): AventusConfigBuildDependance {
+    private defaultConfigBuildDependencyValue(dependency: AventusConfigBuildDependencie): AventusConfigBuildDependencie {
         return {}
     }
     //#endregion

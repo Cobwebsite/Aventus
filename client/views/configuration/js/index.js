@@ -1,6 +1,6 @@
 if(!Object.hasOwn(window, "AvInstance")) {
 	Object.defineProperty(window, "AvInstance", {
-		get() {return Aventus.Instance;}
+		get() {return Aventus?.Instance;}
 	});
 
 	(() => {
@@ -4708,11 +4708,11 @@ __as1(_, 'WebComponentInstance', WebComponentInstance);
 for(let key in _) { Aventus[key] = _[key] }
 })(Aventus);
 
-var dependances;
-(dependances||(dependances = {}));
-(function (dependances) {
+var dependencies;
+(dependencies||(dependencies = {}));
+(function (dependencies) {
 const __as1 = (o, k, c) => { if (o[k] !== undefined) for (let w in o[k]) { c[w] = o[k][w] } o[k] = c; }
-const moduleName = `dependances`;
+const moduleName = `dependencies`;
 const _ = {};
 
 
@@ -4730,7 +4730,7 @@ let Message=class Message {
         });
     }
 }
-Message.Namespace=`dependances`;
+Message.Namespace=`dependencies`;
 __as1(_, 'Message', Message);
 
 const Icon = class Icon extends Aventus.WebComponent {
@@ -4752,7 +4752,7 @@ const Icon = class Icon extends Aventus.WebComponent {
         return "Icon";
     }
 }
-Icon.Namespace=`dependances`;
+Icon.Namespace=`dependencies`;
 Icon.Tag=`av-icon`;
 __as1(_, 'Icon', Icon);
 if(!window.customElements.get('av-icon')){window.customElements.define('av-icon', Icon);Aventus.WebComponentInstance.registerDefinition(Icon);}
@@ -4776,81 +4776,81 @@ const GeneralInformation = class GeneralInformation extends Aventus.WebComponent
         return "GeneralInformation";
     }
 }
-GeneralInformation.Namespace=`dependances`;
+GeneralInformation.Namespace=`dependencies`;
 GeneralInformation.Tag=`av-general-information`;
 __as1(_, 'GeneralInformation', GeneralInformation);
 if(!window.customElements.get('av-general-information')){window.customElements.define('av-general-information', GeneralInformation);Aventus.WebComponentInstance.registerDefinition(GeneralInformation);}
 
-const Dependances = class Dependances extends Aventus.WebComponent {
+const Dependencies = class Dependencies extends Aventus.WebComponent {
     get 'no_deps'() { return this.getBoolAttr('no_deps') }
-    set 'no_deps'(val) { this.setBoolAttr('no_deps', val) }    get 'dependances'() {
-						return this.__watch["dependances"];
+    set 'no_deps'(val) { this.setBoolAttr('no_deps', val) }    get 'dependencies'() {
+						return this.__watch["dependencies"];
 					}
-					set 'dependances'(val) {
-						this.__watch["dependances"] = val;
+					set 'dependencies'(val) {
+						this.__watch["dependencies"] = val;
 					}    __registerWatchesActions() {
-    this.__addWatchesActions("dependances", ((target) => {
-    target.no_deps = target.dependances.length == 0;
+    this.__addWatchesActions("dependencies", ((target) => {
+    target.no_deps = target.dependencies.length == 0;
 }));    super.__registerWatchesActions();
 }
-    static __style = `:host .no-dependances-txt{display:none}:host vscode-data-grid-row{text-align:center}:host av-icon.trash{color:var(--vscode-errorForeground)}:host .add-row{margin-top:16px}:host([no_deps]) .no-dependances-txt{display:block}`;
+    static __style = `:host .no-dependencies-txt{display:none}:host vscode-data-grid-row{text-align:center}:host av-icon.trash{color:var(--vscode-errorForeground)}:host .add-row{margin-top:16px}:host([no_deps]) .no-dependencies-txt{display:block}`;
     __getStatic() {
-        return Dependances;
+        return Dependencies;
     }
     __getStyle() {
         let arrStyle = super.__getStyle();
-        arrStyle.push(Dependances.__style);
+        arrStyle.push(Dependencies.__style);
         return arrStyle;
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<h3>Dependances</h3><p class="no-dependances-txt">Your project has no dependance</p><vscode-data-grid aria-label="Default">	<vscode-data-grid-row row-type="header">		<vscode-data-grid-cell cell-type="columnheader" grid-column="1">			Name		</vscode-data-grid-cell>		<vscode-data-grid-cell cell-type="columnheader" grid-column="2">			Version		</vscode-data-grid-cell>		<vscode-data-grid-cell cell-type="columnheader" grid-column="3">			Url		</vscode-data-grid-cell>		<vscode-data-grid-cell cell-type="columnheader" grid-column="4">			Action		</vscode-data-grid-cell>	</vscode-data-grid-row>	<template _id="dependances_0"></template>	<vscode-data-grid-row class="add-row">		<vscode-data-grid-cell grid-column="1"></vscode-data-grid-cell>		<vscode-data-grid-cell grid-column="2"></vscode-data-grid-cell>		<vscode-data-grid-cell grid-column="3"></vscode-data-grid-cell>		<vscode-data-grid-cell grid-column="4">			<vscode-button>Add</vscode-button>		</vscode-data-grid-cell>	</vscode-data-grid-row></vscode-data-grid>` }
+        blocks: { 'default':`<h3>Dependencies</h3><p class="no-dependencies-txt">Your project has no dependencies</p><vscode-data-grid aria-label="Default">	<vscode-data-grid-row row-type="header">		<vscode-data-grid-cell cell-type="columnheader" grid-column="1">			Name		</vscode-data-grid-cell>		<vscode-data-grid-cell cell-type="columnheader" grid-column="2">			Version		</vscode-data-grid-cell>		<vscode-data-grid-cell cell-type="columnheader" grid-column="3">			Url		</vscode-data-grid-cell>		<vscode-data-grid-cell cell-type="columnheader" grid-column="4">			Action		</vscode-data-grid-cell>	</vscode-data-grid-row>	<template _id="dependencies_0"></template>	<vscode-data-grid-row class="add-row">		<vscode-data-grid-cell grid-column="1"></vscode-data-grid-cell>		<vscode-data-grid-cell grid-column="2"></vscode-data-grid-cell>		<vscode-data-grid-cell grid-column="3"></vscode-data-grid-cell>		<vscode-data-grid-cell grid-column="4">			<vscode-button>Add</vscode-button>		</vscode-data-grid-cell>	</vscode-data-grid-row></vscode-data-grid>` }
     });
 }
-    get temp () { var list = Array.from(this.shadowRoot.querySelectorAll('[_id="dependances_1"]')); return list; }    __registerTemplateAction() { super.__registerTemplateAction();const templ0 = new Aventus.Template(this);templ0.setTemplate(`		<vscode-data-grid-row _id="dependances_1">			<vscode-data-grid-cell grid-column="1" _id="dependances_2"></vscode-data-grid-cell>			<vscode-data-grid-cell grid-column="2" _id="dependances_3"></vscode-data-grid-cell>			<vscode-data-grid-cell grid-column="3">				<a target="_blank" _id="dependances_4"></a>			</vscode-data-grid-cell>			<vscode-data-grid-cell grid-column="4">				<av-icon class="trash"></av-icon>			</vscode-data-grid-cell>		</vscode-data-grid-row>	`);templ0.setActions({
+    get temp () { var list = Array.from(this.shadowRoot.querySelectorAll('[_id="dependencies_1"]')); return list; }    __registerTemplateAction() { super.__registerTemplateAction();const templ0 = new Aventus.Template(this);templ0.setTemplate(`		<vscode-data-grid-row _id="dependencies_1">			<vscode-data-grid-cell grid-column="1" _id="dependencies_2"></vscode-data-grid-cell>			<vscode-data-grid-cell grid-column="2" _id="dependencies_3"></vscode-data-grid-cell>			<vscode-data-grid-cell grid-column="3">				<a target="_blank" _id="dependencies_4"></a>			</vscode-data-grid-cell>			<vscode-data-grid-cell grid-column="4">				<av-icon class="trash"></av-icon>			</vscode-data-grid-cell>		</vscode-data-grid-row>	`);templ0.setActions({
   "content": {
-    "dependances_2°@HTML": {
-      "fct": (c) => `\r\n\t\t\t\t${c.print(c.comp.__4c586c5853b5a601cdc35d6c258f14a8method1(c.data.dep))}\r\n\t\t\t`,
+    "dependencies_2°@HTML": {
+      "fct": (c) => `\r\n\t\t\t\t${c.print(c.comp.__559f396bf3b37b591c98fc082a50dfbemethod1(c.data.dep))}\r\n\t\t\t`,
       "once": true
     },
-    "dependances_3°@HTML": {
-      "fct": (c) => `\r\n\t\t\t\t${c.print(c.comp.__4c586c5853b5a601cdc35d6c258f14a8method2(c.data.dep))}\r\n\t\t\t`,
+    "dependencies_3°@HTML": {
+      "fct": (c) => `\r\n\t\t\t\t${c.print(c.comp.__559f396bf3b37b591c98fc082a50dfbemethod2(c.data.dep))}\r\n\t\t\t`,
       "once": true
     },
-    "dependances_4°href": {
-      "fct": (c) => `${c.print(c.comp.__4c586c5853b5a601cdc35d6c258f14a8method3(c.data.dep))}`,
+    "dependencies_4°href": {
+      "fct": (c) => `${c.print(c.comp.__559f396bf3b37b591c98fc082a50dfbemethod3(c.data.dep))}`,
       "once": true
     },
-    "dependances_4°@HTML": {
-      "fct": (c) => `\r\n\t\t\t\t\t${c.print(c.comp.__4c586c5853b5a601cdc35d6c258f14a8method3(c.data.dep))}\r\n\t\t\t\t`,
+    "dependencies_4°@HTML": {
+      "fct": (c) => `\r\n\t\t\t\t\t${c.print(c.comp.__559f396bf3b37b591c98fc082a50dfbemethod3(c.data.dep))}\r\n\t\t\t\t`,
       "once": true
     }
   }
 });this.__getStatic().__template.addLoop({
-                    anchorId: 'dependances_0',
+                    anchorId: 'dependencies_0',
                     template: templ0,
-                simple:{data: "this.dependances",item:"dep"}}); }
+                simple:{data: "this.dependencies",item:"dep"}}); }
     getClassName() {
-        return "Dependances";
+        return "Dependencies";
     }
     __defaultValues() { super.__defaultValues(); if(!this.hasAttribute('no_deps')) { this.attributeChangedCallback('no_deps', false, false); } }
-    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["dependances"] = [{        name: "AventusUI",        version: "1.0.0",        uri: "https://aventusjs.com/aventusUI.def.avt"    }, {        name: "AventusUI2",        version: "1.0.0",        uri: "https://aventusjs.com/aventusUI.def.avt"    }]; }
-    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('no_deps');this.__correctGetter('dependances'); }
+    __defaultValuesWatch(w) { super.__defaultValuesWatch(w); w["dependencies"] = [{        name: "AventusUI",        version: "1.0.0",        uri: "https://aventusjs.com/aventusUI.def.avt"    }, {        name: "AventusUI2",        version: "1.0.0",        uri: "https://aventusjs.com/aventusUI.def.avt"    }]; }
+    __upgradeAttributes() { super.__upgradeAttributes(); this.__upgradeProperty('no_deps');this.__correctGetter('dependencies'); }
     __listBoolProps() { return ["no_deps"].concat(super.__listBoolProps()).filter((v, i, a) => a.indexOf(v) === i); }
-    __4c586c5853b5a601cdc35d6c258f14a8method1(dep) {
+    __559f396bf3b37b591c98fc082a50dfbemethod1(dep) {
         return dep.name;
     }
-    __4c586c5853b5a601cdc35d6c258f14a8method2(dep) {
+    __559f396bf3b37b591c98fc082a50dfbemethod2(dep) {
         return dep.version;
     }
-    __4c586c5853b5a601cdc35d6c258f14a8method3(dep) {
+    __559f396bf3b37b591c98fc082a50dfbemethod3(dep) {
         return dep.uri;
     }
 }
-Dependances.Namespace=`dependances`;
-Dependances.Tag=`av-dependances`;
-__as1(_, 'Dependances', Dependances);
-if(!window.customElements.get('av-dependances')){window.customElements.define('av-dependances', Dependances);Aventus.WebComponentInstance.registerDefinition(Dependances);}
+Dependencies.Namespace=`dependencies`;
+Dependencies.Tag=`av-dependencies`;
+__as1(_, 'Dependencies', Dependencies);
+if(!window.customElements.get('av-dependencies')){window.customElements.define('av-dependencies', Dependencies);Aventus.WebComponentInstance.registerDefinition(Dependencies);}
 
 const ConfigurationEditor = class ConfigurationEditor extends Aventus.WebComponent {
     static __style = ``;
@@ -4864,18 +4864,18 @@ const ConfigurationEditor = class ConfigurationEditor extends Aventus.WebCompone
     }
     __getHtml() {
     this.__getStatic().__template.setHTML({
-        blocks: { 'default':`<h1>Configuration editor</h1><vscode-panels>	<vscode-panel-tab id="tab-1">General</vscode-panel-tab>	<vscode-panel-tab id="tab-2">Dependances</vscode-panel-tab>	<vscode-panel-tab id="tab-3">Builds</vscode-panel-tab>	<vscode-panel-tab id="tab-4">Statics</vscode-panel-tab>	<vscode-panel-view id="view-1">		<av-general-information></av-general-information>	</vscode-panel-view>	<vscode-panel-view id="view-2">		<av-dependances></av-dependances>	</vscode-panel-view>	<vscode-panel-view id="view-3">		Debug Console Content	</vscode-panel-view>	<vscode-panel-view id="view-4">		Terminal Content	</vscode-panel-view></vscode-panels>` }
+        blocks: { 'default':`<h1>Configuration editor</h1><vscode-panels>	<vscode-panel-tab id="tab-1">General</vscode-panel-tab>	<vscode-panel-tab id="tab-2">Dependencies</vscode-panel-tab>	<vscode-panel-tab id="tab-3">Builds</vscode-panel-tab>	<vscode-panel-tab id="tab-4">Statics</vscode-panel-tab>	<vscode-panel-view id="view-1">		<av-general-information></av-general-information>	</vscode-panel-view>	<vscode-panel-view id="view-2">		<av-dependencies></av-dependencies>	</vscode-panel-view>	<vscode-panel-view id="view-3">		Debug Console Content	</vscode-panel-view>	<vscode-panel-view id="view-4">		Terminal Content	</vscode-panel-view></vscode-panels>` }
     });
 }
     getClassName() {
         return "ConfigurationEditor";
     }
 }
-ConfigurationEditor.Namespace=`dependances`;
+ConfigurationEditor.Namespace=`dependencies`;
 ConfigurationEditor.Tag=`av-configuration-editor`;
 __as1(_, 'ConfigurationEditor', ConfigurationEditor);
 if(!window.customElements.get('av-configuration-editor')){window.customElements.define('av-configuration-editor', ConfigurationEditor);Aventus.WebComponentInstance.registerDefinition(ConfigurationEditor);}
 
 
-for(let key in _) { dependances[key] = _[key] }
-})(dependances);
+for(let key in _) { dependencies[key] = _[key] }
+})(dependencies);

@@ -16,7 +16,7 @@ import { SettingsManager } from '../../settings/Settings';
 export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 	public compiledVersion = -1;
 	private usedBy: { [uri: string]: AventusGlobalSCSSFile } = {};
-	private dependances: { [uri: string]: AventusGlobalSCSSFile } = {};
+	private dependencies: { [uri: string]: AventusGlobalSCSSFile } = {};
 
 	private diagnostics: Diagnostic[] = [];
 	private diagnosticCompile: Diagnostic | undefined;
@@ -32,7 +32,7 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 
 	public constructor(file: AventusFile, project: Project) {
 		super(file, project);
-		this.loadDependances();
+		this.loadDependencies();
 		this.project.globalSCSSLanguageService.loadVariables(this, this.file.uri);
 	}
 
@@ -41,7 +41,7 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 	}
 	protected async onValidate(): Promise<Diagnostic[]> {
 		this.diagnostics = await this.project.globalSCSSLanguageService.doValidation(this.file);
-		this.loadDependances();
+		this.loadDependencies();
 		if (this.diagnosticCompile) {
 			return [...this.diagnostics, this.diagnosticCompile];
 		}
@@ -78,9 +78,9 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 				let arrMatch: RegExpExecArray | null = null;
 				while (arrMatch = regex.exec(textToSearch)) {
 					let importName = arrMatch[2];
-					let fileDependance = this.resolvePath(importName, file.folderPath);
-					if (fileDependance) {
-						let nesteadContent = _loadContent(fileDependance);
+					let fileDependency = this.resolvePath(importName, file.folderPath);
+					if (fileDependency) {
+						let nesteadContent = _loadContent(fileDependency);
 						if (nesteadContent == errorMsgTxt) {
 							return nesteadContent;
 						}
@@ -135,11 +135,11 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 		}
 	}
 	protected async onDelete(): Promise<void> {
-		for (let dependanceUri in this.dependances) {
-			this.removeDependance(dependanceUri);
+		for (let dependencyUri in this.dependencies) {
+			this.removeDependency(dependencyUri);
 		}
 		for (let usedByUri in this.usedBy) {
-			delete this.usedBy[usedByUri].dependances[this.file.uri];
+			delete this.usedBy[usedByUri].dependencies[this.file.uri];
 			delete this.usedBy[usedByUri];
 			await this.usedBy[usedByUri].onContentChange();
 		}
@@ -206,44 +206,44 @@ export class AventusGlobalSCSSFile extends AventusGlobalBaseFile {
 
 
 
-	//#region dependances
-	private loadDependances() {
+	//#region dependencies
+	private loadDependencies() {
 		let text = this.file.contentUser;
 		let textToSearch = text.replace(/\/\*[\s\S]*?\*\/|([^:]|^)\/\/.*$/gm, '$1')
 		let regex = /@import *?('|")(\S*?)('|");?/g;
 		let arrMatch: RegExpExecArray | null = null;
-		for (let dependanceUri in this.dependances) {
-			this.removeDependance(dependanceUri);
+		for (let dependencyUri in this.dependencies) {
+			this.removeDependency(dependencyUri);
 		}
 		while (arrMatch = regex.exec(textToSearch)) {
 			let importName = arrMatch[2];
-			let fileDependance = this.resolvePath(importName, this.file.folderPath);
-			if (!fileDependance) {
+			let fileDependency = this.resolvePath(importName, this.file.folderPath);
+			if (!fileDependency) {
 				let start = text.indexOf(arrMatch[0]);
 				let end = start + arrMatch[0].length;
 				this.diagnostics.push(createErrorScssPos(this.file.documentUser, "Can't load this file", start, end));
 			}
 			else {
-				this.addDependance(fileDependance);
+				this.addDependency(fileDependency);
 			}
 		}
 	}
 
-	private removeDependance(uri: string): void {
-		if (this.dependances[uri]) {
-			delete this.dependances[uri].usedBy[this.file.uri];
-			delete this.dependances[uri];
+	private removeDependency(uri: string): void {
+		if (this.dependencies[uri]) {
+			delete this.dependencies[uri].usedBy[this.file.uri];
+			delete this.dependencies[uri];
 		}
 	}
-	private addDependance(fileDependance: AventusFile): void {
-		if (this.project.scssFiles[fileDependance.uri]) {
-			this.dependances[fileDependance.uri] = this.project.scssFiles[fileDependance.uri];
-			this.project.scssFiles[fileDependance.uri].usedBy[this.file.uri] = this;
+	private addDependency(fileDependency: AventusFile): void {
+		if (this.project.scssFiles[fileDependency.uri]) {
+			this.dependencies[fileDependency.uri] = this.project.scssFiles[fileDependency.uri];
+			this.project.scssFiles[fileDependency.uri].usedBy[this.file.uri] = this;
 		}
-		else if (fileDependance.uri.endsWith(AventusExtension.GlobalStyle)) {
-			this.project.scssFiles[fileDependance.uri] = new AventusGlobalSCSSFile(fileDependance, this.project);
-			this.dependances[fileDependance.uri] = this.project.scssFiles[fileDependance.uri];
-			this.project.scssFiles[fileDependance.uri].usedBy[this.file.uri] = this;
+		else if (fileDependency.uri.endsWith(AventusExtension.GlobalStyle)) {
+			this.project.scssFiles[fileDependency.uri] = new AventusGlobalSCSSFile(fileDependency, this.project);
+			this.dependencies[fileDependency.uri] = this.project.scssFiles[fileDependency.uri];
+			this.project.scssFiles[fileDependency.uri].usedBy[this.file.uri] = this;
 		}
 	}
 

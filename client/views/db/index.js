@@ -1,6 +1,6 @@
 if(!Object.hasOwn(window, "AvInstance")) {
 	Object.defineProperty(window, "AvInstance", {
-		get() {return Aventus.Instance;}
+		get() {return Aventus?.Instance;}
 	});
 
 	(() => {
@@ -5501,7 +5501,7 @@ let Json=class Json {
 Json.Namespace=`Aventus`;
 __as1(_, 'Json', Json);
 
-let Data=// @Dependances([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
+let Data=// @Dependencies([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
 class Data {
     static converter = new Converter();
     /**
@@ -5555,7 +5555,7 @@ Data.$schema={"namespace":"string","$type":"string","className":"string"};
 Converter.register(Data.Fullname, Data);
 __as1(_, 'Data', Data);
 
-let GenericError=// @Dependances([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
+let GenericError=// @Dependencies([{ type: Aventus.Converter, strong: true }, { type: Converter, strong: true }])
 class GenericError {
     static converter = new Converter();
     static get Fullname() { return "Aventus.GenericError"; }
@@ -7826,6 +7826,179 @@ __as1(_, 'Ram', Ram);
 for(let key in _) { Aventus[key] = _[key] }
 })(Aventus);
 
+var VscodeView;
+(VscodeView||(VscodeView = {}));
+(function (VscodeView) {
+const __as1 = (o, k, c) => { if (o[k] !== undefined) for (let w in o[k]) { c[w] = o[k][w] } o[k] = c; }
+const moduleName = `VscodeView`;
+const _ = {};
+
+
+let _n;
+var ErrorCode;
+(function (ErrorCode) {
+    ErrorCode[ErrorCode["unknow"] = 0] = "unknow";
+    ErrorCode[ErrorCode["differentChannel"] = 1] = "differentChannel";
+    ErrorCode[ErrorCode["timeout"] = 2] = "timeout";
+})(ErrorCode || (ErrorCode = {}));
+__as1(_, 'ErrorCode', ErrorCode);
+
+let Error=class Error extends Aventus.GenericError {
+}
+Error.Namespace=`VscodeView`;
+Error.$schema={...(Aventus.GenericError?.$schema ?? {}), };
+Aventus.Converter.register(Error.Fullname, Error);
+__as1(_, 'Error', Error);
+
+let Router=class Router {
+    static get isVscode() {
+        return 'acquireVsCodeApi' in window;
+    }
+    static getInstance() {
+        return Aventus.Instance.get(Router);
+    }
+    routes = {};
+    waitingList = {};
+    vscode;
+    constructor() {
+        this.vscode = acquireVsCodeApi();
+        window.addEventListener('message', (e) => this.onMessage(e));
+    }
+    addRoute(route) {
+        if (!this.routes.hasOwnProperty(route.channel)) {
+            this.routes[route.channel] = [];
+        }
+        for (let info of this.routes[route.channel]) {
+            if (info.callback == route.callback) {
+                return;
+            }
+        }
+        const { params, regex } = Aventus.Uri.prepare(route.channel);
+        let prepared = {
+            callback: route.callback,
+            channel: route.channel,
+            regex,
+            params
+        };
+        this.routes[route.channel].push(prepared);
+    }
+    removeRoute(route) {
+        for (let i = 0; i < this.routes[route.channel].length; i++) {
+            let info = this.routes[route.channel][i];
+            if (info.callback == route.callback) {
+                this.routes[route.channel].splice(i, 1);
+                i--;
+            }
+        }
+    }
+    onMessage(event) {
+        let response = event.data;
+        let data = {};
+        try {
+            data = Aventus.Converter.transform(response.data);
+        }
+        catch (e) {
+            console.error(e);
+        }
+        for (let channel in this.routes) {
+            let current = this.routes[channel];
+            for (let info of current) {
+                let params = Aventus.Uri.getParams(info, response.channel);
+                if (params) {
+                    let valueCb = data;
+                    if (data instanceof Aventus.ResultWithError) {
+                        valueCb = data.result;
+                    }
+                    else if (data instanceof Aventus.VoidWithError) {
+                        valueCb = undefined;
+                    }
+                    info.callback(valueCb, params, response.uid);
+                }
+            }
+        }
+        if (response.uid) {
+            if (this.waitingList.hasOwnProperty(response.uid)) {
+                this.waitingList[response.uid](response.channel, data);
+                delete this.waitingList[response.uid];
+            }
+        }
+    }
+    send(options) {
+        let result = new Aventus.VoidWithError();
+        try {
+            let message = {
+                channel: options.channel,
+            };
+            if (options.uid) {
+                message.uid = options.uid;
+            }
+            if (options.body) {
+                message.data = options.body;
+            }
+            this.vscode.postMessage(message);
+        }
+        catch (e) {
+            result.errors.push(new Error(ErrorCode.unknow, e));
+        }
+        return result;
+    }
+    sendWithResponse(options) {
+        return new Promise(async (resolve) => {
+            let result = new Aventus.ResultWithError();
+            try {
+                let _uid = options.uid ? options.uid : Aventus.uuidv4();
+                options.uid = _uid;
+                let timeoutInfo;
+                this.waitingList[_uid] = (channel, data) => {
+                    clearTimeout(timeoutInfo);
+                    if (channel.toLowerCase() != options.channel.toLowerCase()) {
+                        result.errors.push(new Error(ErrorCode.differentChannel, `We sent a message on ${options.channel} but we receive on ${channel}`));
+                        resolve(result);
+                    }
+                    else {
+                        if (data instanceof Aventus.VoidWithError) {
+                            for (let error of data.errors) {
+                                result.errors.push(error);
+                            }
+                            if (data instanceof Aventus.ResultWithError) {
+                                result.result = data.result;
+                            }
+                        }
+                        else {
+                            result.result = data;
+                        }
+                        resolve(result);
+                    }
+                };
+                if (options.timeout !== undefined) {
+                    timeoutInfo = setTimeout(() => {
+                        delete this.waitingList[_uid];
+                        result.errors.push(new Error(ErrorCode.timeout, "No message received after " + options.timeout + "ms"));
+                        resolve(result);
+                    }, options.timeout);
+                }
+                let sendMessageResult = this.send(options);
+                if (!sendMessageResult.success) {
+                    for (let error of sendMessageResult.errors) {
+                        result.errors.push(error);
+                    }
+                    resolve(result);
+                }
+            }
+            catch (e) {
+                result.errors.push(new Error(ErrorCode.unknow, e));
+                resolve(result);
+            }
+        });
+    }
+}
+Router.Namespace=`VscodeView`;
+__as1(_, 'Router', Router);
+
+
+for(let key in _) { VscodeView[key] = _[key] }
+})(VscodeView);
+
 var Aventus;
 (Aventus||(Aventus = {}));
 (function (Aventus) {
@@ -8591,34 +8764,6 @@ let DEFAULT_SCHEMA= {
 };
 __as1(_, 'DEFAULT_SCHEMA', DEFAULT_SCHEMA);
 
-let API=class API {
-    static async loadSchema() {
-        const result = await VscodeView.Router.getInstance().sendWithResponse({
-            channel: "getData",
-        });
-        if (result.result) {
-            return result.result;
-        }
-        else if (result.errors.length > 0) {
-            alert(result.errors[0].message);
-        }
-        return undefined;
-    }
-    static async save() {
-        await VscodeView.Router.getInstance().sendWithResponse({
-            channel: "save"
-        });
-    }
-    static async triggerChange(schema) {
-        await VscodeView.Router.getInstance().sendWithResponse({
-            channel: "triggerChange",
-            body: schema,
-        });
-    }
-}
-API.Namespace=`dbEditor`;
-__as1(_, 'API', API);
-
 const TableField = class TableField extends Aventus.WebComponent {
     static get observedAttributes() {return ["is_editing", "primary"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}
     get 'pulse'() { return this.getBoolAttr('pulse') }
@@ -8756,6 +8901,39 @@ TableField.Namespace=`dbEditor`;
 TableField.Tag=`av-table-field`;
 __as1(_, 'TableField', TableField);
 if(!window.customElements.get('av-table-field')){window.customElements.define('av-table-field', TableField);Aventus.WebComponentInstance.registerDefinition(TableField);}
+
+let API=class API {
+    static async loadSchema() {
+        if (VscodeView.Router.isVscode) {
+            const result = await VscodeView.Router.getInstance().sendWithResponse({
+                channel: "getData",
+            });
+            if (result.result) {
+                return result.result;
+            }
+            else if (result.errors.length > 0) {
+                alert(result.errors[0].message);
+            }
+        }
+        else {
+            return DEFAULT_SCHEMA;
+        }
+        return undefined;
+    }
+    static async save() {
+        await VscodeView.Router.getInstance().sendWithResponse({
+            channel: "save"
+        });
+    }
+    static async triggerChange(schema) {
+        await VscodeView.Router.getInstance().sendWithResponse({
+            channel: "triggerChange",
+            body: schema,
+        });
+    }
+}
+API.Namespace=`dbEditor`;
+__as1(_, 'API', API);
 
 const CommandePalette = class CommandePalette extends Aventus.WebComponent {
     static get observedAttributes() {return ["active"].concat(super.observedAttributes).filter((v, i, a) => a.indexOf(v) === i);}

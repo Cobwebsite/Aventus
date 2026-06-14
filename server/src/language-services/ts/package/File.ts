@@ -8,7 +8,7 @@ import { AventusTsFile } from '../File';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { AventusExtension, AventusLanguageId } from '../../../definition';
 import { ClassInfo } from '../parser/ClassInfo';
-import { AventusConfigBuildDependance } from '../../json/definition';
+import { AventusConfigBuildDependency } from '../../json/definition';
 import { InfoType } from '../parser/BaseInfo';
 import { GenericServer } from '../../../GenericServer';
 import { EOL } from 'os';
@@ -22,7 +22,7 @@ import { SlotsInfo } from '../../html/File';
 
 export interface AventusPackageTsFileExport {
 	fullName: string;
-	dependances: { fullName: string; isStrong: boolean }[];
+	dependencies: { fullName: string; isStrong: boolean }[];
 	type: InfoType,
 	code: string;
 	required?: boolean | undefined;
@@ -34,7 +34,7 @@ export interface AventusPackageTsFileExport {
 }
 export interface AventusPackageTsFileExportNoCode {
 	fullName: string;
-	dependances: { fullName: string; isStrong: boolean }[];
+	dependencies: { fullName: string; isStrong: boolean }[];
 }
 export class AventusPackageFile extends AventusBaseFile {
 	public static getQuickInfo(file: AventusFile): { name: string, version: { major: number, minor: number, patch: number } } | undefined {
@@ -66,6 +66,7 @@ export class AventusPackageFile extends AventusBaseFile {
 
 	public name: string = "";
 	public npmUri: string = "";
+	public description: string = "";
 	public version = {
 		major: 1,
 		minor: 0,
@@ -87,7 +88,7 @@ export class AventusPackageFile extends AventusBaseFile {
 	}
 
 
-	public dependances: { [name: string]: AventusConfigBuildDependance | string } = {};
+	public dependencies: { [name: string]: AventusConfigBuildDependency | string } = {};
 
 	public constructor(file: AventusFile, build: Build) {
 		super(file, build);
@@ -145,9 +146,9 @@ export class AventusPackageFile extends AventusBaseFile {
 			catch (e) {
 
 			}
-			// Dependances
+			// dependencies
 			try {
-				this.dependances = JSON.parse(result.depsTxt);
+				this.dependencies = JSON.parse(result.depsTxt);
 			}
 			catch (e) {
 
@@ -198,7 +199,7 @@ export class AventusPackageFile extends AventusBaseFile {
 				htmlTxt = htmlToImport[1];
 			}
 
-			let depsToImport = /\/\/#region dependances \/\/((\s|\S)*)\/\/#endregion dependances \/\//g.exec(this.file.contentUser);
+			let depsToImport = /\/\/#region dependencies \/\/((\s|\S)*)\/\/#endregion dependencies \/\//g.exec(this.file.contentUser);
 			let depsTxt = "";
 			if (depsToImport) {
 				depsTxt = depsToImport[1];

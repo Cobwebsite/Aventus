@@ -22,6 +22,7 @@ import { updatesScripts } from './updates';
 import { InitStep } from './notification/InitStep';
 import { execAsync } from './tools';
 import { LogLevel } from './settings/LogLevel';
+import { ManifestPackage } from './manifest/ManifestPackage';
 
 
 export class GenericServer {
@@ -434,6 +435,7 @@ export class GenericServer {
 			}
 			else {
 				await FilesManager.getInstance().loadAllAventusFiles(this.workspaces);
+				ManifestPackage.write();
 			}
 		}
 		else {

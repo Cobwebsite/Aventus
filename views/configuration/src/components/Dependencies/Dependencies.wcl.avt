@@ -1,10 +1,10 @@
-type Dependance = {
+type Dependency = {
     name: string;
     version: string;
     uri: string;
 };
 
-export class Dependances extends Aventus.WebComponent implements Aventus.DefaultComponent {
+export class Dependencies extends Aventus.WebComponent implements Aventus.DefaultComponent {
 
     //#region static
 
@@ -15,10 +15,10 @@ export class Dependances extends Aventus.WebComponent implements Aventus.Default
     @Attribute()
     public no_deps!: boolean;
 
-    @Watch((target: Dependances) => {
-        target.no_deps = target.dependances.length == 0;
+    @Watch((target: Dependencies) => {
+        target.no_deps = target.dependencies.length == 0;
     })
-    private dependances: Dependance[] = [{
+    private dependencies: Dependency[] = [{
         name: "AventusUI",
         version: "1.0.0",
         uri: "https://aventusjs.com/aventusUI.def.avt"

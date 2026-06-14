@@ -1,6 +1,6 @@
-import { Action, ActionOption, ArgOption } from './Action';
-import { Server } from '../server/Server';
-import { Interaction } from '../interaction/Interaction';
+import { Action, ActionOption, ArgOption } from '../Action';
+import { Server } from '../../server/Server';
+import { Interaction } from '../../interaction/Interaction';
 
 type StoreLogoutOptions = {
 }

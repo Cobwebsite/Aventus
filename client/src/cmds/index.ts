@@ -8,7 +8,7 @@ import { TemplateImport } from './file-system/ImportTemplate';
 import { OpenAventusFolder } from './file-system/OpenAventusFolder';
 import { Rename } from './Rename';
 import { Rename as RenameComp } from './webcomponent/Rename';
-import { ShowDependances } from './ShowDependances';
+import { ShowDependencies } from './ShowDependencies';
 import { StaticExport } from "./StaticExport";
 import { CreateAttribute } from './webcomponent/CreateAttribute';
 import { CreateProperty } from './webcomponent/CreateProperty';
@@ -51,7 +51,7 @@ export const Commands = {
         [FileDeleted.cmd]: FileDeleted,
         [TemplateImport.cmd]: TemplateImport,
         [ProjectImport.cmd]: ProjectImport,
-        [ShowDependances.cmd]: ShowDependances,
+        [ShowDependencies.cmd]: ShowDependencies,
         [OpenAventusFolder.cmd]: OpenAventusFolder,
         [ReceiveInput.cmd]: ReceiveInput,
         [ReceiveSelect.cmd]: ReceiveSelect,

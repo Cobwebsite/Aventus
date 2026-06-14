@@ -981,7 +981,7 @@ export type EffectReceiver = {
 
 /**
  * Effect will recomputed each time a watchable variable or effect or computed are changed
- * Each time the function is called, dependances tree is updated. It's usefull when you have array or conditional inside
+ * Each time the function is called, dependencies tree is updated. It's usefull when you have array or conditional inside
  */
 @Storybook({
     prefix: "Lib/Watcher"
@@ -1131,7 +1131,7 @@ export class Effect {
 
 /**
  * Effect will recomputed each time a watchable variable or effect or computed are changed
- * The dependances tree is created only during the first execution
+ * The dependencies tree is created only during the first execution
  */
 @Storybook({
     prefix: "Lib/Watcher"
@@ -1154,7 +1154,7 @@ export class EffectNoRecomputed extends Effect {
 /**
  * Computed will recomputed each time a watchable variable or effect or computed are changed
  * When no change occured you can get the value by calling the value property
- * Each time the function is called, dependances tree is updated. It's usefull when you have array or conditional inside
+ * Each time the function is called, dependencies tree is updated. It's usefull when you have array or conditional inside
  */
 @Storybook({
     prefix: "Lib/Watcher"
@@ -1207,7 +1207,7 @@ export class Computed<T = any> extends Effect implements EffectReceiver {
 /**
  * Computed will recomputed each time a watchable variable or effect or computed are changed
  * When no change occured you can get the value by calling the value property
- * The dependances tree is created only during the first execution
+ * The dependencies tree is created only during the first execution
  */
 @Storybook({
     prefix: "Lib/Watcher"

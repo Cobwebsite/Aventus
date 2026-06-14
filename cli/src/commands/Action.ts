@@ -21,7 +21,7 @@ export type ArgOption = {
 
 export abstract class Action<T extends { [name: string]: any }> {
 
-	private static actions: { [name: string]: Command } = {}
+	public static actions: { [name: string]: Command } = {}
 
 	public abstract get name(): string;
 	public abstract get description(): string;
@@ -128,4 +128,26 @@ export abstract class Action<T extends { [name: string]: any }> {
 
 	public abstract run(args: string[], options: T): Promise<void> | void
 
+}
+
+export abstract class ActionGroup {
+
+	public abstract get name(): string;
+	public abstract get description(): string;
+
+
+	public register(program: Command) {
+		let names = this.name.trim().split(" ");
+		let temp = "";
+		let cmd = program;
+		for (let nameTemp of names) {
+			temp += nameTemp;
+			if (!Action.actions[temp]) {
+				Action.actions[temp] = cmd.command(nameTemp);
+			}
+			cmd = Action.actions[temp];
+			temp += " ";
+		}
+		cmd = cmd.description(this.description);
+	}
 }

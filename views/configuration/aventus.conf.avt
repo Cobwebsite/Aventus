@@ -1,5 +1,5 @@
 {
-	"module": "dependances",
+	"module": "dependencies",
 	"componentPrefix": "av",
 	"build": [
 		{

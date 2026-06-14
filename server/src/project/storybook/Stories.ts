@@ -119,7 +119,9 @@ export class Storie {
 					hasNoLive = true;
 				}
 			}
+			
 			return file instanceof AventusWebComponentLogicalFile &&
+				file.componentClassName == info.name &&
 				file.fileParsed?.classes[file.componentClassName] &&
 				!file.fileParsed.classes[file.componentClassName].isAbstract &&
 				!hasNoLive
@@ -274,7 +276,7 @@ export class Storie {
 									let file = this.build.externalPackageInformation.getByUri(uri);
 									if (!file) continue;
 									if (!file.npmUri) continue;
-									// avoid add self dependance
+									// avoid add self dependency
 									if (file.name == this.buildConfig.fullname) continue
 									packageJson.devDependencies[file.npmUri] = '^' + file.versionTxt;
 								}

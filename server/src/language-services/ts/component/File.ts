@@ -112,7 +112,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         super(file, build);
         file.linkInternalAndUser = false;
         this.quickParse();
-        // refresh file parsed on load to have default content without view function so that others files can have dependance
+        // refresh file parsed on load to have default content without view function so that others files can have dependency
         this.refreshFileParsed();
     }
 
@@ -365,7 +365,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                         let fullStart = newContent.length;
                         let parameters: string[] = getParameters(method.variables);
 
-                        let resultType = 'NotVoid';
+                        let resultType = 'Aventus.NotVoid';
 
                         // TODO correct indentation
                         let t = this._space;
@@ -431,7 +431,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
                             let parameters: string[] = getParameters(condition.variables);
                             // TODO correct indentation
                             let t = this._space;
-                            newContent += `\n${t}/** */\n${t}private ${condition.fctName}(${parameters.join(",")}): NotVoid {\n`;
+                            newContent += `\n${t}/** */\n${t}private ${condition.fctName}(${parameters.join(",")}): Aventus.NotVoid {\n`;
                             let start = newContent.length;
                             newContent += conditionTxt + "\n";
                             let end = newContent.length;
@@ -529,7 +529,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
 
                         // TODO correct indentation
                         let t = this._space;
-                        newContent += `\n${t}/** */\n${t}private ${injection.injectFctName}(${parameters.join(",")}): NotVoid {\n`;
+                        newContent += `\n${t}/** */\n${t}private ${injection.injectFctName}(${parameters.join(",")}): Aventus.NotVoid {\n`;
                         let start = newContent.length;
                         newContent += injectionTxt + "\n";
                         let end = newContent.length;
@@ -1082,7 +1082,7 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
             let offset = this.file.documentInternal.offsetAt(position);
             let classParsed = this.fileParsed?.classes[this._compilationResult.componentName];
             if (offset >= classParsed.nameStart && offset <= classParsed.nameEnd) {
-                for (let [file, positions] of this.reverseViewClassInfoDependances) {
+                for (let [file, positions] of this.reverseViewClassInfoDependencies) {
                     for (let position of positions) {
                         locationsHTML.push({
                             uri: file.file.uri,
@@ -1366,36 +1366,36 @@ export class AventusWebComponentLogicalFile extends AventusTsFile {
         return this.compilationResult?.componentName || '';
     }
 
-    // view dependances
-    private viewClassInfoDependances: AventusTsFile[] = [];
-    private reverseViewClassInfoDependances: Map<AventusHTMLFile, { start: number, end: number }[]> = new Map();
+    // view dependencies
+    private viewClassInfoDependencies: AventusTsFile[] = [];
+    private reverseViewClassInfoDependencies: Map<AventusHTMLFile, { start: number, end: number }[]> = new Map();
 
     public resetViewClassInfoDep() {
         let htmlFile = this.HTMLFile;
         if (!htmlFile) {
             return;
         }
-        for (let dep of this.viewClassInfoDependances) {
+        for (let dep of this.viewClassInfoDependencies) {
             if (dep instanceof AventusWebComponentLogicalFile) {
-                dep.reverseViewClassInfoDependances.delete(htmlFile);
+                dep.reverseViewClassInfoDependencies.delete(htmlFile);
             }
         }
-        this.viewClassInfoDependances = [];
+        this.viewClassInfoDependencies = [];
     }
     public addViewClassInfoDep(file: AventusTsFile, start: number, end: number) {
         let htmlFile = this.HTMLFile;
         if (!htmlFile) {
             return;
         }
-        if (!this.viewClassInfoDependances.includes(file)) {
-            this.viewClassInfoDependances.push(file);
+        if (!this.viewClassInfoDependencies.includes(file)) {
+            this.viewClassInfoDependencies.push(file);
         }
 
         if (file instanceof AventusWebComponentLogicalFile) {
-            if (!file.reverseViewClassInfoDependances.has(htmlFile)) {
-                file.reverseViewClassInfoDependances.set(htmlFile, []);
+            if (!file.reverseViewClassInfoDependencies.has(htmlFile)) {
+                file.reverseViewClassInfoDependencies.set(htmlFile, []);
             }
-            file.reverseViewClassInfoDependances.get(htmlFile)?.push({ start, end });
+            file.reverseViewClassInfoDependencies.get(htmlFile)?.push({ start, end });
         }
     }
 

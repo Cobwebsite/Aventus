@@ -133,7 +133,8 @@ export class FilesManager {
         }
 
         // if not found
-        GenericServer.showErrorMessage("Can't find a aventus.config.avt inside the workspaces " + workspaces.join(", "));
+        InitStep.sendDone();
+        // GenericServer.showErrorMessage("Can't find a aventus.config.avt inside the workspaces " + workspaces.join(", "));
     }
     public async loadConfigFile(configUri: string, builds?: string[], statics?: string[]) {
         ProjectManager.autoLoad = false;

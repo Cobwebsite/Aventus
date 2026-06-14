@@ -5,7 +5,7 @@ export class Template extends AventusTemplate {
     protected override meta(): TemplateInfo {
         return {
             name: "Default",
-            description: "A basic template",
+            description: "A basic template (Recommended)",
             version: "1.0.0",
             isProject: true,
             installationFolder: "Aventus/Default"

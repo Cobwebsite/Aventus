@@ -9,7 +9,7 @@ export type StatisticsInfo = {
 	statics: { [name: string]: StatisticsInfoStatic },
 	files: {
 		[path: string]: {
-			type: "build" | "static" | "storybook",
+			type: "build" | "static" | "storybook" | "manifest",
 			typeName?: string,
 			path: string,
 			size: number
@@ -55,7 +55,7 @@ export class Statistics {
 	}
 
 
-	public static sendFileSize(path: string, text: string | undefined, type: "build" | "static" | "storybook", name?: string) {
+	public static sendFileSize(path: string, text: string | undefined, type: "build" | "static" | "storybook" | "manifest", name?: string) {
 		if (this.isEnable) {
 			let size: number = 0;
 			if (typeof text == 'string') {

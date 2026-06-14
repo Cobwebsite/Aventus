@@ -10,7 +10,7 @@ export class Format extends Action<FromatOptions> {
 		return "format";
 	}
 	public get description(): string {
-		return "format your project"
+		return "Format your project"
 	}
 	protected registerArgs(addArg: (arg: ArgOption) => void) {
 		addArg({

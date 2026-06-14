@@ -17,7 +17,7 @@
 					"output": "../../client/views/i18n/index.js"
 				}
 			],
-			"dependances": {
+			"dependencies": {
 				"Aventus@UI": {},
 				"VscodeView@Main": {
 					"isLocal": true

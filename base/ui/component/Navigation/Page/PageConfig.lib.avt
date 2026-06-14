@@ -1,4 +1,4 @@
-namespace Navigation.Page {
+namespace Navigation {
     /**
      * Configuration options for a page component.
      */

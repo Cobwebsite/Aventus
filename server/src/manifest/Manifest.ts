@@ -342,3 +342,4 @@ export class Manifest {
 		return result;
 	}
 }
+

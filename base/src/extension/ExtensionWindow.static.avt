@@ -1,6 +1,6 @@
 if(!Object.hasOwn(window, "AvInstance")) {
 	Object.defineProperty(window, "AvInstance", {
-		get() {return Aventus.Instance;}
+		get() {return Aventus?.Instance;}
 	});
 
 	(() => {

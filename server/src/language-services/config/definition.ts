@@ -3,7 +3,7 @@ export interface IAventusConfig {
     version?: string;
     hideWarnings?: boolean;
     componentPrefix?: string;
-    dependances?: IDependence[];
+    dependencies?: IDependency[];
     namespaceStrategy?: 'manual' | 'followFolders' | 'followFoldersCamelCase' | 'rules';
     namespaceRules?: Record<string, any>;
     namespaceRoot?: string;
@@ -13,12 +13,12 @@ export interface IAventusConfig {
     aliases?: Record<string, any>;
 }
 
-interface IDependence {
+interface IDependency {
     uri: string;
     npm?: string;
     version?: string;
     include?: 'none' | 'need' | 'full';
-    subDependancesInclude?: Record<string, 'none' | 'need' | 'full'>;
+    subDependenciesInclude?: Record<string, 'none' | 'need' | 'full'>;
 }
 
 interface IBuildConfig {
@@ -31,7 +31,7 @@ interface IBuildConfig {
     stories?: IStoriesConfig;
     outsideModule?: string[];
     compile?: ICompileConfig[];
-    dependances?: IDependence[];
+    dependencies?: IDependency[];
     module?: string;
     namespaceStrategy?: 'manual' | 'followFolders' | 'followFoldersCamelCase' | 'rules';
     namespaceRules?: Record<string, any>;

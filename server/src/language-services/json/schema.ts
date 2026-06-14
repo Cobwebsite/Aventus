@@ -54,7 +54,7 @@ export const AventusConfigSchema: JSONSchema = {
             description: "Identifier to prefix all your components (in lower case)",
             pattern: "^[a-z\-]{2,}$",
         },
-        "dependances": { "$ref": "#/$defs/dependances" },
+        "dependencies": { "$ref": "#/$defs/dependencies" },
         "namespaceStrategy": {
             type: "string",
             enum: ["manual", "followFolders", "followFoldersCamelCase", "rules"],
@@ -273,7 +273,7 @@ export const AventusConfigSchema: JSONSchema = {
                             }
                         }
                     },
-                    "dependances": { "$ref": "#/$defs/dependances" },
+                    "dependencies": { "$ref": "#/$defs/dependencies" },
                     "module": {
                         type: "string",
                         pattern: "^[a-zA-Z0-9_]+$",
@@ -370,9 +370,9 @@ export const AventusConfigSchema: JSONSchema = {
     },
     "required": ["build", "module"],
     "$defs": {
-        "dependances": {
+        "dependencies": {
             type: "object",
-            description: "List of dependances for this build",
+            description: "List of dependencies for this build",
             patternProperties: {
                 "^\\S+$": {
                     type: ["object", "string"],
@@ -403,7 +403,7 @@ export const AventusConfigSchema: JSONSchema = {
                             enum: ['none', 'need', 'full'],
                             default: "need"
                         },
-                        subDependancesInclude: {
+                        subDependenciesInclude: {
                             type: "object",
                             description: "Inclusion pattern for each lib. You can use a star to select everythink. If nothink find for a lib, the need value ll be used",
                             patternProperties: {

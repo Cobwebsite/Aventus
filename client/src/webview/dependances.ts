@@ -2,10 +2,10 @@ import { readFileSync } from 'fs';
 import { normalize } from 'path';
 import { ExtensionContext, Uri, ViewColumn, Webview, WebviewPanel, window } from 'vscode';
 
-export class AventusDependancesView {
+export class AventusDependenciesView {
 
     public getView(context: ExtensionContext, uri: string): WebviewPanel {
-        let panel = window.createWebviewPanel("avt-dependances-view", "Dependances", {
+        let panel = window.createWebviewPanel("avt-dependencies-view", "Dependencies", {
             viewColumn: ViewColumn.Active
         }, {
             enableScripts: true,

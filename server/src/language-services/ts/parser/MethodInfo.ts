@@ -7,7 +7,7 @@ import { BaseInfo } from './BaseInfo';
 import { NoCompileDecorator } from './decorators/NoCompileDecorator';
 import { DocumentationInfo } from './DocumentationInfo';
 import { BindThisDecorator } from './decorators/BindThisDecorator';
-import { DependancesDecorator } from './decorators/DependancesDecorator';
+import { DependenciesDecorator } from './decorators/DependenciesDecorator';
 import { DeprecatedDecorator } from './decorators/DeprecatedDecorator';
 
 export class MethodInfo {
@@ -33,15 +33,15 @@ export class MethodInfo {
     public deprecatedMsg: string = "";
     public readonly node: MethodDeclaration;
     public get compiledContent(): string {
-        let txt = BaseInfo.getContent(this.content, this.start, this.end, this._class.dependancesLocations, this._class.compileTransformations);
+        let txt = BaseInfo.getContent(this.content, this.start, this.end, this._class.dependenciesLocations, this._class.compileTransformations);
         return txt;
     }
     public get compiledContentHotReload(): string {
-        let txt = BaseInfo.getContentHotReload(this.content, this.start, this.end, this._class.dependancesLocations, this._class.compileTransformations);
+        let txt = BaseInfo.getContentHotReload(this.content, this.start, this.end, this._class.dependenciesLocations, this._class.compileTransformations);
         return txt;
     }
     public get compiledContentNpm(): string {
-        let txt = BaseInfo.getContentNpm(this.content, this.start, this.end, this._class.dependancesLocations, this._class.compileTransformations);
+        let txt = BaseInfo.getContentNpm(this.content, this.start, this.end, this._class.dependenciesLocations, this._class.compileTransformations);
         return txt;
     }
 

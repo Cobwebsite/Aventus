@@ -56,7 +56,7 @@ export class AventusStaticFile extends AventusTsFile {
             },
             docInvisible: '',
             debugTxt: '',
-            dependances: [],
+            dependencies: [],
             uri: this.file.uri,
             required: true,
             type: InfoType.none,
